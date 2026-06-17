@@ -293,6 +293,11 @@ urlpatterns = [
         name='api_produtos_cadastro_import_preview',
     ),
     path(
+        'api/produtos/cadastro/import-preview/status/',
+        views.api_produtos_cadastro_import_preview_status,
+        name='api_produtos_cadastro_import_preview_status',
+    ),
+    path(
         'api/produtos/cadastro/import-aplicar/',
         views.api_produtos_cadastro_import_aplicar,
         name='api_produtos_cadastro_import_aplicar',

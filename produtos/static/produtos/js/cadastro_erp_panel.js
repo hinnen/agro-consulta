@@ -1458,9 +1458,44 @@
     var btnPrev = document.getElementById('cadastro-import-previa');
     var btnApl = document.getElementById('cadastro-import-aplicar');
     var btnFec = document.getElementById('cadastro-import-fechar');
+    var elProgWrap = document.getElementById('cadastro-import-progress-wrap');
+    var elProgBar = document.getElementById('cadastro-import-progress-bar');
+    var elProgPct = document.getElementById('cadastro-import-progress-pct');
+    var elProgLabel = document.getElementById('cadastro-import-progress-label');
+    var elProgDetail = document.getElementById('cadastro-import-progress-detail');
+    var elProgTrack = elProgWrap ? elProgWrap.querySelector('[role="progressbar"]') : null;
+    var pollTimer = null;
     var ultimaPreviaOk = false;
 
+    function cancelPoll() {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+    }
+
+    function setProgress(pct, label, detail) {
+      var n = Math.max(0, Math.min(100, Math.round(pct || 0)));
+      if (elProgWrap) elProgWrap.classList.remove('hidden');
+      if (elProgBar) elProgBar.style.width = n + '%';
+      if (elProgPct) elProgPct.textContent = n + '%';
+      if (elProgLabel && label) elProgLabel.textContent = label;
+      if (elProgDetail) elProgDetail.textContent = detail || '';
+      if (elProgTrack) elProgTrack.setAttribute('aria-valuenow', String(n));
+    }
+
+    function hideProgress() {
+      cancelPoll();
+      if (elProgWrap) elProgWrap.classList.add('hidden');
+      if (elProgBar) elProgBar.style.width = '0%';
+      if (elProgPct) elProgPct.textContent = '0%';
+      if (elProgDetail) elProgDetail.textContent = '';
+      if (elProgTrack) elProgTrack.setAttribute('aria-valuenow', '0');
+    }
+
     function limparImportUi() {
+      cancelPoll();
+      hideProgress();
       ultimaPreviaOk = false;
       if (btnApl) btnApl.disabled = true;
       if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
@@ -1500,9 +1535,171 @@
       if (btnApl) btnApl.disabled = !(j.n_alteracoes > 0);
     }
 
+    function parseHttpJson(r) {
+      return r.text().then(function (text) {
+        var j = null;
+        try {
+          j = text ? JSON.parse(text) : null;
+        } catch (e) {
+          var msg = 'Resposta inválida do servidor';
+          if (r.status === 502 || r.status === 504) {
+            msg = 'Servidor demorou demais — aguarde ou tente de novo em instantes.';
+          } else if (r.status === 404) {
+            msg = 'Rota de prévia não encontrada — atualize a página (Ctrl+F5).';
+          } else if (r.status === 403 || r.status === 401) {
+            msg = 'Sessão expirada — faça login de novo.';
+          } else if (text && text.indexOf('<html') >= 0) {
+            msg = 'Erro no servidor (HTTP ' + r.status + '). Tente F5 ou login de novo.';
+          }
+          throw new Error(msg);
+        }
+        return { ok: r.ok, j: j };
+      });
+    }
+
+    function parseXhrJson(xhr) {
+      var text = xhr.responseText || '';
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch (e) {
+        if (xhr.status === 502 || xhr.status === 504) {
+          throw new Error('Servidor demorou demais — a planilha grande leva mais tempo. Aguarde o deploy ou edite só as linhas alteradas.');
+        }
+        if (xhr.status === 403 || xhr.status === 401) {
+          throw new Error('Sessão expirada — faça login de novo.');
+        }
+        throw new Error('Resposta inválida do servidor (HTTP ' + xhr.status + '). Atualize a página (Ctrl+F5).');
+      }
+    }
+
+    function pollPreviaStatus(jobId, totalLinhas, onOk, onFail) {
+      if (!C.URL_IMPORT_PREVIEW_STATUS) {
+        if (typeof onFail === 'function') onFail(new Error('Prévia indisponível — atualize a página (Ctrl+F5).'));
+        return;
+      }
+      fetch(C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha na prévia');
+        if (j.done) {
+          setProgress(100, 'Concluído', '');
+          setTimeout(hideProgress, 400);
+          if (typeof onOk === 'function') onOk(j);
+          return;
+        }
+        var srvPct = j.pct || 0;
+        var uiPct = 30 + Math.round(srvPct * 0.68);
+        var det = '';
+        if (j.total_linhas) det = j.total_linhas + ' linha(s) na planilha';
+        if (j.phase && j.phase.indexOf('linha') >= 0) det = j.phase;
+        setProgress(uiPct, j.phase || 'Analisando planilha…', det);
+        pollTimer = setTimeout(function () {
+          pollPreviaStatus(jobId, totalLinhas, onOk, onFail);
+        }, 350);
+      }).catch(function (e) {
+        hideProgress();
+        if (typeof onFail === 'function') onFail(e);
+      });
+    }
+
+    function enviarPlanilhaPreview(onOk, onFail) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        var msg = 'Selecione um arquivo .xlsx ou .csv.';
+        if (typeof alert !== 'undefined') alert(msg);
+        if (typeof onFail === 'function') onFail(new Error(msg));
+        return;
+      }
+      if (!C.URL_IMPORT_PREVIEW) {
+        if (typeof onFail === 'function') onFail(new Error('Prévia indisponível.'));
+        return;
+      }
+      cancelPoll();
+      var fd = new FormData();
+      var file = inpArq.files[0];
+      fd.append('arquivo', file);
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnApl) btnApl.disabled = true;
+      setLoading(true);
+      setProgress(0, 'Enviando arquivo…', file.name || '');
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', C.URL_IMPORT_PREVIEW, true);
+      xhr.setRequestHeader('X-CSRFToken', csrfTok());
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.upload.onprogress = function (ev) {
+        if (!ev.lengthComputable) return;
+        var upPct = Math.round((ev.loaded / ev.total) * 28);
+        var mb = (ev.loaded / 1048576).toFixed(1);
+        var mbTot = (ev.total / 1048576).toFixed(1);
+        setProgress(upPct, 'Enviando arquivo…', mb + ' / ' + mbTot + ' MB');
+      };
+
+      xhr.onload = function () {
+        var j = null;
+        try {
+          j = parseXhrJson(xhr);
+        } catch (e) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (typeof onFail === 'function') onFail(e);
+          else if (typeof alert !== 'undefined') alert(e.message);
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300 || !j || !j.ok) {
+          var err = (j && j.erro) || 'Falha ao enviar planilha';
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (typeof onFail === 'function') onFail(new Error(err));
+          else if (typeof alert !== 'undefined') alert(err);
+          return;
+        }
+        if (j.job_id) {
+          setProgress(30, 'Analisando planilha…', 'Aguarde…');
+          pollPreviaStatus(j.job_id, 0, function (result) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof onOk === 'function') onOk(result);
+          }, function (e) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+            if (typeof onFail === 'function') onFail(e);
+          });
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        setTimeout(hideProgress, 400);
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (typeof onOk === 'function') onOk(j);
+      };
+
+      xhr.onerror = function () {
+        hideProgress();
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        var err = new Error('Falha de rede ao enviar planilha.');
+        if (typeof onFail === 'function') onFail(err);
+        else if (typeof alert !== 'undefined') alert(err.message);
+      };
+
+      xhr.send(fd);
+    }
+
     function enviarPlanilha(url, onOk) {
       if (!inpArq || !inpArq.files || !inpArq.files[0]) {
         if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
+        return;
+      }
+      if (url === C.URL_IMPORT_PREVIEW) {
+        enviarPlanilhaPreview(onOk, function (e) {
+          if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+        });
         return;
       }
       var fd = new FormData();
@@ -1510,17 +1707,19 @@
       if (btnPrev) btnPrev.disabled = true;
       if (btnApl) btnApl.disabled = true;
       setLoading(true);
+      setProgress(0, 'Gravando alterações…', '');
       fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrfTok() },
+        headers: { 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
         body: fd
-      }).then(function (r) {
-        return r.json().then(function (j) { return { ok: r.ok, j: j }; });
-      }).then(function (x) {
+      }).then(parseHttpJson).then(function (x) {
         if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha na importação');
+        setProgress(100, 'Concluído', '');
+        setTimeout(hideProgress, 400);
         if (typeof onOk === 'function') onOk(x.j);
       }).catch(function (e) {
+        hideProgress();
         if (typeof alert !== 'undefined') alert(e.message || 'Erro');
       }).finally(function () {
         setLoading(false);

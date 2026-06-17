@@ -17048,28 +17048,192 @@ def _cadastro_planilha_tmp_upload(upload):
         return Path(tmp.name)
 
 
+CADASTRO_IMPORT_JOB_CACHE_TTL = 900
+CADASTRO_IMPORT_JOB_PREFIX = "agro_cad_imp_"
+
+
+def _cadastro_import_job_path(job_id: str):
+    import tempfile
+    from pathlib import Path
+
+    safe = re.sub(r"[^a-f0-9]", "", (job_id or "").lower())[:64]
+    if not safe:
+        raise ValueError("job inválido")
+    return Path(tempfile.gettempdir()) / f"agro_cad_imp_{safe}.json"
+
+
+def _cadastro_import_job_set(job_id: str, payload: dict) -> None:
+    import json
+
+    from django.core.cache import cache
+
+    cache.set(f"{CADASTRO_IMPORT_JOB_PREFIX}{job_id}", payload, timeout=CADASTRO_IMPORT_JOB_CACHE_TTL)
+    try:
+        _cadastro_import_job_path(job_id).write_text(json.dumps(payload), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _cadastro_import_job_get(job_id: str) -> dict | None:
+    import json
+
+    from django.core.cache import cache
+
+    data = cache.get(f"{CADASTRO_IMPORT_JOB_PREFIX}{job_id}")
+    if isinstance(data, dict):
+        return data
+    try:
+        p = _cadastro_import_job_path(job_id)
+        if p.is_file():
+            raw = json.loads(p.read_text(encoding="utf-8"))
+            return raw if isinstance(raw, dict) else None
+    except Exception:
+        pass
+    return None
+
+
+def _cadastro_import_job_delete(job_id: str) -> None:
+    from django.core.cache import cache
+
+    cache.delete(f"{CADASTRO_IMPORT_JOB_PREFIX}{job_id}")
+    try:
+        _cadastro_import_job_path(job_id).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_cadastro_import_preview(request):
-    """Prévia da importação Excel — não grava."""
+    """Prévia da importação Excel — assíncrona (job_id) ou ?sync=1 na mesma requisição."""
+    import secrets
+    import threading
+
     from produtos.cadastro_planilha_util import preview_importacao_cadastro
 
     upload = request.FILES.get("arquivo")
     if not upload:
         return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    sync = request.GET.get("sync") in ("1", "true", "yes")
     tmp_path = None
     try:
         tmp_path = _cadastro_planilha_tmp_upload(upload)
-        prev = preview_importacao_cadastro(tmp_path)
-        return JsonResponse({"ok": True, **prev})
-    except ValueError as exc:
-        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+        if sync:
+            try:
+                prev = preview_importacao_cadastro(tmp_path)
+                return JsonResponse({"ok": True, **prev})
+            except ValueError as exc:
+                return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+        job_id = secrets.token_hex(12)
+        path_for_thread = tmp_path
+        tmp_path = None
+
+        def work() -> None:
+            total_linhas = 0
+
+            def on_progress(pct: int, phase: str) -> None:
+                nonlocal total_linhas
+                if phase.startswith("total:"):
+                    try:
+                        total_linhas = int(phase.split(":", 1)[1])
+                    except (TypeError, ValueError):
+                        pass
+                    return
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": min(99, max(0, int(pct))),
+                        "phase": phase,
+                        "total_linhas": total_linhas,
+                        "done": False,
+                    },
+                )
+
+            try:
+                prev = preview_importacao_cadastro(path_for_thread, on_progress=on_progress)
+                total_linhas = int(prev.get("total_linhas") or total_linhas)
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "phase": "Concluído",
+                        "total_linhas": total_linhas,
+                        "done": True,
+                        "ok": True,
+                        "result": prev,
+                    },
+                )
+            except Exception as exc:
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "done": True,
+                        "ok": False,
+                        "erro": str(exc) or "Falha na prévia.",
+                    },
+                )
+            finally:
+                try:
+                    path_for_thread.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+        _cadastro_import_job_set(
+            job_id,
+            {
+                "pct": 0,
+                "phase": "Iniciando análise…",
+                "total_linhas": 0,
+                "done": False,
+            },
+        )
+        threading.Thread(target=work, daemon=True).start()
+        return JsonResponse({"ok": True, "job_id": job_id, "async": True})
     finally:
         if tmp_path is not None:
             try:
                 tmp_path.unlink(missing_ok=True)
             except Exception:
                 pass
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_cadastro_import_preview_status(request):
+    """Status da prévia assíncrona (percentual e resultado)."""
+    job_id = (request.GET.get("job") or "").strip()[:64]
+    if not job_id:
+        return JsonResponse({"ok": False, "erro": "Informe o identificador da prévia."}, status=400)
+    data = _cadastro_import_job_get(job_id)
+    if not data:
+        return JsonResponse(
+            {"ok": False, "erro": "Prévia expirada ou inexistente — envie o arquivo de novo."},
+            status=404,
+        )
+    if data.get("done"):
+        if not data.get("ok", True):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "done": True,
+                    "pct": 100,
+                    "erro": data.get("erro") or "Falha na prévia.",
+                },
+                status=400,
+            )
+        result = data.get("result") or {}
+        _cadastro_import_job_delete(job_id)
+        return JsonResponse({"ok": True, "done": True, "pct": 100, **result})
+    return JsonResponse(
+        {
+            "ok": True,
+            "done": False,
+            "pct": data.get("pct", 0),
+            "phase": data.get("phase", ""),
+            "total_linhas": data.get("total_linhas", 0),
+        }
+    )
 
 
 @login_required(login_url="/admin/login/")
