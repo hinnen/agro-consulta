@@ -13,6 +13,7 @@ from produtos.mongo_financeiro_util import (
     AGRO_FONTE_VERDADE,
     COL_DTO_LANCAMENTO,
     lancamento_para_api,
+    lancamentos_montar_query_mongo,
 )
 
 _BACKUP_CAP = 120_000
@@ -27,7 +28,9 @@ def _linha_backup(doc: dict, despesa: bool) -> dict[str, Any]:
     return row
 
 
-def _filtro_mongo_backup(despesa: bool) -> dict[str, Any]:
+def _filtro_mongo_backup(despesa: bool, *, somente_abertos: bool = False) -> dict[str, Any]:
+    if somente_abertos:
+        return lancamentos_montar_query_mongo(despesa=despesa, status="abertos")
     if despesa:
         return {"Despesa": True}
     return {
@@ -99,9 +102,9 @@ def _vals_lancamentos(row: dict, *, despesa: bool) -> tuple[Any, ...]:
     )
 
 
-def _iter_csv_lancamentos(db, despesa: bool) -> Iterator[tuple[Any, ...]]:
+def _iter_csv_lancamentos(db, despesa: bool, *, somente_abertos: bool = False) -> Iterator[tuple[Any, ...]]:
     col = db[COL_DTO_LANCAMENTO]
-    filtro = _filtro_mongo_backup(despesa)
+    filtro = _filtro_mongo_backup(despesa, somente_abertos=somente_abertos)
     n = 0
     for doc in col.find(filtro).sort([("DataVencimento", 1), ("_id", 1)]).batch_size(400):
         if n >= _BACKUP_CAP:
@@ -110,12 +113,19 @@ def _iter_csv_lancamentos(db, despesa: bool) -> Iterator[tuple[Any, ...]]:
         n += 1
 
 
-def _iter_csv_fiado() -> Iterator[tuple[Any, ...]]:
+def _iter_csv_fiado(*, somente_abertos: bool = False) -> Iterator[tuple[Any, ...]]:
     from produtos.fiado_gestao_util import titulo_para_dict
     from produtos.models import FiadoTituloAgro
 
     n = 0
     qs = FiadoTituloAgro.objects.select_related("cliente_agro", "venda_agro").order_by("pk")
+    if somente_abertos:
+        qs = qs.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
     for t in qs.iterator(chunk_size=300):
         if n >= _BACKUP_CAP:
             break
@@ -149,20 +159,46 @@ def _csv_bytes(headers: tuple[str, ...], rows: Iterator[tuple[Any, ...]]) -> tup
     return sio.getvalue().encode("utf-8-sig"), count
 
 
-def _contagem_mongo(db, despesa: bool) -> int | None:
+def _contagem_mongo(db, despesa: bool, *, somente_abertos: bool = False) -> int | None:
     try:
-        return int(db[COL_DTO_LANCAMENTO].count_documents(_filtro_mongo_backup(despesa)))
+        return int(
+            db[COL_DTO_LANCAMENTO].count_documents(
+                _filtro_mongo_backup(despesa, somente_abertos=somente_abertos)
+            )
+        )
     except Exception:
         return None
 
 
-def montar_zip_backup_completo(db, *, gerado_por: str = "") -> tuple[bytes, dict[str, Any]]:
+def _contagem_fiado(*, somente_abertos: bool = False) -> int:
+    from produtos.models import FiadoTituloAgro
+
+    qs = FiadoTituloAgro.objects.all()
+    if somente_abertos:
+        qs = qs.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
+    return qs.count()
+
+
+def montar_zip_backup_completo(
+    db,
+    *,
+    gerado_por: str = "",
+    somente_abertos: bool = False,
+) -> tuple[bytes, dict[str, Any]]:
     """ZIP com CSV separados — abre no Excel sem travar o PC (um arquivo por vez)."""
     if db is None:
         return b"", {"ok": False, "erro": "Mongo indisponível"}
     agora = timezone.localtime()
     buf = BytesIO()
-    stats: dict[str, Any] = {"ok": True, "limite": _BACKUP_CAP}
+    stats: dict[str, Any] = {"ok": True, "limite": _BACKUP_CAP, "somente_abertos": somente_abertos}
+
+    sufixo_arq = "_em_aberto" if somente_abertos else ""
+    rotulo_filtro = "Em aberto (mesmo critério da lista Lançamentos)" if somente_abertos else "Todos (abertos + quitados)"
 
     fiado_headers = (
         "ID",
@@ -181,18 +217,22 @@ def montar_zip_backup_completo(db, *, gerado_por: str = "") -> tuple[bytes, dict
     )
 
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-        body_p, c_p = _csv_bytes(_headers_lancamentos(despesa=True), _iter_csv_lancamentos(db, True))
-        zf.writestr("01_a_pagar.csv", body_p)
-        body_r, c_r = _csv_bytes(_headers_lancamentos(despesa=False), _iter_csv_lancamentos(db, False))
-        zf.writestr("02_a_receber.csv", body_r)
-        body_f, c_f = _csv_bytes(fiado_headers, _iter_csv_fiado())
-        zf.writestr("03_fiado_pdv.csv", body_f)
+        body_p, c_p = _csv_bytes(
+            _headers_lancamentos(despesa=True),
+            _iter_csv_lancamentos(db, True, somente_abertos=somente_abertos),
+        )
+        zf.writestr(f"01_a_pagar{sufixo_arq}.csv", body_p)
+        body_r, c_r = _csv_bytes(
+            _headers_lancamentos(despesa=False),
+            _iter_csv_lancamentos(db, False, somente_abertos=somente_abertos),
+        )
+        zf.writestr(f"02_a_receber{sufixo_arq}.csv", body_r)
+        body_f, c_f = _csv_bytes(fiado_headers, _iter_csv_fiado(somente_abertos=somente_abertos))
+        zf.writestr(f"03_fiado_pdv{sufixo_arq}.csv", body_f)
 
-        tot_p = _contagem_mongo(db, True)
-        tot_r = _contagem_mongo(db, False)
-        from produtos.models import FiadoTituloAgro
-
-        tot_f = FiadoTituloAgro.objects.count()
+        tot_p = _contagem_mongo(db, True, somente_abertos=somente_abertos)
+        tot_r = _contagem_mongo(db, False, somente_abertos=somente_abertos)
+        tot_f = _contagem_fiado(somente_abertos=somente_abertos)
         stats.update(
             {
                 "export_pagar": c_p,
@@ -213,16 +253,16 @@ def montar_zip_backup_completo(db, *, gerado_por: str = "") -> tuple[bytes, dict
 
         readme = (
             f"SisVale — backup Lançamentos\r\n"
+            f"Filtro: {rotulo_filtro}\r\n"
             f"Gerado: {agora.strftime('%d/%m/%Y %H:%M')}\r\n"
             f"Por: {(gerado_por or '—')[:120]}\r\n"
             f"\r\n"
             f"Arquivos:\r\n"
-            f"  01_a_pagar.csv     — {c_p} linhas (total espelho: {tot_p if tot_p is not None else '?'})\r\n"
-            f"  02_a_receber.csv   — {c_r} linhas (total espelho: {tot_r if tot_r is not None else '?'})\r\n"
-            f"  03_fiado_pdv.csv   — {c_f} linhas (total fiado: {tot_f})\r\n"
+            f"  01_a_pagar{sufixo_arq}.csv     — {c_p} linhas (total no filtro: {tot_p if tot_p is not None else '?'})\r\n"
+            f"  02_a_receber{sufixo_arq}.csv   — {c_r} linhas (total no filtro: {tot_r if tot_r is not None else '?'})\r\n"
+            f"  03_fiado_pdv{sufixo_arq}.csv   — {c_f} linhas (total no filtro: {tot_f})\r\n"
             f"\r\n"
             f"Como abrir: extraia o ZIP e abra UM CSV por vez no Excel.\r\n"
-            f"Não abra tudo numa planilha só — anos de contas a pagar pesam demais.\r\n"
             f"Fiado PDV é módulo separado; PDV continua igual.\r\n"
         )
         if stats.get("truncado"):
@@ -232,9 +272,10 @@ def montar_zip_backup_completo(db, *, gerado_por: str = "") -> tuple[bytes, dict
     return buf.getvalue(), stats
 
 
-def nome_arquivo_backup_completo(ext: str = "zip") -> str:
+def nome_arquivo_backup_completo(ext: str = "zip", *, somente_abertos: bool = False) -> str:
     agora = timezone.localtime()
-    return f"SisVale_Lancamentos_BACKUP_{agora.strftime('%Y-%m-%d_%H%M')}.{ext}"
+    sufixo = "_ABERTOS" if somente_abertos else ""
+    return f"SisVale_Lancamentos_BACKUP{sufixo}_{agora.strftime('%Y-%m-%d_%H%M')}.{ext}"
 
 
 # Compat — testes / chamadas antigas

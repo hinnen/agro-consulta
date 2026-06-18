@@ -234,6 +234,8 @@ from .mongo_financeiro_util import (
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
+    expandir_linhas_emprestimo_dual_lote,
+    _fin_ln_despesa,
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
@@ -13062,10 +13064,18 @@ def api_lancamentos_congelamento_status(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_backup_completo_xlsx(request):
-    """
-    Backup completo antes do corte ERP.
-    Padrão: ZIP com CSV (leve). ``?formato=xlsx`` descontinuado — use ZIP.
-    """
+    """Backup completo (todos) antes do corte ERP — ZIP com CSV."""
+    return _api_lancamentos_backup_zip_resposta(request, somente_abertos=False)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_backup_abertos_xlsx(request):
+    """Backup só em aberto (mesmo filtro da lista Lançamentos) — ZIP com CSV."""
+    return _api_lancamentos_backup_zip_resposta(request, somente_abertos=True)
+
+
+def _api_lancamentos_backup_zip_resposta(request, *, somente_abertos: bool):
     err = _lancamentos_pre_corte_admin_ok(request)
     if err:
         return err
@@ -13077,6 +13087,7 @@ def api_lancamentos_backup_completo_xlsx(request):
     blob, stats = montar_zip_backup_completo(
         db,
         gerado_por=getattr(request.user, "username", "") or "",
+        somente_abertos=somente_abertos,
     )
     if not stats.get("ok"):
         return HttpResponse(
@@ -13084,7 +13095,7 @@ def api_lancamentos_backup_completo_xlsx(request):
             status=500,
             content_type="text/plain; charset=utf-8",
         )
-    nome = nome_arquivo_backup_completo("zip")
+    nome = nome_arquivo_backup_completo("zip", somente_abertos=somente_abertos)
     resp = HttpResponse(blob, content_type="application/zip")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp
@@ -14447,6 +14458,14 @@ def api_lancamentos_criar_manual_lote(request):
     if not isinstance(linhas, list):
         return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
 
+    linhas = expandir_linhas_emprestimo_dual_lote(
+        [x for x in linhas if isinstance(x, dict)]
+    )
+    for idx, ln in enumerate(linhas):
+        err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
+        if err_dual:
+            return JsonResponse({"ok": False, "erro": err_dual, "linha": idx + 1}, status=400)
+
     def _ln_d(ln, key):
         if not isinstance(ln, dict):
             return None
@@ -14494,14 +14513,18 @@ def api_lancamentos_criar_manual_lote(request):
         bid_ok = bool(bid_hdr)
         if not bid_ok and isinstance(linhas, list):
             for ln in linhas:
-                if isinstance(ln, dict) and str(ln.get("banco_id") or "").strip():
+                if not isinstance(ln, dict):
+                    continue
+                if not _fin_ln_despesa(ln, despesa):
+                    continue
+                if str(ln.get("banco_id") or "").strip():
                     bid_ok = True
                     break
         if not bid_ok:
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Para lançar quitado, informe a conta bancária (conta com ID do ERP) em cada lançamento.",
+                    "erro": "Para lançar quitado na saída, informe a conta bancária (conta com ID do ERP).",
                 },
                 status=400,
             )
@@ -14511,11 +14534,11 @@ def api_lancamentos_criar_manual_lote(request):
                 continue
             raw_lq = ln.get("quitado")
             ln_q = raw_lq is True or str(raw_lq or "").strip().lower() in ("1", "true", "yes", "sim", "on")
-            if ln_q and not str(ln.get("banco_id") or "").strip():
+            if ln_q and _fin_ln_despesa(ln, despesa) and not str(ln.get("banco_id") or "").strip():
                 return JsonResponse(
                     {
                         "ok": False,
-                        "erro": f"Lançamento {idx + 1} quitado: escolha conta bancária com ID do ERP na lista.",
+                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta bancária com ID do ERP na lista.",
                     },
                     status=400,
                 )

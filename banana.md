@@ -235,6 +235,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
 - Ordenação servidor hoje: principalmente vencimento; sort só cliente não substitui paginação global.
+- **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
 
@@ -288,7 +289,7 @@ Fluxo **seguro** (só admin vê os botões):
 3. **Deploy** — loja evita Lançamentos por algumas horas; ERP para de atualizar financeiro.
 4. **Depois** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` no Render (opcional, reforço).
 
-**Backup ZIP** — `01_a_pagar.csv`, `02_a_receber.csv`, `03_fiado_pdv.csv` + `LEIA-ME.txt`. Fiado PDV é Postgres (cópia; PDV não muda). A receber vazia + fiado cheio é normal na GM Agro.
+**Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto** (mesmo critério da lista). Fiado PDV é Postgres (cópia; PDV não muda).
 
 Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -340,9 +341,9 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **PDV wizard — GM no barras remove carrinho** — fix local `pdv_wizard.js`: hífen de `GM1546-5S` não pode chamar atalho `-`; GM entra modo barcode; bloqueio F4 pós-bip. **Aguarda commit + teste Renan.**
-2. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
-3. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
+1. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano no Nova saída + lote manual: entrada quitada hoje + pagamento + juros se saída &gt; entrada; `despesa` por linha no backend.
+2. **PDV wizard — GM no barras remove carrinho** — fix local `pdv_wizard.js`: hífen de `GM1546-5S` não pode chamar atalho `-`; GM entra modo barcode; bloqueio F4 pós-bip. **Aguarda commit + teste Renan.**
+3. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
 4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
 5. **PDV legado carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`) · produção `59bdedc` v1.02.
 
@@ -356,10 +357,10 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.10`  
+**Versão:** `1.0.11`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (fix PDV wizard GM1546-5S + checkpoint)  
-**Versão app (`VERSION`):** staging `teste` · **produção `baadbca` v1.06** — só backup ZIP Lançamentos + checkpoint (merge errado revertido 2026-06-18)
+**Atualizado por:** assistente Cursor (Empréstimo entrada+pagamento — Nova saída + lote manual)  
+**Versão app (`VERSION`):** staging `teste` após este commit · **produção `baadbca` v1.06** — só backup ZIP Lançamentos + checkpoint
 
 ### O que este documento já cobre (até aqui)
 
