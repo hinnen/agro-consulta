@@ -200,6 +200,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'produtos.context_processors.home_launcher_nav',
+                'produtos.context_processors.agro_emprestimo_dual_ui',
                 'produtos.context_processors.agro_app_build',
             ],
         },

@@ -379,6 +379,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] §4.15 roadmap desvinculação ERP (Mongo → Postgres)
 - [x] Regra: assistente atualiza banana automaticamente (sem perguntar)
 - [x] Nova saída: tipografia maior + card expandido ocupa altura (sem vazio embaixo)
+- [x] **Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (2026-06-18)
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
 
 ### NFC-e — status staging (2026-06-18)
@@ -389,6 +390,28 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
 - [ ] Merge **`producao`** — só quando Renan pedir + checklist `docs/NFCE-PRODUCAO.md`
+
+### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
+
+**Onde:** modal **Nova saída** + tela **Lote manual** (`/lancamentos/novo-manual/`).
+
+**Plano na lista:** `Empréstimo (entrada + pagamento)` (buscar «emprest»).
+
+| Campo | Entrada (receita) | Saída / pagamento |
+|-------|-------------------|-------------------|
+| Loja, pessoa | sim | sim |
+| Conta, forma | não | sim |
+| Comp./venc. | **hoje** (auto) | o que preencher |
+| Quitado | **sempre** | chip «Quitado» só aqui |
+| Recorrência | desligada | — |
+
+**Valores:** entrada + saída. Se **saída &gt; entrada** → título extra em **Juros de Empréstimos** (diferença). Pagamento principal = valor da entrada quando há juros.
+
+**Toggle Pagar/Receber:** ignorado neste modo (gera receita + despesa no mesmo envio).
+
+**Arquivos:** `lancamento_emprestimo_dual.js`, `expandir_linhas_emprestimo_dual_lote`, `despesa` por linha em `inserir_lancamentos_manual_lote`.
+
+**Teste staging:** Nova saída → plano empréstimo → entrada 1000, saída 1200, loja, pessoa, conta → 3 títulos (entrada quitada hoje + pagamento 1000 + juros 200).
 
 ### URGENTE — PDV carrinho some ao bipar GM no barras (2026-06-18)
 
@@ -486,11 +509,9 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 | Arquivo | Tema |
 |---------|------|
 | `produtos/static/produtos/js/pdv_wizard.js` | **URGENTE** — GM/hífen não remove carrinho; modo barcode GM |
-| `banana.md` | Checkpoint v1.0.10 |
-| `produtos/views.py` | Alterações locais (ver diff antes de commit) |
+| `produtos/lancamentos_backup_util.py` | Backup ZIP filtro «só em aberto» (local, fora deste commit) |
+| `produtos/views.py` | Outras alterações locais (ver diff) |
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
-| `config/app_build_util.py` | Badge BI usa só `VERSION` (local) |
-| `.githooks/`, `scripts/bump_version.py` | Hook bump VERSION (untracked) |
 
 **Próximo passo sugerido:** commit `pdv_wizard.js` + `banana.md` → push `teste` → Renan testa wizard com **GM1546-5S**.
 
@@ -534,6 +555,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.10
+### Fim do checkpoint v1.0.11
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

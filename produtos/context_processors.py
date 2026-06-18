@@ -15,6 +15,16 @@ def home_launcher_nav(request):
         return {"home_launcher_nav_items": []}
 
 
+def agro_emprestimo_dual_ui(request):
+    try:
+        from produtos.mongo_financeiro_util import emprestimo_defaults_para_ui
+
+        return {"agro_emprestimo_dual_cfg": emprestimo_defaults_para_ui()}
+    except Exception:
+        logger.exception("agro_emprestimo_dual_ui")
+        return {"agro_emprestimo_dual_cfg": {}}
+
+
 def agro_app_build(request):
     try:
         from config.app_build_util import get_app_build_info

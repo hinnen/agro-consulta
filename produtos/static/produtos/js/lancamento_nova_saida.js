@@ -76,7 +76,11 @@
         try {
           const r = await fetch(`${api}?campo=${encodeURIComponent(campo)}&q=${encodeURIComponent(inp.value)}`, { credentials: 'same-origin' });
           const j = await r.json();
-          const itens = j.itens || [];
+          let itens = j.itens || [];
+          const dual = window.AgroLancEmprestimoDual;
+          if (dual && typeof dual.injectSuggestItems === 'function') {
+            itens = dual.injectSuggestItems(itens, inp.value);
+          }
           dd.innerHTML = itens.map((it) => {
             const nome = String(it.nome || '').replace(/"/g, '&quot;');
             return `<li data-nome="${nome}" data-id="${String(it.id || '')}">${it.nome}</li>`;
@@ -87,6 +91,9 @@
               inp.value = li.dataset.nome || '';
               if (hid) hid.value = li.dataset.id || '';
               dd.classList.add('hidden');
+              if (campo === 'plano' && window.AgroLancEmprestimoDual) {
+                window.AgroLancEmprestimoDual.onPlanoSelectModal(wrap, inp.value, hid ? hid.value : '');
+              }
               const card = wrap.closest('.agro-ns-card');
               if (card) atualizarResumoCard(card);
             });
@@ -113,6 +120,10 @@
   function atualizarResumoCard(card) {
     const txt = card.querySelector('.agro-ns-card-resumo-txt');
     if (!txt) return;
+    if (window.AgroLancEmprestimoDual && window.AgroLancEmprestimoDual.isCardDual(card)) {
+      txt.textContent = window.AgroLancEmprestimoDual.resumoDualModal(card);
+      return;
+    }
     const plan = sugVal(card, 'plano').nome || 'Sem plano';
     const pes = sugVal(card, 'cliente').nome;
     const valorRaw = String(card.querySelector('.agro-ns-in-valor')?.value || '').trim();
@@ -309,9 +320,22 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="flex flex-col gap-1 min-w-0 agro-ns-valor-normal">
           <label class="agro-ns-label">Valor (R$)</label>
           <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
+        </div>
+        <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0 sm:col-span-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
+              <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-amber-700">Valor saída / pagamento (R$)</label>
+              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
+            </div>
+          </div>
+          <p class="agro-ns-hint text-slate-600">Entrada lança receita quitada hoje. Se saída &gt; entrada, a diferença vai para Juros de Empréstimos.</p>
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Competência</label>
@@ -332,6 +356,9 @@
         <label class="agro-ns-label block mb-1">Descrição</label>
         <input type="text" class="agro-ns-input agro-ns-in-desc w-full">
       </div>
+      <p class="agro-ns-emprestimo-hint hidden agro-ns-hint rounded-xl border-2 border-indigo-200 bg-indigo-50 px-3 py-2 text-indigo-950 font-bold">
+        Empréstimo: gera entrada (receita quitada hoje) + saída(s). Conta e forma valem só para o pagamento. Recorrência desligada.
+      </p>
       <details class="agro-ns-card-rec">
         <summary>Recorrência mensal (opcional)</summary>
         <div class="agro-ns-card-rec-body space-y-2">
@@ -471,10 +498,14 @@
       const recParcelas = Math.max(1, Math.min(Number(card.querySelector('.agro-ns-rec-parcelas')?.value || 1), 12));
       const quitado = !!card.querySelector('.agro-ns-in-quitado')?.checked;
 
-      const vazio = !plan.nome && !valor && !descricao && !emp.nome && !pes.nome && !ban.nome;
+      const dual = window.AgroLancEmprestimoDual;
+      const isDual = dual && dual.isCardDual(card);
+      const vazio = isDual
+        ? !emp.nome && !pes.nome && !ban.nome
+        : !plan.nome && !valor && !descricao && !emp.nome && !pes.nome && !ban.nome;
       if (vazio) return;
 
-      linhas.push({
+      const base = {
         empresa_nome: emp.nome,
         empresa_id: emp.id || null,
         pessoa_nome: pes.nome,
@@ -483,9 +514,6 @@
         banco_id: ban.id || null,
         forma_nome: form.nome,
         forma_id: form.id || null,
-        plano_conta: plan.nome,
-        plano_conta_id: plan.id || null,
-        valor,
         descricao: descricao || undefined,
         data_competencia,
         data_vencimento: data_vencimento || data_competencia,
@@ -494,6 +522,18 @@
         recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
         quitado,
         _num: n,
+      };
+
+      if (isDual && dual.coletarLinhaDualModal) {
+        linhas.push(dual.coletarLinhaDualModal(card, base));
+        return;
+      }
+
+      linhas.push({
+        ...base,
+        plano_conta: plan.nome,
+        plano_conta_id: plan.id || null,
+        valor,
       });
     });
     return linhas;
@@ -507,6 +547,11 @@
     for (let i = 0; i < linhasRaw.length; i += 1) {
       const ln = linhasRaw[i];
       const num = ln._num || i + 1;
+      const dual = window.AgroLancEmprestimoDual;
+      if (ln.emprestimo_dual && dual && dual.validarLinhaDualModal) {
+        if (!dual.validarLinhaDualModal(ln, num)) return false;
+        continue;
+      }
       if (!ln.plano_conta || !ln.valor) {
         alert(`Lançamento ${num}: informe plano de contas e valor.`);
         return false;

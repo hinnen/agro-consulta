@@ -45,6 +45,8 @@ COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
+EMPRESTIMO_DUAL_LABEL = "Empréstimo (entrada + pagamento)"
+EMPRESTIMO_DUAL_PLANO_ID = "__AGRO_EMPRESTIMO_DUAL__"
 # Plano para titulo extra na Entrada NF-e (financeiro). Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
 LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS_PADRAO = "Impostos e Taxas variaveis"
 
@@ -147,6 +149,8 @@ def emprestimo_defaults_para_ui() -> dict[str, Any]:
         "plano_divida": emprestimo_plano_divida_resolvido(),
         "plano_juros": emprestimo_plano_juros_resolvido(),
         "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
+        "dual_label": EMPRESTIMO_DUAL_LABEL,
+        "dual_id": EMPRESTIMO_DUAL_PLANO_ID,
     }
 
 
@@ -4889,6 +4893,140 @@ def _fin_ln_bool(ln: dict, key: str, fallback: bool = False) -> bool:
     return str(raw).strip().lower() in ("1", "true", "yes", "sim", "on")
 
 
+def _fin_ln_despesa(ln: dict, despesa_header: bool) -> bool:
+    """Tipo por linha (``despesa`` / ``tipo``) ou fallback do cabeçalho do lote."""
+    if not isinstance(ln, dict):
+        return bool(despesa_header)
+    if "despesa" in ln:
+        raw = ln.get("despesa")
+        if raw is True:
+            return True
+        if raw is False:
+            return False
+        s = str(raw).strip().lower()
+        if s in ("1", "true", "sim", "pagar", "yes", "on"):
+            return True
+        if s in ("0", "false", "nao", "não", "receber", "no", "off"):
+            return False
+    t = str(ln.get("tipo") or ln.get("tipo_linha") or "").strip().lower()
+    if t == "receber":
+        return False
+    if t == "pagar":
+        return True
+    return bool(despesa_header)
+
+
+def _linha_e_emprestimo_dual(ln: dict) -> bool:
+    if not isinstance(ln, dict):
+        return False
+    if _fin_ln_bool(ln, "emprestimo_dual", False):
+        return True
+    pid = str(ln.get("plano_conta_id") or ln.get("plano_id") or "").strip()
+    if pid == EMPRESTIMO_DUAL_PLANO_ID:
+        return True
+    pn = str(ln.get("plano_conta") or ln.get("plano_nome") or "").strip()
+    return pn == EMPRESTIMO_DUAL_LABEL
+
+
+def expandir_linhas_emprestimo_dual_lote(
+    linhas: list[dict[str, Any]],
+    *,
+    hoje: date | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Pseudo-plano «Empréstimo (entrada + pagamento)» → receita quitada (hoje) + despesa(s).
+    Se valor saída > entrada, a diferença vira título em «Juros de Empréstimos».
+    """
+    if hoje is None:
+        hoje = timezone.localdate()
+    hoje_s = hoje.isoformat()
+    plano_ent = emprestimo_plano_entrada_resolvido()
+    plano_pag = emprestimo_plano_divida_resolvido()
+    plano_juros = emprestimo_plano_juros_resolvido()
+    out: list[dict[str, Any]] = []
+
+    for ln in linhas:
+        if not isinstance(ln, dict) or not _linha_e_emprestimo_dual(ln):
+            out.append(ln)
+            continue
+
+        try:
+            ve = Decimal(str(_fin_parse_valor_entrada_manual(ln.get("valor_entrada"))))
+        except (ValueError, TypeError):
+            ve = Decimal("0")
+        try:
+            vs_raw = ln.get("valor_saida")
+            if vs_raw in (None, ""):
+                vs_raw = ln.get("valor")
+            vs = Decimal(str(_fin_parse_valor_entrada_manual(vs_raw)))
+        except (ValueError, TypeError):
+            vs = Decimal("0")
+
+        if ve <= 0 or vs <= 0:
+            out.append({**ln, "_emprestimo_dual_erro": "Informe valor de entrada e valor de saída maiores que zero."})
+            continue
+
+        base = {k: v for k, v in ln.items() if k not in ("plano_conta", "plano_conta_id", "plano_id", "valor", "valor_entrada", "valor_saida", "emprestimo_dual", "recorrente", "recorrente_modo", "recorrente_parcelas")}
+        pes = _fin_ln_txt(ln, "pessoa_nome", "")
+        desc_base = (ln.get("descricao") or "").strip()
+
+        out.append(
+            {
+                **base,
+                "tipo": "receber",
+                "despesa": False,
+                "plano_conta": plano_ent,
+                "plano_conta_id": None,
+                "valor": float(ve),
+                "data_competencia": hoje_s,
+                "data_vencimento": hoje_s,
+                "quitado": True,
+                "recorrente": False,
+                "banco_nome": "",
+                "banco_id": None,
+                "forma_nome": "",
+                "forma_id": None,
+                "descricao": (desc_base or f"Entrada empréstimo — {pes}")[:500],
+            }
+        )
+
+        if vs > ve:
+            pag_val = ve
+            juros_val = (vs - ve).quantize(Decimal("0.01"))
+        else:
+            pag_val = vs
+            juros_val = Decimal("0")
+
+        out.append(
+            {
+                **base,
+                "tipo": "pagar",
+                "despesa": True,
+                "plano_conta": plano_pag,
+                "plano_conta_id": None,
+                "valor": float(pag_val),
+                "descricao": (desc_base or f"Pagamento empréstimo — {pes}")[:500],
+                "recorrente": False,
+            }
+        )
+
+        if juros_val > Decimal("0.009"):
+            out.append(
+                {
+                    **base,
+                    "tipo": "pagar",
+                    "despesa": True,
+                    "plano_conta": plano_juros,
+                    "plano_conta_id": None,
+                    "valor": float(juros_val),
+                    "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
+                    "recorrente": False,
+                }
+            )
+
+    return out
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -4942,18 +5080,25 @@ def inserir_lancamentos_manual_lote(
         cab_ok = all(
             _fin_ln_txt(ln, "empresa_nome", empresa_nome)
             and _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
-            and _fin_ln_txt(ln, "banco_nome", banco_nome)
+            and (
+                not _fin_ln_despesa(ln, despesa)
+                or _fin_ln_txt(ln, "banco_nome", banco_nome)
+            )
             for ln in linhas
         )
     if not cab_ok:
         return {
             "ok": False,
             "ids": [],
-            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária (por linha ou no cabeçalho)."}],
+            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária (conta só nas despesas / saída)."}],
         }
 
     planned_pre = 0
     for idx, ln in enumerate(linhas):
+        err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
+        if err_dual:
+            return {"ok": False, "ids": [], "erros": [{"linha": idx + 1, "erro": err_dual}]}
+        ln_desp_pre = _fin_ln_despesa(ln, despesa)
         ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
         ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
         if ln_mod not in ("sempre", "normal"):
@@ -4966,7 +5111,9 @@ def inserir_lancamentos_manual_lote(
         n_cp = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_pre += n_cp
         ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
-        if ln_rec and ln_mod == "normal" and ln_quit and ln_n > 1:
+        ln_quit_pagar_pre = ln_quit and ln_desp_pre
+        ln_quit_receber_pre = ln_quit and not ln_desp_pre
+        if ln_rec and ln_mod == "normal" and (ln_quit_pagar_pre or ln_quit_receber_pre) and ln_n > 1:
             return {
                 "ok": False,
                 "ids": [],
@@ -4984,12 +5131,15 @@ def inserir_lancamentos_manual_lote(
             "erros": [{"erro": "Modo Normal: no máximo 60 títulos no lote (linhas × quantidade)."}],
         }
 
-    tpl = _obter_template_lancamento(db, despesa)
-    if not tpl:
-        return {"ok": False, "ids": [], "erros": [{"erro": "Não há lançamento modelo no Mongo para clonar."}]}
+    tpl_cache: dict[bool, dict] = {}
 
-    tpl.pop("_id", None)
-    tpl["PagamentoRemessa"] = {}
+    def _tpl_para(desp: bool) -> dict | None:
+        if desp not in tpl_cache:
+            t = _obter_template_lancamento(db, desp)
+            if not t:
+                return None
+            tpl_cache[desp] = t
+        return copy.deepcopy(tpl_cache[desp])
 
     now = timezone.now()
     lote = f"AG{secrets.token_hex(4).upper()}"
@@ -5028,8 +5178,12 @@ def inserir_lancamentos_manual_lote(
         ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
         ln_banco = _fin_ln_txt(ln, "banco_nome", banco_nome)
         ln_forma = _fin_ln_txt(ln, "forma_nome", forma_nome)
-        if not ln_empresa or not ln_pessoa or not ln_banco:
-            erros.append({"linha": n, "erro": "Preencha loja, pessoa e conta bancária."})
+        ln_despesa = _fin_ln_despesa(ln, despesa)
+        if not ln_empresa or not ln_pessoa:
+            erros.append({"linha": n, "erro": "Preencha loja e pessoa."})
+            continue
+        if ln_despesa and not ln_banco:
+            erros.append({"linha": n, "erro": "Preencha conta bancária (obrigatória na saída / pagamento)."})
             continue
         le_id = _financeiro_id_para_string(ln.get("empresa_id") or empresa_id)
         lp_id = _financeiro_id_para_string(ln.get("pessoa_id") or pessoa_id)
@@ -5048,11 +5202,21 @@ def inserir_lancamentos_manual_lote(
         n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_total += n_copies
         ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
-        ln_quit_pagar = ln_quit and despesa
-        ln_quit_receber = ln_quit and not despesa
+        ln_quit_pagar = ln_quit and ln_despesa
+        ln_quit_receber = ln_quit and not ln_despesa
+        if ln_quit_pagar and not lb_id:
+            erros.append({"linha": n, "erro": "Saída quitada: escolha conta com ID do ERP na lista."})
+            continue
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
         desc_base = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
+
+        tpl = _tpl_para(ln_despesa)
+        if not tpl:
+            erros.append({"linha": n, "erro": "Não há lançamento modelo no Mongo para clonar."})
+            continue
+        tpl.pop("_id", None)
+        tpl["PagamentoRemessa"] = {}
 
         for sub in range(n_copies):
             parcela_seq += 1
@@ -5066,7 +5230,7 @@ def inserir_lancamentos_manual_lote(
                     doc[k] = ""
             if "NumeroLancamento" in doc:
                 doc["NumeroLancamento"] = None
-            doc["Despesa"] = bool(despesa)
+            doc["Despesa"] = bool(ln_despesa)
             doc["Empresa"] = ln_empresa[:200]
             doc["EmpresaID"] = le_id
             doc["Cliente"] = ln_pessoa[:300]
@@ -5131,10 +5295,10 @@ def inserir_lancamentos_manual_lote(
             bc = normalizar_boleto_codigo_barras_mongo(
                 ln.get("boleto_codigo_barras") or ln.get("codigo_barras_boleto")
             )
-            if bc and despesa:
+            if bc and ln_despesa:
                 doc[AGRO_BOLETO_CODIGO_BARRAS] = bc
 
-            if despesa:
+            if ln_despesa:
                 doc["Saida"] = valor
                 doc["Entrada"] = 0.0
                 doc["ValorPago"] = 0.0
