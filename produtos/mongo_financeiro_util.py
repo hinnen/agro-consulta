@@ -154,6 +154,46 @@ def emprestimo_defaults_para_ui() -> dict[str, Any]:
     }
 
 
+def emprestimo_dual_item_sugestao() -> dict[str, Any]:
+    return {
+        "id": EMPRESTIMO_DUAL_PLANO_ID,
+        "nome": EMPRESTIMO_DUAL_LABEL,
+        "emprestimo_dual": True,
+    }
+
+
+def _query_bate_emprestimo_dual(q: str | None) -> bool:
+    ql = (q or "").strip().lower()
+    if len(ql) < 2:
+        return False
+    label = EMPRESTIMO_DUAL_LABEL.casefold()
+    if "emprest" in ql or ql in label or label.find(ql) >= 0:
+        return True
+    for tok in ("entrada", "pagamento", "juros"):
+        if tok in ql and tok in label:
+            return True
+    return False
+
+
+def injetar_emprestimo_dual_sugestao_plano(
+    itens: list[dict[str, Any]] | None,
+    q: str | None,
+) -> list[dict[str, Any]]:
+    """Insere pseudo-plano no topo da lista de autocomplete de plano."""
+    out = [x for x in (itens or []) if isinstance(x, dict)]
+    if not _query_bate_emprestimo_dual(q):
+        return out
+    dual = emprestimo_dual_item_sugestao()
+    did = str(dual.get("id") or "").strip()
+    dnom = str(dual.get("nome") or "").strip().casefold()
+    for it in out:
+        iid = str(it.get("id") or "").strip()
+        inom = str(it.get("nome") or "").strip().casefold()
+        if iid == did or inom == dnom:
+            return out
+    return [dual, *out]
+
+
 def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
     """
     Títulos cujo ``PlanoDeConta`` é de empréstimo no ERP/Mongo:

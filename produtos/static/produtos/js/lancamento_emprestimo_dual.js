@@ -29,7 +29,7 @@
 
   function isDualItem(it) {
     if (!it) return false;
-    if (it._emprestimo_dual) return true;
+    if (it._emprestimo_dual || it.emprestimo_dual) return true;
     return isDualId(it.id) || isDualLabel(it.nome);
   }
 
@@ -46,7 +46,7 @@
     const list = Array.isArray(itens) ? itens.slice() : [];
     if (!queryMatchesDual(q)) return list;
     if (list.some(isDualItem)) return list;
-    list.unshift({ id: dualId(), nome: dualLabel(), _emprestimo_dual: true });
+    list.unshift({ id: dualId(), nome: dualLabel(), _emprestimo_dual: true, emprestimo_dual: true });
     return list;
   }
 

@@ -248,7 +248,15 @@
                 if (dual && typeof dual.injectSuggestItems === 'function') {
                     itens = dual.injectSuggestItems(itens, inp.value);
                 }
-                dd.innerHTML = itens.map(it => `<li class="px-5 py-2.5 text-[10px] font-black uppercase hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0" data-nome="${String(it.nome || '').replace(/"/g, '&quot;')}" data-id="${String(it.id || '')}">${it.nome}</li>`).join('');
+                dd.innerHTML = itens.map((it) => {
+                    const dual = it._emprestimo_dual || it.emprestimo_dual;
+                    const cls = dual
+                        ? 'px-5 py-2.5 text-[10px] font-black uppercase hover:bg-indigo-100 cursor-pointer border-b border-indigo-100 last:border-0 bg-indigo-50 text-indigo-900'
+                        : 'px-5 py-2.5 text-[10px] font-black uppercase hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0';
+                    const nome = String(it.nome || '').replace(/"/g, '&quot;');
+                    const prefix = dual ? '↳ ' : '';
+                    return `<li class="${cls}" data-nome="${nome}" data-id="${String(it.id || '')}">${prefix}${it.nome}</li>`;
+                }).join('');
                 dd.querySelectorAll('li').forEach((li) => {
                     li.addEventListener('mousedown', (ev) => {
                         ev.preventDefault();

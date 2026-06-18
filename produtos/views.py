@@ -239,6 +239,7 @@ from .mongo_financeiro_util import (
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
+    injetar_emprestimo_dual_sugestao_plano,
     listar_emprestimos_agro,
     listar_lancamentos_emprestimo_do_mongo,
     mongo_emprestimo_como_item_agro,
@@ -14387,6 +14388,8 @@ def api_lancamentos_sugestoes(request):
         ordenar=ordenar,
         empresa_id=empresa_id,
     )
+    if campo == "plano":
+        itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
     return JsonResponse({"campo": campo, "itens": itens})
 
 

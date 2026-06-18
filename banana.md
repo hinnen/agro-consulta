@@ -411,7 +411,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Arquivos:** `lancamento_emprestimo_dual.js`, `expandir_linhas_emprestimo_dual_lote`, `despesa` por linha em `inserir_lancamentos_manual_lote`.
 
-**Teste staging:** Nova saída → plano empréstimo → entrada 1000, saída 1200, loja, pessoa, conta → 3 títulos (entrada quitada hoje + pagamento 1000 + juros 200).
+**Teste staging:** Nova saída → plano empréstimo → entrada 1000, saída 1200, loja, pessoa, conta → 3 títulos (entrada quitada hoje + pagamento 1000 + juros 200). **Lista:** 1º item **↳ Empréstimo (entrada + pagamento)** (API + JS); revisão git no BI deve ser **≥ fbccf19**, não `fed0d0a`.
 
 ### URGENTE — PDV carrinho some ao bipar GM no barras (2026-06-18)
 

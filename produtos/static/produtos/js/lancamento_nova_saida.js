@@ -83,7 +83,10 @@
           }
           dd.innerHTML = itens.map((it) => {
             const nome = String(it.nome || '').replace(/"/g, '&quot;');
-            return `<li data-nome="${nome}" data-id="${String(it.id || '')}">${it.nome}</li>`;
+            const dual = it._emprestimo_dual || it.emprestimo_dual;
+            const cls = dual ? ' agro-ns-sug-dual font-black text-indigo-900 bg-indigo-50' : '';
+            const prefix = dual ? '↳ ' : '';
+            return `<li class="${cls.trim()}" data-nome="${nome}" data-id="${String(it.id || '')}" data-dual="${dual ? '1' : '0'}">${prefix}${it.nome}</li>`;
           }).join('');
           dd.querySelectorAll('li').forEach((li) => {
             li.addEventListener('mousedown', (ev) => {
