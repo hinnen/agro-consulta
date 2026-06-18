@@ -80,6 +80,9 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     txt = str(raw or "").strip()
     if not txt:
         return "Outro"
+    low_full = txt.lower()
+    if "pix" in low_full or (re.search(r"mercado\s+pago", low_full) and "qr" in low_full):
+        return "PIX"
     base = re.sub(r"\s+\d+x\s*$", "", txt, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Mercado Pago.*$", "", base, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Sicredi.*$", "", base, flags=re.IGNORECASE).strip()

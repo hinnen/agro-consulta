@@ -21,7 +21,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from produtos.caixa_util import pagamentos_lista_de_venda
+from produtos.caixa_util import normalizar_forma_pagamento_caixa, pagamentos_lista_de_venda
 from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_cfg, nfce_configurada
 from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_xml_envio
@@ -49,6 +49,9 @@ CUF_SP = "35"
 
 # SEFAZ já registrou esse nNF com outra chave (testes repetidos) — tenta próximo número.
 _NFCE_RETRY_CSTAT_DUPLICIDADE = frozenset({"539", "204"})
+
+# NT 2024.003 — PIX/cartão exigem grupo card (tpIntegra 2 = não integrado ao TEF).
+_TPAG_REQUER_CARD = frozenset({"03", "04", "05", "10", "11", "12", "13", "15", "17", "18", "19", "20", "21", "22"})
 
 
 def _q2(v: Decimal | float) -> str:
@@ -100,11 +103,17 @@ def _sub(parent: ET.Element, tag: str, text: str | None = None) -> ET.Element:
     return el
 
 
+def _sanitizar_texto_xml(text: str) -> str:
+    """Evita caracteres tipográficos que quebram validação XSD em alguns ambientes."""
+    t = str(text or "")
+    return t.replace("\u2014", "-").replace("\u2013", "-").replace("\u00b7", ",")
+
+
 def _map_tpag(forma: str) -> str:
     f = str(forma or "").strip().lower()
     if "dinheiro" in f:
         return "01"
-    if "pix" in f:
+    if "pix" in f or ("mercado pago" in f and "qr" in f):
         return "17"
     if "vale" in f and ("crédito" in f or "credito" in f):
         return "99"
@@ -123,10 +132,30 @@ def _map_tpag(forma: str) -> str:
 
 def _pagamentos_da_venda(venda: VendaAgro, *, total_nf: Decimal | None = None) -> list[dict[str, Any]]:
     rows = pagamentos_lista_de_venda(venda)
+    raw_formas: list[str] = []
+    pj = getattr(venda, "pagamentos_json", None)
+    if isinstance(pj, list):
+        for row in pj:
+            if not isinstance(row, dict):
+                raw_formas.append("")
+                continue
+            raw_formas.append(
+                str(
+                    row.get("formaPagamento")
+                    or row.get("forma_pagamento")
+                    or row.get("forma")
+                    or ""
+                ).strip()
+            )
     out: list[dict[str, Any]] = []
-    for row in rows:
+    for idx, row in enumerate(rows):
         forma = str(row.get("forma") or "Outros").strip() or "Outros"
         tpag = _map_tpag(forma)
+        if tpag == "99" and idx < len(raw_formas) and raw_formas[idx]:
+            alt = _map_tpag(raw_formas[idx])
+            if alt != "99":
+                tpag = alt
+                forma = normalizar_forma_pagamento_caixa(raw_formas[idx])
         try:
             val = Decimal(str(row.get("valor") or 0)).quantize(Decimal("0.01"))
         except Exception:
@@ -152,6 +181,19 @@ def _pagamentos_da_venda(venda: VendaAgro, *, total_nf: Decimal | None = None) -
         if abs(diff) >= Decimal("0.01"):
             out[-1]["vPag"] = (out[-1]["vPag"] + diff).quantize(Decimal("0.01"))
     return out
+
+
+def _montar_det_pag(pag: ET.Element, pg: dict[str, Any]) -> None:
+    tpag = str(pg["tPag"])
+    det_p = _sub(pag, "detPag")
+    _sub(det_p, "indPag", "0")
+    _sub(det_p, "tPag", tpag)
+    if tpag == "99" and pg.get("xPag"):
+        _sub(det_p, "xPag", str(pg["xPag"])[:60])
+    _sub(det_p, "vPag", _q2(pg["vPag"]))
+    if tpag in _TPAG_REQUER_CARD:
+        card = _sub(det_p, "card")
+        _sub(card, "tpIntegra", "2")
 
 
 def _garantir_numeracao_inicial(cfg: dict[str, Any]) -> None:
@@ -401,18 +443,13 @@ def _montar_xml_nfce(
 
     pag = _sub(inf, "pag")
     for pg in _pagamentos_da_venda(venda, total_nf=total_nf):
-        det_p = _sub(pag, "detPag")
-        _sub(det_p, "indPag", "0")
-        _sub(det_p, "tPag", pg["tPag"])
-        if pg["tPag"] == "99" and pg.get("xPag"):
-            _sub(det_p, "xPag", str(pg["xPag"])[:60])
-        _sub(det_p, "vPag", _q2(pg["vPag"]))
+        _montar_det_pag(pag, pg)
 
     inf_ad = _sub(inf, "infAdic")
     obs = f"Venda PDV #{venda.pk} | {ibpt['ibpt_texto']}"
     if tp_amb == 2:
         obs = "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL | " + obs
-    _sub(inf_ad, "infCpl", obs[:5000])
+    _sub(inf_ad, "infCpl", _sanitizar_texto_xml(obs)[:5000])
 
     qr_url = _qr_code_url(chave, tp_amb, int(cfg["csc_id"]), cfg["csc_token"])
     xml_body = tostring_sem_prefixos(ET.tostring(nfe, encoding="unicode"))
@@ -788,6 +825,22 @@ def emitir_nfce_para_venda(
             return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
 
         signed = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
+        try:
+            signed = tostring_sem_prefixos(signed)
+        except Exception as exc:
+            logger.exception("XML NFC-e inválido após QR venda %s", venda.pk)
+            doc = NfceDocumentoAgro.objects.create(
+                venda=venda,
+                status=NfceDocumentoAgro.Status.ERRO,
+                chave=chave,
+                numero=numero,
+                serie=serie,
+                mensagem_sefaz=str(exc)[:2000],
+                tp_amb=int(cfg["tp_amb"]),
+                dest_cpf=cpf,
+                consumidor_sem_identificacao=sem_identificacao,
+            )
+            return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
         ret, err_http = _enviar_autorizacao(signed, cfg)
         if err_http or not ret:
             break
