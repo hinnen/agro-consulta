@@ -87,6 +87,8 @@
               inp.value = li.dataset.nome || '';
               if (hid) hid.value = li.dataset.id || '';
               dd.classList.add('hidden');
+              const card = wrap.closest('.agro-ns-card');
+              if (card) atualizarResumoCard(card);
             });
           });
           dd.classList.toggle('hidden', !itens.length);
@@ -100,13 +102,63 @@
     (root || document).querySelectorAll('.agro-ns-sug-wrap').forEach(attachSuggest);
   }
 
-  function calcTotal() {
-    let t = 0;
-    document.querySelectorAll('#agro-ns-linhas .agro-ns-in-valor').forEach((i) => {
-      t += parseFloat(String(i.value || '').replace(',', '.')) || 0;
+  function fmtDataBr(iso) {
+    const s = String(iso || '').trim();
+    if (s.length < 10) return '—';
+    const p = s.slice(0, 10).split('-');
+    if (p.length !== 3) return s;
+    return `${p[2]}/${p[1]}/${p[0]}`;
+  }
+
+  function atualizarResumoCard(card) {
+    const txt = card.querySelector('.agro-ns-card-resumo-txt');
+    if (!txt) return;
+    const plan = sugVal(card, 'plano').nome || 'Sem plano';
+    const pes = sugVal(card, 'cliente').nome;
+    const valorRaw = String(card.querySelector('.agro-ns-in-valor')?.value || '').trim();
+    const valor = valorRaw || '0,00';
+    const ven = fmtDataBr(card.querySelector('.agro-ns-in-ven')?.value);
+    const quit = card.querySelector('.agro-ns-in-quitado')?.checked ? ' · Quitado' : '';
+    const pessoa = pes ? ` · ${pes}` : '';
+    txt.textContent = `${plan}${pessoa} · R$ ${valor} · Venc. ${ven}${quit}`;
+  }
+
+  function retrairCard(card) {
+    if (!card) return;
+    atualizarResumoCard(card);
+    card.classList.remove('agro-ns-card--expandido');
+    card.classList.add('agro-ns-card--retraido');
+  }
+
+  function expandirCard(card) {
+    if (!card) return;
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((c) => {
+      if (c !== card) retrairCard(c);
     });
-    const el = $('agro-ns-total');
-    if (el) el.textContent = t.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    card.classList.remove('agro-ns-card--retraido');
+    card.classList.add('agro-ns-card--expandido');
+  }
+
+  function focarCard(card) {
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const first = card.querySelector('.agro-ns-sug-wrap[data-sug-campo="empresa"] input[type="text"]')
+      || card.querySelector('input:not([type="hidden"])');
+    first?.focus({ preventScroll: true });
+  }
+
+  function bindResumoUpdates(card) {
+    card.querySelectorAll('input, select').forEach((el) => {
+      const ev = el.type === 'checkbox' || el.type === 'date' || el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => atualizarResumoCard(card));
+    });
+  }
+
+  function bindResumoClick(card) {
+    card.querySelector('.agro-ns-card-resumo')?.addEventListener('click', () => {
+      expandirCard(card);
+      focarCard(card);
+    });
   }
 
   function syncQuitadoLinha(card) {
@@ -186,16 +238,24 @@
   function atualizarNumeracaoCards() {
     const cards = document.querySelectorAll('#agro-ns-linhas .agro-ns-card');
     cards.forEach((card, idx) => {
-      const num = card.querySelector('.agro-ns-card-num strong');
-      if (num) num.textContent = String(idx + 1);
+      card.querySelectorAll('.agro-ns-card-num strong').forEach((num) => {
+        num.textContent = String(idx + 1);
+      });
       const rm = card.querySelector('.agro-ns-rm-linha');
       if (rm) rm.classList.toggle('hidden', cards.length <= 1);
+      atualizarResumoCard(card);
     });
   }
 
   function cardHtml(idStr) {
     return `
-    <article class="agro-ns-card agro-ns-linha" data-row-id="${idStr}">
+    <article class="agro-ns-card agro-ns-linha agro-ns-card--expandido" data-row-id="${idStr}">
+      <button type="button" class="agro-ns-card-resumo" title="Expandir lançamento">
+        <span class="agro-ns-card-num">Lançamento <strong>1</strong></span>
+        <span class="agro-ns-card-resumo-txt">—</span>
+        <span class="agro-ns-card-resumo-edit">Editar</span>
+      </button>
+      <div class="agro-ns-card-inner">
       <div class="agro-ns-card-head">
         <span class="agro-ns-card-num">Lançamento <strong>1</strong></span>
         <button type="button" class="agro-ns-rm-linha hidden" title="Remover lançamento">Remover</button>
@@ -298,12 +358,14 @@
           </div>
         </div>
       </details>
+      </div>
     </article>`;
   }
 
-  function addRow() {
+  function addRow(opts) {
+    opts = opts || {};
     const host = $('agro-ns-linhas');
-    if (!host) return;
+    if (!host) return null;
     rowCount += 1;
     const idStr = `r${rowCount}`;
     const prev = host.querySelector('.agro-ns-card:last-child');
@@ -320,19 +382,31 @@
       copiarValoresCard(prev, card);
     }
 
-    card.querySelector('.agro-ns-in-valor')?.addEventListener('input', calcTotal);
-    card.querySelector('.agro-ns-rm-linha')?.addEventListener('click', () => {
+    card.querySelector('.agro-ns-rm-linha')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
       if (host.querySelectorAll('.agro-ns-card').length <= 1) return;
+      const eraExpandido = card.classList.contains('agro-ns-card--expandido');
       card.remove();
       atualizarNumeracaoCards();
-      calcTotal();
+      if (eraExpandido) {
+        const ultimo = host.querySelector('.agro-ns-card:last-child');
+        if (ultimo) { expandirCard(ultimo); focarCard(ultimo); }
+      } else {
+        document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach(atualizarResumoCard);
+      }
     });
 
     attachSugAll(card);
     bindLinhaDatas(card);
     bindRecLinha(card);
+    bindResumoUpdates(card);
+    bindResumoClick(card);
     atualizarNumeracaoCards();
-    calcTotal();
+    atualizarResumoCard(card);
+
+    expandirCard(card);
+    if (opts.collapsePrevious) focarCard(card);
+    return card;
   }
 
   function syncQuitadoVenc() {
@@ -357,8 +431,7 @@
     if (!host) return;
     host.innerHTML = '';
     rowCount = 0;
-    for (let i = 0; i < Math.max(1, n || 1); i += 1) addRow();
-    calcTotal();
+    for (let i = 0; i < Math.max(1, n || 1); i += 1) addRow({ collapsePrevious: false });
   }
 
   function resetIdempotency() {
@@ -579,12 +652,12 @@
     const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncTemaTipo();
-    const cbQ = card.querySelector('.agro-ns-in-quitado');
-    if (cbQ) { cbQ.checked = !!j.quitado_hint; syncQuitadoLinha(card); }
-
     let card = document.querySelector('#agro-ns-linhas .agro-ns-card');
     if (!card) { resetLinhas(1); card = document.querySelector('#agro-ns-linhas .agro-ns-card'); }
     if (!card) return;
+
+    const cbQ = card.querySelector('.agro-ns-in-quitado');
+    if (cbQ) { cbQ.checked = !!j.quitado_hint; syncQuitadoLinha(card); }
 
     const linha0 = (j.linhas && j.linhas[0]) || {};
     const dcHint = j.data_competencia || linha0.data_competencia;
@@ -621,7 +694,7 @@
     if (vel && valStr) vel.value = valStr;
     const dEl = card.querySelector('.agro-ns-in-desc');
     if (dEl) dEl.value = descr || hint || sugNome;
-    calcTotal();
+    atualizarResumoCard(card);
     if (Array.isArray(j.avisos) && j.avisos.filter(Boolean).length) alert(j.avisos.filter(Boolean).join('\n'));
   }
 
@@ -699,7 +772,7 @@
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((r) => {
       r.addEventListener('change', syncTemaTipo);
     });
-    $('agro-ns-add-linha')?.addEventListener('click', () => addRow());
+    $('agro-ns-add-linha')?.addEventListener('click', () => addRow({ collapsePrevious: true }));
     $('agro-ns-form')?.addEventListener('submit', submitForm);
     $('agro-ns-fechar')?.addEventListener('click', fechar);
     $('agro-ns-cancelar')?.addEventListener('click', fechar);

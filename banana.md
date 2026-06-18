@@ -336,9 +336,9 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos** — backup Excel completo + checkpoint admin na entrada; Nova saída tela cheia.
-2. **PDV carrinho** — match GM exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
-3. **NFC-e staging OK** — reemissão funcionando; schema 225; modal CPF grande; PIX/cartão sem popup CPF; pergunta impressão na reemissão.
+1. **Lançamentos — Nova saída** — rodapé fino (Cancelar · Outro lançamento · Finalizar, sem total); ao adicionar linha, anteriores retraem em resumo de uma linha; chip Quitado por item.
+2. **Lançamentos** — backup Excel completo + checkpoint admin na entrada; Nova saída tela cheia.
+3. **PDV carrinho** — match GM exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
 4. **NFC-e por forma de pagamento** — manual/auto, popup NFC/Venda só formas manuais, menu BI contabilidade.
 5. **Staging readonly** — proteção Mongo compartilhado.
 
@@ -355,8 +355,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Versão:** `1.0.7`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (checkpoint NFC-e + banana → teste)  
-**Versão app (`VERSION`):** `1.12`  
-**Branch de referência:** `teste` (HEAD publicado `1aa8323` + este commit)
+**Versão app (`VERSION`):** `1.14` (próximo commit)
 
 ### O que este documento já cobre (até aqui)
 
@@ -374,7 +373,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] Linha do tempo recente de commits
 - [x] §4.15 roadmap desvinculação ERP (Mongo → Postgres)
 - [x] Regra: assistente atualiza banana automaticamente (sem perguntar)
-- [x] Lançamentos: backup Excel + checkpoint pré-corte ERP (código em `teste`)
+- [x] Nova saída: rodapé compacto + cards retráteis ao adicionar lançamento (`teste`)
 
 ### NFC-e — status staging (2026-06-18)
 
@@ -396,6 +395,19 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Teste Renan em casa (sem leitor, v1.09):** `GM1541-5S` OK · `GM1518-125-3` OK (autocomplete lento) · **`GM15415S` falhou** (cadastro ≠ forma da etiqueta no cache local; scanner não ia à API).
 
 **Patch v1.10 (teste):** variantes GM15415S↔GM1541-5S, autocomplete GM, fallback API no scanner, `busca_texto` com alnum no catálogo local.
+
+### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
+
+**Regra:** o leitor bipa **o que está codificado no barras** da etiqueta. **Correto:** EAN/GTIN numérico (ex. `7897030100427`) → PDV recebe número. **GM** (`GM1541-5S`, `GM1518-125-3`) só aparece quando a etiqueta foi gerada **sem** «Código de barras» válido no cadastro — aí o SisVale usa **CODE128 com texto GM** (`produtos_etiquetas_core.js` → `valorBarcodeProduto`).
+
+| O quê | Onde |
+|-------|------|
+| Código GM | **Texto** abaixo do barras (referência humana) |
+| EAN 8/12/13 | **Dentro** do barras — é isso que o leitor deve mandar |
+| Etiquetas antigas / já impressas com GM no barras | PDV aceita GM (patch carrinho); **reimprimir** quando houver EAN no cadastro |
+| Ibiúna ensacada **GM15415S** | Conferir EAN na aba Fiscal → imprimir de novo; preview do modal cadastro mostra se sai EAN ou aviso âmbar |
+
+**Operação:** antes de imprimir lote, abrir 🖨️ no cadastro — se aparecer aviso âmbar «Sem EAN», corrigir cadastro primeiro.
 
 **Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3`
 

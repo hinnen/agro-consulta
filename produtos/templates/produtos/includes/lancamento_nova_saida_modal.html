@@ -29,12 +29,6 @@
 
       <div class="agro-ns-itens-wrap flex flex-col flex-1 min-h-0">
         <div id="agro-ns-linhas" class="agro-ns-linhas-host flex-1 min-h-0 overflow-y-auto"></div>
-        <div class="agro-ns-add-wrap shrink-0 flex justify-center py-3 border-t border-slate-200 bg-slate-50">
-          <button type="button" id="agro-ns-add-linha" class="agro-ns-btn-add flex items-center gap-2">
-            <svg class="shrink-0 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-            Adicionar outro lançamento
-          </button>
-        </div>
       </div>
 
       <details class="agro-ns-details shrink-0 mx-[var(--ns-pad)] mb-1 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
@@ -58,14 +52,14 @@
         </div>
       </details>
 
-      <div class="agro-ns-footer shrink-0 border-t-2 border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <span class="agro-ns-hint block font-black uppercase text-slate-500 tracking-wide">Total do lote</span>
-          <span id="agro-ns-total" class="agro-ns-total font-black tabular-nums leading-none text-[var(--ns-accent)]">R$ 0,00</span>
-        </div>
-        <div class="flex flex-wrap justify-end gap-2">
-          <button type="button" id="agro-ns-cancelar" class="agro-ns-btn-ghost font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
-          <button type="submit" id="agro-ns-submit" class="agro-ns-btn-primary text-white font-black rounded-xl shadow-lg">Finalizar lançamento</button>
+      <div class="agro-ns-footer shrink-0 border-t-2 border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="agro-ns-cancelar" class="agro-ns-btn-ghost agro-ns-footer-btn font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+        <div class="flex flex-wrap items-center justify-end gap-2 min-w-0">
+          <button type="button" id="agro-ns-add-linha" class="agro-ns-btn-add-compact flex items-center gap-1.5">
+            <svg class="shrink-0 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+            Outro lançamento
+          </button>
+          <button type="submit" id="agro-ns-submit" class="agro-ns-btn-primary agro-ns-footer-btn text-white font-black rounded-xl shadow-md">Finalizar</button>
         </div>
       </div>
     </form>
@@ -79,7 +73,7 @@
     --ns-fs-body: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
     --ns-fs-title: clamp(1.25rem, 1vw + 1rem, 1.625rem);
     --ns-fs-sub: clamp(1.0625rem, 0.5vw + 0.9rem, 1.25rem);
-    --ns-fs-total: clamp(1.75rem, 1.5vw + 1.25rem, 2.5rem);
+    --ns-footer-h: clamp(2.5rem, 3.5vh + 1.5rem, 3rem);
     --ns-input-h: clamp(3.15rem, 3vh + 2.15rem, 3.85rem);
     --ns-gap: clamp(0.5rem, 0.7vw, 0.75rem);
     --ns-accent: #dc2626;
@@ -96,14 +90,28 @@
     --ns-accent-ring: rgba(5, 150, 105, 0.2);
     --ns-head-bg: #065f46;
   }
-  .agro-ns-header, .agro-ns-footer { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); }
+  .agro-ns-header, .agro-ns-footer { padding: 0.4rem calc(var(--ns-pad) * 1.25); }
   .agro-ns-linhas-host { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); padding-top: calc(var(--ns-pad) * 1.1); }
   .agro-ns-title { font-size: var(--ns-fs-title); line-height: 1.15; }
   .agro-ns-subtitle { font-size: var(--ns-fs-sub); line-height: 1.25; }
   .agro-ns-label { font-size: var(--ns-fs-label); font-weight: 800; color: #334155; line-height: 1.2; }
   .agro-ns-hint { font-size: clamp(0.875rem, 0.3vw + 0.78rem, 1rem); font-weight: 600; }
   .agro-ns-body { font-size: var(--ns-fs-body); }
-  .agro-ns-total { font-size: var(--ns-fs-total); }
+  .agro-ns-footer-btn, .agro-ns-btn-add-compact {
+    min-height: var(--ns-footer-h);
+    padding: 0.35rem 0.9rem;
+    font-size: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
+    border-radius: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .agro-ns-btn-add-compact {
+    background: #fff;
+    color: var(--ns-accent);
+    border: 2px solid var(--ns-accent);
+  }
+  .agro-ns-btn-add-compact:hover { background: var(--ns-accent-soft); }
   .agro-ns-tipo-btn {
     padding: 0.45rem 0.85rem;
     font-size: clamp(0.8125rem, 0.35vw + 0.72rem, 1rem);
@@ -142,21 +150,22 @@
   .agro-ns-wrap-ven.is-quitado .agro-ns-in-ven { opacity: 0.55; }
   .agro-ns-details-sum { padding: 0.55rem 0.85rem; font-size: var(--ns-fs-label); }
   .agro-ns-details-body { padding: 0.65rem 0.85rem 0.85rem; }
-  .agro-ns-btn-secondary, .agro-ns-btn-ghost, .agro-ns-btn-primary, .agro-ns-btn-add {
+  .agro-ns-btn-secondary, .agro-ns-btn-ghost, .agro-ns-btn-primary {
     min-height: var(--ns-input-h); padding: 0.5rem 1.15rem;
     font-size: clamp(0.9375rem, 0.4vw + 0.82rem, 1.125rem);
     border-radius: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
   }
-  .agro-ns-btn-primary { background: var(--ns-accent); padding-left: 1.5rem; padding-right: 1.5rem; }
+  .agro-ns-btn-primary { background: var(--ns-accent); padding-left: 1.15rem; padding-right: 1.15rem; }
   .agro-ns-btn-primary:hover { background: var(--ns-accent-hover); }
-  .agro-ns-btn-add { background: var(--ns-accent); color: #fff; border: 2px solid transparent; }
-  .agro-ns-btn-add:hover { background: var(--ns-accent-hover); }
   .agro-ns-btn-secondary { border: 2px solid #cbd5e1; background: #fff; color: #334155; }
   .agro-ns-card {
     background: #fff; border: 2px solid #e2e8f0; border-radius: 1rem;
-    padding: calc(var(--ns-pad) * 1.35); margin-bottom: calc(var(--ns-gap) * 1.25);
+    margin-bottom: calc(var(--ns-gap) * 0.85);
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
   }
+  .agro-ns-card--expandido { padding: calc(var(--ns-pad) * 1.35); }
+  .agro-ns-card--retraido { padding: 0; }
   .agro-ns-card:last-child { margin-bottom: 0; }
   .agro-ns-panel--pagar .agro-ns-card { border-left: 4px solid var(--ns-accent); }
   .agro-ns-panel--receber .agro-ns-card { border-left: 4px solid var(--ns-accent); }
@@ -165,7 +174,23 @@
     margin-bottom: var(--ns-gap); padding-bottom: 0.35rem;
     border-bottom: 1px solid #f1f5f9;
   }
-  .agro-ns-card-num { font-size: var(--ns-fs-label); font-weight: 800; color: #64748b; text-transform: uppercase; }
+  .agro-ns-card-num { font-size: var(--ns-fs-label); font-weight: 800; color: #64748b; text-transform: uppercase; white-space: nowrap; }
+  .agro-ns-card--retraido .agro-ns-card-inner { display: none; }
+  .agro-ns-card--expandido .agro-ns-card-resumo { display: none; }
+  .agro-ns-card-resumo {
+    display: flex; align-items: center; gap: 0.65rem; width: 100%;
+    min-height: clamp(2.35rem, 3.5vh + 1.35rem, 2.85rem);
+    padding: 0.4rem 0.75rem; border: none; background: #f8fafc; cursor: pointer; text-align: left;
+  }
+  .agro-ns-card-resumo:hover { background: var(--ns-accent-soft); }
+  .agro-ns-card-resumo-txt {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: clamp(0.8125rem, 0.28vw + 0.72rem, 0.9375rem); font-weight: 600; color: #475569;
+  }
+  .agro-ns-card-resumo-edit {
+    flex-shrink: 0; font-size: clamp(0.75rem, 0.25vw + 0.68rem, 0.8125rem);
+    font-weight: 800; text-transform: uppercase; color: var(--ns-accent);
+  }
   .agro-ns-card-row {
     display: grid; grid-template-columns: 1fr; gap: var(--ns-gap);
     margin-bottom: var(--ns-gap);
