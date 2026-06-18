@@ -360,7 +360,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.12`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** `1.30` · commit `e055761` em `teste` · **produção `d92c5ad` v1.08**
+**Versão app (`VERSION`):** staging `teste` · **produção `dfa9e1f` v1.09**
 
 ### O que este documento já cobre (até aqui)
 
