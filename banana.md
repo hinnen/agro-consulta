@@ -291,7 +291,7 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto** (mesmo critério da lista). Fiado PDV é Postgres (cópia; PDV não muda).
 
-Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
+Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
 ---
 
@@ -360,7 +360,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Versão:** `1.0.11`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (Empréstimo entrada+pagamento — Nova saída + lote manual)  
-**Versão app (`VERSION`):** staging `teste` após este commit · **produção `baadbca` v1.06** — só backup ZIP Lançamentos + checkpoint
+**Versão app (`VERSION`):** staging `teste` · **produção `d92c5ad` v1.08** — backup ZIP (todos + em aberto) + checkpoint
 
 ### O que este documento já cobre (até aqui)
 
@@ -521,7 +521,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-- [x] Lançamentos backup ZIP + checkpoint — **produção v1.06** (`baadbca`, cherry-pick só deste chat)
+- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.08** (`d92c5ad`, cherry-pick isolado)
 - [ ] Renan na loja: avisar equipe · baixar backup ZIP · checkpoint `CONGELAR` · ERP parar sync
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
