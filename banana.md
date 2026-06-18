@@ -441,6 +441,14 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Staging (`teste`):** `5bcc05d` v1.19 + `5c6590a` v1.20 — faixa **230…** interno loja = CODE128 (não EAN13). **Ctrl+F5** cadastro após deploy Render.
 
+### Cadastro produtos — busca GM/barras (2026-06-18)
+
+**Sintoma:** lista cadastro não achava por código GM nem barras.
+
+**Causa:** busca local em modo **scanner** (match exato no cache PDV) + API `/api/buscar/` em vez de `api_produtos_cadastro`; Mongo só buscava barras numérico com **8+** dígitos.
+
+**Correção:** `cadastro_erp_panel.js` — modo **normal**, API cadastro + fallback PDV; `views.py` — barras **4+** dígitos no motor e overlay alnum GM.
+
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
 Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `producao`, v1.02). **Não** mergeou `teste` inteiro.

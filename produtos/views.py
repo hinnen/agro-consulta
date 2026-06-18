@@ -770,7 +770,7 @@ def _mongo_produtos_por_overlay_codigo_busca(
         return []
     tl = _somente_alnum(q_raw)
     q0 = Q(codigo_barras__iexact=q_raw) | Q(codigo_nfe__iexact=q_raw)
-    if tl and tl != q_raw:
+    if tl:
         q0 |= Q(codigo_barras__iexact=tl) | Q(codigo_nfe__iexact=tl)
     pids = list(
         ProdutoGestaoOverlayAgro.objects.filter(q0).values_list("produto_externo_id", flat=True)[:30]
@@ -14808,8 +14808,8 @@ def motor_de_busca_agro(
         }
         adicionar(find_prod(query_cod_prefixo, 30))
 
-        # 1b) EAN/GTIN nos campos do documento (fallback quando ``index_codigos`` não lista o código)
-        if termo_limpo.isdigit() and len(termo_limpo) >= 8:
+        # 1b) Código de barras / numérico interno (4+ dígitos) nos campos do documento
+        if termo_limpo.isdigit() and len(termo_limpo) >= 4:
             or_br = []
             to_strip = termo_original.strip()
             for fld in (
