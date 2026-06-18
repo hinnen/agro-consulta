@@ -761,9 +761,20 @@
     return (produtos || []).filter(function (r) { return keep[String(r.id)]; });
   }
 
-  function cadastroModoBuscaPdv(qRaw) {
-    var onlyDig = String(qRaw || '').replace(/\s/g, '');
-    if (/^\d{8,}$/.test(onlyDig) || pareceCodigoBusca(qRaw)) return 'scanner';
+  function urlBuscaCadastro(qRaw) {
+    var params = new URLSearchParams();
+    params.set('q', String(qRaw || '').trim());
+    params.set('limit', '80');
+    if (ativosEl && ativosEl.checked) {
+      params.set('ativo', '1');
+    } else if (ativosEl) {
+      params.set('inativos', '1');
+    }
+    return API + '?' + params.toString();
+  }
+
+  function cadastroModoBuscaPdv(/* qRaw */) {
+    /* Digitação na lista — modo normal (scanner só no PDV/leitor). */
     return 'normal';
   }
 
@@ -961,17 +972,37 @@
   function carregarBuscaApi(qRaw, gen, sig, localBaselinePdv) {
     var catalogById = cadastroCatalogoPdvById();
     var termoNorm = (typeof normalizarBuscaLocal === 'function') ? normalizarBuscaLocal(qRaw) : String(qRaw || '').toLowerCase();
-    var urlBusca = URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw);
+    var urlBusca = urlBuscaCadastro(qRaw);
     var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
     return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
       .then(function (pair) {
         var x = pair[0];
         if (gen !== carregarGen) return;
-        if (!x.j || x.j.erro) {
+        if (!x.j || x.j.ok === false || x.j.erro) {
           throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
         }
         var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
+        if (!apiRows.length) {
+          return fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw), {
+            credentials: 'same-origin',
+            signal: sig,
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (j2) {
+              if (gen !== carregarGen) return;
+              if (j2 && !j2.erro && Array.isArray(j2.produtos) && j2.produtos.length) {
+                apiRows = j2.produtos;
+              }
+              return apiRows;
+            })
+            .catch(function () { return apiRows; });
+        }
+        return apiRows;
+      })
+      .then(function (apiRows) {
+        if (gen !== carregarGen) return;
+        apiRows = apiRows || [];
         var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
         if (typeof mesclarBuscaPdvLocalComApi === 'function') {
           pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalogById, cadastroLimiteBuscaPdv());
@@ -1074,7 +1105,7 @@
     q = String(q || '').trim();
     var lim = q.replace(/\W/g, '');
     if (!lim) return false;
-    if (/^\d+$/.test(lim) && lim.length >= 6) return true;
+    if (/^\d+$/.test(lim) && lim.length >= 4) return true;
     if (/^gm/i.test(lim) && lim.length >= 3) return true;
     var temL = /[a-z]/i.test(lim);
     var temN = /\d/.test(lim);
