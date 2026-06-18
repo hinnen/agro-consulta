@@ -65,6 +65,26 @@ def _ibpt_aliquotas_ncm(ncm: str, uf: str = "SP") -> tuple[Decimal, Decimal, Dec
     return nac, est, mun
 
 
+def ibpt_valor_item(
+    item,
+    *,
+    db=None,
+    col_p: str | None = None,
+    uf: str = "SP",
+    fiscal: dict[str, str] | None = None,
+) -> Decimal:
+    """Tributos aproximados (IBPT) de um item — usado no vTotTrib do det/imposto."""
+    sub = _dec(getattr(item, "valor_total", 0))
+    if sub <= 0:
+        return Decimal("0.00")
+    fis = fiscal or fiscal_por_produto_id(str(getattr(item, "produto_id_externo", "") or ""), db=db, col_p=col_p)
+    nac_p, est_p, mun_p = _ibpt_aliquotas_ncm(fis.get("ncm") or "23099020", uf)
+    fed = (sub * nac_p / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    est = (sub * est_p / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    mun = (sub * mun_p / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    return (fed + est + mun).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
+
 def calcular_ibpt_venda_itens(
     itens,
     *,

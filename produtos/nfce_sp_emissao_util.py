@@ -28,7 +28,7 @@ from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_x
 from produtos.sefaz_ssl_util import sefaz_requests_verify
 from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
-from produtos.nfce_ibpt_util import calcular_ibpt_venda_itens
+from produtos.nfce_ibpt_util import calcular_ibpt_venda_itens, ibpt_valor_item
 
 logger = logging.getLogger(__name__)
 
@@ -317,13 +317,17 @@ def _montar_xml_nfce(
         _sub(dest, "CPF", cpf_dest)
         _sub(dest, "indIEDest", "9")
 
+    uf_ibpt = cfg.get("uf") or "SP"
     total_prod = Decimal("0")
+    total_v_tot_trib = Decimal("0")
     for idx, item in enumerate(itens, start=1):
         fis = fiscal_itens[idx - 1] if idx - 1 < len(fiscal_itens) else fiscal_por_produto_id("", db=db, col_p=col_p)
         qtd = Decimal(str(item.quantidade or 0))
         vu = Decimal(str(item.valor_unitario or 0))
         vt = Decimal(str(item.valor_total or 0)).quantize(Decimal("0.01"))
         total_prod += vt
+        v_tot_trib_item = ibpt_valor_item(item, db=db, col_p=col_p, uf=uf_ibpt, fiscal=fis)
+        total_v_tot_trib += v_tot_trib_item
         det = ET.SubElement(inf, f"{{{NS}}}det")
         det.set("nItem", str(idx))
         prod = _sub(det, "prod")
@@ -344,6 +348,8 @@ def _montar_xml_nfce(
         _sub(prod, "vUnTrib", _q4(vu))
         _sub(prod, "indTot", "1")
         imposto = _sub(det, "imposto")
+        if v_tot_trib_item > 0:
+            _sub(imposto, "vTotTrib", _q2(v_tot_trib_item))
         icms = _sub(imposto, "ICMS")
         icmssn = _sub(icms, "ICMSSN102")
         _sub(icmssn, "orig", fis["origem"])
@@ -357,10 +363,11 @@ def _montar_xml_nfce(
 
     total_nf = Decimal(str(venda.total or total_prod)).quantize(Decimal("0.01"))
     v_desc = max(Decimal("0"), (total_prod - total_nf).quantize(Decimal("0.01")))
-    ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=cfg.get("uf") or "SP")
+    ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=uf_ibpt)
     icms_tot = _sub(inf, "total")
     icms = _sub(icms_tot, "ICMSTot")
-    for tag, val in (
+    v_tot_trib_nf = total_v_tot_trib.quantize(Decimal("0.01"))
+    icms_tags: list[tuple[str, str]] = [
         ("vBC", "0.00"),
         ("vICMS", "0.00"),
         ("vICMSDeson", "0.00"),
@@ -383,8 +390,10 @@ def _montar_xml_nfce(
         ("vCOFINS", "0.00"),
         ("vOutro", "0.00"),
         ("vNF", _q2(total_nf)),
-        ("vTotTrib", _q2(Decimal(str(ibpt.get("ibpt_total") or 0)))),
-    ):
+    ]
+    if v_tot_trib_nf > 0:
+        icms_tags.append(("vTotTrib", _q2(v_tot_trib_nf)))
+    for tag, val in icms_tags:
         _sub(icms, tag, val)
 
     transp = _sub(inf, "transp")
@@ -418,16 +427,18 @@ def _anexar_suplementar_qrcode(xml_nfe: str, qr_url: str, tp_amb: int) -> str:
         else "https://homologacao.nfce.fazenda.sp.gov.br/consulta"
     )
     supl = (
-        f'<infNFeSupl xmlns="{NS}">'
+        f"<infNFeSupl>"
         f"<qrCode><![CDATA[{qr_url}]]></qrCode>"
         f"<urlChave>{url_chave}</urlChave>"
         f"</infNFeSupl>"
     )
+    m_sig = re.search(r"<Signature\b", xml_nfe)
+    if m_sig:
+        return xml_nfe[: m_sig.start()] + supl + xml_nfe[m_sig.start() :]
     m = re.search(r"</infNFe>", xml_nfe)
     if not m:
         return xml_nfe
-    pos = m.end()
-    return xml_nfe[:pos] + supl + xml_nfe[pos:]
+    return xml_nfe[: m.end()] + supl + xml_nfe[m.end() :]
 
 
 def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
@@ -761,8 +772,7 @@ def emitir_nfce_para_venda(
             )
             return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
 
-        xml_com_qr = _anexar_suplementar_qrcode(xml_body, qr_url, int(cfg["tp_amb"]))
-        signed, err_sign = _assinar_nfe_xml(xml_com_qr, cfg["cert_path"], cfg["cert_password"], chave)
+        signed, err_sign = _assinar_nfe_xml(xml_body, cfg["cert_path"], cfg["cert_password"], chave)
         if err_sign or not signed:
             doc = NfceDocumentoAgro.objects.create(
                 venda=venda,
@@ -777,6 +787,7 @@ def emitir_nfce_para_venda(
             )
             return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
 
+        signed = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
         ret, err_http = _enviar_autorizacao(signed, cfg)
         if err_http or not ret:
             break

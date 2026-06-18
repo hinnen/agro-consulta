@@ -5187,43 +5187,72 @@
         }
     }
 
-    function showSaleDoneFeedback(msg, tone) {
+    function showSaleDoneFeedback(msg, tone, opts) {
         tone = tone || 'success';
+        opts = opts || {};
         var host = document.getElementById('pdv-sale-toast');
         if (!host) {
             host = document.createElement('div');
             host.id = 'pdv-sale-toast';
             host.setAttribute('role', 'status');
             host.setAttribute('aria-live', 'polite');
-            host.className =
-                'pointer-events-none fixed bottom-4 right-4 z-[220] w-[min(22rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3';
             document.body.appendChild(host);
         }
+        var placementTop = !!opts.placementTop;
+        host.className =
+            'pointer-events-auto fixed z-[9999] w-[min(26rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3 ' +
+            (placementTop
+                ? 'top-4 left-1/2 -translate-x-1/2'
+                : 'bottom-4 right-4 translate-x-0');
         var palette =
             tone === 'warn'
-                ? 'border-amber-300 bg-amber-50 text-amber-950 shadow-amber-200/50'
+                ? 'border-amber-400 bg-amber-50 text-amber-950 shadow-amber-300/60'
                 : tone === 'info'
                   ? 'border-sky-300 bg-sky-50 text-sky-950 shadow-sky-200/50'
                   : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
         var icon =
             tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
+        var titleHtml = opts.title
+            ? '<p class="text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
+            : '';
+        var bodyHtml =
+            '<p class="' +
+            (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1') +
+            '">' +
+            escapeHtml(msg || 'Venda confirmada.') +
+            '</p>';
+        var dismissBtn =
+            tone === 'warn'
+                ? '<button type="button" class="mt-2 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide text-amber-900 hover:bg-amber-100" data-pdv-toast-dismiss>Entendi</button>'
+                : '';
         host.innerHTML =
-            '<div class="flex items-start gap-3 rounded-2xl border-2 px-4 py-3 shadow-xl ' +
+            '<div class="rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
             palette +
             '">' +
-            '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/80 text-base font-black" aria-hidden="true">' +
+            '<div class="flex items-start gap-3">' +
+            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
             icon +
             '</span>' +
-            '<p class="text-sm font-bold leading-snug pt-1">' +
-            escapeHtml(msg || 'Venda confirmada.') +
-            '</p></div>';
+            '<div class="min-w-0 flex-1">' +
+            titleHtml +
+            bodyHtml +
+            dismissBtn +
+            '</div></div></div>';
+        var dismissEl = host.querySelector('[data-pdv-toast-dismiss]');
+        if (dismissEl) {
+            dismissEl.addEventListener('click', function () {
+                host.classList.add('opacity-0', 'translate-y-3');
+                host.classList.remove('opacity-100', 'translate-y-0');
+            });
+        }
         host.classList.remove('opacity-0', 'translate-y-3');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+        var ms = opts.durationMs || (tone === 'warn' ? 14000 : 5200);
         showSaleDoneFeedback._timer = setTimeout(function () {
             host.classList.add('opacity-0', 'translate-y-3');
             host.classList.remove('opacity-100', 'translate-y-0');
-        }, 5200);
+        }, ms);
     }
 
     function nfceAtivoNoPdv() {
@@ -5473,7 +5502,30 @@
 
     function nfceAvisoPosVenda(opts) {
         if (!opts || !opts.nfceErro) return '';
-        return ' NFC-e não autorizada: ' + opts.nfceErro;
+        return opts.nfceErro;
+    }
+
+    function mostrarAvisoNfcePendente(opts, prefixo) {
+        if (!opts || !opts.nfceErro) return;
+        var detalhe = String(opts.nfceErro || '').trim();
+        var corpo =
+            (prefixo ? prefixo + ' ' : '') +
+            'A venda foi salva, mas o cupom fiscal (NFC-e) não saiu.' +
+            (detalhe ? ' Motivo: ' + detalhe + '.' : '') +
+            ' Depois vá em Consultar vendas e use Reemitir NFC-e.';
+        showSaleDoneFeedback(corpo, 'warn', {
+            placementTop: true,
+            title: 'Cupom fiscal pendente',
+            durationMs: 16000
+        });
+    }
+
+    function aguardarPosImpressao(ms) {
+        ms = ms || 0;
+        if (!ms) return Promise.resolve();
+        return new Promise(function (resolve) {
+            setTimeout(resolve, ms);
+        });
     }
 
     function imprimirCupomAposVenda(withPrint, printWin, vendaId, cupomImpressao) {
@@ -5512,25 +5564,25 @@
         if (opts.nfceErro && cupomImpressao === 'nfce') {
             cupomImpressao = 'venda';
         }
-        if (opts.nfceErro) {
-            showSaleDoneFeedback(
-                saleDoneMessage(opts) +
-                    ' Cupom fiscal pendente — corrija depois em Consultar vendas e use Reemitir NFC-e.',
-                'warn'
-            );
-        } else if (opts.nfceOk) {
-            showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
-        }
         imprimirCupomAposVenda(withPrint, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
+            return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+                return printFail;
+            });
+        }).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
             resetWizardParaNovaVenda();
             refreshEntregasPendentesUi(true);
-            if (printFail) {
+            if (opts.nfceErro) {
+                mostrarAvisoNfcePendente(opts, saleDoneMessage(opts));
+            } else if (printFail) {
                 showSaleDoneFeedback(
                     'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                    'warn'
+                    'warn',
+                    { placementTop: true }
                 );
-            } else if (!opts.nfceErro && !opts.nfceOk) {
+            } else if (opts.nfceOk) {
+                showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
+            } else {
                 var msg = saleDoneMessage(opts);
                 var kind = opts.erpPendente ? 'info' : 'success';
                 showSaleDoneFeedback(msg, kind);
@@ -5825,19 +5877,24 @@
                     cupomImpMp = 'venda';
                 }
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
+                    return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+                        return printFail;
+                    });
+                }).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     resetWizardParaNovaVenda();
                     if (nfceErro) {
-                        showSaleDoneFeedback(
-                            'Pagamento no Point confirmado. Cupom fiscal pendente — reemitir em Consultar vendas.',
-                            'warn'
+                        mostrarAvisoNfcePendente(
+                            { nfceErro: nfceErro },
+                            'Pagamento no Point confirmado.'
                         );
                         return;
                     }
                     if (printFail) {
                         showSaleDoneFeedback(
                             'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                            'warn'
+                            'warn',
+                            { placementTop: true }
                         );
                     } else if (nfceOk) {
                         showSaleDoneFeedback(
