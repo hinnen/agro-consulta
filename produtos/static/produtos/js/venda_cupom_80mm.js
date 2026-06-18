@@ -599,7 +599,10 @@
         opts = opts || {};
         var id = parseInt(vendaId, 10);
         if (!id) return Promise.reject(new Error('Venda inválida.'));
-        var qs = opts.segunda_via === false ? '?segunda_via=0' : '';
+        var qsParts = [];
+        if (opts.segunda_via === false) qsParts.push('segunda_via=0');
+        if (opts.interno) qsParts.push('interno=1');
+        var qs = qsParts.length ? '?' + qsParts.join('&') : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         return fetch('/venda/' + id + '/cupom/' + qs, {
             credentials: 'same-origin',

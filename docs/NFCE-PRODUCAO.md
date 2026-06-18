@@ -9,14 +9,34 @@ Staging validado em **`teste`** → **agro-consulta-staging**.
 
 | Variável | Produção recomendada |
 |----------|----------------------|
-| `NFC_E_MODO` | **`manual`** — operador marca **«Emitir cupom fiscal (NFC-e)»** no passo Pagamento |
+| `NFC_E_MODO` | **`manual`** (padrão) — emissão **por forma de pagamento** |
 
-- **`manual`** (padrão): venda grava normalmente; NFC-e só se o checkbox estiver marcado.
-- **`auto`**: emite NFC-e em toda venda (comportamento anterior).
+Com `NFC_E_MODO=manual` (padrão):
+
+| Forma de pagamento | NFC-e |
+|--------------------|-------|
+| PIX | **Automática** |
+| Cartão de débito | **Automática** |
+| Cartão de crédito | **Automática** |
+| Cartão de crédito parcelado | **Automática** |
+| Dinheiro, Fiado, Vale crédito, Cashback, Outro… | **Opcional** — checkbox no PDV |
+
+- **`auto`**: emite NFC-e em **toda** venda (ignora regra acima).
+- Venda mista (ex.: PIX + Dinheiro) → NFC-e **automática** (há forma automática).
 
 ---
 
-## 2. Variáveis Render — produção
+## 2. XML mensal (contabilidade)
+
+API pronta para o escritório (ZIP com XMLs autorizados do mês):
+
+`GET /api/nfce/export-xml/?ano=2026&mes=6`
+
+Tela de relatórios: pode ser ligada depois a essa rota (usuário vai indicar onde colocar).
+
+---
+
+## 3. Variáveis Render — produção
 
 Copiar do staging e **conferir** estes valores:
 
@@ -40,37 +60,37 @@ Opcional (Lei 12.741 / IBPT no cupom): `NFC_E_IBPT_TOKEN`, `NFC_E_IBPT_CNPJ`.
 
 ---
 
-## 3. Antes do merge `teste` → `producao`
+## 4. Antes do merge `teste` → `producao`
 
-- [ ] Staging: venda **sem** checkbox → **sem** NFC-e na venda.
-- [ ] Staging: venda **com** checkbox → modal CPF → NFC-e autorizada + cupom 80 mm.
+- [ ] Staging: venda **PIX/cartão** → NFC-e automática (modal CPF).
+- [ ] Staging: venda **Dinheiro** sem checkbox → **sem** NFC-e.
+- [ ] Staging: venda **Dinheiro** com checkbox → NFC-e autorizada.
 - [ ] Série **21** e numeração alinhada (sem conflito 539).
 - [ ] Cupom impresso com QR Code e protocolo.
 - [ ] ERP continua na série 20 (sem interferência).
 
 ---
 
-## 4. Deploy produção
+## 5. Deploy produção
 
 1. Merge `teste` → `producao` (quando autorizado).
 2. Render aplica deploy automático.
-3. Conferir `/api/nfce/status/` (logado): `ativo: true`, `modo: manual`, `tp_amb: 1`, `serie: 21`.
-4. **Uma venda teste** com checkbox marcado; conferir autorização no portal SEFAZ / cupom.
+3. Conferir `/api/nfce/status/` (logado): `ativo: true`, `modo: por_forma`, `tp_amb: 1`, `serie: 21`.
+4. **Uma venda teste** PIX e uma Dinheiro com checkbox; conferir SEFAZ / cupom.
 5. Ajustar `NFC_E_PROXIMO_NUMERO` se necessário após primeira emissão real.
 
 ---
 
-## 5. Operacional na loja
+## 6. Operacional na loja
 
-1. PDV → Pagamento → marcar **«Emitir cupom fiscal (NFC-e)»** quando o cliente quiser nota.
-2. Informar CPF ou «sem identificação».
+1. **PIX ou cartão** → NFC-e sai **sozinha** (modal CPF na confirmação).
+2. **Dinheiro, fiado, etc.** → marque **«Emitir cupom fiscal (NFC-e)»** se o cliente quiser nota.
 3. **Confirmar com impressão (F9)** para cupom térmico fiscal.
-4. Venda sem checkbox = comprovante interno apenas (sem NFC-e).
-5. Reimpressão: lista de vendas → **Imprimir** (2ª via do cupom fiscal se houver NFC-e autorizada).
+4. Reimpressão: lista de vendas → **Imprimir** (2ª via se houver NFC-e autorizada).
 
 ---
 
-## 6. APIs úteis
+## 7. APIs úteis
 
 | Rota | Uso |
 |------|-----|
@@ -81,4 +101,4 @@ Opcional (Lei 12.741 / IBPT no cupom): `NFC_E_IBPT_TOKEN`, `NFC_E_IBPT_CNPJ`.
 
 ---
 
-*Última revisão: emissão manual PDV + série 21 Agro.*
+*Última revisão: emissão por forma de pagamento + série 21 Agro.*

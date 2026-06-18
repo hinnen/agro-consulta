@@ -9,7 +9,8 @@ from datetime import date
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from produtos.models import NfceDocumentoAgro, VendaAgro
@@ -52,6 +53,20 @@ def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | 
         sem_identificacao=sem_id,
         db=db,
         col_p=col_p,
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def contabilidade_painel(request):
+    """Painel contabilidade — exportação mensal de XML NFC-e."""
+    return render(
+        request,
+        "produtos/contabilidade_painel.html",
+        {
+            "nfce": nfce_config_resumo(),
+            "export_xml_url": reverse("api_nfce_export_xml_zip"),
+        },
     )
 
 

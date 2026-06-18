@@ -118,6 +118,7 @@ urlpatterns = [
         name='api_etiquetas_historico_detalhe',
     ),
     path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
+    path('contabilidade/', views_nfce.contabilidade_painel, name='contabilidade_painel'),
     path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
     path(
         'entrada-nota/',

@@ -134,7 +134,8 @@
                 clientRequestId: '',
                 lancamentos: [],
                 nfceEmitir: false,
-                nfceOpts: {}
+                nfceOpts: {},
+                cupomImpressao: ''
             },
             venda: {
                 observacao: ''

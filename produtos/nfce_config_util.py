@@ -11,6 +11,19 @@ from decouple import config
 
 _cert_temp_cache: str | None = None
 
+NFCE_FORMAS_PAGAMENTO_AUTO: frozenset[str] = frozenset(
+    {
+        "PIX",
+        "Cartão de débito",
+        "Cartão de crédito",
+        "Cartão de crédito parcelado",
+    }
+)
+
+
+def nfce_formas_pagamento_auto() -> list[str]:
+    return sorted(NFCE_FORMAS_PAGAMENTO_AUTO)
+
 
 def _cfg(name: str, default: str = "") -> str:
     return (config(name, default=default) or default).strip()
@@ -34,14 +47,50 @@ def nfce_resolve_cert_path() -> str:
     return path
 
 
+def _formas_pagamento_no_payload(data: dict) -> list[str]:
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+
+    formas: list[str] = []
+    pag = data.get("pagamentos")
+    if isinstance(pag, list):
+        for row in pag:
+            if not isinstance(row, dict):
+                continue
+            raw = str(
+                row.get("formaPagamento")
+                or row.get("forma_pagamento")
+                or row.get("forma")
+                or ""
+            ).strip()
+            if raw:
+                formas.append(normalizar_forma_pagamento_caixa(raw))
+    if not formas:
+        fp = str(data.get("forma_pagamento") or data.get("formaPagamento") or "").strip()
+        if fp:
+            for part in re.split(r"\s*\+\s*", fp):
+                part = part.strip()
+                if part:
+                    formas.append(normalizar_forma_pagamento_caixa(part))
+    return formas
+
+
+def nfce_venda_tem_forma_pagamento_auto(data: dict | None) -> bool:
+    if not isinstance(data, dict):
+        return False
+    auto = NFCE_FORMAS_PAGAMENTO_AUTO
+    return any(f in auto for f in _formas_pagamento_no_payload(data))
+
+
 def nfce_emissao_automatica() -> bool:
     modo = (_cfg("NFC_E_MODO", "manual") or "manual").strip().lower()
     return modo in ("auto", "automatico", "automatica", "automatic")
 
 
 def nfce_emissao_solicitada(data: dict | None) -> bool:
-    """True se a NFC-e deve ser emitida nesta venda (auto ou flag manual do PDV)."""
+    """True se a NFC-e deve ser emitida nesta venda (global auto, forma auto ou checkbox PDV)."""
     if nfce_emissao_automatica():
+        return True
+    if nfce_venda_tem_forma_pagamento_auto(data):
         return True
     if not isinstance(data, dict):
         return False
@@ -126,7 +175,8 @@ def nfce_config_resumo() -> dict[str, Any]:
     c = nfce_cfg()
     return {
         "ativo": nfce_configurada(),
-        "modo": "auto" if nfce_emissao_automatica() else "manual",
+        "modo": "auto" if nfce_emissao_automatica() else "por_forma",
+        "formas_auto": nfce_formas_pagamento_auto(),
         "tp_amb": c["tp_amb"],
         "serie": c["serie"],
         "cnpj": c["cnpj"][:8] + "…" if len(c["cnpj"]) == 14 else "",

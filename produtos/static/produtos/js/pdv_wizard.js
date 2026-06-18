@@ -260,8 +260,6 @@
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
         confirmSaleNoPrint: document.getElementById('pdv-confirm-sale-no-print'),
         confirmSalePrint: document.getElementById('pdv-confirm-sale-print'),
-        nfceEmitirWrap: document.getElementById('pdv-nfce-emitir-wrap'),
-        nfceEmitirCheck: document.getElementById('pdv-nfce-emitir-check'),
         paymentModalCards: document.querySelectorAll('[data-payment-modal-card]'),
         paymentFormaModal: document.getElementById('pdv-payment-forma-modal'),
         paymentFormaModalBackdrop: document.getElementById('pdv-payment-forma-modal-backdrop'),
@@ -3906,7 +3904,6 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
-        syncNfceEmitirUi(state);
         if (err) {
             dom.paymentFeedback.textContent = err;
         } else {
@@ -5233,42 +5230,107 @@
         return !!(bootstrap.nfce && bootstrap.nfce.ativo);
     }
 
-    function nfceModoManual() {
-        return !!(nfceAtivoNoPdv() && bootstrap.nfce && bootstrap.nfce.modo === 'manual');
+    function nfceFormasAutoLista() {
+        if (bootstrap.nfce && Array.isArray(bootstrap.nfce.formasAuto) && bootstrap.nfce.formasAuto.length) {
+            return bootstrap.nfce.formasAuto;
+        }
+        return ['PIX', 'Cartão de débito', 'Cartão de crédito', 'Cartão de crédito parcelado'];
+    }
+
+    function nfceFormasPagamentoVenda(state) {
+        state = state || State.getState();
+        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
+        return arr
+            .map(function (L) {
+                return String((L && L.forma) || '').trim();
+            })
+            .filter(Boolean);
+    }
+
+    function nfceVendaTemFormaAuto(state) {
+        var auto = nfceFormasAutoLista();
+        var formas = nfceFormasPagamentoVenda(state);
+        if (!formas.length) return false;
+        return formas.some(function (f) {
+            return auto.indexOf(f) >= 0;
+        });
+    }
+
+    function nfceModoGlobalAuto() {
+        return !!(bootstrap.nfce && bootstrap.nfce.modo === 'auto');
     }
 
     function nfceUsuarioQuerEmitir(state) {
         if (!nfceAtivoNoPdv()) return false;
-        if (!nfceModoManual()) return true;
+        if (nfceModoGlobalAuto()) return true;
         state = state || State.getState();
-        return !!(state.pagamento && state.pagamento.nfceEmitir);
+        if (state.pagamento && state.pagamento.nfceEmitir === true) return true;
+        if (state.pagamento && state.pagamento.nfceEmitir === false) return false;
+        return nfceVendaTemFormaAuto(state);
     }
 
-    function syncNfceEmitirUi(state) {
-        state = state || State.getState();
-        var wrap = dom.nfceEmitirWrap;
-        var chk = dom.nfceEmitirCheck;
-        if (!wrap || !chk) return;
-        var manual = nfceModoManual();
-        wrap.classList.toggle('hidden', !manual);
-        wrap.classList.toggle('flex', manual);
-        if (!manual) return;
-        chk.checked = !!(state.pagamento && state.pagamento.nfceEmitir);
-        var cnp = dom.confirmSaleNoPrint;
-        var cp = dom.confirmSalePrint;
-        if (chk.checked) {
-            if (cnp) cnp.textContent = 'Confirmar NFC-e (sem impressão)';
-            if (cp) cp.textContent = 'Confirmar NFC-e (imprimir cupom)';
+    function prepararNfceSemImpressao() {
+        State.setPagamentoField('cupomImpressao', '');
+        if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto()) {
+            State.setPagamentoField('nfceEmitir', true);
         } else {
-            if (cnp) {
-                cnp.innerHTML =
-                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
-            }
-            if (cp) {
-                cp.innerHTML =
-                    'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+            State.setPagamentoField('nfceEmitir', false);
+            State.setPagamentoField('nfceOpts', {});
+        }
+    }
+
+    function prepararNfceComImpressao(escolha) {
+        escolha = escolha === 'nfce' ? 'nfce' : 'venda';
+        State.setPagamentoField('cupomImpressao', escolha);
+        if (escolha === 'nfce') {
+            State.setPagamentoField('nfceEmitir', true);
+        } else {
+            State.setPagamentoField('nfceEmitir', false);
+            State.setPagamentoField('nfceOpts', {});
+        }
+    }
+
+    function abrirModalEscolhaImpressao(callback) {
+        var modal = document.getElementById('modal-pdv-escolha-impressao');
+        var btnNfc = document.getElementById('pdv-escolha-impressao-nfce');
+        var btnVenda = document.getElementById('pdv-escolha-impressao-venda');
+        var btnCancel = document.getElementById('pdv-escolha-impressao-cancelar');
+        if (!modal || !btnNfc || !btnVenda) {
+            callback('venda');
+            return;
+        }
+        function fechar() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            btnNfc.removeEventListener('click', onNfc);
+            btnVenda.removeEventListener('click', onVenda);
+            if (btnCancel) btnCancel.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey);
+        }
+        function onNfc() {
+            fechar();
+            callback('nfce');
+        }
+        function onVenda() {
+            fechar();
+            callback('venda');
+        }
+        function onCancel() {
+            fechar();
+            callback(null);
+        }
+        function onKey(ev) {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                onCancel();
             }
         }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        btnNfc.addEventListener('click', onNfc);
+        btnVenda.addEventListener('click', onVenda);
+        if (btnCancel) btnCancel.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey);
     }
 
     function nfceNormalizarCpf(raw) {
@@ -5414,12 +5476,13 @@
         return ' NFC-e não autorizada: ' + opts.nfceErro;
     }
 
-    function imprimirCupomAposVenda(withPrint, printWin, vendaId) {
+    function imprimirCupomAposVenda(withPrint, printWin, vendaId, cupomImpressao) {
         var stP = State.getState();
         var compP = State.getComputed();
         if (!withPrint) return Promise.resolve(false);
+        var interno = cupomImpressao === 'venda';
         if (vendaId && typeof agroCarregarEImprimirCupomVenda === 'function') {
-            return agroCarregarEImprimirCupomVenda(vendaId, { segunda_via: false })
+            return agroCarregarEImprimirCupomVenda(vendaId, { segunda_via: false, interno: interno })
                 .then(function () {
                     if (printWin && !printWin.closed) {
                         try {
@@ -5445,12 +5508,13 @@
 
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
+        var cupomImpressao = opts.cupomImpressao || '';
         if (opts.nfceErro) {
             alert(saleDoneMessage(opts) + nfceAvisoPosVenda(opts));
         } else if (opts.nfceOk) {
             alert(saleDoneMessage(opts) + ' ' + opts.nfceOk);
         }
-        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId).then(function (printFail) {
+        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
             resetWizardParaNovaVenda();
             refreshEntregasPendentesUi(true);
@@ -5478,7 +5542,20 @@
         }
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
-            resolverNfceAntesConfirmar(withPrint);
+            if (withPrint && nfceAtivoNoPdv()) {
+                abrirModalEscolhaImpressao(function (escolha) {
+                    if (!escolha) return;
+                    prepararNfceComImpressao(escolha);
+                    resolverNfceAntesConfirmar(true);
+                });
+                return;
+            }
+            if (withPrint) {
+                prepararNfceComImpressao('venda');
+            } else {
+                prepararNfceSemImpressao();
+            }
+            resolverNfceAntesConfirmar(!!withPrint);
         });
     }
 
@@ -5513,6 +5590,9 @@
         }
         State.setPagamentoField('imprimirCupom', !!withPrint);
         state = State.getState();
+        var cupomImpressao = withPrint
+            ? String((state.pagamento && state.pagamento.cupomImpressao) || 'venda')
+            : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
@@ -5536,7 +5616,8 @@
                         fiadoAguardaErp: true,
                         vendaId: vendaId,
                         nfceErro: nfceErro,
-                        nfceOk: nfceOk
+                        nfceOk: nfceOk,
+                        cupomImpressao: cupomImpressao
                     });
                     return;
                 }
@@ -5557,7 +5638,8 @@
                             entregaOk: true,
                             vendaId: vendaId,
                             nfceErro: nfceErro,
-                            nfceOk: nfceOk
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
                         });
                     });
                 }
@@ -5570,7 +5652,8 @@
                             entregaOk: true,
                             vendaId: vendaId,
                             nfceErro: nfceErro,
-                            nfceOk: nfceOk
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
                         });
                         return;
                     }
@@ -5585,7 +5668,8 @@
                             entregaOk: true,
                             vendaId: vendaId,
                             nfceErro: nfceErro,
-                            nfceOk: nfceOk
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
                         });
                     });
                 }
@@ -5593,7 +5677,8 @@
                     erpPendente: erpPendente,
                     vendaId: vendaId,
                     nfceErro: nfceErro,
-                    nfceOk: nfceOk
+                    nfceOk: nfceOk,
+                    cupomImpressao: cupomImpressao
                 });
             })
             .catch(function (err) {
@@ -5717,7 +5802,11 @@
             .then(function (result) {
                 var vIdMp =
                     result.erp && result.erp.venda_id != null ? result.erp.venda_id : null;
-                return imprimirCupomAposVenda(withPrint, printWin, vIdMp).then(function (printFail) {
+                var stMp = State.getState();
+                var cupomImpMp = withPrint
+                    ? String((stMp.pagamento && stMp.pagamento.cupomImpressao) || 'venda')
+                    : '';
+                return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     resetWizardParaNovaVenda();
                     if (printFail) {
@@ -7767,15 +7856,6 @@
         if (dom.confirmSalePrint) {
             dom.confirmSalePrint.addEventListener('click', function () {
                 confirmSale(true);
-            });
-        }
-        if (dom.nfceEmitirCheck) {
-            dom.nfceEmitirCheck.addEventListener('change', function () {
-                State.setPagamentoField('nfceEmitir', !!dom.nfceEmitirCheck.checked);
-                if (!dom.nfceEmitirCheck.checked) {
-                    State.setPagamentoField('nfceOpts', {});
-                }
-                syncNfceEmitirUi(State.getState());
             });
         }
         if (dom.voltarHome) {

@@ -19784,24 +19784,27 @@ def api_venda_agro_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
-    try:
-        from produtos.models import NfceDocumentoAgro
-        from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
+    raw_interno = (request.GET.get("interno") or "0").strip().lower()
+    somente_interno = raw_interno in ("1", "true", "sim", "yes", "on")
+    if not somente_interno:
+        try:
+            from produtos.models import NfceDocumentoAgro
+            from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 
-        nfce = getattr(v, "nfce", None)
-        if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-            client, db = obter_conexao_mongo()
-            col_p = getattr(client, "col_p", None) if client else None
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "cupom": serializar_nfce_cupom_80mm(
-                        v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
-                    ),
-                }
-            )
-    except Exception:
-        pass
+            nfce = getattr(v, "nfce", None)
+            if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+                client, db = obter_conexao_mongo()
+                col_p = getattr(client, "col_p", None) if client else None
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "cupom": serializar_nfce_cupom_80mm(
+                            v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
+                        ),
+                    }
+                )
+        except Exception:
+            pass
     return JsonResponse(
         {
             "ok": True,

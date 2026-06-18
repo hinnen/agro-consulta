@@ -1816,6 +1816,28 @@
   </div>
 </div>
 
+<div id="modal-pdv-escolha-impressao" class="fixed inset-0 z-[134] hidden items-center justify-center bg-slate-900/55 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-escolha-impressao-titulo">
+  <div class="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
+      <h2 id="modal-pdv-escolha-impressao-titulo" class="text-sm font-black uppercase tracking-tight text-emerald-950">Qual cupom imprimir?</h2>
+      <p class="mt-1 text-xs font-semibold text-slate-600">Escolha o tipo de impressão desta venda.</p>
+    </header>
+    <div class="grid grid-cols-2 gap-3 p-4">
+      <button type="button" id="pdv-escolha-impressao-nfce" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-emerald-600 bg-emerald-600 px-3 py-4 text-white shadow-lg hover:bg-emerald-700">
+        <span class="text-lg font-black uppercase tracking-wide">NFC</span>
+        <span class="text-[10px] font-bold uppercase leading-tight text-emerald-100">Cupom fiscal</span>
+      </button>
+      <button type="button" id="pdv-escolha-impressao-venda" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-sky-500 bg-sky-600 px-3 py-4 text-white shadow-lg hover:bg-sky-700">
+        <span class="text-lg font-black uppercase tracking-wide">Venda</span>
+        <span class="text-[10px] font-bold uppercase leading-tight text-sky-100">Comprovante loja</span>
+      </button>
+    </div>
+    <footer class="border-t border-slate-100 bg-slate-50 px-4 py-3">
+      <button type="button" id="pdv-escolha-impressao-cancelar" class="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Cancelar <kbd class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd></button>
+    </footer>
+  </div>
+</div>
+
 <div id="modal-pdv-nfce-cpf" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-900/55 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-nfce-cpf-titulo">
   <div class="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
     <header class="border-b border-emerald-100 bg-emerald-50 px-4 py-3">
