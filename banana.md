@@ -338,11 +338,11 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos — Nova saída** — rodapé fino (Cancelar · Outro lançamento · Finalizar, sem total); ao adicionar linha, anteriores retraem em resumo de uma linha; chip Quitado por item.
-2. **Lançamentos** — backup Excel completo + checkpoint admin na entrada; Nova saída tela cheia.
-3. **PDV carrinho** — match GM exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
-4. **NFC-e por forma de pagamento** — manual/auto, popup NFC/Venda só formas manuais, menu BI contabilidade.
-5. **Staging readonly** — proteção Mongo compartilhado.
+1. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
+2. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
+3. **PDV + etiquetas barras** — `5bcc05d` v1.19: 7 dígitos no PDV, layout EAN-13, DV auto.
+4. **Lançamentos — Nova saída** — rodapé fino; cards retraídos ao adicionar linha.
+5. **PDV carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -354,10 +354,10 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.8`  
+**Versão:** `1.0.9`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (etiquetas 230 + barras internos → teste)  
-**Versão app (`VERSION`):** `1.20` · `origin/teste` (`5c6590a`)
+**Atualizado por:** assistente Cursor (etiquetas 230 + busca cadastro → teste)  
+**Versão app (`VERSION`):** `1.22` · `origin/teste` (`c234822`)
 
 ### O que este documento já cobre (até aqui)
 
@@ -439,15 +439,13 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Correção:** `produtos_etiquetas_core.js` — valida/corrige DV, fallback CODE128, CSS 40×40 mm; modal cadastro avisa DV corrigido (âmbar).
 
-**Staging (`teste`):** `5bcc05d` v1.19 + `5c6590a` v1.20 — faixa **230…** interno loja = CODE128 (não EAN13). **Ctrl+F5** cadastro após deploy Render.
+**Staging (`teste`):** `5bcc05d` v1.19 · `5c6590a` v1.20 (230… CODE128) · `c234822` v1.22 (busca cadastro). **Ctrl+F5** cadastro + PDV após deploy Render.
 
-### Cadastro produtos — busca GM/barras (2026-06-18)
+### Cadastro produtos — busca GM/barras — feito 2026-06-18
 
 **Sintoma:** lista cadastro não achava por código GM nem barras.
 
-**Causa:** busca local em modo **scanner** (match exato no cache PDV) + API `/api/buscar/` em vez de `api_produtos_cadastro`; Mongo só buscava barras numérico com **8+** dígitos.
-
-**Correção:** `cadastro_erp_panel.js` — modo **normal**, API cadastro + fallback PDV; `views.py` — barras **4+** dígitos no motor e overlay alnum GM.
+**Correção (`c234822` v1.22):** `cadastro_erp_panel.js` — modo **normal**, `api_produtos_cadastro` + fallback PDV; `views.py` — barras **4+** dígitos no motor e overlay alnum GM.
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
@@ -468,12 +466,11 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 | Arquivo | Tema |
 |---------|------|
-| `AGENTS.md` | Nota `@banana` vs enciclopédia (local, não commitado) |
+| `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 | `config/app_build_util.py` | Badge BI usa só `VERSION` (local) |
-| `produtos/templates/produtos/_js_busca_produto_inteligente.html` | WIP busca |
 | `.githooks/`, `scripts/bump_version.py` | Hook bump VERSION (untracked) |
 
-**NFC-e + PDV carrinho + Lançamentos backup:** já em `teste` (commits `1aa8323` … `15fcf38`).
+**Sessão barras/etiquetas/cadastro:** commitada em `teste` v1.19–v1.22 (`5bcc05d` … `c234822`). **Produção:** só PDV carrinho GM (`59bdedc` v1.02) — restante aguarda Renan.
 
 ### Pendências conhecidas (produto)
 
