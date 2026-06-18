@@ -1047,6 +1047,9 @@
         setLoading(false);
       } else {
         setLoading(true);
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
+        }
       }
       var mergeSeq = ++buscaMergeSeq;
       var delayApi = hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220);
@@ -1106,16 +1109,21 @@
     var lim = q.replace(/\W/g, '');
     if (!lim) return false;
     if (/^\d+$/.test(lim) && lim.length >= 4) return true;
-    if (/^gm/i.test(lim) && lim.length >= 3) return true;
+    if (/^gm/i.test(lim) && lim.length >= 2) return true;
     var temL = /[a-z]/i.test(lim);
     var temN = /\d/.test(lim);
     return temL && temN && lim.length >= 3 && q.indexOf(' ') === -1;
   }
 
-  function agendar() {
+  function agendar(forcar) {
     if (!buscaEl) return;
     clearTimeout(debounceTimer);
     var q = (buscaEl.value || '').trim();
+    if (!q) {
+      pagina = 1;
+      carregar();
+      return;
+    }
     if (q.length === 1 && !pareceCodigoBusca(q)) {
       if (carregarAbort) {
         try { carregarAbort.abort(); } catch (e1) { /* ignore */ }
@@ -1124,16 +1132,23 @@
       carregarGen++;
       setLoading(false);
       mostrarErro('');
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (6+ dígitos / GM…).';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (GM… / 4+ dígitos).';
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
       return;
     }
+    mostrarErro('');
+    if (metaEl) metaEl.textContent = 'Buscando…';
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = pareceCodigoBusca(q) ? 0 : (temCache ? 100 : 320);
+    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 0 : (temCache ? 100 : 320));
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
+      if (!q2) {
+        pagina = 1;
+        carregar();
+        return;
+      }
       if (q2.length === 1 && !pareceCodigoBusca(q2)) return;
       pagina = 1;
       carregar();
@@ -1141,7 +1156,15 @@
   }
 
   if (buscaEl) {
-    buscaEl.addEventListener('input', agendar);
+    buscaEl.addEventListener('input', function () { agendar(false); });
+    buscaEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(debounceTimer);
+        pagina = 1;
+        agendar(true);
+      }
+    });
   }
   if (ativosEl) {
     ativosEl.addEventListener('change', function () {

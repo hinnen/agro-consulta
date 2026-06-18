@@ -521,15 +521,8 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Sintoma:** lista cadastro não achava por código GM nem barras.
 
-**Correção (`c234822` v1.22 + `…` v1.24):** modo **normal**, `api_produtos_cadastro`, prefixo GM (`GM1541` → `GM1541-5S`), Enter força busca, limpa «Continue digitando» ao buscar.
+**Correção (`c234822` + `4d78b33`):** modo **normal**, `api_produtos_cadastro` + fallback PDV; prefixo GM (`GM1541` → `GM1541-5S`); Enter força busca; `views.py` — barras **4+** dígitos no motor.
 
-### Cadastro produtos — busca GM/barras (2026-06-18)
-
-**Sintoma:** lista cadastro não achava por código GM nem barras.
-
-**Causa:** busca local em modo **scanner** (match exato no cache PDV) + API `/api/buscar/` em vez de `api_produtos_cadastro`; Mongo só buscava barras numérico com **8+** dígitos.
-
-**Correção:** `cadastro_erp_panel.js` — modo **normal**, API cadastro + fallback PDV; `views.py` — barras **4+** dígitos no motor e overlay alnum GM.
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 

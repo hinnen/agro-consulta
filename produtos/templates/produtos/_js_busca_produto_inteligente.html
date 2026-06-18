@@ -192,6 +192,32 @@
         return false;
     }
 
+    /** Prefixo GM digitado (ex. GM1541 → GM1541-5S). */
+    function casaCodigoGmPrefixo(palavraNorm, p) {
+        const pn = String(palavraNorm || '').trim();
+        if (!pn.startsWith('gm') || pn.length < 3 || !p) return false;
+        const pnAl = somenteAlnumCodigoBusca(pn);
+        function bate(val) {
+            if (val == null || val === '') return false;
+            const vn = normalizarBuscaLocal(String(val));
+            if (vn.startsWith(pn)) return true;
+            const vAl = somenteAlnumCodigoBusca(vn);
+            if (pnAl.length >= 3 && vAl.startsWith(pnAl)) return true;
+            return false;
+        }
+        const campos = [p.codigo_nfe, p.codigo, p.codigo_interno, p.sku, p.referencia];
+        if (campos.some(bate)) return true;
+        if (Array.isArray(p.index_codigos)) {
+            return p.index_codigos.some((x) => bate(x));
+        }
+        return false;
+    }
+
+    function parecePrefixoGm(palavraNorm) {
+        const t = String(palavraNorm || '').trim();
+        return /^gm[a-z0-9-]{2,50}$/.test(t);
+    }
+
     /** Etiqueta GM (ex.: GM1541-5, GM1518-125-3) — leitor manda texto, não EAN numérico. */
     function pareceCodigoGmEtiqueta(termoNorm) {
         const t = String(termoNorm || '').trim();
@@ -297,6 +323,7 @@
     function palavraCasaNoProduto(palavraBruta, tokens, hay, fuzzy, p) {
         const pn = normalizarBuscaLocal(String(palavraBruta || ''));
         if (pn.startsWith('gm') && termoIgualCodigoProdutoExato(pn, p)) return true;
+        if (pn.startsWith('gm') && casaCodigoGmPrefixo(pn, p)) return true;
         if (pareceCodigoBarrasNumerico(pn) && termoIgualCodigoBarrasNumericoExato(pn, p)) return true;
         if (casaCodigoNumericoNoProduto(palavraBruta, p)) return true;
         const gmVars = pn.startsWith('gm') ? variantesLiteraisCodigoGm(pn) : [];
@@ -348,7 +375,11 @@
         if (!palavras.length) return [];
 
         if (palavras.length === 1 && pareceCodigoGmEtiqueta(palavras[0])) {
-            const gmHits = lista.filter((p) => termoIgualCodigoProdutoExato(palavras[0], p));
+            const gmHits = lista.filter(
+                (p) =>
+                    termoIgualCodigoProdutoExato(palavras[0], p)
+                    || casaCodigoGmPrefixo(palavras[0], p)
+            );
             if (gmHits.length) return gmHits;
         }
         if (palavras.length === 1 && pareceCodigoBarrasNumerico(palavras[0])) {
