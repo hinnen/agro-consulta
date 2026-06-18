@@ -353,21 +353,24 @@ def _montar_xml_nfce(
     return xml_body, qr_url
 
 
-def _anexar_suplementar_qrcode(xml_assinado: str, qr_url: str, tp_amb: int) -> str:
-    from lxml import etree
-
-    parser = etree.XMLParser(remove_blank_text=False)
-    root = etree.fromstring(xml_assinado.encode("utf-8"), parser)
-    supl = etree.SubElement(root, f"{{{NS}}}infNFeSupl")
-    qr_el = etree.SubElement(supl, f"{{{NS}}}qrCode")
-    qr_el.text = qr_url
-    url_el = etree.SubElement(supl, f"{{{NS}}}urlChave")
-    url_el.text = (
-        "https://www.fazenda.sp.gov.br/nfce/consulta"
+def _anexar_suplementar_qrcode(xml_nfe: str, qr_url: str, tp_amb: int) -> str:
+    """Insere infNFeSupl após infNFe e antes da Signature (ordem exigida pelo XSD)."""
+    url_chave = (
+        "https://www.nfce.fazenda.sp.gov.br/consulta"
         if tp_amb == 1
-        else "https://www.homologacao.nfce.fazenda.sp.gov.br/consulta"
+        else "https://homologacao.nfce.fazenda.sp.gov.br/consulta"
     )
-    return tostring_sem_prefixos(etree.tostring(root, encoding="unicode", xml_declaration=False))
+    supl = (
+        f"<infNFeSupl>"
+        f"<qrCode><![CDATA[{qr_url}]]></qrCode>"
+        f"<urlChave>{url_chave}</urlChave>"
+        f"</infNFeSupl>"
+    )
+    m = re.search(r"</infNFe>", xml_nfe)
+    if not m:
+        return xml_nfe
+    pos = m.end()
+    return xml_nfe[:pos] + supl + xml_nfe[pos:]
 
 
 def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
@@ -634,7 +637,8 @@ def emitir_nfce_para_venda(
         )
         return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
 
-    signed, err_sign = _assinar_nfe_xml(xml_body, cfg["cert_path"], cfg["cert_password"], chave)
+    xml_com_qr = _anexar_suplementar_qrcode(xml_body, qr_url, int(cfg["tp_amb"]))
+    signed, err_sign = _assinar_nfe_xml(xml_com_qr, cfg["cert_path"], cfg["cert_password"], chave)
     if err_sign or not signed:
         doc = NfceDocumentoAgro.objects.create(
             venda=venda,
@@ -649,8 +653,7 @@ def emitir_nfce_para_venda(
         )
         return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
 
-    signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
-    ret, err_http = _enviar_autorizacao(signed_com_qr, cfg)
+    ret, err_http = _enviar_autorizacao(signed, cfg)
     if err_http or not ret:
         doc = NfceDocumentoAgro.objects.create(
             venda=venda,
@@ -666,7 +669,7 @@ def emitir_nfce_para_venda(
         return {"ok": False, "erro": err_http or "Sem resposta SEFAZ.", "documento_id": doc.pk}
 
     st = NfceDocumentoAgro.Status.AUTORIZADA if ret.get("autorizada") else NfceDocumentoAgro.Status.REJEITADA
-    xml_save = ret.get("xml_nfeproc") or signed_com_qr
+    xml_save = ret.get("xml_nfeproc") or signed
     mensagem_sefaz = f"{ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —")
     if ret.get("c_stat") == "270":
         mensagem_sefaz += f" (NFC_E_CMUN={cfg['cmun']}; Jacupiranga/SP=3524600)"
