@@ -23,6 +23,7 @@ import requests
 from decouple import config
 
 from produtos.nfe_entrada_util import decodificar_doc_zip_base64
+from produtos.sefaz_ssl_util import sefaz_requests_verify
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +177,13 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         "SOAPAction": "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse",
     }
     try:
-        r = requests.post(url, data=soap.encode("utf-8"), headers=headers, timeout=60)
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
         text = r.text or ""
         if r.status_code >= 400:
             out["erro"] = f"HTTP {r.status_code}: {text[:500]}"

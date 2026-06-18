@@ -23,6 +23,7 @@ from django.utils import timezone
 from produtos.caixa_util import pagamentos_lista_de_venda
 from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_cfg, nfce_configurada
+from produtos.sefaz_ssl_util import sefaz_requests_verify
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
 
 logger = logging.getLogger(__name__)
@@ -392,6 +393,7 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
             data=soap.encode("utf-8"),
             headers=headers,
             cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
             timeout=90,
         )
         text = r.text or ""
