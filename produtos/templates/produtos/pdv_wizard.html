@@ -1816,6 +1816,28 @@
   </div>
 </div>
 
+<div id="modal-pdv-nfce-cpf" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-900/55 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-nfce-cpf-titulo">
+  <div class="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="border-b border-emerald-100 bg-emerald-50 px-4 py-3">
+      <h2 id="modal-pdv-nfce-cpf-titulo" class="text-sm font-black uppercase tracking-tight text-emerald-950">Cupom fiscal (NFC-e)</h2>
+      <p class="mt-1 text-xs font-semibold text-slate-600">Cliente sem CPF cadastrado. Informe o CPF ou confirme venda sem identificação.</p>
+    </header>
+    <div class="space-y-3 px-4 py-4">
+      <label class="block text-xs font-black uppercase text-slate-600" for="pdv-nfce-cpf-input">CPF do consumidor</label>
+      <input type="text" id="pdv-nfce-cpf-input" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" class="w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-lg font-bold tracking-wide text-slate-900 focus:border-emerald-500 focus:outline-none">
+      <label class="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+        <input type="checkbox" id="pdv-nfce-sem-id-check" class="mt-1 h-5 w-5 shrink-0 accent-emerald-600">
+        <span class="text-sm font-semibold leading-snug text-slate-700">Confirmo venda <strong>sem CPF</strong> (consumidor não identificado)</span>
+      </label>
+      <p id="pdv-nfce-cpf-erro" class="hidden text-xs font-bold text-red-700"></p>
+    </div>
+    <footer class="flex gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3">
+      <button type="button" id="pdv-nfce-cpf-cancelar" class="flex-1 rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-nfce-cpf-confirmar" class="flex-1 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-2.5 text-xs font-black uppercase text-white hover:bg-emerald-700">Continuar venda</button>
+    </footer>
+  </div>
+</div>
+
 <div id="pdv-fiado-vencidos-modal" class="fixed inset-0 z-[136] hidden items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-fiado-vencidos-titulo">
   <div class="flex max-h-[min(88dvh,40rem)] w-full max-w-[min(42rem,96vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-red-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
     <header class="shrink-0 border-b-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 sm:px-5">

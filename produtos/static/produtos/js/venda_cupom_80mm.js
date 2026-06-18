@@ -133,6 +133,9 @@
 
     function buildCupomInnerHtml(c) {
         c = c || {};
+        if (c.tipo === 'nfce') {
+            return buildNfceCupomInnerHtml(c);
+        }
         var fiado = isFiadoCupom(c);
         var subtitulo =
             c.subtitulo ||
@@ -225,6 +228,91 @@
                 '</div>';
         }
         h += '<div style="text-align:center;font-size:10px;margin-top:10px;font-weight:600;">Obrigado pela preferência</div>';
+        h += cupomRodapeSistvaleHtml();
+        h += cupomPgCorteHtml();
+        h += '</div>';
+        return h;
+    }
+
+    function formatChaveNfce(chave) {
+        var s = String(chave || '').replace(/\D/g, '');
+        if (s.length !== 44) return s;
+        var out = [];
+        var i;
+        for (i = 0; i < s.length; i += 4) {
+            out.push(s.slice(i, i + 4));
+        }
+        return out.join(' ');
+    }
+
+    function buildNfceCupomInnerHtml(c) {
+        c = c || {};
+        var itens = Array.isArray(c.itens) ? c.itens : [];
+        var lines = '';
+        itens.forEach(function (it) {
+            var q = Number(it.qtd != null ? it.qtd : 0);
+            var sub = it.subtotal != null ? Number(it.subtotal) : q * Number(it.preco != null ? it.preco : 0);
+            lines +=
+                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                '<span style="flex:1;min-width:0;">' +
+                escHtml(fmtQtd(q) + '× ' + String(it.nome || '').slice(0, 48)) +
+                '</span><span style="white-space:nowrap;font-weight:800;">' +
+                escHtml(moedaCupom(sub)) +
+                '</span></div>';
+        });
+        var qrImg = '';
+        if (c.qr_code_url) {
+            qrImg =
+                '<div style="text-align:center;margin:8px 0 4px;"><img alt="QR NFC-e" style="width:42mm;max-width:100%;height:auto;" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' +
+                encodeURIComponent(String(c.qr_code_url)) +
+                '"></div>';
+        }
+        var h = '<div class="pg">';
+        if (c.homologacao) {
+            h +=
+                '<div style="text-align:center;font-size:10px;font-weight:900;border:2px dashed #000;padding:4px;margin-bottom:6px;">EMITIDA EM HOMOLOGAÇÃO — SEM VALOR FISCAL</div>';
+        }
+        h += '<div style="text-align:center;font-size:11px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_fantasia || '—') + '</div>';
+        if (c.emitente_cnpj) {
+            h += '<div style="text-align:center;font-size:9px;">CNPJ ' + escHtml(c.emitente_cnpj) + ' · IE ' + escHtml(c.emitente_ie || '—') + '</div>';
+        }
+        if (c.emitente_endereco) {
+            h += '<div style="text-align:center;font-size:9px;line-height:1.25;margin:2px 0 4px;">' + escHtml(c.emitente_endereco) + '</div>';
+        }
+        h += '<div style="text-align:center;font-size:11px;font-weight:900;margin:6px 0 2px;">DANFE NFC-e · Documento auxiliar</div>';
+        h += '<div style="font-size:10px;font-weight:800;">NFC-e nº ' + escHtml(String(c.numero_nf || '')) + ' · Série ' + escHtml(String(c.serie_nf || '')) + '</div>';
+        if (c.criado_em) {
+            h += '<div style="font-size:10px;">Emissão: ' + escHtml(c.criado_em) + '</div>';
+        }
+        if (c.protocolo) {
+            h += '<div style="font-size:9px;word-break:break-all;">Protocolo: ' + escHtml(c.protocolo) + '</div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
+        h += cupomNomeClienteHtml(c.cliente_nome);
+        if (c.cliente_cpf) {
+            h += '<div style="font-size:10px;font-weight:800;">CPF ' + escHtml(c.cliente_cpf) + '</div>';
+        } else if (c.consumidor_sem_identificacao) {
+            h += '<div style="font-size:10px;font-weight:800;">Consumidor não identificado</div>';
+        }
+        h += lines;
+        h +=
+            '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
+            escHtml(c.total_texto || moedaCupom(c.total)) +
+            '</span></div>';
+        if (c.forma_pagamento) {
+            h += '<div style="font-size:11px;margin-top:4px;font-weight:800;">Pag.: ' + escHtml(c.forma_pagamento) + '</div>';
+        }
+        if (c.chave) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin-top:6px;word-break:break-word;">Chave: ' +
+                escHtml(formatChaveNfce(c.chave)) +
+                '</div>';
+        }
+        h += qrImg;
+        h += '<div style="text-align:center;font-size:9px;margin-top:4px;">Consulte pela chave ou QR Code</div>';
+        if (c.segunda_via) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+        }
         h += cupomRodapeSistvaleHtml();
         h += cupomPgCorteHtml();
         h += '</div>';
