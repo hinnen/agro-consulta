@@ -198,9 +198,13 @@ def _assinar_nfe_xml(xml_nfe: str, cert_path: str, cert_password: str, chave: st
 
 
 def _qr_code_url(chave: str, tp_amb: int, csc_id: int, csc_token: str) -> str:
+    """QR Code v2 online SP — hash: SHA1(chave|2|tpAmb|idCSC + tokenCSC)."""
     n_versao = "2"
-    digest = hashlib.sha1(f"{chave}{n_versao}{tp_amb}{csc_id}{csc_token}".encode()).hexdigest().upper()
-    p = f"{chave}|{n_versao}|{tp_amb}|{csc_id}|{digest}"
+    id_csc = str(int(csc_id))
+    token = (csc_token or "").strip()
+    payload = f"{chave}|{n_versao}|{tp_amb}|{id_csc}{token}"
+    digest = hashlib.sha1(payload.encode()).hexdigest().upper()
+    p = f"{chave}|{n_versao}|{tp_amb}|{id_csc}|{digest}"
     base = URL_QR_BASE.get(tp_amb, URL_QR_BASE[2])
     return f"{base}?p={p}"
 
