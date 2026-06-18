@@ -360,7 +360,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.12`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** staging `teste` · **produção `dfa9e1f` v1.09**
+**Versão app (`VERSION`):** staging `teste` · **produção `d75c436` v1.10** (empréstimo dual + Nova saída, escopo fechado)
 
 ### O que este documento já cobre (até aqui)
 
@@ -409,9 +409,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Toggle Pagar/Receber:** ignorado neste modo (gera receita + despesa no mesmo envio).
 
-**Arquivos:** `lancamento_emprestimo_dual.js`, `expandir_linhas_emprestimo_dual_lote`, `despesa` por linha em `inserir_lancamentos_manual_lote`.
+**Ajuda UI:** textos longos removidos do card; botão **?** no cabeçalho (só quando o plano empréstimo dual está ativo).
 
-**Teste staging:** Nova saída → plano empréstimo → entrada 1000, saída 1200, loja, pessoa, conta → 3 títulos. Ajuda longa só no **?** do cabeçalho (some ao sair do modo empréstimo).
+**Produção:** `d75c436` v1.10 (2026-06-18) — cherry-pick escopo fechado; **não** inclui PDV wizard nem merge `teste` inteiro.
 
 ### URGENTE — PDV carrinho some ao bipar GM no barras (2026-06-18)
 
