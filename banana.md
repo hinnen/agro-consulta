@@ -392,9 +392,11 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho); (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
 
-**Teste Renan em casa (sem leitor, v1.09):** `GM1541-5S` OK · `GM1518-125-3` OK (autocomplete lento) · **`GM15415S` falhou** (cadastro ≠ forma da etiqueta no cache local; scanner não ia à API).
+**Teste Renan:** staging OK (2026-06-18). Em casa: `GM1541-5S` e `GM1518-125-3` OK; `GM15415S` corrigido no v1.14+.
 
-**Patch v1.10 (teste):** variantes GM15415S↔GM1541-5S, autocomplete GM, fallback API no scanner, `busca_texto` com alnum no catálogo local.
+**Produção:** commit `59bdedc` · **v1.02** — push `producao` 2026-06-18 (patch isolado; **sem** Lançamentos/NFC-e). Arquivos: `consulta_produtos.js`, `_js_busca_produto_inteligente.html`, `pdv_diagnostico_codigo.py`, `produtos_etiquetas_core.js`, `cadastro_erp_panel.js`, modal cadastro.
+
+**Pós-deploy loja:** **Ctrl+F5** no PDV + botão **Estoque** uma vez por terminal.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -411,33 +413,20 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3`
 
-### Produção — só este patch (aguardar OK do Renan no staging)
+### Produção — patch PDV carrinho (feito 2026-06-18)
 
-**Arquivos deste commit (escopo fechado):**
+Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `producao`, v1.02). **Não** mergeou `teste` inteiro.
+
+**Arquivos:**
 
 | Arquivo | Papel |
 |---------|--------|
-| `produtos/static/produtos/js/consulta_produtos.js` | Fix carrinho PDV |
-| `produtos/management/commands/pdv_diagnostico_codigo.py` | Diagnóstico Mongo (opcional na loja) |
+| `consulta_produtos.js` | Fix carrinho + GM |
+| `_js_busca_produto_inteligente.html` | Match GM |
+| `pdv_diagnostico_codigo.py` | Diagnóstico Mongo |
+| `produtos_etiquetas_core.js` + modal cadastro | EAN no barras |
 
-**Teste no staging (`agro-consulta-staging`):**
-
-1. `/consulta/` — 3+ itens → bipar **GM15415S** (Ibiúna; etiqueta pode ler `GM1541-5S`) e **GM1518-125-3** → carrinho **não** zera; produto certo entra.
-2. Se aparecer aviso vermelho “sem ID” → **Estoque** (sync) e repetir.
-3. (Opcional) Shell Render: `python manage.py pdv_diagnostico_codigo GM4579 GM15181253`
-
-**Quando Renan disser que pode ir para produção:**
-
-```bash
-git checkout producao
-git pull origin producao
-git merge teste -m "merge teste: fix PDV carrinho some ao bipar itens GM"
-git push origin producao
-```
-
-Ou PR `teste` → `producao` só com o commit deste fix (cherry-pick se `teste` tiver outros commits à frente). **Não** levar WIP de Lançamentos/NFC-e junto sem combinar.
-
-**Pós-deploy produção:** operadores com PDV aberto → **Ctrl+F5** uma vez (cache JS).
+**Loja:** Ctrl+F5 no `/consulta/` após deploy Render.
 
 ### WIP / não commitado (snapshot 2026-06-18)
 
@@ -464,7 +453,7 @@ Ou PR `teste` → `producao` só com o commit deste fix (cherry-pick se `teste` 
 
 **Outras:**
 
-- [ ] **PDV carrinho** — validar patch v1.09+ no staging (`GM15415S`, `GM1518-125-3`)
+- [x] **PDV carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
