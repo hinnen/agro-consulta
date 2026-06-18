@@ -1349,13 +1349,22 @@
       var bc = Core.valorBarcodeProduto(Core.produtoParaItem(p, 1));
       barrasEl.classList.remove('hidden', 'text-emerald-700', 'text-amber-900', 'bg-amber-50');
       if (bc.formato === 'EAN13' || bc.formato === 'EAN8') {
-        barrasEl.textContent =
+        var msg =
           'Barras na etiqueta: ' +
           bc.valor +
           ' (' +
           bc.formato +
           ') — leitor bipa o número, não o GM.';
-        barrasEl.classList.add('text-emerald-700');
+        if (bc.ean_corrigido) {
+          msg +=
+            ' Aviso: dígito verificador ajustado automaticamente' +
+            (bc.valor_original ? ' (cadastro tinha ' + bc.valor_original + ')' : '') +
+            '. Confira o EAN real do produto.';
+          barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
+        } else {
+          barrasEl.classList.add('text-emerald-700');
+        }
+        barrasEl.textContent = msg;
       } else {
         barrasEl.textContent =
           'Sem EAN no cadastro: a etiqueta sairá com código GM (' +

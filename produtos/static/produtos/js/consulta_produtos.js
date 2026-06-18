@@ -3235,7 +3235,12 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
             && typeof pareceCodigoGmEtiqueta === 'function'
             && pareceCodigoGmEtiqueta(termoNorm)
             && !window.AGRO_MANUAL_SYNC_ONLY;
-        if (gmSemLocal) {
+        const cbSemLocal =
+            !locaisOrdenados.length
+            && typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termoNorm)
+            && !window.AGRO_MANUAL_SYNC_ONLY;
+        if (gmSemLocal || cbSemLocal) {
             executarBuscaAPI(termoBrutoOriginal, modo);
             return;
         }
@@ -3339,14 +3344,22 @@ function executarBuscaLocal(termo, modo) {
             typeof termoIgualCodigoProdutoExato === 'function'
                 ? termoIgualCodigoProdutoExato
                 : null;
+        const matchBarrasFn =
+            typeof termoIgualCodigoBarrasNumericoExato === 'function'
+                ? termoIgualCodigoBarrasNumericoExato
+                : null;
         const exatos = resultados.filter((p) => {
             if (matchExatoFn && matchExatoFn(termo, p)) return true;
+            if (matchBarrasFn && matchBarrasFn(termo, p)) return true;
             const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
             const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
             if (nfe === termo || cb === termo) return true;
             const gmEtiqueta =
                 typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termo);
             if (gmEtiqueta) return false;
+            const cbNumerico =
+                typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termo);
+            if (cbNumerico) return false;
             return casaCodigoNumericoNoProduto(termo, p);
         });
         if (exatos.length === 1) {
@@ -3361,6 +3374,14 @@ function executarBuscaLocal(termo, modo) {
         if (
             typeof pareceCodigoGmEtiqueta === 'function'
             && pareceCodigoGmEtiqueta(termo)
+            && !window.AGRO_MANUAL_SYNC_ONLY
+        ) {
+            executarBuscaAPI(termoBrutoApi || termo, modo);
+            return;
+        }
+        if (
+            typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termo)
             && !window.AGRO_MANUAL_SYNC_ONLY
         ) {
             executarBuscaAPI(termoBrutoApi || termo, modo);
@@ -3642,6 +3663,54 @@ inputBusca.addEventListener('keydown', function(e) {
                         prodGm.preco_venda,
                         quantidadeRapida,
                         prodGm
+                    );
+                }
+                inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+                quantidadeRapida = 1;
+                return;
+            }
+            if (!window.AGRO_MANUAL_SYNC_ONLY) {
+                pdvMarcarJanelaScannerAtiva(1500);
+                executarBuscaAPI(brutoEnter, 'scanner');
+                return;
+            }
+        }
+        if (
+            termoEnter
+            && typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termoEnter)
+            && baseProdutos.length
+        ) {
+            pdvMarcarJanelaScannerAtiva(1500);
+            const matchCbFn =
+                typeof termoIgualCodigoBarrasNumericoExato === 'function'
+                    ? termoIgualCodigoBarrasNumericoExato
+                    : null;
+            const matchGmFn =
+                typeof termoIgualCodigoProdutoExato === 'function'
+                    ? termoIgualCodigoProdutoExato
+                    : null;
+            let exatosCb = baseProdutos.filter(
+                (p) =>
+                    (matchCbFn && matchCbFn(termoEnter, p))
+                    || (matchGmFn && matchGmFn(termoEnter, p))
+            );
+            if (exatosCb.length > 1) {
+                exatosCb = ordenarSugestoesPdv(exatosCb, termoEnter);
+            }
+            const prodCb = exatosCb[0];
+            if (prodCb) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prodCb, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(
+                        prodCb.id,
+                        prodCb.nome,
+                        prodCb.preco_venda,
+                        quantidadeRapida,
+                        prodCb
                     );
                 }
                 inputBusca.value = '';
