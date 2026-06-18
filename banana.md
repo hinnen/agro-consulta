@@ -357,7 +357,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Versão:** `1.0.9`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (etiquetas 230 + busca cadastro → teste)  
-**Versão app (`VERSION`):** `1.26` · `origin/teste` (Nova saída legibilidade)
+**Versão app (`VERSION`):** `1.27` · `origin/teste` (Nova saída legibilidade)
 
 ### O que este documento já cobre (até aqui)
 
