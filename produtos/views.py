@@ -366,7 +366,7 @@ def _termo_parece_codigo(termo_original):
         return True
 
     # Prefixos comuns digitados
-    if (termo_limpo.lower().startswith("gm") and len(termo_limpo) >= 2:
+    if termo_limpo.lower().startswith("gm") and len(termo_limpo) >= 2:
         return True
 
     return False

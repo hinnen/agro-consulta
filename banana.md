@@ -140,6 +140,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
 
+**Armadilha GM no barras (2026-06-18):** se «Código de barras» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, não EAN. No **wizard** (`pdv_wizard.js`), o hífen do GM disparava atalho **`-`** = remover último item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GM…`. Legado `/consulta/`: F4 pós-bip + match alnum (`consulta_produtos.js`).
+
 **Venda gravada em:** `VendaAgro` (Postgres) + tentativa sync ERP conforme config.
 
 ### 4.3 NFC-e (cupom fiscal 65)
@@ -281,12 +283,12 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 Fluxo **seguro** (só admin vê os botões):
 
-1. **Backup Excel** — todos os títulos (pagar + receber); guardar no PC.
+1. **Backup ZIP** — CSV separados (pagar, receber, fiado); guardar no PC. Abrir **um CSV por vez** no Excel (anos de a pagar numa planilha só trava o PC).
 2. **Checkpoint** — carimbo no sistema; **não apaga nem muda valores**.
 3. **Deploy** — loja evita Lançamentos por algumas horas; ERP para de atualizar financeiro.
 4. **Depois** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` no Render (opcional, reforço).
 
-**Backup Excel** — abas **A pagar**, **A receber** (espelho Mongo, todos os documentos) e **Fiado PDV** (Postgres, só cópia — PDV não muda). A receber vazia + fiado cheio é normal na GM Agro.
+**Backup ZIP** — `01_a_pagar.csv`, `02_a_receber.csv`, `03_fiado_pdv.csv` + `LEIA-ME.txt`. Fiado PDV é Postgres (cópia; PDV não muda). A receber vazia + fiado cheio é normal na GM Agro.
 
 Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -338,11 +340,11 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
-2. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
-3. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
-4. **Lançamentos — Nova saída** — rodapé fino; cards retraídos ao adicionar linha.
-5. **PDV carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
+1. **PDV wizard — GM no barras remove carrinho** — fix local `pdv_wizard.js`: hífen de `GM1546-5S` não pode chamar atalho `-`; GM entra modo barcode; bloqueio F4 pós-bip. **Aguarda commit + teste Renan.**
+2. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
+3. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
+4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
+5. **PDV legado carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`) · produção `59bdedc` v1.02.
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -354,10 +356,10 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.9`  
+**Versão:** `1.0.10`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (etiquetas 230 + busca cadastro → teste)  
-**Versão app (`VERSION`):** `1.28` · `origin/teste` (Nova saída legibilidade)
+**Atualizado por:** assistente Cursor (fix PDV wizard GM1546-5S + checkpoint)  
+**Versão app (`VERSION`):** `1.28` · `origin/teste` (último commit `e7e1404`)
 
 ### O que este documento já cobre (até aqui)
 
@@ -376,6 +378,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] §4.15 roadmap desvinculação ERP (Mongo → Postgres)
 - [x] Regra: assistente atualiza banana automaticamente (sem perguntar)
 - [x] Nova saída: tipografia maior + card expandido ocupa altura (sem vazio embaixo)
+- [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
 
 ### NFC-e — status staging (2026-06-18)
 
@@ -386,19 +389,34 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] Toast falha fiscal **depois** da impressão Windows
 - [ ] Merge **`producao`** — só quando Renan pedir + checklist `docs/NFCE-PRODUCAO.md`
 
-### URGENTE — PDV carrinho some ao bipar alguns itens (2026-06-18)
+### URGENTE — PDV carrinho some ao bipar GM no barras (2026-06-18)
 
-**Sintoma:** em `/consulta/`, ao bipar certos produtos (ex. **GM1518-125-3** etiqueta antiga, **GM15415S** Ibiúna ensacada, **GM4579**), o carrinho perde itens (0–1 de 5). Leitor manda **texto GM** (hífen/sufixo na etiqueta), não EAN numérico.
+| Onde | Sintoma | Status |
+|------|---------|--------|
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | Fix **local** `pdv_wizard.js` — **sem commit** |
+| **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
-**Correção Renan (2026-06-18):** Ibiúna ensacada = **`GM15415S`** no cadastro — **não** `GM1541-5` (etiqueta errada enviada antes). Na impressão SisVale pode aparecer **`GM1541-5S`** abaixo do barras; o match usa alnum (`gm15415s`).
+**Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
 
-**Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho); (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
+**Causa wizard:** atalho **`-`** na busca = `bumpLastCartItem(-1)` (menos qty do **último** item). O hífen do GM disparava remoção **sem** inserir o carácter.
 
-**Teste Renan:** staging OK (2026-06-18). Em casa: `GM1541-5S` e `GM1518-125-3` OK; `GM15415S` corrigido no v1.14+.
+**Patch wizard (`pdv_wizard.js`, local):**
 
-**Produção:** commit `59bdedc` · **v1.02** — push `producao` 2026-06-18 (patch isolado; **sem** Lançamentos/NFC-e). Arquivos: `consulta_produtos.js`, `_js_busca_produto_inteligente.html`, `pdv_diagnostico_codigo.py`, `produtos_etiquetas_core.js`, `cadastro_erp_panel.js`, modal cadastro.
+- `-` / `+` ignorados enquanto digita GM/SKU ou janela pós-bip (1,5 s)
+- Códigos **`GM…`** → modo **barcode** (auto-adiciona)
+- Match **alnum** no cache (`GM15465S` = `GM1546-5S`)
+- **F4** bloqueado após leitor (campo com código ou janela ativa)
 
-**Pós-deploy loja:** **Ctrl+F5** no PDV + botão **Estoque** uma vez por terminal.
+**Teste pós-deploy (Renan):**
+
+1. Ctrl+F5 no wizard · 4 itens no carrinho
+2. Bipar **GM1546-5S** / **GM15465S** várias vezes
+3. Carrinho **não** perde itens; idealmente adiciona Ibiúna
+4. Corrigir cadastro: barras → EAN ou `230…` + reimprimir etiqueta
+
+**PDV legado:** `consulta_produtos.js` + `_js_busca_produto_inteligente.html` (já em produção v1.02).
+
+**Pendente:** commit + push `teste` → validar staging → merge produção quando Renan pedir.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -409,7 +427,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 | Código GM | **Texto** abaixo do barras (referência humana) |
 | EAN 8/12/13 | **Dentro** do barras — é isso que o leitor deve mandar |
 | Etiquetas antigas / já impressas com GM no barras | PDV aceita GM (patch carrinho); **reimprimir** quando houver EAN no cadastro |
-| Ibiúna ensacada **GM15415S** | Conferir EAN na aba Fiscal → imprimir de novo; preview do modal cadastro mostra se sai EAN ou aviso âmbar |
+| Ibiúna ensacada **GM1546-5S** (prod. 1467) | Barras errado no cadastro — corrigir Fiscal → EAN/`230…` → reimprimir |
 
 **Operação:** antes de imprimir lote, abrir 🖨️ no cadastro — se aparecer aviso âmbar «Sem EAN», corrigir cadastro primeiro.
 
@@ -427,7 +445,7 @@ Nem todo item tem EAN de fábrica. Casos normais na GM Agro:
 
 **Faixa 230… (interno loja):** gerada pelo SisVale (`agro_codigo_barras_loja_util.py`) — 230 + 10 dígitos sequenciais. **Não é EAN-13** (último dígito é sequência, não DV). Etiqueta imprime **CODE128**; modal 🖨️ mostra «Barras interno loja». EAN real (ex. Abacate `789…`) continua EAN13.
 
-**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3 1813647`
+**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM1546-5S GM1518-125-3 1813647`
 
 ### Código de barras curto (7 dígitos) + PDV — feito 2026-06-18
 
@@ -466,17 +484,22 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 | Arquivo | Tema |
 |---------|------|
+| `produtos/static/produtos/js/pdv_wizard.js` | **URGENTE** — GM/hífen não remove carrinho; modo barcode GM |
+| `banana.md` | Checkpoint v1.0.10 |
+| `produtos/views.py` | Alterações locais (ver diff antes de commit) |
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 | `config/app_build_util.py` | Badge BI usa só `VERSION` (local) |
 | `.githooks/`, `scripts/bump_version.py` | Hook bump VERSION (untracked) |
 
-**Sessão barras/etiquetas/cadastro:** commitada em `teste` v1.19–v1.22 (`5bcc05d` … `c234822`). **Produção:** só PDV carrinho GM (`59bdedc` v1.02) — restante aguarda Renan.
+**Próximo passo sugerido:** commit `pdv_wizard.js` + `banana.md` → push `teste` → Renan testa wizard com **GM1546-5S**.
+
+**Já em `teste`:** barras 7 dígitos, 230… CODE128, busca cadastro GM (v1.19–v1.28). **Produção:** só PDV legado carrinho GM (`59bdedc` v1.02).
 
 ### Pendências conhecidas (produto)
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-- [x] Lançamentos: backup Excel completo + checkpoint na tela (código pronto; falta deploy + rodar na loja)
+- [x] Lançamentos: backup ZIP (CSV) + checkpoint na tela (v1.29; falta deploy + rodar na loja)
 - [ ] Após checkpoint: deploy staging → Renan testa backup + checkpoint → produção + avisar loja/ERP
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
 - [ ] PDV `/api/buscar/` e cache → Postgres
@@ -486,7 +509,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Outras:**
 
-- [x] **PDV carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
+- [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
+- [ ] **PDV wizard carrinho GM** — fix local; commit + teste Renan + produção
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
@@ -508,6 +532,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.7
+### Fim do checkpoint v1.0.10
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
