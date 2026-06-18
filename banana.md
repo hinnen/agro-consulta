@@ -423,7 +423,9 @@ Nem todo item tem EAN de fábrica. Casos normais na GM Agro:
 | Saco **maior** com EAN, **unidade de dentro** sem barras (ex. ensacado na loja) | **Código interno** numérico criado pela loja — não é EAN do fornecedor |
 | **Reembalagem** na loja (ração a granel, fracionado) | Idem — código interno (7 dígitos, 13 com DV válido, etc.) |
 
-**Não** confundir: «inventar» aqui = **identificador interno SisVale/loja**, não falsificar GTIN de fabricante. PDV e etiqueta tratam 4–14 dígitos como barras normal (CODE128); EAN-13 exige **dígito verificador correto** (SisVale corrige DV na impressão se estiver errado e avisa no modal).
+**Não** confundir: «inventar» aqui = **identificador interno SisVale/loja**, não falsificar GTIN de fabricante. PDV e etiqueta tratam 4–14 dígitos como barras normal (CODE128); EAN-13 de **fábrica** exige DV correto.
+
+**Faixa 230… (interno loja):** gerada pelo SisVale (`agro_codigo_barras_loja_util.py`) — 230 + 10 dígitos sequenciais. **Não é EAN-13** (último dígito é sequência, não DV). Etiqueta imprime **CODE128**; modal 🖨️ mostra «Barras interno loja». EAN real (ex. Abacate `789…`) continua EAN13.
 
 **Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3 1813647`
 

@@ -1,6 +1,9 @@
 """
 Código de barras interno da loja (embalagem no balcão): prefixo 230 + 10 dígitos sequenciais.
 Ex.: 2300000000001, 2300000000002 …
+
+São 13 caracteres numéricos, mas **não** EAN-13 de fábrica (sem dígito verificador EAN).
+Na etiqueta SisVale saem como CODE128; no PDV o leitor bipa o número normalmente.
 """
 
 from __future__ import annotations
