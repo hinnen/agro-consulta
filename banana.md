@@ -341,7 +341,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **PDV wizard — GM no barras remove carrinho** — `pdv_wizard.js`: hífen `GM1546-5S` não dispara atalho `-`; GM modo barcode; F4 pós-bip bloqueado. **→ staging `teste` (Renan validar).**
+1. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
 2. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
 3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
 4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
@@ -360,7 +360,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.12`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** bump neste commit · staging `teste` · **produção `d92c5ad` v1.08**
+**Versão app (`VERSION`):** `1.30` · commit `e055761` em `teste` · **produção `d92c5ad` v1.08**
 
 ### O que este documento já cobre (até aqui)
 
