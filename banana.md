@@ -445,7 +445,7 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Sintoma:** lista cadastro não achava por código GM nem barras.
 
-**Correção (`c234822` v1.22):** `cadastro_erp_panel.js` — modo **normal**, `api_produtos_cadastro` + fallback PDV; `views.py` — barras **4+** dígitos no motor e overlay alnum GM.
+**Correção (`c234822` v1.22 + `…` v1.24):** modo **normal**, `api_produtos_cadastro`, prefixo GM (`GM1541` → `GM1541-5S`), Enter força busca, limpa «Continue digitando» ao buscar.
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
