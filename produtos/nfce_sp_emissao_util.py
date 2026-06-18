@@ -418,6 +418,26 @@ def _local(tag: str) -> str:
     return tag
 
 
+def _elemento_para_xml_str(el: ET.Element | None) -> str:
+    if el is None:
+        return ""
+    txt = (el.text or "").strip()
+    if txt:
+        return txt
+    if len(el):
+        return ET.tostring(el, encoding="unicode")
+    return "".join(el.itertext()).strip()
+
+
+def _parse_xml_fiscal(raw: str) -> ET.Element:
+    raw = (raw or "").strip()
+    if raw.startswith("<?xml"):
+        end = raw.find("?>")
+        if end >= 0:
+            raw = raw[end + 2 :].strip()
+    return ET.fromstring(raw)
+
+
 def _parse_retorno_autorizacao(soap_text: str) -> dict[str, Any]:
     out: dict[str, Any] = {
         "c_stat": "",
@@ -430,35 +450,68 @@ def _parse_retorno_autorizacao(soap_text: str) -> dict[str, Any]:
     try:
         root = ET.fromstring(soap_text)
     except ET.ParseError:
-        out["x_motivo"] = "Resposta SOAP inválida."
+        snippet = re.sub(r"\s+", " ", (soap_text or ""))[:350]
+        out["x_motivo"] = f"Resposta SOAP inválida. Trecho: {snippet}"
+        logger.warning("NFC-e SOAP inválido: %s", (soap_text or "")[:2000])
         return out
-    nfe_result = None
+
     for el in root.iter():
-        if _local(el.tag) == "nfeResultMsg" and el.text:
-            nfe_result = el.text
-            break
-    if not nfe_result:
-        out["x_motivo"] = "Resposta sem nfeResultMsg."
+        if _local(el.tag) != "Fault":
+            continue
+        fault_txt = ""
+        for ch in el.iter():
+            tl = _local(ch.tag)
+            if tl in ("faultstring", "Text") and ch.text:
+                fault_txt = ch.text.strip()
+                break
+        out["x_motivo"] = fault_txt or "Erro SOAP Fault na SEFAZ."
         return out
+
+    payload = ""
+    ret_envi_el = None
+    for el in root.iter():
+        ln = _local(el.tag)
+        if ln == "retEnviNFe" and ret_envi_el is None:
+            ret_envi_el = el
+        elif ln in ("nfeResultMsg", "nfeAutorizacaoLoteResult") and not payload:
+            payload = _elemento_para_xml_str(el)
+
+    if not payload and ret_envi_el is not None:
+        payload = ET.tostring(ret_envi_el, encoding="unicode")
+
+    if not payload:
+        snippet = re.sub(r"\s+", " ", soap_text)[:350]
+        logger.warning("NFC-e SOAP sem retEnviNFe/nfeResultMsg: %s", soap_text[:2500])
+        out["x_motivo"] = f"Resposta SOAP sem retorno reconhecido. Trecho: {snippet}"
+        return out
+
     try:
-        ret_root = ET.fromstring(nfe_result)
+        ret_root = _parse_xml_fiscal(payload)
     except ET.ParseError:
-        out["x_motivo"] = "XML de retorno inválido."
+        snippet = re.sub(r"\s+", " ", payload)[:350]
+        out["x_motivo"] = f"XML de retorno inválido. Trecho: {snippet}"
         return out
+
+    c_stats: list[str] = []
     for el in ret_root.iter():
         ln = _local(el.tag)
-        if ln == "cStat" and not out["c_stat"]:
-            out["c_stat"] = (el.text or "").strip()
-        elif ln == "xMotivo" and not out["x_motivo"]:
-            out["x_motivo"] = (el.text or "").strip()
-        elif ln == "nProt":
-            out["protocolo"] = (el.text or "").strip()
-        elif ln == "chNFe":
-            out["chave"] = (el.text or "").strip()
-    c_stat = out["c_stat"]
-    out["autorizada"] = c_stat in ("100", "150")
+        if ln == "cStat" and el.text:
+            val = el.text.strip()
+            c_stats.append(val)
+            if not out["c_stat"]:
+                out["c_stat"] = val
+        elif ln == "xMotivo" and el.text and not out["x_motivo"]:
+            out["x_motivo"] = el.text.strip()
+        elif ln == "nProt" and el.text:
+            out["protocolo"] = el.text.strip()
+        elif ln == "chNFe" and el.text:
+            out["chave"] = el.text.strip()
+
+    out["autorizada"] = any(c in ("100", "150") for c in c_stats)
     if out["autorizada"]:
-        out["xml_nfeproc"] = nfe_result
+        out["xml_nfeproc"] = payload
+    elif c_stats and not out["x_motivo"]:
+        out["x_motivo"] = f"SEFAZ cStat={c_stats[-1]}"
     return out
 
 
@@ -553,9 +606,8 @@ def emitir_nfce_para_venda(
         )
         return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
 
-    signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
-
-    ret, err_http = _enviar_autorizacao(signed_com_qr, cfg)
+    # Envio à SEFAZ: só XML assinado (infNFeSupl/QR entra depois da autorização).
+    ret, err_http = _enviar_autorizacao(signed, cfg)
     if err_http or not ret:
         doc = NfceDocumentoAgro.objects.create(
             venda=venda,
@@ -571,6 +623,7 @@ def emitir_nfce_para_venda(
         return {"ok": False, "erro": err_http or "Sem resposta SEFAZ.", "documento_id": doc.pk}
 
     st = NfceDocumentoAgro.Status.AUTORIZADA if ret.get("autorizada") else NfceDocumentoAgro.Status.REJEITADA
+    signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
     xml_save = ret.get("xml_nfeproc") or signed_com_qr
     doc = NfceDocumentoAgro.objects.create(
         venda=venda,

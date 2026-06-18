@@ -5249,7 +5249,9 @@
 
     function nfceErroDaResposta(data) {
         if (data && data.nfce && data.nfce.ok === false) {
-            return data.nfce.erro || 'Falha na NFC-e';
+            var e = data.nfce.erro || 'Falha na NFC-e';
+            if (data.nfce.c_stat) e = '[' + data.nfce.c_stat + '] ' + e;
+            return e;
         }
         return '';
     }
@@ -5390,6 +5392,9 @@
 
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
+        if (opts.nfceErro) {
+            alert(saleDoneMessage(opts) + nfceAvisoPosVenda(opts));
+        }
         imprimirCupomAposVenda(withPrint, printWin, opts.vendaId).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
             resetWizardParaNovaVenda();
@@ -5399,9 +5404,9 @@
                     'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
                     'warn'
                 );
-            } else {
-                var msg = saleDoneMessage(opts) + nfceAvisoPosVenda(opts);
-                var kind = opts.nfceErro ? 'warn' : opts.erpPendente ? 'info' : 'success';
+            } else if (!opts.nfceErro) {
+                var msg = saleDoneMessage(opts);
+                var kind = opts.erpPendente ? 'info' : 'success';
                 showSaleDoneFeedback(msg, kind);
             }
         });
