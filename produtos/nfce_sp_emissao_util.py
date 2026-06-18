@@ -18,6 +18,7 @@ from typing import Any
 
 import requests
 from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from produtos.caixa_util import pagamentos_lista_de_venda
@@ -128,6 +129,25 @@ def _pagamentos_da_venda(venda: VendaAgro) -> list[dict[str, Any]]:
     if not out:
         out.append({"tPag": "01", "vPag": Decimal(str(venda.total or 0)).quantize(Decimal("0.01")), "xPag": ""})
     return out
+
+
+def _garantir_numeracao_inicial(cfg: dict[str, Any]) -> None:
+    """Série/número alinhados ao ERP (ex.: série 20, próximo 1183)."""
+    serie_cfg = int(cfg["serie"])
+    piso = int(cfg.get("proximo_numero_inicial") or 1)
+    with transaction.atomic():
+        num, _ = NfceNumeracaoAgro.objects.select_for_update().get_or_create(
+            pk=1,
+            defaults={"serie": serie_cfg, "proximo_numero": piso},
+        )
+        max_doc = (
+            NfceDocumentoAgro.objects.filter(serie=serie_cfg).aggregate(m=Max("numero")).get("m") or 0
+        )
+        alvo = max(piso, int(max_doc) + 1)
+        if num.serie != serie_cfg or int(num.proximo_numero or 1) < alvo:
+            num.serie = serie_cfg
+            num.proximo_numero = alvo
+            num.save(update_fields=["serie", "proximo_numero", "atualizado_em"])
 
 
 def _proximo_numero_serie(cfg: dict[str, Any]) -> tuple[int, int]:
@@ -608,6 +628,8 @@ def emitir_nfce_para_venda(
     if not itens:
         return {"ok": False, "erro": "Venda sem itens para NFC-e."}
 
+    _garantir_numeracao_inicial(cfg)
+
     fiscal_rows = [
         fiscal_por_produto_id(str(it.produto_id_externo or ""), db=db, col_p=col_p) for it in itens
     ]
@@ -672,7 +694,10 @@ def emitir_nfce_para_venda(
         ret, err_http = _enviar_autorizacao(signed, cfg)
         if err_http or not ret:
             break
-        if ret.get("autorizada") or ret.get("c_stat") not in _NFCE_RETRY_CSTAT_DUPLICIDADE:
+        if ret.get("autorizada"):
+            break
+        cstat = str(ret.get("c_stat") or "").strip()
+        if cstat not in _NFCE_RETRY_CSTAT_DUPLICIDADE:
             break
         logger.warning(
             "NFC-e %s nNF=%s — tentando próximo número (%s/5)",

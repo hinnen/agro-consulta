@@ -45,9 +45,13 @@ def nfce_cfg() -> dict[str, Any]:
     if tp_amb not in (1, 2):
         tp_amb = 2
     try:
-        serie = int(_cfg("NFC_E_SERIE", "1") or 1)
+        serie = int(_cfg("NFC_E_SERIE", "20") or 20)
     except (TypeError, ValueError):
-        serie = 1
+        serie = 20
+    try:
+        proximo_numero_inicial = int(_cfg("NFC_E_PROXIMO_NUMERO", "1") or 1)
+    except (TypeError, ValueError):
+        proximo_numero_inicial = 1
     try:
         csc_id = int(re.sub(r"\D", "", _cfg("NFC_E_CSC_ID", "1") or "1") or 1)
     except (TypeError, ValueError):
@@ -76,6 +80,7 @@ def nfce_cfg() -> dict[str, Any]:
         "csc_id": csc_id,
         "csc_token": _cfg("NFC_E_CSC_TOKEN"),
         "serie": max(1, min(serie, 999)),
+        "proximo_numero_inicial": max(1, proximo_numero_inicial),
         "tp_amb": tp_amb,
     }
 
