@@ -286,7 +286,7 @@ Fluxo **seguro** (só admin vê os botões):
 3. **Deploy** — loja evita Lançamentos por algumas horas; ERP para de atualizar financeiro.
 4. **Depois** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` no Render (opcional, reforço).
 
-**Fiado do PDV (`/fiado/`)** — **não entra** neste backup (Postgres). Contas a receber aqui = financeiro legado Mongo; aba vazia no Excel é **normal** na GM Agro.
+**Backup Excel** — abas **A pagar**, **A receber** (espelho Mongo, todos os documentos) e **Fiado PDV** (Postgres, só cópia — PDV não muda). A receber vazia + fiado cheio é normal na GM Agro.
 
 Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
