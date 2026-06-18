@@ -14398,6 +14398,20 @@ def api_lancamentos_criar_manual_lote(request):
                 },
                 status=400,
             )
+    elif isinstance(linhas, list):
+        for idx, ln in enumerate(linhas):
+            if not isinstance(ln, dict):
+                continue
+            raw_lq = ln.get("quitado")
+            ln_q = raw_lq is True or str(raw_lq or "").strip().lower() in ("1", "true", "yes", "sim", "on")
+            if ln_q and not str(ln.get("banco_id") or "").strip():
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": f"Lançamento {idx + 1} quitado: escolha conta bancária com ID do ERP na lista.",
+                    },
+                    status=400,
+                )
 
     _, db = obter_conexao_mongo()
     if db is None:

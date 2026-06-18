@@ -4965,7 +4965,8 @@ def inserir_lancamentos_manual_lote(
         ln_n = max(1, min(ln_n, 12))
         n_cp = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_pre += n_cp
-        if ln_rec and ln_mod == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and ln_n > 1:
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        if ln_rec and ln_mod == "normal" and ln_quit and ln_n > 1:
             return {
                 "ok": False,
                 "ids": [],
@@ -5046,6 +5047,9 @@ def inserir_lancamentos_manual_lote(
         ln_n = max(1, min(ln_n, 12))
         n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_total += n_copies
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        ln_quit_pagar = ln_quit and despesa
+        ln_quit_receber = ln_quit and not despesa
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
         desc_base = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
@@ -5100,7 +5104,7 @@ def inserir_lancamentos_manual_lote(
             if ln_rec and ln_mod == "normal" and n_copies > 1:
                 obs_antecipado = f"Antecipado {sub + 1}/{n_copies} (modo Normal)"
             obs_quitado = ""
-            if marcar_quitado_pagar or marcar_quitado_receber:
+            if ln_quit_pagar or ln_quit_receber:
                 obs_quitado = "Título lançado como quitado via lote manual"
             doc["Observacoes"] = " | ".join(
                 p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
@@ -5135,7 +5139,7 @@ def inserir_lancamentos_manual_lote(
                 doc["Entrada"] = 0.0
                 doc["ValorPago"] = 0.0
                 doc["Recebido"] = 0.0
-                if marcar_quitado_pagar:
+                if ln_quit_pagar:
                     dpq = _dt_naive_meia_noite_erp(use_dv_d)
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -5145,7 +5149,7 @@ def inserir_lancamentos_manual_lote(
                 doc["Saida"] = 0.0
                 doc["Recebido"] = 0.0
                 doc["ValorPago"] = 0.0
-                if marcar_quitado_receber:
+                if ln_quit_receber:
                     dpq = dv
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -5167,7 +5171,7 @@ def inserir_lancamentos_manual_lote(
             try:
                 ins = col.insert_one(doc)
                 inserted.append(str(ins.inserted_id))
-                if doc.get(AGRO_RECORRENTE) and (marcar_quitado_pagar or marcar_quitado_receber):
+                if doc.get(AGRO_RECORRENTE) and (ln_quit_pagar or ln_quit_receber):
                     doc_r = col.find_one({"_id": ins.inserted_id})
                     if doc_r:
                         criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_r, usuario_label=user)

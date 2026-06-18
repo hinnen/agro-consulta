@@ -27,25 +27,7 @@
     <form id="agro-ns-form" class="flex flex-col flex-1 min-h-0 overflow-hidden">
       {% csrf_token %}
 
-      <div class="agro-ns-quitado-bar shrink-0 mx-[var(--ns-pad)] mt-2 p-3 rounded-xl border-2 border-[var(--ns-accent)]/30 bg-[var(--ns-accent-soft)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="min-w-0">
-          <h3 class="agro-ns-subtitle font-black text-slate-900">Situação</h3>
-          <p class="agro-ns-hint text-slate-700 mt-0.5">Marque se já foi pago ou recebido.</p>
-        </div>
-        <label class="flex items-center gap-3 cursor-pointer shrink-0">
-          <span class="relative inline-flex agro-ns-switch shrink-0">
-            <input type="checkbox" id="agro-ns-quitado" class="sr-only">
-            <span class="agro-ns-switch-track block w-full h-full bg-slate-300 rounded-full"></span>
-            <span class="agro-ns-switch-dot absolute left-0.5 top-0.5 bg-white rounded-full shadow transition-transform pointer-events-none"></span>
-          </span>
-          <span class="agro-ns-subtitle font-black text-slate-800">Lançar quitado</span>
-        </label>
-      </div>
-
-      <div class="agro-ns-itens-wrap flex flex-col flex-1 min-h-0 mt-2">
-        <div class="agro-ns-itens-head shrink-0 flex flex-wrap justify-between items-center gap-2">
-          <h3 class="agro-ns-subtitle font-black uppercase text-white tracking-wide">Lançamentos</h3>
-        </div>
+      <div class="agro-ns-itens-wrap flex flex-col flex-1 min-h-0">
         <div id="agro-ns-linhas" class="agro-ns-linhas-host flex-1 min-h-0 overflow-y-auto"></div>
         <div class="agro-ns-add-wrap shrink-0 flex justify-center py-3 border-t border-slate-200 bg-slate-50">
           <button type="button" id="agro-ns-add-linha" class="agro-ns-btn-add flex items-center gap-2">
@@ -114,11 +96,8 @@
     --ns-accent-ring: rgba(5, 150, 105, 0.2);
     --ns-head-bg: #065f46;
   }
-  .agro-ns-panel--pagar .agro-ns-itens-head { background: var(--ns-head-bg); }
-  .agro-ns-panel--receber .agro-ns-itens-head { background: var(--ns-head-bg); }
   .agro-ns-header, .agro-ns-footer { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); }
-  .agro-ns-itens-head { padding: calc(var(--ns-pad) * 0.85) calc(var(--ns-pad) * 1.25); }
-  .agro-ns-linhas-host { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); }
+  .agro-ns-linhas-host { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); padding-top: calc(var(--ns-pad) * 1.1); }
   .agro-ns-title { font-size: var(--ns-fs-title); line-height: 1.15; }
   .agro-ns-subtitle { font-size: var(--ns-fs-sub); line-height: 1.25; }
   .agro-ns-label { font-size: var(--ns-fs-label); font-weight: 800; color: #334155; line-height: 1.2; }
@@ -148,11 +127,19 @@
     width: 1.25rem; height: 1.25rem; color: #94a3b8; pointer-events: none;
   }
   .agro-ns-btn-icon { width: 3rem; height: 3rem; padding: 0.35rem; }
-  .agro-ns-switch { width: 3.5rem; height: 2rem; }
-  .agro-ns-switch-dot { width: calc(50% - 0.2rem); height: calc(100% - 0.25rem); }
-  #agro-ns-quitado:checked ~ .agro-ns-switch-track { background: var(--ns-accent); }
-  #agro-ns-quitado:checked ~ .agro-ns-switch-dot { transform: translateX(calc(100% + 0.15rem)); }
   .agro-ns-chk { width: 1.35rem; height: 1.35rem; accent-color: var(--ns-accent); }
+  .agro-ns-quitado-chip-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: var(--ns-input-h); padding: 0.35rem 0.75rem;
+    font-size: clamp(0.8125rem, 0.3vw + 0.75rem, 0.9375rem);
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+    border: 2px solid #cbd5e1; border-radius: 0.75rem; background: #fff; color: #64748b;
+    white-space: nowrap; transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .agro-ns-in-quitado:checked + .agro-ns-quitado-chip-btn {
+    background: var(--ns-accent); border-color: var(--ns-accent); color: #fff;
+  }
+  .agro-ns-wrap-ven.is-quitado .agro-ns-in-ven { opacity: 0.55; }
   .agro-ns-details-sum { padding: 0.55rem 0.85rem; font-size: var(--ns-fs-label); }
   .agro-ns-details-body { padding: 0.65rem 0.85rem 0.85rem; }
   .agro-ns-btn-secondary, .agro-ns-btn-ghost, .agro-ns-btn-primary, .agro-ns-btn-add {

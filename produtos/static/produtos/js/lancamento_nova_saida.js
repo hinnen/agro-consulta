@@ -109,19 +109,25 @@
     if (el) el.textContent = t.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function syncQuitadoLinhaOpacity(card) {
-    const cbQ = $('agro-ns-quitado');
+  function syncQuitadoLinha(card) {
+    const cbQ = card.querySelector('.agro-ns-in-quitado');
     const wrap = card.querySelector('.agro-ns-wrap-ven');
-    if (wrap && cbQ) wrap.style.opacity = cbQ.checked ? '0.45' : '1';
+    if (!wrap || !cbQ) return;
+    wrap.classList.toggle('is-quitado', cbQ.checked);
   }
 
   function bindLinhaDatas(card) {
     const comp = card.querySelector('.agro-ns-in-comp');
     const ven = card.querySelector('.agro-ns-in-ven');
+    const cbQ = card.querySelector('.agro-ns-in-quitado');
     comp?.addEventListener('change', () => {
-      if ($('agro-ns-quitado')?.checked && ven) ven.value = comp.value || ven.value;
+      if (cbQ?.checked && ven) ven.value = comp.value || ven.value;
     });
-    syncQuitadoLinhaOpacity(card);
+    cbQ?.addEventListener('change', () => {
+      syncQuitadoLinha(card);
+      if (cbQ.checked && comp?.value && ven) ven.value = comp.value;
+    });
+    syncQuitadoLinha(card);
   }
 
   function syncRecLinha(card) {
@@ -169,6 +175,12 @@
     const dVen = destino.querySelector('.agro-ns-in-ven');
     if (comp && dComp) dComp.value = comp.value;
     if (ven && dVen) dVen.value = ven.value;
+    const oQ = origem.querySelector('.agro-ns-in-quitado');
+    const dQ = destino.querySelector('.agro-ns-in-quitado');
+    if (oQ && dQ) {
+      dQ.checked = oQ.checked;
+      syncQuitadoLinha(destino);
+    }
   }
 
   function atualizarNumeracaoCards() {
@@ -244,7 +256,13 @@
         </div>
         <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven">
           <label class="agro-ns-label">Vencimento</label>
-          <input type="date" class="agro-ns-input agro-ns-in-ven">
+          <div class="flex items-stretch gap-2 min-w-0">
+            <input type="date" class="agro-ns-input agro-ns-in-ven flex-1 min-w-0">
+            <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
+              <input type="checkbox" class="agro-ns-in-quitado sr-only">
+              <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
+            </label>
+          </div>
         </div>
       </div>
       <div class="agro-ns-card-row-desc">
@@ -318,14 +336,11 @@
   }
 
   function syncQuitadoVenc() {
-    document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((card) => {
-      syncQuitadoLinhaOpacity(card);
-      if ($('agro-ns-quitado')?.checked) {
-        const comp = card.querySelector('.agro-ns-in-comp');
-        const ven = card.querySelector('.agro-ns-in-ven');
-        if (comp?.value && ven) ven.value = comp.value;
-      }
-    });
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((card) => syncQuitadoLinha(card));
+  }
+
+  function algumQuitado(linhas) {
+    return (linhas || []).some((l) => !!l.quitado);
   }
 
   function resumoDatasLinhas(linhas) {
@@ -378,6 +393,7 @@
       const recorrente = !!(recCb && recCb.checked);
       const recMod = (card.querySelector('input[name^="agro-ns-rec-modo-"]:checked') || {}).value || 'sempre';
       const recParcelas = Math.max(1, Math.min(Number(card.querySelector('.agro-ns-rec-parcelas')?.value || 1), 12));
+      const quitado = !!card.querySelector('.agro-ns-in-quitado')?.checked;
 
       const vazio = !plan.nome && !valor && !descricao && !emp.nome && !pes.nome && !ban.nome;
       if (vazio) return;
@@ -400,13 +416,14 @@
         recorrente,
         recorrente_modo: recorrente ? recMod : 'sempre',
         recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
+        quitado,
         _num: n,
       });
     });
     return linhas;
   }
 
-  function validarLinhas(linhasRaw, quitado) {
+  function validarLinhas(linhasRaw) {
     if (!linhasRaw.length) {
       alert('Preencha ao menos um lançamento (plano e valor).');
       return false;
@@ -426,7 +443,7 @@
         alert(`Lançamento ${num}: informe competência e vencimento.`);
         return false;
       }
-      if (quitado && !ln.banco_id) {
+      if (ln.quitado && !ln.banco_id) {
         alert(`Lançamento ${num}: para quitado, escolha conta com ID do ERP na lista.`);
         return false;
       }
@@ -437,11 +454,11 @@
   async function submitForm(ev) {
     ev.preventDefault();
     const tipo = tipoAtual();
-    const quitado = !!$('agro-ns-quitado')?.checked;
     const linhasRaw = coletarLinhas();
-    if (!validarLinhas(linhasRaw, quitado)) return;
+    if (!validarLinhas(linhasRaw)) return;
 
     const linhas = linhasRaw.map(({ _num, ...rest }) => rest);
+    const quitadoLote = algumQuitado(linhas);
     const { dc, dvMin, dvMax } = resumoDatasLinhas(linhas);
     const cab = linhas[0] || {};
 
@@ -457,7 +474,7 @@
       banco_id: cab.banco_id || null,
       forma_nome: cab.forma_nome || '',
       forma_id: cab.forma_id || null,
-      quitado,
+      quitado: quitadoLote,
       recorrente: false,
       linhas,
       idempotency_key: loteIdempotencyKey,
@@ -497,7 +514,7 @@
         alert('Lote gravado. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
       }
       fechar();
-      dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
+      dispararSucesso(tipo, quitadoLote, dc, dvMin, dvMax, ids[0] || '');
     } catch (_) {
       alert('Erro de rede. Confira em Lançamentos se já gravou antes de repetir.');
     } finally {
@@ -562,8 +579,8 @@
     const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncTemaTipo();
-    const cbQ = $('agro-ns-quitado');
-    if (cbQ) { cbQ.checked = !!j.quitado_hint; syncQuitadoVenc(); }
+    const cbQ = card.querySelector('.agro-ns-in-quitado');
+    if (cbQ) { cbQ.checked = !!j.quitado_hint; syncQuitadoLinha(card); }
 
     let card = document.querySelector('#agro-ns-linhas .agro-ns-card');
     if (!card) { resetLinhas(1); card = document.querySelector('#agro-ns-linhas .agro-ns-card'); }
@@ -660,8 +677,6 @@
     const tipo = opts.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncTemaTipo();
-    const cbQ = $('agro-ns-quitado');
-    if (cbQ) cbQ.checked = false;
     const inpNlp = $('agro-ns-nlp-texto');
     if (inpNlp) inpNlp.value = '';
     esconderNlpDialog();
@@ -681,7 +696,6 @@
     resetIdempotency();
     syncTemaTipo();
 
-    $('agro-ns-quitado')?.addEventListener('change', syncQuitadoVenc);
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((r) => {
       r.addEventListener('change', syncTemaTipo);
     });
