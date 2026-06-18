@@ -32,6 +32,25 @@
     return n.toFixed(2).replace('.', ',');
   }
 
+  var CB_LOJA_PREFIX_RE = /^230\d{10}$/;
+
+  /** Faixa interna loja (230 + 10 dígitos) — 13 chars mas NÃO é EAN-13 (sem DV EAN). */
+  function ehCodigoBarrasLojaInterno(cb) {
+    var d = String(cb || '').replace(/\D/g, '');
+    return CB_LOJA_PREFIX_RE.test(d);
+  }
+
+  function extrairCodigoBarrasLojaInterno(p) {
+    var cands = candidatosCodigoBarrasNumerico(p);
+    for (var i = 0; i < cands.length; i++) {
+      var cb = String(cands[i] || '').replace(/\D/g, '');
+      if (ehCodigoBarrasLojaInterno(cb)) {
+        return { valor: cb, formato: 'CODE128', codigo_loja: true };
+      }
+    }
+    return null;
+  }
+
   function ean13Digito(d12) {
     var d = String(d12 || '').replace(/\D/g, '');
     if (d.length !== 12) return null;
@@ -108,6 +127,7 @@
     var cands = candidatosCodigoBarrasNumerico(p);
     for (var i = 0; i < cands.length; i++) {
       var cb = String(cands[i] || '').replace(/\D/g, '');
+      if (ehCodigoBarrasLojaInterno(cb)) continue;
       if (cb.length === 13 || cb.length === 12) {
         var norm = normalizarEan13(cb);
         if (norm) return norm;
@@ -134,6 +154,8 @@
   }
 
   function valorBarcodeProduto(p) {
+    var loja = extrairCodigoBarrasLojaInterno(p);
+    if (loja) return loja;
     var ean = extrairEanNumerico(p);
     if (ean) return ean;
     var cbCurto = extrairCodigoBarrasCurto(p);
@@ -466,6 +488,7 @@
     fillPresetSelect: fillPresetSelect,
     valorBarcodeProduto: valorBarcodeProduto,
     extrairEanNumerico: extrairEanNumerico,
+    ehCodigoBarrasLojaInterno: ehCodigoBarrasLojaInterno,
     ean13ChecksumOk: ean13ChecksumOk,
     normalizarEan13: normalizarEan13,
   };

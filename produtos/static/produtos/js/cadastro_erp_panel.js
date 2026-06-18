@@ -1365,6 +1365,12 @@
           barrasEl.classList.add('text-emerald-700');
         }
         barrasEl.textContent = msg;
+      } else if (bc.codigo_loja || (Core.ehCodigoBarrasLojaInterno && Core.ehCodigoBarrasLojaInterno(bc.valor))) {
+        barrasEl.textContent =
+          'Barras interno loja: ' +
+          bc.valor +
+          ' (CODE128) — leitor bipa o número. Faixa 230… não é EAN de fábrica.';
+        barrasEl.classList.add('text-emerald-700');
       } else {
         barrasEl.textContent =
           'Sem EAN no cadastro: a etiqueta sairá com código GM (' +
