@@ -234,9 +234,12 @@ from .mongo_financeiro_util import (
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
+    expandir_linhas_emprestimo_dual_lote,
+    _fin_ln_despesa,
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
+    injetar_emprestimo_dual_sugestao_plano,
     listar_emprestimos_agro,
     listar_lancamentos_emprestimo_do_mongo,
     mongo_emprestimo_como_item_agro,
@@ -14326,6 +14329,8 @@ def api_lancamentos_sugestoes(request):
         ordenar=ordenar,
         empresa_id=empresa_id,
     )
+    if campo == "plano":
+        itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
     return JsonResponse({"campo": campo, "itens": itens})
 
 
@@ -14392,12 +14397,44 @@ def api_lancamentos_criar_manual_lote(request):
 
     dc = _d("data_competencia")
     dv = _d("data_vencimento")
-    if dc is None or dv is None:
-        return JsonResponse({"ok": False, "erro": "Informe data de competência e de vencimento."}, status=400)
 
     linhas = payload.get("linhas")
     if not isinstance(linhas, list):
         return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
+
+    linhas = expandir_linhas_emprestimo_dual_lote(
+        [x for x in linhas if isinstance(x, dict)]
+    )
+    for idx, ln in enumerate(linhas):
+        err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
+        if err_dual:
+            return JsonResponse({"ok": False, "erro": err_dual, "linha": idx + 1}, status=400)
+
+    def _ln_d(ln, key):
+        if not isinstance(ln, dict):
+            return None
+        s = str(ln.get(key) or "").strip()[:10]
+        if not s:
+            return None
+        try:
+            return date.fromisoformat(s)
+        except ValueError:
+            return None
+
+    if dc is None or dv is None:
+        comps = [_ln_d(ln, "data_competencia") for ln in linhas]
+        vens = [_ln_d(ln, "data_vencimento") for ln in linhas]
+        comps_ok = [x for x in comps if x]
+        vens_ok = [x for x in vens if x]
+        if not comps_ok or not vens_ok:
+            return JsonResponse(
+                {"ok": False, "erro": "Informe data de competência e de vencimento (em cada linha)."},
+                status=400,
+            )
+        if dc is None:
+            dc = min(comps_ok)
+        if dv is None:
+            dv = min(vens_ok)
 
     raw_q = payload.get("quitado")
     quitado = raw_q is True or str(raw_q).strip().lower() in ("1", "true", "yes", "sim", "on")
@@ -14415,14 +14452,40 @@ def api_lancamentos_criar_manual_lote(request):
         )
     except (TypeError, ValueError):
         rec_par = 1
-    if quitado and not str(payload.get("banco_id") or "").strip():
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Para lançar quitado, informe a conta bancária no cabeçalho (conta com ID do ERP).",
-            },
-            status=400,
-        )
+    if quitado:
+        bid_hdr = str(payload.get("banco_id") or "").strip()
+        bid_ok = bool(bid_hdr)
+        if not bid_ok and isinstance(linhas, list):
+            for ln in linhas:
+                if not isinstance(ln, dict):
+                    continue
+                if not _fin_ln_despesa(ln, despesa):
+                    continue
+                if str(ln.get("banco_id") or "").strip():
+                    bid_ok = True
+                    break
+        if not bid_ok:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Para lançar quitado na saída, informe a conta bancária (conta com ID do ERP).",
+                },
+                status=400,
+            )
+    elif isinstance(linhas, list):
+        for idx, ln in enumerate(linhas):
+            if not isinstance(ln, dict):
+                continue
+            raw_lq = ln.get("quitado")
+            ln_q = raw_lq is True or str(raw_lq or "").strip().lower() in ("1", "true", "yes", "sim", "on")
+            if ln_q and _fin_ln_despesa(ln, despesa) and not str(ln.get("banco_id") or "").strip():
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta bancária com ID do ERP na lista.",
+                    },
+                    status=400,
+                )
 
     _, db = obter_conexao_mongo()
     if db is None:

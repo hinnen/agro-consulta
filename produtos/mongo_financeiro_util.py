@@ -21,6 +21,18 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+_MSG_MONGO_STAGING = "Ambiente de teste: gravação no Mongo bloqueada (somente leitura)."
+
+
+def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    if agro_mongo_escrita_bloqueada():
+        out: dict[str, Any] = {"ok": False, "erro": _MSG_MONGO_STAGING}
+        out.update(extra)
+        return out
+    return None
+
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 COL_DTO_VENDA = "DtoVenda"
@@ -33,6 +45,8 @@ COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
+EMPRESTIMO_DUAL_LABEL = "Empréstimo (entrada + pagamento)"
+EMPRESTIMO_DUAL_PLANO_ID = "__AGRO_EMPRESTIMO_DUAL__"
 # Plano para titulo extra na Entrada NF-e (financeiro). Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
 LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS_PADRAO = "Impostos e Taxas variaveis"
 
@@ -135,7 +149,49 @@ def emprestimo_defaults_para_ui() -> dict[str, Any]:
         "plano_divida": emprestimo_plano_divida_resolvido(),
         "plano_juros": emprestimo_plano_juros_resolvido(),
         "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
+        "dual_label": EMPRESTIMO_DUAL_LABEL,
+        "dual_id": EMPRESTIMO_DUAL_PLANO_ID,
     }
+
+
+def emprestimo_dual_item_sugestao() -> dict[str, Any]:
+    return {
+        "id": EMPRESTIMO_DUAL_PLANO_ID,
+        "nome": EMPRESTIMO_DUAL_LABEL,
+        "emprestimo_dual": True,
+    }
+
+
+def _query_bate_emprestimo_dual(q: str | None) -> bool:
+    ql = (q or "").strip().lower()
+    if len(ql) < 2:
+        return False
+    label = EMPRESTIMO_DUAL_LABEL.casefold()
+    if "emprest" in ql or ql in label or label.find(ql) >= 0:
+        return True
+    for tok in ("entrada", "pagamento", "juros"):
+        if tok in ql and tok in label:
+            return True
+    return False
+
+
+def injetar_emprestimo_dual_sugestao_plano(
+    itens: list[dict[str, Any]] | None,
+    q: str | None,
+) -> list[dict[str, Any]]:
+    """Insere pseudo-plano no topo da lista de autocomplete de plano."""
+    out = [x for x in (itens or []) if isinstance(x, dict)]
+    if not _query_bate_emprestimo_dual(q):
+        return out
+    dual = emprestimo_dual_item_sugestao()
+    did = str(dual.get("id") or "").strip()
+    dnom = str(dual.get("nome") or "").strip().casefold()
+    for it in out:
+        iid = str(it.get("id") or "").strip()
+        inom = str(it.get("nome") or "").strip().casefold()
+        if iid == did or inom == dnom:
+            return out
+    return [dual, *out]
 
 
 def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
@@ -2037,6 +2093,220 @@ def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) ->
     return not _lancamento_tem_vinculo_erp(doc)
 
 
+def _rotulo_usuario_de_campo_mongo(raw: str) -> str:
+    """Extrai rótulo legível de ``CriadoPor`` / prefixo de ``ModificadoPor``."""
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    if " — " in s:
+        return s.split(" — ", 1)[0].strip()[:120]
+    if " - " in s:
+        return s.split(" - ", 1)[0].strip()[:120]
+    return s[:120]
+
+
+def _usuario_lancou_de_doc(doc: dict) -> str:
+    criado = str(doc.get("CriadoPor") or "").strip()
+    if criado:
+        return _rotulo_usuario_de_campo_mongo(criado)
+    mod = str(doc.get("ModificadoPor") or "")
+    if "inclusão manual" in mod.lower() or "lote manual" in str(doc.get("Observacoes") or "").lower():
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _usuario_quitou_de_doc(doc: dict, quitado: bool, mov_r: float) -> str:
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    if not mod:
+        return ""
+    mod_l = mod.lower()
+    if quitado:
+        return _rotulo_usuario_de_campo_mongo(mod)
+    if mov_r > 0.02 and ("baixa" in mod_l or "parcial" in mod_l):
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _horario_auditoria_de_doc(doc: dict, quitado: bool, mov_r: float) -> str | None:
+    if not quitado and mov_r <= 0.02:
+        return None
+    for key in ("LastUpdate", "DataModificacao", "DataPagamento"):
+        v = doc.get(key)
+        if _dt_efetiva(v):
+            return _serializar_dt(v)
+    return None
+
+
+def _tipo_evento_modificado_por(mod: str, quitado: bool) -> tuple[str, str]:
+    ml = mod.lower()
+    if quitado and "baixa" in ml:
+        if "parcial" in ml:
+            return "baixa_parcial", "Baixa parcial (última operação)"
+        return "baixa_total", "Quitação total"
+    if "edição" in ml or "edicao" in ml:
+        return "edicao", "Edição do lançamento"
+    if "recorrência" in ml or "recorrencia" in ml:
+        return "recorrencia", "Recorrência"
+    if "inclusão manual" in ml or "inclusao manual" in ml:
+        return "inclusao", "Inclusão manual"
+    if "juros" in ml:
+        return "juros", "Juros na quitação"
+    return "modificacao", "Alteração registrada"
+
+
+def lancamento_montar_log_auditoria(doc: dict) -> dict[str, Any]:
+    """Linha do tempo + dump JSON-safe de todos os campos do DtoLancamento."""
+    despesa = bool(doc.get("Despesa"))
+    quitado = _lancamento_quitado_totalmente(doc)
+    if despesa:
+        mov_r = round(float(_dec(doc.get("ValorPago"))), 2)
+        bruto = float(_dec(doc.get("Saida")))
+        restante = float(_restante_a_pagar(doc))
+    else:
+        mov_r = round(
+            float(
+                _valor_realizado_receita_dec(
+                    _dec(doc.get("Entrada")),
+                    _dec(doc.get("Recebido")),
+                    _dec(doc.get("ValorPago")),
+                )
+            ),
+            2,
+        )
+        bruto = float(_dec(doc.get("Entrada")))
+        restante = float(_restante_a_receber(doc))
+
+    eventos: list[dict[str, Any]] = []
+    criado_raw = str(doc.get("CriadoPor") or "").strip()
+    if criado_raw:
+        eventos.append(
+            {
+                "tipo": "criacao",
+                "rotulo": "Lançamento criado",
+                "usuario": _rotulo_usuario_de_campo_mongo(criado_raw),
+                "detalhe": criado_raw,
+                "quando": None,
+            }
+        )
+
+    obs = str(doc.get("Observacoes") or "")
+    for parte in [p.strip() for p in obs.split(" | ") if p.strip()]:
+        if parte.startswith("Agro parc."):
+            eventos.append(
+                {
+                    "tipo": "baixa_parcial_obs",
+                    "rotulo": "Parcela registrada (observações)",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        elif "Lote manual Agro" in parte or "Título lançado como quitado" in parte:
+            eventos.append(
+                {
+                    "tipo": "lote_manual",
+                    "rotulo": "Lote manual / quitação na inclusão",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        else:
+            eventos.append(
+                {
+                    "tipo": "observacao",
+                    "rotulo": "Observação",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    lu = _serializar_dt(doc.get("LastUpdate")) if _dt_efetiva(doc.get("LastUpdate")) else None
+    dm = _serializar_dt(doc.get("DataModificacao")) if _dt_efetiva(doc.get("DataModificacao")) else None
+    if mod:
+        tipo_ev, rotulo_ev = _tipo_evento_modificado_por(mod, quitado)
+        eventos.append(
+            {
+                "tipo": tipo_ev,
+                "rotulo": rotulo_ev,
+                "usuario": _rotulo_usuario_de_campo_mongo(mod),
+                "detalhe": mod,
+                "quando": lu or dm,
+            }
+        )
+
+    if quitado:
+        dp = _serializar_dt(doc.get("DataPagamento")) if _dt_efetiva(doc.get("DataPagamento")) else None
+        eventos.append(
+            {
+                "tipo": "estado_quitado",
+                "rotulo": "Estado atual: quitado",
+                "usuario": _usuario_quitou_de_doc(doc, True, mov_r),
+                "detalhe": (
+                    f"Valor pago/recebido: {mov_r:.2f} · "
+                    f"Forma: {doc.get('FormaPagamento') or '—'} · "
+                    f"Banco: {doc.get('Banco') or '—'}"
+                ),
+                "quando": dp or lu or dm,
+            }
+        )
+    elif mov_r > 0.02:
+        eventos.append(
+            {
+                "tipo": "estado_parcial",
+                "rotulo": "Pagamento parcial em aberto",
+                "usuario": _usuario_quitou_de_doc(doc, False, mov_r),
+                "detalhe": f"Movimentado: {mov_r:.2f} · Saldo: {restante:.2f}",
+                "quando": lu or dm,
+            }
+        )
+
+    campos: dict[str, Any] = {}
+    for k in sorted(doc.keys(), key=lambda x: str(x)):
+        campos[str(k)] = _json_safe_erp_value(doc[k])
+
+    return {
+        "id": str(doc.get("_id", "")),
+        "eventos": eventos,
+        "campos": campos,
+        "resumo": {
+            "cliente": doc.get("Cliente") or "",
+            "descricao": (doc.get("Descricao") or "")[:300],
+            "pago": quitado,
+            "valor_bruto": round(bruto, 2),
+            "valor_movimentado": mov_r,
+            "restante": round(float(restante), 2),
+            "usuario_lancou": _usuario_lancou_de_doc(doc),
+            "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+            "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+            "data_pagamento": _serializar_dt(doc.get("DataPagamento"))
+            if _dt_efetiva(doc.get("DataPagamento"))
+            else None,
+            "last_update": lu,
+            "data_modificacao": dm,
+            "modificado_por": mod[:500],
+            "criado_por": criado_raw[:500],
+            "observacoes": obs[:2000],
+        },
+    }
+
+
+def lancamento_log_auditoria(db, lancamento_id: str) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    payload = lancamento_montar_log_auditoria(doc)
+    return {"ok": True, **payload}
+
+
 def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
     dp = doc.get("DataPagamento")
     quitado = _lancamento_quitado_totalmente(doc)
@@ -2096,6 +2366,17 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "recorrencia_intervalo_meses": ri,
         "agro_recorrente_sempre": _doc_recorrente_sempre(doc),
         "boleto_codigo_barras": str(doc.get(AGRO_BOLETO_CODIGO_BARRAS) or "").strip()[:54],
+        "usuario_lancou": _usuario_lancou_de_doc(doc),
+        "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+        "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+        "modificado_por": str(doc.get("ModificadoPor") or "")[:200],
+        "criado_por": str(doc.get("CriadoPor") or "")[:200],
+        "last_update": _serializar_dt(doc.get("LastUpdate"))
+        if _dt_efetiva(doc.get("LastUpdate"))
+        else None,
+        "data_modificacao": _serializar_dt(doc.get("DataModificacao"))
+        if _dt_efetiva(doc.get("DataModificacao"))
+        else None,
     }
 
 
@@ -4633,6 +4914,159 @@ def _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc: dict[str, Any]) -> di
     return cands[0]
 
 
+def _fin_ln_txt(ln: dict, key: str, fallback: str = "") -> str:
+    if not isinstance(ln, dict):
+        return (fallback or "").strip()
+    v = ln.get(key)
+    s = str(v).strip() if v is not None else ""
+    return s if s else (fallback or "").strip()
+
+
+def _fin_ln_bool(ln: dict, key: str, fallback: bool = False) -> bool:
+    if not isinstance(ln, dict) or key not in ln:
+        return fallback
+    raw = ln.get(key)
+    if raw is True:
+        return True
+    if raw is False:
+        return False
+    return str(raw).strip().lower() in ("1", "true", "yes", "sim", "on")
+
+
+def _fin_ln_despesa(ln: dict, despesa_header: bool) -> bool:
+    """Tipo por linha (``despesa`` / ``tipo``) ou fallback do cabeçalho do lote."""
+    if not isinstance(ln, dict):
+        return bool(despesa_header)
+    if "despesa" in ln:
+        raw = ln.get("despesa")
+        if raw is True:
+            return True
+        if raw is False:
+            return False
+        s = str(raw).strip().lower()
+        if s in ("1", "true", "sim", "pagar", "yes", "on"):
+            return True
+        if s in ("0", "false", "nao", "não", "receber", "no", "off"):
+            return False
+    t = str(ln.get("tipo") or ln.get("tipo_linha") or "").strip().lower()
+    if t == "receber":
+        return False
+    if t == "pagar":
+        return True
+    return bool(despesa_header)
+
+
+def _linha_e_emprestimo_dual(ln: dict) -> bool:
+    if not isinstance(ln, dict):
+        return False
+    if _fin_ln_bool(ln, "emprestimo_dual", False):
+        return True
+    pid = str(ln.get("plano_conta_id") or ln.get("plano_id") or "").strip()
+    if pid == EMPRESTIMO_DUAL_PLANO_ID:
+        return True
+    pn = str(ln.get("plano_conta") or ln.get("plano_nome") or "").strip()
+    return pn == EMPRESTIMO_DUAL_LABEL
+
+
+def expandir_linhas_emprestimo_dual_lote(
+    linhas: list[dict[str, Any]],
+    *,
+    hoje: date | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Pseudo-plano «Empréstimo (entrada + pagamento)» → receita quitada (hoje) + despesa(s).
+    Se valor saída > entrada, a diferença vira título em «Juros de Empréstimos».
+    """
+    if hoje is None:
+        hoje = timezone.localdate()
+    hoje_s = hoje.isoformat()
+    plano_ent = emprestimo_plano_entrada_resolvido()
+    plano_pag = emprestimo_plano_divida_resolvido()
+    plano_juros = emprestimo_plano_juros_resolvido()
+    out: list[dict[str, Any]] = []
+
+    for ln in linhas:
+        if not isinstance(ln, dict) or not _linha_e_emprestimo_dual(ln):
+            out.append(ln)
+            continue
+
+        try:
+            ve = Decimal(str(_fin_parse_valor_entrada_manual(ln.get("valor_entrada"))))
+        except (ValueError, TypeError):
+            ve = Decimal("0")
+        try:
+            vs_raw = ln.get("valor_saida")
+            if vs_raw in (None, ""):
+                vs_raw = ln.get("valor")
+            vs = Decimal(str(_fin_parse_valor_entrada_manual(vs_raw)))
+        except (ValueError, TypeError):
+            vs = Decimal("0")
+
+        if ve <= 0 or vs <= 0:
+            out.append({**ln, "_emprestimo_dual_erro": "Informe valor de entrada e valor de saída maiores que zero."})
+            continue
+
+        base = {k: v for k, v in ln.items() if k not in ("plano_conta", "plano_conta_id", "plano_id", "valor", "valor_entrada", "valor_saida", "emprestimo_dual", "recorrente", "recorrente_modo", "recorrente_parcelas")}
+        pes = _fin_ln_txt(ln, "pessoa_nome", "")
+        desc_base = (ln.get("descricao") or "").strip()
+
+        out.append(
+            {
+                **base,
+                "tipo": "receber",
+                "despesa": False,
+                "plano_conta": plano_ent,
+                "plano_conta_id": None,
+                "valor": float(ve),
+                "data_competencia": hoje_s,
+                "data_vencimento": hoje_s,
+                "quitado": True,
+                "recorrente": False,
+                "banco_nome": "",
+                "banco_id": None,
+                "forma_nome": "",
+                "forma_id": None,
+                "descricao": (desc_base or f"Entrada empréstimo — {pes}")[:500],
+            }
+        )
+
+        if vs > ve:
+            pag_val = ve
+            juros_val = (vs - ve).quantize(Decimal("0.01"))
+        else:
+            pag_val = vs
+            juros_val = Decimal("0")
+
+        out.append(
+            {
+                **base,
+                "tipo": "pagar",
+                "despesa": True,
+                "plano_conta": plano_pag,
+                "plano_conta_id": None,
+                "valor": float(pag_val),
+                "descricao": (desc_base or f"Pagamento empréstimo — {pes}")[:500],
+                "recorrente": False,
+            }
+        )
+
+        if juros_val > Decimal("0.009"):
+            out.append(
+                {
+                    **base,
+                    "tipo": "pagar",
+                    "despesa": True,
+                    "plano_conta": plano_juros,
+                    "plano_conta_id": None,
+                    "valor": float(juros_val),
+                    "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
+                    "recorrente": False,
+                }
+            )
+
+    return out
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -4670,51 +5104,82 @@ def inserir_lancamentos_manual_lote(
     """
     if db is None:
         return {"ok": False, "ids": [], "erros": [{"erro": "Mongo indisponível"}]}
+    err_st = _erro_mongo_staging_readonly(ids=[], erros=[{"erro": _MSG_MONGO_STAGING}])
+    if err_st:
+        return err_st
     empresa_nome = (empresa_nome or "").strip()
     pessoa_nome = (pessoa_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
     forma_nome = (forma_nome or "").strip()
-    if not empresa_nome or not pessoa_nome or not banco_nome:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária."}],
-        }
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas or len(linhas) > 60:
         return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 60 linhas de detalhe."}]}
 
-    modo = (recorrente_modo or "sempre").strip().lower()
-    if modo not in ("sempre", "normal"):
-        modo = "sempre"
-    try:
-        N = int(recorrente_parcelas or 1)
-    except (TypeError, ValueError):
-        N = 1
-    N = max(1, min(N, 12))
-    if recorrente and modo == "normal" and len(linhas) * N > 60:
+    cab_ok = bool(empresa_nome and pessoa_nome and banco_nome)
+    if not cab_ok:
+        cab_ok = all(
+            _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+            and _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+            and (
+                not _fin_ln_despesa(ln, despesa)
+                or _fin_ln_txt(ln, "banco_nome", banco_nome)
+            )
+            for ln in linhas
+        )
+    if not cab_ok:
+        return {
+            "ok": False,
+            "ids": [],
+            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária (conta só nas despesas / saída)."}],
+        }
+
+    planned_pre = 0
+    for idx, ln in enumerate(linhas):
+        err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
+        if err_dual:
+            return {"ok": False, "ids": [], "erros": [{"linha": idx + 1, "erro": err_dual}]}
+        ln_desp_pre = _fin_ln_despesa(ln, despesa)
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_cp = ln_n if (ln_rec and ln_mod == "normal") else 1
+        planned_pre += n_cp
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        ln_quit_pagar_pre = ln_quit and ln_desp_pre
+        ln_quit_receber_pre = ln_quit and not ln_desp_pre
+        if ln_rec and ln_mod == "normal" and (ln_quit_pagar_pre or ln_quit_receber_pre) and ln_n > 1:
+            return {
+                "ok": False,
+                "ids": [],
+                "erros": [
+                    {
+                        "linha": idx + 1,
+                        "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
+                    }
+                ],
+            }
+    if planned_pre > 60:
         return {
             "ok": False,
             "ids": [],
             "erros": [{"erro": "Modo Normal: no máximo 60 títulos no lote (linhas × quantidade)."}],
         }
-    if recorrente and modo == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and N > 1:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [
-                {
-                    "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
-                }
-            ],
-        }
 
-    tpl = _obter_template_lancamento(db, despesa)
-    if not tpl:
-        return {"ok": False, "ids": [], "erros": [{"erro": "Não há lançamento modelo no Mongo para clonar."}]}
+    tpl_cache: dict[bool, dict] = {}
 
-    tpl.pop("_id", None)
-    tpl["PagamentoRemessa"] = {}
+    def _tpl_para(desp: bool) -> dict | None:
+        if desp not in tpl_cache:
+            t = _obter_template_lancamento(db, desp)
+            if not t:
+                return None
+            tpl_cache[desp] = t
+        return copy.deepcopy(tpl_cache[desp])
 
     now = timezone.now()
     lote = f"AG{secrets.token_hex(4).upper()}"
@@ -4749,11 +5214,49 @@ def inserir_lancamentos_manual_lote(
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
 
-        n_copies = N if (recorrente and modo == "normal") else 1
+        ln_empresa = _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+        ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+        ln_banco = _fin_ln_txt(ln, "banco_nome", banco_nome)
+        ln_forma = _fin_ln_txt(ln, "forma_nome", forma_nome)
+        ln_despesa = _fin_ln_despesa(ln, despesa)
+        if not ln_empresa or not ln_pessoa:
+            erros.append({"linha": n, "erro": "Preencha loja e pessoa."})
+            continue
+        if ln_despesa and not ln_banco:
+            erros.append({"linha": n, "erro": "Preencha conta bancária (obrigatória na saída / pagamento)."})
+            continue
+        le_id = _financeiro_id_para_string(ln.get("empresa_id") or empresa_id)
+        lp_id = _financeiro_id_para_string(ln.get("pessoa_id") or pessoa_id)
+        lb_id = _financeiro_id_para_string(ln.get("banco_id") or banco_id)
+        lf_id = _financeiro_id_para_string(ln.get("forma_id") or forma_id)
+
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_total += n_copies
+        ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
+        ln_quit_pagar = ln_quit and ln_despesa
+        ln_quit_receber = ln_quit and not ln_despesa
+        if ln_quit_pagar and not lb_id:
+            erros.append({"linha": n, "erro": "Saída quitada: escolha conta com ID do ERP na lista."})
+            continue
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
         desc_base = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
+
+        tpl = _tpl_para(ln_despesa)
+        if not tpl:
+            erros.append({"linha": n, "erro": "Não há lançamento modelo no Mongo para clonar."})
+            continue
+        tpl.pop("_id", None)
+        tpl["PagamentoRemessa"] = {}
 
         for sub in range(n_copies):
             parcela_seq += 1
@@ -4767,15 +5270,15 @@ def inserir_lancamentos_manual_lote(
                     doc[k] = ""
             if "NumeroLancamento" in doc:
                 doc["NumeroLancamento"] = None
-            doc["Despesa"] = bool(despesa)
-            doc["Empresa"] = empresa_nome[:200]
-            doc["EmpresaID"] = eid
-            doc["Cliente"] = pessoa_nome[:300]
-            doc["ClienteID"] = pid
-            doc["Banco"] = banco_nome[:200]
-            doc["BancoID"] = bid
-            doc["FormaPagamento"] = forma_nome[:200]
-            doc["FormaPagamentoID"] = fid
+            doc["Despesa"] = bool(ln_despesa)
+            doc["Empresa"] = ln_empresa[:200]
+            doc["EmpresaID"] = le_id
+            doc["Cliente"] = ln_pessoa[:300]
+            doc["ClienteID"] = lp_id
+            doc["Banco"] = ln_banco[:200]
+            doc["BancoID"] = lb_id
+            doc["FormaPagamento"] = ln_forma[:200]
+            doc["FormaPagamentoID"] = lf_id
             if (grupo_nome or "").strip():
                 doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
                 doc["LancamentoGrupoID"] = gid
@@ -4796,16 +5299,16 @@ def inserir_lancamentos_manual_lote(
             doc["Pago"] = False
 
             desc_suf = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 desc_suf = f" ({sub + 1}/{n_copies})"
             doc["Descricao"] = (desc_base + desc_suf)[:500]
 
             obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
             obs_antecipado = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 obs_antecipado = f"Antecipado {sub + 1}/{n_copies} (modo Normal)"
             obs_quitado = ""
-            if marcar_quitado_pagar or marcar_quitado_receber:
+            if ln_quit_pagar or ln_quit_receber:
                 obs_quitado = "Título lançado como quitado via lote manual"
             doc["Observacoes"] = " | ".join(
                 p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
@@ -4824,7 +5327,7 @@ def inserir_lancamentos_manual_lote(
             doc.pop(AGRO_RECORRENTE, None)
             doc.pop(AGRO_RECORRENTE_INTERVALO_MESES, None)
             doc.pop(AGRO_RECORRENTE_SEMPRE, None)
-            if recorrente and modo == "sempre":
+            if ln_rec and ln_mod == "sempre":
                 doc[AGRO_RECORRENTE] = True
                 doc[AGRO_RECORRENTE_INTERVALO_MESES] = 1
                 doc[AGRO_RECORRENTE_SEMPRE] = True
@@ -4832,15 +5335,15 @@ def inserir_lancamentos_manual_lote(
             bc = normalizar_boleto_codigo_barras_mongo(
                 ln.get("boleto_codigo_barras") or ln.get("codigo_barras_boleto")
             )
-            if bc and despesa:
+            if bc and ln_despesa:
                 doc[AGRO_BOLETO_CODIGO_BARRAS] = bc
 
-            if despesa:
+            if ln_despesa:
                 doc["Saida"] = valor
                 doc["Entrada"] = 0.0
                 doc["ValorPago"] = 0.0
                 doc["Recebido"] = 0.0
-                if marcar_quitado_pagar:
+                if ln_quit_pagar:
                     dpq = _dt_naive_meia_noite_erp(use_dv_d)
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -4850,7 +5353,7 @@ def inserir_lancamentos_manual_lote(
                 doc["Saida"] = 0.0
                 doc["Recebido"] = 0.0
                 doc["ValorPago"] = 0.0
-                if marcar_quitado_receber:
+                if ln_quit_receber:
                     dpq = dv
                     doc["Pago"] = True
                     doc["DataPagamento"] = dpq
@@ -4872,7 +5375,7 @@ def inserir_lancamentos_manual_lote(
             try:
                 ins = col.insert_one(doc)
                 inserted.append(str(ins.inserted_id))
-                if doc.get(AGRO_RECORRENTE) and (marcar_quitado_pagar or marcar_quitado_receber):
+                if doc.get(AGRO_RECORRENTE) and (ln_quit_pagar or ln_quit_receber):
                     doc_r = col.find_one({"_id": ins.inserted_id})
                     if doc_r:
                         criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_r, usuario_label=user)
@@ -6110,6 +6613,9 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
     """Remove título no Mongo apenas quando permitido (manual Agro ou sem vínculo ERP, sem pagamento)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())
@@ -6151,6 +6657,9 @@ def atualizar_lancamento_mongo_agro(
     """Atualiza campos cadastrais de um título em aberto (Mongo)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())

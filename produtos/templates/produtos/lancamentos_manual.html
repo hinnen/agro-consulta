@@ -185,6 +185,9 @@
     </form>
   </main>
 
+  {% include "produtos/includes/lancamento_emprestimo_dual_cfg.html" %}
+  <script src="{% static 'produtos/js/lancamento_emprestimo_dual.js' %}"></script>
+
   <script>
     // MANTIVE TODO O SEU JS ORIGINAL PARA NÃO QUEBRAR A LÓGICA DE PERSISTÊNCIA
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
@@ -240,8 +243,32 @@
                 if(inp.value.length < 2) return;
                 const r = await fetch(`${API_SUG}?campo=${encodeURIComponent(campo)}&q=${encodeURIComponent(inp.value)}`, { credentials: 'same-origin' });
                 const j = await r.json();
-                dd.innerHTML = (j.itens || []).map(it => `<li class="px-5 py-2.5 text-[10px] font-black uppercase hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0" onclick="selectSug('${it.nome}', '${it.id}', '${inp.id}', '${hid.id}', '${dd.id}')">${it.nome}</li>`).join('');
-                dd.classList.toggle('hidden', (j.itens || []).length === 0);
+                let itens = j.itens || [];
+                const dual = window.AgroLancEmprestimoDual;
+                if (dual && typeof dual.injectSuggestItems === 'function') {
+                    itens = dual.injectSuggestItems(itens, inp.value);
+                }
+                dd.innerHTML = itens.map((it) => {
+                    const dual = it._emprestimo_dual || it.emprestimo_dual;
+                    const cls = dual
+                        ? 'px-5 py-2.5 text-[10px] font-black uppercase hover:bg-indigo-100 cursor-pointer border-b border-indigo-100 last:border-0 bg-indigo-50 text-indigo-900'
+                        : 'px-5 py-2.5 text-[10px] font-black uppercase hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0';
+                    const nome = String(it.nome || '').replace(/"/g, '&quot;');
+                    const prefix = dual ? '↳ ' : '';
+                    return `<li class="${cls}" data-nome="${nome}" data-id="${String(it.id || '')}">${prefix}${it.nome}</li>`;
+                }).join('');
+                dd.querySelectorAll('li').forEach((li) => {
+                    li.addEventListener('mousedown', (ev) => {
+                        ev.preventDefault();
+                        inp.value = li.dataset.nome || '';
+                        hid.value = li.dataset.id || '';
+                        dd.classList.add('hidden');
+                        if (campo === 'plano' && window.AgroLancEmprestimoDual) {
+                            window.AgroLancEmprestimoDual.onPlanoSelectManual(wrap, inp.value, hid.value);
+                        }
+                    });
+                });
+                dd.classList.toggle('hidden', !itens.length);
             }, 300);
         });
         inp.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 200));
@@ -252,14 +279,23 @@
     function addRow() {
       rowCount++;
       const idStr = `row-${rowCount}`;
-      const html = `<tr class="linha bg-white"><td class="px-2 py-0"><div class="relative sug-wrap" data-sug-campo="plano"><input type="text" id="in-plano-${idStr}" class="w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-black" placeholder="Buscar..."><input type="hidden" id="in-plano-id-${idStr}"><ul id="dd-plano-${idStr}" class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul></div></td><td class="px-2 py-0"><input type="text" class="in-valor w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-sm font-black tabular-nums text-slate-700" placeholder="0,00" oninput="calcTotal()"></td><td class="px-2 py-0"><input type="text" class="in-desc w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-bold text-slate-500" placeholder="..."></td><td class="px-2 py-0 td-boleto-manual"><input type="text" class="in-boleto w-full h-10 px-2 rounded-lg border-2 border-slate-100 text-[10px] font-mono font-bold text-slate-700" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off" title="Só em «Pagar»: linha digitável ou código de barras"></td><td class="px-2 py-0 text-center"><button type="button" onclick="if(document.querySelectorAll('.linha').length > 1) { this.closest('tr').remove(); calcTotal(); }" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 font-black transition-all">×</button></td></tr>`;
+      const html = `<tr class="linha bg-white"><td class="px-2 py-0"><div class="relative sug-wrap" data-sug-campo="plano"><input type="text" id="in-plano-${idStr}" class="w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-black" placeholder="Buscar..."><input type="hidden" id="in-plano-id-${idStr}"><ul id="dd-plano-${idStr}" class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul></div></td><td class="px-2 py-0 td-valor-manual"><input type="text" class="in-valor w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-sm font-black tabular-nums text-slate-700" placeholder="0,00" oninput="calcTotal()"></td><td class="px-2 py-0"><input type="text" class="in-desc w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-bold text-slate-500" placeholder="..."></td><td class="px-2 py-0 td-boleto-manual"><input type="text" class="in-boleto w-full h-10 px-2 rounded-lg border-2 border-slate-100 text-[10px] font-mono font-bold text-slate-700" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off" title="Só em «Pagar»: linha digitável ou código de barras"></td><td class="px-2 py-0 text-center"><button type="button" onclick="if(document.querySelectorAll('.linha').length > 1) { this.closest('tr').remove(); calcTotal(); }" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 font-black transition-all">×</button></td></tr>`;
       tbody.insertAdjacentHTML('beforeend', html);
       attachSuggest(tbody.lastElementChild.querySelector('.sug-wrap'));
     }
 
     function calcTotal() {
       let t = 0;
-      document.querySelectorAll('.in-valor').forEach(i => t += parseFloat(i.value.replace(',','.')) || 0);
+      document.querySelectorAll('#tbody-linhas tr.linha').forEach((tr) => {
+        if (window.AgroLancEmprestimoDual && window.AgroLancEmprestimoDual.isRowDual(tr)) {
+          const vs = tr.querySelector('.in-valor-saida');
+          if (vs) t += parseFloat(String(vs.value || '').replace(',', '.')) || 0;
+          return;
+        }
+        tr.querySelectorAll('.in-valor').forEach((i) => {
+          t += parseFloat(String(i.value || '').replace(',', '.')) || 0;
+        });
+      });
       document.getElementById('valor-total-lote').textContent = t.toLocaleString('pt-BR', { style:'currency', currency:'BRL'});
     }
 
@@ -511,16 +547,40 @@
       const recParcelas = Math.max(1, Math.min(Number(document.getElementById('rec-parcelas').value || 1), 12));
 
       const linhas = [];
+      const hdrBase = {
+        empresa_nome,
+        empresa_id: empresa_id || null,
+        pessoa_nome,
+        pessoa_id: pessoa_id || null,
+        banco_nome,
+        banco_id: banco_id || null,
+        forma_nome,
+        forma_id: forma_id || null,
+        data_competencia: dc,
+        data_vencimento: dv,
+        quitado,
+      };
+      let temDual = false;
       document.querySelectorAll('#tbody-linhas tr.linha').forEach((tr) => {
         const wrap = tr.querySelector('.sug-wrap[data-sug-campo="plano"]');
         const inpPl = wrap ? wrap.querySelector('input[type="text"]') : null;
         const hidPl = wrap ? wrap.querySelector('input[type="hidden"]') : null;
         const plano_nome = inpPl ? inpPl.value.trim() : '';
         const plano_id = hidPl ? hidPl.value.trim() : '';
-        const vel = tr.querySelector('.in-valor');
-        const valor = vel ? String(vel.value || '').trim() : '';
         const dEl = tr.querySelector('.in-desc');
         const descricao = dEl ? dEl.value.trim() : '';
+        const dual = window.AgroLancEmprestimoDual;
+        if (dual && dual.isRowDual(tr)) {
+          temDual = true;
+          const ve = String(tr.querySelector('.in-valor-entrada')?.value || '').trim();
+          const vs = String(tr.querySelector('.in-valor-saida')?.value || '').trim();
+          if (ve && vs) {
+            linhas.push(dual.coletarLinhaDualManual(tr, hdrBase));
+          }
+          return;
+        }
+        const vel = tr.querySelector('.in-valor');
+        const valor = vel ? String(vel.value || '').trim() : '';
         const bEl = tr.querySelector('.in-boleto');
         const boleto_raw = bEl ? bEl.value.trim() : '';
         if (plano_nome && valor) {
@@ -531,8 +591,10 @@
       });
 
       if (!dc || !dv) { alert('Informe competência e vencimento.'); return; }
-      if (!empresa_nome || !pessoa_nome || !banco_nome) { alert('Preencha loja, pessoa e conta bancária.'); return; }
-      if (quitado && !banco_id) { alert('Para lançar quitado, escolha uma conta com ID do ERP na lista.'); return; }
+      if (!empresa_nome || !pessoa_nome) { alert('Preencha loja e pessoa.'); return; }
+      if (!temDual && !banco_nome) { alert('Preencha conta bancária.'); return; }
+      if (temDual && !banco_nome) { alert('Empréstimo: informe conta bancária para a saída / pagamento.'); return; }
+      if (quitado && !banco_id) { alert('Para saída quitada, escolha uma conta com ID do ERP na lista.'); return; }
       if (!linhas.length) { alert('Inclua ao menos uma linha com plano de conta e valor.'); return; }
 
       const payload = {
@@ -634,5 +696,6 @@
 
     document.querySelectorAll('.sug-wrap').forEach(attachSuggest);
   </script>
+{% include "produtos/includes/lancamentos_pin_entrada.html" %}
 </body>
 </html>
