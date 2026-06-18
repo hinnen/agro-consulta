@@ -82,7 +82,7 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, pkcs12
         from lxml import etree
-        from signxml import XMLSigner, methods
+        from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
     except ImportError:
         return None, "Instale: pip install cryptography lxml signxml"
 
@@ -105,12 +105,7 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         root = etree.fromstring(xml_unsigned.encode("utf-8"), parser)
         root.set("Id", f"distNFe{uuid.uuid4().hex[:12]}")
 
-        signer = XMLSigner(
-            method=methods.enveloped,
-            signature_algorithm="rsa-sha1",
-            digest_algorithm="sha1",
-            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
-        )
+        signer = criar_sefaz_xml_signer()
         signed_root = signer.sign(root, key=key_pem, cert=cert_pem)
         return etree.tostring(signed_root, encoding="unicode", xml_declaration=True), None
     except Exception as exc:

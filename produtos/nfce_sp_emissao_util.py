@@ -166,7 +166,7 @@ def _assinar_nfe_xml(xml_nfe: str, cert_path: str, cert_password: str, chave: st
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, pkcs12
         from lxml import etree
-        from signxml import XMLSigner, methods
+        from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
     except ImportError:
         return None, "Instale: pip install cryptography lxml signxml"
 
@@ -186,12 +186,7 @@ def _assinar_nfe_xml(xml_nfe: str, cert_path: str, cert_password: str, chave: st
             return None, "infNFe não encontrado."
         inf_id = inf.get("Id") or f"NFe{chave}"
         inf.set("Id", inf_id)
-        signer = XMLSigner(
-            method=methods.enveloped,
-            signature_algorithm="rsa-sha1",
-            digest_algorithm="sha1",
-            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
-        )
+        signer = criar_sefaz_xml_signer()
         signed = signer.sign(root, key=key_pem, cert=cert_pem, reference_uri="#" + inf_id)
         return etree.tostring(signed, encoding="unicode", xml_declaration=False), None
     except Exception as exc:
