@@ -11,14 +11,14 @@
     Carregando status…
   </p>
   <ol class="text-[11px] font-semibold text-slate-700 space-y-1.5 list-decimal list-inside">
-    <li><strong>Passo 1</strong> — Baixar backup Excel (a pagar, a receber e aba Fiado PDV separada)</li>
+    <li><strong>Passo 1</strong> — Baixar backup ZIP (CSV separados: pagar, receber, fiado)</li>
     <li><strong>Passo 2</strong> — Checkpoint (trava o retrato; valores não mudam)</li>
     <li><strong>Depois do deploy</strong> — Peça à loja para não usar Lançamentos por algumas horas; avise o suporte do ERP para parar de atualizar financeiro</li>
   </ol>
   <div class="flex flex-wrap gap-2">
     <button type="button" id="agro-lanc-btn-backup-xlsx"
       class="min-h-[48px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
-      Baixar backup Excel
+      Baixar backup (ZIP)
     </button>
     <button type="button" id="agro-lanc-btn-congelar"
       class="min-h-[48px] px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
@@ -69,7 +69,7 @@
       .catch(function () { box.textContent = 'Erro ao carregar status.'; });
   }
   function baixarBackup() {
-    showMsg('Gerando Excel… pode levar um minuto. Aguarde.', true);
+    showMsg('Gerando ZIP… pode levar um minuto. Aguarde.', true);
     if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
     window.location.href = URL_BACKUP;
     setTimeout(function () {

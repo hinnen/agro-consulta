@@ -365,7 +365,7 @@ def _termo_parece_codigo(termo_original):
         return True
 
     # Prefixos comuns digitados
-    if termo_limpo.lower().startswith("gm") and len(termo_limpo) >= 2:
+    if (termo_limpo.lower().startswith("gm") and len(termo_limpo) >= 2:
         return True
 
     return False
@@ -13000,8 +13000,8 @@ def api_lancamentos_congelamento_status(request):
 @require_GET
 def api_lancamentos_backup_completo_xlsx(request):
     """
-    Excel com **todos** os títulos (a pagar + a receber, abertos e quitados).
-    Backup local antes de congelar / cortar vínculo ERP.
+    Backup completo antes do corte ERP.
+    Padrão: ZIP com CSV (leve). ``?formato=xlsx`` descontinuado — use ZIP.
     """
     err = _lancamentos_pre_corte_admin_ok(request)
     if err:
@@ -13009,28 +13009,20 @@ def api_lancamentos_backup_completo_xlsx(request):
     _, db = obter_conexao_mongo()
     if db is None:
         return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
-    from produtos.lancamentos_backup_util import (
-        lancamentos_coletar_backup_completo,
-        montar_xlsx_backup_completo,
-        nome_arquivo_backup_completo,
-    )
+    from produtos.lancamentos_backup_util import montar_zip_backup_completo, nome_arquivo_backup_completo
 
-    dados = lancamentos_coletar_backup_completo(db)
-    if not dados.get("ok"):
+    blob, stats = montar_zip_backup_completo(
+        db,
+        gerado_por=getattr(request.user, "username", "") or "",
+    )
+    if not stats.get("ok"):
         return HttpResponse(
-            str(dados.get("erro") or "Falha no backup"),
+            str(stats.get("erro") or "Falha no backup"),
             status=500,
             content_type="text/plain; charset=utf-8",
         )
-    blob = montar_xlsx_backup_completo(
-        dados,
-        gerado_por=getattr(request.user, "username", "") or "",
-    )
-    nome = nome_arquivo_backup_completo()
-    resp = HttpResponse(
-        blob,
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+    nome = nome_arquivo_backup_completo("zip")
+    resp = HttpResponse(blob, content_type="application/zip")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp
 
