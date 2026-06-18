@@ -393,7 +393,9 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho); (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
 
-**Patch v1.09 (teste):** match **exato** GM (com hífen/sufixo → alnum `gm15415s`), modo scanner `GM…`, bloqueio F4 **1,5 s**.
+**Teste Renan em casa (sem leitor, v1.09):** `GM1541-5S` OK · `GM1518-125-3` OK (autocomplete lento) · **`GM15415S` falhou** (cadastro ≠ forma da etiqueta no cache local; scanner não ia à API).
+
+**Patch v1.10 (teste):** variantes GM15415S↔GM1541-5S, autocomplete GM, fallback API no scanner, `busca_texto` com alnum no catálogo local.
 
 **Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3`
 

@@ -660,20 +660,42 @@ function prepararProduto(produto) {
               : produto.produto_id;
     const idNorm = normalizarIdProdutoPdv(idBruto);
     const nome = pickFirstValue(produto.nome, produto.descricao, produto.descricao_completa, produto.nome_produto);
-    const codigo = pickFirstValue(produto.codigo_nfe, produto.codigo_interno, produto.codigo, produto.sku);
+    const codigoNfe = pickFirstValue(produto.codigo_nfe, produto.codigo);
+    const codigoInterno = pickFirstValue(produto.codigo_interno, produto.codigo_interno_agro);
+    const codigo = pickFirstValue(codigoNfe, codigoInterno, produto.codigo, produto.sku);
     const codigoBarras = pickFirstValue(produto.codigo_barras, produto.ean, produto.barras);
     const marca = obterValorCampoProduto(produto, 'marca');
     const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
     const categoria = obterValorCampoProduto(produto, 'categoria');
     const subcategoria = obterValorCampoProduto(produto, 'subcategoria');
-    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria, subcategoria]
+    const codigosBusca = [codigoNfe, codigoInterno, codigo, codigoBarras, produto.referencia, produto.sku];
+    if (Array.isArray(produto.index_codigos)) {
+        produto.index_codigos.slice(0, 80).forEach((c) => codigosBusca.push(c));
+    }
+    const buscaCodigoTokens = [];
+    const addBuscaCod = (v) => {
+        const s = String(v || '').trim();
+        if (!s) return;
+        buscaCodigoTokens.push(normalizarBuscaLocal(s));
+        if (typeof somenteAlnumCodigoBusca === 'function') {
+            const al = somenteAlnumCodigoBusca(s);
+            if (al.length >= 4) buscaCodigoTokens.push(al);
+        }
+        if (typeof variantesLiteraisCodigoGm === 'function' && /^gm/i.test(s)) {
+            variantesLiteraisCodigoGm(s).forEach((vx) => buscaCodigoTokens.push(vx));
+        }
+    };
+    codigosBusca.forEach(addBuscaCod);
+    const buscaTexto = [nome, ...buscaCodigoTokens, marca, fornecedor, categoria, subcategoria]
         .map(normalizarBuscaLocal)
+        .filter(Boolean)
         .join(' ');
     return {
         ...produto,
         id: idNorm || produto.id,
         nome,
-        codigo_nfe: codigo,
+        codigo_nfe: codigoNfe || codigo,
+        codigo_interno: codigoInterno || produto.codigo_interno || '',
         codigo_barras: codigoBarras,
         marca,
         fornecedor,
@@ -3207,6 +3229,16 @@ function extrairPalavrasParaHighlightDaBusca() {
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (modo === 'scanner') {
+        const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
+        const gmSemLocal =
+            !locaisOrdenados.length
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoNorm)
+            && !window.AGRO_MANUAL_SYNC_ONLY;
+        if (gmSemLocal) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
+            return;
+        }
         processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, {
             preservarOrdem: true,
         });
@@ -3324,6 +3356,14 @@ function executarBuscaLocal(termo, modo) {
         if (exatos.length > 1) {
             const ordenados = ordenarSugestoesPdv(exatos, termo);
             processarResultadosBusca([ordenados[0]], modo, true);
+            return;
+        }
+        if (
+            typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termo)
+            && !window.AGRO_MANUAL_SYNC_ONLY
+        ) {
+            executarBuscaAPI(termoBrutoApi || termo, modo);
             return;
         }
     }
@@ -3608,6 +3648,11 @@ inputBusca.addEventListener('keydown', function(e) {
                 limparBuscaVisual();
                 esconderStatusBusca();
                 quantidadeRapida = 1;
+                return;
+            }
+            if (!window.AGRO_MANUAL_SYNC_ONLY) {
+                pdvMarcarJanelaScannerAtiva(1500);
+                executarBuscaAPI(brutoEnter, 'scanner');
                 return;
             }
         }
