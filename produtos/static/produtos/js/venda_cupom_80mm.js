@@ -622,8 +622,92 @@
             });
     }
 
+    function agroEscolherImprimirCupomPosNfce(vendaId, opts) {
+        opts = opts || {};
+        var id = parseInt(vendaId, 10);
+
+        function concluir(imprimiu) {
+            if (typeof opts.onDone === 'function') opts.onDone(!!imprimiu);
+        }
+
+        if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') {
+            concluir(false);
+            return Promise.resolve(false);
+        }
+
+        return new Promise(function (resolveEscolha) {
+            var overlay = document.getElementById('agro-modal-nfce-pos-imprimir');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'agro-modal-nfce-pos-imprimir';
+                overlay.className =
+                    'fixed inset-0 z-[120] hidden items-center justify-center p-3 bg-slate-900/65';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.innerHTML =
+                    '<div class="w-full max-w-md rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl p-4 sm:p-5">' +
+                    '<h2 class="text-lg font-black text-emerald-950">NFC-e autorizada</h2>' +
+                    '<p class="mt-2 text-sm font-semibold text-slate-700 leading-snug">Deseja imprimir o cupom fiscal na impressora térmica agora?</p>' +
+                    '<div class="mt-4 flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-end">' +
+                    '<button type="button" data-agro-nfce-pos-nao class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Agora não</button>' +
+                    '<button type="button" data-agro-nfce-pos-sim class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-500 bg-emerald-500 text-xs font-black uppercase text-white hover:bg-emerald-600">Imprimir cupom</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            var btnNao = overlay.querySelector('[data-agro-nfce-pos-nao]');
+            var btnSim = overlay.querySelector('[data-agro-nfce-pos-sim]');
+
+            function fecharModal() {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            function escolher(sim) {
+                fecharModal();
+                resolveEscolha(!!sim);
+            }
+
+            btnNao.onclick = function () {
+                escolher(false);
+            };
+            btnSim.onclick = function () {
+                escolher(true);
+            };
+            overlay.onclick = function (e) {
+                if (e.target === overlay) escolher(false);
+            };
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(function () {
+                if (btnSim) btnSim.focus();
+            }, 40);
+        }).then(function (quImprime) {
+            if (!quImprime) {
+                concluir(false);
+                return false;
+            }
+            return agroCarregarEImprimirCupomVenda(id, { segunda_via: false })
+                .then(function () {
+                    concluir(true);
+                    return true;
+                })
+                .catch(function (err) {
+                    alert(
+                        err && err.message
+                            ? err.message
+                            : 'Não foi possível imprimir o cupom fiscal.'
+                    );
+                    concluir(false);
+                    return false;
+                });
+        });
+    }
+
     global.agroImprimirCupomVenda80mm = agroImprimirCupomVenda80mm;
     global.agroCarregarEImprimirCupomVenda = agroCarregarEImprimirCupomVenda;
+    global.agroEscolherImprimirCupomPosNfce = agroEscolherImprimirCupomPosNfce;
     global.agroBuildCupomVenda80mmHtml = buildCupomDocumentHtml;
     global.agroCupomInnerHtml = buildCupomInnerHtml;
     global.agroCupomPagesInnerHtml = buildCupomPagesInnerHtml;
