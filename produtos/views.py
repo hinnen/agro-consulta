@@ -9740,14 +9740,18 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     )
 
 
-def _ctx_lancamentos_financeiros(modo_contas: str):
+def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     """
     ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
     """
-    return {
+    ctx = {
         "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
         "modo_contas": modo_contas,
+        "lancamentos_pre_corte_admin": bool(
+            request and getattr(request.user, "is_superuser", False)
+        ),
     }
+    return ctx
 
 
 @ensure_csrf_cookie
@@ -9777,6 +9781,7 @@ def lancamentos_financeiros_view(request):
         "produtos/lancamentos_hub.html",
         {
             "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
+            "lancamentos_pre_corte_admin": bool(getattr(request.user, "is_superuser", False)),
         },
     )
 
@@ -9788,7 +9793,7 @@ def lancamentos_contas_pagar_view(request):
     return render(
         request,
         "produtos/lancamentos_financeiros.html",
-        _ctx_lancamentos_financeiros("pagar"),
+        _ctx_lancamentos_financeiros("pagar", request),
     )
 
 
@@ -9813,7 +9818,7 @@ def lancamentos_contas_receber_view(request):
     return render(
         request,
         "produtos/lancamentos_financeiros.html",
-        _ctx_lancamentos_financeiros("receber"),
+        _ctx_lancamentos_financeiros("receber", request),
     )
 
 
@@ -12964,6 +12969,116 @@ def api_lancamentos_export_financeiro_pdf(request):
     resp = HttpResponse(blob, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp
+
+
+def _lancamentos_pre_corte_admin_ok(request) -> JsonResponse | None:
+    """Backup / congelamento pré-corte ERP: só administrador do Django."""
+    if not getattr(request.user, "is_superuser", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Somente administrador pode usar backup e congelamento."},
+            status=403,
+        )
+    return None
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_congelamento_status(request):
+    """Status do checkpoint financeiro (pré-corte ERP)."""
+    err = _lancamentos_pre_corte_admin_ok(request)
+    if err:
+        return err
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.mongo_financeiro_util import financeiro_congelamento_status
+
+    return JsonResponse(financeiro_congelamento_status(db))
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_backup_completo_xlsx(request):
+    """
+    Excel com **todos** os títulos (a pagar + a receber, abertos e quitados).
+    Backup local antes de congelar / cortar vínculo ERP.
+    """
+    err = _lancamentos_pre_corte_admin_ok(request)
+    if err:
+        return err
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
+    from produtos.lancamentos_backup_util import (
+        lancamentos_coletar_backup_completo,
+        montar_xlsx_backup_completo,
+        nome_arquivo_backup_completo,
+    )
+
+    dados = lancamentos_coletar_backup_completo(db)
+    if not dados.get("ok"):
+        return HttpResponse(
+            str(dados.get("erro") or "Falha no backup"),
+            status=500,
+            content_type="text/plain; charset=utf-8",
+        )
+    blob = montar_xlsx_backup_completo(
+        dados,
+        gerado_por=getattr(request.user, "username", "") or "",
+    )
+    nome = nome_arquivo_backup_completo()
+    resp = HttpResponse(
+        blob,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resp
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_congelar_pre_corte(request):
+    """
+    Marca todos os títulos com carimbo SisVale (não apaga nem muda valores).
+    Exige confirmação ``confirmar=CONGELAR`` no JSON.
+    """
+    err = _lancamentos_pre_corte_admin_ok(request)
+    if err:
+        return err
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    if str(payload.get("confirmar") or "").strip().upper() != "CONGELAR":
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": 'Digite a palavra CONGELAR para confirmar.',
+            },
+            status=400,
+        )
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.mongo_financeiro_util import congelar_lancamentos_financeiro_agro, financeiro_congelamento_status
+
+    usuario = getattr(request.user, "username", "") or "admin"
+    r = congelar_lancamentos_financeiro_agro(db, usuario=f"SisVale — {usuario}", dry_run=False)
+    if not r.get("ok"):
+        return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao congelar"}, status=500)
+    st = financeiro_congelamento_status(db)
+    return JsonResponse(
+        {
+            "ok": True,
+            "marcados_agora": r.get("marcados_agora"),
+            "total_estimado": r.get("total_estimado"),
+            "status": st,
+            "mensagem": (
+                "Checkpoint feito. Nenhum valor foi apagado. "
+                "Guarde o Excel no seu PC antes de pedir o corte no ERP."
+            ),
+        }
+    )
 
 
 def _mesclar_opcoes_baixa_com_extras(

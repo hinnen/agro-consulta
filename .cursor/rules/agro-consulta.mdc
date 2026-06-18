@@ -24,6 +24,7 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - **Antes de editar:** uma linha com o plano.
 - **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
 - Preferir **um patch coeso** por entrega.
+- **Commit em `teste`/`producao`:** incluir bump de `VERSION` (`scripts/bump_version.py` ou hook `.githooks`).
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
 ## TESTE vs PRODUÇÃO

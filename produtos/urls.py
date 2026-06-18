@@ -402,6 +402,21 @@ urlpatterns = [
         name='api_lancamentos_export_financeiro_pdf',
     ),
     path(
+        'api/lancamentos/backup-completo.xlsx',
+        views.api_lancamentos_backup_completo_xlsx,
+        name='api_lancamentos_backup_completo_xlsx',
+    ),
+    path(
+        'api/lancamentos/congelamento-status/',
+        views.api_lancamentos_congelamento_status,
+        name='api_lancamentos_congelamento_status',
+    ),
+    path(
+        'api/lancamentos/congelar-pre-corte/',
+        views.api_lancamentos_congelar_pre_corte,
+        name='api_lancamentos_congelar_pre_corte',
+    ),
+    path(
         'api/lancamentos/opcoes-baixa/',
         views.api_lancamentos_opcoes_baixa,
         name='api_lancamentos_opcoes_baixa',

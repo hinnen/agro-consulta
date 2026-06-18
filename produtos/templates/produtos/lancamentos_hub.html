@@ -23,7 +23,7 @@
 {% include "produtos/_gm_loading_bar.html" %}
 
   <div class="flex-1 flex items-center justify-center p-4 sm:p-6">
-    <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="hub-lanc-titulo">
+    <div class="w-full {% if lancamentos_pre_corte_admin %}max-w-2xl{% else %}max-w-lg{% endif %} rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="hub-lanc-titulo">
       <div class="px-4 sm:px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/90 to-emerald-50/80">
         <h1 id="hub-lanc-titulo" class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900">
           <span class="text-emerald-600">SisVale</span><span class="text-slate-300 font-bold mx-1.5">·</span><span class="text-amber-800">Lançamentos</span>
@@ -41,6 +41,11 @@
           <span class="text-sm sm:text-base font-black uppercase text-emerald-950">Contas a receber</span>
           <span class="text-[10px] font-semibold text-emerald-900/80 mt-1">Recebíveis, baixa, exportação</span>
         </a>
+        {% if lancamentos_pre_corte_admin %}
+        <div class="pt-1">
+          {% include "produtos/includes/lancamentos_pre_corte_erp_panel.html" %}
+        </div>
+        {% endif %}
       </div>
       <div class="px-4 sm:px-6 pb-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80">
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-amber-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-amber-200">Calendário</a>
