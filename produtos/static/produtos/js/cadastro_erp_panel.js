@@ -1344,6 +1344,26 @@
         : '0,00';
       gmEl.textContent = gm + ' · R$ ' + pv;
     }
+    var barrasEl = cadEtqEl('cad-etq-barras');
+    if (barrasEl && Core.valorBarcodeProduto) {
+      var bc = Core.valorBarcodeProduto(Core.produtoParaItem(p, 1));
+      barrasEl.classList.remove('hidden', 'text-emerald-700', 'text-amber-900', 'bg-amber-50');
+      if (bc.formato === 'EAN13' || bc.formato === 'EAN8') {
+        barrasEl.textContent =
+          'Barras na etiqueta: ' +
+          bc.valor +
+          ' (' +
+          bc.formato +
+          ') — leitor bipa o número, não o GM.';
+        barrasEl.classList.add('text-emerald-700');
+      } else {
+        barrasEl.textContent =
+          'Sem EAN no cadastro: a etiqueta sairá com código GM (' +
+          bc.valor +
+          '). Preencha «Código de barras» (aba Fiscal) e reimprima.';
+        barrasEl.classList.add('text-amber-900', 'bg-amber-50', 'rounded-lg', 'px-2', 'py-1.5');
+      }
+    }
     if (cadEtqPreset) Core.fillPresetSelect(cadEtqPreset);
     if (cadEtqQtd) {
       cadEtqQtd.value = '1';
