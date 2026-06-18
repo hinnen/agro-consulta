@@ -52,6 +52,11 @@ def nfce_cfg() -> dict[str, Any]:
         csc_id = int(re.sub(r"\D", "", _cfg("NFC_E_CSC_ID", "1") or "1") or 1)
     except (TypeError, ValueError):
         csc_id = 1
+    cidade = _cfg("NFC_E_CIDADE")[:60]
+    cmun = re.sub(r"\D", "", _cfg("NFC_E_CMUN"))[:7]
+    # Jacupiranga/SP = 3524600 (3521900 é Guaiçara — valor errado no setup inicial)
+    if cidade.strip().lower() == "jacupiranga":
+        cmun = "3524600"
     return {
         "ativo": config("NFC_E_ENABLED", default=False, cast=bool),
         "cert_path": cert_path,
@@ -63,8 +68,8 @@ def nfce_cfg() -> dict[str, Any]:
         "logradouro": _cfg("NFC_E_LOGRADOURO")[:60],
         "numero": _cfg("NFC_E_NUMERO", "S/N")[:60],
         "bairro": _cfg("NFC_E_BAIRRO")[:60],
-        "cmun": re.sub(r"\D", "", _cfg("NFC_E_CMUN"))[:7],
-        "cidade": _cfg("NFC_E_CIDADE")[:60],
+        "cmun": cmun,
+        "cidade": cidade,
         "uf": (_cfg("NFC_E_UF", "SP") or "SP").upper()[:2],
         "cep": re.sub(r"\D", "", _cfg("NFC_E_CEP"))[:8],
         "fone": re.sub(r"\D", "", _cfg("NFC_E_FONE"))[:14],
