@@ -58,6 +58,14 @@
     return !!(tr && tr.dataset && tr.dataset.emprestimoDual === '1');
   }
 
+  function syncHeaderEmprestimoAjuda() {
+    const det = document.getElementById('agro-ns-emprestimo-ajuda');
+    if (!det) return;
+    const algum = document.querySelector('#agro-ns-linhas .agro-ns-card[data-emprestimo-dual="1"]');
+    det.classList.toggle('hidden', !algum);
+    if (!algum && det.open) det.open = false;
+  }
+
   function ativarModoDualModal(card) {
     if (!card || isCardDual(card)) return;
     card.dataset.emprestimoDual = '1';
@@ -70,7 +78,6 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.remove('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.add('hidden');
-    card.querySelector('.agro-ns-emprestimo-hint')?.classList.remove('hidden');
 
     const cbRec = card.querySelector('.agro-ns-rec-cb');
     if (cbRec) {
@@ -78,6 +85,7 @@
       cbRec.disabled = true;
     }
     card.classList.add('agro-ns-card--emprestimo-dual');
+    syncHeaderEmprestimoAjuda();
   }
 
   function desativarModoDualModal(card) {
@@ -86,12 +94,12 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.add('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.remove('hidden');
-    card.querySelector('.agro-ns-emprestimo-hint')?.classList.add('hidden');
     const cbRec = card.querySelector('.agro-ns-rec-cb');
     if (cbRec) cbRec.disabled = false;
     card.classList.remove('agro-ns-card--emprestimo-dual');
     card.querySelector('.agro-ns-in-valor-entrada')?.value && (card.querySelector('.agro-ns-in-valor-entrada').value = '');
     card.querySelector('.agro-ns-in-valor-saida')?.value && (card.querySelector('.agro-ns-in-valor-saida').value = '');
+    syncHeaderEmprestimoAjuda();
   }
 
   function onPlanoSelectModal(wrap, nome, id) {
@@ -243,5 +251,6 @@
     resumoDualModal,
     ativarModoDualModal,
     desativarModoDualModal,
+    syncHeaderEmprestimoAjuda,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

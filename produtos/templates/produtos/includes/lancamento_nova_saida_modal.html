@@ -18,6 +18,19 @@
             <span class="agro-ns-tipo-btn block rounded-lg font-black uppercase peer-checked:bg-emerald-600 peer-checked:text-white text-slate-600">Receber</span>
           </label>
         </div>
+        <details id="agro-ns-emprestimo-ajuda" class="agro-ns-emprestimo-ajuda hidden shrink-0">
+          <summary class="agro-ns-ajuda-btn" title="Ajuda — Empréstimo (entrada + pagamento)" aria-label="Ajuda empréstimo">?</summary>
+          <div class="agro-ns-ajuda-panel">
+            <p class="font-black text-indigo-950 mb-2">Empréstimo (entrada + pagamento)</p>
+            <ul class="space-y-1.5 list-disc pl-4">
+              <li>Gera <strong>receita quitada hoje</strong> (entrada) + <strong>saída(s)</strong> no mesmo envio.</li>
+              <li><strong>Entrada:</strong> loja e pessoa; sem conta nem forma; competência e vencimento = hoje; sempre quitada.</li>
+              <li><strong>Saída:</strong> loja, pessoa, conta e forma; datas que você preencher; chip <strong>Quitado</strong> vale só aqui.</li>
+              <li>Se <strong>saída &gt; entrada</strong>, a diferença vira título em <strong>Juros de Empréstimos</strong>.</li>
+              <li>Recorrência desligada. Pagar / Receber no topo não alteram este modo.</li>
+            </ul>
+          </div>
+        </details>
       </div>
       <button type="button" id="agro-ns-fechar" class="agro-ns-btn-icon text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl" aria-label="Fechar">
         <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -129,6 +142,26 @@
     font-size: clamp(0.8125rem, 0.35vw + 0.72rem, 1rem);
     min-height: calc(var(--ns-input-h) * 0.85);
     display: flex; align-items: center;
+  }
+  .agro-ns-emprestimo-ajuda { position: relative; }
+  .agro-ns-emprestimo-ajuda > summary { list-style: none; }
+  .agro-ns-emprestimo-ajuda > summary::-webkit-details-marker { display: none; }
+  .agro-ns-ajuda-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.65rem; height: 2.65rem; border-radius: 0.75rem;
+    border: 2px solid #c7d2fe; background: #eef2ff; color: #3730a3;
+    font-size: 1.125rem; font-weight: 900; cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .agro-ns-emprestimo-ajuda[open] .agro-ns-ajuda-btn,
+  .agro-ns-ajuda-btn:hover { background: #e0e7ff; border-color: #818cf8; }
+  .agro-ns-ajuda-panel {
+    position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 60;
+    width: min(22rem, 92vw); padding: 0.85rem 1rem;
+    border: 2px solid #c7d2fe; border-radius: 0.85rem; background: #fff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem);
+    font-weight: 600; color: #334155; line-height: 1.45;
   }
   .agro-ns-input {
     width: 100%; min-height: var(--ns-input-h);

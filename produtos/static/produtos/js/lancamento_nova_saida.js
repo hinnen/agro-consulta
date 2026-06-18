@@ -338,7 +338,6 @@
               <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
           </div>
-          <p class="agro-ns-hint text-slate-600">Entrada lança receita quitada hoje. Se saída &gt; entrada, a diferença vai para Juros de Empréstimos.</p>
         </div>
         <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Competência</label>
@@ -359,9 +358,6 @@
         <label class="agro-ns-label block mb-1">Descrição</label>
         <input type="text" class="agro-ns-input agro-ns-in-desc w-full">
       </div>
-      <p class="agro-ns-emprestimo-hint hidden agro-ns-hint rounded-xl border-2 border-indigo-200 bg-indigo-50 px-3 py-2 text-indigo-950 font-bold">
-        Empréstimo: gera entrada (receita quitada hoje) + saída(s). Conta e forma valem só para o pagamento. Recorrência desligada.
-      </p>
       <details class="agro-ns-card-rec">
         <summary>Recorrência mensal (opcional)</summary>
         <div class="agro-ns-card-rec-body space-y-2">
@@ -421,6 +417,7 @@
       const eraExpandido = card.classList.contains('agro-ns-card--expandido');
       card.remove();
       atualizarNumeracaoCards();
+      window.AgroLancEmprestimoDual?.syncHeaderEmprestimoAjuda?.();
       if (eraExpandido) {
         const ultimo = host.querySelector('.agro-ns-card:last-child');
         if (ultimo) { expandirCard(ultimo); focarCard(ultimo); }
