@@ -27,11 +27,11 @@
     <form id="agro-ns-form" class="flex flex-col flex-1 min-h-0 overflow-hidden">
       {% csrf_token %}
 
-      <div class="agro-ns-itens-wrap flex flex-col flex-1 min-h-0">
-        <div id="agro-ns-linhas" class="agro-ns-linhas-host flex-1 min-h-0 overflow-y-auto"></div>
+      <div class="agro-ns-itens-wrap flex-1 min-h-0 overflow-y-auto">
+        <div id="agro-ns-linhas" class="agro-ns-linhas-host"></div>
       </div>
 
-      <details class="agro-ns-details shrink-0 mx-[var(--ns-pad)] mb-1 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+      <details class="agro-ns-details shrink-0 border-t border-slate-200 bg-slate-50 overflow-hidden">
         <summary class="agro-ns-details-sum cursor-pointer flex items-center gap-2 font-bold text-slate-700 hover:bg-slate-100 list-none">
           <span class="text-slate-400 inline-block" aria-hidden="true">▸</span>
           Preencher pela frase (opcional)
@@ -68,14 +68,14 @@
 
 <style>
   .agro-ns-panel {
-    --ns-pad: clamp(0.5rem, 1.2vw, 1rem);
-    --ns-fs-label: clamp(0.9375rem, 0.35vw + 0.82rem, 1.125rem);
-    --ns-fs-body: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
-    --ns-fs-title: clamp(1.25rem, 1vw + 1rem, 1.625rem);
-    --ns-fs-sub: clamp(1.0625rem, 0.5vw + 0.9rem, 1.25rem);
-    --ns-footer-h: clamp(2.5rem, 3.5vh + 1.5rem, 3rem);
-    --ns-input-h: clamp(3.15rem, 3vh + 2.15rem, 3.85rem);
-    --ns-gap: clamp(0.5rem, 0.7vw, 0.75rem);
+    --ns-pad: clamp(0.55rem, 1.2vw, 1.05rem);
+    --ns-fs-label: clamp(1.0625rem, 0.45vw + 0.92rem, 1.3125rem);
+    --ns-fs-body: clamp(1.125rem, 0.55vw + 0.98rem, 1.375rem);
+    --ns-fs-title: clamp(1.375rem, 1.1vw + 1.05rem, 1.75rem);
+    --ns-fs-sub: clamp(1.125rem, 0.55vw + 0.95rem, 1.3125rem);
+    --ns-footer-h: clamp(2.65rem, 3.8vh + 1.55rem, 3.15rem);
+    --ns-input-h: clamp(3.65rem, 4.2vh + 2.45rem, 4.5rem);
+    --ns-gap: clamp(0.6rem, 0.85vw, 0.9rem);
     --ns-accent: #dc2626;
     --ns-accent-hover: #b91c1c;
     --ns-accent-soft: #fef2f2;
@@ -90,8 +90,20 @@
     --ns-accent-ring: rgba(5, 150, 105, 0.2);
     --ns-head-bg: #065f46;
   }
-  .agro-ns-header, .agro-ns-footer { padding: 0.4rem calc(var(--ns-pad) * 1.25); }
-  .agro-ns-linhas-host { padding: var(--ns-pad) calc(var(--ns-pad) * 1.25); padding-top: calc(var(--ns-pad) * 1.1); }
+  .agro-ns-header, .agro-ns-footer { padding: 0.45rem calc(var(--ns-pad) * 1.25); }
+  .agro-ns-itens-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    background: #f8fafc;
+  }
+  .agro-ns-linhas-host {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--ns-gap) * 0.85);
+    min-height: 100%;
+    padding: var(--ns-pad) calc(var(--ns-pad) * 1.25);
+    box-sizing: border-box;
+  }
   .agro-ns-title { font-size: var(--ns-fs-title); line-height: 1.15; }
   .agro-ns-subtitle { font-size: var(--ns-fs-sub); line-height: 1.25; }
   .agro-ns-label { font-size: var(--ns-fs-label); font-weight: 800; color: #334155; line-height: 1.2; }
@@ -120,8 +132,8 @@
   }
   .agro-ns-input {
     width: 100%; min-height: var(--ns-input-h);
-    padding: 0.55rem 0.85rem;
-    font-size: var(--ns-fs-body); font-weight: 600; color: #0f172a;
+    padding: 0.65rem 0.95rem;
+    font-size: var(--ns-fs-body); font-weight: 700; color: #0f172a;
     border: 2px solid #cbd5e1; border-radius: 0.75rem; background: #fff;
     transition: border-color 0.12s, box-shadow 0.12s;
   }
@@ -129,10 +141,10 @@
     outline: none; border-color: var(--ns-accent);
     box-shadow: 0 0 0 4px var(--ns-accent-ring);
   }
-  .agro-ns-input-icon { padding-left: 2.5rem; }
+  .agro-ns-input-icon { padding-left: 2.85rem; }
   .agro-ns-ico {
-    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
-    width: 1.25rem; height: 1.25rem; color: #94a3b8; pointer-events: none;
+    position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+    width: 1.4rem; height: 1.4rem; color: #94a3b8; pointer-events: none;
   }
   .agro-ns-btn-icon { width: 3rem; height: 3rem; padding: 0.35rem; }
   .agro-ns-chk { width: 1.35rem; height: 1.35rem; accent-color: var(--ns-accent); }
@@ -148,8 +160,8 @@
     background: var(--ns-accent); border-color: var(--ns-accent); color: #fff;
   }
   .agro-ns-wrap-ven.is-quitado .agro-ns-in-ven { opacity: 0.55; }
-  .agro-ns-details-sum { padding: 0.55rem 0.85rem; font-size: var(--ns-fs-label); }
-  .agro-ns-details-body { padding: 0.65rem 0.85rem 0.85rem; }
+  .agro-ns-details-sum { padding: 0.4rem calc(var(--ns-pad) * 1.25); font-size: clamp(0.875rem, 0.32vw + 0.78rem, 1rem); }
+  .agro-ns-details-body { padding: 0.5rem calc(var(--ns-pad) * 1.25) 0.65rem; }
   .agro-ns-btn-secondary, .agro-ns-btn-ghost, .agro-ns-btn-primary {
     min-height: var(--ns-input-h); padding: 0.5rem 1.15rem;
     font-size: clamp(0.9375rem, 0.4vw + 0.82rem, 1.125rem);
@@ -160,12 +172,18 @@
   .agro-ns-btn-secondary { border: 2px solid #cbd5e1; background: #fff; color: #334155; }
   .agro-ns-card {
     background: #fff; border: 2px solid #e2e8f0; border-radius: 1rem;
-    margin-bottom: calc(var(--ns-gap) * 0.85);
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     overflow: hidden;
+    flex: 0 0 auto;
   }
-  .agro-ns-card--expandido { padding: calc(var(--ns-pad) * 1.35); }
-  .agro-ns-card--retraido { padding: 0; }
+  .agro-ns-card--expandido {
+    padding: calc(var(--ns-pad) * 1.45);
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .agro-ns-card--retraido { padding: 0; flex: 0 0 auto; }
   .agro-ns-card:last-child { margin-bottom: 0; }
   .agro-ns-panel--pagar .agro-ns-card { border-left: 4px solid var(--ns-accent); }
   .agro-ns-panel--receber .agro-ns-card { border-left: 4px solid var(--ns-accent); }
@@ -175,17 +193,25 @@
     border-bottom: 1px solid #f1f5f9;
   }
   .agro-ns-card-num { font-size: var(--ns-fs-label); font-weight: 800; color: #64748b; text-transform: uppercase; white-space: nowrap; }
-  .agro-ns-card--retraido .agro-ns-card-inner { display: none; }
-  .agro-ns-card--expandido .agro-ns-card-resumo { display: none; }
-  .agro-ns-card-resumo {
-    display: flex; align-items: center; gap: 0.65rem; width: 100%;
-    min-height: clamp(2.35rem, 3.5vh + 1.35rem, 2.85rem);
-    padding: 0.4rem 0.75rem; border: none; background: #f8fafc; cursor: pointer; text-align: left;
+  .agro-ns-card--retraido .agro-ns-card-inner { display: none !important; }
+  .agro-ns-card--expandido .agro-ns-card-resumo { display: none !important; }
+  .agro-ns-card--expandido .agro-ns-card-inner {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
+  .agro-ns-card-resumo {
+    display: none;
+    align-items: center; gap: 0.65rem; width: 100%;
+    min-height: clamp(2.5rem, 3.5vh + 1.5rem, 3rem);
+    padding: 0.45rem 0.85rem; border: none; background: #f8fafc; cursor: pointer; text-align: left;
+  }
+  .agro-ns-card--retraido .agro-ns-card-resumo { display: flex; }
   .agro-ns-card-resumo:hover { background: var(--ns-accent-soft); }
   .agro-ns-card-resumo-txt {
     flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: clamp(0.8125rem, 0.28vw + 0.72rem, 0.9375rem); font-weight: 600; color: #475569;
+    font-size: clamp(0.9375rem, 0.32vw + 0.82rem, 1.0625rem); font-weight: 700; color: #475569;
   }
   .agro-ns-card-resumo-edit {
     flex-shrink: 0; font-size: clamp(0.75rem, 0.25vw + 0.68rem, 0.8125rem);
@@ -217,16 +243,16 @@
     color: #64748b; border: 2px solid #e2e8f0; background: #fff;
   }
   .agro-ns-rm-linha:hover { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
-  .agro-ns-in-valor { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .agro-ns-in-valor { text-align: right; font-weight: 900; font-size: clamp(1.1875rem, 0.6vw + 1rem, 1.4375rem); font-variant-numeric: tabular-nums; }
   .agro-ns-sug-dd { max-height: min(40vh, 16rem); z-index: 80; }
   .agro-ns-sug-dd li {
-    padding: 0.65rem 1rem; font-size: var(--ns-fs-label); font-weight: 700;
+    padding: 0.75rem 1rem; font-size: var(--ns-fs-body); font-weight: 700;
     cursor: pointer; border-bottom: 1px solid #f1f5f9;
   }
   .agro-ns-panel--pagar .agro-ns-sug-dd li:hover { background: #fef2f2; color: #991b1b; }
   .agro-ns-panel--receber .agro-ns-sug-dd li:hover { background: #ecfdf5; color: #065f46; }
-  .agro-ns-linhas-host::-webkit-scrollbar { width: 8px; }
-  .agro-ns-linhas-host::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+  .agro-ns-itens-wrap::-webkit-scrollbar { width: 8px; }
+  .agro-ns-itens-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
 </style>
 
 <script>

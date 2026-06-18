@@ -137,6 +137,9 @@
     });
     card.classList.remove('agro-ns-card--retraido');
     card.classList.add('agro-ns-card--expandido');
+    requestAnimationFrame(() => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   function focarCard(card) {

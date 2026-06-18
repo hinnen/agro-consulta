@@ -338,9 +338,9 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
-2. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
-3. **PDV + etiquetas barras** — `5bcc05d` v1.19: 7 dígitos no PDV, layout EAN-13, DV auto.
+1. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
+2. **Cadastro — busca GM/barras** — `c234822` v1.22: modo normal + `api_produtos_cadastro`; Mongo 4+ dígitos.
+3. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
 4. **Lançamentos — Nova saída** — rodapé fino; cards retraídos ao adicionar linha.
 5. **PDV carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
 
@@ -357,7 +357,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Versão:** `1.0.9`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (etiquetas 230 + busca cadastro → teste)  
-**Versão app (`VERSION`):** `1.22` · `origin/teste` (`c234822`)
+**Versão app (`VERSION`):** `1.26` · `origin/teste` (Nova saída legibilidade)
 
 ### O que este documento já cobre (até aqui)
 
@@ -375,7 +375,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] Linha do tempo recente de commits
 - [x] §4.15 roadmap desvinculação ERP (Mongo → Postgres)
 - [x] Regra: assistente atualiza banana automaticamente (sem perguntar)
-- [x] Nova saída: rodapé compacto + cards retráteis ao adicionar lançamento (`teste`)
+- [x] Nova saída: tipografia maior + card expandido ocupa altura (sem vazio embaixo)
 
 ### NFC-e — status staging (2026-06-18)
 
