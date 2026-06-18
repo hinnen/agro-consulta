@@ -119,11 +119,88 @@
             .filter(c => c.length > 0);
     }
 
+    function gmAlnumEquivalente(a, b) {
+        if (!a || !b) return false;
+        if (a === b) return true;
+        if (a.length >= 5 && b.length >= 5) {
+            const sa = a.replace(/[^a-z0-9]/g, '');
+            const sb = b.replace(/[^a-z0-9]/g, '');
+            if (sa === sb) return true;
+            /* Sufixo ensacado (S) ou hífen na etiqueta: gm15415 ≈ gm15415s */
+            const core = (s) => (s.length > 5 && /^[a-z]$/.test(s.slice(-1)) ? s.slice(0, -1) : s);
+            if (core(sa) === core(sb) && Math.abs(sa.length - sb.length) <= 1) return true;
+        }
+        return false;
+    }
+
+    function variantesLiteraisCodigoGm(raw) {
+        const n = normalizarBuscaLocal(String(raw || '').trim());
+        const out = new Set();
+        if (!n || !n.startsWith('gm')) return [];
+        out.add(n);
+        const al = somenteAlnumCodigoBusca(n);
+        if (al.length >= 5) out.add(al);
+        /* Cadastro GM15415S ↔ etiqueta GM1541-5S (mesmo alnum, hífen na impressão). */
+        const m = al.match(/^gm(\d{3,})([a-z]?)$/);
+        if (m) {
+            const digits = m[1];
+            const suf = m[2] || '';
+            if (digits.length >= 4) {
+                out.add('gm' + digits.slice(0, 4) + '-' + digits.slice(4) + suf);
+                if (suf) out.add('gm' + digits + suf);
+                out.add('gm' + digits);
+            }
+        }
+        return [...out];
+    }
+
+    /** Etiqueta GM (ex.: GM1541-5, GM1518-125-3) — leitor manda texto, não EAN numérico. */
+    function pareceCodigoGmEtiqueta(termoNorm) {
+        const t = String(termoNorm || '').trim();
+        return /^gm[a-z0-9][a-z0-9-]{2,50}$/.test(t);
+    }
+
     function termoIgualAlgumIndexCodigo(termoNorm, p) {
         if (!termoNorm || !Array.isArray(p.index_codigos)) return false;
         const t = String(termoNorm).trim();
         if (!t) return false;
-        return p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t);
+        const tAl = somenteAlnumCodigoBusca(t);
+        return p.index_codigos.some((x) => {
+            const xn = normalizarBuscaLocal(String(x ?? ''));
+            if (xn === t) return true;
+            const xAl = somenteAlnumCodigoBusca(xn);
+            if (tAl.length >= 5 && xAl === tAl) return true;
+            if (tAl.length >= 5 && gmAlnumEquivalente(tAl, xAl)) return true;
+            return variantesLiteraisCodigoGm(t).some((v) => v === xn || somenteAlnumCodigoBusca(v) === xAl);
+        });
+    }
+
+    /** Match exato GM/EAN/código interno — sem substring numérica frouxa (evita produto errado). */
+    function termoIgualCodigoProdutoExato(termoNorm, p) {
+        const t = String(termoNorm || '').trim();
+        if (!t || !p) return false;
+        const tAl = somenteAlnumCodigoBusca(t);
+
+        function cmp(val) {
+            if (val == null || val === '') return false;
+            const vn = normalizarBuscaLocal(String(val));
+            if (vn === t) return true;
+            if (tAl.length >= 5 && somenteAlnumCodigoBusca(vn) === tAl) return true;
+            if (tAl.length >= 5 && gmAlnumEquivalente(tAl, somenteAlnumCodigoBusca(vn))) return true;
+            return variantesLiteraisCodigoGm(t).some((v) => v === vn || somenteAlnumCodigoBusca(v) === tAl);
+        }
+
+        const campos = [
+            p.codigo_nfe,
+            p.codigo_barras,
+            p.codigo_interno,
+            p.codigo,
+            p.sku,
+            p.referencia,
+            p.codigo_fornecedor,
+        ];
+        if (campos.some(cmp)) return true;
+        return termoIgualAlgumIndexCodigo(t, p);
     }
 
     function casaCodigoNumericoNoProduto(palavraBruta, p) {
@@ -176,7 +253,11 @@
     }
 
     function palavraCasaNoProduto(palavraBruta, tokens, hay, fuzzy, p) {
+        const pn = normalizarBuscaLocal(String(palavraBruta || ''));
+        if (pn.startsWith('gm') && termoIgualCodigoProdutoExato(pn, p)) return true;
         if (casaCodigoNumericoNoProduto(palavraBruta, p)) return true;
+        const gmVars = pn.startsWith('gm') ? variantesLiteraisCodigoGm(pn) : [];
+        if (gmVars.some((v) => hay.includes(v))) return true;
         return variantesPalavraBusca(palavraBruta).some(v =>
             casaPalavraEmTexto(v, tokens, hay, fuzzy, p)
         );
@@ -192,12 +273,17 @@
         const palavras = termo.split(/\s+/).filter(Boolean);
         const index = buildBuscaProdutoIndex(lista);
         if (modo === 'scanner') {
+            /* Etiqueta GM: só match exato (com/sem hífen); não usar dígitos parciais (15415 ≠ GM1541-5). */
+            if (pareceCodigoGmEtiqueta(termo)) {
+                return lista.filter((p) => termoIgualCodigoProdutoExato(termo, p));
+            }
             const dTerm = termo.replace(/\D/g, '');
             const candidatosIdx = dTerm.length >= 4 ? _indicesPorCodigo(index, dTerm) : null;
             const pool = Array.isArray(candidatosIdx) && candidatosIdx.length
                 ? candidatosIdx.map((i) => lista[i]).filter(Boolean)
                 : lista;
             return pool.filter(p => {
+                if (termoIgualCodigoProdutoExato(termo, p)) return true;
                 const hay = textoBuscaProdutoNormalizado(p);
                 if (hay.includes(termo)) return true;
                 if (termoIgualAlgumIndexCodigo(termo, p)) return true;
@@ -209,6 +295,11 @@
             });
         }
         if (!palavras.length) return [];
+
+        if (palavras.length === 1 && pareceCodigoGmEtiqueta(palavras[0])) {
+            const gmHits = lista.filter((p) => termoIgualCodigoProdutoExato(palavras[0], p));
+            if (gmHits.length) return gmHits;
+        }
 
         // Pré-filtro por índice local para reduzir varredura linear.
         let pool = lista;
@@ -350,6 +441,11 @@
     window.normalizarBuscaLocal = normalizarBuscaLocal;
     window.filtrarProdutosBuscaInteligente = filtrarProdutosBuscaInteligente;
     window.casaCodigoNumericoNoProduto = casaCodigoNumericoNoProduto;
+    window.pareceCodigoGmEtiqueta = pareceCodigoGmEtiqueta;
+    window.termoIgualCodigoProdutoExato = termoIgualCodigoProdutoExato;
+    window.somenteAlnumCodigoBusca = somenteAlnumCodigoBusca;
+    window.variantesLiteraisCodigoGm = variantesLiteraisCodigoGm;
+    window.gmAlnumEquivalente = gmAlnumEquivalente;
     window.buildBuscaProdutoIndex = buildBuscaProdutoIndex;
     window.ordenarSugestoesPdv = ordenarSugestoesPdv;
     window.mesclarBuscaPdvLocalComApi = mesclarBuscaPdvLocalComApi;

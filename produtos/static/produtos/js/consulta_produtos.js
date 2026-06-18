@@ -104,10 +104,20 @@ let scannerTimer = null;
 let quantidadeRapida = 1;
 let ultimoProdutoAdicionadoId = null;
 let tempoUltimaAdicao = 0;
+/** Evita F4/F8 do leitor logo após bip (alguns scanners enviam tecla de função). */
+let pdvScannerBloqueioTeclasAte = 0;
 
 let baseProdutos = [];
 const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
+const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const PDV_FOCUS_DELTA_MIN_MS = 8000;
+let pdvCatalogoBootAt = 0;
+let pdvCatalogoLastFocusDeltaAt = 0;
+let pdvCatalogoFocusDeltaBusy = false;
+let pdvStoragePatchTimer = null;
 let cacheClientesPDV = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let catalogoRapidoAtual = [];
@@ -642,20 +652,50 @@ function obterValorCampoProduto(produto, tipo) {
 }
 
 function prepararProduto(produto) {
+    const idBruto =
+        produto.id != null && produto.id !== ''
+            ? produto.id
+            : produto.Id != null && produto.Id !== ''
+              ? produto.Id
+              : produto.produto_id;
+    const idNorm = normalizarIdProdutoPdv(idBruto);
     const nome = pickFirstValue(produto.nome, produto.descricao, produto.descricao_completa, produto.nome_produto);
-    const codigo = pickFirstValue(produto.codigo_nfe, produto.codigo_interno, produto.codigo, produto.sku);
+    const codigoNfe = pickFirstValue(produto.codigo_nfe, produto.codigo);
+    const codigoInterno = pickFirstValue(produto.codigo_interno, produto.codigo_interno_agro);
+    const codigo = pickFirstValue(codigoNfe, codigoInterno, produto.codigo, produto.sku);
     const codigoBarras = pickFirstValue(produto.codigo_barras, produto.ean, produto.barras);
     const marca = obterValorCampoProduto(produto, 'marca');
     const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
     const categoria = obterValorCampoProduto(produto, 'categoria');
     const subcategoria = obterValorCampoProduto(produto, 'subcategoria');
-    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria, subcategoria]
+    const codigosBusca = [codigoNfe, codigoInterno, codigo, codigoBarras, produto.referencia, produto.sku];
+    if (Array.isArray(produto.index_codigos)) {
+        produto.index_codigos.slice(0, 80).forEach((c) => codigosBusca.push(c));
+    }
+    const buscaCodigoTokens = [];
+    const addBuscaCod = (v) => {
+        const s = String(v || '').trim();
+        if (!s) return;
+        buscaCodigoTokens.push(normalizarBuscaLocal(s));
+        if (typeof somenteAlnumCodigoBusca === 'function') {
+            const al = somenteAlnumCodigoBusca(s);
+            if (al.length >= 4) buscaCodigoTokens.push(al);
+        }
+        if (typeof variantesLiteraisCodigoGm === 'function' && /^gm/i.test(s)) {
+            variantesLiteraisCodigoGm(s).forEach((vx) => buscaCodigoTokens.push(vx));
+        }
+    };
+    codigosBusca.forEach(addBuscaCod);
+    const buscaTexto = [nome, ...buscaCodigoTokens, marca, fornecedor, categoria, subcategoria]
         .map(normalizarBuscaLocal)
+        .filter(Boolean)
         .join(' ');
     return {
         ...produto,
+        id: idNorm || produto.id,
         nome,
-        codigo_nfe: codigo,
+        codigo_nfe: codigoNfe || codigo,
+        codigo_interno: codigoInterno || produto.codigo_interno || '',
         codigo_barras: codigoBarras,
         marca,
         fornecedor,
@@ -1291,7 +1331,77 @@ function incrementarFrequencia(id) {
 
 function normalizarIdProdutoPdv(id) {
     if (id === undefined || id === null) return '';
-    return String(id);
+    const s = String(id).trim();
+    if (!s || s === 'undefined' || s === 'null' || s === '[object Object]') return '';
+    return s;
+}
+
+function pdvMarcarJanelaScannerAtiva(ms) {
+    pdvScannerBloqueioTeclasAte = Date.now() + (ms != null && ms > 0 ? ms : 1200);
+}
+
+function pdvTeclasFuncaoBloqueadasPorScanner() {
+    return Date.now() < pdvScannerBloqueioTeclasAte;
+}
+
+function persistirCarrinhoSessao() {
+    try {
+        if (!Array.isArray(carrinho) || !carrinho.length) {
+            sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            return;
+        }
+        const fp = document.getElementById('forma-pagamento-pdv');
+        sessionStorage.setItem(
+            PDV_CARRINHO_SESS_KEY,
+            JSON.stringify({
+                saved_at: Date.now(),
+                itens: carrinho,
+                cliente: typeof nomeClientePdv === 'function' ? nomeClientePdv() : '',
+                cliente_extra: clienteSelecionado,
+                forma_pagamento: fp && fp.value ? fp.value : '',
+            })
+        );
+    } catch (_) {}
+}
+
+function restaurarCarrinhoSessaoSeVazio() {
+    if (Array.isArray(carrinho) && carrinho.length) return false;
+    try {
+        const raw = sessionStorage.getItem(PDV_CARRINHO_SESS_KEY);
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        const at = Number(d && d.saved_at);
+        if (!at || Date.now() - at > PDV_CARRINHO_SESS_TTL_MS) {
+            sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            return false;
+        }
+        const itens = d && d.itens;
+        if (!Array.isArray(itens) || !itens.length) return false;
+        carrinho = itens.map((it) => {
+            const row = Object.assign({}, it);
+            row.id = normalizarIdProdutoPdv(row.id);
+            row.qtd = Math.max(1, Number(row.qtd) || 1);
+            row.preco = Number(row.preco || 0);
+            if (row.preco_padrao == null) row.preco_padrao = row.preco;
+            return row;
+        }).filter((it) => it.id);
+        if (!carrinho.length) return false;
+        if (typeof inputCliente !== 'undefined' && inputCliente && d.cliente) {
+            inputCliente.value = d.cliente;
+        }
+        clienteSelecionado =
+            d.cliente_extra && typeof d.cliente_extra === 'object' ? d.cliente_extra : null;
+        const fp = document.getElementById('forma-pagamento-pdv');
+        if (fp && d.forma_pagamento) fp.value = d.forma_pagamento;
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') {
+            window.recalcularPrecosFormaCarrinho();
+        } else if (typeof atualizarCarrinho === 'function') {
+            atualizarCarrinho();
+        }
+        return true;
+    } catch (_) {
+        return false;
+    }
 }
 
 function metaOpcoesFromProd(p) {
@@ -1313,7 +1423,14 @@ function metaOpcoesFromProd(p) {
 
 function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const idNorm = normalizarIdProdutoPdv(id);
-    if (!idNorm) return;
+    if (!idNorm) {
+        tocarSom('erro');
+        mostrarStatusBusca(
+            'Produto sem ID válido no catálogo — não foi adicionado. Toque em Estoque (sync) ou F5 na página.',
+            'red'
+        );
+        return;
+    }
 
     const carrinhoEstavaVazio = carrinho.length === 0;
 
@@ -1443,9 +1560,14 @@ function removerUltimoItem() {
 }
 
 function limparCarrinho() {
+    if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+    if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) return;
     if (!carrinho.length) return;
     if (!confirm('Limpar todo o orçamento?')) return;
     carrinho = [];
+    try {
+        sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+    } catch (_) {}
     if (inputCliente) {
         inputCliente.value = CLIENTE_PADRAO_PDV;
     }
@@ -1460,19 +1582,27 @@ function limparCarrinho() {
 
 
 function atualizarCarrinho() {
+    if (!Array.isArray(carrinho)) {
+        carrinho = [];
+    }
     const container = document.getElementById('itens-carrinho');
     const badge = document.getElementById('itens-badge');
     const cartShell = document.getElementById('cart-shell');
 
     let total = 0;
     let qtdItens = 0;
-    container.innerHTML = '';
+    if (container) container.innerHTML = '';
 
     carrinho.forEach((item, index) => {
-        total += item.preco * item.qtd;
-        qtdItens += item.qtd;
+        try {
+            const preco = Number(item && item.preco);
+            const qtd = Math.max(0, Number(item && item.qtd) || 0);
+            if (!item || !normalizarIdProdutoPdv(item.id) || qtd <= 0) return;
+            total += (isFinite(preco) ? preco : 0) * qtd;
+            qtdItens += qtd;
 
-        container.innerHTML += `
+            if (!container) return;
+            container.innerHTML += `
             <div class="flex gap-2 py-2 px-2 rounded-lg border border-slate-100 bg-white items-start shadow-sm">
                 <div class="min-w-0 flex-1">
                     <div class="text-slate-900 font-bold text-xs leading-snug line-clamp-2">${escapeHtml(item.nome)}</div>
@@ -1489,13 +1619,17 @@ function atualizarCarrinho() {
                 </div>
             </div>
         `;
+        } catch (errLinha) {
+            console.warn('PDV: falha ao renderizar item do carrinho', index, errLinha);
+        }
     });
 
-    if (!qtdItens) {
+    if (!qtdItens && container) {
         container.innerHTML = '<div class="py-8 text-center text-xs font-bold text-slate-400 px-3">Vazio — busque e Enter para adicionar.</div>';
     }
 
-    document.getElementById('total-geral').innerText = formatarMoeda(total);
+    const totalEl = document.getElementById('total-geral');
+    if (totalEl) totalEl.innerText = formatarMoeda(total);
     const stripTot = document.getElementById('pdv-carrinho-strip-total');
     if (stripTot) stripTot.textContent = formatarMoeda(total);
     const drawerMeta = document.getElementById('pdv-drawer-cart-meta');
@@ -1531,6 +1665,8 @@ function atualizarCarrinho() {
         void shell.offsetWidth;
         shell.classList.add('pulse-fast');
     }
+
+    persistirCarrinhoSessao();
 }
 
 async function irParaCheckout() {
@@ -1876,6 +2012,9 @@ async function pdvEnviarOrcamentoErpCarrinho() {
             const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
             alert('✅ ' + msg + vid);
             carrinho = [];
+            try {
+                sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            } catch (_) {}
             clienteSelecionado = null;
             if (inputCliente) inputCliente.value = CLIENTE_PADRAO_PDV;
             const fp2 = document.getElementById('forma-pagamento-pdv');
@@ -2133,6 +2272,11 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     const h = historico.find((x) => Number(x.id) === Number(oid));
     if (!h) {
         mostrarBannerScanner('Orçamento não encontrado para este código.');
+        tocarSom('erro');
+        return false;
+    }
+    if (!Array.isArray(h.itens) || !h.itens.length) {
+        mostrarBannerScanner('Orçamento salvo está vazio — não substitui o carrinho.');
         tocarSom('erro');
         return false;
     }
@@ -2580,6 +2724,10 @@ function verificarLembretes() {
 function buscarProdutos(q, modo = 'normal') {
     clearTimeout(debounceTimer);
 
+    if (modo === 'scanner') {
+        pdvMarcarJanelaScannerAtiva(1500);
+    }
+
     quantidadeRapida = obterQuantidadeRapida(q);
     const termoBruto = removerSufixoQuantidade(q);
     const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
@@ -3019,8 +3167,8 @@ function encontrarProdutoPorCodigoInternoBalanca(cod4, lista) {
 }
 
 function enriquecerProdutoBusca(p) {
-    const id = String(p.id);
-    const loc = baseProdutos.find(x => String(x.id) === id);
+    const id = normalizarIdProdutoPdv(p.id);
+    const loc = baseProdutos.find((x) => normalizarIdProdutoPdv(x.id) === id);
     const mediaApi = p.media_venda_diaria_30d;
     if (!loc) {
         const bt = p.busca_texto || montarBuscaTextoRapido(p);
@@ -3081,6 +3229,16 @@ function extrairPalavrasParaHighlightDaBusca() {
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (modo === 'scanner') {
+        const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
+        const gmSemLocal =
+            !locaisOrdenados.length
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoNorm)
+            && !window.AGRO_MANUAL_SYNC_ONLY;
+        if (gmSemLocal) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
+            return;
+        }
         processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, {
             preservarOrdem: true,
         });
@@ -3177,13 +3335,35 @@ function executarBuscaLocal(termo, modo) {
     }
 
     if (modo === 'scanner') {
-        const exato = resultados.find(p => {
+        const matchExatoFn =
+            typeof termoIgualCodigoProdutoExato === 'function'
+                ? termoIgualCodigoProdutoExato
+                : null;
+        const exatos = resultados.filter((p) => {
+            if (matchExatoFn && matchExatoFn(termo, p)) return true;
             const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
             const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
-            return nfe === termo || cb === termo || casaCodigoNumericoNoProduto(termo, p);
+            if (nfe === termo || cb === termo) return true;
+            const gmEtiqueta =
+                typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termo);
+            if (gmEtiqueta) return false;
+            return casaCodigoNumericoNoProduto(termo, p);
         });
-        if (exato) {
-            processarResultadosBusca([exato], modo, true);
+        if (exatos.length === 1) {
+            processarResultadosBusca([exatos[0]], modo, true);
+            return;
+        }
+        if (exatos.length > 1) {
+            const ordenados = ordenarSugestoesPdv(exatos, termo);
+            processarResultadosBusca([ordenados[0]], modo, true);
+            return;
+        }
+        if (
+            typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termo)
+            && !window.AGRO_MANUAL_SYNC_ONLY
+        ) {
+            executarBuscaAPI(termoBrutoApi || termo, modo);
             return;
         }
     }
@@ -3211,12 +3391,21 @@ function executarBuscaAPI(termo, modo) {
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
+        const pid = normalizarIdProdutoPdv(produto.id);
+        if (!pid) {
+            tocarSom('erro');
+            mostrarStatusBusca(
+                'Código reconhecido, mas o produto está sem ID no catálogo local. Sincronize Estoque (topo) e tente de novo.',
+                'red'
+            );
+            return;
+        }
         flashScanner();
         const precoEtiqueta = !!produto.preco_etiqueta_balanca;
         const avisoPreco = precoEtiqueta ? ' (valor da etiqueta)' : '';
         mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}${avisoPreco}`);
         addCarrinho(
-            produto.id,
+            pid,
             produto.nome,
             produto.preco_venda,
             quantidadeRapida,
@@ -3230,6 +3419,10 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
+        if (modo === 'scanner' && inputBusca) {
+            inputBusca.value = '';
+            limparBuscaVisual();
+        }
         return;
     }
 
@@ -3297,7 +3490,8 @@ inputBusca.addEventListener('input', function(e) {
 
     const textoLimpo = removerSufixoQuantidade(q);
     const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
-    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc;
+    const pareceCodigoGm = /^GM[\dA-Za-z-]{3,}$/i.test(String(textoLimpo).replace(/\s/g, ''));
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc || pareceCodigoGm;
     const digitacaoMuitoRapida = diff < 35;
 
     clearTimeout(scannerTimer);
@@ -3305,6 +3499,7 @@ inputBusca.addEventListener('input', function(e) {
     atualizarCatalogoRapido();
 
     if (digitacaoMuitoRapida || pareceCodigo) {
+        pdvMarcarJanelaScannerAtiva(1500);
         bufferScanner = q.trim();
         scannerTimer = setTimeout(() => {
             buscarProdutos(bufferScanner, 'scanner');
@@ -3419,6 +3614,48 @@ inputBusca.addEventListener('keydown', function(e) {
         bufferScanner = ''; // Limpa a memória do leitor
 
         quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
+
+        const brutoEnter = removerSufixoQuantidade(inputBusca.value);
+        const termoEnter = normalizarBuscaLocal(brutoEnter);
+        if (
+            termoEnter
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoEnter)
+            && baseProdutos.length
+        ) {
+            pdvMarcarJanelaScannerAtiva(1500);
+            let exatosGm = baseProdutos.filter((p) =>
+                typeof termoIgualCodigoProdutoExato === 'function'
+                    && termoIgualCodigoProdutoExato(termoEnter, p)
+            );
+            if (exatosGm.length > 1) {
+                exatosGm = ordenarSugestoesPdv(exatosGm, termoEnter);
+            }
+            const prodGm = exatosGm[0];
+            if (prodGm) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prodGm, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(
+                        prodGm.id,
+                        prodGm.nome,
+                        prodGm.preco_venda,
+                        quantidadeRapida,
+                        prodGm
+                    );
+                }
+                inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+                quantidadeRapida = 1;
+                return;
+            }
+            if (!window.AGRO_MANUAL_SYNC_ONLY) {
+                pdvMarcarJanelaScannerAtiva(1500);
+                executarBuscaAPI(brutoEnter, 'scanner');
+                return;
+            }
+        }
 
         if (itens.length > 0) {
             const idx = indexSelecionado > -1 ? indexSelecionado : 0;
@@ -3775,6 +4012,10 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F4') {
         e.preventDefault();
+        if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+        if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) {
+            return;
+        }
         limparCarrinho();
     }
     else if (e.key === 'F6') {
@@ -3787,6 +4028,7 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F8') {
         e.preventDefault();
+        if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
         if (carrinho.length) irParaCheckout();
     }
     else if (e.key === 'F9') {
@@ -4355,15 +4597,93 @@ function salvarCacheCatalogoPdv(payload) {
     } catch (_) {}
 }
 
-/** Outra aba (cadastro) atualizou o cache — reaplica na memória sem nova rede. */
-window.addEventListener('storage', function (ev) {
-    if (ev.key !== PDV_CACHE_KEY || !ev.newValue || !baseProdutos.length) return;
+function aplicarPatchesProdutosPdv(patches) {
+    const rows = Array.isArray(patches) ? patches : [];
+    if (!rows.length || !baseProdutos.length) return false;
+    const map = new Map(baseProdutos.map((p) => [String(p.id), p]));
+    let touched = false;
+    rows.forEach((patch) => {
+        if (!patch || patch.id == null) return;
+        const pid = String(patch.id);
+        const prev = map.get(pid);
+        if (prev) {
+            map.set(pid, prepararProduto(Object.assign({}, prev, patch)));
+            touched = true;
+        }
+    });
+    if (!touched) return false;
+    baseProdutos = Array.from(map.values());
+    if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+    setTimeout(atualizarPrecosBotoesTopVendidos, 0);
+    if (typeof pdvRapidoRefreshListaSeAtivo === 'function') setTimeout(pdvRapidoRefreshListaSeAtivo, 0);
+    return true;
+}
+
+function agroPdvAplicarFilaPatchLocal(clearQueue) {
+    if (clearQueue === undefined) clearQueue = true;
+    if (!baseProdutos.length) return false;
+    let items = [];
     try {
-        const parsed = JSON.parse(ev.newValue);
-        if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
-        aplicarBasePdv(parsed.produtos);
-        if (typeof pdvRapidoRefreshListaSeAtivo === 'function') pdvRapidoRefreshListaSeAtivo();
+        const raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+        if (raw) {
+            const q = JSON.parse(raw);
+            if (q && Array.isArray(q.items)) items = q.items;
+        }
     } catch (_) {}
+    if (!items.length) return false;
+    const patches = items.map((it) => (it && it.patch) ? it.patch : it).filter((p) => p && p.id != null);
+    if (!patches.length) return false;
+    const ok = aplicarPatchesProdutosPdv(patches);
+    if (ok && clearQueue) {
+        try {
+            localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+        } catch (_) {}
+    }
+    return ok;
+}
+
+function agroPdvCatalogoRefreshNoFoco() {
+    if (document.hidden || !baseProdutos.length) return;
+    if (pdvCatalogoBootAt && Date.now() - pdvCatalogoBootAt < 2500) return;
+
+    agroPdvAplicarFilaPatchLocal(true);
+
+    const now = Date.now();
+    if (now - pdvCatalogoLastFocusDeltaAt < PDV_FOCUS_DELTA_MIN_MS) return;
+    if (pdvCatalogoFocusDeltaBusy) return;
+    pdvCatalogoFocusDeltaBusy = true;
+    pdvCatalogoLastFocusDeltaAt = now;
+    sincronizarCatalogoPdvServidor(true, { silent: true }).finally(function () {
+        pdvCatalogoFocusDeltaBusy = false;
+    });
+}
+
+/** Outra aba (cadastro) gravou patch — aplica só os itens alterados, sem recarregar catálogo inteiro. */
+window.addEventListener('storage', function (ev) {
+    if (ev.key !== PDV_PATCH_QUEUE_KEY && ev.key !== PDV_CACHE_KEY) return;
+    if (!baseProdutos.length) return;
+    clearTimeout(pdvStoragePatchTimer);
+    pdvStoragePatchTimer = setTimeout(function () {
+        if (agroPdvAplicarFilaPatchLocal(true)) return;
+        if (ev.key !== PDV_CACHE_KEY) return;
+        try {
+            const raw = localStorage.getItem(PDV_CACHE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
+            aplicarBasePdv(parsed.produtos);
+        } catch (_) {}
+    }, 40);
+});
+
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) agroPdvCatalogoRefreshNoFoco();
+});
+window.addEventListener('focus', agroPdvCatalogoRefreshNoFoco);
+window.addEventListener('pageshow', function (ev) {
+    if (ev.persisted) agroPdvCatalogoRefreshNoFoco();
 });
 
 function lerCacheCatalogoPdv() {
@@ -4413,7 +4733,9 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     }
 }
 
-function sincronizarCatalogoPdvServidor(jahAquecido) {
+function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     return new Promise(function (resolve) {
         function finish() {
             resolve();
@@ -4449,14 +4771,14 @@ function sincronizarCatalogoPdvServidor(jahAquecido) {
                         catalog_updated_at: d.catalog_updated_at || '',
                     };
                     salvarCacheCatalogoPdv(novo);
-                    mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                    if (!silent) mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
                     if (window.gmLoader) window.gmLoader.hide(180);
                     else if (window.gmLoadingBar) window.gmLoadingBar.hide();
                     finish();
                     return;
                 }
                 if (d && Array.isArray(d.produtos)) {
-                    aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
+                    aplicarBasePdv(d.produtos, silent ? '' : `Base local pronta com ${d.produtos.length} itens`);
                     salvarCacheCatalogoPdv(d);
                     if (window.gmLoader) window.gmLoader.hide(180);
                     else if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -4571,6 +4893,7 @@ window.addEventListener('load', () => {
     if (inputCliente && !String(inputCliente.value || '').trim()) {
         inputCliente.value = CLIENTE_PADRAO_PDV;
     }
+    restaurarCarrinhoSessaoSeVazio();
     focarBuscaProduto();
     atualizarCarrinho();
     renderizarHistoricoResumido();
@@ -4579,6 +4902,7 @@ window.addEventListener('load', () => {
     renderSlotsMaisVendidosPdv();
     document.getElementById('pdv-mv-importar-ranking')?.addEventListener('click', importarRankingMongoParaSlotsMaisVendidos);
     atualizarCatalogoRapido();
+    pdvCatalogoBootAt = Date.now();
     carregarBaseLocal();
     carregarCacheClientes();
     verificarLembretes();
@@ -4716,10 +5040,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     } catch (e0) {}
     var el = document.getElementById('pdv-reabrir-draft');
-    if (!el) return;
+    if (!el) {
+        restaurarCarrinhoSessaoSeVazio();
+        return;
+    }
     try {
         var d = JSON.parse(el.textContent);
-        if (!d.itens || !d.itens.length) return;
+        if (!d.itens || !d.itens.length) {
+            restaurarCarrinhoSessaoSeVazio();
+            return;
+        }
         carrinho = d.itens;
         if (typeof inputCliente !== 'undefined' && inputCliente && d.cliente) {
             inputCliente.value = d.cliente;
@@ -4730,7 +5060,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
         else atualizarCarrinho();
         if (history.replaceState) history.replaceState(null, '', AGRO_PDV_URLS.pdvRootUrl || window.location.pathname);
-    } catch (x) { console.error(x); }
+    } catch (x) {
+        console.error(x);
+        restaurarCarrinhoSessaoSeVazio();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function () {

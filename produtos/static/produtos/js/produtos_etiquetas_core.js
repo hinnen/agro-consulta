@@ -43,17 +43,40 @@
     return (10 - (soma % 10)) % 10;
   }
 
-  function valorBarcodeProduto(p) {
-    var cb = String(p.codigo_barras || '').replace(/\D/g, '');
-    if (cb.length === 13) return { valor: cb, formato: 'EAN13' };
-    if (cb.length === 12) {
-      var dv = ean13Digito(cb);
-      if (dv != null) return { valor: cb + String(dv), formato: 'EAN13' };
+  function candidatosCodigoBarrasNumerico(p) {
+    return [
+      p && p.codigo_barras,
+      p && p.ean,
+      p && p.EAN,
+      p && p.gtin,
+      p && p.GTIN,
+      p && p.codigo_barras_loja,
+    ];
+  }
+
+  function extrairEanNumerico(p) {
+    var cands = candidatosCodigoBarrasNumerico(p);
+    for (var i = 0; i < cands.length; i++) {
+      var cb = String(cands[i] || '').replace(/\D/g, '');
+      if (cb.length === 13) return { valor: cb, formato: 'EAN13' };
+      if (cb.length === 12) {
+        var dv = ean13Digito(cb);
+        if (dv != null) return { valor: cb + String(dv), formato: 'EAN13' };
+      }
+      if (cb.length === 8) return { valor: cb, formato: 'EAN8' };
     }
-    var gm = String(p.codigo_gm || p.codigo_nfe || '').trim();
-    if (gm) return { valor: gm, formato: 'CODE128' };
-    if (cb) return { valor: cb, formato: 'CODE128' };
-    return { valor: String(p.id || '0'), formato: 'CODE128' };
+    return null;
+  }
+
+  function valorBarcodeProduto(p) {
+    var ean = extrairEanNumerico(p);
+    if (ean) return ean;
+    /* Fallback GM só sem EAN/código numérico válido — leitor bipa texto (CODE128). */
+    var gm = String(p.codigo_gm || p.codigo_nfe || p.codigo_interno || p.codigo || '').trim();
+    if (gm) return { valor: gm, formato: 'CODE128', fallback_gm: true };
+    var cbLoose = String(p.codigo_barras || '').replace(/\s/g, '');
+    if (cbLoose) return { valor: cbLoose, formato: 'CODE128' };
+    return { valor: String(p.id || '0'), formato: 'CODE128', fallback_gm: true };
   }
 
   function clonePreset(p) {
@@ -116,8 +139,10 @@
     return {
       id: String(prod.id || ''),
       nome: String(prod.nome || '').trim(),
-      codigo_gm: String(prod.codigo_gm || prod.codigo_nfe || prod.codigo || '').trim(),
-      codigo_barras: String(prod.codigo_barras || '').trim(),
+      codigo_gm: String(
+        prod.codigo_gm || prod.codigo_nfe || prod.codigo_interno || prod.codigo || ''
+      ).trim(),
+      codigo_barras: String(prod.codigo_barras || prod.ean || prod.gtin || '').trim(),
       preco_venda: Number(prod.preco_venda) || 0,
       qtd: qtd > 0 ? qtd : 1,
     };
@@ -360,5 +385,7 @@
     imprimirItens: imprimirItens,
     podeSilentPrint: podeSilentPrint,
     fillPresetSelect: fillPresetSelect,
+    valorBarcodeProduto: valorBarcodeProduto,
+    extrairEanNumerico: extrairEanNumerico,
   };
 })(typeof window !== 'undefined' ? window : this);
