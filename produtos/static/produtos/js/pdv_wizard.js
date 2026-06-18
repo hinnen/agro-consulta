@@ -5550,6 +5550,11 @@
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
             if (withPrint && nfceAtivoNoPdv()) {
+                if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
+                    prepararNfceComImpressao('nfce');
+                    resolverNfceAntesConfirmar(true);
+                    return;
+                }
                 abrirModalEscolhaImpressao(function (escolha) {
                     if (!escolha) return;
                     prepararNfceComImpressao(escolha);
