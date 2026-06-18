@@ -154,6 +154,44 @@
         return [...out];
     }
 
+    /** Código de barras numérico (4–14 dígitos), ex. 1813647 — distinto de EAN-13 balança. */
+    function pareceCodigoBarrasNumerico(termoNorm) {
+        const t = String(termoNorm || '').trim();
+        return /^\d{4,14}$/.test(t);
+    }
+
+    function digitosCodigoBusca(val) {
+        return String(val ?? '').replace(/\D/g, '');
+    }
+
+    /** Match exato só-dígitos em barras / index (7 dígitos, código loja, etc.). */
+    function termoIgualCodigoBarrasNumericoExato(termoNorm, p) {
+        const d = digitosCodigoBusca(termoNorm);
+        if (!pareceCodigoBarrasNumerico(d) || !p) return false;
+        const campos = [
+            p.codigo_barras,
+            p.ean,
+            p.codigo,
+            p.codigo_interno,
+            p.codigo_nfe,
+            p.sku,
+            p.referencia,
+            p.codigo_fornecedor,
+        ];
+        for (const val of campos) {
+            if (val == null || val === '') continue;
+            const vd = digitosCodigoBusca(val);
+            if (vd && vd === d) return true;
+        }
+        if (Array.isArray(p.index_codigos)) {
+            for (const x of p.index_codigos) {
+                const xd = digitosCodigoBusca(x);
+                if (xd && xd === d) return true;
+            }
+        }
+        return false;
+    }
+
     /** Etiqueta GM (ex.: GM1541-5, GM1518-125-3) — leitor manda texto, não EAN numérico. */
     function pareceCodigoGmEtiqueta(termoNorm) {
         const t = String(termoNorm || '').trim();
@@ -185,6 +223,10 @@
             if (val == null || val === '') return false;
             const vn = normalizarBuscaLocal(String(val));
             if (vn === t) return true;
+            if (/^\d+$/.test(t)) {
+                const vd = digitosCodigoBusca(val);
+                if (vd === t) return true;
+            }
             if (tAl.length >= 5 && somenteAlnumCodigoBusca(vn) === tAl) return true;
             if (tAl.length >= 5 && gmAlnumEquivalente(tAl, somenteAlnumCodigoBusca(vn))) return true;
             return variantesLiteraisCodigoGm(t).some((v) => v === vn || somenteAlnumCodigoBusca(v) === tAl);
@@ -255,6 +297,7 @@
     function palavraCasaNoProduto(palavraBruta, tokens, hay, fuzzy, p) {
         const pn = normalizarBuscaLocal(String(palavraBruta || ''));
         if (pn.startsWith('gm') && termoIgualCodigoProdutoExato(pn, p)) return true;
+        if (pareceCodigoBarrasNumerico(pn) && termoIgualCodigoBarrasNumericoExato(pn, p)) return true;
         if (casaCodigoNumericoNoProduto(palavraBruta, p)) return true;
         const gmVars = pn.startsWith('gm') ? variantesLiteraisCodigoGm(pn) : [];
         if (gmVars.some((v) => hay.includes(v))) return true;
@@ -276,6 +319,14 @@
             /* Etiqueta GM: só match exato (com/sem hífen); não usar dígitos parciais (15415 ≠ GM1541-5). */
             if (pareceCodigoGmEtiqueta(termo)) {
                 return lista.filter((p) => termoIgualCodigoProdutoExato(termo, p));
+            }
+            /* Código de barras numérico curto (ex. 1813647): match exato só-dígitos. */
+            if (pareceCodigoBarrasNumerico(termo)) {
+                return lista.filter(
+                    (p) =>
+                        termoIgualCodigoBarrasNumericoExato(termo, p)
+                        || termoIgualCodigoProdutoExato(termo, p)
+                );
             }
             const dTerm = termo.replace(/\D/g, '');
             const candidatosIdx = dTerm.length >= 4 ? _indicesPorCodigo(index, dTerm) : null;
@@ -299,6 +350,14 @@
         if (palavras.length === 1 && pareceCodigoGmEtiqueta(palavras[0])) {
             const gmHits = lista.filter((p) => termoIgualCodigoProdutoExato(palavras[0], p));
             if (gmHits.length) return gmHits;
+        }
+        if (palavras.length === 1 && pareceCodigoBarrasNumerico(palavras[0])) {
+            const cbHits = lista.filter(
+                (p) =>
+                    termoIgualCodigoBarrasNumericoExato(palavras[0], p)
+                    || termoIgualCodigoProdutoExato(palavras[0], p)
+            );
+            if (cbHits.length) return cbHits;
         }
 
         // Pré-filtro por índice local para reduzir varredura linear.
@@ -442,6 +501,8 @@
     window.filtrarProdutosBuscaInteligente = filtrarProdutosBuscaInteligente;
     window.casaCodigoNumericoNoProduto = casaCodigoNumericoNoProduto;
     window.pareceCodigoGmEtiqueta = pareceCodigoGmEtiqueta;
+    window.pareceCodigoBarrasNumerico = pareceCodigoBarrasNumerico;
+    window.termoIgualCodigoBarrasNumericoExato = termoIgualCodigoBarrasNumericoExato;
     window.termoIgualCodigoProdutoExato = termoIgualCodigoProdutoExato;
     window.somenteAlnumCodigoBusca = somenteAlnumCodigoBusca;
     window.variantesLiteraisCodigoGm = variantesLiteraisCodigoGm;

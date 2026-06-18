@@ -413,7 +413,29 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Operação:** antes de imprimir lote, abrir 🖨️ no cadastro — se aparecer aviso âmbar «Sem EAN», corrigir cadastro primeiro.
 
-**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3`
+### Código de barras interno da loja (decisão 2026-06-18)
+
+Nem todo item tem EAN de fábrica. Casos normais na GM Agro:
+
+| Situação | Barras no cadastro |
+|----------|-------------------|
+| Embalagem do **fornecedor** (NF, saco fechado) | EAN/GTIN **real** da embalagem quando existir |
+| Saco **maior** com EAN, **unidade de dentro** sem barras (ex. ensacado na loja) | **Código interno** numérico criado pela loja — não é EAN do fornecedor |
+| **Reembalagem** na loja (ração a granel, fracionado) | Idem — código interno (7 dígitos, 13 com DV válido, etc.) |
+
+**Não** confundir: «inventar» aqui = **identificador interno SisVale/loja**, não falsificar GTIN de fabricante. PDV e etiqueta tratam 4–14 dígitos como barras normal (CODE128); EAN-13 exige **dígito verificador correto** (SisVale corrige DV na impressão se estiver errado e avisa no modal).
+
+**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3 1813647`
+
+### Código de barras curto (7 dígitos) + PDV — feito 2026-06-18
+
+Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `consulta_produtos.js`). Etiquetas: CODE128 antes do fallback GM (`extrairCodigoBarrasCurto`).
+
+### Etiqueta EAN-13 layout — feito 2026-06-18
+
+**Sintoma:** barras 13 dígitos com DV errado → preview só preço cortado, sem barras.
+
+**Correção:** `produtos_etiquetas_core.js` — valida/corrige DV, fallback CODE128, CSS 40×40 mm; modal cadastro avisa DV corrigido (âmbar).
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
