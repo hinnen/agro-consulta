@@ -260,6 +260,8 @@
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
         confirmSaleNoPrint: document.getElementById('pdv-confirm-sale-no-print'),
         confirmSalePrint: document.getElementById('pdv-confirm-sale-print'),
+        nfceEmitirWrap: document.getElementById('pdv-nfce-emitir-wrap'),
+        nfceEmitirCheck: document.getElementById('pdv-nfce-emitir-check'),
         paymentModalCards: document.querySelectorAll('[data-payment-modal-card]'),
         paymentFormaModal: document.getElementById('pdv-payment-forma-modal'),
         paymentFormaModalBackdrop: document.getElementById('pdv-payment-forma-modal-backdrop'),
@@ -3904,6 +3906,7 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
+        syncNfceEmitirUi(state);
         if (err) {
             dom.paymentFeedback.textContent = err;
         } else {
@@ -5008,6 +5011,7 @@
             payload.cliente_documento = nfceOpts.cpf;
         }
         if (nfceOpts.semIdentificacao) payload.nfce_sem_identificacao = true;
+        if (nfceUsuarioQuerEmitir(state)) payload.nfce_emitir = true;
         var comp = computed || State.getComputed();
         if (comp && comp.desconto > 0.009) {
             payload.desconto_geral = comp.desconto;
@@ -5229,6 +5233,44 @@
         return !!(bootstrap.nfce && bootstrap.nfce.ativo);
     }
 
+    function nfceModoManual() {
+        return !!(nfceAtivoNoPdv() && bootstrap.nfce && bootstrap.nfce.modo === 'manual');
+    }
+
+    function nfceUsuarioQuerEmitir(state) {
+        if (!nfceAtivoNoPdv()) return false;
+        if (!nfceModoManual()) return true;
+        state = state || State.getState();
+        return !!(state.pagamento && state.pagamento.nfceEmitir);
+    }
+
+    function syncNfceEmitirUi(state) {
+        state = state || State.getState();
+        var wrap = dom.nfceEmitirWrap;
+        var chk = dom.nfceEmitirCheck;
+        if (!wrap || !chk) return;
+        var manual = nfceModoManual();
+        wrap.classList.toggle('hidden', !manual);
+        wrap.classList.toggle('flex', manual);
+        if (!manual) return;
+        chk.checked = !!(state.pagamento && state.pagamento.nfceEmitir);
+        var cnp = dom.confirmSaleNoPrint;
+        var cp = dom.confirmSalePrint;
+        if (chk.checked) {
+            if (cnp) cnp.textContent = 'Confirmar NFC-e (sem impressão)';
+            if (cp) cp.textContent = 'Confirmar NFC-e (imprimir cupom)';
+        } else {
+            if (cnp) {
+                cnp.innerHTML =
+                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
+            }
+            if (cp) {
+                cp.innerHTML =
+                    'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+            }
+        }
+    }
+
     function nfceNormalizarCpf(raw) {
         return String(raw || '').replace(/\D/g, '').slice(0, 11);
     }
@@ -5316,7 +5358,8 @@
     }
 
     function resolverNfceAntesConfirmar(withPrint) {
-        if (!nfceAtivoNoPdv()) {
+        if (!nfceUsuarioQuerEmitir()) {
+            State.setPagamentoField('nfceOpts', {});
             confirmSaleProsseguir(withPrint);
             return;
         }
@@ -5354,6 +5397,16 @@
         }
         if (opts.entregaOk) return 'Venda confirmada e entrega registrada com sucesso.';
         return 'Venda confirmada com sucesso.';
+    }
+
+    function nfceSucessoDaResposta(data) {
+        if (data && data.nfce && data.nfce.ok === true) {
+            var n = data.nfce.numero != null ? String(data.nfce.numero) : '';
+            var s = data.nfce.serie != null ? String(data.nfce.serie) : '';
+            if (n) return 'NFC-e nº ' + n + (s ? ' · série ' + s : '') + ' autorizada.';
+            return 'NFC-e autorizada.';
+        }
+        return '';
     }
 
     function nfceAvisoPosVenda(opts) {
@@ -5394,6 +5447,8 @@
         opts = opts || {};
         if (opts.nfceErro) {
             alert(saleDoneMessage(opts) + nfceAvisoPosVenda(opts));
+        } else if (opts.nfceOk) {
+            alert(saleDoneMessage(opts) + ' ' + opts.nfceOk);
         }
         imprimirCupomAposVenda(withPrint, printWin, opts.vendaId).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
@@ -5404,7 +5459,7 @@
                     'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
                     'warn'
                 );
-            } else if (!opts.nfceErro) {
+            } else if (!opts.nfceErro && !opts.nfceOk) {
                 var msg = saleDoneMessage(opts);
                 var kind = opts.erpPendente ? 'info' : 'success';
                 showSaleDoneFeedback(msg, kind);
@@ -5475,11 +5530,13 @@
                 var fiadoAguardaErp = !!erpRes.data.fiado_aguarda_erp;
                 var vendaId = erpRes.data && erpRes.data.venda_id;
                 var nfceErro = nfceErroDaResposta(erpRes.data);
+                var nfceOk = nfceSucessoDaResposta(erpRes.data);
                 if (fiadoAguardaErp) {
                     finalizeConfirmedSale(withPrint, printWin, {
                         fiadoAguardaErp: true,
                         vendaId: vendaId,
-                        nfceErro: nfceErro
+                        nfceErro: nfceErro,
+                        nfceOk: nfceOk
                     });
                     return;
                 }
@@ -5499,7 +5556,8 @@
                             erpPendente: erpPendente,
                             entregaOk: true,
                             vendaId: vendaId,
-                            nfceErro: nfceErro
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk
                         });
                     });
                 }
@@ -5511,7 +5569,8 @@
                             erpPendente: true,
                             entregaOk: true,
                             vendaId: vendaId,
-                            nfceErro: nfceErro
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk
                         });
                         return;
                     }
@@ -5522,10 +5581,20 @@
                                     'Venda salva, mas falhou ao registrar entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, { entregaOk: true, vendaId: vendaId, nfceErro: nfceErro });
+                        finalizeConfirmedSale(withPrint, printWin, {
+                            entregaOk: true,
+                            vendaId: vendaId,
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk
+                        });
                     });
                 }
-                finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente, vendaId: vendaId, nfceErro: nfceErro });
+                finalizeConfirmedSale(withPrint, printWin, {
+                    erpPendente: erpPendente,
+                    vendaId: vendaId,
+                    nfceErro: nfceErro,
+                    nfceOk: nfceOk
+                });
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -7698,6 +7767,15 @@
         if (dom.confirmSalePrint) {
             dom.confirmSalePrint.addEventListener('click', function () {
                 confirmSale(true);
+            });
+        }
+        if (dom.nfceEmitirCheck) {
+            dom.nfceEmitirCheck.addEventListener('change', function () {
+                State.setPagamentoField('nfceEmitir', !!dom.nfceEmitirCheck.checked);
+                if (!dom.nfceEmitirCheck.checked) {
+                    State.setPagamentoField('nfceOpts', {});
+                }
+                syncNfceEmitirUi(State.getState());
             });
         }
         if (dom.voltarHome) {

@@ -132,7 +132,9 @@
                 mpBalcaoModo: '',
                 /** Chave por tentativa de confirmação (idempotência no servidor). */
                 clientRequestId: '',
-                lancamentos: []
+                lancamentos: [],
+                nfceEmitir: false,
+                nfceOpts: {}
             },
             venda: {
                 observacao: ''

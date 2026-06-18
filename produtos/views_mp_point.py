@@ -319,13 +319,20 @@ def api_pdv_mp_point_finalizar(request):
             row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
             row.venda_id = vid
             row.save(update_fields=["status", "venda", "atualizado_em"])
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "mensagem": _json_legivel(out["res"]),
-                    "venda_id": vid,
-                }
-            )
+            payload = {
+                "ok": True,
+                "mensagem": _json_legivel(out["res"]),
+                "venda_id": vid,
+            }
+            try:
+                from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+
+                nfce = tentar_emitir_nfce_pos_venda(venda_local, erp_data)
+                if nfce is not None:
+                    payload["nfce"] = nfce
+            except Exception:
+                pass
+            return JsonResponse(payload)
 
         row.status = PdvMercadoPagoPointOrder.Status.FAILED
         row.save(update_fields=["status", "atualizado_em"])

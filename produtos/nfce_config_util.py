@@ -34,6 +34,25 @@ def nfce_resolve_cert_path() -> str:
     return path
 
 
+def nfce_emissao_automatica() -> bool:
+    modo = (_cfg("NFC_E_MODO", "manual") or "manual").strip().lower()
+    return modo in ("auto", "automatico", "automatica", "automatic")
+
+
+def nfce_emissao_solicitada(data: dict | None) -> bool:
+    """True se a NFC-e deve ser emitida nesta venda (auto ou flag manual do PDV)."""
+    if nfce_emissao_automatica():
+        return True
+    if not isinstance(data, dict):
+        return False
+    raw = data.get("nfce_emitir")
+    if raw is None:
+        raw = data.get("nfce_solicitar")
+    if isinstance(raw, str):
+        return raw.strip().lower() in ("1", "true", "sim", "yes", "on")
+    return bool(raw)
+
+
 def nfce_cfg() -> dict[str, Any]:
     cert_path = nfce_resolve_cert_path()
     cert_password = _cfg("NFC_E_CERT_PASSWORD") or _cfg("NFE_DIST_DFE_CERT_PASSWORD")
@@ -107,6 +126,7 @@ def nfce_config_resumo() -> dict[str, Any]:
     c = nfce_cfg()
     return {
         "ativo": nfce_configurada(),
+        "modo": "auto" if nfce_emissao_automatica() else "manual",
         "tp_amb": c["tp_amb"],
         "serie": c["serie"],
         "cnpj": c["cnpj"][:8] + "…" if len(c["cnpj"]) == 14 else "",

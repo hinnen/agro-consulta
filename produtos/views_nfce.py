@@ -17,7 +17,7 @@ def _mongo_conn():
     from produtos.views import obter_conexao_mongo
 
     return obter_conexao_mongo()
-from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada
+from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 from produtos.nfce_sp_emissao_util import cpf_valido, emitir_nfce_para_venda
 
@@ -33,8 +33,10 @@ def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
 
 
 def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | None:
-    """Emite NFC-e após gravar venda, se módulo ativo. Retorna None se desligado."""
+    """Emite NFC-e após gravar venda, se módulo ativo e PDV solicitou (manual ou auto)."""
     if not venda or not nfce_configurada():
+        return None
+    if not nfce_emissao_solicitada(data):
         return None
     cpf, sem_id = _nfce_opts_payload(data)
     if not cpf and not sem_id:
