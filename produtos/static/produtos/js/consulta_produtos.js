@@ -1315,7 +1315,7 @@ function normalizarIdProdutoPdv(id) {
 }
 
 function pdvMarcarJanelaScannerAtiva(ms) {
-    pdvScannerBloqueioTeclasAte = Date.now() + (ms != null && ms > 0 ? ms : 450);
+    pdvScannerBloqueioTeclasAte = Date.now() + (ms != null && ms > 0 ? ms : 1200);
 }
 
 function pdvTeclasFuncaoBloqueadasPorScanner() {
@@ -1538,6 +1538,8 @@ function removerUltimoItem() {
 }
 
 function limparCarrinho() {
+    if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+    if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) return;
     if (!carrinho.length) return;
     if (!confirm('Limpar todo o orçamento?')) return;
     carrinho = [];
@@ -2701,7 +2703,7 @@ function buscarProdutos(q, modo = 'normal') {
     clearTimeout(debounceTimer);
 
     if (modo === 'scanner') {
-        pdvMarcarJanelaScannerAtiva(500);
+        pdvMarcarJanelaScannerAtiva(1500);
     }
 
     quantidadeRapida = obterQuantidadeRapida(q);
@@ -3301,13 +3303,27 @@ function executarBuscaLocal(termo, modo) {
     }
 
     if (modo === 'scanner') {
-        const exato = resultados.find(p => {
+        const matchExatoFn =
+            typeof termoIgualCodigoProdutoExato === 'function'
+                ? termoIgualCodigoProdutoExato
+                : null;
+        const exatos = resultados.filter((p) => {
+            if (matchExatoFn && matchExatoFn(termo, p)) return true;
             const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
             const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
-            return nfe === termo || cb === termo || casaCodigoNumericoNoProduto(termo, p);
+            if (nfe === termo || cb === termo) return true;
+            const gmEtiqueta =
+                typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termo);
+            if (gmEtiqueta) return false;
+            return casaCodigoNumericoNoProduto(termo, p);
         });
-        if (exato) {
-            processarResultadosBusca([exato], modo, true);
+        if (exatos.length === 1) {
+            processarResultadosBusca([exatos[0]], modo, true);
+            return;
+        }
+        if (exatos.length > 1) {
+            const ordenados = ordenarSugestoesPdv(exatos, termo);
+            processarResultadosBusca([ordenados[0]], modo, true);
             return;
         }
     }
@@ -3363,6 +3379,10 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
+        if (modo === 'scanner' && inputBusca) {
+            inputBusca.value = '';
+            limparBuscaVisual();
+        }
         return;
     }
 
@@ -3430,7 +3450,8 @@ inputBusca.addEventListener('input', function(e) {
 
     const textoLimpo = removerSufixoQuantidade(q);
     const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
-    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc;
+    const pareceCodigoGm = /^GM[\dA-Za-z-]{3,}$/i.test(String(textoLimpo).replace(/\s/g, ''));
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc || pareceCodigoGm;
     const digitacaoMuitoRapida = diff < 35;
 
     clearTimeout(scannerTimer);
@@ -3438,6 +3459,7 @@ inputBusca.addEventListener('input', function(e) {
     atualizarCatalogoRapido();
 
     if (digitacaoMuitoRapida || pareceCodigo) {
+        pdvMarcarJanelaScannerAtiva(1500);
         bufferScanner = q.trim();
         scannerTimer = setTimeout(() => {
             buscarProdutos(bufferScanner, 'scanner');
@@ -3552,6 +3574,43 @@ inputBusca.addEventListener('keydown', function(e) {
         bufferScanner = ''; // Limpa a memória do leitor
 
         quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
+
+        const brutoEnter = removerSufixoQuantidade(inputBusca.value);
+        const termoEnter = normalizarBuscaLocal(brutoEnter);
+        if (
+            termoEnter
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoEnter)
+            && baseProdutos.length
+        ) {
+            pdvMarcarJanelaScannerAtiva(1500);
+            let exatosGm = baseProdutos.filter((p) =>
+                typeof termoIgualCodigoProdutoExato === 'function'
+                    && termoIgualCodigoProdutoExato(termoEnter, p)
+            );
+            if (exatosGm.length > 1) {
+                exatosGm = ordenarSugestoesPdv(exatosGm, termoEnter);
+            }
+            const prodGm = exatosGm[0];
+            if (prodGm) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prodGm, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(
+                        prodGm.id,
+                        prodGm.nome,
+                        prodGm.preco_venda,
+                        quantidadeRapida,
+                        prodGm
+                    );
+                }
+                inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+                quantidadeRapida = 1;
+                return;
+            }
+        }
 
         if (itens.length > 0) {
             const idx = indexSelecionado > -1 ? indexSelecionado : 0;
@@ -3909,6 +3968,9 @@ document.addEventListener('keydown', function(e) {
     else if (e.key === 'F4') {
         e.preventDefault();
         if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+        if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) {
+            return;
+        }
         limparCarrinho();
     }
     else if (e.key === 'F6') {

@@ -375,13 +375,17 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ### URGENTE — PDV carrinho some ao bipar alguns itens (2026-06-18)
 
-**Sintoma:** em `/consulta/`, ao bipar certos produtos (ex. **GM4579**, **GM15181253**), o carrinho perde os itens já lançados. Etiqueta desses mesmos produtos também sai cortada (pista secundária).
+**Sintoma:** em `/consulta/`, ao bipar certos produtos (ex. **GM1518-125-3**, **GM1541-5**, **GM4579**), o carrinho perde itens (0–1 de 5). Etiquetas antigas e **novas SisVale** — leitor manda **texto GM** (com hífen), não EAN numérico.
 
-**Hipóteses investigadas:** não é `GMORC` (orçamento); atribuições diretas de `carrinho = []` só em limpar / ERP / draft. Possíveis causas: produto **sem Id** no cache local, erro ao renderizar carrinho (UI vazia com array ainda em memória), tecla **F4/F8** do leitor, orçamento salvo **vazio** no `localStorage`.
+**Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` de `GM1541-5` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho) após bip longo; (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
 
-**Patch aplicado (local, aguarda commit):** `consulta_produtos.js` — backup do carrinho em `sessionStorage`, validação de Id, `atualizarCarrinho` resiliente, bloqueio F4/F8 pós-bip, orçamento vazio não substitui carrinho. Comando: `python manage.py pdv_diagnostico_codigo GM4579 GM15181253` (rodar no ambiente com Mongo).
+**Patch v1.08:** backup sessionStorage + Id — **insuficiente** para GM com hífen.
 
-**Próximo:** commit `teste` → staging → Renan reproduz → se ok, merge `producao`. Conferir Id/index_codigos dos GM no Mongo.
+**Patch v1.09 (teste):** `_js_busca_produto_inteligente.html` + `consulta_produtos.js` — match **exato** GM (`GM1541-5` / alnum `gm15415`), modo scanner para `GM…`, bloqueio F4 **1,5 s** + não limpar com código ainda no campo, Enter prioriza GM exato.
+
+**Commit `teste`:** `9e6f883` · v1.08 — validado: **não resolveu** GM com hífen.
+
+**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM1541-5 GM1518-125-3`
 
 ### Produção — só este patch (aguardar OK do Renan no staging)
 
@@ -394,7 +398,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Teste no staging (`agro-consulta-staging`):**
 
-1. `/consulta/` — 3+ itens no carrinho → bipar **GM4579** e **GM15181253** → carrinho **não** pode zerar.
+1. `/consulta/` — 3+ itens no carrinho → bipar **GM1541-5** e **GM1518-125-3** → carrinho **não** pode zerar; produto certo entra.
 2. Se aparecer aviso vermelho “sem ID” → **Estoque** (sync) e repetir.
 3. (Opcional) Shell Render: `python manage.py pdv_diagnostico_codigo GM4579 GM15181253`
 
