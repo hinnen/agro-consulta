@@ -230,6 +230,11 @@ urlpatterns = [
         name='api_venda_agro_nfce_cupom',
     ),
     path(
+        'venda/<int:pk>/nfce/',
+        views_nfce.api_venda_agro_nfce_info,
+        name='api_venda_agro_nfce_info',
+    ),
+    path(
         'venda/<int:pk>/nfce/emitir/',
         views_nfce.api_venda_agro_nfce_emitir,
         name='api_venda_agro_nfce_emitir',

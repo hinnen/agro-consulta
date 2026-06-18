@@ -5509,10 +5509,17 @@
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
         var cupomImpressao = opts.cupomImpressao || '';
+        if (opts.nfceErro && cupomImpressao === 'nfce') {
+            cupomImpressao = 'venda';
+        }
         if (opts.nfceErro) {
-            alert(saleDoneMessage(opts) + nfceAvisoPosVenda(opts));
+            showSaleDoneFeedback(
+                saleDoneMessage(opts) +
+                    ' Cupom fiscal pendente — corrija depois em Consultar vendas e use Reemitir NFC-e.',
+                'warn'
+            );
         } else if (opts.nfceOk) {
-            alert(saleDoneMessage(opts) + ' ' + opts.nfceOk);
+            showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
         }
         imprimirCupomAposVenda(withPrint, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
@@ -5800,19 +5807,39 @@
                 });
             })
             .then(function (result) {
+                var erpData = (result && result.erp) || {};
+                var nfceErro = nfceErroDaResposta(erpData);
+                var nfceOk = nfceSucessoDaResposta(erpData);
                 var vIdMp =
-                    result.erp && result.erp.venda_id != null ? result.erp.venda_id : null;
+                    erpData && erpData.venda_id != null ? erpData.venda_id : null;
                 var stMp = State.getState();
                 var cupomImpMp = withPrint
                     ? String((stMp.pagamento && stMp.pagamento.cupomImpressao) || 'venda')
                     : '';
+                if (nfceErro && cupomImpMp === 'nfce') {
+                    cupomImpMp = 'venda';
+                }
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     resetWizardParaNovaVenda();
+                    if (nfceErro) {
+                        showSaleDoneFeedback(
+                            'Pagamento no Point confirmado. Cupom fiscal pendente — reemitir em Consultar vendas.',
+                            'warn'
+                        );
+                        return;
+                    }
                     if (printFail) {
                         showSaleDoneFeedback(
                             'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
                             'warn'
+                        );
+                    } else if (nfceOk) {
+                        showSaleDoneFeedback(
+                            (result.entrega
+                                ? 'Pagamento no Point confirmado, venda e entrega OK. '
+                                : 'Pagamento no Point confirmado. ') + nfceOk,
+                            'success'
                         );
                     } else {
                         showSaleDoneFeedback(

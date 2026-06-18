@@ -389,6 +389,194 @@
         background: linear-gradient(180deg, rgba(168, 85, 247, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
         border-color: rgba(168, 85, 247, 0.62);
     }
+    /* Launchpad — barra superior (PDV / Orçamento + escala) */
+    .launchpad-topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        margin-bottom: clamp(0.85rem, 1.8vh, 1.35rem);
+        padding-bottom: clamp(0.65rem, 1.2vh, 0.95rem);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .launchpad-topbar__brand {
+        flex: 1 1 10rem;
+        min-width: 0;
+    }
+    .launchpad-topbar__brand h2 {
+        margin: 0;
+        font-size: clamp(1.15rem, 1.6vw + 0.55rem, 1.85rem);
+        font-weight: 900;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+    }
+    .launchpad-topbar__brand p {
+        margin: 0.2rem 0 0;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: #64748b;
+    }
+    .launchpad-topbar__quick {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-shrink: 0;
+    }
+    .launch-orb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        width: clamp(4.5rem, 7vw, 5.75rem);
+        height: clamp(4.5rem, 7vw, 5.75rem);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 0.58rem;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        padding: 0.35rem;
+    }
+    .launch-orb svg {
+        width: 1.35rem;
+        height: 1.35rem;
+        flex-shrink: 0;
+    }
+    .launch-orb small {
+        font-size: 0.52rem;
+        opacity: 0.72;
+        font-weight: 800;
+    }
+    .launch-orb:hover {
+        transform: translateY(-2px) scale(1.03);
+        filter: brightness(1.08);
+    }
+    .launch-orb--blue {
+        background: radial-gradient(circle at 35% 28%, #38bdf8 0%, #0284c7 52%, #0c4a6e 100%);
+        border-color: rgba(56, 189, 248, 0.85);
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.45), 0 8px 22px rgba(14, 165, 233, 0.35);
+        animation: pulse-capri-strong 1.35s ease-in-out infinite;
+    }
+    .launch-orb--amber {
+        background: radial-gradient(circle at 35% 28%, #fde047 0%, #f59e0b 52%, #b45309 100%);
+        border-color: rgba(251, 191, 36, 0.9);
+        color: #1c1917;
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.42), 0 8px 22px rgba(245, 158, 11, 0.32);
+    }
+    .launch-orb--amber svg {
+        color: #78350f;
+    }
+    .launchpad-topbar__tools {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .launch-scale-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(15, 23, 42, 0.72);
+    }
+    .launch-scale-step {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        font-size: 1.1rem;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .launch-scale-step:hover {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: rgba(16, 185, 129, 0.55);
+    }
+    .launch-scale-value {
+        min-width: 2.75rem;
+        text-align: center;
+        font-size: 0.82rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        color: #6ee7b7;
+    }
+    .launch-scale-preset {
+        min-height: 2rem;
+        padding: 0 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: #cbd5e1;
+        font-size: 0.62rem;
+        font-weight: 900;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+    }
+    .launch-scale-preset:hover {
+        border-color: rgba(16, 185, 129, 0.5);
+        color: #ecfdf5;
+    }
+    .launch-scale-preset.is-active {
+        border-color: rgba(16, 185, 129, 0.75);
+        background: rgba(6, 78, 59, 0.55);
+        color: #6ee7b7;
+    }
+    .launch-scale-reset {
+        min-height: 2rem;
+        padding: 0 0.65rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: transparent;
+        color: #94a3b8;
+        font-size: 0.58rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+    }
+    .launch-scale-reset:hover {
+        color: #e2e8f0;
+        border-color: rgba(226, 232, 240, 0.45);
+    }
+    .launchpad-close {
+        width: 2.75rem;
+        height: 2.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 1.65rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .launchpad-close:hover {
+        background: #dc2626;
+        border-color: #ef4444;
+    }
+    @media (max-width: 720px) {
+        .launch-scale-preset { display: none; }
+        .launchpad-topbar__quick { order: 3; width: 100%; justify-content: center; }
+        .launchpad-topbar__tools { order: 2; width: 100%; justify-content: flex-end; }
+    }
     @media (max-width: 1366px) {
         .main-container {
             padding: clamp(0.45rem, 0.7vw, 0.85rem);
@@ -720,14 +908,38 @@
 </div>
 
 <!-- Launchpad: atalhos que antes ficavam na home /atalhos/ -->
-<div id="launchpad" class="fixed inset-0 z-[9999] hidden bg-slate-950 backdrop-blur-none p-5 sm:p-8 md:p-10 transition-opacity overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="launchpad-title">
-    <div class="w-full max-w-[120rem] mx-auto min-h-0 flex flex-col pb-8">
-        <div class="flex flex-wrap justify-between items-start gap-4 mb-10 md:mb-14">
-            <div>
-                <h2 id="launchpad-title" class="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-tight">Menu de Atalhos</h2>
-                <p class="text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-[0.25em] mt-2">SisVale | Central de módulos</p>
+<div id="launchpad" class="fixed inset-0 z-[9999] hidden bg-slate-950 backdrop-blur-none p-4 sm:p-6 md:p-8 transition-opacity overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="launchpad-title">
+    <div class="w-full max-w-[120rem] mx-auto min-h-0 flex flex-col pb-6">
+        <div class="launchpad-topbar">
+            <div class="launchpad-topbar__brand">
+                <h2 id="launchpad-title">Menu de Atalhos</h2>
+                <p>SisVale · Central de módulos</p>
             </div>
-            <button type="button" onclick="toggleLaunchpad()" class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-600 transition-colors text-3xl sm:text-4xl shrink-0" aria-label="Fechar menu">&times;</button>
+            <div class="launchpad-topbar__quick">
+                <button type="button" onclick="dashLaunchpadAbrir('PDV', '{% url 'pdv_home' %}', 'shopping-cart')" class="launch-orb launch-orb--blue" title="PDV (F1)">
+                    <i data-lucide="shopping-cart"></i>
+                    <span>PDV</span>
+                    <small>F1</small>
+                </button>
+                <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'file-text')" class="launch-orb launch-orb--amber" title="Orçamento (F2)">
+                    <i data-lucide="file-text"></i>
+                    <span>Orçamento</span>
+                    <small>F2</small>
+                </button>
+            </div>
+            <div class="launchpad-topbar__tools">
+                <div class="launch-scale-bar" id="launchpad-scale-bar" aria-label="Tamanho da tela">
+                    <button type="button" class="launch-scale-step" data-launch-scale-minus aria-label="Diminuir">−</button>
+                    <span class="launch-scale-value" data-launch-scale-value>100%</span>
+                    <button type="button" class="launch-scale-step" data-launch-scale-plus aria-label="Aumentar">+</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.67">67%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.8">80%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.95">95%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="1">100%</button>
+                    <button type="button" class="launch-scale-reset" data-launch-scale-recalc>Redefinir</button>
+                </div>
+                <button type="button" onclick="toggleLaunchpad()" class="launchpad-close" aria-label="Fechar menu">&times;</button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 xl:gap-6 flex-1 min-h-0">
@@ -787,8 +999,53 @@ function toggleLaunchpad() {
     var estavaOculto = lp.classList.contains("hidden");
     lp.classList.toggle("hidden", !estavaOculto);
     document.body.classList.toggle("modal-open", estavaOculto);
-    if (estavaOculto && window.lucide) window.lucide.createIcons();
+    if (estavaOculto) {
+        if (window.lucide) window.lucide.createIcons();
+        syncLaunchpadScaleBar();
+    }
 }
+
+function syncLaunchpadScaleBar() {
+    var bar = document.getElementById("launchpad-scale-bar");
+    if (!bar || !window.AgroDisplayScale) return;
+    var scale = window.AgroDisplayScale.get();
+    var label = bar.querySelector("[data-launch-scale-value]");
+    if (label) label.textContent = Math.round(scale * 100) + "%";
+    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
+        var p = parseFloat(btn.getAttribute("data-launch-scale-preset"), 10);
+        btn.classList.toggle("is-active", Math.abs(scale - p) < 0.025);
+    });
+}
+
+(function initLaunchpadScaleBar() {
+    var bar = document.getElementById("launchpad-scale-bar");
+    if (!bar) return;
+    function applyScale(next) {
+        if (!window.AgroDisplayScale) return;
+        window.AgroDisplayScale.save(next);
+        syncLaunchpadScaleBar();
+    }
+    function step(delta) {
+        if (!window.AgroDisplayScale) return;
+        applyScale(window.AgroDisplayScale.get() + delta);
+    }
+    bar.querySelector("[data-launch-scale-minus]")?.addEventListener("click", function () { step(-0.05); });
+    bar.querySelector("[data-launch-scale-plus]")?.addEventListener("click", function () { step(0.05); });
+    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            applyScale(parseFloat(btn.getAttribute("data-launch-scale-preset"), 10));
+        });
+    });
+    bar.querySelector("[data-launch-scale-recalc]")?.addEventListener("click", function () {
+        if (!window.AgroDisplayScale || !window.AgroDisplayScale.findMaxSafeScale) return;
+        var recalcBtn = bar.querySelector("[data-launch-scale-recalc]");
+        if (recalcBtn) recalcBtn.disabled = true;
+        window.AgroDisplayScale.findMaxSafeScale(function (best) {
+            applyScale(best);
+            if (recalcBtn) recalcBtn.disabled = false;
+        });
+    });
+})();
 
 function dashLaunchpadAbrir(titulo, url, icone) {
     var lp = document.getElementById("launchpad");

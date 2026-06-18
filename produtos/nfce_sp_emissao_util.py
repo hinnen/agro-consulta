@@ -104,31 +104,53 @@ def _map_tpag(forma: str) -> str:
     f = str(forma or "").strip().lower()
     if "dinheiro" in f:
         return "01"
-    if "crédito" in f or "credito" in f:
-        return "03"
-    if "débito" in f or "debito" in f:
-        return "04"
     if "pix" in f:
         return "17"
+    if "vale" in f and ("crédito" in f or "credito" in f):
+        return "99"
+    if "cashback" in f:
+        return "99"
+    if "débito" in f or "debito" in f:
+        return "04"
+    if "crédito" in f or "credito" in f:
+        return "03"
     if "fiado" in f or "credito loja" in f or "crédito loja" in f:
         return "05"
+    if "outro" in f:
+        return "99"
     return "99"
 
 
-def _pagamentos_da_venda(venda: VendaAgro) -> list[dict[str, Any]]:
+def _pagamentos_da_venda(venda: VendaAgro, *, total_nf: Decimal | None = None) -> list[dict[str, Any]]:
     rows = pagamentos_lista_de_venda(venda)
     out: list[dict[str, Any]] = []
     for row in rows:
-        forma = str(row.get("forma") or "Outros")
+        forma = str(row.get("forma") or "Outros").strip() or "Outros"
+        tpag = _map_tpag(forma)
         try:
             val = Decimal(str(row.get("valor") or 0)).quantize(Decimal("0.01"))
         except Exception:
             val = Decimal("0")
         if val <= 0:
             continue
-        out.append({"tPag": _map_tpag(forma), "vPag": val, "xPag": forma if _map_tpag(forma) == "99" else ""})
+        out.append(
+            {
+                "tPag": tpag,
+                "vPag": val,
+                "xPag": forma[:60] if tpag == "99" else "",
+            }
+        )
     if not out:
-        out.append({"tPag": "01", "vPag": Decimal(str(venda.total or 0)).quantize(Decimal("0.01")), "xPag": ""})
+        val = (total_nf or Decimal(str(venda.total or 0))).quantize(Decimal("0.01"))
+        out.append({"tPag": "01", "vPag": val, "xPag": ""})
+    for pg in out:
+        if pg["tPag"] == "99" and not str(pg.get("xPag") or "").strip():
+            pg["xPag"] = "Outros"
+    if total_nf is not None and out:
+        soma = sum(p["vPag"] for p in out)
+        diff = total_nf - soma
+        if abs(diff) >= Decimal("0.01"):
+            out[-1]["vPag"] = (out[-1]["vPag"] + diff).quantize(Decimal("0.01"))
     return out
 
 
@@ -334,12 +356,17 @@ def _montar_xml_nfce(
         _sub(cofnt, "CST", "07")
 
     total_nf = Decimal(str(venda.total or total_prod)).quantize(Decimal("0.01"))
+    v_desc = max(Decimal("0"), (total_prod - total_nf).quantize(Decimal("0.01")))
+    ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=cfg.get("uf") or "SP")
     icms_tot = _sub(inf, "total")
     icms = _sub(icms_tot, "ICMSTot")
     for tag, val in (
         ("vBC", "0.00"),
         ("vICMS", "0.00"),
         ("vICMSDeson", "0.00"),
+        ("vFCPUFDest", "0.00"),
+        ("vICMSUFDest", "0.00"),
+        ("vICMSUFRemet", "0.00"),
         ("vFCP", "0.00"),
         ("vBCST", "0.00"),
         ("vST", "0.00"),
@@ -348,7 +375,7 @@ def _montar_xml_nfce(
         ("vProd", _q2(total_prod)),
         ("vFrete", "0.00"),
         ("vSeg", "0.00"),
-        ("vDesc", "0.00"),
+        ("vDesc", _q2(v_desc)),
         ("vII", "0.00"),
         ("vIPI", "0.00"),
         ("vIPIDevol", "0.00"),
@@ -356,6 +383,7 @@ def _montar_xml_nfce(
         ("vCOFINS", "0.00"),
         ("vOutro", "0.00"),
         ("vNF", _q2(total_nf)),
+        ("vTotTrib", _q2(Decimal(str(ibpt.get("ibpt_total") or 0)))),
     ):
         _sub(icms, tag, val)
 
@@ -363,15 +391,15 @@ def _montar_xml_nfce(
     _sub(transp, "modFrete", "9")
 
     pag = _sub(inf, "pag")
-    for pg in _pagamentos_da_venda(venda):
+    for pg in _pagamentos_da_venda(venda, total_nf=total_nf):
         det_p = _sub(pag, "detPag")
+        _sub(det_p, "indPag", "0")
         _sub(det_p, "tPag", pg["tPag"])
         if pg["tPag"] == "99" and pg.get("xPag"):
             _sub(det_p, "xPag", str(pg["xPag"])[:60])
         _sub(det_p, "vPag", _q2(pg["vPag"]))
 
     inf_ad = _sub(inf, "infAdic")
-    ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=cfg.get("uf") or "SP")
     obs = f"Venda PDV #{venda.pk} | {ibpt['ibpt_texto']}"
     if tp_amb == 2:
         obs = "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL | " + obs
@@ -390,7 +418,7 @@ def _anexar_suplementar_qrcode(xml_nfe: str, qr_url: str, tp_amb: int) -> str:
         else "https://homologacao.nfce.fazenda.sp.gov.br/consulta"
     )
     supl = (
-        f"<infNFeSupl>"
+        f'<infNFeSupl xmlns="{NS}">'
         f"<qrCode><![CDATA[{qr_url}]]></qrCode>"
         f"<urlChave>{url_chave}</urlChave>"
         f"</infNFeSupl>"
@@ -590,6 +618,20 @@ def _parse_retorno_autorizacao(soap_text: str, *, xml_nfe_assinado: str = "") ->
     return out
 
 
+def _validar_fiscal_itens_nfce(itens: list, fiscal_rows: list[dict[str, str]]) -> str | None:
+    for idx, item in enumerate(itens, start=1):
+        fis = fiscal_rows[idx - 1] if idx - 1 < len(fiscal_rows) else {}
+        ncm = re.sub(r"\D", "", str(fis.get("ncm") or ""))
+        if len(ncm) != 8:
+            nome = (item.descricao or f"Item {idx}")[:50]
+            return f"Produto «{nome}» com NCM inválido ({ncm or 'vazio'}). Ajuste no cadastro/gestão."
+        cfop = re.sub(r"\D", "", str(fis.get("cfop") or ""))
+        if len(cfop) != 4:
+            nome = (item.descricao or f"Item {idx}")[:50]
+            return f"Produto «{nome}» com CFOP inválido ({cfop or 'vazio'})."
+    return None
+
+
 def emitir_nfce_para_venda(
     venda: VendaAgro,
     *,
@@ -620,21 +662,63 @@ def emitir_nfce_para_venda(
     if not nfce_configurada():
         return {"ok": False, "erro": "NFC-e não configurada (NFC_E_ENABLED e demais variáveis no .env)."}
     cfg = nfce_cfg()
+    tp_amb = int(cfg["tp_amb"])
     cpf = re.sub(r"\D", "", cpf_dest)[:11]
     if cpf and not cpf_valido(cpf):
-        return {"ok": False, "erro": "CPF informado é inválido."}
+        from produtos.nfce_venda_util import registrar_nfce_erro_venda
+
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "CPF informado é inválido.",
+            cpf_dest=cpf,
+            sem_identificacao=sem_identificacao,
+            tp_amb=tp_amb,
+        )
+        return {"ok": False, "erro": "CPF informado é inválido.", "documento_id": doc.pk}
     if not cpf and not sem_identificacao:
-        return {"ok": False, "erro": "Informe CPF do consumidor ou confirme venda sem identificação."}
+        from produtos.nfce_venda_util import registrar_nfce_erro_venda
+
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "Informe CPF do consumidor ou confirme venda sem identificação.",
+            tp_amb=tp_amb,
+        )
+        return {
+            "ok": False,
+            "erro": "Informe CPF do consumidor ou confirme venda sem identificação.",
+            "documento_id": doc.pk,
+        }
 
     itens = list(venda.itens.all().order_by("pk"))
     if not itens:
-        return {"ok": False, "erro": "Venda sem itens para NFC-e."}
+        from produtos.nfce_venda_util import registrar_nfce_erro_venda
+
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "Venda sem itens para NFC-e.",
+            cpf_dest=cpf,
+            sem_identificacao=sem_identificacao,
+            tp_amb=tp_amb,
+        )
+        return {"ok": False, "erro": "Venda sem itens para NFC-e.", "documento_id": doc.pk}
 
     _garantir_numeracao_inicial(cfg)
 
     fiscal_rows = [
         fiscal_por_produto_id(str(it.produto_id_externo or ""), db=db, col_p=col_p) for it in itens
     ]
+    err_fis = _validar_fiscal_itens_nfce(itens, fiscal_rows)
+    if err_fis:
+        from produtos.nfce_venda_util import registrar_nfce_erro_venda
+
+        doc = registrar_nfce_erro_venda(
+            venda,
+            err_fis,
+            cpf_dest=cpf,
+            sem_identificacao=sem_identificacao,
+            tp_amb=tp_amb,
+        )
+        return {"ok": False, "erro": err_fis, "documento_id": doc.pk}
 
     ret: dict[str, Any] | None = None
     err_http: str | None = None

@@ -324,14 +324,9 @@ def api_pdv_mp_point_finalizar(request):
                 "mensagem": _json_legivel(out["res"]),
                 "venda_id": vid,
             }
-            try:
-                from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+            from produtos.views_nfce import anexar_nfce_resposta_venda
 
-                nfce = tentar_emitir_nfce_pos_venda(venda_local, erp_data)
-                if nfce is not None:
-                    payload["nfce"] = nfce
-            except Exception:
-                pass
+            anexar_nfce_resposta_venda(venda_local, erp_data, payload)
             return JsonResponse(payload)
 
         row.status = PdvMercadoPagoPointOrder.Status.FAILED

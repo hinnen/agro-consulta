@@ -100,6 +100,7 @@
               <th class="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">Total</th>
               <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Caixa</th>
               <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">ERP</th>
+              {% if nfce_cfg.ativo %}<th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Fiscal</th>{% endif %}
               <th class="px-3 sm:px-4 py-2.5">Operador</th>
             </tr>
           </thead>
@@ -116,6 +117,11 @@
                 <div class="flex flex-nowrap items-center gap-1.5">
                   <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
                   <button type="button" class="js-venda-imprimir-cupom inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-sky-400 bg-sky-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
+                  {% if nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
+                  <button type="button" class="js-venda-nfce-reemitir inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-amber-400 bg-amber-500 text-[11px] font-black uppercase text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir NFC</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
+                  <button type="button" class="js-venda-imprimir-fiscal inline-flex items-center justify-center min-h-[44px] min-w-[6rem] px-3 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Cupom fiscal</button>
+                  {% endif %}
                   {% if not v.devolvida_em %}
                   <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-rose-400 bg-rose-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
                   {% else %}
@@ -150,6 +156,19 @@
                 {% endif %}
                 {% endwith %}
               </td>
+              {% if nfce_cfg.ativo %}
+              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                {% if v.nfce_painel.autorizada %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800" title="NFC-e autorizada">OK</span>
+                {% elif v.nfce_painel.pendente %}
+                <button type="button" class="js-venda-nfce-erro inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-300 hover:bg-amber-200 cursor-pointer" data-venda-id="{{ v.id }}" title="Ver detalhe do erro">Sem fiscal · erro</button>
+                {% elif v.nfce_painel.solicitada %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-600">—</span>
+                {% else %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-500">Interno</span>
+                {% endif %}
+              </td>
+              {% endif %}
               <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 truncate max-w-[6rem] xl:max-w-[8rem]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
             </tr>
             {% endfor %}
@@ -196,6 +215,35 @@
       <p id="modal-erp-msg" class="mt-2 text-sm font-bold hidden"></p>
     </div>
   </div>
+
+  {% if nfce_cfg.ativo %}
+  <div id="modal-nfce-venda" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-amber-300 bg-white shadow-2xl p-4 sm:p-5">
+      <h2 class="text-lg font-black text-amber-950" id="modal-nfce-titulo">Cupom fiscal pendente</h2>
+      <p class="text-xs font-bold text-slate-600 mt-1" id="modal-nfce-sub"></p>
+      <div class="mt-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-3 py-3">
+        <p class="text-[10px] font-black uppercase text-amber-900 mb-1">Erro / motivo</p>
+        <p class="text-sm font-semibold text-amber-950 leading-snug whitespace-pre-wrap" id="modal-nfce-erro">—</p>
+      </div>
+      <p class="mt-3 text-xs font-semibold text-slate-600">Corrija cadastro de produto, CPF ou configuração fiscal. Depois use <strong>Reemitir NFC-e</strong>.</p>
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="block sm:col-span-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">CPF consumidor (opcional)</span>
+          <input type="text" inputmode="numeric" id="modal-nfce-cpf" maxlength="14" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold tabular-nums" placeholder="000.000.000-00">
+        </label>
+        <label class="flex items-center gap-2 sm:col-span-2 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 cursor-pointer">
+          <input type="checkbox" id="modal-nfce-sem-id" class="w-5 h-5 accent-amber-600">
+          <span class="text-sm font-bold text-slate-800">Venda sem identificação do consumidor</span>
+        </label>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2 justify-end">
+        <button type="button" id="modal-nfce-fechar" class="min-h-[44px] px-4 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-600">Fechar</button>
+        <button type="button" id="modal-nfce-reemitir" class="min-h-[44px] px-4 rounded-xl border-2 border-amber-500 bg-amber-500 text-xs font-black uppercase text-white hover:bg-amber-600">Reemitir NFC-e</button>
+      </div>
+      <p id="modal-nfce-msg" class="mt-2 text-sm font-bold hidden"></p>
+    </div>
+  </div>
+  {% endif %}
 
   <script>
     document.addEventListener('keydown', function (e) {
@@ -380,6 +428,113 @@
           });
         });
       });
+      document.querySelectorAll('.js-venda-imprimir-fiscal').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') return;
+          agroCarregarEImprimirCupomVenda(id, { segunda_via: true }).catch(function (err) {
+            alert(err && err.message ? err.message : 'Não foi possível imprimir o cupom fiscal.');
+          });
+        });
+      });
+      {% if nfce_cfg.ativo %}
+      (function initNfceVendasModal() {
+        var modal = document.getElementById('modal-nfce-venda');
+        if (!modal) return;
+        var vendaIdAtual = null;
+        function fechar() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          vendaIdAtual = null;
+        }
+        function abrir(id, modo) {
+          vendaIdAtual = id;
+          document.getElementById('modal-nfce-msg').classList.add('hidden');
+          document.getElementById('modal-nfce-titulo').textContent =
+            modo === 'reemitir' ? 'Reemitir NFC-e · venda #' + id : 'Cupom fiscal pendente · #' + id;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          if (window.gmLoadingBar) window.gmLoadingBar.show();
+          fetch('/venda/' + id + '/nfce/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (!d.ok || !d.nfce_painel) throw new Error('Não foi possível carregar dados fiscais.');
+              var p = d.nfce_painel;
+              document.getElementById('modal-nfce-sub').textContent =
+                p.autorizada ? 'NFC-e já autorizada.' : 'A venda foi registrada; só o cupom fiscal ficou pendente.';
+              document.getElementById('modal-nfce-erro').textContent = p.erro || 'Sem detalhe registrado.';
+              var cpfIn = document.getElementById('modal-nfce-cpf');
+              var chk = document.getElementById('modal-nfce-sem-id');
+              if (cpfIn) cpfIn.value = p.dest_cpf || '';
+              if (chk) chk.checked = !!p.consumidor_sem_identificacao;
+              var btnRe = document.getElementById('modal-nfce-reemitir');
+              if (btnRe) btnRe.disabled = !p.pode_reemitir || !!p.autorizada;
+            })
+            .catch(function (err) {
+              alert(err.message || 'Erro.');
+              fechar();
+            })
+            .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+        }
+        document.getElementById('modal-nfce-fechar').onclick = fechar;
+        modal.addEventListener('click', function (e) { if (e.target === modal) fechar(); });
+        document.getElementById('modal-nfce-reemitir').onclick = function () {
+          if (!vendaIdAtual) return;
+          var cpf = (document.getElementById('modal-nfce-cpf').value || '').replace(/\D/g, '');
+          var semId = document.getElementById('modal-nfce-sem-id').checked;
+          if (!cpf && !semId) {
+            alert('Informe CPF ou marque venda sem identificação.');
+            return;
+          }
+          var btn = document.getElementById('modal-nfce-reemitir');
+          btn.disabled = true;
+          if (window.gmLoadingBar) window.gmLoadingBar.show();
+          fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
+          })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+              var msgEl = document.getElementById('modal-nfce-msg');
+              msgEl.classList.remove('hidden');
+              if (res.ok && res.data.ok) {
+                msgEl.textContent = 'NFC-e autorizada. Recarregando…';
+                msgEl.className = 'mt-2 text-sm font-bold text-emerald-800';
+                setTimeout(function () { window.location.reload(); }, 900);
+                return;
+              }
+              var err =
+                (res.data && res.data.nfce && res.data.nfce.erro) ||
+                (res.data && res.data.erro) ||
+                'Falha na reemissão.';
+              if (res.data && res.data.nfce_painel && res.data.nfce_painel.erro) {
+                document.getElementById('modal-nfce-erro').textContent = res.data.nfce_painel.erro;
+              }
+              msgEl.textContent = err;
+              msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
+            })
+            .catch(function () { alert('Falha de rede.'); })
+            .finally(function () {
+              btn.disabled = false;
+              if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+        };
+        document.querySelectorAll('.js-venda-nfce-erro').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-venda-id');
+            if (id) abrir(id, 'erro');
+          });
+        });
+        document.querySelectorAll('.js-venda-nfce-reemitir').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-venda-id');
+            if (id) abrir(id, 'reemitir');
+          });
+        });
+      })();
+      {% endif %}
     })();
   </script>
   <script>window.AGRO_CUPOM_LOGO_URL = "{% static 'produtos/img/logo_termica.png' %}";</script>

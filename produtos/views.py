@@ -7999,7 +7999,7 @@ def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
         VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
-        .select_related("sessao_caixa")
+        .select_related("sessao_caixa", "nfce")
         .order_by("-criado_em")
     )
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
@@ -8019,6 +8019,12 @@ def vendas_lista(request):
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
+    from produtos.nfce_config_util import nfce_config_resumo
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    vendas = list(qs)
+    for v in vendas:
+        v.nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -8026,12 +8032,13 @@ def vendas_lista(request):
             "data_ini": di,
             "data_fim": df,
             "periodo_label": label,
-            "vendas": qs,
+            "vendas": vendas,
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
+            "nfce_cfg": nfce_config_resumo(),
         },
     )
 
@@ -9050,7 +9057,7 @@ def caixa_fechar(request):
 @ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
-        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
+        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
         pk=pk,
     )
     erp_txt = ""
@@ -9063,6 +9070,10 @@ def venda_agro_detalhe(request, pk):
     from produtos.venda_cupom_util import serializar_venda_cupom_80mm
 
     cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
+    from produtos.nfce_config_util import nfce_config_resumo
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
@@ -9071,6 +9082,8 @@ def venda_agro_detalhe(request, pk):
             "cupom_80mm": cupom_80mm,
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
+            "nfce_painel": nfce_painel,
+            "nfce_cfg": nfce_config_resumo(),
             "erp_logs_json": json.dumps(
                 erp_painel.get("logs") or [],
                 ensure_ascii=False,
@@ -18877,6 +18890,14 @@ def _persistir_venda_agro(
                 fiado_cron = row.get("fiado_cronograma") or []
                 break
 
+    nfce_solicitada = False
+    try:
+        from produtos.nfce_config_util import nfce_configurada, nfce_emissao_solicitada
+
+        nfce_solicitada = bool(nfce_configurada() and nfce_emissao_solicitada(data))
+    except Exception:
+        nfce_solicitada = False
+
     with transaction.atomic():
         v = VendaAgro.objects.create(
             cliente_nome=cliente[:300],
@@ -18893,6 +18914,7 @@ def _persistir_venda_agro(
             usuario_registro=user_label,
             sessao_caixa=sessao,
             estoque_baixa_agro_aplicada=False,
+            nfce_solicitada=nfce_solicitada,
         )
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
@@ -19498,15 +19520,9 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
-        try:
-            from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+        from produtos.views_nfce import anexar_nfce_resposta_venda
 
-            nfce = tentar_emitir_nfce_pos_venda(venda, data)
-            if nfce is not None:
-                payload["nfce"] = nfce
-        except Exception:
-            pass
-        return JsonResponse(payload)
+        return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
     try:
         data = json.loads(request.body)

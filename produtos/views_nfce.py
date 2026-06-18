@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import re
 import zipfile
 from datetime import date
@@ -14,14 +15,18 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from produtos.models import NfceDocumentoAgro, VendaAgro
+from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
+from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
+from produtos.nfce_sp_emissao_util import cpf_valido, emitir_nfce_para_venda
+from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
+
+logger = logging.getLogger(__name__)
+
+
 def _mongo_conn():
     from produtos.views import obter_conexao_mongo
 
     return obter_conexao_mongo()
-from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
-from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
-from produtos.nfce_sp_emissao_util import cpf_valido, emitir_nfce_para_venda
-
 
 def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
     cpf = re.sub(r"\D", "", str(data.get("nfce_cpf") or data.get("cliente_documento") or ""))[:11]
@@ -35,16 +40,43 @@ def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
 
 def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | None:
     """Emite NFC-e após gravar venda, se módulo ativo e PDV solicitou (manual ou auto)."""
-    if not venda or not nfce_configurada():
+    if not venda:
         return None
     if not nfce_emissao_solicitada(data):
         return None
+    cfg = nfce_config_resumo()
+    tp_amb = int(cfg.get("tp_amb") or 2)
+    if not nfce_configurada():
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "NFC-e não configurada no servidor (.env).",
+            tp_amb=tp_amb,
+        )
+        return {
+            "ok": False,
+            "erro": "NFC-e não configurada no servidor (.env).",
+            "documento_id": doc.pk,
+        }
     cpf, sem_id = _nfce_opts_payload(data)
     if not cpf and not sem_id:
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "NFC-e: informe CPF do consumidor ou confirme venda sem identificação.",
+            tp_amb=tp_amb,
+        )
         return {
             "ok": False,
             "erro": "NFC-e: informe CPF do consumidor ou confirme venda sem identificação.",
+            "documento_id": doc.pk,
         }
+    if cpf and not cpf_valido(cpf):
+        doc = registrar_nfce_erro_venda(
+            venda,
+            "CPF informado é inválido.",
+            cpf_dest=cpf,
+            tp_amb=tp_amb,
+        )
+        return {"ok": False, "erro": "CPF informado é inválido.", "documento_id": doc.pk}
     client, db = _mongo_conn()
     col_p = getattr(client, "col_p", None) if client else None
     return emitir_nfce_para_venda(
@@ -54,6 +86,34 @@ def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | 
         db=db,
         col_p=col_p,
     )
+
+
+def anexar_nfce_resposta_venda(venda: VendaAgro | None, data: dict, payload: dict) -> dict:
+    """Tenta emitir NFC-e após venda; nunca interrompe o fluxo da venda."""
+    if not venda:
+        return payload
+    try:
+        nfce = tentar_emitir_nfce_pos_venda(venda, data)
+        if nfce is not None:
+            payload["nfce"] = nfce
+    except Exception:
+        logger.exception("NFC-e pós-venda falhou (venda %s)", venda.pk)
+        if nfce_emissao_solicitada(data):
+            try:
+                cfg = nfce_config_resumo()
+                doc = registrar_nfce_erro_venda(
+                    venda,
+                    "Erro interno ao emitir NFC-e. Tente reemitir em Consultar vendas.",
+                    tp_amb=int(cfg.get("tp_amb") or 2),
+                )
+                payload["nfce"] = {
+                    "ok": False,
+                    "erro": "Erro interno ao emitir NFC-e.",
+                    "documento_id": doc.pk,
+                }
+            except Exception:
+                logger.exception("NFC-e: falha ao registrar erro interno (venda %s)", venda.pk)
+    return payload
 
 
 @login_required(login_url="/admin/login/")
@@ -68,6 +128,13 @@ def contabilidade_painel(request):
             "export_xml_url": reverse("api_nfce_export_xml_zip"),
         },
     )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_venda_agro_nfce_info(request, pk):
+    v = get_object_or_404(VendaAgro.objects.select_related("nfce"), pk=pk)
+    return JsonResponse({"ok": True, "nfce_painel": painel_nfce_venda(v)})
 
 
 @login_required(login_url="/admin/login/")
@@ -108,12 +175,21 @@ def api_venda_agro_nfce_emitir(request, pk):
     except Exception:
         body = {}
     v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
+    if v.devolvida_em:
+        return JsonResponse({"ok": False, "erro": "Venda devolvida — não é possível emitir NFC-e."}, status=400)
+    if not nfce_configurada():
+        return JsonResponse(
+            {"ok": False, "erro": "NFC-e não configurada no servidor (.env)."},
+            status=503,
+        )
     cpf, sem_id = _nfce_opts_payload(body)
     if not cpf and not sem_id:
         return JsonResponse(
             {"ok": False, "erro": "Informe CPF válido ou marque venda sem identificação."},
             status=400,
         )
+    v.nfce_solicitada = True
+    v.save(update_fields=["nfce_solicitada"])
     client, db = _mongo_conn()
     col_p = getattr(client, "col_p", None) if client else None
     out = emitir_nfce_para_venda(
@@ -124,7 +200,16 @@ def api_venda_agro_nfce_emitir(request, pk):
         col_p=col_p,
     )
     st = 200 if out.get("ok") else 502
-    return JsonResponse({"ok": bool(out.get("ok")), "nfce": out}, status=st)
+    return JsonResponse(
+        {
+            "ok": bool(out.get("ok")),
+            "nfce": out,
+            "nfce_painel": painel_nfce_venda(
+                VendaAgro.objects.select_related("nfce").get(pk=v.pk)
+            ),
+        },
+        status=st,
+    )
 
 
 @login_required(login_url="/admin/login/")
