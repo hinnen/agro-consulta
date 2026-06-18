@@ -291,13 +291,9 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto**. Fiado PDV é Postgres (cópia; PDV não muda).
 
-<<<<<<< Updated upstream
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
-=======
-**Backup no PC** — **só redundância** (cópia de segurança). O SisVale **não importa** esse ZIP de volta. Serve se precisar conferir valor, auditoria ou recuperar algo manualmente se der problema no corte.
->>>>>>> Stashed changes
 
-**Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
+**Backup no PC** — **só redundância** (cópia de segurança). O SisVale **não importa** esse ZIP de volta. Serve se precisar conferir valor, auditoria ou recuperar algo manualmente se der problema no corte.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -349,7 +345,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
+1. **PDV wizard — GM no barras remove carrinho** — cherry-pick `producao` (`e055761`): hífen `GM1546-5S` não remove carrinho; GM modo barcode. Renan OK staging.
 2. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
 3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
 4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
@@ -365,10 +361,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.12`  
-**Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** staging `teste` · **produção `bd91f00` v1.11** (backup em aberto + fix 500 PIN)
+**Versão:** `1.0.13`  
+**Última atualização:** `2026-06-19`  
+**Atualizado por:** assistente Cursor (cherry-pick PDV wizard GM → `producao`)  
+**Versão app (`VERSION`):** bump neste cherry-pick · **produção** após deploy · staging `teste` `e055761`
 
 ### O que este documento já cobre (até aqui)
 
@@ -425,14 +421,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Onde | Sintoma | Status |
 |------|---------|--------|
-| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Staging `teste`** — aguarda teste Renan |
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Produção** — cherry-pick `e055761` (Renan OK staging) |
 | **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
 **Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
 
 **Causa wizard:** atalho **`-`** na busca = `bumpLastCartItem(-1)` (menos qty do **último** item). O hífen do GM disparava remoção **sem** inserir o carácter.
 
-**Patch wizard (`pdv_wizard.js`, em `teste`):**
+**Patch wizard (`pdv_wizard.js`, `teste` + cherry-pick `producao`):**
 
 - `-` / `+` ignorados enquanto digita GM/SKU ou janela pós-bip (1,5 s)
 - Códigos **`GM…`** → modo **barcode** (auto-adiciona)
@@ -448,7 +444,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **PDV legado:** `consulta_produtos.js` + `_js_busca…` (produção v1.02).
 
-**Produção wizard:** ainda **sem** este fix — cherry-pick só quando Renan pedir após OK no staging.
+**Loja:** Ctrl+F5 no `/pdv/checkout/` após deploy Render produção.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -518,23 +514,16 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `teste`:** `pdv_wizard.js` + `banana.md` (fix GM/hífen no wizard).
-
-**Teste Renan (staging):** Ctrl+F5 no `/pdv/checkout/` → 4 itens no carrinho → bipar **GM1546-5S** várias vezes → carrinho não perde itens.
+**Acabou de subir em `producao`:** cherry-pick `e055761` — `pdv_wizard.js` + `banana.md` (fix GM/hífen no wizard).
 
 ### Pendências conhecidas (produto)
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-<<<<<<< Updated upstream
-- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11** (`bd91f00`; fix template PIN)
-- [ ] Renan na loja: avisar equipe · baixar backup ZIP · checkpoint `CONGELAR` · ERP parar sync
-=======
-- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11+**
-- [x] **Checkpoint feito** — 2026-06-19 ~00:17 (~17 703 títulos carimbados)
+- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11+** (`bd91f00`; fix template PIN)
+- [x] **Checkpoint feito** — 2026-06-19 ~00:17 (~17 703 títulos carimbados)
 - [ ] **Agora:** ERP parar sync financeiro · loja evitar Lançamentos algumas horas se possível
 - [ ] Opcional Render: `AGRO_FINANCEIRO_MONGO_CONGELADO=true`
->>>>>>> Stashed changes
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
 - [ ] PDV `/api/buscar/` e cache → Postgres
@@ -545,7 +534,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
-- [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
+- [x] **PDV wizard carrinho GM** — cherry-pick `producao` 2026-06-19 (Renan OK staging)
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
@@ -567,6 +556,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.12
+### Fim do checkpoint v1.0.13
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

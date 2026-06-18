@@ -294,6 +294,8 @@
     var filterSeq = 0;
     var barcodeTimer = null;
     var lastInputAt = 0;
+    /** Bloqueia atalhos +/- e F4 logo após bip (hífen do GM1546-5S não pode remover item). */
+    var wizardScannerBloqueioTeclasAte = 0;
     var productSelectionIndex = -1;
     var clientListSelectIdx = -1;
     var quickClientEditPk = null;
@@ -356,6 +358,39 @@
     function allowLocalQuery(q) {
         if (q.length >= 2) return true;
         return /^\d{6,}$/.test(q);
+    }
+
+    function marcarWizardScannerAtivo(ms) {
+        wizardScannerBloqueioTeclasAte = Date.now() + (ms != null && ms > 0 ? ms : 1500);
+    }
+
+    function wizardScannerTeclasBloqueadas() {
+        return Date.now() < wizardScannerBloqueioTeclasAte;
+    }
+
+    function pareceCodigoGmWizard(q) {
+        var s = String(q || '').trim().replace(/\s/g, '');
+        return /^GM[\dA-Za-z-]{3,}$/i.test(s);
+    }
+
+    function pareceLeituraCodigoWizard(q) {
+        var s = String(q || '').trim();
+        if (!s) return false;
+        if (/^\d{6,}$/.test(s)) return true;
+        return pareceCodigoGmWizard(s);
+    }
+
+    /** Código GM/SKU em digitação — "-" não pode ser atalho de qty (ex. GM1546-5S). */
+    function skuEmDigitacaoNoCampoBusca(val) {
+        var v = String(val || '').trim();
+        if (!v) return false;
+        if (pareceCodigoGmWizard(v)) return true;
+        return /^[a-zA-Z]{1,6}[\w.\-]*\d/.test(v) || (/^[a-zA-Z0-9.\-]+$/.test(v) && v.length >= 3);
+    }
+
+    function deveIgnorarAtalhoQtyBusca(val) {
+        if (wizardScannerTeclasBloqueadas()) return true;
+        return skuEmDigitacaoNoCampoBusca(val);
     }
 
     function resolveProdutoId(produto) {
@@ -670,6 +705,7 @@
             var cod = String(p.codigo || '').trim();
             var match = false;
             if (qt && (ean === qt || nfe === qt || cod === qt)) match = true;
+            else if (productMatchesQueryExact(p, qt)) match = true;
             else if (qd.length >= 6 && onlyDigits(ean) && onlyDigits(ean) === qd) match = true;
             else if (qd.length >= 6 && onlyDigits(nfe) && onlyDigits(nfe) === qd) match = true;
             else if (!eanOnly && matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
@@ -790,6 +826,7 @@
     function tryAutoAddBarcodeHit(product, message) {
         if (!product) return false;
         invalidatePendingProductSearch();
+        marcarWizardScannerAtivo(1500);
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
         if (State.addItem(product, 1)) {
             resetProductSearchUi(message || 'Item adicionado pela leitura do código.');
@@ -6244,7 +6281,8 @@
                 clearTimeout(barcodeTimer);
                 clearTimeout(searchTimer);
                 var qEnter = String(dom.productSearch.value || '').trim();
-                if (/^\d{8,}$/.test(qEnter)) {
+                if (qEnter) marcarWizardScannerAtivo(1500);
+                if (/^\d{8,}$/.test(qEnter) || pareceCodigoGmWizard(qEnter)) {
                     runProductSearch(qEnter, 'barcode');
                     return;
                 }
@@ -6258,9 +6296,11 @@
                     runProductSearch(qEnter, 'manual');
                 }
             } else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
+                if (deveIgnorarAtalhoQtyBusca(dom.productSearch.value)) return;
                 event.preventDefault();
                 bumpLastCartItem(1);
             } else if (event.key === '-' || event.code === 'NumpadSubtract') {
+                if (deveIgnorarAtalhoQtyBusca(dom.productSearch.value)) return;
                 event.preventDefault();
                 bumpLastCartItem(-1);
             }
@@ -6274,6 +6314,9 @@
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
+            if (pareceLeituraCodigoWizard(trimmed) && (delta < 45 || trimmed.length >= 8)) {
+                marcarWizardScannerAtivo(1500);
+            }
             if (/^\d{8,}$/.test(trimmed)) {
                 var waitMs = trimmed.length >= 13 ? 12 : 40;
                 barcodeTimer = setTimeout(function () {
@@ -6285,6 +6328,12 @@
                 barcodeTimer = setTimeout(function () {
                     runProductSearch(trimmed, 'barcode');
                 }, 35);
+                return;
+            }
+            if (pareceCodigoGmWizard(trimmed)) {
+                barcodeTimer = setTimeout(function () {
+                    runProductSearch(trimmed, 'barcode');
+                }, 80);
                 return;
             }
             searchTimer = setTimeout(function () {
@@ -7179,6 +7228,14 @@
                     return;
                 }
                 if (event.code === 'F4' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                    if (wizardScannerTeclasBloqueadas()) return;
+                    if (
+                        dom.productSearch &&
+                        document.activeElement === dom.productSearch &&
+                        String(dom.productSearch.value || '').trim()
+                    ) {
+                        return;
+                    }
                     event.preventDefault();
                     if (dom.quickClientChange) dom.quickClientChange.click();
                     return;
