@@ -1,6 +1,5 @@
 /**
- * Modal «Nova saída» — lançamento financeiro manual em lote.
- * Depende de window.AGRO_NOVA_SAIDA_CFG (definido no include Django).
+ * Modal «Nova saída» — um card por lançamento (campos completos por linha).
  */
 (function () {
   'use strict';
@@ -28,11 +27,19 @@
     return (r && r.value === 'receber') ? 'receber' : 'pagar';
   }
 
-  function urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, idMongo) {
+  function syncTemaTipo() {
+    const panel = $('agro-ns-panel');
+    if (!panel) return;
+    const rec = tipoAtual() === 'receber';
+    panel.classList.toggle('agro-ns-panel--receber', rec);
+    panel.classList.toggle('agro-ns-panel--pagar', !rec);
+  }
+
+  function urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo) {
     const c = cfg();
     const base = tipo === 'receber' ? c.urlListaReceber : c.urlListaPagar;
     const u = new URL(base, window.location.origin);
-    const partes = [dc, dv, dvRaw].map((x) => String(x || '').trim()).filter((x) => x.length >= 8);
+    const partes = [dc, dvMin, dvMax].map((x) => String(x || '').trim()).filter((x) => x.length >= 8);
     if (partes.length) {
       let vmin = partes[0];
       let vmax = partes[0];
@@ -50,14 +57,6 @@
     return u.pathname + u.search;
   }
 
-  function selectSug(nome, id, inpId, hidId, ddEl) {
-    const inp = $(inpId);
-    const hid = $(hidId);
-    if (inp) inp.value = nome;
-    if (hid) hid.value = id;
-    if (ddEl) ddEl.classList.add('hidden');
-  }
-
   function attachSuggest(wrap) {
     if (!wrap || wrap.dataset.sugBound === '1') return;
     wrap.dataset.sugBound = '1';
@@ -71,10 +70,7 @@
       if (hid) hid.value = '';
       clearTimeout(timer);
       timer = setTimeout(async () => {
-        if (inp.value.length < 2) {
-          dd.classList.add('hidden');
-          return;
-        }
+        if (inp.value.length < 2) { dd.classList.add('hidden'); return; }
         const api = cfg().apiSug;
         if (!api) return;
         try {
@@ -82,14 +78,15 @@
           const j = await r.json();
           const itens = j.itens || [];
           dd.innerHTML = itens.map((it) => {
-            const nome = String(it.nome || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-            const id = String(it.id || '');
-            return `<li data-nome="${nome.replace(/"/g, '&quot;')}" data-id="${id}">${it.nome}</li>`;
+            const nome = String(it.nome || '').replace(/"/g, '&quot;');
+            return `<li data-nome="${nome}" data-id="${String(it.id || '')}">${it.nome}</li>`;
           }).join('');
           dd.querySelectorAll('li').forEach((li) => {
             li.addEventListener('mousedown', (ev) => {
               ev.preventDefault();
-              selectSug(li.dataset.nome || '', li.dataset.id || '', inp.id, hid ? hid.id : '', dd);
+              inp.value = li.dataset.nome || '';
+              if (hid) hid.value = li.dataset.id || '';
+              dd.classList.add('hidden');
             });
           });
           dd.classList.toggle('hidden', !itens.length);
@@ -97,6 +94,10 @@
       }, 300);
     });
     inp.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 200));
+  }
+
+  function attachSugAll(root) {
+    (root || document).querySelectorAll('.agro-ns-sug-wrap').forEach(attachSuggest);
   }
 
   function calcTotal() {
@@ -108,19 +109,178 @@
     if (el) el.textContent = t.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function bindLinhaDatas(row) {
-    const comp = row.querySelector('.agro-ns-in-comp');
-    const ven = row.querySelector('.agro-ns-in-ven');
+  function syncQuitadoLinhaOpacity(card) {
+    const cbQ = $('agro-ns-quitado');
+    const wrap = card.querySelector('.agro-ns-wrap-ven');
+    if (wrap && cbQ) wrap.style.opacity = cbQ.checked ? '0.45' : '1';
+  }
+
+  function bindLinhaDatas(card) {
+    const comp = card.querySelector('.agro-ns-in-comp');
+    const ven = card.querySelector('.agro-ns-in-ven');
     comp?.addEventListener('change', () => {
       if ($('agro-ns-quitado')?.checked && ven) ven.value = comp.value || ven.value;
     });
-    syncQuitadoLinhaOpacity(row);
+    syncQuitadoLinhaOpacity(card);
   }
 
-  function syncQuitadoLinhaOpacity(row) {
-    const cbQ = $('agro-ns-quitado');
-    const wrap = row.querySelector('.agro-ns-wrap-ven-linha');
-    if (wrap && cbQ) wrap.style.opacity = cbQ.checked ? '0.45' : '1';
+  function syncRecLinha(card) {
+    const cb = card.querySelector('.agro-ns-rec-cb');
+    const opts = card.querySelector('.agro-ns-rec-opts');
+    const cont = card.querySelector('.agro-ns-rec-contagem');
+    const sel = card.querySelector('.agro-ns-rec-parcelas');
+    const on = cb && cb.checked;
+    if (opts) {
+      opts.style.opacity = on ? '1' : '0.45';
+      opts.querySelectorAll('input, select').forEach((el) => { el.disabled = !on; });
+    }
+    const mod = (card.querySelector('input[name^="agro-ns-rec-modo-"]:checked') || {}).value || 'sempre';
+    if (cont) {
+      const show = on && mod === 'normal';
+      cont.classList.toggle('hidden', !show);
+      if (sel) sel.disabled = !show;
+    }
+  }
+
+  function bindRecLinha(card) {
+    const cb = card.querySelector('.agro-ns-rec-cb');
+    cb?.addEventListener('change', () => syncRecLinha(card));
+    card.querySelectorAll('input[name^="agro-ns-rec-modo-"]').forEach((r) => {
+      r.addEventListener('change', () => syncRecLinha(card));
+    });
+    syncRecLinha(card);
+  }
+
+  function copiarValoresCard(origem, destino) {
+    if (!origem || !destino) return;
+    origem.querySelectorAll('.agro-ns-sug-wrap').forEach((wrap, i) => {
+      const dWrap = destino.querySelectorAll('.agro-ns-sug-wrap')[i];
+      if (!dWrap) return;
+      const oIn = wrap.querySelector('input[type="text"]');
+      const oH = wrap.querySelector('input[type="hidden"]');
+      const dIn = dWrap.querySelector('input[type="text"]');
+      const dH = dWrap.querySelector('input[type="hidden"]');
+      if (oIn && dIn) dIn.value = oIn.value;
+      if (oH && dH) dH.value = oH.value;
+    });
+    const comp = origem.querySelector('.agro-ns-in-comp');
+    const ven = origem.querySelector('.agro-ns-in-ven');
+    const dComp = destino.querySelector('.agro-ns-in-comp');
+    const dVen = destino.querySelector('.agro-ns-in-ven');
+    if (comp && dComp) dComp.value = comp.value;
+    if (ven && dVen) dVen.value = ven.value;
+  }
+
+  function atualizarNumeracaoCards() {
+    const cards = document.querySelectorAll('#agro-ns-linhas .agro-ns-card');
+    cards.forEach((card, idx) => {
+      const num = card.querySelector('.agro-ns-card-num strong');
+      if (num) num.textContent = String(idx + 1);
+      const rm = card.querySelector('.agro-ns-rm-linha');
+      if (rm) rm.classList.toggle('hidden', cards.length <= 1);
+    });
+  }
+
+  function cardHtml(idStr) {
+    return `
+    <article class="agro-ns-card agro-ns-linha" data-row-id="${idStr}">
+      <div class="agro-ns-card-head">
+        <span class="agro-ns-card-num">Lançamento <strong>1</strong></span>
+        <button type="button" class="agro-ns-rm-linha hidden" title="Remover lançamento">Remover</button>
+      </div>
+      <div class="agro-ns-card-row agro-ns-card-row--4">
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Loja</label>
+          <div class="relative agro-ns-sug-wrap" data-sug-campo="empresa">
+            <input type="text" placeholder="Buscar loja…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
+            <input type="hidden" class="agro-ns-hid-empresa">
+            <svg class="agro-ns-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Pessoa</label>
+          <div class="relative agro-ns-sug-wrap" data-sug-campo="cliente">
+            <input type="text" placeholder="Cliente / fornecedor…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
+            <input type="hidden" class="agro-ns-hid-pessoa">
+            <svg class="agro-ns-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Conta / Caixa</label>
+          <div class="relative agro-ns-sug-wrap" data-sug-campo="banco">
+            <input type="text" placeholder="Buscar conta…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
+            <input type="hidden" class="agro-ns-hid-banco">
+            <svg class="agro-ns-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Forma pagamento</label>
+          <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
+            <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
+            <input type="hidden" class="agro-ns-hid-forma">
+            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="agro-ns-card-row agro-ns-card-row--plano">
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Plano de contas</label>
+          <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
+            <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
+            <input type="hidden" id="agro-ns-plano-id-${idStr}">
+            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Valor (R$)</label>
+          <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <label class="agro-ns-label">Competência</label>
+          <input type="date" class="agro-ns-input agro-ns-in-comp">
+        </div>
+        <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven">
+          <label class="agro-ns-label">Vencimento</label>
+          <input type="date" class="agro-ns-input agro-ns-in-ven">
+        </div>
+      </div>
+      <div class="agro-ns-card-row-desc">
+        <label class="agro-ns-label block mb-1">Descrição</label>
+        <input type="text" class="agro-ns-input agro-ns-in-desc w-full">
+      </div>
+      <details class="agro-ns-card-rec">
+        <summary>Recorrência mensal (opcional)</summary>
+        <div class="agro-ns-card-rec-body space-y-2">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" class="agro-ns-rec-cb agro-ns-chk">
+            <span class="agro-ns-body font-bold">Ativar recorrência neste lançamento</span>
+          </label>
+          <div class="agro-ns-rec-opts opacity-45 space-y-2">
+            <fieldset class="rounded-xl border border-slate-200 bg-white px-3 py-2 space-y-2">
+              <legend class="agro-ns-hint font-black uppercase px-1">Modo</legend>
+              <label class="flex items-start gap-2 cursor-pointer agro-ns-body">
+                <input type="radio" name="agro-ns-rec-modo-${idStr}" value="sempre" checked class="mt-1 shrink-0">
+                <span><strong>Sempre</strong> — próximo só após quitar.</span>
+              </label>
+              <label class="flex items-start gap-2 cursor-pointer agro-ns-body">
+                <input type="radio" name="agro-ns-rec-modo-${idStr}" value="normal" class="mt-1 shrink-0">
+                <span><strong>Normal</strong> — N títulos já criados.</span>
+              </label>
+            </fieldset>
+            <div class="agro-ns-rec-contagem hidden">
+              <label class="agro-ns-hint font-black uppercase block mb-1">Quantidade</label>
+              <select class="agro-ns-rec-parcelas agro-ns-input max-w-xs" disabled>
+                <option value="1" selected>1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="6">6</option><option value="12">12</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+    </article>`;
   }
 
   function addRow() {
@@ -128,79 +288,41 @@
     if (!host) return;
     rowCount += 1;
     const idStr = `r${rowCount}`;
-    const div = document.createElement('div');
-    div.className = 'agro-ns-linha';
-    div.dataset.rowId = idStr;
-    div.innerHTML = `
-      <div class="flex flex-col gap-1 min-w-0">
-        <label class="agro-ns-linha-label">Plano de contas</label>
-        <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
-          <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
-          <input type="hidden" id="agro-ns-plano-id-${idStr}">
-          <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-[60] overflow-y-auto"></ul>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1 min-w-0">
-        <label class="agro-ns-linha-label">Valor (R$)</label>
-        <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
-      </div>
-      <div class="flex flex-col gap-1 min-w-0">
-        <label class="agro-ns-linha-label">Descrição</label>
-        <input type="text" class="agro-ns-input agro-ns-in-desc" placeholder="Ex.: Conta de energia">
-      </div>
-      <div class="flex flex-col gap-1 min-w-0">
-        <label class="agro-ns-linha-label">Competência</label>
-        <input type="date" class="agro-ns-input agro-ns-in-comp">
-      </div>
-      <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven-linha">
-        <label class="agro-ns-linha-label text-amber-800">Vencimento</label>
-        <input type="date" class="agro-ns-input agro-ns-in-ven">
-      </div>
-      <div class="flex flex-col gap-1 min-w-0 agro-ns-col-boleto">
-        <label class="agro-ns-linha-label">Boleto <span class="normal-case font-semibold text-slate-400">(a pagar)</span></label>
-        <input type="text" class="agro-ns-input agro-ns-in-boleto font-mono" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off">
-      </div>
-      <div class="flex items-end justify-center">
-        <button type="button" class="agro-ns-rm-linha" title="Remover linha" aria-label="Remover linha">×</button>
-      </div>`;
-    host.appendChild(div);
-    const prevRows = host.querySelectorAll('.agro-ns-linha');
-    const prev = prevRows.length >= 2 ? prevRows[prevRows.length - 2] : null;
+    const prev = host.querySelector('.agro-ns-card:last-child');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = cardHtml(idStr);
+    const card = wrap.firstElementChild;
+    host.appendChild(card);
+
     const t = todayISO();
-    const comp = div.querySelector('.agro-ns-in-comp');
-    const ven = div.querySelector('.agro-ns-in-ven');
-    const prevComp = prev?.querySelector('.agro-ns-in-comp')?.value;
-    const prevVen = prev?.querySelector('.agro-ns-in-ven')?.value;
-    if (comp) comp.value = prevComp || t;
-    if (ven) ven.value = prevVen || prevComp || t;
-    div.querySelector('.agro-ns-in-valor')?.addEventListener('input', calcTotal);
-    div.querySelector('.agro-ns-rm-linha')?.addEventListener('click', () => {
-      const linhas = host.querySelectorAll('.agro-ns-linha');
-      if (linhas.length <= 1) return;
-      div.remove();
+    if (!prev) {
+      card.querySelector('.agro-ns-in-comp').value = t;
+      card.querySelector('.agro-ns-in-ven').value = t;
+    } else {
+      copiarValoresCard(prev, card);
+    }
+
+    card.querySelector('.agro-ns-in-valor')?.addEventListener('input', calcTotal);
+    card.querySelector('.agro-ns-rm-linha')?.addEventListener('click', () => {
+      if (host.querySelectorAll('.agro-ns-card').length <= 1) return;
+      card.remove();
+      atualizarNumeracaoCards();
       calcTotal();
     });
-    attachSuggest(div.querySelector('.agro-ns-sug-wrap'));
-    bindLinhaDatas(div);
-    syncColBoletoVis();
-  }
 
-  function syncColBoletoVis() {
-    const show = tipoAtual() === 'pagar';
-    document.querySelectorAll('.agro-ns-col-boleto').forEach((el) => {
-      el.style.display = show ? '' : 'none';
-    });
-    document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
-      row.classList.toggle('agro-ns-linha--receber', !show);
-    });
+    attachSugAll(card);
+    bindLinhaDatas(card);
+    bindRecLinha(card);
+    atualizarNumeracaoCards();
+    calcTotal();
   }
 
   function syncQuitadoVenc() {
-    document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
-      syncQuitadoLinhaOpacity(row);
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((card) => {
+      syncQuitadoLinhaOpacity(card);
       if ($('agro-ns-quitado')?.checked) {
-        const comp = row.querySelector('.agro-ns-in-comp');
-        const ven = row.querySelector('.agro-ns-in-ven');
+        const comp = card.querySelector('.agro-ns-in-comp');
+        const ven = card.querySelector('.agro-ns-in-ven');
         if (comp?.value && ven) ven.value = comp.value;
       }
     });
@@ -215,31 +337,12 @@
     return { dc, dvMin, dvMax };
   }
 
-  function syncRecOpts() {
-    const cbRec = $('agro-ns-recorrente');
-    const wrapRecOpts = $('agro-ns-rec-opts');
-    const wrapRecContagem = $('agro-ns-rec-contagem');
-    const selParcelas = $('agro-ns-rec-parcelas');
-    const on = cbRec && cbRec.checked;
-    if (wrapRecOpts) {
-      wrapRecOpts.style.opacity = on ? '1' : '0.45';
-      wrapRecOpts.querySelectorAll('input, select').forEach((el) => { el.disabled = !on; });
-    }
-    const mod = (document.querySelector('input[name="agro-ns-rec-modo"]:checked') || {}).value || 'sempre';
-    if (wrapRecContagem) {
-      const showQ = on && mod === 'normal';
-      wrapRecContagem.classList.toggle('hidden', !showQ);
-      if (selParcelas) selParcelas.disabled = !showQ;
-    }
-  }
-
   function resetLinhas(n) {
     const host = $('agro-ns-linhas');
     if (!host) return;
     host.innerHTML = '';
     rowCount = 0;
-    const q = Math.max(1, n || 1);
-    for (let i = 0; i < q; i += 1) addRow();
+    for (let i = 0; i < Math.max(1, n || 1); i += 1) addRow();
     calcTotal();
   }
 
@@ -249,9 +352,169 @@
       : ('lote-' + Date.now() + '-' + Math.random().toString(36).slice(2));
   }
 
-  function esconderNlpDialog() {
-    $('agro-ns-nlp-escl')?.classList.add('hidden');
+  function sugVal(card, campo) {
+    const wrap = card.querySelector(`.agro-ns-sug-wrap[data-sug-campo="${campo}"]`);
+    if (!wrap) return { nome: '', id: '' };
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    return { nome: inp ? inp.value.trim() : '', id: hid ? hid.value.trim() : '' };
   }
+
+  function coletarLinhas() {
+    const linhas = [];
+    let n = 0;
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((card) => {
+      n += 1;
+      const emp = sugVal(card, 'empresa');
+      const pes = sugVal(card, 'cliente');
+      const ban = sugVal(card, 'banco');
+      const form = sugVal(card, 'forma');
+      const plan = sugVal(card, 'plano');
+      const valor = String(card.querySelector('.agro-ns-in-valor')?.value || '').trim();
+      const descricao = String(card.querySelector('.agro-ns-in-desc')?.value || '').trim();
+      const data_competencia = String(card.querySelector('.agro-ns-in-comp')?.value || '').trim();
+      const data_vencimento = String(card.querySelector('.agro-ns-in-ven')?.value || '').trim();
+      const recCb = card.querySelector('.agro-ns-rec-cb');
+      const recorrente = !!(recCb && recCb.checked);
+      const recMod = (card.querySelector('input[name^="agro-ns-rec-modo-"]:checked') || {}).value || 'sempre';
+      const recParcelas = Math.max(1, Math.min(Number(card.querySelector('.agro-ns-rec-parcelas')?.value || 1), 12));
+
+      const vazio = !plan.nome && !valor && !descricao && !emp.nome && !pes.nome && !ban.nome;
+      if (vazio) return;
+
+      linhas.push({
+        empresa_nome: emp.nome,
+        empresa_id: emp.id || null,
+        pessoa_nome: pes.nome,
+        pessoa_id: pes.id || null,
+        banco_nome: ban.nome,
+        banco_id: ban.id || null,
+        forma_nome: form.nome,
+        forma_id: form.id || null,
+        plano_conta: plan.nome,
+        plano_conta_id: plan.id || null,
+        valor,
+        descricao: descricao || undefined,
+        data_competencia,
+        data_vencimento: data_vencimento || data_competencia,
+        recorrente,
+        recorrente_modo: recorrente ? recMod : 'sempre',
+        recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
+        _num: n,
+      });
+    });
+    return linhas;
+  }
+
+  function validarLinhas(linhasRaw, quitado) {
+    if (!linhasRaw.length) {
+      alert('Preencha ao menos um lançamento (plano e valor).');
+      return false;
+    }
+    for (let i = 0; i < linhasRaw.length; i += 1) {
+      const ln = linhasRaw[i];
+      const num = ln._num || i + 1;
+      if (!ln.plano_conta || !ln.valor) {
+        alert(`Lançamento ${num}: informe plano de contas e valor.`);
+        return false;
+      }
+      if (!ln.empresa_nome || !ln.pessoa_nome || !ln.banco_nome) {
+        alert(`Lançamento ${num}: preencha loja, pessoa e conta.`);
+        return false;
+      }
+      if (!ln.data_competencia || !ln.data_vencimento) {
+        alert(`Lançamento ${num}: informe competência e vencimento.`);
+        return false;
+      }
+      if (quitado && !ln.banco_id) {
+        alert(`Lançamento ${num}: para quitado, escolha conta com ID do ERP na lista.`);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function submitForm(ev) {
+    ev.preventDefault();
+    const tipo = tipoAtual();
+    const quitado = !!$('agro-ns-quitado')?.checked;
+    const linhasRaw = coletarLinhas();
+    if (!validarLinhas(linhasRaw, quitado)) return;
+
+    const linhas = linhasRaw.map(({ _num, ...rest }) => rest);
+    const { dc, dvMin, dvMax } = resumoDatasLinhas(linhas);
+    const cab = linhas[0] || {};
+
+    const payload = {
+      tipo,
+      data_competencia: dc,
+      data_vencimento: dvMin,
+      empresa_nome: cab.empresa_nome || '',
+      empresa_id: cab.empresa_id || null,
+      pessoa_nome: cab.pessoa_nome || '',
+      pessoa_id: cab.pessoa_id || null,
+      banco_nome: cab.banco_nome || '',
+      banco_id: cab.banco_id || null,
+      forma_nome: cab.forma_nome || '',
+      forma_id: cab.forma_id || null,
+      quitado,
+      recorrente: false,
+      linhas,
+      idempotency_key: loteIdempotencyKey,
+    };
+
+    const btn = $('agro-ns-submit');
+    if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+    try {
+      const r = await fetch(cfg().apiCriar, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(payload),
+      });
+      const raw = await r.text();
+      let j = {};
+      try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
+        alert('Resposta inválida do servidor (HTTP ' + r.status + ').');
+        return;
+      }
+      const ids = Array.isArray(j.ids) ? j.ids : [];
+      const erros = Array.isArray(j.erros) ? j.erros : [];
+      const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
+      const dupBloq = Number(j.duplicidades_bloqueadas || 0);
+      let erpLinha = '';
+      if (ids.length && j.erp_inclusao_configurada === false) erpLinha = '\n\nERP: integração desligada no servidor.';
+      else if (j.erp_lancamento_ok === true) erpLinha = '\n\nERP: OK.';
+      else if (j.erp_lancamento_ok === false) erpLinha = '\n\nERP: falhou — ' + (j.aviso_api || '');
+      const dicaLista = '\n\nNa lista: filtro «Todos» + vencimento cobrindo as datas.';
+      if (!j.ok && !ids.length) {
+        alert((msgs[0] || j.erro || 'Falha ao gravar.') + (dupBloq ? `\n\nDuplicidade bloqueada: ${dupBloq}.` : ''));
+        return;
+      }
+      if (!j.ok && ids.length) {
+        alert('Gravação parcial. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
+      } else {
+        alert('Lote gravado. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
+      }
+      fechar();
+      dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
+    } catch (_) {
+      alert('Erro de rede. Confira em Lançamentos se já gravou antes de repetir.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
+    }
+  }
+
+  function dispararSucesso(tipo, quitado, dc, dvMin, dvMax, idMongo) {
+    const url = urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo);
+    if (typeof window.agroNovaSaidaOnSuccess === 'function') {
+      window.agroNovaSaidaOnSuccess({ tipo, quitado, url, idMongo });
+      return;
+    }
+    window.location.href = url;
+  }
+
+  function esconderNlpDialog() { $('agro-ns-nlp-escl')?.classList.add('hidden'); }
 
   function renderizarPerguntasNlp(perguntas) {
     const host = $('agro-ns-nlp-campos');
@@ -259,37 +522,26 @@
     host.innerHTML = '';
     (perguntas || []).forEach((p, idx) => {
       const lid = document.createElement('label');
-        lid.className = 'block space-y-1';
-        const sp = document.createElement('span');
-        sp.className = 'agro-ns-label';
+      lid.className = 'block space-y-1';
+      const sp = document.createElement('span');
+      sp.className = 'agro-ns-label';
       sp.textContent = p.texto || p.id || '';
       lid.appendChild(sp);
       const uid = `agro-ns-nlp-r-${idx}`;
-      const tin = String(p.tipo_input || 'texto').toLowerCase();
-      if (tin === 'opcoes' && Array.isArray(p.opcoes) && p.opcoes.length) {
+      if (String(p.tipo_input || '').toLowerCase() === 'opcoes' && Array.isArray(p.opcoes) && p.opcoes.length) {
         const sel = document.createElement('select');
         sel.id = uid;
         sel.className = 'agro-ns-input';
-        const z = document.createElement('option');
-        z.value = '';
-        z.textContent = 'Escolha...';
-        sel.appendChild(z);
-        p.opcoes.forEach((o) => {
-          const op = document.createElement('option');
-          op.value = String(o.valor || '');
-          op.textContent = String(o.rotulo || o.valor || '');
-          sel.appendChild(op);
-        });
+        sel.appendChild(new Option('Escolha...', ''));
+        p.opcoes.forEach((o) => sel.appendChild(new Option(String(o.rotulo || o.valor), String(o.valor || ''))));
         lid.appendChild(sel);
       } else {
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.id = uid;
         inp.className = 'agro-ns-input';
-        inp.autocomplete = 'off';
         lid.appendChild(inp);
       }
-      lid.dataset.fieldId = String(p.id || '');
       host.appendChild(lid);
     });
   }
@@ -309,31 +561,28 @@
   async function aplicarPayloadInterpretado(j) {
     const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
-    syncColBoletoVis();
+    syncTemaTipo();
     const cbQ = $('agro-ns-quitado');
-    if (cbQ) {
-      cbQ.checked = !!j.quitado_hint;
-      syncQuitadoVenc();
-    }
-    let tr = document.querySelector('#agro-ns-linhas .agro-ns-linha');
-    if (!tr) { addRow(); tr = document.querySelector('#agro-ns-linhas .agro-ns-linha'); }
-    if (!tr) return;
-    const inputComp = tr.querySelector('.agro-ns-in-comp');
-    const inputVen = tr.querySelector('.agro-ns-in-ven');
+    if (cbQ) { cbQ.checked = !!j.quitado_hint; syncQuitadoVenc(); }
+
+    let card = document.querySelector('#agro-ns-linhas .agro-ns-card');
+    if (!card) { resetLinhas(1); card = document.querySelector('#agro-ns-linhas .agro-ns-card'); }
+    if (!card) return;
+
     const linha0 = (j.linhas && j.linhas[0]) || {};
     const dcHint = j.data_competencia || linha0.data_competencia;
     const dvHint = j.data_vencimento || linha0.data_vencimento;
-    if (dcHint && inputComp) inputComp.value = dcHint;
-    if (dvHint && inputVen) inputVen.value = dvHint;
-    if (cbQ?.checked && inputComp?.value && inputVen) inputVen.value = inputComp.value;
+    if (dcHint) card.querySelector('.agro-ns-in-comp').value = dcHint;
+    if (dvHint) card.querySelector('.agro-ns-in-ven').value = dvHint;
+
     const hint = String(linha0.plano_hint || '').trim();
     const sugNome = String(linha0.plano_sugerido_nome || '').trim();
     const sugId = String(linha0.plano_sugerido_id || '').trim();
     const valStr = String(linha0.valor || '').trim();
     const descr = linha0.descricao ? String(linha0.descricao).trim() : '';
-    const wrapPl = tr.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
-    const inpPl = wrapPl ? wrapPl.querySelector('input[type="text"]') : null;
-    const hidPl = wrapPl ? wrapPl.querySelector('input[type="hidden"]') : null;
+    const wrapPl = card.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
+    const inpPl = wrapPl?.querySelector('input[type="text"]');
+    const hidPl = wrapPl?.querySelector('input[type="hidden"]');
     if (hidPl) hidPl.value = '';
     if (sugNome && inpPl && hidPl) {
       inpPl.value = sugNome;
@@ -348,30 +597,23 @@
         const pick = itens.find((x) => String(x.nome || '').trim().toLowerCase() === hl)
           || itens.find((x) => String(x.nome || '').toLowerCase().includes(hl))
           || (itens.length === 1 ? itens[0] : null);
-        if (pick && pick.nome) {
-          inpPl.value = pick.nome;
-          hidPl.value = String(pick.id || '');
-        }
+        if (pick?.nome) { inpPl.value = pick.nome; hidPl.value = String(pick.id || ''); }
       }
     }
-    const vel = tr.querySelector('.agro-ns-in-valor');
+    const vel = card.querySelector('.agro-ns-in-valor');
     if (vel && valStr) vel.value = valStr;
-    const dEl = tr.querySelector('.agro-ns-in-desc');
+    const dEl = card.querySelector('.agro-ns-in-desc');
     if (dEl) dEl.value = descr || hint || sugNome;
     calcTotal();
-    const msgA = Array.isArray(j.avisos) ? j.avisos.filter(Boolean).join('\n') : '';
-    if (msgA) alert(msgA);
-    if (inpPl && hidPl && !hidPl.value) inpPl.focus();
+    if (Array.isArray(j.avisos) && j.avisos.filter(Boolean).length) alert(j.avisos.filter(Boolean).join('\n'));
   }
 
   async function preencherPorTexto(opc) {
     opc = opc || {};
     const inpNlp = $('agro-ns-nlp-texto');
+    const tBase = opc.segundaRodada ? String(nlpDialogCache.textoOriginal || '').trim() : String(inpNlp?.value || '').trim();
+    if (!tBase) { alert('Digite a frase.'); return; }
     const btnNlp = $('agro-ns-btn-nlp');
-    const digitado = (inpNlp && inpNlp.value || '').trim();
-    const tBase = opc.segundaRodada ? String(nlpDialogCache.textoOriginal || '').trim() : digitado;
-    if (!tBase && !opc.segundaRodada) { alert('Digite a frase no campo de texto.'); return; }
-    if (opc.segundaRodada && !tBase) { alert('Referência da frase perdida. Digite de novo.'); return; }
     if (btnNlp) btnNlp.disabled = true;
     try {
       const payload = { texto: tBase, llm: true };
@@ -380,205 +622,26 @@
         payload.respostas_dialogo = opc.respostasDialogo || {};
       }
       const r = await fetch(cfg().apiTexto, {
-        method: 'POST',
-        credentials: 'same-origin',
+        method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(payload),
       });
-      const raw = await r.text();
-      let j = {};
-      try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
-        alert('Resposta inválida do servidor.');
-        return;
-      }
+      const j = JSON.parse(await r.text() || '{}');
       if (j.precisa_esclarecimento) {
-        nlpDialogCache.textoOriginal = String(j.texto_original || tBase || digitado);
-        nlpDialogCache.dadosParciais = j.dados_parciais || {};
-        nlpDialogCache.perguntas = Array.isArray(j.perguntas) ? j.perguntas : [];
-        const m = $('agro-ns-nlp-motivo');
-        if (m) m.textContent = j.motivo_curto || 'Confirme ou complete:';
+        nlpDialogCache = { textoOriginal: String(j.texto_original || tBase), dadosParciais: j.dados_parciais || {}, perguntas: j.perguntas || [] };
+        $('agro-ns-nlp-motivo').textContent = j.motivo_curto || 'Confirme:';
         renderizarPerguntasNlp(nlpDialogCache.perguntas);
         $('agro-ns-nlp-escl')?.classList.remove('hidden');
         return;
       }
-      if (!j.ok) {
-        alert(j.erro || 'Não foi possível interpretar.');
-        return;
-      }
+      if (!j.ok) { alert(j.erro || 'Não foi possível interpretar.'); return; }
       esconderNlpDialog();
       await aplicarPayloadInterpretado(j);
     } catch (_) {
-      alert('Erro de rede ao interpretar texto.');
+      alert('Erro de rede.');
     } finally {
       if (btnNlp) btnNlp.disabled = false;
     }
-  }
-
-  function coletarLinhas() {
-    const tipo = tipoAtual();
-    const linhas = [];
-    let n = 0;
-    document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
-      n += 1;
-      const wrap = row.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
-      const inpPl = wrap ? wrap.querySelector('input[type="text"]') : null;
-      const hidPl = wrap ? wrap.querySelector('input[type="hidden"]') : null;
-      const plano_nome = inpPl ? inpPl.value.trim() : '';
-      const plano_id = hidPl ? hidPl.value.trim() : '';
-      const vel = row.querySelector('.agro-ns-in-valor');
-      const valor = vel ? String(vel.value || '').trim() : '';
-      const dEl = row.querySelector('.agro-ns-in-desc');
-      const descricao = dEl ? dEl.value.trim() : '';
-      const compEl = row.querySelector('.agro-ns-in-comp');
-      const venEl = row.querySelector('.agro-ns-in-ven');
-      const data_competencia = compEl ? compEl.value.trim() : '';
-      const data_vencimento = venEl ? venEl.value.trim() : '';
-      const bEl = row.querySelector('.agro-ns-in-boleto');
-      const boleto_raw = bEl ? bEl.value.trim() : '';
-      if (!plano_nome && !valor) return;
-      if (plano_nome && valor) {
-        const item = {
-          plano_conta: plano_nome,
-          plano_conta_id: plano_id || null,
-          valor,
-          descricao: descricao || undefined,
-          data_competencia,
-          data_vencimento: data_vencimento || data_competencia,
-          _num: n,
-        };
-        if (tipo === 'pagar' && boleto_raw) item.boleto_codigo_barras = boleto_raw;
-        linhas.push(item);
-      }
-    });
-    return linhas;
-  }
-
-  async function submitForm(ev) {
-    ev.preventDefault();
-    const tipo = tipoAtual();
-    const cbQ = $('agro-ns-quitado');
-    const quitado = cbQ ? cbQ.checked : false;
-    const empresa_nome = ($('agro-ns-empresa-nome')?.value || '').trim();
-    const empresa_id = ($('agro-ns-empresa-id')?.value || '').trim();
-    const pessoa_nome = ($('agro-ns-pessoa-nome')?.value || '').trim();
-    const pessoa_id = ($('agro-ns-pessoa-id')?.value || '').trim();
-    const banco_nome = ($('agro-ns-banco-nome')?.value || '').trim();
-    const banco_id = ($('agro-ns-banco-id')?.value || '').trim();
-    const forma_nome = ($('agro-ns-forma-nome')?.value || '').trim();
-    const forma_id = ($('agro-ns-forma-id')?.value || '').trim();
-    const recorrente = $('agro-ns-recorrente')?.checked || false;
-    const recMod = (document.querySelector('input[name="agro-ns-rec-modo"]:checked') || {}).value || 'sempre';
-    const recParcelas = Math.max(1, Math.min(Number($('agro-ns-rec-parcelas')?.value || 1), 12));
-    const linhasRaw = coletarLinhas();
-
-    if (!empresa_nome || !pessoa_nome || !banco_nome) { alert('Preencha loja, pessoa e conta bancária.'); return; }
-    if (quitado && !banco_id) { alert('Para lançar quitado, escolha uma conta com ID do ERP na lista.'); return; }
-    if (!linhasRaw.length) { alert('Inclua ao menos uma linha com plano de conta e valor.'); return; }
-
-    for (let i = 0; i < linhasRaw.length; i += 1) {
-      const ln = linhasRaw[i];
-      if (!ln.data_competencia || !ln.data_vencimento) {
-        alert(`Linha ${ln._num || i + 1}: informe competência e vencimento.`);
-        return;
-      }
-    }
-    const linhas = linhasRaw.map(({ _num, ...rest }) => rest);
-    const { dc, dvMin, dvMax } = resumoDatasLinhas(linhas);
-
-    const payload = {
-      tipo,
-      data_competencia: dc,
-      data_vencimento: dvMin,
-      empresa_nome,
-      empresa_id: empresa_id || null,
-      pessoa_nome,
-      pessoa_id: pessoa_id || null,
-      banco_nome,
-      banco_id: banco_id || null,
-      forma_nome,
-      forma_id: forma_id || null,
-      quitado,
-      recorrente,
-      recorrente_modo: recorrente ? recMod : 'sempre',
-      recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
-      linhas,
-      idempotency_key: loteIdempotencyKey,
-    };
-
-    const btn = $('agro-ns-submit');
-    if (btn) {
-      btn.disabled = true;
-      btn.setAttribute('aria-busy', 'true');
-    }
-    try {
-      const r = await fetch(cfg().apiCriar, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(payload),
-      });
-      const raw = await r.text();
-      let j = {};
-      try {
-        j = raw ? JSON.parse(raw) : {};
-      } catch (_) {
-        const avisoDup = (r.status >= 500 || r.status === 0)
-          ? '\n\nO servidor pode ter gravado mesmo assim. Confira em Lançamentos antes de tentar de novo.'
-          : '';
-        alert('Resposta inválida do servidor (HTTP ' + r.status + ').' + avisoDup);
-        return;
-      }
-      const ids = Array.isArray(j.ids) ? j.ids : [];
-      const erros = Array.isArray(j.erros) ? j.erros : [];
-      const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
-      const dupBloq = Number(j.duplicidades_bloqueadas || 0);
-      let erpLinha = '';
-      if (ids.length && j.erp_inclusao_configurada === false) {
-        erpLinha = '\n\nERP: integração de inclusão manual desligada no servidor.';
-      } else if (j.erp_lancamento_ok === true) {
-        erpLinha = '\n\nERP: a API respondeu OK.';
-      } else if (j.erp_lancamento_ok === false) {
-        erpLinha = '\n\nERP: envio à API falhou: ' + (j.aviso_api || '(sem detalhe)');
-      } else if (j.aviso_api) {
-        erpLinha = '\n\nERP: ' + j.aviso_api;
-      }
-      const dicaLista = '\n\nNa consulta: cole o ID no campo de busca, ou «Todos» + vencimento cobrindo a data do título.';
-      if (!j.ok && !ids.length) {
-        const dupLinha = dupBloq > 0
-          ? ('\n\nAtenção: ' + dupBloq + ' lançamento(s) bloqueados por possível duplicidade.')
-          : '';
-        alert((msgs[0] || j.erro || j.detail || ('Falha ao gravar (HTTP ' + r.status + ').')) + dupLinha);
-        return;
-      }
-      if (!j.ok && ids.length) {
-        const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
-        const dupLinha = dupBloq > 0 ? ('\n\nDuplicidade bloqueada: ' + dupBloq + ' lançamento(s).') : '';
-        alert('Gravação parcial. IDs: ' + ids.join(', ') + det + dupLinha + erpLinha + dicaLista);
-        fechar();
-        dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
-        return;
-      }
-      const dupLinha = dupBloq > 0 ? ('\n\nDuplicidade bloqueada: ' + dupBloq + ' lançamento(s).') : '';
-      alert('Lote gravado. IDs: ' + ids.join(', ') + dupLinha + erpLinha + dicaLista);
-      fechar();
-      dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
-    } catch (_) {
-      alert('Erro de rede. Confira em Lançamentos se o lote já foi gravado antes de tentar outra vez.');
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.removeAttribute('aria-busy');
-      }
-    }
-  }
-
-  function dispararSucesso(tipo, quitado, dc, dvMin, dvMax, idMongo) {
-    const url = urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo);
-    if (typeof window.agroNovaSaidaOnSuccess === 'function') {
-      window.agroNovaSaidaOnSuccess({ tipo, quitado, url, idMongo });
-      return;
-    }
-    window.location.href = url;
   }
 
   function fechar() {
@@ -596,35 +659,32 @@
     if (!bound) init();
     const tipo = opts.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
-    syncColBoletoVis();
+    syncTemaTipo();
+    const cbQ = $('agro-ns-quitado');
+    if (cbQ) cbQ.checked = false;
+    const inpNlp = $('agro-ns-nlp-texto');
+    if (inpNlp) inpNlp.value = '';
+    esconderNlpDialog();
+    resetLinhas(1);
     resetIdempotency();
     ov.classList.remove('hidden');
     ov.setAttribute('aria-hidden', 'false');
     document.body.classList.add('overflow-hidden');
-    $('agro-ns-empresa-nome')?.focus();
+    const first = document.querySelector('#agro-ns-linhas .agro-ns-card .agro-ns-sug-wrap[data-sug-campo="empresa"] input[type="text"]');
+    first?.focus();
   }
 
   function init() {
     if (bound) return;
     bound = true;
-    const ov = $('agro-nova-saida-overlay');
-    if (!ov) return;
-
-    resetLinhas(3);
+    resetLinhas(1);
     resetIdempotency();
-
-    ov.querySelectorAll('.agro-ns-sug-wrap').forEach(attachSuggest);
+    syncTemaTipo();
 
     $('agro-ns-quitado')?.addEventListener('change', syncQuitadoVenc);
-
-    $('agro-ns-recorrente')?.addEventListener('change', syncRecOpts);
-    document.querySelectorAll('input[name="agro-ns-rec-modo"]').forEach((r) => r.addEventListener('change', syncRecOpts));
-    syncRecOpts();
-
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((r) => {
-      r.addEventListener('change', syncColBoletoVis);
+      r.addEventListener('change', syncTemaTipo);
     });
-
     $('agro-ns-add-linha')?.addEventListener('click', () => addRow());
     $('agro-ns-form')?.addEventListener('submit', submitForm);
     $('agro-ns-fechar')?.addEventListener('click', fechar);
@@ -632,40 +692,24 @@
     $('agro-ns-btn-nlp')?.addEventListener('click', () => preencherPorTexto());
     $('agro-ns-nlp-aplicar')?.addEventListener('click', () => {
       const rsp = coletarRespostasDialogo(nlpDialogCache.perguntas);
-      if (!Object.keys(rsp).length) {
-        alert('Responda às perguntas antes de aplicar.');
-        return;
-      }
+      if (!Object.keys(rsp).length) { alert('Responda às perguntas.'); return; }
       preencherPorTexto({ segundaRodada: true, respostasDialogo: rsp });
     });
-    $('agro-ns-nlp-texto')?.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') {
-        ev.preventDefault();
-        preencherPorTexto();
-      }
-    });
 
-    ov.addEventListener('click', (ev) => {
-      if (ev.target === ov) fechar();
-    });
+    const ov = $('agro-nova-saida-overlay');
+    ov?.addEventListener('click', (ev) => { if (ev.target === ov) fechar(); });
     document.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape' && ov && !ov.classList.contains('hidden')) fechar();
     });
-
     document.addEventListener('click', (ev) => {
       const btn = ev.target.closest('[data-agro-nova-saida-open]');
       if (!btn) return;
       ev.preventDefault();
-      const tipo = btn.getAttribute('data-tipo') || 'pagar';
-      abrir({ tipo });
+      abrir({ tipo: btn.getAttribute('data-tipo') || 'pagar' });
     });
   }
 
   window.AgroNovaSaida = { open: abrir, close: fechar, init };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

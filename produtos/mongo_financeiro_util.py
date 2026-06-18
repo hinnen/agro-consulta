@@ -4870,6 +4870,25 @@ def _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc: dict[str, Any]) -> di
     return cands[0]
 
 
+def _fin_ln_txt(ln: dict, key: str, fallback: str = "") -> str:
+    if not isinstance(ln, dict):
+        return (fallback or "").strip()
+    v = ln.get(key)
+    s = str(v).strip() if v is not None else ""
+    return s if s else (fallback or "").strip()
+
+
+def _fin_ln_bool(ln: dict, key: str, fallback: bool = False) -> bool:
+    if not isinstance(ln, dict) or key not in ln:
+        return fallback
+    raw = ln.get(key)
+    if raw is True:
+        return True
+    if raw is False:
+        return False
+    return str(raw).strip().lower() in ("1", "true", "yes", "sim", "on")
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -4914,39 +4933,54 @@ def inserir_lancamentos_manual_lote(
     pessoa_nome = (pessoa_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
     forma_nome = (forma_nome or "").strip()
-    if not empresa_nome or not pessoa_nome or not banco_nome:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária."}],
-        }
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas or len(linhas) > 60:
         return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 60 linhas de detalhe."}]}
 
-    modo = (recorrente_modo or "sempre").strip().lower()
-    if modo not in ("sempre", "normal"):
-        modo = "sempre"
-    try:
-        N = int(recorrente_parcelas or 1)
-    except (TypeError, ValueError):
-        N = 1
-    N = max(1, min(N, 12))
-    if recorrente and modo == "normal" and len(linhas) * N > 60:
+    cab_ok = bool(empresa_nome and pessoa_nome and banco_nome)
+    if not cab_ok:
+        cab_ok = all(
+            _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+            and _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+            and _fin_ln_txt(ln, "banco_nome", banco_nome)
+            for ln in linhas
+        )
+    if not cab_ok:
+        return {
+            "ok": False,
+            "ids": [],
+            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária (por linha ou no cabeçalho)."}],
+        }
+
+    planned_pre = 0
+    for idx, ln in enumerate(linhas):
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_cp = ln_n if (ln_rec and ln_mod == "normal") else 1
+        planned_pre += n_cp
+        if ln_rec and ln_mod == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and ln_n > 1:
+            return {
+                "ok": False,
+                "ids": [],
+                "erros": [
+                    {
+                        "linha": idx + 1,
+                        "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
+                    }
+                ],
+            }
+    if planned_pre > 60:
         return {
             "ok": False,
             "ids": [],
             "erros": [{"erro": "Modo Normal: no máximo 60 títulos no lote (linhas × quantidade)."}],
-        }
-    if recorrente and modo == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and N > 1:
-        return {
-            "ok": False,
-            "ids": [],
-            "erros": [
-                {
-                    "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
-                }
-            ],
         }
 
     tpl = _obter_template_lancamento(db, despesa)
@@ -4989,7 +5023,28 @@ def inserir_lancamentos_manual_lote(
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
 
-        n_copies = N if (recorrente and modo == "normal") else 1
+        ln_empresa = _fin_ln_txt(ln, "empresa_nome", empresa_nome)
+        ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
+        ln_banco = _fin_ln_txt(ln, "banco_nome", banco_nome)
+        ln_forma = _fin_ln_txt(ln, "forma_nome", forma_nome)
+        if not ln_empresa or not ln_pessoa or not ln_banco:
+            erros.append({"linha": n, "erro": "Preencha loja, pessoa e conta bancária."})
+            continue
+        le_id = _financeiro_id_para_string(ln.get("empresa_id") or empresa_id)
+        lp_id = _financeiro_id_para_string(ln.get("pessoa_id") or pessoa_id)
+        lb_id = _financeiro_id_para_string(ln.get("banco_id") or banco_id)
+        lf_id = _financeiro_id_para_string(ln.get("forma_id") or forma_id)
+
+        ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
+        ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()
+        if ln_mod not in ("sempre", "normal"):
+            ln_mod = "sempre"
+        try:
+            ln_n = int(ln.get("recorrente_parcelas") or recorrente_parcelas or 1)
+        except (TypeError, ValueError):
+            ln_n = 1
+        ln_n = max(1, min(ln_n, 12))
+        n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         planned_total += n_copies
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
@@ -5008,14 +5063,14 @@ def inserir_lancamentos_manual_lote(
             if "NumeroLancamento" in doc:
                 doc["NumeroLancamento"] = None
             doc["Despesa"] = bool(despesa)
-            doc["Empresa"] = empresa_nome[:200]
-            doc["EmpresaID"] = eid
-            doc["Cliente"] = pessoa_nome[:300]
-            doc["ClienteID"] = pid
-            doc["Banco"] = banco_nome[:200]
-            doc["BancoID"] = bid
-            doc["FormaPagamento"] = forma_nome[:200]
-            doc["FormaPagamentoID"] = fid
+            doc["Empresa"] = ln_empresa[:200]
+            doc["EmpresaID"] = le_id
+            doc["Cliente"] = ln_pessoa[:300]
+            doc["ClienteID"] = lp_id
+            doc["Banco"] = ln_banco[:200]
+            doc["BancoID"] = lb_id
+            doc["FormaPagamento"] = ln_forma[:200]
+            doc["FormaPagamentoID"] = lf_id
             if (grupo_nome or "").strip():
                 doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
                 doc["LancamentoGrupoID"] = gid
@@ -5036,13 +5091,13 @@ def inserir_lancamentos_manual_lote(
             doc["Pago"] = False
 
             desc_suf = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 desc_suf = f" ({sub + 1}/{n_copies})"
             doc["Descricao"] = (desc_base + desc_suf)[:500]
 
             obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
             obs_antecipado = ""
-            if recorrente and modo == "normal" and n_copies > 1:
+            if ln_rec and ln_mod == "normal" and n_copies > 1:
                 obs_antecipado = f"Antecipado {sub + 1}/{n_copies} (modo Normal)"
             obs_quitado = ""
             if marcar_quitado_pagar or marcar_quitado_receber:
@@ -5064,7 +5119,7 @@ def inserir_lancamentos_manual_lote(
             doc.pop(AGRO_RECORRENTE, None)
             doc.pop(AGRO_RECORRENTE_INTERVALO_MESES, None)
             doc.pop(AGRO_RECORRENTE_SEMPRE, None)
-            if recorrente and modo == "sempre":
+            if ln_rec and ln_mod == "sempre":
                 doc[AGRO_RECORRENTE] = True
                 doc[AGRO_RECORRENTE_INTERVALO_MESES] = 1
                 doc[AGRO_RECORRENTE_SEMPRE] = True

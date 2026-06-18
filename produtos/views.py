@@ -14382,14 +14382,22 @@ def api_lancamentos_criar_manual_lote(request):
         )
     except (TypeError, ValueError):
         rec_par = 1
-    if quitado and not str(payload.get("banco_id") or "").strip():
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Para lançar quitado, informe a conta bancária no cabeçalho (conta com ID do ERP).",
-            },
-            status=400,
-        )
+    if quitado:
+        bid_hdr = str(payload.get("banco_id") or "").strip()
+        bid_ok = bool(bid_hdr)
+        if not bid_ok and isinstance(linhas, list):
+            for ln in linhas:
+                if isinstance(ln, dict) and str(ln.get("banco_id") or "").strip():
+                    bid_ok = True
+                    break
+        if not bid_ok:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Para lançar quitado, informe a conta bancária (conta com ID do ERP) em cada lançamento.",
+                },
+                status=400,
+            )
 
     _, db = obter_conexao_mongo()
     if db is None:
