@@ -23,6 +23,7 @@ from django.utils import timezone
 from produtos.caixa_util import pagamentos_lista_de_venda
 from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_cfg, nfce_configurada
+from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_xml_envio
 from produtos.sefaz_ssl_util import sefaz_requests_verify
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
 
@@ -368,49 +369,17 @@ def _anexar_suplementar_qrcode(xml_assinado: str, qr_url: str, tp_amb: int) -> s
     return etree.tostring(root, encoding="unicode", xml_declaration=False)
 
 
-def _normalizar_xml_envio(xml: str) -> str:
-    """Remove declaração XML e espaços entre tags (exigência SEFAZ / rejeição 588)."""
-    raw = (xml or "").strip()
-    if raw.startswith("<?xml"):
-        end = raw.find("?>")
-        if end >= 0:
-            raw = raw[end + 2 :].strip()
-    return re.sub(r">\s+<", "><", raw)
-
-
-def _montar_envelope_soap_autorizacao(envi_nfe_xml: str) -> str:
-    """Envelope SOAP 1.2 com nfeCabecMsg (cUF + versaoDados) e nfeDadosMsg sem CDATA."""
-    envi_nfe_xml = _normalizar_xml_envio(envi_nfe_xml)
-    return (
-        '<?xml version="1.0" encoding="utf-8"?>'
-        '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-        'xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
-        "<soap12:Header>"
-        f'<nfeCabecMsg xmlns="{NS_WSDL}"><cUF>{CUF_SP}</cUF><versaoDados>4.00</versaoDados></nfeCabecMsg>'
-        "</soap12:Header>"
-        "<soap12:Body>"
-        f'<nfeAutorizacaoLote xmlns="{NS_WSDL}">'
-        f"<nfeDadosMsg>{envi_nfe_xml}</nfeDadosMsg>"
-        "</nfeAutorizacaoLote>"
-        "</soap12:Body></soap12:Envelope>"
-    )
-
-
 def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
     tp_amb = int(cfg["tp_amb"])
     url = URL_AUTORIZACAO.get(tp_amb, URL_AUTORIZACAO[2])
     id_lote = str(int(datetime.now().timestamp()))[-15:]
-    nfe_xml = _normalizar_xml_envio(xml_assinado)
+    nfe_xml = normalizar_xml_envio(xml_assinado)
     envi_nfe = (
         f'<enviNFe xmlns="{NS}" versao="4.00">'
         f"<idLote>{id_lote}</idLote><indSinc>1</indSinc>{nfe_xml}</enviNFe>"
     )
-    soap = _montar_envelope_soap_autorizacao(envi_nfe)
+    soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL, envi_nfe, "nfeAutorizacaoLote")
     cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-    headers = {
-        "Content-Type": f'application/soap+xml; charset=utf-8; action="{NS_WSDL}/nfeAutorizacaoLote"',
-    }
     try:
         r = requests.post(
             url,
