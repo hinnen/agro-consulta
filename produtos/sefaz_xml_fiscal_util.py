@@ -16,6 +16,42 @@ NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 NS_DSIG = "http://www.w3.org/2000/09/xmldsig#"
 
 
+def _abertura_tag(xml: str, tag: str) -> str:
+    m = re.search(rf"<{tag}\b[^>]*>", xml)
+    return m.group(0) if m else ""
+
+
+def _tag_tem_xmlns(abertura: str) -> bool:
+    return 'xmlns="' in abertura or "xmlns='" in abertura or "xmlns:" in abertura
+
+
+def _dedup_xmlns_abertura(abertura: str) -> str:
+    """Remove xmlns duplicado na mesma tag de abertura."""
+    if abertura.count('xmlns="') <= 1:
+        return abertura
+    out = abertura
+    first = True
+    for match in re.finditer(r'\sxmlns="[^"]*"', abertura):
+        if first:
+            first = False
+            continue
+        out = out.replace(match.group(0), "", 1)
+    return out
+
+
+def _garantir_xmlns_tag(xml: str, tag: str, ns: str) -> str:
+    abertura = _abertura_tag(xml, tag)
+    if not abertura:
+        return xml
+    if not _tag_tem_xmlns(abertura):
+        nova = re.sub(rf"<{tag}\b", f'<{tag} xmlns="{ns}"', abertura, count=1)
+    else:
+        nova = _dedup_xmlns_abertura(abertura)
+    if nova != abertura:
+        xml = xml.replace(abertura, nova, 1)
+    return xml
+
+
 def tostring_sem_prefixos(xml_in: str | etree._Element) -> str:
     """Converte XML fiscal para string sem prefixos (NFe + Signature)."""
     if isinstance(xml_in, etree._Element):
@@ -29,13 +65,8 @@ def tostring_sem_prefixos(xml_in: str | etree._Element) -> str:
     raw = re.sub(r"<(/?)ns\d+:", r"<\1", raw)
     raw = re.sub(r"<(/?)ds:", r"<\1", raw)
 
-    if re.search(r"<NFe\b", raw) and not re.search(r'<NFe\s[^>]*\sxmlns="', raw):
-        raw = re.sub(r"<NFe\b", f'<NFe xmlns="{NS_NFE}"', raw, count=1)
-
-    if re.search(r"<Signature\b", raw):
-        head = raw.split("<Signature", 1)[1].split(">", 1)[0]
-        if 'xmlns="' not in head:
-            raw = re.sub(r"<Signature\b", f'<Signature xmlns="{NS_DSIG}"', raw, count=1)
+    raw = _garantir_xmlns_tag(raw, "NFe", NS_NFE)
+    raw = _garantir_xmlns_tag(raw, "Signature", NS_DSIG)
 
     raw = normalizar_xml_envio(raw)
     etree.fromstring(raw.encode("utf-8"))
