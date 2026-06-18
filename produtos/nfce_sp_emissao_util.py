@@ -45,6 +45,9 @@ URL_QR_BASE = {
 
 CUF_SP = "35"
 
+# SEFAZ já registrou esse nNF com outra chave (testes repetidos) — tenta próximo número.
+_NFCE_RETRY_CSTAT_DUPLICIDADE = frozenset({"539", "204"})
+
 
 def _q2(v: Decimal | float) -> str:
     return str(Decimal(str(v)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
@@ -605,59 +608,79 @@ def emitir_nfce_para_venda(
     if not itens:
         return {"ok": False, "erro": "Venda sem itens para NFC-e."}
 
-    serie, numero = _proximo_numero_serie(cfg)
-    dh_emi = timezone.localtime(timezone.now())
-    c_nf = _gerar_c_nf()
-    chave = _montar_chave(cnpj=cfg["cnpj"], serie=serie, numero=numero, tp_emis="1", c_nf=c_nf, dh_emi=dh_emi)
-
     fiscal_rows = [
         fiscal_por_produto_id(str(it.produto_id_externo or ""), db=db, col_p=col_p) for it in itens
     ]
-    try:
-        xml_body, qr_url = _montar_xml_nfce(
-            cfg,
-            venda,
-            itens,
-            serie=serie,
-            numero=numero,
-            chave=chave,
-            dh_emi=dh_emi,
-            cpf_dest=cpf,
-            fiscal_itens=fiscal_rows,
-            db=db,
-            col_p=col_p,
-        )
-    except Exception as exc:
-        logger.exception("montar_xml_nfce venda %s", venda.pk)
-        doc = NfceDocumentoAgro.objects.create(
-            venda=venda,
-            status=NfceDocumentoAgro.Status.ERRO,
-            numero=numero,
-            serie=serie,
-            mensagem_sefaz=str(exc)[:2000],
-            tp_amb=int(cfg["tp_amb"]),
-            dest_cpf=cpf,
-            consumidor_sem_identificacao=sem_identificacao,
-        )
-        return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
 
-    xml_com_qr = _anexar_suplementar_qrcode(xml_body, qr_url, int(cfg["tp_amb"]))
-    signed, err_sign = _assinar_nfe_xml(xml_com_qr, cfg["cert_path"], cfg["cert_password"], chave)
-    if err_sign or not signed:
-        doc = NfceDocumentoAgro.objects.create(
-            venda=venda,
-            status=NfceDocumentoAgro.Status.ERRO,
-            chave=chave,
-            numero=numero,
-            serie=serie,
-            mensagem_sefaz=err_sign or "Falha ao assinar.",
-            tp_amb=int(cfg["tp_amb"]),
-            dest_cpf=cpf,
-            consumidor_sem_identificacao=sem_identificacao,
-        )
-        return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
+    ret: dict[str, Any] | None = None
+    err_http: str | None = None
+    serie = 0
+    numero = 0
+    chave = ""
+    qr_url = ""
+    signed = ""
 
-    ret, err_http = _enviar_autorizacao(signed, cfg)
+    for tentativa in range(5):
+        serie, numero = _proximo_numero_serie(cfg)
+        dh_emi = timezone.localtime(timezone.now())
+        c_nf = _gerar_c_nf()
+        chave = _montar_chave(cnpj=cfg["cnpj"], serie=serie, numero=numero, tp_emis="1", c_nf=c_nf, dh_emi=dh_emi)
+        try:
+            xml_body, qr_url = _montar_xml_nfce(
+                cfg,
+                venda,
+                itens,
+                serie=serie,
+                numero=numero,
+                chave=chave,
+                dh_emi=dh_emi,
+                cpf_dest=cpf,
+                fiscal_itens=fiscal_rows,
+                db=db,
+                col_p=col_p,
+            )
+        except Exception as exc:
+            logger.exception("montar_xml_nfce venda %s", venda.pk)
+            doc = NfceDocumentoAgro.objects.create(
+                venda=venda,
+                status=NfceDocumentoAgro.Status.ERRO,
+                numero=numero,
+                serie=serie,
+                mensagem_sefaz=str(exc)[:2000],
+                tp_amb=int(cfg["tp_amb"]),
+                dest_cpf=cpf,
+                consumidor_sem_identificacao=sem_identificacao,
+            )
+            return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
+
+        xml_com_qr = _anexar_suplementar_qrcode(xml_body, qr_url, int(cfg["tp_amb"]))
+        signed, err_sign = _assinar_nfe_xml(xml_com_qr, cfg["cert_path"], cfg["cert_password"], chave)
+        if err_sign or not signed:
+            doc = NfceDocumentoAgro.objects.create(
+                venda=venda,
+                status=NfceDocumentoAgro.Status.ERRO,
+                chave=chave,
+                numero=numero,
+                serie=serie,
+                mensagem_sefaz=err_sign or "Falha ao assinar.",
+                tp_amb=int(cfg["tp_amb"]),
+                dest_cpf=cpf,
+                consumidor_sem_identificacao=sem_identificacao,
+            )
+            return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
+
+        ret, err_http = _enviar_autorizacao(signed, cfg)
+        if err_http or not ret:
+            break
+        if ret.get("autorizada") or ret.get("c_stat") not in _NFCE_RETRY_CSTAT_DUPLICIDADE:
+            break
+        logger.warning(
+            "NFC-e %s nNF=%s — tentando próximo número (%s/5)",
+            ret.get("c_stat"),
+            numero,
+            tentativa + 1,
+        )
+
     if err_http or not ret:
         doc = NfceDocumentoAgro.objects.create(
             venda=venda,
