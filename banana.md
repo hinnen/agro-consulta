@@ -359,7 +359,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 **Versão:** `1.0.10`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (fix PDV wizard GM1546-5S + checkpoint)  
-**Versão app (`VERSION`):** `1.28` · `origin/teste` (último commit `e7e1404`)
+**Versão app (`VERSION`):** staging `teste` · **produção `baadbca` v1.06** — só backup ZIP Lançamentos + checkpoint (merge errado revertido 2026-06-18)
 
 ### O que este documento já cobre (até aqui)
 
@@ -499,8 +499,9 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-- [x] Lançamentos: backup ZIP (CSV) + checkpoint na tela (v1.29; falta deploy + rodar na loja)
-- [ ] Após checkpoint: deploy staging → Renan testa backup + checkpoint → produção + avisar loja/ERP
+- [x] Lançamentos backup ZIP + checkpoint — **produção v1.06** (`baadbca`, cherry-pick só deste chat)
+- [ ] Renan na loja: avisar equipe · baixar backup ZIP · checkpoint `CONGELAR` · ERP parar sync
+- [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
 - [ ] PDV `/api/buscar/` e cache → Postgres
 - [ ] Gestão operacional (lista + facetas) → Postgres
