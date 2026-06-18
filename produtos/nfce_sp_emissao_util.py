@@ -393,7 +393,7 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
         text = r.text or ""
         if r.status_code >= 400:
             return None, f"HTTP {r.status_code}: {text[:500]}"
-        return _parse_retorno_autorizacao(text), None
+        return _parse_retorno_autorizacao(text, xml_nfe_assinado=xml_assinado), None
     except requests.RequestException as exc:
         return None, str(exc)[:400]
     finally:
@@ -432,7 +432,7 @@ def _parse_xml_fiscal(raw: str) -> ET.Element:
     return ET.fromstring(raw)
 
 
-def _parse_retorno_autorizacao(soap_text: str) -> dict[str, Any]:
+def _parse_retorno_autorizacao(soap_text: str, *, xml_nfe_assinado: str = "") -> dict[str, Any]:
     out: dict[str, Any] = {
         "c_stat": "",
         "x_motivo": "",
@@ -486,26 +486,75 @@ def _parse_retorno_autorizacao(soap_text: str) -> dict[str, Any]:
         out["x_motivo"] = f"XML de retorno inválido. Trecho: {snippet}"
         return out
 
-    c_stats: list[str] = []
+    lote_cstat = ""
+    lote_motivo = ""
+    prot_nfe_el = None
     for el in ret_root.iter():
         ln = _local(el.tag)
-        if ln == "cStat" and el.text:
-            val = el.text.strip()
-            c_stats.append(val)
-            if not out["c_stat"]:
-                out["c_stat"] = val
-        elif ln == "xMotivo" and el.text and not out["x_motivo"]:
-            out["x_motivo"] = el.text.strip()
-        elif ln == "nProt" and el.text:
-            out["protocolo"] = el.text.strip()
-        elif ln == "chNFe" and el.text:
-            out["chave"] = el.text.strip()
+        if ln == "retEnviNFe":
+            for ch in el:
+                cl = _local(ch.tag)
+                if cl == "cStat" and ch.text and not lote_cstat:
+                    lote_cstat = ch.text.strip()
+                elif cl == "xMotivo" and ch.text and not lote_motivo:
+                    lote_motivo = ch.text.strip()
+                elif cl == "protNFe" and prot_nfe_el is None:
+                    prot_nfe_el = ch
+            break
+    if not lote_cstat:
+        for el in ret_root.iter():
+            if _local(el.tag) == "cStat" and el.text:
+                lote_cstat = el.text.strip()
+                break
+    if not lote_motivo:
+        for el in ret_root.iter():
+            if _local(el.tag) == "xMotivo" and el.text:
+                lote_motivo = el.text.strip()
+                break
+    if prot_nfe_el is None:
+        for el in ret_root.iter():
+            if _local(el.tag) == "protNFe":
+                prot_nfe_el = el
+                break
 
-    out["autorizada"] = any(c in ("100", "150") for c in c_stats)
-    if out["autorizada"]:
+    prot_cstat = ""
+    prot_motivo = ""
+    if prot_nfe_el is not None:
+        for el in prot_nfe_el.iter():
+            ln = _local(el.tag)
+            if ln == "cStat" and el.text:
+                prot_cstat = el.text.strip()
+            elif ln == "xMotivo" and el.text:
+                prot_motivo = el.text.strip()
+            elif ln == "nProt" and el.text:
+                out["protocolo"] = el.text.strip()
+            elif ln == "chNFe" and el.text:
+                out["chave"] = el.text.strip()
+
+    if lote_cstat == "104" and prot_cstat:
+        out["c_stat"] = prot_cstat
+        out["x_motivo"] = prot_motivo or lote_motivo
+    else:
+        out["c_stat"] = lote_cstat or prot_cstat
+        out["x_motivo"] = lote_motivo or prot_motivo
+
+    out["autorizada"] = prot_cstat in ("100", "150") or (
+        lote_cstat in ("100", "150") and not prot_cstat
+    )
+
+    if out["autorizada"] and xml_nfe_assinado and prot_nfe_el is not None:
+        nfe_xml = normalizar_xml_envio(xml_nfe_assinado)
+        prot_xml = normalizar_xml_envio(ET.tostring(prot_nfe_el, encoding="unicode"))
+        out["xml_nfeproc"] = (
+            f'<nfeProc xmlns="{NS}" versao="4.00">{nfe_xml}{prot_xml}</nfeProc>'
+        )
+    elif out["autorizada"]:
         out["xml_nfeproc"] = payload
-    elif c_stats and not out["x_motivo"]:
-        out["x_motivo"] = f"SEFAZ cStat={c_stats[-1]}"
+
+    if not out["autorizada"] and lote_cstat == "104" and not prot_cstat:
+        out["x_motivo"] = lote_motivo or "Lote processado sem protocolo da NFC-e."
+        logger.warning("NFC-e 104 sem protNFe: %s", payload[:2500])
+
     return out
 
 
