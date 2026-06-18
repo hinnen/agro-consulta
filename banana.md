@@ -341,11 +341,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano no Nova saída + lote manual: entrada quitada hoje + pagamento + juros se saída &gt; entrada; `despesa` por linha no backend.
-2. **PDV wizard — GM no barras remove carrinho** — fix local `pdv_wizard.js`: hífen de `GM1546-5S` não pode chamar atalho `-`; GM entra modo barcode; bloqueio F4 pós-bip. **Aguarda commit + teste Renan.**
-3. **Lançamentos — Nova saída (legibilidade)** — card expandido preenche a tela; sem faixa branca; fontes/campos maiores; resumo só quando retraído.
-4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja (não EAN13 falso).
-5. **PDV legado carrinho GM** — match exato, bloqueio F4 pós-bip (`consulta_produtos.js`) · produção `59bdedc` v1.02.
+1. **PDV wizard — GM no barras remove carrinho** — `pdv_wizard.js`: hífen `GM1546-5S` não dispara atalho `-`; GM modo barcode; F4 pós-bip bloqueado. **→ staging `teste` (Renan validar).**
+2. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
+3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
+4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
+5. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -357,10 +357,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.11`  
+**Versão:** `1.0.12`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (Empréstimo entrada+pagamento — Nova saída + lote manual)  
-**Versão app (`VERSION`):** staging `teste` · **produção `d92c5ad` v1.08** — backup ZIP (todos + em aberto) + checkpoint
+**Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
+**Versão app (`VERSION`):** bump neste commit · staging `teste` · **produção `d92c5ad` v1.08**
 
 ### O que este documento já cobre (até aqui)
 
@@ -417,14 +417,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Onde | Sintoma | Status |
 |------|---------|--------|
-| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | Fix **local** `pdv_wizard.js` — **sem commit** |
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Staging `teste`** — aguarda teste Renan |
 | **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
 **Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
 
 **Causa wizard:** atalho **`-`** na busca = `bumpLastCartItem(-1)` (menos qty do **último** item). O hífen do GM disparava remoção **sem** inserir o carácter.
 
-**Patch wizard (`pdv_wizard.js`, local):**
+**Patch wizard (`pdv_wizard.js`, em `teste`):**
 
 - `-` / `+` ignorados enquanto digita GM/SKU ou janela pós-bip (1,5 s)
 - Códigos **`GM…`** → modo **barcode** (auto-adiciona)
@@ -438,9 +438,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 3. Carrinho **não** perde itens; idealmente adiciona Ibiúna
 4. Corrigir cadastro: barras → EAN ou `230…` + reimprimir etiqueta
 
-**PDV legado:** `consulta_produtos.js` + `_js_busca_produto_inteligente.html` (já em produção v1.02).
+**PDV legado:** `consulta_produtos.js` + `_js_busca…` (produção v1.02).
 
-**Pendente:** commit + push `teste` → validar staging → merge produção quando Renan pedir.
+**Produção wizard:** ainda **sem** este fix — cherry-pick só quando Renan pedir após OK no staging.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -508,14 +508,11 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 | Arquivo | Tema |
 |---------|------|
-| `produtos/static/produtos/js/pdv_wizard.js` | **URGENTE** — GM/hífen não remove carrinho; modo barcode GM |
-| `produtos/lancamentos_backup_util.py` | Backup ZIP filtro «só em aberto» (local, fora deste commit) |
-| `produtos/views.py` | Outras alterações locais (ver diff) |
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Próximo passo sugerido:** commit `pdv_wizard.js` + `banana.md` → push `teste` → Renan testa wizard com **GM1546-5S**.
+**Acabou de subir em `teste`:** `pdv_wizard.js` + `banana.md` (fix GM/hífen no wizard).
 
-**Já em `teste`:** barras 7 dígitos, 230… CODE128, busca cadastro GM (v1.19–v1.28). **Produção:** só PDV legado carrinho GM (`59bdedc` v1.02).
+**Teste Renan (staging):** Ctrl+F5 no `/pdv/checkout/` → 4 itens no carrinho → bipar **GM1546-5S** várias vezes → carrinho não perde itens.
 
 ### Pendências conhecidas (produto)
 
@@ -533,7 +530,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
-- [ ] **PDV wizard carrinho GM** — fix local; commit + teste Renan + produção
+- [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
@@ -555,6 +552,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.11
+### Fim do checkpoint v1.0.12
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
