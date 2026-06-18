@@ -19790,10 +19790,14 @@ def api_venda_agro_cupom(request, pk):
 
         nfce = getattr(v, "nfce", None)
         if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+            client, db = obter_conexao_mongo()
+            col_p = getattr(client, "col_p", None) if client else None
             return JsonResponse(
                 {
                     "ok": True,
-                    "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
+                    "cupom": serializar_nfce_cupom_80mm(
+                        v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
+                    ),
                 }
             )
     except Exception:

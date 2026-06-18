@@ -71,10 +71,14 @@ def api_venda_agro_nfce_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
+    client, db = _mongo_conn()
+    col_p = getattr(client, "col_p", None) if client else None
     return JsonResponse(
         {
             "ok": True,
-            "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
+            "cupom": serializar_nfce_cupom_80mm(
+                v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
+            ),
         }
     )
 

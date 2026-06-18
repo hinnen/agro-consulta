@@ -272,14 +272,27 @@
             h +=
                 '<div style="text-align:center;font-size:10px;font-weight:900;border:2px dashed #000;padding:4px;margin-bottom:6px;">EMITIDA EM HOMOLOGAÇÃO — SEM VALOR FISCAL</div>';
         }
-        h += '<div style="text-align:center;font-size:11px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_fantasia || '—') + '</div>';
+        if (c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_razao_social) + '</div>';
+        }
+        if (c.emitente_fantasia && c.emitente_fantasia !== c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:800;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        } else if (!c.emitente_razao_social && c.emitente_fantasia) {
+            h += '<div style="text-align:center;font-size:11px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        }
         if (c.emitente_cnpj) {
             h += '<div style="text-align:center;font-size:9px;">CNPJ ' + escHtml(c.emitente_cnpj) + ' · IE ' + escHtml(c.emitente_ie || '—') + '</div>';
         }
         if (c.emitente_endereco) {
             h += '<div style="text-align:center;font-size:9px;line-height:1.25;margin:2px 0 4px;">' + escHtml(c.emitente_endereco) + '</div>';
         }
-        h += '<div style="text-align:center;font-size:11px;font-weight:900;margin:6px 0 2px;">DANFE NFC-e · Documento auxiliar</div>';
+        h +=
+            '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.2;margin:6px 0 2px;">DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA</div>';
+        h +=
+            '<div style="text-align:center;font-size:9px;font-weight:800;line-height:1.2;margin:0 0 4px;">NÃO PERMITE APROVEITAMENTO DE CRÉDITO DE ICMS</div>';
+        if (c.emissao_normal && !c.homologacao) {
+            h += '<div style="text-align:center;font-size:9px;margin-bottom:4px;">EMISSÃO NORMAL</div>';
+        }
         h += '<div style="font-size:10px;font-weight:800;">NFC-e nº ' + escHtml(String(c.numero_nf || '')) + ' · Série ' + escHtml(String(c.serie_nf || '')) + '</div>';
         if (c.criado_em) {
             h += '<div style="font-size:10px;">Emissão: ' + escHtml(c.criado_em) + '</div>';
@@ -295,12 +308,30 @@
             h += '<div style="font-size:10px;font-weight:800;">Consumidor não identificado</div>';
         }
         h += lines;
+        if (c.qtd_itens) {
+            h += '<div style="font-size:10px;margin-top:4px;">Qtd. total de itens: ' + escHtml(String(c.qtd_itens)) + '</div>';
+        }
         h +=
             '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
             escHtml(c.total_texto || moedaCupom(c.total)) +
             '</span></div>';
+        if (c.desconto_texto && Number(c.desconto || 0) >= 0) {
+            h += '<div style="font-size:10px;">Desconto: ' + escHtml(c.desconto_texto) + '</div>';
+        }
         if (c.forma_pagamento) {
             h += '<div style="font-size:11px;margin-top:4px;font-weight:800;">Pag.: ' + escHtml(c.forma_pagamento) + '</div>';
+        }
+        if (c.valor_pago_texto) {
+            h += '<div style="font-size:10px;">Valor pago: ' + escHtml(c.valor_pago_texto) + '</div>';
+        }
+        if (Number(c.troco || 0) > 0 && c.troco_texto) {
+            h += '<div style="font-size:10px;font-weight:800;">Troco: ' + escHtml(c.troco_texto) + '</div>';
+        }
+        if (c.ibpt_texto) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin:6px 0 4px;text-align:center;">' +
+                escHtml(c.ibpt_texto) +
+                '</div>';
         }
         if (c.chave) {
             h +=
@@ -309,7 +340,13 @@
                 '</div>';
         }
         h += qrImg;
-        h += '<div style="text-align:center;font-size:9px;margin-top:4px;">Consulte pela chave ou QR Code</div>';
+        if (c.url_consulta_chave) {
+            h +=
+                '<div style="text-align:center;font-size:8px;line-height:1.2;margin-top:4px;word-break:break-all;">' +
+                escHtml(c.url_consulta_chave) +
+                '</div>';
+        }
+        h += '<div style="text-align:center;font-size:9px;margin-top:4px;">Consulte pela chave de acesso ou QR Code</div>';
         if (c.segunda_via) {
             h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
         }

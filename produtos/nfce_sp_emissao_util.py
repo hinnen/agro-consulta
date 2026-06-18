@@ -28,6 +28,7 @@ from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_x
 from produtos.sefaz_ssl_util import sefaz_requests_verify
 from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
+from produtos.nfce_ibpt_util import calcular_ibpt_venda_itens
 
 logger = logging.getLogger(__name__)
 
@@ -370,7 +371,8 @@ def _montar_xml_nfce(
         _sub(det_p, "vPag", _q2(pg["vPag"]))
 
     inf_ad = _sub(inf, "infAdic")
-    obs = f"Venda PDV #{venda.pk}"
+    ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=cfg.get("uf") or "SP")
+    obs = f"Venda PDV #{venda.pk} | {ibpt['ibpt_texto']}"
     if tp_amb == 2:
         obs = "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL | " + obs
     _sub(inf_ad, "infCpl", obs[:5000])
