@@ -148,8 +148,12 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 | Modo `NFC_E_MODO` | Comportamento |
 |-------------------|---------------|
-| `manual` (padrão) | PIX e cartões → NFC-e **automática**; dinheiro/fiado/vale → **checkbox** no PDV |
+| `manual` (padrão) | **PIX / cartão** → NFC-e automática ao confirmar (sem popup CPF; sem identificação se cliente sem CPF). **Dinheiro / fiado / vale** → popup **NFC ou Venda**; se NFC → modal CPF grande ou «Sem CPF na nota». |
 | `auto` | NFC-e em toda venda |
+
+**UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
+
+**SEFAZ:** rejeição **225** corrigida com grupo `<card><tpIntegra>2</tpIntegra></card>` em PIX/cartão (NT 2024.003) + `vTotTrib` por item.
 
 **Arquivos centrais:**
 
@@ -332,13 +336,11 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **NFC-e por forma de pagamento** — manual/auto, checkbox dinheiro, popup impressão, menu BI.
-2. **NFC-e SP completa** — emissão PDV, cupom 80 mm, IBPT, retry 539, QR/SSL/assinatura.
-3. **Staging readonly** — proteção Mongo compartilhado.
-4. **Cadastro Excel** — import/export, histórico, desfazer, layout fluido.
-5. **BI validade** — destaque produto vencido.
-6. **Lançamentos** — PIN entrada, operador nas APIs.
-7. **Agro Display Scale** — calibração global monitores.
+1. **Lançamentos** — backup Excel completo + checkpoint admin na entrada; Nova saída tela cheia.
+2. **PDV carrinho** — match GM exato, bloqueio F4 pós-bip (`consulta_produtos.js`).
+3. **NFC-e staging OK** — reemissão funcionando; schema 225; modal CPF grande; PIX/cartão sem popup CPF; pergunta impressão na reemissão.
+4. **NFC-e por forma de pagamento** — manual/auto, popup NFC/Venda só formas manuais, menu BI contabilidade.
+5. **Staging readonly** — proteção Mongo compartilhado.
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -350,11 +352,11 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.6`  
+**Versão:** `1.0.7`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (Lançamentos backup + checkpoint pré-corte ERP)  
-**Versão app (`VERSION`):** `1.01` (próximo commit → `1.02`)  
-**Branch de referência:** `teste` (commit publicado `15fcf38`)
+**Atualizado por:** assistente Cursor (checkpoint NFC-e + banana → teste)  
+**Versão app (`VERSION`):** `1.12`  
+**Branch de referência:** `teste` (HEAD publicado `1aa8323` + este commit)
 
 ### O que este documento já cobre (até aqui)
 
@@ -362,16 +364,26 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 - [x] Stack Django + Postgres + Mongo + Render + Electron
 - [x] Deploy teste/producao e staging readonly
 - [x] Mapa dos módulos principais com arquivos e armadilhas
-- [x] NFC-e: modo por forma, série 21, arquivos e rotas
+- [x] NFC-e: modo por forma, série 21, reemissão, schema 225, UX modal/toast
 - [x] Clientes Agro, duas telas de cadastro produto, estoque, caixa, RH
 - [x] Como Renan usa nos chats: `@banana` (único anexo obrigatório)
 - [x] Regra: assistente não pergunta se atualiza AGENTS.md
-- [x] Versão app: bump automático `VERSION` por commit
+- [x] Versão app: bump automático `VERSION` por commit (hook `.githooks/pre-commit`)
 - [x] Arquivo: `banana.md` na raiz
 - [x] Ponteiros para docs irmãos (sem duplicar AGENTS.md inteiro)
 - [x] Linha do tempo recente de commits
 - [x] §4.15 roadmap desvinculação ERP (Mongo → Postgres)
 - [x] Regra: assistente atualiza banana automaticamente (sem perguntar)
+- [x] Lançamentos: backup Excel + checkpoint pré-corte ERP (código em `teste`)
+
+### NFC-e — status staging (2026-06-18)
+
+- [x] **Reemissão** em Consultar vendas — Renan confirmou funcionando
+- [x] Erro **225** — `card/tpIntegra=2` + IBPT por item
+- [x] **PIX/cartão** — sem modal CPF; emite sem identificação
+- [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
+- [x] Toast falha fiscal **depois** da impressão Windows
+- [ ] Merge **`producao`** — só quando Renan pedir + checklist `docs/NFCE-PRODUCAO.md`
 
 ### URGENTE — PDV carrinho some ao bipar alguns itens (2026-06-18)
 
@@ -415,22 +427,14 @@ Ou PR `teste` → `producao` só com o commit deste fix (cherry-pick se `teste` 
 
 ### WIP / não commitado (snapshot 2026-06-18)
 
-Alterações locais na branch `teste` ainda **fora** do último commit:
+| Arquivo | Tema |
+|---------|------|
+| `AGENTS.md` | Nota `@banana` vs enciclopédia (local, não commitado) |
+| `config/app_build_util.py` | Badge BI usa só `VERSION` (local) |
+| `produtos/templates/produtos/_js_busca_produto_inteligente.html` | WIP busca |
+| `.githooks/`, `scripts/bump_version.py` | Hook bump VERSION (untracked) |
 
-| Arquivo | Tema provável |
-|---------|----------------|
-| `produtos/models.py` | Campo `VendaAgro.nfce_solicitada` |
-| `produtos/migrations/0040_vendaagro_nfce_solicitada.py` | Migração do campo |
-| `produtos/nfce_venda_util.py` | Painel NFC-e por venda (novo) |
-| `produtos/nfce_sp_emissao_util.py` | Ajustes emissão |
-| `produtos/views_nfce.py`, `views.py`, `views_mp_point.py` | Integração NFC-e / vendas |
-| `produtos/static/produtos/js/consulta_produtos.js` | **URGENTE** backup carrinho sessionStorage + validação Id PDV |
-| `produtos/management/commands/pdv_diagnostico_codigo.py` | Diagnóstico Mongo por código GM |
-| `produtos/templates/.../vendas_lista.html`, `venda_agro_detalhe.html`, `dashboard_gerencial.html` | UI vendas e BI |
-| `produtos/urls.py` | Rotas novas/ajustadas |
-| `banana.md`, `AGENTS.md`, `.cursor/rules/agro-consulta.mdc` | Docs de contexto |
-
-**Próximo passo sugerido:** commitar WIP NFC-e + rodar `migrate` no staging.
+**NFC-e + PDV carrinho + Lançamentos backup:** já em `teste` (commits `1aa8323` … `15fcf38`).
 
 ### Pendências conhecidas (produto)
 
@@ -446,10 +450,10 @@ Alterações locais na branch `teste` ainda **fora** do último commit:
 
 **Outras:**
 
-- [ ] **PDV carrinho some ao bipar GM4579 / GM15181253** — patch em `consulta_produtos.js`; validar staging + `pdv_diagnostico_codigo`
+- [ ] **PDV carrinho** — validar patch v1.09+ no staging (`GM15415S`, `GM1518-125-3`)
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
-- [ ] Merge NFC-e para `producao` após checklist `docs/NFCE-PRODUCAO.md`
+- [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
 - [ ] Testes automatizados sync clientes / NFC-e (futuro)
 
 ### Instruções para o assistente (próxima atualização)
@@ -468,6 +472,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.6
+### Fim do checkpoint v1.0.7
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
