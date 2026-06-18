@@ -14335,12 +14335,36 @@ def api_lancamentos_criar_manual_lote(request):
 
     dc = _d("data_competencia")
     dv = _d("data_vencimento")
-    if dc is None or dv is None:
-        return JsonResponse({"ok": False, "erro": "Informe data de competência e de vencimento."}, status=400)
 
     linhas = payload.get("linhas")
     if not isinstance(linhas, list):
         return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
+
+    def _ln_d(ln, key):
+        if not isinstance(ln, dict):
+            return None
+        s = str(ln.get(key) or "").strip()[:10]
+        if not s:
+            return None
+        try:
+            return date.fromisoformat(s)
+        except ValueError:
+            return None
+
+    if dc is None or dv is None:
+        comps = [_ln_d(ln, "data_competencia") for ln in linhas]
+        vens = [_ln_d(ln, "data_vencimento") for ln in linhas]
+        comps_ok = [x for x in comps if x]
+        vens_ok = [x for x in vens if x]
+        if not comps_ok or not vens_ok:
+            return JsonResponse(
+                {"ok": False, "erro": "Informe data de competência e de vencimento (em cada linha)."},
+                status=400,
+            )
+        if dc is None:
+            dc = min(comps_ok)
+        if dv is None:
+            dv = min(vens_ok)
 
     raw_q = payload.get("quitado")
     quitado = raw_q is True or str(raw_q).strip().lower() in ("1", "true", "yes", "sim", "on")

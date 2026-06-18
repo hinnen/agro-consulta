@@ -108,40 +108,71 @@
     if (el) el.textContent = t.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function bindLinhaDatas(row) {
+    const comp = row.querySelector('.agro-ns-in-comp');
+    const ven = row.querySelector('.agro-ns-in-ven');
+    comp?.addEventListener('change', () => {
+      if ($('agro-ns-quitado')?.checked && ven) ven.value = comp.value || ven.value;
+    });
+    syncQuitadoLinhaOpacity(row);
+  }
+
+  function syncQuitadoLinhaOpacity(row) {
+    const cbQ = $('agro-ns-quitado');
+    const wrap = row.querySelector('.agro-ns-wrap-ven-linha');
+    if (wrap && cbQ) wrap.style.opacity = cbQ.checked ? '0.45' : '1';
+  }
+
   function addRow() {
     const host = $('agro-ns-linhas');
     if (!host) return;
     rowCount += 1;
     const idStr = `r${rowCount}`;
     const div = document.createElement('div');
-    div.className = 'agro-ns-linha grid grid-cols-1 md:grid-cols-12 gap-4 items-end';
+    div.className = 'agro-ns-linha';
     div.dataset.rowId = idStr;
     div.innerHTML = `
-      <div class="md:col-span-3 flex flex-col space-y-2">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Plano de Contas</label>
+      <div class="flex flex-col gap-1 min-w-0">
+        <label class="agro-ns-linha-label">Plano de contas</label>
         <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
-          <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano..." autocomplete="off"
-                 class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-base">
+          <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
           <input type="hidden" id="agro-ns-plano-id-${idStr}">
-          <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] max-h-[200px] overflow-y-auto"></ul>
+          <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-[60] overflow-y-auto"></ul>
         </div>
       </div>
-      <div class="md:col-span-2 flex flex-col space-y-2">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Valor (R$)</label>
-        <input type="text" class="agro-ns-in-valor w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-base font-semibold text-right" placeholder="0,00" inputmode="decimal">
+      <div class="flex flex-col gap-1 min-w-0">
+        <label class="agro-ns-linha-label">Valor (R$)</label>
+        <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
       </div>
-      <div class="md:col-span-3 flex flex-col space-y-2">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição</label>
-        <input type="text" class="agro-ns-in-desc w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-base" placeholder="Ex.: Conta de Energia">
+      <div class="flex flex-col gap-1 min-w-0">
+        <label class="agro-ns-linha-label">Descrição</label>
+        <input type="text" class="agro-ns-input agro-ns-in-desc" placeholder="Ex.: Conta de energia">
       </div>
-      <div class="md:col-span-3 agro-ns-col-boleto flex flex-col space-y-2">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Boleto <span class="normal-case font-semibold text-slate-400">(a pagar)</span></label>
-        <input type="text" class="agro-ns-in-boleto w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-sm font-mono" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off">
+      <div class="flex flex-col gap-1 min-w-0">
+        <label class="agro-ns-linha-label">Competência</label>
+        <input type="date" class="agro-ns-input agro-ns-in-comp">
       </div>
-      <div class="md:col-span-1 flex items-end justify-center pb-1">
-        <button type="button" class="agro-ns-rm-linha w-10 h-10 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 font-black text-xl transition-colors" title="Remover linha" aria-label="Remover linha">×</button>
+      <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven-linha">
+        <label class="agro-ns-linha-label text-amber-800">Vencimento</label>
+        <input type="date" class="agro-ns-input agro-ns-in-ven">
+      </div>
+      <div class="flex flex-col gap-1 min-w-0 agro-ns-col-boleto">
+        <label class="agro-ns-linha-label">Boleto <span class="normal-case font-semibold text-slate-400">(a pagar)</span></label>
+        <input type="text" class="agro-ns-input agro-ns-in-boleto font-mono" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="flex items-end justify-center">
+        <button type="button" class="agro-ns-rm-linha" title="Remover linha" aria-label="Remover linha">×</button>
       </div>`;
     host.appendChild(div);
+    const prevRows = host.querySelectorAll('.agro-ns-linha');
+    const prev = prevRows.length >= 2 ? prevRows[prevRows.length - 2] : null;
+    const t = todayISO();
+    const comp = div.querySelector('.agro-ns-in-comp');
+    const ven = div.querySelector('.agro-ns-in-ven');
+    const prevComp = prev?.querySelector('.agro-ns-in-comp')?.value;
+    const prevVen = prev?.querySelector('.agro-ns-in-ven')?.value;
+    if (comp) comp.value = prevComp || t;
+    if (ven) ven.value = prevVen || prevComp || t;
     div.querySelector('.agro-ns-in-valor')?.addEventListener('input', calcTotal);
     div.querySelector('.agro-ns-rm-linha')?.addEventListener('click', () => {
       const linhas = host.querySelectorAll('.agro-ns-linha');
@@ -150,6 +181,7 @@
       calcTotal();
     });
     attachSuggest(div.querySelector('.agro-ns-sug-wrap'));
+    bindLinhaDatas(div);
     syncColBoletoVis();
   }
 
@@ -158,18 +190,29 @@
     document.querySelectorAll('.agro-ns-col-boleto').forEach((el) => {
       el.style.display = show ? '' : 'none';
     });
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
+      row.classList.toggle('agro-ns-linha--receber', !show);
+    });
   }
 
   function syncQuitadoVenc() {
-    const cbQ = $('agro-ns-quitado');
-    const wrapV = $('agro-ns-wrap-venc');
-    const inputVen = $('agro-ns-data-ven');
-    const inputComp = $('agro-ns-data-comp');
-    if (!cbQ || !wrapV) return;
-    wrapV.style.opacity = cbQ.checked ? '0.45' : '1';
-    if (cbQ.checked && inputComp && inputComp.value && inputVen) {
-      inputVen.value = inputComp.value;
-    }
+    document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
+      syncQuitadoLinhaOpacity(row);
+      if ($('agro-ns-quitado')?.checked) {
+        const comp = row.querySelector('.agro-ns-in-comp');
+        const ven = row.querySelector('.agro-ns-in-ven');
+        if (comp?.value && ven) ven.value = comp.value;
+      }
+    });
+  }
+
+  function resumoDatasLinhas(linhas) {
+    const comps = linhas.map((l) => l.data_competencia).filter(Boolean).sort();
+    const vens = linhas.map((l) => l.data_vencimento).filter(Boolean).sort();
+    const dc = comps[0] || todayISO();
+    const dvMin = vens[0] || dc;
+    const dvMax = vens[vens.length - 1] || dvMin;
+    return { dc, dvMin, dvMax };
   }
 
   function syncRecOpts() {
@@ -216,9 +259,9 @@
     host.innerHTML = '';
     (perguntas || []).forEach((p, idx) => {
       const lid = document.createElement('label');
-      lid.className = 'block space-y-1';
-      const sp = document.createElement('span');
-      sp.className = 'text-xs font-bold uppercase text-indigo-900';
+        lid.className = 'block space-y-1';
+        const sp = document.createElement('span');
+        sp.className = 'agro-ns-label';
       sp.textContent = p.texto || p.id || '';
       lid.appendChild(sp);
       const uid = `agro-ns-nlp-r-${idx}`;
@@ -226,7 +269,7 @@
       if (tin === 'opcoes' && Array.isArray(p.opcoes) && p.opcoes.length) {
         const sel = document.createElement('select');
         sel.id = uid;
-        sel.className = 'w-full px-3 py-2 rounded-xl border-2 border-indigo-200 bg-white font-semibold text-sm';
+        sel.className = 'agro-ns-input';
         const z = document.createElement('option');
         z.value = '';
         z.textContent = 'Escolha...';
@@ -242,7 +285,7 @@
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.id = uid;
-        inp.className = 'w-full px-3 py-2 rounded-xl border-2 border-indigo-200 bg-white text-sm';
+        inp.className = 'agro-ns-input';
         inp.autocomplete = 'off';
         lid.appendChild(inp);
       }
@@ -267,11 +310,7 @@
     const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncColBoletoVis();
-    const inputComp = $('agro-ns-data-comp');
-    const inputVen = $('agro-ns-data-ven');
     const cbQ = $('agro-ns-quitado');
-    if (j.data_competencia && inputComp) inputComp.value = j.data_competencia;
-    if (j.data_vencimento && inputVen) inputVen.value = j.data_vencimento;
     if (cbQ) {
       cbQ.checked = !!j.quitado_hint;
       syncQuitadoVenc();
@@ -279,15 +318,22 @@
     let tr = document.querySelector('#agro-ns-linhas .agro-ns-linha');
     if (!tr) { addRow(); tr = document.querySelector('#agro-ns-linhas .agro-ns-linha'); }
     if (!tr) return;
-    const wrapPl = tr.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
-    const inpPl = wrapPl ? wrapPl.querySelector('input[type="text"]') : null;
-    const hidPl = wrapPl ? wrapPl.querySelector('input[type="hidden"]') : null;
+    const inputComp = tr.querySelector('.agro-ns-in-comp');
+    const inputVen = tr.querySelector('.agro-ns-in-ven');
     const linha0 = (j.linhas && j.linhas[0]) || {};
+    const dcHint = j.data_competencia || linha0.data_competencia;
+    const dvHint = j.data_vencimento || linha0.data_vencimento;
+    if (dcHint && inputComp) inputComp.value = dcHint;
+    if (dvHint && inputVen) inputVen.value = dvHint;
+    if (cbQ?.checked && inputComp?.value && inputVen) inputVen.value = inputComp.value;
     const hint = String(linha0.plano_hint || '').trim();
     const sugNome = String(linha0.plano_sugerido_nome || '').trim();
     const sugId = String(linha0.plano_sugerido_id || '').trim();
     const valStr = String(linha0.valor || '').trim();
     const descr = linha0.descricao ? String(linha0.descricao).trim() : '';
+    const wrapPl = tr.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
+    const inpPl = wrapPl ? wrapPl.querySelector('input[type="text"]') : null;
+    const hidPl = wrapPl ? wrapPl.querySelector('input[type="hidden"]') : null;
     if (hidPl) hidPl.value = '';
     if (sugNome && inpPl && hidPl) {
       inpPl.value = sugNome;
@@ -371,7 +417,9 @@
   function coletarLinhas() {
     const tipo = tipoAtual();
     const linhas = [];
+    let n = 0;
     document.querySelectorAll('#agro-ns-linhas .agro-ns-linha').forEach((row) => {
+      n += 1;
       const wrap = row.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
       const inpPl = wrap ? wrap.querySelector('input[type="text"]') : null;
       const hidPl = wrap ? wrap.querySelector('input[type="hidden"]') : null;
@@ -381,10 +429,23 @@
       const valor = vel ? String(vel.value || '').trim() : '';
       const dEl = row.querySelector('.agro-ns-in-desc');
       const descricao = dEl ? dEl.value.trim() : '';
+      const compEl = row.querySelector('.agro-ns-in-comp');
+      const venEl = row.querySelector('.agro-ns-in-ven');
+      const data_competencia = compEl ? compEl.value.trim() : '';
+      const data_vencimento = venEl ? venEl.value.trim() : '';
       const bEl = row.querySelector('.agro-ns-in-boleto');
       const boleto_raw = bEl ? bEl.value.trim() : '';
+      if (!plano_nome && !valor) return;
       if (plano_nome && valor) {
-        const item = { plano_conta: plano_nome, plano_conta_id: plano_id || null, valor, descricao: descricao || undefined };
+        const item = {
+          plano_conta: plano_nome,
+          plano_conta_id: plano_id || null,
+          valor,
+          descricao: descricao || undefined,
+          data_competencia,
+          data_vencimento: data_vencimento || data_competencia,
+          _num: n,
+        };
         if (tipo === 'pagar' && boleto_raw) item.boleto_codigo_barras = boleto_raw;
         linhas.push(item);
       }
@@ -395,13 +456,8 @@
   async function submitForm(ev) {
     ev.preventDefault();
     const tipo = tipoAtual();
-    const inputComp = $('agro-ns-data-comp');
-    const inputVen = $('agro-ns-data-ven');
     const cbQ = $('agro-ns-quitado');
-    const dc = (inputComp && inputComp.value || '').trim();
-    const dvRaw = (inputVen && inputVen.value || '').trim();
     const quitado = cbQ ? cbQ.checked : false;
-    const dv = dvRaw || dc;
     const empresa_nome = ($('agro-ns-empresa-nome')?.value || '').trim();
     const empresa_id = ($('agro-ns-empresa-id')?.value || '').trim();
     const pessoa_nome = ($('agro-ns-pessoa-nome')?.value || '').trim();
@@ -413,17 +469,26 @@
     const recorrente = $('agro-ns-recorrente')?.checked || false;
     const recMod = (document.querySelector('input[name="agro-ns-rec-modo"]:checked') || {}).value || 'sempre';
     const recParcelas = Math.max(1, Math.min(Number($('agro-ns-rec-parcelas')?.value || 1), 12));
-    const linhas = coletarLinhas();
+    const linhasRaw = coletarLinhas();
 
-    if (!dc || !dv) { alert('Informe competência e vencimento.'); return; }
     if (!empresa_nome || !pessoa_nome || !banco_nome) { alert('Preencha loja, pessoa e conta bancária.'); return; }
     if (quitado && !banco_id) { alert('Para lançar quitado, escolha uma conta com ID do ERP na lista.'); return; }
-    if (!linhas.length) { alert('Inclua ao menos uma linha com plano de conta e valor.'); return; }
+    if (!linhasRaw.length) { alert('Inclua ao menos uma linha com plano de conta e valor.'); return; }
+
+    for (let i = 0; i < linhasRaw.length; i += 1) {
+      const ln = linhasRaw[i];
+      if (!ln.data_competencia || !ln.data_vencimento) {
+        alert(`Linha ${ln._num || i + 1}: informe competência e vencimento.`);
+        return;
+      }
+    }
+    const linhas = linhasRaw.map(({ _num, ...rest }) => rest);
+    const { dc, dvMin, dvMax } = resumoDatasLinhas(linhas);
 
     const payload = {
       tipo,
       data_competencia: dc,
-      data_vencimento: dv,
+      data_vencimento: dvMin,
       empresa_nome,
       empresa_id: empresa_id || null,
       pessoa_nome,
@@ -490,13 +555,13 @@
         const dupLinha = dupBloq > 0 ? ('\n\nDuplicidade bloqueada: ' + dupBloq + ' lançamento(s).') : '';
         alert('Gravação parcial. IDs: ' + ids.join(', ') + det + dupLinha + erpLinha + dicaLista);
         fechar();
-        dispararSucesso(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
+        dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
         return;
       }
       const dupLinha = dupBloq > 0 ? ('\n\nDuplicidade bloqueada: ' + dupBloq + ' lançamento(s).') : '';
       alert('Lote gravado. IDs: ' + ids.join(', ') + dupLinha + erpLinha + dicaLista);
       fechar();
-      dispararSucesso(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
+      dispararSucesso(tipo, quitado, dc, dvMin, dvMax, ids[0] || '');
     } catch (_) {
       alert('Erro de rede. Confira em Lançamentos se o lote já foi gravado antes de tentar outra vez.');
     } finally {
@@ -507,8 +572,8 @@
     }
   }
 
-  function dispararSucesso(tipo, quitado, dc, dv, dvRaw, idMongo) {
-    const url = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, idMongo);
+  function dispararSucesso(tipo, quitado, dc, dvMin, dvMax, idMongo) {
+    const url = urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo);
     if (typeof window.agroNovaSaidaOnSuccess === 'function') {
       window.agroNovaSaidaOnSuccess({ tipo, quitado, url, idMongo });
       return;
@@ -532,10 +597,6 @@
     const tipo = opts.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncColBoletoVis();
-    const inputComp = $('agro-ns-data-comp');
-    const inputVen = $('agro-ns-data-ven');
-    if (inputComp && !inputComp.value) inputComp.value = todayISO();
-    if (inputVen && !inputVen.value && inputComp) inputVen.value = inputComp.value;
     resetIdempotency();
     ov.classList.remove('hidden');
     ov.setAttribute('aria-hidden', 'false');
@@ -549,21 +610,12 @@
     const ov = $('agro-nova-saida-overlay');
     if (!ov) return;
 
-    resetLinhas(1);
+    resetLinhas(3);
     resetIdempotency();
-
-    const inputComp = $('agro-ns-data-comp');
-    const inputVen = $('agro-ns-data-ven');
-    if (inputComp && !inputComp.value) inputComp.value = todayISO();
-    if (inputVen && !inputVen.value && inputComp) inputVen.value = inputComp.value;
 
     ov.querySelectorAll('.agro-ns-sug-wrap').forEach(attachSuggest);
 
     $('agro-ns-quitado')?.addEventListener('change', syncQuitadoVenc);
-    inputComp?.addEventListener('change', () => {
-      const cbQ = $('agro-ns-quitado');
-      if (cbQ && cbQ.checked && inputVen) inputVen.value = inputComp.value;
-    });
 
     $('agro-ns-recorrente')?.addEventListener('change', syncRecOpts);
     document.querySelectorAll('input[name="agro-ns-rec-modo"]').forEach((r) => r.addEventListener('change', syncRecOpts));
