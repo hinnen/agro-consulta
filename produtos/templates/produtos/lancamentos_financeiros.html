@@ -191,7 +191,7 @@
         <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
         <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo (Postgres)">Indicadores</a>
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
-        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
+        <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="gm-lanc-nav-link gm-lanc-nav-accent cursor-pointer" title="Novo lançamento de saída (despesa)">Nova saída</button>
         {% if lancamentos_dre_ativo %}
         <a href="{% url 'lancamentos_dre' %}" data-prefetch class="gm-lanc-nav-link" title="DRE por plano">DRE</a>
         {% endif %}
@@ -2925,7 +2925,19 @@
         carregarPlanos().then(() => carregar());
       }
     });
+    window.agroNovaSaidaOnSuccess = function (info) {
+      if (typeof carregar === 'function') {
+        if (info && info.quitado) {
+          const st = document.getElementById('f-status');
+          if (st) st.value = 'todos';
+        }
+        carregar();
+        return;
+      }
+      if (info && info.url) window.location.href = info.url;
+    };
   </script>
+{% include "produtos/includes/lancamento_nova_saida_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/includes/lancamentos_pin_entrada.html" %}
 </body>

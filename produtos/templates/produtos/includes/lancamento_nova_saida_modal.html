@@ -1,0 +1,201 @@
+{% load static %}
+{# Modal «Nova saída» — lançamento financeiro manual em lote (90 % viewport). #}
+<div id="agro-nova-saida-overlay"
+     class="hidden fixed inset-0 z-[250] flex items-center justify-center p-2 sm:p-4 bg-slate-900/55 backdrop-blur-sm"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="agro-ns-titulo"
+     aria-hidden="true">
+  <div class="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-[90vw] max-h-[95vh] flex flex-col overflow-hidden border border-slate-200">
+    <div class="px-5 sm:px-8 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50 shrink-0">
+      <div class="flex flex-wrap items-center gap-3 min-w-0">
+        <h2 id="agro-ns-titulo" class="text-xl sm:text-2xl font-bold text-slate-800">Novo Lançamento</h2>
+        <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl border border-slate-200" role="group" aria-label="Tipo do lançamento">
+          <label class="cursor-pointer">
+            <input type="radio" name="agro-ns-tipo" value="pagar" class="sr-only peer" checked>
+            <span class="block px-3 py-1.5 rounded-lg text-xs font-black uppercase peer-checked:bg-amber-600 peer-checked:text-white text-slate-500 transition-colors">Pagar</span>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="agro-ns-tipo" value="receber" class="sr-only peer">
+            <span class="block px-3 py-1.5 rounded-lg text-xs font-black uppercase peer-checked:bg-emerald-600 peer-checked:text-white text-slate-500 transition-colors">Receber</span>
+          </label>
+        </div>
+      </div>
+      <button type="button" id="agro-ns-fechar" class="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-lg" aria-label="Fechar">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <form id="agro-ns-form" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+      {% csrf_token %}
+      <div class="p-5 sm:p-8 overflow-y-auto flex-1 min-h-0 agro-ns-scroll">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-6">
+          <div class="flex flex-col space-y-2">
+            <label class="text-sm font-semibold text-slate-700" for="agro-ns-empresa-nome">Loja</label>
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="empresa">
+              <input type="text" id="agro-ns-empresa-nome" placeholder="Buscar loja..." autocomplete="off"
+                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 text-base transition-shadow">
+              <input type="hidden" id="agro-ns-empresa-id">
+              <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] max-h-[200px] overflow-y-auto"></ul>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-2">
+            <label class="text-sm font-semibold text-slate-700" for="agro-ns-pessoa-nome">Pessoa (Cliente/Fornecedor)</label>
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="cliente">
+              <input type="text" id="agro-ns-pessoa-nome" placeholder="Buscar pessoa..." autocomplete="off"
+                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 text-base transition-shadow">
+              <input type="hidden" id="agro-ns-pessoa-id">
+              <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] max-h-[200px] overflow-y-auto"></ul>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-2">
+            <label class="text-sm font-semibold text-slate-700" for="agro-ns-banco-nome">Conta Bancária / Caixa</label>
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="banco">
+              <input type="text" id="agro-ns-banco-nome" placeholder="Buscar conta..." autocomplete="off"
+                     class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 text-base transition-shadow">
+              <input type="hidden" id="agro-ns-banco-id">
+              <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] max-h-[200px] overflow-y-auto"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <label class="flex flex-col space-y-2" id="agro-ns-wrap-comp">
+            <span class="text-sm font-semibold text-slate-700">Competência</span>
+            <input type="date" id="agro-ns-data-comp" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-base">
+          </label>
+          <label class="flex flex-col space-y-2" id="agro-ns-wrap-venc">
+            <span class="text-sm font-semibold text-amber-700">Vencimento</span>
+            <input type="date" id="agro-ns-data-ven" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-slate-800 text-base">
+          </label>
+        </div>
+
+        <div class="mb-6 p-4 sm:p-5 bg-sky-50 border border-sky-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-semibold text-sky-900 text-base sm:text-lg">Situação do Lançamento</h3>
+            <p class="text-sm text-sky-700 mt-0.5">Marque caso esta dívida já tenha sido paga ou recebida.</p>
+          </div>
+          <label class="flex items-center gap-3 cursor-pointer shrink-0">
+            <span class="relative inline-flex w-14 h-8 shrink-0">
+              <input type="checkbox" id="agro-ns-quitado" class="sr-only peer">
+              <span class="block w-full h-full bg-slate-300 rounded-full peer-checked:bg-sky-600 transition-colors" aria-hidden="true"></span>
+              <span class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full shadow transition-transform peer-checked:translate-x-6 pointer-events-none" aria-hidden="true"></span>
+            </span>
+            <span class="font-semibold text-slate-800 text-base">Lançar Quitado</span>
+          </label>
+        </div>
+
+        <details class="mb-6 rounded-xl border border-slate-200 bg-white overflow-hidden group">
+          <summary class="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 select-none list-none">
+            <span class="text-slate-400 group-open:rotate-90 transition-transform inline-block" aria-hidden="true">▸</span>
+            Recorrência e preenchimento por texto
+          </summary>
+          <div class="px-4 pb-4 pt-1 border-t border-slate-100 space-y-4">
+            <div id="agro-ns-rec-bloco" class="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="agro-ns-recorrente" class="w-5 h-5 rounded border-slate-300 text-blue-600">
+                <span class="text-sm font-semibold text-blue-900">Recorrência mensal</span>
+              </label>
+              <div id="agro-ns-rec-opts" class="space-y-2 opacity-45">
+                <fieldset class="rounded-xl border border-blue-100 bg-white/80 px-3 py-2 space-y-2">
+                  <legend class="text-xs font-bold uppercase text-blue-600 px-1">Modo</legend>
+                  <label class="flex items-start gap-2 cursor-pointer text-sm text-slate-800">
+                    <input type="radio" name="agro-ns-rec-modo" value="sempre" checked class="mt-1 accent-blue-600">
+                    <span><strong>Sempre</strong> — um título por linha; próximo só após quitar.</span>
+                  </label>
+                  <label class="flex items-start gap-2 cursor-pointer text-sm text-slate-800">
+                    <input type="radio" name="agro-ns-rec-modo" value="normal" class="mt-1 accent-blue-600">
+                    <span><strong>Normal</strong> — N títulos já criados, um mês após o outro.</span>
+                  </label>
+                </fieldset>
+                <div id="agro-ns-rec-contagem" class="hidden">
+                  <label class="block text-xs font-bold uppercase text-blue-600 mb-1">Quantidade</label>
+                  <select id="agro-ns-rec-parcelas" class="w-full max-w-xs px-3 py-2 rounded-lg border border-blue-100 text-sm font-semibold bg-white" disabled>
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+              <label class="flex-1 min-w-0">
+                <span class="text-xs font-semibold text-slate-600 block mb-1">Preencher pela frase</span>
+                <input type="text" id="agro-ns-nlp-texto" autocomplete="off" placeholder="Ex.: conta a pagar energia 479,03 22/04/2026"
+                       class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base focus:ring-2 focus:ring-indigo-500">
+              </label>
+              <button type="button" id="agro-ns-btn-nlp" class="shrink-0 px-5 py-3 rounded-xl border-2 border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-black uppercase hover:bg-indigo-600 hover:text-white transition-colors">Preencher</button>
+            </div>
+            <div id="agro-ns-nlp-escl" class="hidden rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-3 space-y-3">
+              <p id="agro-ns-nlp-motivo" class="text-sm font-semibold text-indigo-950"></p>
+              <div id="agro-ns-nlp-campos" class="space-y-3"></div>
+              <button type="button" id="agro-ns-nlp-aplicar" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-black uppercase">Responder e preencher</button>
+            </div>
+          </div>
+        </details>
+
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div class="bg-slate-800 px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap justify-between items-center gap-3">
+            <h3 class="font-bold text-white text-base sm:text-lg">Itens do Lançamento</h3>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
+                <input type="text" id="agro-ns-forma-nome" placeholder="Forma pagto..." autocomplete="off"
+                       class="h-10 w-36 sm:w-44 px-3 rounded-lg border border-slate-500 bg-slate-700 text-white text-xs font-semibold placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-400">
+                <input type="hidden" id="agro-ns-forma-id">
+                <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] min-w-[12rem] max-h-[200px] overflow-y-auto"></ul>
+              </div>
+              <button type="button" id="agro-ns-add-linha" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Adicionar linha
+              </button>
+            </div>
+          </div>
+          <div id="agro-ns-linhas" class="p-4 sm:p-6 bg-slate-50 space-y-4"></div>
+        </div>
+      </div>
+
+      <div class="px-5 sm:px-8 py-4 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div>
+          <span class="block text-xs font-bold uppercase text-slate-500 tracking-wide">Total do lote</span>
+          <span id="agro-ns-total" class="text-2xl font-black text-emerald-600 tabular-nums">R$ 0,00</span>
+        </div>
+        <div class="flex flex-wrap justify-end gap-3">
+          <button type="button" id="agro-ns-cancelar" class="px-5 sm:px-6 py-3 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" id="agro-ns-submit" class="px-6 sm:px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-colors text-base sm:text-lg">
+            Finalizar Lançamento
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .agro-ns-scroll::-webkit-scrollbar { width: 6px; }
+  .agro-ns-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+  .agro-ns-linha { border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+  .agro-ns-linha:last-child { border-bottom: 0; padding-bottom: 0; }
+  .agro-ns-sug-dd li { padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+  .agro-ns-sug-dd li:hover { background: #ecfdf5; }
+  .agro-ns-sug-dd li:last-child { border-bottom: 0; }
+</style>
+
+<script>
+  window.AGRO_NOVA_SAIDA_CFG = {
+    apiSug: "{% url 'api_lancamentos_sugestoes' %}",
+    apiTexto: "{% url 'api_lancamentos_interpretar_texto' %}",
+    apiCriar: "{% url 'api_lancamentos_criar_manual_lote' %}",
+    urlListaPagar: "{% url 'lancamentos_contas_pagar' %}",
+    urlListaReceber: "{% url 'lancamentos_contas_receber' %}"
+  };
+</script>
+<script src="{% static 'produtos/js/lancamento_nova_saida.js' %}" defer></script>
