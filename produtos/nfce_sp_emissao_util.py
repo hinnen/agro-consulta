@@ -668,6 +668,9 @@ def emitir_nfce_para_venda(
     st = NfceDocumentoAgro.Status.AUTORIZADA if ret.get("autorizada") else NfceDocumentoAgro.Status.REJEITADA
     signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
     xml_save = ret.get("xml_nfeproc") or signed_com_qr
+    mensagem_sefaz = f"{ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —")
+    if ret.get("c_stat") == "270":
+        mensagem_sefaz += f" (NFC_E_CMUN={cfg['cmun']}; Jacupiranga/SP=3524600)"
     doc = NfceDocumentoAgro.objects.create(
         venda=venda,
         status=st,
@@ -677,7 +680,7 @@ def emitir_nfce_para_venda(
         protocolo=ret.get("protocolo") or "",
         xml_autorizado=xml_save,
         qr_code_url=qr_url,
-        mensagem_sefaz=f"{ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —"),
+        mensagem_sefaz=mensagem_sefaz,
         tp_amb=int(cfg["tp_amb"]),
         dest_cpf=cpf,
         consumidor_sem_identificacao=sem_identificacao,

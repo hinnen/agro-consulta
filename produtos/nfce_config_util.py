@@ -101,4 +101,6 @@ def nfce_config_resumo() -> dict[str, Any]:
         "serie": c["serie"],
         "cnpj": c["cnpj"][:8] + "…" if len(c["cnpj"]) == 14 else "",
         "uf": c["uf"],
+        "cmun": c["cmun"],
+        "cidade": c["cidade"],
     }
