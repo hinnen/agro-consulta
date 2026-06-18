@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from financeiro.views import dashboard_financeiro_completo
 
-from . import promocoes_views, views, views_mp_point
+from . import promocoes_views, views, views_mp_point, views_nfce
 from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
@@ -118,6 +118,7 @@ urlpatterns = [
         name='api_etiquetas_historico_detalhe',
     ),
     path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
+    path('contabilidade/', views_nfce.contabilidade_painel, name='contabilidade_painel'),
     path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
     path(
         'entrada-nota/',
@@ -223,6 +224,23 @@ urlpatterns = [
         views.api_venda_agro_cupom,
         name='api_venda_agro_cupom',
     ),
+    path(
+        'venda/<int:pk>/nfce/cupom/',
+        views_nfce.api_venda_agro_nfce_cupom,
+        name='api_venda_agro_nfce_cupom',
+    ),
+    path(
+        'venda/<int:pk>/nfce/',
+        views_nfce.api_venda_agro_nfce_info,
+        name='api_venda_agro_nfce_info',
+    ),
+    path(
+        'venda/<int:pk>/nfce/emitir/',
+        views_nfce.api_venda_agro_nfce_emitir,
+        name='api_venda_agro_nfce_emitir',
+    ),
+    path('api/nfce/status/', views_nfce.api_nfce_status, name='api_nfce_status'),
+    path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
     path(
         'venda/<int:pk>/erp-envio/',
         views.api_venda_agro_erp_envio_info,
@@ -387,6 +405,11 @@ urlpatterns = [
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/lancamentos/', views.api_lancamentos_lista, name='api_lancamentos_lista'),
     path(
+        'api/lancamentos/log/',
+        views.api_lancamentos_log,
+        name='api_lancamentos_log',
+    ),
+    path(
         'api/lancamentos/export-csv/',
         views.api_lancamentos_export_csv,
         name='api_lancamentos_export_csv',
@@ -405,6 +428,11 @@ urlpatterns = [
         'api/lancamentos/backup-completo.xlsx',
         views.api_lancamentos_backup_completo_xlsx,
         name='api_lancamentos_backup_completo_xlsx',
+    ),
+    path(
+        'api/lancamentos/backup-abertos.zip',
+        views.api_lancamentos_backup_abertos_xlsx,
+        name='api_lancamentos_backup_abertos_xlsx',
     ),
     path(
         'api/lancamentos/congelamento-status/',

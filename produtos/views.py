@@ -12999,10 +12999,18 @@ def api_lancamentos_congelamento_status(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_backup_completo_xlsx(request):
-    """
-    Backup completo antes do corte ERP.
-    Padrão: ZIP com CSV (leve). ``?formato=xlsx`` descontinuado — use ZIP.
-    """
+    """Backup completo (todos) antes do corte ERP — ZIP com CSV."""
+    return _api_lancamentos_backup_zip_resposta(request, somente_abertos=False)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_backup_abertos_xlsx(request):
+    """Backup só em aberto (mesmo filtro da lista Lançamentos) — ZIP com CSV."""
+    return _api_lancamentos_backup_zip_resposta(request, somente_abertos=True)
+
+
+def _api_lancamentos_backup_zip_resposta(request, *, somente_abertos: bool):
     err = _lancamentos_pre_corte_admin_ok(request)
     if err:
         return err
@@ -13014,6 +13022,7 @@ def api_lancamentos_backup_completo_xlsx(request):
     blob, stats = montar_zip_backup_completo(
         db,
         gerado_por=getattr(request.user, "username", "") or "",
+        somente_abertos=somente_abertos,
     )
     if not stats.get("ok"):
         return HttpResponse(
@@ -13021,7 +13030,7 @@ def api_lancamentos_backup_completo_xlsx(request):
             status=500,
             content_type="text/plain; charset=utf-8",
         )
-    nome = nome_arquivo_backup_completo("zip")
+    nome = nome_arquivo_backup_completo("zip", somente_abertos=somente_abertos)
     resp = HttpResponse(blob, content_type="application/zip")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp

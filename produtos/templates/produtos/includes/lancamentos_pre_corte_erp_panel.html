@@ -11,14 +11,18 @@
     Carregando status…
   </p>
   <ol class="text-[11px] font-semibold text-slate-700 space-y-1.5 list-decimal list-inside">
-    <li><strong>Passo 1</strong> — Baixar backup ZIP (CSV separados: pagar, receber, fiado)</li>
+    <li><strong>Passo 1</strong> — Baixar backup ZIP (todos ou <strong>só em aberto</strong>)</li>
     <li><strong>Passo 2</strong> — Checkpoint (trava o retrato; valores não mudam)</li>
     <li><strong>Depois do deploy</strong> — Peça à loja para não usar Lançamentos por algumas horas; avise o suporte do ERP para parar de atualizar financeiro</li>
   </ol>
   <div class="flex flex-wrap gap-2">
     <button type="button" id="agro-lanc-btn-backup-xlsx"
       class="min-h-[48px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
-      Baixar backup (ZIP)
+      Baixar backup (todos)
+    </button>
+    <button type="button" id="agro-lanc-btn-backup-abertos"
+      class="min-h-[48px] px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
+      Baixar backup (em aberto)
     </button>
     <button type="button" id="agro-lanc-btn-congelar"
       class="min-h-[48px] px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
@@ -33,6 +37,7 @@
   window.__agroLancPreCorteBound = true;
   var URL_STATUS = "{% url 'api_lancamentos_congelamento_status' %}";
   var URL_BACKUP = "{% url 'api_lancamentos_backup_completo_xlsx' %}";
+  var URL_BACKUP_ABERTOS = "{% url 'api_lancamentos_backup_abertos_xlsx' %}";
   var URL_CONGELAR = "{% url 'api_lancamentos_congelar_pre_corte' %}";
   function $(id) { return document.getElementById(id); }
   function getCookie(n) {
@@ -68,10 +73,10 @@
       .then(function (j) { box.textContent = fmtStatus(j); return j; })
       .catch(function () { box.textContent = 'Erro ao carregar status.'; });
   }
-  function baixarBackup() {
+  function baixarBackup(url) {
     showMsg('Gerando ZIP… pode levar um minuto. Aguarde.', true);
     if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
-    window.location.href = URL_BACKUP;
+    window.location.href = url || URL_BACKUP;
     setTimeout(function () {
       if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
       showMsg('Se o download não começar, tente de novo ou use outro navegador.', true);
@@ -117,7 +122,8 @@
   }
   document.addEventListener('DOMContentLoaded', function () {
     refreshStatus();
-    $('agro-lanc-btn-backup-xlsx')?.addEventListener('click', baixarBackup);
+    $('agro-lanc-btn-backup-xlsx')?.addEventListener('click', function () { baixarBackup(URL_BACKUP); });
+    $('agro-lanc-btn-backup-abertos')?.addEventListener('click', function () { baixarBackup(URL_BACKUP_ABERTOS); });
     $('agro-lanc-btn-congelar')?.addEventListener('click', congelar);
   });
 })();
