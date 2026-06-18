@@ -6603,3 +6603,25 @@ def congelar_lancamentos_financeiro_agro(
         upsert=True,
     )
     return out
+
+
+def financeiro_congelamento_status(db) -> dict[str, Any]:
+    """Estado do checkpoint (congelamento) antes do corte ERP."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    col = db[COL_DTO_LANCAMENTO]
+    total = int(col.estimated_document_count())
+    marcados = int(col.count_documents({AGRO_FONTE_VERDADE: True}))
+    ctrl = db[COL_AGRO_FINANCEIRO_CONTROLE].find_one({"_id": "financeiro_agro"}) or {}
+    congelado_em = ctrl.get("congelado_em")
+    from produtos.agro_fonte_config import agro_financeiro_mongo_congelado
+
+    return {
+        "ok": True,
+        "total_titulos_estimado": total,
+        "marcados_fonte_agro": marcados,
+        "todos_marcados": total > 0 and marcados >= total,
+        "congelado_em": _serializar_dt(congelado_em) if congelado_em else None,
+        "usuario_congelamento": (ctrl.get("usuario") or "")[:200],
+        "env_mongo_congelado": agro_financeiro_mongo_congelado(),
+    }

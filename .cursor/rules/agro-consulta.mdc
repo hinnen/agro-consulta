@@ -7,7 +7,18 @@ alwaysApply: true
 
 ## Fonte completa
 
-Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). **Lançamentos** (filtros / busca na lista): **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Tamanho da tela / monitores:** **§11** (`Agro Display Scale`). Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+**Chat (Renan):** anexar **`@banana`** (`banana.md` na raiz). **Referência profunda:** **`AGENTS.md`**. **Não perguntar** se deve atualizar o AGENTS; WIP → banana; AGENTS §7 só se o usuário pedir.
+
+## Memória viva — `banana.md` (automático)
+
+- **Novo chat sem contexto:** ler `banana.md` (CHECKPOINT + §4.15 desvinculação ERP) antes de trabalhar; Renan não precisa pedir.
+- **Atualizar sem consultar Renan** quando a sessão trouxer algo **persistente** — decisão de produto, roadmap, pendência nova/fechada, WIP relevante, ordem de migração, bug recorrente diagnosticado, entrega commitada em módulo grande.
+- **Onde gravar:** CHECKPOINT (WIP, pendências, instruções) e seção de módulo afetada (ex. §4.15); não inflar — tabelas curtas.
+- **Não perguntar** *"atualizo a banana?"* — fazer no fim da tarefa ou ao fechar tópico importante.
+- **Não atualizar** por detalhe de implementação passageiro, tentativa descartada ou conversa só explicativa sem decisão.
+- Renan ainda pode pedir *"atualize a banana"* explicitamente; `AGENTS.md` §7 continua **só** quando ele pedir.
+
+Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html`. **Lançamentos**: **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Monitores:** **§11** (`Agro Display Scale`).
 
 ## UX (resumo)
 
@@ -25,6 +36,7 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - **Antes de editar:** uma linha com o plano.
 - **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
 - Preferir **um patch coeso** por entrega.
+- **Commit em `teste`/`producao`:** incluir bump de `VERSION` (`scripts/bump_version.py` ou hook `.githooks`).
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
 ## TESTE vs PRODUÇÃO

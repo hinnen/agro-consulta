@@ -1,0 +1,125 @@
+{% if lancamentos_pre_corte_admin %}
+{# Painel provisório — backup + checkpoint antes de cortar vínculo ERP (só admin). #}
+<div id="agro-lanc-pre-corte-panel" class="rounded-xl border-2 border-amber-400 bg-amber-50/95 p-3 sm:p-4 space-y-3 text-left shadow-sm">
+  <div>
+    <p class="text-xs sm:text-sm font-black uppercase text-amber-950 tracking-tight">Segurança — antes de cortar o ERP</p>
+    <p class="text-[11px] sm:text-xs font-semibold text-amber-900/90 mt-1 leading-snug">
+      Nada é apagado. Primeiro baixe o Excel no seu PC; depois faça o checkpoint. Só então subimos a atualização e você combina com a loja.
+    </p>
+  </div>
+  <p id="agro-lanc-pre-corte-status" class="text-[11px] font-bold text-slate-800 rounded-lg bg-white/80 border border-amber-200/80 px-3 py-2 min-h-[2.5rem]">
+    Carregando status…
+  </p>
+  <ol class="text-[11px] font-semibold text-slate-700 space-y-1.5 list-decimal list-inside">
+    <li><strong>Passo 1</strong> — Baixar backup Excel (todos os títulos, pagar e receber)</li>
+    <li><strong>Passo 2</strong> — Checkpoint (trava o retrato; valores não mudam)</li>
+    <li><strong>Depois do deploy</strong> — Peça à loja para não usar Lançamentos por algumas horas; avise o suporte do ERP para parar de atualizar financeiro</li>
+  </ol>
+  <div class="flex flex-wrap gap-2">
+    <button type="button" id="agro-lanc-btn-backup-xlsx"
+      class="min-h-[48px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
+      Baixar backup Excel
+    </button>
+    <button type="button" id="agro-lanc-btn-congelar"
+      class="min-h-[48px] px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] sm:text-xs uppercase shadow-md">
+      Fazer checkpoint
+    </button>
+  </div>
+  <p id="agro-lanc-pre-corte-msg" class="hidden text-[11px] font-bold rounded-lg px-3 py-2"></p>
+</div>
+<script>
+(function () {
+  if (window.__agroLancPreCorteBound) return;
+  window.__agroLancPreCorteBound = true;
+  var URL_STATUS = "{% url 'api_lancamentos_congelamento_status' %}";
+  var URL_BACKUP = "{% url 'api_lancamentos_backup_completo_xlsx' %}";
+  var URL_CONGELAR = "{% url 'api_lancamentos_congelar_pre_corte' %}";
+  function $(id) { return document.getElementById(id); }
+  function getCookie(n) {
+    var m = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+  function fmtStatus(st) {
+    if (!st || !st.ok) return 'Não foi possível ler o status.';
+    var linhas = [];
+    linhas.push('Títulos no sistema: ~' + (st.total_titulos_estimado || 0));
+    if (st.todos_marcados) {
+      linhas.push('Checkpoint: FEITO' + (st.congelado_em ? ' em ' + String(st.congelado_em).slice(0, 16).replace('T', ' ') : ''));
+    } else {
+      linhas.push('Checkpoint: ainda não feito (' + (st.marcados_fonte_agro || 0) + ' já marcados)');
+    }
+    return linhas.join(' · ');
+  }
+  function showMsg(txt, ok) {
+    var el = $('agro-lanc-pre-corte-msg');
+    if (!el) return;
+    el.textContent = txt || '';
+    el.classList.remove('hidden', 'bg-red-50', 'text-red-900', 'border-red-200', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200', 'border');
+    if (!txt) { el.classList.add('hidden'); return; }
+    el.classList.add('border');
+    if (ok) el.classList.add('bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+    else el.classList.add('bg-red-50', 'text-red-900', 'border-red-200');
+  }
+  function refreshStatus() {
+    var box = $('agro-lanc-pre-corte-status');
+    if (!box) return Promise.resolve();
+    return fetch(URL_STATUS, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { box.textContent = fmtStatus(j); return j; })
+      .catch(function () { box.textContent = 'Erro ao carregar status.'; });
+  }
+  function baixarBackup() {
+    showMsg('Gerando Excel… pode levar um minuto. Aguarde.', true);
+    if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+    window.location.href = URL_BACKUP;
+    setTimeout(function () {
+      if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+      showMsg('Se o download não começar, tente de novo ou use outro navegador.', true);
+    }, 8000);
+  }
+  function congelar() {
+    var ok1 = window.confirm(
+      'Checkpoint: marca todos os títulos como protegidos no SisVale.\n\n' +
+      'NÃO apaga nada e NÃO muda valores.\n\n' +
+      'Você já baixou o Excel no seu computador?'
+    );
+    if (!ok1) return;
+    var ok2 = window.prompt('Para confirmar, digite a palavra: CONGELAR');
+    if (String(ok2 || '').trim().toUpperCase() !== 'CONGELAR') {
+      showMsg('Cancelado — é preciso digitar CONGELAR.', false);
+      return;
+    }
+    showMsg('Gravando checkpoint…', true);
+    if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+    fetch(URL_CONGELAR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ confirmar: 'CONGELAR' })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+        if (!x.ok || !x.j.ok) {
+          showMsg(x.j.erro || 'Falha no checkpoint.', false);
+          return;
+        }
+        showMsg(x.j.mensagem || 'Checkpoint concluído.', true);
+        refreshStatus();
+      })
+      .catch(function () {
+        if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+        showMsg('Erro de rede ao fazer checkpoint.', false);
+      });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    refreshStatus();
+    $('agro-lanc-btn-backup-xlsx')?.addEventListener('click', baixarBackup);
+    $('agro-lanc-btn-congelar')?.addEventListener('click', congelar);
+  });
+})();
+</script>
+{% endif %}

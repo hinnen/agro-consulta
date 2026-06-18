@@ -375,17 +375,15 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ### URGENTE — PDV carrinho some ao bipar alguns itens (2026-06-18)
 
-**Sintoma:** em `/consulta/`, ao bipar certos produtos (ex. **GM1518-125-3**, **GM1541-5**, **GM4579**), o carrinho perde itens (0–1 de 5). Etiquetas antigas e **novas SisVale** — leitor manda **texto GM** (com hífen), não EAN numérico.
+**Sintoma:** em `/consulta/`, ao bipar certos produtos (ex. **GM1518-125-3** etiqueta antiga, **GM15415S** Ibiúna ensacada, **GM4579**), o carrinho perde itens (0–1 de 5). Leitor manda **texto GM** (hífen/sufixo na etiqueta), não EAN numérico.
 
-**Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` de `GM1541-5` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho) após bip longo; (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
+**Correção Renan (2026-06-18):** Ibiúna ensacada = **`GM15415S`** no cadastro — **não** `GM1541-5` (etiqueta errada enviada antes). Na impressão SisVale pode aparecer **`GM1541-5S`** abaixo do barras; o match usa alnum (`gm15415s`).
 
-**Patch v1.08:** backup sessionStorage + Id — **insuficiente** para GM com hífen.
+**Causa provável (2ª rodada):** (1) match frouxo por **dígitos parciais** (`15415` casava produto errado); (2) sufixo do leitor (**F4** = limpar carrinho); (3) GM não entrava no modo scanner (`pareceCodigo` só numérico).
 
-**Patch v1.09 (teste):** `_js_busca_produto_inteligente.html` + `consulta_produtos.js` — match **exato** GM (`GM1541-5` / alnum `gm15415`), modo scanner para `GM…`, bloqueio F4 **1,5 s** + não limpar com código ainda no campo, Enter prioriza GM exato.
+**Patch v1.09 (teste):** match **exato** GM (com hífen/sufixo → alnum `gm15415s`), modo scanner `GM…`, bloqueio F4 **1,5 s**.
 
-**Commit `teste`:** `9e6f883` · v1.08 — validado: **não resolveu** GM com hífen.
-
-**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM1541-5 GM1518-125-3`
+**Diagnóstico Mongo:** `python manage.py pdv_diagnostico_codigo GM15415S GM1518-125-3`
 
 ### Produção — só este patch (aguardar OK do Renan no staging)
 
@@ -398,7 +396,7 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 **Teste no staging (`agro-consulta-staging`):**
 
-1. `/consulta/` — 3+ itens no carrinho → bipar **GM1541-5** e **GM1518-125-3** → carrinho **não** pode zerar; produto certo entra.
+1. `/consulta/` — 3+ itens → bipar **GM15415S** (Ibiúna; etiqueta pode ler `GM1541-5S`) e **GM1518-125-3** → carrinho **não** zera; produto certo entra.
 2. Se aparecer aviso vermelho “sem ID” → **Estoque** (sync) e repetir.
 3. (Opcional) Shell Render: `python manage.py pdv_diagnostico_codigo GM4579 GM15181253`
 
