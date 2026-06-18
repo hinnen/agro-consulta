@@ -89,6 +89,13 @@ def lancamentos_coletar_backup_completo(db) -> dict[str, Any]:
         partes["receber"]
     )
     partes["limite"] = cap
+    try:
+        col = db[COL_DTO_LANCAMENTO]
+        partes["mongo_bruto_pagar"] = int(col.count_documents({"Despesa": True}))
+        partes["mongo_bruto_receber"] = int(col.count_documents({"Despesa": False}))
+    except Exception:
+        partes["mongo_bruto_pagar"] = None
+        partes["mongo_bruto_receber"] = None
     return partes
 
 
@@ -96,6 +103,17 @@ def _escrever_aba(ws, linhas: list[dict], *, despesa: bool) -> None:
     head_font = Font(bold=True)
     label_mov = "Pago" if despesa else "Recebido"
     label_saldo = "A pagar" if despesa else "A receber"
+    if not linhas:
+        tit = "A pagar" if despesa else "A receber"
+        ws["A1"] = f"Nenhum título em «{tit}» no financeiro (Mongo/ERP)."
+        ws["A1"].font = head_font
+        ws["A2"] = (
+            "Isso é normal se a loja não usa Contas a receber neste módulo. "
+            "O fiado do PDV é outro sistema (Postgres) — não entra nesta planilha; "
+            "backup do fiado fica na tela Fiado do PDV."
+        )
+        ws["A2"].alignment = Alignment(wrap_text=True, vertical="top")
+        return
     headers = (
         "ID SisVale",
         "ID ERP",
@@ -185,14 +203,26 @@ def montar_xlsx_backup_completo(
     ws_i["B7"] = len(dados.get("pagar") or [])
     ws_i["A8"] = "Linhas exportadas (receber)"
     ws_i["B8"] = len(dados.get("receber") or [])
+    if dados.get("mongo_bruto_receber") is not None:
+        ws_i["A9"] = "Documentos a receber no espelho (bruto)"
+        ws_i["B9"] = dados.get("mongo_bruto_receber")
+    if dados.get("mongo_bruto_pagar") is not None:
+        ws_i["A10"] = "Documentos a pagar no espelho (bruto)"
+        ws_i["B10"] = dados.get("mongo_bruto_pagar")
+    ws_i["A12"] = "Fiado do PDV"
+    ws_i["B12"] = (
+        "Não incluído aqui. Módulo separado (/fiado/). "
+        "Contas a receber deste backup = financeiro legado (boletos, recebíveis ERP etc.)."
+    )
+    ws_i["B12"].alignment = Alignment(wrap_text=True, vertical="top")
     if dados.get("truncado"):
-        ws_i["A10"] = "Atenção"
-        ws_i["B10"] = (
+        ws_i["A14"] = "Atenção"
+        ws_i["B14"] = (
             f"Lista truncada no limite de {dados.get('limite')} por aba. "
             "Avise o suporte se a loja tiver mais títulos."
         )
-    ws_i["A12"] = "Uso"
-    ws_i["B12"] = (
+    ws_i["A16"] = "Uso"
+    ws_i["B16"] = (
         "Guarde este arquivo no seu computador antes de congelar/cortar vínculo com o ERP. "
         "Não apaga nem altera nada no sistema."
     )
