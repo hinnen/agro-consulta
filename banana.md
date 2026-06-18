@@ -354,10 +354,10 @@ Rotas: `api/lancamentos/backup-completo.xlsx` · `congelamento-status/` · `cong
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.7`  
+**Versão:** `1.0.8`  
 **Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (checkpoint NFC-e + banana → teste)  
-**Versão app (`VERSION`):** `1.14` (próximo commit)
+**Atualizado por:** assistente Cursor (etiquetas 230 + barras internos → teste)  
+**Versão app (`VERSION`):** `1.20` · `origin/teste` (`5c6590a`)
 
 ### O que este documento já cobre (até aqui)
 
@@ -438,6 +438,8 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 **Sintoma:** barras 13 dígitos com DV errado → preview só preço cortado, sem barras.
 
 **Correção:** `produtos_etiquetas_core.js` — valida/corrige DV, fallback CODE128, CSS 40×40 mm; modal cadastro avisa DV corrigido (âmbar).
+
+**Staging (`teste`):** `5bcc05d` v1.19 + `5c6590a` v1.20 — faixa **230…** interno loja = CODE128 (não EAN13). **Ctrl+F5** cadastro após deploy Render.
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
