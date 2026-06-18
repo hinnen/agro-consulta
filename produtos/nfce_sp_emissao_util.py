@@ -25,6 +25,7 @@ from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro,
 from produtos.nfce_config_util import nfce_cfg, nfce_configurada
 from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_xml_envio
 from produtos.sefaz_ssl_util import sefaz_requests_verify
+from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
 
 logger = logging.getLogger(__name__)
@@ -190,7 +191,7 @@ def _assinar_nfe_xml(xml_nfe: str, cert_path: str, cert_password: str, chave: st
         inf.set("Id", inf_id)
         signer = criar_sefaz_xml_signer()
         signed = signer.sign(root, key=key_pem, cert=cert_pem, reference_uri="#" + inf_id)
-        return etree.tostring(signed, encoding="unicode", xml_declaration=False), None
+        return tostring_sem_prefixos(signed), None
     except Exception as exc:
         logger.exception("assinar_nfce")
         return None, str(exc)[:400]
@@ -348,7 +349,7 @@ def _montar_xml_nfce(
     _sub(inf_ad, "infCpl", obs[:5000])
 
     qr_url = _qr_code_url(chave, tp_amb, int(cfg["csc_id"]), cfg["csc_token"])
-    xml_body = ET.tostring(nfe, encoding="unicode")
+    xml_body = tostring_sem_prefixos(ET.tostring(nfe, encoding="unicode"))
     return xml_body, qr_url
 
 
@@ -366,7 +367,7 @@ def _anexar_suplementar_qrcode(xml_assinado: str, qr_url: str, tp_amb: int) -> s
         if tp_amb == 1
         else "https://www.homologacao.nfce.fazenda.sp.gov.br/consulta"
     )
-    return etree.tostring(root, encoding="unicode", xml_declaration=False)
+    return tostring_sem_prefixos(etree.tostring(root, encoding="unicode", xml_declaration=False))
 
 
 def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:

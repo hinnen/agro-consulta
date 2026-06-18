@@ -84,6 +84,7 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, pkcs12
         from lxml import etree
         from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
+        from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
     except ImportError:
         return None, "Instale: pip install cryptography lxml signxml"
 
@@ -108,7 +109,7 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
 
         signer = criar_sefaz_xml_signer()
         signed_root = signer.sign(root, key=key_pem, cert=cert_pem)
-        return etree.tostring(signed_root, encoding="unicode", xml_declaration=True), None
+        return tostring_sem_prefixos(etree.tostring(signed_root, encoding="unicode", xml_declaration=True)), None
     except Exception as exc:
         logger.exception("assinar_dist_dfe")
         return None, str(exc)[:400]
