@@ -649,8 +649,8 @@ def emitir_nfce_para_venda(
         )
         return {"ok": False, "erro": err_sign or "Falha ao assinar XML.", "documento_id": doc.pk}
 
-    # Envio à SEFAZ: só XML assinado (infNFeSupl/QR entra depois da autorização).
-    ret, err_http = _enviar_autorizacao(signed, cfg)
+    signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
+    ret, err_http = _enviar_autorizacao(signed_com_qr, cfg)
     if err_http or not ret:
         doc = NfceDocumentoAgro.objects.create(
             venda=venda,
@@ -666,7 +666,6 @@ def emitir_nfce_para_venda(
         return {"ok": False, "erro": err_http or "Sem resposta SEFAZ.", "documento_id": doc.pk}
 
     st = NfceDocumentoAgro.Status.AUTORIZADA if ret.get("autorizada") else NfceDocumentoAgro.Status.REJEITADA
-    signed_com_qr = _anexar_suplementar_qrcode(signed, qr_url, int(cfg["tp_amb"]))
     xml_save = ret.get("xml_nfeproc") or signed_com_qr
     mensagem_sefaz = f"{ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —")
     if ret.get("c_stat") == "270":
