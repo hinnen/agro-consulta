@@ -5392,16 +5392,15 @@
     function abrirModalNfceCpf(callback) {
         var modal = document.getElementById('modal-pdv-nfce-cpf');
         var input = document.getElementById('pdv-nfce-cpf-input');
-        var chk = document.getElementById('pdv-nfce-sem-id-check');
         var errEl = document.getElementById('pdv-nfce-cpf-erro');
         var btnOk = document.getElementById('pdv-nfce-cpf-confirmar');
         var btnCancel = document.getElementById('pdv-nfce-cpf-cancelar');
-        if (!modal || !input || !chk || !btnOk || !btnCancel) {
+        var btnSemId = document.getElementById('pdv-nfce-sem-id-rapido');
+        if (!modal || !input || !btnOk || !btnCancel) {
             callback(null);
             return;
         }
         input.value = '';
-        chk.checked = false;
         if (errEl) {
             errEl.textContent = '';
             errEl.classList.add('hidden');
@@ -5409,7 +5408,7 @@
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(function () {
-            input.focus();
+            if (btnSemId) btnSemId.focus();
         }, 40);
 
         function fechar(res) {
@@ -5417,6 +5416,8 @@
             modal.classList.remove('flex');
             btnOk.removeEventListener('click', onOk);
             btnCancel.removeEventListener('click', onCancel);
+            if (btnSemId) btnSemId.removeEventListener('click', onSemId);
+            document.removeEventListener('keydown', onKey);
             callback(res);
         }
 
@@ -5424,28 +5425,42 @@
             fechar(null);
         }
 
+        function onSemId() {
+            fechar({ cpf: '', semIdentificacao: true });
+        }
+
         function onOk() {
             var cpf = nfceNormalizarCpf(input.value);
-            var semId = !!chk.checked;
-            if (cpf && !nfceCpfValido(cpf)) {
+            if (!cpf) {
                 if (errEl) {
-                    errEl.textContent = 'CPF inválido. Corrija ou marque venda sem identificação.';
+                    errEl.textContent = 'Digite o CPF ou toque em «Sem CPF na nota».';
                     errEl.classList.remove('hidden');
                 }
+                input.focus();
                 return;
             }
-            if (!cpf && !semId) {
+            if (!nfceCpfValido(cpf)) {
                 if (errEl) {
-                    errEl.textContent = 'Informe um CPF válido ou marque venda sem identificação.';
+                    errEl.textContent = 'CPF inválido. Corrija ou use «Sem CPF na nota».';
                     errEl.classList.remove('hidden');
                 }
+                input.focus();
                 return;
             }
-            fechar({ cpf: cpf, semIdentificacao: semId && !cpf });
+            fechar({ cpf: cpf, semIdentificacao: false });
+        }
+
+        function onKey(ev) {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                onCancel();
+            }
         }
 
         btnOk.addEventListener('click', onOk);
         btnCancel.addEventListener('click', onCancel);
+        if (btnSemId) btnSemId.addEventListener('click', onSemId);
+        document.addEventListener('keydown', onKey);
     }
 
     function nfceFluxoAutomatico(state) {
