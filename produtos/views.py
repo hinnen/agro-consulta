@@ -236,6 +236,7 @@ from .mongo_financeiro_util import (
     inserir_lancamentos_manual_lote,
     expandir_linhas_emprestimo_dual_lote,
     _fin_ln_despesa,
+    _fin_banco_id_valido_quitado,
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
@@ -1695,6 +1696,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     client, db = obter_conexao_mongo()
     p_doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
 
     variacoes_novas: list[ProdutoMarcaVariacaoAgro] | None = None
     if "variacoes" in payload:
@@ -1887,7 +1891,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         cst_f = str(mff.get("cst_pis_cofins") or "").strip()
         if cst_f:
             set_fiscal["CstPisCofins"] = cst_f[:10]
-        if set_fiscal:
+        if set_fiscal and mongo_grava:
             try:
                 db[client.col_p].update_one(
                     _mongo_filtro_id_produto_externo(pid),
@@ -1917,7 +1921,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
     aviso_preco_venda_mongo = None
-    if db is not None:
+    if mongo_grava:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
             client.col_p,
@@ -7999,7 +8003,7 @@ def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
         VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
-        .select_related("sessao_caixa")
+        .select_related("sessao_caixa", "nfce")
         .order_by("-criado_em")
     )
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
@@ -8019,6 +8023,12 @@ def vendas_lista(request):
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
+    from produtos.nfce_config_util import nfce_config_resumo
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    vendas = list(qs)
+    for v in vendas:
+        v.nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -8026,12 +8036,13 @@ def vendas_lista(request):
             "data_ini": di,
             "data_fim": df,
             "periodo_label": label,
-            "vendas": qs,
+            "vendas": vendas,
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
+            "nfce_cfg": nfce_config_resumo(),
         },
     )
 
@@ -9050,7 +9061,7 @@ def caixa_fechar(request):
 @ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
-        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
+        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
         pk=pk,
     )
     erp_txt = ""
@@ -9063,6 +9074,10 @@ def venda_agro_detalhe(request, pk):
     from produtos.venda_cupom_util import serializar_venda_cupom_80mm
 
     cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
+    from produtos.nfce_config_util import nfce_config_resumo
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
@@ -9071,6 +9086,8 @@ def venda_agro_detalhe(request, pk):
             "cupom_80mm": cupom_80mm,
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
+            "nfce_painel": nfce_painel,
+            "nfce_cfg": nfce_config_resumo(),
             "erp_logs_json": json.dumps(
                 erp_painel.get("logs") or [],
                 ensure_ascii=False,
@@ -9749,6 +9766,83 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     return JsonResponse(payload)
 
 
+def _lancamentos_cp_url_tem_filtros_explicitos(request) -> bool:
+    g = request.GET
+    return bool(
+        g.get("venc_de")
+        or g.get("venc_ate")
+        or g.get("data_inicial")
+        or g.get("data_final")
+        or g.get("status")
+        or g.get("q")
+        or g.get("pref")
+        or g.get("comp_de")
+        or g.get("comp_ate")
+        or g.get("pag_de")
+        or g.get("pag_ate")
+        or g.get("mongo_id")
+        or g.get("lancamento_id")
+    )
+
+
+def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
+    """Lista padrão (hoje + abertos) no HTML — evita 2ª ida à API na abertura."""
+    if _lancamentos_cp_url_tem_filtros_explicitos(request):
+        return None
+    hoje = timezone.localdate()
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return None
+    query = lancamentos_montar_query_mongo(
+        despesa=True,
+        status="abertos",
+        vencimento_de=hoje,
+        vencimento_ate=hoje,
+        competencia_de=None,
+        competencia_ate=None,
+        pagamento_de=None,
+        pagamento_ate=None,
+        texto=None,
+        excluir_planos_nomes=None,
+    )
+    try:
+        linhas, total, totais = lancamentos_buscar_pagina(
+            db,
+            query,
+            True,
+            page=1,
+            page_size=50,
+            ordenacao="vencimento_asc",
+            skip_totais=False,
+        )
+    except Exception:
+        logger.exception("lancamentos_cp_bootstrap_payload")
+        return None
+    if linhas:
+        enriquecer_lancamentos_entrada_nfe_rascunho(db, linhas)
+    payload: dict[str, Any] = {
+        "lancamentos": linhas,
+        "total": total,
+        "page": 1,
+        "page_size": 50,
+        "status_filtro": "abertos",
+        "tipo": "pagar",
+        "planos_excluidos_aplicados": 0,
+    }
+    if totais is not None:
+        payload["totais"] = {
+            "quantidade": totais["quantidade"],
+            "bruto": totais["bruto"],
+            "movimentado": totais["movimentado"],
+            "saldo_aberto": totais["saldo_aberto"],
+            "previsto": totais["bruto"],
+            "pago": totais["movimentado"],
+            "a_pagar": totais["saldo_aberto"],
+            "a_receber": 0.0,
+        }
+    return payload
+
+
 def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     """
     ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
@@ -9781,8 +9875,6 @@ def resumo_financeiro_gerencial_view(request):
     )
 
 
-@ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
 def _lancamentos_operador_label(
     request,
     payload: dict | None = None,
@@ -9833,7 +9925,11 @@ def lancamentos_financeiros_view(request):
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
     """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
-    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+    return render(
+        request,
+        "produtos/lancamentos_contas_pagar_teste.html",
+        {"lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request)},
+    )
 
 
 @ensure_csrf_cookie
@@ -13147,8 +13243,7 @@ def api_lancamentos_congelar_pre_corte(request):
             "status": st,
             "mensagem": (
                 "Checkpoint feito. Nenhum valor foi apagado. "
-                "Envio Agro→ERP (API) bloqueado automaticamente. "
-                "Guarde o backup ZIP no PC como cópia de segurança."
+                "Guarde o Excel no seu PC antes de pedir o corte no ERP."
             ),
         }
     )
@@ -14529,21 +14624,21 @@ def api_lancamentos_criar_manual_lote(request):
         rec_par = 1
     if quitado:
         bid_hdr = str(payload.get("banco_id") or "").strip()
-        bid_ok = bool(bid_hdr)
+        bid_ok = _fin_banco_id_valido_quitado(bid_hdr)
         if not bid_ok and isinstance(linhas, list):
             for ln in linhas:
                 if not isinstance(ln, dict):
                     continue
                 if not _fin_ln_despesa(ln, despesa):
                     continue
-                if str(ln.get("banco_id") or "").strip():
+                if _fin_banco_id_valido_quitado(ln.get("banco_id")):
                     bid_ok = True
                     break
         if not bid_ok:
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Para lançar quitado na saída, informe a conta bancária (conta com ID do ERP).",
+                    "erro": "Para lançar quitado, escolha conta bancária real (não «ADICIONAR CONTA»).",
                 },
                 status=400,
             )
@@ -14553,11 +14648,11 @@ def api_lancamentos_criar_manual_lote(request):
                 continue
             raw_lq = ln.get("quitado")
             ln_q = raw_lq is True or str(raw_lq or "").strip().lower() in ("1", "true", "yes", "sim", "on")
-            if ln_q and _fin_ln_despesa(ln, despesa) and not str(ln.get("banco_id") or "").strip():
+            if ln_q and _fin_ln_despesa(ln, despesa) and not _fin_banco_id_valido_quitado(ln.get("banco_id")):
                 return JsonResponse(
                     {
                         "ok": False,
-                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta bancária com ID do ERP na lista.",
+                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta real (não «ADICIONAR CONTA»).",
                     },
                     status=400,
                 )
@@ -14677,7 +14772,14 @@ def api_lancamentos_criar_manual_lote(request):
             )
         except Exception:
             logger.exception("lote manual idempotency write")
-    return JsonResponse(out_lm, status=st)
+    try:
+        return JsonResponse(out_lm, status=st)
+    except Exception as exc:
+        logger.exception("api_lancamentos_criar_manual_lote response")
+        return JsonResponse(
+            {"ok": False, "erro": f"Erro ao montar resposta: {str(exc)[:300]}"},
+            status=500,
+        )
 
 
 @login_required(login_url="/admin/login/")
@@ -19085,6 +19187,14 @@ def _persistir_venda_agro(
                 fiado_cron = row.get("fiado_cronograma") or []
                 break
 
+    nfce_solicitada = False
+    try:
+        from produtos.nfce_config_util import nfce_configurada, nfce_emissao_solicitada
+
+        nfce_solicitada = bool(nfce_configurada() and nfce_emissao_solicitada(data))
+    except Exception:
+        nfce_solicitada = False
+
     with transaction.atomic():
         v = VendaAgro.objects.create(
             cliente_nome=cliente[:300],
@@ -19101,6 +19211,7 @@ def _persistir_venda_agro(
             usuario_registro=user_label,
             sessao_caixa=sessao,
             estoque_baixa_agro_aplicada=False,
+            nfce_solicitada=nfce_solicitada,
         )
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
@@ -19706,15 +19817,9 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
-        try:
-            from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+        from produtos.views_nfce import anexar_nfce_resposta_venda
 
-            nfce = tentar_emitir_nfce_pos_venda(venda, data)
-            if nfce is not None:
-                payload["nfce"] = nfce
-        except Exception:
-            pass
-        return JsonResponse(payload)
+        return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
     try:
         data = json.loads(request.body)
@@ -19992,20 +20097,27 @@ def api_venda_agro_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
-    try:
-        from produtos.models import NfceDocumentoAgro
-        from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
+    raw_interno = (request.GET.get("interno") or "0").strip().lower()
+    somente_interno = raw_interno in ("1", "true", "sim", "yes", "on")
+    if not somente_interno:
+        try:
+            from produtos.models import NfceDocumentoAgro
+            from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 
-        nfce = getattr(v, "nfce", None)
-        if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
-                }
-            )
-    except Exception:
-        pass
+            nfce = getattr(v, "nfce", None)
+            if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+                client, db = obter_conexao_mongo()
+                col_p = getattr(client, "col_p", None) if client else None
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "cupom": serializar_nfce_cupom_80mm(
+                            v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
+                        ),
+                    }
+                )
+        except Exception:
+            pass
     return JsonResponse(
         {
             "ok": True,

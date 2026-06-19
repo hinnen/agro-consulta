@@ -201,6 +201,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'produtos.context_processors.home_launcher_nav',
                 'produtos.context_processors.agro_emprestimo_dual_ui',
+                'produtos.context_processors.agro_banco_placeholder_ui',
                 'produtos.context_processors.agro_app_build',
             ],
         },
@@ -316,6 +317,8 @@ AGRO_FINANCEIRO_MONGO_CONGELADO = config(
     'AGRO_FINANCEIRO_MONGO_CONGELADO', default=False, cast=bool
 )
 AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
+# Staging: true = lê Mongo (espelho ERP) mas não grava preço/financeiro/etc. no Mongo compartilhado.
+AGRO_STAGING_READONLY = config('AGRO_STAGING_READONLY', default=False, cast=bool)
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
@@ -455,6 +458,7 @@ VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA = config(
 PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA = config("PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", default=True, cast=bool)
 # PDV Wizard: grava venda + baixa estoque na hora; Pedidos/Salvar no ERP roda em thread (libera a tela).
 PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast=bool)
+NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)
 # Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()

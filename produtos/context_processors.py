@@ -25,6 +25,17 @@ def agro_emprestimo_dual_ui(request):
         return {"agro_emprestimo_dual_cfg": {}}
 
 
+def agro_banco_placeholder_ui(request):
+    try:
+        from produtos.mongo_financeiro_util import _banco_placeholder_para_select
+
+        ph = _banco_placeholder_para_select()
+        return {"agro_banco_placeholder_id": str(ph.get("id") or "").strip()}
+    except Exception:
+        logger.exception("agro_banco_placeholder_ui")
+        return {"agro_banco_placeholder_id": "6990cf726c4d856abaa670c6"}
+
+
 def agro_app_build(request):
     try:
         from config.app_build_util import get_app_build_info
