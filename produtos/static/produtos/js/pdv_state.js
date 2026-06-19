@@ -3,7 +3,7 @@
 
     var STORAGE_KEY = 'agro_pdv_wizard_state_v1';
     var LAST_CLIENT_KEY = 'agro_pdv_wizard_last_client_v1';
-    var STEP_ORDER = ['produtos', 'entrega', 'pagamento'];
+    var STEP_ORDER = ['produtos', 'cliente', 'entrega', 'pagamento'];
     var listeners = [];
 
     function deepClone(obj) {
@@ -91,10 +91,6 @@
             itens: [],
             entrega: {
                 ativa: false,
-                /** '' | 'retirada' | 'entrega' — escolha no pop-up ao entrar na etapa Entrega */
-                modoRetiradaEntrega: '',
-                /** true após confirmar pop-up de taxa + horário + troco */
-                detalhesEntregaRespondidos: false,
                 endereco: '',
                 logradouro: '',
                 numero: '',
@@ -132,10 +128,7 @@
                 mpBalcaoModo: '',
                 /** Chave por tentativa de confirmação (idempotência no servidor). */
                 clientRequestId: '',
-                lancamentos: [],
-                nfceEmitir: false,
-                nfceOpts: {},
-                cupomImpressao: ''
+                lancamentos: []
             },
             venda: {
                 observacao: ''
@@ -179,19 +172,6 @@
                         merged.entrega[k] = '';
                     }
                 });
-                if (!merged.entrega.modoRetiradaEntrega) {
-                    if (merged.entrega.ativa) merged.entrega.modoRetiradaEntrega = 'entrega';
-                    else if (merged.entrega.modoRetiradaEntrega === undefined) merged.entrega.modoRetiradaEntrega = '';
-                }
-                if (merged.entrega.detalhesEntregaRespondidos === undefined) {
-                    merged.entrega.detalhesEntregaRespondidos = !!merged.entrega.taxaEntregaRespondida;
-                }
-                if (merged.currentStep === 'cliente') {
-                    merged.currentStep = merged.entrega.ativa ? 'entrega' : 'produtos';
-                }
-                if (STEP_ORDER.indexOf(merged.currentStep) === -1) {
-                    merged.currentStep = 'produtos';
-                }
                 return merged;
             }
         } catch (err) {}
@@ -238,7 +218,8 @@
 
     function resolveFlow() {
         var flow = ['produtos'];
-        if (state.entrega.modoRetiradaEntrega !== 'retirada') flow.push('entrega');
+        if (state.clienteMode !== 'consumidor_final') flow.push('cliente');
+        if (state.entrega.ativa) flow.push('entrega');
         flow.push('pagamento');
         return flow;
     }
@@ -539,11 +520,7 @@
                 cliente_agro_pk: null
             };
         }
-        if (entry.entrega) {
-            state.entrega.ativa = true;
-            state.entrega.modoRetiradaEntrega = 'entrega';
-        }
-        state.entrega.detalhesEntregaRespondidos = false;
+        if (entry.entrega) state.entrega.ativa = true;
         state.entrega.taxaEntregaRespondida = false;
         state.entrega.taxaEntregaModo = '';
         state.entrega.localPagamento = '';
@@ -608,8 +585,6 @@
             state.cliente = sanitizeCliente({ nome: nomeLinha, id: '' });
         }
         state.entrega.ativa = false;
-        state.entrega.modoRetiradaEntrega = '';
-        state.entrega.detalhesEntregaRespondidos = false;
         state.entrega.endereco = '';
         state.entrega.logradouro = '';
         state.entrega.numero = '';
@@ -777,7 +752,6 @@
         state.venda = Object.assign({}, def.venda, snap.venda || {});
         state.entrega.pedidoEntregaPendenteId = meta.id != null ? meta.id : null;
         if (state.entrega.ativa) {
-            state.entrega.modoRetiradaEntrega = 'entrega';
             state.entrega.localPagamento = 'loja';
             state.entrega.meioNaEntrega = '';
         }

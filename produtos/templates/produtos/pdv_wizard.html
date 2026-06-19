@@ -827,34 +827,6 @@
     align-items: center;
     gap: 0.5rem;
   }
-  .pdv-wiz-toolbar--oneline {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: thin;
-  }
-  .pdv-wiz-toolbar--oneline > * {
-    flex-shrink: 0;
-  }
-  .pdv-wiz-toolbar--oneline select.pdv-input {
-    flex: 1 1 8rem;
-    min-width: 6rem;
-    max-width: none;
-  }
-  /* Pop-up entrega — largura alinhada ao fluxo de pagamento (max-w-lg) */
-  .pdv-modal-panel-50 {
-    width: min(50vw, calc(88vh * 16 / 9));
-    max-width: 32rem;
-    max-height: min(88vh, calc(96vw * 9 / 16));
-    overflow: auto;
-  }
-  .pdv-step-entrega-shell {
-    container-type: inline-size;
-  }
-  @container (max-width: 42rem) {
-    .pdv-step-entrega-shell .lg\:grid-cols-\[minmax\(0\,14rem\)_minmax\(0\,1fr\)\] {
-      grid-template-columns: 1fr;
-    }
-  }
   .pdv-wiz-toolbar label {
     font-size: 10px;
     font-weight: 900;
@@ -930,21 +902,6 @@
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert:hover {
     background: #e2e8f0 !important;
     color: #0f172a !important;
-  }
-  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente {
-    border-color: #0ea5e9 !important;
-    background: linear-gradient(90deg, #0284c7, #0891b2) !important;
-    color: #fff !important;
-    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.32) !important;
-  }
-  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente:hover {
-    border-color: #0284c7 !important;
-    background: linear-gradient(90deg, #0369a1, #0e7490) !important;
-    color: #fff !important;
-  }
-  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente .pdv-topbar-entregas-count {
-    background: #fff !important;
-    color: #0369a1 !important;
   }
   #pdv-topbar-compact .pdv-topbar-entregas-count {
     background: #475569 !important;
@@ -1558,11 +1515,14 @@
                 <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>
                 </button>
-                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="entrega" title="Ir para etapa 2 · Alt+2">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">2</kbd><span class="pdv-step-label">Entrega</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--orange">2</kbd><span class="pdv-step-label">Cliente</span>
                 </button>
-                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="pagamento" title="Ir para etapa 3 · Alt+3">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">3</kbd><span class="pdv-step-label">Pagamento</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">3</kbd><span class="pdv-step-label">Entrega</span>
+                </button>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">4</kbd><span class="pdv-step-label">Pagamento</span>
                 </button>
               </nav>
             </div>
@@ -1586,6 +1546,7 @@
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div class="min-h-0 flex flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
           {% include "produtos/partials/pdv/step_produtos.html" %}
+          {% include "produtos/partials/pdv/step_cliente.html" %}
           {% include "produtos/partials/pdv/step_entrega.html" %}
           {% include "produtos/partials/pdv/step_pagamento.html" %}
         </div>
@@ -1767,22 +1728,53 @@
   </div>
 </div>
 
-<div id="modal-pdv-entrega-salvar-cliente" class="fixed inset-0 z-[130] hidden items-center justify-center bg-slate-950/65 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-esc-titulo">
-  <div class="pdv-modal-panel-70 overflow-hidden rounded-[1.35rem] border-[3px] border-sky-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-sky-100 bg-gradient-to-r from-sky-600 to-teal-600 px-6 py-5 sm:px-8 sm:py-6">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Dados do cliente</p>
-      <h2 id="pdv-esc-titulo" class="mt-2 text-[clamp(1.15rem,0.55vw+1rem,1.65rem)] font-black leading-tight text-white">Salvar alterações no cadastro?</h2>
-      <p class="mt-2 text-sm font-semibold text-white/90">Você mudou nome, telefone ou endereço. Escolha se atualiza o cadastro do cliente ou usa só nesta entrega.</p>
+<div id="modal-pdv-entrega-fluxo-1" class="fixed inset-0 z-[127] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef1-titulo">
+  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-5 sm:px-6 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Etapa 3 · Entrega</p>
+      <h2 id="pdv-ef1-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Onde será o pagamento?</h2>
+      <p class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
     </div>
-    <div class="flex flex-col gap-3 p-5 sm:gap-4 sm:p-7">
-      <button type="button" id="pdv-esc-salvar-cadastro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-400 bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105">Salvar no cadastro do cliente</button>
-      <button type="button" id="pdv-esc-so-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-slate-800 shadow-md hover:bg-slate-100">Usar só nesta entrega</button>
-      <button type="button" id="pdv-esc-cancelar" class="pdv-action-btn w-full rounded-xl border-2 border-slate-200 py-3 text-sm font-black uppercase text-slate-600 hover:bg-slate-50">Voltar e revisar</button>
+    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+      <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[4rem] sm:text-lg">Pagamento na entrega</button>
+      <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[4rem] sm:text-lg">Pagamento na loja</button>
     </div>
   </div>
 </div>
 
-<div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[132] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
+<div id="modal-pdv-entrega-fluxo-2" class="fixed inset-0 z-[128] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef2-titulo">
+  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-5 sm:px-6 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Pagamento na entrega</p>
+      <h2 id="pdv-ef2-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Como o cliente vai pagar?</h2>
+    </div>
+    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+      <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[4rem] sm:text-lg">Dinheiro</button>
+      <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[4rem] sm:text-lg">Cartão</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-fluxo-3-troco" class="fixed inset-0 z-[129] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef3-titulo">
+  <div class="w-full max-w-md overflow-hidden rounded-[1.35rem] border-[3px] border-slate-300 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-slate-100 bg-slate-800 px-5 py-4 sm:px-6">
+      <h2 id="pdv-ef3-titulo" class="text-lg font-black text-white sm:text-xl">Troco para quanto?</h2>
+      <p class="mt-1 text-xs font-semibold text-slate-300">Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).</p>
+    </div>
+    <div class="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+      <label class="block">
+        <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
+        <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
+      </label>
+      <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-2xl border-2 border-slate-200 py-3.5 text-sm font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
+        <button type="button" id="pdv-ef3-ok" class="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-black uppercase text-white shadow-lg hover:brightness-105">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[125] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
   <div class="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
     <div class="relative bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600 px-5 pb-4 pt-5">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
@@ -1813,51 +1805,6 @@
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <ul id="modal-pdv-wizard-ajuda-lista" class="list-disc space-y-2 pl-5 text-sm font-semibold leading-snug text-slate-700"></ul>
     </div>
-  </div>
-</div>
-
-<div id="modal-pdv-escolha-impressao" class="fixed inset-0 z-[134] hidden items-center justify-center bg-slate-900/55 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-escolha-impressao-titulo">
-  <div class="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
-    <header class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
-      <h2 id="modal-pdv-escolha-impressao-titulo" class="text-sm font-black uppercase tracking-tight text-emerald-950">Qual cupom imprimir?</h2>
-      <p class="mt-1 text-xs font-semibold text-slate-600">Escolha o tipo de impressão desta venda.</p>
-    </header>
-    <div class="grid grid-cols-2 gap-3 p-4">
-      <button type="button" id="pdv-escolha-impressao-nfce" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-emerald-600 bg-emerald-600 px-3 py-4 text-white shadow-lg hover:bg-emerald-700">
-        <span class="text-lg font-black uppercase tracking-wide">NFC</span>
-        <span class="text-[10px] font-bold uppercase leading-tight text-emerald-100">Cupom fiscal</span>
-      </button>
-      <button type="button" id="pdv-escolha-impressao-venda" class="pdv-action-btn flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-sky-500 bg-sky-600 px-3 py-4 text-white shadow-lg hover:bg-sky-700">
-        <span class="text-lg font-black uppercase tracking-wide">Venda</span>
-        <span class="text-[10px] font-bold uppercase leading-tight text-sky-100">Comprovante loja</span>
-      </button>
-    </div>
-    <footer class="border-t border-slate-100 bg-slate-50 px-4 py-3">
-      <button type="button" id="pdv-escolha-impressao-cancelar" class="w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Cancelar <kbd class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd></button>
-    </footer>
-  </div>
-</div>
-
-<div id="modal-pdv-nfce-cpf" class="fixed inset-0 z-[140] hidden items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-nfce-cpf-titulo">
-  <div class="flex w-full max-w-[min(54rem,94vw)] flex-col overflow-hidden rounded-3xl border-[3px] border-emerald-400 bg-white shadow-2xl my-auto" onclick="event.stopPropagation();">
-    <header class="border-b-2 border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-5 text-center sm:px-10 sm:py-7">
-      <h2 id="modal-pdv-nfce-cpf-titulo" class="text-[clamp(1.35rem,1.1vw+1.1rem,2.1rem)] font-black uppercase leading-tight tracking-tight text-emerald-950">Cupom fiscal (NFC-e)</h2>
-      <p class="mt-3 text-[clamp(1rem,0.55vw+0.9rem,1.35rem)] font-semibold leading-snug text-slate-600">Sem CPF no cadastro — escolha abaixo ou digite o CPF.</p>
-    </header>
-    <div class="space-y-5 px-6 py-6 sm:space-y-6 sm:px-10 sm:py-8">
-      <button type="button" id="pdv-nfce-sem-id-rapido" class="pdv-action-btn flex w-full min-h-[clamp(5.5rem,12vh,7.5rem)] flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-emerald-600 bg-emerald-600 px-6 py-5 text-white shadow-lg hover:bg-emerald-700">
-        <span class="text-[clamp(1.25rem,0.9vw+1rem,1.85rem)] font-black uppercase tracking-wide">Sem CPF na nota</span>
-        <span class="text-[clamp(0.75rem,0.45vw+0.65rem,1rem)] font-bold uppercase leading-tight text-emerald-100">Consumidor não identificado</span>
-      </button>
-      <p class="text-center text-[clamp(0.85rem,0.4vw+0.75rem,1.05rem)] font-black uppercase tracking-wide text-slate-400">ou informe o CPF</p>
-      <label class="block text-[clamp(0.85rem,0.4vw+0.75rem,1.05rem)] font-black uppercase text-slate-600" for="pdv-nfce-cpf-input">CPF do consumidor</label>
-      <input type="text" id="pdv-nfce-cpf-input" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" class="w-full min-h-[clamp(4rem,10vh,5.25rem)] rounded-2xl border-[3px] border-slate-300 px-5 py-3 text-center text-[clamp(1.5rem,1vw+1.2rem,2.25rem)] font-black tracking-[0.14em] text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-200">
-      <p id="pdv-nfce-cpf-erro" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-[clamp(0.9rem,0.4vw+0.8rem,1.1rem)] font-bold text-red-800"></p>
-    </div>
-    <footer class="grid grid-cols-2 gap-3 border-t-2 border-slate-100 bg-slate-50 px-6 py-5 sm:gap-4 sm:px-10 sm:py-6">
-      <button type="button" id="pdv-nfce-cpf-cancelar" class="min-h-[clamp(3.5rem,8vh,4.5rem)] rounded-2xl border-[3px] border-slate-300 bg-white px-4 text-[clamp(0.95rem,0.45vw+0.85rem,1.2rem)] font-black uppercase text-slate-800 hover:bg-slate-100">Cancelar</button>
-      <button type="button" id="pdv-nfce-cpf-confirmar" class="min-h-[clamp(3.5rem,8vh,4.5rem)] rounded-2xl border-[3px] border-emerald-700 bg-emerald-600 px-4 text-[clamp(0.95rem,0.45vw+0.85rem,1.2rem)] font-black uppercase text-white shadow-md hover:bg-emerald-700">Com CPF</button>
-    </footer>
   </div>
 </div>
 
@@ -1973,21 +1920,31 @@
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
       ],
     },
-    entrega: {
-      titulo: 'Ajuda · Etapa 2 · Entrega',
-      resumo: 'Cliente, endereço e regras antes do pagamento.',
+    cliente: {
+      titulo: 'Ajuda · Etapa 2 · Cliente',
+      resumo: 'Revise quem está comprando e como a venda segue.',
       itens: [
-        'Ao entrar, o sistema pergunta retirada na loja ou entrega; na entrega abre outro pop-up com taxa, horário e troco.',
-        'Partida e Maps ficam na faixa superior; escolha a loja de saída quando houver várias.',
-        'Nome e telefone editáveis ao lado do endereço; Plus Code preenche logradouro e bairro.',
-        'Ao continuar, se houver alteração no cadastro, pergunta se salva no cliente ou só nesta entrega.',
-        'Preencha logradouro, número e bairro; observações da venda e da entrega ficam no rodapé.',
-        'Ao continuar, outro assistente pergunta se o pagamento é na entrega ou na loja.',
-        '“Reiniciar pagamento” zera só essa escolha de pagamento na entrega.',
+        'Veja nome, telefone e endereço resumidos; “Editar dados” ou tecla E abre o pop-up rápido de contato e endereço.',
+        '“Edição avançada” abre o cadastro completo do cliente em nova aba.',
+        'Escolha retirada na loja ou entrega conforme combinado.',
+        'Observações da venda seguem junto até o pagamento.',
+      ],
+    },
+    entrega: {
+      titulo: 'Ajuda · Etapa 3 · Entrega',
+      resumo: 'Endereço, rota e regras de frete antes do pagamento.',
+      itens: [
+        'Escolha a loja de partida quando houver várias e use “Ver no Maps” para rota até o destino.',
+        'Painel ou WhatsApp de entregas abrem quando estiverem configurados.',
+        'Preencha logradouro, número e bairro; Plus Code complementa o endereço.',
+        'Horário pode gerar lembretes próximos do horário pedido.',
+        'Na primeira vez entrando aqui pedimos se o pagamento é na entrega ou na loja; depois aparece fluxo específico (dinheiro/cartão na entrega quando couber).',
+        'Frete: “Cobrar” usa R$ 10,00 como padrão; você pode mudar antes de fechar.',
+        '“Reiniciar escolha” zera apenas o assistente de pagamento na entrega para refazer.',
       ],
     },
     pagamento: {
-      titulo: 'Ajuda · Etapa 3 · Pagamento',
+      titulo: 'Ajuda · Etapa 4 · Pagamento',
       resumo: 'Formas, valores e confirmação da venda.',
       itens: [
         'F3 ou “Escolher forma” abre formas disponíveis; teclas rápidas 1–9 quando o painel mostrar.',

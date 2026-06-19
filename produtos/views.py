@@ -1695,9 +1695,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     client, db = obter_conexao_mongo()
     p_doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
-    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
-
-    mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
 
     variacoes_novas: list[ProdutoMarcaVariacaoAgro] | None = None
     if "variacoes" in payload:
@@ -1890,7 +1887,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         cst_f = str(mff.get("cst_pis_cofins") or "").strip()
         if cst_f:
             set_fiscal["CstPisCofins"] = cst_f[:10]
-        if set_fiscal and mongo_grava:
+        if set_fiscal:
             try:
                 db[client.col_p].update_one(
                     _mongo_filtro_id_produto_externo(pid),
@@ -1920,7 +1917,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
     aviso_preco_venda_mongo = None
-    if mongo_grava:
+    if db is not None:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
             client.col_p,
@@ -8002,7 +7999,7 @@ def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
         VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
-        .select_related("sessao_caixa", "nfce")
+        .select_related("sessao_caixa")
         .order_by("-criado_em")
     )
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
@@ -8022,12 +8019,6 @@ def vendas_lista(request):
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
-    from produtos.nfce_config_util import nfce_config_resumo
-    from produtos.nfce_venda_util import painel_nfce_venda
-
-    vendas = list(qs)
-    for v in vendas:
-        v.nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -8035,13 +8026,12 @@ def vendas_lista(request):
             "data_ini": di,
             "data_fim": df,
             "periodo_label": label,
-            "vendas": vendas,
+            "vendas": qs,
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
-            "nfce_cfg": nfce_config_resumo(),
         },
     )
 
@@ -9060,7 +9050,7 @@ def caixa_fechar(request):
 @ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
-        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
+        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
         pk=pk,
     )
     erp_txt = ""
@@ -9073,10 +9063,6 @@ def venda_agro_detalhe(request, pk):
     from produtos.venda_cupom_util import serializar_venda_cupom_80mm
 
     cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
-    from produtos.nfce_config_util import nfce_config_resumo
-    from produtos.nfce_venda_util import painel_nfce_venda
-
-    nfce_painel = painel_nfce_venda(v)
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
@@ -9085,8 +9071,6 @@ def venda_agro_detalhe(request, pk):
             "cupom_80mm": cupom_80mm,
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
-            "nfce_painel": nfce_painel,
-            "nfce_cfg": nfce_config_resumo(),
             "erp_logs_json": json.dumps(
                 erp_painel.get("logs") or [],
                 ensure_ascii=False,
@@ -9797,6 +9781,8 @@ def resumo_financeiro_gerencial_view(request):
     )
 
 
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def _lancamentos_operador_label(
     request,
     payload: dict | None = None,
@@ -13161,7 +13147,8 @@ def api_lancamentos_congelar_pre_corte(request):
             "status": st,
             "mensagem": (
                 "Checkpoint feito. Nenhum valor foi apagado. "
-                "Guarde o Excel no seu PC antes de pedir o corte no ERP."
+                "Envio Agro→ERP (API) bloqueado automaticamente. "
+                "Guarde o backup ZIP no PC como cópia de segurança."
             ),
         }
     )
@@ -19088,14 +19075,6 @@ def _persistir_venda_agro(
                 fiado_cron = row.get("fiado_cronograma") or []
                 break
 
-    nfce_solicitada = False
-    try:
-        from produtos.nfce_config_util import nfce_configurada, nfce_emissao_solicitada
-
-        nfce_solicitada = bool(nfce_configurada() and nfce_emissao_solicitada(data))
-    except Exception:
-        nfce_solicitada = False
-
     with transaction.atomic():
         v = VendaAgro.objects.create(
             cliente_nome=cliente[:300],
@@ -19112,7 +19091,6 @@ def _persistir_venda_agro(
             usuario_registro=user_label,
             sessao_caixa=sessao,
             estoque_baixa_agro_aplicada=False,
-            nfce_solicitada=nfce_solicitada,
         )
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
@@ -19718,9 +19696,15 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
-        from produtos.views_nfce import anexar_nfce_resposta_venda
+        try:
+            from produtos.views_nfce import tentar_emitir_nfce_pos_venda
 
-        return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
+            nfce = tentar_emitir_nfce_pos_venda(venda, data)
+            if nfce is not None:
+                payload["nfce"] = nfce
+        except Exception:
+            pass
+        return JsonResponse(payload)
 
     try:
         data = json.loads(request.body)
@@ -19998,27 +19982,20 @@ def api_venda_agro_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
-    raw_interno = (request.GET.get("interno") or "0").strip().lower()
-    somente_interno = raw_interno in ("1", "true", "sim", "yes", "on")
-    if not somente_interno:
-        try:
-            from produtos.models import NfceDocumentoAgro
-            from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
+    try:
+        from produtos.models import NfceDocumentoAgro
+        from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 
-            nfce = getattr(v, "nfce", None)
-            if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-                client, db = obter_conexao_mongo()
-                col_p = getattr(client, "col_p", None) if client else None
-                return JsonResponse(
-                    {
-                        "ok": True,
-                        "cupom": serializar_nfce_cupom_80mm(
-                            v, nfce, segunda_via=segunda_via, db=db, col_p=col_p
-                        ),
-                    }
-                )
-        except Exception:
-            pass
+        nfce = getattr(v, "nfce", None)
+        if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
+                }
+            )
+    except Exception:
+        pass
     return JsonResponse(
         {
             "ok": True,
