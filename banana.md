@@ -364,7 +364,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.13`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (cherry-pick PDV wizard GM → `producao`)  
-**Versão app (`VERSION`):** **`1.16`** · commit **`0479618`** em **`producao`** (cherry-pick de `e055761` / teste)
+**Versão app (`VERSION`):** **`1.17`** · fix **`0479618`** · docs **`b904c2f`** em **`producao`**
 
 ### O que este documento já cobre (até aqui)
 
