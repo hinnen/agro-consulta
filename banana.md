@@ -382,7 +382,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.31`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (deploy produção FAB + Nova saída quitado, Renan pediu)  
-**Versão app (`VERSION`):** **teste** v1.62 · **produção** v1.48 (`f824944`)
+**Versão app (`VERSION`):** **teste** v1.64 · **produção** v1.49 (`6300cec`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
