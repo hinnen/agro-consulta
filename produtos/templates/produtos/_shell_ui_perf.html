@@ -66,5 +66,15 @@
     if (!raw || raw === '1') return;
     warmPrefetchPath(raw.charAt(0) === '/' ? raw : '/' + raw);
   }, true);
+
+  document.addEventListener('pointerdown', function (e) {
+    var a = e.target && e.target.closest && e.target.closest('a[data-prefetch][href]');
+    if (!a || !a.href) return;
+    try {
+      var u = new URL(a.href, window.location.origin);
+      if (u.origin !== window.location.origin) return;
+      prefetchUrl(u.pathname + u.search);
+    } catch (_) {}
+  }, true);
 })();
 </script>

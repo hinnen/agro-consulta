@@ -770,6 +770,7 @@
         opacity: 1;
     }
 </style>
+<link rel="prefetch" href="{% url 'lancamentos_contas_pagar' %}" as="document">
 {% endblock %}
 
 {% block admin_content %}
@@ -1174,6 +1175,18 @@ document.addEventListener("keydown", function (e) {
       });
       window.addEventListener("scroll", hidePopover, true);
       window.addEventListener("resize", hidePopover);
+    })();
+
+    (function warmLancamentosCpFromBi() {
+      var u = "{% url 'lancamentos_contas_pagar' %}";
+      function run() {
+        if (window.agroPrefetchPath) window.agroPrefetchPath(u);
+      }
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(run, { timeout: 3000 });
+      } else {
+        setTimeout(run, 1800);
+      }
     })();
 
     function readCookie(name) {

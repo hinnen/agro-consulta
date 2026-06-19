@@ -50,9 +50,15 @@
   .sv-sub { font-size: 0.88rem; color: var(--cor-texto-secundario); margin: 0; }
   .sv-meta-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
   .sv-sync-badge {
-    display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px;
-    font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-    color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; line-height: 1.2;
+    display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #b45309; background: #fffbeb; border: 1px solid #f59e0b; line-height: 1.2;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+    animation: sv-sync-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes sv-sync-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
   }
   .sv-sync-badge[hidden] { display: none !important; }
   .sv-list-refreshing { opacity: 0.94; pointer-events: none; }
@@ -564,6 +570,7 @@
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
   const URL_CLASSICO = "{% url 'lancamentos_contas_pagar_classico' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
+  const LS_FIN_DIA = 'gm_fin_sv_cp_dia_v1';
   const LS_COLS_PIN = 'gm_fin_sv_cp_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
   const TIPO_CONTAS = 'pagar';
@@ -1391,27 +1398,52 @@
     }
   }
 
+  function ehFiltroPadraoHojeAbertos() {
+    const hoje = hojeYmd();
+    return (
+      (document.getElementById('sv-status').value || '') === 'abertos'
+      && document.getElementById('sv-venc-de').value === hoje
+      && document.getElementById('sv-venc-ate').value === hoje
+      && !(document.getElementById('sv-busca').value || '').trim()
+      && getExcludedSet().size === 0
+    );
+  }
+
+  function aplicarDadosListaCache(data) {
+    if (!data || !Array.isArray(data.lancamentos)) return false;
+    rowsAcum.length = 0;
+    rowsAcum.push(...data.lancamentos);
+    total = Number(data.total) || rowsAcum.length;
+    if (data.totais) atualizarTotais(data.totais);
+    atualizarResumoLista();
+    renderLista(false, rowsAcum);
+    return true;
+  }
+
   function salvarListaCache(data) {
     try {
       sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: paramsCacheKey(), data }));
+      if (ehFiltroPadraoHojeAbertos()) {
+        sessionStorage.setItem(LS_FIN_DIA, JSON.stringify({ day: hojeYmd(), data }));
+      }
     } catch (_) {}
   }
 
   function tentarHidratarListaCache() {
     try {
       const raw = sessionStorage.getItem(LS_FIN_LISTA);
-      if (!raw) return false;
-      const o = JSON.parse(raw);
-      if (String(o.params_qs || '') !== paramsCacheKey()) return false;
-      const data = o.data;
-      if (!data || !Array.isArray(data.lancamentos)) return false;
-      rowsAcum.length = 0;
-      rowsAcum.push(...data.lancamentos);
-      total = Number(data.total) || rowsAcum.length;
-      if (data.totais) atualizarTotais(data.totais);
-      atualizarResumoLista();
-      renderLista(false, rowsAcum);
-      return true;
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (String(o.params_qs || '') === paramsCacheKey() && aplicarDadosListaCache(o.data)) {
+          return true;
+        }
+      }
+      if (!ehFiltroPadraoHojeAbertos()) return false;
+      const rawDia = sessionStorage.getItem(LS_FIN_DIA);
+      if (!rawDia) return false;
+      const od = JSON.parse(rawDia);
+      if (od.day !== hojeYmd()) return false;
+      return aplicarDadosListaCache(od.data);
     } catch (_) {
       return false;
     }
