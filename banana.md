@@ -373,7 +373,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### NFC-e — código em produção (2026-06-19)
 
-**Commit:** (após push) · pacote PDV + consulta vendas.
+**Commit:** `26153f3` · v1.46
 
 | O quê | Detalhe |
 |-------|---------|
