@@ -379,10 +379,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.31`  
+**Versão:** `1.0.32`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (deploy produção FAB + Nova saída quitado, Renan pediu)  
-**Versão app (`VERSION`):** **teste** v1.66 · **produção** v1.50 (`0f4a5e4`)
+**Atualizado por:** assistente Cursor (deploy produção empréstimo dual forma + layout; Renan desistiu do layout Valor)  
+**Versão app (`VERSION`):** **teste** v1.71 · **produção** v1.51 (`76e2a8b`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -445,8 +445,23 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Fix v1.48 | `_d()` try/except · try expandir · quitado linha a linha · JS trecho HTML |
 | Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla 3 itens |
 | Fix v1.50 | «ADICIONAR CONTA» não vale para **quitado** |
-| Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — 4ª coluna da grade (não linha extra); `.hidden` com CSS Agro |
+| Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — 4ª coluna da grade; backend `_fin_ln_campo` / expandir dual |
+| Layout Valor dual | **Renan não satisfeito** — tentativas v1.70–v1.71 (lado a lado); **desistiu**; subiu assim mesmo em **produção v1.51** |
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
+
+### Empréstimo dual forma + layout → **produção** (2026-06-19, Renan pediu)
+
+**Commit:** `76e2a8b` · v1.51 · cherry-pick escopo fechado de `teste` (`7ef55b0`…`a47933b`).
+
+| Pacote | Detalhe |
+|--------|---------|
+| **Forma split** | Entrada obrigatória · saída opcional · campos separados no modal e no Mongo |
+| **Grade** | Forma dual na 4ª coluna (sem linha extra); `.hidden` CSS Agro |
+| **Valor dual** | Entrada/saída lado a lado na coluna Valor — layout **imperfeito**; Renan desistiu de refinar |
+| **Alerta parcial** | Gravação parcial mostra até 4 erros no alert |
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída → Empréstimo (entrada + pagamento).
+
 
 ### Ambiente Renan — Chrome (não Electron)
 
@@ -741,6 +756,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.13
+### Fim do checkpoint v1.0.32
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
