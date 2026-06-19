@@ -231,10 +231,12 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.10 Lançamentos / financeiro
 
-- `/lancamentos/` — contas pagar/receber via Mongo.
+- `/lancamentos/` — hub · **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
+- Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
-- Ordenação servidor hoje: principalmente vencimento; sort só cliente não substitui paginação global.
+- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
+- **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -345,8 +347,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
-2. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
+1. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
+2. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
+3. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
 3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
 4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
 5. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
@@ -361,10 +364,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.12`  
-**Última atualização:** `2026-06-18`  
-**Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** staging `teste` · **produção `372f90f` v1.14** (corte API pós-checkpoint)
+**Versão:** `1.0.13`  
+**Última atualização:** `2026-06-19`  
+**Atualizado por:** assistente Cursor (Lançamentos CP layout + perf + vista → `teste`)  
+**Versão app (`VERSION`):** staging `teste` (após push) · **produção `372f90f` v1.14** (corte API; layout novo CP **não** em prod)
 
 ### O que este documento já cobre (até aqui)
 
@@ -385,6 +388,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] Nova saída: tipografia maior + card expandido ocupa altura (sem vazio embaixo)
 - [x] **Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (2026-06-18)
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
+- [x] **Contas a pagar — layout novo padrão** + `/classico/` (2026-06-19)
+- [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
+
+### Lançamentos — Contas a pagar layout novo (2026-06-19)
+
+| URL | Tela |
+|-----|------|
+| `/lancamentos/contas-pagar/` | **Layout novo** (padrão) |
+| `/lancamentos/contas-pagar/classico/` | Tabela clássica |
+| `/lancamentos/contas-pagar/teste/` | Redirect → padrão |
+
+**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. Editar/excluir no clássico: `?retorno=` mantém filtros ao voltar.
+
+**Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
+
+**Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
+
+**Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`.
+
+**Produção:** cherry-pick quando Renan pedir.
 
 ### NFC-e — status staging (2026-06-18)
 
@@ -508,15 +531,15 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Loja:** Ctrl+F5 no `/consulta/` após deploy Render.
 
-### WIP / não commitado (snapshot 2026-06-18)
+### WIP / não commitado (snapshot 2026-06-19)
 
 | Arquivo | Tema |
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `teste`:** `pdv_wizard.js` + `banana.md` (fix GM/hífen no wizard).
+**Acabou de subir em `teste`:** Lançamentos CP (layout padrão + perf + vista) + `banana.md`.
 
-**Teste Renan (staging):** Ctrl+F5 no `/pdv/checkout/` → 4 itens no carrinho → bipar **GM1546-5S** várias vezes → carrinho não perde itens.
+**Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
 ### Pendências conhecidas (produto)
 
@@ -535,6 +558,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
+- [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
@@ -557,6 +581,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.12
+### Fim do checkpoint v1.0.13
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
