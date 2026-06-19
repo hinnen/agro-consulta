@@ -121,20 +121,29 @@
   .sv-cols-btn:hover { background: #ecfdf5; border-color: #d97706; }
   .sv-cols-dd {
     display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 40;
-    width: min(17.5rem, 92vw); max-height: min(22rem, 58vh); overflow: hidden;
+    width: min(18.5rem, 94vw); max-height: min(36rem, 82vh); overflow: hidden;
     background: #fff; border: 2px solid #cbd5e1; border-radius: 12px; box-shadow: 0 10px 28px rgba(15,23,42,0.14);
     padding: 0; flex-direction: column;
   }
   .sv-cols-dd.show { display: flex; }
-  .sv-cols-dd-list { overflow-y: auto; padding: 6px; flex: 1; min-height: 0; }
+  .sv-cols-dd-list { overflow-y: auto; padding: 6px 6px 8px; flex: 1; min-height: 0; scrollbar-gutter: stable; }
+  .sv-cols-dd-section-title {
+    margin: 8px 6px 4px; padding: 0 4px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #64748b;
+  }
+  .sv-cols-dd-section-title:first-child { margin-top: 2px; }
   .sv-cols-dd-item {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
     font-size: 0.84rem; font-weight: 600; cursor: grab; user-select: none;
     border: 1px solid transparent;
   }
   .sv-cols-dd-item:hover { background: #f8fafc; }
+  .sv-cols-dd-item.is-off { background: #f8fafc; color: #475569; }
+  .sv-cols-dd-item.is-off:hover { background: #f1f5f9; }
   .sv-cols-dd-item.drag-over { background: #ecfdf5; border-color: #059669; }
   .sv-cols-dd-item.is-dragging { opacity: 0.45; }
+  .sv-cols-dd-item.is-static { cursor: default; }
+  .sv-cols-dd-item.is-static .sv-cols-drag { visibility: hidden; }
   .sv-cols-drag {
     flex-shrink: 0; width: 1.1rem; text-align: center; color: #94a3b8; font-weight: 900; line-height: 1; cursor: grab;
   }
@@ -781,6 +790,9 @@
     const saved = readAllColsPinStore()[op];
     if (saved && saved.visible && saved.order) {
       colsMapMem = { ...defaultColsMap(), ...saved.visible };
+      COL_DEFS.forEach((c) => {
+        if (!c.lock && !(c.id in saved.visible)) colsMapMem[c.id] = DEFAULT_VISIBLE_IDS.includes(c.id);
+      });
       colsOrderMem = normalizeColsOrder(saved.order);
       return;
     }
@@ -841,6 +853,27 @@
     });
   }
 
+  /** Todas as colunas configuráveis — garante que nenhuma fique de fora do menu. */
+  function allReorderableColIds() {
+    const order = activeColsOrder();
+    const all = COL_DEFS.filter((c) => !c.lock).map((c) => c.id);
+    const seen = new Set();
+    const out = [];
+    order.forEach((id) => {
+      if (all.includes(id) && !seen.has(id)) { out.push(id); seen.add(id); }
+    });
+    all.forEach((id) => { if (!seen.has(id)) out.push(id); });
+    return out;
+  }
+
+  function dropdownColGroups() {
+    const m = activeColsMap();
+    const allIds = allReorderableColIds();
+    const hidden = allIds.filter((id) => m[id] === false);
+    const visible = allIds.filter((id) => m[id] !== false);
+    return { hidden, visible };
+  }
+
   function reorderDraftCol(fromId, toId) {
     if (!fromId || !toId || fromId === toId || !colsDraftOrder) return;
     const order = colsDraftOrder.slice();
@@ -852,22 +885,20 @@
     colsDraftOrder = normalizeColsOrder(order);
   }
 
-  function buildColDropdown() {
-    const el = document.getElementById('sv-cols-dd-list');
-    if (!el) return;
-    const m = activeColsMap();
-    const ids = reorderableColIds(activeColsOrder());
-    el.innerHTML = ids.map((id) => {
-      const c = colById(id);
-      if (!c) return '';
-      return `
-        <div class="sv-cols-dd-item" draggable="true" data-col-id="${id}">
-          <span class="sv-cols-drag" aria-hidden="true">⋮⋮</span>
-          <input type="checkbox" class="sv-col-chk" data-col-id="${id}" ${m[id] !== false ? 'checked' : ''} aria-label="Mostrar ${esc(c.label)}">
-          <span>${esc(c.label)}</span>
-        </div>`;
-    }).join('');
-    el.querySelectorAll('.sv-cols-dd-item').forEach((item) => {
+  function renderColDropdownItem(id, m, draggable) {
+    const c = colById(id);
+    if (!c) return '';
+    const on = m[id] !== false;
+    return `
+      <div class="sv-cols-dd-item${on ? '' : ' is-off'}${draggable ? '' : ' is-static'}" ${draggable ? 'draggable="true"' : ''} data-col-id="${id}">
+        <span class="sv-cols-drag" aria-hidden="true">⋮⋮</span>
+        <input type="checkbox" class="sv-col-chk" data-col-id="${id}" ${on ? 'checked' : ''} aria-label="Mostrar ${esc(c.label)}">
+        <span>${esc(c.label)}</span>
+      </div>`;
+  }
+
+  function bindColDropdownItems(el) {
+    el.querySelectorAll('.sv-cols-dd-item[draggable="true"]').forEach((item) => {
       const id = item.dataset.colId;
       item.addEventListener('dragstart', (e) => {
         colsDragId = id;
@@ -901,16 +932,34 @@
       ch.addEventListener('change', () => {
         if (!colsDraftMap) colsDraftMap = { ...colsMapMem };
         colsDraftMap[ch.dataset.colId] = ch.checked;
+        buildColDropdown();
         applyGridCols();
       });
       ch.addEventListener('click', (e) => e.stopPropagation());
     });
+  }
+
+  function buildColDropdown() {
+    const el = document.getElementById('sv-cols-dd-list');
+    if (!el) return;
+    const m = activeColsMap();
+    const { hidden, visible } = dropdownColGroups();
+    let html = '';
+    if (hidden.length) {
+      html += `<p class="sv-cols-dd-section-title">Disponíveis — marque para exibir</p>`;
+      html += hidden.map((id) => renderColDropdownItem(id, m, false)).join('');
+    }
+    html += `<p class="sv-cols-dd-section-title">Na lista${visible.length ? ` (${visible.length})` : ''}</p>`;
+    html += visible.map((id) => renderColDropdownItem(id, m, true)).join('');
+    el.innerHTML = html;
+    bindColDropdownItems(el);
     const hint = document.getElementById('sv-cols-save-hint');
     const op = getOperadorPin();
+    const total = hidden.length + visible.length;
     if (hint) {
       hint.innerHTML = op
-        ? `Operador: <strong>${esc(op)}</strong> · arraste para ordenar`
-        : 'Informe seu PIN antes de salvar';
+        ? `Operador: <strong>${esc(op)}</strong> · ${total} colunas · arraste «Na lista»`
+        : `Informe seu PIN antes de salvar · ${total} colunas`;
     }
   }
 
