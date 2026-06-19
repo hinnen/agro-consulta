@@ -499,6 +499,14 @@
             </button>
 
             <button type="button"
+                data-agro-nova-saida-open data-tipo="pagar"
+                class="bg-[#EA580C]/15 border border-[#EA580C]/45 hover:border-[#EA580C] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+                title="Lançar nova despesa">
+                <i data-lucide="banknote" class="w-4 h-4 text-[#FB923C]"></i>
+                <span class="text-xs font-black uppercase italic">Nova saída</span>
+            </button>
+
+            <button type="button"
                 onclick="toggleLaunchpad()"
                 class="bg-slate-800 border border-white/10 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-700 transition-all">
                 <i data-lucide="layout-grid" class="w-4 h-4 text-purple-400"></i>
@@ -1007,5 +1015,6 @@ document.addEventListener("keydown", function (e) {
       }
     });
 </script>
+{% include "produtos/includes/lancamento_nova_saida_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% endblock %}
