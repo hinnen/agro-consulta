@@ -377,8 +377,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Bloco | O quê |
 |-------|--------|
-| **BI launchpad** | Orbes PDV/Orçamento + barra escala no menu F10 |
-| **Agro Display Scale** | `agro_display_scale.js`, botão **Aa** no BI, calibração global |
+| **BI launchpad** | Orbes PDV/Orçamento no menu F10 (sem calibração de escala) |
+| **Agro Display Scale** | ~~removido de produção~~ — calibração desligada 2026-06-19 |
 | **KPIs** | Validade vermelho pulsante + «Conferir vencidos»; ticket médio layout |
 | **Versão BI** | `app_build_util.py` + `build_meta.py` — commit/branch Render no badge |
 | **Nova saída** | Grid 4 colunas, datas maiores, ícone calendário, empréstimo 5 colunas |

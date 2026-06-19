@@ -389,7 +389,7 @@
         background: linear-gradient(180deg, rgba(168, 85, 247, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
         border-color: rgba(168, 85, 247, 0.62);
     }
-    /* Launchpad — barra superior (PDV / Orçamento + escala) */
+    /* Launchpad — barra superior (PDV / Orçamento) */
     .launchpad-topbar {
         display: flex;
         flex-wrap: wrap;
@@ -482,77 +482,6 @@
         flex-shrink: 0;
         margin-left: auto;
     }
-    .launch-scale-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.35rem 0.45rem;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        background: rgba(15, 23, 42, 0.72);
-    }
-    .launch-scale-step {
-        width: 2rem;
-        height: 2rem;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        background: rgba(255, 255, 255, 0.08);
-        color: #e2e8f0;
-        font-size: 1.1rem;
-        font-weight: 900;
-        line-height: 1;
-        cursor: pointer;
-    }
-    .launch-scale-step:hover {
-        background: rgba(16, 185, 129, 0.25);
-        border-color: rgba(16, 185, 129, 0.55);
-    }
-    .launch-scale-value {
-        min-width: 2.75rem;
-        text-align: center;
-        font-size: 0.82rem;
-        font-weight: 900;
-        font-variant-numeric: tabular-nums;
-        color: #6ee7b7;
-    }
-    .launch-scale-preset {
-        min-height: 2rem;
-        padding: 0 0.55rem;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.06);
-        color: #cbd5e1;
-        font-size: 0.62rem;
-        font-weight: 900;
-        cursor: pointer;
-        letter-spacing: 0.02em;
-    }
-    .launch-scale-preset:hover {
-        border-color: rgba(16, 185, 129, 0.5);
-        color: #ecfdf5;
-    }
-    .launch-scale-preset.is-active {
-        border-color: rgba(16, 185, 129, 0.75);
-        background: rgba(6, 78, 59, 0.55);
-        color: #6ee7b7;
-    }
-    .launch-scale-reset {
-        min-height: 2rem;
-        padding: 0 0.65rem;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: transparent;
-        color: #94a3b8;
-        font-size: 0.58rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        cursor: pointer;
-        letter-spacing: 0.04em;
-    }
-    .launch-scale-reset:hover {
-        color: #e2e8f0;
-        border-color: rgba(226, 232, 240, 0.45);
-    }
     .launchpad-close {
         width: 2.75rem;
         height: 2.75rem;
@@ -573,7 +502,6 @@
         border-color: #ef4444;
     }
     @media (max-width: 720px) {
-        .launch-scale-preset { display: none; }
         .launchpad-topbar__quick { order: 3; width: 100%; justify-content: center; }
         .launchpad-topbar__tools { order: 2; width: 100%; justify-content: flex-end; }
     }
@@ -756,19 +684,6 @@
         }
         .dash-kpi-validade-lbl { font-size: 7.5px; }
     }
-    .agro-scale-trigger--dash {
-        border-color: rgba(255, 255, 255, 0.22);
-        background: rgba(15, 23, 42, 0.55);
-        color: rgba(226, 232, 240, 0.88);
-        opacity: 0.82;
-    }
-    .agro-scale-trigger--dash:hover,
-    .agro-scale-trigger--dash:focus-visible {
-        border-color: rgba(16, 185, 129, 0.65);
-        background: rgba(6, 78, 59, 0.45);
-        color: #ecfdf5;
-        opacity: 1;
-    }
 </style>
 {% endblock %}
 
@@ -788,23 +703,9 @@
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
                 </div>
                 <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
-                <button
-                    type="button"
-                    id="dash-link-display-scale"
-                    class="agro-scale-trigger agro-scale-trigger--header agro-scale-trigger--dash shrink-0"
-                    title="Ajustar tamanho da tela"
-                    aria-label="Ajustar tamanho da tela"
-                >Aa</button>
             </div>
             <div class="xl:hidden flex items-center gap-1.5 shrink-0">
                 <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
-                <button
-                    type="button"
-                    id="dash-link-display-scale-sm"
-                    class="agro-scale-trigger agro-scale-trigger--header agro-scale-trigger--dash"
-                    title="Ajustar tamanho da tela"
-                    aria-label="Ajustar tamanho da tela"
-                >Aa</button>
             </div>
         </div>
 
@@ -928,16 +829,6 @@
                 </button>
             </div>
             <div class="launchpad-topbar__tools">
-                <div class="launch-scale-bar" id="launchpad-scale-bar" aria-label="Tamanho da tela">
-                    <button type="button" class="launch-scale-step" data-launch-scale-minus aria-label="Diminuir">−</button>
-                    <span class="launch-scale-value" data-launch-scale-value>100%</span>
-                    <button type="button" class="launch-scale-step" data-launch-scale-plus aria-label="Aumentar">+</button>
-                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.67">67%</button>
-                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.8">80%</button>
-                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.95">95%</button>
-                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="1">100%</button>
-                    <button type="button" class="launch-scale-reset" data-launch-scale-recalc>Redefinir</button>
-                </div>
                 <button type="button" onclick="toggleLaunchpad()" class="launchpad-close" aria-label="Fechar menu">&times;</button>
             </div>
         </div>
@@ -1001,51 +892,8 @@ function toggleLaunchpad() {
     document.body.classList.toggle("modal-open", estavaOculto);
     if (estavaOculto) {
         if (window.lucide) window.lucide.createIcons();
-        syncLaunchpadScaleBar();
     }
 }
-
-function syncLaunchpadScaleBar() {
-    var bar = document.getElementById("launchpad-scale-bar");
-    if (!bar || !window.AgroDisplayScale) return;
-    var scale = window.AgroDisplayScale.get();
-    var label = bar.querySelector("[data-launch-scale-value]");
-    if (label) label.textContent = Math.round(scale * 100) + "%";
-    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
-        var p = parseFloat(btn.getAttribute("data-launch-scale-preset"), 10);
-        btn.classList.toggle("is-active", Math.abs(scale - p) < 0.025);
-    });
-}
-
-(function initLaunchpadScaleBar() {
-    var bar = document.getElementById("launchpad-scale-bar");
-    if (!bar) return;
-    function applyScale(next) {
-        if (!window.AgroDisplayScale) return;
-        window.AgroDisplayScale.save(next);
-        syncLaunchpadScaleBar();
-    }
-    function step(delta) {
-        if (!window.AgroDisplayScale) return;
-        applyScale(window.AgroDisplayScale.get() + delta);
-    }
-    bar.querySelector("[data-launch-scale-minus]")?.addEventListener("click", function () { step(-0.05); });
-    bar.querySelector("[data-launch-scale-plus]")?.addEventListener("click", function () { step(0.05); });
-    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            applyScale(parseFloat(btn.getAttribute("data-launch-scale-preset"), 10));
-        });
-    });
-    bar.querySelector("[data-launch-scale-recalc]")?.addEventListener("click", function () {
-        if (!window.AgroDisplayScale || !window.AgroDisplayScale.findMaxSafeScale) return;
-        var recalcBtn = bar.querySelector("[data-launch-scale-recalc]");
-        if (recalcBtn) recalcBtn.disabled = true;
-        window.AgroDisplayScale.findMaxSafeScale(function (best) {
-            applyScale(best);
-            if (recalcBtn) recalcBtn.disabled = false;
-        });
-    });
-})();
 
 function dashLaunchpadAbrir(titulo, url, icone) {
     var lp = document.getElementById("launchpad");
