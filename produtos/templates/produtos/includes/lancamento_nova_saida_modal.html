@@ -257,33 +257,32 @@
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
   .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-  .agro-ns-valor-inp-wrap { position: relative; min-width: 0; }
-  .agro-ns-input-valor-parc { padding-right: clamp(6.5rem, 42%, 7.75rem) !important; }
+  .agro-ns-card-row--4 { align-items: end; }
+  .agro-ns-valor-meta { display: flex; flex-direction: column; gap: 0.22rem; min-width: 0; }
   .agro-ns-parc-switch {
-    position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
-    display: inline-flex; align-items: center; gap: 0.28rem; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 0.32rem;
+    width: 100%; margin: 0;
   }
   .agro-ns-parc-lbl-total,
   .agro-ns-parc-lbl-parcela {
-    font-size: clamp(0.5625rem, 0.2vw + 0.48rem, 0.6875rem); font-weight: 900;
-    text-transform: uppercase; letter-spacing: 0.01em; line-height: 1;
-    color: #94a3b8; transition: color 0.12s; white-space: nowrap; user-select: none;
+    font-size: 0.625rem; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 0.02em; line-height: 1; color: #94a3b8;
+    transition: color 0.12s; white-space: nowrap; user-select: none;
   }
   .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-lbl-total,
   .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-lbl-parcela { color: var(--ns-accent); }
   .agro-ns-parc-switch-track {
-    width: 2.35rem; height: 1.2rem; min-height: 0; padding: 0; flex-shrink: 0;
+    width: 2.1rem; height: 1.05rem; min-height: 0; padding: 0; flex-shrink: 0;
     border: none; border-radius: 999px; background: var(--ns-accent); cursor: pointer;
     position: relative; transition: opacity 0.12s;
   }
-  .agro-ns-parc-switch-track:hover { opacity: 0.92; }
+  .agro-ns-parc-switch-track:hover { opacity: 0.88; }
   .agro-ns-parc-switch-thumb {
-    position: absolute; top: 0.125rem; left: 0.125rem;
-    width: 0.95rem; height: 0.95rem; border-radius: 50%; background: #fff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
-    transition: left 0.18s ease;
+    position: absolute; top: 0.1rem; left: 0.1rem;
+    width: 0.85rem; height: 0.85rem; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2); transition: left 0.18s ease;
   }
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(100% - 0.125rem - 0.95rem); }
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(100% - 0.1rem - 0.85rem); }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;

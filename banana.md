@@ -421,7 +421,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 | O quê | Detalhe |
 |-------|---------|
 | **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
-| **Chave Total/Parcela** | **Total · switch · Parcela** embutida à direita **dentro** do campo Valor |
+| **Chave Total/Parcela** | Linha fina **Total · switch · Parcela** entre rótulo e input; valor **100% largura** |
 | **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
