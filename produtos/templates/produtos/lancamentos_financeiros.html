@@ -1771,7 +1771,7 @@
             );
           }
           if (row.pode_excluir) {
-            acoesBtns.push(`<button type="button" class="gm-lanc-ic gm-lanc-ic--del btn-del-lanc" data-id="${esc(row.id)}" title="Excluir no Mongo (só manual ou sem vínculo ERP)" aria-label="Excluir lançamento">${GM_LANC_IC.del}</button>`);
+            acoesBtns.push(`<button type="button" class="gm-lanc-ic gm-lanc-ic--del btn-del-lanc" data-id="${esc(row.id)}" title="Excluir lançamento manual Agro${row.pago ? ' (quitado)' : ''}" aria-label="Excluir lançamento">${GM_LANC_IC.del}</button>`);
           }
           if (tipoAtual === 'pagar' && !row.pago) {
             acoesBtns.push(
@@ -2517,7 +2517,7 @@
         const del = e.target.closest('.btn-del-lanc');
         if (del && del.dataset.id) {
           e.preventDefault();
-          if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
+          if (!window.confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return;
           excluirLancamentoPorId(del.dataset.id);
           return;
         }

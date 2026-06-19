@@ -2128,11 +2128,14 @@ def _lancamento_tem_vinculo_erp(doc: dict) -> bool:
 
 
 def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) -> bool:
-    if quitado or valor_mov > 0.02:
+    if _lancamento_tem_vinculo_erp(doc):
         return False
+    # Lote manual Agro (Nova saída, lote manual): pode excluir mesmo quitado.
     if _lancamento_e_manual_agro(doc):
         return True
-    return not _lancamento_tem_vinculo_erp(doc)
+    if quitado or valor_mov > 0.02:
+        return False
+    return True
 
 
 def _rotulo_usuario_de_campo_mongo(raw: str) -> str:
@@ -6891,10 +6894,13 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
             )
         )
     if not _lancamento_pode_excluir_agro(doc, quitado, round(mov, 2)):
-        return {
-            "ok": False,
-            "erro": "Exclusão não permitida: quitado, com movimento ou vinculado ao ERP (use o ERP para excluir).",
-        }
+        if _lancamento_tem_vinculo_erp(doc):
+            erro = "Exclusão não permitida: título vinculado ao ERP."
+        elif not _lancamento_e_manual_agro(doc) and (quitado or mov > 0.02):
+            erro = "Exclusão não permitida: quitado ou com movimento (exceto lançamento manual Agro)."
+        else:
+            erro = "Exclusão não permitida."
+        return {"ok": False, "erro": erro}
     col.delete_one({"_id": oid})
     logger.info(
         "excluir_lancamento_mongo_agro: _id=%s por=%s",
