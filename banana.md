@@ -382,7 +382,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.31`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (deploy produção FAB + Nova saída quitado, Renan pediu)  
-**Versão app (`VERSION`):** **teste** v1.64 · **produção** v1.49 (`6300cec`)
+**Versão app (`VERSION`):** **teste** v1.66 · **produção** v1.50 (`0f4a5e4`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -560,7 +560,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 
 **Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados.
 
-**PIN:** uma vez ao entrar em Lançamentos (hub `/lancamentos/`); navegação interna sem repetir; só de novo no **modo descanso** (idle). Launcher BI não pede PIN antes do módulo.
+**PIN:** uma vez ao entrar em Lançamentos (qualquer rota `/lancamentos/*`); navegação interna sem repetir; só de novo no **modo descanso** (idle). `/lancamentos/` redireciona direto para **Contas a pagar** (sem popup hub).
 
 **Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`, `includes/lancamentos_pin_entrada.html`, `_screensaver_pin.html`.
 
