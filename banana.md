@@ -366,10 +366,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.18`  
+**Versão:** `1.0.19`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (CP colunas por PIN → `producao`)  
-**Versão app (`VERSION`):** **produção v1.43** · staging `teste`
+**Atualizado por:** assistente Cursor (CP checkbox seleção maior → `producao`)  
+**Versão app (`VERSION`):** **produção v1.44** · staging `teste`
+
+### CP — checkbox seleção maior (2026-06-19, produção)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Checkbox lista** | 22px → **26px**; coluna seleção **48px** |
+| **Área toque** | `min-height: 2rem` na célula |
+
+**Teste:** Ctrl+F5 → `/lancamentos/contas-pagar/` → marcar títulos em aberto — checkbox maior e fácil de clicar.
 
 ### CP — colunas por PIN (2026-06-19, produção)
 
