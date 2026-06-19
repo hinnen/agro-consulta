@@ -9706,6 +9706,12 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         texto=texto,
         excluir_planos_nomes=excl_planos or None,
     )
+    skip_totais = str(request.GET.get("skip_totais") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "yes",
+    ) or page > 1
     linhas, total, totais = lancamentos_buscar_pagina(
         db,
         query,
@@ -9713,34 +9719,33 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         page=page,
         page_size=page_size,
         ordenacao=ordenacao,
+        skip_totais=skip_totais,
     )
     if despesa and linhas:
         enriquecer_lancamentos_entrada_nfe_rascunho(db, linhas)
 
-    tot_out = {
-        "quantidade": totais["quantidade"],
-        "bruto": totais["bruto"],
-        "movimentado": totais["movimentado"],
-        "saldo_aberto": totais["saldo_aberto"],
-        "previsto": totais["bruto"],
-        "pago": totais["movimentado"],
-        "a_pagar": totais["saldo_aberto"] if despesa else 0.0,
-        "a_receber": totais["saldo_aberto"] if not despesa else 0.0,
+    payload: dict[str, Any] = {
+        "lancamentos": linhas,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "status_filtro": status,
+        "tipo": "pagar" if despesa else "receber",
+        "planos_excluidos_aplicados": len(excl_planos),
+        "filtros": filtros_echo,
     }
-
-    return JsonResponse(
-        {
-            "lancamentos": linhas,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "totais": tot_out,
-            "status_filtro": status,
-            "tipo": "pagar" if despesa else "receber",
-            "planos_excluidos_aplicados": len(excl_planos),
-            "filtros": filtros_echo,
+    if totais is not None:
+        payload["totais"] = {
+            "quantidade": totais["quantidade"],
+            "bruto": totais["bruto"],
+            "movimentado": totais["movimentado"],
+            "saldo_aberto": totais["saldo_aberto"],
+            "previsto": totais["bruto"],
+            "pago": totais["movimentado"],
+            "a_pagar": totais["saldo_aberto"] if despesa else 0.0,
+            "a_receber": totais["saldo_aberto"] if not despesa else 0.0,
         }
-    )
+    return JsonResponse(payload)
 
 
 def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
@@ -9792,7 +9797,14 @@ def lancamentos_financeiros_view(request):
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
-    """Lista de contas a pagar (filtros, export, baixa)."""
+    """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
+    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_classico_view(request):
+    """Contas a pagar — layout clássico (tabela completa; mesma API Mongo)."""
     return render(
         request,
         "produtos/lancamentos_financeiros.html",
@@ -9803,8 +9815,12 @@ def lancamentos_contas_pagar_view(request):
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_teste_view(request):
-    """Layout experimental de contas a pagar (lista simplificada + mesma API Mongo)."""
-    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+    """Alias legado (/teste/) — redireciona para o layout padrão."""
+    url = reverse("lancamentos_contas_pagar")
+    qs = (request.META.get("QUERY_STRING") or "").strip()
+    if qs:
+        url = f"{url}?{qs}"
+    return redirect(url)
 
 
 @ensure_csrf_cookie
