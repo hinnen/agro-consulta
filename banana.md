@@ -369,7 +369,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.13`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (Lançamentos CP layout + perf + vista → `teste`)  
-**Versão app (`VERSION`):** staging `teste` (após push) · **produção `372f90f` v1.14** (corte API; layout novo CP **não** em prod)
+**Versão app (`VERSION`):** **produção v1.33** (Lançamentos CP layout + PIN + filtro hoje) · staging `teste` alinhado
 
 ### O que este documento já cobre (até aqui)
 
@@ -392,6 +392,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
 - [x] **Contas a pagar — layout novo padrão** + `/classico/` (2026-06-19)
 - [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
+- [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
 
 ### Lançamentos — Contas a pagar layout novo (2026-06-19)
 
@@ -407,9 +408,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
 
-**Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`.
+**Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados.
 
-**Produção:** cherry-pick quando Renan pedir.
+**PIN:** uma vez ao entrar em Lançamentos (hub `/lancamentos/`); navegação interna sem repetir; só de novo no **modo descanso** (idle). Launcher BI não pede PIN antes do módulo.
+
+**Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`, `includes/lancamentos_pin_entrada.html`, `_screensaver_pin.html`.
+
+**Produção:** merge `teste`→`producao` 2026-06-19 (Renan pediu).
 
 ### NFC-e — status staging (2026-06-18)
 
@@ -539,7 +544,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `teste`:** Lançamentos CP — código + layout padrão (`/lancamentos/contas-pagar/`), perf API (`skip_totais`), vista preservada após baixa/NF/Nova saída.
+**Acabou de subir em `producao`:** Lançamentos CP (layout + perf + vista + PIN entrada + filtro hoje) · v1.33.
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
