@@ -367,17 +367,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.22`  
+**Versão:** `1.0.23`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída parcelas + layout empréstimo → `teste`)  
+**Atualizado por:** assistente Cursor (Nova saída: calendário grande + chave Total/Parcela → `teste`)  
 **Versão app (`VERSION`):** staging `teste` · produção v1.48
+
+### Nova saída — calendário + chave Total/Parcela (`teste`, 2026-06-19)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Calendário** | Popup grande (competência, vencimento, parcelas) — células ~2,85rem, Limpar/Hoje |
+| **Chave Total→Parcela** | Ao lado do valor; padrão **Total** (card Nº parcelas oculto); **Parcela** mostra o card |
+| **Parcelas** (modo Parcela) | Nº + intervalo → grade; valor sempre **total** |
+
+**Teste:** Ctrl+F5 → Nova saída → clicar Competência/Vencimento (calendário grande) · chave Parcela → card aparece.
 
 ### Nova saída — parcelas + layout empréstimo (`teste`, 2026-06-19)
 
 | O quê | Detalhe |
 |-------|---------|
 | **Layout empréstimo** | Só entrada + saída (sem Valor duplicado); grid 4 colunas |
-| **Parcelas** | Nº + intervalo → grade vencimento/valor; botão **Parcela↔Total** |
+| **Parcelas** | Nº + intervalo → grade vencimento/valor |
 | **Empréstimo dual** | Parcelas na **saída**; backend `parcelas_saida` em `mongo_financeiro_util` |
 
 **Teste:** Ctrl+F5 → Nova saída → 3 parcelas mensais · empréstimo dual com saída parcelada.

@@ -256,27 +256,101 @@
   }
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
-  .agro-ns-valor-campo { display: flex; gap: 0.35rem; align-items: stretch; min-width: 0; }
+  .agro-ns-valor-campo { display: flex; gap: 0.45rem; align-items: stretch; min-width: 0; }
   .agro-ns-valor-campo .agro-ns-input { flex: 1 1 0; min-width: 0; }
-  .agro-ns-parc-modo-btn {
-    flex-shrink: 0; min-width: 2.65rem; min-height: var(--ns-input-h);
-    padding: 0 0.55rem; border-radius: 0.75rem; border: 2px solid #cbd5e1;
-    background: #f8fafc; color: #475569; font-size: 0.7rem; font-weight: 900;
-    text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer;
+  .agro-ns-parc-switch {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.2rem; min-width: 5.25rem; align-self: stretch; padding: 0.15rem 0;
   }
-  .agro-ns-parc-modo-btn:hover { border-color: var(--ns-accent); color: var(--ns-accent); background: var(--ns-accent-soft); }
-  .agro-ns-parc-modo-btn[data-modo="parcela"] { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+  .agro-ns-parc-switch-labels {
+    display: flex; justify-content: space-between; width: 100%; max-width: 5.25rem;
+    font-size: clamp(0.625rem, 0.25vw + 0.55rem, 0.75rem); font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.03em; line-height: 1;
+  }
+  .agro-ns-parc-switch-labels span { color: #94a3b8; transition: color 0.12s; }
+  .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-sw-lbl-total,
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-sw-lbl-parcela { color: var(--ns-accent); }
+  .agro-ns-parc-switch-track {
+    width: 100%; max-width: 5.25rem; min-height: 2.35rem; padding: 0.2rem;
+    border-radius: 999px; border: 2px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+    position: relative; transition: border-color 0.12s, background 0.12s;
+  }
+  .agro-ns-parc-switch-track:hover { border-color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-parc-switch-thumb {
+    display: block; width: 50%; height: 100%; border-radius: 999px;
+    background: var(--ns-accent); box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+    transition: transform 0.18s ease;
+  }
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { transform: translateX(100%); }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
   }
-  .agro-ns-parc-wrap.is-off { opacity: 0.55; }
+  .agro-ns-parc-wrap.hidden { display: none !important; }
+  .agro-ns-input-date,
+  .agro-ns-input[type="date"] {
+    font-size: clamp(1.1875rem, 0.65vw + 1rem, 1.4375rem);
+    font-weight: 800; font-variant-numeric: tabular-nums;
+    padding-right: 0.65rem; cursor: pointer;
+  }
+  .agro-ns-input-date::-webkit-calendar-picker-indicator,
+  .agro-ns-input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 2.25rem; height: 2.25rem; margin-left: 0.25rem; cursor: pointer; opacity: 0.85;
+  }
+  .agro-ns-cal-pop {
+    position: fixed; z-index: 400; width: min(22.5rem, calc(100vw - 1.5rem));
+    padding: 0.85rem 0.95rem 0.75rem; border-radius: 1rem;
+    border: 2px solid #cbd5e1; background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+    font-size: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
+  }
+  .agro-ns-cal-pop-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    margin-bottom: 0.65rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-title { font-size: clamp(1.0625rem, 0.5vw + 0.92rem, 1.25rem); font-weight: 900; color: #0f172a; }
+  .agro-ns-cal-pop-nav {
+    min-width: 2.75rem; min-height: 2.75rem; border-radius: 0.75rem;
+    border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
+    font-size: 1.35rem; font-weight: 900; line-height: 1; cursor: pointer;
+  }
+  .agro-ns-cal-pop-nav:hover { border-color: var(--ns-accent); color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.2rem;
+    margin-bottom: 0.35rem; text-align: center;
+    font-size: clamp(0.75rem, 0.3vw + 0.65rem, 0.875rem); font-weight: 900;
+    text-transform: uppercase; color: #64748b;
+  }
+  .agro-ns-cal-pop-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem;
+  }
+  .agro-ns-cal-pop-day {
+    min-height: 2.85rem; border-radius: 0.65rem; border: 2px solid transparent;
+    background: #f8fafc; color: #0f172a; font-size: clamp(1.0625rem, 0.45vw + 0.92rem, 1.25rem);
+    font-weight: 800; cursor: pointer; transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+  .agro-ns-cal-pop-day:hover { border-color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-day.is-out { color: #94a3b8; background: #fff; }
+  .agro-ns-cal-pop-day.is-today { border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .agro-ns-cal-pop-day.is-sel { background: var(--ns-accent); border-color: var(--ns-accent); color: #fff; }
+  .agro-ns-cal-pop-foot {
+    display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.65rem;
+    padding-top: 0.55rem; border-top: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-foot button {
+    min-height: 2.65rem; padding: 0 1rem; border-radius: 0.65rem; border: none; cursor: pointer;
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem); font-weight: 800;
+  }
+  .agro-ns-cal-pop-clear { background: transparent; color: #64748b; }
+  .agro-ns-cal-pop-clear:hover { color: #dc2626; background: #fef2f2; }
+  .agro-ns-cal-pop-today { background: var(--ns-accent-soft); color: var(--ns-accent); border: 2px solid var(--ns-accent) !important; }
+  .agro-ns-cal-pop-today:hover { background: var(--ns-accent); color: #fff; }
   .agro-ns-parc-preview table { width: 100%; border-collapse: collapse; }
   .agro-ns-parc-preview th, .agro-ns-parc-preview td {
     padding: 0.35rem 0.45rem; border-bottom: 1px solid #e2e8f0; text-align: left;
   }
   .agro-ns-parc-preview th { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #64748b; }
-  .agro-ns-parc-preview input { min-height: 2.25rem; font-size: 0.8125rem; font-weight: 800; }
+  .agro-ns-parc-preview input { min-height: 2.75rem; font-size: clamp(1rem, 0.4vw + 0.88rem, 1.125rem); font-weight: 800; }
   @media (min-width: 640px) {
     .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
