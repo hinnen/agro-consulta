@@ -78,6 +78,7 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-lbl-normal')?.classList.add('hidden');
+    card.querySelector('.agro-ns-valor-lbl-dual')?.classList.remove('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.add('hidden');
     card.querySelector('.agro-ns-forma-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-forma-dual')?.classList.remove('hidden');
@@ -100,6 +101,7 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-lbl-normal')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-valor-lbl-dual')?.classList.add('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.remove('hidden');
     card.querySelector('.agro-ns-forma-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-forma-dual')?.classList.add('hidden');

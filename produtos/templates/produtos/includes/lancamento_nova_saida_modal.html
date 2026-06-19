@@ -259,6 +259,7 @@
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden,
   .agro-ns-valor-lbl-normal.hidden,
+  .agro-ns-valor-lbl-dual.hidden,
   .agro-ns-forma-normal.hidden,
   .agro-ns-forma-dual.hidden,
   .agro-ns-label-conta-normal.hidden,
@@ -287,6 +288,21 @@
   .agro-ns-parc-seg-btn.is-on { background: var(--ns-accent); color: #fff; }
   .agro-ns-parc-seg-btn:hover:not(.is-on) { background: #f1f5f9; }
   .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-dual {
+    display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;
+  }
+  .agro-ns-valor-dual-lbl-stack {
+    display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; width: 100%;
+  }
+  .agro-ns-valor-dual-lbl-stack > .agro-ns-label { margin: 0; line-height: 1.1; min-height: 1.35rem; display: flex; align-items: center; }
+  /* Empréstimo dual: coluna Valor unificada (rótulos + inputs), não quebra a grade */
+  .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano > .agro-ns-field--valor {
+    display: flex; flex-direction: column; gap: 0.35rem; min-width: 0;
+  }
+  .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano > .agro-ns-field--valor .agro-ns-field-lbl,
+  .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano > .agro-ns-field--valor .agro-ns-field-inp {
+    grid-column: unset; grid-row: unset;
+  }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
@@ -394,6 +410,9 @@
     .agro-ns-field--ven .agro-ns-field-lbl,
     .agro-ns-field--ven .agro-ns-field-inp { grid-column: 4; }
     .agro-ns-card-row--plano .agro-ns-label { margin: 0; line-height: 1.1; }
+    .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano > .agro-ns-field--valor {
+      grid-column: 2; grid-row: 1 / span 2; align-self: stretch;
+    }
   }
   .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
   .agro-ns-card-rec {
