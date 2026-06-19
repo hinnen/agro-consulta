@@ -2959,7 +2959,7 @@
         carregar();
         return;
       }
-      if (info && info.url) window.location.href = info.url;
+      if (info && info.origin === 'dashboard') return;
     };
   </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}

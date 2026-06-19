@@ -78,6 +78,15 @@
         </div>
       </div>
     </form>
+    <div id="agro-ns-sucesso" class="agro-ns-sucesso hidden flex flex-col flex-1 min-h-0 items-center justify-center px-6 py-10 text-center" role="status" aria-live="polite">
+      <div class="agro-ns-sucesso-card max-w-md w-full rounded-2xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50 to-white px-6 py-8 shadow-xl">
+        <div class="agro-ns-sucesso-ico mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white text-3xl font-black shadow-lg" aria-hidden="true">✓</div>
+        <h3 id="agro-ns-sucesso-titulo" class="text-2xl font-black text-slate-900 mb-2">Lançamento gravado</h3>
+        <p id="agro-ns-sucesso-msg" class="text-lg font-bold text-emerald-900 mb-2"></p>
+        <p id="agro-ns-sucesso-detalhe" class="text-sm font-semibold text-slate-600 mb-6 hidden"></p>
+        <button type="button" id="agro-ns-sucesso-ok" class="agro-ns-btn-primary agro-ns-footer-btn w-full max-w-xs mx-auto text-white font-black rounded-xl shadow-md">OK</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -443,6 +452,10 @@
   .agro-ns-panel--receber .agro-ns-sug-dd li:hover { background: #ecfdf5; color: #065f46; }
   .agro-ns-itens-wrap::-webkit-scrollbar { width: 8px; }
   .agro-ns-itens-wrap::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+  .agro-ns-sucesso.hidden { display: none !important; }
+  .agro-ns-sucesso-card.agro-ns-sucesso--parcial { border-color: #fcd34d; background: linear-gradient(180deg, #fffbeb 0%, #fff 100%); }
+  .agro-ns-sucesso--parcial .agro-ns-sucesso-ico { background: #d97706; }
+  .agro-ns-sucesso--parcial #agro-ns-sucesso-titulo { color: #92400e; }
 </style>
 
 <script>

@@ -350,6 +350,23 @@
   .sv-modal-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
   .sv-bxp-row { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--cor-borda); border-radius: 10px; background: #fafbfc; margin-bottom: 10px; }
   @media (min-width: 640px) { .sv-bxp-row { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; } }
+  .sv-sug-wrap { position: relative; margin-top: 4px; }
+  .sv-sug-dd {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 30; margin-top: 4px;
+    max-height: 220px; overflow-y: auto; background: var(--cor-card); border: 2px solid var(--cor-borda);
+    border-radius: 10px; box-shadow: 0 12px 24px rgba(0,0,0,0.12); list-style: none; padding: 0; margin-bottom: 0;
+  }
+  .sv-sug-dd.show { display: block; }
+  .sv-sug-dd li {
+    padding: 10px 12px; cursor: pointer; font-size: 0.95rem; font-weight: 600;
+    border-bottom: 1px solid var(--cor-borda);
+  }
+  .sv-sug-dd li:last-child { border-bottom: 0; }
+  .sv-sug-dd li:hover { background: #f0fdf4; }
+  .sv-edl-details { margin-top: 8px; padding: 12px; border: 1px solid var(--cor-borda); border-radius: 10px; background: #fafbfc; }
+  .sv-edl-details summary { cursor: pointer; font-weight: 700; color: var(--cor-texto-secundario); font-size: 0.9rem; }
+  .sv-edl-details .sv-form-group { margin-top: 10px; }
+  .sv-edl-details input[type="text"] { min-height: 42px; font-size: 0.95rem; }
 </style>
 
 <div class="sv-container">
@@ -532,6 +549,69 @@
   </div>
 </div>
 
+<div id="sv-modal-edit-lanc" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-edit-lanc-titulo">
+  <div class="sv-modal-card" style="max-width: min(40rem, 96vw);">
+    <h2 id="sv-modal-edit-lanc-titulo">Editar lançamento</h2>
+    <p class="sv-sub" style="margin-bottom:12px;">Apenas títulos em aberto. Valor (bruto) só aparece se ainda não houver pagamento.</p>
+    <input type="hidden" id="sv-edl-id">
+    <div class="sv-form-group">
+      <label for="sv-edl-desc"><span>Descrição</span></label>
+      <input type="text" id="sv-edl-desc" maxlength="500">
+    </div>
+    <div class="sv-form-group">
+      <label for="sv-edl-cliente"><span>Favorecido / fornecedor</span></label>
+      <div class="sv-sug-wrap" data-sug-campo="cliente">
+        <input type="text" id="sv-edl-cliente" maxlength="300" autocomplete="off" placeholder="Digite para buscar…">
+        <input type="hidden" id="sv-edl-cliente-id" value="">
+        <ul class="sv-sug-dd" id="sv-edl-cliente-dd"></ul>
+      </div>
+    </div>
+    <div class="sv-form-group">
+      <label for="sv-edl-venc"><span>Vencimento</span></label>
+      <input type="date" id="sv-edl-venc" style="max-width: 16rem;">
+    </div>
+    <div class="sv-form-group">
+      <label for="sv-edl-plano"><span>Plano de conta</span></label>
+      <div class="sv-sug-wrap" data-sug-campo="plano">
+        <input type="text" id="sv-edl-plano" maxlength="200" autocomplete="off" placeholder="Digite para buscar…">
+        <input type="hidden" id="sv-edl-plano-id" value="">
+        <ul class="sv-sug-dd" id="sv-edl-plano-dd"></ul>
+      </div>
+    </div>
+    <div class="sv-form-group hidden" id="sv-edl-valor-wrap">
+      <label for="sv-edl-valor"><span>Valor bruto (R$)</span></label>
+      <input type="text" id="sv-edl-valor" placeholder="0,00" inputmode="decimal" style="max-width: 16rem;">
+    </div>
+    <div class="sv-form-group">
+      <label for="sv-edl-boleto"><span>Boleto — linha digitável ou código de barras</span></label>
+      <input type="text" id="sv-edl-boleto" maxlength="60" inputmode="numeric" autocomplete="off" placeholder="Opcional">
+    </div>
+    <details class="sv-edl-details">
+      <summary>Corrigir forma / conta (opcional)</summary>
+      <div class="sv-form-group">
+        <label for="sv-edl-forma"><span>Forma de pagamento</span></label>
+        <div class="sv-sug-wrap" data-sug-campo="forma">
+          <input type="text" id="sv-edl-forma" maxlength="200" autocomplete="off" placeholder="Digite para buscar…">
+          <input type="hidden" id="sv-edl-forma-id" value="">
+          <ul class="sv-sug-dd" id="sv-edl-forma-dd"></ul>
+        </div>
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-edl-banco"><span>Banco / conta</span></label>
+        <div class="sv-sug-wrap" data-sug-campo="banco">
+          <input type="text" id="sv-edl-banco" maxlength="200" autocomplete="off" placeholder="Digite para buscar…">
+          <input type="hidden" id="sv-edl-banco-id" value="">
+          <ul class="sv-sug-dd" id="sv-edl-banco-dd"></ul>
+        </div>
+      </div>
+    </details>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-edl-cancel">Cancelar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-edl-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="sv-nfe-overlay" class="sv-nfe-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sv-nfe-overlay-titulo">
   <div class="sv-nfe-overlay-backdrop" aria-hidden="true"></div>
   <div class="sv-nfe-overlay-panel">
@@ -551,7 +631,9 @@
   const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
   const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
-  const URL_CLASSICO = "{% url 'lancamentos_contas_pagar_classico' %}";
+  const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
+  const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
   const LS_COLS_PIN = 'gm_fin_sv_cp_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
@@ -1044,19 +1126,108 @@
     return parseFloat(t.replace(/\./g, '').replace(',', '.'));
   }
 
-  function urlClassico(id) {
-    const u = new URL(URL_CLASSICO, window.location.origin);
-    if (id) u.searchParams.set('mongo_id', id);
+  function isoDateFromRowVenc(iso) {
+    if (!iso) return '';
+    const s = String(iso).trim();
+    return s.length >= 10 ? s.slice(0, 10) : '';
+  }
+
+  function attachSuggest(wrap) {
+    if (!wrap || wrap.dataset.sugBound === '1') return;
+    wrap.dataset.sugBound = '1';
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.sv-sug-dd');
+    if (!inp || !hid || !dd || !campo) return;
+    let timer = null;
+    inp.addEventListener('input', () => {
+      hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          const u = new URL(API_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach((it) => {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              inp.value = it.nome;
+              hid.value = it.id || '';
+              dd.classList.remove('show');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('show', dd.children.length > 0);
+        } catch (_) {
+          dd.classList.remove('show');
+        }
+      }, 280);
+    });
+    inp.addEventListener('blur', () => {
+      setTimeout(() => dd.classList.remove('show'), 200);
+    });
+    inp.addEventListener('focus', () => {
+      if (dd.children.length) dd.classList.add('show');
+    });
+  }
+
+  function abrirModalEditLanc(id) {
+    const row = getRow(id);
+    if (!row || row.pode_editar === false) return;
+    document.getElementById('sv-edl-id').value = id;
+    document.getElementById('sv-edl-desc').value = row.descricao || '';
+    document.getElementById('sv-edl-cliente').value = row.cliente || '';
+    document.getElementById('sv-edl-cliente-id').value = row.cliente_id || '';
+    document.getElementById('sv-edl-venc').value = isoDateFromRowVenc(row.data_vencimento);
+    document.getElementById('sv-edl-plano').value = row.plano_conta || '';
+    document.getElementById('sv-edl-plano-id').value = row.plano_conta_id || '';
+    document.getElementById('sv-edl-forma').value = row.forma_pagamento || '';
+    document.getElementById('sv-edl-forma-id').value = row.forma_pagamento_id || '';
+    document.getElementById('sv-edl-banco').value = row.banco || '';
+    document.getElementById('sv-edl-banco-id').value = row.banco_id || '';
+    const eb = document.getElementById('sv-edl-boleto');
+    if (eb) eb.value = row.boleto_codigo_barras || '';
+    const vw = document.getElementById('sv-edl-valor-wrap');
+    const vi = document.getElementById('sv-edl-valor');
+    if (row.pode_editar_valor) {
+      vw.classList.remove('hidden');
+      vi.value = Number(row.valor_bruto || 0).toFixed(2).replace('.', ',');
+    } else {
+      vw.classList.add('hidden');
+      vi.value = '';
+    }
+    abrirModal('sv-modal-edit-lanc');
+    document.getElementById('sv-edl-desc')?.focus();
+  }
+
+  async function excluirLancamentoPorId(id) {
     try {
-      const ret = new URL(window.location.pathname, window.location.origin);
-      const cur = montarParams(true);
-      cur.delete('page');
-      cur.delete('skip_totais');
-      if (prefiltroAtivo) cur.set('pref', prefiltroAtivo);
-      ret.search = cur.toString();
-      u.searchParams.set('retorno', ret.pathname + ret.search);
-    } catch (_) {}
-    return u.pathname + u.search;
+      const r = await fetch(API_LANC_EXCLUIR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ id }),
+      });
+      const out = await r.json();
+      if (!out.ok) {
+        alert(out.erro || 'Não foi possível excluir.');
+        return;
+      }
+      selecionados.delete(String(id));
+      refreshSelBar();
+      recarregarPreservandoVista();
+    } catch (_) {
+      alert('Erro de rede.');
+    }
   }
 
   function urlEntradaNfe(row) {
@@ -1521,12 +1692,12 @@
       acoes.push(`<button type="button" class="sv-btn-action sv-btn-edit sv-btn-baixa-parcial" data-id="${esc(row.id)}">Parcial</button>`);
     }
     if (row.pode_editar !== false) {
-      acoes.push(`<a class="sv-btn-action sv-btn-edit" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Editar</a>`);
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-edit sv-btn-edt-lanc" data-id="${esc(row.id)}">Editar</button>`);
     }
     if (row.pode_excluir) {
-      acoes.push(`<a class="sv-btn-action sv-btn-delete" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Excluir</a>`);
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-delete sv-btn-del-lanc" data-id="${esc(row.id)}">Excluir</button>`);
     } else {
-      acoes.push(`<span class="sv-btn-action sv-btn-edit" style="opacity:0.5;cursor:not-allowed" title="Use a tela clássica">Excluir</span>`);
+      acoes.push(`<span class="sv-btn-action sv-btn-edit" style="opacity:0.5;cursor:not-allowed" title="Exclusão não permitida neste título">Excluir</span>`);
     }
     const horaTxt = fmtDataHora(row.horario_quitacao || row.last_update);
     const usrLanc = row.usuario_lancou || row.criado_por || '';
@@ -1595,6 +1766,8 @@
         if (e.target.closest('.sv-btn-pagar-row')) return;
         if (e.target.closest('.sv-btn-nfe-row')) return;
         if (e.target.closest('.sv-btn-log-row')) return;
+        if (e.target.closest('.sv-btn-edt-lanc')) return;
+        if (e.target.closest('.sv-btn-del-lanc')) return;
         toggle();
       });
       item.addEventListener('keydown', (e) => {
@@ -1618,7 +1791,21 @@
       const bp = e.target.closest('.sv-btn-baixa-parcial');
       if (bp) { e.stopPropagation(); abrirBaixaParcial(bp.dataset.id); return; }
       const lg = e.target.closest('.sv-btn-log-row');
-      if (lg) { e.stopPropagation(); abrirLog(lg.dataset.id); }
+      if (lg) { e.stopPropagation(); abrirLog(lg.dataset.id); return; }
+      const edt = e.target.closest('.sv-btn-edt-lanc');
+      if (edt && edt.dataset.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        abrirModalEditLanc(edt.dataset.id);
+        return;
+      }
+      const del = e.target.closest('.sv-btn-del-lanc');
+      if (del && del.dataset.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
+        excluirLancamentoPorId(del.dataset.id);
+      }
     });
     elCorpo.addEventListener('change', (e) => {
       const chk = e.target.closest('.sv-row-chk');
@@ -1829,6 +2016,66 @@
 
   document.getElementById('sv-bx-cancel').addEventListener('click', () => fecharModal('sv-modal-baixa'));
   document.getElementById('sv-bxp-cancel').addEventListener('click', () => fecharModal('sv-modal-parcial'));
+  document.getElementById('sv-edl-cancel')?.addEventListener('click', () => fecharModal('sv-modal-edit-lanc'));
+  document.querySelectorAll('#sv-modal-edit-lanc .sv-sug-wrap').forEach(attachSuggest);
+  document.getElementById('sv-edl-salvar')?.addEventListener('click', async () => {
+    const id = (document.getElementById('sv-edl-id').value || '').trim();
+    if (!id) return;
+    const body = {
+      id,
+      descricao: document.getElementById('sv-edl-desc').value,
+      cliente: document.getElementById('sv-edl-cliente').value,
+      data_vencimento: document.getElementById('sv-edl-venc').value,
+      plano_conta: document.getElementById('sv-edl-plano').value,
+    };
+    const cid = (document.getElementById('sv-edl-cliente-id').value || '').trim();
+    if (cid) body.cliente_id = cid;
+    const pid = (document.getElementById('sv-edl-plano-id').value || '').trim();
+    if (pid) body.plano_conta_id = pid;
+    const vw = document.getElementById('sv-edl-valor-wrap');
+    if (vw && !vw.classList.contains('hidden')) {
+      const vpt = parseValorPt(document.getElementById('sv-edl-valor').value);
+      if (!Number.isNaN(vpt) && vpt > 0) body.valor_bruto = vpt;
+    }
+    const fn = (document.getElementById('sv-edl-forma').value || '').trim();
+    if (fn) {
+      body.forma_pagamento = fn;
+      const fids = (document.getElementById('sv-edl-forma-id').value || '').trim();
+      if (fids) body.forma_pagamento_id = fids;
+    }
+    const bn = (document.getElementById('sv-edl-banco').value || '').trim();
+    if (bn) {
+      body.banco = bn;
+      const bids = (document.getElementById('sv-edl-banco-id').value || '').trim();
+      if (bids) body.banco_id = bids;
+    }
+    const ebol = document.getElementById('sv-edl-boleto');
+    if (ebol) body.boleto_codigo_barras = ebol.value;
+    const btn = document.getElementById('sv-edl-salvar');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_LANC_ALTERAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const out = await r.json();
+      if (!out.ok) {
+        alert(out.erro || 'Não foi possível salvar.');
+        return;
+      }
+      fecharModal('sv-modal-edit-lanc');
+      recarregarPreservandoVista({ focoId: id });
+    } catch (_) {
+      alert('Erro de rede.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
   document.getElementById('sv-bxp-add').addEventListener('click', () => bxpAddLinha(''));
   document.querySelectorAll('.sv-modal').forEach((m) => {
     m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
@@ -2032,12 +2279,16 @@
     carregar(false);
   }
 
-  window.agroNovaSaidaOnSuccess = function (info) {
-    if (info && info.quitado) {
-      document.getElementById('sv-status').value = 'todos';
-    }
-    recarregarPreservandoVista({ focoId: info && info.id ? info.id : '' });
-  };
+    window.agroNovaSaidaOnSuccess = function (info) {
+      if (typeof recarregarPreservandoVista === 'function') {
+        if (info && info.quitado) {
+          document.getElementById('sv-status').value = 'todos';
+        }
+        recarregarPreservandoVista({ focoId: info && info.idMongo ? info.idMongo : '' });
+        return;
+      }
+      if (info && info.origin === 'dashboard') return;
+    };
 })();
 </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
