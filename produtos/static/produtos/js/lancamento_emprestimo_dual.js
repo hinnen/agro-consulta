@@ -78,7 +78,12 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-lbl-normal')?.classList.add('hidden');
+    card.querySelector('.agro-ns-valor-lbl-dual')?.classList.remove('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.add('hidden');
+    card.querySelector('.agro-ns-forma-normal')?.classList.add('hidden');
+    card.querySelector('.agro-ns-forma-dual')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-label-conta-normal')?.classList.add('hidden');
+    card.querySelector('.agro-ns-label-conta-dual')?.classList.remove('hidden');
 
     const cbRec = card.querySelector('.agro-ns-rec-cb');
     if (cbRec) {
@@ -96,12 +101,18 @@
     card.querySelector('.agro-ns-valor-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-lbl-normal')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-valor-lbl-dual')?.classList.add('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-forma-normal')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-forma-dual')?.classList.add('hidden');
+    card.querySelector('.agro-ns-label-conta-normal')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-label-conta-dual')?.classList.add('hidden');
     const cbRec = card.querySelector('.agro-ns-rec-cb');
     if (cbRec) cbRec.disabled = false;
     card.classList.remove('agro-ns-card--emprestimo-dual');
     card.querySelector('.agro-ns-in-valor-entrada')?.value && (card.querySelector('.agro-ns-in-valor-entrada').value = '');
     card.querySelector('.agro-ns-in-valor-saida')?.value && (card.querySelector('.agro-ns-in-valor-saida').value = '');
+    card.querySelectorAll('.agro-ns-forma-dual input').forEach((el) => { el.value = ''; });
     syncHeaderEmprestimoAjuda();
     if (typeof window.__agroNsSyncParc === 'function') window.__agroNsSyncParc(card);
   }
@@ -119,6 +130,15 @@
   function coletarLinhaDualModal(card, base) {
     const ve = String(card.querySelector('.agro-ns-in-valor-entrada')?.value || '').trim();
     const vs = String(card.querySelector('.agro-ns-in-valor-saida')?.value || '').trim();
+    const sug = (campo) => {
+      const wrap = card.querySelector(`.agro-ns-sug-wrap[data-sug-campo="${campo}"]`);
+      if (!wrap) return { nome: '', id: '' };
+      const inp = wrap.querySelector('input[type="text"]');
+      const hid = wrap.querySelector('input[type="hidden"]');
+      return { nome: inp ? inp.value.trim() : '', id: hid ? hid.value.trim() : '' };
+    };
+    const fe = sug('forma_entrada');
+    const fs = sug('forma_saida');
     return {
       ...base,
       emprestimo_dual: true,
@@ -126,6 +146,10 @@
       plano_conta_id: dualId(),
       valor_entrada: ve,
       valor_saida: vs,
+      forma_entrada_nome: fe.nome,
+      forma_entrada_id: fe.id || null,
+      forma_saida_nome: fs.nome || undefined,
+      forma_saida_id: fs.id || null,
       recorrente: false,
     };
   }
@@ -141,6 +165,10 @@
     }
     if (!ln.banco_nome) {
       alert(`Lançamento ${num}: informe conta bancária para a saída / pagamento.`);
+      return false;
+    }
+    if (!ln.forma_entrada_nome) {
+      alert(`Lançamento ${num}: informe forma de pagamento da ENTRADA (obrigatória).`);
       return false;
     }
     const manual = ln.parcelas_manual_saida;

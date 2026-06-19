@@ -457,6 +457,7 @@
     if (!wrap || wrap.dataset.sugBound === '1') return;
     wrap.dataset.sugBound = '1';
     const campo = wrap.getAttribute('data-sug-campo');
+    const campoApi = wrap.getAttribute('data-sug-api') || campo;
     const inp = wrap.querySelector('input[type="text"]');
     const hid = wrap.querySelector('input[type="hidden"]');
     const dd = wrap.querySelector('.agro-ns-sug-dd');
@@ -470,7 +471,7 @@
         const api = cfg().apiSug;
         if (!api) return;
         try {
-          const r = await fetch(`${api}?campo=${encodeURIComponent(campo)}&q=${encodeURIComponent(inp.value)}`, { credentials: 'same-origin' });
+          const r = await fetch(`${api}?campo=${encodeURIComponent(campoApi)}&q=${encodeURIComponent(inp.value)}`, { credentials: 'same-origin' });
           const j = await r.json();
           let itens = j.itens || [];
           const dual = window.AgroLancEmprestimoDual;
@@ -706,7 +707,8 @@
           </div>
         </div>
         <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Conta / Caixa</label>
+          <label class="agro-ns-label agro-ns-label-conta-normal">Conta / Caixa</label>
+          <label class="agro-ns-label agro-ns-label-conta-dual hidden text-amber-800">Conta saída / pagamento</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="banco">
             <input type="text" placeholder="Buscar conta…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
             <input type="hidden" class="agro-ns-hid-banco">
@@ -714,12 +716,32 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Forma pagamento <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
-            <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden" class="agro-ns-hid-forma">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+        <div class="agro-ns-forma-col flex flex-col gap-1 min-w-0 min-h-0">
+          <div class="agro-ns-forma-normal flex flex-col gap-1 min-w-0">
+            <label class="agro-ns-label">Forma pagamento <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="forma" data-sug-api="forma">
+              <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
+              <input type="hidden" class="agro-ns-hid-forma">
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+            </div>
+          </div>
+          <div class="agro-ns-forma-dual hidden flex flex-col gap-2 min-w-0">
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-emerald-800">Forma entrada <span class="font-black normal-case text-red-600">*</span></label>
+              <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_entrada" data-sug-api="forma">
+                <input type="text" placeholder="Como entrou o dinheiro…" autocomplete="off" class="agro-ns-input">
+                <input type="hidden">
+                <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-emerald-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-amber-800">Forma saída <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
+              <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_saida" data-sug-api="forma">
+                <input type="text" placeholder="Forma do pagamento…" autocomplete="off" class="agro-ns-input">
+                <input type="hidden">
+                <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-amber-100 rounded-xl shadow-xl overflow-y-auto"></ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -741,22 +763,22 @@
               ${parcSegHtml('normal')}
             </div>
           </div>
+          <div class="agro-ns-field-lbl agro-ns-valor-lbl-dual hidden">
+            <div class="agro-ns-valor-dual-grid">
+              <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
+              <div class="agro-ns-valor-lbl-row">
+                <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
+                ${parcSegHtml('saida')}
+              </div>
+            </div>
+          </div>
           <div class="agro-ns-field-inp agro-ns-cel-valor">
             <div class="agro-ns-valor-normal">
               <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
             </div>
-            <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
-              <div class="flex flex-col gap-1 min-w-0">
-                <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
-                <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
-              </div>
-              <div class="flex flex-col gap-1 min-w-0">
-                <div class="agro-ns-valor-lbl-row">
-                  <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
-                  ${parcSegHtml('saida')}
-                </div>
-                <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
-              </div>
+            <div class="agro-ns-valor-dual agro-ns-valor-dual-grid hidden">
+              <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
+              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
           </div>
         </div>
@@ -1000,8 +1022,8 @@
         pessoa_id: pes.id || null,
         banco_nome: ban.nome,
         banco_id: ban.id || null,
-        forma_nome: form.nome,
-        forma_id: form.id || null,
+        forma_nome: isDual ? undefined : form.nome,
+        forma_id: isDual ? undefined : (form.id || null),
         descricao: descricao || undefined,
         data_competencia,
         data_vencimento: data_vencimento || data_competencia,
@@ -1151,7 +1173,8 @@
         return;
       }
       if (!j.ok && ids.length) {
-        alert('Gravação parcial. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
+        const det = msgs.length ? '\n\n' + msgs.slice(0, 4).join('\n') : '';
+        alert('Gravação parcial. IDs: ' + ids.join(', ') + det + erpLinha + dicaLista);
       } else {
         alert('Lote gravado. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
       }
