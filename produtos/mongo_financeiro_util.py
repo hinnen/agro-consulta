@@ -5058,7 +5058,32 @@ def expandir_linhas_emprestimo_dual_lote(
             out.append({**ln, "_emprestimo_dual_erro": "Informe valor de entrada e valor de saída maiores que zero."})
             continue
 
-        base = {k: v for k, v in ln.items() if k not in ("plano_conta", "plano_conta_id", "plano_id", "valor", "valor_entrada", "valor_saida", "emprestimo_dual", "recorrente", "recorrente_modo", "recorrente_parcelas")}
+        base = {
+            k: v
+            for k, v in ln.items()
+            if k
+            not in (
+                "plano_conta",
+                "plano_conta_id",
+                "plano_id",
+                "valor",
+                "valor_entrada",
+                "valor_saida",
+                "emprestimo_dual",
+                "recorrente",
+                "recorrente_modo",
+                "recorrente_parcelas",
+                "parcelas_saida",
+                "parcelas_intervalo_dias",
+                "parcelas_manual_saida",
+                "_num",
+            )
+        }
+        dc_base_s = str(ln.get("data_competencia") or ln.get("data_vencimento") or hoje_s)[:10]
+        try:
+            dc_base = date.fromisoformat(dc_base_s)
+        except ValueError:
+            dc_base = hoje
         pes = _fin_ln_txt(ln, "pessoa_nome", "")
         desc_base = (ln.get("descricao") or "").strip()
 
@@ -5106,7 +5131,8 @@ def expandir_linhas_emprestimo_dual_lote(
         except ValueError:
             dv_base = hoje
 
-        parcelas_pag: list[tuple[Decimal, date]] = []
+        parcelas_pag: list[tuple[Decimal, date, bool]] = []
+        quit_padrao = _fin_ln_bool(ln, "quitado", False)
         pm_raw = ln.get("parcelas_manual_saida")
         if n_parc > 1 and isinstance(pm_raw, list) and len(pm_raw) == n_parc:
             for row in pm_raw:
@@ -5127,7 +5153,8 @@ def expandir_linhas_emprestimo_dual_lote(
                     out.append({**ln, "_emprestimo_dual_erro": "Parcela com valor inválido."})
                     parcelas_pag = []
                     break
-                parcelas_pag.append((v_i, dv_i))
+                q_i = _fin_ln_bool(row, "quitado", quit_padrao)
+                parcelas_pag.append((v_i, dv_i, q_i))
             if parcelas_pag:
                 soma_p = sum(v for v, _ in parcelas_pag).quantize(Decimal("0.01"))
                 if abs(soma_p - pag_val) > Decimal("0.02"):
@@ -5142,15 +5169,15 @@ def expandir_linhas_emprestimo_dual_lote(
                     parcelas_pag = []
         elif n_parc > 1:
             for i, v_i in enumerate(split_decimal_em_parcelas(pag_val, n_parc)):
-                parcelas_pag.append((v_i, dv_base + timedelta(days=i * int_dias)))
+                parcelas_pag.append((v_i, dv_base + timedelta(days=i * int_dias), quit_padrao))
         else:
-            parcelas_pag = [(pag_val, dv_base)]
+            parcelas_pag = [(pag_val, dv_base, quit_padrao)]
 
         if not parcelas_pag:
             continue
 
         n_tot = len(parcelas_pag)
-        for i, (v_parc, dv_parc) in enumerate(parcelas_pag):
+        for i, (v_parc, dv_parc, q_parc) in enumerate(parcelas_pag):
             desc_pag = (desc_base or f"Pagamento empréstimo — {pes}")[:500]
             if n_tot > 1:
                 desc_pag = f"{desc_pag} (parcela {i + 1}/{n_tot})"[:500]
@@ -5162,7 +5189,9 @@ def expandir_linhas_emprestimo_dual_lote(
                     "plano_conta": plano_pag,
                     "plano_conta_id": None,
                     "valor": float(v_parc),
+                    "data_competencia": dc_base.isoformat(),
                     "data_vencimento": dv_parc.isoformat(),
+                    "quitado": bool(q_parc),
                     "descricao": desc_pag,
                     "recorrente": False,
                 }
@@ -5170,6 +5199,7 @@ def expandir_linhas_emprestimo_dual_lote(
 
         if juros_val > Decimal("0.009"):
             dv_juros = parcelas_pag[-1][1]
+            q_juros = any(q for _, _, q in parcelas_pag)
             out.append(
                 {
                     **base,
@@ -5178,7 +5208,9 @@ def expandir_linhas_emprestimo_dual_lote(
                     "plano_conta": plano_juros,
                     "plano_conta_id": None,
                     "valor": float(juros_val),
+                    "data_competencia": dc_base.isoformat(),
                     "data_vencimento": dv_juros.isoformat(),
+                    "quitado": q_juros,
                     "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
                     "recorrente": False,
                 }

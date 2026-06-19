@@ -14458,7 +14458,10 @@ def api_lancamentos_criar_manual_lote(request):
         s = str(payload.get(key) or "").strip()[:10]
         if not s:
             return None
-        return date.fromisoformat(s)
+        try:
+            return date.fromisoformat(s)
+        except ValueError:
+            return None
 
     dc = _d("data_competencia")
     dv = _d("data_vencimento")
@@ -14467,9 +14470,16 @@ def api_lancamentos_criar_manual_lote(request):
     if not isinstance(linhas, list):
         return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
 
-    linhas = expandir_linhas_emprestimo_dual_lote(
-        [x for x in linhas if isinstance(x, dict)]
-    )
+    try:
+        linhas = expandir_linhas_emprestimo_dual_lote(
+            [x for x in linhas if isinstance(x, dict)]
+        )
+    except Exception as exc:
+        logger.exception("expandir_linhas_emprestimo_dual_lote")
+        return JsonResponse(
+            {"ok": False, "erro": f"Falha ao expandir empréstimo (entrada + pagamento): {str(exc)[:300]}"},
+            status=500,
+        )
     for idx, ln in enumerate(linhas):
         err_dual = str(ln.get("_emprestimo_dual_erro") or "").strip()
         if err_dual:

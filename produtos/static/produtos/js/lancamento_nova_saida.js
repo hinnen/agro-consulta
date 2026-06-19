@@ -252,6 +252,7 @@
     if (!wrap) return;
     const isParcela = parcModoAtual(card) === 'parcela';
     wrap.classList.toggle('hidden', !isParcela);
+    syncQuitadoUiModoParc(card);
     if (!isParcela) {
       const num = card.querySelector('.agro-ns-parc-num');
       if (num) num.value = '1';
@@ -261,6 +262,24 @@
     }
   }
 
+  /** Modo Parcela (N&gt;1): quitado só na grade; chip do vencimento fica oculto. */
+  function syncQuitadoUiModoParc(card) {
+    if (!card) return;
+    const multi = parcModoAtual(card) === 'parcela' && parcNumero(card) > 1;
+    card.classList.toggle('agro-ns-card--parc-multi', multi);
+    const chip = card.querySelector('.agro-ns-quitado-chip');
+    if (chip) chip.classList.toggle('hidden', multi);
+    if (multi) {
+      const cbQ = card.querySelector('.agro-ns-in-quitado');
+      if (cbQ) cbQ.checked = false;
+    }
+    syncQuitadoLinha(card);
+  }
+
+  function parcelasMultiplasAtivas(card) {
+    return parcModoAtual(card) === 'parcela' && parcNumero(card) > 1;
+  }
+
   function syncParcModoLabel(card) {
     syncParcWrap(card);
   }
@@ -268,6 +287,12 @@
   function valorTotalParaParcelas(card) {
     const inp = parcValorInput(card);
     return parseValorBr(inp?.value);
+  }
+
+  function snapshotParcelasQuitado(card) {
+    return Array.from(card.querySelectorAll('.agro-ns-parc-tbody tr')).map(
+      (tr) => !!tr.querySelector('.agro-ns-parc-quit')?.checked
+    );
   }
 
   function gerarParcelasPreview(card, scroll) {
@@ -295,11 +320,19 @@
     const vals = splitEmParcelas(total, n);
     const dv0 = card.querySelector('.agro-ns-in-ven')?.value || card.querySelector('.agro-ns-in-comp')?.value || todayISO();
     const intD = parcIntervalo(card);
+    const quitSnap = snapshotParcelasQuitado(card);
     const rows = vals.map((val, i) => {
       const dv = addDiasIso(dv0, i * intD);
+      const qOn = quitSnap[i] !== undefined ? quitSnap[i] : false;
       return `<tr>
         <td class="font-black text-slate-600">${i + 1}</td>
         <td><input type="date" class="agro-ns-parc-dv agro-ns-input agro-ns-input-date w-full" value="${dv}"></td>
+        <td class="agro-ns-parc-td-quit text-center">
+          <label class="agro-ns-parc-quit-chip cursor-pointer inline-flex" title="Só esta parcela — marque se já pagou">
+            <input type="checkbox" class="agro-ns-parc-quit sr-only"${qOn ? ' checked' : ''}>
+            <span class="agro-ns-parc-quit-btn">Quitado</span>
+          </label>
+        </td>
         <td><input type="text" inputmode="decimal" class="agro-ns-parc-val agro-ns-input w-full text-right" value="${formatValorBr(val)}"></td>
       </tr>`;
     }).join('');
@@ -310,6 +343,18 @@
       el.addEventListener('input', () => syncParcWrap(card));
       el.addEventListener('change', () => syncParcWrap(card));
     });
+    tbody.querySelectorAll('.agro-ns-parc-quit').forEach((el) => {
+      el.addEventListener('change', (ev) => {
+        const lbl = ev.target.closest('.agro-ns-parc-quit-chip');
+        const btn = lbl?.querySelector('.agro-ns-parc-quit-btn');
+        if (btn) btn.classList.toggle('is-on', ev.target.checked);
+      });
+    });
+    tbody.querySelectorAll('.agro-ns-parc-quit').forEach((el) => {
+      const btn = el.closest('.agro-ns-parc-quit-chip')?.querySelector('.agro-ns-parc-quit-btn');
+      if (btn) btn.classList.toggle('is-on', el.checked);
+    });
+    syncQuitadoUiModoParc(card);
     if (scroll !== false) preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -324,7 +369,8 @@
       const dv = String(tr.querySelector('.agro-ns-parc-dv')?.value || '').trim();
       const val = parseValorBr(tr.querySelector('.agro-ns-parc-val')?.value);
       if (!dv || val == null || val <= 0) return { erro: `Parcela ${i + 1}: informe vencimento e valor.` };
-      out.push({ data_vencimento: dv, valor: formatValorBr(val) });
+      const quitado = !!tr.querySelector('.agro-ns-parc-quit')?.checked;
+      out.push({ data_vencimento: dv, valor: formatValorBr(val), quitado });
     }
     return out;
   }
@@ -348,6 +394,7 @@
       parcelas = vals.map((val, i) => ({
         data_vencimento: addDiasIso(dv0, i * intD),
         valor: formatValorBr(val),
+        quitado: false,
       }));
     }
     const descBase = (base.descricao || base.plano_conta || '').trim();
@@ -355,6 +402,7 @@
       ...base,
       valor: p.valor,
       data_vencimento: p.data_vencimento,
+      quitado: !!p.quitado,
       descricao: descBase ? `${descBase} (parcela ${i + 1}/${parcelas.length})` : `Parcela ${i + 1}/${parcelas.length}`,
       parcelas: undefined,
       parcelas_intervalo_dias: undefined,
@@ -660,7 +708,7 @@
           </div>
         </div>
         <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Forma pagamento</label>
+          <label class="agro-ns-label">Forma pagamento <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
             <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
             <input type="hidden" class="agro-ns-hid-forma">
@@ -716,7 +764,7 @@
           <div class="agro-ns-field-inp agro-ns-wrap-ven">
             <div class="flex items-stretch gap-2 min-w-0">
               <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven flex-1 min-w-0">
-              <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
+              <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido (título único, modo Total)">
                 <input type="checkbox" class="agro-ns-in-quitado sr-only">
                 <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
               </label>
@@ -742,9 +790,9 @@
           </div>
           <button type="button" class="agro-ns-parc-gerar agro-ns-btn-secondary shrink-0">Gerar parcelas</button>
         </div>
-        <p class="agro-ns-hint mt-1 text-slate-500">1º vencimento = campo Vencimento acima. Edite valores e datas na grade.</p>
+        <p class="agro-ns-hint mt-1 text-slate-500">1º vencimento = campo Vencimento acima. Vencido ≠ quitado. Com parcelas, use o botão <strong>Quitado</strong> em cada linha da grade.</p>
         <div class="agro-ns-parc-preview hidden mt-2">
-          <table><thead><tr><th>#</th><th>Vencimento</th><th>Valor (R$)</th></tr></thead><tbody class="agro-ns-parc-tbody"></tbody></table>
+          <table><thead><tr><th>#</th><th>Vencimento</th><th class="agro-ns-parc-th-quit">Quitado</th><th>Valor (R$)</th></tr></thead><tbody class="agro-ns-parc-tbody"></tbody></table>
         </div>
       </div>
       <div class="agro-ns-card-row-desc">
@@ -875,6 +923,7 @@
   function bindParcelasLinha(card) {
     card.querySelector('.agro-ns-parc-num')?.addEventListener('change', () => {
       gerarParcelasPreview(card, false);
+      syncQuitadoUiModoParc(card);
     });
     card.querySelector('.agro-ns-parc-int')?.addEventListener('change', () => gerarParcelasPreview(card, false));
     card.querySelector('.agro-ns-parc-gerar')?.addEventListener('click', () => gerarParcelasPreview(card, true));
@@ -926,7 +975,9 @@
       const recorrente = !!(recCb && recCb.checked);
       const recMod = (card.querySelector('input[name^="agro-ns-rec-modo-"]:checked') || {}).value || 'sempre';
       const recParcelas = Math.max(1, Math.min(Number(card.querySelector('.agro-ns-rec-parcelas')?.value || 1), 12));
-      const quitado = !!card.querySelector('.agro-ns-in-quitado')?.checked;
+      const quitado = parcelasMultiplasAtivas(card)
+        ? false
+        : !!card.querySelector('.agro-ns-in-quitado')?.checked;
 
       const dual = window.AgroLancEmprestimoDual;
       const isDual = dual && dual.isCardDual(card);
@@ -968,7 +1019,14 @@
           if (total != null) dualLine.valor_saida = formatValorBr(total);
           dualLine.parcelas_saida = nParc;
           dualLine.parcelas_intervalo_dias = parcIntervalo(card);
-          if (manual) dualLine.parcelas_manual_saida = manual;
+          if (manual) {
+            dualLine.parcelas_manual_saida = manual;
+            dualLine.quitado = manual.some((p) => p.quitado);
+          } else {
+            dualLine.quitado = false;
+          }
+        } else {
+          dualLine.quitado = quitado;
         }
         linhas.push(dualLine);
         return;
@@ -1064,7 +1122,12 @@
       const raw = await r.text();
       let j = {};
       try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
-        alert('Resposta inválida do servidor (HTTP ' + r.status + ').');
+        const snippet = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+        alert(
+          'Resposta inválida do servidor (HTTP ' + r.status + ').'
+          + (snippet ? '\n\n' + snippet : '')
+          + '\n\nSe a sessão expirou, faça login e tente de novo.'
+        );
         return;
       }
       const ids = Array.isArray(j.ids) ? j.ids : [];

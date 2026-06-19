@@ -366,12 +366,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.22`  
+**Versão:** `1.0.23`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída parcelas/calendário/pílulas → `producao`, Renan pediu)  
-**Versão app (`VERSION`):** produção (após deploy) · staging `teste` v1.54
+**Atualizado por:** assistente Cursor (FAB PDV + Nova saída quitado/parcela → `producao`, Renan pediu)  
+**Versão app (`VERSION`):** **produção** v1.48 (após push) · **staging** `teste` v1.62
 
-### Nova saída → **produção** (2026-06-19)
+### FAB PDV flutuante + Nova saída quitado → **produção** (2026-06-19)
+
+Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
+
+| Pacote | Arquivos / origem teste |
+|--------|-------------------------|
+| **FAB PDV** | `_agro_pdv_fab.html` (novo), include em `_agro_open_external.html` — canto inferior esquerdo, pulso/arco-íris, **FX on/off**, some em modal, z-index 90, colisão rodapé (`d7ae5fd`…`2be550e`) |
+| **Nova saída** | `lancamento_nova_saida.js`, modal, `lancamento_emprestimo_dual.js`, `mongo_financeiro_util.py` (expandir dual + quitado linha), `views.py` (API JSON segura) — `95474d5` |
+
+**UX Nova saída:** modo **Parc.** → botão **Quitado** em cada linha; forma **(opcional)**; empréstimo dual expande sem HTTP 500.
+
+**Teste loja:** Ctrl+F5 → qualquer tela MPA → FAB PDV canto esquerdo; Lançamentos → Nova saída → 3 parcelas + empréstimo dual.
+
+### Nova saída → **produção** (2026-06-19, pacote anterior v1.47)
 
 Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
 
