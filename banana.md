@@ -374,10 +374,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.28`  
+**Versão:** `1.0.29`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (botão flutuante PDV)  
-**Versão app (`VERSION`):** staging `teste` · produção v1.48
+**Atualizado por:** assistente Cursor (Nova saída → `producao` be9558c)  
+**Versão app (`VERSION`):** staging `teste` v1.54 · **produção v1.47**
+
+### Nova saída → **produção** (2026-06-19, Renan pediu)
+
+**Commit:** `be9558c` · v1.47 · cherry-pick escopo fechado de `teste` (`9ba11e4`…`cd5a6e0`).
+
+| Pacote | Detalhe |
+|--------|---------|
+| Parcelas | Nº + intervalo → grade; backend `parcelas_saida` |
+| Calendário | Popup grande (competência, vencimento, parcelas) |
+| UI | Grid 4 col; pílulas **Total \| Parc.**; empréstimo saída abaixo entrada |
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída.
 
 ### Ambiente Renan — Chrome (não Electron)
 
