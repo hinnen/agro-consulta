@@ -613,11 +613,11 @@
   function parcSwitchHtml(alvo) {
     return `
       <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="${alvo}" role="group" aria-label="Total ou parcelas">
-        <span class="agro-ns-parc-sw-lbl-total">Total</span>
-        <button type="button" class="agro-ns-parc-switch-track" title="Total ou parcelas" aria-label="Alternar total ou parcelas">
+        <button type="button" class="agro-ns-parc-switch-track" title="Total (T) · Parcela (P)" aria-label="Alternar total ou parcelas">
+          <span class="agro-ns-parc-sw-ghost agro-ns-parc-sw-t">T</span>
+          <span class="agro-ns-parc-sw-ghost agro-ns-parc-sw-p">P</span>
           <span class="agro-ns-parc-switch-thumb"></span>
         </button>
-        <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
       </div>`;
   }
 
@@ -681,11 +681,9 @@
           </div>
         </div>
         <div class="agro-ns-cel-valor min-w-0">
-          <div class="agro-ns-valor-normal flex flex-col gap-1 min-w-0">
-            <div class="agro-ns-valor-lbl-row">
-              <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
-              ${parcSwitchHtml('normal')}
-            </div>
+          <div class="agro-ns-valor-normal agro-ns-valor-stack flex flex-col gap-1 min-w-0">
+            <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
+            ${parcSwitchHtml('normal')}
             <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
           </div>
           <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
@@ -693,11 +691,9 @@
               <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
-              <div class="agro-ns-valor-lbl-row">
-                <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída / pagamento (R$)</label>
-                ${parcSwitchHtml('saida')}
-              </div>
+            <div class="agro-ns-valor-stack flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
+              ${parcSwitchHtml('saida')}
               <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
           </div>

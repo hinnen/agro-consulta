@@ -25,6 +25,7 @@
 | **Regra de ouro** | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP |
 | **UX loja** | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate |
 | **Escala de tela** | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11 |
+| **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
 
 ---
 
@@ -43,6 +44,8 @@
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
 **Renan (dono/dev):** testa no staging, aprova merge produção. O assistente **commita só em `teste`**; produção só com pedido explícito.
+
+**Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
 
 ---
 
@@ -237,7 +240,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
-- **Abertura rápida (2026-06-19):** prefetch nos links do BI + F7; lista do cache na hora com selo **Sincronizando…** até a API Mongo responder.
+- **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
+- **Teto sem refactor grande:** no Chrome cada clique = **página nova** (HTML + JS + PIN 1ª vez) + consulta Mongo (agora no servidor no bootstrap). Ganho forte exige **não sair do BI** (ilha HTMX) ou **financeiro Postgres** (`AGRO_FONTE_FINANCEIRO=agro_pg`).
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -253,10 +257,11 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - Vale com financeiro = baixa parcial no título de salário do mês (precisa folha fechada com título).
 - Cancelar vale: motivo mín. 3 chars; recalcula folhas abertas.
 
-### 4.13 Electron (desktop)
+### 4.13 Electron (desktop) — opcional; Renan não usa
 
 - `electron/main.js` + `preload.js` — `shell.openExternal` para WhatsApp/Maps.
 - Mesmo Agro Display Scale via `localStorage` (não `setZoomFactor` paralelo).
+- **Renan:** testou e **não usa** (lento). Loja/dev = **Chrome**. Recursos só do shell (abas laterais `agro-open-inapp-tab`, iframes) **não se aplicam** ao fluxo dele — otimizar para **MPA no Chrome** (bootstrap HTML, prefetch, cache).
 
 ### 4.14 UI compartilhada
 
@@ -328,7 +333,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 7. **Commits:** só quando Renan pedir; branch `teste`. **Incluir bump de `VERSION`** (hook faz sozinho se `setup_git_hooks` rodou; senão `python scripts/bump_version.py` + `git add VERSION`).
 8. **Produção:** só merge quando Renan disser *"pode ir para produção"* ou similar.
 9. **Modo econômico:** Renan pode pedir respostas curtas.
-10. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
+10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
+11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
 
 ---
 
@@ -367,17 +373,53 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.24`  
+**Versão:** `1.0.26`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída: grid 4 colunas + chave alinhada + empréstimo empilhado → `teste`)  
+**Atualizado por:** assistente Cursor (teto perf abertura CP Chrome)  
 **Versão app (`VERSION`):** staging `teste` · produção v1.48
+
+### Ambiente Renan — Chrome (não Electron)
+
+| Item | Valor |
+|------|--------|
+| **Navegador** | **Google Chrome** (MPA: cada tela = página nova) |
+| **Electron** | Testado; **muito lento** — **não** é referência para UX/perf |
+| **Assistente** | **Não perguntar** Chrome vs Electron; assumir Chrome |
+
+**Lançamentos / BI:** prefetch + bootstrap HTML (v1.48) valem no Chrome; aba lateral do shell **não** entra no fluxo dele.
+
+### Lançamentos CP — abertura (Chrome, 2026-06-19)
+
+| Feito (v1.48) | Efeito real no Chrome |
+|---------------|------------------------|
+| Bootstrap HTML (hoje + abertos) | Elimina o “Carregando…” da **2ª** chamada API; lista aparece quando o JS roda |
+| Prefetch + cache sessionStorage | Ajuda na **reabertura**; 1ª do dia ainda espera o servidor |
+| Sincronizando… | Atualiza em background |
+
+**Renan:** melhora **sutil** — OK para o desenho atual.
+
+**O que ainda pesa (não dá para sumir com patch pequeno):**
+
+1. Troca de página inteira BI → Lançamentos (branco + download HTML/JS).
+2. PIN na 1ª entrada da sessão.
+3. Mongo na montagem da página (bootstrap) — trocou API depois por consulta no Django.
+
+**Próximo salto de verdade (escolha de produto):**
+
+| Opção | Ganho | Custo |
+|-------|--------|-------|
+| **Financeiro Postgres** | Lista e baixa mais rápidas e estáveis | Projeto grande (banana §4.15) |
+| **Lista dentro do BI** (HTMX / painel sem navegar) | Parece instantâneo | Refactor médio |
+| **Enxugar página CP** (JS externo, menos modal no 1º paint) | Um pouco mais | Refactor médio |
+
+**Conclusão:** para **Chrome MPA + Mongo**, o pacote atual é **quase o teto**; melhora “de verdade” = um dos itens da tabela acima.
 
 ### Nova saída — grid alinhado (`teste`, 2026-06-19)
 
 | O quê | Detalhe |
 |-------|---------|
 | **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
-| **Chave Total/Parcela** | Compacta, **na linha do rótulo** Valor (R$) — à direita do label |
+| **Chave Total/Parcela** | Mini **T|P** flutuante no canto do rótulo Valor — não desloca o input |
 | **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
@@ -421,6 +463,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] **Lista CP — colunas por PIN** (visibilidade, ordem drag, save) (2026-06-19)
 - [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
 - [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
+- [x] **Ambiente Renan:** Chrome (MPA); Electron testado e descartado — assistente não pergunta
 
 ### Lançamentos — Contas a pagar layout novo (2026-06-19)
 
