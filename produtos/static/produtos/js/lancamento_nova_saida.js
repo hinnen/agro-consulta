@@ -621,10 +621,10 @@
       </div>`;
   }
 
-  function valorComSwitchHtml(alvo, inputClass, labelHtml) {
+  function valorComSwitchHtml(alvo, inputClass, labelClass, labelText) {
     return `
-      <div class="agro-ns-valor-meta">
-        ${labelHtml}
+      <div class="agro-ns-valor-lbl-row">
+        <label class="${labelClass}">${labelText}</label>
         ${parcSwitchHtml(alvo)}
       </div>
       <input type="text" class="agro-ns-input ${inputClass}" placeholder="0,00" inputmode="decimal">`;
@@ -691,7 +691,7 @@
         </div>
         <div class="agro-ns-cel-valor min-w-0">
           <div class="agro-ns-valor-normal flex flex-col gap-1 min-w-0">
-            ${valorComSwitchHtml('normal', 'agro-ns-in-valor', '<label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>')}
+            ${valorComSwitchHtml('normal', 'agro-ns-in-valor', 'agro-ns-label agro-ns-valor-lbl-total', 'Valor (R$)')}
           </div>
           <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
             <div class="flex flex-col gap-1 min-w-0">
@@ -699,7 +699,7 @@
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
             </div>
             <div class="flex flex-col gap-1 min-w-0">
-              ${valorComSwitchHtml('saida', 'agro-ns-in-valor-saida', '<label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>')}
+              ${valorComSwitchHtml('saida', 'agro-ns-in-valor-saida', 'agro-ns-label text-amber-700 agro-ns-valor-lbl-saida', 'Valor saída (R$)')}
             </div>
           </div>
         </div>
