@@ -366,10 +366,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.17`  
+**Versão:** `1.0.18`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (CP direto + PIN APIs + WhatsApp clientes → `producao`)  
-**Versão app (`VERSION`):** **produção v1.41+** · staging `teste`
+**Atualizado por:** assistente Cursor (CP colunas por PIN → `producao`)  
+**Versão app (`VERSION`):** **produção v1.43** · staging `teste`
+
+### CP — colunas por PIN (2026-06-19, produção)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Menu Colunas** | Todas as 17 colunas; ocultas no topo; painel maior |
+| **Salvar no PIN** | Visibilidade + ordem persistidas por operador |
+| **Plano** | Coluna mais larga; planos sempre todos na abertura |
+
+**Teste:** Ctrl+F5 → `/lancamentos/contas-pagar/` → Colunas → reordenar/ocultar → **Salvar no meu PIN** → F5 mantém layout.
 
 ### Lançamentos + Clientes — produção (2026-06-19)
 
