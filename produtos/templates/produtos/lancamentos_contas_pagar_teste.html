@@ -138,16 +138,15 @@
     border: 1px solid transparent;
   }
   .sv-cols-dd-item:hover { background: #f8fafc; }
-  .sv-cols-dd-item.is-off { background: #f8fafc; color: #475569; }
+  .sv-cols-dd-item.is-off { background: #f8fafc; color: #64748b; }
   .sv-cols-dd-item.is-off:hover { background: #f1f5f9; }
   .sv-cols-dd-item.drag-over { background: #ecfdf5; border-color: #059669; }
   .sv-cols-dd-item.is-dragging { opacity: 0.45; }
-  .sv-cols-dd-item.is-static { cursor: default; }
-  .sv-cols-dd-item.is-static .sv-cols-drag { visibility: hidden; }
   .sv-cols-drag {
     flex-shrink: 0; width: 1.1rem; text-align: center; color: #94a3b8; font-weight: 900; line-height: 1; cursor: grab;
   }
-  .sv-cols-dd-item input[type="checkbox"] { accent-color: #d97706; width: 17px; height: 17px; flex-shrink: 0; cursor: pointer; }
+  .sv-cols-dd-item input[type="checkbox"],
+  .sv-cols-menu-chk { accent-color: #d97706; width: 17px; height: 17px; flex-shrink: 0; cursor: pointer; }
   .sv-cols-dd-item span:last-child { flex: 1; min-width: 0; }
   .sv-cols-dd-foot {
     padding: 8px 10px 10px; border-top: 2px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;
@@ -850,7 +849,7 @@
     COL_DEFS.forEach((c) => {
       const idx = order.indexOf(c.id);
       const on = c.lock || m[c.id] !== false;
-      document.querySelectorAll(`[data-col-id="${c.id}"]`).forEach((el) => {
+      document.querySelectorAll(`.sv-list-cols [data-col-id="${c.id}"]`).forEach((el) => {
         el.classList.toggle('sv-col-off', !on);
         el.style.order = idx >= 0 ? String(idx) : '';
       });
@@ -880,9 +879,7 @@
   function dropdownColGroups() {
     const m = activeColsMap();
     const order = allReorderableColIds();
-    const hidden = order.filter((id) => m[id] === false);
-    const visible = order.filter((id) => m[id] !== false);
-    return { hidden, visible, total: COL_DEFS.filter((c) => !c.lock).length };
+    return { order, total: COL_DEFS.filter((c) => !c.lock).length };
   }
 
   function reorderDraftCol(fromId, toId) {
@@ -896,21 +893,21 @@
     colsDraftOrder = normalizeColsOrder(order);
   }
 
-  function renderColDropdownItem(id, m, draggable) {
+  function renderColDropdownItem(id, m) {
     const c = colById(id);
     if (!c) return '';
     const on = m[id] !== false;
     return `
-      <div class="sv-cols-dd-item${on ? '' : ' is-off'}${draggable ? '' : ' is-static'}" ${draggable ? 'draggable="true"' : ''} data-col-id="${id}">
+      <label class="sv-cols-dd-item${on ? '' : ' is-off'}" draggable="true" data-cols-menu-id="${id}">
         <span class="sv-cols-drag" aria-hidden="true">⋮⋮</span>
-        <input type="checkbox" class="sv-col-chk" data-col-id="${id}" ${on ? 'checked' : ''} aria-label="Mostrar ${esc(c.label)}">
+        <input type="checkbox" class="sv-cols-menu-chk" data-cols-menu-id="${id}" ${on ? 'checked' : ''} aria-label="Mostrar ${esc(c.label)}">
         <span>${esc(c.label)}</span>
-      </div>`;
+      </label>`;
   }
 
   function bindColDropdownItems(el) {
     el.querySelectorAll('.sv-cols-dd-item[draggable="true"]').forEach((item) => {
-      const id = item.dataset.colId;
+      const id = item.dataset.colsMenuId;
       item.addEventListener('dragstart', (e) => {
         colsDragId = id;
         item.classList.add('is-dragging');
@@ -939,10 +936,10 @@
         applyGridCols();
       });
     });
-    el.querySelectorAll('.sv-col-chk').forEach((ch) => {
+    el.querySelectorAll('.sv-cols-menu-chk').forEach((ch) => {
       ch.addEventListener('change', () => {
         if (!colsDraftMap) colsDraftMap = ensureFullColsMap(colsMapMem);
-        colsDraftMap[ch.dataset.colId] = ch.checked;
+        colsDraftMap[ch.dataset.colsMenuId] = ch.checked;
         buildColDropdown();
         applyGridCols();
       });
@@ -954,22 +951,16 @@
     const el = document.getElementById('sv-cols-dd-list');
     if (!el) return;
     const m = activeColsMap();
-    const { hidden, visible, total } = dropdownColGroups();
-    let html = '';
-    if (hidden.length) {
-      html += `<p class="sv-cols-dd-section-title">Ocultas — marque para exibir (${hidden.length})</p>`;
-      html += hidden.map((id) => renderColDropdownItem(id, m, false)).join('');
-    }
-    html += `<p class="sv-cols-dd-section-title">Na lista (${visible.length} de ${total})</p>`;
-    html += visible.map((id) => renderColDropdownItem(id, m, true)).join('');
-    el.innerHTML = html;
+    const { order, total } = dropdownColGroups();
+    el.innerHTML = `<p class="sv-cols-dd-section-title">Todas as colunas (${total}) — marque para ver na lista</p>`
+      + order.map((id) => renderColDropdownItem(id, m)).join('');
     bindColDropdownItems(el);
     const hint = document.getElementById('sv-cols-save-hint');
     const op = getOperadorPin();
     if (hint) {
       hint.innerHTML = op
-        ? `Operador: <strong>${esc(op)}</strong> · ${total} colunas no total · arraste «Na lista»`
-        : `Informe seu PIN antes de salvar · ${total} colunas no total`;
+        ? `Operador: <strong>${esc(op)}</strong> · arraste ⋮⋮ para ordenar`
+        : 'Informe seu PIN antes de salvar';
     }
   }
 
