@@ -231,10 +231,12 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.10 Lançamentos / financeiro
 
-- `/lancamentos/` — contas pagar/receber via Mongo.
+- `/lancamentos/` — hub · **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
+- Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
-- Ordenação servidor hoje: principalmente vencimento; sort só cliente não substitui paginação global.
+- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
+- **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -284,16 +286,18 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 Fluxo **seguro** (só admin vê os botões):
 
-1. **Backup ZIP** — CSV separados (pagar, receber, fiado); guardar no PC. Abrir **um CSV por vez** no Excel (anos de a pagar numa planilha só trava o PC).
-2. **Checkpoint** — carimbo no sistema; **não apaga nem muda valores**.
-3. **Deploy** — loja evita Lançamentos por algumas horas; ERP para de atualizar financeiro.
-4. **Depois** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` no Render (opcional, reforço).
+1. **Backup ZIP** — CSV no PC (**só redundância**; SisVale não importa de volta).
+2. **Checkpoint** — carimbo no Mongo; **não apaga nem muda valores**.
+3. **Corte Agro→ERP** — após checkpoint, SisVale **não envia** lançamento/baixa pela API (`VendaERPAPIClient`); automático no código **v1.14**.
+4. **Opcional Render** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` (reforço).
 
-**Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto**. Fiado PDV é Postgres (cópia; PDV não muda).
+**Backup no PC** — cópia de segurança fora do sistema. Checkpoint = carimbo dentro do SisVale.
+
+**Corte ERP:** é a **nossa** integração (API aberta WL), não ticket ao fornecedor. Padrão já era `AGRO_FINANCEIRO_ERP_SYNC_HABILITADO=false`; após checkpoint o bloqueio é garantido no código.
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
-**Backup no PC** — **só redundância** (cópia de segurança). O SisVale **não importa** esse ZIP de volta. Serve se precisar conferir valor, auditoria ou recuperar algo manualmente se der problema no corte.
+- **PIN Lançamentos:** 1× por sessão ao entrar no módulo (`sessionStorage`); navegação interna (CP, clássico, calendário…) sem novo PIN; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -345,8 +349,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **PDV wizard — GM no barras remove carrinho** — cherry-pick `producao` (`e055761`): hífen `GM1546-5S` não remove carrinho; GM modo barcode. Renan OK staging.
-2. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
+1. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
+2. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
+3. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
 3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
 4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
 5. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
@@ -363,8 +368,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão:** `1.0.13`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (cherry-pick PDV wizard GM → `producao`)  
-**Versão app (`VERSION`):** **`1.18`** em **`producao`** · fix PDV **`0479618`**
+**Atualizado por:** assistente Cursor (Lançamentos CP layout + perf + vista → `teste`)  
+**Versão app (`VERSION`):** staging `teste` (após push) · **produção `372f90f` v1.14** (corte API; layout novo CP **não** em prod)
 
 ### O que este documento já cobre (até aqui)
 
@@ -385,6 +390,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] Nova saída: tipografia maior + card expandido ocupa altura (sem vazio embaixo)
 - [x] **Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (2026-06-18)
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
+- [x] **Contas a pagar — layout novo padrão** + `/classico/` (2026-06-19)
+- [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
+
+### Lançamentos — Contas a pagar layout novo (2026-06-19)
+
+| URL | Tela |
+|-----|------|
+| `/lancamentos/contas-pagar/` | **Layout novo** (padrão) |
+| `/lancamentos/contas-pagar/classico/` | Tabela clássica |
+| `/lancamentos/contas-pagar/teste/` | Redirect → padrão |
+
+**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. Editar/excluir no clássico: `?retorno=` mantém filtros ao voltar.
+
+**Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
+
+**Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
+
+**Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`.
+
+**Produção:** cherry-pick quando Renan pedir.
 
 ### NFC-e — status staging (2026-06-18)
 
@@ -397,7 +422,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
 
-**Onde:** modal **Nova saída** + tela **Lote manual** (`/lancamentos/novo-manual/`).
+**Onde:** modal **Nova saída** em **Lançamentos** (`/lancamentos/`) + **Lote manual** (`/lancamentos/novo-manual/`). No **BI** (`/`): atalho só no card **Contas a Pagar** (sem botão na barra PDV/Orçamento/Menu).
 
 **Plano na lista:** `Empréstimo (entrada + pagamento)` (buscar «emprest»).
 
@@ -421,14 +446,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Onde | Sintoma | Status |
 |------|---------|--------|
-| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Produção** — cherry-pick `e055761` (Renan OK staging) |
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Staging `teste`** — aguarda teste Renan |
 | **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
 **Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
 
 **Causa wizard:** atalho **`-`** na busca = `bumpLastCartItem(-1)` (menos qty do **último** item). O hífen do GM disparava remoção **sem** inserir o carácter.
 
-**Patch wizard (`pdv_wizard.js`, `teste` + cherry-pick `producao`):**
+**Patch wizard (`pdv_wizard.js`, em `teste`):**
 
 - `-` / `+` ignorados enquanto digita GM/SKU ou janela pós-bip (1,5 s)
 - Códigos **`GM…`** → modo **barcode** (auto-adiciona)
@@ -444,7 +469,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **PDV legado:** `consulta_produtos.js` + `_js_busca…` (produção v1.02).
 
-**Loja:** Ctrl+F5 no `/pdv/checkout/` após deploy Render produção.
+**Produção wizard:** ainda **sem** este fix — cherry-pick só quando Renan pedir após OK no staging.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -508,22 +533,23 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Loja:** Ctrl+F5 no `/consulta/` após deploy Render.
 
-### WIP / não commitado (snapshot 2026-06-18)
+### WIP / não commitado (snapshot 2026-06-19)
 
 | Arquivo | Tema |
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** cherry-pick **`0479618`** v**1.16** — `pdv_wizard.js` + `banana.md`.
+**Acabou de subir em `teste`:** Lançamentos CP — código + layout padrão (`/lancamentos/contas-pagar/`), perf API (`skip_totais`), vista preservada após baixa/NF/Nova saída.
+
+**Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
 ### Pendências conhecidas (produto)
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11+** (`bd91f00`; fix template PIN)
-- [x] **Checkpoint feito** — 2026-06-19 ~00:17 (~17 703 títulos carimbados)
-- [ ] **Agora:** ERP parar sync financeiro · loja evitar Lançamentos algumas horas se possível
-- [ ] Opcional Render: `AGRO_FINANCEIRO_MONGO_CONGELADO=true`
+- [x] Backup ZIP + checkpoint — **feito** 2026-06-19 (~17 703 títulos)
+- [x] Corte Agro→ERP (API) — **produção v1.14** (`372f90f`; automático após checkpoint)
+- [ ] Próxima fase: `AGRO_FONTE_FINANCEIRO=agro_pg` (Lançamentos ler/escrever Postgres, não espelho Mongo)
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
 - [ ] PDV `/api/buscar/` e cache → Postgres
@@ -534,7 +560,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
-- [x] **PDV wizard carrinho GM** — cherry-pick `producao` 2026-06-19 (Renan OK staging)
+- [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
+- [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
