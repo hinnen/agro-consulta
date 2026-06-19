@@ -366,10 +366,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.19`  
+**Versão:** `1.0.20`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (CP checkbox seleção maior → `producao`)  
-**Versão app (`VERSION`):** **produção v1.44** · staging `teste`
+**Atualizado por:** assistente Cursor (NFC-e PDV + vendas → `producao`)  
+**Versão app (`VERSION`):** **produção v1.46** · staging `teste`
+
+### NFC-e — código em produção (2026-06-19)
+
+**Commit:** (após push) · pacote PDV + consulta vendas.
+
+| O quê | Detalhe |
+|-------|---------|
+| **PDV wizard** | Modais CPF, popup NFC/Venda, checkbox, emissão por forma |
+| **Consultar vendas** | Reemissão + painel NFC-e |
+| **Cupom 80 mm** | Impressão fiscal com QR |
+
+**Staging validado:** NFC-e nº 13 série 21 homolog (Renan 2026-06-19).
+
+**Produção — falta:** env vars Render (`NFC_E_TP_AMB=1`, cert/CSC prod, `PROXIMO_NUMERO`) → passo a passo com Renan.
+
+**Teste pós-env:** Ctrl+F5 PDV → Dinheiro + NFC-e → cupom com protocolo · `/api/nfce/status/` → `tp_amb: 1`.
 
 ### CP — checkbox seleção maior (2026-06-19, produção)
 
@@ -489,7 +505,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] **PIX/cartão** — sem modal CPF; emite sem identificação
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
-- [ ] Merge **`producao`** — só quando Renan pedir + checklist `docs/NFCE-PRODUCAO.md`
+- [x] Código PDV + vendas → **`producao`** 2026-06-19 (Renan pediu)
+- [ ] **Env vars Render produção** + 1 venda teste real (`NFC_E_TP_AMB=1`, cert/CSC prod)
 
 ### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
 
@@ -642,7 +659,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
-- [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
+- [x] **NFC-e código → `producao`** 2026-06-19 — env vars Render + venda teste **pendente**
 - [ ] Testes automatizados sync clientes / NFC-e (futuro)
 
 ### Instruções para o assistente (próxima atualização)
