@@ -223,25 +223,20 @@
     return card.querySelector('.agro-ns-in-valor');
   }
 
-  function parcSwitchEl(card) {
+  function parcSegEl(card) {
     const alvo = parcAlvoCard(card);
-    return card.querySelector(`.agro-ns-parc-switch[data-parc-alvo="${alvo}"]`);
-  }
-
-  function parcModoAtual(card) {
-    const sw = parcSwitchEl(card);
-    return (sw && sw.dataset.modo === 'parcela') ? 'parcela' : 'total';
+    return card.querySelector(`.agro-ns-parc-seg[data-parc-alvo="${alvo}"]`);
   }
 
   function setParcModo(card, modo) {
-    const sw = parcSwitchEl(card);
-    if (!sw) return;
-    sw.dataset.modo = modo === 'parcela' ? 'parcela' : 'total';
+    const seg = parcSegEl(card);
+    if (!seg) return;
+    const m = modo === 'parcela' ? 'parcela' : 'total';
+    seg.dataset.modo = m;
+    seg.querySelectorAll('.agro-ns-parc-seg-btn').forEach((b) => {
+      b.classList.toggle('is-on', b.dataset.parcModo === m);
+    });
     syncParcWrap(card);
-  }
-
-  function toggleParcModo(card) {
-    setParcModo(card, parcModoAtual(card) === 'parcela' ? 'total' : 'parcela');
   }
 
   function parcNumero(card) {
@@ -610,24 +605,17 @@
     });
   }
 
-  function parcSwitchHtml(alvo) {
-    return `
-      <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="${alvo}" role="group" aria-label="Total ou parcelas">
-        <span class="agro-ns-parc-lbl-total">Total</span>
-        <button type="button" class="agro-ns-parc-switch-track" title="Total ou Parcela" aria-label="Alternar total ou parcelas">
-          <span class="agro-ns-parc-switch-thumb"></span>
-        </button>
-        <span class="agro-ns-parc-lbl-parcela">Parcela</span>
-      </div>`;
+  function parcModoAtual(card) {
+    const seg = parcSegEl(card);
+    return (seg && seg.dataset.modo === 'parcela') ? 'parcela' : 'total';
   }
 
-  function valorComSwitchHtml(alvo, inputClass, labelClass, labelText) {
+  function parcSegHtml(alvo) {
     return `
-      <div class="agro-ns-valor-lbl-row">
-        <label class="${labelClass}">${labelText}</label>
-        ${parcSwitchHtml(alvo)}
-      </div>
-      <input type="text" class="agro-ns-input ${inputClass}" placeholder="0,00" inputmode="decimal">`;
+      <div class="agro-ns-parc-seg" data-modo="total" data-parc-alvo="${alvo}" role="group" aria-label="Total ou parcelas">
+        <button type="button" class="agro-ns-parc-seg-btn is-on" data-parc-modo="total">Total</button>
+        <button type="button" class="agro-ns-parc-seg-btn" data-parc-modo="parcela">Parc.</button>
+      </div>`;
   }
 
   function cardHtml(idStr) {
@@ -681,40 +669,58 @@
         </div>
       </div>
       <div class="agro-ns-card-row agro-ns-card-row--4 agro-ns-card-row--plano">
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Plano de contas</label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
-            <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden" id="agro-ns-plano-id-${idStr}">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
-          </div>
-        </div>
-        <div class="agro-ns-cel-valor min-w-0">
-          <div class="agro-ns-valor-normal flex flex-col gap-1 min-w-0">
-            ${valorComSwitchHtml('normal', 'agro-ns-in-valor', 'agro-ns-label agro-ns-valor-lbl-total', 'Valor (R$)')}
-          </div>
-          <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
-            <div class="flex flex-col gap-1 min-w-0">
-              <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
-              <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
-            </div>
-            <div class="flex flex-col gap-1 min-w-0">
-              ${valorComSwitchHtml('saida', 'agro-ns-in-valor-saida', 'agro-ns-label text-amber-700 agro-ns-valor-lbl-saida', 'Valor saída (R$)')}
+        <div class="agro-ns-field agro-ns-field--plano">
+          <label class="agro-ns-field-lbl agro-ns-label">Plano de contas</label>
+          <div class="agro-ns-field-inp">
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
+              <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
+              <input type="hidden" id="agro-ns-plano-id-${idStr}">
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
             </div>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Competência</label>
-          <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-comp">
+        <div class="agro-ns-field agro-ns-field--valor">
+          <div class="agro-ns-field-lbl agro-ns-valor-lbl-normal">
+            <div class="agro-ns-valor-lbl-row">
+              <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
+              ${parcSegHtml('normal')}
+            </div>
+          </div>
+          <div class="agro-ns-field-inp agro-ns-cel-valor">
+            <div class="agro-ns-valor-normal">
+              <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
+            </div>
+            <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
+              <div class="flex flex-col gap-1 min-w-0">
+                <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
+                <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <div class="agro-ns-valor-lbl-row">
+                  <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
+                  ${parcSegHtml('saida')}
+                </div>
+                <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven">
-          <label class="agro-ns-label">Vencimento</label>
-          <div class="flex items-stretch gap-2 min-w-0">
-            <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven flex-1 min-w-0">
-            <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
-              <input type="checkbox" class="agro-ns-in-quitado sr-only">
-              <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
-            </label>
+        <div class="agro-ns-field agro-ns-field--comp">
+          <label class="agro-ns-field-lbl agro-ns-label">Competência</label>
+          <div class="agro-ns-field-inp">
+            <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-comp">
+          </div>
+        </div>
+        <div class="agro-ns-field agro-ns-field--ven">
+          <label class="agro-ns-field-lbl agro-ns-label">Vencimento</label>
+          <div class="agro-ns-field-inp agro-ns-wrap-ven">
+            <div class="flex items-stretch gap-2 min-w-0">
+              <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven flex-1 min-w-0">
+              <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
+                <input type="checkbox" class="agro-ns-in-quitado sr-only">
+                <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -872,11 +878,15 @@
     });
     card.querySelector('.agro-ns-parc-int')?.addEventListener('change', () => gerarParcelasPreview(card, false));
     card.querySelector('.agro-ns-parc-gerar')?.addEventListener('click', () => gerarParcelasPreview(card, true));
-    card.querySelectorAll('.agro-ns-parc-switch-track').forEach((btn) => {
+    card.querySelectorAll('.agro-ns-parc-seg-btn').forEach((btn) => {
       btn.addEventListener('click', (ev) => {
         ev.preventDefault();
-        toggleParcModo(card);
-        if (parcModoAtual(card) === 'parcela') {
+        const seg = btn.closest('.agro-ns-parc-seg');
+        const alvo = seg?.dataset.parcAlvo;
+        const modo = btn.dataset.parcModo;
+        if (!modo || !alvo || parcAlvoCard(card) !== alvo) return;
+        setParcModo(card, modo);
+        if (modo === 'parcela') {
           const num = card.querySelector('.agro-ns-parc-num');
           if (num && (parseInt(num.value, 10) || 1) <= 1) num.value = '2';
           gerarParcelasPreview(card, false);

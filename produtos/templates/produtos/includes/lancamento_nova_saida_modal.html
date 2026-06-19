@@ -256,38 +256,28 @@
   }
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
+  .agro-ns-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-lbl-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.25rem; min-width: 0; height: 1.35rem; max-height: 1.35rem;
+  }
+  .agro-ns-valor-lbl-row > .agro-ns-label { margin: 0; flex: 0 1 auto; min-width: 0; line-height: 1.1; }
+  .agro-ns-parc-seg {
+    display: inline-flex; flex-shrink: 0; height: 1.15rem;
+    border: 1.5px solid #cbd5e1; border-radius: 0.4rem; overflow: hidden; background: #fff;
+  }
+  .agro-ns-parc-seg-btn {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 1.15rem; min-height: 0 !important; max-height: 1.15rem !important;
+    padding: 0 0.38rem; font-size: 0.5625rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.02em; line-height: 1;
+    color: #64748b; background: #f8fafc; white-space: nowrap;
+  }
+  .agro-ns-parc-seg-btn + .agro-ns-parc-seg-btn { border-left: 1.5px solid #cbd5e1; }
+  .agro-ns-parc-seg-btn.is-on { background: var(--ns-accent); color: #fff; }
+  .agro-ns-parc-seg-btn:hover:not(.is-on) { background: #f1f5f9; }
   .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-  .agro-ns-card-row--4 .agro-ns-label,
-  .agro-ns-valor-lbl-row {
-    min-height: 1.35rem; display: flex; align-items: center;
-  }
-  .agro-ns-valor-lbl-row {
-    justify-content: space-between; gap: 0.2rem; min-width: 0;
-  }
-  .agro-ns-valor-lbl-row > .agro-ns-label { margin: 0; flex: 0 1 auto; min-width: 0; }
-  .agro-ns-parc-switch {
-    display: inline-flex; align-items: center; gap: 0.18rem; flex-shrink: 0; margin: 0;
-  }
-  .agro-ns-parc-lbl-total,
-  .agro-ns-parc-lbl-parcela {
-    font-size: 0.5625rem; font-weight: 900; text-transform: uppercase;
-    letter-spacing: 0.01em; line-height: 1; color: #94a3b8;
-    transition: color 0.12s; white-space: nowrap; user-select: none;
-  }
-  .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-lbl-total,
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-lbl-parcela { color: var(--ns-accent); }
-  .agro-ns-parc-switch-track {
-    width: 1.85rem; height: 0.95rem; min-height: 0; padding: 0; flex-shrink: 0;
-    border: none; border-radius: 999px; background: var(--ns-accent); cursor: pointer;
-    position: relative; transition: opacity 0.12s;
-  }
-  .agro-ns-parc-switch-track:hover { opacity: 0.88; }
-  .agro-ns-parc-switch-thumb {
-    position: absolute; top: 0.075rem; left: 0.075rem;
-    width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #fff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2); transition: left 0.18s ease;
-  }
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(100% - 0.075rem - 0.8rem); }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
@@ -363,6 +353,23 @@
   @media (min-width: 1024px) {
     .agro-ns-card-row--4,
     .agro-ns-card-row--plano { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .agro-ns-card-row--plano {
+      grid-template-rows: auto auto;
+      row-gap: 0.35rem;
+      column-gap: var(--ns-gap);
+    }
+    .agro-ns-card-row--plano > .agro-ns-field { display: contents; }
+    .agro-ns-card-row--plano .agro-ns-field-lbl { grid-row: 1; align-self: end; min-height: 1.35rem; display: flex; align-items: center; }
+    .agro-ns-card-row--plano .agro-ns-field-inp { grid-row: 2; min-width: 0; }
+    .agro-ns-field--plano .agro-ns-field-lbl,
+    .agro-ns-field--plano .agro-ns-field-inp { grid-column: 1; }
+    .agro-ns-field--valor .agro-ns-field-lbl,
+    .agro-ns-field--valor .agro-ns-field-inp { grid-column: 2; }
+    .agro-ns-field--comp .agro-ns-field-lbl,
+    .agro-ns-field--comp .agro-ns-field-inp { grid-column: 3; }
+    .agro-ns-field--ven .agro-ns-field-lbl,
+    .agro-ns-field--ven .agro-ns-field-inp { grid-column: 4; }
+    .agro-ns-card-row--plano .agro-ns-label { margin: 0; line-height: 1.1; }
   }
   .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
   .agro-ns-card-rec {
