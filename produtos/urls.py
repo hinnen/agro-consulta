@@ -392,6 +392,11 @@ urlpatterns = [
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/lancamentos/', views.api_lancamentos_lista, name='api_lancamentos_lista'),
     path(
+        'api/lancamentos/log/',
+        views.api_lancamentos_log,
+        name='api_lancamentos_log',
+    ),
+    path(
         'api/lancamentos/export-csv/',
         views.api_lancamentos_export_csv,
         name='api_lancamentos_export_csv',

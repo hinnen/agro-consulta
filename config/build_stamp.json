@@ -1,16 +1,16 @@
 {
-  "version": "1.01",
+  "version": "1.34",
   "build": 1,
-  "commit": "5b104349627d",
-  "commit_full": "5b104349627d54ccfc13151864dc1ff3d34eea1d",
-  "branch": "teste",
-  "built_at": "2026-06-16T23:31:39Z",
+  "commit": "7d223af0e4d9",
+  "commit_full": "7d223af0e4d9341828379bb6cd7748cc7abb77a1",
+  "branch": "producao",
+  "built_at": "2026-06-19T01:35:43Z",
   "version_deploys": [
     {
-      "commit": "5b104349627d",
-      "commit_full": "5b104349627d54ccfc13151864dc1ff3d34eea1d",
-      "built_at": "2026-06-16T23:31:39Z",
-      "branch": "teste"
+      "commit": "7d223af0e4d9",
+      "commit_full": "7d223af0e4d9341828379bb6cd7748cc7abb77a1",
+      "built_at": "2026-06-19T01:35:43Z",
+      "branch": "producao"
     }
   ]
 }

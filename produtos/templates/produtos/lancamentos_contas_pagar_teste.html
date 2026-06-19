@@ -522,17 +522,16 @@
   const URL_CLASSICO = "{% url 'lancamentos_contas_pagar_classico' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
   const LS_EXCL_PLANOS = 'gm_fin_planos_excl_v1';
-  const LS_COLS = 'gm_fin_sv_teste_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
   const TIPO_CONTAS = 'pagar';
 
   const COL_DEFS = [
     { id: 'chk', label: 'Seleção', w: '42px', lock: true },
     { id: 'venc', label: 'Vencimento', w: 'minmax(88px, 108px)' },
-    { id: 'forn', label: 'Fornecedor', w: 'minmax(120px, 1fr)' },
-    { id: 'usr_lanc', label: 'Lançado por', w: 'minmax(88px, 118px)' },
-    { id: 'usr_quit', label: 'Quitado por', w: 'minmax(88px, 118px)' },
-    { id: 'hora', label: 'Horário', w: 'minmax(118px, 138px)' },
+    { id: 'forn', label: 'Fornecedor', w: 'minmax(120px, 1fr)', defOff: true },
+    { id: 'usr_lanc', label: 'Lançado por', w: 'minmax(88px, 118px)', defOff: true },
+    { id: 'usr_quit', label: 'Quitado por', w: 'minmax(88px, 118px)', defOff: true },
+    { id: 'hora', label: 'Horário', w: 'minmax(118px, 138px)', defOff: true },
     { id: 'fluxo', label: 'Data fluxo', w: 'minmax(88px, 108px)', defOff: true },
     { id: 'forma', label: 'Forma pagamento', w: 'minmax(90px, 120px)', defOff: true },
     { id: 'plano', label: 'Plano / grupo', w: 'minmax(90px, 130px)', defOff: true },
@@ -684,18 +683,14 @@
     return o;
   }
 
+  let colsMapMem = defaultColsMap();
+
   function loadColsMap() {
-    try {
-      const raw = localStorage.getItem(LS_COLS);
-      if (!raw) return defaultColsMap();
-      return { ...defaultColsMap(), ...JSON.parse(raw) };
-    } catch (_) {
-      return defaultColsMap();
-    }
+    return colsMapMem;
   }
 
   function saveColsMap(m) {
-    localStorage.setItem(LS_COLS, JSON.stringify(m));
+    colsMapMem = { ...m };
   }
 
   function gridTemplateFromCols() {
@@ -1308,7 +1303,7 @@
           <div data-col-id="banco" class="sv-col-audit" title="${esc(row.banco || '')}">${esc(row.banco || '—')}</div>
           <div data-col-id="bruto" class="sv-col-valor negativo" style="font-size:0.95rem">${esc(brl(row.valor_bruto))}</div>
           <div data-col-id="mov" class="sv-col-valor" style="font-size:0.95rem;color:#15803d">${esc(brl(row.valor_movimentado))}</div>
-          <div data-col-id="saldo" class="sv-col-valor negativo" style="font-size:0.95rem">${esc(brl(row.restante))}</div>
+          <div data-col-id="saldo" class="sv-col-valor negativo">${esc(brl(row.restante))}</div>
           <div data-col-id="valor" class="sv-col-valor negativo">${esc(valorTxt)}</div>
           <div data-col-id="status" class="sv-col-status">${statusBadge(row)}</div>
           ${renderColNfe(row)}
