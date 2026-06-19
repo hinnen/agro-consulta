@@ -257,32 +257,37 @@
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
   .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-lbl-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+    min-width: 0; line-height: 1.15;
+  }
+  .agro-ns-valor-lbl-row > .agro-ns-label { margin: 0; flex: 1 1 auto; min-width: 0; }
   .agro-ns-parc-switch {
-    display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem;
-    width: 100%; margin-top: 0.15rem;
+    display: inline-flex; align-items: center; gap: 0.28rem; flex-shrink: 0;
+    margin: 0; width: auto;
   }
-  .agro-ns-parc-switch-labels {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; width: 100%;
-    font-size: clamp(0.625rem, 0.25vw + 0.55rem, 0.75rem); font-weight: 900;
-    text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.1;
+  .agro-ns-parc-sw-lbl-total,
+  .agro-ns-parc-sw-lbl-parcela {
+    font-size: clamp(0.5625rem, 0.2vw + 0.5rem, 0.625rem); font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.02em; line-height: 1; color: #94a3b8;
+    transition: color 0.12s; white-space: nowrap;
   }
-  .agro-ns-parc-sw-lbl-total { text-align: left; }
-  .agro-ns-parc-sw-lbl-parcela { text-align: right; }
-  .agro-ns-parc-switch-labels span { color: #94a3b8; transition: color 0.12s; }
   .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-sw-lbl-total,
   .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-sw-lbl-parcela { color: var(--ns-accent); }
   .agro-ns-parc-switch-track {
-    width: 100%; min-height: 2.15rem; padding: 0.2rem;
+    width: 2.65rem; height: 1.3rem; min-height: 0; padding: 0.125rem;
     border-radius: 999px; border: 2px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
-    position: relative; transition: border-color 0.12s, background 0.12s;
+    position: relative; flex-shrink: 0; transition: border-color 0.12s, background 0.12s;
   }
   .agro-ns-parc-switch-track:hover { border-color: var(--ns-accent); background: var(--ns-accent-soft); }
   .agro-ns-parc-switch-thumb {
-    display: block; width: 50%; height: 100%; border-radius: 999px;
-    background: var(--ns-accent); box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
-    transition: transform 0.18s ease;
+    position: absolute; top: 0.125rem; left: 0.125rem;
+    width: calc(50% - 0.1875rem); height: calc(100% - 0.25rem);
+    border-radius: 999px; background: var(--ns-accent);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+    transition: left 0.15s ease;
   }
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { transform: translateX(100%); }
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(50% + 0.0625rem); }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;

@@ -610,6 +610,17 @@
     });
   }
 
+  function parcSwitchHtml(alvo) {
+    return `
+      <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="${alvo}" role="group" aria-label="Total ou parcelas">
+        <span class="agro-ns-parc-sw-lbl-total">Total</span>
+        <button type="button" class="agro-ns-parc-switch-track" title="Total ou parcelas" aria-label="Alternar total ou parcelas">
+          <span class="agro-ns-parc-switch-thumb"></span>
+        </button>
+        <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
+      </div>`;
+  }
+
   function cardHtml(idStr) {
     return `
     <article class="agro-ns-card agro-ns-linha agro-ns-card--expandido" data-row-id="${idStr}">
@@ -671,17 +682,11 @@
         </div>
         <div class="agro-ns-cel-valor min-w-0">
           <div class="agro-ns-valor-normal flex flex-col gap-1 min-w-0">
-            <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
-            <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
-            <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="normal" role="group" aria-label="Total ou parcelas">
-              <div class="agro-ns-parc-switch-labels">
-                <span class="agro-ns-parc-sw-lbl-total">Total</span>
-                <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
-              </div>
-              <button type="button" class="agro-ns-parc-switch-track" title="Alternar entre total e parcelas" aria-label="Alternar total ou parcelas">
-                <span class="agro-ns-parc-switch-thumb"></span>
-              </button>
+            <div class="agro-ns-valor-lbl-row">
+              <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
+              ${parcSwitchHtml('normal')}
             </div>
+            <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
           </div>
           <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
             <div class="flex flex-col gap-1 min-w-0">
@@ -689,17 +694,11 @@
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
             </div>
             <div class="flex flex-col gap-1 min-w-0">
-              <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída / pagamento (R$)</label>
-              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
-              <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="saida" role="group" aria-label="Total ou parcelas">
-                <div class="agro-ns-parc-switch-labels">
-                  <span class="agro-ns-parc-sw-lbl-total">Total</span>
-                  <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
-                </div>
-                <button type="button" class="agro-ns-parc-switch-track" title="Alternar entre total e parcelas" aria-label="Alternar total ou parcelas">
-                  <span class="agro-ns-parc-switch-thumb"></span>
-                </button>
+              <div class="agro-ns-valor-lbl-row">
+                <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída / pagamento (R$)</label>
+                ${parcSwitchHtml('saida')}
               </div>
+              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
           </div>
         </div>

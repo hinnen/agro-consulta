@@ -377,7 +377,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | O quê | Detalhe |
 |-------|---------|
 | **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
-| **Chave Total/Parcela** | Abaixo do valor, largura da coluna (não invade competência) |
+| **Chave Total/Parcela** | Compacta, **na linha do rótulo** Valor (R$) — à direita do label |
 | **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
