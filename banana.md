@@ -379,7 +379,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.29`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (Nova saída → `producao` be9558c)  
-**Versão app (`VERSION`):** staging `teste` v1.54 · **produção v1.47**
+**Versão app (`VERSION`):** staging `teste` v1.60 · **produção v1.47**
 
 ### Perf — animações do botão PDV flutuante (2026-06-19, dúvida Renan)
 
@@ -405,7 +405,7 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
 | Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
 | Fix `teste` (pendente `producao`) | `_d()` com try/except · try em expandir · limpar `parcelas_*` do base · `data_competencia` nas parcelas · JS mostra trecho do HTML |
-| UX quitado (2026-06-19) | **Só `teste` (não produção ainda):** modo Parcela = botão Quitado **por linha** na grade (# · Venc · **Quitado** · Valor); chip do vencimento oculto com N&gt;1 |
+| UX quitado (2026-06-19) | **`teste` `95474d5` v1.60:** modo Parcela = botão Quitado **por linha** na grade (# · Venc · **Quitado** · Valor); chip do vencimento oculto com N&gt;1 · fix HTTP 500 API |
 
 **Próximo:** cherry-pick `views.py` + `mongo_financeiro_util.py` + `lancamento_nova_saida.js` → `producao` quando Renan pedir.
 
