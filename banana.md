@@ -366,10 +366,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.19`  
+**Versão:** `1.0.21`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (CP checkbox seleção maior → `producao`)  
-**Versão app (`VERSION`):** **produção v1.44** · staging `teste`
+**Atualizado por:** assistente Cursor (revert NFC-e PDV em `producao` — Renan pausou env vars)  
+**Versão app (`VERSION`):** **produção v1.48** (revert `eb2ce4c`) · staging `teste` OK NFC-e
+
+### NFC-e — revert produção (2026-06-19)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Revertido** | `eb2ce4c` — desfez `26153f3` (PDV wizard + vendas + cupom) |
+| **Staging** | Continua OK — homolog nº 13 série 21 (Renan validou) |
+| **Produção** | Só backend/API contabilidade (pacotão anterior); **sem** modais PDV |
+| **Render prod** | Renan começou env vars (`ENABLED`, `TP_AMB=1`) — **apagar ou deixar**; código não usa PDV NFC-e até novo push |
+
+**Retomar depois:** cherry-pick `26153f3` ou pedir *"pode subir NFC-e"* + completar cert/CSC prod no Render.
 
 ### CP — checkbox seleção maior (2026-06-19, produção)
 
@@ -642,7 +653,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
-- [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
+- [ ] **NFC-e PDV → `producao`** — revertido 2026-06-19; retomar quando Renan tiver cert/CSC prod
 - [ ] Testes automatizados sync clientes / NFC-e (futuro)
 
 ### Instruções para o assistente (próxima atualização)
