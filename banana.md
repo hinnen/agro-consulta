@@ -379,10 +379,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.33`  
+**Versão:** `1.0.34`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (juros empréstimo dual parcelado + composição UI)  
-**Versão app (`VERSION`):** **teste** v1.72+ · **produção** v1.51 (`76e2a8b`)
+**Atualizado por:** assistente Cursor (juros dual parcelado → produção v1.52, Renan teste real)  
+**Versão app (`VERSION`):** **teste** v1.73 · **produção** v1.52 (`4505805`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -456,6 +456,12 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 **UI:** valor da parcela continua 250; abaixo «231,85 + 18,15» + **?** explicando planos. Modo Total: hint sob valores entrada/saída.
 
 **Backend:** `expandir_linhas_emprestimo_dual_lote` + `split_decimal_proporcional`.
+
+### Juros dual parcelado → **produção** (2026-06-19, Renan pediu teste real)
+
+**Commit:** `4505805` · v1.52 · cherry-pick de `teste` (`0517525`).
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída → Empréstimo dual → entrada 927,40 / saída 1000 → 4×250 → composição **231,85 + 18,15** → Finalizar.
 
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
