@@ -379,10 +379,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.34`  
+**Versão:** `1.0.35`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (juros dual parcelado → produção v1.52, Renan teste real)  
-**Versão app (`VERSION`):** **teste** v1.73 · **produção** v1.52 (`4505805`)
+**Atualizado por:** assistente Cursor (Nova saída: mês calendário, sucesso bonito, volta origem)  
+**Versão app (`VERSION`):** **teste** v1.74+ · **produção** v1.52 (`4505805`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -462,6 +462,16 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 **Commit:** `4505805` · v1.52 · cherry-pick de `teste` (`0517525`).
 
 **Loja:** Ctrl+F5 após deploy Render → Nova saída → Empréstimo dual → entrada 927,40 / saída 1000 → 4×250 → composição **231,85 + 18,15** → Finalizar.
+
+### Nova saída — UX pós-gravar e intervalo mensal (2026-06-19, Renan)
+
+| Item | Comportamento |
+|------|----------------|
+| **Intervalo mensal** | **Mensal / bimestral / trimestral** = mesmo dia no mês (19/06 → 19/07); semanal/quinzenal = dias corridos |
+| **Sucesso** | Painel verde no modal («N títulos gravados»); **sem** alerta ERP nem lista de IDs |
+| **Volta** | BI `/` → fica no BI · Contas a pagar → recarrega lista **in-place** (sem redirect) |
+
+**Arquivos:** `lancamento_nova_saida.js`, `lancamento_nova_saida_modal.html`, `dashboard_gerencial.html`, `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py` (`_fin_vencimento_parcela`).
 
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
@@ -772,6 +782,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.33
+### Fim do checkpoint v1.0.35
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

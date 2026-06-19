@@ -5206,7 +5206,7 @@ def expandir_linhas_emprestimo_dual_lote(
                     parcelas_pag = []
         elif n_parc > 1:
             for i, v_i in enumerate(split_decimal_em_parcelas(vs, n_parc)):
-                parcelas_pag.append((v_i, dv_base + timedelta(days=i * int_dias), quit_padrao))
+                parcelas_pag.append((v_i, _fin_vencimento_parcela(dv_base, i, int_dias), quit_padrao))
         else:
             parcelas_pag = [(vs, dv_base, quit_padrao)]
 
@@ -5621,6 +5621,30 @@ def split_decimal_proporcional(total: Decimal, pesos: list[Decimal]) -> list[Dec
         for idx in sorted(range(n), key=lambda i: remainders[i], reverse=True)[:diff]:
             floors[idx] += 1
     return [Decimal(c) / Decimal(100) for c in floors]
+
+
+def _fin_add_meses_calendario(base: date, meses: int) -> date:
+    """Mesmo dia do mês (19/06 → 19/07); dia 31 vira último dia se o mês for curto."""
+    import calendar
+
+    m0 = base.month - 1 + int(meses)
+    y = base.year + m0 // 12
+    m = m0 % 12 + 1
+    dia = min(base.day, calendar.monthrange(y, m)[1])
+    return date(y, m, dia)
+
+
+def _fin_vencimento_parcela(dv_base: date, indice: int, int_dias: int) -> date:
+    """30/60/90 = calendário; demais intervalos = dias corridos."""
+    i = max(0, int(indice))
+    d = max(1, min(int(int_dias), 366))
+    if d == 30:
+        return _fin_add_meses_calendario(dv_base, i)
+    if d == 60:
+        return _fin_add_meses_calendario(dv_base, i * 2)
+    if d == 90:
+        return _fin_add_meses_calendario(dv_base, i * 3)
+    return dv_base + timedelta(days=i * d)
 
 
 def split_decimal_em_parcelas(total: Decimal, n: int) -> list[Decimal]:

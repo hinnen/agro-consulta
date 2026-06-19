@@ -61,6 +61,44 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  /** Mensal / bimestral / trimestral = mesmo dia no mês (19/06 → 19/07). */
+  function addMesesIso(iso, meses) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const parts = s.split('-').map(Number);
+    const dia = parts[2];
+    let y = parts[0];
+    let m = parts[1] - 1 + (parseInt(meses, 10) || 0);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    const ultimo = new Date(y, m + 1, 0).getDate();
+    const d = Math.min(dia, ultimo);
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  function vencimentoParcela(dv0, indice, intDias) {
+    const i = parseInt(indice, 10) || 0;
+    const iv = parseInt(intDias, 10) || 30;
+    if (iv === 30) return addMesesIso(dv0, i);
+    if (iv === 60) return addMesesIso(dv0, i * 2);
+    if (iv === 90) return addMesesIso(dv0, i * 3);
+    return addDiasIso(dv0, i * iv);
+  }
+
+  let novaSaidaOrigin = 'stay';
+  let sucessoPendente = null;
+
+  function detectNovaSaidaOrigin(btn) {
+    const attr = String(btn?.getAttribute('data-agro-ns-return') || '').trim().toLowerCase();
+    if (attr === 'dashboard' || attr === 'home' || attr === 'bi') return 'dashboard';
+    if (attr === 'lancamentos' || attr === 'contas-pagar' || attr === 'contas-receber') return 'lancamentos';
+    const p = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+    if (p === '/' || p.endsWith('/atalhos')) return 'dashboard';
+    if (p.includes('contas-pagar') || p.includes('contas-receber')) return 'lancamentos';
+    if (p.includes('lancamentos')) return 'lancamentos';
+    return 'stay';
+  }
+
   const CAL_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const CAL_DOW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   let calPop = null;
@@ -403,7 +441,7 @@
     const intD = parcIntervalo(card);
     const quitSnap = snapshotParcelasQuitado(card);
     const rows = vals.map((val, i) => {
-      const dv = addDiasIso(dv0, i * intD);
+      const dv = vencimentoParcela(dv0, i, intD);
       const qOn = quitSnap[i] !== undefined ? quitSnap[i] : false;
       return `<tr>
         <td class="font-black text-slate-600">${i + 1}</td>
@@ -481,7 +519,7 @@
       const dv0 = base.data_vencimento || base.data_competencia || todayISO();
       const intD = parcIntervalo(card);
       parcelas = vals.map((val, i) => ({
-        data_vencimento: addDiasIso(dv0, i * intD),
+        data_vencimento: vencimentoParcela(dv0, i, intD),
         valor: formatValorBr(val),
         quitado: false,
       }));
@@ -895,14 +933,14 @@
             <select class="agro-ns-parc-int agro-ns-input">
               <option value="7">7 dias — semanal</option>
               <option value="15">15 dias — quinzenal</option>
-              <option value="30" selected>30 dias — mensal</option>
-              <option value="60">60 dias — bimestral</option>
-              <option value="90">90 dias — trimestral</option>
+              <option value="30" selected>Mensal — mesmo dia do mês</option>
+              <option value="60">Bimestral — a cada 2 meses</option>
+              <option value="90">Trimestral — a cada 3 meses</option>
             </select>
           </div>
           <button type="button" class="agro-ns-parc-gerar agro-ns-btn-secondary shrink-0">Gerar parcelas</button>
         </div>
-        <p class="agro-ns-hint mt-1 text-slate-500">1º vencimento = campo Vencimento acima. Vencido ≠ quitado. Com parcelas, use o botão <strong>Quitado</strong> em cada linha da grade.</p>
+        <p class="agro-ns-hint mt-1 text-slate-500">1º vencimento = campo Vencimento acima. <strong>Mensal</strong> = mesmo dia no mês (19/06 → 19/07). Vencido ≠ quitado. Com parcelas, use o botão <strong>Quitado</strong> em cada linha da grade.</p>
         <div class="agro-ns-parc-preview hidden mt-2">
           <table><thead><tr><th>#</th><th>Vencimento</th><th class="agro-ns-parc-th-quit">Quitado</th><th>Valor (R$)</th></tr></thead><tbody class="agro-ns-parc-tbody"></tbody></table>
         </div>
@@ -1200,6 +1238,52 @@
     return true;
   }
 
+  function resetSucessoPainel() {
+    $('agro-ns-form')?.classList.remove('hidden');
+    $('agro-ns-sucesso')?.classList.add('hidden');
+    $('agro-ns-sucesso')?.querySelector('.agro-ns-sucesso-card')?.classList.remove('agro-ns-sucesso--parcial');
+    sucessoPendente = null;
+  }
+
+  function mostrarSucessoPainel(opts) {
+    const parcial = !!opts.parcial;
+    const qtd = Number(opts.qtd) || 0;
+    const card = $('agro-ns-sucesso')?.querySelector('.agro-ns-sucesso-card');
+    const tit = $('agro-ns-sucesso-titulo');
+    const msg = $('agro-ns-sucesso-msg');
+    const det = $('agro-ns-sucesso-detalhe');
+    if (tit) tit.textContent = parcial ? 'Gravação parcial' : 'Lançamento concluído';
+    if (msg) {
+      msg.textContent = qtd === 1
+        ? '1 título gravado com sucesso.'
+        : `${qtd} títulos gravados com sucesso.`;
+    }
+    if (det) {
+      if (opts.detalhe) {
+        det.textContent = opts.detalhe;
+        det.classList.remove('hidden');
+      } else {
+        det.textContent = '';
+        det.classList.add('hidden');
+      }
+    }
+    card?.classList.toggle('agro-ns-sucesso--parcial', parcial);
+    $('agro-ns-form')?.classList.add('hidden');
+    $('agro-ns-sucesso')?.classList.remove('hidden');
+  }
+
+  function concluirSucessoPainel() {
+    const pend = sucessoPendente;
+    resetSucessoPainel();
+    const ov = $('agro-nova-saida-overlay');
+    if (ov) {
+      ov.classList.add('hidden');
+      ov.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('overflow-hidden');
+    }
+    if (pend) dispararSucesso(pend.tipo, pend.quitado, pend.dc, pend.dvMin, pend.dvMax, pend.idMongo);
+  }
+
   async function submitForm(ev) {
     ev.preventDefault();
     const tipo = tipoAtual();
@@ -1253,23 +1337,19 @@
       const erros = Array.isArray(j.erros) ? j.erros : [];
       const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
       const dupBloq = Number(j.duplicidades_bloqueadas || 0);
-      let erpLinha = '';
-      if (ids.length && j.erp_inclusao_configurada === false) erpLinha = '\n\nERP: integração desligada no servidor.';
-      else if (j.erp_lancamento_ok === true) erpLinha = '\n\nERP: OK.';
-      else if (j.erp_lancamento_ok === false) erpLinha = '\n\nERP: falhou — ' + (j.aviso_api || '');
-      const dicaLista = '\n\nNa lista: filtro «Todos» + vencimento cobrindo as datas.';
       if (!j.ok && !ids.length) {
         alert((msgs[0] || j.erro || 'Falha ao gravar.') + (dupBloq ? `\n\nDuplicidade bloqueada: ${dupBloq}.` : ''));
         return;
       }
-      if (!j.ok && ids.length) {
-        const det = msgs.length ? '\n\n' + msgs.slice(0, 4).join('\n') : '';
-        alert('Gravação parcial. IDs: ' + ids.join(', ') + det + erpLinha + dicaLista);
-      } else {
-        alert('Lote gravado. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
-      }
-      fechar();
-      dispararSucesso(tipo, quitadoLote, dc, dvMin, dvMax, ids[0] || '');
+      const parcial = !j.ok && ids.length > 0;
+      let detalhe = '';
+      if (parcial && msgs.length) detalhe = msgs.slice(0, 3).join(' · ');
+      if (dupBloq) detalhe = (detalhe ? detalhe + ' · ' : '') + `Duplicidade bloqueada: ${dupBloq}.`;
+      sucessoPendente = {
+        tipo, quitado: quitadoLote, dc, dvMin, dvMax,
+        idMongo: ids[0] || '',
+      };
+      mostrarSucessoPainel({ parcial, qtd: ids.length, detalhe });
     } catch (_) {
       alert('Erro de rede. Confira em Lançamentos se já gravou antes de repetir.');
     } finally {
@@ -1278,12 +1358,17 @@
   }
 
   function dispararSucesso(tipo, quitado, dc, dvMin, dvMax, idMongo) {
-    const url = urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo);
     if (typeof window.agroNovaSaidaOnSuccess === 'function') {
-      window.agroNovaSaidaOnSuccess({ tipo, quitado, url, idMongo });
+      window.agroNovaSaidaOnSuccess({
+        tipo, quitado, idMongo, origin: novaSaidaOrigin,
+        url: urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo),
+      });
       return;
     }
-    window.location.href = url;
+    if (novaSaidaOrigin === 'dashboard' || novaSaidaOrigin === 'lancamentos' || novaSaidaOrigin === 'stay') {
+      return;
+    }
+    window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dvMin, dvMax, idMongo);
   }
 
   function esconderNlpDialog() { $('agro-ns-nlp-escl')?.classList.add('hidden'); }
@@ -1419,6 +1504,7 @@
   function fechar() {
     const ov = $('agro-nova-saida-overlay');
     if (!ov) return;
+    resetSucessoPainel();
     ov.classList.add('hidden');
     ov.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('overflow-hidden');
@@ -1429,6 +1515,7 @@
     const ov = $('agro-nova-saida-overlay');
     if (!ov) return;
     if (!bound) init();
+    resetSucessoPainel();
     const tipo = opts.tipo === 'receber' ? 'receber' : 'pagar';
     document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
     syncTemaTipo();
@@ -1458,6 +1545,7 @@
     $('agro-ns-form')?.addEventListener('submit', submitForm);
     $('agro-ns-fechar')?.addEventListener('click', fechar);
     $('agro-ns-cancelar')?.addEventListener('click', fechar);
+    $('agro-ns-sucesso-ok')?.addEventListener('click', concluirSucessoPainel);
     $('agro-ns-btn-nlp')?.addEventListener('click', () => preencherPorTexto());
     $('agro-ns-nlp-aplicar')?.addEventListener('click', () => {
       const rsp = coletarRespostasDialogo(nlpDialogCache.perguntas);
@@ -1474,6 +1562,7 @@
       const btn = ev.target.closest('[data-agro-nova-saida-open]');
       if (!btn) return;
       ev.preventDefault();
+      novaSaidaOrigin = detectNovaSaidaOrigin(btn);
       abrir({ tipo: btn.getAttribute('data-tipo') || 'pagar' });
     });
   }
