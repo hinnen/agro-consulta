@@ -174,35 +174,6 @@
     outline: none; border-color: var(--ns-accent);
     box-shadow: 0 0 0 4px var(--ns-accent-ring);
   }
-  .agro-ns-input-date {
-    padding-right: 3.15rem;
-    font-size: clamp(1.1875rem, 0.55vw + 1.02rem, 1.4375rem);
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.01em;
-    cursor: pointer;
-  }
-  .agro-ns-input-date::-webkit-calendar-picker-indicator {
-    width: 2.35rem;
-    height: 2.35rem;
-    margin: 0 0.15rem 0 0.35rem;
-    padding: 0.2rem;
-    cursor: pointer;
-    opacity: 0.92;
-    filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.12));
-  }
-  .agro-ns-input-date::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
-  }
-  .agro-ns-ven-row {
-    display: flex; align-items: stretch; gap: 0.5rem; min-width: 0;
-  }
-  .agro-ns-ven-row .agro-ns-input-date { flex: 1 1 0; min-width: 0; }
-  .agro-ns-ven-row .agro-ns-quitado-chip-btn {
-    min-width: clamp(4.75rem, 5vw, 5.75rem);
-    padding-left: 0.55rem;
-    padding-right: 0.55rem;
-  }
   .agro-ns-input-icon { padding-left: 2.85rem; }
   .agro-ns-ico {
     position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
@@ -281,20 +252,124 @@
   }
   .agro-ns-card-row {
     display: grid; grid-template-columns: 1fr; gap: var(--ns-gap);
-    margin-bottom: var(--ns-gap); align-items: end;
+    margin-bottom: var(--ns-gap);
   }
+  .agro-ns-valor-normal.hidden,
+  .agro-ns-valor-dual.hidden { display: none !important; }
   .agro-ns-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-valor-lbl-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.25rem; min-width: 0; height: 1.35rem; max-height: 1.35rem;
+  }
+  .agro-ns-valor-lbl-row > .agro-ns-label { margin: 0; flex: 0 1 auto; min-width: 0; line-height: 1.1; }
+  .agro-ns-parc-seg {
+    display: inline-flex; flex-shrink: 0; height: 1.15rem;
+    border: 1.5px solid #cbd5e1; border-radius: 0.4rem; overflow: hidden; background: #fff;
+  }
+  .agro-ns-parc-seg-btn {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 1.15rem; min-height: 0 !important; max-height: 1.15rem !important;
+    padding: 0 0.38rem; font-size: 0.5625rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.02em; line-height: 1;
+    color: #64748b; background: #f8fafc; white-space: nowrap;
+  }
+  .agro-ns-parc-seg-btn + .agro-ns-parc-seg-btn { border-left: 1.5px solid #cbd5e1; }
+  .agro-ns-parc-seg-btn.is-on { background: var(--ns-accent); color: #fff; }
+  .agro-ns-parc-seg-btn:hover:not(.is-on) { background: #f1f5f9; }
+  .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .agro-ns-parc-wrap {
+    margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
+    border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
+  }
+  .agro-ns-parc-wrap.hidden { display: none !important; }
+  .agro-ns-input-date,
+  .agro-ns-input[type="date"] {
+    font-size: clamp(1.1875rem, 0.65vw + 1rem, 1.4375rem);
+    font-weight: 800; font-variant-numeric: tabular-nums;
+    padding-right: 0.65rem; cursor: pointer;
+  }
+  .agro-ns-input-date::-webkit-calendar-picker-indicator,
+  .agro-ns-input[type="date"]::-webkit-calendar-picker-indicator {
+    width: 2.25rem; height: 2.25rem; margin-left: 0.25rem; cursor: pointer; opacity: 0.85;
+  }
+  .agro-ns-cal-pop {
+    position: fixed; z-index: 400; width: min(22.5rem, calc(100vw - 1.5rem));
+    padding: 0.85rem 0.95rem 0.75rem; border-radius: 1rem;
+    border: 2px solid #cbd5e1; background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+    font-size: clamp(1rem, 0.45vw + 0.88rem, 1.1875rem);
+  }
+  .agro-ns-cal-pop-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    margin-bottom: 0.65rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-title { font-size: clamp(1.0625rem, 0.5vw + 0.92rem, 1.25rem); font-weight: 900; color: #0f172a; }
+  .agro-ns-cal-pop-nav {
+    min-width: 2.75rem; min-height: 2.75rem; border-radius: 0.75rem;
+    border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
+    font-size: 1.35rem; font-weight: 900; line-height: 1; cursor: pointer;
+  }
+  .agro-ns-cal-pop-nav:hover { border-color: var(--ns-accent); color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.2rem;
+    margin-bottom: 0.35rem; text-align: center;
+    font-size: clamp(0.75rem, 0.3vw + 0.65rem, 0.875rem); font-weight: 900;
+    text-transform: uppercase; color: #64748b;
+  }
+  .agro-ns-cal-pop-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem;
+  }
+  .agro-ns-cal-pop-day {
+    min-height: 2.85rem; border-radius: 0.65rem; border: 2px solid transparent;
+    background: #f8fafc; color: #0f172a; font-size: clamp(1.0625rem, 0.45vw + 0.92rem, 1.25rem);
+    font-weight: 800; cursor: pointer; transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+  .agro-ns-cal-pop-day:hover { border-color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-cal-pop-day.is-out { color: #94a3b8; background: #fff; }
+  .agro-ns-cal-pop-day.is-today { border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .agro-ns-cal-pop-day.is-sel { background: var(--ns-accent); border-color: var(--ns-accent); color: #fff; }
+  .agro-ns-cal-pop-foot {
+    display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.65rem;
+    padding-top: 0.55rem; border-top: 2px solid #f1f5f9;
+  }
+  .agro-ns-cal-pop-foot button {
+    min-height: 2.65rem; padding: 0 1rem; border-radius: 0.65rem; border: none; cursor: pointer;
+    font-size: clamp(0.875rem, 0.35vw + 0.78rem, 1rem); font-weight: 800;
+  }
+  .agro-ns-cal-pop-clear { background: transparent; color: #64748b; }
+  .agro-ns-cal-pop-clear:hover { color: #dc2626; background: #fef2f2; }
+  .agro-ns-cal-pop-today { background: var(--ns-accent-soft); color: var(--ns-accent); border: 2px solid var(--ns-accent) !important; }
+  .agro-ns-cal-pop-today:hover { background: var(--ns-accent); color: #fff; }
+  .agro-ns-parc-preview table { width: 100%; border-collapse: collapse; }
+  .agro-ns-parc-preview th, .agro-ns-parc-preview td {
+    padding: 0.35rem 0.45rem; border-bottom: 1px solid #e2e8f0; text-align: left;
+  }
+  .agro-ns-parc-preview th { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #64748b; }
+  .agro-ns-parc-preview input { min-height: 2.75rem; font-size: clamp(1rem, 0.4vw + 0.88rem, 1.125rem); font-weight: 800; }
   @media (min-width: 640px) {
-    .agro-ns-card-row--4,
-    .agro-ns-card-row--plano { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (min-width: 1024px) {
     .agro-ns-card-row--4,
     .agro-ns-card-row--plano { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+    .agro-ns-card-row--plano {
+      grid-template-rows: auto auto;
+      row-gap: 0.35rem;
+      column-gap: var(--ns-gap);
     }
-    .agro-ns-card--emprestimo-dual .agro-ns-valor-dual { grid-column: span 2; }
+    .agro-ns-card-row--plano > .agro-ns-field { display: contents; }
+    .agro-ns-card-row--plano .agro-ns-field-lbl { grid-row: 1; align-self: end; min-height: 1.35rem; display: flex; align-items: center; }
+    .agro-ns-card-row--plano .agro-ns-field-inp { grid-row: 2; min-width: 0; }
+    .agro-ns-field--plano .agro-ns-field-lbl,
+    .agro-ns-field--plano .agro-ns-field-inp { grid-column: 1; }
+    .agro-ns-field--valor .agro-ns-field-lbl,
+    .agro-ns-field--valor .agro-ns-field-inp { grid-column: 2; }
+    .agro-ns-field--comp .agro-ns-field-lbl,
+    .agro-ns-field--comp .agro-ns-field-inp { grid-column: 3; }
+    .agro-ns-field--ven .agro-ns-field-lbl,
+    .agro-ns-field--ven .agro-ns-field-inp { grid-column: 4; }
+    .agro-ns-card-row--plano .agro-ns-label { margin: 0; line-height: 1.1; }
   }
   .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
   .agro-ns-card-rec {

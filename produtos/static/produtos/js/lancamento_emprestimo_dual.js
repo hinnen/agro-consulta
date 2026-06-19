@@ -77,6 +77,7 @@
 
     card.querySelector('.agro-ns-valor-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.remove('hidden');
+    card.querySelector('.agro-ns-valor-lbl-normal')?.classList.add('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.add('hidden');
 
     const cbRec = card.querySelector('.agro-ns-rec-cb');
@@ -86,6 +87,7 @@
     }
     card.classList.add('agro-ns-card--emprestimo-dual');
     syncHeaderEmprestimoAjuda();
+    if (typeof window.__agroNsSyncParc === 'function') window.__agroNsSyncParc(card);
   }
 
   function desativarModoDualModal(card) {
@@ -93,6 +95,7 @@
     delete card.dataset.emprestimoDual;
     card.querySelector('.agro-ns-valor-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-valor-dual')?.classList.add('hidden');
+    card.querySelector('.agro-ns-valor-lbl-normal')?.classList.remove('hidden');
     card.querySelector('.agro-ns-card-rec')?.classList.remove('hidden');
     const cbRec = card.querySelector('.agro-ns-rec-cb');
     if (cbRec) cbRec.disabled = false;
@@ -100,6 +103,7 @@
     card.querySelector('.agro-ns-in-valor-entrada')?.value && (card.querySelector('.agro-ns-in-valor-entrada').value = '');
     card.querySelector('.agro-ns-in-valor-saida')?.value && (card.querySelector('.agro-ns-in-valor-saida').value = '');
     syncHeaderEmprestimoAjuda();
+    if (typeof window.__agroNsSyncParc === 'function') window.__agroNsSyncParc(card);
   }
 
   function onPlanoSelectModal(wrap, nome, id) {

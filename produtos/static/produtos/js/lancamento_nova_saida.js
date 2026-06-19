@@ -22,6 +22,347 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  function parseValorBr(raw) {
+    const s = String(raw || '').trim().replace(/[R$\s]/g, '');
+    if (!s) return null;
+    const n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatValorBr(n) {
+    if (!Number.isFinite(n)) return '';
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function splitEmParcelas(total, n) {
+    const nn = Math.max(1, Math.min(60, parseInt(n, 10) || 1));
+    const cents = Math.round((Number(total) || 0) * 100);
+    const base = Math.floor(cents / nn);
+    const rem = cents % nn;
+    const out = [];
+    for (let i = 0; i < nn; i += 1) {
+      out.push((base + (i < rem ? 1 : 0)) / 100);
+    }
+    return out;
+  }
+
+  function addDiasIso(iso, dias) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s + 'T12:00:00');
+    d.setDate(d.getDate() + (parseInt(dias, 10) || 0));
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  const CAL_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const CAL_DOW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  let calPop = null;
+  let calAnchor = null;
+  let calView = null;
+
+  function calEnsurePop() {
+    if (calPop) return calPop;
+    calPop = document.createElement('div');
+    calPop.id = 'agro-ns-cal-pop';
+    calPop.className = 'agro-ns-cal-pop hidden';
+    calPop.setAttribute('role', 'dialog');
+    calPop.setAttribute('aria-label', 'Escolher data');
+    calPop.innerHTML = `
+      <div class="agro-ns-cal-pop-head">
+        <button type="button" class="agro-ns-cal-pop-nav" data-cal-nav="-1" aria-label="Mês anterior">‹</button>
+        <div class="agro-ns-cal-pop-title" data-cal-title></div>
+        <button type="button" class="agro-ns-cal-pop-nav" data-cal-nav="1" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="agro-ns-cal-pop-dow">${CAL_DOW.map((d) => `<span>${d}</span>`).join('')}</div>
+      <div class="agro-ns-cal-pop-grid" data-cal-grid></div>
+      <div class="agro-ns-cal-pop-foot">
+        <button type="button" class="agro-ns-cal-pop-clear" data-cal-clear>Limpar</button>
+        <button type="button" class="agro-ns-cal-pop-today" data-cal-today>Hoje</button>
+      </div>`;
+    document.body.appendChild(calPop);
+    calPop.querySelector('[data-cal-nav="-1"]')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!calView) return;
+      calView.setMonth(calView.getMonth() - 1);
+      calRender();
+    });
+    calPop.querySelector('[data-cal-nav="1"]')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (!calView) return;
+      calView.setMonth(calView.getMonth() + 1);
+      calRender();
+    });
+    calPop.querySelector('[data-cal-clear]')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (calAnchor) {
+        calAnchor.value = '';
+        calAnchor.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      calClose();
+    });
+    calPop.querySelector('[data-cal-today]')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      calPick(todayISO());
+    });
+    calPop.addEventListener('click', (ev) => ev.stopPropagation());
+    document.addEventListener('click', (ev) => {
+      if (!calPop || calPop.classList.contains('hidden')) return;
+      if (calPop.contains(ev.target) || ev.target === calAnchor) return;
+      calClose();
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && calPop && !calPop.classList.contains('hidden')) calClose();
+    });
+    return calPop;
+  }
+
+  function calClose() {
+    if (!calPop) return;
+    calPop.classList.add('hidden');
+    calAnchor = null;
+  }
+
+  function calPick(iso) {
+    if (calAnchor) {
+      calAnchor.value = iso;
+      calAnchor.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    calClose();
+  }
+
+  function calRender() {
+    const pop = calEnsurePop();
+    if (!calView) return;
+    const y = calView.getFullYear();
+    const m = calView.getMonth();
+    pop.querySelector('[data-cal-title]').textContent = `${CAL_MESES[m]} ${y}`;
+    const grid = pop.querySelector('[data-cal-grid]');
+    const sel = calAnchor ? String(calAnchor.value || '').slice(0, 10) : '';
+    const hoje = todayISO();
+    const first = new Date(y, m, 1);
+    const start = new Date(y, m, 1 - first.getDay());
+    let html = '';
+    for (let i = 0; i < 42; i += 1) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const cls = [
+        'agro-ns-cal-pop-day',
+        d.getMonth() !== m ? 'is-out' : '',
+        iso === hoje ? 'is-today' : '',
+        iso === sel ? 'is-sel' : '',
+      ].filter(Boolean).join(' ');
+      html += `<button type="button" class="${cls}" data-cal-iso="${iso}">${d.getDate()}</button>`;
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-cal-iso]').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        calPick(btn.getAttribute('data-cal-iso'));
+      });
+    });
+  }
+
+  function calOpen(inp) {
+    const pop = calEnsurePop();
+    calAnchor = inp;
+    const panel = inp.closest('.agro-ns-panel');
+    if (panel) {
+      const st = getComputedStyle(panel);
+      pop.style.setProperty('--ns-accent', st.getPropertyValue('--ns-accent').trim() || '#dc2626');
+      pop.style.setProperty('--ns-accent-soft', st.getPropertyValue('--ns-accent-soft').trim() || '#fef2f2');
+    }
+    const v = String(inp.value || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      calView = new Date(v + 'T12:00:00');
+    } else {
+      calView = new Date();
+      calView.setHours(12, 0, 0, 0);
+    }
+    calRender();
+    pop.classList.remove('hidden');
+    const r = inp.getBoundingClientRect();
+    const ph = pop.offsetHeight || 360;
+    const pw = pop.offsetWidth || 320;
+    let top = r.bottom + 6;
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+    let left = r.left;
+    if (left + pw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pw - 8);
+    pop.style.top = `${top}px`;
+    pop.style.left = `${left}px`;
+  }
+
+  function bindDatePicker(inp) {
+    if (!inp || inp.dataset.agroNsDateBound === '1') return;
+    inp.dataset.agroNsDateBound = '1';
+    inp.classList.add('agro-ns-input-date');
+    inp.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      calOpen(inp);
+    });
+    inp.addEventListener('focus', (ev) => {
+      ev.preventDefault();
+      inp.blur();
+      calOpen(inp);
+    });
+  }
+
+  function bindDatePickersIn(root) {
+    (root || document).querySelectorAll('input[type="date"]').forEach(bindDatePicker);
+  }
+
+  function parcAlvoCard(card) {
+    if (window.AgroLancEmprestimoDual && window.AgroLancEmprestimoDual.isCardDual(card)) return 'saida';
+    return 'normal';
+  }
+
+  function parcValorInput(card) {
+    const alvo = parcAlvoCard(card);
+    if (alvo === 'saida') return card.querySelector('.agro-ns-in-valor-saida');
+    return card.querySelector('.agro-ns-in-valor');
+  }
+
+  function parcSegEl(card) {
+    const alvo = parcAlvoCard(card);
+    return card.querySelector(`.agro-ns-parc-seg[data-parc-alvo="${alvo}"]`);
+  }
+
+  function setParcModo(card, modo) {
+    const seg = parcSegEl(card);
+    if (!seg) return;
+    const m = modo === 'parcela' ? 'parcela' : 'total';
+    seg.dataset.modo = m;
+    seg.querySelectorAll('.agro-ns-parc-seg-btn').forEach((b) => {
+      b.classList.toggle('is-on', b.dataset.parcModo === m);
+    });
+    syncParcWrap(card);
+  }
+
+  function parcNumero(card) {
+    return Math.max(1, Math.min(60, parseInt(card.querySelector('.agro-ns-parc-num')?.value, 10) || 1));
+  }
+
+  function parcIntervalo(card) {
+    return Math.max(1, Math.min(366, parseInt(card.querySelector('.agro-ns-parc-int')?.value, 10) || 30));
+  }
+
+  function syncParcWrap(card) {
+    const wrap = card.querySelector('.agro-ns-parc-wrap');
+    if (!wrap) return;
+    const isParcela = parcModoAtual(card) === 'parcela';
+    wrap.classList.toggle('hidden', !isParcela);
+    if (!isParcela) {
+      const num = card.querySelector('.agro-ns-parc-num');
+      if (num) num.value = '1';
+      card.querySelector('.agro-ns-parc-preview')?.classList.add('hidden');
+      const tbody = card.querySelector('.agro-ns-parc-tbody');
+      if (tbody) tbody.innerHTML = '';
+    }
+  }
+
+  function syncParcModoLabel(card) {
+    syncParcWrap(card);
+  }
+
+  function valorTotalParaParcelas(card) {
+    const inp = parcValorInput(card);
+    return parseValorBr(inp?.value);
+  }
+
+  function gerarParcelasPreview(card, scroll) {
+    syncParcWrap(card);
+    const preview = card.querySelector('.agro-ns-parc-preview');
+    const tbody = card.querySelector('.agro-ns-parc-tbody');
+    if (!preview || !tbody) return;
+    if (parcModoAtual(card) !== 'parcela') {
+      preview.classList.add('hidden');
+      tbody.innerHTML = '';
+      return;
+    }
+    const n = parcNumero(card);
+    if (n <= 1) {
+      preview.classList.add('hidden');
+      tbody.innerHTML = '';
+      return;
+    }
+    const total = valorTotalParaParcelas(card);
+    if (total == null || total <= 0) {
+      preview.classList.add('hidden');
+      tbody.innerHTML = '';
+      return;
+    }
+    const vals = splitEmParcelas(total, n);
+    const dv0 = card.querySelector('.agro-ns-in-ven')?.value || card.querySelector('.agro-ns-in-comp')?.value || todayISO();
+    const intD = parcIntervalo(card);
+    const rows = vals.map((val, i) => {
+      const dv = addDiasIso(dv0, i * intD);
+      return `<tr>
+        <td class="font-black text-slate-600">${i + 1}</td>
+        <td><input type="date" class="agro-ns-parc-dv agro-ns-input agro-ns-input-date w-full" value="${dv}"></td>
+        <td><input type="text" inputmode="decimal" class="agro-ns-parc-val agro-ns-input w-full text-right" value="${formatValorBr(val)}"></td>
+      </tr>`;
+    }).join('');
+    tbody.innerHTML = rows;
+    preview.classList.remove('hidden');
+    bindDatePickersIn(tbody);
+    tbody.querySelectorAll('.agro-ns-parc-dv, .agro-ns-parc-val').forEach((el) => {
+      el.addEventListener('input', () => syncParcWrap(card));
+      el.addEventListener('change', () => syncParcWrap(card));
+    });
+    if (scroll !== false) preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function coletarParcelasManual(card) {
+    const n = parcNumero(card);
+    if (n <= 1) return null;
+    const rows = card.querySelectorAll('.agro-ns-parc-tbody tr');
+    if (!rows.length) return null;
+    const out = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const tr = rows[i];
+      const dv = String(tr.querySelector('.agro-ns-parc-dv')?.value || '').trim();
+      const val = parseValorBr(tr.querySelector('.agro-ns-parc-val')?.value);
+      if (!dv || val == null || val <= 0) return { erro: `Parcela ${i + 1}: informe vencimento e valor.` };
+      out.push({ data_vencimento: dv, valor: formatValorBr(val) });
+    }
+    return out;
+  }
+
+  function expandirLinhaParcelas(card, base) {
+    if (parcModoAtual(card) !== 'parcela') return [base];
+    const manual = coletarParcelasManual(card);
+    if (manual && manual.erro) {
+      alert(manual.erro);
+      return null;
+    }
+    const n = parcNumero(card);
+    if (n <= 1) return [base];
+    let parcelas = manual;
+    if (!parcelas) {
+      const total = valorTotalParaParcelas(card);
+      if (total == null || total <= 0) return [base];
+      const vals = splitEmParcelas(total, n);
+      const dv0 = base.data_vencimento || base.data_competencia || todayISO();
+      const intD = parcIntervalo(card);
+      parcelas = vals.map((val, i) => ({
+        data_vencimento: addDiasIso(dv0, i * intD),
+        valor: formatValorBr(val),
+      }));
+    }
+    const descBase = (base.descricao || base.plano_conta || '').trim();
+    return parcelas.map((p, i) => ({
+      ...base,
+      valor: p.valor,
+      data_vencimento: p.data_vencimento,
+      descricao: descBase ? `${descBase} (parcela ${i + 1}/${parcelas.length})` : `Parcela ${i + 1}/${parcelas.length}`,
+      parcelas: undefined,
+      parcelas_intervalo_dias: undefined,
+      parcelas_manual: undefined,
+      parcelas_saida: undefined,
+    }));
+  }
+
   function tipoAtual() {
     const r = document.querySelector('input[name="agro-ns-tipo"]:checked');
     return (r && r.value === 'receber') ? 'receber' : 'pagar';
@@ -264,6 +605,19 @@
     });
   }
 
+  function parcModoAtual(card) {
+    const seg = parcSegEl(card);
+    return (seg && seg.dataset.modo === 'parcela') ? 'parcela' : 'total';
+  }
+
+  function parcSegHtml(alvo) {
+    return `
+      <div class="agro-ns-parc-seg" data-modo="total" data-parc-alvo="${alvo}" role="group" aria-label="Total ou parcelas">
+        <button type="button" class="agro-ns-parc-seg-btn is-on" data-parc-modo="total">Total</button>
+        <button type="button" class="agro-ns-parc-seg-btn" data-parc-modo="parcela">Parc.</button>
+      </div>`;
+  }
+
   function cardHtml(idStr) {
     return `
     <article class="agro-ns-card agro-ns-linha agro-ns-card--expandido" data-row-id="${idStr}">
@@ -278,7 +632,7 @@
         <button type="button" class="agro-ns-rm-linha hidden" title="Remover lançamento">Remover</button>
       </div>
       <div class="agro-ns-card-row agro-ns-card-row--4">
-        <div class="agro-ns-field">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Loja</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="empresa">
             <input type="text" placeholder="Buscar loja…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -287,7 +641,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="agro-ns-field">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Pessoa</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="cliente">
             <input type="text" placeholder="Cliente / fornecedor…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -296,7 +650,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="agro-ns-field">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Conta / Caixa</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="banco">
             <input type="text" placeholder="Buscar conta…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -305,7 +659,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="agro-ns-field">
+        <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Forma pagamento</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
             <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
@@ -314,44 +668,83 @@
           </div>
         </div>
       </div>
-      <div class="agro-ns-card-row agro-ns-card-row--plano">
-        <div class="agro-ns-field">
-          <label class="agro-ns-label">Plano de contas</label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
-            <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden" id="agro-ns-plano-id-${idStr}">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
-          </div>
-        </div>
-        <div class="agro-ns-field agro-ns-valor-normal">
-          <label class="agro-ns-label">Valor (R$)</label>
-          <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
-        </div>
-        <div class="agro-ns-valor-dual hidden agro-ns-field min-w-0">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="agro-ns-field">
-              <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
-              <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
-            </div>
-            <div class="agro-ns-field">
-              <label class="agro-ns-label text-amber-700">Valor saída / pagamento (R$)</label>
-              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
+      <div class="agro-ns-card-row agro-ns-card-row--4 agro-ns-card-row--plano">
+        <div class="agro-ns-field agro-ns-field--plano">
+          <label class="agro-ns-field-lbl agro-ns-label">Plano de contas</label>
+          <div class="agro-ns-field-inp">
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
+              <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
+              <input type="hidden" id="agro-ns-plano-id-${idStr}">
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
             </div>
           </div>
         </div>
-        <div class="agro-ns-field">
-          <label class="agro-ns-label">Competência</label>
-          <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-comp">
-        </div>
-        <div class="agro-ns-field agro-ns-wrap-ven">
-          <label class="agro-ns-label">Vencimento</label>
-          <div class="agro-ns-ven-row">
-            <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven">
-            <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
-              <input type="checkbox" class="agro-ns-in-quitado sr-only">
-              <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
-            </label>
+        <div class="agro-ns-field agro-ns-field--valor">
+          <div class="agro-ns-field-lbl agro-ns-valor-lbl-normal">
+            <div class="agro-ns-valor-lbl-row">
+              <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
+              ${parcSegHtml('normal')}
+            </div>
           </div>
+          <div class="agro-ns-field-inp agro-ns-cel-valor">
+            <div class="agro-ns-valor-normal">
+              <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
+            </div>
+            <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
+              <div class="flex flex-col gap-1 min-w-0">
+                <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
+                <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
+              </div>
+              <div class="flex flex-col gap-1 min-w-0">
+                <div class="agro-ns-valor-lbl-row">
+                  <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
+                  ${parcSegHtml('saida')}
+                </div>
+                <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="agro-ns-field agro-ns-field--comp">
+          <label class="agro-ns-field-lbl agro-ns-label">Competência</label>
+          <div class="agro-ns-field-inp">
+            <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-comp">
+          </div>
+        </div>
+        <div class="agro-ns-field agro-ns-field--ven">
+          <label class="agro-ns-field-lbl agro-ns-label">Vencimento</label>
+          <div class="agro-ns-field-inp agro-ns-wrap-ven">
+            <div class="flex items-stretch gap-2 min-w-0">
+              <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven flex-1 min-w-0">
+              <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
+                <input type="checkbox" class="agro-ns-in-quitado sr-only">
+                <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="agro-ns-parc-wrap hidden">
+        <div class="agro-ns-parc-toolbar flex flex-wrap items-end gap-2">
+          <div class="flex flex-col gap-1 min-w-0">
+            <label class="agro-ns-label">Nº parcelas</label>
+            <input type="number" class="agro-ns-parc-num agro-ns-input max-w-[5.5rem]" min="1" max="60" value="1" inputmode="numeric">
+          </div>
+          <div class="flex flex-col gap-1 min-w-0 flex-1" style="min-width:9rem">
+            <label class="agro-ns-label">Intervalo</label>
+            <select class="agro-ns-parc-int agro-ns-input">
+              <option value="7">7 dias — semanal</option>
+              <option value="15">15 dias — quinzenal</option>
+              <option value="30" selected>30 dias — mensal</option>
+              <option value="60">60 dias — bimestral</option>
+              <option value="90">90 dias — trimestral</option>
+            </select>
+          </div>
+          <button type="button" class="agro-ns-parc-gerar agro-ns-btn-secondary shrink-0">Gerar parcelas</button>
+        </div>
+        <p class="agro-ns-hint mt-1 text-slate-500">1º vencimento = campo Vencimento acima. Edite valores e datas na grade.</p>
+        <div class="agro-ns-parc-preview hidden mt-2">
+          <table><thead><tr><th>#</th><th>Vencimento</th><th>Valor (R$)</th></tr></thead><tbody class="agro-ns-parc-tbody"></tbody></table>
         </div>
       </div>
       <div class="agro-ns-card-row-desc">
@@ -429,6 +822,7 @@
     attachSugAll(card);
     bindLinhaDatas(card);
     bindRecLinha(card);
+    bindParcelasLinha(card);
     bindResumoUpdates(card);
     bindResumoClick(card);
     atualizarNumeracaoCards();
@@ -478,10 +872,46 @@
     return { nome: inp ? inp.value.trim() : '', id: hid ? hid.value.trim() : '' };
   }
 
+  function bindParcelasLinha(card) {
+    card.querySelector('.agro-ns-parc-num')?.addEventListener('change', () => {
+      gerarParcelasPreview(card, false);
+    });
+    card.querySelector('.agro-ns-parc-int')?.addEventListener('change', () => gerarParcelasPreview(card, false));
+    card.querySelector('.agro-ns-parc-gerar')?.addEventListener('click', () => gerarParcelasPreview(card, true));
+    card.querySelectorAll('.agro-ns-parc-seg-btn').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const seg = btn.closest('.agro-ns-parc-seg');
+        const alvo = seg?.dataset.parcAlvo;
+        const modo = btn.dataset.parcModo;
+        if (!modo || !alvo || parcAlvoCard(card) !== alvo) return;
+        setParcModo(card, modo);
+        if (modo === 'parcela') {
+          const num = card.querySelector('.agro-ns-parc-num');
+          if (num && (parseInt(num.value, 10) || 1) <= 1) num.value = '2';
+          gerarParcelasPreview(card, false);
+        }
+      });
+    });
+    card.querySelector('.agro-ns-in-valor')?.addEventListener('input', () => {
+      if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1 && parcAlvoCard(card) === 'normal') gerarParcelasPreview(card, false);
+    });
+    card.querySelector('.agro-ns-in-valor-saida')?.addEventListener('input', () => {
+      if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1 && parcAlvoCard(card) === 'saida') gerarParcelasPreview(card, false);
+    });
+    card.querySelector('.agro-ns-in-ven')?.addEventListener('change', () => {
+      if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1) gerarParcelasPreview(card, false);
+    });
+    bindDatePickersIn(card);
+    syncParcWrap(card);
+  }
+
   function coletarLinhas() {
     const linhas = [];
+    let abort = false;
     let n = 0;
     document.querySelectorAll('#agro-ns-linhas .agro-ns-card').forEach((card) => {
+      if (abort) return;
       n += 1;
       const emp = sugVal(card, 'empresa');
       const pes = sugVal(card, 'cliente');
@@ -525,18 +955,39 @@
       };
 
       if (isDual && dual.coletarLinhaDualModal) {
-        linhas.push(dual.coletarLinhaDualModal(card, base));
+        const dualLine = dual.coletarLinhaDualModal(card, base);
+        const nParc = parcModoAtual(card) === 'parcela' ? parcNumero(card) : 1;
+        if (nParc > 1) {
+          const manual = coletarParcelasManual(card);
+          if (manual && manual.erro) {
+            alert(manual.erro);
+            abort = true;
+            return;
+          }
+          const total = valorTotalParaParcelas(card);
+          if (total != null) dualLine.valor_saida = formatValorBr(total);
+          dualLine.parcelas_saida = nParc;
+          dualLine.parcelas_intervalo_dias = parcIntervalo(card);
+          if (manual) dualLine.parcelas_manual_saida = manual;
+        }
+        linhas.push(dualLine);
         return;
       }
 
-      linhas.push({
+      const linhaBase = {
         ...base,
         plano_conta: plan.nome,
         plano_conta_id: plan.id || null,
         valor,
-      });
+      };
+      const expanded = expandirLinhaParcelas(card, linhaBase);
+      if (!expanded) {
+        abort = true;
+        return;
+      }
+      expanded.forEach((ln) => linhas.push(ln));
     });
-    return linhas;
+    return abort ? [] : linhas;
   }
 
   function validarLinhas(linhasRaw) {
@@ -845,6 +1296,10 @@
   }
 
   window.AgroNovaSaida = { open: abrir, close: fechar, init };
+  window.__agroNsSyncParc = (card) => {
+    if (!card) return;
+    syncParcWrap(card);
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

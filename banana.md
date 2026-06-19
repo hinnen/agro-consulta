@@ -366,10 +366,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.21`  
+**Versão:** `1.0.22`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (revert NFC-e PDV em `producao` — Renan pausou env vars)  
-**Versão app (`VERSION`):** **produção v1.48** (revert `eb2ce4c`) · staging `teste` OK NFC-e
+**Atualizado por:** assistente Cursor (Nova saída parcelas/calendário/pílulas → `producao`, Renan pediu)  
+**Versão app (`VERSION`):** produção (após deploy) · staging `teste` v1.54
+
+### Nova saída → **produção** (2026-06-19)
+
+Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
+
+| Arquivo | Pacote |
+|---------|--------|
+| `lancamento_nova_saida.js` + modal | Parcelas, calendário popup, grid 4 col, pílulas **Total \| Parc.** |
+| `lancamento_emprestimo_dual.js` | Saída abaixo entrada; rótulo grid em dual |
+| `mongo_financeiro_util.py` | `parcelas_saida`, expandir linhas empréstimo dual |
+
+**Teste:** Ctrl+F5 → Lançamentos → Nova saída → Total/Parc. · 3 parcelas · empréstimo dual.
 
 ### NFC-e — revert produção (2026-06-19)
 
@@ -626,7 +638,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** CP direto + PIN operador APIs + WhatsApp clientes (após pacotão BI v1.41).
+**Acabou de subir em `producao`:** Nova saída (parcelas, calendário, pílulas Total/Parc., grid alinhado) · CP + PIN + WhatsApp (pacotes anteriores).
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
