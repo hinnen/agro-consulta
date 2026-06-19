@@ -20,7 +20,7 @@
 | **Produto** | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP) |
 | **Usuários** | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras |
 | **Stack** | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional |
-| **Branch dia a dia** | `teste` → staging · merge `teste`→`producao` só quando Renan pedir |
+| **Branch dia a dia** | **`teste`** (= staging Render; ver §3) · **`producao`** = loja · merge só quando Renan pedir |
 | **Tela inicial** | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/` |
 | **Regra de ouro** | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP |
 | **UX loja** | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate |
@@ -43,7 +43,7 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa no staging, aprova merge produção. O assistente **commita só em `teste`**; produção só com pedido explícito.
+**Renan (dono/dev):** testa no **`teste`** (ambiente de homologação — mesmo que “staging” no Render), aprova merge **produção**. O assistente **commita só em `teste`**; produção só com pedido explícito.
 
 **Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
 
@@ -87,13 +87,15 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ## 3. Deploy e Git
 
-| Ambiente | Branch | Render |
-|----------|--------|--------|
-| Teste | `teste` | agro-consulta-staging |
-| Loja | `producao` | Sistvale - Produção |
+**Renan — uma frase:** **`teste` = staging** = homologação antes da loja. Branch Git chama `teste`; no Render o serviço chama *agro-consulta-staging*. É **o mesmo lugar**.
+
+| Ambiente (como falar) | Branch Git | Render |
+|------------------------|------------|--------|
+| **Teste / staging** | `teste` | agro-consulta-staging |
+| **Produção / loja** | `producao` | Sistvale - Produção |
 
 - **`main` / `principal` não entram no deploy.**
-- Fluxo: push `teste` → testar staging → PR/merge `teste`→`producao` quando Renan autorizar.
+- Fluxo: push `teste` → testar no **teste** → merge `teste`→`producao` quando Renan autorizar.
 - Após merge: `python manage.py migrate` no ambiente (Render faz no deploy).
 
 ### 3.1 Versão do sistema (automática — opção A)
@@ -377,10 +379,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.30`  
-**Última atualização:** `2026-05-21`  
-**Atualizado por:** assistente Cursor (FAB PDV — não cobrir modais/botões)  
-**Versão app (`VERSION`):** staging `teste` v1.60 · **produção v1.47**
+**Versão:** `1.0.31`  
+**Última atualização:** `2026-06-19`  
+**Atualizado por:** assistente Cursor (deploy produção FAB + Nova saída quitado, Renan pediu)  
+**Versão app (`VERSION`):** **teste** v1.62 · **produção** v1.48 (`f824944`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -412,7 +414,18 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 
 **Interruptor implementado:** mini-botão **FX on / FX off** acima do FAB (persiste no navegador). Desliga efeitos **decorativos** (FAB arco-íris, Validade pulsando, pulso PDV/Orçamento no BI). Mantém animações **funcionais** (loading, scanner, salvando).
 
-### Nova saída → **produção** (2026-06-19, Renan pediu)
+### FAB PDV + Nova saída quitado → **produção** (2026-06-19, Renan pediu)
+
+**Commit:** `f824944` · v1.48 · cherry-pick escopo fechado de `teste`.
+
+| Pacote | Detalhe |
+|--------|---------|
+| **FAB PDV** | `_agro_pdv_fab.html` + include em `_agro_open_external.html` — pulso/arco-íris, FX on/off, some em modal, z-index 90 |
+| **Nova saída** | Quitado **por linha** (modo Parc.); forma opcional; API JSON segura; expandir empréstimo dual (`95474d5`) |
+
+**Loja:** Ctrl+F5 após deploy Render → FAB canto esquerdo; Nova saída → 3 parcelas + empréstimo dual.
+
+### Nova saída → **produção** (2026-06-19, pacote anterior)
 
 **Commit:** `be9558c` · v1.47 · cherry-pick escopo fechado de `teste` (`9ba11e4`…`cd5a6e0`).
 
@@ -429,10 +442,8 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Sintoma | Alerta JS «Resposta inválida do servidor (HTTP 500)» — corpo HTML, não JSON |
 | Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
 | Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
-| Fix `teste` (pendente `producao`) | `_d()` com try/except · try em expandir · limpar `parcelas_*` do base · `data_competencia` nas parcelas · JS mostra trecho do HTML |
-| UX quitado (2026-06-19) | **`teste` `95474d5` v1.60:** modo Parcela = botão Quitado **por linha** na grade (# · Venc · **Quitado** · Valor); chip do vencimento oculto com N&gt;1 · fix HTTP 500 API |
-
-**Próximo:** cherry-pick `views.py` + `mongo_financeiro_util.py` + `lancamento_nova_saida.js` → `producao` quando Renan pedir.
+| Fix | **Em produção** `f824944` v1.48 — `_d()` try/except · try expandir · quitado linha a linha · JS trecho HTML |
+| UX quitado Nova saída | **Produção** v1.48: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
 ### Ambiente Renan — Chrome (não Electron)
 
