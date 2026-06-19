@@ -1,27 +1,42 @@
-{# PIN obrigatório a cada entrada nas telas de Lançamentos (sem modo descanso por idle). #}
+{# PIN na 1ª entrada no módulo Lançamentos (sessão); depois só no modo descanso (idle). #}
 {% include "produtos/_screensaver_pin.html" with lancamentos_pin_entrada=True %}
 <script>
 (function () {
+  var LS_DESBLOQ = 'gm_lancamentos_desbloqueado';
+
   function tituloLancamentosPin() {
     var title = document.getElementById('sspin-title');
     var sub = document.getElementById('sspin-sub');
     if (title) title.textContent = 'Lançamentos';
-    if (sub) sub.textContent = 'Digite seu PIN para acessar esta tela';
+    if (sub) sub.textContent = 'Digite seu PIN para acessar Lançamentos';
   }
 
-  function forcarPinEntradaLancamentos() {
+  function lancamentosJaDesbloqueado() {
+    try {
+      return sessionStorage.getItem(LS_DESBLOQ) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function pedirPinEntradaModulo() {
     tituloLancamentosPin();
-    if (typeof window.gmSspinSairEAbrirPin === 'function') {
-      window.gmSspinSairEAbrirPin();
+    if (typeof window.gmSspinAbrirEntrada === 'function') {
+      window.gmSspinAbrirEntrada();
       return;
     }
-    setTimeout(forcarPinEntradaLancamentos, 40);
+    setTimeout(pedirPinEntradaModulo, 40);
+  }
+
+  function initLancamentosPinEntrada() {
+    if (lancamentosJaDesbloqueado()) return;
+    pedirPinEntradaModulo();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', forcarPinEntradaLancamentos);
+    document.addEventListener('DOMContentLoaded', initLancamentosPinEntrada);
   } else {
-    forcarPinEntradaLancamentos();
+    initLancamentosPinEntrada();
   }
 })();
 </script>

@@ -1,5 +1,5 @@
 {# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
-<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-md text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="{% if lancamentos_pin_entrada %}0{% else %}3{% endif %}"{% if lancamentos_pin_entrada %} data-sspin-entry-only="1"{% endif %} aria-hidden="true">
+<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-md text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
@@ -54,6 +54,7 @@
   var DEFAULT_PIN = '1234';
   var LS_PINS = 'gm_sspin_pins';
   var LS_OPERADOR = 'gm_sspin_operador';
+  var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
   var root = document.getElementById('sspin-root');
   if (!root) return;
 
@@ -64,6 +65,7 @@
     } catch (eReparent) {}
   }
 
+  var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
   if (entryOnly) {
@@ -72,6 +74,10 @@
     idleMin = 3;
   }
   var IDLE_MS = idleMin > 0 ? Math.round(idleMin * 60 * 1000) : 0;
+  var idleHintEl = root.querySelector('p.mt-4');
+  if (root.getAttribute('data-sspin-hide-idle-hint') === '1' && idleHintEl) {
+    idleHintEl.classList.add('hidden');
+  }
 
   var input = document.getElementById('sspin-input');
   var msg = document.getElementById('sspin-msg');
@@ -278,6 +284,11 @@
     root.setAttribute('aria-hidden', 'true');
     showPinPanel();
     document.body.classList.remove('sspin-locked');
+    if (lancamentosMode) {
+      try {
+        sessionStorage.setItem(LS_LANC_DESBLOQ, '1');
+      } catch (eLanc) {}
+    }
     bumpIdle();
   }
 
@@ -423,6 +434,11 @@
   document.head.appendChild(style);
 
   function initSspin() {
+    if (!lancamentosMode) {
+      try {
+        sessionStorage.removeItem(LS_LANC_DESBLOQ);
+      } catch (eClr) {}
+    }
     refreshOperadorChip();
     var n = '';
     try {
@@ -431,7 +447,13 @@
       n = '';
     }
     if (n) syncOperadorServidor(n);
-    bumpIdle();
+    if (lancamentosMode) {
+      try {
+        if (sessionStorage.getItem(LS_LANC_DESBLOQ) === '1') bumpIdle();
+      } catch (eLancIdle) {}
+    } else {
+      bumpIdle();
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSspin);
@@ -442,6 +464,11 @@
   /** PDV/outras telas: limpa operador local e abre a tela de PIN imediatamente (troca de turno). */
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
+    openLock();
+  };
+
+  /** Abre PIN sem limpar operador (entrada Lançamentos / descanso). */
+  window.gmSspinAbrirEntrada = function () {
     openLock();
   };
 

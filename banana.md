@@ -297,6 +297,8 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
+- **PIN Lançamentos:** 1× por sessão ao entrar no módulo (`sessionStorage`); navegação interna (CP, clássico, calendário…) sem novo PIN; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
+
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
 ---
