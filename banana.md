@@ -237,6 +237,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
+- **Abertura rápida (2026-06-19):** prefetch nos links do BI + F7; lista do cache na hora com selo **Sincronizando…** até a API Mongo responder.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -416,6 +417,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. Editar/excluir no clássico: `?retorno=` mantém filtros ao voltar.
 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
+
+**Abertura rápida:** prefetch BI/F7 (`data-prefetch`, `data-prefetch-lancamentos`); cache instantâneo + refresh em background; selo **Sincronizando…** no resumo da lista.
 
 **Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
 

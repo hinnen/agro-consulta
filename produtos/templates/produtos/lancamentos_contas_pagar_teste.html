@@ -48,6 +48,14 @@
   .sv-toolbar-grow { flex: 1 1 280px; min-width: min(100%, 240px); }
   .sv-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .sv-sub { font-size: 0.88rem; color: var(--cor-texto-secundario); margin: 0; }
+  .sv-meta-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .sv-sync-badge {
+    display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; line-height: 1.2;
+  }
+  .sv-sync-badge[hidden] { display: none !important; }
+  .sv-list-refreshing { opacity: 0.94; pointer-events: none; }
   .sv-action-bar { display: flex; gap: 10px; margin: 0; flex-wrap: wrap; align-items: center; }
   .sv-search-wrapper { position: relative; flex-grow: 1; max-width: 600px; min-width: min(100%, 280px); }
   .sv-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--cor-texto-secundario); pointer-events: none; }
@@ -426,7 +434,10 @@
   </div>
 
   <div class="sv-meta-row">
-    <p class="sv-sub" id="sv-resumo-lista">Carregando…</p>
+    <p class="sv-sub sv-meta-resumo">
+      <span id="sv-resumo-lista">Carregando…</span>
+      <span id="sv-sync-badge" class="sv-sync-badge" hidden aria-live="polite">Sincronizando…</span>
+    </p>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
       <div class="sv-totais" id="sv-totais" hidden></div>
       <div class="sv-cols-wrap">
@@ -592,6 +603,7 @@
 
   const elCorpo = document.getElementById('sv-lista-corpo');
   const elResumo = document.getElementById('sv-resumo-lista');
+  const elSyncBadge = document.getElementById('sv-sync-badge');
   const elTotais = document.getElementById('sv-totais');
   const elPager = document.getElementById('sv-pager');
   const elPagerInfo = document.getElementById('sv-pager-info');
@@ -1356,6 +1368,29 @@
     return p.toString();
   }
 
+  function textoExtraVencimento() {
+    const de = document.getElementById('sv-venc-de').value;
+    const ate = document.getElementById('sv-venc-ate').value;
+    if (!de && !ate) return '';
+    return ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
+  }
+
+  function atualizarResumoLista(extra) {
+    const st = document.getElementById('sv-status');
+    const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+    elResumo.textContent = `${total} título(s) · ${stTxt}${extra != null ? extra : textoExtraVencimento()}`;
+  }
+
+  function setSyncBadge(on, msg) {
+    if (!elSyncBadge) return;
+    if (on) {
+      elSyncBadge.textContent = msg || 'Sincronizando…';
+      elSyncBadge.hidden = false;
+    } else {
+      elSyncBadge.hidden = true;
+    }
+  }
+
   function salvarListaCache(data) {
     try {
       sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: paramsCacheKey(), data }));
@@ -1374,9 +1409,7 @@
       rowsAcum.push(...data.lancamentos);
       total = Number(data.total) || rowsAcum.length;
       if (data.totais) atualizarTotais(data.totais);
-      const st = document.getElementById('sv-status');
-      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
-      elResumo.textContent = `${total} título(s) · ${stTxt}`;
+      atualizarResumoLista();
       renderLista(false, rowsAcum);
       return true;
     } catch (_) {
@@ -1722,15 +1755,21 @@
     opts = opts || {};
     if (carregando) return;
     carregando = true;
+    const stale = !!opts.staleRefresh;
+    const subtle = stale || !!opts.silent;
+    let syncErrKept = false;
     if (!acrescentar) {
-      rowsAcum.length = 0;
+      if (!stale) rowsAcum.length = 0;
       if (!opts.keepSelecao) limparSelecao();
-      if (opts.silent && elCorpo.querySelector('.sv-list-item')) {
+      if (subtle && elCorpo.querySelector('.sv-list-item')) {
         elCorpo.classList.add('sv-list-refreshing');
-      } else if (!tentarHidratarListaCache()) {
+        setSyncBadge(true);
+      } else if (!stale && !tentarHidratarListaCache()) {
         elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      } else if (stale) {
+        setSyncBadge(true);
       }
-      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+      if (!subtle && window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
     }
     try {
       const r = await fetch(API_LISTA + '?' + montarParams(!acrescentar).toString(), {
@@ -1742,6 +1781,7 @@
       if (data.erro_deep_link) {
         elCorpo.innerHTML = `<div class="sv-erro">${esc(data.erro_deep_link)}</div>`;
         elResumo.textContent = data.erro_deep_link;
+        setSyncBadge(false);
         return;
       }
       total = Number(data.total) || 0;
@@ -1752,24 +1792,24 @@
       }
       rowsAcum.push(...linhas);
       if (data.totais) atualizarTotais(data.totais);
-      const st = document.getElementById('sv-status');
-      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
-      const de = document.getElementById('sv-venc-de').value;
-      const ate = document.getElementById('sv-venc-ate').value;
-      let extra = '';
-      if (de || ate) {
-        extra = ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
-      }
-      elResumo.textContent = `${total} título(s) · ${stTxt}${extra}`;
+      atualizarResumoLista();
       renderLista(acrescentar, linhas);
       sincronizarUrlComFiltrosAtuais();
     } catch (err) {
-      elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
-      elResumo.textContent = 'Erro ao carregar';
+      if (stale && rowsAcum.length) {
+        syncErrKept = true;
+        setSyncBadge(true, 'Falha ao sincronizar');
+        setTimeout(() => setSyncBadge(false), 3200);
+      } else {
+        elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
+        elResumo.textContent = 'Erro ao carregar';
+        setSyncBadge(false);
+      }
     } finally {
       carregando = false;
       elCorpo.classList.remove('sv-list-refreshing');
-      if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+      if (!subtle && window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+      if (!syncErrKept) setSyncBadge(false);
     }
   }
 
@@ -2029,7 +2069,8 @@
     if (!urlTemFiltrosExplicitos()) {
       aplicarPrefiltro('hoje', false);
     }
-    carregar(false);
+    const fromCache = tentarHidratarListaCache();
+    carregar(false, fromCache ? { staleRefresh: true } : {});
   }
 
   window.agroNovaSaidaOnSuccess = function (info) {

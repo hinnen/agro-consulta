@@ -52,5 +52,19 @@
       }
     } catch (_) {}
   }, true);
+
+  function warmPrefetchPath(href) {
+    if (!href || typeof href !== 'string') return;
+    if (href.charAt(0) === '/') prefetchUrl(href);
+  }
+  window.agroPrefetchPath = warmPrefetchPath;
+
+  document.addEventListener('mouseenter', function (e) {
+    var el = e.target && e.target.closest && e.target.closest('[data-prefetch-lancamentos]');
+    if (!el) return;
+    var raw = el.getAttribute('data-prefetch-lancamentos');
+    if (!raw || raw === '1') return;
+    warmPrefetchPath(raw.charAt(0) === '/' ? raw : '/' + raw);
+  }, true);
 })();
 </script>
