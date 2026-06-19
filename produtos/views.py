@@ -7669,7 +7669,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "total_pagar_atraso": total_pagar_atraso,
         "total_receber_hoje": total_receber_hoje,
         "total_pagar_hoje": total_pagar_hoje,
-        "lancamentos_hub_url": reverse("lancamentos_financeiros"),
+        "lancamentos_hub_url": reverse("lancamentos_contas_pagar"),
         "lancamentos_receber_url": reverse("lancamentos_contas_receber"),
         "lancamentos_pagar_url": reverse("lancamentos_contas_pagar"),
         "entregas_painel_url": reverse("entregas_painel"),
@@ -9829,15 +9829,18 @@ def _lancamentos_operador_label(
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
-    """Entrada do módulo: escolha entre Contas a pagar e Contas a receber."""
-    return render(
-        request,
-        "produtos/lancamentos_hub.html",
-        {
-            "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
-            "lancamentos_pre_corte_admin": bool(getattr(request.user, "is_superuser", False)),
-        },
-    )
+    """Entrada do módulo — abre direto em Contas a pagar (layout padrão)."""
+    ret = (request.GET.get("retorno") or "").strip()
+    if ret.startswith("/lancamentos/") and ret not in ("/lancamentos/", "/lancamentos"):
+        url = ret
+    else:
+        url = reverse("lancamentos_contas_pagar")
+    qd = request.GET.copy()
+    qd.pop("retorno", None)
+    qs = qd.urlencode()
+    if qs:
+        url = f"{url}?{qs}" if "?" not in url else f"{url}&{qs}"
+    return redirect(url)
 
 
 @ensure_csrf_cookie

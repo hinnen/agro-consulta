@@ -231,7 +231,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.10 Lançamentos / financeiro
 
-- `/lancamentos/` — hub · **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
+- `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
@@ -297,7 +297,7 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
-- **PIN Lançamentos:** 1× por sessão ao entrar no módulo (`sessionStorage`); navegação interna (CP, clássico, calendário…) sem novo PIN; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
+- **PIN Lançamentos:** 1× por sessão ao entrar em qualquer tela `/lancamentos/*` (sem hub modal); navegação interna sem repetir; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
