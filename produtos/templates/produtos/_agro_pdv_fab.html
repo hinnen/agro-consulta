@@ -53,12 +53,18 @@
     position: fixed;
     left: max(0.85rem, env(safe-area-inset-left, 0px));
     bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
-    z-index: 9000;
+    /* Abaixo de modais (z 200+) — evita cobrir Cancelar / dialogs */
+    z-index: 90;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
     pointer-events: none;
+  }
+  #agro-pdv-fab-wrap.agro-pdv-fab-wrap--right {
+    left: auto;
+    right: max(0.85rem, env(safe-area-inset-right, 0px));
+    align-items: flex-end;
   }
   #agro-pdv-fab-wrap.is-hidden {
     display: none !important;
@@ -298,11 +304,50 @@
     return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
   }
 
+  function elVisible(el) {
+    if (!el || el === wrap || wrap.contains(el)) return false;
+    if (el.classList && el.classList.contains("hidden")) return false;
+    if (el.getAttribute && el.getAttribute("aria-hidden") === "true") return false;
+    var st = window.getComputedStyle(el);
+    if (st.display === "none" || st.visibility === "hidden") return false;
+    var op = parseFloat(st.opacity || "1");
+    if (Number.isFinite(op) && op < 0.05) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 12 && r.height > 12;
+  }
+
+  function hasOpenOverlay() {
+    var i;
+    var dialogs = document.querySelectorAll('[role="dialog"], [aria-modal="true"], .sv-modal');
+    for (i = 0; i < dialogs.length; i++) {
+      var d = dialogs[i];
+      if (d.classList && d.classList.contains("sv-modal") && !d.classList.contains("show")) continue;
+      if (elVisible(d)) return true;
+    }
+    var known = document.querySelectorAll(
+      "#agro-nova-saida-overlay:not(.hidden), .agro-ns-overlay:not(.hidden)"
+    );
+    for (i = 0; i < known.length; i++) {
+      if (elVisible(known[i])) return true;
+    }
+    return false;
+  }
+
   function shouldHide() {
     if (pathIsPdv()) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;
     if (document.documentElement && document.documentElement.classList.contains("modal-open")) return true;
+    if (hasOpenOverlay()) return true;
     return false;
+  }
+
+  var refreshTimer = null;
+  function scheduleRefresh() {
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(function () {
+      refreshTimer = null;
+      refreshVisibility();
+    }, 60);
   }
 
   function refreshVisibility() {
@@ -316,16 +361,53 @@
     return Number.isFinite(n) && n > 0 ? n : 14;
   }
 
+  function rectsOverlap(a, b, pad) {
+    pad = pad || 10;
+    return !(a.right + pad < b.left || a.left - pad > b.right || a.bottom + pad < b.top || a.top - pad > b.bottom);
+  }
+
+  function resetFabSide() {
+    wrap.style.left = "";
+    wrap.style.right = "";
+    wrap.classList.remove("agro-pdv-fab-wrap--right");
+  }
+
+  function fabRect() {
+    return wrap.getBoundingClientRect();
+  }
+
+  function collidesWithClickables(pad) {
+    var vh = window.innerHeight;
+    var vw = window.innerWidth;
+    var zoneTop = vh * 0.52;
+    var zoneRight = vw * 0.58;
+    var rect = fabRect();
+    var nodes = document.querySelectorAll(
+      "button, a[href], input[type='submit'], input[type='button'], [role='button']"
+    );
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (wrap.contains(el)) continue;
+      if (!elVisible(el)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.bottom < zoneTop || r.top > vh - 2) continue;
+      if (r.left > zoneRight) continue;
+      if (rectsOverlap(rect, r, pad)) return true;
+    }
+    return false;
+  }
+
   function adjustPosition() {
     if (wrap.classList.contains("is-hidden")) return;
+    resetFabSide();
     var base = baseBottomPx();
     wrap.style.bottom = base + "px";
-    var rect = wrap.getBoundingClientRect();
+    var rect = fabRect();
     var lift = 0;
     var margin = 10;
     var scanLeft = rect.right + 24;
     var vh = window.innerHeight;
-    var nodes = document.querySelectorAll("footer, nav, aside, [role='dialog'], [aria-modal='true'], [class*='fixed'], [class*='sticky']");
+    var nodes = document.querySelectorAll("footer, nav, aside, [class*='fixed'], [class*='sticky']");
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       if (el === wrap || wrap.contains(el) || el.contains(wrap)) continue;
@@ -341,6 +423,21 @@
       if (overlap > 0) lift = Math.max(lift, overlap + margin);
     }
     wrap.style.bottom = Math.max(base, base + lift) + "px";
+
+    if (collidesWithClickables(12)) {
+      var extraLift = 0;
+      var tries = 0;
+      while (collidesWithClickables(12) && tries < 8) {
+        extraLift += 52;
+        wrap.style.bottom = Math.max(base, base + lift + extraLift) + "px";
+        tries++;
+      }
+      if (collidesWithClickables(12)) {
+        resetFabSide();
+        wrap.style.bottom = Math.max(base, base + lift) + "px";
+        wrap.classList.add("agro-pdv-fab-wrap--right");
+      }
+    }
   }
 
   document.addEventListener("keydown", function (e) {
@@ -363,11 +460,17 @@
   window.addEventListener("resize", adjustPosition);
   window.addEventListener("scroll", adjustPosition, true);
   if (window.MutationObserver && document.body) {
-    var mo = new MutationObserver(function () {
-      refreshVisibility();
+    var mo = new MutationObserver(scheduleRefresh);
+    mo.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class", "aria-hidden", "style"],
+      subtree: true,
     });
-    mo.observe(document.body, { attributes: true, attributeFilter: ["class"], subtree: false });
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"], subtree: false });
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+      subtree: false,
+    });
   }
   setTimeout(adjustPosition, 120);
   setTimeout(adjustPosition, 800);

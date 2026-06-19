@@ -137,7 +137,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 **Regras UX já decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
-- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `_agro_open_external.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante. **Visual (2026-06):** borda arco-íris + pulso + piscar (só CSS); para no hover; `prefers-reduced-motion` desliga animação.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `_agro_open_external.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante. **Visual (2026-06):** borda arco-íris + pulso + piscar (só CSS); para no hover; `prefers-reduced-motion` desliga animação. **Sobreposição (2026-06):** z-index **90** (abaixo de modais z 200+); **some** com modal/dialog aberto (Nova saída, `.sv-modal.show`, `role=dialog`); se encostar em botão no canto, sobe ou vai pro canto **direito**.
 - **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
 - Entrega: fluxo inline na etapa (sem modais empilhados).
@@ -359,12 +359,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
-2. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
-3. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
-3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
-4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
-5. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
+1. **FAB PDV — não cobrir modais/botões** — 2026-05-21: z-index 90, hide overlay/dialog, reposicionar canto direito (`_agro_pdv_fab.html`).
+2. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
+3. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
+4. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
+5. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
+6. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
+7. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -376,10 +377,34 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.29`  
-**Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída → `producao` be9558c)  
+**Versão:** `1.0.30`  
+**Última atualização:** `2026-05-21`  
+**Atualizado por:** assistente Cursor (FAB PDV — não cobrir modais/botões)  
 **Versão app (`VERSION`):** staging `teste` v1.60 · **produção v1.47**
+
+### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
+
+**Sintoma:** botão flutuante **PDV** ficava **na frente** de outros elementos conforme a tela — ex. **Cancelar** e «Preencher pela frase» no modal **Nova saída** (Lançamentos).
+
+**Causa:**
+
+| Item | Detalhe |
+|------|---------|
+| z-index | FAB em **9000**; Nova saída `#agro-nova-saida-overlay` em **z 250** → FAB ganhava |
+| Ocultar | `shouldHide()` só via `body.modal-open`; Nova saída usa `.hidden` + `aria-hidden` |
+
+**Fix** (`produtos/templates/produtos/_agro_pdv_fab.html`):
+
+| Ação | Comportamento |
+|------|----------------|
+| z-index **90** | Acima do conteúdo; **abaixo** de modais (200+) |
+| `hasOpenOverlay()` | Some com `[role=dialog]`, `[aria-modal]`, `.sv-modal.show`, `#agro-nova-saida-overlay:not(.hidden)` |
+| Colisão canto inf. esquerdo | Sobe sobre barras fixas; se encostar em **button/a**, sobe mais ou vai pro canto **direito** (`.agro-pdv-fab-wrap--right`) |
+| Observer | `MutationObserver` debounced (class / `aria-hidden`) na árvore do `body` |
+
+**F1** continua global quando o FAB está oculto. **FX on/off** inalterado.
+
+**Teste Chrome:** Ctrl+F5 → Lançamentos → **Nova saída** → FAB não aparece; fechar → volta. Redimensionar janela estreita → não cobrir botões do rodapé.
 
 ### Perf — animações do botão PDV flutuante (2026-06-19, dúvida Renan)
 
@@ -498,6 +523,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 - [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
 - [x] **Ambiente Renan:** Chrome (MPA); Electron testado e descartado — assistente não pergunta
 - [x] **Botão flutuante PDV** — canto inferior esquerdo, `/pdv/`, F1 global (2026-06-19)
+- [x] **FAB PDV — sobreposição** — some em modal; z-index 90; colisão → sobe ou canto direito (2026-05-21)
 
 ### Lançamentos — Contas a pagar layout novo (2026-06-19)
 
