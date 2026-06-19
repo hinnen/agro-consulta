@@ -366,10 +366,30 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.13`  
+**Versão:** `1.0.15`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Lançamentos CP layout + perf + vista → `teste`)  
-**Versão app (`VERSION`):** **produção v1.33** (Lançamentos CP layout + PIN + filtro hoje) · staging `teste` alinhado
+**Atualizado por:** assistente Cursor (cherry-pick cadastro + etiquetas → `producao`)  
+**Versão app (`VERSION`):** **produção v1.38** (`2a1dc99`) · staging `teste`
+
+### Validação Renan — produção (2026-06-19)
+
+| Módulo | Resultado | Nota |
+|--------|-----------|------|
+| **PDV wizard** `/pdv/checkout/` | **OK** | Cherry-pick GM/hífen (`0479618`+) — Renan confirmou v1.33.1 |
+| **Cadastro** `/produtos/cadastro-erp/` | **Aguarda reteste** | Era quebrado (GM4579); cherry-pick `d5f792e` + `2a1dc99` → produção |
+| **Etiquetas** `/produtos/etiquetas/` + 🖨️ gestão | **Aguarda reteste** | Era só preço cortado 4×4; cherry-pick `47b47c2` + `0bcdb4e` → produção |
+| **PDV legado** `/consulta/` | (não testado nesta rodada) | Patch antigo `59bdedc` v1.02 |
+
+**Cherry-pick escopo fechado em `producao` (2026-06-19):**
+
+| Commit `producao` | Origem `teste` | O quê |
+|-------------------|----------------|--------|
+| `47b47c2` | `5bcc05d` | Etiquetas 7 dígitos, EAN-13 layout/DV |
+| `0bcdb4e` | `5c6590a` | Faixa 230… CODE128 (não EAN13) |
+| `d5f792e` | `c234822` | Busca GM/barras na lista cadastro |
+| `2a1dc99` | `4d78b33` | Prefixo GM1541, Enter força busca |
+
+**Teste pós-deploy Render:** Ctrl+F5 → cadastro `GM4579` acha sal mineral · etiqueta 4×4 mostra barras + nome + preço (ELGIN L42PRO).
 
 ### O que este documento já cobre (até aqui)
 
@@ -451,7 +471,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Onde | Sintoma | Status |
 |------|---------|--------|
-| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Staging `teste`** — aguarda teste Renan |
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Produção OK** — Renan 2026-06-19 (`0479618`+) |
 | **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
 **Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
@@ -474,7 +494,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **PDV legado:** `consulta_produtos.js` + `_js_busca…` (produção v1.02).
 
-**Produção wizard:** ainda **sem** este fix — cherry-pick só quando Renan pedir após OK no staging.
+**Produção wizard:** **OK** (Renan 2026-06-19). Ctrl+F5 se terminal cachear JS antigo.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -515,13 +535,17 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Correção:** `produtos_etiquetas_core.js` — valida/corrige DV, fallback CODE128, CSS 40×40 mm; modal cadastro avisa DV corrigido (âmbar).
 
-**Staging (`teste`):** `5bcc05d` v1.19 · `5c6590a` v1.20 (230… CODE128) · `c234822` v1.22 (busca cadastro). **Ctrl+F5** cadastro + PDV após deploy Render.
+**Staging (`teste`):** `5bcc05d` v1.19 · `5c6590a` v1.20 — **OK em teste**.
 
-### Cadastro produtos — busca GM/barras — feito 2026-06-18
+**Produção (2026-06-19):** cherry-pick `47b47c2` + `0bcdb4e` — **aguarda deploy + reteste Renan** (antes: preview 4×4 só preço cortado).
 
-**Sintoma:** lista cadastro não achava por código GM nem barras.
+### Cadastro produtos — busca GM/barras
 
-**Correção (`c234822` + `4d78b33`):** modo **normal**, `api_produtos_cadastro` + fallback PDV; prefixo GM (`GM1541` → `GM1541-5S`); Enter força busca; `views.py` — barras **4+** dígitos no motor.
+**Sintoma:** lista cadastro não achava por código GM nem barras (`GM4579` → lista não filtra).
+
+**Correção (`teste`):** `c234822` + `4d78b33` — modo **normal**, `api_produtos_cadastro`, prefixo GM, Enter força busca; `views.py` — barras **4+** dígitos.
+
+**Produção (2026-06-19):** cherry-pick `d5f792e` + `2a1dc99` — **aguarda deploy + reteste Renan**.
 
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
@@ -545,7 +569,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** Lançamentos CP (layout + perf + vista + PIN entrada + filtro hoje) · v1.33.
+**Acabou de subir em `producao`:** cadastro busca GM/barras + etiquetas EAN/CODE128/230… · v1.38 (`2a1dc99`). Antes: Lançamentos CP v1.33.
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
@@ -566,8 +590,10 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
+- [x] **PDV wizard carrinho GM** — produção OK (Renan 2026-06-19)
+- [x] **Cadastro busca GM/barras** — cherry-pick `d5f792e` + `2a1dc99` → produção v1.38 (reteste Renan)
+- [x] **Etiquetas 4×4 layout/barras** — cherry-pick `47b47c2` + `0bcdb4e` → produção v1.38 (reteste Renan)
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
-- [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
@@ -589,6 +615,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.13
+### Fim do checkpoint v1.0.15
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
