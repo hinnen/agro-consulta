@@ -13079,7 +13079,8 @@ def api_lancamentos_congelar_pre_corte(request):
             "status": st,
             "mensagem": (
                 "Checkpoint feito. Nenhum valor foi apagado. "
-                "Guarde o Excel no seu PC antes de pedir o corte no ERP."
+                "Envio Agro→ERP (API) bloqueado automaticamente. "
+                "Guarde o backup ZIP no PC como cópia de segurança."
             ),
         }
     )

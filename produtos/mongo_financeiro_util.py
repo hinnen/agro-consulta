@@ -6752,6 +6752,35 @@ def atualizar_lancamento_mongo_agro(
     return {"ok": True, "id": str(oid)}
 
 
+def financeiro_checkpoint_ativo(db=None) -> bool:
+    """Checkpoint feito (Mongo ou env) — bloqueia envio Agro→ERP via API."""
+    from produtos.agro_fonte_config import agro_financeiro_mongo_congelado
+
+    if agro_financeiro_mongo_congelado():
+        return True
+    if db is None:
+        try:
+            from produtos.views import obter_conexao_mongo
+
+            _, db = obter_conexao_mongo()
+        except Exception:
+            return False
+    if db is None:
+        return False
+    try:
+        ctrl = db[COL_AGRO_FINANCEIRO_CONTROLE].find_one(
+            {"_id": "financeiro_agro"},
+            {"congelado_em": 1, "erp_sync_agro_desligado": 1},
+        )
+        return bool(
+            ctrl
+            and (ctrl.get("congelado_em") or ctrl.get("erp_sync_agro_desligado"))
+        )
+    except Exception:
+        logger.debug("financeiro_checkpoint_ativo", exc_info=True)
+        return False
+
+
 def congelar_lancamentos_financeiro_agro(
     db,
     *,
@@ -6818,8 +6847,12 @@ def financeiro_congelamento_status(db) -> dict[str, Any]:
     marcados = int(col.count_documents({AGRO_FONTE_VERDADE: True}))
     ctrl = db[COL_AGRO_FINANCEIRO_CONTROLE].find_one({"_id": "financeiro_agro"}) or {}
     congelado_em = ctrl.get("congelado_em")
-    from produtos.agro_fonte_config import agro_financeiro_mongo_congelado
+    from produtos.agro_fonte_config import (
+        agro_financeiro_erp_sync_env_ligado,
+        agro_financeiro_mongo_congelado,
+    )
 
+    checkpoint = financeiro_checkpoint_ativo(db)
     return {
         "ok": True,
         "total_titulos_estimado": total,
@@ -6828,4 +6861,7 @@ def financeiro_congelamento_status(db) -> dict[str, Any]:
         "congelado_em": _serializar_dt(congelado_em) if congelado_em else None,
         "usuario_congelamento": (ctrl.get("usuario") or "")[:200],
         "env_mongo_congelado": agro_financeiro_mongo_congelado(),
+        "checkpoint_ativo": checkpoint,
+        "erp_sync_env": agro_financeiro_erp_sync_env_ligado(),
+        "erp_sync_agro_envia": agro_financeiro_erp_sync_env_ligado() and not checkpoint,
     }

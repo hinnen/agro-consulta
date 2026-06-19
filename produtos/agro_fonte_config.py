@@ -43,9 +43,23 @@ def agro_financeiro_usa_postgres() -> bool:
     return agro_fonte_financeiro() == _FONTE_FINANCEIRO_AGRO
 
 
-def agro_financeiro_erp_sync_habilitado() -> bool:
-    """Envio Agro → ERP (lançamento/baixa via API). Desligado = só Mongo."""
+def agro_financeiro_erp_sync_env_ligado() -> bool:
+    """Variável Render/.env — intenção de enviar lançamento/baixa ao ERP."""
     return bool(getattr(settings, "AGRO_FINANCEIRO_ERP_SYNC_HABILITADO", False))
+
+
+def agro_financeiro_erp_sync_habilitado() -> bool:
+    """Envio Agro → ERP (API). False após checkpoint ou se env desligado."""
+    if not agro_financeiro_erp_sync_env_ligado():
+        return False
+    try:
+        from produtos.mongo_financeiro_util import financeiro_checkpoint_ativo
+
+        if financeiro_checkpoint_ativo():
+            return False
+    except Exception:
+        pass
+    return True
 
 
 def agro_cadastro_produto_erp_sync_habilitado() -> bool:
@@ -72,6 +86,7 @@ def agro_fonte_status_dict() -> dict:
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
+        "financeiro_erp_sync_env": agro_financeiro_erp_sync_env_ligado(),
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
     }
