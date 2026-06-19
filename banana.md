@@ -293,6 +293,8 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
+**Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
+
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
 ---
@@ -520,7 +522,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
-- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.09** (`dfa9e1f`)
+- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11** (`bd91f00`; fix template PIN)
 - [ ] Renan na loja: avisar equipe · baixar backup ZIP · checkpoint `CONGELAR` · ERP parar sync
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
