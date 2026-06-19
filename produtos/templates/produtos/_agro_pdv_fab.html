@@ -8,13 +8,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    min-height: 3rem;
-    padding: 0.55rem 0.95rem 0.55rem 0.75rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 1.15rem 0.65rem 0.85rem;
     border-radius: 9999px;
     border: 2px solid rgba(0, 191, 255, 0.55);
     background: linear-gradient(165deg, #e0f7ff 0%, #ffffff 55%);
     color: #0c4a6e;
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -39,24 +39,24 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.65rem;
-    height: 1.65rem;
-    border-radius: 0.55rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
     background: linear-gradient(135deg, #00bfff, #0891b2);
     color: #fff;
     flex-shrink: 0;
   }
   #agro-pdv-fab__icon svg {
-    width: 1rem;
-    height: 1rem;
+    width: 1.2rem;
+    height: 1.2rem;
     stroke-width: 2.5;
   }
   #agro-pdv-fab__kbd {
     pointer-events: none;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.65rem;
+    font-size: 0.72rem;
     font-weight: 800;
-    padding: 0.15rem 0.35rem;
+    padding: 0.2rem 0.42rem;
     border-radius: 0.35rem;
     border: 1px solid #bae6fd;
     background: #f0f9ff;
@@ -65,9 +65,9 @@
   }
   @media (max-width: 480px) {
     #agro-pdv-fab {
-      min-height: 2.75rem;
-      padding: 0.45rem 0.75rem 0.45rem 0.6rem;
-      font-size: 0.75rem;
+      min-height: 3.15rem;
+      padding: 0.55rem 0.9rem 0.55rem 0.7rem;
+      font-size: 0.8125rem;
     }
   }
 </style>
@@ -80,6 +80,18 @@
 </a>
 <script>
 (function () {
+  if (window.__agroPdvFabInit) return;
+  window.__agroPdvFabInit = true;
+
+  function mountFabInBody() {
+    var fab = document.getElementById("agro-pdv-fab");
+    if (fab && document.body && fab.parentNode !== document.body) {
+      document.body.appendChild(fab);
+    }
+  }
+  if (document.body) mountFabInBody();
+  else document.addEventListener("DOMContentLoaded", mountFabInBody, { once: true });
+
   var fab = document.getElementById("agro-pdv-fab");
   if (!fab) return;
 
