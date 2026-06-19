@@ -537,7 +537,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `teste`:** Lançamentos CP (layout padrão + perf + vista) + `banana.md`.
+**Acabou de subir em `teste`:** Lançamentos CP — código + layout padrão (`/lancamentos/contas-pagar/`), perf API (`skip_totais`), vista preservada após baixa/NF/Nova saída.
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 

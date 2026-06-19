@@ -157,6 +157,11 @@ urlpatterns = [
         name='lancamentos_contas_pagar',
     ),
     path(
+        'lancamentos/contas-pagar/classico/',
+        views.lancamentos_contas_pagar_classico_view,
+        name='lancamentos_contas_pagar_classico',
+    ),
+    path(
         'lancamentos/contas-pagar/teste/',
         views.lancamentos_contas_pagar_teste_view,
         name='lancamentos_contas_pagar_teste',

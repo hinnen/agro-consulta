@@ -83,6 +83,48 @@ AGRO_FONTE_VERDADE = "AgroFonteVerdade"
 AGRO_CONGELADO_EM = "AgroCongeladoEm"
 COL_AGRO_FINANCEIRO_CONTROLE = "AgroFinanceiroControle"
 
+# Projeção antes do dedup na lista — reduz RAM/CPU no aggregate (campos usados em dedup + ``lancamento_para_api``).
+_LANCAMENTOS_LISTA_MONGO_PROJECT: dict[str, int] = {
+    "_id": 1,
+    "Id": 1,
+    "LancamentoID": 1,
+    "Despesa": 1,
+    "Descricao": 1,
+    "Cliente": 1,
+    "ClienteID": 1,
+    "NumeroDocumento": 1,
+    "NumeroParcela": 1,
+    "PlanoDeConta": 1,
+    "PlanoDeContaID": 1,
+    "LancamentoGrupo": 1,
+    "FormaPagamento": 1,
+    "FormaPagamentoID": 1,
+    "Banco": 1,
+    "BancoID": 1,
+    "CentroDeCusto": 1,
+    "Empresa": 1,
+    "Observacoes": 1,
+    "Saida": 1,
+    "ValorPago": 1,
+    "Entrada": 1,
+    "Recebido": 1,
+    "Pago": 1,
+    "DataVencimento": 1,
+    "DataCompetencia": 1,
+    "DataFluxo": 1,
+    "DataPagamento": 1,
+    "ModificadoPor": 1,
+    "CriadoPor": 1,
+    "LastUpdate": 1,
+    "DataModificacao": 1,
+    AGRO_RECORRENTE: 1,
+    AGRO_RECORRENTE_INTERVALO_MESES: 1,
+    AGRO_RECORRENTE_SEMPRE: 1,
+    AGRO_BOLETO_CODIGO_BARRAS: 1,
+}
+
+_MONGO_AGG_LANCAMENTOS_LISTA_OPTS: dict[str, Any] = {"allowDiskUse": True, "maxTimeMS": 120_000}
+
 
 def normalizar_boleto_codigo_barras_mongo(raw: Any) -> str:
     """Apenas dígitos; até 54 posições (linha digitável / código FEBRABAN)."""
@@ -2393,7 +2435,8 @@ def lancamentos_buscar_pagina(
     page_size: int = 50,
     ordenacao: str = "vencimento_asc",
     limite_max: int = 200,
-) -> tuple[list[dict], int, dict[str, float]]:
+    skip_totais: bool = False,
+) -> tuple[list[dict], int, dict[str, float] | None]:
     if db is None:
         return [], 0, {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
 
@@ -2410,27 +2453,34 @@ def lancamentos_buscar_pagina(
         dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(
             sort_spec, pre_stages=pre_sort
         )
-        group_tot = _lancamentos_mongo_group_totais_stage(despesa)
-        facet_stage: dict[str, Any] = {
-            "$facet": {
-                "total_count": [{"$count": "n"}],
-                "page_slice": [{"$skip": skip}, {"$limit": page_size}],
-                "totais_agg": [group_tot],
-            }
+        facet_branches: dict[str, Any] = {
+            "total_count": [{"$count": "n"}],
+            "page_slice": [{"$skip": skip}, {"$limit": page_size}],
         }
-        pipe: list[dict[str, Any]] = [{"$match": query}, *dedup, facet_stage]
-        agg = list(col.aggregate(pipe))
+        if not skip_totais:
+            facet_branches["totais_agg"] = [
+                _lancamentos_mongo_group_totais_stage(despesa)
+            ]
+        facet_stage: dict[str, Any] = {"$facet": facet_branches}
+        pipe: list[dict[str, Any]] = [
+            {"$match": query},
+            {"$project": _LANCAMENTOS_LISTA_MONGO_PROJECT},
+            *dedup,
+            facet_stage,
+        ]
+        agg = list(col.aggregate(pipe, **_MONGO_AGG_LANCAMENTOS_LISTA_OPTS))
         total = 0
         page_docs: list[dict[str, Any]] = []
-        totais = {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
+        totais: dict[str, float] | None = None
         if agg:
             facet = agg[0]
             tc = facet.get("total_count") or []
             if tc:
                 total = int(tc[0].get("n") or 0)
             page_docs = list(facet.get("page_slice") or [])
-            ta = facet.get("totais_agg") or []
-            totais = _lancamentos_totais_dict_from_group_doc(ta[0] if ta else None)
+            if not skip_totais:
+                ta = facet.get("totais_agg") or []
+                totais = _lancamentos_totais_dict_from_group_doc(ta[0] if ta else None)
         linhas = []
         for d in page_docs:
             d.pop("_dupKey", None)
@@ -2445,6 +2495,8 @@ def lancamentos_buscar_pagina(
 
 def contas_pagar_buscar_pagina(db, query: dict, **kwargs) -> tuple[list[dict], int, dict[str, float]]:
     linhas, total, totais = lancamentos_buscar_pagina(db, query, True, **kwargs)
+    if totais is None:
+        totais = {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
     tot_legacy = {
         "quantidade": totais["quantidade"],
         "previsto": totais["bruto"],

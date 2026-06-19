@@ -1,8 +1,8 @@
 {% extends 'layouts/base_admin.html' %}
 {% load static %}
 
-{% block admin_title %}SisVale | Contas a pagar (teste){% endblock %}
-{% block admin_header_title %}Contas a pagar — layout teste{% endblock %}
+{% block admin_title %}SisVale | Contas a pagar{% endblock %}
+{% block admin_header_title %}Contas a pagar{% endblock %}
 {% block admin_header_meta %}{% endblock %}
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col overflow-hidden{% endblock %}
@@ -14,7 +14,7 @@
 {% block admin_header_actions %}
   <div class="flex flex-wrap items-center justify-end gap-2">
     <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
-    <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
+    <a href="{% url 'lancamentos_contas_pagar_classico' %}" data-prefetch class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-amber-500 bg-amber-50 px-4 text-[11px] font-black uppercase text-amber-950 shadow-sm hover:bg-amber-100" title="Abrir o layout clássico (tabela completa)">Layout clássico</a>
     <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-700 cursor-pointer">Nova saída</button>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
   </div>
@@ -104,6 +104,7 @@
   .sv-btn-sel-pay:disabled { opacity: 0.45; cursor: not-allowed; }
   .sv-list-container { background: var(--cor-card); border-radius: var(--raio-borda); box-shadow: var(--sombra-suave); overflow: hidden; border: 2px solid #cbd5e1; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .sv-list-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .sv-list-scroll.sv-list-refreshing { opacity: 0.72; pointer-events: none; }
   .sv-list-cols {
     display: grid;
     align-items: center; gap: 8px 10px;
@@ -518,7 +519,8 @@
   const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
   const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
-  const URL_CLASSICO = "{% url 'lancamentos_contas_pagar' %}";
+  const URL_CLASSICO = "{% url 'lancamentos_contas_pagar_classico' %}";
+  const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
   const LS_EXCL_PLANOS = 'gm_fin_planos_excl_v1';
   const LS_COLS = 'gm_fin_sv_teste_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
@@ -603,6 +605,7 @@
   }
 
   let prefiltroAtivo = '';
+  let planosCarregados = false;
 
   function marcarPrefiltro(id) {
     prefiltroAtivo = id || '';
@@ -611,7 +614,7 @@
     });
   }
 
-  function aplicarPrefiltro(tipo) {
+  function aplicarPrefiltro(tipo, dispararCarga) {
     const hoje = hojeYmd();
     let de = '';
     let ate = '';
@@ -635,6 +638,7 @@
     document.getElementById('sv-venc-ate').value = ate;
     document.getElementById('sv-status').value = 'abertos';
     marcarPrefiltro(tipo);
+    if (dispararCarga === false) return;
     page = 1;
     carregarPlanos().then(() => carregar(false));
   }
@@ -781,6 +785,15 @@
   function urlClassico(id) {
     const u = new URL(URL_CLASSICO, window.location.origin);
     if (id) u.searchParams.set('mongo_id', id);
+    try {
+      const ret = new URL(window.location.pathname, window.location.origin);
+      const cur = montarParams(true);
+      cur.delete('page');
+      cur.delete('skip_totais');
+      if (prefiltroAtivo) cur.set('pref', prefiltroAtivo);
+      ret.search = cur.toString();
+      u.searchParams.set('retorno', ret.pathname + ret.search);
+    } catch (_) {}
     return u.pathname + u.search;
   }
 
@@ -825,10 +838,7 @@
     nfeOverlayAberto = false;
     document.body.classList.remove('sv-nfe-overlay-open');
     if (iframe) iframe.src = 'about:blank';
-    if (refresh) {
-      page = 1;
-      carregar(false);
-    }
+    if (refresh) recarregarPreservandoVista();
   }
 
   function renderColNfe(row) {
@@ -1091,10 +1101,142 @@
     const p = montarParamsBaseLista();
     p.set('page', String(page));
     p.set('page_size', document.getElementById('sv-ps').value || '50');
+    if (page > 1) p.set('skip_totais', '1');
     getExcludedSet().forEach((nome) => {
       p.append('excluir_plano', nome);
     });
     return p;
+  }
+
+  function paramsCacheKey() {
+    const p = montarParams(true);
+    p.delete('page');
+    p.delete('skip_totais');
+    return p.toString();
+  }
+
+  function salvarListaCache(data) {
+    try {
+      sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: paramsCacheKey(), data }));
+    } catch (_) {}
+  }
+
+  function tentarHidratarListaCache() {
+    try {
+      const raw = sessionStorage.getItem(LS_FIN_LISTA);
+      if (!raw) return false;
+      const o = JSON.parse(raw);
+      if (String(o.params_qs || '') !== paramsCacheKey()) return false;
+      const data = o.data;
+      if (!data || !Array.isArray(data.lancamentos)) return false;
+      rowsAcum.length = 0;
+      rowsAcum.push(...data.lancamentos);
+      total = Number(data.total) || rowsAcum.length;
+      if (data.totais) atualizarTotais(data.totais);
+      const st = document.getElementById('sv-status');
+      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      elResumo.textContent = `${total} título(s) · ${stTxt}`;
+      renderLista(false, rowsAcum);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function garantirPlanosCarregados() {
+    if (planosCarregados) return;
+    planosCarregados = true;
+    carregarPlanos();
+  }
+
+  function sincronizarUrlComFiltrosAtuais() {
+    try {
+      const p = montarParams(true);
+      p.delete('page');
+      p.delete('skip_totais');
+      if (prefiltroAtivo) p.set('pref', prefiltroAtivo);
+      const qs = p.toString();
+      const path = window.location.pathname;
+      const want = qs ? `${path}?${qs}` : path;
+      const cur = path + (window.location.search || '');
+      if (want !== cur) window.history.replaceState(null, '', want);
+    } catch (_) {}
+  }
+
+  function aplicarFiltrosDaUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const st = (params.get('status') || '').trim().toLowerCase();
+    if (st === 'abertos' || st === 'quitados' || st === 'todos') {
+      document.getElementById('sv-status').value = st;
+    }
+    const q = (params.get('q') || '').trim();
+    if (q) document.getElementById('sv-busca').value = q;
+    const pref = (params.get('pref') || '').trim();
+    if (pref) {
+      aplicarPrefiltro(pref, false);
+    } else {
+      const urlVencDe = params.get('venc_de') || params.get('data_inicial');
+      const urlVencAte = params.get('venc_ate') || params.get('data_final');
+      if (urlVencDe) document.getElementById('sv-venc-de').value = urlVencDe.slice(0, 10);
+      if (urlVencAte) document.getElementById('sv-venc-ate').value = urlVencAte.slice(0, 10);
+    }
+    if (params.get('mongo_id')) document.getElementById('sv-status').value = 'todos';
+  }
+
+  function capturarEstadoVista() {
+    const scrollEl = document.getElementById('sv-lista-corpo');
+    return {
+      scrollTop: scrollEl ? scrollEl.scrollTop : 0,
+      expanded: [...document.querySelectorAll('.sv-list-item.expanded')]
+        .map((el) => el.getAttribute('data-id'))
+        .filter(Boolean),
+    };
+  }
+
+  function restaurarEstadoVista(vista, opts) {
+    if (!vista) return;
+    opts = opts || {};
+    const focoId = String(opts.focoId || '').trim();
+    if (focoId) {
+      const foco = elCorpo.querySelector(`.sv-list-item[data-id="${CSS.escape(focoId)}"]`);
+      if (foco) {
+        foco.classList.add('expanded');
+        foco.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => foco.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+        return;
+      }
+    }
+    vista.expanded.forEach((id) => {
+      const el = elCorpo.querySelector(`.sv-list-item[data-id="${CSS.escape(id)}"]`);
+      if (el) {
+        el.classList.add('expanded');
+        el.setAttribute('aria-expanded', 'true');
+      }
+    });
+    const scrollEl = document.getElementById('sv-lista-corpo');
+    if (scrollEl && vista.scrollTop > 0) {
+      requestAnimationFrame(() => { scrollEl.scrollTop = vista.scrollTop; });
+    }
+  }
+
+  async function recarregarPreservandoVista(opts) {
+    opts = opts || {};
+    const vista = capturarEstadoVista();
+    if (opts.limparSelecao) limparSelecao();
+    const psEl = document.getElementById('sv-ps');
+    const psOrig = psEl.value || '50';
+    const psNum = parseInt(psOrig, 10) || 50;
+    const alvo = Math.min(Math.max(rowsAcum.length || psNum, psNum), 200);
+    psEl.value = String(alvo);
+    page = 1;
+    await carregar(false, { silent: true, keepSelecao: opts.limparSelecao !== true });
+    psEl.value = psOrig;
+    page = Math.max(1, Math.ceil(Math.max(rowsAcum.length, 1) / psNum));
+    elPagerInfo.textContent = `${rowsAcum.length} de ${total} · página ${page}`;
+    elBtnMais.disabled = rowsAcum.length >= total;
+    elBtnMais.hidden = rowsAcum.length >= total;
+    restaurarEstadoVista(vista, opts);
+    sincronizarUrlComFiltrosAtuais();
   }
 
   function atualizarTotais(t) {
@@ -1325,13 +1467,18 @@
     elBtnMais.hidden = rowsAcum.length >= total;
   }
 
-  async function carregar(acrescentar) {
+  async function carregar(acrescentar, opts) {
+    opts = opts || {};
     if (carregando) return;
     carregando = true;
     if (!acrescentar) {
       rowsAcum.length = 0;
-      limparSelecao();
-      elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      if (!opts.keepSelecao) limparSelecao();
+      if (opts.silent && elCorpo.querySelector('.sv-list-item')) {
+        elCorpo.classList.add('sv-list-refreshing');
+      } else if (!tentarHidratarListaCache()) {
+        elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      }
       if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
     }
     try {
@@ -1348,8 +1495,12 @@
       }
       total = Number(data.total) || 0;
       const linhas = Array.isArray(data.lancamentos) ? data.lancamentos : [];
+      if (!acrescentar) {
+        rowsAcum.length = 0;
+        salvarListaCache(data);
+      }
       rowsAcum.push(...linhas);
-      atualizarTotais(data.totais);
+      if (data.totais) atualizarTotais(data.totais);
       const st = document.getElementById('sv-status');
       const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
       const de = document.getElementById('sv-venc-de').value;
@@ -1360,11 +1511,13 @@
       }
       elResumo.textContent = `${total} título(s) · ${stTxt}${extra}`;
       renderLista(acrescentar, linhas);
+      sincronizarUrlComFiltrosAtuais();
     } catch (err) {
       elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
       elResumo.textContent = 'Erro ao carregar';
     } finally {
       carregando = false;
+      elCorpo.classList.remove('sv-list-refreshing');
       if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
     }
   }
@@ -1374,6 +1527,7 @@
     const btn = document.getElementById('sv-btn-filtros');
     const open = painel.classList.toggle('show');
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) garantirPlanosCarregados();
   }
 
   function fecharFiltros() {
@@ -1456,9 +1610,7 @@
         if (out.aviso_juros) m += '\nJuros: ' + out.aviso_juros;
         alert(m);
         fecharModal('sv-modal-baixa');
-        limparSelecao();
-        page = 1;
-        carregar(false);
+        recarregarPreservandoVista({ limparSelecao: true });
       } else if (!out.erros || !out.erros.length) {
         alert(out.erro || 'Não foi possível baixar.');
       }
@@ -1520,8 +1672,7 @@
       else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
       alert(m);
       fecharModal('sv-modal-parcial');
-      page = 1;
-      carregar(false);
+      recarregarPreservandoVista({ focoId: bxpIdAtual });
     } catch (_) {
       alert('Erro de rede.');
     } finally {
@@ -1588,16 +1739,9 @@
     fecharEntradaNfeOverlay(false);
   });
 
+  aplicarFiltrosDaUrl();
   const params = new URLSearchParams(window.location.search);
   const mid = params.get('mongo_id');
-  const urlVencDe = params.get('venc_de') || params.get('data_inicial');
-  const urlVencAte = params.get('venc_ate') || params.get('data_final');
-  if (urlVencDe) document.getElementById('sv-venc-de').value = urlVencDe.slice(0, 10);
-  if (urlVencAte) document.getElementById('sv-venc-ate').value = urlVencAte.slice(0, 10);
-  if (urlVencDe || urlVencAte) {
-    document.getElementById('sv-status').value = 'abertos';
-    fecharFiltros();
-  }
   if (mid) {
     document.getElementById('sv-status').value = 'todos';
     fetch(API_LISTA + '?tipo=pagar&status=todos&mongo_id=' + encodeURIComponent(mid), { credentials: 'same-origin' })
@@ -1607,7 +1751,7 @@
         if (data.lancamentos && data.lancamentos.length) {
           rowsAcum.push(...data.lancamentos);
           total = data.total || rowsAcum.length;
-          atualizarTotais(data.totais);
+          if (data.totais) atualizarTotais(data.totais);
           renderLista(false, rowsAcum);
           const first = elCorpo.querySelector('.sv-list-item');
           if (first) { first.classList.add('expanded'); first.setAttribute('aria-expanded', 'true'); }
@@ -1615,10 +1759,17 @@
           elCorpo.innerHTML = '<div class="sv-erro">Título não encontrado.</div>';
         }
       })
-      .catch(() => carregarPlanos().then(() => carregar(false)));
+      .catch(() => carregar(false));
   } else {
-    carregarPlanos().then(() => carregar(false));
+    carregar(false);
   }
+
+  window.agroNovaSaidaOnSuccess = function (info) {
+    if (info && info.quitado) {
+      document.getElementById('sv-status').value = 'todos';
+    }
+    recarregarPreservandoVista({ focoId: info && info.id ? info.id : '' });
+  };
 })();
 </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
