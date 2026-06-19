@@ -473,6 +473,14 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 
 **Arquivos:** `lancamento_nova_saida.js`, `lancamento_nova_saida_modal.html`, `dashboard_gerencial.html`, `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py` (`_fin_vencimento_parcela`).
 
+### Excluir entrada manual quitada (2026-06-19, Renan)
+
+**Sintoma:** «Entrada de Empréstimo» quitada em Contas a receber — coluna Ações vazia, sem Excluir.
+
+**Causa:** `_lancamento_pode_excluir_agro` barrava **quitado** antes de checar **Lote manual Agro**.
+
+**Fix:** manual Agro (Nova saída / lote manual) pode excluir **mesmo quitado**; ERP continua bloqueado.
+
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
 ### Empréstimo dual forma + layout → **produção** (2026-06-19, Renan pediu)
