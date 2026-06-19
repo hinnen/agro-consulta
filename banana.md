@@ -405,7 +405,7 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
 | Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
 | Fix `teste` (pendente `producao`) | `_d()` com try/except · try em expandir · limpar `parcelas_*` do base · `data_competencia` nas parcelas · JS mostra trecho do HTML |
-| UX quitado (2026-06-19) | Vencido ≠ quitado; **modo Parcela** = botão Quitado **só em cada linha** (chip do vencimento oculto); modo Total = chip no vencimento; forma opcional |
+| UX quitado (2026-06-19) | **Só `teste` (não produção ainda):** modo Parcela = botão Quitado **por linha** na grade (# · Venc · **Quitado** · Valor); chip do vencimento oculto com N&gt;1 |
 
 **Próximo:** cherry-pick `views.py` + `mongo_financeiro_util.py` + `lancamento_nova_saida.js` → `producao` quando Renan pedir.
 

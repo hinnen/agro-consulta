@@ -143,8 +143,11 @@
       alert(`Lançamento ${num}: informe conta bancária para a saída / pagamento.`);
       return false;
     }
-    if (ln.quitado && !ln.banco_id) {
-      alert(`Lançamento ${num}: saída quitada exige conta com ID do ERP.`);
+    const manual = ln.parcelas_manual_saida;
+    const quitParc = Array.isArray(manual) && manual.some((p) => p && p.quitado);
+    const quitLinha = !!ln.quitado || quitParc;
+    if (quitLinha && !ln.banco_id) {
+      alert(`Lançamento ${num}: parcela quitada exige conta com ID do ERP na lista.`);
       return false;
     }
     if (!ln.data_competencia || !ln.data_vencimento) {
