@@ -366,10 +366,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.16`  
+**Versão:** `1.0.17`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (pacotão BI + Nova saída + Contabilidade → `producao`)  
-**Versão app (`VERSION`):** **produção** (após deploy deste pacote) · staging `teste`
+**Atualizado por:** assistente Cursor (CP direto + PIN APIs + WhatsApp clientes → `producao`)  
+**Versão app (`VERSION`):** **produção v1.41+** · staging `teste`
+
+### Lançamentos + Clientes — produção (2026-06-19)
+
+| Pacote | O quê |
+|--------|--------|
+| **CP direto** | `/lancamentos/` → redirect Contas a pagar; F7/launcher → CP; PIN na tela de destino |
+| **PIN operador APIs** | Baixa, parcial, alterar, excluir, lote manual, recorrente gravam operador do PIN |
+| **WhatsApp clientes** | `cliente_whatsapp_util.py` — normaliza, valida e bloqueia duplicado (PDV + form + sync) |
+
+**Teste:** Ctrl+F5 → `/lancamentos/` abre CP · baixa sem PIN → erro 403 · cadastro cliente telefone duplicado → recusa.
 
 ### Pacotão produção — BI + Nova saída + Contabilidade (2026-06-19)
 
@@ -384,7 +394,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Nova saída** | Grid 4 colunas, datas maiores, ícone calendário, empréstimo 5 colunas |
 | **Contabilidade** | `/contabilidade/` + API `export-xml` ZIP mensal NFC-e (módulo + migrations) |
 
-**Teste pós-deploy:** Ctrl+F5 BI → F10 orbes + escala · card Validade · Nova saída grid · `/contabilidade/`.
+**Teste pós-deploy:** Ctrl+F5 BI → F10 orbes · card Validade · Nova saída grid · `/contabilidade/`.
 
 ### Validação Renan — produção (2026-06-19)
 
@@ -584,7 +594,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** pacotão BI (launchpad+escala+KPIs+versão) + Nova saída grid + Contabilidade/XML NFC-e.
+**Acabou de subir em `producao`:** CP direto + PIN operador APIs + WhatsApp clientes (após pacotão BI v1.41).
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
@@ -630,6 +640,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.16
+### Fim do checkpoint v1.0.17
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
