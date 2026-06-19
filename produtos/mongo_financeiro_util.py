@@ -4983,6 +4983,22 @@ def _fin_ln_txt(ln: dict, key: str, fallback: str = "") -> str:
     return s if s else (fallback or "").strip()
 
 
+def _fin_ln_campo(ln: dict, key: str, fallback: str = "") -> str:
+    """Valor da linha se a chave existir (mesmo vazio); senão fallback do cabeçalho."""
+    if isinstance(ln, dict) and key in ln:
+        v = ln.get(key)
+        return str(v).strip() if v is not None else ""
+    return _fin_ln_txt(ln, key, fallback)
+
+
+def _fin_ln_id_campo(ln: dict, key: str, fallback_id: str | None) -> str | None:
+    if isinstance(ln, dict) and key in ln:
+        raw = ln.get(key)
+        return _financeiro_id_para_string(raw) if raw not in (None, "") else None
+    raw = ln.get(key) if isinstance(ln, dict) else None
+    return _financeiro_id_para_string(raw or fallback_id)
+
+
 def _fin_ln_bool(ln: dict, key: str, fallback: bool = False) -> bool:
     if not isinstance(ln, dict) or key not in ln:
         return fallback
@@ -5085,9 +5101,22 @@ def expandir_linhas_emprestimo_dual_lote(
                 "parcelas_saida",
                 "parcelas_intervalo_dias",
                 "parcelas_manual_saida",
+                "forma_entrada_nome",
+                "forma_entrada_id",
+                "forma_saida_nome",
+                "forma_saida_id",
+                "forma_nome",
+                "forma_id",
                 "_num",
             )
         }
+        fe_nome = str(ln.get("forma_entrada_nome") or "").strip()
+        fe_id = ln.get("forma_entrada_id")
+        if not fe_nome:
+            out.append({**ln, "_emprestimo_dual_erro": "Informe forma de pagamento da entrada (obrigatória)."})
+            continue
+        fs_nome = str(ln.get("forma_saida_nome") or "").strip()
+        fs_id = ln.get("forma_saida_id")
         dc_base_s = str(ln.get("data_competencia") or ln.get("data_vencimento") or hoje_s)[:10]
         try:
             dc_base = date.fromisoformat(dc_base_s)
@@ -5110,8 +5139,8 @@ def expandir_linhas_emprestimo_dual_lote(
                 "recorrente": False,
                 "banco_nome": "",
                 "banco_id": None,
-                "forma_nome": "",
-                "forma_id": None,
+                "forma_nome": fe_nome[:200],
+                "forma_id": fe_id,
                 "descricao": (desc_base or f"Entrada empréstimo — {pes}")[:500],
             }
         )
@@ -5203,6 +5232,8 @@ def expandir_linhas_emprestimo_dual_lote(
                     "quitado": bool(q_parc),
                     "descricao": desc_pag,
                     "recorrente": False,
+                    "forma_nome": fs_nome[:200] if fs_nome else "",
+                    "forma_id": fs_id if fs_nome else None,
                 }
             )
 
@@ -5222,6 +5253,8 @@ def expandir_linhas_emprestimo_dual_lote(
                     "quitado": q_juros,
                     "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
                     "recorrente": False,
+                    "forma_nome": fs_nome[:200] if fs_nome else "",
+                    "forma_id": fs_id if fs_nome else None,
                 }
             )
 
@@ -5377,8 +5410,8 @@ def inserir_lancamentos_manual_lote(
 
         ln_empresa = _fin_ln_txt(ln, "empresa_nome", empresa_nome)
         ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)
-        ln_banco = _fin_ln_txt(ln, "banco_nome", banco_nome)
-        ln_forma = _fin_ln_txt(ln, "forma_nome", forma_nome)
+        ln_banco = _fin_ln_campo(ln, "banco_nome", banco_nome)
+        ln_forma = _fin_ln_campo(ln, "forma_nome", forma_nome)
         ln_despesa = _fin_ln_despesa(ln, despesa)
         if not ln_empresa or not ln_pessoa:
             erros.append({"linha": n, "erro": "Preencha loja e pessoa."})
@@ -5388,8 +5421,8 @@ def inserir_lancamentos_manual_lote(
             continue
         le_id = _financeiro_id_para_string(ln.get("empresa_id") or empresa_id)
         lp_id = _financeiro_id_para_string(ln.get("pessoa_id") or pessoa_id)
-        lb_id = _financeiro_id_para_string(ln.get("banco_id") or banco_id)
-        lf_id = _financeiro_id_para_string(ln.get("forma_id") or forma_id)
+        lb_id = _fin_ln_id_campo(ln, "banco_id", banco_id)
+        lf_id = _fin_ln_id_campo(ln, "forma_id", forma_id)
 
         ln_rec = _fin_ln_bool(ln, "recorrente", recorrente)
         ln_mod = (str(ln.get("recorrente_modo") or recorrente_modo or "sempre")).strip().lower()

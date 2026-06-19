@@ -24,8 +24,8 @@
             <p class="font-black text-indigo-950 mb-2">Empréstimo (entrada + pagamento)</p>
             <ul class="space-y-1.5 list-disc pl-4">
               <li>Gera <strong>receita quitada hoje</strong> (entrada) + <strong>saída(s)</strong> no mesmo envio.</li>
-              <li><strong>Entrada:</strong> loja e pessoa; sem conta; forma opcional; competência e vencimento = hoje; <strong>sempre quitada</strong> (dinheiro que entrou).</li>
-              <li><strong>Saída:</strong> loja, pessoa e conta; forma <strong>opcional</strong>; datas que você preencher. <strong>Vencido ≠ quitado</strong>.</li>
+              <li><strong>Entrada:</strong> loja, pessoa e <strong>forma de pagamento (obrigatória)</strong>; sem conta bancária; competência e vencimento = hoje; <strong>sempre quitada</strong>.</li>
+              <li><strong>Saída:</strong> loja, pessoa, conta e forma de pagamento <strong>opcional</strong> (campos separados da entrada). <strong>Vencido ≠ quitado</strong>.</li>
               <li>Modo <strong>Total</strong>: chip <strong>Quitado</strong> ao lado do vencimento (título único).</li>
               <li>Modo <strong>Parcela</strong>: botão <strong>Quitado</strong> em <strong>cada linha</strong> da grade (individual; o chip do vencimento some).</li>
               <li>Se <strong>saída &gt; entrada</strong>, a diferença vira título em <strong>Juros de Empréstimos</strong>.</li>
@@ -366,6 +366,7 @@
   .agro-ns-card--parc-multi .agro-ns-quitado-chip { display: none !important; }
   @media (min-width: 640px) {
     .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .agro-ns-card-row--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
   }
   @media (min-width: 1024px) {
     .agro-ns-card-row--4,
