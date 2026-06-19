@@ -1,0 +1,27 @@
+{# PIN obrigatório a cada entrada nas telas de Lançamentos (sem modo descanso por idle). #}
+{% include "produtos/_screensaver_pin.html" with lancamentos_pin_entrada=True %}
+<script>
+(function () {
+  function tituloLancamentosPin() {
+    var title = document.getElementById('sspin-title');
+    var sub = document.getElementById('sspin-sub');
+    if (title) title.textContent = 'Lançamentos';
+    if (sub) sub.textContent = 'Digite seu PIN para acessar esta tela';
+  }
+
+  function forcarPinEntradaLancamentos() {
+    tituloLancamentosPin();
+    if (typeof window.gmSspinSairEAbrirPin === 'function') {
+      window.gmSspinSairEAbrirPin();
+      return;
+    }
+    setTimeout(forcarPinEntradaLancamentos, 40);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', forcarPinEntradaLancamentos);
+  } else {
+    forcarPinEntradaLancamentos();
+  }
+})();
+</script>
