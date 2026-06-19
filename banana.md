@@ -291,7 +291,11 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto**. Fiado PDV é Postgres (cópia; PDV não muda).
 
+<<<<<<< Updated upstream
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
+=======
+**Backup no PC** — **só redundância** (cópia de segurança). O SisVale **não importa** esse ZIP de volta. Serve se precisar conferir valor, auditoria ou recuperar algo manualmente se der problema no corte.
+>>>>>>> Stashed changes
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
@@ -522,8 +526,15 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Desvinculação ERP (responsividade)** — ver §4.15–4.16:
 
+<<<<<<< Updated upstream
 - [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11** (`bd91f00`; fix template PIN)
 - [ ] Renan na loja: avisar equipe · baixar backup ZIP · checkpoint `CONGELAR` · ERP parar sync
+=======
+- [x] Lançamentos backup ZIP (todos + **em aberto**) + checkpoint — **produção v1.11+**
+- [x] **Checkpoint feito** — 2026-06-19 ~00:17 (~17 703 títulos carimbados)
+- [ ] **Agora:** ERP parar sync financeiro · loja evitar Lançamentos algumas horas se possível
+- [ ] Opcional Render: `AGRO_FINANCEIRO_MONGO_CONGELADO=true`
+>>>>>>> Stashed changes
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
 - [ ] PDV `/api/buscar/` e cache → Postgres
