@@ -734,6 +734,20 @@
     return o;
   }
 
+  /** Garante entrada para cada coluna configurável (PIN antigo podia trazer só as visíveis). */
+  function ensureFullColsMap(partial) {
+    const m = defaultColsMap();
+    if (partial && typeof partial === 'object') {
+      COL_DEFS.forEach((c) => {
+        if (c.lock) return;
+        if (Object.prototype.hasOwnProperty.call(partial, c.id)) {
+          m[c.id] = !!partial[c.id];
+        }
+      });
+    }
+    return m;
+  }
+
   function defaultColsOrder() {
     const front = ['chk', ...DEFAULT_VISIBLE_IDS, 'expand'];
     const rest = COL_DEFS.map((c) => c.id).filter((id) => !front.includes(id));
@@ -789,10 +803,7 @@
     }
     const saved = readAllColsPinStore()[op];
     if (saved && saved.visible && saved.order) {
-      colsMapMem = { ...defaultColsMap(), ...saved.visible };
-      COL_DEFS.forEach((c) => {
-        if (!c.lock && !(c.id in saved.visible)) colsMapMem[c.id] = DEFAULT_VISIBLE_IDS.includes(c.id);
-      });
+      colsMapMem = ensureFullColsMap(saved.visible);
       colsOrderMem = normalizeColsOrder(saved.order);
       return;
     }
@@ -801,7 +812,7 @@
   }
 
   function activeColsMap() {
-    return colsDraftMap || colsMapMem;
+    return ensureFullColsMap(colsDraftMap || colsMapMem);
   }
 
   function activeColsOrder() {
@@ -853,7 +864,7 @@
     });
   }
 
-  /** Todas as colunas configuráveis — garante que nenhuma fique de fora do menu. */
+  /** Todas as colunas configuráveis — sempre as 17 de COL_DEFS, na ordem da grade. */
   function allReorderableColIds() {
     const order = activeColsOrder();
     const all = COL_DEFS.filter((c) => !c.lock).map((c) => c.id);
@@ -868,10 +879,10 @@
 
   function dropdownColGroups() {
     const m = activeColsMap();
-    const allIds = allReorderableColIds();
-    const hidden = allIds.filter((id) => m[id] === false);
-    const visible = allIds.filter((id) => m[id] !== false);
-    return { hidden, visible };
+    const order = allReorderableColIds();
+    const hidden = order.filter((id) => m[id] === false);
+    const visible = order.filter((id) => m[id] !== false);
+    return { hidden, visible, total: COL_DEFS.filter((c) => !c.lock).length };
   }
 
   function reorderDraftCol(fromId, toId) {
@@ -930,7 +941,7 @@
     });
     el.querySelectorAll('.sv-col-chk').forEach((ch) => {
       ch.addEventListener('change', () => {
-        if (!colsDraftMap) colsDraftMap = { ...colsMapMem };
+        if (!colsDraftMap) colsDraftMap = ensureFullColsMap(colsMapMem);
         colsDraftMap[ch.dataset.colId] = ch.checked;
         buildColDropdown();
         applyGridCols();
@@ -943,23 +954,22 @@
     const el = document.getElementById('sv-cols-dd-list');
     if (!el) return;
     const m = activeColsMap();
-    const { hidden, visible } = dropdownColGroups();
+    const { hidden, visible, total } = dropdownColGroups();
     let html = '';
     if (hidden.length) {
-      html += `<p class="sv-cols-dd-section-title">Disponíveis — marque para exibir</p>`;
+      html += `<p class="sv-cols-dd-section-title">Ocultas — marque para exibir (${hidden.length})</p>`;
       html += hidden.map((id) => renderColDropdownItem(id, m, false)).join('');
     }
-    html += `<p class="sv-cols-dd-section-title">Na lista${visible.length ? ` (${visible.length})` : ''}</p>`;
+    html += `<p class="sv-cols-dd-section-title">Na lista (${visible.length} de ${total})</p>`;
     html += visible.map((id) => renderColDropdownItem(id, m, true)).join('');
     el.innerHTML = html;
     bindColDropdownItems(el);
     const hint = document.getElementById('sv-cols-save-hint');
     const op = getOperadorPin();
-    const total = hidden.length + visible.length;
     if (hint) {
       hint.innerHTML = op
-        ? `Operador: <strong>${esc(op)}</strong> · ${total} colunas · arraste «Na lista»`
-        : `Informe seu PIN antes de salvar · ${total} colunas`;
+        ? `Operador: <strong>${esc(op)}</strong> · ${total} colunas no total · arraste «Na lista»`
+        : `Informe seu PIN antes de salvar · ${total} colunas no total`;
     }
   }
 
@@ -969,10 +979,10 @@
       alert('Digite seu PIN na entrada do módulo antes de salvar as colunas.');
       return;
     }
-    if (colsDraftMap) colsMapMem = { ...colsDraftMap };
-    if (colsDraftOrder) colsOrderMem = colsDraftOrder.slice();
+    if (colsDraftMap) colsMapMem = ensureFullColsMap(colsDraftMap);
+    if (colsDraftOrder) colsOrderMem = normalizeColsOrder(colsDraftOrder);
     const store = readAllColsPinStore();
-    store[op] = { visible: { ...colsMapMem }, order: colsOrderMem.slice() };
+    store[op] = { visible: { ...ensureFullColsMap(colsMapMem) }, order: colsOrderMem.slice() };
     if (!writeAllColsPinStore(store)) {
       alert('Não foi possível gravar a configuração neste navegador.');
       return;
@@ -984,8 +994,8 @@
   }
 
   function beginColsDraft() {
-    colsDraftMap = { ...colsMapMem };
-    colsDraftOrder = colsOrderMem.slice();
+    colsDraftMap = ensureFullColsMap(colsMapMem);
+    colsDraftOrder = normalizeColsOrder(colsOrderMem);
     buildColDropdown();
     applyGridCols();
   }
