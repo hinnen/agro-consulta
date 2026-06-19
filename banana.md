@@ -137,7 +137,9 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 **Regras UX já decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
-- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `base.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `_agro_open_external.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante. **Visual (2026-06):** borda arco-íris + pulso + piscar (só CSS); para no hover; `prefers-reduced-motion` desliga animação.
+- **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
+- **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
 - Entrega: fluxo inline na etapa (sem modais empilhados).
 - Endereço de entrega oculto até concluir pagamento da entrega.
 - Barra de estoque: atualização manual + horário + standby.
@@ -379,6 +381,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Atualizado por:** assistente Cursor (Nova saída → `producao` be9558c)  
 **Versão app (`VERSION`):** staging `teste` v1.54 · **produção v1.47**
 
+### Perf — animações do botão PDV flutuante (2026-06-19, dúvida Renan)
+
+Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — mas **este FAB é impacto baixo**: 1 elemento, só CSS (`transform`/`opacity`/gradiente), sem JS extra nem tráfego de rede. O que pesa de verdade: troca de página inteira (Chrome MPA), listas grandes, Mongo, JS do PDV/Lançamentos.
+
+**Interruptor implementado:** mini-botão **FX on / FX off** acima do FAB (persiste no navegador). Desliga efeitos **decorativos** (FAB arco-íris, Validade pulsando, pulso PDV/Orçamento no BI). Mantém animações **funcionais** (loading, scanner, salvando).
+
 ### Nova saída → **produção** (2026-06-19, Renan pediu)
 
 **Commit:** `be9558c` · v1.47 · cherry-pick escopo fechado de `teste` (`9ba11e4`…`cd5a6e0`).
@@ -390,6 +398,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | UI | Grid 4 col; pílulas **Total \| Parc.**; empréstimo saída abaixo entrada |
 
 **Loja:** Ctrl+F5 após deploy Render → Nova saída.
+
+### Bug produção — HTTP 500 ao Finalizar (2026-06-19)
+
+| Sintoma | Alerta JS «Resposta inválida do servidor (HTTP 500)» — corpo HTML, não JSON |
+| Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
+| Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
+| Fix `teste` (pendente `producao`) | `_d()` com try/except · try em expandir · limpar `parcelas_*` do base · `data_competencia` nas parcelas · JS mostra trecho do HTML |
+| UX quitado (2026-06-19) | Vencido ≠ quitado; **modo Parcela** = botão Quitado **só em cada linha** (chip do vencimento oculto); modo Total = chip no vencimento; forma opcional |
+
+**Próximo:** cherry-pick `views.py` + `mongo_financeiro_util.py` + `lancamento_nova_saida.js` → `producao` quando Renan pedir.
 
 ### Ambiente Renan — Chrome (não Electron)
 

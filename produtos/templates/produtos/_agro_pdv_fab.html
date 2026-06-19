@@ -1,4 +1,31 @@
-{# Botão flutuante PDV — canto inferior esquerdo; oculto no próprio PDV. #}
+{# Botão flutuante PDV + interruptor «menos animações» (localStorage agro_reduzir_efeitos_v1). #}
+<script>
+(function () {
+  var KEY = "agro_reduzir_efeitos_v1";
+  function readReduced() {
+    try {
+      return localStorage.getItem(KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+  window.agroFxReduced = readReduced;
+  window.agroSetFxReduced = function (on) {
+    var reduced = !!on;
+    try {
+      localStorage.setItem(KEY, reduced ? "1" : "0");
+    } catch (_) {}
+    document.documentElement.classList.toggle("agro-fx-reduced", reduced);
+    var btn = document.getElementById("agro-pdv-fab-fx-toggle");
+    if (btn) {
+      btn.setAttribute("aria-pressed", reduced ? "true" : "false");
+      btn.title = reduced ? "Ligar animações visuais" : "Desligar animações (PC mais leve)";
+      btn.textContent = reduced ? "FX off" : "FX on";
+    }
+  };
+  if (readReduced()) document.documentElement.classList.add("agro-fx-reduced");
+})();
+</script>
 <style id="agro-pdv-fab-styles">
   @keyframes agro-pdv-fab-rainbow {
     0% { background-position: 0% 50%; }
@@ -22,11 +49,51 @@
     0% { background-position: 0% 50%; }
     100% { background-position: 300% 50%; }
   }
-  #agro-pdv-fab {
+  #agro-pdv-fab-wrap {
     position: fixed;
     left: max(0.85rem, env(safe-area-inset-left, 0px));
     bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
     z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    pointer-events: none;
+  }
+  #agro-pdv-fab-wrap.is-hidden {
+    display: none !important;
+  }
+  #agro-pdv-fab-wrap > * {
+    pointer-events: auto;
+  }
+  #agro-pdv-fab-fx-toggle {
+    min-height: 1.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid #cbd5e1;
+    background: rgba(255, 255, 255, 0.96);
+    color: #475569;
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+  }
+  #agro-pdv-fab-fx-toggle:hover {
+    border-color: #06b6d4;
+    color: #0e7490;
+    background: #f0fdfa;
+  }
+  #agro-pdv-fab-fx-toggle[aria-pressed="true"] {
+    border-color: #94a3b8;
+    color: #64748b;
+    background: #f8fafc;
+  }
+  #agro-pdv-fab {
+    position: relative;
+    left: auto;
+    bottom: auto;
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
@@ -60,7 +127,6 @@
       agro-pdv-fab-rainbow 4s linear infinite,
       agro-pdv-fab-pulse 2.2s ease-in-out infinite,
       agro-pdv-fab-blink 1.4s ease-in-out infinite;
-    transition: bottom 0.2s ease;
   }
   #agro-pdv-fab::before {
     content: "";
@@ -98,9 +164,6 @@
     outline: 3px solid rgba(168, 85, 247, 0.55);
     outline-offset: 3px;
   }
-  #agro-pdv-fab.is-hidden {
-    display: none !important;
-  }
   #agro-pdv-fab__icon {
     display: inline-flex;
     align-items: center;
@@ -108,15 +171,7 @@
     width: 2rem;
     height: 2rem;
     border-radius: 0.65rem;
-    background: linear-gradient(
-      135deg,
-      #ef4444,
-      #f97316,
-      #22c55e,
-      #06b6d4,
-      #3b82f6,
-      #a855f7
-    );
+    background: linear-gradient(135deg, #ef4444, #f97316, #22c55e, #06b6d4, #3b82f6, #a855f7);
     background-size: 300% 300%;
     color: #fff;
     flex-shrink: 0;
@@ -140,6 +195,33 @@
     color: #0369a1;
     line-height: 1.1;
   }
+  /* Interruptor ou SO «reduzir movimento»: efeitos decorativos off */
+  html.agro-fx-reduced #agro-pdv-fab,
+  html.agro-fx-reduced #agro-pdv-fab::before,
+  html.agro-fx-reduced #agro-pdv-fab__icon {
+    animation: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  html.agro-fx-reduced #agro-pdv-fab {
+    border: 3px solid #06b6d4;
+    background: linear-gradient(#ffffff, #f0f9ff);
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.22);
+    transform: none;
+  }
+  html.agro-fx-reduced #agro-pdv-fab__icon {
+    background: linear-gradient(135deg, #00bfff, #0891b2);
+  }
+  html.agro-fx-reduced .kpi-validade-alerta,
+  html.agro-fx-reduced .kpi-validade-cta,
+  html.agro-fx-reduced .btn-main-pulsing-capri,
+  html.agro-fx-reduced .btn-main-pulsing-emerald,
+  html.agro-fx-reduced .sync-alert-pulse {
+    animation: none !important;
+  }
+  html.agro-fx-reduced .kpi-validade-alerta {
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 14px rgba(239, 68, 68, 0.12) !important;
+  }
   @media (max-width: 480px) {
     #agro-pdv-fab {
       min-height: 3.15rem;
@@ -159,29 +241,48 @@
     }
   }
 </style>
-<a id="agro-pdv-fab" href="{% url 'pdv_home' %}" data-prefetch class="is-hidden" title="Abrir PDV (F1)" aria-label="Abrir PDV">
-  <span id="agro-pdv-fab__icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-  </span>
-  <span>PDV</span>
-  <kbd id="agro-pdv-fab__kbd">F1</kbd>
-</a>
+<div id="agro-pdv-fab-wrap" class="is-hidden">
+  <button type="button" id="agro-pdv-fab-fx-toggle" aria-pressed="false" title="Desligar animações (PC mais leve)">FX on</button>
+  <a id="agro-pdv-fab" href="{% url 'pdv_home' %}" data-prefetch title="Abrir PDV (F1)" aria-label="Abrir PDV">
+    <span id="agro-pdv-fab__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    </span>
+    <span>PDV</span>
+    <kbd id="agro-pdv-fab__kbd">F1</kbd>
+  </a>
+</div>
 <script>
 (function () {
   if (window.__agroPdvFabInit) return;
   window.__agroPdvFabInit = true;
 
   function mountFabInBody() {
-    var fab = document.getElementById("agro-pdv-fab");
-    if (fab && document.body && fab.parentNode !== document.body) {
-      document.body.appendChild(fab);
+    var wrap = document.getElementById("agro-pdv-fab-wrap");
+    if (wrap && document.body && wrap.parentNode !== document.body) {
+      document.body.appendChild(wrap);
     }
   }
   if (document.body) mountFabInBody();
   else document.addEventListener("DOMContentLoaded", mountFabInBody, { once: true });
 
+  var wrap = document.getElementById("agro-pdv-fab-wrap");
   var fab = document.getElementById("agro-pdv-fab");
-  if (!fab) return;
+  var fxBtn = document.getElementById("agro-pdv-fab-fx-toggle");
+  if (!wrap || !fab) return;
+
+  if (typeof window.agroSetFxReduced === "function") {
+    window.agroSetFxReduced(window.agroFxReduced());
+  }
+
+  if (fxBtn) {
+    fxBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.agroSetFxReduced === "function") {
+        window.agroSetFxReduced(!window.agroFxReduced());
+      }
+    });
+  }
 
   var PDV_HREF = "{% url 'pdv_home' %}";
 
@@ -205,8 +306,8 @@
   }
 
   function refreshVisibility() {
-    fab.classList.toggle("is-hidden", shouldHide());
-    if (!fab.classList.contains("is-hidden")) adjustPosition();
+    wrap.classList.toggle("is-hidden", shouldHide());
+    if (!wrap.classList.contains("is-hidden")) adjustPosition();
   }
 
   function baseBottomPx() {
@@ -216,9 +317,10 @@
   }
 
   function adjustPosition() {
-    if (fab.classList.contains("is-hidden")) return;
+    if (wrap.classList.contains("is-hidden")) return;
     var base = baseBottomPx();
-    var rect = fab.getBoundingClientRect();
+    wrap.style.bottom = base + "px";
+    var rect = wrap.getBoundingClientRect();
     var lift = 0;
     var margin = 10;
     var scanLeft = rect.right + 24;
@@ -226,7 +328,7 @@
     var nodes = document.querySelectorAll("footer, nav, aside, [role='dialog'], [aria-modal='true'], [class*='fixed'], [class*='sticky']");
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
-      if (el === fab || fab.contains(el) || el.contains(fab)) continue;
+      if (el === wrap || wrap.contains(el) || el.contains(wrap)) continue;
       var st = window.getComputedStyle(el);
       if (st.visibility === "hidden" || st.display === "none" || parseFloat(st.opacity || "1") < 0.05) continue;
       var r = el.getBoundingClientRect();
@@ -238,7 +340,7 @@
       var overlap = rect.bottom + margin - r.top;
       if (overlap > 0) lift = Math.max(lift, overlap + margin);
     }
-    fab.style.bottom = Math.max(base, base + lift) + "px";
+    wrap.style.bottom = Math.max(base, base + lift) + "px";
   }
 
   document.addEventListener("keydown", function (e) {
@@ -260,7 +362,7 @@
   refreshVisibility();
   window.addEventListener("resize", adjustPosition);
   window.addEventListener("scroll", adjustPosition, true);
-  if (window.MutationObserver) {
+  if (window.MutationObserver && document.body) {
     var mo = new MutationObserver(function () {
       refreshVisibility();
     });
