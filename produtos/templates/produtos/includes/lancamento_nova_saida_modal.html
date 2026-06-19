@@ -254,12 +254,39 @@
     display: grid; grid-template-columns: 1fr; gap: var(--ns-gap);
     margin-bottom: var(--ns-gap);
   }
+  .agro-ns-valor-normal.hidden,
+  .agro-ns-valor-dual.hidden { display: none !important; }
+  .agro-ns-valor-campo { display: flex; gap: 0.35rem; align-items: stretch; min-width: 0; }
+  .agro-ns-valor-campo .agro-ns-input { flex: 1 1 0; min-width: 0; }
+  .agro-ns-parc-modo-btn {
+    flex-shrink: 0; min-width: 2.65rem; min-height: var(--ns-input-h);
+    padding: 0 0.55rem; border-radius: 0.75rem; border: 2px solid #cbd5e1;
+    background: #f8fafc; color: #475569; font-size: 0.7rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer;
+  }
+  .agro-ns-parc-modo-btn:hover { border-color: var(--ns-accent); color: var(--ns-accent); background: var(--ns-accent-soft); }
+  .agro-ns-parc-modo-btn[data-modo="parcela"] { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+  .agro-ns-parc-wrap {
+    margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
+    border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;
+  }
+  .agro-ns-parc-wrap.is-off { opacity: 0.55; }
+  .agro-ns-parc-preview table { width: 100%; border-collapse: collapse; }
+  .agro-ns-parc-preview th, .agro-ns-parc-preview td {
+    padding: 0.35rem 0.45rem; border-bottom: 1px solid #e2e8f0; text-align: left;
+  }
+  .agro-ns-parc-preview th { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #64748b; }
+  .agro-ns-parc-preview input { min-height: 2.25rem; font-size: 0.8125rem; font-weight: 800; }
   @media (min-width: 640px) {
     .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (min-width: 1024px) {
     .agro-ns-card-row--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .agro-ns-card-row--plano { grid-template-columns: 1.4fr 0.75fr 0.95fr 0.95fr; }
+    .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano {
+      grid-template-columns: 1.2fr 1fr 0.9fr 0.9fr;
+    }
+    .agro-ns-card--emprestimo-dual .agro-ns-valor-dual { grid-column: span 2; }
   }
   .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
   .agro-ns-card-rec {

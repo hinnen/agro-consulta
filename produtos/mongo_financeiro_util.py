@@ -5089,20 +5089,87 @@ def expandir_linhas_emprestimo_dual_lote(
             pag_val = vs
             juros_val = Decimal("0")
 
-        out.append(
-            {
-                **base,
-                "tipo": "pagar",
-                "despesa": True,
-                "plano_conta": plano_pag,
-                "plano_conta_id": None,
-                "valor": float(pag_val),
-                "descricao": (desc_base or f"Pagamento empréstimo — {pes}")[:500],
-                "recorrente": False,
-            }
-        )
+        try:
+            n_parc = int(ln.get("parcelas_saida") or 1)
+        except (TypeError, ValueError):
+            n_parc = 1
+        n_parc = max(1, min(n_parc, 60))
+        try:
+            int_dias = int(ln.get("parcelas_intervalo_dias") or 30)
+        except (TypeError, ValueError):
+            int_dias = 30
+        int_dias = max(1, min(int_dias, 366))
+
+        dv_base_s = str(ln.get("data_vencimento") or hoje_s)[:10]
+        try:
+            dv_base = date.fromisoformat(dv_base_s)
+        except ValueError:
+            dv_base = hoje
+
+        parcelas_pag: list[tuple[Decimal, date]] = []
+        pm_raw = ln.get("parcelas_manual_saida")
+        if n_parc > 1 and isinstance(pm_raw, list) and len(pm_raw) == n_parc:
+            for row in pm_raw:
+                if not isinstance(row, dict):
+                    continue
+                dv_s = str(row.get("data_vencimento") or "")[:10]
+                try:
+                    dv_i = date.fromisoformat(dv_s)
+                except ValueError:
+                    out.append({**ln, "_emprestimo_dual_erro": "Parcela com data de vencimento inválida."})
+                    parcelas_pag = []
+                    break
+                try:
+                    v_i = Decimal(str(_fin_parse_valor_entrada_manual(row.get("valor"))))
+                except (ValueError, TypeError):
+                    v_i = Decimal("0")
+                if v_i <= 0:
+                    out.append({**ln, "_emprestimo_dual_erro": "Parcela com valor inválido."})
+                    parcelas_pag = []
+                    break
+                parcelas_pag.append((v_i, dv_i))
+            if parcelas_pag:
+                soma_p = sum(v for v, _ in parcelas_pag).quantize(Decimal("0.01"))
+                if abs(soma_p - pag_val) > Decimal("0.02"):
+                    out.append(
+                        {
+                            **ln,
+                            "_emprestimo_dual_erro": (
+                                f"Soma das parcelas ({soma_p}) difere do valor de pagamento ({pag_val})."
+                            ),
+                        }
+                    )
+                    parcelas_pag = []
+        elif n_parc > 1:
+            for i, v_i in enumerate(split_decimal_em_parcelas(pag_val, n_parc)):
+                parcelas_pag.append((v_i, dv_base + timedelta(days=i * int_dias)))
+        else:
+            parcelas_pag = [(pag_val, dv_base)]
+
+        if not parcelas_pag:
+            continue
+
+        n_tot = len(parcelas_pag)
+        for i, (v_parc, dv_parc) in enumerate(parcelas_pag):
+            desc_pag = (desc_base or f"Pagamento empréstimo — {pes}")[:500]
+            if n_tot > 1:
+                desc_pag = f"{desc_pag} (parcela {i + 1}/{n_tot})"[:500]
+            out.append(
+                {
+                    **base,
+                    "tipo": "pagar",
+                    "despesa": True,
+                    "plano_conta": plano_pag,
+                    "plano_conta_id": None,
+                    "valor": float(v_parc),
+                    "data_vencimento": dv_parc.isoformat(),
+                    "descricao": desc_pag,
+                    "recorrente": False,
+                }
+            )
 
         if juros_val > Decimal("0.009"):
+            dv_juros = parcelas_pag[-1][1]
             out.append(
                 {
                     **base,
@@ -5111,6 +5178,7 @@ def expandir_linhas_emprestimo_dual_lote(
                     "plano_conta": plano_juros,
                     "plano_conta_id": None,
                     "valor": float(juros_val),
+                    "data_vencimento": dv_juros.isoformat(),
                     "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
                     "recorrente": False,
                 }

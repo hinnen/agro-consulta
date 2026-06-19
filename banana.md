@@ -366,10 +366,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.13`  
+**Versão:** `1.0.22`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Lançamentos CP layout + perf + vista → `teste`)  
-**Versão app (`VERSION`):** **produção v1.33** (Lançamentos CP layout + PIN + filtro hoje) · staging `teste` alinhado
+**Atualizado por:** assistente Cursor (Nova saída parcelas + layout empréstimo → `teste`)  
+**Versão app (`VERSION`):** staging `teste` · produção v1.48
+
+### Nova saída — parcelas + layout empréstimo (`teste`, 2026-06-19)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Layout empréstimo** | Só entrada + saída (sem Valor duplicado); grid 4 colunas |
+| **Parcelas** | Nº + intervalo → grade vencimento/valor; botão **Parcela↔Total** |
+| **Empréstimo dual** | Parcelas na **saída**; backend `parcelas_saida` em `mongo_financeiro_util` |
+
+**Teste:** Ctrl+F5 → Nova saída → 3 parcelas mensais · empréstimo dual com saída parcelada.
 
 ### O que este documento já cobre (até aqui)
 

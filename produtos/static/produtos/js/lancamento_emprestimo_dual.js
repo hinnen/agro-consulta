@@ -86,6 +86,7 @@
     }
     card.classList.add('agro-ns-card--emprestimo-dual');
     syncHeaderEmprestimoAjuda();
+    if (typeof window.__agroNsSyncParc === 'function') window.__agroNsSyncParc(card);
   }
 
   function desativarModoDualModal(card) {
@@ -100,6 +101,7 @@
     card.querySelector('.agro-ns-in-valor-entrada')?.value && (card.querySelector('.agro-ns-in-valor-entrada').value = '');
     card.querySelector('.agro-ns-in-valor-saida')?.value && (card.querySelector('.agro-ns-in-valor-saida').value = '');
     syncHeaderEmprestimoAjuda();
+    if (typeof window.__agroNsSyncParc === 'function') window.__agroNsSyncParc(card);
   }
 
   function onPlanoSelectModal(wrap, nome, id) {
