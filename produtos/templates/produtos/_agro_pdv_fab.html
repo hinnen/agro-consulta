@@ -1,0 +1,173 @@
+{# Botão flutuante PDV — canto inferior esquerdo; oculto no próprio PDV. #}
+<style id="agro-pdv-fab-styles">
+  #agro-pdv-fab {
+    position: fixed;
+    left: max(0.85rem, env(safe-area-inset-left, 0px));
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+    z-index: 9000;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 3rem;
+    padding: 0.55rem 0.95rem 0.55rem 0.75rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(0, 191, 255, 0.55);
+    background: linear-gradient(165deg, #e0f7ff 0%, #ffffff 55%);
+    color: #0c4a6e;
+    font-size: 0.8125rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    box-shadow: 0 10px 28px rgba(0, 191, 255, 0.22), 0 2px 8px rgba(15, 23, 42, 0.12);
+    transition: bottom 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  #agro-pdv-fab:hover {
+    transform: translateY(-1px);
+    border-color: #00bfff;
+    box-shadow: 0 14px 32px rgba(0, 191, 255, 0.32), 0 4px 12px rgba(15, 23, 42, 0.14);
+    color: #082f49;
+  }
+  #agro-pdv-fab:focus-visible {
+    outline: 3px solid rgba(0, 191, 255, 0.45);
+    outline-offset: 2px;
+  }
+  #agro-pdv-fab.is-hidden {
+    display: none !important;
+  }
+  #agro-pdv-fab__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 0.55rem;
+    background: linear-gradient(135deg, #00bfff, #0891b2);
+    color: #fff;
+    flex-shrink: 0;
+  }
+  #agro-pdv-fab__icon svg {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2.5;
+  }
+  #agro-pdv-fab__kbd {
+    pointer-events: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.35rem;
+    border: 1px solid #bae6fd;
+    background: #f0f9ff;
+    color: #0369a1;
+    line-height: 1.1;
+  }
+  @media (max-width: 480px) {
+    #agro-pdv-fab {
+      min-height: 2.75rem;
+      padding: 0.45rem 0.75rem 0.45rem 0.6rem;
+      font-size: 0.75rem;
+    }
+  }
+</style>
+<a id="agro-pdv-fab" href="{% url 'pdv_home' %}" data-prefetch class="is-hidden" title="Abrir PDV (F1)" aria-label="Abrir PDV">
+  <span id="agro-pdv-fab__icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+  </span>
+  <span>PDV</span>
+  <kbd id="agro-pdv-fab__kbd">F1</kbd>
+</a>
+<script>
+(function () {
+  var fab = document.getElementById("agro-pdv-fab");
+  if (!fab) return;
+
+  var PDV_HREF = "{% url 'pdv_home' %}";
+
+  function pathIsPdv() {
+    var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+    if (p === "/pdv" || p.indexOf("/pdv/") === 0) return true;
+    if (p === "/consulta" || p.indexOf("/consulta/") === 0) return true;
+    return false;
+  }
+
+  function inputFocused() {
+    var t = document.activeElement;
+    return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+  }
+
+  function shouldHide() {
+    if (pathIsPdv()) return true;
+    if (document.body && document.body.classList.contains("modal-open")) return true;
+    if (document.documentElement && document.documentElement.classList.contains("modal-open")) return true;
+    return false;
+  }
+
+  function refreshVisibility() {
+    fab.classList.toggle("is-hidden", shouldHide());
+    if (!fab.classList.contains("is-hidden")) adjustPosition();
+  }
+
+  function baseBottomPx() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue("--agro-pdv-fab-base");
+    var n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? n : 14;
+  }
+
+  function adjustPosition() {
+    if (fab.classList.contains("is-hidden")) return;
+    var base = baseBottomPx();
+    var rect = fab.getBoundingClientRect();
+    var lift = 0;
+    var margin = 10;
+    var scanLeft = rect.right + 24;
+    var vh = window.innerHeight;
+    var nodes = document.querySelectorAll("footer, nav, aside, [role='dialog'], [aria-modal='true'], [class*='fixed'], [class*='sticky']");
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el === fab || fab.contains(el) || el.contains(fab)) continue;
+      var st = window.getComputedStyle(el);
+      if (st.visibility === "hidden" || st.display === "none" || parseFloat(st.opacity || "1") < 0.05) continue;
+      var r = el.getBoundingClientRect();
+      if (r.height < 8 || r.width < 8) continue;
+      if (r.top < vh * 0.5) continue;
+      if (r.left > scanLeft) continue;
+      var touchesBottom = st.position === "fixed" || st.position === "sticky" || r.bottom >= vh - 4;
+      if (!touchesBottom) continue;
+      var overlap = rect.bottom + margin - r.top;
+      if (overlap > 0) lift = Math.max(lift, overlap + margin);
+    }
+    fab.style.bottom = Math.max(base, base + lift) + "px";
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.defaultPrevented) return;
+    if (e.code !== "F1" && e.key !== "F1") return;
+    if (pathIsPdv()) return;
+    if (inputFocused()) return;
+    e.preventDefault();
+    window.location.href = PDV_HREF;
+  });
+
+  fab.addEventListener("click", function (e) {
+    if (window.tabManager && typeof window.tabManager.addTab === "function") {
+      e.preventDefault();
+      window.tabManager.addTab("PDV", PDV_HREF, "shopping-cart");
+    }
+  });
+
+  refreshVisibility();
+  window.addEventListener("resize", adjustPosition);
+  window.addEventListener("scroll", adjustPosition, true);
+  if (window.MutationObserver) {
+    var mo = new MutationObserver(function () {
+      refreshVisibility();
+    });
+    mo.observe(document.body, { attributes: true, attributeFilter: ["class"], subtree: false });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"], subtree: false });
+  }
+  setTimeout(adjustPosition, 120);
+  setTimeout(adjustPosition, 800);
+})();
+</script>

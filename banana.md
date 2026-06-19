@@ -137,6 +137,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 **Regras UX já decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `base.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante.
 - Entrega: fluxo inline na etapa (sem modais empilhados).
 - Endereço de entrega oculto até concluir pagamento da entrega.
 - Barra de estoque: atualização manual + horário + standby.
@@ -373,9 +374,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.27`  
+**Versão:** `1.0.28`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (roadmap perf CP adiado)  
+**Atualizado por:** assistente Cursor (botão flutuante PDV)  
 **Versão app (`VERSION`):** staging `teste` · produção v1.48
 
 ### Ambiente Renan — Chrome (não Electron)
@@ -466,6 +467,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 - [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
 - [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
 - [x] **Ambiente Renan:** Chrome (MPA); Electron testado e descartado — assistente não pergunta
+- [x] **Botão flutuante PDV** — canto inferior esquerdo, `/pdv/`, F1 global (2026-06-19)
 
 ### Lançamentos — Contas a pagar layout novo (2026-06-19)
 
