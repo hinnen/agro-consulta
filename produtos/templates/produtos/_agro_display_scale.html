@@ -1,0 +1,231 @@
+{# Escala global (zoom) — calibração uma vez por aparelho; incluído via _agro_consulta_ui.html #}
+<script>
+  (function () {
+    try {
+      function osScale() {
+        var iw = window.innerWidth || 0;
+        var sw = screen.width || 0;
+        if (iw > 100 && sw > iw * 1.05) return Math.round(Math.min(300, (sw / iw) * 100));
+        return Math.round((window.devicePixelRatio || 1) * 100);
+      }
+      function profSuffix() {
+        return '_' + Math.round(window.innerWidth || 0) + 'x' + Math.round(window.innerHeight || 0) + '_os' + osScale();
+      }
+      var suf = profSuffix();
+      var ok = localStorage.getItem('agro_display_scale_configured_v1' + suf) === '1';
+      if (!ok) ok = localStorage.getItem('agro_display_scale_configured_v1') === '1';
+      if (!ok) return;
+      var s = localStorage.getItem('agro_display_scale_v1' + suf);
+      if (s == null) s = localStorage.getItem('agro_display_scale_v1');
+      var n = parseFloat(s, 10);
+      if (!isFinite(n) || n < 0.7 || n > 1.5) return;
+      if (n === 1) return;
+      var zs = String(Math.round(n * 1000) / 1000);
+      document.documentElement.style.zoom = zs;
+      document.documentElement.setAttribute('data-agro-scale', zs);
+      document.documentElement.style.setProperty('--agro-display-scale', zs);
+    } catch (e) {}
+  })();
+</script>
+<style id="agro-display-scale-ui">
+  body.agro-scale-modal-open {
+    overflow: hidden !important;
+  }
+  .agro-scale-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    font-family: 'Inter', system-ui, sans-serif;
+    zoom: 1 !important;
+  }
+  .agro-scale-panel {
+    width: min(100%, 28rem);
+    max-height: min(94dvh, 640px);
+    overflow: auto;
+    border-radius: 1.25rem;
+    border: 2px solid rgba(16, 185, 129, 0.35);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    padding: 1.25rem 1.35rem 1.35rem;
+    color: #0f172a;
+  }
+  .agro-scale-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+  .agro-scale-lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #475569;
+  }
+  .agro-scale-status {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #047857;
+  }
+  .agro-scale-cap {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+  .agro-scale-profile {
+    margin: 0 0 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #94a3b8;
+  }
+  .agro-scale-warning {
+    margin: 0 0 0.75rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.65rem;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #b91c1c;
+  }
+  .agro-scale-warning[hidden] {
+    display: none !important;
+  }
+  .agro-scale-panel--busy {
+    opacity: 0.72;
+    pointer-events: none;
+  }
+  .agro-scale-actions--stack {
+    flex-direction: column;
+  }
+  .agro-scale-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .agro-scale-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+  }
+  .agro-scale-step {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #0f172a;
+    cursor: pointer;
+  }
+  .agro-scale-step:hover {
+    border-color: #10b981;
+    background: #ecfdf5;
+  }
+  .agro-scale-slider {
+    flex: 1;
+    min-width: 0;
+    accent-color: #10b981;
+    height: 0.45rem;
+  }
+  .agro-scale-value {
+    flex-shrink: 0;
+    min-width: 3.25rem;
+    text-align: right;
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+  }
+  .agro-scale-presets {
+    display: none;
+  }
+  .agro-scale-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .agro-scale-btn {
+    flex: 1 1 8rem;
+    min-height: 2.85rem;
+    border-radius: 0.75rem;
+    border: 2px solid transparent;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .agro-scale-btn--muted {
+    background: #fff;
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+  .agro-scale-btn--primary {
+    background: #10b981;
+    color: #fff;
+  }
+  .agro-scale-btn--primary:hover {
+    background: #059669;
+  }
+  .agro-scale-trigger {
+    box-sizing: border-box;
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    background: rgba(248, 250, 252, 0.92);
+    color: #64748b;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.72;
+    transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .agro-scale-trigger:hover,
+  .agro-scale-trigger:focus-visible {
+    opacity: 1;
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #047857;
+    background: #ecfdf5;
+    outline: none;
+  }
+  .agro-scale-trigger--header {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 0.35rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .agro-scale-trigger--fab {
+    position: fixed;
+    top: 0.45rem;
+    right: 0.45rem;
+    z-index: 2147482000;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+    zoom: 1 !important;
+  }
+  .agro-scale-trigger--fab[hidden] {
+    display: none !important;
+  }
+</style>
+{% load static %}
+<script src="{% static 'produtos/js/agro_display_scale.js' %}" defer></script>

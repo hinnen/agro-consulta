@@ -23,6 +23,7 @@ import requests
 from decouple import config
 
 from produtos.nfe_entrada_util import decodificar_doc_zip_base64
+from produtos.sefaz_ssl_util import sefaz_requests_verify
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,8 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, pkcs12
         from lxml import etree
-        from signxml import XMLSigner, methods
+        from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
+        from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
     except ImportError:
         return None, "Instale: pip install cryptography lxml signxml"
 
@@ -105,14 +107,9 @@ def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str)
         root = etree.fromstring(xml_unsigned.encode("utf-8"), parser)
         root.set("Id", f"distNFe{uuid.uuid4().hex[:12]}")
 
-        signer = XMLSigner(
-            method=methods.enveloped,
-            signature_algorithm="rsa-sha1",
-            digest_algorithm="sha1",
-            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
-        )
+        signer = criar_sefaz_xml_signer()
         signed_root = signer.sign(root, key=key_pem, cert=cert_pem)
-        return etree.tostring(signed_root, encoding="unicode", xml_declaration=True), None
+        return tostring_sem_prefixos(etree.tostring(signed_root, encoding="unicode", xml_declaration=True)), None
     except Exception as exc:
         logger.exception("assinar_dist_dfe")
         return None, str(exc)[:400]
@@ -181,7 +178,13 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         "SOAPAction": "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse",
     }
     try:
-        r = requests.post(url, data=soap.encode("utf-8"), headers=headers, timeout=60)
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
         text = r.text or ""
         if r.status_code >= 400:
             out["erro"] = f"HTTP {r.status_code}: {text[:500]}"

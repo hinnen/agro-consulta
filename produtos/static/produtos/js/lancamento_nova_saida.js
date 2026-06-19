@@ -278,7 +278,7 @@
         <button type="button" class="agro-ns-rm-linha hidden" title="Remover lançamento">Remover</button>
       </div>
       <div class="agro-ns-card-row agro-ns-card-row--4">
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Loja</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="empresa">
             <input type="text" placeholder="Buscar loja…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -287,7 +287,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Pessoa</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="cliente">
             <input type="text" placeholder="Cliente / fornecedor…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -296,7 +296,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Conta / Caixa</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="banco">
             <input type="text" placeholder="Buscar conta…" autocomplete="off" class="agro-ns-input agro-ns-input-icon">
@@ -305,7 +305,7 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Forma pagamento</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="forma">
             <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
@@ -315,7 +315,7 @@
         </div>
       </div>
       <div class="agro-ns-card-row agro-ns-card-row--plano">
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Plano de contas</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
             <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
@@ -323,30 +323,30 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0 agro-ns-valor-normal">
+        <div class="agro-ns-field agro-ns-valor-normal">
           <label class="agro-ns-label">Valor (R$)</label>
           <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
         </div>
-        <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0 sm:col-span-2">
+        <div class="agro-ns-valor-dual hidden agro-ns-field min-w-0">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="agro-ns-field">
               <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="agro-ns-field">
               <label class="agro-ns-label text-amber-700">Valor saída / pagamento (R$)</label>
               <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0">
+        <div class="agro-ns-field">
           <label class="agro-ns-label">Competência</label>
-          <input type="date" class="agro-ns-input agro-ns-in-comp">
+          <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-comp">
         </div>
-        <div class="flex flex-col gap-1 min-w-0 agro-ns-wrap-ven">
+        <div class="agro-ns-field agro-ns-wrap-ven">
           <label class="agro-ns-label">Vencimento</label>
-          <div class="flex items-stretch gap-2 min-w-0">
-            <input type="date" class="agro-ns-input agro-ns-in-ven flex-1 min-w-0">
+          <div class="agro-ns-ven-row">
+            <input type="date" class="agro-ns-input agro-ns-input-date agro-ns-in-ven">
             <label class="agro-ns-quitado-chip shrink-0 cursor-pointer self-stretch flex items-center" title="Já pago ou recebido">
               <input type="checkbox" class="agro-ns-in-quitado sr-only">
               <span class="agro-ns-quitado-chip-btn h-full">Quitado</span>

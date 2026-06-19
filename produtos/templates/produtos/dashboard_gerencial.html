@@ -49,6 +49,40 @@
     }
     .kpi-card { border-color: #7dd3fc; }
     .kpi-card.kpi-warn { border-color: #fcd34d; }
+    .kpi-card.kpi-validade-alerta {
+        border-color: #f87171;
+        background: linear-gradient(165deg, #fef2f2 0%, #fff 48%);
+        box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 16px rgba(239, 68, 68, 0.14);
+        animation: kpi-validade-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes kpi-validade-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 14px rgba(239, 68, 68, 0.12);
+        }
+        50% {
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.65), 0 8px 22px rgba(239, 68, 68, 0.22);
+        }
+    }
+    .kpi-validade-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.45rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 0.5rem;
+        border: 1px solid #fca5a5;
+        background: #fee2e2;
+        color: #991b1b;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        animation: kpi-validade-cta-blink 1.8s ease-in-out infinite;
+    }
+    @keyframes kpi-validade-cta-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.72; }
+    }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background: linear-gradient(180deg, var(--capri), rgba(16, 185, 129, 0.6));
@@ -355,6 +389,194 @@
         background: linear-gradient(180deg, rgba(168, 85, 247, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
         border-color: rgba(168, 85, 247, 0.62);
     }
+    /* Launchpad — barra superior (PDV / Orçamento + escala) */
+    .launchpad-topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        margin-bottom: clamp(0.85rem, 1.8vh, 1.35rem);
+        padding-bottom: clamp(0.65rem, 1.2vh, 0.95rem);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .launchpad-topbar__brand {
+        flex: 1 1 10rem;
+        min-width: 0;
+    }
+    .launchpad-topbar__brand h2 {
+        margin: 0;
+        font-size: clamp(1.15rem, 1.6vw + 0.55rem, 1.85rem);
+        font-weight: 900;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+    }
+    .launchpad-topbar__brand p {
+        margin: 0.2rem 0 0;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: #64748b;
+    }
+    .launchpad-topbar__quick {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-shrink: 0;
+    }
+    .launch-orb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        width: clamp(4.5rem, 7vw, 5.75rem);
+        height: clamp(4.5rem, 7vw, 5.75rem);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 0.58rem;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        padding: 0.35rem;
+    }
+    .launch-orb svg {
+        width: 1.35rem;
+        height: 1.35rem;
+        flex-shrink: 0;
+    }
+    .launch-orb small {
+        font-size: 0.52rem;
+        opacity: 0.72;
+        font-weight: 800;
+    }
+    .launch-orb:hover {
+        transform: translateY(-2px) scale(1.03);
+        filter: brightness(1.08);
+    }
+    .launch-orb--blue {
+        background: radial-gradient(circle at 35% 28%, #38bdf8 0%, #0284c7 52%, #0c4a6e 100%);
+        border-color: rgba(56, 189, 248, 0.85);
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.45), 0 8px 22px rgba(14, 165, 233, 0.35);
+        animation: pulse-capri-strong 1.35s ease-in-out infinite;
+    }
+    .launch-orb--amber {
+        background: radial-gradient(circle at 35% 28%, #fde047 0%, #f59e0b 52%, #b45309 100%);
+        border-color: rgba(251, 191, 36, 0.9);
+        color: #1c1917;
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.42), 0 8px 22px rgba(245, 158, 11, 0.32);
+    }
+    .launch-orb--amber svg {
+        color: #78350f;
+    }
+    .launchpad-topbar__tools {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .launch-scale-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(15, 23, 42, 0.72);
+    }
+    .launch-scale-step {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.08);
+        color: #e2e8f0;
+        font-size: 1.1rem;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .launch-scale-step:hover {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: rgba(16, 185, 129, 0.55);
+    }
+    .launch-scale-value {
+        min-width: 2.75rem;
+        text-align: center;
+        font-size: 0.82rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        color: #6ee7b7;
+    }
+    .launch-scale-preset {
+        min-height: 2rem;
+        padding: 0 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: #cbd5e1;
+        font-size: 0.62rem;
+        font-weight: 900;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+    }
+    .launch-scale-preset:hover {
+        border-color: rgba(16, 185, 129, 0.5);
+        color: #ecfdf5;
+    }
+    .launch-scale-preset.is-active {
+        border-color: rgba(16, 185, 129, 0.75);
+        background: rgba(6, 78, 59, 0.55);
+        color: #6ee7b7;
+    }
+    .launch-scale-reset {
+        min-height: 2rem;
+        padding: 0 0.65rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: transparent;
+        color: #94a3b8;
+        font-size: 0.58rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+    }
+    .launch-scale-reset:hover {
+        color: #e2e8f0;
+        border-color: rgba(226, 232, 240, 0.45);
+    }
+    .launchpad-close {
+        width: 2.75rem;
+        height: 2.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 1.65rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .launchpad-close:hover {
+        background: #dc2626;
+        border-color: #ef4444;
+    }
+    @media (max-width: 720px) {
+        .launch-scale-preset { display: none; }
+        .launchpad-topbar__quick { order: 3; width: 100%; justify-content: center; }
+        .launchpad-topbar__tools { order: 2; width: 100%; justify-content: flex-end; }
+    }
     @media (max-width: 1366px) {
         .main-container {
             padding: clamp(0.45rem, 0.7vw, 0.85rem);
@@ -460,30 +682,133 @@
         padding: 3px 0;
     }
     .dash-topbar { overflow: visible; }
+    /* KPI + barra de períodos: sem quebra de linha em telas apertadas */
+    .dash-kpi-grid > .kpi-card { min-width: 0; }
+    .dash-kpi-ticket-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+    .dash-kpi-ticket-row {
+        display: grid;
+        grid-template-columns: minmax(2.25rem, auto) 1fr auto;
+        align-items: center;
+        gap: 0.25rem 0.35rem;
+    }
+    .dash-kpi-ticket-lbl {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+        white-space: nowrap;
+        line-height: 1.1;
+    }
+    .dash-kpi-ticket-val {
+        font-size: clamp(0.95rem, 1.2vw + 0.4rem, 1.2rem);
+        font-weight: 900;
+        color: #0f172a;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .dash-kpi-ticket-badge {
+        justify-self: end;
+        max-width: 4.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .dash-kpi-validade-lbl {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+    .dash-topbar-periods {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 100%;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .dash-topbar-periods::-webkit-scrollbar { display: none; }
+    .dash-topbar-periods .period-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    @media (min-width: 992px) {
+        .dash-topbar {
+            display: grid !important;
+            grid-template-columns: auto auto minmax(0, 1fr) auto;
+            align-items: center;
+            flex-wrap: nowrap !important;
+            gap: 0.35rem;
+        }
+        .dash-topbar-periods {
+            justify-self: stretch;
+        }
+    }
+    @media (min-width: 1280px) and (max-width: 1599px) {
+        .dash-kpi-grid > .kpi-card {
+            padding: 0.55rem 0.6rem;
+        }
+        .dash-kpi-validade-lbl { font-size: 7.5px; }
+    }
+    .agro-scale-trigger--dash {
+        border-color: rgba(255, 255, 255, 0.22);
+        background: rgba(15, 23, 42, 0.55);
+        color: rgba(226, 232, 240, 0.88);
+        opacity: 0.82;
+    }
+    .agro-scale-trigger--dash:hover,
+    .agro-scale-trigger--dash:focus-visible {
+        border-color: rgba(16, 185, 129, 0.65);
+        background: rgba(6, 78, 59, 0.45);
+        color: #ecfdf5;
+        opacity: 1;
+    }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 {{ agro_build|json_script:"agro-build-data" }}
-<div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true"></div>
+<div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true" translate="no"></div>
 <div class="main-container">
     <div class="dash-topbar flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
-        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1">
-            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)]">
+        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1 min-w-0">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] shrink-0">
                 <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
             </div>
-            <div class="hidden xl:flex xl:items-baseline xl:gap-2">
-                <div>
+            <div class="hidden xl:flex xl:items-baseline xl:gap-2 min-w-0">
+                <div class="min-w-0">
                     <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
                 </div>
-                <button type="button" class="agro-ver-badge js-agro-ver-badge" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+                <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+                <button
+                    type="button"
+                    id="dash-link-display-scale"
+                    class="agro-scale-trigger agro-scale-trigger--header agro-scale-trigger--dash shrink-0"
+                    title="Ajustar tamanho da tela"
+                    aria-label="Ajustar tamanho da tela"
+                >Aa</button>
             </div>
-            <button type="button" class="xl:hidden agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+            <div class="xl:hidden flex items-center gap-1.5 shrink-0">
+                <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+                <button
+                    type="button"
+                    id="dash-link-display-scale-sm"
+                    class="agro-scale-trigger agro-scale-trigger--header agro-scale-trigger--dash"
+                    title="Ajustar tamanho da tela"
+                    aria-label="Ajustar tamanho da tela"
+                >Aa</button>
+            </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
             <button type="button"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
                 class="btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
@@ -516,7 +841,7 @@
             <button type="button" title="Escolher um dia ou intervalo de datas" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'personalizado' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="personalizado" id="btn-periodo-cal"><i data-lucide="calendar-range" class="inline w-3 h-3 mr-0.5 align-middle opacity-90"></i><span class="align-middle">Datas</span></button>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
             <button id="btn-sync-dashboard" type="button" class="btn-sync-erp flex flex-col items-end px-4 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl transition-all border border-orange-400/30 group">
                 <div class="flex items-center gap-2">
                     <span id="sync-btn-title" class="text-[10px] font-black uppercase italic">Sincronizar ERP</span>
@@ -583,14 +908,38 @@
 </div>
 
 <!-- Launchpad: atalhos que antes ficavam na home /atalhos/ -->
-<div id="launchpad" class="fixed inset-0 z-[9999] hidden bg-slate-950 backdrop-blur-none p-5 sm:p-8 md:p-10 transition-opacity overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="launchpad-title">
-    <div class="w-full max-w-[120rem] mx-auto min-h-0 flex flex-col pb-8">
-        <div class="flex flex-wrap justify-between items-start gap-4 mb-10 md:mb-14">
-            <div>
-                <h2 id="launchpad-title" class="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-tight">Menu de Atalhos</h2>
-                <p class="text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-[0.25em] mt-2">SisVale | Central de módulos</p>
+<div id="launchpad" class="fixed inset-0 z-[9999] hidden bg-slate-950 backdrop-blur-none p-4 sm:p-6 md:p-8 transition-opacity overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="launchpad-title">
+    <div class="w-full max-w-[120rem] mx-auto min-h-0 flex flex-col pb-6">
+        <div class="launchpad-topbar">
+            <div class="launchpad-topbar__brand">
+                <h2 id="launchpad-title">Menu de Atalhos</h2>
+                <p>SisVale · Central de módulos</p>
             </div>
-            <button type="button" onclick="toggleLaunchpad()" class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-600 transition-colors text-3xl sm:text-4xl shrink-0" aria-label="Fechar menu">&times;</button>
+            <div class="launchpad-topbar__quick">
+                <button type="button" onclick="dashLaunchpadAbrir('PDV', '{% url 'pdv_home' %}', 'shopping-cart')" class="launch-orb launch-orb--blue" title="PDV (F1)">
+                    <i data-lucide="shopping-cart"></i>
+                    <span>PDV</span>
+                    <small>F1</small>
+                </button>
+                <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'file-text')" class="launch-orb launch-orb--amber" title="Orçamento (F2)">
+                    <i data-lucide="file-text"></i>
+                    <span>Orçamento</span>
+                    <small>F2</small>
+                </button>
+            </div>
+            <div class="launchpad-topbar__tools">
+                <div class="launch-scale-bar" id="launchpad-scale-bar" aria-label="Tamanho da tela">
+                    <button type="button" class="launch-scale-step" data-launch-scale-minus aria-label="Diminuir">−</button>
+                    <span class="launch-scale-value" data-launch-scale-value>100%</span>
+                    <button type="button" class="launch-scale-step" data-launch-scale-plus aria-label="Aumentar">+</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.67">67%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.8">80%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="0.95">95%</button>
+                    <button type="button" class="launch-scale-preset" data-launch-scale-preset="1">100%</button>
+                    <button type="button" class="launch-scale-reset" data-launch-scale-recalc>Redefinir</button>
+                </div>
+                <button type="button" onclick="toggleLaunchpad()" class="launchpad-close" aria-label="Fechar menu">&times;</button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 xl:gap-6 flex-1 min-h-0">
@@ -599,18 +948,18 @@
                 <button type="button" onclick="dashLaunchpadAbrir('Vendas', '{% url 'vendas_lista' %}', 'dollar-sign')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="dollar-sign"></i><span>Gestão de Vendas</span></span><span class="launch-key">V</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Clientes', '{% url 'clientes_lista' %}', 'users')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="users"></i><span>Clientes</span></span><span class="launch-key">C</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'history')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="history"></i><span>Orçamentos salvos</span></span><span class="launch-key">F2</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Compras', '{% url 'compras_view' %}', 'shopping-bag')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="shopping-bag"></i><span>Compras</span></span><span class="launch-key">F6</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Promoções', '{% url 'promocoes_lista' %}', 'badge-percent')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="badge-percent"></i><span>Promoções</span></span><span class="launch-key">P</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>
             </div>
 
             <div class="space-y-5 md:space-y-6 launch-col launch-col--estoque">
-                <h3 class="text-amber-500 font-black uppercase text-xs tracking-widest border-b border-amber-500/25 pb-3">Logística e estoque</h3>
-                <button type="button" onclick="dashLaunchpadAbrir('Cadastro Produtos', '{% url 'produtos_cadastro_erp' %}', 'package')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="package"></i><span>Cadastro de produtos</span></span><span class="launch-key">R</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Entrada NF-e', '{% url 'entrada_nota' %}', 'file-input')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-input"></i><span>Entrada NF-e</span></span><span class="launch-key">N</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Estoque Agro', '{% url 'estoque_sincronizacao' %}', 'activity')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="activity"></i><span>Estoque (Agro)</span></span><span class="launch-key">Y</span></button>
+                <h3 class="text-amber-500 font-black uppercase text-xs tracking-widest border-b border-amber-500/25 pb-3">Estoque</h3>
+                <button type="button" onclick="dashLaunchpadAbrir('Ajuste de estoque', '{% url 'ajuste_mobile' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>Ajuste de estoque</span></span><span class="launch-key">A</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Compras', '{% url 'compras_view' %}', 'shopping-bag')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="shopping-bag"></i><span>Compras</span></span><span class="launch-key">F6</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Produtos', '{% url 'produtos_cadastro_erp' %}', 'package')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="package"></i><span>Produtos</span></span><span class="launch-key">R</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Entrada notas', '{% url 'entrada_nota' %}', 'file-input')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-input"></i><span>Entrada notas</span></span><span class="launch-key">N</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Logística', '{% url 'sugestao_transferencia' %}', 'git-compare-arrows')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="git-compare-arrows"></i><span>Logística (Transferências)</span></span><span class="launch-key">L</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Etiquetas', '{% url 'produtos_etiquetas' %}', 'tags')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="tags"></i><span>Etiquetas de preço</span></span><span class="launch-key">I</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Etiquetas', '{% url 'produtos_etiquetas' %}', 'tags')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="tags"></i><span>Etiquetas</span></span><span class="launch-key">I</span></button>
             </div>
 
             <div class="space-y-5 md:space-y-6 launch-col launch-col--financeiro">
@@ -626,9 +975,7 @@
                 <h3 class="text-purple-400 font-black uppercase text-xs tracking-widest border-b border-purple-400/25 pb-3">Gestão</h3>
                 <button type="button" onclick="dashLaunchpadAbrir('RH', '{% url 'rh_painel' %}', 'user-check')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="user-check"></i><span>Recursos Humanos</span></span><span class="launch-key">H</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Relatórios', '{% url 'relatorios_hub' %}', 'file-bar-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-bar-chart"></i><span>Relatórios gerais</span></span><span class="launch-key">T</span></button>
-                <button type="button" class="launch-btn group is-disabled" disabled title="Temporariamente desativado"><span class="inline-flex items-center gap-3"><i data-lucide="boxes"></i><span>Gestão de produtos</span></span><span class="launch-key">off</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Ajuste mobile', '{% url 'ajuste_mobile' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>Ajuste mobile</span></span><span class="launch-key">A</span></button>
-                <a href="{% url 'home_atalhos' %}" class="launch-btn no-underline justify-center opacity-90 hover:opacity-100" data-prefetch>Grade clássica de atalhos (página inteira)</a>
+                <button type="button" onclick="dashLaunchpadAbrir('Contabilidade', '{% url 'contabilidade_painel' %}', 'calculator')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="calculator"></i><span>Contabilidade</span></span><span class="launch-key">U</span></button>
             </div>
         </div>
     </div>
@@ -652,8 +999,53 @@ function toggleLaunchpad() {
     var estavaOculto = lp.classList.contains("hidden");
     lp.classList.toggle("hidden", !estavaOculto);
     document.body.classList.toggle("modal-open", estavaOculto);
-    if (estavaOculto && window.lucide) window.lucide.createIcons();
+    if (estavaOculto) {
+        if (window.lucide) window.lucide.createIcons();
+        syncLaunchpadScaleBar();
+    }
 }
+
+function syncLaunchpadScaleBar() {
+    var bar = document.getElementById("launchpad-scale-bar");
+    if (!bar || !window.AgroDisplayScale) return;
+    var scale = window.AgroDisplayScale.get();
+    var label = bar.querySelector("[data-launch-scale-value]");
+    if (label) label.textContent = Math.round(scale * 100) + "%";
+    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
+        var p = parseFloat(btn.getAttribute("data-launch-scale-preset"), 10);
+        btn.classList.toggle("is-active", Math.abs(scale - p) < 0.025);
+    });
+}
+
+(function initLaunchpadScaleBar() {
+    var bar = document.getElementById("launchpad-scale-bar");
+    if (!bar) return;
+    function applyScale(next) {
+        if (!window.AgroDisplayScale) return;
+        window.AgroDisplayScale.save(next);
+        syncLaunchpadScaleBar();
+    }
+    function step(delta) {
+        if (!window.AgroDisplayScale) return;
+        applyScale(window.AgroDisplayScale.get() + delta);
+    }
+    bar.querySelector("[data-launch-scale-minus]")?.addEventListener("click", function () { step(-0.05); });
+    bar.querySelector("[data-launch-scale-plus]")?.addEventListener("click", function () { step(0.05); });
+    bar.querySelectorAll("[data-launch-scale-preset]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            applyScale(parseFloat(btn.getAttribute("data-launch-scale-preset"), 10));
+        });
+    });
+    bar.querySelector("[data-launch-scale-recalc]")?.addEventListener("click", function () {
+        if (!window.AgroDisplayScale || !window.AgroDisplayScale.findMaxSafeScale) return;
+        var recalcBtn = bar.querySelector("[data-launch-scale-recalc]");
+        if (recalcBtn) recalcBtn.disabled = true;
+        window.AgroDisplayScale.findMaxSafeScale(function (best) {
+            applyScale(best);
+            if (recalcBtn) recalcBtn.disabled = false;
+        });
+    });
+})();
 
 function dashLaunchpadAbrir(titulo, url, icone) {
     var lp = document.getElementById("launchpad");
@@ -727,19 +1119,20 @@ document.addEventListener("keydown", function (e) {
         var html = "";
         html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version_label || info.version) + "</span></div>";
         if (info.build) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Build</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Atualização</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
         }
         if (info.commit) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Commit</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Revisão git</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
         }
         if (info.branch) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Branch</span><span class="agro-ver-pop__val">' + esc(info.branch) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Ambiente</span><span class="agro-ver-pop__val">' + esc(info.branch) + "</span></div>";
         }
         if (info.built_at) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Deploy</span><span class="agro-ver-pop__val mono">' + esc(info.built_at) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Publicado</span><span class="agro-ver-pop__val mono">' + esc(info.built_at) + "</span></div>";
         }
         var commits = Array.isArray(info.version_commits) ? info.version_commits : [];
         if (commits.length) {
+          html += '<p class="mt-2 mb-1 text-[9px] font-black uppercase tracking-wide text-slate-400">Histórico desta versão</p>';
           html += '<ul class="agro-ver-pop__commits">';
           commits.forEach(function (row) {
             var line = "";
@@ -755,6 +1148,7 @@ document.addEventListener("keydown", function (e) {
         pop.innerHTML = popoverHtml();
         pop.classList.remove("hidden");
         pop.setAttribute("aria-hidden", "false");
+        pop.setAttribute("translate", "no");
         var r = anchor.getBoundingClientRect();
         var margin = 8;
         pop.style.left = "0px";

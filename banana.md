@@ -366,10 +366,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.15`  
+**Versão:** `1.0.16`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (cherry-pick cadastro + etiquetas → `producao`)  
-**Versão app (`VERSION`):** **produção v1.38** (`2a1dc99`) · staging `teste`
+**Atualizado por:** assistente Cursor (pacotão BI + Nova saída + Contabilidade → `producao`)  
+**Versão app (`VERSION`):** **produção** (após deploy deste pacote) · staging `teste`
+
+### Pacotão produção — BI + Nova saída + Contabilidade (2026-06-19)
+
+**Um commit só** — reverter pedindo `git revert <hash>` se arrepender.
+
+| Bloco | O quê |
+|-------|--------|
+| **BI launchpad** | Orbes PDV/Orçamento + barra escala no menu F10 |
+| **Agro Display Scale** | `agro_display_scale.js`, botão **Aa** no BI, calibração global |
+| **KPIs** | Validade vermelho pulsante + «Conferir vencidos»; ticket médio layout |
+| **Versão BI** | `app_build_util.py` + `build_meta.py` — commit/branch Render no badge |
+| **Nova saída** | Grid 4 colunas, datas maiores, ícone calendário, empréstimo 5 colunas |
+| **Contabilidade** | `/contabilidade/` + API `export-xml` ZIP mensal NFC-e (módulo + migrations) |
+
+**Teste pós-deploy:** Ctrl+F5 BI → F10 orbes + escala · card Validade · Nova saída grid · `/contabilidade/`.
 
 ### Validação Renan — produção (2026-06-19)
 
@@ -569,7 +584,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** cadastro busca GM/barras + etiquetas EAN/CODE128/230… · v1.38 (`2a1dc99`). Antes: Lançamentos CP v1.33.
+**Acabou de subir em `producao`:** pacotão BI (launchpad+escala+KPIs+versão) + Nova saída grid + Contabilidade/XML NFC-e.
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
@@ -615,6 +630,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.15
+### Fim do checkpoint v1.0.16
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

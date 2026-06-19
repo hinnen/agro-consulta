@@ -399,6 +399,11 @@ class VendaAgro(models.Model):
         help_text="IDs de MovimentoCaixa (retirada) gerados na devolução.",
     )
     devolucao_usuario = models.CharField(max_length=150, blank=True, default="")
+    nfce_solicitada = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="PDV pediu cupom fiscal (NFC-e) nesta venda.",
+    )
 
     class Meta:
         ordering = ["-criado_em"]
