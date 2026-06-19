@@ -364,7 +364,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.13`  
 **Última atualização:** `2026-06-19`  
 **Atualizado por:** assistente Cursor (cherry-pick PDV wizard GM → `producao`)  
-**Versão app (`VERSION`):** bump neste cherry-pick · **produção** após deploy · staging `teste` `e055761`
+**Versão app (`VERSION`):** **`1.16`** · commit **`0479618`** em **`producao`** (cherry-pick de `e055761` / teste)
 
 ### O que este documento já cobre (até aqui)
 
@@ -514,7 +514,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
 
-**Acabou de subir em `producao`:** cherry-pick `e055761` — `pdv_wizard.js` + `banana.md` (fix GM/hífen no wizard).
+**Acabou de subir em `producao`:** cherry-pick **`0479618`** v**1.16** — `pdv_wizard.js` + `banana.md`.
 
 ### Pendências conhecidas (produto)
 
