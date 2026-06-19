@@ -397,7 +397,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
 
-**Onde:** modal **Nova saída** + tela **Lote manual** (`/lancamentos/novo-manual/`).
+**Onde:** modal **Nova saída** em **Lançamentos** (`/lancamentos/`) + **Lote manual** (`/lancamentos/novo-manual/`). **Sem** botão no BI (`/`).
 
 **Plano na lista:** `Empréstimo (entrada + pagamento)` (buscar «emprest»).
 
