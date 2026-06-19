@@ -373,6 +373,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### CP — checkbox seleção maior (2026-06-19, produção)
 
+**Commit:** `1268b1e` · v1.44
+
 | O quê | Detalhe |
 |-------|---------|
 | **Checkbox lista** | 22px → **26px**; coluna seleção **48px** |
