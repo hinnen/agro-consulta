@@ -121,17 +121,37 @@
   .sv-cols-btn:hover { background: #ecfdf5; border-color: #d97706; }
   .sv-cols-dd {
     display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 40;
-    width: 15rem; max-height: 18rem; overflow-y: auto;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px rgba(15,23,42,0.12);
-    padding: 8px;
+    width: min(17.5rem, 92vw); max-height: min(22rem, 58vh); overflow: hidden;
+    background: #fff; border: 2px solid #cbd5e1; border-radius: 12px; box-shadow: 0 10px 28px rgba(15,23,42,0.14);
+    padding: 0; flex-direction: column;
   }
-  .sv-cols-dd.show { display: block; }
-  .sv-cols-dd label {
-    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
-    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  .sv-cols-dd.show { display: flex; }
+  .sv-cols-dd-list { overflow-y: auto; padding: 6px; flex: 1; min-height: 0; }
+  .sv-cols-dd-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+    font-size: 0.84rem; font-weight: 600; cursor: grab; user-select: none;
+    border: 1px solid transparent;
   }
-  .sv-cols-dd label:hover { background: #f8fafc; }
-  .sv-cols-dd input { accent-color: #d97706; width: 16px; height: 16px; flex-shrink: 0; }
+  .sv-cols-dd-item:hover { background: #f8fafc; }
+  .sv-cols-dd-item.drag-over { background: #ecfdf5; border-color: #059669; }
+  .sv-cols-dd-item.is-dragging { opacity: 0.45; }
+  .sv-cols-drag {
+    flex-shrink: 0; width: 1.1rem; text-align: center; color: #94a3b8; font-weight: 900; line-height: 1; cursor: grab;
+  }
+  .sv-cols-dd-item input[type="checkbox"] { accent-color: #d97706; width: 17px; height: 17px; flex-shrink: 0; cursor: pointer; }
+  .sv-cols-dd-item span:last-child { flex: 1; min-width: 0; }
+  .sv-cols-dd-foot {
+    padding: 8px 10px 10px; border-top: 2px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;
+  }
+  .sv-cols-save-btn {
+    width: 100%; min-height: 42px; border-radius: 10px; border: none;
+    background: #059669; color: #fff; font-size: 0.72rem; font-weight: 900; text-transform: uppercase;
+    cursor: pointer; letter-spacing: 0.03em;
+  }
+  .sv-cols-save-btn:hover { background: #047857; }
+  .sv-cols-save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .sv-cols-save-hint { display: block; margin-top: 6px; font-size: 0.68rem; font-weight: 600; color: #64748b; line-height: 1.35; text-align: center; }
+  .sv-cols-save-ok { color: #059669; font-weight: 800; }
   .sv-btn-log { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
   .sv-btn-log:hover { background: #c7d2fe; }
   .sv-log-eventos { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
@@ -274,8 +294,7 @@
   .sv-plano-mini-btn:hover { background: #f1f3f5; border-color: var(--cor-primaria); }
   .sv-planos-block { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
   .sv-planos-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; margin-bottom: 10px; }
-  .sv-planos-title { font-weight: 700; font-size: 1rem; color: var(--cor-texto-principal); margin: 0 0 4px; }
-  .sv-planos-hint { font-size: 0.85rem; color: var(--cor-texto-secundario); margin: 0; max-width: 42rem; line-height: 1.35; }
+  .sv-planos-title { font-weight: 700; font-size: 1rem; color: var(--cor-texto-principal); margin: 0; }
   .sv-plano-chks {
     display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;
     min-height: 2.5rem; max-height: min(36vh, 280px); overflow-y: auto;
@@ -382,7 +401,6 @@
       <div class="sv-planos-head">
         <div>
           <p class="sv-planos-title">Planos de contas</p>
-          <p class="sv-planos-hint">Marcados aparecem na lista. Desmarque os que não quer ver (mesmos filtros de vencimento e situação acima).</p>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
           <button type="button" class="sv-plano-mini-btn" id="sv-plano-todos">Marcar todos</button>
@@ -407,7 +425,13 @@
         <button type="button" class="sv-cols-btn" id="sv-btn-cols" aria-expanded="false" aria-haspopup="true" aria-controls="sv-cols-dd" title="Colunas visíveis na lista">
           <span aria-hidden="true">▦</span> Colunas <span aria-hidden="true">▾</span>
         </button>
-        <div id="sv-cols-dd" class="sv-cols-dd" role="menu" aria-label="Colunas da lista"></div>
+        <div id="sv-cols-dd" class="sv-cols-dd" role="menu" aria-label="Colunas da lista">
+          <div id="sv-cols-dd-list" class="sv-cols-dd-list"></div>
+          <div class="sv-cols-dd-foot">
+            <button type="button" id="sv-cols-save" class="sv-cols-save-btn">Salvar no meu PIN</button>
+            <span id="sv-cols-save-hint" class="sv-cols-save-hint">Arraste para ordenar · salva no operador do PIN</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -521,26 +545,27 @@
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
   const URL_CLASSICO = "{% url 'lancamentos_contas_pagar_classico' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
-  const LS_EXCL_PLANOS = 'gm_fin_planos_excl_v1';
+  const LS_COLS_PIN = 'gm_fin_sv_cp_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
   const TIPO_CONTAS = 'pagar';
+  const DEFAULT_VISIBLE_IDS = ['venc', 'forn', 'plano', 'desc', 'saldo', 'status', 'nf', 'pagar'];
 
   const COL_DEFS = [
     { id: 'chk', label: 'Seleção', w: '42px', lock: true },
     { id: 'venc', label: 'Vencimento', w: 'minmax(88px, 108px)' },
-    { id: 'forn', label: 'Fornecedor', w: 'minmax(120px, 1fr)', defOff: true },
+    { id: 'forn', label: 'Fornecedor', w: 'minmax(120px, 1fr)' },
     { id: 'usr_lanc', label: 'Lançado por', w: 'minmax(88px, 118px)', defOff: true },
     { id: 'usr_quit', label: 'Quitado por', w: 'minmax(88px, 118px)', defOff: true },
     { id: 'hora', label: 'Horário', w: 'minmax(118px, 138px)', defOff: true },
     { id: 'fluxo', label: 'Data fluxo', w: 'minmax(88px, 108px)', defOff: true },
     { id: 'forma', label: 'Forma pagamento', w: 'minmax(90px, 120px)', defOff: true },
-    { id: 'plano', label: 'Plano / grupo', w: 'minmax(90px, 130px)', defOff: true },
-    { id: 'desc', label: 'Descrição', w: 'minmax(100px, 160px)', defOff: true },
+    { id: 'plano', label: 'Plano / grupo', w: 'minmax(90px, 130px)' },
+    { id: 'desc', label: 'Descrição', w: 'minmax(100px, 160px)' },
     { id: 'banco', label: 'Banco / conta', w: 'minmax(90px, 120px)', defOff: true },
     { id: 'bruto', label: 'Bruto', w: 'minmax(96px, 118px)', defOff: true },
     { id: 'mov', label: 'Pago', w: 'minmax(96px, 118px)', defOff: true },
-    { id: 'saldo', label: 'Saldo', w: 'minmax(96px, 118px)', defOff: true },
-    { id: 'valor', label: 'Valor (lista)', w: 'minmax(118px, 148px)' },
+    { id: 'saldo', label: 'Saldo', w: 'minmax(96px, 118px)' },
+    { id: 'valor', label: 'Valor (lista)', w: 'minmax(118px, 148px)', defOff: true },
     { id: 'status', label: 'Status', w: 'minmax(96px, 118px)' },
     { id: 'nf', label: 'NF', w: 'minmax(52px, 64px)' },
     { id: 'pagar', label: 'Pagar', w: 'minmax(92px, 108px)' },
@@ -605,6 +630,16 @@
 
   let prefiltroAtivo = '';
   let planosCarregados = false;
+  /** Planos desmarcados só nesta sessão — não persiste ao fechar o sistema. */
+  let planosExcluidosMem = new Set();
+
+  function getExcludedSet() {
+    return planosExcluidosMem;
+  }
+
+  function saveExcludedSet(set) {
+    planosExcluidosMem = set instanceof Set ? set : new Set(set);
+  }
 
   function marcarPrefiltro(id) {
     prefiltroAtivo = id || '';
@@ -677,67 +712,249 @@
     }
   }
 
+  function colById(id) {
+    return COL_DEFS.find((c) => c.id === id);
+  }
+
   function defaultColsMap() {
     const o = {};
-    COL_DEFS.forEach((c) => { o[c.id] = !c.defOff; });
+    COL_DEFS.forEach((c) => {
+      if (c.lock) return;
+      o[c.id] = DEFAULT_VISIBLE_IDS.includes(c.id);
+    });
     return o;
   }
 
+  function defaultColsOrder() {
+    const front = ['chk', ...DEFAULT_VISIBLE_IDS, 'expand'];
+    const rest = COL_DEFS.map((c) => c.id).filter((id) => !front.includes(id));
+    return [...front, ...rest];
+  }
+
+  function normalizeColsOrder(order) {
+    const ids = COL_DEFS.map((c) => c.id);
+    const seen = new Set();
+    const out = [];
+    (Array.isArray(order) ? order : []).forEach((id) => {
+      if (ids.includes(id) && !seen.has(id)) { out.push(id); seen.add(id); }
+    });
+    ids.forEach((id) => { if (!seen.has(id)) out.push(id); });
+    const mid = out.filter((id) => id !== 'chk' && id !== 'expand');
+    return ['chk', ...mid, 'expand'];
+  }
+
+  function getOperadorPin() {
+    try { return (localStorage.getItem('gm_sspin_operador') || '').trim(); } catch (_) { return ''; }
+  }
+
+  function readAllColsPinStore() {
+    try {
+      const raw = localStorage.getItem(LS_COLS_PIN);
+      return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeAllColsPinStore(store) {
+    try {
+      localStorage.setItem(LS_COLS_PIN, JSON.stringify(store));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  let colsOrderMem = defaultColsOrder();
   let colsMapMem = defaultColsMap();
+  let colsDraftOrder = null;
+  let colsDraftMap = null;
+  let colsDragId = null;
+
+  function loadColsForOperador() {
+    const op = getOperadorPin();
+    if (!op) {
+      colsOrderMem = defaultColsOrder();
+      colsMapMem = defaultColsMap();
+      return;
+    }
+    const saved = readAllColsPinStore()[op];
+    if (saved && saved.visible && saved.order) {
+      colsMapMem = { ...defaultColsMap(), ...saved.visible };
+      colsOrderMem = normalizeColsOrder(saved.order);
+      return;
+    }
+    colsOrderMem = defaultColsOrder();
+    colsMapMem = defaultColsMap();
+  }
+
+  function activeColsMap() {
+    return colsDraftMap || colsMapMem;
+  }
+
+  function activeColsOrder() {
+    return colsDraftOrder || colsOrderMem;
+  }
+
+  function orderedVisibleColIds() {
+    const m = activeColsMap();
+    return activeColsOrder().filter((id) => {
+      const c = colById(id);
+      return c && (c.lock || m[id] !== false);
+    });
+  }
 
   function loadColsMap() {
-    return colsMapMem;
+    return activeColsMap();
   }
 
   function saveColsMap(m) {
-    colsMapMem = { ...m };
+    if (colsDraftMap) colsDraftMap = { ...m };
+    else colsMapMem = { ...m };
   }
 
   function gridTemplateFromCols() {
-    const m = loadColsMap();
-    return COL_DEFS.filter((c) => c.lock || m[c.id] !== false).map((c) => c.w).join(' ');
+    return orderedVisibleColIds().map((id) => colById(id).w).join(' ');
   }
 
   function applyGridCols() {
     const tpl = gridTemplateFromCols();
+    const order = activeColsOrder();
+    const m = activeColsMap();
     document.querySelectorAll('.sv-list-cols').forEach((el) => {
       el.style.gridTemplateColumns = tpl;
     });
-    const m = loadColsMap();
     COL_DEFS.forEach((c) => {
-      if (c.lock) return;
-      const on = m[c.id] !== false;
+      const idx = order.indexOf(c.id);
+      const on = c.lock || m[c.id] !== false;
       document.querySelectorAll(`[data-col-id="${c.id}"]`).forEach((el) => {
         el.classList.toggle('sv-col-off', !on);
+        el.style.order = idx >= 0 ? String(idx) : '';
       });
     });
   }
 
+  function reorderableColIds(order) {
+    return order.filter((id) => {
+      const c = colById(id);
+      return c && !c.lock;
+    });
+  }
+
+  function reorderDraftCol(fromId, toId) {
+    if (!fromId || !toId || fromId === toId || !colsDraftOrder) return;
+    const order = colsDraftOrder.slice();
+    const fromIdx = order.indexOf(fromId);
+    const toIdx = order.indexOf(toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    order.splice(fromIdx, 1);
+    order.splice(toIdx, 0, fromId);
+    colsDraftOrder = normalizeColsOrder(order);
+  }
+
   function buildColDropdown() {
-    const el = document.getElementById('sv-cols-dd');
+    const el = document.getElementById('sv-cols-dd-list');
     if (!el) return;
-    const m = loadColsMap();
-    el.innerHTML = COL_DEFS.filter((c) => !c.lock).map((c) => `
-      <label>
-        <input type="checkbox" class="sv-col-chk" data-col-id="${c.id}" ${m[c.id] !== false ? 'checked' : ''}>
-        <span>${esc(c.label)}</span>
-      </label>
-    `).join('');
-    el.querySelectorAll('.sv-col-chk').forEach((ch) => {
-      ch.addEventListener('change', () => {
-        const mm = loadColsMap();
-        mm[ch.dataset.colId] = ch.checked;
-        saveColsMap(mm);
+    const m = activeColsMap();
+    const ids = reorderableColIds(activeColsOrder());
+    el.innerHTML = ids.map((id) => {
+      const c = colById(id);
+      if (!c) return '';
+      return `
+        <div class="sv-cols-dd-item" draggable="true" data-col-id="${id}">
+          <span class="sv-cols-drag" aria-hidden="true">⋮⋮</span>
+          <input type="checkbox" class="sv-col-chk" data-col-id="${id}" ${m[id] !== false ? 'checked' : ''} aria-label="Mostrar ${esc(c.label)}">
+          <span>${esc(c.label)}</span>
+        </div>`;
+    }).join('');
+    el.querySelectorAll('.sv-cols-dd-item').forEach((item) => {
+      const id = item.dataset.colId;
+      item.addEventListener('dragstart', (e) => {
+        colsDragId = id;
+        item.classList.add('is-dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', id);
+        }
+      });
+      item.addEventListener('dragend', () => {
+        colsDragId = null;
+        item.classList.remove('is-dragging');
+        el.querySelectorAll('.sv-cols-dd-item').forEach((n) => n.classList.remove('drag-over'));
+      });
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        item.classList.add('drag-over');
+      });
+      item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        item.classList.remove('drag-over');
+        const from = colsDragId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+        reorderDraftCol(from, id);
+        buildColDropdown();
         applyGridCols();
       });
     });
+    el.querySelectorAll('.sv-col-chk').forEach((ch) => {
+      ch.addEventListener('change', () => {
+        if (!colsDraftMap) colsDraftMap = { ...colsMapMem };
+        colsDraftMap[ch.dataset.colId] = ch.checked;
+        applyGridCols();
+      });
+      ch.addEventListener('click', (e) => e.stopPropagation());
+    });
+    const hint = document.getElementById('sv-cols-save-hint');
+    const op = getOperadorPin();
+    if (hint) {
+      hint.innerHTML = op
+        ? `Operador: <strong>${esc(op)}</strong> · arraste para ordenar`
+        : 'Informe seu PIN antes de salvar';
+    }
+  }
+
+  function salvarColsNoPin() {
+    const op = getOperadorPin();
+    if (!op) {
+      alert('Digite seu PIN na entrada do módulo antes de salvar as colunas.');
+      return;
+    }
+    if (colsDraftMap) colsMapMem = { ...colsDraftMap };
+    if (colsDraftOrder) colsOrderMem = colsDraftOrder.slice();
+    const store = readAllColsPinStore();
+    store[op] = { visible: { ...colsMapMem }, order: colsOrderMem.slice() };
+    if (!writeAllColsPinStore(store)) {
+      alert('Não foi possível gravar a configuração neste navegador.');
+      return;
+    }
+    const hint = document.getElementById('sv-cols-save-hint');
+    if (hint) hint.innerHTML = `<span class="sv-cols-save-ok">Salvo para ${esc(op)}</span>`;
+    colsDraftMap = null;
+    colsDraftOrder = null;
+  }
+
+  function beginColsDraft() {
+    colsDraftMap = { ...colsMapMem };
+    colsDraftOrder = colsOrderMem.slice();
+    buildColDropdown();
+    applyGridCols();
+  }
+
+  function cancelColsDraft() {
+    colsDraftMap = null;
+    colsDraftOrder = null;
+    applyGridCols();
   }
 
   function toggleColsDropdown(force) {
     const dd = document.getElementById('sv-cols-dd');
     const btn = document.getElementById('sv-btn-cols');
     if (!dd || !btn) return;
-    const open = typeof force === 'boolean' ? force : !dd.classList.contains('show');
+    const wasOpen = dd.classList.contains('show');
+    const open = typeof force === 'boolean' ? force : !wasOpen;
+    if (wasOpen && !open) cancelColsDraft();
+    if (open && !wasOpen) beginColsDraft();
     dd.classList.toggle('show', open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
@@ -1026,27 +1243,6 @@
     if (de) p.set('venc_de', de);
     if (ate) p.set('venc_ate', ate);
     return p;
-  }
-
-  function loadExclMap() {
-    try {
-      const x = JSON.parse(localStorage.getItem(LS_EXCL_PLANOS) || '{}');
-      return x && typeof x === 'object' ? x : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  function getExcludedSet() {
-    const m = loadExclMap();
-    const arr = m[TIPO_CONTAS];
-    return new Set(Array.isArray(arr) ? arr : []);
-  }
-
-  function saveExcludedSet(set) {
-    const m = loadExclMap();
-    m[TIPO_CONTAS] = Array.from(set);
-    localStorage.setItem(LS_EXCL_PLANOS, JSON.stringify(m));
   }
 
   async function carregarPlanos() {
@@ -1550,8 +1746,9 @@
     document.getElementById('sv-ps').value = '50';
     document.getElementById('sv-busca').value = '';
     marcarPrefiltro('');
+    saveExcludedSet(new Set());
     page = 1;
-    carregar(false);
+    carregarPlanos().then(() => carregar(false));
   }
 
   document.getElementById('sv-log-fechar')?.addEventListener('click', () => fecharModal('sv-modal-log'));
@@ -1559,11 +1756,24 @@
     e.stopPropagation();
     toggleColsDropdown();
   });
+  document.getElementById('sv-cols-save')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    salvarColsNoPin();
+  });
   document.addEventListener('click', (e) => {
     const wrap = document.querySelector('.sv-cols-wrap');
     if (wrap && !wrap.contains(e.target)) toggleColsDropdown(false);
   });
 
+  window.addEventListener('gm-sspin-operador', () => {
+    cancelColsDraft();
+    toggleColsDropdown(false);
+    loadColsForOperador();
+    buildColDropdown();
+    applyGridCols();
+  });
+
+  loadColsForOperador();
   buildColDropdown();
   applyGridCols();
 

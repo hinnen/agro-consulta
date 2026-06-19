@@ -391,6 +391,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - [x] **Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (2026-06-18)
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
 - [x] **Contas a pagar — layout novo padrão** + `/classico/` (2026-06-19)
+- [x] **Lista CP — colunas por PIN** (visibilidade, ordem drag, save) (2026-06-19)
 - [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
 - [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
 
@@ -407,6 +408,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 
 **Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
+
+**Colunas (menu ▦ Colunas):** visibilidade + ordem por **operador do PIN** (`localStorage` `gm_fin_sv_cp_cols_v1`). Botão **Salvar no meu PIN** grava; persiste ao fechar o sistema. Arrastar **⋮⋮** na lista — quanto mais acima, mais à esquerda na tabela. **Padrão** (sem save): Vencimento · Fornecedor · Plano/grupo · Descrição · Saldo · Status · NF · Pagar.
+
+**Planos de contas (filtros):** todos **marcados ao abrir**; desmarcar vale só na sessão (não grava — ao reabrir o sistema volta tudo marcado).
 
 **Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados.
 
