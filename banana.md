@@ -379,10 +379,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.32`  
+**Versão:** `1.0.33`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (deploy produção empréstimo dual forma + layout; Renan desistiu do layout Valor)  
-**Versão app (`VERSION`):** **teste** v1.71 · **produção** v1.51 (`76e2a8b`)
+**Atualizado por:** assistente Cursor (juros empréstimo dual parcelado + composição UI)  
+**Versão app (`VERSION`):** **teste** v1.72+ · **produção** v1.51 (`76e2a8b`)
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -446,7 +446,17 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla 3 itens |
 | Fix v1.50 | «ADICIONAR CONTA» não vale para **quitado** |
 | Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — 4ª coluna da grade; backend `_fin_ln_campo` / expandir dual |
-| Layout Valor dual | **Renan não satisfeito** — tentativas v1.70–v1.71 (lado a lado); **desistiu**; subiu assim mesmo em **produção v1.51** |
+| Layout Valor dual | **Renan não satisfeito** — tentativas v1.70–v1.71; **desistiu**; produção v1.51 |
+| Juros dual parcelado | Saída &gt; entrada → cada parcela gera **Pagamento** + **Juros** (proporcional); UI mostra «231,85 + 18,15» + **?** na grade |
+
+### Empréstimo dual — juros parcelado (2026-06-19)
+
+**Regra (Renan):** parcelas somam **valor saída** (ex. 4×250 = 1000). Diferença saída−entrada (72,60) vira **Juros de Empréstimos** **por parcela** (18,15), restante **Pagamento de Empréstimos** (231,85). Antes validava contra entrada e juros iam num título só.
+
+**UI:** valor da parcela continua 250; abaixo «231,85 + 18,15» + **?** explicando planos. Modo Total: hint sob valores entrada/saída.
+
+**Backend:** `expandir_linhas_emprestimo_dual_lote` + `split_decimal_proporcional`.
+
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
 ### Empréstimo dual forma + layout → **produção** (2026-06-19, Renan pediu)
@@ -562,7 +572,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 | `/lancamentos/contas-pagar/classico/` | Tabela clássica |
 | `/lancamentos/contas-pagar/teste/` | Redirect → padrão |
 
-**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. Editar/excluir no clássico: `?retorno=` mantém filtros ao voltar.
+**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. **Editar / Excluir** no layout novo: modal + APIs `alterar`/`excluir` (sem redirecionar ao clássico); vista preservada após salvar/excluir.
 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 
@@ -756,6 +766,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.32
+### Fim do checkpoint v1.0.33
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

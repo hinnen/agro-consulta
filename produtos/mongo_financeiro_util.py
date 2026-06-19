@@ -5052,7 +5052,8 @@ def expandir_linhas_emprestimo_dual_lote(
 ) -> list[dict[str, Any]]:
     """
     Pseudo-plano «Empréstimo (entrada + pagamento)» → receita quitada (hoje) + despesa(s).
-    Se valor saída > entrada, a diferença vira título em «Juros de Empréstimos».
+    Se valor saída > entrada, a diferença vira «Juros de Empréstimos» **em cada parcela**
+    (proporcional ao valor da parcela). Parcelas somam o valor de saída.
     """
     if hoje is None:
         hoje = timezone.localdate()
@@ -5146,10 +5147,8 @@ def expandir_linhas_emprestimo_dual_lote(
         )
 
         if vs > ve:
-            pag_val = ve
             juros_val = (vs - ve).quantize(Decimal("0.01"))
         else:
-            pag_val = vs
             juros_val = Decimal("0")
 
         try:
@@ -5195,68 +5194,78 @@ def expandir_linhas_emprestimo_dual_lote(
                 parcelas_pag.append((v_i, dv_i, q_i))
             if parcelas_pag:
                 soma_p = sum(v for v, _, _ in parcelas_pag).quantize(Decimal("0.01"))
-                if abs(soma_p - pag_val) > Decimal("0.02"):
+                if abs(soma_p - vs) > Decimal("0.02"):
                     out.append(
                         {
                             **ln,
                             "_emprestimo_dual_erro": (
-                                f"Soma das parcelas ({soma_p}) difere do valor de pagamento ({pag_val})."
+                                f"Soma das parcelas ({soma_p}) difere do valor de saída ({vs})."
                             ),
                         }
                     )
                     parcelas_pag = []
         elif n_parc > 1:
-            for i, v_i in enumerate(split_decimal_em_parcelas(pag_val, n_parc)):
+            for i, v_i in enumerate(split_decimal_em_parcelas(vs, n_parc)):
                 parcelas_pag.append((v_i, dv_base + timedelta(days=i * int_dias), quit_padrao))
         else:
-            parcelas_pag = [(pag_val, dv_base, quit_padrao)]
+            parcelas_pag = [(vs, dv_base, quit_padrao)]
 
         if not parcelas_pag:
             continue
 
+        valores_parc = [v for v, _, _ in parcelas_pag]
+        juros_por_parc = (
+            split_decimal_proporcional(juros_val, valores_parc)
+            if juros_val > Decimal("0.009")
+            else [Decimal("0")] * len(parcelas_pag)
+        )
+
         n_tot = len(parcelas_pag)
         for i, (v_parc, dv_parc, q_parc) in enumerate(parcelas_pag):
+            juros_i = juros_por_parc[i].quantize(Decimal("0.01"))
+            principal_i = (v_parc - juros_i).quantize(Decimal("0.01"))
             desc_pag = (desc_base or f"Pagamento empréstimo — {pes}")[:500]
+            desc_jur = (desc_base or f"Juros empréstimo — {pes}")[:500]
             if n_tot > 1:
-                desc_pag = f"{desc_pag} (parcela {i + 1}/{n_tot})"[:500]
-            out.append(
-                {
-                    **base,
-                    "tipo": "pagar",
-                    "despesa": True,
-                    "plano_conta": plano_pag,
-                    "plano_conta_id": None,
-                    "valor": float(v_parc),
-                    "data_competencia": dc_base.isoformat(),
-                    "data_vencimento": dv_parc.isoformat(),
-                    "quitado": bool(q_parc),
-                    "descricao": desc_pag,
-                    "recorrente": False,
-                    "forma_nome": fs_nome[:200] if fs_nome else "",
-                    "forma_id": fs_id if fs_nome else None,
-                }
-            )
-
-        if juros_val > Decimal("0.009"):
-            dv_juros = parcelas_pag[-1][1]
-            q_juros = any(q for _, _, q in parcelas_pag)
-            out.append(
-                {
-                    **base,
-                    "tipo": "pagar",
-                    "despesa": True,
-                    "plano_conta": plano_juros,
-                    "plano_conta_id": None,
-                    "valor": float(juros_val),
-                    "data_competencia": dc_base.isoformat(),
-                    "data_vencimento": dv_juros.isoformat(),
-                    "quitado": q_juros,
-                    "descricao": (desc_base or f"Juros empréstimo — {pes}")[:500],
-                    "recorrente": False,
-                    "forma_nome": fs_nome[:200] if fs_nome else "",
-                    "forma_id": fs_id if fs_nome else None,
-                }
-            )
+                sufix = f" (parcela {i + 1}/{n_tot})"
+                desc_pag = f"{desc_pag}{sufix}"[:500]
+                desc_jur = f"{desc_jur}{sufix}"[:500]
+            if principal_i > Decimal("0.009"):
+                out.append(
+                    {
+                        **base,
+                        "tipo": "pagar",
+                        "despesa": True,
+                        "plano_conta": plano_pag,
+                        "plano_conta_id": None,
+                        "valor": float(principal_i),
+                        "data_competencia": dc_base.isoformat(),
+                        "data_vencimento": dv_parc.isoformat(),
+                        "quitado": bool(q_parc),
+                        "descricao": desc_pag,
+                        "recorrente": False,
+                        "forma_nome": fs_nome[:200] if fs_nome else "",
+                        "forma_id": fs_id if fs_nome else None,
+                    }
+                )
+            if juros_i > Decimal("0.009"):
+                out.append(
+                    {
+                        **base,
+                        "tipo": "pagar",
+                        "despesa": True,
+                        "plano_conta": plano_juros,
+                        "plano_conta_id": None,
+                        "valor": float(juros_i),
+                        "data_competencia": dc_base.isoformat(),
+                        "data_vencimento": dv_parc.isoformat(),
+                        "quitado": bool(q_parc),
+                        "descricao": desc_jur,
+                        "recorrente": False,
+                        "forma_nome": fs_nome[:200] if fs_nome else "",
+                        "forma_id": fs_id if fs_nome else None,
+                    }
+                )
 
     return out
 
@@ -5588,6 +5597,30 @@ def inserir_lancamentos_manual_lote(
         "ids": inserted,
         "erros": erros,
     }
+
+
+def split_decimal_proporcional(total: Decimal, pesos: list[Decimal]) -> list[Decimal]:
+    """Divide total entre pesos (centavos) sem perder a soma."""
+    total = total.quantize(Decimal("0.01"))
+    n = len(pesos)
+    if n == 0:
+        return []
+    soma_pesos = sum(pesos)
+    if soma_pesos <= 0:
+        return [Decimal("0")] * n
+    cents_total = int((total * 100).to_integral_value())
+    floors: list[int] = []
+    remainders: list[Decimal] = []
+    for p in pesos:
+        exact = Decimal(cents_total) * p / soma_pesos
+        fl = int(exact.to_integral_value())
+        floors.append(fl)
+        remainders.append(exact - Decimal(fl))
+    diff = cents_total - sum(floors)
+    if diff > 0:
+        for idx in sorted(range(n), key=lambda i: remainders[i], reverse=True)[:diff]:
+            floors[idx] += 1
+    return [Decimal(c) / Decimal(100) for c in floors]
 
 
 def split_decimal_em_parcelas(total: Decimal, n: int) -> list[Decimal]:

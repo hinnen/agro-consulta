@@ -230,6 +230,79 @@
     return card.querySelector('.agro-ns-in-valor');
   }
 
+  function dualValoresEntradaSaida(card) {
+    const dual = window.AgroLancEmprestimoDual;
+    if (!dual || !dual.isCardDual(card)) return null;
+    const ve = parseValorBr(card.querySelector('.agro-ns-in-valor-entrada')?.value);
+    const vs = parseValorBr(card.querySelector('.agro-ns-in-valor-saida')?.value);
+    if (ve == null || vs == null || vs <= ve) return null;
+    return { ve, vs, juros: vs - ve };
+  }
+
+  function dualComposicaoParcela(card, valorParc) {
+    const d = dualValoresEntradaSaida(card);
+    if (!d || valorParc == null || valorParc <= 0) return null;
+    const principal = Math.round(valorParc * (d.ve / d.vs) * 100) / 100;
+    const juros = Math.round(valorParc * (d.juros / d.vs) * 100) / 100;
+    return { principal, juros };
+  }
+
+  function htmlComposicaoParcela(card, valorParc) {
+    const c = dualComposicaoParcela(card, valorParc);
+    if (!c) return '';
+    return `<div class="agro-ns-parc-composicao">
+      <span class="agro-ns-parc-composicao-val">${formatValorBr(c.principal)} + ${formatValorBr(c.juros)}</span>
+      <details class="agro-ns-parc-composicao-help">
+        <summary class="agro-ns-parc-composicao-q" aria-label="Composição da parcela">?</summary>
+        <div class="agro-ns-parc-composicao-pop">
+          <strong>Pagamento de Empréstimos</strong> ${formatValorBr(c.principal)}<br>
+          <strong>Juros de Empréstimos</strong> ${formatValorBr(c.juros)}<br>
+          <span class="text-slate-500">Proporção entrada ÷ saída em cada parcela.</span>
+        </div>
+      </details>
+    </div>`;
+  }
+
+  function syncDualComposicaoLinhas(card) {
+    if (!dualValoresEntradaSaida(card)) {
+      card.querySelectorAll('.agro-ns-parc-composicao').forEach((el) => el.remove());
+      return;
+    }
+    card.querySelectorAll('.agro-ns-parc-tbody tr').forEach((tr) => {
+      const val = parseValorBr(tr.querySelector('.agro-ns-parc-val')?.value);
+      const td = tr.querySelector('td:last-child');
+      if (!td) return;
+      const html = htmlComposicaoParcela(card, val);
+      const old = td.querySelector('.agro-ns-parc-composicao');
+      if (!html) {
+        old?.remove();
+        return;
+      }
+      if (old) old.outerHTML = html;
+      else td.insertAdjacentHTML('beforeend', html);
+    });
+  }
+
+  function syncDualTotalHint(card) {
+    const box = card.querySelector('.agro-ns-dual-total-hint');
+    if (!box) return;
+    const d = dualValoresEntradaSaida(card);
+    const multi = parcModoAtual(card) === 'parcela' && parcNumero(card) > 1;
+    if (!d || multi) {
+      box.classList.add('hidden');
+      box.textContent = '';
+      return;
+    }
+    const vs = parseValorBr(card.querySelector('.agro-ns-in-valor-saida')?.value);
+    const c = dualComposicaoParcela(card, vs);
+    if (!c) {
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = `Será lançado: <strong>Pagamento de Empréstimos</strong> ${formatValorBr(c.principal)} + <strong>Juros de Empréstimos</strong> ${formatValorBr(c.juros)}`;
+  }
+
   function parcSegEl(card) {
     const alvo = parcAlvoCard(card);
     return card.querySelector(`.agro-ns-parc-seg[data-parc-alvo="${alvo}"]`);
@@ -260,6 +333,7 @@
     const isParcela = parcModoAtual(card) === 'parcela';
     wrap.classList.toggle('hidden', !isParcela);
     syncQuitadoUiModoParc(card);
+    syncDualTotalHint(card);
     if (!isParcela) {
       const num = card.querySelector('.agro-ns-parc-num');
       if (num) num.value = '1';
@@ -340,15 +414,21 @@
             <span class="agro-ns-parc-quit-btn">Quitado</span>
           </label>
         </td>
-        <td><input type="text" inputmode="decimal" class="agro-ns-parc-val agro-ns-input w-full text-right" value="${formatValorBr(val)}"></td>
+        <td><input type="text" inputmode="decimal" class="agro-ns-parc-val agro-ns-input w-full text-right" value="${formatValorBr(val)}">${htmlComposicaoParcela(card, val)}</td>
       </tr>`;
     }).join('');
     tbody.innerHTML = rows;
     preview.classList.remove('hidden');
     bindDatePickersIn(tbody);
     tbody.querySelectorAll('.agro-ns-parc-dv, .agro-ns-parc-val').forEach((el) => {
-      el.addEventListener('input', () => syncParcWrap(card));
-      el.addEventListener('change', () => syncParcWrap(card));
+      el.addEventListener('input', () => {
+        syncParcWrap(card);
+        syncDualComposicaoLinhas(card);
+      });
+      el.addEventListener('change', () => {
+        syncParcWrap(card);
+        syncDualComposicaoLinhas(card);
+      });
     });
     tbody.querySelectorAll('.agro-ns-parc-quit').forEach((el) => {
       el.addEventListener('change', (ev) => {
@@ -362,6 +442,8 @@
       if (btn) btn.classList.toggle('is-on', el.checked);
     });
     syncQuitadoUiModoParc(card);
+    syncDualComposicaoLinhas(card);
+    syncDualTotalHint(card);
     if (scroll !== false) preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -780,6 +862,7 @@
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
               <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
+            <p class="agro-ns-dual-total-hint hidden agro-ns-hint mt-0.5 text-indigo-900 font-bold leading-snug"></p>
           </div>
         </div>
         <div class="agro-ns-field agro-ns-field--comp">
@@ -974,9 +1057,16 @@
     card.querySelector('.agro-ns-in-valor')?.addEventListener('input', () => {
       if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1 && parcAlvoCard(card) === 'normal') gerarParcelasPreview(card, false);
     });
-    card.querySelector('.agro-ns-in-valor-saida')?.addEventListener('input', () => {
-      if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1 && parcAlvoCard(card) === 'saida') gerarParcelasPreview(card, false);
-    });
+    const syncDualValoresUi = () => {
+      syncDualTotalHint(card);
+      if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1 && parcAlvoCard(card) === 'saida') {
+        gerarParcelasPreview(card, false);
+      } else {
+        syncDualComposicaoLinhas(card);
+      }
+    };
+    card.querySelector('.agro-ns-in-valor-entrada')?.addEventListener('input', syncDualValoresUi);
+    card.querySelector('.agro-ns-in-valor-saida')?.addEventListener('input', syncDualValoresUi);
     card.querySelector('.agro-ns-in-ven')?.addEventListener('change', () => {
       if (parcModoAtual(card) === 'parcela' && parcNumero(card) > 1) gerarParcelasPreview(card, false);
     });
