@@ -764,7 +764,7 @@
             </div>
           </div>
           <div class="agro-ns-field-lbl agro-ns-valor-lbl-dual hidden">
-            <div class="agro-ns-valor-dual-lbl-stack">
+            <div class="agro-ns-valor-dual-grid">
               <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
               <div class="agro-ns-valor-lbl-row">
                 <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída (R$)</label>
@@ -776,7 +776,7 @@
             <div class="agro-ns-valor-normal">
               <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
             </div>
-            <div class="agro-ns-valor-dual hidden">
+            <div class="agro-ns-valor-dual agro-ns-valor-dual-grid hidden">
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
               <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
             </div>
