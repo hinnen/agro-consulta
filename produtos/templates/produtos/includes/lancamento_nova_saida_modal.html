@@ -257,36 +257,33 @@
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
   .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-  .agro-ns-valor-stack { position: relative; }
-  .agro-ns-valor-stack > .agro-ns-label { padding-right: 2.85rem; }
+  .agro-ns-valor-inp-wrap { position: relative; min-width: 0; }
+  .agro-ns-input-valor-parc { padding-right: clamp(6.5rem, 42%, 7.75rem) !important; }
   .agro-ns-parc-switch {
-    position: absolute; top: 0; right: 0; z-index: 2;
-    display: block; margin: 0; width: auto;
+    position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; gap: 0.28rem; z-index: 2;
   }
+  .agro-ns-parc-lbl-total,
+  .agro-ns-parc-lbl-parcela {
+    font-size: clamp(0.5625rem, 0.2vw + 0.48rem, 0.6875rem); font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.01em; line-height: 1;
+    color: #94a3b8; transition: color 0.12s; white-space: nowrap; user-select: none;
+  }
+  .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-lbl-total,
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-lbl-parcela { color: var(--ns-accent); }
   .agro-ns-parc-switch-track {
-    width: 2.45rem; height: 1.1rem; min-height: 0; padding: 0;
-    border-radius: 999px; border: 1.5px solid #cbd5e1; background: #e2e8f0; cursor: pointer;
-    position: relative; overflow: hidden;
-    transition: border-color 0.12s, background 0.12s;
+    width: 2.35rem; height: 1.2rem; min-height: 0; padding: 0; flex-shrink: 0;
+    border: none; border-radius: 999px; background: var(--ns-accent); cursor: pointer;
+    position: relative; transition: opacity 0.12s;
   }
-  .agro-ns-parc-switch-track:hover { border-color: var(--ns-accent); background: #f1f5f9; }
-  .agro-ns-parc-sw-ghost {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    font-size: 0.5625rem; font-weight: 900; line-height: 1; color: #64748b;
-    pointer-events: none; z-index: 1;
-  }
-  .agro-ns-parc-sw-t { left: 0.38rem; }
-  .agro-ns-parc-sw-p { right: 0.3rem; }
-  .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-sw-t { color: #fff; }
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-sw-p { color: #fff; }
+  .agro-ns-parc-switch-track:hover { opacity: 0.92; }
   .agro-ns-parc-switch-thumb {
-    position: absolute; top: 0.0625rem; left: 0.0625rem;
-    width: calc(50% - 0.125rem); height: calc(100% - 0.125rem);
-    border-radius: 999px; background: var(--ns-accent);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
-    transition: left 0.15s ease;
+    position: absolute; top: 0.125rem; left: 0.125rem;
+    width: 0.95rem; height: 0.95rem; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
+    transition: left 0.18s ease;
   }
-  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(50% + 0.0625rem); }
+  .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-switch-thumb { left: calc(100% - 0.125rem - 0.95rem); }
   .agro-ns-parc-wrap {
     margin-bottom: var(--ns-gap); padding: 0.65rem 0.75rem;
     border: 1px dashed #cbd5e1; border-radius: 0.75rem; background: #f8fafc;

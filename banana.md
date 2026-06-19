@@ -241,7 +241,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
-- **Teto sem refactor grande:** no Chrome cada clique = **página nova** (HTML + JS + PIN 1ª vez) + consulta Mongo (agora no servidor no bootstrap). Ganho forte exige **não sair do BI** (ilha HTMX) ou **financeiro Postgres** (`AGRO_FONTE_FINANCEIRO=agro_pg`).
+- **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -373,9 +373,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.26`  
+**Versão:** `1.0.27`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (teto perf abertura CP Chrome)  
+**Atualizado por:** assistente Cursor (roadmap perf CP adiado)  
 **Versão app (`VERSION`):** staging `teste` · produção v1.48
 
 ### Ambiente Renan — Chrome (não Electron)
@@ -404,22 +404,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 2. PIN na 1ª entrada da sessão.
 3. Mongo na montagem da página (bootstrap) — trocou API depois por consulta no Django.
 
-**Próximo salto de verdade (escolha de produto):**
+**Conclusão:** para **Chrome MPA + Mongo**, o pacote atual é **quase o teto** (v1.48).
 
-| Opção | Ganho | Custo |
-|-------|--------|-------|
-| **Financeiro Postgres** | Lista e baixa mais rápidas e estáveis | Projeto grande (banana §4.15) |
-| **Lista dentro do BI** (HTMX / painel sem navegar) | Parece instantâneo | Refactor médio |
-| **Enxugar página CP** (JS externo, menos modal no 1º paint) | Um pouco mais | Refactor médio |
+**Roadmap — adiado (Renan, 2026-06-19):** não investir agora no próximo salto. Retomar quando pedir:
 
-**Conclusão:** para **Chrome MPA + Mongo**, o pacote atual é **quase o teto**; melhora “de verdade” = um dos itens da tabela acima.
+| Prioridade futura | Opção | Nota |
+|-------------------|--------|------|
+| A | **Financeiro Postgres** (`agro_pg`) | Alinha com §4.15; ganho estrutural |
+| B | **Lista CP no BI** (sem trocar de página) | Ganho de percepção no Chrome |
+| C | Enxugar HTML/JS da página CP | Ganho menor |
+
+Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizações.
 
 ### Nova saída — grid alinhado (`teste`, 2026-06-19)
 
 | O quê | Detalhe |
 |-------|---------|
 | **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
-| **Chave Total/Parcela** | Mini **T|P** flutuante no canto do rótulo Valor — não desloca o input |
+| **Chave Total/Parcela** | **Total · switch · Parcela** embutida à direita **dentro** do campo Valor |
 | **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
@@ -642,6 +644,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
+- [x] **Lançamentos CP — perf abertura Chrome** — bootstrap + prefetch + cache (`teste` v1.48); Renan OK melhora sutil; **próximo salto adiado**
+- [ ] **Lançamentos CP perf — roadmap adiado** — retomar: (A) `agro_pg` financeiro **ou** (B) lista no BI sem navegar **ou** (C) enxugar página CP. **Não** micro-otimizar até Renan pedir.
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
