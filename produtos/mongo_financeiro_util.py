@@ -5156,7 +5156,7 @@ def expandir_linhas_emprestimo_dual_lote(
                 q_i = _fin_ln_bool(row, "quitado", quit_padrao)
                 parcelas_pag.append((v_i, dv_i, q_i))
             if parcelas_pag:
-                soma_p = sum(v for v, _ in parcelas_pag).quantize(Decimal("0.01"))
+                soma_p = sum(v for v, _, _ in parcelas_pag).quantize(Decimal("0.01"))
                 if abs(soma_p - pag_val) > Decimal("0.02"):
                     out.append(
                         {
