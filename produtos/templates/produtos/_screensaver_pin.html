@@ -97,6 +97,15 @@
   var locked = false;
   var selectedName = '';
 
+  function lancamentosDesbloqueado() {
+    if (!lancamentosMode) return false;
+    try {
+      return sessionStorage.getItem(LS_LANC_DESBLOQ) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
   function loadPins() {
     try {
       var o = JSON.parse(localStorage.getItem(LS_PINS) || '{}');
@@ -206,8 +215,13 @@
   function showPinPanel() {
     if (panelPin) panelPin.classList.remove('hidden');
     if (panelSetup) panelSetup.classList.add('hidden');
-    if (titleEl) titleEl.textContent = 'Modo descanso';
-    if (subEl) subEl.textContent = 'Digite seu PIN para continuar';
+    if (lancamentosMode && !lancamentosDesbloqueado()) {
+      if (titleEl) titleEl.textContent = 'Lançamentos';
+      if (subEl) subEl.textContent = 'Digite seu PIN para acessar Lançamentos';
+    } else {
+      if (titleEl) titleEl.textContent = 'Modo descanso';
+      if (subEl) subEl.textContent = 'Digite seu PIN para continuar';
+    }
     clearMsg();
     if (input) {
       input.value = '';
@@ -288,6 +302,9 @@
       try {
         sessionStorage.setItem(LS_LANC_DESBLOQ, '1');
       } catch (eLanc) {}
+      try {
+        window.dispatchEvent(new CustomEvent('gm-lancamentos-desbloqueado'));
+      } catch (eEv) {}
     }
     bumpIdle();
   }

@@ -1183,6 +1183,16 @@
     if (params.get('mongo_id')) document.getElementById('sv-status').value = 'todos';
   }
 
+  function urlTemFiltrosExplicitos() {
+    const p = new URLSearchParams(window.location.search || '');
+    return !!(
+      p.get('venc_de') || p.get('venc_ate') || p.get('data_inicial') || p.get('data_final')
+      || p.get('status') || p.get('q') || p.get('pref')
+      || p.get('comp_de') || p.get('comp_ate') || p.get('pag_de') || p.get('pag_ate')
+      || p.get('mongo_id')
+    );
+  }
+
   function capturarEstadoVista() {
     const scrollEl = document.getElementById('sv-lista-corpo');
     return {
@@ -1761,6 +1771,9 @@
       })
       .catch(() => carregar(false));
   } else {
+    if (!urlTemFiltrosExplicitos()) {
+      aplicarPrefiltro('hoje', false);
+    }
     carregar(false);
   }
 

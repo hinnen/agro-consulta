@@ -4,11 +4,14 @@
 (function () {
   var LS_DESBLOQ = 'gm_lancamentos_desbloqueado';
 
-  function tituloLancamentosPin() {
-    var title = document.getElementById('sspin-title');
-    var sub = document.getElementById('sspin-sub');
-    if (title) title.textContent = 'Lançamentos';
-    if (sub) sub.textContent = 'Digite seu PIN para acessar Lançamentos';
+  function pathLancamentos() {
+    var p = window.location.pathname || '';
+    return p === '/lancamentos' || p.indexOf('/lancamentos/') === 0;
+  }
+
+  function isHubLancamentos() {
+    var p = window.location.pathname || '';
+    return p === '/lancamentos' || p === '/lancamentos/';
   }
 
   function lancamentosJaDesbloqueado() {
@@ -20,7 +23,6 @@
   }
 
   function pedirPinEntradaModulo() {
-    tituloLancamentosPin();
     if (typeof window.gmSspinAbrirEntrada === 'function') {
       window.gmSspinAbrirEntrada();
       return;
@@ -28,10 +30,31 @@
     setTimeout(pedirPinEntradaModulo, 40);
   }
 
+  function redirecionarRetornoAposPin() {
+    try {
+      var ret = new URLSearchParams(window.location.search || '').get('retorno');
+      if (!ret || !isHubLancamentos()) return;
+      var dest = ret.charAt(0) === '/' ? ret : '/' + ret;
+      if (dest.indexOf('/lancamentos') !== 0) return;
+      window.location.replace(dest);
+    } catch (_) {}
+  }
+
   function initLancamentosPinEntrada() {
-    if (lancamentosJaDesbloqueado()) return;
+    if (!pathLancamentos()) return;
+    if (lancamentosJaDesbloqueado()) {
+      redirecionarRetornoAposPin();
+      return;
+    }
+    if (!isHubLancamentos()) {
+      var alvo = window.location.pathname + (window.location.search || '');
+      window.location.replace('/lancamentos/?retorno=' + encodeURIComponent(alvo));
+      return;
+    }
     pedirPinEntradaModulo();
   }
+
+  window.addEventListener('gm-lancamentos-desbloqueado', redirecionarRetornoAposPin);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLancamentosPinEntrada);
