@@ -421,7 +421,8 @@
     apiTexto: "{% url 'api_lancamentos_interpretar_texto' %}",
     apiCriar: "{% url 'api_lancamentos_criar_manual_lote' %}",
     urlListaPagar: "{% url 'lancamentos_contas_pagar' %}",
-    urlListaReceber: "{% url 'lancamentos_contas_receber' %}"
+    urlListaReceber: "{% url 'lancamentos_contas_receber' %}",
+    bancoPlaceholderId: "{{ agro_banco_placeholder_id|default:'6990cf726c4d856abaa670c6' }}"
   };
 </script>
 {% include "produtos/includes/lancamento_emprestimo_dual_cfg.html" %}

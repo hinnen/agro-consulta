@@ -5,6 +5,13 @@
   'use strict';
 
   const cfg = () => window.AGRO_NOVA_SAIDA_CFG || {};
+
+  function bancoIdValidoQuitado(id) {
+    const s = String(id || '').trim();
+    if (!s) return false;
+    const ph = String(cfg().bancoPlaceholderId || '6990cf726c4d856abaa670c6').trim();
+    return s !== ph;
+  }
   let rowCount = 0;
   let loteIdempotencyKey = '';
   let nlpDialogCache = { textoOriginal: '', dadosParciais: {}, perguntas: [] };
@@ -1073,8 +1080,8 @@
         alert(`Lançamento ${num}: informe competência e vencimento.`);
         return false;
       }
-      if (ln.quitado && !ln.banco_id) {
-        alert(`Lançamento ${num}: para quitado, escolha conta com ID do ERP na lista.`);
+      if (ln.quitado && !bancoIdValidoQuitado(ln.banco_id)) {
+        alert(`Lançamento ${num}: para quitado, escolha conta real na lista (não «ADICIONAR CONTA»).`);
         return false;
       }
     }

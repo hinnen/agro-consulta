@@ -236,6 +236,7 @@ from .mongo_financeiro_util import (
     inserir_lancamentos_manual_lote,
     expandir_linhas_emprestimo_dual_lote,
     _fin_ln_despesa,
+    _fin_banco_id_valido_quitado,
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
@@ -14623,21 +14624,21 @@ def api_lancamentos_criar_manual_lote(request):
         rec_par = 1
     if quitado:
         bid_hdr = str(payload.get("banco_id") or "").strip()
-        bid_ok = bool(bid_hdr)
+        bid_ok = _fin_banco_id_valido_quitado(bid_hdr)
         if not bid_ok and isinstance(linhas, list):
             for ln in linhas:
                 if not isinstance(ln, dict):
                     continue
                 if not _fin_ln_despesa(ln, despesa):
                     continue
-                if str(ln.get("banco_id") or "").strip():
+                if _fin_banco_id_valido_quitado(ln.get("banco_id")):
                     bid_ok = True
                     break
         if not bid_ok:
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Para lançar quitado na saída, informe a conta bancária (conta com ID do ERP).",
+                    "erro": "Para lançar quitado, escolha conta bancária real (não «ADICIONAR CONTA»).",
                 },
                 status=400,
             )
@@ -14647,11 +14648,11 @@ def api_lancamentos_criar_manual_lote(request):
                 continue
             raw_lq = ln.get("quitado")
             ln_q = raw_lq is True or str(raw_lq or "").strip().lower() in ("1", "true", "yes", "sim", "on")
-            if ln_q and _fin_ln_despesa(ln, despesa) and not str(ln.get("banco_id") or "").strip():
+            if ln_q and _fin_ln_despesa(ln, despesa) and not _fin_banco_id_valido_quitado(ln.get("banco_id")):
                 return JsonResponse(
                     {
                         "ok": False,
-                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta bancária com ID do ERP na lista.",
+                        "erro": f"Lançamento {idx + 1} quitado (saída): escolha conta real (não «ADICIONAR CONTA»).",
                     },
                     status=400,
                 )
@@ -14771,7 +14772,14 @@ def api_lancamentos_criar_manual_lote(request):
             )
         except Exception:
             logger.exception("lote manual idempotency write")
-    return JsonResponse(out_lm, status=st)
+    try:
+        return JsonResponse(out_lm, status=st)
+    except Exception as exc:
+        logger.exception("api_lancamentos_criar_manual_lote response")
+        return JsonResponse(
+            {"ok": False, "erro": f"Erro ao montar resposta: {str(exc)[:300]}"},
+            status=500,
+        )
 
 
 @login_required(login_url="/admin/login/")

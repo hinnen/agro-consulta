@@ -443,7 +443,8 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
 | Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
 | Fix v1.48 | `_d()` try/except · try expandir · quitado linha a linha · JS trecho HTML |
-| Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla passou a 3 itens (valor, data, quitado); quebrava soma com parcelas manuais |
+| Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla 3 itens |
+| Fix v1.50 | «ADICIONAR CONTA» não vale para **quitado** (placeholder tem ID mas não é conta real) — validação JS + API |
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
 ### Ambiente Renan — Chrome (não Electron)

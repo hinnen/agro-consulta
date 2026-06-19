@@ -146,8 +146,15 @@
     const manual = ln.parcelas_manual_saida;
     const quitParc = Array.isArray(manual) && manual.some((p) => p && p.quitado);
     const quitLinha = !!ln.quitado || quitParc;
-    if (quitLinha && !ln.banco_id) {
-      alert(`Lançamento ${num}: parcela quitada exige conta com ID do ERP na lista.`);
+    const bancoOk = (() => {
+      const cfg = window.AGRO_NOVA_SAIDA_CFG || {};
+      const s = String(ln.banco_id || '').trim();
+      if (!s) return false;
+      const ph = String(cfg.bancoPlaceholderId || '6990cf726c4d856abaa670c6').trim();
+      return s !== ph;
+    })();
+    if (quitLinha && !bancoOk) {
+      alert(`Lançamento ${num}: parcela quitada exige conta real (não «ADICIONAR CONTA»).`);
       return false;
     }
     if (!ln.data_competencia || !ln.data_vencimento) {

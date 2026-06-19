@@ -4648,6 +4648,15 @@ def _banco_placeholder_para_select() -> dict[str, str]:
     return dict(_BANCO_ADICIONAR_ERP_FIXO)
 
 
+def _fin_banco_id_valido_quitado(banco_id: str | None) -> bool:
+    """Placeholder «ADICIONAR CONTA» tem ID no ERP mas não serve para baixa/quitado."""
+    bid = str(banco_id or "").strip()
+    if not bid:
+        return False
+    ph_id = str(_banco_placeholder_para_select().get("id") or "").strip()
+    return bid != ph_id
+
+
 def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
     ph = _banco_placeholder_para_select()
     pid = str(ph.get("id") or "").strip()
@@ -5396,8 +5405,13 @@ def inserir_lancamentos_manual_lote(
         ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
         ln_quit_pagar = ln_quit and ln_despesa
         ln_quit_receber = ln_quit and not ln_despesa
-        if ln_quit_pagar and not lb_id:
-            erros.append({"linha": n, "erro": "Saída quitada: escolha conta com ID do ERP na lista."})
+        if ln_quit_pagar and not _fin_banco_id_valido_quitado(lb_id):
+            erros.append(
+                {
+                    "linha": n,
+                    "erro": "Saída quitada: escolha conta real na lista (não use «ADICIONAR CONTA»).",
+                }
+            )
             continue
         base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
         base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
