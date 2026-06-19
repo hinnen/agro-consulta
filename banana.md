@@ -289,7 +289,9 @@ Fluxo **seguro** (só admin vê os botões):
 3. **Deploy** — loja evita Lançamentos por algumas horas; ERP para de atualizar financeiro.
 4. **Depois** — `AGRO_FINANCEIRO_MONGO_CONGELADO=true` no Render (opcional, reforço).
 
-**Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto** (mesmo critério da lista). Fiado PDV é Postgres (cópia; PDV não muda).
+**Backup ZIP** — `01_a_pagar*.csv`, `02_a_receber*.csv`, `03_fiado_pdv*.csv` + `LEIA-ME.txt`. Variante **todos** ou **só em aberto**. Fiado PDV é Postgres (cópia; PDV não muda).
+
+**Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -360,7 +362,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.12`  
 **Última atualização:** `2026-06-18`  
 **Atualizado por:** assistente Cursor (PDV wizard GM → push `teste`)  
-**Versão app (`VERSION`):** staging `teste` · **produção `d75c436` v1.10** (empréstimo dual + Nova saída, escopo fechado)
+**Versão app (`VERSION`):** staging `teste` · **produção `bd91f00` v1.11** (backup em aberto + fix 500 PIN)
 
 ### O que este documento já cobre (até aqui)
 
