@@ -1054,7 +1054,20 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         lp.classList.add("hidden");
         document.body.classList.remove("modal-open");
     }
+    function openInShellTab(href) {
+        try {
+            if (window.parent !== window) {
+                window.parent.postMessage(
+                    { type: "agro-open-inapp-tab", href: href },
+                    window.location.origin
+                );
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
     function go() {
+        if (openInShellTab(url)) return;
         if (window.tabManager && typeof window.tabManager.addTab === "function") {
             window.tabManager.addTab(titulo, url, icone);
         } else {
@@ -1069,6 +1082,32 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         setTimeout(go, 0);
     }
 }
+
+(function wireLancamentosInAppFromBi() {
+    function openInShellTab(href) {
+        try {
+            if (window.parent !== window) {
+                window.parent.postMessage(
+                    { type: "agro-open-inapp-tab", href: href },
+                    window.location.origin
+                );
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
+    document.addEventListener("click", function (e) {
+        var a = e.target && e.target.closest && e.target.closest("a[href]");
+        if (!a) return;
+        try {
+            var u = new URL(a.href, window.location.origin);
+            if (u.origin !== window.location.origin) return;
+            if (u.pathname.indexOf("/lancamentos/contas-pagar") !== 0) return;
+            if (!openInShellTab(u.pathname + u.search)) return;
+            e.preventDefault();
+        } catch (_) {}
+    }, true);
+})();
 
 document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {

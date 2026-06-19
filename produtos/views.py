@@ -9765,6 +9765,83 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     return JsonResponse(payload)
 
 
+def _lancamentos_cp_url_tem_filtros_explicitos(request) -> bool:
+    g = request.GET
+    return bool(
+        g.get("venc_de")
+        or g.get("venc_ate")
+        or g.get("data_inicial")
+        or g.get("data_final")
+        or g.get("status")
+        or g.get("q")
+        or g.get("pref")
+        or g.get("comp_de")
+        or g.get("comp_ate")
+        or g.get("pag_de")
+        or g.get("pag_ate")
+        or g.get("mongo_id")
+        or g.get("lancamento_id")
+    )
+
+
+def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
+    """Lista padrão (hoje + abertos) no HTML — evita 2ª ida à API na abertura."""
+    if _lancamentos_cp_url_tem_filtros_explicitos(request):
+        return None
+    hoje = timezone.localdate()
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return None
+    query = lancamentos_montar_query_mongo(
+        despesa=True,
+        status="abertos",
+        vencimento_de=hoje,
+        vencimento_ate=hoje,
+        competencia_de=None,
+        competencia_ate=None,
+        pagamento_de=None,
+        pagamento_ate=None,
+        texto=None,
+        excluir_planos_nomes=None,
+    )
+    try:
+        linhas, total, totais = lancamentos_buscar_pagina(
+            db,
+            query,
+            True,
+            page=1,
+            page_size=50,
+            ordenacao="vencimento_asc",
+            skip_totais=False,
+        )
+    except Exception:
+        logger.exception("lancamentos_cp_bootstrap_payload")
+        return None
+    if linhas:
+        enriquecer_lancamentos_entrada_nfe_rascunho(db, linhas)
+    payload: dict[str, Any] = {
+        "lancamentos": linhas,
+        "total": total,
+        "page": 1,
+        "page_size": 50,
+        "status_filtro": "abertos",
+        "tipo": "pagar",
+        "planos_excluidos_aplicados": 0,
+    }
+    if totais is not None:
+        payload["totais"] = {
+            "quantidade": totais["quantidade"],
+            "bruto": totais["bruto"],
+            "movimentado": totais["movimentado"],
+            "saldo_aberto": totais["saldo_aberto"],
+            "previsto": totais["bruto"],
+            "pago": totais["movimentado"],
+            "a_pagar": totais["saldo_aberto"],
+            "a_receber": 0.0,
+        }
+    return payload
+
+
 def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     """
     ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
@@ -9847,7 +9924,11 @@ def lancamentos_financeiros_view(request):
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
     """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
-    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+    return render(
+        request,
+        "produtos/lancamentos_contas_pagar_teste.html",
+        {"lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request)},
+    )
 
 
 @ensure_csrf_cookie

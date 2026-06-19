@@ -560,6 +560,10 @@
   </div>
 </div>
 
+{% if lancamentos_cp_bootstrap %}
+{{ lancamentos_cp_bootstrap|json_script:"sv-cp-bootstrap" }}
+{% endif %}
+
 <script>
 (function () {
   const API_LISTA = "{% url 'api_lancamentos_lista' %}";
@@ -1449,6 +1453,19 @@
     }
   }
 
+  function tentarHidratarBootstrapServidor() {
+    const el = document.getElementById('sv-cp-bootstrap');
+    if (!el || !el.textContent) return false;
+    try {
+      const data = JSON.parse(el.textContent);
+      if (!aplicarDadosListaCache(data)) return false;
+      salvarListaCache(data);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function garantirPlanosCarregados() {
     if (planosCarregados) return;
     planosCarregados = true;
@@ -2101,8 +2118,9 @@
     if (!urlTemFiltrosExplicitos()) {
       aplicarPrefiltro('hoje', false);
     }
-    const fromCache = tentarHidratarListaCache();
-    carregar(false, fromCache ? { staleRefresh: true } : {});
+    const fromBootstrap = tentarHidratarBootstrapServidor();
+    const fromCache = !fromBootstrap && tentarHidratarListaCache();
+    carregar(false, (fromBootstrap || fromCache) ? { staleRefresh: true } : {});
   }
 
   window.agroNovaSaidaOnSuccess = function (info) {

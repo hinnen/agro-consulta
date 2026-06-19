@@ -434,7 +434,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 
-**Abertura rápida:** prefetch BI/F7 (`data-prefetch`, `data-prefetch-lancamentos`); cache instantâneo + refresh em background; selo **Sincronizando…** no resumo da lista.
+**Abertura rápida:** prefetch BI/F7; cache sessionStorage; selo **Sincronizando…**; **lista embutida no HTML** (bootstrap servidor, hoje+abertos); no app com abas, link do BI abre **aba lateral** (BI não some).
 
 **Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
 
