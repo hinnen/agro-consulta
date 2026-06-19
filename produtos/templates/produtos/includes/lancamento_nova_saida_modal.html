@@ -256,22 +256,23 @@
   }
   .agro-ns-valor-normal.hidden,
   .agro-ns-valor-dual.hidden { display: none !important; }
-  .agro-ns-valor-campo { display: flex; gap: 0.45rem; align-items: stretch; min-width: 0; }
-  .agro-ns-valor-campo .agro-ns-input { flex: 1 1 0; min-width: 0; }
+  .agro-ns-cel-valor { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
   .agro-ns-parc-switch {
-    flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.2rem; min-width: 5.25rem; align-self: stretch; padding: 0.15rem 0;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem;
+    width: 100%; margin-top: 0.15rem;
   }
   .agro-ns-parc-switch-labels {
-    display: flex; justify-content: space-between; width: 100%; max-width: 5.25rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; width: 100%;
     font-size: clamp(0.625rem, 0.25vw + 0.55rem, 0.75rem); font-weight: 900;
-    text-transform: uppercase; letter-spacing: 0.03em; line-height: 1;
+    text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.1;
   }
+  .agro-ns-parc-sw-lbl-total { text-align: left; }
+  .agro-ns-parc-sw-lbl-parcela { text-align: right; }
   .agro-ns-parc-switch-labels span { color: #94a3b8; transition: color 0.12s; }
   .agro-ns-parc-switch[data-modo="total"] .agro-ns-parc-sw-lbl-total,
   .agro-ns-parc-switch[data-modo="parcela"] .agro-ns-parc-sw-lbl-parcela { color: var(--ns-accent); }
   .agro-ns-parc-switch-track {
-    width: 100%; max-width: 5.25rem; min-height: 2.35rem; padding: 0.2rem;
+    width: 100%; min-height: 2.15rem; padding: 0.2rem;
     border-radius: 999px; border: 2px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
     position: relative; transition: border-color 0.12s, background 0.12s;
   }
@@ -355,12 +356,8 @@
     .agro-ns-card-row--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (min-width: 1024px) {
-    .agro-ns-card-row--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .agro-ns-card-row--plano { grid-template-columns: 1.4fr 0.75fr 0.95fr 0.95fr; }
-    .agro-ns-card--emprestimo-dual .agro-ns-card-row--plano {
-      grid-template-columns: 1.2fr 1fr 0.9fr 0.9fr;
-    }
-    .agro-ns-card--emprestimo-dual .agro-ns-valor-dual { grid-column: span 2; }
+    .agro-ns-card-row--4,
+    .agro-ns-card-row--plano { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
   .agro-ns-card-row-desc { margin-bottom: var(--ns-gap); }
   .agro-ns-card-rec {

@@ -367,12 +367,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.23`  
+**Versão:** `1.0.24`  
 **Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída: calendário grande + chave Total/Parcela → `teste`)  
+**Atualizado por:** assistente Cursor (Nova saída: grid 4 colunas + chave alinhada + empréstimo empilhado → `teste`)  
 **Versão app (`VERSION`):** staging `teste` · produção v1.48
 
-### Nova saída — calendário + chave Total/Parcela (`teste`, 2026-06-19)
+### Nova saída — grid alinhado (`teste`, 2026-06-19)
+
+| O quê | Detalhe |
+|-------|---------|
+| **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
+| **Chave Total/Parcela** | Abaixo do valor, largura da coluna (não invade competência) |
+| **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
 |-------|---------|

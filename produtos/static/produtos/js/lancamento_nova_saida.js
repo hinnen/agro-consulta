@@ -225,7 +225,7 @@
 
   function parcSwitchEl(card) {
     const alvo = parcAlvoCard(card);
-    return card.querySelector(`.agro-ns-valor-campo[data-parc-alvo="${alvo}"] .agro-ns-parc-switch`);
+    return card.querySelector(`.agro-ns-parc-switch[data-parc-alvo="${alvo}"]`);
   }
 
   function parcModoAtual(card) {
@@ -660,7 +660,7 @@
           </div>
         </div>
       </div>
-      <div class="agro-ns-card-row agro-ns-card-row--plano">
+      <div class="agro-ns-card-row agro-ns-card-row--4 agro-ns-card-row--plano">
         <div class="flex flex-col gap-1 min-w-0">
           <label class="agro-ns-label">Plano de contas</label>
           <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
@@ -669,11 +669,11 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="flex flex-col gap-1 min-w-0 agro-ns-valor-normal">
-          <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
-          <div class="agro-ns-valor-campo" data-parc-alvo="normal">
+        <div class="agro-ns-cel-valor min-w-0">
+          <div class="agro-ns-valor-normal flex flex-col gap-1 min-w-0">
+            <label class="agro-ns-label agro-ns-valor-lbl-total">Valor (R$)</label>
             <input type="text" class="agro-ns-input agro-ns-in-valor" placeholder="0,00" inputmode="decimal">
-            <div class="agro-ns-parc-switch" data-modo="total" role="group" aria-label="Total ou parcelas">
+            <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="normal" role="group" aria-label="Total ou parcelas">
               <div class="agro-ns-parc-switch-labels">
                 <span class="agro-ns-parc-sw-lbl-total">Total</span>
                 <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
@@ -683,26 +683,22 @@
               </button>
             </div>
           </div>
-        </div>
-        <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0 sm:col-span-2">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div class="agro-ns-valor-dual hidden flex flex-col gap-2 min-w-0">
             <div class="flex flex-col gap-1 min-w-0">
               <label class="agro-ns-label text-emerald-700">Valor entrada (R$)</label>
               <input type="text" class="agro-ns-input agro-ns-in-valor-entrada" placeholder="0,00" inputmode="decimal">
             </div>
             <div class="flex flex-col gap-1 min-w-0">
               <label class="agro-ns-label text-amber-700 agro-ns-valor-lbl-saida">Valor saída / pagamento (R$)</label>
-              <div class="agro-ns-valor-campo" data-parc-alvo="saida">
-                <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
-                <div class="agro-ns-parc-switch" data-modo="total" role="group" aria-label="Total ou parcelas">
-                  <div class="agro-ns-parc-switch-labels">
-                    <span class="agro-ns-parc-sw-lbl-total">Total</span>
-                    <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
-                  </div>
-                  <button type="button" class="agro-ns-parc-switch-track" title="Alternar entre total e parcelas" aria-label="Alternar total ou parcelas">
-                    <span class="agro-ns-parc-switch-thumb"></span>
-                  </button>
+              <input type="text" class="agro-ns-input agro-ns-in-valor-saida" placeholder="0,00" inputmode="decimal">
+              <div class="agro-ns-parc-switch" data-modo="total" data-parc-alvo="saida" role="group" aria-label="Total ou parcelas">
+                <div class="agro-ns-parc-switch-labels">
+                  <span class="agro-ns-parc-sw-lbl-total">Total</span>
+                  <span class="agro-ns-parc-sw-lbl-parcela">Parcela</span>
                 </div>
+                <button type="button" class="agro-ns-parc-switch-track" title="Alternar entre total e parcelas" aria-label="Alternar total ou parcelas">
+                  <span class="agro-ns-parc-switch-thumb"></span>
+                </button>
               </div>
             </div>
           </div>
