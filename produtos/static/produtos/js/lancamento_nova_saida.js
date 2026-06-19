@@ -716,30 +716,32 @@
             <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
           </div>
         </div>
-        <div class="agro-ns-forma-normal flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label">Forma pagamento <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="forma" data-sug-api="forma">
-            <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden" class="agro-ns-hid-forma">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+        <div class="agro-ns-forma-col flex flex-col gap-1 min-w-0 min-h-0">
+          <div class="agro-ns-forma-normal flex flex-col gap-1 min-w-0">
+            <label class="agro-ns-label">Forma pagamento <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="forma" data-sug-api="forma">
+              <input type="text" placeholder="Forma…" autocomplete="off" class="agro-ns-input">
+              <input type="hidden" class="agro-ns-hid-forma">
+              <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+            </div>
           </div>
-        </div>
-      </div>
-      <div class="agro-ns-forma-dual hidden agro-ns-card-row agro-ns-card-row--2 mt-2">
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label text-emerald-800">Forma entrada <span class="font-black normal-case text-red-600">*</span></label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_entrada" data-sug-api="forma">
-            <input type="text" placeholder="Como entrou o dinheiro…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-emerald-200 rounded-xl shadow-xl overflow-y-auto"></ul>
-          </div>
-        </div>
-        <div class="flex flex-col gap-1 min-w-0">
-          <label class="agro-ns-label text-amber-800">Forma saída <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
-          <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_saida" data-sug-api="forma">
-            <input type="text" placeholder="Forma do pagamento…" autocomplete="off" class="agro-ns-input">
-            <input type="hidden">
-            <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-amber-100 rounded-xl shadow-xl overflow-y-auto"></ul>
+          <div class="agro-ns-forma-dual hidden flex flex-col gap-2 min-w-0">
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-emerald-800">Forma entrada <span class="font-black normal-case text-red-600">*</span></label>
+              <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_entrada" data-sug-api="forma">
+                <input type="text" placeholder="Como entrou o dinheiro…" autocomplete="off" class="agro-ns-input">
+                <input type="hidden">
+                <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-emerald-200 rounded-xl shadow-xl overflow-y-auto"></ul>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="agro-ns-label text-amber-800">Forma saída <span class="font-semibold normal-case text-slate-400">(opcional)</span></label>
+              <div class="relative agro-ns-sug-wrap" data-sug-campo="forma_saida" data-sug-api="forma">
+                <input type="text" placeholder="Forma do pagamento…" autocomplete="off" class="agro-ns-input">
+                <input type="hidden">
+                <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-amber-100 rounded-xl shadow-xl overflow-y-auto"></ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

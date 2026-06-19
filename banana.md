@@ -445,7 +445,7 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 | Fix v1.48 | `_d()` try/except · try expandir · quitado linha a linha · JS trecho HTML |
 | Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla 3 itens |
 | Fix v1.50 | «ADICIONAR CONTA» não vale para **quitado** |
-| Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — campos separados no modal; entrada não herda forma/conta da saída |
+| Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — 4ª coluna da grade (não linha extra); `.hidden` com CSS Agro |
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
 ### Ambiente Renan — Chrome (não Electron)
