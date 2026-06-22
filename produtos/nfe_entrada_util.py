@@ -1010,7 +1010,16 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
     try:
         cur = col.find(
             {"$and": [{"Despesa": True}, {"$or": ors}]},
-            {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1},
+            {
+                "_id": 1,
+                "Id": 1,
+                "Cliente": 1,
+                "ClienteID": 1,
+                "Descricao": 1,
+                "Observacao": 1,
+                "NumeroDocumento": 1,
+                "Despesa": 1,
+            },
         ).limit(8).max_time_ms(4000)
         return [d for d in cur if isinstance(d, dict)]
     except Exception as exc:
@@ -1871,7 +1880,146 @@ def release_rascunho_estoque_agro_claim(db, oid: str) -> None:
         logger.exception("release_rascunho_estoque_agro_claim")
 
 
-def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
+def _mongo_lancamento_id_str(doc: dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    try:
+        oid = doc.get("_id")
+        if oid is not None:
+            return str(oid)
+    except Exception:
+        pass
+    return str(doc.get("Id") or "").strip()
+
+
+def _titulos_entrada_nfe_ids_do_rascunho(
+    db,
+    doc: dict[str, Any],
+    *,
+    col_pessoa: str | None = None,
+) -> list[str]:
+    """IDs de títulos a pagar desta nota (``financeiro_ids`` gravados ou rastro NF/chave + fornecedor)."""
+    if db is None or not isinstance(doc, dict):
+        return []
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    ids_raw = extra.get("financeiro_ids")
+    ids_gravados = [str(x).strip() for x in ids_raw if str(x).strip()] if isinstance(ids_raw, list) else []
+    if entrada_nfe_extra_financeiro_ok(extra) and ids_gravados:
+        if _titulos_mongo_por_ids_entrada_nfe(db, ids_gravados):
+            return ids_gravados[:80]
+
+    titulos = _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+    if not titulos:
+        return ids_gravados[:80] if ids_gravados else []
+
+    emit_nome = str(cab.get("emit_nome") or "").strip()
+    nf = str(cab.get("numero") or "").strip()
+    ch = str(cab.get("chave") or doc.get("xml_chave") or "").strip()
+    if col_pessoa:
+        cab_can = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, dict(cab))
+        emit_nome = str(cab_can.get("emit_nome") or emit_nome).strip()
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for t in titulos:
+        desc = str(t.get("Descricao") or "")
+        obs = str(t.get("Observacao") or "")
+        cliente = str(t.get("Cliente") or "").strip()
+        if nf and nf not in ("0", "000") and nf not in desc and nf not in obs:
+            continue
+        if ch and len(ch) >= 12:
+            ch_tail = ch[-24:]
+            if ch not in obs and ch_tail not in obs and not (nf and nf in desc):
+                continue
+        if emit_nome and cliente and not _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente):
+            continue
+        sid = _mongo_lancamento_id_str(t)
+        if sid and sid not in seen:
+            seen.add(sid)
+            out.append(sid)
+    return out[:80]
+
+
+def sincronizar_financeiro_rascunho_entrada_nfe(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+    col_pessoa: str | None = None,
+) -> dict[str, Any]:
+    """
+    Quando o título a pagar já existe no Mongo mas o rascunho perdeu ``financeiro_lancado``
+    (corrida autosave, falha ao marcar, etc.), regrava o carimbo sem duplicar título.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if _entrada_nfe_tipo_entrada_extra(extra) == "bonificacao":
+            return {"ok": False, "erro": "Bonificação não gera financeiro."}
+        if entrada_nfe_extra_financeiro_ok(extra):
+            ids_lim = _titulos_entrada_nfe_ids_do_rascunho(db, doc, col_pessoa=col_pessoa)
+            return {
+                "ok": True,
+                "id": str(_id),
+                "ids": ids_lim,
+                "sincronizado": False,
+                "ja_marcado": True,
+            }
+
+        titulo_ids = _titulos_entrada_nfe_ids_do_rascunho(db, doc, col_pessoa=col_pessoa)
+        if not titulo_ids:
+            return {"ok": False, "erro": "Nenhum título a pagar encontrado no Mongo para esta nota."}
+
+        lote: str | None = None
+        titulos_ref = _titulos_mongo_por_ids_entrada_nfe(db, titulo_ids)
+        if not titulos_ref:
+            titulos_ref = _titulos_mongo_por_rastro_entrada_nfe(
+                db, doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+            )
+        for t in titulos_ref:
+            if not isinstance(t, dict):
+                continue
+            lote = _extrair_lote_agro_lancamento(t) or None
+            if lote:
+                break
+
+        mf = marcar_rascunho_financeiro_lancado(
+            db,
+            str(_id),
+            ids=titulo_ids,
+            usuario=usuario,
+            lote=lote,
+        )
+        if not mf.get("ok"):
+            return mf
+        return {
+            "ok": True,
+            "id": str(_id),
+            "ids": titulo_ids,
+            "sincronizado": True,
+            "ja_marcado": False,
+            "lote": lote,
+        }
+    except Exception as exc:
+        logger.exception("sincronizar_financeiro_rascunho_entrada_nfe")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def obter_rascunho_entrada(
+    db,
+    oid: str,
+    *,
+    col_pessoa: str | None = None,
+    sincronizar_financeiro: bool = True,
+) -> dict[str, Any] | None:
     if db is None:
         return None
     _id = _object_id_rascunho(oid)
@@ -1881,6 +2029,16 @@ def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
         d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
         if not d:
             return None
+        ex0 = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+        if sincronizar_financeiro and not entrada_nfe_extra_financeiro_ok(ex0):
+            sincronizar_financeiro_rascunho_entrada_nfe(
+                db,
+                str(_id),
+                col_pessoa=col_pessoa,
+            )
+            d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+            if not d:
+                return None
         return _serialize_rascunho_leitura(d)
     except Exception as exc:
         logger.exception("obter_rascunho_entrada: %s", exc)
@@ -2285,13 +2443,20 @@ _LOTE_AGRO_NUMDOC_RE = re.compile(r"^(AG[0-9A-F]{8})(?:-\d{2}(?:-p\d+)?)?$", re.
 
 def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
     """Código do lote manual Agro (ex.: ``AG2C0C39E7`` em ``AG2C0C39E7-01`` ou observações)."""
-    nd = str(linha.get("numero_documento") or "").strip()
+    nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     m = _LOTE_AGRO_NUMDOC_RE.match(nd)
     if m:
         return m.group(1).upper()
     texto = " ".join(
         str(linha.get(k) or "")
-        for k in ("observacoes", "descricao", "numero_documento")
+        for k in (
+            "observacoes",
+            "descricao",
+            "numero_documento",
+            "Observacao",
+            "Descricao",
+            "NumeroDocumento",
+        )
     )
     m2 = _LOTE_AGRO_CODIGO_RE.search(texto)
     return m2.group(0).upper() if m2 else ""
