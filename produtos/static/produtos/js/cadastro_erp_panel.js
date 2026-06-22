@@ -658,7 +658,7 @@
         '<td data-coluna="unidade" class="px-4 py-3 text-slate-700">' + escapeHtml(p.unidade || '-') + '</td>' +
         '<td data-coluna="categoria" class="px-4 py-3 text-slate-700">' + escapeHtml(p.categoria || '-') + '</td>' +
         '<td data-coluna="subcategoria" class="px-4 py-3 text-slate-600">' +
-        escapeHtml((p.categoria_listagem != null && String(p.categoria_listagem).trim()) ? String(p.categoria_listagem).trim() : (p.subcategoria || '-')) +
+        escapeHtml(String(p.subcategoria || p.categoria_listagem || '').trim() || '-') +
         '</td>' +
         '<td data-coluna="preco_custo" class="px-4 py-3 text-slate-600 whitespace-nowrap">' + custoTxt + '</td>' +
         '<td class="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">' + vendaTxt + '</td>' +
@@ -866,12 +866,10 @@
   }
 
   function cadastroPdvParaLinhaLista(p, catalogById) {
-    var id = String(p.id || '');
-    var loc = null;
-    if (catalogById && id && typeof catalogById.get === 'function') {
-      loc = catalogById.get(id) || null;
-    }
-    var src = loc ? Object.assign({}, loc, p) : p;
+    /* Lista cadastro = dados do servidor; cache PDV (espelho) só atrapalha preço/colunas. */
+    var src = p || {};
+    var sub = String(src.subcategoria || '').trim();
+    var catList = String(src.categoria_listagem || '').trim();
     var row = {
       id: src.id,
       nome: src.nome,
@@ -882,8 +880,8 @@
       preco_venda: src.preco_venda,
       preco_custo: src.preco_custo,
       categoria: src.categoria,
-      subcategoria: src.subcategoria,
-      categoria_listagem: src.categoria_listagem,
+      subcategoria: sub || catList || '',
+      categoria_listagem: catList || sub || '',
       prateleira: src.prateleira,
       fornecedor: src.fornecedor,
       imagem: src.imagem,
@@ -1110,13 +1108,8 @@
       .then(function (apiRows) {
         if (gen !== carregarGen) return;
         apiRows = apiRows || [];
-        var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
-        if (typeof mesclarBuscaPdvLocalComApi === 'function') {
-          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalogById, cadastroLimiteBuscaPdv());
-        } else if (apiRows.length) {
-          pdvRows = apiRows.slice(0, cadastroLimiteBuscaPdv());
-        }
-        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalogById);
+        var pdvRows = apiRows.map(apiProdutoParaLinhaCadastro);
+        var produtos = cadastroFinalizarLinhasBusca(pdvRows, null);
         produtos = cadastroAplicarPatchLista(produtos);
         if (ordenacaoAtual.campo) {
           produtos = cadastroAplicarOrdenacaoCliente(produtos);
@@ -1175,31 +1168,18 @@
 
       var catalog = cadastroCatalogoPdvCacheArray();
       var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
-      var linhasLocais = cadastroFinalizarLinhasBusca(locaisPdv, catalog);
-      if (ordenacaoAtual.campo) {
-        linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
-      }
-      var hadLocal = linhasLocais.length > 0;
-      if (hadLocal) {
-        linhasLocais = cadastroAplicarPatchLista(linhasLocais);
-        atualizarMeta({ modo: 'busca' }, linhasLocais);
-        renderLista(linhasLocais);
-        setLoading(false);
-      } else {
-        setLoading(true);
-        if (listaEl) {
-          listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
-        }
+      setLoading(true);
+      if (listaEl) {
+        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
       }
       var mergeSeq = ++buscaMergeSeq;
-      var delayApi = hadLocal ? 0 : 220;
+      var delayApi = 0;
       buscaMergeTimer = setTimeout(function () {
         if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
         carregarBuscaApi(qBusca, g, sig, locaisPdv)
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;
             if (g !== carregarGen) return;
-            if (hadLocal) return;
             var m = err.message || 'Erro de rede';
             var mongo = /mongo/i.test(m);
             if (mongo) {
@@ -1217,7 +1197,7 @@
             setLoading(false);
           });
       }, delayApi);
-      if (hadLocal) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+      if (locaisPdv.length) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
       return;
     }
 
