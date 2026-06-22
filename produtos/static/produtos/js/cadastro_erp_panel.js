@@ -1050,10 +1050,16 @@
         linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
       }
       var hadLocal = linhasLocais.length > 0;
-      if (hadLocal) {
+      var skipPreviewLocal = pareceCodigoBusca(qBusca);
+      if (hadLocal && !skipPreviewLocal) {
         atualizarMeta({ modo: 'busca' }, linhasLocais);
         renderLista(linhasLocais);
         setLoading(false);
+      } else if (skipPreviewLocal) {
+        setLoading(true);
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando código…</td></tr>';
+        }
       } else {
         setLoading(true);
         if (listaEl) {
@@ -1061,14 +1067,14 @@
         }
       }
       var mergeSeq = ++buscaMergeSeq;
-      var delayApi = hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220);
+      var delayApi = skipPreviewLocal ? 0 : (hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220));
       buscaMergeTimer = setTimeout(function () {
         if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
         carregarBuscaApi(qBusca, g, sig, locaisPdv)
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;
             if (g !== carregarGen) return;
-            if (hadLocal) return;
+            if (hadLocal && !skipPreviewLocal) return;
             var m = err.message || 'Erro de rede';
             var mongo = /mongo/i.test(m);
             if (mongo) {

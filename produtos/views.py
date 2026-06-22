@@ -15915,6 +15915,31 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
         or str(p.get("Complemento") or "").strip()
     )
     ncm = str(p.get("NCM") or p.get("CodigoNCM") or "").strip()
+    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+    ix = p.get("index_codigos")
+    if not isinstance(ix, list) or not ix:
+        ix = index_codigos_de_campos(
+            codigo=codigo_s,
+            codigo_nfe=codigo_nfe_s,
+            codigo_barras=str(codigo_barras).strip() if codigo_barras else "",
+        )
+    busca_txt = str(p.get("BuscaTexto") or p.get("busca_texto") or "").strip()
+    if not busca_txt:
+        busca_txt = " ".join(
+            x
+            for x in (
+                str(p.get("Nome") or "").strip(),
+                str(p.get("Marca") or "").strip(),
+                codigo_s,
+                codigo_nfe_s,
+                str(codigo_barras).strip() if codigo_barras else "",
+                str(_cat_w or "").strip(),
+                _sub_w,
+                str(fornecedor).strip(),
+            )
+            if x
+        ).strip()
     return {
         "id": pid,
         "nome": str(p.get("Nome") or "").strip(),
@@ -15937,6 +15962,8 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
         "unidade": unidade,
         "descricao": descricao,
         "ncm": ncm,
+        "index_codigos": ix,
+        "busca_texto": busca_txt,
     }
 
 
@@ -17378,6 +17405,21 @@ def api_produtos_cadastro(request):
                     regex_stage3_cap=80,
                     regex_stage3b_cap=0,
                 )
+            if not prods:
+                from produtos.cadastro_busca_codigo_util import (
+                    cadastro_mongo_busca_por_codigo,
+                    parece_codigo_cadastro,
+                )
+
+                if parece_codigo_cadastro(q_raw):
+                    prods = cadastro_mongo_busca_por_codigo(
+                        db,
+                        client,
+                        q_raw,
+                        limit=lim_busca,
+                        include_inactive=inativos,
+                        projection=_CADASTRO_LISTA_MONGO_PROJ,
+                    )
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
             _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])

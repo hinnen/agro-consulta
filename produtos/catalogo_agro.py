@@ -81,6 +81,27 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
         "cadastro_somente_agro": bool(p.cadastro_somente_agro),
         "fonte": "agro_pg",
     }
+    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+    row["index_codigos"] = index_codigos_de_campos(
+        codigo=row.get("codigo"),
+        codigo_nfe=row.get("codigo_nfe"),
+        codigo_barras=row.get("codigo_barras"),
+    )
+    row["busca_texto"] = " ".join(
+        x
+        for x in (
+            row.get("nome"),
+            row.get("marca"),
+            row.get("codigo"),
+            row.get("codigo_nfe"),
+            row.get("codigo_barras"),
+            row.get("categoria"),
+            row.get("subcategoria"),
+            row.get("fornecedor"),
+        )
+        if x
+    ).strip()
     if ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     return _aplicar_overlay_em_row(row, ov)
@@ -125,25 +146,46 @@ def listar_paginado(
 
 
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
+    from produtos.cadastro_busca_codigo_util import (
+        overlay_pids_por_codigo,
+        parece_codigo_cadastro,
+        q_icontains_cadastro,
+        termo_bate_codigos_produto,
+    )
+
     termo = (q or "").strip()
     if not termo:
         return []
     qs = queryset_catalogo_ativos(inativos=inativos)
-    digits = "".join(ch for ch in termo if ch.isdigit())
-    q_obj = (
-        Q(nome__icontains=termo)
-        | Q(marca__icontains=termo)
-        | Q(categoria__icontains=termo)
-        | Q(codigo_interno__icontains=termo)
-        | Q(codigo_nfe__icontains=termo)
-        | Q(codigo_barras__icontains=termo)
-        | Q(produto_externo_id__icontains=termo)
-        | Q(erp_produto_id__icontains=termo)
-    )
-    if digits and len(digits) >= 4:
-        q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_interno__icontains=digits)
-    chunk = list(qs.filter(q_obj).order_by("nome", "pk")[:limit])
-    return _rows_de_produtos(chunk)
+    lim = max(1, min(int(limit or 80), 160))
+
+    chunk = list(qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim])
+    if chunk:
+        return _rows_de_produtos(chunk)
+
+    if parece_codigo_cadastro(termo):
+        pids = overlay_pids_por_codigo(termo, limit=lim)
+        if pids:
+            chunk = list(qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim])
+            if chunk:
+                return _rows_de_produtos(chunk)
+
+        matches: list[Produto] = []
+        for p in qs.iterator(chunk_size=400):
+            if termo_bate_codigos_produto(
+                termo,
+                codigo_interno=p.codigo_interno,
+                codigo_nfe=p.codigo_nfe,
+                codigo_barras=p.codigo_barras,
+                extras=(p.produto_externo_id, p.erp_produto_id),
+            ):
+                matches.append(p)
+                if len(matches) >= lim:
+                    break
+        if matches:
+            return _rows_de_produtos(matches)
+
+    return []
 
 
 def obter_produto_model(produto_id: str) -> Produto | None:
