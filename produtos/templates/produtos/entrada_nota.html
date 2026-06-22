@@ -3786,6 +3786,9 @@
       if (entradaNfeBonificacaoAtiva()) {
         return { ok: true, irPara: 7, erro: '' };
       }
+      if (entradaNfeFinanceiroTituloJaGeradoEditor()) {
+        return { ok: true, irPara: 7, erro: '' };
+      }
       const finE = document.getElementById('fin-empresa-loja')?.value?.trim()
         || document.getElementById('fin-empresa-nome')?.value?.trim() || '';
       const finDc = document.getElementById('fin-dc')?.value || '';
@@ -9370,9 +9373,16 @@
             entradaNfeAplicarTravasEtapasWizardUi();
             entradaNfeAplicarCongelamentoEditorUi();
           } catch (_) {}
-          let t = fin.quitar_ao_salvar
-            ? 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
-            : 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          let t = '';
+          if (fin.recuperado) {
+            t = 'Conta a pagar já existia no Mongo — nota vinculada sem duplicar. IDs: ' + fin.ids.join(', ') + '.';
+          } else if (fin.ja_existia) {
+            t = 'Conta a pagar já estava gerada para esta nota. IDs: ' + fin.ids.join(', ') + '.';
+          } else if (fin.quitar_ao_salvar) {
+            t = 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          } else {
+            t = 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          }
           const fnTit = (cab.emit_nome || '').trim();
           if (fnTit) {
             t += ' Favorecido do título: «' + fnTit + '».';
@@ -9385,7 +9395,7 @@
             if (id0) u.searchParams.set('mongo_id', id0);
             t += ' Abrir: ' + u.href;
           } catch (_) {}
-          if (fin.quitar_ao_salvar) {
+          if (fin.quitar_ao_salvar && !fin.ja_existia && !fin.recuperado) {
             t += ' Em Lançamentos (contas a pagar), veja na aba Quitados.';
           }
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
@@ -9405,7 +9415,9 @@
         }
         carregarRascunhos();
       } else {
-        const er = j.erro || 'Falha ao salvar.';
+        const fin = j.financeiro || {};
+        const erFin = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
+        const er = j.erro || erFin || j.aviso_financeiro_rascunho || 'Falha ao salvar.';
         showMsg(er, false);
       }
     } catch (e) {
