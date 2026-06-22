@@ -430,3 +430,202 @@ def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
         except Exception:
             pass
     return out
+
+
+def listar_todos_rows_ativos() -> list[dict]:
+    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``)."""
+    out: list[dict] = []
+    pagina = 1
+    while True:
+        chunk, has_more = listar_paginado(pagina=pagina, por_pagina=500, sort_key="nome", sort_direction=1)
+        out.extend(chunk)
+        if not has_more:
+            break
+        pagina += 1
+    return out
+
+
+def row_para_doc_busca_pdv(row: dict) -> dict:
+    """Documento estilo Mongo para o loop ``api_buscar_produtos``."""
+    from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
+
+    ix = row.get("index_codigos") or []
+    return {
+        "Id": row.get("id"),
+        "_id": row.get("id"),
+        "Nome": row.get("nome") or "",
+        "Marca": row.get("marca") or "",
+        "Codigo": row.get("codigo") or "",
+        "CodigoNFe": row.get("codigo_nfe") or row.get("codigo") or "",
+        "CodigoBarras": row.get("codigo_barras") or "",
+        "EAN_NFe": row.get("codigo_barras") or "",
+        "ValorVenda": row.get("preco_venda"),
+        "PrecoVenda": row.get("preco_venda"),
+        "NomeCategoria": row.get("categoria") or "",
+        "Categoria": row.get("categoria") or "",
+        "SubGrupo": row.get("subcategoria") or "",
+        "NomeFornecedor": row.get("fornecedor") or "",
+        INDEX_CODIGOS_CAMPO: ix if isinstance(ix, list) else [],
+        "BuscaTexto": row.get("busca_texto") or "",
+    }
+
+
+def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
+    from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
+
+    out = dict(doc)
+    if row.get("nome"):
+        out["Nome"] = row["nome"]
+    if row.get("marca") is not None:
+        out["Marca"] = row["marca"]
+    cod = row.get("codigo") or ""
+    if cod:
+        out["Codigo"] = cod
+    cnfe = row.get("codigo_nfe") or cod
+    if cnfe:
+        out["CodigoNFe"] = cnfe
+    cb = row.get("codigo_barras")
+    if cb:
+        out["CodigoBarras"] = cb
+        out["EAN_NFe"] = cb
+    if row.get("preco_venda") is not None:
+        pv = float(row["preco_venda"])
+        out["ValorVenda"] = pv
+        out["PrecoVenda"] = pv
+    if row.get("categoria"):
+        out["NomeCategoria"] = row["categoria"]
+        out["Categoria"] = row["categoria"]
+    if row.get("subcategoria"):
+        out["SubGrupo"] = row["subcategoria"]
+    if row.get("fornecedor"):
+        out["NomeFornecedor"] = row["fornecedor"]
+    ix = row.get("index_codigos")
+    if isinstance(ix, list) and ix:
+        out[INDEX_CODIGOS_CAMPO] = ix
+    if row.get("busca_texto"):
+        out["BuscaTexto"] = row["busca_texto"]
+    return out
+
+
+def mesclar_prods_busca_pdv(
+    prods: list,
+    *,
+    q: str = "",
+    wizard_catalog: bool = False,
+    limit: int = 80,
+) -> list:
+    """Inclui/atualiza produtos do Postgres no resultado de busca do PDV."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if not agro_catalogo_usa_postgres():
+        return prods
+
+    ids_vistos: set[str] = set()
+    idx_por_id: dict[str, int] = {}
+    for i, p in enumerate(prods):
+        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        if pid:
+            ids_vistos.add(pid)
+            idx_por_id[pid] = i
+
+    if wizard_catalog:
+        pg_rows = listar_todos_rows_ativos()
+    else:
+        termo = (q or "").strip()
+        pg_rows = buscar(termo, limit=limit) if termo else []
+
+    for row in pg_rows:
+        pid = str(row.get("id") or "").strip()
+        if not pid:
+            continue
+        if pid in ids_vistos:
+            prods[idx_por_id[pid]] = fundir_doc_mongo_com_row_pg(prods[idx_por_id[pid]], row)
+        else:
+            prods.append(row_para_doc_busca_pdv(row))
+            ids_vistos.add(pid)
+            idx_por_id[pid] = len(prods) - 1
+    return prods
+
+
+def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
+    """Mescla catálogo local do PDV (``api_todos_produtos_local``) com Postgres."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.mongo_index_codigos import normalizar
+
+    if not agro_catalogo_usa_postgres():
+        return itens
+
+    por_id = {str(x.get("id") or ""): x for x in itens if x.get("id") is not None}
+    for row in listar_todos_rows_ativos():
+        pid = str(row.get("id") or "")
+        if not pid:
+            continue
+        pv = float(row.get("preco_venda") or 0)
+        pc = float(row.get("preco_custo") or 0)
+        if pid in por_id:
+            ex = por_id[pid]
+            ex["nome"] = row.get("nome") or ex.get("nome")
+            ex["marca"] = row.get("marca") or ex.get("marca")
+            ex["preco_venda"] = pv
+            ex["preco_custo"] = pc
+            ex["preco_custo_final"] = pc
+            ex["preco_custo_acrescimo"] = pc
+            ex["codigo_nfe"] = row.get("codigo_nfe") or ex.get("codigo_nfe")
+            ex["codigo_barras"] = row.get("codigo_barras") or ex.get("codigo_barras")
+            ex["categoria"] = row.get("categoria") or ex.get("categoria")
+            ex["subcategoria"] = row.get("subcategoria") or ex.get("subcategoria")
+            ex["fornecedor"] = row.get("fornecedor") or ex.get("fornecedor")
+            ix = row.get("index_codigos") or []
+            if isinstance(ix, list):
+                ex["index_codigos"] = [str(x) for x in ix[:260] if x is not None and str(x).strip()]
+            partes = [
+                row.get("nome"),
+                row.get("marca"),
+                row.get("codigo_nfe"),
+                row.get("codigo_barras"),
+                row.get("categoria"),
+            ]
+            busca = normalizar(" ".join(str(x) for x in partes if x)).strip()
+            if busca:
+                ex["busca_texto"] = busca
+        else:
+            ix = row.get("index_codigos") or []
+            ix_list = [str(x) for x in ix[:260] if x is not None and str(x).strip()] if isinstance(ix, list) else []
+            partes = [
+                row.get("nome"),
+                row.get("marca"),
+                row.get("categoria"),
+                row.get("codigo_nfe"),
+                row.get("codigo"),
+                row.get("codigo_barras"),
+            ]
+            busca = normalizar(" ".join(str(x) for x in partes if x)).strip()
+            novo = {
+                "id": pid,
+                "nome": row.get("nome"),
+                "marca": row.get("marca"),
+                "prateleira": "",
+                "fornecedor": row.get("fornecedor") or "",
+                "categoria": row.get("categoria") or "",
+                "subcategoria": row.get("subcategoria") or "",
+                "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
+                "codigo_barras": row.get("codigo_barras") or "",
+                "referencia": "",
+                "sku": "",
+                "codigo_interno": row.get("codigo") or "",
+                "codigo_fornecedor": "",
+                "preco_venda": pv,
+                "preco_custo": pc,
+                "preco_custo_acrescimo": pc,
+                "preco_custo_final": pc,
+                "saldo_centro": 0.0,
+                "saldo_vila": 0.0,
+                "saldo_erp_centro": 0.0,
+                "saldo_erp_vila": 0.0,
+                "busca_texto": busca,
+                "media_venda_diaria_30d": 0.0,
+                "index_codigos": ix_list,
+            }
+            itens.append(novo)
+            por_id[pid] = novo
+    return itens
