@@ -2003,6 +2003,43 @@
     return base;
   }
 
+  /** Produto novo: só códigos + fiscal padrão — sem repintar o modal (evita piscada). */
+  function aplicarDetalheNovoProdutoSemPiscar(produto) {
+    produto = produto || {};
+    var gmManual = !!modalEdit._gmCodigoManual;
+    if (produto.codigo) setVal('edit-codigo', String(produto.codigo));
+    if (!gmManual) {
+      var gm = produto.codigo_nfe || (produto.codigo ? ('GM' + String(produto.codigo).trim()) : '');
+      if (gm) {
+        setVal('edit-cod-nfe', gm);
+        modalEdit._ultimoGmAuto = gm;
+      }
+    }
+    var fiscalPadrao = {
+      ncm: '23099020',
+      origem_mercadoria: '0',
+      cfop_padrao: '5102',
+      csosn: '102',
+      cst_pis_cofins: '49'
+    };
+    var fiscalMap = {
+      ncm: 'edit-ncm',
+      origem_mercadoria: 'edit-origem',
+      cfop_padrao: 'edit-cfop',
+      csosn: 'edit-csosn',
+      cst_pis_cofins: 'edit-pis-cofins'
+    };
+    Object.keys(fiscalMap).forEach(function (k) {
+      var el = document.getElementById(fiscalMap[k]);
+      if (!el || String(el.value || '').trim() !== '') return;
+      var v = produto[k];
+      if (v == null || String(v).trim() === '') v = fiscalPadrao[k];
+      if (v != null && String(v).trim() !== '') el.value = String(v);
+    });
+    var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
+    if (btnExcluirSomenteAgro) btnExcluirSomenteAgro.classList.add('hidden');
+  }
+
   window.abrirModalProduto = function (produto) {
     produto = produto || {};
     var rowAbertura = produto;
@@ -2023,6 +2060,7 @@
     var pid = String(produto.id || '').trim();
     var cfg = window.AgroCadastroErpLista || {};
     var tmpl = cfg.API_DETALHE_TMPL || '';
+    var isNovoAbertura = pid.toLowerCase() === '__novo__';
     if (!pid || !tmpl) {
       if (!Array.isArray(produto.similares)) renderSimilaresErpModal([]);
       return;
@@ -2035,8 +2073,13 @@
       .then(function (data) {
         if (dg !== modalDetGen) return;
         if (data && data.ok && data.produto) {
-          preencherForm(produtoParaFormCadastro(rowAbertura, data.produto));
-          renderSimilaresErpModal((data.produto && data.produto.similares) ? data.produto.similares : []);
+          if (isNovoAbertura) {
+            aplicarDetalheNovoProdutoSemPiscar(data.produto);
+            renderSimilaresErpModal([]);
+          } else {
+            preencherForm(produtoParaFormCadastro(rowAbertura, data.produto));
+            renderSimilaresErpModal((data.produto && data.produto.similares) ? data.produto.similares : []);
+          }
         } else {
           renderSimilaresErpModal([]);
         }

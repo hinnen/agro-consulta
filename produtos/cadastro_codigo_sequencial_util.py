@@ -13,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 _CODIGO_SISTEMA_4D = re.compile(r"^\d{4}$")
 _CODIGO_SISTEMA_MAX = 9999
+_CODIGO_SEQ_PISO = 4010
+
+
+def _piso_sequencia_codigo() -> int:
+    try:
+        n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MIN", str(_CODIGO_SEQ_PISO)))
+    except ValueError:
+        n0 = _CODIGO_SEQ_PISO
+    return max(_CODIGO_SEQ_PISO, min(n0, _CODIGO_SISTEMA_MAX))
 
 
 def codigo_sistema_4_digitos_valido(val) -> bool:
@@ -48,8 +57,20 @@ def extrair_numero_sequencial_4d(val) -> int | None:
     return None
 
 
+def extrair_numero_sequencial_faixa(val) -> int | None:
+    """Código sistema (4 dígitos) na faixa da loja (4010+). GM não entra na sequência."""
+    n = extrair_numero_sequencial_4d(val)
+    if n is None:
+        return None
+    piso = _piso_sequencia_codigo()
+    if n < piso or n > _CODIGO_SISTEMA_MAX:
+        return None
+    return n
+
+
 def formatar_codigo_sistema(n: int) -> str:
-    n = max(1, min(int(n), _CODIGO_SISTEMA_MAX))
+    piso = _piso_sequencia_codigo()
+    n = max(piso, min(int(n), _CODIGO_SISTEMA_MAX))
     return f"{n:04d}"
 
 
@@ -74,12 +95,11 @@ def codigo_sequencial_variantes_colisao(ds: str, gm: str, n: int) -> list:
 
 def max_codigo_numerico_postgres() -> int:
     mx = 0
-    qs = Produto.objects.values_list("codigo_interno", "codigo_nfe").iterator(chunk_size=500)
-    for ci, cn in qs:
-        for val in (ci, cn):
-            n = extrair_numero_sequencial_4d(val)
-            if n is not None:
-                mx = max(mx, n)
+    qs = Produto.objects.values_list("codigo_interno", flat=True).iterator(chunk_size=500)
+    for ci in qs:
+        n = extrair_numero_sequencial_faixa(ci)
+        if n is not None:
+            mx = max(mx, n)
     return mx
 
 
@@ -88,26 +108,21 @@ def max_codigo_numerico_mongo(db, col: str) -> int:
     if db is None or not col:
         return mx
     try:
-        for doc in db[col].find({}, {"Codigo": 1, "CodigoNFe": 1}).batch_size(500):
-            for fld in ("Codigo", "CodigoNFe"):
-                n = extrair_numero_sequencial_4d(doc.get(fld))
-                if n is not None:
-                    mx = max(mx, n)
+        for doc in db[col].find({}, {"Codigo": 1}).batch_size(500):
+            n = extrair_numero_sequencial_faixa(doc.get("Codigo"))
+            if n is not None:
+                mx = max(mx, n)
     except Exception:
         logger.warning("cod seq: max mongo", exc_info=True)
     return mx
 
 
 def _codigo_sequencial_inicio(db=None, col: str | None = None) -> int:
-    try:
-        n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MIN", "6000"))
-    except ValueError:
-        n0 = 6000
-    n0 = max(1, min(n0, _CODIGO_SISTEMA_MAX))
+    piso = _piso_sequencia_codigo()
     mx = max(max_codigo_numerico_postgres(), max_codigo_numerico_mongo(db, col or ""))
-    if mx > 0:
+    if mx >= piso:
         return min(mx + 1, _CODIGO_SISTEMA_MAX)
-    return n0
+    return piso
 
 
 def pg_codigo_seq_ocupado(ds: str, gm: str, n: int) -> bool:
@@ -153,7 +168,8 @@ def alocar_codigo_sequencial_novo_cadastro(
     Continua após o maior código de 4 dígitos já usado; se vazio, ``AGRO_NOVO_PRODUTO_COD_MIN``.
     """
     n = _codigo_sequencial_inicio(db, col)
-    max_steps = _CODIGO_SISTEMA_MAX + 1
+    piso = _piso_sequencia_codigo()
+    max_steps = _CODIGO_SISTEMA_MAX - piso + 2
     steps = 0
     while steps < max_steps and n <= _CODIGO_SISTEMA_MAX:
         ds = formatar_codigo_sistema(n)
@@ -166,7 +182,7 @@ def alocar_codigo_sequencial_novo_cadastro(
         {
             "ok": False,
             "erro": (
-                "Não foi possível gerar código sequencial automático (faixa 0001–9999 esgotada ou ocupada). "
+                "Não foi possível gerar código sequencial automático (faixa 4010–9999 esgotada ou ocupada). "
                 "Informe manualmente «Código sistema» (4 números) e «Código interno (GM)»."
             ),
             "status": 400,

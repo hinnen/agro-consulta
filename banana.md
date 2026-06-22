@@ -443,7 +443,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Sintoma:** Novo produto mostrava `__novo__` em código sistema e GM (etapa 1 Postgres).
 
-**Regra restaurada:** próximo número livre de **4 dígitos** (ex. `4252` + `GM4252`); continua após o maior código **0001–9999** no Postgres e espelho Mongo; pula ocupados. **Código sistema:** exatamente 4 números (editável). **GM:** sugere `GM` + código, mas **livre para editar** sem restrição.
+**Regra restaurada:** sequência **4010–9999** (só **código sistema**, GM não conta no «último»); ex. `4252` + `GM4252`. **Código sistema:** 4 números. **GM:** espelha + livre para editar. **Modal novo:** detalhe da API não repinta tela (sem apagar nome digitado).
 
 **Fix (branch `teste`, aguarda deploy):** `cadastro_codigo_sequencial_util.py` + detalhe `__novo__` + save Postgres.
 
