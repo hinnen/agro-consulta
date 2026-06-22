@@ -647,8 +647,10 @@
       tr.setAttribute('data-prod-id', String(p.id));
       tr.className = 'border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors';
       var cod = p.codigo_nfe || p.codigo || '';
-      var custoTxt = p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—';
-      var vendaTxt = fmtMoney(p.preco_venda);
+      var custoTxt = p._precoAguardando
+        ? '…'
+        : (p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—');
+      var vendaTxt = p._precoAguardando ? '…' : fmtMoney(p.preco_venda);
       tr.innerHTML =
         '<td class="px-4 py-3">' +
         '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
@@ -956,6 +958,14 @@
     return (pdvRows || []).map(function (p) { return cadastroPdvParaLinhaLista(p, catalog); });
   }
 
+  /** Preview local na busca: nomes/códigos já; preço só após o servidor (evita piscadinha). */
+  function cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog) {
+    return cadastroFinalizarLinhasBusca(locaisPdv, catalog).map(function (row) {
+      row._precoAguardando = true;
+      return row;
+    });
+  }
+
   function cadastroAplicarOrdenacaoCliente(rows) {
     if (!ordenacaoAtual.campo || !rows || !rows.length) return rows || [];
     var copia = (rows || []).slice();
@@ -983,14 +993,22 @@
   }
 
   function carregarListaPaginada(gen, sig) {
-    var pLista = fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
+    var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+    var prefetch = null;
+    if (!qBusca && pagina === 1 && !ordenacaoAtual.campo && window.__agroCadastroListaPrefetch) {
+      prefetch = window.__agroCadastroListaPrefetch;
+      window.__agroCadastroListaPrefetch = null;
+    }
+    var pLista = prefetch
+      ? prefetch
+      : fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    return pLista
+      .then(function (x) {
         if (gen !== carregarGen) return;
-        if (!x.j || !x.j.ok) {
-          throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
+        if (!x || !x.j || !x.j.ok) {
+          throw new Error((x && x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
         produtos = cadastroAplicarPatchLista(produtos);
@@ -1080,9 +1098,9 @@
     var urlBusca = urlBuscaCadastro(qRaw);
     var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
+    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    return pLista
+      .then(function (x) {
         if (gen !== carregarGen) return;
         if (!x.j || x.j.ok === false || x.j.erro) {
           throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
@@ -1168,18 +1186,30 @@
 
       var catalog = cadastroCatalogoPdvCacheArray();
       var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
-      setLoading(true);
-      if (listaEl) {
-        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
+      var linhasLocais = cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog);
+      if (ordenacaoAtual.campo) {
+        linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
+      }
+      var hadLocal = linhasLocais.length > 0;
+      if (hadLocal) {
+        linhasLocais = cadastroAplicarPatchLista(linhasLocais);
+        atualizarMeta({ modo: 'busca' }, linhasLocais);
+        renderLista(linhasLocais);
+        setLoading(false);
+      } else {
+        setLoading(true);
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
+        }
       }
       var mergeSeq = ++buscaMergeSeq;
-      var delayApi = 0;
       buscaMergeTimer = setTimeout(function () {
         if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
         carregarBuscaApi(qBusca, g, sig, locaisPdv)
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;
             if (g !== carregarGen) return;
+            if (hadLocal) return;
             var m = err.message || 'Erro de rede';
             var mongo = /mongo/i.test(m);
             if (mongo) {
@@ -1196,7 +1226,7 @@
           .finally(function () {
             setLoading(false);
           });
-      }, delayApi);
+      }, 0);
       if (locaisPdv.length) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
       return;
     }

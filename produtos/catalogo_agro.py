@@ -135,14 +135,14 @@ def listar_paginado(
     sort_key: str = "nome",
     sort_direction: int = 1,
     inativos: bool = False,
-) -> tuple[list[dict], int]:
+) -> tuple[list[dict], bool]:
     qs = queryset_catalogo_ativos(inativos=inativos)
     field = _SORT_MAP.get(sort_key, "nome")
     order = field if sort_direction >= 0 else f"-{field}"
-    total = qs.count()
     skip = max(0, (pagina - 1) * por_pagina)
-    chunk = list(qs.order_by(order, "pk")[skip : skip + por_pagina])
-    return _rows_de_produtos(chunk), total
+    chunk = list(qs.order_by(order, "pk")[skip : skip + por_pagina + 1])
+    has_more = len(chunk) > por_pagina
+    return _rows_de_produtos(chunk[:por_pagina]), has_more
 
 
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:

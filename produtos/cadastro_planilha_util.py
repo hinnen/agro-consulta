@@ -279,7 +279,7 @@ def coletar_linhas_export_cadastro(
         pagina = 1
         por_pagina = 500
         while len(rows) < EXPORT_MAX_ROWS:
-            chunk, total = catalogo_agro.listar_paginado(
+            chunk, has_more = catalogo_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
                 sort_key="nome",
@@ -293,7 +293,7 @@ def coletar_linhas_export_cadastro(
             for r in chunk:
                 _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
                 rows.append(r)
-            if pagina * por_pagina >= total:
+            if not has_more:
                 break
             pagina += 1
         truncado = len(rows) >= EXPORT_MAX_ROWS

@@ -17354,14 +17354,13 @@ def api_produtos_cadastro(request):
                         "dir": "desc" if sort_direction < 0 else "asc",
                     }
                 )
-            rows, total = cat_agro.listar_paginado(
+            rows, has_more = cat_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
                 sort_key=sort_key,
                 sort_direction=sort_direction,
                 inativos=inativos,
             )
-            has_more = pagina * por_pagina < total
             return JsonResponse(
                 {
                     "ok": True,
@@ -17370,7 +17369,6 @@ def api_produtos_cadastro(request):
                     "pagina": pagina,
                     "por_pagina": por_pagina,
                     "has_more": has_more,
-                    "total": total,
                     "produtos": rows,
                     "sort": sort_key,
                     "dir": "desc" if sort_direction < 0 else "asc",
