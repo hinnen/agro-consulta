@@ -449,7 +449,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 |------|---------|
 | **Validação Renan** | OK no Render **teste** |
 | **Commits `teste`** | `ffc82ba` v1.87 · `cea03c7` v1.88 · `a2303c7` v1.89 |
-| **Produção** | Renan autorizou (*não invasivo*) — cherry-pick → **SistVale** |
+| **Produção** | Renan autorizou (*não invasivo*) — commit `8889955` v1.55 → **SistVale** |
 | **Reverter** | Revert dos 3 commits; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
 
 **Regras (canônicas — §4.6):** código sistema **4 dígitos**, faixa **4010–9999**, sequência só pelo **código sistema** (GM não conta); GM = `GM` + número (editável livre); modal novo não repinta ao carregar códigos.
