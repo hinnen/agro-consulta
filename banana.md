@@ -11,6 +11,8 @@
 
 **Assistente:** não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` **sem pedir** quando for pertinente (ver CHECKPOINT).
 
+**Comunicação com o Renan:** respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
+
 ---
 
 ## 0. TL;DR (leia em 1 minuto)
@@ -222,8 +224,9 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.7 Entrada de nota fiscal
 
-- `/entrada-nota/` — wizard 7 passos (fornecedor → produtos → barras → lote/validade → estoque → financeiro → PIN).
+- `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
+- **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
 
@@ -292,6 +295,38 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **Falta (grande)** | Lançamentos (todas), BI `/`, Fiado, resumo financeiro | `mongo_financeiro_util` + `DtoVenda` |
 
 **Ordem sugerida:** cadastro lista → `agro_pg` → PDV `/api/buscar/` → gestão operacional → estoque ledger → **financeiro** (backup + checkpoint na tela Lançamentos).
+
+**Estimativa (Renan — linguagem simples):**
+
+| Etapa | O quê muda na prática | Risco | Tempo (dev + teste no teste) |
+|-------|------------------------|-------|------------------------------|
+| **1** | Cadastro de produtos passa a ler/gravar **só no SisVale** (Postgres), sem depender do espelho na hora de listar/buscar | **Médio** — preço ou produto que “some” se import incompleto | **~1 semana** |
+| **2** | PDV + gestão de produtos na mesma base | **Alto** — balcão não acha produto ou preço errado | **+2 a 3 semanas** |
+| **3** | Estoque, compras, financeiro, BI | **Muito alto** — impacto em caixa e contas | **vários meses**, por partes |
+
+**Mitigação:** fazer só a etapa 1 no `teste`, conferir cadastro + busca + salvar preço, **só então** produção.
+
+**Antes da etapa 1 (Renan — você faz; assistente implementa depois):**
+
+1. Testar **só no ambiente teste** (Render staging) — **não** na loja ainda.
+2. Anotar **2 ou 3 produtos** que você conhece: nome, preço de venda, código GM ou barras (para comparar depois).
+3. Entrar no cadastro no teste com seu login e confirmar que abre `/produtos/cadastro-erp/`.
+4. Confirmar no Render que o **staging tem banco Postgres próprio** (não o mesmo da produção).
+5. **Não esperar** que o PDV mude nesta etapa — só a tela de cadastro.
+
+**Depois que o assistente entregar etapa 1 (você testa):**
+
+1. Aguardar deploy do branch `teste` no staging + **Ctrl+F5** no cadastro.
+2. Conferir se a lista e a busca acham os produtos anotados.
+3. Alterar preço de um produto → salvar → buscar de novo → preço **deve permanecer**.
+4. Criar produto novo (se liberado no teste) ou pular se ainda bloqueado no staging.
+5. Se algo falhar: anotar nome do produto + o que viu (sumiu, preço voltou, lista vazia).
+
+**Etapa 1 em andamento:** implementação cadastro → Postgres SisVale (branch `teste`).
+
+**Produto de teste (Renan):** GM0027-1 · Ração Formula Natural adulto raças pequenas 1kg — **preço correto R$ 20,90** (staging/overlay); produção/espelho mostra R$ 19,90 (errado). Usar este item para validar busca + salvar + preço persistente.
+
+---
 
 ### 4.16 Lançamentos — corte ERP (em preparação)
 
@@ -743,6 +778,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 | Arquivo | Tema |
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
+| `nfe_entrada_util.py`, `views.py`, `entrada_nota.html` | Entrada NF — sync financeiro desync (etapa 7) |
 
 **Acabou de subir em `producao`:** Lançamentos CP (layout + perf + vista + PIN entrada + filtro hoje) · v1.33.
 
@@ -756,7 +792,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] Corte Agro→ERP (API) — **produção v1.14** (`372f90f`; automático após checkpoint)
 - [ ] Próxima fase: `AGRO_FONTE_FINANCEIRO=agro_pg` (Lançamentos ler/escrever Postgres, não espelho Mongo)
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
-- [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
+- [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg` *(código etapa 1 em `teste`; Renan: flag no Render staging + import 1×)*
 - [ ] PDV `/api/buscar/` e cache → Postgres
 - [ ] Gestão operacional (lista + facetas) → Postgres
 - [ ] Estoque `ledger` e financeiro `agro_pg` (implementar flags)

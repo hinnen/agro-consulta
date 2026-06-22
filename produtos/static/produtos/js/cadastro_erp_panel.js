@@ -432,8 +432,10 @@
             window.agroPdvPatchCatalogoCache(j.produto);
           }
           agroCadastroMergeProdutoCacheLocal(j.produto);
+          renderDetalheCompleto(j.produto);
+        } else {
+          carregarDetalheProduto(String(p.id || ''));
         }
-        carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -870,7 +872,7 @@
       loc = catalogById.get(id) || null;
     }
     var src = loc ? Object.assign({}, loc, p) : p;
-    return {
+    var row = {
       id: src.id,
       nome: src.nome,
       marca: src.marca,
@@ -891,6 +893,10 @@
       busca_texto: src.busca_texto,
       index_codigos: src.index_codigos
     };
+    if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
+      row = window.agroAplicarPatchPdvNoProduto(row);
+    }
+    return row;
   }
 
   function cadastroFiltrarAtivosLocal(arr) {
@@ -963,6 +969,9 @@
           throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
+        if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
+          produtos = produtos.map(function (p) { return window.agroAplicarPatchPdvNoProduto(p); });
+        }
         produtos = cadastroAplicarOrdenacaoCliente(produtos);
         atualizarMeta(x.j, produtos);
         renderLista(produtos);

@@ -104,6 +104,9 @@ def executar_importar_catalogo_mongo_produto(
             if dry_run:
                 criados += 1
                 continue
+            from produtos.catalogo_agro import defaults_import_com_overlay
+
+            defaults = defaults_import_com_overlay(pid, defaults)
             _obj, created = Produto.objects.update_or_create(
                 produto_externo_id=pid,
                 defaults=defaults,

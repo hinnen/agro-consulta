@@ -1,9 +1,12 @@
 """Catálogo PostgreSQL (``Produto``) — ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
+import secrets
+from decimal import Decimal
+
 from django.db.models import Q
 
-from produtos.models import Produto
+from produtos.models import Produto, ProdutoGestaoOverlayAgro
 
 _SORT_MAP = {
     "nome": "nome",
@@ -23,9 +26,37 @@ def _dec(v) -> float:
         return 0.0
 
 
-def produto_agro_para_row(p: Produto) -> dict:
-    pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
+def _dec_opt(v) -> Decimal | None:
+    if v is None or str(v).strip() == "":
+        return None
+    try:
+        return Decimal(str(v).replace(",", ".").strip()).quantize(Decimal("0.01"))
+    except Exception:
+        return None
+
+
+def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]:
+    ids_u = [str(x)[:64] for x in ids if x]
+    if not ids_u:
+        return {}
     return {
+        o.produto_externo_id: o
+        for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids_u)
+    }
+
+
+def _aplicar_overlay_em_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> dict:
+    if not ov:
+        return row
+    from produtos.views import _aplicar_produto_gestao_overlay_em_dict
+
+    _aplicar_produto_gestao_overlay_em_dict(row, ov)
+    return row
+
+
+def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None) -> dict:
+    pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
+    row = {
         "id": pid,
         "nome": (p.nome or "").strip(),
         "marca": (p.marca or "").strip(),
@@ -50,6 +81,9 @@ def produto_agro_para_row(p: Produto) -> dict:
         "cadastro_somente_agro": bool(p.cadastro_somente_agro),
         "fonte": "agro_pg",
     }
+    if ov is None and pid:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+    return _aplicar_overlay_em_row(row, ov)
 
 
 def queryset_catalogo_ativos(*, inativos: bool = False):
@@ -57,6 +91,20 @@ def queryset_catalogo_ativos(*, inativos: bool = False):
     if not inativos:
         qs = qs.filter(cadastro_inativo=False, ativo=True)
     return qs
+
+
+def _rows_de_produtos(produtos: list[Produto]) -> list[dict]:
+    if not produtos:
+        return []
+    ids = [
+        str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64] for p in produtos
+    ]
+    ov_map = _overlay_mapa_por_ids(ids)
+    out: list[dict] = []
+    for p in produtos:
+        pid = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
+        out.append(produto_agro_para_row(p, ov=ov_map.get(pid)))
+    return out
 
 
 def listar_paginado(
@@ -72,8 +120,8 @@ def listar_paginado(
     order = field if sort_direction >= 0 else f"-{field}"
     total = qs.count()
     skip = max(0, (pagina - 1) * por_pagina)
-    rows = [produto_agro_para_row(p) for p in qs.order_by(order, "pk")[skip : skip + por_pagina]]
-    return rows, total
+    chunk = list(qs.order_by(order, "pk")[skip : skip + por_pagina])
+    return _rows_de_produtos(chunk), total
 
 
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
@@ -94,7 +142,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     )
     if digits and len(digits) >= 4:
         q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_interno__icontains=digits)
-    return [produto_agro_para_row(p) for p in qs.filter(q_obj).order_by("nome", "pk")[:limit]]
+    chunk = list(qs.filter(q_obj).order_by("nome", "pk")[:limit])
+    return _rows_de_produtos(chunk)
 
 
 def obter_produto_model(produto_id: str) -> Produto | None:
@@ -131,9 +180,186 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
     return {
         **row,
+        "preco_custo_com_acrescimos": pc,
         "preco_custo_final": pc,
-        "mva_rs": mva_rs,
-        "mva_percentual": mva_pct,
+        "mva_lucro_reais": mva_rs,
+        "mva_lucro_percentual": mva_pct,
         "cadastro_somente_agro": bool(p.cadastro_somente_agro),
         "fonte": "agro_pg",
     }
+
+
+def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None) -> dict:
+    """JSON compatível com ``agroCadastroMergeProdutoCacheLocal`` após salvar overlay."""
+    row = produto_agro_para_row(p, ov=ov)
+    row["codigo_gm"] = row.get("codigo_nfe") or row.get("codigo") or ""
+    row["preco_custo_final"] = row.get("preco_custo")
+    row["tem_overlay"] = ov is not None
+    return row
+
+
+def sincronizar_modelo_produto_de_overlay(
+    pid: str,
+    ov: ProdutoGestaoOverlayAgro,
+    *,
+    custo_payload: Decimal | None = None,
+    payload: dict | None = None,
+) -> Produto:
+    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``)."""
+    pid64 = str(pid or "").strip()[:64]
+    payload = payload or {}
+    p = obter_produto_model(pid64)
+
+    def _txt(key: str, mx: int = 300) -> str:
+        return str(payload.get(key) or "").strip()[:mx]
+
+    codigo = _txt("codigo_nfe", 64) or _txt("codigo", 50) or pid64[:50]
+    nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
+    custo = custo_payload
+    if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
+        raw_ce = ov.cadastro_extras.get("preco_custo_overlay")
+        if raw_ce is not None:
+            custo = _dec_opt(raw_ce)
+    if custo is None and p is not None:
+        custo = p.custo
+    if custo is None:
+        custo = Decimal("0")
+
+    pv = ov.preco_venda if ov.preco_venda is not None else (p.preco_venda if p else Decimal("0"))
+    ativo = True
+    cad_inativo = False
+    if ov.ativo_exibicao is not None:
+        ativo = bool(ov.ativo_exibicao)
+        cad_inativo = not ativo
+
+    defaults = {
+        "codigo_interno": codigo[:50],
+        "codigo_nfe": (ov.codigo_nfe.strip() or codigo)[:64],
+        "codigo_barras": (ov.codigo_barras.strip() or None),
+        "nome": nome[:300],
+        "marca": ov.marca.strip()[:120],
+        "categoria": ov.categoria.strip()[:200] or None,
+        "subcategoria": ov.subcategoria.strip()[:200],
+        "subcategoria_2": ov.subcategoria_2.strip()[:200],
+        "subcategoria_3": ov.subcategoria_3.strip()[:200],
+        "subcategoria_4": ov.subcategoria_4.strip()[:200],
+        "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
+        "unidade": (ov.unidade.strip() or "UN")[:20],
+        "descricao": ov.descricao.strip()[:16000],
+        "custo": custo,
+        "preco_venda": pv,
+        "ativo": ativo,
+        "cadastro_inativo": cad_inativo,
+    }
+    if p is None:
+        p = Produto.objects.create(produto_externo_id=pid64, **defaults)
+    else:
+        for k, v in defaults.items():
+            setattr(p, k, v)
+        p.save()
+    return p
+
+
+def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None, str | None]:
+    """Cria ``Produto`` mínimo (somente SisVale). Retorna (erro_json, None) ou (None, novo_id)."""
+    from django.http import JsonResponse
+
+    def pt(key: str, mx: int = 300) -> str:
+        return str(payload.get(key) or "").strip()[:mx]
+
+    nome = pt("nome", 300)
+    if len(nome) < 2:
+        return (
+            JsonResponse(
+                {"ok": False, "erro": "Informe o nome do produto (mínimo 2 caracteres)."},
+                status=400,
+            ),
+            None,
+        )
+
+    cod_int = pt("codigo", 80)
+    cod_nfe = pt("codigo_nfe", 64)
+    cod_cb = pt("codigo_barras", 80)
+    if not cod_int and not cod_nfe and not cod_cb:
+        return (
+            JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Informe código interno, código NFe/GM ou código de barras.",
+                },
+                status=400,
+            ),
+            None,
+        )
+
+    for _ in range(16):
+        cand = "AGRO" + secrets.token_hex(12).upper()
+        if not Produto.objects.filter(produto_externo_id=cand).exists():
+            novo_id = cand
+            break
+    else:
+        return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
+
+    codigo = cod_nfe or cod_int or cod_cb or novo_id
+    try:
+        pv = _dec_opt(payload.get("preco_venda")) or Decimal("0")
+        pc = _dec_opt(payload.get("preco_custo")) or Decimal("0")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Preço inválido."}, status=400), None
+
+    Produto.objects.create(
+        produto_externo_id=novo_id,
+        codigo_interno=codigo[:50],
+        codigo_nfe=cod_nfe[:64] if cod_nfe else codigo[:64],
+        codigo_barras=cod_cb[:50] if cod_cb else None,
+        nome=nome,
+        marca=pt("marca", 120),
+        categoria=pt("categoria", 200) or None,
+        subcategoria=pt("subcategoria", 200),
+        fornecedor_texto=pt("fornecedor_texto", 300),
+        unidade=pt("unidade", 20) or "UN",
+        descricao=str(payload.get("descricao") or "")[:16000],
+        custo=pc,
+        preco_venda=pv,
+        cadastro_somente_agro=True,
+        cadastro_inativo=False,
+        ativo=True,
+    )
+    return None, novo_id
+
+
+def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
+    """Mescla overlay local no dict de import Mongo→PG (preço da loja prevalece)."""
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+    if not ov:
+        return defaults
+    out = dict(defaults)
+    if ov.nome.strip():
+        out["nome"] = ov.nome.strip()[:300]
+    if ov.marca.strip():
+        out["marca"] = ov.marca.strip()[:120]
+    if ov.categoria.strip():
+        out["categoria"] = ov.categoria.strip()[:200]
+    if ov.subcategoria.strip():
+        out["subcategoria"] = ov.subcategoria.strip()[:200]
+    if ov.fornecedor_texto.strip():
+        out["fornecedor_texto"] = ov.fornecedor_texto.strip()[:300]
+    if ov.unidade.strip():
+        out["unidade"] = ov.unidade.strip()[:20]
+    if ov.codigo_barras.strip():
+        out["codigo_barras"] = ov.codigo_barras.strip()[:50]
+    if ov.codigo_nfe.strip():
+        out["codigo_nfe"] = ov.codigo_nfe.strip()[:64]
+        out["codigo_interno"] = ov.codigo_nfe.strip()[:50]
+    if ov.preco_venda is not None:
+        out["preco_venda"] = ov.preco_venda
+    if ov.ativo_exibicao is not None:
+        out["ativo"] = bool(ov.ativo_exibicao)
+        out["cadastro_inativo"] = not bool(ov.ativo_exibicao)
+    ce = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+    if ce.get("preco_custo_overlay") is not None:
+        try:
+            out["custo"] = Decimal(str(ce["preco_custo_overlay"])).quantize(Decimal("0.01"))
+        except Exception:
+            pass
+    return out
