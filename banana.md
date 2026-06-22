@@ -13,6 +13,10 @@
 
 **Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
 
+**Produção (regra dura — 2026-06-22):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem** o Renan escrever explicitamente *«pode subir (para produção)»* / *«pode ir para produção»* (ou equivalente claro). **Ordem:** commit + push em **`teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+
+**Teste (regra — 2026-06-22):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local. **Assistente pode** commit + push em `teste` **automaticamente** (deploy Render segue sozinho); **não precisa pedir autorização** para subir no teste. Produção continua só com frase explícita acima.
+
 ---
 
 ## 0. TL;DR (leia em 1 minuto)
@@ -45,7 +49,7 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa no **`teste`** (ambiente de homologação — mesmo que “staging” no Render), aprova merge **produção**. O assistente **commita só em `teste`**; produção só com pedido explícito.
+**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; **`producao` só com «pode subir (produção)»** (ver topo).
 
 **Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
 
@@ -89,16 +93,23 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ## 3. Deploy e Git
 
-**Renan — uma frase:** **`teste` = staging** = homologação antes da loja. Branch Git chama `teste`; no Render o serviço chama *agro-consulta-staging*. É **o mesmo lugar**.
+**Renan — duas vertentes no Render (dois «sites»):**
 
-| Ambiente (como falar) | Branch Git | Render |
-|------------------------|------------|--------|
-| **Teste / staging** | `teste` | agro-consulta-staging |
-| **Produção / loja** | `producao` | Sistvale - Produção |
+| Como o Renan fala | Branch Git | Projeto Render (Dashboard) | Papel |
+|-------------------|------------|----------------------------|--------|
+| **Teste / staging / homologação** | `teste` | **teste** | Onde **sempre** valida antes da loja |
+| **Produção / loja / SistVale** | `producao` | **SistVale** | Loja de verdade |
+
+**Não testa local** — o ambiente de prova é o Render **teste**. Deploy do `teste` é **automático** no Render após push.
+
+| Ambiente (como falar) | Branch Git | Render (serviço) |
+|------------------------|------------|------------------|
+| **Teste / staging** | `teste` | projeto **teste** (ex.: agro-consulta-staging) |
+| **Produção / loja** | `producao` | projeto **SistVale** (Sistvale - Produção) |
 
 - **`main` / `principal` não entram no deploy.**
-- Fluxo: push `teste` → testar no **teste** → merge `teste`→`producao` quando Renan autorizar.
-- Após merge: `python manage.py migrate` no ambiente (Render faz no deploy).
+- **Assistente:** push **`teste` livre** (Renan testa no site teste). Merge/push **`producao` só** quando Renan autorizar.
+- Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
 ### 3.1 Versão do sistema (automática — opção A)
 
@@ -370,8 +381,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
-7. **Commits:** só quando Renan pedir; branch `teste`. **Incluir bump de `VERSION`** (hook faz sozinho se `setup_git_hooks` rodou; senão `python scripts/bump_version.py` + `git add VERSION`).
-8. **Produção:** só merge quando Renan disser *"pode ir para produção"* ou similar.
+7. **Commits / teste:** push **`teste` automático** quando entregar fix (Renan valida no Render teste). Bump de `VERSION` (hook ou `python scripts/bump_version.py`). **Produção:** só quando Renan pedir (item 8).
+8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem *«pode subir (produção)»*. **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
 9. **Modo econômico:** Renan pode pedir respostas curtas.
 10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
 11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
@@ -414,10 +425,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.36`  
+**Versão:** `1.0.37`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (Etapa 1 cadastro validada + perf lista v1.85)  
-**Versão app (`VERSION`):** **teste** v1.85 · **produção** v1.53 (`3d8ae08` etapa 1 cadastro)
+**Atualizado por:** assistente Cursor (fluxo Render teste automático + fix código sequencial produto novo)  
+**Versão app (`VERSION`):** **teste** v1.85+ (pendente bump) · **produção** v1.54
+
+### Fluxo Render — teste automático, produção só com pedido (2026-06-22, Renan)
+
+| Regra | Detalhe |
+|-------|---------|
+| **Onde testa** | Render projeto **teste** — **não** local |
+| **Dois sites** | **teste** = homologação · **SistVale** = loja |
+| **Assistente → teste** | Commit + push **`teste` automático** (deploy Render segue) |
+| **Assistente → produção** | **Só** com *«pode subir (produção)»* |
+
+### Cadastro — código sequencial produto novo (2026-06-22)
+
+**Sintoma:** Novo produto mostrava `__novo__` em código sistema e GM (etapa 1 Postgres).
+
+**Regra restaurada:** próximo número livre (ex. 4252 + GM4252); continua após o maior código no Postgres **e** espelho Mongo; pula ocupados.
+
+**Fix (branch `teste`, aguarda deploy):** `cadastro_codigo_sequencial_util.py` + detalhe `__novo__` + save Postgres.
+
+**Teste Renan:** Cadastro → Novo produto → aba Fiscal → códigos preenchidos (não `__novo__`).
 
 ### Cadastro produtos — etapa 1 Postgres + perf lista (2026-06-22, Renan OK)
 
@@ -853,6 +883,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.36
+### Fim do checkpoint v1.0.37
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

@@ -16976,10 +16976,21 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
 
     if pid.lower() in ("__novo__", "novo", "_novo"):
         if agro_catalogo_usa_postgres():
+            from produtos.cadastro_codigo_sequencial_util import alocar_codigo_sequencial_novo_cadastro
+
+            client_pg, db_pg = obter_conexao_mongo()
+            col_pg = client_pg.col_p if client_pg is not None else None
+            err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db_pg, col_pg)
+            if err_al is not None:
+                return JsonResponse(
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    status=int(err_al.get("status") or 400),
+                )
             stub = cat_agro.produto_model_para_detalhe(
                 Produto(
                     nome="",
-                    codigo_interno="__novo__",
+                    codigo_interno=str(c_sys or ""),
+                    codigo_nfe=str(c_gm or ""),
                     cadastro_somente_agro=True,
                 )
             )
@@ -18375,74 +18386,14 @@ def _mongo_sincronizar_codigo_sistema_espelho(
     return None
 
 
-def _mongo_codigo_sequencial_variantes_colisao(ds: str, gm: str, n: int) -> list:
-    """Valores que não podem repetir em outros produtos para o par sistema + GM."""
-    raw: list = [ds, gm, n]
-    try:
-        raw.append(float(int(n)))
-    except (TypeError, ValueError):
-        pass
-    out: list = []
-    seen: set = set()
-    for v in raw:
-        if v is None or v == "":
-            continue
-        key = (type(v).__name__, repr(v))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(v)
-    return out
-
-
-def _mongo_codigo_seq_ocupado(db, col: str, ds: str, gm: str, n: int) -> bool:
-    or_dup: list[dict] = []
-    for v in _mongo_codigo_sequencial_variantes_colisao(ds, gm, n):
-        for fld in ("Codigo", "CodigoNFe", "CodigoBarras", "EAN_NFe"):
-            or_dup.append({fld: v})
-    if not or_dup:
-        return False
-    try:
-        return db[col].find_one({"$or": or_dup}) is not None
-    except Exception:
-        logger.warning("mongo cod seq: find_one colisão", exc_info=True)
-        return True
-
-
 def _mongo_alocar_codigo_sequencial_novo_agro(db, col: str) -> tuple[JsonResponse | None, str | None, str | None]:
-    """
-    Próximo código livre para cadastro só Agro: sistema = numérico (a partir de ``AGRO_NOVO_PRODUTO_COD_MIN``,
-    default 6000), código interno GM = ``GM`` + mesmo número. Pula valores já usados no espelho.
-    """
-    try:
-        n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MIN", "6000"))
-    except ValueError:
-        n0 = 6000
-    n0 = max(0, min(n0, 9_999_999))
-    max_steps = 65_000
-    n = n0
-    steps = 0
-    while steps < max_steps:
-        ds = str(int(n))
-        gm = f"GM{ds}"
-        if not _mongo_codigo_seq_ocupado(db, col, ds, gm, int(n)):
-            return None, ds, gm
-        n += 1
-        steps += 1
-    return (
-        JsonResponse(
-            {
-                "ok": False,
-                "erro": (
-                    "Não foi possível gerar código sequencial automático: faixa esgotada ou muitas tentativas. "
-                    "Informe manualmente «Código sistema» e «Código interno (GM)»."
-                ),
-            },
-            status=400,
-        ),
-        None,
-        None,
-    )
+    """Próximo código livre (Postgres + espelho Mongo)."""
+    from produtos.cadastro_codigo_sequencial_util import alocar_codigo_sequencial_novo_cadastro
+
+    err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db, col)
+    if err_al is not None:
+        return JsonResponse({"ok": False, "erro": err_al.get("erro", "")}, status=int(err_al.get("status") or 400)), None, None
+    return None, c_sys, c_gm
 
 
 def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonResponse | None, str | None]:

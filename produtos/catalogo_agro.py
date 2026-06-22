@@ -347,6 +347,29 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     cod_int = pt("codigo", 80)
     cod_nfe = pt("codigo_nfe", 64)
     cod_cb = pt("codigo_barras", 80)
+    if cod_int.lower() == "__novo__":
+        cod_int = ""
+    if cod_nfe.lower() == "__novo__":
+        cod_nfe = ""
+
+    if not cod_int and not cod_nfe:
+        from produtos.cadastro_codigo_sequencial_util import alocar_codigo_sequencial_novo_cadastro
+        from produtos.views import obter_conexao_mongo
+
+        client, db = obter_conexao_mongo()
+        col = client.col_p if client is not None else None
+        err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db, col)
+        if err_al is not None:
+            return (
+                JsonResponse(
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    status=int(err_al.get("status") or 400),
+                ),
+                None,
+            )
+        cod_int = str(c_sys or "").strip()
+        cod_nfe = str(c_gm or "").strip()
+
     if not cod_int and not cod_nfe and not cod_cb:
         return (
             JsonResponse(
@@ -367,17 +390,19 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     else:
         return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
 
-    codigo = cod_nfe or cod_int or cod_cb or novo_id
     try:
         pv = _dec_opt(payload.get("preco_venda")) or Decimal("0")
         pc = _dec_opt(payload.get("preco_custo")) or Decimal("0")
     except Exception:
         return JsonResponse({"ok": False, "erro": "Preço inválido."}, status=400), None
 
+    codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
+    codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
+
     Produto.objects.create(
         produto_externo_id=novo_id,
-        codigo_interno=codigo[:50],
-        codigo_nfe=cod_nfe[:64] if cod_nfe else codigo[:64],
+        codigo_interno=codigo_interno_salvar,
+        codigo_nfe=codigo_nfe_salvar,
         codigo_barras=cod_cb[:50] if cod_cb else None,
         nome=nome,
         marca=pt("marca", 120),
