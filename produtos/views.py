@@ -15558,8 +15558,11 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    usa_pg_cat = agro_catalogo_usa_postgres()
     client, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not usa_pg_cat:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
@@ -15567,39 +15570,54 @@ def api_buscar_produtos(request):
     try:
         balanca_auditoria_q: str | None = None
         if wizard_catalog:
-            _wiz_n = _wizard_catalog_mongo_limit()
-            prods = list(
-                db[client.col_p]
-                .find({"CadastroInativo": {"$ne": True}}, _WIZARD_CATALOG_MONGO_PROJECTION)
-                .sort("Nome", 1)
-                .limit(_wiz_n)
-            )
+            if db is not None:
+                _wiz_n = _wizard_catalog_mongo_limit()
+                prods = list(
+                    db[client.col_p]
+                    .find({"CadastroInativo": {"$ne": True}}, _WIZARD_CATALOG_MONGO_PROJECTION)
+                    .sort("Nome", 1)
+                    .limit(_wiz_n)
+                )
+            else:
+                prods = []
             preco_por_id = {}
         else:
             preco_por_id = {}
-            bal = _parse_etiqueta_balanca_ean13_br(q)
-            if bal:
-                cod4, preco_etiqueta = bal
-                d_lido = re.sub(r"\D", "", str(q or ""))
-                if len(d_lido) == 13 and d_lido[0] == "2":
-                    balanca_auditoria_q = d_lido
-                p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
-                if p_escolhido:
-                    pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
-                    preco_por_id[pid_b] = preco_etiqueta
-                    prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
+            if db is None:
+                prods = []
+            else:
+                bal = _parse_etiqueta_balanca_ean13_br(q)
+                if bal:
+                    cod4, preco_etiqueta = bal
+                    d_lido = re.sub(r"\D", "", str(q or ""))
+                    if len(d_lido) == 13 and d_lido[0] == "2":
+                        balanca_auditoria_q = d_lido
+                    p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+                    if p_escolhido:
+                        pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
+                        preco_por_id[pid_b] = preco_etiqueta
+                        prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
+                    else:
+                        prods = motor_busca_consulta_documentos(
+                            q, db, client, limit=80, include_inactive=False, projection=None
+                        )
                 else:
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-            else:
-                prods = motor_busca_consulta_documentos(
-                    q, db, client, limit=80, include_inactive=False, projection=None
-                )
+        if usa_pg_cat:
+            from produtos import catalogo_agro as cat_agro
+
+            prods = cat_agro.mesclar_prods_busca_pdv(
+                prods,
+                q=q,
+                wizard_catalog=wizard_catalog,
+                limit=80,
+            )
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
-        if not wizard_mode:
+        if not wizard_mode and db is not None:
             try:
                 medias_map = _obter_mapa_medias_venda_cache(db)
             except Exception:
@@ -15607,7 +15625,7 @@ def api_buscar_produtos(request):
 
         estoque_map = {}
         try:
-            if p_ids:
+            if p_ids and db is not None:
                 _emax = 2000
                 if len(p_ids) > _emax:
                     for _ej in range(0, len(p_ids), _emax):
@@ -15657,7 +15675,7 @@ def api_buscar_produtos(request):
             logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
 
         ultimas_compras_map: dict[str, list] = {}
-        if compras and prods and not (wizard_catalog and len(prods) > 400):
+        if compras and prods and db is not None and not (wizard_catalog and len(prods) > 400):
             try:
                 prod_por_id = {str(x.get("Id") or x.get("_id")): x for x in prods}
                 p_ids_busca = [str(x.get("Id") or x.get("_id")) for x in prods]
@@ -20702,7 +20720,9 @@ def _catalogo_pdv_montar_produtos(db, client):
                 "index_codigos": index_codigos_list,
             }
         )
-    return res
+    from produtos import catalogo_agro as cat_agro
+
+    return cat_agro.mesclar_catalogo_pdv_cache(res)
 
 
 def _catalogo_pdv_version(produtos: list[dict]) -> str:
@@ -20760,14 +20780,30 @@ def _catalogo_pdv_entry_atual(db, client):
 @require_GET
 def api_todos_produtos_local(request):
     from estoque.sync_health import registrar_ping_mongo
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     client, db = obter_conexao_mongo()
-    if db is None:
+    usa_pg_cat = agro_catalogo_usa_postgres()
+    if db is None and not usa_pg_cat:
         registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        entry = _catalogo_pdv_entry_atual(db, client)
-        registrar_ping_mongo(True)
+        if db is not None:
+            entry = _catalogo_pdv_entry_atual(db, client)
+        else:
+            from produtos import catalogo_agro as cat_agro
+
+            produtos = cat_agro.mesclar_catalogo_pdv_cache([])
+            now_iso = timezone.now().isoformat()
+            version = _catalogo_pdv_version(produtos)
+            entry = {
+                "body": {
+                    "produtos": produtos,
+                    "catalog_version": version,
+                    "catalog_updated_at": now_iso,
+                }
+            }
+        registrar_ping_mongo(db is not None)
         return JsonResponse(entry["body"])
     except Exception as e:
         registrar_ping_mongo(False, str(e))

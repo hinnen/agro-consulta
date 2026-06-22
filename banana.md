@@ -11,7 +11,7 @@
 
 **Assistente:** não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` **sem pedir** quando for pertinente (ver CHECKPOINT).
 
-**Comunicação com o Renan:** respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
+**Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
 
 ---
 
@@ -286,8 +286,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | Status | Tela / módulo | Nota |
 |--------|----------------|------|
 | **Feito** | Clientes PDV, Vendas Agro, NFC-e, Caixa, RH (quase todo Postgres) | Sync ERP opcional onde existir |
-| **Feito (parcial)** | Cadastro SisVale `/produtos/cadastro-erp/` | API ERP cortada; busca rápida (cache + `/api/buscar/`); preço espelha no Mongo ao salvar. **Lista/facetas ainda Mongo** |
-| **Infra pronta, off** | Catálogo Postgres | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — flag `agro_pg` só em cadastro lista/detalhe/Excel |
+| **Feito (staging OK)** | Cadastro SisVale `/produtos/cadastro-erp/` | **`AGRO_FONTE_CATALOGO=agro_pg`** no teste — import 3354 prod · Renan validou busca GM/barras + salvar preço + **sem piscadinha** (v1.84–v1.85) |
+| **Infra pronta, off** | Catálogo Postgres | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — **ligado no staging**; produção ainda Mongo |
 | **Infra só flag** | Estoque ledger, Financeiro Postgres | Flags existem; **não ligadas** nas views |
 | **Falta (alta)** | PDV `/consulta/`, wizard `/pdv/checkout/` | `/api/buscar/`, cache catálogo, saldos, médias → Mongo |
 | **Falta (alta)** | Gestão operacional `produtos_gestao.html` | `gestao/lista` + **`gestao/facetas`** (vários `distinct`) — suspeito lentidão pós-entrada NF |
@@ -322,9 +322,9 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 4. Criar produto novo (se liberado no teste) ou pular se ainda bloqueado no staging.
 5. Se algo falhar: anotar nome do produto + o que viu (sumiu, preço voltou, lista vazia).
 
-**Etapa 1 em andamento:** implementação cadastro → Postgres SisVale (branch `teste`).
+**Etapa 1 — validada no teste (2026-06-22, Renan):** flag `agro_pg` + import · GM0027-1 a **R$ 21,00** persiste · busca nome/código OK · piscadinha preço resolvida (v1.84) · abertura lista mais rápida (v1.85 prefetch + Postgres sem count). **Próximo:** cherry-pick etapa 1 → produção **só quando Renan pedir**; PDV ainda Mongo.
 
-**Produto de teste (Renan):** GM0027-1 · Ração Formula Natural adulto raças pequenas 1kg — **preço correto R$ 20,90** (staging/overlay); produção/espelho mostra R$ 19,90 (errado). Usar este item para validar busca + salvar + preço persistente.
+**Produto de teste (Renan):** GM0027-1 · Ração Formula Natural adulto raças pequenas 1kg — **preço correto R$ 21,00** (staging/Agro); espelho Mongo R$ 19,90. Usar para validar busca + salvar + preço persistente.
 
 ---
 
@@ -414,10 +414,36 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.35`  
-**Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (Nova saída: mês calendário, sucesso bonito, volta origem)  
-**Versão app (`VERSION`):** **teste** v1.74+ · **produção** v1.52 (`4505805`)
+**Versão:** `1.0.36`  
+**Última atualização:** `2026-06-22`  
+**Atualizado por:** assistente Cursor (Etapa 1 cadastro validada + perf lista v1.85)  
+**Versão app (`VERSION`):** **teste** v1.85 · **produção** v1.53 (`3d8ae08` etapa 1 cadastro)
+
+### Cadastro produtos — etapa 1 Postgres + perf lista (2026-06-22, Renan OK)
+
+| Item | Status |
+|------|--------|
+| `AGRO_FONTE_CATALOGO=agro_pg` staging | Renan validou |
+| Import `importar_catalogo_mongo_produto` | 3354 produtos |
+| Busca nome + GM/barras | OK (v1.83+) |
+| Piscadinha preço errado | **Resolvida** v1.84 — lista só servidor |
+| Abertura lenta pós-fix | **Melhor** v1.85 — prefetch 1ª página, badge ERP em paralelo, Postgres sem `count`, busca local instantânea (preço «…» até servidor) |
+
+**Commits:** `3c9ed24` v1.84 · `8d76146` v1.85 · branch `teste`.
+
+**Próximo passo (só quando Renan pedir):** subir etapa 1 cadastro na **produção** (flag + import). **PDV não muda** ainda.
+
+**Produção (2026-06-22):** Renan pediu push → commit `3d8ae08` v1.53 em `producao`. Deploy OK; loja em testes. **Renan:** avisa se der problema.
+
+**Cadastro × PDV (etapa 1 — linguagem de loja):**
+
+| O que você faz no cadastro | Aparece no PDV? |
+|----------------------------|-----------------|
+| **Muda preço/nome** de produto que **já existia** | **Sim** — overlay + merge Postgres na busca |
+| **Cria produto novo** (Id `AGRO…`) | **Sim** (após deploy v1.86+) — busca e catálogo local mesclam Postgres |
+| **Mesmo PC**, cache antigo | Atualizar estoque/catálogo no PDV (botão sync) ou Ctrl+Shift+R |
+
+**Fix PDV×cadastro (2026-06-22):** `mesclar_prods_busca_pdv` + `mesclar_catalogo_pdv_cache` — produtos do Postgres entram na busca `/api/buscar/` e no download do catálogo local.
 
 ### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
 
@@ -792,7 +818,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] Corte Agro→ERP (API) — **produção v1.14** (`372f90f`; automático após checkpoint)
 - [ ] Próxima fase: `AGRO_FONTE_FINANCEIRO=agro_pg` (Lançamentos ler/escrever Postgres, não espelho Mongo)
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
-- [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg` *(código etapa 1 em `teste`; Renan: flag no Render staging + import 1×)*
+- [x] Ativar catálogo Postgres no **teste** — **Renan OK 2026-06-22**
+- [x] Ativar catálogo Postgres na **produção** — v1.53 deploy OK; loja testando (Renan avisa se falhar)
 - [ ] PDV `/api/buscar/` e cache → Postgres
 - [ ] Gestão operacional (lista + facetas) → Postgres
 - [ ] Estoque `ledger` e financeiro `agro_pg` (implementar flags)
@@ -826,6 +853,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.35
+### Fim do checkpoint v1.0.36
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
