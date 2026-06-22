@@ -909,16 +909,14 @@
   function cadastroBuscarLocalComoPdv(qRaw) {
     var q = String(qRaw || '').trim();
     if (!q) return [];
-    if (q.length === 1 && !pareceCodigoBusca(q)) return [];
+    if (!buscaProntaParaCatalogo(q)) return [];
     var catalog = cadastroCatalogoPdvCacheArray();
     var catalogById = cadastroCatalogoPdvById();
     if (!catalog.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
       return [];
     }
     var termoNorm = normalizarBuscaLocal(q);
-    if (!termoNorm || String(termoNorm).trim().length < 2) {
-      if (!pareceCodigoBusca(q)) return [];
-    }
+    if (!termoNorm) return [];
     var modo = cadastroModoBuscaPdv(q);
     var fil = filtrarProdutosBuscaInteligente(catalog, termoNorm, modo);
     fil = cadastroFiltrarAtivosLocal(fil);
@@ -978,6 +976,31 @@
       });
   }
 
+  function apiProdutoParaLinhaCadastro(p) {
+    if (!p || p.id == null) return p;
+    return {
+      id: p.id,
+      nome: p.nome,
+      marca: p.marca,
+      codigo: p.codigo,
+      codigo_nfe: p.codigo_nfe || p.codigo_gm || p.codigo,
+      codigo_barras: p.codigo_barras,
+      preco_venda: p.preco_venda,
+      preco_custo: p.preco_custo,
+      categoria: p.categoria,
+      subcategoria: p.subcategoria,
+      categoria_listagem: p.categoria_listagem,
+      prateleira: p.prateleira,
+      fornecedor: p.fornecedor,
+      imagem: p.imagem,
+      inativo: !!p.inativo,
+      unidade: p.unidade,
+      descricao: p.descricao,
+      busca_texto: p.busca_texto,
+      index_codigos: p.index_codigos
+    };
+  }
+
   function carregarBuscaApi(qRaw, gen, sig, localBaselinePdv) {
     var catalogById = cadastroCatalogoPdvById();
     var termoNorm = (typeof normalizarBuscaLocal === 'function') ? normalizarBuscaLocal(qRaw) : String(qRaw || '').toLowerCase();
@@ -1012,6 +1035,19 @@
       .then(function (apiRows) {
         if (gen !== carregarGen) return;
         apiRows = apiRows || [];
+        if (pareceCodigoBusca(qRaw) && typeof filtrarProdutosBuscaInteligente === 'function' && typeof normalizarBuscaLocal === 'function') {
+          var poolCod = apiRows.map(apiProdutoParaLinhaCadastro);
+          var filCod = filtrarProdutosBuscaInteligente(
+            poolCod,
+            normalizarBuscaLocal(qRaw),
+            /^\d{8,}$/.test(String(qRaw || '').replace(/\s/g, '')) ? 'scanner' : 'normal'
+          );
+          if (filCod.length) {
+            var keepCod = {};
+            filCod.forEach(function (r) { keepCod[String(r.id)] = true; });
+            apiRows = apiRows.filter(function (r) { return keepCod[String(r.id)]; });
+          }
+        }
         var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
         if (typeof mesclarBuscaPdvLocalComApi === 'function') {
           pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalogById, cadastroLimiteBuscaPdv());
@@ -1040,6 +1076,14 @@
     mostrarErro('');
     var sig = carregarAbort ? carregarAbort.signal : undefined;
     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+
+    if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (GM… / 4+ dígitos).';
+      if (listaEl) {
+        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
+      }
+      return;
+    }
 
     if (qBusca) {
       clearTimeout(buscaMergeTimer);
@@ -1119,6 +1163,13 @@
       });
   }
 
+  function buscaProntaParaCatalogo(q) {
+    q = String(q || '').trim();
+    if (!q) return false;
+    if (pareceCodigoBusca(q)) return true;
+    return q.length >= 2;
+  }
+
   function pareceCodigoBusca(q) {
     q = String(q || '').trim();
     var lim = q.replace(/\W/g, '');
@@ -1139,7 +1190,7 @@
       carregar();
       return;
     }
-    if (q.length === 1 && !pareceCodigoBusca(q)) {
+    if (!buscaProntaParaCatalogo(q)) {
       if (carregarAbort) {
         try { carregarAbort.abort(); } catch (e1) { /* ignore */ }
         carregarAbort = null;
@@ -1155,8 +1206,14 @@
     }
     mostrarErro('');
     if (metaEl) metaEl.textContent = 'Buscando…';
+    if (pareceCodigoBusca(q)) {
+      clearTimeout(debounceTimer);
+      pagina = 1;
+      carregar();
+      return;
+    }
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 0 : (temCache ? 100 : 320));
+    var ms = forcar ? 0 : (temCache ? 100 : 320);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {
@@ -1164,7 +1221,7 @@
         carregar();
         return;
       }
-      if (q2.length === 1 && !pareceCodigoBusca(q2)) return;
+      if (!buscaProntaParaCatalogo(q2)) return;
       pagina = 1;
       carregar();
     }, ms);

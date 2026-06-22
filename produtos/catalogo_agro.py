@@ -159,10 +159,6 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     qs = queryset_catalogo_ativos(inativos=inativos)
     lim = max(1, min(int(limit or 80), 160))
 
-    chunk = list(qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim])
-    if chunk:
-        return _rows_de_produtos(chunk)
-
     if parece_codigo_cadastro(termo):
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
@@ -184,6 +180,35 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     break
         if matches:
             return _rows_de_produtos(matches)
+
+    chunk = list(qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim])
+    if chunk:
+        return _rows_de_produtos(chunk)
+
+    if parece_codigo_cadastro(termo):
+        try:
+            from produtos.views import obter_conexao_mongo
+
+            client, db = obter_conexao_mongo()
+            if db is not None and client is not None:
+                from produtos.cadastro_busca_codigo_util import cadastro_mongo_busca_por_codigo
+
+                docs = cadastro_mongo_busca_por_codigo(
+                    db,
+                    client,
+                    termo,
+                    limit=lim,
+                    include_inactive=inativos,
+                    projection={"Id": 1, "_id": 1},
+                )
+                ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
+                ext_ids = [x for x in ext_ids if x]
+                if ext_ids:
+                    chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
+                    if chunk:
+                        return _rows_de_produtos(chunk)
+        except Exception:
+            pass
 
     return []
 
