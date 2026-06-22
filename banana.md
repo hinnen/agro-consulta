@@ -15,6 +15,8 @@
 
 **Produção (regra dura — 2026-06-22):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem** o Renan escrever explicitamente *«pode subir (para produção)»* / *«pode ir para produção»* (ou equivalente claro). **Ordem:** commit + push em **`teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
+**Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
+
 **Teste (regra — 2026-06-22):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local. **Assistente pode** commit + push em `teste` **automaticamente** (deploy Render segue sozinho); **não precisa pedir autorização** para subir no teste. Produção continua só com frase explícita acima.
 
 **Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
@@ -266,7 +268,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### 4.10 Lançamentos / financeiro
 
-- `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
+- `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · `/classico/` → redirect · `/teste/` → redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
@@ -438,10 +440,52 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.38`  
+**Versão:** `1.0.40`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (cadastro código novo OK + regra registro banana + produção)  
-**Versão app (`VERSION`):** **teste** v1.89 · **produção** v1.55 (cherry-pick cadastro código)
+**Atualizado por:** assistente Cursor (CP excluir + desativa layout clássico)  
+**Versão app (`VERSION`):** **teste** v1.92 (pendente commit) · **produção** v1.56
+
+### Contas a pagar — Excluir na lista nova + fim do layout clássico (2026-06-22)
+
+| Item | Detalhe |
+|------|---------|
+| **Sintoma** | **Excluir** na lista nova abria a tela clássica (`/classico/?mongo_id=…`) e **não apagava** o título |
+| **Causa** | Botão era link para o layout antigo (corrigido em `b5e499e`; reforço neste patch) |
+| **Fix** | Excluir chama `api/lancamentos/excluir/` na própria tela; operador do PIN no payload |
+| **Layout clássico CP** | `/lancamentos/contas-pagar/classico/` → **redirect** para `/lancamentos/contas-pagar/` |
+| **UI** | Removidos botões «Layout clássico» (lista + calendário) |
+| **Teste Render** | Ctrl+F5 → expandir linha → **Excluir** → confirmar → título some sem mudar de tela |
+
+### Chat canônico — produção (2026-06-22, Renan)
+
+| Regra | Detalhe |
+|-------|---------|
+| **Onde sobe loja** | **Este chat** — Renan fará push produção **daqui** |
+| **Outros chats/posts** | Pode ter havido deploy fora; **não** confiar só na memória do chat |
+| **Fonte da verdade** | CHECKPOINT abaixo + `git log origin/producao` / `git log origin/teste` |
+| **Antes de cherry-pick** | Conferir tabela «Loja vs teste»; Renan confirma o pacote |
+
+### Mapa loja vs teste (sync Git 2026-06-22)
+
+**Já na loja (SistVale · `producao` v1.56):**
+
+| Pacote | Commit produção (ref.) |
+|--------|-------------------------|
+| Nova saída — empréstimo dual forma + juros parcelado | `76e2a8b` · `4505805` |
+| Nova saída — quitado parcela, FAB, fixes 500 | `f824944` … `0f4a5e4` |
+| Cadastro etapa 1 Postgres (`agro_pg`) + PDV vê produto novo | `3d8ae08` · `f08da8c` |
+| Código sequencial produto novo 4010+ (sem piscada modal) | `8889955` |
+
+**No teste, ainda NÃO na loja (candidatos próximo push — só quando Renan pedir neste chat):**
+
+| Pacote | Commit `teste` |
+|--------|----------------|
+| Nova saída — mês calendário, painel sucesso, volta BI/CP | `b5e499e` v1.75 |
+| Excluir título manual Agro **quitado** (ex. Entrada empréstimo) | `726b3ee` v1.76 |
+| Cadastro — sequência/código pós-8889955 (v1.87–v1.89) | `ffc82ba` … `a2303c7` |
+| Deploy fixes staging (NFC-e migration, entrada NF util) | `bb27da1` … `32d8ed5` |
+
+**Como conferir:** `git fetch origin` → `git log origin/producao -3 --oneline` · `git log origin/teste -3 --oneline` · `git log origin/producao..origin/teste --oneline` (pendente loja).
 
 ### Cadastro — código sequencial produto novo (2026-06-22, Renan OK teste)
 
@@ -449,7 +493,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 |------|---------|
 | **Validação Renan** | OK no Render **teste** |
 | **Commits `teste`** | `ffc82ba` v1.87 · `cea03c7` v1.88 · `a2303c7` v1.89 |
-| **Produção** | Renan autorizou (*não invasivo*) — commit `8889955` v1.55 → **SistVale** |
+| **Produção** | Renan subiu em **outro chat** — `8889955` v1.55+ → **SistVale** (banana `0dac843` v1.56) |
 | **Reverter** | Revert dos 3 commits; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
 
 **Regras (canônicas — §4.6):** código sistema **4 dígitos**, faixa **4010–9999**, sequência só pelo **código sistema** (GM não conta); GM = `GM` + número (editável livre); modal novo não repinta ao carregar códigos.
@@ -588,6 +632,8 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 
 **Arquivos:** `lancamento_nova_saida.js`, `lancamento_nova_saida_modal.html`, `dashboard_gerencial.html`, `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py` (`_fin_vencimento_parcela`).
 
+**Deploy:** `teste` **`b5e499e`** v1.75 — **pendente loja** (subir só neste chat quando Renan pedir).
+
 ### Excluir entrada manual quitada (2026-06-19, Renan)
 
 **Sintoma:** «Entrada de Empréstimo» quitada em Contas a receber — coluna Ações vazia, sem Excluir.
@@ -595,6 +641,8 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 **Causa:** `_lancamento_pode_excluir_agro` barrava **quitado** antes de checar **Lote manual Agro**.
 
 **Fix:** manual Agro (Nova saída / lote manual) pode excluir **mesmo quitado**; ERP continua bloqueado.
+
+**Deploy:** `teste` **`726b3ee`** v1.76 — **pendente loja** (subir só neste chat quando Renan pedir).
 
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
@@ -708,10 +756,10 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 | URL | Tela |
 |-----|------|
 | `/lancamentos/contas-pagar/` | **Layout novo** (padrão) |
-| `/lancamentos/contas-pagar/classico/` | Tabela clássica |
+| `/lancamentos/contas-pagar/classico/` | Redirect → layout padrão |
 | `/lancamentos/contas-pagar/teste/` | Redirect → padrão |
 
-**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. **Editar / Excluir** no layout novo: modal + APIs `alterar`/`excluir` (sem redirecionar ao clássico); vista preservada após salvar/excluir.
+**Mesma API** `/api/lancamentos/`. **Editar / Excluir** no layout novo: modal + APIs `alterar`/`excluir` (sem redirecionar); vista preservada após salvar/excluir. **`/classico/`** redireciona para o layout padrão (2026-06-22).
 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 
@@ -907,6 +955,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.38
+### Fim do checkpoint v1.0.39
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*

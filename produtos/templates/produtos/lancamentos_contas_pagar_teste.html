@@ -14,7 +14,6 @@
 {% block admin_header_actions %}
   <div class="flex flex-wrap items-center justify-end gap-2">
     <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
-    <a href="{% url 'lancamentos_contas_pagar_classico' %}" data-prefetch class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-amber-500 bg-amber-50 px-4 text-[11px] font-black uppercase text-amber-950 shadow-sm hover:bg-amber-100" title="Abrir o layout clássico (tabela completa)">Layout clássico</a>
     <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-700 cursor-pointer">Nova saída</button>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
   </div>
@@ -874,6 +873,13 @@
     try { return (localStorage.getItem('gm_sspin_operador') || '').trim(); } catch (_) { return ''; }
   }
 
+  function payloadLancamentosApi(extra) {
+    const body = { ...(extra || {}) };
+    const op = getOperadorPin();
+    if (op) body.operador = op;
+    return body;
+  }
+
   function readAllColsPinStore() {
     try {
       const raw = localStorage.getItem(LS_COLS_PIN);
@@ -1230,23 +1236,35 @@
   }
 
   async function excluirLancamentoPorId(id) {
+    const sid = String(id || '').trim();
+    if (!sid) return;
     try {
       const r = await fetch(API_LANC_EXCLUIR, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify(payloadLancamentosApi({ id: sid })),
       });
-      const out = await r.json();
-      if (!out.ok) {
+      let out = {};
+      try {
+        out = await r.json();
+      } catch (_) {
+        alert('Resposta inválida do servidor. Atualize a página (Ctrl+F5) e tente de novo.');
+        return;
+      }
+      if (!r.ok || !out.ok) {
         alert(out.erro || 'Não foi possível excluir.');
         return;
       }
-      selecionados.delete(String(id));
+      selecionados.delete(sid);
       refreshSelBar();
+      const ix = rowsAcum.findIndex((row) => String(row.id) === sid);
+      if (ix >= 0) rowsAcum.splice(ix, 1);
+      total = Math.max(0, total - 1);
       recarregarPreservandoVista();
     } catch (_) {
       alert('Erro de rede.');
@@ -2110,13 +2128,13 @@
   document.getElementById('sv-edl-salvar')?.addEventListener('click', async () => {
     const id = (document.getElementById('sv-edl-id').value || '').trim();
     if (!id) return;
-    const body = {
+    const body = payloadLancamentosApi({
       id,
       descricao: document.getElementById('sv-edl-desc').value,
       cliente: document.getElementById('sv-edl-cliente').value,
       data_vencimento: document.getElementById('sv-edl-venc').value,
       plano_conta: document.getElementById('sv-edl-plano').value,
-    };
+    });
     const cid = (document.getElementById('sv-edl-cliente-id').value || '').trim();
     if (cid) body.cliente_id = cid;
     const pid = (document.getElementById('sv-edl-plano-id').value || '').trim();
@@ -2177,7 +2195,7 @@
       alert('Selecione forma de pagamento e conta/banco.');
       return;
     }
-    const body = {
+    const body = payloadLancamentosApi({
       ids: bxIdsAtual,
       tipo: 'pagar',
       data_movimento: document.getElementById('sv-bx-data').value,
@@ -2185,7 +2203,7 @@
       forma_pagamento_id: f.id,
       banco: b.nome,
       banco_id: b.id,
-    };
+    });
     const jt = (document.getElementById('sv-bx-juros').value || '').trim();
     if (jt) {
       const jn = parseValorPt(jt);
@@ -2256,12 +2274,12 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({
+        body: JSON.stringify(payloadLancamentosApi({
           lancamento_id: bxpIdAtual,
           tipo: 'pagar',
           data_movimento: document.getElementById('sv-bxp-data').value,
           parcelas,
-        }),
+        })),
       });
       const out = await r.json();
       if (!out.ok) {

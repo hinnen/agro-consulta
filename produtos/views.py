@@ -9994,12 +9994,12 @@ def lancamentos_contas_pagar_view(request):
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_classico_view(request):
-    """Contas a pagar — layout clássico (tabela completa; mesma API Mongo)."""
-    return render(
-        request,
-        "produtos/lancamentos_financeiros.html",
-        _ctx_lancamentos_financeiros("pagar", request),
-    )
+    """Alias legado (/classico/) — redireciona para o layout padrão de contas a pagar."""
+    url = reverse("lancamentos_contas_pagar")
+    qs = (request.META.get("QUERY_STRING") or "").strip()
+    if qs:
+        url = f"{url}?{qs}"
+    return redirect(url)
 
 
 @ensure_csrf_cookie
