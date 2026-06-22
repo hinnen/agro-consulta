@@ -440,10 +440,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.40`  
+**Versão:** `1.0.41`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (CP excluir + desativa layout clássico)  
-**Versão app (`VERSION`):** **teste** v1.92 (pendente commit) · **produção** v1.56
+**Atualizado por:** assistente Cursor (produção v1.59 pacote teste v1.92 — Renan autorizou neste chat)  
+**Versão app (`VERSION`):** **teste** v1.92 (`e98db0f`) · **produção** v1.59 (`2d88ee4`)
+
+### Pacote teste v1.92 → **produção** (2026-06-22, Renan neste chat)
+
+Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão layout clássico sumiu; **exclusão** não testou no Render teste — `AGRO_STAGING_READONLY` bloqueia gravação Mongo; vai testar na **loja**).
+
+| Pacote | `teste` | `producao` (cherry-pick) |
+|--------|---------|---------------------------|
+| Nova saída — mês calendário, sucesso, volta BI/CP | `b5e499e` | `99ea1ae` v1.57 |
+| Excluir manual Agro **quitado** (CR/CP backend) | `726b3ee` | `1d412e0` v1.58 |
+| CP — Excluir na lista nova + fim layout clássico | `e98db0f` | `2d88ee4` v1.59 |
+
+**Loja:** Ctrl+F5 após deploy Render → Contas a pagar → expandir linha → **Excluir** (sem ir ao clássico). CR: título manual quitado deve mostrar Excluir. **Renan:** conferir exclusão na loja real.
+
+**Reverter:** revert dos 3 commits em `producao` (ordem inversa).
 
 ### Contas a pagar — Excluir na lista nova + fim do layout clássico (2026-06-22)
 
@@ -455,6 +469,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Layout clássico CP** | `/lancamentos/contas-pagar/classico/` → **redirect** para `/lancamentos/contas-pagar/` |
 | **UI** | Removidos botões «Layout clássico» (lista + calendário) |
 | **Teste Render** | Ctrl+F5 → expandir linha → **Excluir** → confirmar → título some sem mudar de tela |
+| **Produção** | `2d88ee4` v1.59 — Renan validou sumiço do clássico; exclusão a conferir na loja (staging readonly) |
 
 ### Chat canônico — produção (2026-06-22, Renan)
 
@@ -467,7 +482,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Mapa loja vs teste (sync Git 2026-06-22)
 
-**Já na loja (SistVale · `producao` v1.56):**
+**Já na loja (SistVale · `producao` v1.59):**
 
 | Pacote | Commit produção (ref.) |
 |--------|-------------------------|
@@ -475,13 +490,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Nova saída — quitado parcela, FAB, fixes 500 | `f824944` … `0f4a5e4` |
 | Cadastro etapa 1 Postgres (`agro_pg`) + PDV vê produto novo | `3d8ae08` · `f08da8c` |
 | Código sequencial produto novo 4010+ (sem piscada modal) | `8889955` |
+| Nova saída — mês calendário, sucesso, volta BI/CP | `99ea1ae` |
+| Excluir manual Agro quitado + CP excluir lista / sem clássico | `1d412e0` · `2d88ee4` |
 
-**No teste, ainda NÃO na loja (candidatos próximo push — só quando Renan pedir neste chat):**
+**No teste, ainda NÃO na loja (próximo push — só quando Renan pedir neste chat):**
 
 | Pacote | Commit `teste` |
 |--------|----------------|
-| Nova saída — mês calendário, painel sucesso, volta BI/CP | `b5e499e` v1.75 |
-| Excluir título manual Agro **quitado** (ex. Entrada empréstimo) | `726b3ee` v1.76 |
 | Cadastro — sequência/código pós-8889955 (v1.87–v1.89) | `ffc82ba` … `a2303c7` |
 | Deploy fixes staging (NFC-e migration, entrada NF util) | `bb27da1` … `32d8ed5` |
 
@@ -632,7 +647,7 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 
 **Arquivos:** `lancamento_nova_saida.js`, `lancamento_nova_saida_modal.html`, `dashboard_gerencial.html`, `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py` (`_fin_vencimento_parcela`).
 
-**Deploy:** `teste` **`b5e499e`** v1.75 — **pendente loja** (subir só neste chat quando Renan pedir).
+**Deploy:** **produção** `99ea1ae` v1.57 (cherry-pick `b5e499e`).
 
 ### Excluir entrada manual quitada (2026-06-19, Renan)
 
@@ -642,7 +657,7 @@ Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — 
 
 **Fix:** manual Agro (Nova saída / lote manual) pode excluir **mesmo quitado**; ERP continua bloqueado.
 
-**Deploy:** `teste` **`726b3ee`** v1.76 — **pendente loja** (subir só neste chat quando Renan pedir).
+**Deploy:** **produção** `1d412e0` v1.58 (cherry-pick `726b3ee`).
 
 | UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
 
@@ -955,6 +970,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.39
+### Fim do checkpoint v1.0.41
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
