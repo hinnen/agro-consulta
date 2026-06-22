@@ -280,7 +280,16 @@ def sincronizar_modelo_produto_de_overlay(
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
 
-    codigo = _txt("codigo_nfe", 64) or _txt("codigo", 50) or pid64[:50]
+    from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
+
+    cod_sys = _txt("codigo", 50)
+    codigo_interno = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or pid64[:50])
+    codigo_nfe_val = (
+        ov.codigo_nfe.strip()
+        or _txt("codigo_nfe", 64)
+        or gm_sugerido_de_codigo_sistema(cod_sys)
+        or codigo_interno
+    )[:64]
     nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
@@ -300,8 +309,8 @@ def sincronizar_modelo_produto_de_overlay(
         cad_inativo = not ativo
 
     defaults = {
-        "codigo_interno": codigo[:50],
-        "codigo_nfe": (ov.codigo_nfe.strip() or codigo)[:64],
+        "codigo_interno": codigo_interno,
+        "codigo_nfe": codigo_nfe_val,
         "codigo_barras": (ov.codigo_barras.strip() or None),
         "nome": nome[:300],
         "marca": ov.marca.strip()[:120],
@@ -347,6 +356,40 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     cod_int = pt("codigo", 80)
     cod_nfe = pt("codigo_nfe", 64)
     cod_cb = pt("codigo_barras", 80)
+    if cod_int.lower() == "__novo__":
+        cod_int = ""
+    if cod_nfe.lower() == "__novo__":
+        cod_nfe = ""
+
+    from produtos.cadastro_codigo_sequencial_util import (
+        alocar_codigo_sequencial_novo_cadastro,
+        erro_codigo_sistema_4_digitos,
+        gm_sugerido_de_codigo_sistema,
+    )
+
+    if not cod_int and not cod_nfe:
+        from produtos.views import obter_conexao_mongo
+
+        client, db = obter_conexao_mongo()
+        col = client.col_p if client is not None else None
+        err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db, col)
+        if err_al is not None:
+            return (
+                JsonResponse(
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    status=int(err_al.get("status") or 400),
+                ),
+                None,
+            )
+        cod_int = str(c_sys or "").strip()
+        cod_nfe = str(c_gm or "").strip()
+    else:
+        err_cod = erro_codigo_sistema_4_digitos(cod_int, obrigatorio=True)
+        if err_cod:
+            return JsonResponse({"ok": False, "erro": err_cod}, status=400), None
+        if not cod_nfe:
+            cod_nfe = gm_sugerido_de_codigo_sistema(cod_int)
+
     if not cod_int and not cod_nfe and not cod_cb:
         return (
             JsonResponse(
@@ -367,17 +410,19 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     else:
         return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
 
-    codigo = cod_nfe or cod_int or cod_cb or novo_id
     try:
         pv = _dec_opt(payload.get("preco_venda")) or Decimal("0")
         pc = _dec_opt(payload.get("preco_custo")) or Decimal("0")
     except Exception:
         return JsonResponse({"ok": False, "erro": "Preço inválido."}, status=400), None
 
+    codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
+    codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
+
     Produto.objects.create(
         produto_externo_id=novo_id,
-        codigo_interno=codigo[:50],
-        codigo_nfe=cod_nfe[:64] if cod_nfe else codigo[:64],
+        codigo_interno=codigo_interno_salvar,
+        codigo_nfe=codigo_nfe_salvar,
         codigo_barras=cod_cb[:50] if cod_cb else None,
         nome=nome,
         marca=pt("marca", 120),

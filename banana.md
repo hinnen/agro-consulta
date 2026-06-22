@@ -11,6 +11,14 @@
 
 **Assistente:** não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` **sem pedir** quando for pertinente (ver CHECKPOINT).
 
+**Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
+
+**Produção (regra dura — 2026-06-22):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem** o Renan escrever explicitamente *«pode subir (para produção)»* / *«pode ir para produção»* (ou equivalente claro). **Ordem:** commit + push em **`teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+
+**Teste (regra — 2026-06-22):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local. **Assistente pode** commit + push em `teste` **automaticamente** (deploy Render segue sozinho); **não precisa pedir autorização** para subir no teste. Produção continua só com frase explícita acima.
+
+**Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
+
 ---
 
 ## 0. TL;DR (leia em 1 minuto)
@@ -20,11 +28,12 @@
 | **Produto** | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP) |
 | **Usuários** | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras |
 | **Stack** | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional |
-| **Branch dia a dia** | `teste` → staging · merge `teste`→`producao` só quando Renan pedir |
+| **Branch dia a dia** | **`teste`** (= staging Render; ver §3) · **`producao`** = loja · merge só quando Renan pedir |
 | **Tela inicial** | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/` |
 | **Regra de ouro** | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP |
 | **UX loja** | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate |
 | **Escala de tela** | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11 |
+| **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
 
 ---
 
@@ -42,7 +51,9 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa no staging, aprova merge produção. O assistente **commita só em `teste`**; produção só com pedido explícito.
+**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; **`producao` só com «pode subir (produção)»** (ver topo).
+
+**Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
 
 ---
 
@@ -84,14 +95,23 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ## 3. Deploy e Git
 
-| Ambiente | Branch | Render |
-|----------|--------|--------|
-| Teste | `teste` | agro-consulta-staging |
-| Loja | `producao` | Sistvale - Produção |
+**Renan — duas vertentes no Render (dois «sites»):**
+
+| Como o Renan fala | Branch Git | Projeto Render (Dashboard) | Papel |
+|-------------------|------------|----------------------------|--------|
+| **Teste / staging / homologação** | `teste` | **teste** | Onde **sempre** valida antes da loja |
+| **Produção / loja / SistVale** | `producao` | **SistVale** | Loja de verdade |
+
+**Não testa local** — o ambiente de prova é o Render **teste**. Deploy do `teste` é **automático** no Render após push.
+
+| Ambiente (como falar) | Branch Git | Render (serviço) |
+|------------------------|------------|------------------|
+| **Teste / staging** | `teste` | projeto **teste** (ex.: agro-consulta-staging) |
+| **Produção / loja** | `producao` | projeto **SistVale** (Sistvale - Produção) |
 
 - **`main` / `principal` não entram no deploy.**
-- Fluxo: push `teste` → testar staging → PR/merge `teste`→`producao` quando Renan autorizar.
-- Após merge: `python manage.py migrate` no ambiente (Render faz no deploy).
+- **Assistente:** push **`teste` livre** (Renan testa no site teste). Merge/push **`producao` só** quando Renan autorizar.
+- Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
 ### 3.1 Versão do sistema (automática — opção A)
 
@@ -134,6 +154,9 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 **Regras UX já decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `_agro_open_external.html` → `_agro_pdv_fab.html`. Destino **`/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante. **Visual (2026-06):** borda arco-íris + pulso + piscar (só CSS); para no hover; `prefers-reduced-motion` desliga animação. **Sobreposição (2026-06):** z-index **90** (abaixo de modais z 200+); **some** com modal/dialog aberto (Nova saída, `.sv-modal.show`, `role=dialog`); se encostar em botão no canto, sobe ou vai pro canto **direito**.
+- **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
+- **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
 - Entrega: fluxo inline na etapa (sem modais empilhados).
 - Endereço de entrega oculto até concluir pagamento da entrega.
 - Barra de estoque: atualização manual + horário + standby.
@@ -210,12 +233,24 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera.
 
+**Produto novo — código sistema + GM (decisão 2026-06-22, Renan OK no teste):**
+
+| Campo | Regra |
+|-------|--------|
+| **Código sistema** | Exatamente **4 números**; sequência **4010–9999**; operador pode editar |
+| **Sequência** | Próximo livre após o **maior código sistema** já usado (só campo numérico — **GM não conta**) |
+| **Código GM** | Sugestão automática **`GM` + código sistema**; operador **livre para editar** (sem formato fixo) |
+| **Modal novo** | Carregar códigos **sem repintar** o modal (não apagar nome/campos já digitados) |
+
+Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**).
+
 **Lentidão pós-entrada NF (investigação aberta):** medir qual URL trava no browser; suspeitos: `api_produtos_gestao_facetas`, pool Mongo.
 
 ### 4.7 Entrada de nota fiscal
 
-- `/entrada-nota/` — wizard 7 passos (fornecedor → produtos → barras → lote/validade → estoque → financeiro → PIN).
+- `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
+- **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
 
@@ -231,12 +266,14 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.10 Lançamentos / financeiro
 
-- `/lancamentos/` — hub · **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
+- `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · clássico: `/lancamentos/contas-pagar/classico/` · `/teste/` → redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
+- **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
+- **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída &gt; entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 
 ### 4.11 Caixa
@@ -252,10 +289,11 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - Vale com financeiro = baixa parcial no título de salário do mês (precisa folha fechada com título).
 - Cancelar vale: motivo mín. 3 chars; recalcula folhas abertas.
 
-### 4.13 Electron (desktop)
+### 4.13 Electron (desktop) — opcional; Renan não usa
 
 - `electron/main.js` + `preload.js` — `shell.openExternal` para WhatsApp/Maps.
 - Mesmo Agro Display Scale via `localStorage` (não `setZoomFactor` paralelo).
+- **Renan:** testou e **não usa** (lento). Loja/dev = **Chrome**. Recursos só do shell (abas laterais `agro-open-inapp-tab`, iframes) **não se aplicam** ao fluxo dele — otimizar para **MPA no Chrome** (bootstrap HTML, prefetch, cache).
 
 ### 4.14 UI compartilhada
 
@@ -272,8 +310,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | Status | Tela / módulo | Nota |
 |--------|----------------|------|
 | **Feito** | Clientes PDV, Vendas Agro, NFC-e, Caixa, RH (quase todo Postgres) | Sync ERP opcional onde existir |
-| **Feito (parcial)** | Cadastro SisVale `/produtos/cadastro-erp/` | API ERP cortada; busca rápida (cache + `/api/buscar/`); preço espelha no Mongo ao salvar. **Lista/facetas ainda Mongo** |
-| **Infra pronta, off** | Catálogo Postgres | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — flag `agro_pg` só em cadastro lista/detalhe/Excel |
+| **Feito (staging OK)** | Cadastro SisVale `/produtos/cadastro-erp/` | **`AGRO_FONTE_CATALOGO=agro_pg`** no teste — import 3354 prod · Renan validou busca GM/barras + salvar preço + **sem piscadinha** (v1.84–v1.85) |
+| **Infra pronta, off** | Catálogo Postgres | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — **ligado no staging**; produção ainda Mongo |
 | **Infra só flag** | Estoque ledger, Financeiro Postgres | Flags existem; **não ligadas** nas views |
 | **Falta (alta)** | PDV `/consulta/`, wizard `/pdv/checkout/` | `/api/buscar/`, cache catálogo, saldos, médias → Mongo |
 | **Falta (alta)** | Gestão operacional `produtos_gestao.html` | `gestao/lista` + **`gestao/facetas`** (vários `distinct`) — suspeito lentidão pós-entrada NF |
@@ -281,6 +319,38 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **Falta (grande)** | Lançamentos (todas), BI `/`, Fiado, resumo financeiro | `mongo_financeiro_util` + `DtoVenda` |
 
 **Ordem sugerida:** cadastro lista → `agro_pg` → PDV `/api/buscar/` → gestão operacional → estoque ledger → **financeiro** (backup + checkpoint na tela Lançamentos).
+
+**Estimativa (Renan — linguagem simples):**
+
+| Etapa | O quê muda na prática | Risco | Tempo (dev + teste no teste) |
+|-------|------------------------|-------|------------------------------|
+| **1** | Cadastro de produtos passa a ler/gravar **só no SisVale** (Postgres), sem depender do espelho na hora de listar/buscar | **Médio** — preço ou produto que “some” se import incompleto | **~1 semana** |
+| **2** | PDV + gestão de produtos na mesma base | **Alto** — balcão não acha produto ou preço errado | **+2 a 3 semanas** |
+| **3** | Estoque, compras, financeiro, BI | **Muito alto** — impacto em caixa e contas | **vários meses**, por partes |
+
+**Mitigação:** fazer só a etapa 1 no `teste`, conferir cadastro + busca + salvar preço, **só então** produção.
+
+**Antes da etapa 1 (Renan — você faz; assistente implementa depois):**
+
+1. Testar **só no ambiente teste** (Render staging) — **não** na loja ainda.
+2. Anotar **2 ou 3 produtos** que você conhece: nome, preço de venda, código GM ou barras (para comparar depois).
+3. Entrar no cadastro no teste com seu login e confirmar que abre `/produtos/cadastro-erp/`.
+4. Confirmar no Render que o **staging tem banco Postgres próprio** (não o mesmo da produção).
+5. **Não esperar** que o PDV mude nesta etapa — só a tela de cadastro.
+
+**Depois que o assistente entregar etapa 1 (você testa):**
+
+1. Aguardar deploy do branch `teste` no staging + **Ctrl+F5** no cadastro.
+2. Conferir se a lista e a busca acham os produtos anotados.
+3. Alterar preço de um produto → salvar → buscar de novo → preço **deve permanecer**.
+4. Criar produto novo (se liberado no teste) ou pular se ainda bloqueado no staging.
+5. Se algo falhar: anotar nome do produto + o que viu (sumiu, preço voltou, lista vazia).
+
+**Etapa 1 — validada no teste (2026-06-22, Renan):** flag `agro_pg` + import · GM0027-1 a **R$ 21,00** persiste · busca nome/código OK · piscadinha preço resolvida (v1.84) · abertura lista mais rápida (v1.85 prefetch + Postgres sem count). **Próximo:** cherry-pick etapa 1 → produção **só quando Renan pedir**; PDV ainda Mongo.
+
+**Produto de teste (Renan):** GM0027-1 · Ração Formula Natural adulto raças pequenas 1kg — **preço correto R$ 21,00** (staging/Agro); espelho Mongo R$ 19,90. Usar para validar busca + salvar + preço persistente.
+
+---
 
 ### 4.16 Lançamentos — corte ERP (em preparação)
 
@@ -297,7 +367,7 @@ Fluxo **seguro** (só admin vê os botões):
 
 **Armadilha cherry-pick:** se `lancamentos_financeiros.html` incluir `lancamentos_pin_entrada.html`, o template **tem** que ir junto — senão **500** em Contas a pagar/receber.
 
-- **PIN Lançamentos:** 1× por sessão ao entrar no módulo (`sessionStorage`); navegação interna (CP, clássico, calendário…) sem novo PIN; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
+- **PIN Lançamentos:** 1× por sessão ao entrar em qualquer tela `/lancamentos/*` (sem hub modal); navegação interna sem repetir; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
 
@@ -320,14 +390,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 1. **Anexar contexto:** só `@banana` na maioria dos chats. `@AGENTS.md` é opcional (UX §11, RH §9, Lançamentos §10, tarefa muito ampla).
 2. **Dois arquivos, papéis diferentes:** banana = memória viva (WIP, pendências, checkpoint). AGENTS = manual estável (não duplicar aqui).
-3. **Atualizar docs:** assistente **atualiza `banana.md` sozinho** quando houver decisão, pendência, roadmap ou WIP importante (ver CHECKPOINT — *atualização automática*). Renan pode pedir *"atualize a banana"* também. AGENTS §7 **só** se Renan pedir — assistente **nunca** pergunta no meio da tarefa.
+3. **Registro de alterações:** **sempre** atualizar `banana.md` ao entregar mudança no sistema (fix, feature, deploy) — CHECKPOINT + § do módulo; commits e versão para rollback/contexto. Ver regra no topo (*Registro no banana*). Renan pode pedir *"atualize a banana"* também. AGENTS §7 **só** se Renan pedir.
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
-7. **Commits:** só quando Renan pedir; branch `teste`. **Incluir bump de `VERSION`** (hook faz sozinho se `setup_git_hooks` rodou; senão `python scripts/bump_version.py` + `git add VERSION`).
-8. **Produção:** só merge quando Renan disser *"pode ir para produção"* ou similar.
+7. **Commits / teste:** push **`teste` automático** quando entregar fix (Renan valida no Render teste). Bump de `VERSION` (hook ou `python scripts/bump_version.py`). **Produção:** só quando Renan pedir (item 8).
+8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem *«pode subir (produção)»*. **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
 9. **Modo econômico:** Renan pode pedir respostas curtas.
-10. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
+10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
+11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
 
 ---
 
@@ -349,12 +420,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
-2. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
-3. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
-3. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
-4. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
-5. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
+1. **FAB PDV — não cobrir modais/botões** — 2026-05-21: z-index 90, hide overlay/dialog, reposicionar canto direito (`_agro_pdv_fab.html`).
+2. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
+3. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
+4. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
+5. **Lançamentos — Nova saída (legibilidade)** — card expandido; fontes/campos maiores.
+6. **Etiquetas faixa 230…** — `5c6590a` v1.20: CODE128 interno loja.
+7. **PDV legado carrinho GM** — produção `59bdedc` v1.02.
 
 *Para lista completa:* `git log teste --oneline -50`.
 
@@ -366,112 +438,243 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.23`  
-**Última atualização:** `2026-06-19`  
-**Atualizado por:** assistente Cursor (FAB PDV + Nova saída quitado/parcela → `producao`, Renan pediu)  
-**Versão app (`VERSION`):** **produção** v1.48 (após push) · **staging** `teste` v1.62
+**Versão:** `1.0.38`  
+**Última atualização:** `2026-06-22`  
+**Atualizado por:** assistente Cursor (cadastro código novo OK + regra registro banana + produção)  
+**Versão app (`VERSION`):** **teste** v1.89 · **produção** v1.55 (cherry-pick cadastro código)
 
-### FAB PDV flutuante + Nova saída quitado → **produção** (2026-06-19)
+### Cadastro — código sequencial produto novo (2026-06-22, Renan OK teste)
 
-Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
+| Item | Detalhe |
+|------|---------|
+| **Validação Renan** | OK no Render **teste** |
+| **Commits `teste`** | `ffc82ba` v1.87 · `cea03c7` v1.88 · `a2303c7` v1.89 |
+| **Produção** | Renan autorizou (*não invasivo*) — cherry-pick → **SistVale** |
+| **Reverter** | Revert dos 3 commits; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
 
-| Pacote | Arquivos / origem teste |
-|--------|-------------------------|
-| **FAB PDV** | `_agro_pdv_fab.html` (novo), include em `_agro_open_external.html` — canto inferior esquerdo, pulso/arco-íris, **FX on/off**, some em modal, z-index 90, colisão rodapé (`d7ae5fd`…`2be550e`) |
-| **Nova saída** | `lancamento_nova_saida.js`, modal, `lancamento_emprestimo_dual.js`, `mongo_financeiro_util.py` (expandir dual + quitado linha), `views.py` (API JSON segura) — `95474d5` |
+**Regras (canônicas — §4.6):** código sistema **4 dígitos**, faixa **4010–9999**, sequência só pelo **código sistema** (GM não conta); GM = `GM` + número (editável livre); modal novo não repinta ao carregar códigos.
 
-**UX Nova saída:** modo **Parc.** → botão **Quitado** em cada linha; forma **(opcional)**; empréstimo dual expande sem HTTP 500.
+### Fluxo Render — teste automático, produção só com pedido (2026-06-22, Renan)
 
-**Teste loja:** Ctrl+F5 → qualquer tela MPA → FAB PDV canto esquerdo; Lançamentos → Nova saída → 3 parcelas + empréstimo dual.
+| Regra | Detalhe |
+|-------|---------|
+| **Onde testa** | Render projeto **teste** — **não** local |
+| **Dois sites** | **teste** = homologação · **SistVale** = loja |
+| **Assistente → teste** | Commit + push **`teste` automático** (deploy Render segue) |
+| **Assistente → produção** | **Só** com *«pode subir (produção)»* ou equivalente explícito (ex. *«pode subir se não for invasivo»*) |
 
-### Nova saída → **produção** (2026-06-19, pacote anterior v1.47)
+### Registro no banana — toda entrega (2026-06-22, Renan)
 
-Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
+Assistente **sempre** registra no CHECKPOINT (e § do módulo se couber): **o quê**, **commits**, **versão**, **teste/produção**, **como reverter** se relevante. Objetivo: próximo chat, diagnóstico, rollback.
 
-| Arquivo | Pacote |
-|---------|--------|
-| `lancamento_nova_saida.js` + modal | Parcelas, calendário popup, grid 4 col, pílulas **Total \| Parc.** |
-| `lancamento_emprestimo_dual.js` | Saída abaixo entrada; rótulo grid em dual |
-| `mongo_financeiro_util.py` | `parcelas_saida`, expandir linhas empréstimo dual |
+### Cadastro — código sequencial (histórico curto)
 
-**Teste:** Ctrl+F5 → Lançamentos → Nova saída → Total/Parc. · 3 parcelas · empréstimo dual.
+**Sintoma inicial:** `__novo__` no código · depois número errado (9504) · piscada apagando nome.
 
-### NFC-e — revert produção (2026-06-19)
+**Fix (branch `teste`, validado v1.87–v1.89):** ver bloco «Cadastro — código sequencial produto novo» acima.
+
+### Cadastro produtos — etapa 1 Postgres + perf lista (2026-06-22, Renan OK)
+
+| Item | Status |
+|------|--------|
+| `AGRO_FONTE_CATALOGO=agro_pg` staging | Renan validou |
+| Import `importar_catalogo_mongo_produto` | 3354 produtos |
+| Busca nome + GM/barras | OK (v1.83+) |
+| Piscadinha preço errado | **Resolvida** v1.84 — lista só servidor |
+| Abertura lenta pós-fix | **Melhor** v1.85 — prefetch 1ª página, badge ERP em paralelo, Postgres sem `count`, busca local instantânea (preço «…» até servidor) |
+
+**Commits:** `3c9ed24` v1.84 · `8d76146` v1.85 · branch `teste`.
+
+**Próximo passo (só quando Renan pedir):** subir etapa 1 cadastro na **produção** (flag + import). **PDV não muda** ainda.
+
+**Produção (2026-06-22):** Renan pediu push → commit `3d8ae08` v1.53 em `producao`. Deploy OK; loja em testes. **Renan:** avisa se der problema.
+
+**Cadastro × PDV (etapa 1 — linguagem de loja):**
+
+| O que você faz no cadastro | Aparece no PDV? |
+|----------------------------|-----------------|
+| **Muda preço/nome** de produto que **já existia** | **Sim** — overlay + merge Postgres na busca |
+| **Cria produto novo** (Id `AGRO…`) | **Sim** (após deploy v1.86+) — busca e catálogo local mesclam Postgres |
+| **Mesmo PC**, cache antigo | Atualizar estoque/catálogo no PDV (botão sync) ou Ctrl+Shift+R |
+
+**Fix PDV×cadastro (2026-06-22):** `mesclar_prods_busca_pdv` + `mesclar_catalogo_pdv_cache` — produtos do Postgres entram na busca `/api/buscar/` e no download do catálogo local.
+
+### FAB PDV — sobreposição com botões e modais (2026-05-21, Renan)
+
+**Sintoma:** botão flutuante **PDV** ficava **na frente** de outros elementos conforme a tela — ex. **Cancelar** e «Preencher pela frase» no modal **Nova saída** (Lançamentos).
+
+**Causa:**
+
+| Item | Detalhe |
+|------|---------|
+| z-index | FAB em **9000**; Nova saída `#agro-nova-saida-overlay` em **z 250** → FAB ganhava |
+| Ocultar | `shouldHide()` só via `body.modal-open`; Nova saída usa `.hidden` + `aria-hidden` |
+
+**Fix** (`produtos/templates/produtos/_agro_pdv_fab.html`):
+
+| Ação | Comportamento |
+|------|----------------|
+| z-index **90** | Acima do conteúdo; **abaixo** de modais (200+) |
+| `hasOpenOverlay()` | Some com `[role=dialog]`, `[aria-modal]`, `.sv-modal.show`, `#agro-nova-saida-overlay:not(.hidden)` |
+| Colisão canto inf. esquerdo | Sobe sobre barras fixas; se encostar em **button/a**, sobe mais ou vai pro canto **direito** (`.agro-pdv-fab-wrap--right`) |
+| Observer | `MutationObserver` debounced (class / `aria-hidden`) na árvore do `body` |
+
+**F1** continua global quando o FAB está oculto. **FX on/off** inalterado.
+
+**Teste Chrome:** Ctrl+F5 → Lançamentos → **Nova saída** → FAB não aparece; fechar → volta. Redimensionar janela estreita → não cobrir botões do rodapé.
+
+### Perf — animações do botão PDV flutuante (2026-06-19, dúvida Renan)
+
+Acúmulo de animações no app **pode** pesar em PC fraco ao longo do tempo — mas **este FAB é impacto baixo**: 1 elemento, só CSS (`transform`/`opacity`/gradiente), sem JS extra nem tráfego de rede. O que pesa de verdade: troca de página inteira (Chrome MPA), listas grandes, Mongo, JS do PDV/Lançamentos.
+
+**Interruptor implementado:** mini-botão **FX on / FX off** acima do FAB (persiste no navegador). Desliga efeitos **decorativos** (FAB arco-íris, Validade pulsando, pulso PDV/Orçamento no BI). Mantém animações **funcionais** (loading, scanner, salvando).
+
+### FAB PDV + Nova saída quitado → **produção** (2026-06-19, Renan pediu)
+
+**Commit:** `f824944` · v1.48 · cherry-pick escopo fechado de `teste`.
+
+| Pacote | Detalhe |
+|--------|---------|
+| **FAB PDV** | `_agro_pdv_fab.html` + include em `_agro_open_external.html` — pulso/arco-íris, FX on/off, some em modal, z-index 90 |
+| **Nova saída** | Quitado **por linha** (modo Parc.); forma opcional; API JSON segura; expandir empréstimo dual (`95474d5`) |
+
+**Loja:** Ctrl+F5 após deploy Render → FAB canto esquerdo; Nova saída → 3 parcelas + empréstimo dual.
+
+### Nova saída → **produção** (2026-06-19, pacote anterior)
+
+**Commit:** `be9558c` · v1.47 · cherry-pick escopo fechado de `teste` (`9ba11e4`…`cd5a6e0`).
+
+| Pacote | Detalhe |
+|--------|---------|
+| Parcelas | Nº + intervalo → grade; backend `parcelas_saida` |
+| Calendário | Popup grande (competência, vencimento, parcelas) |
+| UI | Grid 4 col; pílulas **Total \| Parc.**; empréstimo saída abaixo entrada |
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída.
+
+### Bug produção — HTTP 500 ao Finalizar (2026-06-19)
+
+| Sintoma | Alerta JS «Resposta inválida do servidor (HTTP 500)» — corpo HTML, não JSON |
+| Cenário Renan | Empréstimo dual + 3 parcelas + quitado (836,95 / 836,94) |
+| Causa provável | Exceção **fora** do `try` da API (`date.fromisoformat` no cabeçalho ou `expandir_linhas_emprestimo_dual_lote`) → página de erro Django |
+| Fix v1.48 | `_d()` try/except · try expandir · quitado linha a linha · JS trecho HTML |
+| Fix v1.49 | `sum(v for v, _, _ in parcelas_pag)` — tupla 3 itens |
+| Fix v1.50 | «ADICIONAR CONTA» não vale para **quitado** |
+| Empréstimo dual forma | **Forma entrada** (obrig.) + **Forma saída** (opc.) — 4ª coluna da grade; backend `_fin_ln_campo` / expandir dual |
+| Layout Valor dual | **Renan não satisfeito** — tentativas v1.70–v1.71; **desistiu**; produção v1.51 |
+| Juros dual parcelado | Saída &gt; entrada → cada parcela gera **Pagamento** + **Juros** (proporcional); UI mostra «231,85 + 18,15» + **?** na grade |
+
+### Empréstimo dual — juros parcelado (2026-06-19)
+
+**Regra (Renan):** parcelas somam **valor saída** (ex. 4×250 = 1000). Diferença saída−entrada (72,60) vira **Juros de Empréstimos** **por parcela** (18,15), restante **Pagamento de Empréstimos** (231,85). Antes validava contra entrada e juros iam num título só.
+
+**UI:** valor da parcela continua 250; abaixo «231,85 + 18,15» + **?** explicando planos. Modo Total: hint sob valores entrada/saída.
+
+**Backend:** `expandir_linhas_emprestimo_dual_lote` + `split_decimal_proporcional`.
+
+### Juros dual parcelado → **produção** (2026-06-19, Renan pediu teste real)
+
+**Commit:** `4505805` · v1.52 · cherry-pick de `teste` (`0517525`).
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída → Empréstimo dual → entrada 927,40 / saída 1000 → 4×250 → composição **231,85 + 18,15** → Finalizar.
+
+### Nova saída — UX pós-gravar e intervalo mensal (2026-06-19, Renan)
+
+| Item | Comportamento |
+|------|----------------|
+| **Intervalo mensal** | **Mensal / bimestral / trimestral** = mesmo dia no mês (19/06 → 19/07); semanal/quinzenal = dias corridos |
+| **Sucesso** | Painel verde no modal («N títulos gravados»); **sem** alerta ERP nem lista de IDs |
+| **Volta** | BI `/` → fica no BI · Contas a pagar → recarrega lista **in-place** (sem redirect) |
+
+**Arquivos:** `lancamento_nova_saida.js`, `lancamento_nova_saida_modal.html`, `dashboard_gerencial.html`, `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py` (`_fin_vencimento_parcela`).
+
+### Excluir entrada manual quitada (2026-06-19, Renan)
+
+**Sintoma:** «Entrada de Empréstimo» quitada em Contas a receber — coluna Ações vazia, sem Excluir.
+
+**Causa:** `_lancamento_pode_excluir_agro` barrava **quitado** antes de checar **Lote manual Agro**.
+
+**Fix:** manual Agro (Nova saída / lote manual) pode excluir **mesmo quitado**; ERP continua bloqueado.
+
+| UX quitado Nova saída | **Produção** v1.48+: modo Parcela → botão **Quitado** em cada linha; Ctrl+F5 após deploy |
+
+### Empréstimo dual forma + layout → **produção** (2026-06-19, Renan pediu)
+
+**Commit:** `76e2a8b` · v1.51 · cherry-pick escopo fechado de `teste` (`7ef55b0`…`a47933b`).
+
+| Pacote | Detalhe |
+|--------|---------|
+| **Forma split** | Entrada obrigatória · saída opcional · campos separados no modal e no Mongo |
+| **Grade** | Forma dual na 4ª coluna (sem linha extra); `.hidden` CSS Agro |
+| **Valor dual** | Entrada/saída lado a lado na coluna Valor — layout **imperfeito**; Renan desistiu de refinar |
+| **Alerta parcial** | Gravação parcial mostra até 4 erros no alert |
+
+**Loja:** Ctrl+F5 após deploy Render → Nova saída → Empréstimo (entrada + pagamento).
+
+
+### Ambiente Renan — Chrome (não Electron)
+
+| Item | Valor |
+|------|--------|
+| **Navegador** | **Google Chrome** (MPA: cada tela = página nova) |
+| **Electron** | Testado; **muito lento** — **não** é referência para UX/perf |
+| **Assistente** | **Não perguntar** Chrome vs Electron; assumir Chrome |
+
+**Lançamentos / BI:** prefetch + bootstrap HTML (v1.48) valem no Chrome; aba lateral do shell **não** entra no fluxo dele.
+
+### Lançamentos CP — abertura (Chrome, 2026-06-19)
+
+| Feito (v1.48) | Efeito real no Chrome |
+|---------------|------------------------|
+| Bootstrap HTML (hoje + abertos) | Elimina o “Carregando…” da **2ª** chamada API; lista aparece quando o JS roda |
+| Prefetch + cache sessionStorage | Ajuda na **reabertura**; 1ª do dia ainda espera o servidor |
+| Sincronizando… | Atualiza em background |
+
+**Renan:** melhora **sutil** — OK para o desenho atual.
+
+**O que ainda pesa (não dá para sumir com patch pequeno):**
+
+1. Troca de página inteira BI → Lançamentos (branco + download HTML/JS).
+2. PIN na 1ª entrada da sessão.
+3. Mongo na montagem da página (bootstrap) — trocou API depois por consulta no Django.
+
+**Conclusão:** para **Chrome MPA + Mongo**, o pacote atual é **quase o teto** (v1.48).
+
+**Roadmap — adiado (Renan, 2026-06-19):** não investir agora no próximo salto. Retomar quando pedir:
+
+| Prioridade futura | Opção | Nota |
+|-------------------|--------|------|
+| A | **Financeiro Postgres** (`agro_pg`) | Alinha com §4.15; ganho estrutural |
+| B | **Lista CP no BI** (sem trocar de página) | Ganho de percepção no Chrome |
+| C | Enxugar HTML/JS da página CP | Ganho menor |
+
+Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizações.
+
+### Nova saída — grid alinhado (`teste`, 2026-06-19)
 
 | O quê | Detalhe |
 |-------|---------|
-| **Revertido** | `eb2ce4c` — desfez `26153f3` (PDV wizard + vendas + cupom) |
-| **Staging** | Continua OK — homolog nº 13 série 21 (Renan validou) |
-| **Produção** | Só backend/API contabilidade (pacotão anterior); **sem** modais PDV |
-| **Render prod** | Renan começou env vars (`ENABLED`, `TP_AMB=1`) — **apagar ou deixar**; código não usa PDV NFC-e até novo push |
-
-**Retomar depois:** cherry-pick `26153f3` ou pedir *"pode subir NFC-e"* + completar cert/CSC prod no Render.
-
-### CP — checkbox seleção maior (2026-06-19, produção)
-
-**Commit:** `1268b1e` · v1.44
+| **Grid 2ª linha** | 4 colunas iguais à 1ª linha (plano · valor · competência · vencimento) |
+| **Chave Total/Parcela** | Pílulas **Total | Parc.** no rótulo; grid 2 linhas (rótulos / inputs alinhados) |
+| **Empréstimo dual** | Saída **abaixo** da entrada, mesma coluna do valor |
 
 | O quê | Detalhe |
 |-------|---------|
-| **Checkbox lista** | 22px → **26px**; coluna seleção **48px** |
-| **Área toque** | `min-height: 2rem` na célula |
+| **Calendário** | Popup grande (competência, vencimento, parcelas) — células ~2,85rem, Limpar/Hoje |
+| **Chave Total→Parcela** | Ao lado do valor; padrão **Total** (card Nº parcelas oculto); **Parcela** mostra o card |
+| **Parcelas** (modo Parcela) | Nº + intervalo → grade; valor sempre **total** |
 
-**Teste:** Ctrl+F5 → `/lancamentos/contas-pagar/` → marcar títulos em aberto — checkbox maior e fácil de clicar.
+**Teste:** Ctrl+F5 → Nova saída → clicar Competência/Vencimento (calendário grande) · chave Parcela → card aparece.
 
-### CP — colunas por PIN (2026-06-19, produção)
+### Nova saída — parcelas + layout empréstimo (`teste`, 2026-06-19)
 
 | O quê | Detalhe |
 |-------|---------|
-| **Menu Colunas** | Todas as 17 colunas; ocultas no topo; painel maior |
-| **Salvar no PIN** | Visibilidade + ordem persistidas por operador |
-| **Plano** | Coluna mais larga; planos sempre todos na abertura |
+| **Layout empréstimo** | Só entrada + saída (sem Valor duplicado); grid 4 colunas |
+| **Parcelas** | Nº + intervalo → grade vencimento/valor |
+| **Empréstimo dual** | Parcelas na **saída**; backend `parcelas_saida` em `mongo_financeiro_util` |
 
-**Teste:** Ctrl+F5 → `/lancamentos/contas-pagar/` → Colunas → reordenar/ocultar → **Salvar no meu PIN** → F5 mantém layout.
-
-### Lançamentos + Clientes — produção (2026-06-19)
-
-| Pacote | O quê |
-|--------|--------|
-| **CP direto** | `/lancamentos/` → redirect Contas a pagar; F7/launcher → CP; PIN na tela de destino |
-| **PIN operador APIs** | Baixa, parcial, alterar, excluir, lote manual, recorrente gravam operador do PIN |
-| **WhatsApp clientes** | `cliente_whatsapp_util.py` — normaliza, valida e bloqueia duplicado (PDV + form + sync) |
-
-**Teste:** Ctrl+F5 → `/lancamentos/` abre CP · baixa sem PIN → erro 403 · cadastro cliente telefone duplicado → recusa.
-
-### Pacotão produção — BI + Nova saída + Contabilidade (2026-06-19)
-
-**Um commit só** — reverter pedindo `git revert <hash>` se arrepender.
-
-| Bloco | O quê |
-|-------|--------|
-| **BI launchpad** | Orbes PDV/Orçamento no menu F10 (sem calibração de escala) |
-| **Agro Display Scale** | ~~removido de produção~~ — calibração desligada 2026-06-19 |
-| **KPIs** | Validade vermelho pulsante + «Conferir vencidos»; ticket médio layout |
-| **Versão BI** | `app_build_util.py` + `build_meta.py` — commit/branch Render no badge |
-| **Nova saída** | Grid 4 colunas, datas maiores, ícone calendário, empréstimo 5 colunas |
-| **Contabilidade** | `/contabilidade/` + API `export-xml` ZIP mensal NFC-e (módulo + migrations) |
-
-**Teste pós-deploy:** Ctrl+F5 BI → F10 orbes · card Validade · Nova saída grid · `/contabilidade/`.
-
-### Validação Renan — produção (2026-06-19)
-
-| Módulo | Resultado | Nota |
-|--------|-----------|------|
-| **PDV wizard** `/pdv/checkout/` | **OK** | Cherry-pick GM/hífen (`0479618`+) — Renan confirmou v1.33.1 |
-| **Cadastro** `/produtos/cadastro-erp/` | **Aguarda reteste** | Era quebrado (GM4579); cherry-pick `d5f792e` + `2a1dc99` → produção |
-| **Etiquetas** `/produtos/etiquetas/` + 🖨️ gestão | **Aguarda reteste** | Era só preço cortado 4×4; cherry-pick `47b47c2` + `0bcdb4e` → produção |
-| **PDV legado** `/consulta/` | (não testado nesta rodada) | Patch antigo `59bdedc` v1.02 |
-
-**Cherry-pick escopo fechado em `producao` (2026-06-19):**
-
-| Commit `producao` | Origem `teste` | O quê |
-|-------------------|----------------|--------|
-| `47b47c2` | `5bcc05d` | Etiquetas 7 dígitos, EAN-13 layout/DV |
-| `0bcdb4e` | `5c6590a` | Faixa 230… CODE128 (não EAN13) |
-| `d5f792e` | `c234822` | Busca GM/barras na lista cadastro |
-| `2a1dc99` | `4d78b33` | Prefixo GM1541, Enter força busca |
-
-**Teste pós-deploy Render:** Ctrl+F5 → cadastro `GM4579` acha sal mineral · etiqueta 4×4 mostra barras + nome + preço (ELGIN L42PRO).
+**Teste:** Ctrl+F5 → Nova saída → 3 parcelas mensais · empréstimo dual com saída parcelada.
 
 ### O que este documento já cobre (até aqui)
 
@@ -493,8 +696,12 @@ Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
 - [x] **Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (2026-06-18)
 - [x] PDV wizard: diagnóstico GM/hífen no barras (§4.2 + abaixo)
 - [x] **Contas a pagar — layout novo padrão** + `/classico/` (2026-06-19)
+- [x] **Lista CP — colunas por PIN** (visibilidade, ordem drag, save) (2026-06-19)
 - [x] **Lista CP — perf + preservar filtros/vista** após baixa/NF/Nova saída (2026-06-19)
 - [x] **PIN Lançamentos** — só na entrada do módulo + descanso; abertura **hoje / em aberto** (2026-06-19)
+- [x] **Ambiente Renan:** Chrome (MPA); Electron testado e descartado — assistente não pergunta
+- [x] **Botão flutuante PDV** — canto inferior esquerdo, `/pdv/`, F1 global (2026-06-19)
+- [x] **FAB PDV — sobreposição** — some em modal; z-index 90; colisão → sobe ou canto direito (2026-05-21)
 
 ### Lançamentos — Contas a pagar layout novo (2026-06-19)
 
@@ -504,15 +711,21 @@ Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
 | `/lancamentos/contas-pagar/classico/` | Tabela clássica |
 | `/lancamentos/contas-pagar/teste/` | Redirect → padrão |
 
-**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. Editar/excluir no clássico: `?retorno=` mantém filtros ao voltar.
+**Mesma API** `/api/lancamentos/`. Botões **Layout clássico** ↔ **Layout novo**. **Editar / Excluir** no layout novo: modal + APIs `alterar`/`excluir` (sem redirecionar ao clássico); vista preservada após salvar/excluir.
 
 **Perf:** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 
+**Abertura rápida:** prefetch BI/F7; cache sessionStorage; selo **Sincronizando…**; **lista embutida no HTML** (bootstrap servidor, hoje+abertos); no app com abas, link do BI abre **aba lateral** (BI não some).
+
 **Vista:** baixa, NF, Nova saída recarregam in-place (scroll, expandidos, «carregar mais», URL).
+
+**Colunas (menu ▦ Colunas):** visibilidade + ordem por **operador do PIN** (`localStorage` `gm_fin_sv_cp_cols_v1`). Botão **Salvar no meu PIN** grava; persiste ao fechar o sistema. Arrastar **⋮⋮** na lista — quanto mais acima, mais à esquerda na tabela. **Padrão** (sem save): Vencimento · Fornecedor · Plano/grupo · Descrição · Saldo · Status · NF · Pagar.
+
+**Planos de contas (filtros):** todos **marcados ao abrir**; desmarcar vale só na sessão (não grava — ao reabrir o sistema volta tudo marcado).
 
 **Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados.
 
-**PIN:** uma vez ao entrar em Lançamentos (hub `/lancamentos/`); navegação interna sem repetir; só de novo no **modo descanso** (idle). Launcher BI não pede PIN antes do módulo.
+**PIN:** uma vez ao entrar em Lançamentos (qualquer rota `/lancamentos/*`); navegação interna sem repetir; só de novo no **modo descanso** (idle). `/lancamentos/` redireciona direto para **Contas a pagar** (sem popup hub).
 
 **Arquivos:** `lancamentos_contas_pagar_teste.html`, `mongo_financeiro_util.py`, `views.py`, `urls.py`, `lancamentos_financeiros.html`, `lancamentos_contas_pagar_calendario.html`, `includes/lancamentos_pin_entrada.html`, `_screensaver_pin.html`.
 
@@ -553,7 +766,7 @@ Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
 
 | Onde | Sintoma | Status |
 |------|---------|--------|
-| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Produção OK** — Renan 2026-06-19 (`0479618`+) |
+| **Wizard** `/pdv/checkout/` | Cada bipe **GM1546-5S** remove **1 item** do carrinho (4→3→2→1) | **Staging `teste`** — aguarda teste Renan |
 | **Legado** `/consulta/` | Carrinho zerava ou perdia itens (F4 pós-bip, match parcial) | **Produção** `59bdedc` v1.02 |
 
 **Caso Renan (Ibiúna ensacada):** produto **1467** — GM **`GM1546-5S`** erroneamente no campo **Código de barras** (aba Fiscal). Leitor manda `GM1546-5S`; campo de busca mostra **`GM15465S`** (hífen engolido).
@@ -576,7 +789,7 @@ Cherry-pick por arquivo de `teste` (escopo fechado — **não** merge inteiro):
 
 **PDV legado:** `consulta_produtos.js` + `_js_busca…` (produção v1.02).
 
-**Produção wizard:** **OK** (Renan 2026-06-19). Ctrl+F5 se terminal cachear JS antigo.
+**Produção wizard:** ainda **sem** este fix — cherry-pick só quando Renan pedir após OK no staging.
 
 ### Etiquetas — barras deve ser EAN, não GM (decisão 2026-06-18)
 
@@ -601,7 +814,7 @@ Nem todo item tem EAN de fábrica. Casos normais na GM Agro:
 | Saco **maior** com EAN, **unidade de dentro** sem barras (ex. ensacado na loja) | **Código interno** numérico criado pela loja — não é EAN do fornecedor |
 | **Reembalagem** na loja (ração a granel, fracionado) | Idem — código interno (7 dígitos, 13 com DV válido, etc.) |
 
-**Não** confundir: «inventar» aqui = **identificador interno SisVale/loja**, não falsificar GTIN de fabricante. PDV e etiqueta tratam 4–14 dígitos como barras normal (CODE128); EAN-13 de **fábrica** exige DV correto (SisVale corrige DV na impressão se estiver errado e avisa no modal).
+**Não** confundir: «inventar» aqui = **identificador interno SisVale/loja**, não falsificar GTIN de fabricante. PDV e etiqueta tratam 4–14 dígitos como barras normal (CODE128); EAN-13 de **fábrica** exige DV correto.
 
 **Faixa 230… (interno loja):** gerada pelo SisVale (`agro_codigo_barras_loja_util.py`) — 230 + 10 dígitos sequenciais. **Não é EAN-13** (último dígito é sequência, não DV). Etiqueta imprime **CODE128**; modal 🖨️ mostra «Barras interno loja». EAN real (ex. Abacate `789…`) continua EAN13.
 
@@ -617,18 +830,13 @@ Match exato só-dígitos + fallback API (`_js_busca_produto_inteligente.html`, `
 
 **Correção:** `produtos_etiquetas_core.js` — valida/corrige DV, fallback CODE128, CSS 40×40 mm; modal cadastro avisa DV corrigido (âmbar).
 
-**Staging (`teste`):** `5bcc05d` v1.19 · `5c6590a` v1.20 — **OK em teste**.
+**Staging (`teste`):** `5bcc05d` v1.19 · `5c6590a` v1.20 (230… CODE128) · `c234822` v1.22 (busca cadastro). **Ctrl+F5** cadastro + PDV após deploy Render.
 
-**Produção (2026-06-19):** cherry-pick `47b47c2` + `0bcdb4e` — **aguarda deploy + reteste Renan** (antes: preview 4×4 só preço cortado).
+### Cadastro produtos — busca GM/barras — feito 2026-06-18
 
-### Cadastro produtos — busca GM/barras
+**Sintoma:** lista cadastro não achava por código GM nem barras.
 
-**Sintoma:** lista cadastro não achava por código GM nem barras (`GM4579` → lista não filtra).
-
-**Correção (`teste`):** `c234822` + `4d78b33` — modo **normal**, `api_produtos_cadastro`, prefixo GM, Enter força busca; `views.py` — barras **4+** dígitos.
-
-**Produção (2026-06-19):** cherry-pick `d5f792e` + `2a1dc99` — **aguarda deploy + reteste Renan**.
-
+**Correção (`c234822` v1.22 + `…` v1.24):** modo **normal**, `api_produtos_cadastro`, prefixo GM (`GM1541` → `GM1541-5S`), Enter força busca, limpa «Continue digitando» ao buscar.
 
 ### Produção — patch PDV carrinho (feito 2026-06-18)
 
@@ -650,8 +858,9 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 | Arquivo | Tema |
 |---------|------|
 | `AGENTS.md` | Nota `@banana` vs enciclopédia (local) |
+| `nfe_entrada_util.py`, `views.py`, `entrada_nota.html` | Entrada NF — sync financeiro desync (etapa 7) |
 
-**Acabou de subir em `producao`:** Nova saída (parcelas, calendário, pílulas Total/Parc., grid alinhado) · CP + PIN + WhatsApp (pacotes anteriores).
+**Acabou de subir em `producao`:** Lançamentos CP (layout + perf + vista + PIN entrada + filtro hoje) · v1.33.
 
 **Teste Renan (staging):** `/lancamentos/contas-pagar/` → filtrar → baixa/Nova saída → filtros e scroll mantidos.
 
@@ -663,7 +872,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] Corte Agro→ERP (API) — **produção v1.14** (`372f90f`; automático após checkpoint)
 - [ ] Próxima fase: `AGRO_FONTE_FINANCEIRO=agro_pg` (Lançamentos ler/escrever Postgres, não espelho Mongo)
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
-- [ ] Ativar catálogo Postgres: `importar_catalogo_mongo_produto` + `AGRO_FONTE_CATALOGO=agro_pg`
+- [x] Ativar catálogo Postgres no **teste** — **Renan OK 2026-06-22**
+- [x] Ativar catálogo Postgres na **produção** — v1.53 deploy OK; loja testando (Renan avisa se falhar)
 - [ ] PDV `/api/buscar/` e cache → Postgres
 - [ ] Gestão operacional (lista + facetas) → Postgres
 - [ ] Estoque `ledger` e financeiro `agro_pg` (implementar flags)
@@ -672,20 +882,20 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 **Outras:**
 
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
-- [x] **PDV wizard carrinho GM** — produção OK (Renan 2026-06-19)
-- [x] **Cadastro busca GM/barras** — cherry-pick `d5f792e` + `2a1dc99` → produção v1.38 (reteste Renan)
-- [x] **Etiquetas 4×4 layout/barras** — cherry-pick `47b47c2` + `0bcdb4e` → produção v1.38 (reteste Renan)
+- [x] **Lançamentos CP — perf abertura Chrome** — bootstrap + prefetch + cache (`teste` v1.48); Renan OK melhora sutil; **próximo salto adiado**
+- [ ] **Lançamentos CP perf — roadmap adiado** — retomar: (A) `agro_pg` financeiro **ou** (B) lista no BI sem navegar **ou** (C) enxugar página CP. **Não** micro-otimizar até Renan pedir.
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
+- [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
-- [ ] **NFC-e PDV → `producao`** — revertido 2026-06-19; retomar quando Renan tiver cert/CSC prod
+- [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
 - [ ] Testes automatizados sync clientes / NFC-e (futuro)
 
 ### Instruções para o assistente (próxima atualização)
 
 **Atualização automática (padrão — não perguntar ao Renan):**
 
-Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou decisão de produto, pendência, WIP, roadmap (ex. desvinculação), diagnóstico de bug recorrente ou entrega em módulo grande → **editar `banana.md`** (CHECKPOINT + § do módulo). **Não** pedir autorização. **Não** atualizar por detalhe passageiro ou chat só explicativo.
+Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banana.md`**: CHECKPOINT (o quê, commits, `VERSION`, teste OK, produção se houver, dica de revert) + § do módulo se for regra permanente. **Obrigatório** para qualquer mudança de comportamento do sistema. **Não** pedir autorização. **Não** registrar chat só explicativo ou detalhe passageiro.
 
 **Quando Renan pedir *"atualize a banana"* (ou revisão explícita):**
 
@@ -697,6 +907,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.17
+### Fim do checkpoint v1.0.38
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
