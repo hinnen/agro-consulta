@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 from django.db.models import Q
 
@@ -10,18 +11,46 @@ from produtos.models import Produto
 
 logger = logging.getLogger(__name__)
 
+_CODIGO_SISTEMA_4D = re.compile(r"^\d{4}$")
+_CODIGO_SISTEMA_MAX = 9999
 
-def extrair_numero_sequencial(val) -> int | None:
+
+def codigo_sistema_4_digitos_valido(val) -> bool:
+    s = str(val or "").strip()
+    return bool(_CODIGO_SISTEMA_4D.match(s))
+
+
+def gm_sugerido_de_codigo_sistema(codigo_sistema: str) -> str:
+    s = str(codigo_sistema or "").strip()
+    if not codigo_sistema_4_digitos_valido(s):
+        return ""
+    return f"GM{s}"
+
+
+def erro_codigo_sistema_4_digitos(val, *, obrigatorio: bool = True) -> str | None:
+    s = str(val or "").strip()
+    if not s:
+        return "Informe o código sistema (4 números)." if obrigatorio else None
+    if not codigo_sistema_4_digitos_valido(s):
+        return "Código sistema deve ter exatamente 4 números (ex.: 4252)."
+    return None
+
+
+def extrair_numero_sequencial_4d(val) -> int | None:
+    """Só considera códigos sistema de exatamente 4 dígitos (ou GM + 4 dígitos)."""
     s = str(val or "").strip()
     if not s or s.lower() == "__novo__":
         return None
     if s.upper().startswith("GM"):
         s = s[2:].strip()
-    if s.isdigit():
-        n = int(s)
-        if 1 <= n <= 9_999_999:
-            return n
+    if codigo_sistema_4_digitos_valido(s):
+        return int(s)
     return None
+
+
+def formatar_codigo_sistema(n: int) -> str:
+    n = max(1, min(int(n), _CODIGO_SISTEMA_MAX))
+    return f"{n:04d}"
 
 
 def codigo_sequencial_variantes_colisao(ds: str, gm: str, n: int) -> list:
@@ -48,7 +77,7 @@ def max_codigo_numerico_postgres() -> int:
     qs = Produto.objects.values_list("codigo_interno", "codigo_nfe").iterator(chunk_size=500)
     for ci, cn in qs:
         for val in (ci, cn):
-            n = extrair_numero_sequencial(val)
+            n = extrair_numero_sequencial_4d(val)
             if n is not None:
                 mx = max(mx, n)
     return mx
@@ -61,7 +90,7 @@ def max_codigo_numerico_mongo(db, col: str) -> int:
     try:
         for doc in db[col].find({}, {"Codigo": 1, "CodigoNFe": 1}).batch_size(500):
             for fld in ("Codigo", "CodigoNFe"):
-                n = extrair_numero_sequencial(doc.get(fld))
+                n = extrair_numero_sequencial_4d(doc.get(fld))
                 if n is not None:
                     mx = max(mx, n)
     except Exception:
@@ -74,10 +103,10 @@ def _codigo_sequencial_inicio(db=None, col: str | None = None) -> int:
         n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MIN", "6000"))
     except ValueError:
         n0 = 6000
-    n0 = max(0, min(n0, 9_999_999))
+    n0 = max(1, min(n0, _CODIGO_SISTEMA_MAX))
     mx = max(max_codigo_numerico_postgres(), max_codigo_numerico_mongo(db, col or ""))
     if mx > 0:
-        return mx + 1
+        return min(mx + 1, _CODIGO_SISTEMA_MAX)
     return n0
 
 
@@ -120,15 +149,15 @@ def alocar_codigo_sequencial_novo_cadastro(
     col: str | None = None,
 ) -> tuple[dict | None, str | None, str | None]:
     """
-    Próximo par livre: código sistema (numérico) + GM + mesmo número.
-    Continua após o maior código já usado; se catálogo vazio, usa ``AGRO_NOVO_PRODUTO_COD_MIN``.
+    Próximo par livre: código sistema (4 dígitos) + ``GM`` + mesmo número.
+    Continua após o maior código de 4 dígitos já usado; se vazio, ``AGRO_NOVO_PRODUTO_COD_MIN``.
     """
     n = _codigo_sequencial_inicio(db, col)
-    max_steps = 65_000
+    max_steps = _CODIGO_SISTEMA_MAX + 1
     steps = 0
-    while steps < max_steps:
-        ds = str(int(n))
-        gm = f"GM{ds}"
+    while steps < max_steps and n <= _CODIGO_SISTEMA_MAX:
+        ds = formatar_codigo_sistema(n)
+        gm = gm_sugerido_de_codigo_sistema(ds)
         if not codigo_seq_ocupado(db, col, ds, gm, int(n)):
             return None, ds, gm
         n += 1
@@ -137,8 +166,8 @@ def alocar_codigo_sequencial_novo_cadastro(
         {
             "ok": False,
             "erro": (
-                "Não foi possível gerar código sequencial automático: faixa esgotada ou muitas tentativas. "
-                "Informe manualmente «Código sistema» e «Código interno (GM)»."
+                "Não foi possível gerar código sequencial automático (faixa 0001–9999 esgotada ou ocupada). "
+                "Informe manualmente «Código sistema» (4 números) e «Código interno (GM)»."
             ),
             "status": 400,
         },

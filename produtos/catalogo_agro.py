@@ -280,7 +280,16 @@ def sincronizar_modelo_produto_de_overlay(
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
 
-    codigo = _txt("codigo_nfe", 64) or _txt("codigo", 50) or pid64[:50]
+    from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
+
+    cod_sys = _txt("codigo", 50)
+    codigo_interno = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or pid64[:50])
+    codigo_nfe_val = (
+        ov.codigo_nfe.strip()
+        or _txt("codigo_nfe", 64)
+        or gm_sugerido_de_codigo_sistema(cod_sys)
+        or codigo_interno
+    )[:64]
     nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
@@ -300,8 +309,8 @@ def sincronizar_modelo_produto_de_overlay(
         cad_inativo = not ativo
 
     defaults = {
-        "codigo_interno": codigo[:50],
-        "codigo_nfe": (ov.codigo_nfe.strip() or codigo)[:64],
+        "codigo_interno": codigo_interno,
+        "codigo_nfe": codigo_nfe_val,
         "codigo_barras": (ov.codigo_barras.strip() or None),
         "nome": nome[:300],
         "marca": ov.marca.strip()[:120],
@@ -352,8 +361,13 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     if cod_nfe.lower() == "__novo__":
         cod_nfe = ""
 
+    from produtos.cadastro_codigo_sequencial_util import (
+        alocar_codigo_sequencial_novo_cadastro,
+        erro_codigo_sistema_4_digitos,
+        gm_sugerido_de_codigo_sistema,
+    )
+
     if not cod_int and not cod_nfe:
-        from produtos.cadastro_codigo_sequencial_util import alocar_codigo_sequencial_novo_cadastro
         from produtos.views import obter_conexao_mongo
 
         client, db = obter_conexao_mongo()
@@ -369,6 +383,12 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
             )
         cod_int = str(c_sys or "").strip()
         cod_nfe = str(c_gm or "").strip()
+    else:
+        err_cod = erro_codigo_sistema_4_digitos(cod_int, obrigatorio=True)
+        if err_cod:
+            return JsonResponse({"ok": False, "erro": err_cod}, status=400), None
+        if not cod_nfe:
+            cod_nfe = gm_sugerido_de_codigo_sistema(cod_int)
 
     if not cod_int and not cod_nfe and not cod_cb:
         return (

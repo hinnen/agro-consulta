@@ -212,7 +212,7 @@
       <div id="tab-fiscal" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Sistema</span>
-          <input type="text" id="edit-codigo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+          <input type="text" id="edit-codigo" maxlength="4" inputmode="numeric" autocomplete="off" pattern="\d{4}" title="Exatamente 4 números (ex.: 4252)" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código de Barras <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
@@ -1497,8 +1497,11 @@
       eh_kit: !!produto.eh_kit,
       composicao: Array.isArray(produto.composicao) ? produto.composicao.slice() : [],
       custo_medio_variacoes: produto.custo_medio_variacoes,
-      custo_kit_composicao: produto.custo_kit_composicao
+      custo_kit_composicao: produto.custo_kit_composicao,
+      cadastro_somente_agro: !!produto.cadastro_somente_agro
     };
+    modalEdit._gmCodigoManual = false;
+    modalEdit._ultimoGmAuto = String(produto.codigo_nfe || (produto.codigo ? ('GM' + String(produto.codigo).trim()) : ''));
 
     var vm = produto.variacoes_marca;
     if (Array.isArray(vm)) {
@@ -1730,6 +1733,18 @@
       var cb0 = document.getElementById('edit-cb');
       if (cb0) try { cb0.focus(); } catch (eF4) { /* ignore */ }
       return;
+    }
+    var snapCod = modalEdit._snapshot || {};
+    var eraNovoCod = String(pid).trim().toLowerCase() === '__novo__';
+    if (eraNovoCod || snapCod.cadastro_somente_agro) {
+      var cs4 = vreq('edit-codigo');
+      if (!/^\d{4}$/.test(cs4)) {
+        ativarTabPorId('tab-fiscal');
+        if (typeof alert !== 'undefined') alert('Código sistema: informe exatamente 4 números (ex.: 4252).');
+        var cs0 = document.getElementById('edit-codigo');
+        if (cs0) try { cs0.focus(); cs0.select(); } catch (eF4b) { /* ignore */ }
+        return;
+      }
     }
     if (parseMoedaStrict(vreq('edit-custo')) === null) {
       ativarTabPorId('tab-custos');
@@ -2079,6 +2094,31 @@
     if (listId === 'dl-cats-agro' && window._agroFacetas.categorias.indexOf(val) < 0) window._agroFacetas.categorias.push(val);
     if (listId === 'dl-subcats-agro' && window._agroFacetas.subcategorias.indexOf(val) < 0) window._agroFacetas.subcategorias.push(val);
   }
+
+  function bindCodigoSistemaGmSync() {
+    var inpCod = document.getElementById('edit-codigo');
+    var inpGm = document.getElementById('edit-cod-nfe');
+    if (!inpCod || inpCod.dataset.boundCod4) return;
+    inpCod.dataset.boundCod4 = '1';
+    inpCod.addEventListener('input', function () {
+      var v = String(inpCod.value || '').replace(/\D/g, '').slice(0, 4);
+      if (inpCod.value !== v) inpCod.value = v;
+      if (!modalEdit._gmCodigoManual && inpGm) {
+        var gm = v ? ('GM' + v) : '';
+        inpGm.value = gm;
+        modalEdit._ultimoGmAuto = gm;
+      }
+    });
+    if (inpGm && !inpGm.dataset.boundGmFree) {
+      inpGm.dataset.boundGmFree = '1';
+      inpGm.addEventListener('input', function () {
+        var cur = String(inpGm.value || '');
+        var auto = modalEdit._ultimoGmAuto || '';
+        if (cur !== auto) modalEdit._gmCodigoManual = true;
+      });
+    }
+  }
+  bindCodigoSistemaGmSync();
 
   bindClick('btn-marca-nova', function () {
     abrirMiniAgro('Nova marca (texto local)', function (v) {

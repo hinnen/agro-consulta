@@ -1590,6 +1590,15 @@ def _overlay_erro_validacao_cadastro_minimo(payload: dict) -> str | None:
         Decimal(str(pc_raw).replace(",", ".").strip())
     except Exception:
         return "Custo unitário inválido."
+    pid = str(payload.get("produto_id") or "").strip()
+    is_novo = pid.lower() in ("__novo__", "novo", "_novo")
+    somente_agro = is_novo or pid.upper().startswith("AGRO")
+    if somente_agro:
+        from produtos.cadastro_codigo_sequencial_util import erro_codigo_sistema_4_digitos
+
+        err_cod = erro_codigo_sistema_4_digitos(payload.get("codigo"), obrigatorio=True)
+        if err_cod:
+            return err_cod
     return None
 
 
@@ -18416,6 +18425,11 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     cod_nfe = pt("codigo_nfe", 64)
     cod_cb = pt("codigo_barras", 80)
 
+    from produtos.cadastro_codigo_sequencial_util import (
+        erro_codigo_sistema_4_digitos,
+        gm_sugerido_de_codigo_sistema,
+    )
+
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503), None
@@ -18445,6 +18459,12 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
             return err_al, None
         cod_int = str(c_sys or "").strip()
         cod_nfe = str(c_gm or "").strip()
+    else:
+        err_cod = erro_codigo_sistema_4_digitos(cod_int, obrigatorio=bool(cod_int or not cod_cb))
+        if err_cod:
+            return JsonResponse({"ok": False, "erro": err_cod}, status=400), None
+        if cod_int and not cod_nfe:
+            cod_nfe = gm_sugerido_de_codigo_sistema(cod_int)
 
     if not cod_int and not cod_nfe and not cod_cb:
         return (
