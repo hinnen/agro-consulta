@@ -17,6 +17,8 @@
 
 **Teste (regra — 2026-06-22):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local. **Assistente pode** commit + push em `teste` **automaticamente** (deploy Render segue sozinho); **não precisa pedir autorização** para subir no teste. Produção continua só com frase explícita acima.
 
+**Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
+
 ---
 
 ## 0. TL;DR (leia em 1 minuto)
@@ -231,6 +233,17 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera.
 
+**Produto novo — código sistema + GM (decisão 2026-06-22, Renan OK no teste):**
+
+| Campo | Regra |
+|-------|--------|
+| **Código sistema** | Exatamente **4 números**; sequência **4010–9999**; operador pode editar |
+| **Sequência** | Próximo livre após o **maior código sistema** já usado (só campo numérico — **GM não conta**) |
+| **Código GM** | Sugestão automática **`GM` + código sistema**; operador **livre para editar** (sem formato fixo) |
+| **Modal novo** | Carregar códigos **sem repintar** o modal (não apagar nome/campos já digitados) |
+
+Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**).
+
 **Lentidão pós-entrada NF (investigação aberta):** medir qual URL trava no browser; suspeitos: `api_produtos_gestao_facetas`, pool Mongo.
 
 ### 4.7 Entrada de nota fiscal
@@ -377,7 +390,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 1. **Anexar contexto:** só `@banana` na maioria dos chats. `@AGENTS.md` é opcional (UX §11, RH §9, Lançamentos §10, tarefa muito ampla).
 2. **Dois arquivos, papéis diferentes:** banana = memória viva (WIP, pendências, checkpoint). AGENTS = manual estável (não duplicar aqui).
-3. **Atualizar docs:** assistente **atualiza `banana.md` sozinho** quando houver decisão, pendência, roadmap ou WIP importante (ver CHECKPOINT — *atualização automática*). Renan pode pedir *"atualize a banana"* também. AGENTS §7 **só** se Renan pedir — assistente **nunca** pergunta no meio da tarefa.
+3. **Registro de alterações:** **sempre** atualizar `banana.md` ao entregar mudança no sistema (fix, feature, deploy) — CHECKPOINT + § do módulo; commits e versão para rollback/contexto. Ver regra no topo (*Registro no banana*). Renan pode pedir *"atualize a banana"* também. AGENTS §7 **só** se Renan pedir.
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
@@ -425,10 +438,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.37`  
+**Versão:** `1.0.38`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (fluxo Render teste automático + fix código sequencial produto novo)  
-**Versão app (`VERSION`):** **teste** v1.85+ (pendente bump) · **produção** v1.54
+**Atualizado por:** assistente Cursor (cadastro código novo OK + regra registro banana + produção)  
+**Versão app (`VERSION`):** **teste** v1.89 · **produção** v1.55 (cherry-pick cadastro código)
+
+### Cadastro — código sequencial produto novo (2026-06-22, Renan OK teste)
+
+| Item | Detalhe |
+|------|---------|
+| **Validação Renan** | OK no Render **teste** |
+| **Commits `teste`** | `ffc82ba` v1.87 · `cea03c7` v1.88 · `a2303c7` v1.89 |
+| **Produção** | Renan autorizou (*não invasivo*) — cherry-pick → **SistVale** |
+| **Reverter** | Revert dos 3 commits; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
+
+**Regras (canônicas — §4.6):** código sistema **4 dígitos**, faixa **4010–9999**, sequência só pelo **código sistema** (GM não conta); GM = `GM` + número (editável livre); modal novo não repinta ao carregar códigos.
 
 ### Fluxo Render — teste automático, produção só com pedido (2026-06-22, Renan)
 
@@ -437,17 +461,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Onde testa** | Render projeto **teste** — **não** local |
 | **Dois sites** | **teste** = homologação · **SistVale** = loja |
 | **Assistente → teste** | Commit + push **`teste` automático** (deploy Render segue) |
-| **Assistente → produção** | **Só** com *«pode subir (produção)»* |
+| **Assistente → produção** | **Só** com *«pode subir (produção)»* ou equivalente explícito (ex. *«pode subir se não for invasivo»*) |
 
-### Cadastro — código sequencial produto novo (2026-06-22)
+### Registro no banana — toda entrega (2026-06-22, Renan)
 
-**Sintoma:** Novo produto mostrava `__novo__` em código sistema e GM (etapa 1 Postgres).
+Assistente **sempre** registra no CHECKPOINT (e § do módulo se couber): **o quê**, **commits**, **versão**, **teste/produção**, **como reverter** se relevante. Objetivo: próximo chat, diagnóstico, rollback.
 
-**Regra restaurada:** sequência **4010–9999** (só **código sistema**, GM não conta no «último»); ex. `4252` + `GM4252`. **Código sistema:** 4 números. **GM:** espelha + livre para editar. **Modal novo:** detalhe da API não repinta tela (sem apagar nome digitado).
+### Cadastro — código sequencial (histórico curto)
 
-**Fix (branch `teste`, aguarda deploy):** `cadastro_codigo_sequencial_util.py` + detalhe `__novo__` + save Postgres.
+**Sintoma inicial:** `__novo__` no código · depois número errado (9504) · piscada apagando nome.
 
-**Teste Renan:** Cadastro → Novo produto → aba Fiscal → códigos preenchidos (não `__novo__`).
+**Fix (branch `teste`, validado v1.87–v1.89):** ver bloco «Cadastro — código sequencial produto novo» acima.
 
 ### Cadastro produtos — etapa 1 Postgres + perf lista (2026-06-22, Renan OK)
 
@@ -871,7 +895,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 **Atualização automática (padrão — não perguntar ao Renan):**
 
-Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou decisão de produto, pendência, WIP, roadmap (ex. desvinculação), diagnóstico de bug recorrente ou entrega em módulo grande → **editar `banana.md`** (CHECKPOINT + § do módulo). **Não** pedir autorização. **Não** atualizar por detalhe passageiro ou chat só explicativo.
+Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banana.md`**: CHECKPOINT (o quê, commits, `VERSION`, teste OK, produção se houver, dica de revert) + § do módulo se for regra permanente. **Obrigatório** para qualquer mudança de comportamento do sistema. **Não** pedir autorização. **Não** registrar chat só explicativo ou detalhe passageiro.
 
 **Quando Renan pedir *"atualize a banana"* (ou revisão explícita):**
 
@@ -883,6 +907,6 @@ Ao **encerrar tarefa** ou **fechar tópico importante**, se a sessão alterou de
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.37
+### Fim do checkpoint v1.0.38
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
