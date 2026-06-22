@@ -197,6 +197,7 @@ from .nfe_entrada_util import (
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     patch_rascunho_entrada_extra,
     salvar_rascunho_entrada,
+    sincronizar_financeiro_rascunho_entrada_nfe,
 )
 from .agro_codigo_barras_loja_util import mongo_alocar_proximo_codigo_barras_loja
 from .agro_produto_fiscal_defaults import (
@@ -665,6 +666,12 @@ def _linha_gestao_produto_json(
             subcat = ov.subcategoria.strip()
         if ov.descricao.strip():
             descricao = ov.descricao.strip()
+    ce_lin = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+    if isinstance(ce_lin, dict) and ce_lin.get("preco_custo_overlay") is not None:
+        try:
+            p_custo = float(ce_lin["preco_custo_overlay"])
+        except (TypeError, ValueError):
+            pass
     s2 = s3 = s4 = ""
     if ov:
         s2 = str(ov.subcategoria_2 or "").strip()
@@ -750,6 +757,12 @@ def _aplicar_produto_gestao_overlay_em_dict(
         row["precos_por_forma"] = ppf
     elif "precos_por_forma" in row:
         row.pop("precos_por_forma", None)
+    ce_pc = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+    if isinstance(ce_pc, dict) and ce_pc.get("preco_custo_overlay") is not None:
+        try:
+            row["preco_custo"] = round(float(ce_pc["preco_custo_overlay"]), 2)
+        except (TypeError, ValueError):
+            pass
     return row
 
 
@@ -1595,7 +1608,14 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
 
     if pid.lower() in ("__novo__", "novo", "_novo"):
-        err_c, novo_id = _try_criar_produto_mongo_somente_agro(request, payload)
+        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+        if agro_catalogo_usa_postgres():
+            from produtos import catalogo_agro as cat_agro
+
+            err_c, novo_id = cat_agro.try_criar_produto_postgres_somente_agro(payload)
+        else:
+            err_c, novo_id = _try_criar_produto_mongo_somente_agro(request, payload)
         if err_c is not None:
             return err_c
         payload = dict(payload)
@@ -1823,6 +1843,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["precos_por_forma"] = ppf
         else:
             ex.pop("precos_por_forma", None)
+    if "preco_custo" in payload:
+        if custo_payload is not None:
+            ex["preco_custo_overlay"] = float(custo_payload)
+        else:
+            ex.pop("preco_custo_overlay", None)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -1976,6 +2001,26 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     except Exception:
         pass
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        p_mod = cat_agro.sincronizar_modelo_produto_de_overlay(
+            pid, ov, custo_payload=custo_payload, payload=payload
+        )
+        row = cat_agro.produto_model_para_resposta_salvar(p_mod, ov)
+        uid = int(getattr(request.user, "pk", None) or 0)
+        resp_pg: dict = {"ok": True, "produto": row, "fonte": "agro_pg", "somente_agro": True}
+        if push_erp and agro_cadastro_produto_erp_sync_habilitado():
+            resp_pg["aviso_erp"] = (
+                "Catálogo SisVale (Postgres): envio ao ERP legado não usa espelho Mongo nesta etapa."
+            )
+            resp_pg["erp_sync_ok"] = False
+        elif uid and agro_cadastro_produto_erp_sync_habilitado() and not push_erp:
+            _erp_produto_pendentes_add(uid, pid)
+        return JsonResponse(resp_pg)
+
     if db is None:
         return JsonResponse({"ok": True, "aviso": "Mongo indisponível — overlay salvo.", "produto": None})
     doc = _produto_mongo_por_id_externo(db, client, pid) or {"Id": pid}
@@ -2087,6 +2132,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             _erp_produto_pendentes_add(uid, pid)
 
     avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo, aviso_preco_venda_mongo) if m]
+    if not mongo_grava and db is not None:
+        avisos_m.append(
+            "Ambiente de teste: alteração gravada no Agro (Postgres deste site), "
+            "sem espelhar no Mongo da loja."
+        )
     if avisos_m:
         resp["aviso"] = "\n\n".join(avisos_m)
     return JsonResponse(resp)
@@ -10359,10 +10409,14 @@ def api_entrada_nota_auditoria_financeiro(request):
 @require_GET
 def api_entrada_nota_rascunho_obter(request):
     oid = (request.GET.get("id") or "").strip()
-    _, db = obter_conexao_mongo()
+    client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    doc = obter_rascunho_entrada(db, oid)
+    doc = obter_rascunho_entrada(
+        db,
+        oid,
+        col_pessoa=getattr(client, "col_c", None) or "DtoPessoa",
+    )
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado ou ID inválido."}, status=404)
     return JsonResponse({"ok": True, "rascunho": doc})
@@ -12177,12 +12231,46 @@ def api_entrada_nota_financeiro(request):
                 status=403,
             )
         if ex_nf.get("financeiro_lancado"):
+            ids_exist = [
+                str(x).strip() for x in (ex_nf.get("financeiro_ids") or []) if str(x).strip()
+            ]
             return JsonResponse(
                 {
-                    "ok": False,
-                    "erro": "Conta a pagar já gerada para este rascunho. Use «Reabrir nota» na etapa 6 antes de gerar de novo.",
+                    "ok": True,
+                    "rascunho": {"ok": True, "id": rid_up},
+                    "financeiro": {
+                        "ok": True,
+                        "ids": ids_exist,
+                        "ja_existia": True,
+                        "quitar_ao_salvar": bool(
+                            fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada")
+                        ),
+                    },
                 },
-                status=409,
+                status=200,
+            )
+        sync_fin = sincronizar_financeiro_rascunho_entrada_nfe(
+            db,
+            rid_up,
+            usuario=usuario,
+            col_pessoa=col_pessoa,
+        )
+        if sync_fin.get("ok") and sync_fin.get("sincronizado"):
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "rascunho": {"ok": True, "id": rid_up},
+                    "financeiro": {
+                        "ok": True,
+                        "ids": sync_fin.get("ids") or [],
+                        "recuperado": True,
+                        "lote": sync_fin.get("lote"),
+                        "quitar_ao_salvar": bool(
+                            fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada")
+                        ),
+                    },
+                },
+                status=200,
             )
         if _entrada_nfe_tipo_entrada(ex_nf) == "bonificacao":
             return JsonResponse(
@@ -12695,6 +12783,9 @@ def api_entrada_nota_financeiro(request):
         out["erp_baixa_ok"] = erp_baixa_ok
     if aviso_api_erp:
         out["aviso_api"] = aviso_api_erp
+    if not ids and erros:
+        primeiro_er = erros[0] if isinstance(erros[0], dict) else {}
+        out["erro"] = str(primeiro_er.get("erro") or "Financeiro não gerou título.").strip()[:500]
     if r_rasc.get("ok") and ids and db is not None:
         rid_fin = str(r_rasc.get("id") or "").strip()
         if rid_fin:
@@ -15824,6 +15915,31 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
         or str(p.get("Complemento") or "").strip()
     )
     ncm = str(p.get("NCM") or p.get("CodigoNCM") or "").strip()
+    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+    ix = p.get("index_codigos")
+    if not isinstance(ix, list) or not ix:
+        ix = index_codigos_de_campos(
+            codigo=codigo_s,
+            codigo_nfe=codigo_nfe_s,
+            codigo_barras=str(codigo_barras).strip() if codigo_barras else "",
+        )
+    busca_txt = str(p.get("BuscaTexto") or p.get("busca_texto") or "").strip()
+    if not busca_txt:
+        busca_txt = " ".join(
+            x
+            for x in (
+                str(p.get("Nome") or "").strip(),
+                str(p.get("Marca") or "").strip(),
+                codigo_s,
+                codigo_nfe_s,
+                str(codigo_barras).strip() if codigo_barras else "",
+                str(_cat_w or "").strip(),
+                _sub_w,
+                str(fornecedor).strip(),
+            )
+            if x
+        ).strip()
     return {
         "id": pid,
         "nome": str(p.get("Nome") or "").strip(),
@@ -15846,6 +15962,8 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
         "unidade": unidade,
         "descricao": descricao,
         "ncm": ncm,
+        "index_codigos": ix,
+        "busca_texto": busca_txt,
     }
 
 
@@ -16394,9 +16512,16 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     ov_det = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_det[:64]).first()
     _aplicar_produto_gestao_overlay_em_dict(row, ov_det)
     custos = _custos_compra_produto(p)
-    pv = float(row.get("preco_venda") or 0)
     pc = float(custos.get("preco_custo") or 0)
     pca = float(custos.get("preco_custo_final") or 0)
+    ce_det = ov_det.cadastro_extras if ov_det and isinstance(ov_det.cadastro_extras, dict) else {}
+    if isinstance(ce_det, dict) and ce_det.get("preco_custo_overlay") is not None:
+        try:
+            pc = float(ce_det["preco_custo_overlay"])
+            pca = pc
+        except (TypeError, ValueError):
+            pass
+    pv = float(row.get("preco_venda") or 0)
 
     mva_rs_doc = _mongo_primeiro_float(
         p,
@@ -17229,14 +17354,13 @@ def api_produtos_cadastro(request):
                         "dir": "desc" if sort_direction < 0 else "asc",
                     }
                 )
-            rows, total = cat_agro.listar_paginado(
+            rows, has_more = cat_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
                 sort_key=sort_key,
                 sort_direction=sort_direction,
                 inativos=inativos,
             )
-            has_more = pagina * por_pagina < total
             return JsonResponse(
                 {
                     "ok": True,
@@ -17245,7 +17369,6 @@ def api_produtos_cadastro(request):
                     "pagina": pagina,
                     "por_pagina": por_pagina,
                     "has_more": has_more,
-                    "total": total,
                     "produtos": rows,
                     "sort": sort_key,
                     "dir": "desc" if sort_direction < 0 else "asc",
@@ -17280,6 +17403,21 @@ def api_produtos_cadastro(request):
                     regex_stage3_cap=80,
                     regex_stage3b_cap=0,
                 )
+            if not prods:
+                from produtos.cadastro_busca_codigo_util import (
+                    cadastro_mongo_busca_por_codigo,
+                    parece_codigo_cadastro,
+                )
+
+                if parece_codigo_cadastro(q_raw):
+                    prods = cadastro_mongo_busca_por_codigo(
+                        db,
+                        client,
+                        q_raw,
+                        limit=lim_busca,
+                        include_inactive=inativos,
+                        projection=_CADASTRO_LISTA_MONGO_PROJ,
+                    )
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
             _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
@@ -18312,6 +18450,23 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503), None
+
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    if agro_mongo_escrita_bloqueada():
+        return (
+            JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        "Ambiente de teste (staging): não dá para criar produto novo no catálogo "
+                        "Mongo compartilhado com a loja. Cadastre na produção ou altere produtos existentes."
+                    ),
+                },
+                status=403,
+            ),
+            None,
+        )
 
     col = client.col_p
 

@@ -342,6 +342,16 @@
       } catch (e) { return []; }
     })()
   };
+  if (window.AgroCadastroErpLista.CADASTRO_ERP_MODO !== 'detalhe') {
+    window.__agroCadastroListaPrefetch = fetch(
+      window.AgroCadastroErpLista.API + '?pagina=1&por_pagina=72&ativo=1',
+      { credentials: 'same-origin' }
+    )
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+      })
+      .catch(function () { return null; });
+  }
   window.AgroCadastroErpGrupos = {
     URL_GRUPOS: "{% url 'api_produtos_grupos_listar' %}",
     URL_SALVAR: "{% url 'api_produtos_grupo_salvar' %}",
@@ -364,7 +374,7 @@
     });
   })();
   </script>
-  <script src="{% static 'produtos/js/cadastro_erp_shared.js' %}?v=5"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_shared.js' %}?v=6"></script>
 
   {% include "produtos/_modal_editar_produto_cadastro_erp.inc.html" %}
 
@@ -460,7 +470,7 @@
   </div>
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=16"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=21"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=3"></script>
 
 </body>

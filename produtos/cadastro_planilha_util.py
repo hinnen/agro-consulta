@@ -279,7 +279,7 @@ def coletar_linhas_export_cadastro(
         pagina = 1
         por_pagina = 500
         while len(rows) < EXPORT_MAX_ROWS:
-            chunk, total = catalogo_agro.listar_paginado(
+            chunk, has_more = catalogo_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
                 sort_key="nome",
@@ -293,7 +293,7 @@ def coletar_linhas_export_cadastro(
             for r in chunk:
                 _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
                 rows.append(r)
-            if pagina * por_pagina >= total:
+            if not has_more:
                 break
             pagina += 1
         truncado = len(rows) >= EXPORT_MAX_ROWS
@@ -950,7 +950,10 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         mongo_set["ValorVenda"] = pvfloat
         mongo_set["PrecoVenda"] = pvfloat
     if mongo_set and db is not None:
-        db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+        from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+        if not agro_mongo_escrita_bloqueada():
+            db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
 
 
 def aplicar_importacao_cadastro(

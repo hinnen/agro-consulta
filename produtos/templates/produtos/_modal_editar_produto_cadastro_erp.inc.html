@@ -1980,8 +1980,17 @@
   var modalDetGen = 0;
   var modalDetAbort = null;
 
+  function produtoParaFormCadastro(rowLista, detApi) {
+    var base = Object.assign({}, detApi || {}, rowLista || {});
+    if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
+      base = window.agroAplicarPatchPdvNoProduto(base);
+    }
+    return base;
+  }
+
   window.abrirModalProduto = function (produto) {
     produto = produto || {};
+    var rowAbertura = produto;
     var dg = ++modalDetGen;
     if (modalDetAbort) {
       try { modalDetAbort.abort(); } catch (e) { /* ignore */ }
@@ -1989,7 +1998,7 @@
     modalDetAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
     modalEdit._variacoes = [];
     resetTabs();
-    preencherForm(produto);
+    preencherForm(produtoParaFormCadastro(rowAbertura, null));
     if (Array.isArray(produto.similares) && produto.similares.length) {
       renderSimilaresErpModal(produto.similares);
     }
@@ -2011,7 +2020,7 @@
       .then(function (data) {
         if (dg !== modalDetGen) return;
         if (data && data.ok && data.produto) {
-          preencherForm(data.produto);
+          preencherForm(produtoParaFormCadastro(rowAbertura, data.produto));
           renderSimilaresErpModal((data.produto && data.produto.similares) ? data.produto.similares : []);
         } else {
           renderSimilaresErpModal([]);

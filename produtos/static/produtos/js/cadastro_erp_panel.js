@@ -432,8 +432,10 @@
             window.agroPdvPatchCatalogoCache(j.produto);
           }
           agroCadastroMergeProdutoCacheLocal(j.produto);
+          renderDetalheCompleto(j.produto);
+        } else {
+          carregarDetalheProduto(String(p.id || ''));
         }
-        carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -645,8 +647,10 @@
       tr.setAttribute('data-prod-id', String(p.id));
       tr.className = 'border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors';
       var cod = p.codigo_nfe || p.codigo || '';
-      var custoTxt = p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—';
-      var vendaTxt = fmtMoney(p.preco_venda);
+      var custoTxt = p._precoAguardando
+        ? '…'
+        : (p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—');
+      var vendaTxt = p._precoAguardando ? '…' : fmtMoney(p.preco_venda);
       tr.innerHTML =
         '<td class="px-4 py-3">' +
         '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
@@ -656,7 +660,7 @@
         '<td data-coluna="unidade" class="px-4 py-3 text-slate-700">' + escapeHtml(p.unidade || '-') + '</td>' +
         '<td data-coluna="categoria" class="px-4 py-3 text-slate-700">' + escapeHtml(p.categoria || '-') + '</td>' +
         '<td data-coluna="subcategoria" class="px-4 py-3 text-slate-600">' +
-        escapeHtml((p.categoria_listagem != null && String(p.categoria_listagem).trim()) ? String(p.categoria_listagem).trim() : (p.subcategoria || '-')) +
+        escapeHtml(String(p.subcategoria || p.categoria_listagem || '').trim() || '-') +
         '</td>' +
         '<td data-coluna="preco_custo" class="px-4 py-3 text-slate-600 whitespace-nowrap">' + custoTxt + '</td>' +
         '<td class="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">' + vendaTxt + '</td>' +
@@ -864,13 +868,11 @@
   }
 
   function cadastroPdvParaLinhaLista(p, catalogById) {
-    var id = String(p.id || '');
-    var loc = null;
-    if (catalogById && id && typeof catalogById.get === 'function') {
-      loc = catalogById.get(id) || null;
-    }
-    var src = loc ? Object.assign({}, loc, p) : p;
-    return {
+    /* Lista cadastro = dados do servidor; cache PDV (espelho) só atrapalha preço/colunas. */
+    var src = p || {};
+    var sub = String(src.subcategoria || '').trim();
+    var catList = String(src.categoria_listagem || '').trim();
+    var row = {
       id: src.id,
       nome: src.nome,
       marca: src.marca,
@@ -880,8 +882,8 @@
       preco_venda: src.preco_venda,
       preco_custo: src.preco_custo,
       categoria: src.categoria,
-      subcategoria: src.subcategoria,
-      categoria_listagem: src.categoria_listagem,
+      subcategoria: sub || catList || '',
+      categoria_listagem: catList || sub || '',
       prateleira: src.prateleira,
       fornecedor: src.fornecedor,
       imagem: src.imagem,
@@ -891,6 +893,31 @@
       busca_texto: src.busca_texto,
       index_codigos: src.index_codigos
     };
+    if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
+      row = window.agroAplicarPatchPdvNoProduto(row);
+    }
+    return row;
+  }
+
+  var buscaCodigoDebounceTimer = null;
+  var BUSCA_CODIGO_DEBOUNCE_MS = 120;
+
+  function pareceCodigoBusca(q) {
+    q = String(q || '').trim();
+    var lim = q.replace(/\W/g, '');
+    if (!lim) return false;
+    if (/^\d+$/.test(lim) && lim.length >= 4) return true;
+    if (/^gm/i.test(lim) && lim.length >= 2) return true;
+    var temL = /[a-z]/i.test(lim);
+    var temN = /\d/.test(lim);
+    return temL && temN && lim.length >= 3 && q.indexOf(' ') === -1;
+  }
+
+  function buscaProntaParaCatalogo(q) {
+    q = String(q || '').trim();
+    if (!q) return false;
+    if (pareceCodigoBusca(q)) return true;
+    return q.length >= 2;
   }
 
   function cadastroFiltrarAtivosLocal(arr) {
@@ -899,20 +926,25 @@
     return arr.filter(function (p) { return !p.inativo; });
   }
 
+  function cadastroAplicarPatchLista(produtos) {
+    if (!Array.isArray(produtos) || typeof window.agroAplicarPatchPdvNoProduto !== 'function') {
+      return produtos || [];
+    }
+    return produtos.map(function (p) { return window.agroAplicarPatchPdvNoProduto(p); });
+  }
+
   /** Pipeline idêntico ao PDV: filtrar → ordenar por relevância (catálogo local). */
   function cadastroBuscarLocalComoPdv(qRaw) {
     var q = String(qRaw || '').trim();
     if (!q) return [];
-    if (q.length === 1 && !pareceCodigoBusca(q)) return [];
+    if (!buscaProntaParaCatalogo(q)) return [];
     var catalog = cadastroCatalogoPdvCacheArray();
     var catalogById = cadastroCatalogoPdvById();
     if (!catalog.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
       return [];
     }
     var termoNorm = normalizarBuscaLocal(q);
-    if (!termoNorm || String(termoNorm).trim().length < 2) {
-      if (!pareceCodigoBusca(q)) return [];
-    }
+    if (!termoNorm) return [];
     var modo = cadastroModoBuscaPdv(q);
     var fil = filtrarProdutosBuscaInteligente(catalog, termoNorm, modo);
     fil = cadastroFiltrarAtivosLocal(fil);
@@ -924,6 +956,14 @@
 
   function cadastroFinalizarLinhasBusca(pdvRows, catalog) {
     return (pdvRows || []).map(function (p) { return cadastroPdvParaLinhaLista(p, catalog); });
+  }
+
+  /** Preview local na busca: nomes/códigos já; preço só após o servidor (evita piscadinha). */
+  function cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog) {
+    return cadastroFinalizarLinhasBusca(locaisPdv, catalog).map(function (row) {
+      row._precoAguardando = true;
+      return row;
+    });
   }
 
   function cadastroAplicarOrdenacaoCliente(rows) {
@@ -953,19 +993,102 @@
   }
 
   function carregarListaPaginada(gen, sig) {
-    var pLista = fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
+    var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+    var prefetch = null;
+    if (!qBusca && pagina === 1 && !ordenacaoAtual.campo && window.__agroCadastroListaPrefetch) {
+      prefetch = window.__agroCadastroListaPrefetch;
+      window.__agroCadastroListaPrefetch = null;
+    }
+    var pLista = prefetch
+      ? prefetch
+      : fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    return pLista
+      .then(function (x) {
         if (gen !== carregarGen) return;
-        if (!x.j || !x.j.ok) {
-          throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
+        if (!x || !x.j || !x.j.ok) {
+          throw new Error((x && x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
+        produtos = cadastroAplicarPatchLista(produtos);
         produtos = cadastroAplicarOrdenacaoCliente(produtos);
         atualizarMeta(x.j, produtos);
         renderLista(produtos);
+      });
+  }
+
+  function apiProdutoParaLinhaCadastro(p) {
+    if (!p || p.id == null) return p;
+    return {
+      id: p.id,
+      nome: p.nome,
+      marca: p.marca,
+      codigo: p.codigo,
+      codigo_nfe: p.codigo_nfe || p.codigo_gm || p.codigo,
+      codigo_barras: p.codigo_barras,
+      preco_venda: p.preco_venda,
+      preco_custo: p.preco_custo,
+      categoria: p.categoria,
+      subcategoria: p.subcategoria,
+      categoria_listagem: p.categoria_listagem,
+      prateleira: p.prateleira,
+      fornecedor: p.fornecedor,
+      imagem: p.imagem,
+      inativo: !!p.inativo,
+      unidade: p.unidade,
+      descricao: p.descricao,
+      busca_texto: p.busca_texto,
+      index_codigos: p.index_codigos
+    };
+  }
+
+  /** GM / barras: só servidor — cache local do PDV atrapalha (preço errado + corrida de abort). */
+  function carregarBuscaCodigoDireto(qRaw, gen, sig) {
+    var catalogById = cadastroCatalogoPdvById();
+    var urlBusca = urlBuscaCadastro(qRaw);
+
+    function finalizarApiRows(apiRows) {
+      if (gen !== carregarGen) return;
+      apiRows = Array.isArray(apiRows) ? apiRows : [];
+      var linhas = cadastroFinalizarLinhasBusca(
+        apiRows.map(apiProdutoParaLinhaCadastro),
+        catalogById
+      );
+      linhas = cadastroAplicarPatchLista(linhas);
+      if (ordenacaoAtual.campo) {
+        linhas = cadastroAplicarOrdenacaoCliente(linhas);
+      }
+      atualizarMeta({ modo: 'busca' }, linhas);
+      renderLista(linhas);
+    }
+
+    return fetch(urlBusca, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (gen !== carregarGen) return null;
+        if (!x.j || x.j.ok === false || x.j.erro) {
+          throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
+        }
+        var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
+        if (apiRows.length) return apiRows;
+        return fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw), {
+          credentials: 'same-origin',
+          signal: sig,
+        })
+          .then(function (r2) { return r2.json(); })
+          .then(function (j2) {
+            if (gen !== carregarGen) return null;
+            if (j2 && !j2.erro && Array.isArray(j2.produtos) && j2.produtos.length) {
+              return j2.produtos;
+            }
+            return [];
+          })
+          .catch(function () { return []; });
+      })
+      .then(function (apiRows) {
+        if (apiRows === null || gen !== carregarGen) return;
+        finalizarApiRows(apiRows);
       });
   }
 
@@ -975,9 +1098,9 @@
     var urlBusca = urlBuscaCadastro(qRaw);
     var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
-      .then(function (pair) {
-        var x = pair[0];
+    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    return pLista
+      .then(function (x) {
         if (gen !== carregarGen) return;
         if (!x.j || x.j.ok === false || x.j.erro) {
           throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
@@ -1003,13 +1126,9 @@
       .then(function (apiRows) {
         if (gen !== carregarGen) return;
         apiRows = apiRows || [];
-        var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
-        if (typeof mesclarBuscaPdvLocalComApi === 'function') {
-          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalogById, cadastroLimiteBuscaPdv());
-        } else if (apiRows.length) {
-          pdvRows = apiRows.slice(0, cadastroLimiteBuscaPdv());
-        }
-        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalogById);
+        var pdvRows = apiRows.map(apiProdutoParaLinhaCadastro);
+        var produtos = cadastroFinalizarLinhasBusca(pdvRows, null);
+        produtos = cadastroAplicarPatchLista(produtos);
         if (ordenacaoAtual.campo) {
           produtos = cadastroAplicarOrdenacaoCliente(produtos);
         }
@@ -1032,16 +1151,48 @@
     var sig = carregarAbort ? carregarAbort.signal : undefined;
     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
 
+    if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (GM… / 4+ dígitos).';
+      if (listaEl) {
+        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
+      }
+      return;
+    }
+
     if (qBusca) {
       clearTimeout(buscaMergeTimer);
+      clearTimeout(buscaCodigoDebounceTimer);
+
+      if (pareceCodigoBusca(qBusca)) {
+        setLoading(true);
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Buscando código…</td></tr>';
+        }
+        if (metaEl) metaEl.textContent = 'Buscando…';
+        carregarBuscaCodigoDireto(qBusca, g, sig)
+          .catch(function (err) {
+            if (err && err.name === 'AbortError') return;
+            if (g !== carregarGen) return;
+            var m = err.message || 'Erro de rede';
+            mostrarErro(m);
+            if (listaEl) {
+              listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td></tr>';
+            }
+            if (metaEl) metaEl.textContent = '—';
+          })
+          .finally(function () { setLoading(false); });
+        return;
+      }
+
       var catalog = cadastroCatalogoPdvCacheArray();
       var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
-      var linhasLocais = cadastroFinalizarLinhasBusca(locaisPdv, catalog);
+      var linhasLocais = cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog);
       if (ordenacaoAtual.campo) {
         linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
       }
       var hadLocal = linhasLocais.length > 0;
       if (hadLocal) {
+        linhasLocais = cadastroAplicarPatchLista(linhasLocais);
         atualizarMeta({ modo: 'busca' }, linhasLocais);
         renderLista(linhasLocais);
         setLoading(false);
@@ -1052,7 +1203,6 @@
         }
       }
       var mergeSeq = ++buscaMergeSeq;
-      var delayApi = hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220);
       buscaMergeTimer = setTimeout(function () {
         if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
         carregarBuscaApi(qBusca, g, sig, locaisPdv)
@@ -1076,8 +1226,8 @@
           .finally(function () {
             setLoading(false);
           });
-      }, delayApi);
-      if (hadLocal) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+      }, 0);
+      if (locaisPdv.length) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
       return;
     }
 
@@ -1104,27 +1254,17 @@
       });
   }
 
-  function pareceCodigoBusca(q) {
-    q = String(q || '').trim();
-    var lim = q.replace(/\W/g, '');
-    if (!lim) return false;
-    if (/^\d+$/.test(lim) && lim.length >= 4) return true;
-    if (/^gm/i.test(lim) && lim.length >= 2) return true;
-    var temL = /[a-z]/i.test(lim);
-    var temN = /\d/.test(lim);
-    return temL && temN && lim.length >= 3 && q.indexOf(' ') === -1;
-  }
-
   function agendar(forcar) {
     if (!buscaEl) return;
     clearTimeout(debounceTimer);
+    clearTimeout(buscaCodigoDebounceTimer);
     var q = (buscaEl.value || '').trim();
     if (!q) {
       pagina = 1;
       carregar();
       return;
     }
-    if (q.length === 1 && !pareceCodigoBusca(q)) {
+    if (!buscaProntaParaCatalogo(q)) {
       if (carregarAbort) {
         try { carregarAbort.abort(); } catch (e1) { /* ignore */ }
         carregarAbort = null;
@@ -1140,8 +1280,18 @@
     }
     mostrarErro('');
     if (metaEl) metaEl.textContent = 'Buscando…';
+    if (pareceCodigoBusca(q)) {
+      var msCod = forcar ? 0 : BUSCA_CODIGO_DEBOUNCE_MS;
+      buscaCodigoDebounceTimer = setTimeout(function () {
+        var q2 = (buscaEl.value || '').trim();
+        if (!q2 || !pareceCodigoBusca(q2)) return;
+        pagina = 1;
+        carregar();
+      }, msCod);
+      return;
+    }
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 0 : (temCache ? 100 : 320));
+    var ms = forcar ? 0 : (temCache ? 100 : 320);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {
@@ -1149,7 +1299,7 @@
         carregar();
         return;
       }
-      if (q2.length === 1 && !pareceCodigoBusca(q2)) return;
+      if (!buscaProntaParaCatalogo(q2)) return;
       pagina = 1;
       carregar();
     }, ms);
