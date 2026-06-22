@@ -115,18 +115,24 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 - **Assistente:** push **`teste` livre** (Renan testa no site teste). Merge/push **`producao` só** quando Renan autorizar.
 - Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
-### 3.1 Versão do sistema (automática — opção A)
+### 3.1 Versão do sistema (contador único — 2026-06-22)
 
 | O quê | Detalhe |
 |-------|---------|
-| **Arquivo** | `VERSION` na raiz (ex.: `1.02`) |
-| **Badge BI** | `v` + conteúdo de `VERSION` (sem terceiro número) |
-| **Commit git** | Popup do badge no dashboard (automático no Render) |
-| **Quando sobe** | **Cada commit** em `teste` ou `producao`: `1.01` → `1.02` → `1.03` |
+| **Arquivo** | `VERSION` na raiz (ex.: `1.92`) |
+| **Badge BI** | `v` + conteúdo de `VERSION` |
+| **Contador** | **Um só** — o número significa a **versão do pacote**, não o branch |
+| **Branch `teste`** | Hook sobe **+0,01** a cada commit (`1.92` → `1.93`) |
+| **Branch `producao`** | No deploy: **`VERSION` = versão do pacote teste** que subiu (ex. deploy do `e98db0f` → loja fica **`1.92`**) |
+| **Cherry-pick em lote** | Commits intermediários: `SKIP_VERSION_BUMP=1 git cherry-pick …` · **só o último** (ou commit `docs` pós-deploy) ajusta `VERSION` para bater com teste |
+| **Erro passado** | Pacote teste v1.92 virou prod v1.57–v1.59 (hook bumpou 3×) — **corrigido** para **1.92** |
+| **Paridade** | `teste` ≥ `producao` em número. Teste à frente = pacotes ainda não pedidos para loja |
 | **Como** | Hook `.githooks/pre-commit` → `scripts/bump_version.py --hook` |
 | **Setup (1× por clone)** | `powershell scripts/setup_git_hooks.ps1` |
-| **Pular 1 commit** | `SKIP_VERSION_BUMP=1 git commit …` ou já incluir `VERSION` no stage |
-| **Sem hook** | Assistente **deve** rodar `python scripts/bump_version.py` e incluir `VERSION` ao commitar |
+| **Pular 1 commit** | `SKIP_VERSION_BUMP=1 git commit …` |
+| **Conferir diff real** | `git diff origin/producao origin/teste --stat` (backend core costuma estar **igual**) |
+
+**Regra prática:** ao fechar deploy produção, CHECKPOINT registra **`teste` vX.XX → produção vX.XX** (mesmo número).
 
 ---
 
@@ -440,10 +446,37 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.41`  
+**Versão:** `1.0.42`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (produção v1.59 pacote teste v1.92 — Renan autorizou neste chat)  
-**Versão app (`VERSION`):** **teste** v1.92 (`e98db0f`) · **produção** v1.59 (`2d88ee4`)
+**Atualizado por:** assistente Cursor (auditoria paridade prod×teste + regra VERSION única)  
+**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (pacote `e98db0f` — corrigir badge após push `VERSION`)
+
+### Paridade prod × teste — auditoria Git (2026-06-22)
+
+**Backend core idêntico** (`git diff origin/producao origin/teste` — **sem diferença**): `mongo_financeiro_util.py`, `views.py`, `catalogo_agro.py`, `cadastro_codigo_sequencial_util.py`, `nfe_entrada_util.py`, migrations NFC-e.
+
+**Loja (`producao` v1.92)** = tudo que já subiu + pacote lançamentos v1.92 (`2d88ee4`). **Cadastro Postgres / código 4010+** já estavam na loja (`8889955`, `3d8ae08`, `f08da8c`) — **não** estão pendentes.
+
+### Só no teste — ainda NÃO na loja (2026-06-22)
+
+Conferência: `git diff origin/producao origin/teste --stat` · 36 arquivos · ~3,5k linhas (maioria front/PDV).
+
+| # | Pacote | Arquivos / nota | Risco loja |
+|---|--------|-----------------|------------|
+| 1 | **NFC-e PDV** | `pdv_wizard.js`, `pdv_wizard.html`, `venda_cupom_80mm.js`, `vendas_lista.html`, `venda_agro_detalhe.html`, `pdv/views.py` | **Alto** — foi **revertido** na loja (`eb2ce4c`); teste evoluiu depois |
+| 2 | **Agro Display Scale** | `agro_display_scale.js`, `_agro_display_scale.html`, `_agro_consulta_ui.html`, BI | Médio — calibração global de tamanho de tela |
+| 3 | **CP lista — perf/UX** | `lancamentos_contas_pagar_teste.html` — bootstrap HTML, prefetch BI, badge «Sincronizando», colunas PIN, filtro hoje | Baixo — só template; **API já igual** na loja |
+| 4 | **Entrada NF — financeiro duplicado** | `entrada_nota.html` — pula etapa se título já existe; mensagens «já existia / recuperado» | Baixo |
+| 5 | **BI — launchpad / escala rápida** | `dashboard_gerencial.html`, `partials/dashboard_gerencial_body.html`, `home.html` | Baixo |
+| 6 | **PDV entrega** | `partials/pdv/step_entrega.html` | Médio |
+| 7 | **Caixa — PIX MP QR** | `caixa_util.py` — normaliza «Mercado Pago … QR» como PIX | Baixo |
+| 8 | **Config status staging** | `agro_fonte_config.py` — `staging_readonly` no status; ERP sync só por env (sem auto-block checkpoint) | Baixo — prod mantém lógica checkpoint no sync |
+| 9 | **Textos pré-corte ERP** | `lancamentos_pre_corte_erp_panel.html` | Cosmético |
+| 10 | **PIN calendário CP/DRE/fluxo** | +1 linha include PIN em calendário/DRE/fluxo | Baixo |
+
+**Removido da lista «pendente» (já estava na loja):** cadastro v1.87–v1.89, deploy fixes `bb27da1`/`nfe_entrada_util` — código **igual** nos dois branches.
+
+**Como conferir de novo:** `git fetch origin` → `git diff origin/producao origin/teste --stat`
 
 ### Pacote teste v1.92 → **produção** (2026-06-22, Renan neste chat)
 
@@ -453,11 +486,20 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 |--------|---------|---------------------------|
 | Nova saída — mês calendário, sucesso, volta BI/CP | `b5e499e` | `99ea1ae` v1.57 |
 | Excluir manual Agro **quitado** (CR/CP backend) | `726b3ee` | `1d412e0` v1.58 |
-| CP — Excluir na lista nova + fim layout clássico | `e98db0f` | `2d88ee4` v1.59 |
+| CP — Excluir na lista nova + fim layout clássico | `e98db0f` | `2d88ee4` (**VERSION loja = 1.92**) |
 
 **Loja:** Ctrl+F5 após deploy Render → Contas a pagar → expandir linha → **Excluir** (sem ir ao clássico). CR: título manual quitado deve mostrar Excluir. **Renan:** conferir exclusão na loja real.
 
 **Reverter:** revert dos 3 commits em `producao` (ordem inversa).
+
+### Mapa loja vs teste — resumo (2026-06-22)
+
+| Ambiente | VERSION | HEAD | Nota |
+|----------|---------|------|------|
+| **teste** | v1.93 | `417877c` | v1.92 + docs banana |
+| **produção** | v1.92 | `2d88ee4` | Alinhado ao pacote deployado (correção v1.59→1.92) |
+
+**Próximos candidatos produção** (quando Renan pedir neste chat): ver tabela «Só no teste» acima — priorizar **#3 CP perf** ou **#4 Entrada NF** (baixo risco) antes de **NFC-e** (#1).
 
 ### Contas a pagar — Excluir na lista nova + fim do layout clássico (2026-06-22)
 
@@ -469,7 +511,7 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 | **Layout clássico CP** | `/lancamentos/contas-pagar/classico/` → **redirect** para `/lancamentos/contas-pagar/` |
 | **UI** | Removidos botões «Layout clássico» (lista + calendário) |
 | **Teste Render** | Ctrl+F5 → expandir linha → **Excluir** → confirmar → título some sem mudar de tela |
-| **Produção** | `2d88ee4` v1.59 — Renan validou sumiço do clássico; exclusão a conferir na loja (staging readonly) |
+| **Produção** | `2d88ee4` v1.92 — Renan validou sumiço do clássico; exclusão a conferir na loja (staging readonly) |
 
 ### Chat canônico — produção (2026-06-22, Renan)
 
@@ -477,39 +519,17 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 |-------|---------|
 | **Onde sobe loja** | **Este chat** — Renan fará push produção **daqui** |
 | **Outros chats/posts** | Pode ter havido deploy fora; **não** confiar só na memória do chat |
-| **Fonte da verdade** | CHECKPOINT abaixo + `git log origin/producao` / `git log origin/teste` |
-| **Antes de cherry-pick** | Conferir tabela «Loja vs teste»; Renan confirma o pacote |
+| **Fonte da verdade** | CHECKPOINT + `git diff origin/producao origin/teste --stat` |
+| **Antes de cherry-pick** | Tabela «Só no teste»; Renan confirma o pacote |
 
-### Mapa loja vs teste (sync Git 2026-06-22)
-
-**Já na loja (SistVale · `producao` v1.59):**
-
-| Pacote | Commit produção (ref.) |
-|--------|-------------------------|
-| Nova saída — empréstimo dual forma + juros parcelado | `76e2a8b` · `4505805` |
-| Nova saída — quitado parcela, FAB, fixes 500 | `f824944` … `0f4a5e4` |
-| Cadastro etapa 1 Postgres (`agro_pg`) + PDV vê produto novo | `3d8ae08` · `f08da8c` |
-| Código sequencial produto novo 4010+ (sem piscada modal) | `8889955` |
-| Nova saída — mês calendário, sucesso, volta BI/CP | `99ea1ae` |
-| Excluir manual Agro quitado + CP excluir lista / sem clássico | `1d412e0` · `2d88ee4` |
-
-**No teste, ainda NÃO na loja (próximo push — só quando Renan pedir neste chat):**
-
-| Pacote | Commit `teste` |
-|--------|----------------|
-| Cadastro — sequência/código pós-8889955 (v1.87–v1.89) | `ffc82ba` … `a2303c7` |
-| Deploy fixes staging (NFC-e migration, entrada NF util) | `bb27da1` … `32d8ed5` |
-
-**Como conferir:** `git fetch origin` → `git log origin/producao -3 --oneline` · `git log origin/teste -3 --oneline` · `git log origin/producao..origin/teste --oneline` (pendente loja).
-
-### Cadastro — código sequencial produto novo (2026-06-22, Renan OK teste)
+### Cadastro — código sequencial produto novo (2026-06-22, Renan OK teste — **já na loja**)
 
 | Item | Detalhe |
 |------|---------|
 | **Validação Renan** | OK no Render **teste** |
 | **Commits `teste`** | `ffc82ba` v1.87 · `cea03c7` v1.88 · `a2303c7` v1.89 |
-| **Produção** | Renan subiu em **outro chat** — `8889955` v1.55+ → **SistVale** (banana `0dac843` v1.56) |
-| **Reverter** | Revert dos 3 commits; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
+| **Produção** | `8889955` — **já na loja** (código **igual** nos branches) |
+| **Reverter** | Revert `8889955`; arquivos: `cadastro_codigo_sequencial_util.py`, `catalogo_agro.py`, `views.py`, `_modal_editar_produto_cadastro_erp.inc.html` |
 
 **Regras (canônicas — §4.6):** código sistema **4 dígitos**, faixa **4010–9999**, sequência só pelo **código sistema** (GM não conta); GM = `GM` + número (editável livre); modal novo não repinta ao carregar códigos.
 
@@ -544,9 +564,7 @@ Assistente **sempre** registra no CHECKPOINT (e § do módulo se couber): **o qu
 
 **Commits:** `3c9ed24` v1.84 · `8d76146` v1.85 · branch `teste`.
 
-**Próximo passo (só quando Renan pedir):** subir etapa 1 cadastro na **produção** (flag + import). **PDV não muda** ainda.
-
-**Produção (2026-06-22):** Renan pediu push → commit `3d8ae08` v1.53 em `producao`. Deploy OK; loja em testes. **Renan:** avisa se der problema.
+**Próximo passo cadastro Postgres na loja:** flag `AGRO_FONTE_CATALOGO=agro_pg` + import — **já feito** (`3d8ae08`). Perf lista (v1.84–v1.85) **já na loja** (mesmo JS/backend).
 
 **Cadastro × PDV (etapa 1 — linguagem de loja):**
 
@@ -970,6 +988,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.41
+### Fim do checkpoint v1.0.42
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
