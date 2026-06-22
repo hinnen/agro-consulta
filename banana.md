@@ -449,7 +449,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.42`  
 **Última atualização:** `2026-06-22`  
 **Atualizado por:** assistente Cursor (auditoria paridade prod×teste + regra VERSION única)  
-**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (pacote `e98db0f` — corrigir badge após push `VERSION`)
+**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
 
 ### Paridade prod × teste — auditoria Git (2026-06-22)
 
@@ -496,8 +496,8 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 
 | Ambiente | VERSION | HEAD | Nota |
 |----------|---------|------|------|
-| **teste** | v1.93 | `417877c` | v1.92 + docs banana |
-| **produção** | v1.92 | `2d88ee4` | Alinhado ao pacote deployado (correção v1.59→1.92) |
+| **teste** | v1.93 | `9ef18d4` | v1.92 + docs banana (auditoria) |
+| **produção** | v1.92 | `52cde10` | Pacote `2d88ee4` + VERSION alinhado |
 
 **Próximos candidatos produção** (quando Renan pedir neste chat): ver tabela «Só no teste» acima — priorizar **#3 CP perf** ou **#4 Entrada NF** (baixo risco) antes de **NFC-e** (#1).
 
