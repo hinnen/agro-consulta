@@ -941,6 +941,12 @@ def _assinar_evento_xml(xml_evento: str, cert_path: str, cert_password: str, id_
         root = etree.fromstring(xml_evento.encode("utf-8"), parser)
         inf = root.find(f".//{{{NS}}}infEvento")
         if inf is None:
+            for el in root.iter():
+                tag = el.tag.split("}")[-1] if "}" in str(el.tag) else str(el.tag)
+                if tag == "infEvento":
+                    inf = el
+                    break
+        if inf is None:
             return None, "infEvento não encontrado."
         inf_id = inf.get("Id") or id_evento
         inf.set("Id", inf_id)

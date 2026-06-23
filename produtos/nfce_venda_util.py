@@ -55,6 +55,7 @@ def painel_nfce_venda(venda: VendaAgro) -> dict[str, Any]:
         "dest_cpf": "",
         "consumidor_sem_identificacao": False,
         "pode_reemitir": False,
+        "pode_cancelar": False,
         "pode_imprimir_fiscal": False,
         "documento_id": nfce.pk if nfce else None,
     }
@@ -80,6 +81,7 @@ def painel_nfce_venda(venda: VendaAgro) -> dict[str, Any]:
         out["autorizada"] = True
         out["status_label"] = "Autorizada"
         out["pode_imprimir_fiscal"] = True
+        out["pode_cancelar"] = nfce_configurada()
         return out
 
     if nfce and nfce.status == NfceDocumentoAgro.Status.CANCELADA:

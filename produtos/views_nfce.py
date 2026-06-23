@@ -17,7 +17,7 @@ from django.views.decorators.http import require_GET, require_POST
 from produtos.models import NfceDocumentoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
-from produtos.nfce_sp_emissao_util import cpf_valido, emitir_nfce_para_venda
+from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada, cpf_valido, emitir_nfce_para_venda
 from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
 
 logger = logging.getLogger(__name__)
@@ -199,6 +199,35 @@ def api_venda_agro_nfce_emitir(request, pk):
         db=db,
         col_p=col_p,
     )
+    st = 200 if out.get("ok") else 502
+    return JsonResponse(
+        {
+            "ok": bool(out.get("ok")),
+            "nfce": out,
+            "nfce_painel": painel_nfce_venda(
+                VendaAgro.objects.select_related("nfce").get(pk=v.pk)
+            ),
+        },
+        status=st,
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_venda_agro_nfce_cancelar(request, pk):
+    v = get_object_or_404(VendaAgro.objects.select_related("nfce"), pk=pk)
+    nfce = getattr(v, "nfce", None)
+    if not nfce or nfce.status != NfceDocumentoAgro.Status.AUTORIZADA:
+        return JsonResponse(
+            {"ok": False, "erro": "Esta venda não tem NFC-e autorizada para cancelar."},
+            status=400,
+        )
+    if not nfce_configurada():
+        return JsonResponse(
+            {"ok": False, "erro": "NFC-e não configurada no servidor (.env)."},
+            status=503,
+        )
+    out = cancelar_nfce_autorizada(nfce)
     st = 200 if out.get("ok") else 502
     return JsonResponse(
         {

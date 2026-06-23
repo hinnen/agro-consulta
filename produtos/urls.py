@@ -244,6 +244,11 @@ urlpatterns = [
         views_nfce.api_venda_agro_nfce_emitir,
         name='api_venda_agro_nfce_emitir',
     ),
+    path(
+        'venda/<int:pk>/nfce/cancelar/',
+        views_nfce.api_venda_agro_nfce_cancelar,
+        name='api_venda_agro_nfce_cancelar',
+    ),
     path('api/nfce/status/', views_nfce.api_nfce_status, name='api_nfce_status'),
     path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
     path(
