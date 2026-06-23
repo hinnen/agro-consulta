@@ -127,7 +127,7 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ### 3.1 Versão do sistema (contador único — 2026-06-22)
 
-**Regra Renan (resumo — 23/06/2026):** cada entrega de **código** no **teste** sobe **+0,01** no badge (`1.93` → `1.94` → `1.95` …). A **loja** fica parada no último pacote que você subiu (hoje **v1.93**) até pedir produção — aí a loja **pula** para o mesmo número do pacote (ex. teste já em **v1.96** → sobe pacote → loja vira **v1.96**). Não é **+0,1** (dez centésimos); é **+0,01** (um centésimo). Só `banana.md` / docs **não** contam (`SKIP_VERSION_BUMP=1`).
+**Regra Renan (resumo — 23/06/2026):** cada entrega de **código** no **teste** sobe **+0,01** no badge (`2.03` → `2.04` → `2.05` …). A **loja** fica parada no último pacote que você subiu (hoje **v2.03**) até pedir produção — aí a loja **pula** para o mesmo número do pacote (ex. teste já em **v2.05** → sobe pacote → loja vira **v2.05**). Não é **+0,1** (dez centésimos); é **+0,01** (um centésimo). Só `banana.md` / docs **não** contam (`SKIP_VERSION_BUMP=1`).
 
 | O quê | Detalhe |
 | ----- | ------- |
@@ -142,10 +142,10 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 | Situação | O que significa |
 | -------- | --------------- |
-| **teste v1.93 · loja v1.93** (hoje) | Loja recebeu o pacote **v1.93** (NFC-e). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, …) — **~27 arquivos diferentes**. O badge **não mostra** isso. |
+| **teste v2.05 · loja v2.03** (hoje) | Loja recebeu NFC-e emissão (**v1.93**) + cancelamento devolução (**v2.03**). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, …) — **~28 arquivos diferentes**. O badge **não mostra** isso. |
 | **Como saber o que falta na loja** | Tabela **«Só no teste»** no CHECKPOINT · `git diff origin/producao origin/teste --stat` — **não** olhar só o `VERSION` |
 | **Regra intuitiva (ideal)** | **`teste` > `producao`** → loja atrás (ex. teste **v1.94**, loja **v1.93** = tem pacote pendente). **`teste` = `producao`** → acabou de subir pacote **ou** teste só ganhou docs sem bump |
-| **Próximo fix de código no teste** | Deve virar **v1.94** no teste; loja fica **v1.93** até você pedir produção — aí fica óbvio que não são iguais |
+| **Próximo fix de código no teste** | Deve virar **v2.06** no teste; loja fica **v2.03** até você pedir produção — aí fica óbvio que não são iguais |
 
 **Por que confundiu:** no deploy alinhamos o **número** (1.93) nos dois lados; o **código** do teste nunca foi todo para a loja (só cherry-picks). VERSION = **etiqueta do pacote**, não diff completo entre branches.
 
@@ -552,10 +552,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.58`  
+**Versão:** `1.0.59`  
 **Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (Renan validou cancelamento NFC-e em produção)  
-**Versão app (`VERSION`):** **teste** v2.04 (`bc925d5`) · **produção** v2.03 (`02cdb98`)
+**Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
+**Versão app (`VERSION`):** **teste** v2.05 (`df2d1f7`) · **produção** v2.03 (`02cdb98`)
+
+**Sync outro chat (2026-06-23):** Renan fez push produção + teste em **outro chat** — pacote cancelamento NFC-e na devolução. Este CHECKPOINT é a fonte da verdade; código NFC-e (`nfce_sp_emissao_util`, `views`, `venda_agro_detalhe`) **igual** nos dois branches.
 
 ### NFC-e cancelamento na devolução — **OK produção** (2026-06-23, Renan)
 
@@ -608,14 +610,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
 
 - **§4.3** — tabela «quando emite», popups PDV e devolução (documentação operacional).
-- **Devolução:** tenta **cancelar NFC-e na SEFAZ** (evento 110111); motivo padrão *Devolucao de mercadoria registrada no sistema Agro.*; status local **Cancelada** se OK; aviso se prazo 24 h ou falha.
+- **Devolução:** tenta **cancelar NFC-e na SEFAZ** (evento 110111); motivo padrão *Devolucao de mercadoria registrada no sistema Agro.*; status local **Cancelada** se OK; aviso se prazo **30 min** ou falha.
 - **Arquivos:** `nfce_sp_emissao_util.py` (`cancelar_nfce_autorizada`), `views.py`, `models.py`, `nfce_venda_util.py`, `venda_agro_detalhe.html`.
 
 ### Fix pós go-live NFC-e (2026-06-23, Renan)
 
 | Problema | Resposta / fix |
 | -------- | -------------- |
-| **Devolução cancela cupom?** | **Sim, automaticamente** (SEFAZ SP, até 24 h). Fora do prazo → aviso; estoque/caixa ajustados igual. |
+| **Devolução cancela cupom?** | **Sim, automaticamente** (SEFAZ SP, até **~30 min** desde autorização). Fora do prazo → **501** + aviso; estoque/caixa ajustados igual. |
 | **PIX + impressão, cliente sem CPF** | Modal CPF (commit `7227d83`). |
 
 ### NFC-e — go-live **OK** (2026-06-23, Renan)
@@ -688,25 +690,24 @@ Portal SP: [https://www.nfce.fazenda.sp.gov.br/NFCePortal/](https://www.nfce.faz
 
 **Backend core idêntico** (`git diff origin/producao origin/teste` — **sem diferença**): `mongo_financeiro_util.py`, `views.py`, `catalogo_agro.py`, `cadastro_codigo_sequencial_util.py`, `nfe_entrada_util.py`, migrations NFC-e.
 
-**Loja (`producao` v1.92)** = tudo que já subiu + pacote lançamentos v1.92 (`2d88ee4`). **Cadastro Postgres / código 4010+** já estavam na loja (`8889955`, `3d8ae08`, `f08da8c`) — **não** estão pendentes.
+**Loja (`producao` v2.03)** = NFC-e emissão v1.93 + cancelamento devolução v2.03 (`02cdb98`). **Cadastro Postgres / código 4010+** já estavam na loja — **não** estão pendentes.
 
-### Só no teste — ainda NÃO na loja (2026-06-22)
+### Só no teste — ainda NÃO na loja (2026-06-23)
 
-Conferência: `git diff origin/producao origin/teste --stat` · 36 arquivos · ~3,5k linhas (maioria front/PDV).
+Conferência: `git diff origin/producao origin/teste --stat` · **28 arquivos** · ~2k linhas (maioria front/PDV/BI). **NFC-e** (emissão + cancelamento) **já na loja** — não entra na lista.
 
 
 | #   | Pacote                                | Arquivos / nota                                                                                                           | Risco loja                                                             |
 | --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1   | **NFC-e PDV**                         | — | **Na loja** v1.93 (`9cf4522`) |
-| 2   | **Agro Display Scale**                | `agro_display_scale.js`, `_agro_display_scale.html`, `_agro_consulta_ui.html`, BI                                         | Médio — calibração global de tamanho de tela                           |
-| 3   | **CP lista — perf/UX**                | `lancamentos_contas_pagar_teste.html` — bootstrap HTML, prefetch BI, badge «Sincronizando», colunas PIN, filtro hoje      | Baixo — só template; **API já igual** na loja                          |
-| 4   | **Entrada NF — financeiro duplicado** | `entrada_nota.html` — pula etapa se título já existe; mensagens «já existia / recuperado»                                 | Baixo                                                                  |
-| 5   | **BI — launchpad / escala rápida**    | `dashboard_gerencial.html`, `partials/dashboard_gerencial_body.html`, `home.html`                                         | Baixo                                                                  |
-| 6   | **PDV entrega**                       | `partials/pdv/step_entrega.html`                                                                                          | Médio                                                                  |
-| 7   | **Caixa — PIX MP QR**                 | `caixa_util.py` — normaliza «Mercado Pago … QR» como PIX                                                                  | Baixo                                                                  |
-| 8   | **Config status staging**             | `agro_fonte_config.py` — `staging_readonly` no status; ERP sync só por env (sem auto-block checkpoint)                    | Baixo — prod mantém lógica checkpoint no sync                          |
-| 9   | **Textos pré-corte ERP**              | `lancamentos_pre_corte_erp_panel.html`                                                                                    | Cosmético                                                              |
-| 10  | **PIN calendário CP/DRE/fluxo**       | +1 linha include PIN em calendário/DRE/fluxo                                                                              | Baixo                                                                  |
+| 1   | **Agro Display Scale**                | `agro_display_scale.js`, `_agro_display_scale.html`, `_agro_consulta_ui.html`, BI                                         | Médio — calibração global de tamanho de tela                           |
+| 2   | **CP lista — perf/UX**                | `lancamentos_contas_pagar_teste.html` — bootstrap HTML, prefetch BI, badge «Sincronizando», colunas PIN, filtro hoje      | Baixo — só template; **API já igual** na loja                          |
+| 3   | **Entrada NF — financeiro duplicado** | `entrada_nota.html` — pula etapa se título já existe; mensagens «já existia / recuperado»                                 | Baixo                                                                  |
+| 4   | **BI — launchpad / escala rápida**    | `dashboard_gerencial.html`, `partials/dashboard_gerencial_body.html`, `home.html`                                         | Baixo                                                                  |
+| 5   | **PDV entrega**                       | `partials/pdv/step_entrega.html`                                                                                          | Médio                                                                  |
+| 6   | **Caixa — PIX MP QR**                 | `caixa_util.py` — normaliza «Mercado Pago … QR» como PIX                                                                  | Baixo                                                                  |
+| 7   | **Config status staging**             | `agro_fonte_config.py` — `staging_readonly` no status; ERP sync só por env (sem auto-block checkpoint)                    | Baixo — prod mantém lógica checkpoint no sync                          |
+| 8   | **Textos pré-corte ERP**              | `lancamentos_pre_corte_erp_panel.html`                                                                                    | Cosmético                                                              |
+| 9   | **PIN calendário CP/DRE/fluxo**       | +1 linha include PIN em calendário/DRE/fluxo                                                                              | Baixo                                                                  |
 
 
 **Removido da lista «pendente» (já estava na loja):** cadastro v1.87–v1.89, deploy fixes `bb27da1`/`nfe_entrada_util` — código **igual** nos dois branches.
@@ -729,15 +730,17 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 
 **Reverter:** revert dos 3 commits em `producao` (ordem inversa).
 
-### Mapa loja vs teste — resumo (2026-06-22)
+### Mapa loja vs teste — resumo (2026-06-23)
 
 
 | Ambiente     | VERSION | HEAD      | Nota |
 | ------------ | ------- | --------- | ---- |
-| **teste**    | v1.93   | `029c91a` | Homologação |
-| **produção** | v1.93   | `2386eb2` | Loja — NFC-e PDV `9cf4522` + VERSION |
+| **teste**    | v2.05   | `df2d1f7` | Homologação — banana sync outro chat |
+| **produção** | v2.03   | `02cdb98` | Loja — NFC-e emissão v1.93 + cancelamento devolução v2.03 |
 
-**Próximos candidatos produção:** pacotes **#2–#10** da tabela «Só no teste» (Display Scale, CP perf, Entrada NF, …). NFC-e (**#1**) **já na loja**.
+**Pacote cancelamento NFC-e na loja (outro chat):** `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ) · `c89f3ef` (xmlns/retry) · `4995c0e` (501/30 min) · `02cdb98` (fix **225**).
+
+**Próximos candidatos produção:** pacotes **#1–#9** da tabela «Só no teste» (Display Scale, CP perf, Entrada NF, …). NFC-e **já na loja**.
 
 ### Contas a pagar — Excluir na lista nova + fim do layout clássico (2026-06-22)
 
@@ -1095,7 +1098,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 - [x] **Devolução** — cancelamento SEFAZ automático · **OK produção** nº 4 (Renan 23/06) · prazo **30 min**
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
-- [x] **Produção** — v1.93 · nº 2 série 21 autorizada · QR SEFAZ OK (Renan 23/06/2026)
+- [x] **Produção** — emissão v1.93 · nº 2 série 21 · QR SEFAZ OK · cancelamento devolução **v2.03** · nº 4 cancelado (Renan 23/06/2026)
 
 ### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
 
@@ -1276,6 +1279,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.54
+### Fim do checkpoint v1.0.59
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
