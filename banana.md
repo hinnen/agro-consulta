@@ -484,30 +484,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.50`  
-**Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (NFC-e PDV → produção v1.93)  
+**Versão:** `1.0.51`  
+**Última atualização:** `2026-06-23`  
+**Atualizado por:** assistente Cursor (NFC-e produção OK — Renan validou QR SEFAZ)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
 
-### NFC-e — go-live em andamento (2026-06-22, Renan)
+### NFC-e — go-live **OK** (2026-06-23, Renan)
 
+| Passo | O quê | Status |
+| ----- | ----- | ------ |
+| **1** | Vars Render produção (`TP_AMB=1`, CSC, cert, série 21) | **OK** |
+| **2** | `/api/nfce/status/` `ativo: true` | **OK** |
+| **3** | PDV + vendas → `producao` v1.93 (`9cf4522`) | **OK** |
+| **4** | Venda real na loja + QR na consulta SEFAZ | **OK** (Renan) |
 
-| Passo | O quê                                                                                      | Status |
-| ----- | ------------------------------------------------------------------------------------------ | ------ |
-| **1** | Variáveis Render **SistVale - Produção** (cert, CSC, emitente, `TP_AMB=1`, série 21)     | **OK** |
-| **2** | `GET /api/nfce/status/` — `ativo: true`, `tp_amb: 1`, `serie: 21`                          | **OK** (Renan 22/06) |
-| **3** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | **OK** `9cf4522` · v1.93 (`2386eb2`) |
-| **4** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se rejeição 539                   | **Renan agora** |
+**Primeira NFC-e produção validada (23/06/2026):**
 
-**Deploy produção (2026-06-22, Renan *pode subir*):** `pdv_wizard.js/html`, `pdv_state.js`, `venda_cupom_80mm.js`, `vendas_lista.html`, `venda_agro_detalhe.html`, `step_entrega.html`, `pdv/views.py`. Env Render já `ativo: true` · `tp_amb: 1` · série 21.
+| Campo | Valor |
+| ----- | ----- |
+| Número / série | **nº 2** · série **21** |
+| Protocolo | `135264232730394` |
+| Pagamento | PIX · R$ 1,00 (venda teste) |
+| Consumidor | não identificado |
+| Consulta QR | **OK** — Renan conferiu no site SEFAZ SP («quente») |
 
-**Teste loja:** Ctrl+F5 no PDV checkout → venda **PIX** pequena → cupom fiscal com QR. Dinheiro → popup NFC/Venda. Reemissão em `/vendas/`.
+**Operação:** PIX/cartão → NFC-e automática · dinheiro → escolha NFC/Venda · reemissão `/vendas/`.
 
-**Reverter:** revert `9cf4522` (+ `2386eb2`) em `producao`.
+**Render:** se próxima nota der rejeição **539** (número duplicado), `NFC_E_PROXIMO_NUMERO` = **3** (última autorizada foi **2**). O sistema também avança pelo Postgres após cada emissão OK.
 
-**Conferência Render (2026-06-22):** `ok: true` · `ativo: true` · `modo: por_forma` · `tp_amb: 1` · `serie: 21` · Jacupiranga `3524600` · formas auto: PIX + cartões.
-
-**Loja hoje:** backend + env + **PDV NFC-e** deployados (v1.93). Validar venda real (passo 4).
+**Pacote deploy:** `9cf4522` · `2386eb2` · revert = revert dos 2 commits em `producao`.
 
 **Vars obrigatórias (Render produção):** `NFC_E_ENABLED`, `NFC_E_TP_AMB=1`, `NFC_E_MODO=manual`, `NFC_E_SERIE=21`, `NFC_E_PROXIMO_NUMERO`, cert `NFC_E_CERT_BASE64`+`NFC_E_CERT_PASSWORD`, `NFC_E_CSC_ID`+`NFC_E_CSC_TOKEN`, emitente (`CNPJ`, `IE`, `RAZAO`, endereço, `CMUN=3524600`). Detalhe: CHECKPOINT + `docs/NFCE-PRODUCAO.md`.
 
@@ -960,7 +965,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 - [x] **PIX/cartão** — sem modal CPF; emite sem identificação
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
-- [ ] Merge `**producao`** — só quando Renan pedir + checklist `docs/NFCE-PRODUCAO.md`
+- [x] **Produção** — v1.93 · nº 2 série 21 autorizada · QR SEFAZ OK (Renan 23/06/2026)
 
 ### Lançamentos — Empréstimo (entrada + pagamento) — feito 2026-06-18
 
@@ -1141,6 +1146,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.50
+### Fim do checkpoint v1.0.51
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
