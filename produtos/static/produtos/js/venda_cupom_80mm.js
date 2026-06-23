@@ -133,6 +133,9 @@
 
     function buildCupomInnerHtml(c) {
         c = c || {};
+        if (c.tipo === 'nfce') {
+            return buildNfceCupomInnerHtml(c);
+        }
         var fiado = isFiadoCupom(c);
         var subtitulo =
             c.subtitulo ||
@@ -225,6 +228,128 @@
                 '</div>';
         }
         h += '<div style="text-align:center;font-size:10px;margin-top:10px;font-weight:600;">Obrigado pela preferência</div>';
+        h += cupomRodapeSistvaleHtml();
+        h += cupomPgCorteHtml();
+        h += '</div>';
+        return h;
+    }
+
+    function formatChaveNfce(chave) {
+        var s = String(chave || '').replace(/\D/g, '');
+        if (s.length !== 44) return s;
+        var out = [];
+        var i;
+        for (i = 0; i < s.length; i += 4) {
+            out.push(s.slice(i, i + 4));
+        }
+        return out.join(' ');
+    }
+
+    function buildNfceCupomInnerHtml(c) {
+        c = c || {};
+        var itens = Array.isArray(c.itens) ? c.itens : [];
+        var lines = '';
+        itens.forEach(function (it) {
+            var q = Number(it.qtd != null ? it.qtd : 0);
+            var sub = it.subtotal != null ? Number(it.subtotal) : q * Number(it.preco != null ? it.preco : 0);
+            lines +=
+                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                '<span style="flex:1;min-width:0;">' +
+                escHtml(fmtQtd(q) + '× ' + String(it.nome || '').slice(0, 48)) +
+                '</span><span style="white-space:nowrap;font-weight:800;">' +
+                escHtml(moedaCupom(sub)) +
+                '</span></div>';
+        });
+        var qrImg = '';
+        if (c.qr_code_url) {
+            qrImg =
+                '<div style="text-align:center;margin:8px 0 4px;"><img alt="QR NFC-e" style="width:42mm;max-width:100%;height:auto;" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' +
+                encodeURIComponent(String(c.qr_code_url)) +
+                '"></div>';
+        }
+        var h = '<div class="pg">';
+        if (c.homologacao) {
+            h +=
+                '<div style="text-align:center;font-size:10px;font-weight:900;border:2px dashed #000;padding:4px;margin-bottom:6px;">EMITIDA EM HOMOLOGAÇÃO — SEM VALOR FISCAL</div>';
+        }
+        if (c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_razao_social) + '</div>';
+        }
+        if (c.emitente_fantasia && c.emitente_fantasia !== c.emitente_razao_social) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:800;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        } else if (!c.emitente_razao_social && c.emitente_fantasia) {
+            h += '<div style="text-align:center;font-size:11px;font-weight:900;line-height:1.25;">' + escHtml(c.emitente_fantasia) + '</div>';
+        }
+        if (c.emitente_cnpj) {
+            h += '<div style="text-align:center;font-size:9px;">CNPJ ' + escHtml(c.emitente_cnpj) + ' · IE ' + escHtml(c.emitente_ie || '—') + '</div>';
+        }
+        if (c.emitente_endereco) {
+            h += '<div style="text-align:center;font-size:9px;line-height:1.25;margin:2px 0 4px;">' + escHtml(c.emitente_endereco) + '</div>';
+        }
+        h +=
+            '<div style="text-align:center;font-size:10px;font-weight:900;line-height:1.2;margin:6px 0 2px;">DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA</div>';
+        h +=
+            '<div style="text-align:center;font-size:9px;font-weight:800;line-height:1.2;margin:0 0 4px;">NÃO PERMITE APROVEITAMENTO DE CRÉDITO DE ICMS</div>';
+        if (c.emissao_normal && !c.homologacao) {
+            h += '<div style="text-align:center;font-size:9px;margin-bottom:4px;">EMISSÃO NORMAL</div>';
+        }
+        h += '<div style="font-size:10px;font-weight:800;">NFC-e nº ' + escHtml(String(c.numero_nf || '')) + ' · Série ' + escHtml(String(c.serie_nf || '')) + '</div>';
+        if (c.criado_em) {
+            h += '<div style="font-size:10px;">Emissão: ' + escHtml(c.criado_em) + '</div>';
+        }
+        if (c.protocolo) {
+            h += '<div style="font-size:9px;word-break:break-all;">Protocolo: ' + escHtml(c.protocolo) + '</div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
+        h += cupomNomeClienteHtml(c.cliente_nome);
+        if (c.cliente_cpf) {
+            h += '<div style="font-size:10px;font-weight:800;">CPF ' + escHtml(c.cliente_cpf) + '</div>';
+        } else if (c.consumidor_sem_identificacao) {
+            h += '<div style="font-size:10px;font-weight:800;">Consumidor não identificado</div>';
+        }
+        h += lines;
+        if (c.qtd_itens) {
+            h += '<div style="font-size:10px;margin-top:4px;">Qtd. total de itens: ' + escHtml(String(c.qtd_itens)) + '</div>';
+        }
+        h +=
+            '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
+            escHtml(c.total_texto || moedaCupom(c.total)) +
+            '</span></div>';
+        if (c.desconto_texto && Number(c.desconto || 0) >= 0) {
+            h += '<div style="font-size:10px;">Desconto: ' + escHtml(c.desconto_texto) + '</div>';
+        }
+        if (c.forma_pagamento) {
+            h += '<div style="font-size:11px;margin-top:4px;font-weight:800;">Pag.: ' + escHtml(c.forma_pagamento) + '</div>';
+        }
+        if (c.valor_pago_texto) {
+            h += '<div style="font-size:10px;">Valor pago: ' + escHtml(c.valor_pago_texto) + '</div>';
+        }
+        if (Number(c.troco || 0) > 0 && c.troco_texto) {
+            h += '<div style="font-size:10px;font-weight:800;">Troco: ' + escHtml(c.troco_texto) + '</div>';
+        }
+        if (c.ibpt_texto) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin:6px 0 4px;text-align:center;">' +
+                escHtml(c.ibpt_texto) +
+                '</div>';
+        }
+        if (c.chave) {
+            h +=
+                '<div style="font-size:8px;line-height:1.25;margin-top:6px;word-break:break-word;">Chave: ' +
+                escHtml(formatChaveNfce(c.chave)) +
+                '</div>';
+        }
+        h += qrImg;
+        if (c.url_consulta_chave) {
+            h +=
+                '<div style="text-align:center;font-size:8px;line-height:1.2;margin-top:4px;word-break:break-all;">' +
+                escHtml(c.url_consulta_chave) +
+                '</div>';
+        }
+        h += '<div style="text-align:center;font-size:9px;margin-top:4px;">Consulte pela chave de acesso ou QR Code</div>';
+        if (c.segunda_via) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+        }
         h += cupomRodapeSistvaleHtml();
         h += cupomPgCorteHtml();
         h += '</div>';
@@ -474,7 +599,10 @@
         opts = opts || {};
         var id = parseInt(vendaId, 10);
         if (!id) return Promise.reject(new Error('Venda inválida.'));
-        var qs = opts.segunda_via === false ? '?segunda_via=0' : '';
+        var qsParts = [];
+        if (opts.segunda_via === false) qsParts.push('segunda_via=0');
+        if (opts.interno) qsParts.push('interno=1');
+        var qs = qsParts.length ? '?' + qsParts.join('&') : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         return fetch('/venda/' + id + '/cupom/' + qs, {
             credentials: 'same-origin',
@@ -494,8 +622,92 @@
             });
     }
 
+    function agroEscolherImprimirCupomPosNfce(vendaId, opts) {
+        opts = opts || {};
+        var id = parseInt(vendaId, 10);
+
+        function concluir(imprimiu) {
+            if (typeof opts.onDone === 'function') opts.onDone(!!imprimiu);
+        }
+
+        if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') {
+            concluir(false);
+            return Promise.resolve(false);
+        }
+
+        return new Promise(function (resolveEscolha) {
+            var overlay = document.getElementById('agro-modal-nfce-pos-imprimir');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'agro-modal-nfce-pos-imprimir';
+                overlay.className =
+                    'fixed inset-0 z-[120] hidden items-center justify-center p-3 bg-slate-900/65';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.innerHTML =
+                    '<div class="w-full max-w-md rounded-2xl border-2 border-emerald-300 bg-white shadow-2xl p-4 sm:p-5">' +
+                    '<h2 class="text-lg font-black text-emerald-950">NFC-e autorizada</h2>' +
+                    '<p class="mt-2 text-sm font-semibold text-slate-700 leading-snug">Deseja imprimir o cupom fiscal na impressora térmica agora?</p>' +
+                    '<div class="mt-4 flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-end">' +
+                    '<button type="button" data-agro-nfce-pos-nao class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Agora não</button>' +
+                    '<button type="button" data-agro-nfce-pos-sim class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-500 bg-emerald-500 text-xs font-black uppercase text-white hover:bg-emerald-600">Imprimir cupom</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            var btnNao = overlay.querySelector('[data-agro-nfce-pos-nao]');
+            var btnSim = overlay.querySelector('[data-agro-nfce-pos-sim]');
+
+            function fecharModal() {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            function escolher(sim) {
+                fecharModal();
+                resolveEscolha(!!sim);
+            }
+
+            btnNao.onclick = function () {
+                escolher(false);
+            };
+            btnSim.onclick = function () {
+                escolher(true);
+            };
+            overlay.onclick = function (e) {
+                if (e.target === overlay) escolher(false);
+            };
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(function () {
+                if (btnSim) btnSim.focus();
+            }, 40);
+        }).then(function (quImprime) {
+            if (!quImprime) {
+                concluir(false);
+                return false;
+            }
+            return agroCarregarEImprimirCupomVenda(id, { segunda_via: false })
+                .then(function () {
+                    concluir(true);
+                    return true;
+                })
+                .catch(function (err) {
+                    alert(
+                        err && err.message
+                            ? err.message
+                            : 'Não foi possível imprimir o cupom fiscal.'
+                    );
+                    concluir(false);
+                    return false;
+                });
+        });
+    }
+
     global.agroImprimirCupomVenda80mm = agroImprimirCupomVenda80mm;
     global.agroCarregarEImprimirCupomVenda = agroCarregarEImprimirCupomVenda;
+    global.agroEscolherImprimirCupomPosNfce = agroEscolherImprimirCupomPosNfce;
     global.agroBuildCupomVenda80mmHtml = buildCupomDocumentHtml;
     global.agroCupomInnerHtml = buildCupomInnerHtml;
     global.agroCupomPagesInnerHtml = buildCupomPagesInnerHtml;

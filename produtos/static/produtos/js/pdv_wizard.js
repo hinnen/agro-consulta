@@ -217,6 +217,8 @@
         step2TelView: document.getElementById('pdv-step2-client-tel-view'),
         step2EndView: document.getElementById('pdv-step2-client-end-view'),
         step2OpenClienteEdit: document.getElementById('pdv-step2-open-cliente-edit'),
+        entregaClienteNome: document.getElementById('pdv-entrega-cliente-nome'),
+        entregaClienteTelefone: document.getElementById('pdv-entrega-cliente-telefone'),
         clienteTelefone: document.getElementById('pdv-cliente-telefone'),
         clienteLogradouro: document.getElementById('pdv-cliente-logradouro'),
         clienteNumero: document.getElementById('pdv-cliente-numero'),
@@ -226,7 +228,8 @@
         clienteEditModal: document.getElementById('pdv-cliente-edit-modal'),
         clienteEditClose: document.getElementById('pdv-cliente-edit-close'),
         clienteZapWhatsapp: document.getElementById('pdv-step2-cliente-zap'),
-        entregaRadios: document.querySelectorAll('input[name="pdv-entrega-tipo"]'),
+        entregaMain: document.getElementById('pdv-entrega-main'),
+        entregaWizard: document.getElementById('pdv-entrega-wizard'),
         vendaObservacao: document.getElementById('pdv-venda-observacao'),
         entregaLogradouro: document.getElementById('pdv-entrega-logradouro'),
         entregaNumero: document.getElementById('pdv-entrega-numero'),
@@ -304,6 +307,12 @@
     var quickClientGeocodeTimer = null;
     var quickClientGeocodeSeq = 0;
     var quickClientGeocodeLastQ = '';
+    var entregaPlusGeocodeTimer = null;
+    var entregaPlusGeocodeSeq = 0;
+    var entregaPlusGeocodeLastQ = '';
+    var entregaClienteSnapshot = null;
+    var entregaWizardAguardandoTroco = false;
+    var entregaPendingAfterSaveCliente = null;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
@@ -1822,10 +1831,10 @@
             if (!state.itens.length) return 'Adicione ao menos 1 item antes de continuar.';
             if (state.clienteMode === 'unset') return 'Defina o cliente ou consumidor final antes de continuar.';
         }
-        if (state.currentStep === 'cliente') {
-            if (!state.cliente || !state.cliente.nome) return 'Defina o cliente da venda.';
-        }
         if (state.currentStep === 'entrega') {
+            if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
+                return 'Escolha retirada na loja ou entrega no pop-up.';
+            }
             if (!enderecoEntregaMinimoOk(state)) return 'Informe o endereço básico da entrega (logradouro e bairro ou endereço legível).';
         }
         if (state.currentStep === 'pagamento') {
@@ -1942,41 +1951,40 @@
             var kbdCtrl =
                 '<kbd class="pointer-events-none ml-1 hidden rounded border border-emerald-800/40 bg-emerald-700 px-1 font-mono text-[8px] text-white sm:inline">Ctrl+Enter</kbd>';
             if (state.currentStep === 'entrega') {
+                var modoRe = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
                 var lp = String((state.entrega && state.entrega.localPagamento) || '');
                 var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
-                var endOk = enderecoEntregaMinimoOk(state);
+                var endOk = enderecoEntregaMinimoOkParaUi(state);
                 dom.btnNext.classList.remove('opacity-40');
-                if (!lp) {
-                    dom.btnNext.innerHTML = 'Escolha o local do pagamento' + kbdF7;
-                    dom.btnNext.disabled = true;
-                    dom.btnNext.classList.add('opacity-40');
-                    dom.btnNext.title = 'Use o pop-up ao entrar nesta etapa (Pagamento na entrega ou na loja).';
+                if (!modoRe) {
+                    dom.btnNext.innerHTML = 'Retirada ou entrega' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Escolha na tela acima · F7 rola até o bloco';
+                } else if (modoRe === 'entrega' && !(state.entrega && state.entrega.detalhesEntregaRespondidos)) {
+                    dom.btnNext.innerHTML = 'Confirmar taxa' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Confirma taxa, horário e troco · F7';
+                } else if (!entregaFluxoPagamentoCompleto(state)) {
+                    dom.btnNext.innerHTML = !lp
+                        ? 'Pagamento entrega ou loja' + kbdF7
+                        : 'Dinheiro ou cartão' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Escolha na tela acima · F7 rola até o bloco';
                 } else if (lp === 'loja') {
                     dom.btnNext.innerHTML = 'Ir para pagamento' + kbdF7;
                     dom.btnNext.disabled = !endOk;
                     if (!endOk) dom.btnNext.classList.add('opacity-40');
                     dom.btnNext.title = 'Imprime as vias e abre a etapa Pagamento · F7';
                 } else if (lp === 'entrega') {
-                    if (!meio) {
-                        dom.btnNext.innerHTML = 'Dinheiro ou cartão' + kbdF7;
-                        dom.btnNext.disabled = true;
-                        dom.btnNext.classList.add('opacity-40');
-                        dom.btnNext.title = 'Complete o pop-up (dinheiro ou cartão na entrega).';
-                    } else {
-                        dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
-                        dom.btnNext.disabled = !endOk;
-                        if (!endOk) dom.btnNext.classList.add('opacity-40');
-                        dom.btnNext.title = 'Imprime, registra no painel Entregas e reinicia o PDV · F7';
-                    }
+                    dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
+                    dom.btnNext.disabled = !endOk;
+                    if (!endOk) dom.btnNext.classList.add('opacity-40');
+                    dom.btnNext.title = 'Imprime, registra no painel Entregas e reinicia o PDV · F7';
                 } else {
                     dom.btnNext.innerHTML = nextLabel + kbdF7;
                     dom.btnNext.disabled = false;
                     dom.btnNext.title = 'Próxima etapa · F7';
                 }
-            } else if (state.currentStep === 'cliente') {
-                dom.btnNext.innerHTML = nextLabel + kbdF7;
-                dom.btnNext.disabled = false;
-                dom.btnNext.title = next === 'pagamento' ? 'Ir para pagamento · F7' : 'Continuar · F7';
             } else {
                 dom.btnNext.innerHTML = nextLabel + kbdCtrl;
                 dom.btnNext.disabled = false;
@@ -1989,11 +1997,13 @@
 
         var hints = {
             produtos: 'Monte os itens e defina o cliente base da venda.',
-            cliente: 'Atalhos nos botões · E edita dados do cliente.',
-            entrega: 'Pop-up: pagamento na entrega ou na loja. Rodapé: Enviar entrega ou Ir para pagamento · F7. F1 volta.',
+            entrega: '',
             pagamento: ''
         };
-        dom.stepHint.textContent = hints[state.currentStep] || 'Siga o fluxo da venda.';
+        if (dom.stepHint) {
+            dom.stepHint.textContent = hints[state.currentStep] || '';
+            dom.stepHint.style.display = hints[state.currentStep] ? '' : 'none';
+        }
     }
 
     function renderSummary(state, computed) {
@@ -2007,10 +2017,10 @@
         if (dom.summaryDiscount) dom.summaryDiscount.textContent = formatMoney(computed.desconto);
         if (dom.summaryShipping) dom.summaryShipping.textContent = formatMoney(computed.frete);
         dom.summaryTotal.textContent = formatMoney(computed.total);
-        dom.summaryDelivery.textContent = state.entrega.ativa ? 'Entrega' : 'Retirada';
+        dom.summaryDelivery.textContent =
+            state.entrega.modoRetiradaEntrega === 'entrega' || state.entrega.ativa ? 'Entrega' : 'Retirada';
         var currentStepLabel = ({
             produtos: 'Produtos',
-            cliente: 'Cliente',
             entrega: 'Entrega',
             pagamento: 'Pagamento'
         })[state.currentStep] || 'Produtos';
@@ -2296,7 +2306,7 @@
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
-            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--alert relative';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--entregas-pendente relative';
 
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.hidden = !apiOk;
@@ -2582,6 +2592,317 @@
         updateSearchAwaitingPulse();
     }
 
+    function renderEntregaClienteCampos(state) {
+        var cl = state.cliente || {};
+        setInputValueUnlessFocused(dom.entregaClienteNome, currentClientName(state));
+        setInputValueUnlessFocused(dom.entregaClienteTelefone, cl.telefone || '');
+        if (dom.clienteZapWhatsapp) {
+            var tel = dom.entregaClienteTelefone
+                ? dom.entregaClienteTelefone.value
+                : cl.telefone;
+            var wz = whatsappHrefCliente(tel);
+            if (wz) {
+                dom.clienteZapWhatsapp.href = wz;
+                dom.clienteZapWhatsapp.classList.remove('hidden');
+            } else {
+                dom.clienteZapWhatsapp.href = '#';
+                dom.clienteZapWhatsapp.classList.add('hidden');
+            }
+        }
+    }
+
+    function clienteEntregaSnapshotFromState(state) {
+        state = state || State.getState();
+        var c = state.cliente || {};
+        var e = state.entrega || {};
+        return {
+            nome: String(c.nome || '').trim(),
+            telefone: String(c.telefone || '').trim(),
+            logradouro: String(e.logradouro || c.logradouro || '').trim(),
+            numero: String(e.numero || c.numero || '').trim(),
+            bairro: String(e.bairro || c.bairro || '').trim(),
+            plus_code: String(e.plusCode || c.plus_code || '').trim(),
+            complemento: String(e.complemento || '').trim(),
+            referencia: String(e.referencia || c.referencia_rural || '').trim()
+        };
+    }
+
+    function clienteEntregaDadosAlterados(state) {
+        if (!entregaClienteSnapshot) return false;
+        return (
+            JSON.stringify(clienteEntregaSnapshotFromState(state)) !==
+            JSON.stringify(entregaClienteSnapshot)
+        );
+    }
+
+    function commitEntregaClienteCamposFromDom() {
+        var st = State.getState();
+        if (!st.cliente) return;
+        var nome = dom.entregaClienteNome ? String(dom.entregaClienteNome.value || '').trim() : '';
+        var tel = dom.entregaClienteTelefone
+            ? String(dom.entregaClienteTelefone.value || '').trim()
+            : '';
+        var c = Object.assign({}, st.cliente);
+        if (nome) c.nome = nome;
+        if (tel || dom.entregaClienteTelefone) c.telefone = tel;
+        c.endereco = composeClienteEnderecoLinha(c) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function aplicarEntregaEnderecoNoClienteMemoria() {
+        var st = State.getState();
+        if (!st.cliente) return;
+        var e = st.entrega || {};
+        var c = Object.assign({}, st.cliente);
+        if (e.logradouro) c.logradouro = e.logradouro;
+        if (e.numero) c.numero = e.numero;
+        if (e.bairro) c.bairro = e.bairro;
+        if (e.plusCode) c.plus_code = e.plusCode;
+        if (e.referencia) c.referencia_rural = e.referencia;
+        c.endereco = composeClienteEnderecoLinha(c) || buildLinhaEnderecoEntrega(st) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function buildPayloadSalvarClienteEntrega(state) {
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
+        state = state || State.getState();
+        aplicarEntregaEnderecoNoClienteMemoria();
+        state = State.getState();
+        var c = state.cliente || {};
+        var e = state.entrega || {};
+        return {
+            nome: String(c.nome || '').trim(),
+            whatsapp: String(c.telefone || '').trim(),
+            logradouro: String(e.logradouro || c.logradouro || '').trim(),
+            numero: String(e.numero || c.numero || '').trim(),
+            bairro: String(e.bairro || c.bairro || '').trim(),
+            cidade: String(c.cidade || '').trim(),
+            uf: String(c.uf || '').trim(),
+            cep: String(c.cep || '').trim(),
+            complemento: String(e.complemento || '').trim(),
+            plus_code: String(e.plusCode || c.plus_code || '').trim(),
+            referencia_rural: String(e.referencia || c.referencia_rural || '').trim()
+        };
+    }
+
+    function isEntregaSalvarClienteModalOpen() {
+        var r = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        return !!(r && !r.classList.contains('hidden'));
+    }
+
+    function closeEntregaSalvarClienteModal() {
+        var root = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (root) {
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+        }
+        pdvTryRemoveModalOpenBody();
+    }
+
+    function openEntregaSalvarClienteModal() {
+        var root = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (!root) {
+            if (entregaPendingAfterSaveCliente) entregaPendingAfterSaveCliente();
+            entregaPendingAfterSaveCliente = null;
+            return;
+        }
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        pdvEnsureModalOpenBody();
+    }
+
+    function finalizarEscolhaSalvarCliente(salvarNoCadastro) {
+        var continuar = entregaPendingAfterSaveCliente;
+        entregaPendingAfterSaveCliente = null;
+        if (!salvarNoCadastro) {
+            aplicarEntregaEnderecoNoClienteMemoria();
+            entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+            closeEntregaSalvarClienteModal();
+            if (continuar) continuar();
+            return;
+        }
+        var st = State.getState();
+        var pk = clienteAgroPkFromCliente(st.cliente);
+        var pattern = urls.apiPdvClienteEditarPattern;
+        if (!pk || !pattern) {
+            alert('Não foi possível salvar no cadastro (cliente sem vínculo local).');
+            closeEntregaSalvarClienteModal();
+            return;
+        }
+        var payload = buildPayloadSalvarClienteEntrega(st);
+        if (payload.nome.length < 2) {
+            alert('Informe o nome do cliente (mínimo 2 caracteres).');
+            return;
+        }
+        var waDigits = String(payload.whatsapp || '').replace(/\D/g, '');
+        if (waDigits.length < 10) {
+            alert('Informe o telefone com DDD (mínimo 10 dígitos).');
+            return;
+        }
+        var btn = document.getElementById('pdv-esc-salvar-cadastro');
+        var prev = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Salvando…';
+        }
+        jsonPost(pattern.replace('__pk__', String(pk)), payload)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    alert(
+                        (res.data && (res.data.erro || res.data.error)) ||
+                            'Não foi possível salvar o cliente.'
+                    );
+                    return;
+                }
+                patchClienteInSearchResults(res.data.cliente);
+                syncEntregaEnderecoFromCliente(State.getState());
+                entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+                closeEntregaSalvarClienteModal();
+                if (continuar) continuar();
+            })
+            .catch(function () {
+                alert('Erro de rede ao salvar o cliente.');
+            })
+            .finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = prev || 'Salvar no cadastro do cliente';
+                }
+            });
+    }
+
+    function tryProsseguirEntregaStep() {
+        if (abrirFluxoPagamentoEntregaSePendente()) return;
+        var state = State.getState();
+        var lp = String((state.entrega && state.entrega.localPagamento) || '');
+        if (lp === 'loja') {
+            wizardIrParaPagamentoComImpressao();
+            return;
+        }
+        if (lp === 'entrega') {
+            wizardEnviarEntregaPainel();
+        }
+    }
+
+    function onEntregaBtnNext() {
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
+        var state = State.getState();
+        var computed = State.getComputed();
+        if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
+            scrollEntregaWizardIntoView();
+            return;
+        }
+        if (
+            state.entrega.modoRetiradaEntrega === 'entrega' &&
+            !state.entrega.detalhesEntregaRespondidos
+        ) {
+            confirmarEntregaDetalhesModal();
+            return;
+        }
+        if (abrirFluxoPagamentoEntregaSePendente()) return;
+        var validation = canAdvance(state, computed);
+        if (validation) {
+            alert(validation);
+            return;
+        }
+        if (clienteEntregaDadosAlterados(state) && clienteAgroPkFromCliente(state.cliente)) {
+            entregaPendingAfterSaveCliente = tryProsseguirEntregaStep;
+            openEntregaSalvarClienteModal();
+            return;
+        }
+        tryProsseguirEntregaStep();
+    }
+
+    function commitEntregaCamposEndereco() {
+        var st = State.getState();
+        var e0 = st.entrega || {};
+        var e = Object.assign({}, e0, {
+            logradouro: dom.entregaLogradouro ? dom.entregaLogradouro.value.trim() : '',
+            numero: dom.entregaNumero ? dom.entregaNumero.value.trim() : '',
+            bairro: dom.entregaBairro ? dom.entregaBairro.value : '',
+            plusCode: dom.entregaPluscode ? dom.entregaPluscode.value.trim() : ''
+        });
+        var line = buildLinhaEnderecoEntrega({ entrega: e, cliente: st.cliente });
+        State.setEntregaPatch({
+            logradouro: e.logradouro,
+            numero: e.numero,
+            bairro: e.bairro,
+            plusCode: e.plusCode,
+            endereco: line
+        });
+    }
+
+    function applyEntregaPlusGeocodeEndereco(endereco, overwrite) {
+        endereco = endereco || {};
+        function setIf(el, val) {
+            if (!el || val == null || val === '') return;
+            if (overwrite || !String(el.value || '').trim()) el.value = val;
+        }
+        setIf(dom.entregaLogradouro, endereco.logradouro);
+        setIf(dom.entregaNumero, endereco.numero);
+        if (dom.entregaBairro && endereco.bairro) {
+            var bai = bairroListaJacupiOuVazio(endereco.bairro);
+            if (bai && (overwrite || !String(dom.entregaBairro.value || '').trim())) {
+                dom.entregaBairro.value = bai;
+            }
+        }
+        commitEntregaCamposEndereco();
+        var st = State.getState();
+        if (!st.cliente) return;
+        var pc = dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '';
+        var c = Object.assign({}, st.cliente);
+        if (endereco.logradouro && (overwrite || !String(c.logradouro || '').trim())) {
+            c.logradouro = endereco.logradouro;
+        }
+        if (endereco.numero && (overwrite || !String(c.numero || '').trim())) c.numero = endereco.numero;
+        if (endereco.bairro) {
+            var b2 = bairroListaJacupiOuVazio(endereco.bairro);
+            if (b2 && (overwrite || !String(c.bairro || '').trim())) c.bairro = b2;
+        }
+        if (endereco.cidade && (overwrite || !String(c.cidade || '').trim())) c.cidade = endereco.cidade;
+        if (endereco.uf && (overwrite || !String(c.uf || '').trim())) c.uf = endereco.uf;
+        if (endereco.cep && (overwrite || !String(c.cep || '').trim())) c.cep = endereco.cep;
+        if (pc) c.plus_code = pc;
+        c.endereco = composeClienteEnderecoLinha(c) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function scheduleEntregaPlusGeocode(force) {
+        if (!dom.entregaPluscode) return;
+        var q = String(dom.entregaPluscode.value || '').trim();
+        if (q.length < 4) return;
+        if (!force && q === entregaPlusGeocodeLastQ) return;
+        clearTimeout(entregaPlusGeocodeTimer);
+        entregaPlusGeocodeTimer = setTimeout(function () {
+            runEntregaPlusGeocode(q);
+        }, force ? 0 : 650);
+    }
+
+    function runEntregaPlusGeocode(q) {
+        var apiUrl = urls.apiPdvGeocodePlus;
+        if (!apiUrl) return;
+        q = String(q || '').trim();
+        if (q.length < 4) return;
+        entregaPlusGeocodeLastQ = q;
+        var seq = ++entregaPlusGeocodeSeq;
+        var sep = apiUrl.indexOf('?') >= 0 ? '&' : '?';
+        fetch(apiUrl + sep + 'q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (seq !== entregaPlusGeocodeSeq) return;
+                if (!data || !data.ok || !data.endereco) return;
+                applyEntregaPlusGeocodeEndereco(data.endereco, false);
+            })
+            .catch(function () {});
+    }
+
     function renderStep2(state) {
         if (dom.step2ClientName) dom.step2ClientName.textContent = currentClientName(state);
         if (dom.step2ClientDoc) {
@@ -2617,9 +2938,6 @@
                 dom.clienteZapWhatsapp.classList.add('hidden');
             }
         }
-        dom.entregaRadios.forEach(function (radio) {
-            radio.checked = state.entrega.ativa ? radio.value === 'entrega' : radio.value === 'retirada';
-        });
     }
 
     function openClienteEditModal() {
@@ -3056,6 +3374,204 @@
         return String(c.endereco || '').trim().length > 4;
     }
 
+    /** Lê endereço do DOM (sem gravar estado) para habilitar o botão ao digitar. */
+    function enderecoEntregaMinimoOkParaUi(state) {
+        state = state || State.getState();
+        var log = dom.entregaLogradouro ? String(dom.entregaLogradouro.value || '').trim() : '';
+        var bai = dom.entregaBairro ? String(dom.entregaBairro.value || '').trim() : '';
+        if (log && bai) return true;
+        var num = dom.entregaNumero ? String(dom.entregaNumero.value || '').trim() : '';
+        var pc = dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '';
+        if (log || num || bai || pc) {
+            var linha = buildLinhaEnderecoEntrega({
+                entrega: { logradouro: log, numero: num, bairro: bai, plusCode: pc },
+                cliente: state.cliente || {}
+            });
+            if (String(linha || '').trim().length > 4) return true;
+        }
+        return enderecoEntregaMinimoOk(state);
+    }
+
+    function scrollEntregaWizardIntoView() {
+        if (!dom.entregaWizard || dom.entregaWizard.classList.contains('hidden')) return;
+        try {
+            dom.entregaWizard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (eScroll) {
+            try {
+                dom.entregaWizard.scrollIntoView();
+            } catch (eScroll2) {}
+        }
+    }
+
+    function entregaWizardPrecisaExibir(state) {
+        state = state || State.getState();
+        if (state.currentStep !== 'entrega') return false;
+        var modo = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
+        if (!modo) return true;
+        if (modo === 'entrega' && !entregaFluxoPagamentoCompleto(state)) return true;
+        return false;
+    }
+
+    function atualizarEntregaWizardVisibilidade(state) {
+        state = state || State.getState();
+        var needsWizard = entregaWizardPrecisaExibir(state);
+        if (dom.entregaWizard) showElement(dom.entregaWizard, needsWizard, 'flex');
+        if (dom.entregaMain) {
+            var modo = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
+            showElement(
+                dom.entregaMain,
+                modo === 'entrega' && entregaFluxoPagamentoCompleto(state),
+                'flex'
+            );
+        }
+    }
+
+    function fecharModaisEntregaAntesImpressao() {
+        closeEntregaSalvarClienteModal();
+        entregaWizardAguardandoTroco = false;
+        entregaPendingAfterSaveCliente = null;
+    }
+
+    function entregaFluxoPagamentoCompleto(state) {
+        state = state || State.getState();
+        var e = state.entrega || {};
+        if (String(e.modoRetiradaEntrega || '') !== 'entrega') return false;
+        if (!e.detalhesEntregaRespondidos) return false;
+        var lp = String(e.localPagamento || '').trim();
+        if (!lp) return false;
+        if (lp === 'loja') return true;
+        return lp === 'entrega' && !!String(e.meioNaEntrega || '').trim();
+    }
+
+    function entregaWizardPainelAtual(state) {
+        state = state || State.getState();
+        var e = state.entrega || {};
+        var modo = String(e.modoRetiradaEntrega || '');
+        if (!modo) return 'modo';
+        if (modo === 'entrega' && !e.detalhesEntregaRespondidos) return 'detalhes';
+        if (entregaWizardAguardandoTroco) return 'troco';
+        var lp = String(e.localPagamento || '').trim();
+        if (!lp) return 'pagamento_local';
+        if (lp === 'entrega' && !String(e.meioNaEntrega || '').trim()) return 'meio';
+        return 'done';
+    }
+
+    function aplicarEntregaWizardHeader(painel) {
+        var header = document.getElementById('pdv-ed-header');
+        var body = document.getElementById('pdv-ed-body');
+        var etapa = document.getElementById('pdv-ed-etapa');
+        var titulo = document.getElementById('pdv-ed-titulo');
+        var subtitulo = document.getElementById('pdv-ed-subtitulo');
+        var themes = {
+            modo: {
+                border: 'border-amber-400',
+                header: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white',
+                etapa: 'Etapa 2 · Entrega',
+                titulo: 'Retirada ou entrega?',
+                sub: 'Escolha uma opção para continuar.'
+            },
+            detalhes: {
+                border: 'border-amber-400',
+                header: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white',
+                etapa: 'Entrega',
+                titulo: 'Taxa, horário e troco',
+                sub: 'Confirme para seguir com o pagamento.'
+            },
+            pagamento_local: {
+                border: 'border-emerald-400',
+                header: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white',
+                etapa: 'Pagamento da entrega',
+                titulo: 'Onde será o pagamento?',
+                sub: 'Escolha uma opção para continuar.'
+            },
+            meio: {
+                border: 'border-orange-400',
+                header: 'bg-gradient-to-r from-orange-600 to-amber-600 text-white',
+                etapa: 'Pagamento na entrega',
+                titulo: 'Como o cliente vai pagar?',
+                sub: ''
+            },
+            troco: {
+                border: 'border-slate-400',
+                header: 'bg-slate-800 text-white',
+                etapa: 'Pagamento na entrega',
+                titulo: 'Troco para quanto?',
+                sub: 'Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).'
+            }
+        };
+        var t = themes[painel] || themes.modo;
+        if (header) {
+            header.className =
+                'rounded-t-2xl border-[3px] border-b-0 px-4 py-4 sm:px-5 sm:py-5 ' +
+                t.border +
+                ' ' +
+                t.header;
+        }
+        if (body) {
+            body.className =
+                'rounded-b-2xl border-[3px] border-t-0 bg-white shadow-md ' + t.border;
+        }
+        if (etapa) etapa.textContent = t.etapa;
+        if (titulo) titulo.textContent = t.titulo;
+        if (subtitulo) {
+            subtitulo.textContent = t.sub;
+            subtitulo.classList.toggle('hidden', !String(t.sub || '').trim());
+        }
+    }
+
+    function syncEntregaDetalhesModalUi() {
+        var st = State.getState();
+        var painel = entregaWizardPainelAtual(st);
+        var map = {
+            modo: document.getElementById('pdv-ed-modo-panel'),
+            detalhes: document.getElementById('pdv-ed-detalhes-panel'),
+            pagamento_local: document.getElementById('pdv-ed-pagamento-local-panel'),
+            meio: document.getElementById('pdv-ed-meio-panel'),
+            troco: document.getElementById('pdv-ed-troco-panel')
+        };
+        var confirmWrap = document.getElementById('pdv-ed-confirmar-wrap');
+        Object.keys(map).forEach(function (k) {
+            if (map[k]) map[k].classList.toggle('hidden', k !== painel);
+        });
+        if (confirmWrap) confirmWrap.classList.toggle('hidden', painel !== 'detalhes');
+        if (painel === 'done') {
+            entregaWizardAguardandoTroco = false;
+            atualizarEntregaWizardVisibilidade(st);
+            aposConcluirFluxoPagamentoEntrega();
+            return;
+        }
+        aplicarEntregaWizardHeader(painel);
+        atualizarEntregaWizardVisibilidade(st);
+    }
+
+    function focarPrimeiroCampoEnderecoEntrega() {
+        var alvo =
+            (dom.entregaLogradouro && !String(dom.entregaLogradouro.value || '').trim() && dom.entregaLogradouro) ||
+            (dom.entregaBairro && !String(dom.entregaBairro.value || '').trim() && dom.entregaBairro) ||
+            dom.entregaLogradouro ||
+            dom.entregaClienteNome;
+        if (!alvo) return;
+        setTimeout(function () {
+            try {
+                alvo.focus();
+            } catch (errF) {}
+        }, 120);
+    }
+
+    function aposConcluirFluxoPagamentoEntrega() {
+        if (!entregaFluxoPagamentoCompleto()) return;
+        if (!enderecoEntregaMinimoOkParaUi(State.getState())) {
+            focarPrimeiroCampoEnderecoEntrega();
+        }
+    }
+
+    function abrirFluxoPagamentoEntregaSePendente() {
+        if (entregaFluxoPagamentoCompleto()) return false;
+        syncEntregaDetalhesModalUi();
+        scrollEntregaWizardIntoView();
+        return true;
+    }
+
     function entregaTaxaModoEfetivo(state) {
         var e = state.entrega || {};
         var m = String(e.taxaEntregaModo || '');
@@ -3129,7 +3645,21 @@
         setInputValue(dom.entregaHorario, e.horario);
         setInputValue(dom.entregaTroco, e.troco);
         setInputValue(dom.entregaObservacao, e.observacao);
+        setInputValue(dom.vendaObservacao, state.venda.observacao);
+        var edHor = document.getElementById('pdv-ed-horario');
+        var edTro = document.getElementById('pdv-ed-troco');
+        setInputValue(edHor, e.horario);
+        setInputValue(edTro, e.troco);
         renderEntregaTaxaCard(state);
+        renderEntregaClienteCampos(state);
+        entregaPlusGeocodeLastQ = String(e.plusCode || c.plus_code || '').trim();
+        atualizarEntregaWizardVisibilidade(state);
+        if (entregaWizardPrecisaExibir(state)) {
+            syncEntregaDetalhesModalUi();
+        }
+        if (dom.entregaMain && dom.entregaMain.classList.contains('flex') && !entregaClienteSnapshot) {
+            entregaClienteSnapshot = clienteEntregaSnapshotFromState(state);
+        }
     }
 
     function renderPagamento(state, computed) {
@@ -3438,15 +3968,6 @@
                 openPaymentFormaModal();
             }
         }
-        if (state.currentStep === 'entrega' && wasStep !== 'entrega' && state.entrega.ativa) {
-            setTimeout(function () {
-                var st2 = State.getState();
-                if (st2.currentStep !== 'entrega' || !st2.entrega.ativa) return;
-                if (!String(st2.entrega.localPagamento || '').trim()) {
-                    openEntregaFluxoModal1();
-                }
-            }, 220);
-        }
         prevStepCache = state.currentStep;
     }
 
@@ -3529,89 +4050,153 @@
     }
 
     function pdvTryRemoveModalOpenBody() {
-        var md1 = document.getElementById('modal-pdv-entrega-fluxo-1');
-        var md2 = document.getElementById('modal-pdv-entrega-fluxo-2');
-        var md3 = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
+        var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
         var mei = document.getElementById('modal-pdv-entrega-impressao');
         var meiOpen = mei && !mei.classList.contains('hidden');
-        var f1 = md1 && !md1.classList.contains('hidden');
-        var f2 = md2 && !md2.classList.contains('hidden');
-        var f3 = md3 && !md3.classList.contains('hidden');
+        var escOpen = mdEsc && !mdEsc.classList.contains('hidden');
         var cliOpen = isQuickClientModalOpen();
         var startOpen = dom.modalStart && !dom.modalStart.classList.contains('hidden');
         var cadOpen =
             dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden');
         try {
-            if (!f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
+            if (!escOpen && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
                 document.body.classList.remove('modal-open');
             }
         } catch (eM2) {}
     }
 
+    function isRetiradaEntregaModalOpen() {
+        if (!isEntregaDetalhesModalOpen()) return false;
+        var modoPanel = document.getElementById('pdv-ed-modo-panel');
+        return !!(modoPanel && !modoPanel.classList.contains('hidden'));
+    }
+    function isEntregaDetalhesModalOpen() {
+        return !!(
+            dom.entregaWizard &&
+            !dom.entregaWizard.classList.contains('hidden') &&
+            entregaWizardPrecisaExibir()
+        );
+    }
+    function closeRetiradaEntregaModal() {}
+    function openRetiradaEntregaModal() {
+        scrollEntregaWizardIntoView();
+    }
+    function closeEntregaDetalhesModal() {}
+    function openEntregaDetalhesModal() {
+        renderEntregaTaxaCard(State.getState());
+        var st = State.getState();
+        var edHor = document.getElementById('pdv-ed-horario');
+        var edTro = document.getElementById('pdv-ed-troco');
+        setInputValue(edHor, (st.entrega && st.entrega.horario) || '');
+        setInputValue(edTro, (st.entrega && st.entrega.troco) || '');
+        syncEntregaDetalhesModalUi();
+        scrollEntregaWizardIntoView();
+    }
+    function resetEntregaModoAoVoltarProdutos() {
+        State.setEntregaPatch({
+            modoRetiradaEntrega: '',
+            detalhesEntregaRespondidos: false,
+            ativa: false,
+            localPagamento: '',
+            meioNaEntrega: '',
+            taxaEntregaRespondida: false,
+            taxaEntregaModo: '',
+            horario: '',
+            troco: ''
+        });
+        State.setPagamentoField('frete', 0);
+        closeEntregaSalvarClienteModal();
+        entregaWizardAguardandoTroco = false;
+        entregaClienteSnapshot = null;
+        entregaPendingAfterSaveCliente = null;
+        entregaPlusGeocodeLastQ = '';
+    }
+    function escolherRetiradaEntrega(modo) {
+        if (modo === 'retirada') {
+            State.setEntregaPatch({
+                modoRetiradaEntrega: 'retirada',
+                ativa: false,
+                detalhesEntregaRespondidos: false,
+                localPagamento: '',
+                meioNaEntrega: ''
+            });
+            State.setPagamentoField('frete', 0);
+            closeRetiradaEntregaModal();
+            State.setCurrentStep('pagamento');
+            return;
+        }
+        State.setEntregaPatch({ modoRetiradaEntrega: 'entrega', ativa: true });
+        syncEntregaDetalhesModalUi();
+        renderEntregaTaxaCard(State.getState());
+        scrollEntregaWizardIntoView();
+    }
+    function confirmarEntregaDetalhesModal() {
+        var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
+        if (!taxaChecked) {
+            alert('Escolha se cobra frete, decide depois ou não cobra.');
+            return;
+        }
+        commitEntregaTaxaModo(taxaChecked.value);
+        commitEntregaTaxaValorInput();
+        var h = document.getElementById('pdv-ed-horario');
+        var t = document.getElementById('pdv-ed-troco');
+        var hor = h ? h.value : '';
+        var tro = t ? String(t.value || '').trim() : '';
+        State.setEntregaPatch({
+            horario: hor,
+            troco: tro,
+            detalhesEntregaRespondidos: true
+        });
+        if (dom.entregaHorario) dom.entregaHorario.value = hor;
+        if (dom.entregaTroco) dom.entregaTroco.value = tro;
+        wizardSyncLembretesFromEntregaHorario();
+        entregaClienteSnapshot = null;
+        syncEntregaDetalhesModalUi();
+    }
+
     function isEntregaFluxo1Open() {
-        var r = document.getElementById('modal-pdv-entrega-fluxo-1');
-        return !!(r && !r.classList.contains('hidden'));
+        return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'pagamento_local';
     }
     function isEntregaFluxo2Open() {
-        var r = document.getElementById('modal-pdv-entrega-fluxo-2');
-        return !!(r && !r.classList.contains('hidden'));
+        return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'meio';
     }
     function isEntregaFluxo3Open() {
-        var r = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
-        return !!(r && !r.classList.contains('hidden'));
+        return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'troco';
     }
     function isAnyEntregaFluxoModalOpen() {
-        return isEntregaFluxo1Open() || isEntregaFluxo2Open() || isEntregaFluxo3Open();
+        return (
+            isRetiradaEntregaModalOpen() ||
+            isEntregaDetalhesModalOpen() ||
+            isEntregaSalvarClienteModalOpen()
+        );
     }
 
-    function closeEntregaFluxoModal1() {
-        var root = document.getElementById('modal-pdv-entrega-fluxo-1');
-        if (root) {
-            root.classList.add('hidden');
-            root.classList.remove('flex');
-        }
-        pdvTryRemoveModalOpenBody();
-    }
-
+    function closeEntregaFluxoModal1() {}
     function openEntregaFluxoModal1() {
-        var root = document.getElementById('modal-pdv-entrega-fluxo-1');
-        if (!root) return;
-        root.classList.remove('hidden');
-        root.classList.add('flex');
-        pdvEnsureModalOpenBody();
+        openEntregaDetalhesModal();
     }
-
-    function closeEntregaFluxoModal2() {
-        var root = document.getElementById('modal-pdv-entrega-fluxo-2');
-        if (root) {
-            root.classList.add('hidden');
-            root.classList.remove('flex');
-        }
-        pdvTryRemoveModalOpenBody();
-    }
-
+    function closeEntregaFluxoModal2() {}
     function openEntregaFluxoModal2() {
-        var root = document.getElementById('modal-pdv-entrega-fluxo-2');
-        if (!root) return;
-        root.classList.remove('hidden');
-        root.classList.add('flex');
-        pdvEnsureModalOpenBody();
+        openEntregaDetalhesModal();
     }
-
     function closeEntregaFluxoModal3() {
-        var root = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
-        if (root) {
-            root.classList.add('hidden');
-            root.classList.remove('flex');
-        }
-        pdvTryRemoveModalOpenBody();
+        entregaWizardAguardandoTroco = false;
+        syncEntregaDetalhesModalUi();
     }
-
     function openEntregaFluxoModal3() {
+        entregaWizardAguardandoTroco = true;
         var inp = document.getElementById('pdv-ef3-troco-input');
         var st = State.getState();
+        var edTro = document.getElementById('pdv-ed-troco');
         if (inp) {
-            inp.value = String((st.entrega && st.entrega.troco) || '').trim();
+            inp.value = String(
+                (st.entrega && st.entrega.troco) ||
+                    (edTro && edTro.value) ||
+                    ''
+            ).trim();
+        }
+        openEntregaDetalhesModal();
+        if (inp) {
             setTimeout(function () {
                 try {
                     inp.focus();
@@ -3619,11 +4204,6 @@
                 } catch (eI) {}
             }, 80);
         }
-        var root = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
-        if (!root) return;
-        root.classList.remove('hidden');
-        root.classList.add('flex');
-        pdvEnsureModalOpenBody();
     }
 
     function setQuickClientPickerHighlight(on) {
@@ -4459,6 +5039,13 @@
             payload.cliente_id = cliente.id;
         }
         if (cliente.documento) payload.cliente_documento = cliente.documento;
+        var nfceOpts = (state.pagamento && state.pagamento.nfceOpts) || {};
+        if (nfceOpts.cpf) {
+            payload.nfce_cpf = nfceOpts.cpf;
+            payload.cliente_documento = nfceOpts.cpf;
+        }
+        if (nfceOpts.semIdentificacao) payload.nfce_sem_identificacao = true;
+        if (nfceUsuarioQuerEmitir(state)) payload.nfce_emitir = true;
         var comp = computed || State.getComputed();
         if (comp && comp.desconto > 0.009) {
             payload.desconto_geral = comp.desconto;
@@ -4637,43 +5224,313 @@
         }
     }
 
-    function showSaleDoneFeedback(msg, tone) {
+    function showSaleDoneFeedback(msg, tone, opts) {
         tone = tone || 'success';
+        opts = opts || {};
         var host = document.getElementById('pdv-sale-toast');
         if (!host) {
             host = document.createElement('div');
             host.id = 'pdv-sale-toast';
             host.setAttribute('role', 'status');
             host.setAttribute('aria-live', 'polite');
-            host.className =
-                'pointer-events-none fixed bottom-4 right-4 z-[220] w-[min(22rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3';
             document.body.appendChild(host);
         }
+        var placementTop = !!opts.placementTop;
+        host.className =
+            'pointer-events-auto fixed z-[9999] w-[min(26rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3 ' +
+            (placementTop
+                ? 'top-4 left-1/2 -translate-x-1/2'
+                : 'bottom-4 right-4 translate-x-0');
         var palette =
             tone === 'warn'
-                ? 'border-amber-300 bg-amber-50 text-amber-950 shadow-amber-200/50'
+                ? 'border-amber-400 bg-amber-50 text-amber-950 shadow-amber-300/60'
                 : tone === 'info'
                   ? 'border-sky-300 bg-sky-50 text-sky-950 shadow-sky-200/50'
                   : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
         var icon =
             tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
+        var titleHtml = opts.title
+            ? '<p class="text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
+            : '';
+        var bodyHtml =
+            '<p class="' +
+            (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1') +
+            '">' +
+            escapeHtml(msg || 'Venda confirmada.') +
+            '</p>';
+        var dismissBtn =
+            tone === 'warn'
+                ? '<button type="button" class="mt-2 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide text-amber-900 hover:bg-amber-100" data-pdv-toast-dismiss>Entendi</button>'
+                : '';
         host.innerHTML =
-            '<div class="flex items-start gap-3 rounded-2xl border-2 px-4 py-3 shadow-xl ' +
+            '<div class="rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
             palette +
             '">' +
-            '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/80 text-base font-black" aria-hidden="true">' +
+            '<div class="flex items-start gap-3">' +
+            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
             icon +
             '</span>' +
-            '<p class="text-sm font-bold leading-snug pt-1">' +
-            escapeHtml(msg || 'Venda confirmada.') +
-            '</p></div>';
+            '<div class="min-w-0 flex-1">' +
+            titleHtml +
+            bodyHtml +
+            dismissBtn +
+            '</div></div></div>';
+        var dismissEl = host.querySelector('[data-pdv-toast-dismiss]');
+        if (dismissEl) {
+            dismissEl.addEventListener('click', function () {
+                host.classList.add('opacity-0', 'translate-y-3');
+                host.classList.remove('opacity-100', 'translate-y-0');
+            });
+        }
         host.classList.remove('opacity-0', 'translate-y-3');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+        var ms = opts.durationMs || (tone === 'warn' ? 14000 : 5200);
         showSaleDoneFeedback._timer = setTimeout(function () {
             host.classList.add('opacity-0', 'translate-y-3');
             host.classList.remove('opacity-100', 'translate-y-0');
-        }, 5200);
+        }, ms);
+    }
+
+    function nfceAtivoNoPdv() {
+        return !!(bootstrap.nfce && bootstrap.nfce.ativo);
+    }
+
+    function nfceFormasAutoLista() {
+        if (bootstrap.nfce && Array.isArray(bootstrap.nfce.formasAuto) && bootstrap.nfce.formasAuto.length) {
+            return bootstrap.nfce.formasAuto;
+        }
+        return ['PIX', 'Cartão de débito', 'Cartão de crédito', 'Cartão de crédito parcelado'];
+    }
+
+    function nfceFormasPagamentoVenda(state) {
+        state = state || State.getState();
+        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
+        return arr
+            .map(function (L) {
+                return String((L && L.forma) || '').trim();
+            })
+            .filter(Boolean);
+    }
+
+    function nfceVendaTemFormaAuto(state) {
+        var auto = nfceFormasAutoLista();
+        var formas = nfceFormasPagamentoVenda(state);
+        if (!formas.length) return false;
+        return formas.some(function (f) {
+            return auto.indexOf(f) >= 0;
+        });
+    }
+
+    function nfceModoGlobalAuto() {
+        return !!(bootstrap.nfce && bootstrap.nfce.modo === 'auto');
+    }
+
+    function nfceUsuarioQuerEmitir(state) {
+        if (!nfceAtivoNoPdv()) return false;
+        if (nfceModoGlobalAuto()) return true;
+        state = state || State.getState();
+        if (state.pagamento && state.pagamento.nfceEmitir === true) return true;
+        if (state.pagamento && state.pagamento.nfceEmitir === false) return false;
+        return nfceVendaTemFormaAuto(state);
+    }
+
+    function prepararNfceSemImpressao() {
+        State.setPagamentoField('cupomImpressao', '');
+        if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto()) {
+            State.setPagamentoField('nfceEmitir', true);
+        } else {
+            State.setPagamentoField('nfceEmitir', false);
+            State.setPagamentoField('nfceOpts', {});
+        }
+    }
+
+    function prepararNfceComImpressao(escolha) {
+        escolha = escolha === 'nfce' ? 'nfce' : 'venda';
+        State.setPagamentoField('cupomImpressao', escolha);
+        if (escolha === 'nfce') {
+            State.setPagamentoField('nfceEmitir', true);
+        } else {
+            State.setPagamentoField('nfceEmitir', false);
+            State.setPagamentoField('nfceOpts', {});
+        }
+    }
+
+    function abrirModalEscolhaImpressao(callback) {
+        var modal = document.getElementById('modal-pdv-escolha-impressao');
+        var btnNfc = document.getElementById('pdv-escolha-impressao-nfce');
+        var btnVenda = document.getElementById('pdv-escolha-impressao-venda');
+        var btnCancel = document.getElementById('pdv-escolha-impressao-cancelar');
+        if (!modal || !btnNfc || !btnVenda) {
+            callback('venda');
+            return;
+        }
+        function fechar() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            btnNfc.removeEventListener('click', onNfc);
+            btnVenda.removeEventListener('click', onVenda);
+            if (btnCancel) btnCancel.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey);
+        }
+        function onNfc() {
+            fechar();
+            callback('nfce');
+        }
+        function onVenda() {
+            fechar();
+            callback('venda');
+        }
+        function onCancel() {
+            fechar();
+            callback(null);
+        }
+        function onKey(ev) {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                onCancel();
+            }
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        btnNfc.addEventListener('click', onNfc);
+        btnVenda.addEventListener('click', onVenda);
+        if (btnCancel) btnCancel.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey);
+    }
+
+    function nfceNormalizarCpf(raw) {
+        return String(raw || '').replace(/\D/g, '').slice(0, 11);
+    }
+
+    function nfceCpfValido(cpf) {
+        cpf = nfceNormalizarCpf(cpf);
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        var s = 0;
+        var i;
+        for (i = 0; i < 9; i++) s += parseInt(cpf.charAt(i), 10) * (10 - i);
+        var d1 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        if (parseInt(cpf.charAt(9), 10) !== d1) return false;
+        s = 0;
+        for (i = 0; i < 10; i++) s += parseInt(cpf.charAt(i), 10) * (11 - i);
+        var d2 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        return parseInt(cpf.charAt(10), 10) === d2;
+    }
+
+    function nfceErroDaResposta(data) {
+        if (data && data.nfce && data.nfce.ok === false) {
+            var e = data.nfce.erro || 'Falha na NFC-e';
+            if (data.nfce.c_stat) e = '[' + data.nfce.c_stat + '] ' + e;
+            return e;
+        }
+        return '';
+    }
+
+    function abrirModalNfceCpf(callback) {
+        var modal = document.getElementById('modal-pdv-nfce-cpf');
+        var input = document.getElementById('pdv-nfce-cpf-input');
+        var errEl = document.getElementById('pdv-nfce-cpf-erro');
+        var btnOk = document.getElementById('pdv-nfce-cpf-confirmar');
+        var btnCancel = document.getElementById('pdv-nfce-cpf-cancelar');
+        var btnSemId = document.getElementById('pdv-nfce-sem-id-rapido');
+        if (!modal || !input || !btnOk || !btnCancel) {
+            callback(null);
+            return;
+        }
+        input.value = '';
+        if (errEl) {
+            errEl.textContent = '';
+            errEl.classList.add('hidden');
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(function () {
+            if (btnSemId) btnSemId.focus();
+        }, 40);
+
+        function fechar(res) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            if (btnSemId) btnSemId.removeEventListener('click', onSemId);
+            document.removeEventListener('keydown', onKey);
+            callback(res);
+        }
+
+        function onCancel() {
+            fechar(null);
+        }
+
+        function onSemId() {
+            fechar({ cpf: '', semIdentificacao: true });
+        }
+
+        function onOk() {
+            var cpf = nfceNormalizarCpf(input.value);
+            if (!cpf) {
+                if (errEl) {
+                    errEl.textContent = 'Digite o CPF ou toque em «Sem CPF na nota».';
+                    errEl.classList.remove('hidden');
+                }
+                input.focus();
+                return;
+            }
+            if (!nfceCpfValido(cpf)) {
+                if (errEl) {
+                    errEl.textContent = 'CPF inválido. Corrija ou use «Sem CPF na nota».';
+                    errEl.classList.remove('hidden');
+                }
+                input.focus();
+                return;
+            }
+            fechar({ cpf: cpf, semIdentificacao: false });
+        }
+
+        function onKey(ev) {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                onCancel();
+            }
+        }
+
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        if (btnSemId) btnSemId.addEventListener('click', onSemId);
+        document.addEventListener('keydown', onKey);
+    }
+
+    function nfceFluxoAutomatico(state) {
+        return nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state);
+    }
+
+    function resolverNfceAntesConfirmar(withPrint) {
+        if (!nfceUsuarioQuerEmitir()) {
+            State.setPagamentoField('nfceOpts', {});
+            confirmSaleProsseguir(withPrint);
+            return;
+        }
+        var state = State.getState();
+        var cpfCad = nfceNormalizarCpf(state.cliente && state.cliente.documento);
+        if (nfceCpfValido(cpfCad)) {
+            State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
+            confirmSaleProsseguir(withPrint);
+            return;
+        }
+        if (nfceFluxoAutomatico(state)) {
+            State.setPagamentoField('nfceOpts', { cpf: '', semIdentificacao: true });
+            confirmSaleProsseguir(withPrint);
+            return;
+        }
+        abrirModalNfceCpf(function (opts) {
+            if (!opts) return;
+            State.setPagamentoField('nfceOpts', opts);
+            if (opts.cpf) {
+                var stCl = State.getState();
+                State.setCliente(Object.assign({}, stCl.cliente || {}, { documento: opts.cpf }));
+            }
+            confirmSaleProsseguir(withPrint);
+        });
     }
 
     function saleDoneMessage(opts) {
@@ -4694,12 +5551,51 @@
         return 'Venda confirmada com sucesso.';
     }
 
-    function imprimirCupomAposVenda(withPrint, printWin, vendaId) {
+    function nfceSucessoDaResposta(data) {
+        if (data && data.nfce && data.nfce.ok === true) {
+            var n = data.nfce.numero != null ? String(data.nfce.numero) : '';
+            var s = data.nfce.serie != null ? String(data.nfce.serie) : '';
+            if (n) return 'NFC-e nº ' + n + (s ? ' · série ' + s : '') + ' autorizada.';
+            return 'NFC-e autorizada.';
+        }
+        return '';
+    }
+
+    function nfceAvisoPosVenda(opts) {
+        if (!opts || !opts.nfceErro) return '';
+        return opts.nfceErro;
+    }
+
+    function mostrarAvisoNfcePendente(opts, prefixo) {
+        if (!opts || !opts.nfceErro) return;
+        var detalhe = String(opts.nfceErro || '').trim();
+        var corpo =
+            (prefixo ? prefixo + ' ' : '') +
+            'A venda foi salva, mas o cupom fiscal (NFC-e) não saiu.' +
+            (detalhe ? ' Motivo: ' + detalhe + '.' : '') +
+            ' Depois vá em Consultar vendas e use Reemitir NFC-e.';
+        showSaleDoneFeedback(corpo, 'warn', {
+            placementTop: true,
+            title: 'Cupom fiscal pendente',
+            durationMs: 16000
+        });
+    }
+
+    function aguardarPosImpressao(ms) {
+        ms = ms || 0;
+        if (!ms) return Promise.resolve();
+        return new Promise(function (resolve) {
+            setTimeout(resolve, ms);
+        });
+    }
+
+    function imprimirCupomAposVenda(withPrint, printWin, vendaId, cupomImpressao) {
         var stP = State.getState();
         var compP = State.getComputed();
         if (!withPrint) return Promise.resolve(false);
+        var interno = cupomImpressao === 'venda';
         if (vendaId && typeof agroCarregarEImprimirCupomVenda === 'function') {
-            return agroCarregarEImprimirCupomVenda(vendaId, { segunda_via: false })
+            return agroCarregarEImprimirCupomVenda(vendaId, { segunda_via: false, interno: interno })
                 .then(function () {
                     if (printWin && !printWin.closed) {
                         try {
@@ -4725,17 +5621,32 @@
 
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
-        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId).then(function (printFail) {
+        var cupomImpressao = opts.cupomImpressao || '';
+        if (opts.nfceErro && cupomImpressao === 'nfce') {
+            cupomImpressao = 'venda';
+        }
+        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
+            return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+                return printFail;
+            });
+        }).then(function (printFail) {
             jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
             resetWizardParaNovaVenda();
             refreshEntregasPendentesUi(true);
-            if (printFail) {
+            if (opts.nfceErro) {
+                mostrarAvisoNfcePendente(opts, saleDoneMessage(opts));
+            } else if (printFail) {
                 showSaleDoneFeedback(
                     'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                    'warn'
+                    'warn',
+                    { placementTop: true }
                 );
+            } else if (opts.nfceOk) {
+                showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
             } else {
-                showSaleDoneFeedback(saleDoneMessage(opts), opts.erpPendente ? 'info' : 'success');
+                var msg = saleDoneMessage(opts);
+                var kind = opts.erpPendente ? 'info' : 'success';
+                showSaleDoneFeedback(msg, kind);
             }
         });
     }
@@ -4751,7 +5662,25 @@
         }
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
-            confirmSaleProsseguir(withPrint);
+            if (withPrint && nfceAtivoNoPdv()) {
+                if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
+                    prepararNfceComImpressao('nfce');
+                    resolverNfceAntesConfirmar(true);
+                    return;
+                }
+                abrirModalEscolhaImpressao(function (escolha) {
+                    if (!escolha) return;
+                    prepararNfceComImpressao(escolha);
+                    resolverNfceAntesConfirmar(true);
+                });
+                return;
+            }
+            if (withPrint) {
+                prepararNfceComImpressao('venda');
+            } else {
+                prepararNfceSemImpressao();
+            }
+            resolverNfceAntesConfirmar(!!withPrint);
         });
     }
 
@@ -4786,6 +5715,9 @@
         }
         State.setPagamentoField('imprimirCupom', !!withPrint);
         state = State.getState();
+        var cupomImpressao = withPrint
+            ? String((state.pagamento && state.pagamento.cupomImpressao) || 'venda')
+            : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
@@ -4802,10 +5734,15 @@
                 var erpPendente = !!erpRes.data.erp_pendente;
                 var fiadoAguardaErp = !!erpRes.data.fiado_aguarda_erp;
                 var vendaId = erpRes.data && erpRes.data.venda_id;
+                var nfceErro = nfceErroDaResposta(erpRes.data);
+                var nfceOk = nfceSucessoDaResposta(erpRes.data);
                 if (fiadoAguardaErp) {
                     finalizeConfirmedSale(withPrint, printWin, {
                         fiadoAguardaErp: true,
-                        vendaId: vendaId
+                        vendaId: vendaId,
+                        nfceErro: nfceErro,
+                        nfceOk: nfceOk,
+                        cupomImpressao: cupomImpressao
                     });
                     return;
                 }
@@ -4824,7 +5761,10 @@
                         finalizeConfirmedSale(withPrint, printWin, {
                             erpPendente: erpPendente,
                             entregaOk: true,
-                            vendaId: vendaId
+                            vendaId: vendaId,
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
                         });
                     });
                 }
@@ -4835,7 +5775,10 @@
                         finalizeConfirmedSale(withPrint, printWin, {
                             erpPendente: true,
                             entregaOk: true,
-                            vendaId: vendaId
+                            vendaId: vendaId,
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
                         });
                         return;
                     }
@@ -4846,10 +5789,22 @@
                                     'Venda salva, mas falhou ao registrar entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, { entregaOk: true, vendaId: vendaId });
+                        finalizeConfirmedSale(withPrint, printWin, {
+                            entregaOk: true,
+                            vendaId: vendaId,
+                            nfceErro: nfceErro,
+                            nfceOk: nfceOk,
+                            cupomImpressao: cupomImpressao
+                        });
                     });
                 }
-                finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente, vendaId: vendaId });
+                finalizeConfirmedSale(withPrint, printWin, {
+                    erpPendente: erpPendente,
+                    vendaId: vendaId,
+                    nfceErro: nfceErro,
+                    nfceOk: nfceOk,
+                    cupomImpressao: cupomImpressao
+                });
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -4970,15 +5925,44 @@
                 });
             })
             .then(function (result) {
+                var erpData = (result && result.erp) || {};
+                var nfceErro = nfceErroDaResposta(erpData);
+                var nfceOk = nfceSucessoDaResposta(erpData);
                 var vIdMp =
-                    result.erp && result.erp.venda_id != null ? result.erp.venda_id : null;
-                return imprimirCupomAposVenda(withPrint, printWin, vIdMp).then(function (printFail) {
+                    erpData && erpData.venda_id != null ? erpData.venda_id : null;
+                var stMp = State.getState();
+                var cupomImpMp = withPrint
+                    ? String((stMp.pagamento && stMp.pagamento.cupomImpressao) || 'venda')
+                    : '';
+                if (nfceErro && cupomImpMp === 'nfce') {
+                    cupomImpMp = 'venda';
+                }
+                return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
+                    return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+                        return printFail;
+                    });
+                }).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     resetWizardParaNovaVenda();
+                    if (nfceErro) {
+                        mostrarAvisoNfcePendente(
+                            { nfceErro: nfceErro },
+                            'Pagamento no Point confirmado.'
+                        );
+                        return;
+                    }
                     if (printFail) {
                         showSaleDoneFeedback(
                             'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                            'warn'
+                            'warn',
+                            { placementTop: true }
+                        );
+                    } else if (nfceOk) {
+                        showSaleDoneFeedback(
+                            (result.entrega
+                                ? 'Pagamento no Point confirmado, venda e entrega OK. '
+                                : 'Pagamento no Point confirmado. ') + nfceOk,
+                            'success'
                         );
                     } else {
                         showSaleDoneFeedback(
@@ -5974,6 +6958,7 @@
             alert('Adicione itens à venda antes de enviar a entrega.');
             return;
         }
+        commitEntregaCamposEndereco();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -5981,9 +6966,10 @@
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
         var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
         if (lp !== 'entrega' || !meio) {
-            alert('Defina pagamento na entrega e escolha dinheiro ou cartão no pop-up.');
+            abrirFluxoPagamentoEntregaSePendente();
             return;
         }
+        fecharModaisEntregaAntesImpressao();
         wizardModalEscolhaImpressaoEntrega().then(function (opt) {
             if (!opt) return;
             var orcId = Date.now();
@@ -6031,6 +7017,7 @@
             alert('Adicione itens à venda antes de continuar.');
             return;
         }
+        commitEntregaCamposEndereco();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -6039,6 +7026,7 @@
             alert('Esta ação é para pagamento na loja. Escolha essa opção no pop-up da etapa Entrega.');
             return;
         }
+        fecharModaisEntregaAntesImpressao();
         wizardModalEscolhaImpressaoEntrega().then(function (opt) {
             if (!opt) return;
             var orcId = Date.now();
@@ -6064,6 +7052,9 @@
             var state = State.getState();
             var computed = State.getComputed();
             var target = prevStep(state, computed);
+            if (state.currentStep === 'entrega' && target === 'produtos') {
+                resetEntregaModoAoVoltarProdutos();
+            }
             if (target) State.setCurrentStep(target);
         });
 
@@ -6071,19 +7062,8 @@
             var state = State.getState();
             var computed = State.getComputed();
             if (state.currentStep === 'entrega') {
-                var lp = String((state.entrega && state.entrega.localPagamento) || '');
-                if (!lp) {
-                    openEntregaFluxoModal1();
-                    return;
-                }
-                if (lp === 'loja') {
-                    wizardIrParaPagamentoComImpressao();
-                    return;
-                }
-                if (lp === 'entrega') {
-                    wizardEnviarEntregaPainel();
-                    return;
-                }
+                onEntregaBtnNext();
+                return;
             }
             var validation = canAdvance(state, computed);
             if (validation) {
@@ -6671,35 +7651,73 @@
             });
         }
 
-        dom.entregaRadios.forEach(function (radio) {
-            radio.addEventListener('change', function () {
-                State.setEntregaField('ativa', radio.value === 'entrega');
-            });
-        });
-
-        function commitEntregaCamposEndereco() {
-            var st = State.getState();
-            var e0 = st.entrega || {};
-            var e = Object.assign({}, e0, {
-                logradouro: dom.entregaLogradouro ? dom.entregaLogradouro.value.trim() : '',
-                numero: dom.entregaNumero ? dom.entregaNumero.value.trim() : '',
-                bairro: dom.entregaBairro ? dom.entregaBairro.value : '',
-                plusCode: dom.entregaPluscode ? dom.entregaPluscode.value.trim() : ''
-            });
-            var line = buildLinhaEnderecoEntrega({ entrega: e, cliente: st.cliente });
-            State.setEntregaPatch({
-                logradouro: e.logradouro,
-                numero: e.numero,
-                bairro: e.bairro,
-                plusCode: e.plusCode,
-                endereco: line
-            });
-        }
+        var btnEdRetirada = document.getElementById('pdv-ed-retirada');
+        if (btnEdRetirada) btnEdRetirada.addEventListener('click', function () { escolherRetiradaEntrega('retirada'); });
+        var btnEdEntrega = document.getElementById('pdv-ed-entrega');
+        if (btnEdEntrega) btnEdEntrega.addEventListener('click', function () { escolherRetiradaEntrega('entrega'); });
+        var btnEdOk = document.getElementById('pdv-ed-confirmar');
+        if (btnEdOk) btnEdOk.addEventListener('click', confirmarEntregaDetalhesModal);
 
         [dom.entregaLogradouro, dom.entregaNumero, dom.entregaPluscode].forEach(function (el) {
             if (el) el.addEventListener('input', commitEntregaCamposEndereco);
         });
-        if (dom.entregaBairro) dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
+        if (dom.entregaBairro) {
+            dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
+            dom.entregaBairro.addEventListener('input', commitEntregaCamposEndereco);
+        }
+        if (dom.entregaPluscode) {
+            dom.entregaPluscode.addEventListener('input', function () {
+                commitEntregaCamposEndereco();
+                scheduleEntregaPlusGeocode(false);
+            });
+            dom.entregaPluscode.addEventListener('blur', function () {
+                scheduleEntregaPlusGeocode(true);
+            });
+            dom.entregaPluscode.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    scheduleEntregaPlusGeocode(true);
+                }
+            });
+        }
+        if (dom.entregaClienteNome) {
+            dom.entregaClienteNome.addEventListener('input', commitEntregaClienteCamposFromDom);
+        }
+        if (dom.entregaClienteTelefone) {
+            dom.entregaClienteTelefone.addEventListener('input', function () {
+                commitEntregaClienteCamposFromDom();
+                renderEntregaClienteCampos(State.getState());
+            });
+        }
+
+        var btnEscSalvar = document.getElementById('pdv-esc-salvar-cadastro');
+        if (btnEscSalvar) {
+            btnEscSalvar.addEventListener('click', function () {
+                finalizarEscolhaSalvarCliente(true);
+            });
+        }
+        var btnEscSoEntrega = document.getElementById('pdv-esc-so-entrega');
+        if (btnEscSoEntrega) {
+            btnEscSoEntrega.addEventListener('click', function () {
+                finalizarEscolhaSalvarCliente(false);
+            });
+        }
+        var btnEscCancelar = document.getElementById('pdv-esc-cancelar');
+        if (btnEscCancelar) {
+            btnEscCancelar.addEventListener('click', function () {
+                entregaPendingAfterSaveCliente = null;
+                closeEntregaSalvarClienteModal();
+            });
+        }
+        var mdEscModal = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (mdEscModal) {
+            mdEscModal.addEventListener('click', function (ev) {
+                if (ev.target === mdEscModal) {
+                    entregaPendingAfterSaveCliente = null;
+                    closeEntregaSalvarClienteModal();
+                }
+            });
+        }
 
         [
             [dom.vendaObservacao, function () { State.setVendaField('observacao', dom.vendaObservacao.value); }],
@@ -7032,68 +8050,63 @@
         var btnReiniciarFluxoPagamento = document.getElementById('pdv-entrega-reiniciar-fluxo-pagamento');
         if (btnReiniciarFluxoPagamento) {
             btnReiniciarFluxoPagamento.addEventListener('click', function () {
-                closeEntregaFluxoModal3();
-                closeEntregaFluxoModal2();
-                closeEntregaFluxoModal1();
+                entregaWizardAguardandoTroco = false;
                 State.setEntregaPatch({ localPagamento: '', meioNaEntrega: '', troco: '' });
                 State.setEntregaField('maquininha', '');
                 if (dom.entregaTroco) dom.entregaTroco.value = '';
-                openEntregaFluxoModal1();
+                syncEntregaDetalhesModalUi();
+                scrollEntregaWizardIntoView();
             });
         }
 
-        var mdFlux1 = document.getElementById('modal-pdv-entrega-fluxo-1');
-        if (mdFlux1) {
-            mdFlux1.addEventListener('click', function (ev) {
-                if (ev.target === mdFlux1) closeEntregaFluxoModal1();
-            });
-        }
-        var mdFlux2 = document.getElementById('modal-pdv-entrega-fluxo-2');
-        if (mdFlux2) {
-            mdFlux2.addEventListener('click', function (ev) {
-                if (ev.target === mdFlux2) {
-                    closeEntregaFluxoModal2();
-                    openEntregaFluxoModal1();
-                }
-            });
-        }
-        var mdFlux3 = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
-        if (mdFlux3) {
-            mdFlux3.addEventListener('click', function (ev) {
-                if (ev.target === mdFlux3) {
-                    closeEntregaFluxoModal3();
-                    openEntregaFluxoModal2();
-                }
-            });
-        }
         var btnEf1Entrega = document.getElementById('pdv-ef1-entrega');
         if (btnEf1Entrega) {
             btnEf1Entrega.addEventListener('click', function () {
-                closeEntregaFluxoModal1();
-                openEntregaFluxoModal2();
+                State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: '' });
+                syncEntregaDetalhesModalUi();
             });
         }
         var btnEf1Loja = document.getElementById('pdv-ef1-loja');
         if (btnEf1Loja) {
             btnEf1Loja.addEventListener('click', function () {
+                entregaWizardAguardandoTroco = false;
                 State.setEntregaPatch({ localPagamento: 'loja', meioNaEntrega: '' });
                 State.setEntregaField('maquininha', '');
-                closeEntregaFluxoModal1();
+                syncEntregaDetalhesModalUi();
             });
         }
         var btnEf2Din = document.getElementById('pdv-ef2-dinheiro');
         if (btnEf2Din) {
             btnEf2Din.addEventListener('click', function () {
-                closeEntregaFluxoModal2();
-                openEntregaFluxoModal3();
+                entregaWizardAguardandoTroco = true;
+                var inpTroco = document.getElementById('pdv-ef3-troco-input');
+                var stTroco = State.getState();
+                var edTroco = document.getElementById('pdv-ed-troco');
+                if (inpTroco) {
+                    inpTroco.value = String(
+                        (stTroco.entrega && stTroco.entrega.troco) ||
+                            (edTroco && edTroco.value) ||
+                            ''
+                    ).trim();
+                }
+                syncEntregaDetalhesModalUi();
+                if (inpTroco) {
+                    setTimeout(function () {
+                        try {
+                            inpTroco.focus();
+                            inpTroco.select();
+                        } catch (eTroco) {}
+                    }, 80);
+                }
             });
         }
         var btnEf2Card = document.getElementById('pdv-ef2-cartao');
         if (btnEf2Card) {
             btnEf2Card.addEventListener('click', function () {
+                entregaWizardAguardandoTroco = false;
                 State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'cartao' });
                 State.setEntregaField('maquininha', 'sim');
-                closeEntregaFluxoModal2();
+                syncEntregaDetalhesModalUi();
             });
         }
         var btnEf3Ok = document.getElementById('pdv-ef3-ok');
@@ -7105,16 +8118,18 @@
                     alert('Informe o valor para troco (use 0 ou 0,00 se não precisar).');
                     return;
                 }
+                entregaWizardAguardandoTroco = false;
                 State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'dinheiro', troco: val });
                 State.setEntregaField('maquininha', 'nao');
-                closeEntregaFluxoModal3();
+                if (dom.entregaTroco) dom.entregaTroco.value = val;
+                syncEntregaDetalhesModalUi();
             });
         }
         var btnEf3Can = document.getElementById('pdv-ef3-cancelar');
         if (btnEf3Can) {
             btnEf3Can.addEventListener('click', function () {
-                closeEntregaFluxoModal3();
-                openEntregaFluxoModal2();
+                entregaWizardAguardandoTroco = false;
+                syncEntregaDetalhesModalUi();
             });
         }
         var inpEf3Troco = document.getElementById('pdv-ef3-troco-input');
@@ -7142,21 +8157,60 @@
                 }
             }
             if (event.key === 'Escape') {
-                if (isEntregaFluxo3Open()) {
+                if (isEntregaSalvarClienteModalOpen()) {
                     event.preventDefault();
-                    closeEntregaFluxoModal3();
-                    openEntregaFluxoModal2();
+                    entregaPendingAfterSaveCliente = null;
+                    closeEntregaSalvarClienteModal();
                     return;
                 }
-                if (isEntregaFluxo2Open()) {
+                if (isEntregaDetalhesModalOpen()) {
                     event.preventDefault();
-                    closeEntregaFluxoModal2();
-                    openEntregaFluxoModal1();
-                    return;
-                }
-                if (isEntregaFluxo1Open()) {
-                    event.preventDefault();
-                    closeEntregaFluxoModal1();
+                    var painelEsc = entregaWizardPainelAtual();
+                    if (painelEsc === 'troco') {
+                        entregaWizardAguardandoTroco = false;
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
+                    if (painelEsc === 'meio') {
+                        State.setEntregaPatch({ localPagamento: '', meioNaEntrega: '' });
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
+                    if (painelEsc === 'pagamento_local') {
+                        State.setEntregaPatch({
+                            detalhesEntregaRespondidos: false,
+                            localPagamento: '',
+                            meioNaEntrega: ''
+                        });
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
+                    if (painelEsc === 'detalhes') {
+                        State.setEntregaPatch({
+                            modoRetiradaEntrega: '',
+                            ativa: false,
+                            detalhesEntregaRespondidos: false,
+                            localPagamento: '',
+                            meioNaEntrega: ''
+                        });
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
+                    if (painelEsc === 'modo') {
+                        State.setEntregaPatch({
+                            modoRetiradaEntrega: '',
+                            ativa: false,
+                            detalhesEntregaRespondidos: false
+                        });
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
+                    State.setEntregaPatch({
+                        modoRetiradaEntrega: '',
+                        ativa: false,
+                        detalhesEntregaRespondidos: false
+                    });
+                    syncEntregaDetalhesModalUi();
                     return;
                 }
                 if (isClienteEditModalOpen()) {
@@ -7257,7 +8311,7 @@
                 return;
             }
             if (
-                stProdutos.currentStep === 'cliente' &&
+                stProdutos.currentStep === 'entrega' &&
                 !payFlowDialogOpen() &&
                 !isPaymentFormaModalOpen() &&
                 !startModalOpen &&
@@ -7265,40 +8319,20 @@
             ) {
                 if (event.code === 'F7' && !event.altKey && !event.ctrlKey && !event.metaKey) {
                     event.preventDefault();
-                    if (dom.btnNext && dom.btnNext.style.display !== 'none' && !dom.btnNext.disabled) {
-                        dom.btnNext.click();
+                    if (dom.btnNext && dom.btnNext.style.display !== 'none') {
+                        if (!dom.btnNext.disabled) dom.btnNext.click();
+                        else onEntregaBtnNext();
                     }
                     return;
                 }
-                var focoTipoEntrega =
-                    event.target &&
-                    event.target.closest &&
-                    event.target.closest('input[name="pdv-entrega-tipo"]');
-                if (!inField || focoTipoEntrega) {
-                    var d1 = event.code === 'Digit1' || event.code === 'Numpad1';
-                    var d2 = event.code === 'Digit2' || event.code === 'Numpad2';
-                    if (d1 || d2) {
+                if (!inField) {
+                    var d1e = event.code === 'Digit1' || event.code === 'Numpad1';
+                    var d2e = event.code === 'Digit2' || event.code === 'Numpad2';
+                    if (isRetiradaEntregaModalOpen() && (d1e || d2e)) {
                         event.preventDefault();
-                        State.setEntregaField('ativa', !!d2);
+                        escolherRetiradaEntrega(d2e ? 'entrega' : 'retirada');
                         return;
                     }
-                }
-            }
-            if (
-                stProdutos.currentStep === 'entrega' &&
-                !payFlowDialogOpen() &&
-                !isPaymentFormaModalOpen() &&
-                !startModalOpen &&
-                !isClienteEditModalOpen() &&
-                !isAnyEntregaFluxoModalOpen() &&
-                !modalEntregaImpOpen
-            ) {
-                if (event.code === 'F7' && !event.altKey && !event.ctrlKey && !event.metaKey) {
-                    event.preventDefault();
-                    if (dom.btnNext && dom.btnNext.style.display !== 'none' && !dom.btnNext.disabled) {
-                        dom.btnNext.click();
-                    }
-                    return;
                 }
             }
             if (event.altKey && event.code === 'ArrowLeft' && !event.ctrlKey && !event.metaKey && !inField) {
@@ -7317,7 +8351,7 @@
                 return;
             }
             if (event.altKey && !event.ctrlKey && !event.metaKey && !inField) {
-                var stepByDigit = { Digit1: 'produtos', Digit2: 'cliente', Digit3: 'entrega', Digit4: 'pagamento' };
+                var stepByDigit = { Digit1: 'produtos', Digit2: 'entrega', Digit3: 'pagamento' };
                 if (stepByDigit[event.code]) {
                     event.preventDefault();
                     tryNavigateToStep(stepByDigit[event.code]);
@@ -7326,9 +8360,9 @@
             }
             if (event.code === 'KeyE' && !event.altKey && !event.ctrlKey && !event.metaKey && !inField) {
                 var stE = State.getState();
-                if (stE.currentStep === 'cliente') {
+                if (stE.currentStep === 'entrega' && dom.entregaClienteNome) {
                     event.preventDefault();
-                    openClienteEditModal();
+                    dom.entregaClienteNome.focus();
                     return;
                 }
             }

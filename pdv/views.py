@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
 from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
+from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
     {"id": "mp_balcao", "nome": "Mercado Pago — Balcão", "rede": "mp"},
@@ -152,6 +153,7 @@ def pdv_home(request):
                 "maquininhasCartao": _maquininhas_cartao_effective(),
                 "maquininhasPix": _maquininhas_pix_effective(),
             },
+            "nfce": nfce_config_resumo(),
         },
         "pdv_reabrir_from_consulta": pdv_reabrir_from_consulta,
         "agro_pdv_assets_v": getattr(settings, "AGRO_PDV_ASSETS_V", "") or "",
