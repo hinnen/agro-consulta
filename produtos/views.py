@@ -136,6 +136,7 @@ from .models import (
     ClienteAgro,
     ItemVendaAgro,
     LancamentoAtalhoFiltro,
+    NfceDocumentoAgro,
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
     EstoqueLote,
@@ -9163,7 +9164,7 @@ def venda_agro_detalhe(request, pk):
 def api_venda_agro_devolver(request, pk):
     """Devolução total da venda: repõe estoque Agro e registra retirada(s) no caixa aberto."""
     venda = get_object_or_404(
-        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
+        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
         pk=pk,
     )
     if venda.devolvida_em:
@@ -9289,6 +9290,15 @@ def api_venda_agro_devolver(request, pk):
         from produtos.fiado_gestao_util import cancelar_titulos_venda
 
         cancelar_titulos_venda(venda, usuario=user_label, motivo=motivo or "Devolução venda")
+
+    nfce = getattr(venda, "nfce", None)
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        num = nfce.numero or "?"
+        avisos.append(
+            f"NFC-e nº {num} (série {nfce.serie or '?'}) continua AUTORIZADA na SEFAZ — "
+            "a devolução no Agro não cancela o cupom fiscal. "
+            "Cancele na SEFAZ SP ou aguarde cancelamento automático no sistema (em desenvolvimento)."
+        )
 
     return JsonResponse(
         {

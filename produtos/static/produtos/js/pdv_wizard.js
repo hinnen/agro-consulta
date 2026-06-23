@@ -5500,10 +5500,6 @@
         document.addEventListener('keydown', onKey);
     }
 
-    function nfceFluxoAutomatico(state) {
-        return nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state);
-    }
-
     function resolverNfceAntesConfirmar(withPrint) {
         if (!nfceUsuarioQuerEmitir()) {
             State.setPagamentoField('nfceOpts', {});
@@ -5514,11 +5510,6 @@
         var cpfCad = nfceNormalizarCpf(state.cliente && state.cliente.documento);
         if (nfceCpfValido(cpfCad)) {
             State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
-            confirmSaleProsseguir(withPrint);
-            return;
-        }
-        if (nfceFluxoAutomatico(state)) {
-            State.setPagamentoField('nfceOpts', { cpf: '', semIdentificacao: true });
             confirmSaleProsseguir(withPrint);
             return;
         }
