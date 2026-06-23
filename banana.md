@@ -446,10 +446,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.42`  
+**Versão:** `1.0.43`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (auditoria paridade prod×teste + regra VERSION única)  
+**Atualizado por:** assistente Cursor (NFC-e — passo 1 vars Render produção)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
+
+### NFC-e — go-live em andamento (2026-06-22, Renan)
+
+| Passo | O quê | Status |
+|-------|--------|--------|
+| **1** | Variáveis Render **SistVale - Produção** (lista abaixo) | **Renan agora** |
+| **2** | Conferir `GET /api/nfce/status/` logado: `ativo: true`, `tp_amb: 1`, `serie: 21` | Após deploy Render |
+| **3** | Reteste no **teste** (PIX, dinheiro, reemissão) — opcional se confiar no histórico homolog | Renan |
+| **4** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat** | Assistente quando Renan pedir |
+| **5** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se 539 | Renan na loja |
+
+**Loja hoje:** backend NFC-e **sim** · modais PDV **não** (`eb2ce4c`). Vars com `ENABLED=true` **não emitem** sozinhas até passo 4.
+
+**Vars obrigatórias (Render produção):** `NFC_E_ENABLED`, `NFC_E_TP_AMB=1`, `NFC_E_MODO=manual`, `NFC_E_SERIE=21`, `NFC_E_PROXIMO_NUMERO`, cert `NFC_E_CERT_BASE64`+`NFC_E_CERT_PASSWORD`, `NFC_E_CSC_ID`+`NFC_E_CSC_TOKEN`, emitente (`CNPJ`, `IE`, `RAZAO`, endereço, `CMUN=3524600`). Detalhe: CHECKPOINT + `docs/NFCE-PRODUCAO.md`.
 
 ### Paridade prod × teste — auditoria Git (2026-06-22)
 
@@ -988,6 +1002,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.42
+### Fim do checkpoint v1.0.43
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
