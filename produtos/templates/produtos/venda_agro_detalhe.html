@@ -362,6 +362,13 @@
 
         </label>
 
+        {% if nfce_painel.autorizada %}
+        <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3">
+          <p class="text-sm font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
+          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Esta venda tem NFC-e <strong>autorizada</strong> na SEFAZ{% if nfce_painel.numero %} (nº {{ nfce_painel.numero }}{% if nfce_painel.serie %}, série {{ nfce_painel.serie }}{% endif %}){% endif %}. A devolução aqui <strong>não cancela</strong> o cupom na Receita — estoque e caixa são ajustados no Agro, mas a nota fiscal continua válida até cancelamento na SEFAZ.</p>
+        </div>
+        {% endif %}
+
         <div>
 
           <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Valor devolvido por forma</p>

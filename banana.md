@@ -246,9 +246,11 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 | Modo `NFC_E_MODO` | Comportamento                                                                                                                                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manual` (padrão) | **PIX / cartão** → NFC-e automática ao confirmar (sem popup CPF; sem identificação se cliente sem CPF). **Dinheiro / fiado / vale** → popup **NFC ou Venda**; se NFC → modal CPF grande ou «Sem CPF na nota». |
+| `manual` (padrão) | **PIX / cartão** → NFC-e automática (sem popup NFC/Venda); se cliente **sem CPF** → modal **Sem CPF / informar CPF** (igual dinheiro). **Dinheiro / fiado / vale** → popup **NFC ou Venda**; se NFC → modal CPF. |
 | `auto`            | NFC-e em toda venda                                                                                                                                                                                           |
 
+
+**Devolução (2026-06-23):** devolver venda no Agro **não cancela** NFC-e na SEFAZ — aviso na tela de devolução + alerta pós-confirmação. Cancelamento automático SEFAZ: **pendente** (próxima fase).
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
 
@@ -528,10 +530,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.54`  
+**Versão:** `1.0.55`  
 **Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (NFC-e produção OK — Renan validou QR SEFAZ)  
-**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
+**Atualizado por:** assistente Cursor (fix CPF PIX + aviso devolução NFC-e)  
+**Versão app (`VERSION`):** **teste** pendente commit · **produção** v1.93
+
+### Fix pós go-live NFC-e (2026-06-23, Renan)
+
+| Problema | Resposta / fix |
+| -------- | -------------- |
+| **Devolução cancela cupom?** | **Não** — Agro repõe estoque e tira do caixa; NFC-e autorizada **continua na SEFAZ**. Aviso amarelo na tela de devolução + alerta após confirmar. Cancelamento SEFAZ automático: **fase seguinte**. |
+| **PIX + impressão, cliente sem CPF — popup não abria** | Corrigido: PIX/cartão ainda pula só «NFC ou Venda»; se cliente **não tem CPF**, abre modal **Sem CPF / informar CPF** (igual dinheiro). |
+
+**Arquivos:** `pdv_wizard.js`, `venda_agro_detalhe.html`, `views.py`.
+
+**Teste Render:** PIX com impressão + cliente sem CPF → modal CPF; devolução com NFC-e → aviso fiscal.
 
 ### NFC-e — go-live **OK** (2026-06-23, Renan)
 
@@ -1006,7 +1019,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 
 - [x] **Reemissão** em Consultar vendas — Renan confirmou funcionando
 - [x] Erro **225** — `card/tpIntegra=2` + IBPT por item
-- [x] **PIX/cartão** — sem modal CPF; emite sem identificação
+- [x] **PIX/cartão** — sem popup NFC/Venda; **modal CPF** se cliente sem CPF (fix 2026-06-23)
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
 - [x] **Produção** — v1.93 · nº 2 série 21 autorizada · QR SEFAZ OK (Renan 23/06/2026)
