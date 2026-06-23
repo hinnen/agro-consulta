@@ -478,24 +478,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.46`  
+**Versão:** `1.0.47`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (NFC-e cert teste→prod + Base64)  
+**Atualizado por:** assistente Cursor (NFC-e Render prod OK — status ativo tp_amb 1)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
 
 ### NFC-e — go-live em andamento (2026-06-22, Renan)
 
 
-| Passo | O quê                                                                                      | Status                        |
-| ----- | ------------------------------------------------------------------------------------------ | ----------------------------- |
-| **1** | Variáveis Render **SistVale - Produção** (lista abaixo)                                    | CSC OK · conferir status |
-| **2** | Conferir `GET /api/nfce/status/` logado: `ativo: true`, `tp_amb: 1`, `serie: 21`           | Após deploy Render            |
-| **3** | Reteste no **teste** (PIX, dinheiro, reemissão) — opcional se confiar no histórico homolog | Renan                         |
-| **4** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | Assistente quando Renan pedir |
-| **5** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se 539                            | Renan na loja                 |
+| Passo | O quê                                                                                      | Status |
+| ----- | ------------------------------------------------------------------------------------------ | ------ |
+| **1** | Variáveis Render **SistVale - Produção** (cert, CSC, emitente, `TP_AMB=1`, série 21)     | **OK** |
+| **2** | `GET /api/nfce/status/` — `ativo: true`, `tp_amb: 1`, `serie: 21`                          | **OK** (Renan 22/06) |
+| **3** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | **pendente** — Renan pede *«pode subir NFC-e»* |
+| **4** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se rejeição 539                   | Após passo 3 |
 
+**Conferência Render (2026-06-22):** `ok: true` · `ativo: true` · `modo: por_forma` · `tp_amb: 1` · `serie: 21` · Jacupiranga `3524600` · formas auto: PIX + cartões.
 
-**Loja hoje:** backend NFC-e **sim** · modais PDV **não** (`eb2ce4c`). Vars com `ENABLED=true` **não emitem** sozinhas até passo 4.
+**Loja hoje:** backend + **env produção OK** · modais PDV **ainda não** (`eb2ce4c`) — cupom fiscal só após passo 3.
 
 **Vars obrigatórias (Render produção):** `NFC_E_ENABLED`, `NFC_E_TP_AMB=1`, `NFC_E_MODO=manual`, `NFC_E_SERIE=21`, `NFC_E_PROXIMO_NUMERO`, cert `NFC_E_CERT_BASE64`+`NFC_E_CERT_PASSWORD`, `NFC_E_CSC_ID`+`NFC_E_CSC_TOKEN`, emitente (`CNPJ`, `IE`, `RAZAO`, endereço, `CMUN=3524600`). Detalhe: CHECKPOINT + `docs/NFCE-PRODUCAO.md`.
 
@@ -534,7 +534,7 @@ Portal SP: [https://www.nfce.fazenda.sp.gov.br/NFCePortal/](https://www.nfce.faz
 | **1** | Abrir portal + certificado A1 da loja no PC | OK |
 | **2–3** | CSC produção na tela SEFAZ (Gerenciamento Cód Segurança) | OK (Renan 22/06) |
 | **4** | `NFC_E_CSC_ID` + `NFC_E_CSC_TOKEN` no Render **produção** | **OK** (Renan) |
-| **5** | Conferir `/api/nfce/status/` logado: `ativo: true`, `tp_amb: 1` | **próximo** |
+| **5** | Conferir `/api/nfce/status/` logado: `ativo: true`, `tp_amb: 1` | **OK** (Renan 22/06) |
 
 **Mapa:** ID Token = `NFC_E_CSC_ID` (número, ex. `1` ou `000001`) · CSC = `NFC_E_CSC_TOKEN` (texto longo). **Produção** = menu **«com validade jurídica»** (não só homologação). CSC do **teste** ≠ CSC da **loja**.
 
@@ -1130,6 +1130,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.46
+### Fim do checkpoint v1.0.47
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
