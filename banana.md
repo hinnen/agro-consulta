@@ -562,10 +562,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Branch** | `producao` ← cherry-pick `7227d83` + `7395c2a` |
 | **Commits loja** | `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ na devolução) |
 | **VERSION loja** | **1.97** |
-| **O quê** | Devolução tenta cancelar NFC-e autorizada (motivo padrão); modal CPF PIX sem documento |
-| **Revert** | `git revert 20c33bb 1d09438` em `producao` (nesta ordem) |
+| **Bug pós-deploy** | Cancelamento falhou «infEvento não encontrado» — fix xmlns `evento` + botão **Cancelar NFC-e** na venda |
+| **Fix** | commit pendente → produção após push |
 
-**Teste Renan:** devolver venda com cupom fiscal de hoje → alerta «NFC-e cancelada na SEFAZ» (se dentro de 24 h).
+**Teste Renan (venda nº 3):** após fix, abrir venda devolvida → **Cancelar NFC-e** (devolução já feita; cupom ainda autorizado).
 
 ### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
 

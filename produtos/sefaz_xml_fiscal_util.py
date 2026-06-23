@@ -66,6 +66,8 @@ def tostring_sem_prefixos(xml_in: str | etree._Element) -> str:
     raw = re.sub(r"<(/?)ds:", r"<\1", raw)
 
     raw = _garantir_xmlns_tag(raw, "NFe", NS_NFE)
+    raw = _garantir_xmlns_tag(raw, "evento", NS_NFE)
+    raw = _garantir_xmlns_tag(raw, "envEvento", NS_NFE)
     raw = _garantir_xmlns_tag(raw, "Signature", NS_DSIG)
 
     raw = normalizar_xml_envio(raw)

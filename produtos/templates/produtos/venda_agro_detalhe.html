@@ -65,6 +65,9 @@
         {% endif %}
         {% if nfce_painel.ativo and nfce_painel.autorizada %}
         <button type="button" id="btn-imprimir-nfce-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-white shadow-md hover:bg-emerald-700" title="DANFE NFC-e">Cupom fiscal</button>
+        {% if nfce_painel.pode_cancelar %}
+        <button type="button" id="btn-nfce-cancelar-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-400 bg-rose-500 text-white shadow-md hover:bg-rose-600" title="Cancelar NFC-e na SEFAZ">Cancelar NFC-e</button>
+        {% endif %}
         {% endif %}
         {% if nfce_painel.ativo and nfce_painel.pendente and not v.devolvida %}
         <button type="button" id="btn-nfce-reemitir-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-amber-400 bg-amber-500 text-white shadow-md hover:bg-amber-600">Reemitir NFC-e</button>
@@ -910,6 +913,38 @@
       agroCarregarEImprimirCupomVenda('{{ v.pk }}', { segunda_via: true }).catch(function (err) {
         alert(err && err.message ? err.message : 'Não foi possível imprimir.');
       });
+    });
+  }
+  var btnCancelNfce = document.getElementById('btn-nfce-cancelar-venda');
+  if (btnCancelNfce) {
+    btnCancelNfce.addEventListener('click', function () {
+      if (!confirm('Cancelar a NFC-e nº {{ nfce_painel.numero|default:"?" }} na SEFAZ?')) return;
+      btnCancelNfce.disabled = true;
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      fetch('{% url "api_venda_agro_nfce_cancelar" v.pk %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          Accept: 'application/json',
+        },
+        body: '{}',
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (x.j && x.j.ok) {
+            alert('NFC-e cancelada na SEFAZ.');
+            location.reload();
+            return;
+          }
+          alert((x.j && x.j.nfce && x.j.nfce.erro) || (x.j && x.j.erro) || 'Falha ao cancelar NFC-e.');
+        })
+        .catch(function () { alert('Falha de rede.'); })
+        .finally(function () {
+          btnCancelNfce.disabled = false;
+          if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        });
     });
   }
 })();
