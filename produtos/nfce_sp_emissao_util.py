@@ -919,7 +919,12 @@ def emitir_nfce_para_venda(
     }
 
 
-def _assinar_evento_xml(xml_evento: str, cert_path: str, cert_password: str, id_evento: str) -> tuple[str | None, str | None]:
+def _assinar_evento_xml(
+    xml_evento: str | Any,
+    cert_path: str,
+    cert_password: str,
+    id_evento: str,
+) -> tuple[str | None, str | None]:
     try:
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, pkcs12
@@ -938,7 +943,10 @@ def _assinar_evento_xml(xml_evento: str, cert_path: str, cert_password: str, id_
         cert_pem = certificate.public_bytes(Encoding.PEM)
         key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
         parser = etree.XMLParser(remove_blank_text=True)
-        root = etree.fromstring(xml_evento.encode("utf-8"), parser)
+        if isinstance(xml_evento, str):
+            root = etree.fromstring(xml_evento.encode("utf-8"), parser)
+        else:
+            root = xml_evento
         inf = root.find(f".//{{{NS}}}infEvento")
         if inf is None:
             for el in root.iter():
@@ -950,6 +958,8 @@ def _assinar_evento_xml(xml_evento: str, cert_path: str, cert_password: str, id_
             return None, "infEvento não encontrado."
         inf_id = inf.get("Id") or id_evento
         inf.set("Id", inf_id)
+        if inf.get("versao"):
+            del inf.attrib["versao"]
         signer = criar_sefaz_xml_signer()
         signed = signer.sign(root, key=key_pem, cert=cert_pem, reference_uri="#" + inf_id)
         return tostring_sem_prefixos(signed), None
@@ -965,7 +975,10 @@ def _montar_evento_cancelamento(
     protocolo: str,
     x_just: str,
     n_seq: int = 1,
-) -> tuple[str, str]:
+) -> tuple[str, Any]:
+    """Monta `<evento>` de cancelamento (110111) com lxml + namespace padrão SEFAZ."""
+    from lxml import etree
+
     tp_amb = int(cfg["tp_amb"])
     dh_txt = timezone.localtime(timezone.now()).strftime("%Y-%m-%dT%H:%M:%S-03:00")
     chave = re.sub(r"\D", "", chave)[:44]
@@ -974,22 +987,28 @@ def _montar_evento_cancelamento(
     if len(x_just) < 15:
         x_just = NFCE_MOTIVO_CANCELAMENTO_PADRAO
     id_evento = f"ID110111{chave}{int(n_seq):02d}"
-    evento = ET.Element(f"{{{NS}}}evento", {"versao": "1.00"})
-    inf = ET.SubElement(evento, f"{{{NS}}}infEvento", {"Id": id_evento, "versao": "1.00"})
-    _sub(inf, "cOrgao", CUF_SP)
-    _sub(inf, "tpAmb", str(tp_amb))
-    _sub(inf, "CNPJ", cfg["cnpj"])
-    _sub(inf, "chNFe", chave)
-    _sub(inf, "dhEvento", dh_txt)
-    _sub(inf, "tpEvento", "110111")
-    _sub(inf, "nSeqEvento", str(n_seq))
-    _sub(inf, "verEvento", "1.00")
-    det = _sub(inf, "detEvento", None)
-    det.set("versao", "1.00")
-    _sub(det, "descEvento", "Cancelamento")
-    _sub(det, "nProt", protocolo)
-    _sub(det, "xJust", x_just)
-    return id_evento, tostring_sem_prefixos(ET.tostring(evento, encoding="unicode"))
+
+    def _el(parent, tag: str, text: str | None = None, **attrs):
+        el = etree.SubElement(parent, etree.QName(NS, tag), **attrs)
+        if text is not None:
+            el.text = str(text)
+        return el
+
+    evento = etree.Element(etree.QName(NS, "evento"), nsmap={None: NS}, versao="1.00")
+    inf = etree.SubElement(evento, etree.QName(NS, "infEvento"), Id=id_evento)
+    _el(inf, "cOrgao", CUF_SP)
+    _el(inf, "tpAmb", str(tp_amb))
+    _el(inf, "CNPJ", cfg["cnpj"])
+    _el(inf, "chNFe", chave)
+    _el(inf, "dhEvento", dh_txt)
+    _el(inf, "tpEvento", "110111")
+    _el(inf, "nSeqEvento", str(n_seq))
+    _el(inf, "verEvento", "1.00")
+    det = etree.SubElement(inf, etree.QName(NS, "detEvento"), versao="1.00")
+    _el(det, "descEvento", "Cancelamento")
+    _el(det, "nProt", protocolo)
+    _el(det, "xJust", x_just)
+    return id_evento, evento
 
 
 def _parse_retorno_evento(soap_text: str) -> dict[str, Any]:
@@ -1188,5 +1207,10 @@ def cancelar_nfce_autorizada(
             "Para NFC-e, a SEFAZ aceita cancelamento por evento só até ~30 minutos "
             "depois da autorização do cupom (não da devolução). "
             "Fora disso: NF-e de devolução (mod. 55) ou contador."
+        )
+    elif cstat == "225":
+        motivo = (
+            f"{motivo} Se persistir após atualização do sistema, avise o suporte "
+            "(schema XML do evento de cancelamento)."
         )
     return {"ok": False, "erro": f"{cstat} — {motivo}".strip(" —"), "documento_id": doc.pk, "c_stat": cstat}
