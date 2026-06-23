@@ -550,10 +550,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.56`  
+**Versão:** `1.0.57`  
 **Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (regras NFC-e no §4.3 + cancelamento SEFAZ na devolução)  
-**Versão app (`VERSION`):** **teste** v1.96 (`7395c2a`) · **produção** v1.93
+**Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
+**Versão app (`VERSION`):** **teste** v1.97 (`df1de57`) · **produção** v1.97 (`20c33bb`)
+
+### Produção — deploy NFC-e cancelamento (2026-06-23, Renan pediu)
+
+| Item | Valor |
+| ---- | ----- |
+| **Branch** | `producao` ← cherry-pick `7227d83` + `7395c2a` |
+| **Commits loja** | `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ na devolução) |
+| **VERSION loja** | **1.97** |
+| **O quê** | Devolução tenta cancelar NFC-e autorizada (motivo padrão); modal CPF PIX sem documento |
+| **Revert** | `git revert 20c33bb 1d09438` em `producao` (nesta ordem) |
+
+**Teste Renan:** devolver venda com cupom fiscal de hoje → alerta «NFC-e cancelada na SEFAZ» (se dentro de 24 h).
 
 ### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
 
