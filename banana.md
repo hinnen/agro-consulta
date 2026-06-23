@@ -557,6 +557,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
 **Versão app (`VERSION`):** **teste** v2.01 (`88df175`) · **produção** v2.01 (`4995c0e`)
 
+### Produção — erros cancelamento NFC-e (2026-06-23)
+
+| Código | Significado | O que fazer |
+| ------ | ----------- | ----------- |
+| **501** | Prazo esgotado (~**30 min** desde autorização do cupom) | Esperado em venda antiga. NF-e devolução mod. 55 / contador |
+| **225** | Schema XML do evento inválido | **Fix v2.02** — `infEvento` sem atributo `versao`; montagem lxml |
+
+**Teste:** venda **≤30 min** + devolução → cancelamento deve passar (não 225). Venda **>30 min** → 501 OK.
+
 ### Produção — erro 501 cancelamento NFC-e nº 3 (2026-06-23)
 
 | Item | Explicação |
