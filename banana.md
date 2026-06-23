@@ -553,7 +553,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.57`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
-**Versão app (`VERSION`):** **teste** v1.97 (`df1de57`) · **produção** v1.97 (`20c33bb`)
+**Versão app (`VERSION`):** **teste** v1.99 (`c0f0ef0`) · **produção** v1.99 (`c89f3ef`)
+
+### Produção — fix cancelamento «infEvento não encontrado» (2026-06-23)
+
+| Item | Valor |
+| ---- | ----- |
+| **Problema** | Devolução OK, NFC-e nº 3 não cancelou — «infEvento não encontrado» |
+| **Causa** | XML do evento perdia `xmlns` na serialização antes da assinatura |
+| **Fix** | `c0f0ef0` / produção `c89f3ef` — xmlns em `<evento>` + botão **Cancelar NFC-e** na venda |
+| **Venda nº 3** | Já devolvida — após deploy: abrir venda → **Cancelar NFC-e** |
 
 ### Produção — deploy NFC-e cancelamento (2026-06-23, Renan pediu)
 
@@ -562,10 +571,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Branch** | `producao` ← cherry-pick `7227d83` + `7395c2a` |
 | **Commits loja** | `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ na devolução) |
 | **VERSION loja** | **1.97** |
-| **Bug pós-deploy** | Cancelamento falhou «infEvento não encontrado» — fix xmlns `evento` + botão **Cancelar NFC-e** na venda |
-| **Fix** | commit pendente → produção após push |
-
-**Teste Renan (venda nº 3):** após fix, abrir venda devolvida → **Cancelar NFC-e** (devolução já feita; cupom ainda autorizado).
+| **Bug pós-deploy** | «infEvento não encontrado» — **corrigido** v1.99 |
+| **Fix loja** | `c89f3ef` |
 
 ### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
 
