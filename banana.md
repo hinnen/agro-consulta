@@ -243,14 +243,34 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Emissão pelo Agro**, não pelo ERP. Série **21** no Agro; ERP continua série **20**.
 
+#### Quando emite ou não (resumo operacional)
 
-| Modo `NFC_E_MODO` | Comportamento                                                                                                                                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manual` (padrão) | **PIX / cartão** → NFC-e automática (sem popup NFC/Venda); se cliente **sem CPF** → modal **Sem CPF / informar CPF** (igual dinheiro). **Dinheiro / fiado / vale** → popup **NFC ou Venda**; se NFC → modal CPF. |
-| `auto`            | NFC-e em toda venda                                                                                                                                                                                           |
+**Pré-requisito:** `NFC_E_ENABLED=true` e certificado/CSC configurados. Se desligado → **nunca** emite.
 
+| Situação | Emite NFC-e? |
+| -------- | ------------ |
+| `NFC_E_MODO=auto` | **Sim**, em toda venda confirmada |
+| Forma **PIX** ou **cartão** (débito / crédito / parcelado) | **Sim**, automático |
+| **Dinheiro**, fiado, vale, cashback, etc. | **Só se o operador escolher** cupom fiscal |
+| Operador escolhe **«Venda comum»** (popup de impressão) | **Não** — só cupom não fiscal |
+| Venda **sem impressão** + forma manual | **Não** (salvo modo `auto`) |
+| Venda **sem impressão** + PIX/cartão | **Sim**, automático |
+| **Falha na SEFAZ** | Venda **grava igual**; reemitir em **Consultar vendas** |
 
-**Devolução (2026-06-23):** devolver venda no Agro **não cancela** NFC-e na SEFAZ — aviso na tela de devolução + alerta pós-confirmação. Cancelamento automático SEFAZ: **pendente** (próxima fase).
+#### Popups no PDV (wizard `/pdv/checkout/`)
+
+| Passo | PIX / cartão | Dinheiro e demais |
+| ----- | ------------ | ----------------- |
+| Confirmar **com impressão** | Sem popup «NFC ou Venda» — vai direto ao fiscal | Popup **Cupom fiscal** ou **Venda comum** |
+| Cliente **sem CPF** válido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
+| Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
+
+#### Devolução de venda
+
+- Repõe estoque + saída no caixa (como antes).
+- Se tinha NFC-e **autorizada** → sistema **tenta cancelar na SEFAZ** com motivo padrão: *«Devolucao de mercadoria registrada no sistema Agro.»*
+- **Prazo SEFAZ:** cancelamento em até **24 h** após emissão; fora disso → aviso na tela (devolução Agro segue OK).
+- Status local passa a **Cancelada** quando a SEFAZ aceita.
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
 
@@ -530,21 +550,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.55`  
+**Versão:** `1.0.56`  
 **Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (fix CPF PIX + aviso devolução NFC-e)  
-**Versão app (`VERSION`):** **teste** v1.94 (`7227d83`) · **produção** v1.93
+**Atualizado por:** assistente Cursor (regras NFC-e no §4.3 + cancelamento SEFAZ na devolução)  
+**Versão app (`VERSION`):** **teste** pendente commit · **produção** v1.93
+
+### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
+
+- **§4.3** — tabela «quando emite», popups PDV e devolução (documentação operacional).
+- **Devolução:** tenta **cancelar NFC-e na SEFAZ** (evento 110111); motivo padrão *Devolucao de mercadoria registrada no sistema Agro.*; status local **Cancelada** se OK; aviso se prazo 24 h ou falha.
+- **Arquivos:** `nfce_sp_emissao_util.py` (`cancelar_nfce_autorizada`), `views.py`, `models.py`, `nfce_venda_util.py`, `venda_agro_detalhe.html`.
 
 ### Fix pós go-live NFC-e (2026-06-23, Renan)
 
 | Problema | Resposta / fix |
 | -------- | -------------- |
-| **Devolução cancela cupom?** | **Não** — Agro repõe estoque e tira do caixa; NFC-e autorizada **continua na SEFAZ**. Aviso amarelo na tela de devolução + alerta após confirmar. Cancelamento SEFAZ automático: **fase seguinte**. |
-| **PIX + impressão, cliente sem CPF — popup não abria** | Corrigido: PIX/cartão ainda pula só «NFC ou Venda»; se cliente **não tem CPF**, abre modal **Sem CPF / informar CPF** (igual dinheiro). |
-
-**Arquivos:** `pdv_wizard.js`, `venda_agro_detalhe.html`, `views.py`.
-
-**Teste Render:** PIX com impressão + cliente sem CPF → modal CPF; devolução com NFC-e → aviso fiscal.
+| **Devolução cancela cupom?** | **Sim, automaticamente** (SEFAZ SP, até 24 h). Fora do prazo → aviso; estoque/caixa ajustados igual. |
+| **PIX + impressão, cliente sem CPF** | Modal CPF (commit `7227d83`). |
 
 ### NFC-e — go-live **OK** (2026-06-23, Renan)
 
@@ -1019,7 +1041,8 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 
 - [x] **Reemissão** em Consultar vendas — Renan confirmou funcionando
 - [x] Erro **225** — `card/tpIntegra=2` + IBPT por item
-- [x] **PIX/cartão** — sem popup NFC/Venda; **modal CPF** se cliente sem CPF (fix 2026-06-23)
+- [x] **PIX/cartão** — sem popup NFC/Venda; modal CPF se cliente sem CPF
+- [x] **Devolução** — cancelamento SEFAZ automático (motivo padrão; prazo 24 h)
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
 - [x] **Produção** — v1.93 · nº 2 série 21 autorizada · QR SEFAZ OK (Renan 23/06/2026)

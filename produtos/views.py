@@ -9291,14 +9291,22 @@ def api_venda_agro_devolver(request, pk):
 
         cancelar_titulos_venda(venda, usuario=user_label, motivo=motivo or "Devolução venda")
 
+    nfce_cancelada = False
     nfce = getattr(venda, "nfce", None)
     if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-        num = nfce.numero or "?"
-        avisos.append(
-            f"NFC-e nº {num} (série {nfce.serie or '?'}) continua AUTORIZADA na SEFAZ — "
-            "a devolução no Agro não cancela o cupom fiscal. "
-            "Cancele na SEFAZ SP ou aguarde cancelamento automático no sistema (em desenvolvimento)."
-        )
+        from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
+
+        r_nfce = cancelar_nfce_autorizada(nfce)
+        if r_nfce.get("ok"):
+            nfce_cancelada = True
+            num = nfce.numero or "?"
+            avisos.append(f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ.")
+        else:
+            num = nfce.numero or "?"
+            avisos.append(
+                f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
+                f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
+            )
 
     return JsonResponse(
         {
@@ -9306,6 +9314,7 @@ def api_venda_agro_devolver(request, pk):
             "mensagem": "Devolução registrada. Estoque reposto e valor saiu do caixa aberto.",
             "movimento_ids": movimento_ids,
             "estoque_reposto": bool(venda.estoque_baixa_agro_aplicada and estoque_ok),
+            "nfce_cancelada": nfce_cancelada,
             "avisos": avisos,
         }
     )

@@ -40,6 +40,18 @@ URL_AUTORIZACAO = {
     2: "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx",
 }
 
+URL_RECEPCAO_EVENTO = {
+    1: "https://nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx",
+    2: "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx",
+}
+
+NS_WSDL_EVENTO = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4"
+
+NFCE_MOTIVO_CANCELAMENTO_PADRAO = "Devolucao de mercadoria registrada no sistema Agro."
+
+# Evento cancelamento registrado / duplicidade / NF já cancelada.
+_NFCE_CANCEL_CSTAT_OK = frozenset({"135", "155", "573", "220"})
+
 URL_QR_BASE = {
     1: "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx",
     2: "https://homologacao.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx",
@@ -905,3 +917,233 @@ def emitir_nfce_para_venda(
         "documento_id": doc.pk,
         "c_stat": ret.get("c_stat"),
     }
+
+
+def _assinar_evento_xml(xml_evento: str, cert_path: str, cert_password: str, id_evento: str) -> tuple[str | None, str | None]:
+    try:
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, pkcs12
+        from lxml import etree
+        from produtos.sefaz_signxml_util import criar_sefaz_xml_signer
+    except ImportError:
+        return None, "Instale: pip install cryptography lxml signxml"
+
+    try:
+        with open(cert_path, "rb") as f:
+            pfx = f.read()
+        password = cert_password.encode("utf-8") if cert_password else b""
+        private_key, certificate, _ = pkcs12.load_key_and_certificates(pfx, password, default_backend())
+        if private_key is None or certificate is None:
+            return None, "PFX sem chave ou certificado."
+        cert_pem = certificate.public_bytes(Encoding.PEM)
+        key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+        parser = etree.XMLParser(remove_blank_text=True)
+        root = etree.fromstring(xml_evento.encode("utf-8"), parser)
+        inf = root.find(f".//{{{NS}}}infEvento")
+        if inf is None:
+            return None, "infEvento não encontrado."
+        inf_id = inf.get("Id") or id_evento
+        inf.set("Id", inf_id)
+        signer = criar_sefaz_xml_signer()
+        signed = signer.sign(root, key=key_pem, cert=cert_pem, reference_uri="#" + inf_id)
+        return tostring_sem_prefixos(signed), None
+    except Exception as exc:
+        logger.exception("assinar_evento_nfce")
+        return None, str(exc)[:400]
+
+
+def _montar_evento_cancelamento(
+    cfg: dict[str, Any],
+    *,
+    chave: str,
+    protocolo: str,
+    x_just: str,
+    n_seq: int = 1,
+) -> tuple[str, str]:
+    tp_amb = int(cfg["tp_amb"])
+    dh_txt = timezone.localtime(timezone.now()).strftime("%Y-%m-%dT%H:%M:%S-03:00")
+    chave = re.sub(r"\D", "", chave)[:44]
+    protocolo = re.sub(r"\D", "", protocolo)[:15]
+    x_just = _sanitizar_texto_xml((x_just or NFCE_MOTIVO_CANCELAMENTO_PADRAO).strip())[:255]
+    if len(x_just) < 15:
+        x_just = NFCE_MOTIVO_CANCELAMENTO_PADRAO
+    id_evento = f"ID110111{chave}{int(n_seq):02d}"
+    evento = ET.Element(f"{{{NS}}}evento", {"versao": "1.00"})
+    inf = ET.SubElement(evento, f"{{{NS}}}infEvento", {"Id": id_evento})
+    _sub(inf, "cOrgao", CUF_SP)
+    _sub(inf, "tpAmb", str(tp_amb))
+    _sub(inf, "CNPJ", cfg["cnpj"])
+    _sub(inf, "chNFe", chave)
+    _sub(inf, "dhEvento", dh_txt)
+    _sub(inf, "tpEvento", "110111")
+    _sub(inf, "nSeqEvento", str(n_seq))
+    _sub(inf, "verEvento", "1.00")
+    det = _sub(inf, "detEvento", None)
+    det.set("versao", "1.00")
+    _sub(det, "descEvento", "Cancelamento")
+    _sub(det, "nProt", protocolo)
+    _sub(det, "xJust", x_just)
+    return id_evento, tostring_sem_prefixos(ET.tostring(evento, encoding="unicode"))
+
+
+def _parse_retorno_evento(soap_text: str) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "c_stat": "",
+        "x_motivo": "",
+        "protocolo": "",
+        "registrado": False,
+    }
+    try:
+        root = ET.fromstring(soap_text)
+    except ET.ParseError:
+        snippet = re.sub(r"\s+", " ", (soap_text or ""))[:350]
+        out["x_motivo"] = f"Resposta SOAP inválida. Trecho: {snippet}"
+        return out
+
+    for el in root.iter():
+        if _local(el.tag) != "Fault":
+            continue
+        fault_txt = ""
+        for ch in el.iter():
+            if _local(ch.tag) in ("faultstring", "Text") and ch.text:
+                fault_txt = ch.text.strip()
+                break
+        out["x_motivo"] = fault_txt or "Erro SOAP Fault na SEFAZ."
+        return out
+
+    payload = ""
+    for el in root.iter():
+        ln = _local(el.tag)
+        if ln in ("nfeResultMsg", "nfeRecepcaoEventoResult") and not payload:
+            payload = _elemento_para_xml_str(el)
+    if not payload:
+        for el in root.iter():
+            if _local(el.tag) == "retEnvEvento":
+                payload = ET.tostring(el, encoding="unicode")
+                break
+    if not payload:
+        out["x_motivo"] = "Resposta SOAP sem retEnvEvento reconhecido."
+        return out
+
+    try:
+        ret_root = _parse_xml_fiscal(payload)
+    except ET.ParseError:
+        out["x_motivo"] = "XML de retorno de evento inválido."
+        return out
+
+    ev_cstat = ""
+    ev_motivo = ""
+    for el in ret_root.iter():
+        ln = _local(el.tag)
+        if ln == "cStat" and el.text and not ev_cstat:
+            ev_cstat = el.text.strip()
+        elif ln == "xMotivo" and el.text and not ev_motivo:
+            ev_motivo = el.text.strip()
+        elif ln == "nProt" and el.text and not out["protocolo"]:
+            out["protocolo"] = el.text.strip()
+
+    for el in ret_root.iter():
+        if _local(el.tag) != "infEvento":
+            continue
+        for ch in el:
+            cl = _local(ch.tag)
+            if cl == "cStat" and ch.text:
+                ev_cstat = ch.text.strip()
+            elif cl == "xMotivo" and ch.text:
+                ev_motivo = ch.text.strip()
+
+    out["c_stat"] = ev_cstat
+    out["x_motivo"] = ev_motivo
+    out["registrado"] = ev_cstat in _NFCE_CANCEL_CSTAT_OK
+    return out
+
+
+def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    tp_amb = int(cfg["tp_amb"])
+    url = URL_RECEPCAO_EVENTO.get(tp_amb, URL_RECEPCAO_EVENTO[2])
+    id_lote = str(int(datetime.now().timestamp()))[-15:]
+    inner = normalizar_xml_envio(xml_evento_assinado)
+    env_evento = (
+        f'<envEvento xmlns="{NS}" versao="1.00">'
+        f"<idLote>{id_lote}</idLote>{inner}</envEvento>"
+    )
+    soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL_EVENTO, env_evento, "nfeRecepcaoEvento")
+    cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+    try:
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=90,
+        )
+        text = r.text or ""
+        if r.status_code >= 400:
+            return None, f"HTTP {r.status_code}: {text[:500]}"
+        return _parse_retorno_evento(text), None
+    except requests.RequestException as exc:
+        return None, str(exc)[:400]
+    finally:
+        import os
+
+        for p in cleanup:
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+
+
+def cancelar_nfce_autorizada(
+    doc: NfceDocumentoAgro,
+    *,
+    x_just: str = "",
+) -> dict[str, Any]:
+    """Cancela NFC-e autorizada na SEFAZ SP (evento 110111)."""
+    if doc.status == NfceDocumentoAgro.Status.CANCELADA:
+        return {"ok": True, "reutilizada": True, "documento_id": doc.pk}
+    if doc.status != NfceDocumentoAgro.Status.AUTORIZADA:
+        return {"ok": False, "erro": "Só é possível cancelar NFC-e autorizada.", "documento_id": doc.pk}
+    if not doc.chave or not doc.protocolo:
+        return {
+            "ok": False,
+            "erro": "NFC-e sem chave ou protocolo de autorização — cancelamento manual na SEFAZ.",
+            "documento_id": doc.pk,
+        }
+    if not nfce_configurada():
+        return {"ok": False, "erro": "NFC-e não configurada no servidor.", "documento_id": doc.pk}
+
+    cfg = nfce_cfg()
+    id_evento, xml_evento = _montar_evento_cancelamento(
+        cfg,
+        chave=doc.chave,
+        protocolo=doc.protocolo,
+        x_just=x_just or NFCE_MOTIVO_CANCELAMENTO_PADRAO,
+    )
+    signed, err_sign = _assinar_evento_xml(xml_evento, cfg["cert_path"], cfg["cert_password"], id_evento)
+    if err_sign or not signed:
+        return {"ok": False, "erro": err_sign or "Falha ao assinar evento de cancelamento.", "documento_id": doc.pk}
+
+    ret, err_http = _enviar_recepcao_evento(signed, cfg)
+    if err_http or not ret:
+        return {"ok": False, "erro": err_http or "Sem resposta SEFAZ no cancelamento.", "documento_id": doc.pk}
+
+    if ret.get("registrado"):
+        msg = f"Cancelamento {ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —")
+        doc.status = NfceDocumentoAgro.Status.CANCELADA
+        if ret.get("protocolo"):
+            doc.protocolo = ret["protocolo"]
+        doc.mensagem_sefaz = (msg or "NFC-e cancelada na SEFAZ.")[:2000]
+        doc.save(update_fields=["status", "protocolo", "mensagem_sefaz"])
+        return {
+            "ok": True,
+            "documento_id": doc.pk,
+            "protocolo_cancelamento": ret.get("protocolo") or "",
+            "c_stat": ret.get("c_stat"),
+        }
+
+    cstat = str(ret.get("c_stat") or "")
+    motivo = ret.get("x_motivo") or "Cancelamento rejeitado pela SEFAZ."
+    if cstat == "501":
+        motivo = "Prazo de cancelamento expirado na SEFAZ (regra de 24 horas). Cancele manualmente ou via contabilidade."
+    return {"ok": False, "erro": f"{cstat} — {motivo}".strip(" —"), "documento_id": doc.pk, "c_stat": cstat}
