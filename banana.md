@@ -533,7 +533,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.55`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (fix CPF PIX + aviso devolução NFC-e)  
-**Versão app (`VERSION`):** **teste** pendente commit · **produção** v1.93
+**Versão app (`VERSION`):** **teste** v1.94 (`7227d83`) · **produção** v1.93
 
 ### Fix pós go-live NFC-e (2026-06-23, Renan)
 
