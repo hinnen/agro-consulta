@@ -154,6 +154,28 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 **Regra prática:** deploy loja → CHECKPOINT: **pacote X** (commits) · **teste vX.XX → loja vX.XX**. Pendências → tabela «Só no teste», não só badge.
 
+#### Subir só um pacote no meio (ex. teste já em v1.96, loja só v1.95)
+
+O **número** no teste é histórico de commits; na **loja** você sobe **o pacote que escolher**, não “tudo até a última versão”.
+
+| Exemplo | O que acontece |
+| ------- | -------------- |
+| Teste | v1.94 (fix A) → v1.95 (fix B) → v1.96 (fix C) — **três commits** |
+| Você pede | *«sobe só o 1.95»* (fix B) |
+| Assistente | Cherry-pick **só o(s) commit(s) do 1.95** — **não** leva o 1.96 |
+| Loja depois | Badge **v1.95** (manual no commit final do deploy) |
+| Teste continua | **v1.96** — fix C **ainda só no teste** |
+| Leitura | **teste v1.96 > loja v1.95** = falta subir o pacote **1.96** |
+
+**Importante:**
+
+- **Não precisa** existir v1.94 na loja para subir v1.95 (pode pular: loja 1.93 → 1.95).
+- O badge da loja = **número do pacote que você subiu**, não “cópia do VERSION do teste no momento”.
+- No **banana** registramos: *pacote v1.95 · commit `abc123` · loja não recebeu v1.94 nem v1.96*.
+- Se o **1.96 depende** do código do 1.95, o cherry-pick do 1.95 já leva o necessário; o 1.96 em si fica de fora.
+
+**Na prática você diz:** *«pode subir para produção o pacote da v1.95»* (ou descreve o fix). O assistente acha o commit pelo `VERSION` / histórico / banana — **não** faz merge do `teste` inteiro.
+
 ---
 
 ## 4. Módulos — mapa rápido
@@ -486,7 +508,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.52`  
+**Versão:** `1.0.53`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (NFC-e produção OK — Renan validou QR SEFAZ)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
@@ -1148,6 +1170,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.52
+### Fim do checkpoint v1.0.53
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
