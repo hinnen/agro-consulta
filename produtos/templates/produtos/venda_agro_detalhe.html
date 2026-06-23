@@ -368,7 +368,7 @@
         {% if nfce_painel.autorizada %}
         <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3">
           <p class="text-sm font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
-          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Esta venda tem NFC-e <strong>autorizada</strong> na SEFAZ{% if nfce_painel.numero %} (nº {{ nfce_painel.numero }}{% if nfce_painel.serie %}, série {{ nfce_painel.serie }}{% endif %}){% endif %}. Ao confirmar a devolução, o sistema <strong>tenta cancelar</strong> o cupom na SEFAZ (motivo padrão de devolução). Se passou do prazo (24 h) ou a SEFAZ recusar, você verá aviso — estoque e caixa são ajustados mesmo assim.</p>
+          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Esta venda tem NFC-e <strong>autorizada</strong> na SEFAZ{% if nfce_painel.numero %} (nº {{ nfce_painel.numero }}{% if nfce_painel.serie %}, série {{ nfce_painel.serie }}{% endif %}){% endif %}. Ao confirmar, o sistema <strong>tenta cancelar</strong> o cupom (motivo padrão). <strong>Atenção:</strong> a SEFAZ só aceita cancelamento até ~<strong>30 minutos</strong> após a emissão do cupom — não conta a partir de agora. Passou disso → aviso 501; estoque e caixa ajustam igual.</p>
         </div>
         {% endif %}
 
