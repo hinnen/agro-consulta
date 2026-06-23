@@ -176,6 +176,26 @@ O **número** no teste é histórico de commits; na **loja** você sobe **o paco
 
 **Na prática você diz:** *«pode subir para produção o pacote da v1.95»* (ou descreve o fix). O assistente acha o commit pelo `VERSION` / histórico / banana — **não** faz merge do `teste` inteiro.
 
+#### Recomendação — manter ou mudar? (23/06/2026)
+
+**Para o SisVale hoje: manter este esquema (+0,01, cherry-pick, banana).** Já está no hook, no badge do BI e na rotina teste → loja. **Não** vale trocar por semver grande ou data só por organização — mudaria pouco e geraria retrabalho.
+
+| Camada | Papel |
+| ------ | ----- |
+| **`VERSION` (+0,01)** | Badge simples na loja (*v1.95*) — operador vê na home |
+| **`banana.md` CHECKPOINT** | **Fonte da verdade** — qual commit = qual pacote, o que está só no teste, o que foi para a loja |
+| **Cherry-pick** | Sobe **pacote escolhido**, não branch inteira |
+
+**Três disciplinas** (isso é o que organiza de verdade):
+
+1. **Um pacote lógico = um bump no teste** — não misturar dois fixes grandes no mesmo commit se forem pacotes de produção diferentes.
+2. **Todo deploy loja** → linha no CHECKPOINT: `v1.95 · commit · o quê · revert como`.
+3. **Pedido explícito** — *«sobe v1.95»* ou *«pode subir produção o fix X»*; assistente **não** merge `teste` inteiro.
+
+**Opcional no futuro** (só se quiser mais rigor): `git tag v1.95` no commit do teste ao fechar pacote — facilita achar o cherry-pick. **Não obrigatório** agora.
+
+**Não recomendado aqui:** merge `teste`→`producao` de uma vez; CalVer (`2026.06.23`); número de versão diferente por branch sem regra (voltaria confusão 1.59 vs 1.92).
+
 ---
 
 ## 4. Módulos — mapa rápido
@@ -508,7 +528,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.53`  
+**Versão:** `1.0.54`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (NFC-e produção OK — Renan validou QR SEFAZ)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
@@ -1170,6 +1190,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.53
+### Fim do checkpoint v1.0.54
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
