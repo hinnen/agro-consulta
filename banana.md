@@ -552,21 +552,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.57`  
+**Versão:** `1.0.58`  
 **Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
-**Versão app (`VERSION`):** **teste** v2.03 (`3b11776`) · **produção** v2.03 (`02cdb98`)
+**Atualizado por:** assistente Cursor (Renan validou cancelamento NFC-e em produção)  
+**Versão app (`VERSION`):** **teste** v2.04 (`bc925d5`) · **produção** v2.03 (`02cdb98`)
 
-### Produção — erros cancelamento NFC-e (2026-06-23)
+### NFC-e cancelamento na devolução — **OK produção** (2026-06-23, Renan)
+
+| Teste | Resultado |
+| ----- | --------- |
+| Venda **≤30 min** → devolução | **OK** — NFC-e **nº 4** série **21** cancelada na SEFAZ + estoque/caixa |
+| Venda **>30 min** (~141 min) → cancelar | **501** esperado — mensagem clara (minutos desde emissão) |
+| Erro **225** (schema XML) | **Corrigido** v2.03 — não reproduziu após fix |
+
+**Operação loja:** devolver dentro de **30 min** da venda → cupom cancela sozinho. Passou disso → 501; Agro ajusta estoque/caixa; fiscal fica com contador (NF-e devolução mod. 55).
+
+**Pacote produção:** `02cdb98` (v2.03) — cancelamento evento 110111 + mensagens 501/225.
+
+### Produção — erros cancelamento NFC-e (referência)
 
 | Código | Significado | O que fazer |
 | ------ | ----------- | ----------- |
-| **501** | Prazo esgotado (~**30 min** desde autorização do cupom) | Esperado em venda antiga. NF-e devolução mod. 55 / contador |
-| **225** | Schema XML do evento inválido | **Fix v2.02** — `infEvento` sem atributo `versao`; montagem lxml |
+| **501** | Prazo esgotado (~**30 min** desde autorização do cupom) | Esperado. NF-e devolução mod. 55 / contador |
+| **225** | Schema XML inválido | Corrigido v2.03 (`infEvento` só `Id`; lxml) |
 
-**Teste:** venda **≤30 min** + devolução → cancelamento deve passar (não 225). Venda **>30 min** → 501 OK.
-
-### Produção — erro 501 cancelamento NFC-e nº 3 (2026-06-23)
+### Histórico debug cancelamento (2026-06-23)
 
 | Item | Explicação |
 | ---- | ---------- |
@@ -1082,7 +1092,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 - [x] **Reemissão** em Consultar vendas — Renan confirmou funcionando
 - [x] Erro **225** — `card/tpIntegra=2` + IBPT por item
 - [x] **PIX/cartão** — sem popup NFC/Venda; modal CPF se cliente sem CPF
-- [x] **Devolução** — cancelamento SEFAZ automático (motivo padrão; prazo 24 h)
+- [x] **Devolução** — cancelamento SEFAZ automático · **OK produção** nº 4 (Renan 23/06) · prazo **30 min**
 - [x] **Dinheiro** — popup NFC/Venda; modal CPF **grande** (v1.11+)
 - [x] Toast falha fiscal **depois** da impressão Windows
 - [x] **Produção** — v1.93 · nº 2 série 21 autorizada · QR SEFAZ OK (Renan 23/06/2026)
