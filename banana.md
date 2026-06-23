@@ -127,24 +127,21 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ### 3.1 Versão do sistema (contador único — 2026-06-22)
 
+| O quê | Detalhe |
+| ----- | ------- |
+| **Arquivo** | `VERSION` na raiz (ex.: `1.93`) |
+| **Badge BI** | `v` + conteúdo de `VERSION` |
+| **Contador** | **Um só** — o número = **versão do pacote** deployado, não “commit do branch” |
+| **Branch `teste`** | Hook sobe **+0,01** a cada commit de código (`1.92` → `1.93`). Docs com `SKIP_VERSION_BUMP=1` não contam |
+| **Branch `producao`** | No deploy: **`VERSION` = mesmo número do pacote teste** que subiu (ex. NFC-e → teste e loja **v1.93**) |
+| **Cherry-pick em lote** | `SKIP_VERSION_BUMP=1` nos commits intermediários · no fim: um commit ajusta `VERSION` para bater com teste |
+| **Erro corrigido (jun/26)** | Pacote teste v1.92 tinha virado prod v1.57–v1.59 (hook bumpou 3× no cherry-pick) → manual **1.92**, depois **1.93** com NFC-e |
+| **Estado atual (22/06)** | **`teste` v1.93** = **`producao` v1.93** (`2386eb2`) — badge igual nos dois sites |
+| **Paridade** | `teste` ≥ `producao`. Teste à frente = pacote ainda não pedido para loja |
+| **Hook** | `.githooks/pre-commit` → `scripts/bump_version.py --hook` (**script não mudou** — regra é operacional no deploy) |
+| **Conferir** | `git show origin/teste:VERSION` · `git show origin/producao:VERSION` |
 
-| O quê                    | Detalhe                                                                                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Arquivo**              | `VERSION` na raiz (ex.: `1.92`)                                                                                                                       |
-| **Badge BI**             | `v` + conteúdo de `VERSION`                                                                                                                           |
-| **Contador**             | **Um só** — o número significa a **versão do pacote**, não o branch                                                                                   |
-| **Branch `teste`**       | Hook sobe **+0,01** a cada commit (`1.92` → `1.93`)                                                                                                   |
-| **Branch `producao`**    | No deploy: `**VERSION` = versão do pacote teste** que subiu (ex. deploy do `e98db0f` → loja fica `**1.92`**)                                          |
-| **Cherry-pick em lote**  | Commits intermediários: `SKIP_VERSION_BUMP=1 git cherry-pick …` · **só o último** (ou commit `docs` pós-deploy) ajusta `VERSION` para bater com teste |
-| **Erro passado**         | Pacote teste v1.92 virou prod v1.57–v1.59 (hook bumpou 3×) — **corrigido** para **1.92**                                                              |
-| **Paridade**             | `teste` ≥ `producao` em número. Teste à frente = pacotes ainda não pedidos para loja                                                                  |
-| **Como**                 | Hook `.githooks/pre-commit` → `scripts/bump_version.py --hook`                                                                                        |
-| **Setup (1× por clone)** | `powershell scripts/setup_git_hooks.ps1`                                                                                                              |
-| **Pular 1 commit**       | `SKIP_VERSION_BUMP=1 git commit …`                                                                                                                    |
-| **Conferir diff real**   | `git diff origin/producao origin/teste --stat` (backend core costuma estar **igual**)                                                                 |
-
-
-**Regra prática:** ao fechar deploy produção, CHECKPOINT registra `**teste` vX.XX → produção vX.XX** (mesmo número).
+**Regra prática:** deploy produção → CHECKPOINT registra **teste vX.XX → produção vX.XX** (mesmo número).
 
 ---
 
@@ -478,7 +475,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.48`  
+**Versão:** `1.0.49`  
 **Última atualização:** `2026-06-22`  
 **Atualizado por:** assistente Cursor (NFC-e PDV → produção v1.93)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
@@ -592,13 +589,12 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 ### Mapa loja vs teste — resumo (2026-06-22)
 
 
-| Ambiente     | VERSION | HEAD      | Nota                                |
-| ------------ | ------- | --------- | ----------------------------------- |
-| **teste**    | v1.93   | `9ef18d4` | v1.92 + docs banana (auditoria)     |
-| **produção** | v1.92   | `52cde10` | Pacote `2d88ee4` + VERSION alinhado |
+| Ambiente     | VERSION | HEAD      | Nota |
+| ------------ | ------- | --------- | ---- |
+| **teste**    | v1.93   | `029c91a` | Homologação |
+| **produção** | v1.93   | `2386eb2` | Loja — NFC-e PDV `9cf4522` + VERSION |
 
-
-**Próximos candidatos produção** (quando Renan pedir neste chat): ver tabela «Só no teste» acima — priorizar **#3 CP perf** ou **#4 Entrada NF** (baixo risco) antes de **NFC-e** (#1).
+**Próximos candidatos produção:** pacotes **#2–#10** da tabela «Só no teste» (Display Scale, CP perf, Entrada NF, …). NFC-e (**#1**) **já na loja**.
 
 ### Contas a pagar — Excluir na lista nova + fim do layout clássico (2026-06-22)
 
@@ -1136,6 +1132,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.48
+### Fim do checkpoint v1.0.49
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
