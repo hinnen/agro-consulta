@@ -467,6 +467,7 @@ class NfceDocumentoAgro(models.Model):
 
     class Status(models.TextChoices):
         AUTORIZADA = "autorizada", "Autorizada"
+        CANCELADA = "cancelada", "Cancelada"
         REJEITADA = "rejeitada", "Rejeitada"
         ERRO = "erro", "Erro técnico"
 

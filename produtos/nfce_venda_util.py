@@ -82,6 +82,11 @@ def painel_nfce_venda(venda: VendaAgro) -> dict[str, Any]:
         out["pode_imprimir_fiscal"] = True
         return out
 
+    if nfce and nfce.status == NfceDocumentoAgro.Status.CANCELADA:
+        out["status_label"] = "Cancelada"
+        out["erro"] = nfce.mensagem_sefaz or "NFC-e cancelada na SEFAZ."
+        return out
+
     if venda_nfce_pendente(venda):
         out["pendente"] = True
         out["erro"] = _erro_nfce_venda(venda, nfce)
