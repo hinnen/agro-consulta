@@ -269,8 +269,10 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 - Repõe estoque + saída no caixa (como antes).
 - Se tinha NFC-e **autorizada** → sistema **tenta cancelar na SEFAZ** com motivo padrão: *«Devolucao de mercadoria registrada no sistema Agro.»*
-- **Prazo SEFAZ:** cancelamento em até **24 h** após emissão; fora disso → aviso na tela (devolução Agro segue OK).
+- **Prazo SEFAZ (NFC-e mod. 65):** cancelamento por evento só até **~30 minutos** após a **autorização do cupom** (regra nacional — NT 2018.004 / Ajuste SINIEF 07/2018). O relógio **não** recomeça na devolução.
+- **Erro 501** = prazo esgotado na SEFAZ. Devolução no Agro segue OK; cupom continua autorizado → **NF-e de devolução (mod. 55)** ou contador.
 - Status local passa a **Cancelada** quando a SEFAZ aceita.
+- Botão **Cancelar NFC-e** na tela da venda (retry manual).
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
 
@@ -554,6 +556,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
 **Versão app (`VERSION`):** **teste** v1.99 (`c0f0ef0`) · **produção** v1.99 (`c89f3ef`)
+
+### Produção — erro 501 cancelamento NFC-e nº 3 (2026-06-23)
+
+| Item | Explicação |
+| ---- | ---------- |
+| **Erro** | `501 — Prazo de cancelamento…` ao cancelar cupom recente |
+| **Regra real SEFAZ** | NFC-e (mod. 65): cancelamento por evento só **~30 min** após **autorização do cupom** (não 24 h; não reinicia na devolução) |
+| **Por que nº 3 falhou** | Venda recente, mas entre emissão → devolução → bugs (infEvento) → deploys passou **>30 min** desde a autorização |
+| **O que fazer nº 3** | Cupom **permanece autorizado** na SEFAZ. Caminho fiscal: **NF-e devolução mod. 55** (contador) referenciando a chave da NFC-e |
+| **Código** | Mensagem corrigida (30 min + minutos desde emissão); §4.3 banana atualizado |
 
 ### Produção — fix cancelamento «infEvento não encontrado» (2026-06-23)
 

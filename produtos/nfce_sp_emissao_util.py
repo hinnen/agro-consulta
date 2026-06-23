@@ -975,7 +975,7 @@ def _montar_evento_cancelamento(
         x_just = NFCE_MOTIVO_CANCELAMENTO_PADRAO
     id_evento = f"ID110111{chave}{int(n_seq):02d}"
     evento = ET.Element(f"{{{NS}}}evento", {"versao": "1.00"})
-    inf = ET.SubElement(evento, f"{{{NS}}}infEvento", {"Id": id_evento})
+    inf = ET.SubElement(evento, f"{{{NS}}}infEvento", {"Id": id_evento, "versao": "1.00"})
     _sub(inf, "cOrgao", CUF_SP)
     _sub(inf, "tpAmb", str(tp_amb))
     _sub(inf, "CNPJ", cfg["cnpj"])
@@ -1100,6 +1100,27 @@ def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tu
                 pass
 
 
+def _minutos_desde_emissao_nfce(doc: NfceDocumentoAgro) -> int | None:
+    if not doc.criado_em:
+        return None
+    return max(0, int((timezone.now() - doc.criado_em).total_seconds() // 60))
+
+
+def _extrair_nprot_xml_autorizado(doc: NfceDocumentoAgro) -> str:
+    """Protocolo de autorização (nProt) a partir do XML gravado, se existir."""
+    xml = (doc.xml_autorizado or "").strip()
+    if not xml:
+        return (doc.protocolo or "").strip()
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return (doc.protocolo or "").strip()
+    for el in root.iter():
+        if _local(el.tag) == "nProt" and el.text:
+            return re.sub(r"\D", "", el.text.strip())[:15]
+    return re.sub(r"\D", "", doc.protocolo or "")[:15]
+
+
 def cancelar_nfce_autorizada(
     doc: NfceDocumentoAgro,
     *,
@@ -1120,10 +1141,19 @@ def cancelar_nfce_autorizada(
         return {"ok": False, "erro": "NFC-e não configurada no servidor.", "documento_id": doc.pk}
 
     cfg = nfce_cfg()
+    cfg_evt = dict(cfg)
+    cfg_evt["tp_amb"] = int(doc.tp_amb or cfg["tp_amb"])
+    protocolo = _extrair_nprot_xml_autorizado(doc)
+    if not protocolo:
+        return {
+            "ok": False,
+            "erro": "NFC-e sem protocolo de autorização (nProt) — cancelamento manual na SEFAZ.",
+            "documento_id": doc.pk,
+        }
     id_evento, xml_evento = _montar_evento_cancelamento(
-        cfg,
+        cfg_evt,
         chave=doc.chave,
-        protocolo=doc.protocolo,
+        protocolo=protocolo,
         x_just=x_just or NFCE_MOTIVO_CANCELAMENTO_PADRAO,
     )
     signed, err_sign = _assinar_evento_xml(xml_evento, cfg["cert_path"], cfg["cert_password"], id_evento)
@@ -1149,7 +1179,14 @@ def cancelar_nfce_autorizada(
         }
 
     cstat = str(ret.get("c_stat") or "")
-    motivo = ret.get("x_motivo") or "Cancelamento rejeitado pela SEFAZ."
+    motivo = (ret.get("x_motivo") or "Cancelamento rejeitado pela SEFAZ.").strip()
     if cstat == "501":
-        motivo = "Prazo de cancelamento expirado na SEFAZ (regra de 24 horas). Cancele manualmente ou via contabilidade."
+        mins = _minutos_desde_emissao_nfce(doc)
+        tempo = f" Cupom autorizado há ~{mins} min." if mins is not None else ""
+        motivo = (
+            f"{motivo}{tempo} "
+            "Para NFC-e, a SEFAZ aceita cancelamento por evento só até ~30 minutos "
+            "depois da autorização do cupom (não da devolução). "
+            "Fora disso: NF-e de devolução (mod. 55) ou contador."
+        )
     return {"ok": False, "erro": f"{cstat} — {motivo}".strip(" —"), "documento_id": doc.pk, "c_stat": cstat}
