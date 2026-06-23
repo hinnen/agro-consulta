@@ -553,7 +553,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.56`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (regras NFC-e no §4.3 + cancelamento SEFAZ na devolução)  
-**Versão app (`VERSION`):** **teste** pendente commit · **produção** v1.93
+**Versão app (`VERSION`):** **teste** v1.96 (`7395c2a`) · **produção** v1.93
 
 ### NFC-e — regras resumidas + cancelamento na devolução (2026-06-23)
 
