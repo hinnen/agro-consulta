@@ -478,10 +478,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.47`  
+**Versão:** `1.0.48`  
 **Última atualização:** `2026-06-22`  
-**Atualizado por:** assistente Cursor (NFC-e Render prod OK — status ativo tp_amb 1)  
-**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
+**Atualizado por:** assistente Cursor (NFC-e PDV → produção v1.93)  
+**Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
 
 ### NFC-e — go-live em andamento (2026-06-22, Renan)
 
@@ -490,12 +490,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ----- | ------------------------------------------------------------------------------------------ | ------ |
 | **1** | Variáveis Render **SistVale - Produção** (cert, CSC, emitente, `TP_AMB=1`, série 21)     | **OK** |
 | **2** | `GET /api/nfce/status/` — `ativo: true`, `tp_amb: 1`, `serie: 21`                          | **OK** (Renan 22/06) |
-| **3** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | **pendente** — Renan pede *«pode subir NFC-e»* |
-| **4** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se rejeição 539                   | Após passo 3 |
+| **3** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | **OK** `9cf4522` · v1.93 (`2386eb2`) |
+| **4** | Venda teste PIX na loja + ajustar `NFC_E_PROXIMO_NUMERO` se rejeição 539                   | **Renan agora** |
+
+**Deploy produção (2026-06-22, Renan *pode subir*):** `pdv_wizard.js/html`, `pdv_state.js`, `venda_cupom_80mm.js`, `vendas_lista.html`, `venda_agro_detalhe.html`, `step_entrega.html`, `pdv/views.py`. Env Render já `ativo: true` · `tp_amb: 1` · série 21.
+
+**Teste loja:** Ctrl+F5 no PDV checkout → venda **PIX** pequena → cupom fiscal com QR. Dinheiro → popup NFC/Venda. Reemissão em `/vendas/`.
+
+**Reverter:** revert `9cf4522` (+ `2386eb2`) em `producao`.
 
 **Conferência Render (2026-06-22):** `ok: true` · `ativo: true` · `modo: por_forma` · `tp_amb: 1` · `serie: 21` · Jacupiranga `3524600` · formas auto: PIX + cartões.
 
-**Loja hoje:** backend + **env produção OK** · modais PDV **ainda não** (`eb2ce4c`) — cupom fiscal só após passo 3.
+**Loja hoje:** backend + env + **PDV NFC-e** deployados (v1.93). Validar venda real (passo 4).
 
 **Vars obrigatórias (Render produção):** `NFC_E_ENABLED`, `NFC_E_TP_AMB=1`, `NFC_E_MODO=manual`, `NFC_E_SERIE=21`, `NFC_E_PROXIMO_NUMERO`, cert `NFC_E_CERT_BASE64`+`NFC_E_CERT_PASSWORD`, `NFC_E_CSC_ID`+`NFC_E_CSC_TOKEN`, emitente (`CNPJ`, `IE`, `RAZAO`, endereço, `CMUN=3524600`). Detalhe: CHECKPOINT + `docs/NFCE-PRODUCAO.md`.
 
@@ -551,7 +557,7 @@ Conferência: `git diff origin/producao origin/teste --stat` · 36 arquivos · ~
 
 | #   | Pacote                                | Arquivos / nota                                                                                                           | Risco loja                                                             |
 | --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| 1   | **NFC-e PDV**                         | `pdv_wizard.js`, `pdv_wizard.html`, `venda_cupom_80mm.js`, `vendas_lista.html`, `venda_agro_detalhe.html`, `pdv/views.py` | **Alto** — foi **revertido** na loja (`eb2ce4c`); teste evoluiu depois |
+| 1   | **NFC-e PDV**                         | — | **Na loja** v1.93 (`9cf4522`) |
 | 2   | **Agro Display Scale**                | `agro_display_scale.js`, `_agro_display_scale.html`, `_agro_consulta_ui.html`, BI                                         | Médio — calibração global de tamanho de tela                           |
 | 3   | **CP lista — perf/UX**                | `lancamentos_contas_pagar_teste.html` — bootstrap HTML, prefetch BI, badge «Sincronizando», colunas PIN, filtro hoje      | Baixo — só template; **API já igual** na loja                          |
 | 4   | **Entrada NF — financeiro duplicado** | `entrada_nota.html` — pula etapa se título já existe; mensagens «já existia / recuperado»                                 | Baixo                                                                  |
@@ -1130,6 +1136,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.47
+### Fim do checkpoint v1.0.48
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
