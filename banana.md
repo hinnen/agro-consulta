@@ -478,7 +478,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.44`  
+**Versão:** `1.0.45`  
 **Última atualização:** `2026-06-22`  
 **Atualizado por:** assistente Cursor (NFC-e cert teste→prod + Base64)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
@@ -524,6 +524,19 @@ $pfx = "C:\Users\RenanHinnen\Downloads\seu-certificado.pfx"
 Se der *«não encontrado»*, arraste o `.pfx` para a janela do PowerShell para colar o caminho certo.
 
 **Senha:** copie `NFC_E_CERT_PASSWORD` do teste se for o mesmo arquivo.
+
+### NFC-e — obter CSC (passo a passo, 2026-06-22)
+
+Portal SP: [https://www.nfce.fazenda.sp.gov.br/NFCePortal/](https://www.nfce.fazenda.sp.gov.br/NFCePortal/)
+
+| Passo | O quê | Status |
+|-------|--------|--------|
+| **1** | Abrir portal + certificado A1 da loja no PC | Renan |
+| **2** | Credenciamento «com validade jurídica» (se ainda não fez) | pendente |
+| **3** | Gerenciar Cód Segurança → «com validade jurídica» → Novo Cód Segurança | pendente |
+| **4** | Copiar **ID** → `NFC_E_CSC_ID` e **Cód Segurança** → `NFC_E_CSC_TOKEN` no Render **produção** | pendente |
+
+**Mapa:** ID Token = `NFC_E_CSC_ID` (número, ex. `1` ou `000001`) · CSC = `NFC_E_CSC_TOKEN` (texto longo). **Produção** = menu **«com validade jurídica»** (não só homologação). CSC do **teste** ≠ CSC da **loja**.
 
 ### Paridade prod × teste — auditoria Git (2026-06-22)
 
@@ -1117,6 +1130,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.44
+### Fim do checkpoint v1.0.45
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
