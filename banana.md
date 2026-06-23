@@ -130,18 +130,27 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 | O quê | Detalhe |
 | ----- | ------- |
 | **Arquivo** | `VERSION` na raiz (ex.: `1.93`) |
-| **Badge BI** | `v` + conteúdo de `VERSION` |
-| **Contador** | **Um só** — o número = **versão do pacote** deployado, não “commit do branch” |
-| **Branch `teste`** | Hook sobe **+0,01** a cada commit de código (`1.92` → `1.93`). Docs com `SKIP_VERSION_BUMP=1` não contam |
-| **Branch `producao`** | No deploy: **`VERSION` = mesmo número do pacote teste** que subiu (ex. NFC-e → teste e loja **v1.93**) |
-| **Cherry-pick em lote** | `SKIP_VERSION_BUMP=1` nos commits intermediários · no fim: um commit ajusta `VERSION` para bater com teste |
-| **Erro corrigido (jun/26)** | Pacote teste v1.92 tinha virado prod v1.57–v1.59 (hook bumpou 3× no cherry-pick) → manual **1.92**, depois **1.93** com NFC-e |
-| **Estado atual (22/06)** | **`teste` v1.93** = **`producao` v1.93** (`2386eb2`) — badge igual nos dois sites |
-| **Paridade** | `teste` ≥ `producao`. Teste à frente = pacote ainda não pedido para loja |
-| **Hook** | `.githooks/pre-commit` → `scripts/bump_version.py --hook` (**script não mudou** — regra é operacional no deploy) |
-| **Conferir** | `git show origin/teste:VERSION` · `git show origin/producao:VERSION` |
+| **Badge BI** | `v` + conteúdo de `VERSION` em **cada** site (teste e loja têm arquivo próprio no branch) |
+| **O que o número significa** | **Rótulo do último pacote** que aquele ambiente exibe — **não** significa que teste e loja rodam o **mesmo código** |
+| **Branch `teste`** | Hook sobe **+0,01** a cada commit de **código** (`1.93` → `1.94`). Docs com `SKIP_VERSION_BUMP=1` não contam |
+| **Branch `producao`** | No deploy: `VERSION` = número do **pacote que subiu** (ex. NFC-e → loja **v1.93**) |
+| **Cherry-pick em lote** | `SKIP_VERSION_BUMP=1` nos intermediários · no fim um commit ajusta `VERSION` na loja |
 
-**Regra prática:** deploy produção → CHECKPOINT registra **teste vX.XX → produção vX.XX** (mesmo número).
+#### Mesmo número teste e loja — não é o mesmo sistema
+
+| Situação | O que significa |
+| -------- | --------------- |
+| **teste v1.93 · loja v1.93** (hoje) | Loja recebeu o pacote **v1.93** (NFC-e). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, …) — **~27 arquivos diferentes**. O badge **não mostra** isso. |
+| **Como saber o que falta na loja** | Tabela **«Só no teste»** no CHECKPOINT · `git diff origin/producao origin/teste --stat` — **não** olhar só o `VERSION` |
+| **Regra intuitiva (ideal)** | **`teste` > `producao`** → loja atrás (ex. teste **v1.94**, loja **v1.93** = tem pacote pendente). **`teste` = `producao`** → acabou de subir pacote **ou** teste só ganhou docs sem bump |
+| **Próximo fix de código no teste** | Deve virar **v1.94** no teste; loja fica **v1.93** até você pedir produção — aí fica óbvio que não são iguais |
+
+**Por que confundiu:** no deploy alinhamos o **número** (1.93) nos dois lados; o **código** do teste nunca foi todo para a loja (só cherry-picks). VERSION = **etiqueta do pacote**, não diff completo entre branches.
+
+| Erro corrigido (jun/26) | Pacote v1.92 tinha virado loja v1.57–v1.59 (hook no cherry-pick) → manual **1.92**, depois **1.93** NFC-e |
+| Conferir | `git show origin/teste:VERSION` · `git show origin/producao:VERSION` · diff `--stat` |
+
+**Regra prática:** deploy loja → CHECKPOINT: **pacote X** (commits) · **teste vX.XX → loja vX.XX**. Pendências → tabela «Só no teste», não só badge.
 
 ---
 
@@ -475,7 +484,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.49`  
+**Versão:** `1.0.50`  
 **Última atualização:** `2026-06-22`  
 **Atualizado por:** assistente Cursor (NFC-e PDV → produção v1.93)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
@@ -1132,6 +1141,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.49
+### Fim do checkpoint v1.0.50
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
