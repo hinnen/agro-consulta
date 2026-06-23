@@ -478,7 +478,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.45`  
+**Versão:** `1.0.46`  
 **Última atualização:** `2026-06-22`  
 **Atualizado por:** assistente Cursor (NFC-e cert teste→prod + Base64)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.92 (`52cde10`)
@@ -488,7 +488,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Passo | O quê                                                                                      | Status                        |
 | ----- | ------------------------------------------------------------------------------------------ | ----------------------------- |
-| **1** | Variáveis Render **SistVale - Produção** (lista abaixo)                                    | **Renan agora**               |
+| **1** | Variáveis Render **SistVale - Produção** (lista abaixo)                                    | CSC OK · conferir status |
 | **2** | Conferir `GET /api/nfce/status/` logado: `ativo: true`, `tp_amb: 1`, `serie: 21`           | Após deploy Render            |
 | **3** | Reteste no **teste** (PIX, dinheiro, reemissão) — opcional se confiar no histórico homolog | Renan                         |
 | **4** | Cherry-pick pacote 1 (front PDV + vendas) → `producao` **neste chat**                      | Assistente quando Renan pedir |
@@ -531,10 +531,10 @@ Portal SP: [https://www.nfce.fazenda.sp.gov.br/NFCePortal/](https://www.nfce.faz
 
 | Passo | O quê | Status |
 |-------|--------|--------|
-| **1** | Abrir portal + certificado A1 da loja no PC | Renan |
-| **2** | Credenciamento «com validade jurídica» (se ainda não fez) | pendente |
-| **3** | Gerenciar Cód Segurança → «com validade jurídica» → Novo Cód Segurança | pendente |
-| **4** | Copiar **ID** → `NFC_E_CSC_ID` e **Cód Segurança** → `NFC_E_CSC_TOKEN` no Render **produção** | pendente |
+| **1** | Abrir portal + certificado A1 da loja no PC | OK |
+| **2–3** | CSC produção na tela SEFAZ (Gerenciamento Cód Segurança) | OK (Renan 22/06) |
+| **4** | `NFC_E_CSC_ID` + `NFC_E_CSC_TOKEN` no Render **produção** | **OK** (Renan) |
+| **5** | Conferir `/api/nfce/status/` logado: `ativo: true`, `tp_amb: 1` | **próximo** |
 
 **Mapa:** ID Token = `NFC_E_CSC_ID` (número, ex. `1` ou `000001`) · CSC = `NFC_E_CSC_TOKEN` (texto longo). **Produção** = menu **«com validade jurídica»** (não só homologação). CSC do **teste** ≠ CSC da **loja**.
 
@@ -1130,6 +1130,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.45
+### Fim do checkpoint v1.0.46
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
