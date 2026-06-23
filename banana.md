@@ -127,6 +127,8 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ### 3.1 Versão do sistema (contador único — 2026-06-22)
 
+**Regra Renan (resumo — 23/06/2026):** cada entrega de **código** no **teste** sobe **+0,01** no badge (`1.93` → `1.94` → `1.95` …). A **loja** fica parada no último pacote que você subiu (hoje **v1.93**) até pedir produção — aí a loja **pula** para o mesmo número do pacote (ex. teste já em **v1.96** → sobe pacote → loja vira **v1.96**). Não é **+0,1** (dez centésimos); é **+0,01** (um centésimo). Só `banana.md` / docs **não** contam (`SKIP_VERSION_BUMP=1`).
+
 | O quê | Detalhe |
 | ----- | ------- |
 | **Arquivo** | `VERSION` na raiz (ex.: `1.93`) |
@@ -484,7 +486,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.51`  
+**Versão:** `1.0.52`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (NFC-e produção OK — Renan validou QR SEFAZ)  
 **Versão app (`VERSION`):** **teste** v1.93 · **produção** v1.93 (`2386eb2`)
@@ -1146,6 +1148,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.51
+### Fim do checkpoint v1.0.52
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
