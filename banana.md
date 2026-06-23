@@ -555,7 +555,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.57`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (deploy produção — cancelamento NFC-e na devolução)  
-**Versão app (`VERSION`):** **teste** v2.01 (`88df175`) · **produção** v2.01 (`4995c0e`)
+**Versão app (`VERSION`):** **teste** v2.03 (`3b11776`) · **produção** v2.03 (`02cdb98`)
 
 ### Produção — erros cancelamento NFC-e (2026-06-23)
 
