@@ -6,14 +6,17 @@ import logging
 import re
 from datetime import date
 
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.contabilidade_acesso_util import (
+    CONTABILIDADE_LOGIN_URL,
     contabilidade_login_required,
+    usuario_pode_acessar_contabilidade,
     usuario_somente_contabilidade,
 )
 from produtos.models import NfceDocumentoAgro, VendaAgro
@@ -124,6 +127,45 @@ def anexar_nfce_resposta_venda(venda: VendaAgro | None, data: dict, payload: dic
             except Exception:
                 logger.exception("NFC-e: falha ao registrar erro interno (venda %s)", venda.pk)
     return payload
+
+
+def _contabilidade_next_url(raw: str | None) -> str:
+    n = (raw or "").strip()
+    if not n.startswith("/") or n.startswith("//"):
+        return reverse("contabilidade_painel")
+    return n
+
+
+@require_http_methods(["GET", "POST"])
+def contabilidade_login(request):
+    """Login escritório — não exige staff (Admin Django bloqueia contador)."""
+    if request.user.is_authenticated and usuario_pode_acessar_contabilidade(request.user):
+        return redirect(_contabilidade_next_url(request.GET.get("next")))
+
+    erro = ""
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password") or ""
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            erro = "Usuário ou senha incorretos."
+        elif not usuario_pode_acessar_contabilidade(user):
+            erro = "Este login não tem permissão para Contabilidade."
+        else:
+            login(request, user)
+            return redirect(_contabilidade_next_url(request.POST.get("next") or request.GET.get("next")))
+
+    return render(
+        request,
+        "produtos/contabilidade_login.html",
+        {"erro": erro, "next": request.GET.get("next") or ""},
+    )
+
+
+@require_GET
+def contabilidade_logout(request):
+    logout(request)
+    return redirect("contabilidade_login")
 
 
 @contabilidade_login_required

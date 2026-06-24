@@ -586,7 +586,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **VERSION loja** | **v2.25** |
 | **URL** | `/contabilidade/` |
 
-**Render produção após deploy:** opcional `AGRO_CONTABILIDADE_USERNAMES=contador` · criar usuário **contador** no Admin Django.
+**Render produção após deploy:** `AGRO_CONTABILIDADE_USERNAMES=martins` (username exato, vírgula se vários) · usuário no Admin **sem** marcar staff.
+
+**Login contador:** **`/contabilidade/login/`** — **não** `/admin/login/` (Admin exige staff → erro «conta de equipe»). Fix login próprio: ver commit teste após `81aa0eb`.
 
 **Renan — conferir na loja:** Ctrl+F5 → `/contabilidade/` → resumo mês · CSV/XLSX · ZIP NFC-e · sem FAB PDV · sem «Outros exports».
 

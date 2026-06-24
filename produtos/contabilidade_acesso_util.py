@@ -40,6 +40,9 @@ def usuario_somente_contabilidade(user) -> bool:
     return usuario_listado_contabilidade(user)
 
 
+CONTABILIDADE_LOGIN_URL = "/contabilidade/login/"
+
+
 CONTABILIDADE_PATH_PREFIXES = (
     "/contabilidade",
     "/api/nfce/",
@@ -47,8 +50,6 @@ CONTABILIDADE_PATH_PREFIXES = (
     "/vendas/exportar-csv",
     "/lancamentos/dre",
     "/financeiro/resumo-gerencial",
-    "/admin/login",
-    "/admin/logout",
     "/static/",
     "/healthz",
 )
@@ -65,7 +66,7 @@ def path_permitido_somente_contabilidade(path: str) -> bool:
 def contabilidade_login_required(view_func):
     """Login + permissão contabilidade (staff ou usuário listado no .env)."""
 
-    @login_required(login_url="/admin/login/")
+    @login_required(login_url=CONTABILIDADE_LOGIN_URL)
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not usuario_pode_acessar_contabilidade(request.user):
