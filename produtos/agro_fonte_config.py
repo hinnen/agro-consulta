@@ -35,6 +35,11 @@ def agro_catalogo_usa_postgres() -> bool:
     return agro_fonte_catalogo() == _FONTE_CATALOGO_AGRO
 
 
+def agro_pdv_merge_catalogo_postgres() -> bool:
+    """PDV (busca/cache): **off** por padrão = igual produção. Cadastro usa ``agro_catalogo_usa_postgres``."""
+    return bool(getattr(settings, "AGRO_PDV_MERGE_CATALOGO_POSTGRES", False))
+
+
 def agro_estoque_usa_ledger() -> bool:
     return agro_fonte_estoque() == _FONTE_ESTOQUE_LEDGER
 
@@ -79,6 +84,7 @@ def agro_fonte_status_dict() -> dict:
         "staging_readonly": agro_staging_readonly(),
         **agro_mongo_guard_status(),
         "catalogo_postgres": agro_catalogo_usa_postgres(),
+        "pdv_merge_catalogo_postgres": agro_pdv_merge_catalogo_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),

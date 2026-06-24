@@ -552,21 +552,6 @@ def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     return out
 
 
-def _rows_pg_mapa_por_ids(ids: list[str]) -> dict[str, dict]:
-    ids_u = list(dict.fromkeys(str(x).strip()[:64] for x in ids if x and str(x).strip()))
-    if not ids_u:
-        return {}
-    out: dict[str, dict] = {}
-    for i in range(0, len(ids_u), 400):
-        chunk = ids_u[i : i + 400]
-        prods = list(Produto.objects.filter(produto_externo_id__in=chunk))
-        for row in _rows_de_produtos(prods):
-            pid = str(row.get("id") or "").strip()
-            if pid:
-                out[pid] = row
-    return out
-
-
 def mesclar_prods_busca_pdv(
     prods: list,
     *,
@@ -575,9 +560,9 @@ def mesclar_prods_busca_pdv(
     limit: int = 80,
 ) -> list:
     """Inclui/atualiza produtos do Postgres no resultado de busca do PDV."""
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
 
-    if not agro_catalogo_usa_postgres():
+    if not agro_pdv_merge_catalogo_postgres():
         return prods
 
     ids_vistos: set[str] = set()
@@ -592,12 +577,7 @@ def mesclar_prods_busca_pdv(
         pg_rows = listar_todos_rows_ativos()
     else:
         termo = (q or "").strip()
-        pg_rows = list(buscar(termo, limit=limit)) if termo else []
-        seen = {str(r.get("id") or "").strip() for r in pg_rows}
-        for pid, row in _rows_pg_mapa_por_ids(list(ids_vistos)).items():
-            if pid not in seen:
-                pg_rows.append(row)
-                seen.add(pid)
+        pg_rows = buscar(termo, limit=limit) if termo else []
 
     for row in pg_rows:
         pid = str(row.get("id") or "").strip()
@@ -614,10 +594,10 @@ def mesclar_prods_busca_pdv(
 
 def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
     """Mescla catálogo local do PDV (``api_todos_produtos_local``) com Postgres."""
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
     from produtos.mongo_index_codigos import normalizar
 
-    if not agro_catalogo_usa_postgres():
+    if not agro_pdv_merge_catalogo_postgres():
         return itens
 
     por_id = {str(x.get("id") or ""): x for x in itens if x.get("id") is not None}

@@ -317,7 +317,7 @@
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v9';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v7';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -686,42 +686,19 @@
         return n;
     }
 
-    function catalogoPostgresAtivo() {
-        return !!(bootstrap && bootstrap.catalogoPostgres);
-    }
-
-    function mergeProductRowPreferRemote(local, remote) {
-        var loc = local ? normalizeWizardCatalogProduct(local) : null;
-        var rem = remote ? normalizeWizardCatalogProduct(remote) : null;
-        if (!loc) return rem;
-        if (!rem) return loc;
-        var id = resolveProdutoId(rem) || resolveProdutoId(loc);
-        return Object.assign({}, loc, rem, {
-            id: id,
-            nome: rem.nome || loc.nome,
-            marca: rem.marca || loc.marca,
-            codigo_nfe: rem.codigo_nfe || loc.codigo_nfe,
-            codigo: rem.codigo || loc.codigo,
-            codigo_barras: rem.codigo_barras || loc.codigo_barras,
-            preco_venda: rem.preco_venda != null ? rem.preco_venda : loc.preco_venda,
-            imagem: rem.imagem || loc.imagem,
-        });
-    }
-
     function mergeProductsById(primary, extra) {
-        var byId = {};
-        function upsert(p) {
-            var n = normalizeWizardCatalogProduct(p);
-            if (!n || !n.id) return;
-            if (byId[n.id]) {
-                byId[n.id] = mergeProductRowPreferRemote(byId[n.id], n);
-            } else {
-                byId[n.id] = n;
-            }
+        var seen = {};
+        var out = [];
+        function addList(arr) {
+            normalizeWizardCatalogList(arr || []).forEach(function (p) {
+                if (seen[p.id]) return;
+                seen[p.id] = true;
+                out.push(p);
+            });
         }
-        (primary || []).forEach(upsert);
-        (extra || []).forEach(upsert);
-        return Object.keys(byId).map(function (id) { return byId[id]; });
+        addList(primary);
+        addList(extra);
+        return out;
     }
 
     function findUniqueBarcodeMatch(q) {
@@ -4811,7 +4788,7 @@
                     tryAutoAddBarcodeHit(localList[0]);
                     return Promise.resolve();
                 }
-                if (localList.length && !skuCode && !catalogoPostgresAtivo()) {
+                if (localList.length && !skuCode) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
@@ -4829,11 +4806,9 @@
                     dom.productSearchFeedback.textContent =
                         'Cache local · conferindo variantes no servidor…';
                 } else {
-                    dom.productSearchFeedback.textContent = catalogoPostgresAtivo()
-                        ? 'Buscando preço SisVale…'
-                        : skuCode
-                            ? 'Buscando variantes do código…'
-                            : 'Buscando no servidor…';
+                    dom.productSearchFeedback.textContent = skuCode
+                        ? 'Buscando variantes do código…'
+                        : 'Buscando no servidor…';
                 }
                 return fetchWizardServerSearch(query).then(function (srv) {
                     return {
@@ -4849,9 +4824,7 @@
                 if (seq !== filterSeq) return;
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
-                var merged = catalogoPostgresAtivo()
-                    ? mergeProductsById([], remote)
-                    : mergeProductsById(payload.localList || [], remote);
+                var merged = mergeProductsById(payload.localList || [], remote);
                 if (payload.mode === 'barcode' && merged.length === 1) {
                     tryAutoAddBarcodeHit(merged[0]);
                     return;

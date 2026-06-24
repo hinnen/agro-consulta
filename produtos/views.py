@@ -15586,9 +15586,10 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_merge_catalogo_postgres
 
     usa_pg_cat = agro_catalogo_usa_postgres()
+    pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat:
         return JsonResponse({"produtos": []})
@@ -15633,7 +15634,7 @@ def api_buscar_produtos(request):
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-        if usa_pg_cat:
+        if pdv_merge_pg:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.mesclar_prods_busca_pdv(
