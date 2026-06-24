@@ -8,18 +8,25 @@
 {% endblock %}
 
 {% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
-{% block pdv_section_class %}mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}
 
 {% block pdv_header %}
 <header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
-  <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
     <div class="min-w-0">
       <p class="text-[10px] font-black uppercase tracking-[0.24em] text-purple-400">Gestão</p>
       <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">Contabilidade</h1>
-      <p class="mt-1 text-sm font-medium text-slate-400">Arquivos fiscais e entregas ao escritório.</p>
+      <p class="mt-1 text-sm font-medium text-slate-400">NFC-e, XML e espelhos gerenciais para o escritório.</p>
     </div>
     <div class="flex shrink-0 items-center gap-2">
+      {% if somente_contabilidade %}
+      <a href="/admin/logout/" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-red-500 hover:text-white">
+        <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+        Sair
+      </a>
+      {% else %}
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-purple-500 hover:text-white" %}
+      {% endif %}
     </div>
   </div>
 </header>
@@ -27,31 +34,19 @@
 
 {% block pdv_content %}
 <div class="p-2 sm:p-4 space-y-6">
-  <article class="rounded-2xl border-2 border-emerald-500/40 bg-slate-800/90 p-5 sm:p-6 shadow-lg">
-    <div class="mb-4 flex flex-wrap items-start gap-4">
-      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
-        <i class="fas fa-file-archive text-2xl" aria-hidden="true"></i>
-      </div>
-      <div class="min-w-0 flex-1">
-        <h2 class="text-xl font-black text-white">XML NFC-e (cupom fiscal)</h2>
-        <p class="mt-1 text-sm leading-relaxed text-slate-400">
-          Baixe o ZIP com todos os XMLs autorizados do mês para enviar ao contador.
-        </p>
-        {% if nfce.ativo %}
-        <p class="mt-2 text-xs font-semibold text-emerald-400">
-          NFC-e ativa · série {{ nfce.serie|default:"—" }}
-          {% if nfce.tp_amb == 1 %} · produção{% else %} · homologação{% endif %}
-        </p>
-        {% else %}
-        <p class="mt-2 text-xs font-bold text-amber-400">Módulo NFC-e não configurado — verifique as variáveis no servidor.</p>
-        {% endif %}
-      </div>
-    </div>
 
-    <form id="form-nfce-xml-export" class="mt-4 flex flex-wrap items-end gap-3">
+  {% if somente_contabilidade %}
+  <p class="rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-200">
+    Acesso restrito ao escritório — exportações e relatórios do mês. Sem PDV nem caixa.
+  </p>
+  {% endif %}
+
+  <section class="rounded-2xl border-2 border-slate-700 bg-slate-800/60 p-4 sm:p-5">
+    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Período</h2>
+    <div class="mt-3 flex flex-wrap items-end gap-3">
       <label class="block min-w-[5.5rem]">
         <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Mês</span>
-        <select id="nfce-xml-mes" class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-base font-bold text-white focus:border-emerald-500 focus:outline-none">
+        <select id="ctb-mes" class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-base font-bold text-white focus:border-emerald-500 focus:outline-none">
           <option value="1">Janeiro</option>
           <option value="2">Fevereiro</option>
           <option value="3">Março</option>
@@ -68,56 +63,227 @@
       </label>
       <label class="block min-w-[5.5rem]">
         <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Ano</span>
-        <input type="number" id="nfce-xml-ano" min="2020" max="2099" class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-base font-bold tabular-nums text-white focus:border-emerald-500 focus:outline-none" inputmode="numeric">
+        <input type="number" id="ctb-ano" min="2020" max="2099" value="{{ ano_default }}" class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-base font-bold tabular-nums text-white focus:border-emerald-500 focus:outline-none" inputmode="numeric">
       </label>
-      <button type="submit" id="btn-nfce-xml-export" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-5 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700 sm:flex-none sm:min-w-[12rem]" {% if not nfce.ativo %}disabled data-nfce-off="1" title="NFC-e inativa"{% endif %}>
-        <i class="fas fa-download" aria-hidden="true"></i>
-        Baixar ZIP XML
+      <button type="button" id="btn-ctb-atualizar" class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-slate-500 bg-slate-700 px-4 py-3 text-sm font-black uppercase text-white hover:bg-slate-600">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+        Atualizar
       </button>
-    </form>
-    <p id="nfce-xml-export-erro" class="mt-3 hidden text-sm font-bold text-red-400"></p>
+    </div>
+  </section>
+
+  <section id="ctb-resumo-wrap" class="rounded-2xl border-2 border-emerald-500/30 bg-slate-800/90 p-5 sm:p-6 shadow-lg">
+    <div class="mb-4 flex flex-wrap items-start gap-4">
+      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+        <i class="fas fa-chart-pie text-2xl" aria-hidden="true"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-xl font-black text-white">Resumo NFC-e do mês</h2>
+        <p class="mt-1 text-sm text-slate-400">Cupons série Agro antes de baixar XML ou planilha.</p>
+        {% if nfce.ativo %}
+        <p class="mt-2 text-xs font-semibold text-emerald-400">
+          NFC-e ativa · série {{ nfce.serie|default:"—" }}
+          {% if nfce.tp_amb == 1 %} · produção{% else %} · homologação{% endif %}
+        </p>
+        {% else %}
+        <p class="mt-2 text-xs font-bold text-amber-400">Módulo NFC-e não configurado no servidor.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div id="ctb-resumo-loading" class="text-sm font-bold text-slate-400">Carregando…</div>
+    <div id="ctb-resumo-grid" class="hidden grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
+        <p class="text-[10px] font-black uppercase text-slate-500">Autorizadas</p>
+        <p id="ctb-r-aut" class="mt-1 text-2xl font-black tabular-nums text-emerald-400">—</p>
+      </div>
+      <div class="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
+        <p class="text-[10px] font-black uppercase text-slate-500">Canceladas</p>
+        <p id="ctb-r-can" class="mt-1 text-2xl font-black tabular-nums text-amber-400">—</p>
+      </div>
+      <div class="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
+        <p class="text-[10px] font-black uppercase text-slate-500">Total R$ (aut.)</p>
+        <p id="ctb-r-rs" class="mt-1 text-xl font-black tabular-nums text-white">—</p>
+      </div>
+      <div class="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
+        <p class="text-[10px] font-black uppercase text-slate-500">Numeração</p>
+        <p id="ctb-r-num" class="mt-1 text-sm font-black text-slate-200">—</p>
+      </div>
+    </div>
+    <p id="ctb-resumo-erro" class="mt-3 hidden text-sm font-bold text-red-400"></p>
+    <p id="ctb-r-pend" class="mt-3 hidden text-xs font-semibold text-amber-300"></p>
+  </section>
+
+  <article class="rounded-2xl border-2 border-emerald-500/40 bg-slate-800/90 p-5 sm:p-6 shadow-lg">
+    <div class="mb-4 flex flex-wrap items-start gap-4">
+      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+        <i class="fas fa-file-archive text-2xl" aria-hidden="true"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-xl font-black text-white">Exportar NFC-e</h2>
+        <p class="mt-1 text-sm leading-relaxed text-slate-400">
+          ZIP com <strong class="text-slate-200">index.csv</strong>, pasta <strong class="text-slate-200">autorizadas/</strong> e <strong class="text-slate-200">canceladas/</strong>.
+          Planilha para cruzar com o sistema do contador.
+        </p>
+      </div>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <button type="button" id="btn-nfce-xml-export" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-5 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700 sm:flex-none sm:min-w-[11rem]" {% if not nfce.ativo %}disabled data-nfce-off="1"{% endif %}>
+        <i class="fas fa-download" aria-hidden="true"></i>
+        ZIP XML
+      </button>
+      <button type="button" id="btn-nfce-csv" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-slate-500 bg-slate-700 px-5 py-3 text-sm font-black uppercase text-white hover:bg-slate-600 sm:flex-none sm:min-w-[11rem]" {% if not nfce.ativo %}disabled{% endif %}>
+        <i class="fas fa-table" aria-hidden="true"></i>
+        CSV
+      </button>
+      <button type="button" id="btn-nfce-xlsx" class="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-slate-500 bg-slate-700 px-5 py-3 text-sm font-black uppercase text-white hover:bg-slate-600 sm:flex-none sm:min-w-[11rem]" {% if not nfce.ativo %}disabled{% endif %}>
+        <i class="fas fa-file-excel" aria-hidden="true"></i>
+        Excel
+      </button>
+    </div>
+    <p id="nfce-export-erro" class="mt-3 hidden text-sm font-bold text-red-400"></p>
   </article>
+
+  <article class="rounded-2xl border-2 border-orange-500/30 bg-slate-800/90 p-5 sm:p-6 shadow-lg">
+    <div class="mb-4 flex flex-wrap items-start gap-4">
+      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+        <i class="fas fa-link text-2xl" aria-hidden="true"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-xl font-black text-white">Outros exports do mês</h2>
+        <p class="mt-1 text-sm text-slate-400">Mesmo período selecionado acima — só download / abrir relatório.</p>
+      </div>
+    </div>
+    <div id="ctb-links" class="grid gap-2 sm:grid-cols-2">
+      <a id="lnk-vendas" href="#" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-shopping-cart text-orange-400" aria-hidden="true"></i> Vendas CSV
+      </a>
+      <a id="lnk-lanc-csv" href="#" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-file-csv text-orange-400" aria-hidden="true"></i> Lançamentos CSV
+      </a>
+      <a id="lnk-lanc-xlsx" href="#" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-file-excel text-orange-400" aria-hidden="true"></i> Lançamentos Excel
+      </a>
+      <a id="lnk-lanc-pdf" href="#" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-file-pdf text-orange-400" aria-hidden="true"></i> Lançamentos PDF
+      </a>
+      <a id="lnk-dre" href="#" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-chart-bar text-orange-400" aria-hidden="true"></i> DRE (abrir)
+      </a>
+      <a id="lnk-resumo" href="#" target="_blank" rel="noopener" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-sm font-bold text-slate-100 hover:border-orange-500">
+        <i class="fas fa-chart-line text-orange-400" aria-hidden="true"></i> Resumo gerencial (abrir)
+      </a>
+    </div>
+  </article>
+
+  <details class="rounded-xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-slate-400">
+    <summary class="cursor-pointer font-black uppercase text-slate-300">Login contador (usuário dedicado)</summary>
+    <ul class="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed">
+      <li>Crie o usuário no <strong class="text-slate-200">Admin Django</strong> (sem marcar staff, se quiser só export).</li>
+      <li>No Render (teste/produção), defina <code class="text-emerald-300">AGRO_CONTABILIDADE_USERNAMES=username</code> (vírgula se vários).</li>
+      <li>Login em <code class="text-emerald-300">/admin/login/</code> → redireciona para esta tela; sem acesso ao PDV.</li>
+    </ul>
+  </details>
 </div>
 
 <script>
 (function () {
-  var form = document.getElementById('form-nfce-xml-export');
-  var mesEl = document.getElementById('nfce-xml-mes');
-  var anoEl = document.getElementById('nfce-xml-ano');
-  var errEl = document.getElementById('nfce-xml-export-erro');
-  var exportBase = '{{ export_xml_url|escapejs }}';
-  if (!form || !mesEl || !anoEl) return;
+  var mesEl = document.getElementById('ctb-mes');
+  var anoEl = document.getElementById('ctb-ano');
+  var resumoUrl = '{{ resumo_url|escapejs }}';
+  var exportXmlBase = '{{ export_xml_url|escapejs }}';
+  var exportPlanBase = '{{ export_planilha_url|escapejs }}';
+  if (!mesEl || !anoEl) return;
 
-  var hoje = new Date();
-  mesEl.value = String(hoje.getMonth() + 1);
-  anoEl.value = String(hoje.getFullYear());
+  mesEl.value = String({{ mes_default }});
 
-  form.addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    if (errEl) {
-      errEl.classList.add('hidden');
-      errEl.textContent = '';
-    }
+  function periodo() {
     var mes = parseInt(mesEl.value, 10);
     var ano = parseInt(anoEl.value, 10);
-    if (!mes || mes < 1 || mes > 12 || !ano) {
-      if (errEl) {
-        errEl.textContent = 'Informe mês e ano válidos.';
-        errEl.classList.remove('hidden');
-      }
+    if (!mes || mes < 1 || mes > 12 || !ano) return null;
+    return { mes: mes, ano: ano };
+  }
+
+  function fmtRs(n) {
+    if (n == null || isNaN(n)) return '—';
+    return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function setLinks(links) {
+    if (!links) return;
+    var map = {
+      'lnk-vendas': links.vendas_csv,
+      'lnk-lanc-csv': links.lancamentos_csv,
+      'lnk-lanc-xlsx': links.lancamentos_xlsx,
+      'lnk-lanc-pdf': links.lancamentos_pdf,
+      'lnk-dre': links.dre,
+      'lnk-resumo': links.resumo_gerencial
+    };
+    Object.keys(map).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && map[id]) el.href = map[id];
+    });
+  }
+
+  function carregarResumo() {
+    var p = periodo();
+    var loadEl = document.getElementById('ctb-resumo-loading');
+    var gridEl = document.getElementById('ctb-resumo-grid');
+    var errEl = document.getElementById('ctb-resumo-erro');
+    var pendEl = document.getElementById('ctb-r-pend');
+    if (!p) {
+      if (errEl) { errEl.textContent = 'Informe mês e ano válidos.'; errEl.classList.remove('hidden'); }
       return;
     }
-    var url = exportBase + '?ano=' + encodeURIComponent(String(ano)) + '&mes=' + encodeURIComponent(String(mes));
-    var btn = document.getElementById('btn-nfce-xml-export');
+    if (loadEl) loadEl.classList.remove('hidden');
+    if (gridEl) gridEl.classList.add('hidden');
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+    if (pendEl) { pendEl.classList.add('hidden'); pendEl.textContent = ''; }
+
+    fetch(resumoUrl + '?ano=' + p.ano + '&mes=' + p.mes, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok || !d.resumo) throw new Error((d && d.erro) || 'Resumo indisponível.');
+        var r = d.resumo;
+        document.getElementById('ctb-r-aut').textContent = String(r.autorizadas || 0);
+        document.getElementById('ctb-r-can').textContent = String(r.canceladas || 0);
+        document.getElementById('ctb-r-rs').textContent = fmtRs(r.total_autorizado_rs);
+        var numTxt = '—';
+        if (r.numero_min != null && r.numero_max != null) {
+          numTxt = 'Série ' + (r.serie || '—') + ' · nº ' + r.numero_min + ' – ' + r.numero_max;
+        } else if (r.serie) {
+          numTxt = 'Série ' + r.serie;
+        }
+        document.getElementById('ctb-r-num').textContent = numTxt;
+        var pend = (r.rejeitadas || 0) + (r.erros || 0);
+        if (pend > 0 && pendEl) {
+          pendEl.textContent = 'Atenção: ' + pend + ' nota(s) rejeitada(s) ou com erro no mês — não entram no ZIP.';
+          pendEl.classList.remove('hidden');
+        }
+        setLinks(r.links);
+        if (loadEl) loadEl.classList.add('hidden');
+        if (gridEl) gridEl.classList.remove('hidden');
+      })
+      .catch(function (err) {
+        if (loadEl) loadEl.classList.add('hidden');
+        if (errEl) {
+          errEl.textContent = err && err.message ? err.message : 'Falha ao carregar resumo.';
+          errEl.classList.remove('hidden');
+        }
+      });
+  }
+
+  function baixarBlob(url, filename, btn) {
+    var errEl = document.getElementById('nfce-export-erro');
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
     if (btn) btn.disabled = true;
     fetch(url, { credentials: 'same-origin' })
       .then(function (r) {
         var ct = (r.headers.get('content-type') || '').toLowerCase();
-        if (r.ok && ct.indexOf('zip') >= 0) {
+        if (r.ok && (ct.indexOf('zip') >= 0 || ct.indexOf('csv') >= 0 || ct.indexOf('sheet') >= 0 || ct.indexOf('octet') >= 0)) {
           return r.blob().then(function (blob) {
             var a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'nfce-xml-' + ano + '-' + String(mes).padStart(2, '0') + '.zip';
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -125,7 +291,7 @@
           });
         }
         return r.json().then(function (d) {
-          throw new Error((d && d.erro) || 'Nenhum XML encontrado para este período.');
+          throw new Error((d && d.erro) || 'Nenhum arquivo para este período.');
         });
       })
       .catch(function (err) {
@@ -137,7 +303,30 @@
       .finally(function () {
         if (btn && !btn.hasAttribute('data-nfce-off')) btn.disabled = false;
       });
+  }
+
+  document.getElementById('btn-ctb-atualizar').addEventListener('click', carregarResumo);
+  mesEl.addEventListener('change', carregarResumo);
+  anoEl.addEventListener('change', carregarResumo);
+
+  document.getElementById('btn-nfce-xml-export').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    var url = exportXmlBase + '?ano=' + p.ano + '&mes=' + p.mes;
+    baixarBlob(url, 'nfce-xml-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.zip', this);
   });
+  document.getElementById('btn-nfce-csv').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPlanBase + '?ano=' + p.ano + '&mes=' + p.mes + '&formato=csv', 'nfce-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.csv', this);
+  });
+  document.getElementById('btn-nfce-xlsx').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPlanBase + '?ano=' + p.ano + '&mes=' + p.mes + '&formato=xlsx', 'nfce-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.xlsx', this);
+  });
+
+  carregarResumo();
 })();
 </script>
 {% endblock %}

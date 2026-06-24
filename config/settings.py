@@ -155,6 +155,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'base.contabilidade_middleware.AgroContabilidadeMiddleware',
     # Idempotência global (header Idempotency-Key / X-Agro-Client-Request-Id ou body client_request_id)
     'base.middleware.AgroIdempotencyMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
