@@ -142,6 +142,7 @@ def contabilidade_painel(request):
             "ano_default": hoje.year,
             "mes_default": hoje.month,
             "somente_contabilidade": usuario_somente_contabilidade(request.user),
+            "mostrar_outros_exports": False,  # oculto por pedido Renan (só NFC-e na tela)
         },
     )
 

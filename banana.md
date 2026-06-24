@@ -613,7 +613,7 @@ Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registra
 
 Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
-**Contabilidade (teste):** bloco «Login contador» **fora da tela** desde v2.19 (`8523686`). FAB **PDV F1 oculto** em `/contabilidade/`. Se ainda vir o bloco antigo: **Ctrl+F5** no staging — **produção v2.03** ainda não tem Contabilidade nova.
+**Contabilidade (teste):** tela **só NFC-e** — bloco «Outros exports do mês» **oculto** (Renan, chat contabilidade). «Login contador» fora da tela. FAB PDV F1 oculto em `/contabilidade/`. Produção v2.03 sem Contabilidade nova.
 
 ### Regra senha produção — registrada (2026-06-24)
 
