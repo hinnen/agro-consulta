@@ -104,12 +104,7 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     ).strip()
     if ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-    preco_sisvale = None
-    if ov is not None and ov.preco_venda is not None:
-        preco_sisvale = round(float(ov.preco_venda), 2)
-    row = _aplicar_overlay_em_row(row, ov)
-    row["preco_venda_sisvale"] = preco_sisvale
-    return row
+    return _aplicar_overlay_em_row(row, ov)
 
 
 def queryset_catalogo_ativos(*, inativos: bool = False):
@@ -538,8 +533,8 @@ def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     if cb:
         out["CodigoBarras"] = cb
         out["EAN_NFe"] = cb
-    if row.get("preco_venda_sisvale") is not None:
-        pv = float(row["preco_venda_sisvale"])
+    if row.get("preco_venda") is not None:
+        pv = float(row["preco_venda"])
         out["ValorVenda"] = pv
         out["PrecoVenda"] = pv
     if row.get("categoria"):
@@ -616,12 +611,10 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
             ex = por_id[pid]
             ex["nome"] = row.get("nome") or ex.get("nome")
             ex["marca"] = row.get("marca") or ex.get("marca")
-            if row.get("preco_venda_sisvale") is not None:
-                pv = float(row["preco_venda_sisvale"])
-                ex["preco_venda"] = pv
-                ex["preco_custo"] = pc
-                ex["preco_custo_final"] = pc
-                ex["preco_custo_acrescimo"] = pc
+            ex["preco_venda"] = pv
+            ex["preco_custo"] = pc
+            ex["preco_custo_final"] = pc
+            ex["preco_custo_acrescimo"] = pc
             ex["codigo_nfe"] = row.get("codigo_nfe") or ex.get("codigo_nfe")
             ex["codigo_barras"] = row.get("codigo_barras") or ex.get("codigo_barras")
             ex["categoria"] = row.get("categoria") or ex.get("categoria")
