@@ -25,7 +25,7 @@
     </div>
     <div class="flex shrink-0 items-center gap-2">
       {% if somente_contabilidade %}
-      <a href="/admin/logout/" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-red-500 hover:text-white">
+      <a href="{% url 'contabilidade_logout' %}" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-red-500 hover:text-white">
         <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
         Sair
       </a>
