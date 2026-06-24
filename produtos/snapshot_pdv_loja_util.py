@@ -41,7 +41,22 @@ def _exigir_ambiente_seguro() -> None:
 def _registrar_conexao_fonte() -> None:
     url = _url_fonte()
     cfg = dj_database_url.parse(url, conn_max_age=0)
+    default_cfg = dict(settings.DATABASES.get("default") or {})
+    for key in (
+        "TIME_ZONE",
+        "CONN_HEALTH_CHECKS",
+        "ATOMIC_REQUESTS",
+        "AUTOCOMMIT",
+        "OPTIONS",
+        "TEST",
+        "DISABLE_SERVER_SIDE_CURSORS",
+    ):
+        if key in default_cfg and key not in cfg:
+            cfg[key] = default_cfg[key]
+    if "TIME_ZONE" not in cfg:
+        cfg["TIME_ZONE"] = None
     settings.DATABASES[_FONTE_ALIAS] = cfg
+    connections.databases[_FONTE_ALIAS] = cfg
     if _FONTE_ALIAS in connections:
         connections[_FONTE_ALIAS].close()
 

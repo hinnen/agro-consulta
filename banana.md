@@ -564,7 +564,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.63`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente Cursor (PDV snapshot loja→teste v2.18)  
-**Versão app (`VERSION`):** **teste** v2.18 · **produção** v2.03
+**Versão app (`VERSION`):** **teste** v2.21 · **produção** v2.03
+
+### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
+
+Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registrar conexão fonte com chaves que o Django 6 exige (`TIME_ZONE`, etc.). **Repetir** no Shell teste após deploy v2.21:
+
+`python manage.py copiar_snapshot_pdv_loja`
 
 ### PDV teste — snapshot da loja (2026-06-24, v2.18)
 
