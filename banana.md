@@ -561,14 +561,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.64`  
+**Versão:** `1.0.65`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** Renan validou preço Akiles teste = produção; assistente registrou banana  
-**Versão app (`VERSION`):** **teste** v2.23 · **produção** v2.03
+**Atualizado por:** Renan confirmou Akiles teste = produção (chat PDV snapshot)  
+**Versão app (`VERSION`):** **teste** v2.25 · **produção** v2.03
 
 ### PDV teste — preço Akiles OK (Renan, 2026-06-24) ✅
 
-Renan confirmou: no **Render teste**, busca `akiles` bate com o **PDV produção** (referência GM0060/61).
+Renan confirmou **neste chat**: no **Render teste**, busca `akiles` bate com o **PDV produção** (referência GM0060/61). **Fase A snapshot concluída** — não mexer no fluxo de preço PDV até novo pedido.
 
 | GM | Produção (certo) | Teste (v2.22+) |
 | -- | -------------- | -------------- |
