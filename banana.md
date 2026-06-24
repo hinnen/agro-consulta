@@ -15,11 +15,20 @@
 
 **Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
 
-**Produção (regra dura — 2026-06-22):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem** o Renan escrever explicitamente *«pode subir (para produção)»* / *«pode ir para produção»* (ou equivalente claro). **Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+**Produção (regra dura — 2026-06-22, senha 2026-06-24):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem as duas coisas abaixo na mesma mensagem do Renan:**
+
+1. Frase explícita — *«pode subir (para produção)»* / *«pode ir para produção»* / *«sobe pacote vX.XX para produção»* (ou equivalente claro).
+2. **Senha de autorização loja** — Renan digitou no chat **2026-06-24** (madrugada, chat PDV): **`99738595`**. Tem que aparecer **no mesmo pedido** que a frase acima. Só a frase **sem** senha = **não sobe**. Só a senha **sem** frase = **não sobe**.
+
+**Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
 
-**Teste (regra — 2026-06-22):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local. **Assistente pode** commit + push em `teste` **automaticamente** (deploy Render segue sozinho); **não precisa pedir autorização** para subir no teste. Produção continua só com frase explícita acima.
+**Teste (regra — 2026-06-22, reforço Renan 2026-06-17):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local.
+
+**Render teste — assistente manda:** commit + push em `teste` **sempre que achar necessário** (feature pronta, fix, banana atualizada) — **não pedir autorização** ao Renan. Deploy Render segue sozinho; registrar no CHECKPOINT. Renan (2026-06-17): *«para teste pode subir sempre que você achar necessário»*.
+
+**Produção** continua só com frase + senha (§ acima).
 
 **Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
 
@@ -57,7 +66,7 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; `**producao` só com «pode subir (produção)»** (ver topo).
+**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; `**producao` só com frase + senha** (ver topo).
 
 **Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
 
@@ -505,7 +514,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
 7. **Commits / teste:** push `**teste` automático** quando entregar fix (Renan valida no Render teste). Bump de `VERSION` (hook ou `python scripts/bump_version.py`). **Produção:** só quando Renan pedir (item 8).
-8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem *«pode subir (produção)»*. **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
+8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explícita **+ senha** (topo do banana). **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
 9. **Modo econômico:** Renan pode pedir respostas curtas.
 10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
 11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
@@ -552,10 +561,34 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.59`  
-**Última atualização:** `2026-06-23`  
-**Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
-**Versão app (`VERSION`):** **teste** v2.11 · **produção** v2.03
+**Versão:** `1.0.62`  
+**Última atualização:** `2026-06-17`  
+**Atualizado por:** assistente Cursor (Contabilidade v2.14 + regra «Render teste assistente manda»)  
+**Versão app (`VERSION`):** **teste** v2.14 · **produção** v2.03
+
+### Regra Render teste — assistente manda (Renan 2026-06-17)
+
+Push em `teste` **sem pedir** quando entregar código útil; registrar aqui. Produção inalterada (frase + senha).
+
+### Contabilidade v2.14 — push teste
+
+**Pedido Renan:** roadmap itens **1, 2, 3, 4 e 8** — validar no **Render teste**; produção (série 21) replica depois com frase + senha.
+
+| # | Item | Status |
+| --- | --- | --- |
+| 1 | Resumo mês NFC-e | ✅ `GET /api/nfce/contabilidade/resumo/` |
+| 2 | CSV/XLSX | ✅ `GET /api/nfce/export-planilha/` |
+| 3 | ZIP + index + canceladas | ✅ `GET /api/nfce/export-xml/` |
+| 4 | Atalhos exports gerenciais | ✅ links por mês na tela |
+| 8 | Login contador | ✅ `AGRO_CONTABILIDADE_USERNAMES` + middleware |
+
+**Render teste após deploy:** Admin → usuário contador; env `AGRO_CONTABILIDADE_USERNAMES=username`; `/contabilidade/`.
+
+**Produção:** não subido — Renan replica quando validar teste + frase + senha.
+
+### Regra senha produção — registrada (2026-06-24)
+
+Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `99738595`** na mesma mensagem. Outro chat tinha só uma linha vaga no CHECKPOINT — **corrigido no topo do banana**.
 
 ### Referência preço PDV — produção OK (Renan, 2026-06-24)
 
@@ -572,7 +605,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 - **Revertido** `pdv_wizard.js`, `pdv/views.py`, `catalogo_agro.py` merge → **igual branch `producao`**
 - **`AGRO_PDV_MERGE_CATALOGO_POSTGRES`:** off (padrão) — PDV usa espelho como loja; cadastro continua `agro_pg`
-- **Produção:** assistente **NUNCA** push/deploy/cherry-pick na `producao` sem Renan digitar a **senha de autorização** no chat
+- **Produção:** push/deploy/cherry-pick na `producao` **só** com frase explícita **+ senha `99738595`** na mesma mensagem (regra completa no topo do banana)
 
 **Ctrl+F5** no PDV após deploy v2.11.
 
@@ -822,7 +855,7 @@ Renan autorizou *«1.92 do teste pode subir para produção»* (validou botão l
 | **Onde testa**            | Render projeto **teste** — **não** local                                                               |
 | **Dois sites**            | **teste** = homologação · **SistVale** = loja                                                          |
 | **Assistente → teste**    | Commit + push `**teste` automático** (deploy Render segue)                                             |
-| **Assistente → produção** | **Só** com *«pode subir (produção)»* ou equivalente explícito (ex. *«pode subir se não for invasivo»*) |
+| **Assistente → produção** | **Só** com frase explícita (*«pode subir (produção)»*, etc.) **+ senha `99738595`** na **mesma** mensagem |
 
 
 ### Registro no banana — toda entrega (2026-06-22, Renan)
@@ -1293,13 +1326,17 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
-- [ ] Tela contabilidade — ver **roadmap § Contabilidade** abaixo (Renan 24/06/2026)
+- [x] Tela contabilidade — itens **1,2,3,4,8** implementados (**teste**; ver CHECKPOINT 1.0.60)
 
 ---
 
 ## Roadmap — tela Contabilidade (`/contabilidade/`)
 
-**Hoje (v2.03+):** só **ZIP XML NFC-e autorizadas** do mês (`GET /api/nfce/export-xml/?ano=&mes=`). Acesso pelo BI → **Contabilidade (U)**.
+**Implementado (teste v2.14+):** resumo mês, CSV/XLSX, ZIP com `index.csv` + autorizadas/canceladas, atalhos exports gerenciais, login dedicado (`AGRO_CONTABILIDADE_USERNAMES`). Ver CHECKPOINT 1.0.60.
+
+**Fluxo Renan:** sempre **teste primeiro** → validar no Render teste → **replicar produção** (mesmo código; NFC-e série **21** já é produção) quando pedir frase + senha.
+
+**Hoje (antes v2.14):** só ZIP XML autorizadas.
 
 **Objetivo:** hub para o **escritório** baixar fiscal + espelhos gerenciais, sem entrar no PDV.
 
@@ -1307,11 +1344,11 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 | Ferramenta | Para quê | Esforço | Notas |
 | ---------- | -------- | ------- | ----- |
-| **Resumo do mês NFC-e** (antes do ZIP) | Qtd autorizadas / canceladas, total R$, faixa numeração série 21 | Baixo | Dados já em `NfceDocumentoAgro` |
-| **Planilha CSV/XLSX NFC-e** | Nº, série, chave, data/hora, valor venda, CPF consumidor, status, venda # | Baixo | Contador cruza com SPED / sistema dele |
-| **ZIP incluir canceladas + índice** | XML autorizado + marcar **Cancelada** no `index.csv` dentro do ZIP | Médio | Hoje export só `status=autorizada`; canceladas somem do pacote |
-| **Atalho Lançamentos export** | Mesmo mês → CSV/XLSX/PDF financeiro (APIs já existem em `/lancamentos/`) | Baixo | Só link + mês pré-preenchido |
-| **Atalho Vendas CSV** | `/vendas/exportar-csv/` filtrado por período | Baixo | Já existe na lista de vendas |
+| **Resumo do mês NFC-e** (antes do ZIP) | Qtd autorizadas / canceladas, total R$, faixa numeração série 21 | Baixo | ✅ teste v2.14 |
+| **Planilha CSV/XLSX NFC-e** | Nº, série, chave, data/hora, valor venda, CPF consumidor, status, venda # | Baixo | ✅ teste v2.14 |
+| **ZIP incluir canceladas + índice** | XML autorizado + marcar **Cancelada** no `index.csv` dentro do ZIP | Médio | ✅ teste v2.14 |
+| **Atalho Lançamentos export** | Mesmo mês → CSV/XLSX/PDF financeiro (APIs já existem em `/lancamentos/`) | Baixo | ✅ teste v2.14 |
+| **Atalho Vendas CSV** | `/vendas/exportar-csv/` filtrado por período | Baixo | ✅ teste v2.14 |
 
 ### Prioridade média
 
@@ -1326,7 +1363,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 
 | Ferramenta | Para quê | Esforço |
 | ---------- | -------- | ------- |
-| **Usuário «Contabilidade»** | Login só leitura + export (sem PDV/caixa) | Médio — permissão Django |
+| **Usuário «Contabilidade»** | Login só leitura + export (sem PDV/caixa) | Médio | ✅ teste v2.14 — `AGRO_CONTABILIDADE_USERNAMES` |
 | **Log «quem baixou o ZIP»** | Auditoria | Baixo |
 | **E-mail automático mensal** | Enviar ZIP dia 1 | Alto — Render + SMTP |
 | **NF-e devolução mod. 55** | Quando NFC-e passou 30 min e foi devolvida | Alto — emissão própria |

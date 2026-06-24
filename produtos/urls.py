@@ -250,6 +250,16 @@ urlpatterns = [
         name='api_venda_agro_nfce_cancelar',
     ),
     path('api/nfce/status/', views_nfce.api_nfce_status, name='api_nfce_status'),
+    path(
+        'api/nfce/contabilidade/resumo/',
+        views_nfce.api_nfce_contabilidade_resumo,
+        name='api_nfce_contabilidade_resumo',
+    ),
+    path(
+        'api/nfce/export-planilha/',
+        views_nfce.api_nfce_export_planilha,
+        name='api_nfce_export_planilha',
+    ),
     path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
     path(
         'venda/<int:pk>/erp-envio/',

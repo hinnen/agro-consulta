@@ -1,11 +1,9 @@
 """Views NFC-e — emissão PDV, cupom e exportação mensal de XML."""
 from __future__ import annotations
 
-import io
 import json
 import logging
 import re
-import zipfile
 from datetime import date
 
 from django.contrib.auth.decorators import login_required
@@ -14,8 +12,20 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
+from produtos.contabilidade_acesso_util import (
+    contabilidade_login_required,
+    usuario_somente_contabilidade,
+)
 from produtos.models import NfceDocumentoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
+from produtos.nfce_contabilidade_util import (
+    linhas_planilha_nfce_mes,
+    montar_zip_nfce_mes,
+    planilha_nfce_csv_bytes,
+    planilha_nfce_xlsx_bytes,
+    resumo_nfce_mes,
+    urls_exportacao_mes,
+)
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada, cpf_valido, emitir_nfce_para_venda
 from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
@@ -116,18 +126,74 @@ def anexar_nfce_resposta_venda(venda: VendaAgro | None, data: dict, payload: dic
     return payload
 
 
-@login_required(login_url="/admin/login/")
+@contabilidade_login_required
 @require_GET
 def contabilidade_painel(request):
-    """Painel contabilidade — exportação mensal de XML NFC-e."""
+    """Painel contabilidade — NFC-e e atalhos de exportação ao escritório."""
+    hoje = date.today()
     return render(
         request,
         "produtos/contabilidade_painel.html",
         {
             "nfce": nfce_config_resumo(),
             "export_xml_url": reverse("api_nfce_export_xml_zip"),
+            "export_planilha_url": reverse("api_nfce_export_planilha"),
+            "resumo_url": reverse("api_nfce_contabilidade_resumo"),
+            "ano_default": hoje.year,
+            "mes_default": hoje.month,
+            "somente_contabilidade": usuario_somente_contabilidade(request.user),
         },
     )
+
+
+def _parse_ano_mes_request(request) -> tuple[int, int] | tuple[None, None]:
+    hoje = date.today()
+    try:
+        ano = int(request.GET.get("ano") or hoje.year)
+        mes = int(request.GET.get("mes") or hoje.month)
+    except (TypeError, ValueError):
+        return None, None
+    if mes < 1 or mes > 12:
+        return None, None
+    return ano, mes
+
+
+@contabilidade_login_required
+@require_GET
+def api_nfce_contabilidade_resumo(request):
+    ano, mes = _parse_ano_mes_request(request)
+    if ano is None:
+        return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
+    data = resumo_nfce_mes(ano, mes)
+    data["links"] = urls_exportacao_mes(ano, mes)
+    return JsonResponse({"ok": True, "resumo": data})
+
+
+@contabilidade_login_required
+@require_GET
+def api_nfce_export_planilha(request):
+    ano, mes = _parse_ano_mes_request(request)
+    if ano is None:
+        return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
+    fmt = (request.GET.get("formato") or "csv").strip().lower()
+    linhas = linhas_planilha_nfce_mes(ano, mes)
+    if not linhas:
+        return JsonResponse(
+            {"ok": False, "erro": f"Nenhuma NFC-e em {mes:02d}/{ano}."},
+            status=404,
+        )
+    if fmt == "xlsx":
+        blob = planilha_nfce_xlsx_bytes(ano, mes)
+        resp = HttpResponse(
+            blob,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        resp["Content-Disposition"] = f'attachment; filename="nfce-planilha-{ano}-{mes:02d}.xlsx"'
+        return resp
+    blob = planilha_nfce_csv_bytes(ano, mes)
+    resp = HttpResponse(blob, content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="nfce-planilha-{ano}-{mes:02d}.csv"'
+    return resp
 
 
 @login_required(login_url="/admin/login/")
@@ -241,42 +307,21 @@ def api_venda_agro_nfce_cancelar(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@contabilidade_login_required
 @require_GET
 def api_nfce_export_xml_zip(request):
-    """ZIP com XMLs autorizados do mês (pasta para contabilidade)."""
-    hoje = date.today()
-    try:
-        ano = int(request.GET.get("ano") or hoje.year)
-        mes = int(request.GET.get("mes") or hoje.month)
-    except (TypeError, ValueError):
+    """ZIP mensal: index.csv + XMLs autorizadas/canceladas."""
+    ano, mes = _parse_ano_mes_request(request)
+    if ano is None:
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
-    if mes < 1 or mes > 12:
-        return JsonResponse({"ok": False, "erro": "Mês deve ser 1–12."}, status=400)
 
-    qs = (
-        NfceDocumentoAgro.objects.filter(
-            status=NfceDocumentoAgro.Status.AUTORIZADA,
-            criado_em__year=ano,
-            criado_em__month=mes,
-        )
-        .exclude(xml_autorizado="")
-        .order_by("numero")
-    )
-    buf = io.BytesIO()
-    count = 0
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for doc in qs:
-            chave = (doc.chave or f"venda{doc.venda_id}").strip()
-            nome = f"NFC-e/{ano}-{mes:02d}/{chave}.xml"
-            zf.writestr(nome, doc.xml_autorizado.encode("utf-8"))
-            count += 1
-    if count == 0:
+    blob, count_xml = montar_zip_nfce_mes(ano, mes)
+    if not blob:
         return JsonResponse(
-            {"ok": False, "erro": f"Nenhum XML autorizado em {mes:02d}/{ano}."},
+            {"ok": False, "erro": f"Nenhuma NFC-e em {mes:02d}/{ano}."},
             status=404,
         )
-    buf.seek(0)
-    resp = HttpResponse(buf.getvalue(), content_type="application/zip")
+    resp = HttpResponse(blob, content_type="application/zip")
     resp["Content-Disposition"] = f'attachment; filename="nfce-xml-{ano}-{mes:02d}.zip"'
+    resp["X-Nfce-Xml-Count"] = str(count_xml)
     return resp
