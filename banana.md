@@ -586,6 +586,8 @@ Push em `teste` **sem pedir** quando entregar código útil; registrar aqui. Pro
 
 **Produção:** não subido — Renan replica quando validar teste + frase + senha.
 
+**Commit teste:** `a570cd0` (v2.14) — deploy Render automático.
+
 ### Regra senha produção — registrada (2026-06-24)
 
 Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `99738595`** na mesma mensagem. Outro chat tinha só uma linha vaga no CHECKPOINT — **corrigido no topo do banana**.
