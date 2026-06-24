@@ -427,8 +427,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Feito (staging OK)** | Cadastro SisVale `/produtos/cadastro-erp/`                        | `**AGRO_FONTE_CATALOGO=agro_pg`** no teste — import 3354 prod · Renan validou busca GM/barras + salvar preço + **sem piscadinha** (v1.84–v1.85) |
 | **Infra pronta, off**  | Catálogo Postgres                                                 | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — **ligado no staging**; produção ainda Mongo                           |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Flags existem; **não ligadas** nas views                                                                                                        |
-| **Falta (alta)**       | PDV `/consulta/`, wizard `/pdv/checkout/`                         | `/api/buscar/`, cache catálogo, saldos, médias → Mongo                                                                                          |
-| **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | `gestao/lista` + `**gestao/facetas`** (vários `distinct`) — suspeito lentidão pós-entrada NF                                                    |
+| **Falta (alta)**       | PDV `/consulta/`, wizard `/pdv/checkout/`                         | **Teste Fase B ✅** (Postgres catálogo staging). **Loja** ainda Mongo+overlay                                                                 |
+| **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | **Próximo (Fase C)** — `gestao/lista` + `gestao/facetas`                                                                                        |
 | **Falta (média)**      | Entrada NF, Compras, Estoque/transferências, Validade             | Buscas e agregações no espelho                                                                                                                  |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
 
@@ -688,6 +688,20 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 **Armadilhas Environment teste (registrar):**
 - `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` — key exata (não `pdv_catalogo_somente_postgres`)
 - `AGRO_SNAPSHOT_FONTE_DATABASE_URL` = **Internal Database URL** do **agro-db** (SistVale) — **não** `true` nem URL do `agro-staging`
+
+### Fase C — Gestão operacional (próximo · 2026-06-24)
+
+**Objetivo (só teste):** tela **Gestão de produtos** (`/produtos/gestao/`) listar/buscar/filtros a partir do **Postgres** (mesma base do cadastro + snapshot), sem `distinct` pesado no Mongo. **Saldos** continuam Mongo + ajustes PIN (por enquanto).
+
+| # | Entrega | Renan testa |
+| - | ------- | ----------- |
+| C1 | Lista + busca gestão via Postgres (staging) | Abrir gestão, buscar GM/nome, paginar |
+| C2 | Facetas (marca/categoria/fornecedor) via Postgres | Filtros laterais carregam rápido |
+| C3 | Pós-entrada NF → voltar gestão (caso lentidão) | Fluxo que antes travava |
+
+**Produção (loja fechada):** Renan pede com **frase + senha**. **Não sobe** flags Fase B (`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`, snapshot URL). PDV loja **permanece** Mongo+overlay (já OK). Pacote produção **a combinar** ao fechar — ex. cadastro `agro_pg` (etapa 1) se ainda não estiver na loja; Fase C **só após** validar no teste.
+
+**WIP assistente:** implementar C1+C2 em `teste` → push → Renan valida no Render teste.
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
