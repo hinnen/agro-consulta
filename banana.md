@@ -151,7 +151,7 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 | Situação | O que significa |
 | -------- | --------------- |
-| **teste v2.29 · loja v2.25** (hoje) | Loja recebeu Contabilidade (**v2.25**). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, snapshot PDV, …). O badge **não mostra** isso. |
+| **teste v2.30 · loja v2.26** (hoje) | Loja: Contabilidade v2.25 + login contador v2.26. Teste **ainda tem** pacotes só no branch teste (Display Scale, CP perf, …). |
 | **Como saber o que falta na loja** | Tabela **«Só no teste»** no CHECKPOINT · `git diff origin/producao origin/teste --stat` — **não** olhar só o `VERSION` |
 | **Regra intuitiva (ideal)** | **`teste` > `producao`** → loja atrás (ex. teste **v1.94**, loja **v1.93** = tem pacote pendente). **`teste` = `producao`** → acabou de subir pacote **ou** teste só ganhou docs sem bump |
 | **Próximo fix de código no teste** | Deve virar **v2.06** no teste; loja fica **v2.03** até você pedir produção — aí fica óbvio que não são iguais |
@@ -561,10 +561,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.68`  
+**Versão:** `1.0.69`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** Renan — rule Cursor **§0** (Read `banana.md` inteiro = 1ª ação todo chat)  
-**Versão app (`VERSION`):** **teste** v2.29 · **produção** v2.25 (`86d3af2`)
+**Atualizado por:** Renan — cherry-pick login Contabilidade → produção (frase + senha)  
+**Versão app (`VERSION`):** **teste** v2.30 · **produção** v2.26 (`e51e810`)
+
+### Contabilidade — login contador → **produção OK** (2026-06-24, Renan + senha)
+
+| Item | Valor |
+| ---- | ----- |
+| **Fix** | `/contabilidade/login/` — contador entra **sem** staff do Admin |
+| **Commit teste** | `2d77b88` |
+| **Commits loja** | `e98cc13` · VERSION `e51e810` |
+| **VERSION loja** | **v2.26** |
+| **Env** | `AGRO_CONTABILIDADE_USERNAMES=martins` · usuário Admin **sem** marcar staff |
+
+**Renan — após deploy Render:** Ctrl+F5 → `/contabilidade/login/` → login contador.
+
+**Reverter:** revert `e51e810` + `e98cc13` (ordem inversa).
 
 ### Rule Cursor — leitura integral banana (2026-06-24, Renan)
 
@@ -596,7 +610,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Render produção após deploy:** `AGRO_CONTABILIDADE_USERNAMES=martins` (username exato, vírgula se vários) · usuário no Admin **sem** marcar staff.
 
-**Login contador:** **`/contabilidade/login/`** — **não** `/admin/login/` (Admin exige staff → erro «conta de equipe»). Fix login próprio: ver commit teste após `81aa0eb`.
+**Login contador:** **`/contabilidade/login/`** — na loja desde **v2.26** (`2d77b88`).
 
 **Renan — conferir na loja:** Ctrl+F5 → `/contabilidade/` → resumo mês · CSV/XLSX · ZIP NFC-e · sem FAB PDV · sem «Outros exports».
 
@@ -1462,6 +1476,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.68
+### Fim do checkpoint v1.0.69
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
