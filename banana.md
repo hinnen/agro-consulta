@@ -562,8 +562,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - Cliente `agro_pg`: lista = **só servidor** (ignora cache espelho)
 - Cache catálogo **v9**
 
-**Versão app (`VERSION`):** **teste** v2.08 · **produção** v2.03
-
 ### Fix busca PDV — cache local com preço espelho (2026-06-24)
 
 | Bug | Fix v2.08 |
