@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import re
 import tempfile
+import time
 from typing import Any
 
 from decouple import config
+
+logger = logging.getLogger(__name__)
 
 _cert_temp_cache: str | None = None
 
@@ -29,22 +33,38 @@ def _cfg(name: str, default: str = "") -> str:
     return (config(name, default=default) or default).strip()
 
 
-def nfce_resolve_cert_path() -> str:
-    """Caminho do .pfx: arquivo no disco ou temporário a partir de NFC_E_CERT_BASE64 (Render)."""
+def nfce_garantir_certificado(*, force: bool = False) -> str:
+    """Materializa o .pfx no disco (Render / base64). Retorna caminho ou ''."""
     global _cert_temp_cache
     path = _cfg("NFC_E_CERT_PATH") or _cfg("NFE_DIST_DFE_CERT_PATH")
     if path and os.path.isfile(path):
         return path
     b64 = _cfg("NFC_E_CERT_BASE64") or _cfg("NFE_DIST_DFE_CERT_BASE64")
-    if b64:
-        if not _cert_temp_cache or not os.path.isfile(_cert_temp_cache):
-            raw = base64.b64decode(re.sub(r"\s", "", b64))
-            f = tempfile.NamedTemporaryFile(delete=False, suffix=".pfx")
-            f.write(raw)
-            f.close()
-            _cert_temp_cache = f.name
+    if not b64:
+        return path if path and os.path.isfile(path) else ""
+    if force:
+        _cert_temp_cache = None
+    if _cert_temp_cache and os.path.isfile(_cert_temp_cache):
         return _cert_temp_cache
-    return path
+    try:
+        raw = base64.b64decode(re.sub(r"\s", "", b64))
+    except Exception:
+        logger.exception("NFC-e: falha ao decodificar certificado base64")
+        return ""
+    try:
+        f = tempfile.NamedTemporaryFile(delete=False, suffix=".pfx")
+        f.write(raw)
+        f.close()
+        _cert_temp_cache = f.name
+        return _cert_temp_cache
+    except Exception:
+        logger.exception("NFC-e: falha ao gravar certificado temporário")
+        return ""
+
+
+def nfce_resolve_cert_path() -> str:
+    """Caminho do .pfx: arquivo no disco ou temporário a partir de NFC_E_CERT_BASE64 (Render)."""
+    return nfce_garantir_certificado()
 
 
 def _formas_pagamento_no_payload(data: dict) -> list[str]:
@@ -153,7 +173,7 @@ def nfce_cfg() -> dict[str, Any]:
     }
 
 
-def nfce_configurada() -> bool:
+def _nfce_configurada_once() -> bool:
     c = nfce_cfg()
     if not c["ativo"]:
         return False
@@ -169,6 +189,24 @@ def nfce_configurada() -> bool:
         and c["csc_token"]
         and c["uf"] == "SP"
     )
+
+
+def nfce_configurada(*, warmup: bool = True, tentativas: int = 1) -> bool:
+    """
+    True se NFC-e está pronta para emitir.
+    warmup: recria .pfx temporário se sumiu (Render / cold start).
+    tentativas: repete após re-materializar certificado (transiente).
+    """
+    tries = max(1, int(tentativas or 1))
+    for idx in range(tries):
+        if warmup:
+            nfce_garantir_certificado(force=idx > 0)
+        if _nfce_configurada_once():
+            return True
+        if idx + 1 < tries:
+            time.sleep(0.15 * (idx + 1))
+            nfce_garantir_certificado(force=True)
+    return False
 
 
 def nfce_config_resumo() -> dict[str, Any]:

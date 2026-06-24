@@ -719,7 +719,7 @@ def emitir_nfce_para_venda(
             "reutilizada": True,
         }
     NfceDocumentoAgro.objects.filter(venda=venda).exclude(status=NfceDocumentoAgro.Status.AUTORIZADA).delete()
-    if not nfce_configurada():
+    if not nfce_configurada(warmup=True, tentativas=3):
         return {"ok": False, "erro": "NFC-e não configurada (NFC_E_ENABLED e demais variáveis no .env)."}
     cfg = nfce_cfg()
     tp_amb = int(cfg["tp_amb"])

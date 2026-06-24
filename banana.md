@@ -564,7 +564,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.70`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** Renan — cherry-pick Contabilidade layout + pendências NFC-e → produção (frase + senha)  
-**Versão app (`VERSION`):** **teste** v2.33 · **produção** v2.27 (`731607c`)
+**Versão app (`VERSION`):** **teste** v2.34 · **produção** v2.27 (`731607c`)
+
+### Fix NFC-e — cupom não emitiu na 1ª tentativa (2026-06-24, teste v2.34)
+
+| Item | Valor |
+| ---- | ----- |
+| **Sintoma** | Contabilidade: muitas pendências «Erro técnico» · motivo «NFC-e não configurada no servidor (.env)» · reemitir manual funciona |
+| **Causa** | Cold start Render (cert .pfx temporário) + PDV perdeu fluxo «sem identificação» em PIX/cartão |
+| **Fix** | Warmup/retry certificado · retry em background (2/5/10 s) antes de gravar ERRO · PIX/cartão sem CPF → sem identificação (PDV + servidor) · `nfce_solicitada` sem exigir config no momento da venda |
+| **Arquivos** | `nfce_config_util.py` · `views_nfce.py` · `views.py` · `pdv_wizard.js` · `nfce_sp_emissao_util.py` |
+| **Pendências antigas (jun/22)** | Reemitir em Consultar vendas ou aguardar comando em lote (futuro) — erros de antes do go-live NFC-e |
+
+**Renan — após deploy teste:** Ctrl+F5 PDV → venda PIX/cartão → cupom deve sair sem aviso amarelo · se servidor acordar lento, retry automático em ~2–17 s (sem ERRO falso).
+
+**105 erros jun/2026 na loja:** maioria provavelmente **22/06** (antes do go-live 23/06). Reemitir na consulta de vendas limpa uma a uma.
 
 ### Contabilidade — layout + pendências NFC-e → **produção OK** (2026-06-24, Renan + senha)
 

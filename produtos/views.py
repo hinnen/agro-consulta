@@ -19365,9 +19365,9 @@ def _persistir_venda_agro(
 
     nfce_solicitada = False
     try:
-        from produtos.nfce_config_util import nfce_configurada, nfce_emissao_solicitada
+        from produtos.nfce_config_util import nfce_emissao_solicitada
 
-        nfce_solicitada = bool(nfce_configurada() and nfce_emissao_solicitada(data))
+        nfce_solicitada = bool(nfce_emissao_solicitada(data))
     except Exception:
         nfce_solicitada = False
 

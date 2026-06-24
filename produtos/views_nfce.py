@@ -1,9 +1,12 @@
 """Views NFC-e — emissão PDV, cupom e exportação mensal de XML."""
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import re
+import threading
+import time
 from datetime import date
 
 from django.contrib.auth import authenticate, login, logout
@@ -20,7 +23,13 @@ from produtos.contabilidade_acesso_util import (
     usuario_somente_contabilidade,
 )
 from produtos.models import NfceDocumentoAgro, VendaAgro
-from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce_emissao_solicitada
+from produtos.nfce_config_util import (
+    nfce_config_resumo,
+    nfce_configurada,
+    nfce_emissao_automatica,
+    nfce_emissao_solicitada,
+    nfce_venda_tem_forma_pagamento_auto,
+)
 from produtos.nfce_contabilidade_util import (
     linhas_planilha_nfce_mes,
     montar_zip_nfce_mes,
@@ -37,6 +46,9 @@ from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_vend
 
 logger = logging.getLogger(__name__)
 
+_ERRO_NFCE_CFG = "NFC-e não configurada no servidor (.env)."
+_NFCE_RETRY_DELAYS_S = (2.0, 5.0, 10.0)
+
 
 def _mongo_conn():
     from produtos.views import obter_conexao_mongo
@@ -50,28 +62,30 @@ def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
         return cpf, False
     if sem_id:
         return "", True
+    if nfce_emissao_automatica() or nfce_venda_tem_forma_pagamento_auto(data):
+        return "", True
     return "", False
 
 
-def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | None:
-    """Emite NFC-e após gravar venda, se módulo ativo e PDV solicitou (manual ou auto)."""
-    if not venda:
-        return None
-    if not nfce_emissao_solicitada(data):
-        return None
+def _marcar_nfce_solicitada(venda: VendaAgro) -> None:
+    if not getattr(venda, "nfce_solicitada", False):
+        venda.nfce_solicitada = True
+        venda.save(update_fields=["nfce_solicitada"])
+
+
+def _nfce_ja_autorizada(venda: VendaAgro) -> bool:
+    return NfceDocumentoAgro.objects.filter(
+        venda=venda,
+        status=NfceDocumentoAgro.Status.AUTORIZADA,
+    ).exists()
+
+
+def _emitir_nfce_pos_venda_sync(venda: VendaAgro, data: dict) -> dict | None:
+    """Tenta emitir NFC-e na thread da requisição (sem retry em background)."""
     cfg = nfce_config_resumo()
     tp_amb = int(cfg.get("tp_amb") or 2)
-    if not nfce_configurada():
-        doc = registrar_nfce_erro_venda(
-            venda,
-            "NFC-e não configurada no servidor (.env).",
-            tp_amb=tp_amb,
-        )
-        return {
-            "ok": False,
-            "erro": "NFC-e não configurada no servidor (.env).",
-            "documento_id": doc.pk,
-        }
+    if not nfce_configurada(warmup=True, tentativas=3):
+        return None
     cpf, sem_id = _nfce_opts_payload(data)
     if not cpf and not sem_id:
         doc = registrar_nfce_erro_venda(
@@ -101,6 +115,92 @@ def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | 
         db=db,
         col_p=col_p,
     )
+
+
+def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
+    """Retry NFC-e após cold start / certificado ainda não pronto no Render."""
+    from django.db import close_old_connections
+
+    payload = copy.deepcopy(data)
+    close_old_connections()
+    try:
+        for wait_s in _NFCE_RETRY_DELAYS_S:
+            time.sleep(wait_s)
+            close_old_connections()
+            try:
+                venda = VendaAgro.objects.get(pk=venda_id)
+            except VendaAgro.DoesNotExist:
+                logger.error("NFC-e retry: venda %s não encontrada.", venda_id)
+                return
+            if _nfce_ja_autorizada(venda):
+                logger.info("NFC-e retry: venda %s já autorizada.", venda_id)
+                return
+            out = _emitir_nfce_pos_venda_sync(venda, payload)
+            if out and out.get("ok"):
+                logger.info("NFC-e retry OK venda %s (após %.0fs)", venda_id, wait_s)
+                return
+            if out is None:
+                continue
+            erro = str(out.get("erro") or "")
+            if erro != _ERRO_NFCE_CFG and "não configurada" not in erro.lower():
+                return
+        close_old_connections()
+        try:
+            venda = VendaAgro.objects.get(pk=venda_id)
+        except VendaAgro.DoesNotExist:
+            return
+        if _nfce_ja_autorizada(venda):
+            return
+        cfg = nfce_config_resumo()
+        tp_amb = int(cfg.get("tp_amb") or 2)
+        if not nfce_configurada(warmup=True, tentativas=3):
+            registrar_nfce_erro_venda(venda, _ERRO_NFCE_CFG, tp_amb=tp_amb)
+            logger.warning(
+                "NFC-e retry esgotado — config indisponível (venda %s).",
+                venda_id,
+            )
+            return
+        out = _emitir_nfce_pos_venda_sync(venda, payload)
+        if out and not out.get("ok"):
+            logger.warning(
+                "NFC-e retry esgotado venda %s — %s",
+                venda_id,
+                (out.get("erro") or "")[:300],
+            )
+    except Exception:
+        logger.exception("NFC-e retry background falhou (venda %s)", venda_id)
+    finally:
+        close_old_connections()
+
+
+def _disparar_nfce_pos_venda_background(venda_id: int, data: dict) -> None:
+    threading.Thread(
+        target=_nfce_pos_venda_background_worker,
+        args=(venda_id, data),
+        daemon=True,
+        name=f"nfce-venda-{venda_id}",
+    ).start()
+
+
+def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | None:
+    """Emite NFC-e após gravar venda, se módulo ativo e PDV solicitou (manual ou auto)."""
+    if not venda:
+        return None
+    if not nfce_emissao_solicitada(data):
+        return None
+    _marcar_nfce_solicitada(venda)
+    out = _emitir_nfce_pos_venda_sync(venda, data)
+    if out is not None:
+        return out
+    cfg = nfce_config_resumo()
+    tp_amb = int(cfg.get("tp_amb") or 2)
+    _disparar_nfce_pos_venda_background(venda.pk, data)
+    return {
+        "ok": False,
+        "erro": "Cupom fiscal em processamento. Se não sair em instantes, reemita em Consultar vendas.",
+        "pendente_retry": True,
+        "tp_amb": tp_amb,
+    }
 
 
 def anexar_nfce_resposta_venda(venda: VendaAgro | None, data: dict, payload: dict) -> dict:
@@ -307,9 +407,9 @@ def api_venda_agro_nfce_emitir(request, pk):
     v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
     if v.devolvida_em:
         return JsonResponse({"ok": False, "erro": "Venda devolvida — não é possível emitir NFC-e."}, status=400)
-    if not nfce_configurada():
+    if not nfce_configurada(warmup=True, tentativas=3):
         return JsonResponse(
-            {"ok": False, "erro": "NFC-e não configurada no servidor (.env)."},
+            {"ok": False, "erro": _ERRO_NFCE_CFG},
             status=503,
         )
     cpf, sem_id = _nfce_opts_payload(body)
@@ -352,9 +452,9 @@ def api_venda_agro_nfce_cancelar(request, pk):
             {"ok": False, "erro": "Esta venda não tem NFC-e autorizada para cancelar."},
             status=400,
         )
-    if not nfce_configurada():
+    if not nfce_configurada(warmup=True, tentativas=3):
         return JsonResponse(
-            {"ok": False, "erro": "NFC-e não configurada no servidor (.env)."},
+            {"ok": False, "erro": _ERRO_NFCE_CFG},
             status=503,
         )
     out = cancelar_nfce_autorizada(nfce)

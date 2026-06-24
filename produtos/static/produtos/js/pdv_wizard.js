@@ -5428,6 +5428,7 @@
 
     function nfceErroDaResposta(data) {
         if (data && data.nfce && data.nfce.ok === false) {
+            if (data.nfce.pendente_retry) return '';
             var e = data.nfce.erro || 'Falha na NFC-e';
             if (data.nfce.c_stat) e = '[' + data.nfce.c_stat + '] ' + e;
             return e;
@@ -5509,6 +5510,10 @@
         document.addEventListener('keydown', onKey);
     }
 
+    function nfceFluxoAutomatico(state) {
+        return nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state);
+    }
+
     function resolverNfceAntesConfirmar(withPrint) {
         if (!nfceUsuarioQuerEmitir()) {
             State.setPagamentoField('nfceOpts', {});
@@ -5519,6 +5524,11 @@
         var cpfCad = nfceNormalizarCpf(state.cliente && state.cliente.documento);
         if (nfceCpfValido(cpfCad)) {
             State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
+            confirmSaleProsseguir(withPrint);
+            return;
+        }
+        if (nfceFluxoAutomatico(state)) {
+            State.setPagamentoField('nfceOpts', { cpf: '', semIdentificacao: true });
             confirmSaleProsseguir(withPrint);
             return;
         }
