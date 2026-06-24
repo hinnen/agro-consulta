@@ -574,6 +574,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Regra** | **1ª ação todo chat:** `Read` em `banana.md` **inteiro** (sem limit); reler se chat longo/resumo |
 | **Motivo** | Contexto do chat some em minutos; banana = memória fixa |
 
+### ⚠️ Violação protocolo produção — Contabilidade (2026-06-24)
 
 | O quê | Detalhe |
 | ----- | ------- |
