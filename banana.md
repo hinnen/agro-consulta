@@ -555,7 +555,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.59`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
-**Versão app (`VERSION`):** **teste** v2.07 · **produção** v2.03 (`02cdb98`)
+**Versão app (`VERSION`):** **teste** v2.08 · **produção** v2.03
+
+### Fix busca PDV — cache local com preço espelho (2026-06-24)
+
+| Bug | Fix v2.08 |
+| --- | --------- |
+| Buscar `akiles` mostrava **só cache** (R$ 65 espelho) | Com `agro_pg`: **sempre** confere servidor SisVale |
+| Merge local+servidor mantinha preço velho | Servidor **prevalece** no `preco_venda` |
+| sessionStorage velho | Catálogo wizard **v8** (Ctrl+F5) |
+
+**Produção (sem `agro_pg`):** comportamento **igual** — só cache local, como antes.
+
+**Teste:** GM0060-15 = **R$ 70**, GM0061-15 = **R$ 75** (Postgres SisVale).
 
 ### Preço PDV teste — fonte da verdade é SisVale (2026-06-24)
 

@@ -71,6 +71,8 @@ def pdv_home(request):
             "link_loja": (getattr(settings, "LOJA_MAPS_LINK_VILA", None) or "").strip(),
         },
     ]
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
     ctx = {
         "caixa_aberto": caixa_aberto,
         "pdv_bootstrap": {
@@ -78,6 +80,7 @@ def pdv_home(request):
             "clientePadraoNome": "CONSUMIDOR NÃO IDENTIFICADO...",
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
             "origensMaps": origens_maps,
+            "catalogoPostgres": agro_catalogo_usa_postgres(),
             "urls": {
                 "apiBuscarProdutos": reverse("api_buscar_mobile"),
                 "apiBuscarClientes": reverse("api_buscar_clientes"),
