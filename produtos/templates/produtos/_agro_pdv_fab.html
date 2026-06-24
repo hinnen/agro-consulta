@@ -299,6 +299,11 @@
     return false;
   }
 
+  function pathIsContabilidade() {
+    var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+    return p === "/contabilidade" || p.indexOf("/contabilidade/") === 0;
+  }
+
   function inputFocused() {
     var t = document.activeElement;
     return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
@@ -335,6 +340,7 @@
 
   function shouldHide() {
     if (pathIsPdv()) return true;
+    if (pathIsContabilidade()) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;
     if (document.documentElement && document.documentElement.classList.contains("modal-open")) return true;
     if (hasOpenOverlay()) return true;

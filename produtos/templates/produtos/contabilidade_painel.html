@@ -1,7 +1,7 @@
 {% extends "layouts/base_pdv.html" %}
 
 {% block pdv_title %}Contabilidade | SisVale{% endblock %}
-{% block body_class %}min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden agro-page-contabilidade{% endblock %}
 
 {% block head_extra %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -41,6 +41,7 @@
 <div class="space-y-4 lg:space-y-5">
 
   {% if somente_contabilidade %}
+  {# banner restrito — sem bloco «Login contador» (instrução só no banana.md) #}
   <p class="rounded-xl border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-200">
     Acesso restrito ao escritório — exportações e relatórios do mês.
   </p>
