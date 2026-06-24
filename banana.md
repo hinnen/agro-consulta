@@ -557,7 +557,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
 **Versão app (`VERSION`):** **teste** v2.11 · **produção** v2.03
 
-### PDV teste = produção (2026-06-24)
+### Referência preço PDV — produção OK (Renan, 2026-06-24)
+
+**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** ainda diverge — assistente **parou de mexer** no PDV até Renan autorizar.
+
+| GM | Preço **certo** (PDV produção) | Teste v2.11 (errado) |
+| -- | ------------------------------ | -------------------- |
+| GM0060-15 | **R$ 70,00** | R$ 65,00 |
+| GM0061-15 | **R$ 75,00** | R$ 70,00 |
+
+**Antes de patch PDV:** buscar `akiles` na **loja** e no **teste** — tem que bater com a tabela acima.
+
+### PDV teste = código produção (2026-06-24) — preço ainda diverge
 
 - **Revertido** `pdv_wizard.js`, `pdv/views.py`, `catalogo_agro.py` merge → **igual branch `producao`**
 - **`AGRO_PDV_MERGE_CATALOGO_POSTGRES`:** off (padrão) — PDV usa espelho como loja; cadastro continua `agro_pg`
@@ -578,20 +589,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Merge local+servidor mantinha preço velho | Servidor **prevalece** no `preco_venda` |
 | sessionStorage velho | Catálogo wizard **v8** (Ctrl+F5) |
 
-**Produção (sem `agro_pg`):** comportamento **igual** — só cache local, como antes.
-
-**Teste:** GM0060-15 = **R$ 70**, GM0061-15 = **R$ 75** (Postgres SisVale).
-
-### Preço PDV teste — fonte da verdade é SisVale (2026-06-24)
-
-| GM | Preço **certo** (SisVale / teste) | Errado (espelho loja v2.03) |
-| -- | --------------------------------- | --------------------------- |
-| GM0060-15 | **R$ 70,00** | R$ 65,00 |
-| GM0061-15 | **R$ 75,00** | R$ 70,00 |
-
-**Regra:** com `AGRO_FONTE_CATALOGO=agro_pg`, PDV no **teste** usa preço do **Postgres SisVale** (merge na busca). Espelho Mongo/loja pode estar **desatualizado** — não reverter para espelho.
-
-**v2.06 revertido** — assistente tinha invertido «certo» e «errado».
+**Produção (sem `agro_pg` no PDV):** referência = tabela **Referência preço PDV** acima.
 
 **Sync outro chat (2026-06-23):** Renan fez push produção + teste em **outro chat** — pacote cancelamento NFC-e na devolução. Este CHECKPOINT é a fonte da verdade; código NFC-e (`nfce_sp_emissao_util`, `views`, `venda_agro_detalhe`) **igual** nos dois branches.
 
