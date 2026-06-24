@@ -555,7 +555,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.59`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
-**Versão app (`VERSION`):** **teste** v2.05 (`df2d1f7`) · **produção** v2.03 (`02cdb98`)
+**Versão app (`VERSION`):** **teste** v2.06 (fix preço PDV) · **produção** v2.03 (`02cdb98`)
+
+### Fix preço PDV teste — import Postgres não pode sobrescrever balcão (2026-06-24)
+
+| Sintoma | Causa real (não era GM6070) |
+| ------- | --------------------------- |
+| Akiles GM0060-15 **R$ 70** no teste vs **R$ 65** na loja | `AGRO_FONTE_CATALOGO=agro_pg` + `mesclar_prods_busca_pdv` já em **v2.05** — trocava preço do espelho pelo **import Postgres** |
+| Rollback GM6070 não resolveu | Bug **anterior** àquele chat; flag do teste + merge |
+
+**Fix:** PDV só usa preço SisVale se **overlay/cadastro gravou** (`preco_venda_sisvale`). Senão = preço do espelho (igual produção).
+
+**Teste:** deploy → Ctrl+F5 → buscar `akiles` → GM0060-15 deve bater com loja.
 
 **Sync outro chat (2026-06-23):** Renan fez push produção + teste em **outro chat** — pacote cancelamento NFC-e na devolução. Este CHECKPOINT é a fonte da verdade; código NFC-e (`nfce_sp_emissao_util`, `views`, `venda_agro_detalhe`) **igual** nos dois branches.
 
