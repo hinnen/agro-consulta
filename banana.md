@@ -614,6 +614,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Renan — conferir na loja:** Ctrl+F5 → `/contabilidade/` → resumo mês · CSV/XLSX · ZIP NFC-e · sem FAB PDV · sem «Outros exports».
 
+**Layout desktop (teste v2.31+):** largura total (96rem), resumo + botões download **lado a lado**, barra período compacta, sem faixa roxa grande.
+
 **Reverter:** revert dos 5 commits em `producao` (ordem inversa, começando por `86d3af2`).
 
 
