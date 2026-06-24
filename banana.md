@@ -1,6 +1,6 @@
 # BANANA — contexto SisVale (anexe com `@banana`)
 
-**Este é o único anexo obrigatório** no dia a dia. O `AGENTS.md` é enciclopédia (referência profunda); o Cursor já carrega um resumo via `.cursor/rules/agro-consulta.mdc`.
+**Este é o único anexo obrigatório** no dia a dia. O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
 
 
 | Você quer…                            | Faça                                                  |
@@ -11,7 +11,7 @@
 | Decisão permanente no changelog       | *"atualize o AGENTS"* (raro; só quando você pedir)    |
 
 
-**Assistente:** **sempre ler o `banana.md` inteiro** (ou CHECKPOINT + § relevante) **antes** de qualquer tarefa; registrar alterações no `banana.md` quando necessário **sem pedir**. Não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` quando pertinente (ver CHECKPOINT).
+**Assistente:** **sempre ler o `banana.md` inteiro** com **Read** (sem `limit`) **antes** de qualquer tarefa — **1ª ação do chat**; reler inteiro se o chat ficou longo ou houve resumo de contexto. Registrar alterações no `banana.md` quando necessário **sem pedir**. Não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` quando pertinente (ver CHECKPOINT). Detalhe na rule Cursor **§0**.
 
 **Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
 
@@ -561,12 +561,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.67`  
+**Versão:** `1.0.68`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** assistente — **violação protocolo produção** (Renan: push sem senha no pedido)  
+**Atualizado por:** Renan — rule Cursor **§0** (Read `banana.md` inteiro = 1ª ação todo chat)  
 **Versão app (`VERSION`):** **teste** v2.29 · **produção** v2.25 (`86d3af2`)
 
-### ⚠️ Violação protocolo produção — Contabilidade (2026-06-24)
+### Rule Cursor — leitura integral banana (2026-06-24, Renan)
+
+| O quê | Detalhe |
+| ----- | ------- |
+| **Arquivo** | `.cursor/rules/agro-consulta.mdc` **§0** |
+| **Regra** | **1ª ação todo chat:** `Read` em `banana.md` **inteiro** (sem limit); reler se chat longo/resumo |
+| **Motivo** | Contexto do chat some em minutos; banana = memória fixa |
+
 
 | O quê | Detalhe |
 | ----- | ------- |
@@ -1454,6 +1461,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.67
+### Fim do checkpoint v1.0.68
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
