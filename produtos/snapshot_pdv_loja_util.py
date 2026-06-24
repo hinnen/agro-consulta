@@ -20,6 +20,12 @@ def _url_fonte() -> str:
             "Configure AGRO_SNAPSHOT_FONTE_DATABASE_URL no Render teste "
             "(Internal Database URL do Postgres da loja — SistVale)."
         )
+    if not url.startswith(("postgresql://", "postgres://")):
+        preview = url[:48] + ("…" if len(url) > 48 else "")
+        raise ValueError(
+            "AGRO_SNAPSHOT_FONTE_DATABASE_URL inválida — tem que começar com postgresql:// "
+            f"(Internal Database URL do agro-db). Valor atual (início): {preview!r}"
+        )
     return url
 
 

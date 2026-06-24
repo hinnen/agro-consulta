@@ -683,6 +683,8 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Sync preço loja → teste (Fase B):** **não é ao vivo.** Alterou preço na **loja** hoje → **teste não muda** até rodar de novo `copiar_snapshot_pdv_loja` no Shell teste. Mongo compartilhado **não** manda preço do PDV teste com Fase B ligada (catálogo vem do Postgres **copiado**).
 
+**Erro snapshot `Scheme '://' is unknown` (Renan, 2026-06-24):** `AGRO_SNAPSHOT_FONTE_DATABASE_URL` no Environment **teste** está **errada** (texto explicativo, URL cortada ou sem `postgresql://`). Corrigir: Render **SistVale** → Postgres **agro-db** → **Internal Database URL** → copiar inteira → colar em **agro-consulta-staging** → key **`AGRO_SNAPSHOT_FONTE_DATABASE_URL`** → Save → Shell de novo.
+
 **Armadilha Render:** key tem que ser **`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`** (maiúsculas + prefixo `AGRO_`). Renan tinha criado `pdv_catalogo_somente_postgres` → status ficava `false` até corrigir.
 
 **Pré-requisito:** snapshot já rodou (`AGRO_SNAPSHOT_FONTE_DATABASE_URL` + `copiar_snapshot_pdv_loja` OK).
