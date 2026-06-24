@@ -262,6 +262,11 @@ urlpatterns = [
         views_nfce.api_nfce_export_planilha,
         name='api_nfce_export_planilha',
     ),
+    path(
+        'api/nfce/export-pendencias/',
+        views_nfce.api_nfce_export_pendencias,
+        name='api_nfce_export_pendencias',
+    ),
     path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
     path(
         'venda/<int:pk>/erp-envio/',

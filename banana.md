@@ -616,6 +616,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Layout desktop (teste v2.31+):** largura total (96rem), resumo + botões download **lado a lado**, barra período compacta, sem faixa roxa grande.
 
+**Pendências fiscais (teste v2.33+):** bloco «Pendências fiscais» recolhível (lista rejeitada/erro + motivo SEFAZ) + **CSV pendências** (`/api/nfce/export-pendencias/`). Até 200 na tela; CSV traz todas.
+
 **Reverter:** revert dos 5 commits em `producao` (ordem inversa, começando por `86d3af2`).
 
 
@@ -1456,7 +1458,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 | **Caixa — fechamentos do mês** | PDF/CSV por sessão (gaveta): entradas, sangrias, formas | Médio — `caixa_util`, `MovimentoCaixa` |
 | **Entrada NF / compras** | Resumo entradas no período (Mongo + Agro) | Médio |
 | **DRE / resumo gerencial** | Link `/lancamentos/dre/` + `/financeiro/resumo-gerencial/` com mês | Baixo |
-| **Pendências fiscais** | Lista NFC-e rejeitada/erro no mês (não autorizadas) | Baixo — alerta contador |
+| **Pendências fiscais** | Lista NFC-e rejeitada/erro no mês (não autorizadas) | Baixo | ✅ teste v2.33+ — bloco recolhível + CSV |
 
 ### Prioridade baixa / fase 2
 

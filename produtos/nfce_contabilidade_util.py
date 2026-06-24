@@ -108,6 +108,86 @@ def linhas_planilha_nfce_mes(ano: int, mes: int) -> list[dict[str, Any]]:
     return rows
 
 
+PENDENCIAS_CABECALHO = [
+    "venda_id",
+    "data_emissao",
+    "numero",
+    "serie",
+    "status",
+    "valor",
+    "mensagem_sefaz",
+]
+
+
+def linhas_pendencias_nfce_mes(ano: int, mes: int, *, limit: int | None = None) -> list[dict[str, Any]]:
+    qs = (
+        _qs_nfce_mes(ano, mes)
+        .filter(
+            status__in=(
+                NfceDocumentoAgro.Status.REJEITADA,
+                NfceDocumentoAgro.Status.ERRO,
+            )
+        )
+        .order_by("-criado_em", "-pk")
+    )
+    if limit is not None:
+        qs = qs[:limit]
+    rows: list[dict[str, Any]] = []
+    for doc in qs:
+        venda = doc.venda
+        criado = timezone.localtime(doc.criado_em) if doc.criado_em else None
+        msg = (doc.mensagem_sefaz or "").strip().replace("\r\n", " ").replace("\n", " ")
+        rows.append(
+            {
+                "venda_id": doc.venda_id,
+                "data_emissao": criado.strftime("%Y-%m-%d %H:%M:%S") if criado else "",
+                "numero": doc.numero or "",
+                "serie": doc.serie or "",
+                "status": doc.get_status_display(),
+                "status_codigo": doc.status,
+                "valor": float(venda.total) if venda else 0.0,
+                "mensagem_sefaz": msg[:500],
+            }
+        )
+    return rows
+
+
+def pendencias_nfce_resumo_json(ano: int, mes: int, *, limit: int = 200) -> dict[str, Any]:
+    total = _qs_nfce_mes(ano, mes).filter(
+        status__in=(
+            NfceDocumentoAgro.Status.REJEITADA,
+            NfceDocumentoAgro.Status.ERRO,
+        )
+    ).count()
+    linhas = linhas_pendencias_nfce_mes(ano, mes, limit=limit)
+    return {
+        "total": total,
+        "mostrando": len(linhas),
+        "truncado": total > len(linhas),
+        "linhas": linhas,
+    }
+
+
+def pendencias_nfce_csv_bytes(ano: int, mes: int) -> bytes:
+    buf = io.StringIO()
+    buf.write("\ufeff")
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(PENDENCIAS_CABECALHO)
+    for row in linhas_pendencias_nfce_mes(ano, mes):
+        w.writerow(
+            [
+                row["venda_id"],
+                row["data_emissao"],
+                row["numero"],
+                row["serie"],
+                row["status"],
+                f"{row['valor']:.2f}".replace(".", ","),
+                row["mensagem_sefaz"],
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
 PLANILHA_CABECALHO = [
     "numero",
     "serie",
