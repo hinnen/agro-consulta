@@ -428,7 +428,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Infra pronta, off**  | Catálogo Postgres                                                 | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — **ligado no staging**; produção ainda Mongo                           |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Flags existem; **não ligadas** nas views                                                                                                        |
 | **Falta (alta)**       | PDV `/consulta/`, wizard `/pdv/checkout/`                         | **Teste Fase B ✅** (Postgres catálogo staging). **Loja** ainda Mongo+overlay                                                                 |
-| **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | **Próximo (Fase C)** — `gestao/lista` + `gestao/facetas`                                                                                        |
+| **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | **Teste Fase C ✅** (Postgres lista/facetas staging). **Loja** ainda Mongo                                                                 |
 | **Falta (média)**      | Entrada NF, Compras, Estoque/transferências, Validade             | Buscas e agregações no espelho                                                                                                                  |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
 
@@ -561,10 +561,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.70`  
+**Versão:** `1.0.71`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** Renan — cherry-pick Contabilidade layout + pendências NFC-e → produção (frase + senha)  
+**Atualizado por:** Renan — intenção de cancelar assinatura ERP; checklist backups Excel  
 **Versão app (`VERSION`):** **teste** v2.34 · **produção** v2.27 (`731607c`)
+
+### Renan — cancelar assinatura ERP (2026-06-24, planejamento)
+
+| O quê | Detalhe |
+| ----- | ------- |
+| **Decisão** | Renan vai **cancelar a assinatura do ERP** (fornecedor legado / espelho Mongo) |
+| **SisVale não some** | Render + Postgres Agro continuam — PDV vendas, NFC-e, caixa, RH, clientes já são Agro |
+| **Risco se cancelar cedo** | **Mongo para de atualizar** → catálogo/estoque/financeiro/BI congelam na loja (produção ainda lê espelho) |
+| **Antes de cancelar** | Backups no PC (lista § abaixo) + checkpoint Lançamentos + acelerar migração §4.15 (cadastro/PDV/financeiro) |
+| **Ordem segura** | 1) baixar backups · 2) checkpoint `/lancamentos/` · 3) deploy corte Agro→ERP · 4) **só então** avisar ERP / cancelar assinatura |
+
+**Backups Excel/CSV no PC (prioridade):** Lançamentos backup todos + em aberto (ZIP) · Cadastro produtos Excel ↓ (todas colunas/categorias) · Vendas CSV · Contabilidade Excel + ZIP XML NFC-e · Fiado (JSON ou CSV dentro do ZIP Lançamentos) · export Lançamentos por período se quiser recorte.
+
 
 ### Fix NFC-e — cupom não emitiu na 1ª tentativa (2026-06-24, teste v2.34)
 
@@ -689,19 +702,19 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 - `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` — key exata (não `pdv_catalogo_somente_postgres`)
 - `AGRO_SNAPSHOT_FONTE_DATABASE_URL` = **Internal Database URL** do **agro-db** (SistVale) — **não** `true` nem URL do `agro-staging`
 
-### Fase C — Gestão operacional (2026-06-24)
+### Fase C — Gestão operacional ✅ (Renan, 2026-06-24)
 
 **Objetivo (só teste):** tela **Gestão de produtos** lista/busca/filtros via **Postgres** (flag `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true`). Saldos = Mongo + ajustes PIN.
 
 | # | Status |
 | - | ------ |
-| C1 Lista + busca Postgres | ✅ código teste (commit pendente deploy) |
-| C2 Facetas Postgres | ✅ |
-| C3 Renan: gestão pós-entrada NF | pendente |
+| C1 Lista + busca Postgres | ✅ Renan |
+| C2 Facetas Postgres | ✅ Renan |
+| C3 Gestão (lista/filtros/busca) | ✅ Renan — «parece tudo ok» |
 
-**Conferir após deploy:** `/api/agro/fonte-status/` → `gestao_somente_postgres: true` · abrir `/produtos/gestao/` · filtros + busca.
+**Entrega:** commit `d49e3b0` · teste **v2.40+** · `gestao_somente_postgres: true` no `fonte-status`.
 
-**WIP assistente:** push `teste` — Renan valida no Render teste.
+**Produção (loja fechada):** frase + senha — **não** sobe flags Fase B/C nem snapshot. PDV/gestão loja = Mongo+overlay até novo pacote combinado.
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
