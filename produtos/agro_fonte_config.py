@@ -45,6 +45,11 @@ def agro_pdv_catalogo_somente_postgres() -> bool:
     return bool(getattr(settings, "AGRO_PDV_CATALOGO_SOMENTE_POSTGRES", False))
 
 
+def agro_gestao_usa_postgres() -> bool:
+    """Gestão operacional lista/facetas no Postgres (staging — mesma flag Fase B PDV)."""
+    return agro_pdv_catalogo_somente_postgres()
+
+
 def agro_estoque_usa_ledger() -> bool:
     return agro_fonte_estoque() == _FONTE_ESTOQUE_LEDGER
 
@@ -91,6 +96,7 @@ def agro_fonte_status_dict() -> dict:
         "catalogo_postgres": agro_catalogo_usa_postgres(),
         "pdv_merge_catalogo_postgres": agro_pdv_merge_catalogo_postgres(),
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
+        "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),

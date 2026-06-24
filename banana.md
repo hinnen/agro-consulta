@@ -689,19 +689,19 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 - `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` — key exata (não `pdv_catalogo_somente_postgres`)
 - `AGRO_SNAPSHOT_FONTE_DATABASE_URL` = **Internal Database URL** do **agro-db** (SistVale) — **não** `true` nem URL do `agro-staging`
 
-### Fase C — Gestão operacional (próximo · 2026-06-24)
+### Fase C — Gestão operacional (2026-06-24)
 
-**Objetivo (só teste):** tela **Gestão de produtos** (`/produtos/gestao/`) listar/buscar/filtros a partir do **Postgres** (mesma base do cadastro + snapshot), sem `distinct` pesado no Mongo. **Saldos** continuam Mongo + ajustes PIN (por enquanto).
+**Objetivo (só teste):** tela **Gestão de produtos** lista/busca/filtros via **Postgres** (flag `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true`). Saldos = Mongo + ajustes PIN.
 
-| # | Entrega | Renan testa |
-| - | ------- | ----------- |
-| C1 | Lista + busca gestão via Postgres (staging) | Abrir gestão, buscar GM/nome, paginar |
-| C2 | Facetas (marca/categoria/fornecedor) via Postgres | Filtros laterais carregam rápido |
-| C3 | Pós-entrada NF → voltar gestão (caso lentidão) | Fluxo que antes travava |
+| # | Status |
+| - | ------ |
+| C1 Lista + busca Postgres | ✅ código teste (commit pendente deploy) |
+| C2 Facetas Postgres | ✅ |
+| C3 Renan: gestão pós-entrada NF | pendente |
 
-**Produção (loja fechada):** Renan pede com **frase + senha**. **Não sobe** flags Fase B (`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`, snapshot URL). PDV loja **permanece** Mongo+overlay (já OK). Pacote produção **a combinar** ao fechar — ex. cadastro `agro_pg` (etapa 1) se ainda não estiver na loja; Fase C **só após** validar no teste.
+**Conferir após deploy:** `/api/agro/fonte-status/` → `gestao_somente_postgres: true` · abrir `/produtos/gestao/` · filtros + busca.
 
-**WIP assistente:** implementar C1+C2 em `teste` → push → Renan valida no Render teste.
+**WIP assistente:** push `teste` — Renan valida no Render teste.
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 

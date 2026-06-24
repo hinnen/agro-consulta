@@ -824,6 +824,18 @@ def _mongo_produtos_por_overlay_codigo_busca(
 @require_GET
 def api_produtos_gestao_facetas(request):
     """Marcas, categorias, subcategorias e fornecedores distintos (Mongo) para filtros da gestão."""
+    from produtos.agro_fonte_config import agro_gestao_usa_postgres
+
+    if agro_gestao_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        try:
+            fac = cat_agro.facetas_gestao()
+        except Exception as e:
+            logger.warning("api_produtos_gestao_facetas (agro_pg): %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+        return JsonResponse({"ok": True, "fonte": "agro_pg", **fac})
+
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
@@ -875,9 +887,7 @@ def api_produtos_gestao_lista(request):
     """
     Lista paginada para gestão operacional: saldos centro/vila (Agro), merge com overlay local.
     """
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
+    from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
     q_raw = str(request.GET.get("q") or "").strip()
     status_q = str(request.GET.get("status") or "ativos").strip().lower()
@@ -896,6 +906,61 @@ def api_produtos_gestao_lista(request):
     except ValueError:
         pagina = 1
     pagina = max(1, pagina)
+
+    if agro_gestao_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        client, db = obter_conexao_mongo()
+        try:
+            if q_raw:
+                rows_pg = cat_agro.buscar_gestao(
+                    q_raw,
+                    limit=120,
+                    status_q=status_q,
+                    marca=marca_f,
+                    categoria=cat_f,
+                    fornecedor=forn_f,
+                )
+                total = len(rows_pg)
+                skip = (pagina - 1) * por_pagina
+                chunk_rows = rows_pg[skip : skip + por_pagina]
+                has_more = skip + por_pagina < total
+            else:
+                chunk_rows, has_more, total = cat_agro.listar_gestao_paginado(
+                    pagina=pagina,
+                    por_pagina=por_pagina,
+                    status_q=status_q,
+                    marca=marca_f,
+                    categoria=cat_f,
+                    fornecedor=forn_f,
+                )
+            chunk = [cat_agro.row_para_doc_gestao_lista(r) for r in chunk_rows]
+            p_ids = [str(p.get("Id") or p.get("_id") or "") for p in chunk if p.get("Id") or p.get("_id")]
+            saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+            ovs = _overlay_mapa_por_ids(p_ids)
+            rows = [
+                _linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p.get("_id") or "")))
+                for p in chunk
+            ]
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "fonte": "agro_pg",
+                    "modo": "busca" if q_raw else "lista",
+                    "pagina": pagina,
+                    "por_pagina": por_pagina,
+                    "has_more": has_more,
+                    "total": total,
+                    "produtos": rows,
+                }
+            )
+        except Exception as e:
+            logger.warning("api_produtos_gestao_lista (agro_pg): %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
 
     include_inactive = status_q in ("todos", "inativos")
 

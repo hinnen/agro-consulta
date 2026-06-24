@@ -477,6 +477,192 @@ def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
     return out
 
 
+def _queryset_gestao_status(status_q: str):
+    """Queryset ``Produto`` conforme filtro status da gestão operacional."""
+    status_q = (status_q or "ativos").strip().lower()
+    if status_q == "inativos":
+        return Produto.objects.filter(Q(cadastro_inativo=True) | Q(ativo=False))
+    if status_q == "todos":
+        return Produto.objects.all()
+    return queryset_catalogo_ativos(inativos=False)
+
+
+def row_para_doc_gestao_lista(row: dict) -> dict:
+    """Documento estilo Mongo para ``_linha_gestao_produto_json``."""
+    inativo = bool(row.get("inativo"))
+    cat = str(row.get("categoria") or "").strip()
+    sub = str(row.get("subcategoria") or "").strip()
+    forn = str(row.get("fornecedor") or "").strip()
+    cod = str(row.get("codigo") or "").strip()
+    cnfe = str(row.get("codigo_nfe") or cod).strip()
+    pid = str(row.get("id") or "").strip()
+    return {
+        "Id": pid,
+        "_id": pid,
+        "CadastroInativo": inativo,
+        "Nome": str(row.get("nome") or "").strip(),
+        "Marca": str(row.get("marca") or "").strip(),
+        "NomeCategoria": cat,
+        "Categoria": cat,
+        "Grupo": cat,
+        "NomeFornecedor": forn,
+        "Fornecedor": forn,
+        "SubGrupo": sub,
+        "Subcategoria": sub,
+        "NomeSubcategoria": sub,
+        "CodigoNFe": cnfe,
+        "Codigo": cod,
+        "CodigoBarras": str(row.get("codigo_barras") or "").strip(),
+        "Unidade": str(row.get("unidade") or "UN").strip() or "UN",
+        "ValorVenda": row.get("preco_venda"),
+        "PrecoVenda": row.get("preco_venda"),
+        "PrecoCusto": row.get("preco_custo"),
+        "ValorCusto": row.get("preco_custo"),
+        "Descricao": str(row.get("descricao") or "").strip(),
+    }
+
+
+def _gestao_aplicar_filtros_qs(qs, *, marca: str, categoria: str, fornecedor: str):
+    marca = (marca or "").strip()
+    categoria = (categoria or "").strip()
+    fornecedor = (fornecedor or "").strip()
+    if marca:
+        qs = qs.filter(marca=marca)
+    if categoria:
+        qs = qs.filter(categoria=categoria)
+    if fornecedor:
+        qs = qs.filter(fornecedor_texto__icontains=fornecedor)
+    return qs
+
+
+def listar_gestao_paginado(
+    *,
+    pagina: int = 1,
+    por_pagina: int = 40,
+    status_q: str = "ativos",
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
+) -> tuple[list[dict], bool, int | None]:
+    """Lista paginada gestão operacional (Postgres + overlay)."""
+    qs = _queryset_gestao_status(status_q)
+    qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
+    skip = max(0, (pagina - 1) * por_pagina)
+    chunk = list(qs.order_by("nome", "pk")[skip : skip + por_pagina + 1])
+    has_more = len(chunk) > por_pagina
+    rows = _rows_de_produtos(chunk[:por_pagina])
+    return rows, has_more, None
+
+
+def _gestao_row_passa_status(row: dict, status_q: str) -> bool:
+    inativo = bool(row.get("inativo"))
+    if status_q == "inativos":
+        return inativo
+    if status_q == "todos":
+        return True
+    return not inativo
+
+
+def _gestao_row_passa_filtros(row: dict, marca: str, categoria: str, fornecedor: str) -> bool:
+    if marca and str(row.get("marca") or "").strip() != marca:
+        return False
+    if categoria and str(row.get("categoria") or "").strip() != categoria:
+        return False
+    if fornecedor:
+        f = str(row.get("fornecedor") or "").strip().lower()
+        if fornecedor.strip().lower() not in f:
+            return False
+    return True
+
+
+def buscar_gestao(
+    q: str,
+    *,
+    limit: int = 120,
+    status_q: str = "ativos",
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
+) -> list[dict]:
+    """Busca gestão com filtros (Postgres)."""
+    include_inactive = status_q in ("todos", "inativos")
+    rows = buscar(q, limit=limit, inativos=include_inactive)
+    out: list[dict] = []
+    for row in rows:
+        if not _gestao_row_passa_status(row, status_q):
+            continue
+        if not _gestao_row_passa_filtros(row, marca, categoria, fornecedor):
+            continue
+        out.append(row)
+    return out
+
+
+def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in valores:
+        s = str(raw or "").strip()
+        if not s:
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+        if len(out) >= limite:
+            break
+    return sorted(out, key=lambda x: x.lower())
+
+
+def facetas_gestao(*, limite: int = 200) -> dict[str, list[str]]:
+    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay)."""
+    lim = max(1, min(int(limite or 200), 300))
+    qs = queryset_catalogo_ativos(inativos=False)
+    marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=lim)
+    categorias = _faceta_valores_distintos(
+        qs.exclude(categoria="").values_list("categoria", flat=True).distinct(), limite=lim
+    )
+    subcategorias = _faceta_valores_distintos(
+        qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct(), limite=lim
+    )
+    fornecedores = _faceta_valores_distintos(
+        qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct(), limite=lim + 100
+    )
+
+    ov_qs = ProdutoGestaoOverlayAgro.objects.all()
+    marcas = _faceta_valores_distintos(
+        list(marcas)
+        + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    categorias = _faceta_valores_distintos(
+        list(categorias)
+        + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    subcategorias = _faceta_valores_distintos(
+        list(subcategorias)
+        + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    fornecedores = _faceta_valores_distintos(
+        list(fornecedores)
+        + [
+            x
+            for x in ov_qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct()[
+                : lim + 100
+            ]
+        ],
+        limite=lim + 100,
+    )
+    return {
+        "marcas": marcas,
+        "categorias": categorias,
+        "subcategorias": subcategorias,
+        "fornecedores": fornecedores,
+    }
+
+
 def listar_todos_rows_ativos() -> list[dict]:
     """Todos os produtos ativos do Postgres (catálogo ``agro_pg``)."""
     out: list[dict] = []
