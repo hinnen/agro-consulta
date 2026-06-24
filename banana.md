@@ -561,10 +561,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.63`  
+**Versão:** `1.0.64`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** assistente Cursor (PDV snapshot loja→teste v2.18)  
-**Versão app (`VERSION`):** **teste** v2.22 · **produção** v2.03
+**Atualizado por:** Renan validou preço Akiles teste = produção; assistente registrou banana  
+**Versão app (`VERSION`):** **teste** v2.23 · **produção** v2.03
+
+### PDV teste — preço Akiles OK (Renan, 2026-06-24) ✅
+
+Renan confirmou: no **Render teste**, busca `akiles` bate com o **PDV produção** (referência GM0060/61).
+
+| GM | Produção (certo) | Teste (v2.22+) |
+| -- | -------------- | -------------- |
+| GM0060-15 | **R$ 70,00** | **R$ 70,00** ✅ |
+| GM0061-15 | **R$ 75,00** | **R$ 75,00** ✅ |
+
+**Como chegou aqui:** snapshot Postgres loja→teste (v2.18) + fix cache busca staging (v2.22, commit `d24b1dd`). **Não** mexer no PDV preço até novo pedido.
 
 ### Fix PDV teste — cache local ignorava overlay (2026-06-24, v2.22)
 
@@ -572,7 +583,7 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Fix v2.22:** no **staging** (`AGRO_STAGING_READONLY`), busca por texto **sempre confere o servidor**; preço do servidor prevalece. Cache catálogo v9 (ignora sessionStorage antigo no teste).
 
-**Renan — após deploy v2.22:** Ctrl+F5 no PDV teste → buscar `akiles` → **R$ 70 / R$ 75**. Não precisa rodar snapshot de novo.
+**Renan — após deploy v2.22:** Ctrl+F5 no PDV teste → buscar `akiles` → **R$ 70 / R$ 75**. ✅ **Validado Renan 2026-06-24.**
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
@@ -608,16 +619,16 @@ Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
 Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `99738595`** na mesma mensagem. Outro chat tinha só uma linha vaga no CHECKPOINT — **corrigido no topo do banana**.
 
-### Referência preço PDV — produção OK (Renan, 2026-06-24)
+### Referência preço PDV — produção e teste OK (Renan, 2026-06-24)
 
-**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** — snapshot OK; preços na busca pendente validar após **v2.22**.
+**PDV produção (loja v2.03)** e **PDV teste (v2.22+)** = mesmos preços nos exemplos Akiles.
 
-| GM | Preço **certo** (PDV produção) | Teste (Mongo sem overlay) |
-| -- | ------------------------------ | ------------------------- |
-| GM0060-15 | **R$ 70,00** | R$ 65,00 |
-| GM0061-15 | **R$ 75,00** | R$ 70,00 |
+| GM | Preço (produção = teste) |
+| -- | ------------------------ |
+| GM0060-15 | **R$ 70,00** |
+| GM0061-15 | **R$ 75,00** |
 
-**Validação:** buscar `akiles` no **teste** após deploy **v2.22** + Ctrl+F5.
+**Antes de patch PDV preço:** buscar `akiles` na loja e no teste — tem que bater com a tabela acima.
 
 ### PDV teste = código produção (2026-06-24) — snapshot v2.18
 
