@@ -673,13 +673,15 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Objetivo:** busca/catálogo do PDV no **Render teste** vêm do **Postgres copiado da loja** (snapshot), não do espelho Mongo. Estoque/médias podem continuar no Mongo. **Produção:** flag **sempre off**.
 
-| Passo | Quem | O quê |
-| ----- | ---- | ----- |
-| 1 | Assistente | Deploy teste com cache catálogo **v10** (invalida sessionStorage antigo) |
-| 2 | Renan | Render **teste** → Environment → `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` = **`true`** → Save (redeploy) |
-| 3 | Renan | Abrir `/api/agro/fonte-status/` → `pdv_catalogo_somente_postgres: true` |
-| 4 | Renan | **Ctrl+F5** PDV → Akiles + os 3 produtos + barras/GM |
-| 5 | Se OK | Registrar Fase B ✅ aqui. Se quebrar: flag **`false`** + redeploy (revert imediato) |
+| Passo | Status |
+| ----- | ------ |
+| 1 Deploy cache v10 | ✅ |
+| 2 Env `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` | ✅ Renan 2026-06-24 |
+| 3 `/api/agro/fonte-status/` → `pdv_catalogo_somente_postgres: true` | ✅ |
+| 4 Ctrl+F5 PDV → Akiles + 3 produtos + barras/GM | **pendente Renan** |
+| 5 Registrar Fase B ✅ ou revert flag `false` | pendente |
+
+**Armadilha Render:** key tem que ser **`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`** (maiúsculas + prefixo `AGRO_`). Renan tinha criado `pdv_catalogo_somente_postgres` → status ficava `false` até corrigir.
 
 **Pré-requisito:** snapshot já rodou (`AGRO_SNAPSHOT_FONTE_DATABASE_URL` + `copiar_snapshot_pdv_loja` OK).
 
