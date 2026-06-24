@@ -588,7 +588,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
-**Contabilidade v2.16** (teste anterior): `/contabilidade/` + exports — ainda só no teste; produção v2.03.
+**Contabilidade v2.19** (teste `8523686`): layout **largo desktop** (2 colunas); bloco «Login contador» **oculto na tela** (instrução só no banana). Produção v2.03.
 
 ### Regra senha produção — registrada (2026-06-24)
 
