@@ -11,7 +11,7 @@
 | Decisão permanente no changelog       | *"atualize o AGENTS"* (raro; só quando você pedir)    |
 
 
-**Assistente:** não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` **sem pedir** quando for pertinente (ver CHECKPOINT).
+**Assistente:** **sempre ler o `banana.md` inteiro** (ou CHECKPOINT + § relevante) **antes** de qualquer tarefa; registrar alterações no `banana.md` quando necessário **sem pedir**. Não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` quando pertinente (ver CHECKPOINT).
 
 **Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
 
@@ -564,7 +564,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.63`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente Cursor (PDV snapshot loja→teste v2.18)  
-**Versão app (`VERSION`):** **teste** v2.21 · **produção** v2.03
+**Versão app (`VERSION`):** **teste** v2.22 · **produção** v2.03
+
+### Fix PDV teste — cache local ignorava overlay (2026-06-24, v2.22)
+
+Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **falhou**: busca `akiles` ainda mostrava R$ 65/70 (preço Mongo no **cache local** do navegador — não ia ao servidor).
+
+**Fix v2.22:** no **staging** (`AGRO_STAGING_READONLY`), busca por texto **sempre confere o servidor**; preço do servidor prevalece. Cache catálogo v9 (ignora sessionStorage antigo no teste).
+
+**Renan — após deploy v2.22:** Ctrl+F5 no PDV teste → buscar `akiles` → **R$ 70 / R$ 75**. Não precisa rodar snapshot de novo.
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
@@ -594,7 +602,7 @@ Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registra
 
 Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
-**Contabilidade v2.19** (teste `8523686`): layout **largo desktop** (2 colunas); bloco «Login contador» **oculto na tela** (instrução só no banana). Produção v2.03.
+**Contabilidade v2.19+** (teste): bloco «Login contador» **removido da tela** (só no banana). FAB **PDV F1 oculto** em `/contabilidade/`. Se ainda aparecer o bloco antigo: **Ctrl+F5** no **staging** — **produção v2.03** ainda não tem Contabilidade nova.
 
 ### Regra senha produção — registrada (2026-06-24)
 
@@ -602,14 +610,14 @@ Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `9
 
 ### Referência preço PDV — produção OK (Renan, 2026-06-24)
 
-**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** — após snapshot v2.18 deve bater; pendente Renan validar.
+**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** — snapshot OK; preços na busca pendente validar após **v2.22**.
 
-| GM | Preço **certo** (PDV produção) | Teste (antes snapshot) |
-| -- | ------------------------------ | ---------------------- |
+| GM | Preço **certo** (PDV produção) | Teste (Mongo sem overlay) |
+| -- | ------------------------------ | ------------------------- |
 | GM0060-15 | **R$ 70,00** | R$ 65,00 |
 | GM0061-15 | **R$ 75,00** | R$ 70,00 |
 
-**Validação pós-snapshot:** buscar `akiles` no **teste** — tem que bater com a tabela acima.
+**Validação:** buscar `akiles` no **teste** após deploy **v2.22** + Ctrl+F5.
 
 ### PDV teste = código produção (2026-06-24) — snapshot v2.18
 

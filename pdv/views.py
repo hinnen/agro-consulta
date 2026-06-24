@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
 from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
+from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
@@ -126,7 +127,9 @@ def pdv_home(request):
             },
             "search": {
                 "mode": "wizard",
+                "stagingReadonly": agro_staging_readonly(),
             },
+            "stagingReadonly": agro_staging_readonly(),
             "erpEnvioAssincrono": bool(getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True)),
             "assets": {
                 "placeholderProduto": static("img/agro-mais-logo-buscador.png"),

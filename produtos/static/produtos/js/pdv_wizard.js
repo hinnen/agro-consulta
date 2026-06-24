@@ -317,7 +317,11 @@
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v8';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v9';
+    var stagingReadonly = !!(
+        bootstrap.stagingReadonly ||
+        (bootstrap.search && bootstrap.search.stagingReadonly)
+    );
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -600,7 +604,7 @@
         if (catalogReady) return Promise.resolve();
         if (catalogLoadPromise) return catalogLoadPromise;
         try {
-            var raw = sessionStorage.getItem(CATALOG_STORAGE_KEY);
+            var raw = stagingReadonly ? null : sessionStorage.getItem(CATALOG_STORAGE_KEY);
             if (raw) {
                 var parsed = JSON.parse(raw);
                 if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
@@ -4788,11 +4792,14 @@
                     tryAutoAddBarcodeHit(localList[0]);
                     return Promise.resolve();
                 }
-                if (localList.length && !skuCode) {
+                if (localList.length && !skuCode && !stagingReadonly) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     return Promise.resolve();
+                }
+                if (stagingReadonly && localList.length && !skuCode) {
+                    dom.productSearchFeedback.textContent = 'Conferindo preços no servidor…';
                 }
                 if (skuCode && localList.length) {
                     var ql = String(query).trim().toLowerCase();
@@ -4824,7 +4831,9 @@
                 if (seq !== filterSeq) return;
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
-                var merged = mergeProductsById(payload.localList || [], remote);
+                var merged = stagingReadonly
+                    ? mergeProductsById(remote, payload.localList || [])
+                    : mergeProductsById(payload.localList || [], remote);
                 if (payload.mode === 'barcode' && merged.length === 1) {
                     tryAutoAddBarcodeHit(merged[0]);
                     return;
