@@ -669,25 +669,25 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Validação ampliada Fase A (Renan, 2026-06-24):** além das Akiles, **+3 produtos** com preço alterado na loja — **OK** no teste. **Próximo:** Fase B (catálogo PDV sem Mongo no staging).
 
-### Fase B — PDV teste catálogo só Postgres (2026-06-24, em andamento)
+### Fase B — PDV teste catálogo só Postgres ✅ (2026-06-24)
 
 **Objetivo:** busca/catálogo do PDV no **Render teste** vêm do **Postgres copiado da loja** (snapshot), não do espelho Mongo. Estoque/médias podem continuar no Mongo. **Produção:** flag **sempre off**.
 
 | Passo | Status |
 | ----- | ------ |
 | 1 Deploy cache v10 | ✅ |
-| 2 Env `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` | ✅ Renan 2026-06-24 |
-| 3 `/api/agro/fonte-status/` → `pdv_catalogo_somente_postgres: true` | ✅ |
-| 4 Ctrl+F5 PDV → Akiles + 3 produtos + barras/GM | ✅ preços OK (Renan); 1ª busca **mais lenta** (catálogo Postgres ~3354 itens) |
-| 5 Registrar Fase B ✅ ou revert flag `false` | pendente confirmação final |
+| 2 Env `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` | ✅ |
+| 3 `fonte-status` → `pdv_catalogo_somente_postgres: true` | ✅ |
+| 4 PDV teste — preços OK (1ª busca mais lenta) | ✅ Renan |
+| 5 Sync loja→teste: mudou preço na loja → snapshot → teste | ✅ Renan |
 
-**Sync preço loja → teste (Fase B):** **não é ao vivo.** Alterou preço na **loja** hoje → **teste não muda** até rodar de novo `copiar_snapshot_pdv_loja` no Shell teste. Mongo compartilhado **não** manda preço do PDV teste com Fase B ligada (catálogo vem do Postgres **copiado**).
+**Snapshot pós-correção URL (Renan):** `produtos=3357 overlays=806 ajustes=4772` — produto alterado na **loja** apareceu no **teste** após `copiar_snapshot_pdv_loja`.
 
-**Erro snapshot `Scheme '://' is unknown` (Renan, 2026-06-24):** `AGRO_SNAPSHOT_FONTE_DATABASE_URL` no Environment **teste** está **errada** (texto explicativo, URL cortada ou sem `postgresql://`). Corrigir: Render **SistVale** → Postgres **agro-db** → **Internal Database URL** → copiar inteira → colar em **agro-consulta-staging** → key **`AGRO_SNAPSHOT_FONTE_DATABASE_URL`** → Save → Shell de novo.
+**Sync preço (regra operacional):** **não é ao vivo.** Loja mudou hoje → teste só atualiza após **novo snapshot** no Shell teste (ou cron HTTP). Rotina sugerida: snapshot quando for validar pacote grande ou após mudanças de preço relevantes na loja.
 
-**Armadilha Render:** key tem que ser **`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`** (maiúsculas + prefixo `AGRO_`). Renan tinha criado `pdv_catalogo_somente_postgres` → status ficava `false` até corrigir.
-
-**Pré-requisito:** snapshot já rodou (`AGRO_SNAPSHOT_FONTE_DATABASE_URL` + `copiar_snapshot_pdv_loja` OK).
+**Armadilhas Environment teste (registrar):**
+- `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` — key exata (não `pdv_catalogo_somente_postgres`)
+- `AGRO_SNAPSHOT_FONTE_DATABASE_URL` = **Internal Database URL** do **agro-db** (SistVale) — **não** `true` nem URL do `agro-staging`
 
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
