@@ -564,7 +564,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.65`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** Renan confirmou Akiles teste = produção (chat PDV snapshot)  
-**Versão app (`VERSION`):** **teste** v2.25 · **produção** v2.03
+**Versão app (`VERSION`):** **teste** v2.26 · **produção** v2.03
 
 ### PDV teste — preço Akiles OK (Renan, 2026-06-24) ✅
 
