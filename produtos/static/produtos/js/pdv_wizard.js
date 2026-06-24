@@ -317,7 +317,7 @@
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v7';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v8';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;

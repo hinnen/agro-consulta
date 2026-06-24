@@ -623,6 +623,11 @@ urlpatterns = [
         views.api_cron_importar_catalogo_mongo,
         name='api_cron_importar_catalogo_mongo',
     ),
+    path(
+        'api/cron/copiar-snapshot-pdv-loja/',
+        views.api_cron_copiar_snapshot_pdv_loja,
+        name='api_cron_copiar_snapshot_pdv_loja',
+    ),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
     path('api/listar-clientes/', views.api_list_customers, name='api_list_customers'),

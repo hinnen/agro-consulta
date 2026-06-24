@@ -40,6 +40,11 @@ def agro_pdv_merge_catalogo_postgres() -> bool:
     return bool(getattr(settings, "AGRO_PDV_MERGE_CATALOGO_POSTGRES", False))
 
 
+def agro_pdv_catalogo_somente_postgres() -> bool:
+    """PDV catálogo 100 % Postgres (staging após snapshot). **Off** na loja."""
+    return bool(getattr(settings, "AGRO_PDV_CATALOGO_SOMENTE_POSTGRES", False))
+
+
 def agro_estoque_usa_ledger() -> bool:
     return agro_fonte_estoque() == _FONTE_ESTOQUE_LEDGER
 
@@ -85,6 +90,7 @@ def agro_fonte_status_dict() -> dict:
         **agro_mongo_guard_status(),
         "catalogo_postgres": agro_catalogo_usa_postgres(),
         "pdv_merge_catalogo_postgres": agro_pdv_merge_catalogo_postgres(),
+        "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),

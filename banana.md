@@ -561,32 +561,34 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.62`  
-**Última atualização:** `2026-06-17`  
-**Atualizado por:** assistente Cursor (Contabilidade v2.14 + regra «Render teste assistente manda»)  
-**Versão app (`VERSION`):** **teste** v2.16 · **produção** v2.03
+**Versão:** `1.0.63`  
+**Última atualização:** `2026-06-24`  
+**Atualizado por:** assistente Cursor (PDV snapshot loja→teste v2.18)  
+**Versão app (`VERSION`):** **teste** v2.18 · **produção** v2.03
 
-### Regra Render teste — assistente manda (Renan 2026-06-17)
+### PDV teste — snapshot da loja (2026-06-24, v2.18)
 
-Push em `teste` **sem pedir** quando entregar código útil; registrar aqui. Produção inalterada (frase + senha).
+**Objetivo:** teste mostrar **mesmos preços** da loja (Akiles GM0060/61) **sem mexer na produção**.
 
-### Contabilidade v2.14 — push teste
+| Entrega | Detalhe |
+| ------- | ------- |
+| Comando | `python manage.py copiar_snapshot_pdv_loja` |
+| Cron HTTP | `GET /api/cron/copiar-snapshot-pdv-loja/?token=…` |
+| Env staging | `AGRO_SNAPSHOT_FONTE_DATABASE_URL` = Internal URL Postgres **agro-db** (SistVale) |
+| Fase A (padrão) | Copia overlay + Produto; PDV teste **igual código loja** + overlay no cache staging |
+| Fase B (opcional) | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — catálogo PDV **sem Mongo** (só após Fase A OK) |
+| **Produção** | **não tocada** |
 
-**Pedido Renan:** roadmap itens **1, 2, 3, 4 e 8** — validar no **Render teste**; produção (série 21) replica depois com frase + senha.
+**Renan — após deploy v2.18 no Render teste:**
 
-| # | Item | Status |
-| --- | --- | --- |
-| 1 | Resumo mês NFC-e | ✅ `GET /api/nfce/contabilidade/resumo/` |
-| 2 | CSV/XLSX | ✅ `GET /api/nfce/export-planilha/` |
-| 3 | ZIP + index + canceladas | ✅ `GET /api/nfce/export-xml/` |
-| 4 | Atalhos exports gerenciais | ✅ links por mês na tela |
-| 8 | Login contador | ✅ `AGRO_CONTABILIDADE_USERNAMES` + middleware |
+1. Colar `AGRO_SNAPSHOT_FONTE_DATABASE_URL` (Postgres loja) no Environment **teste**
+2. Rodar snapshot (Shell ou cron)
+3. Ctrl+F5 PDV → buscar `akiles` → **R$ 70 / R$ 75**
+4. Só então (se quiser) ligar `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true`
 
-**Render teste após deploy:** Admin → usuário contador; env `AGRO_CONTABILIDADE_USERNAMES=username`; `/contabilidade/`.
+Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
-**Produção:** não subido — Renan replica quando validar teste + frase + senha.
-
-**Commits teste:** `a570cd0` (Contabilidade) + banana `aebb831` — Render teste **v2.16**.
+**Contabilidade v2.16** (teste anterior): `/contabilidade/` + exports — ainda só no teste; produção v2.03.
 
 ### Regra senha produção — registrada (2026-06-24)
 
@@ -594,22 +596,23 @@ Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `9
 
 ### Referência preço PDV — produção OK (Renan, 2026-06-24)
 
-**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** ainda diverge — assistente **parou de mexer** no PDV até Renan autorizar.
+**PDV produção (loja v2.03)** = preço **certo** nos exemplos Akiles. **Teste** — após snapshot v2.18 deve bater; pendente Renan validar.
 
-| GM | Preço **certo** (PDV produção) | Teste v2.11 (errado) |
-| -- | ------------------------------ | -------------------- |
+| GM | Preço **certo** (PDV produção) | Teste (antes snapshot) |
+| -- | ------------------------------ | ---------------------- |
 | GM0060-15 | **R$ 70,00** | R$ 65,00 |
 | GM0061-15 | **R$ 75,00** | R$ 70,00 |
 
-**Antes de patch PDV:** buscar `akiles` na **loja** e no **teste** — tem que bater com a tabela acima.
+**Validação pós-snapshot:** buscar `akiles` no **teste** — tem que bater com a tabela acima.
 
-### PDV teste = código produção (2026-06-24) — preço ainda diverge
+### PDV teste = código produção (2026-06-24) — snapshot v2.18
 
 - **Revertido** `pdv_wizard.js`, `pdv/views.py`, `catalogo_agro.py` merge → **igual branch `producao`**
-- **`AGRO_PDV_MERGE_CATALOGO_POSTGRES`:** off (padrão) — PDV usa espelho como loja; cadastro continua `agro_pg`
-- **Produção:** push/deploy/cherry-pick na `producao` **só** com frase explícita **+ senha `99738595`** na mesma mensagem (regra completa no topo do banana)
+- **`AGRO_PDV_MERGE_CATALOGO_POSTGRES`:** off (padrão) — **não** usar merge (quebrou v2.09)
+- **Snapshot v2.18:** `copiar_snapshot_pdv_loja` + overlay no cache staging
+- **Produção:** push só com frase + senha (topo banana)
 
-**Ctrl+F5** no PDV após deploy v2.11.
+**Ctrl+F5** no PDV após deploy v2.18 + rodar snapshot.
 
 ### Fix preço PDV v2.09 (revertido — quebrou)
 - Servidor: overlay Postgres **por id** em todo resultado Mongo (não só `buscar(termo)`)

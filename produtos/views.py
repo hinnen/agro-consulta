@@ -15586,19 +15586,31 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_merge_catalogo_postgres
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_pdv_catalogo_somente_postgres,
+        agro_pdv_merge_catalogo_postgres,
+    )
 
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
+    pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
     client, db = obter_conexao_mongo()
-    if db is None and not usa_pg_cat:
+    if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
 
     try:
         balanca_auditoria_q: str | None = None
-        if wizard_catalog:
+        if pdv_somente_pg and not compras:
+            from produtos import catalogo_agro as cat_agro
+
+            prods = cat_agro.prods_mongo_style_busca_pdv(
+                q=q, wizard_catalog=wizard_catalog, limit=80
+            )
+            preco_por_id = {}
+        elif wizard_catalog:
             if db is not None:
                 _wiz_n = _wizard_catalog_mongo_limit()
                 prods = list(
@@ -15634,7 +15646,7 @@ def api_buscar_produtos(request):
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-        if pdv_merge_pg:
+        if pdv_merge_pg and not pdv_somente_pg:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.mesclar_prods_busca_pdv(
@@ -20602,7 +20614,69 @@ _CATALOGO_PDV_MONGO_PROJECTION = {
 }
 
 
+def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
+    """Cache PDV inteiro a partir do Postgres (staging após snapshot da loja)."""
+    from produtos import catalogo_agro as cat_agro
+
+    rows = cat_agro.listar_todos_rows_ativos()
+    p_ids = [str(r.get("id") or "") for r in rows if r.get("id")]
+    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+    medias_venda = _obter_mapa_medias_venda_cache(db) if db is not None else {}
+    res: list[dict] = []
+    for row in rows:
+        pid = str(row.get("id") or "").strip()
+        if not pid:
+            continue
+        sp = saldos_por_pid.get(pid) or {}
+        saldo_f_c = float(sp.get("saldo_centro", 0.0))
+        saldo_f_v = float(sp.get("saldo_vila", 0.0))
+        s_c = float(sp.get("saldo_erp_centro", 0.0))
+        s_v = float(sp.get("saldo_erp_vila", 0.0))
+        ix = row.get("index_codigos") or []
+        ix_list = (
+            [str(x) for x in ix[:260] if x is not None and str(x).strip()]
+            if isinstance(ix, list)
+            else []
+        )
+        pv = float(row.get("preco_venda") or 0)
+        pc = float(row.get("preco_custo") or 0)
+        res.append(
+            {
+                "id": pid,
+                "nome": row.get("nome"),
+                "marca": row.get("marca"),
+                "prateleira": "",
+                "fornecedor": row.get("fornecedor") or "",
+                "categoria": row.get("categoria") or "",
+                "subcategoria": row.get("subcategoria") or "",
+                "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
+                "codigo_barras": row.get("codigo_barras") or "",
+                "referencia": "",
+                "sku": "",
+                "codigo_interno": row.get("codigo") or "",
+                "codigo_fornecedor": "",
+                "preco_venda": pv,
+                "preco_custo": pc,
+                "preco_custo_acrescimo": pc,
+                "preco_custo_final": pc,
+                "saldo_centro": round(saldo_f_c, 2),
+                "saldo_vila": round(saldo_f_v, 2),
+                "saldo_erp_centro": s_c,
+                "saldo_erp_vila": s_v,
+                "busca_texto": row.get("busca_texto") or "",
+                "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
+                "index_codigos": ix_list,
+            }
+        )
+    return res
+
+
 def _catalogo_pdv_montar_produtos(db, client):
+    from produtos.agro_fonte_config import agro_pdv_catalogo_somente_postgres
+
+    if agro_pdv_catalogo_somente_postgres():
+        return _catalogo_pdv_montar_produtos_somente_postgres(db, client)
+
     query = {"CadastroInativo": {"$ne": True}}
     produtos = list(db[client.col_p].find(query, _CATALOGO_PDV_MONGO_PROJECTION))
     p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
@@ -20711,6 +20785,10 @@ def _catalogo_pdv_montar_produtos(db, client):
                 "index_codigos": index_codigos_list,
             }
         )
+    if getattr(settings, "AGRO_STAGING_READONLY", False) and res:
+        ovm = _overlay_mapa_por_ids_chunked([str(x.get("id") or "") for x in res if x.get("id")])
+        for row in res:
+            _aplicar_produto_gestao_overlay_em_dict(row, ovm.get(str(row.get("id") or "")))
     from produtos import catalogo_agro as cat_agro
 
     return cat_agro.mesclar_catalogo_pdv_cache(res)
@@ -20771,17 +20849,32 @@ def _catalogo_pdv_entry_atual(db, client):
 @require_GET
 def api_todos_produtos_local(request):
     from estoque.sync_health import registrar_ping_mongo
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
 
+    pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
     client, db = obter_conexao_mongo()
     usa_pg_cat = agro_catalogo_usa_postgres()
-    if db is None and not usa_pg_cat:
+    if db is None and not usa_pg_cat and not pdv_somente_pg:
         registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        if db is not None:
+        if pdv_somente_pg:
+            if db is not None:
+                entry = _catalogo_pdv_entry_atual(db, client)
+            else:
+                produtos = _catalogo_pdv_montar_produtos_somente_postgres(None, None)
+                now_iso = timezone.now().isoformat()
+                version = _catalogo_pdv_version(produtos)
+                entry = {
+                    "body": {
+                        "produtos": produtos,
+                        "catalog_version": version,
+                        "catalog_updated_at": now_iso,
+                    }
+                }
+        elif db is not None:
             entry = _catalogo_pdv_entry_atual(db, client)
-        else:
+        elif usa_pg_cat:
             from produtos import catalogo_agro as cat_agro
 
             produtos = cat_agro.mesclar_catalogo_pdv_cache([])
@@ -20794,6 +20887,8 @@ def api_todos_produtos_local(request):
                     "catalog_updated_at": now_iso,
                 }
             }
+        else:
+            return JsonResponse({"erro": "Erro conexao"}, status=500)
         registrar_ping_mongo(db is not None)
         return JsonResponse(entry["body"])
     except Exception as e:
@@ -20946,6 +21041,37 @@ def api_cron_importar_catalogo_mongo(request):
     )
 
     out = executar_importar_catalogo_mongo_produto(limit=lim, skip=skip, dry_run=dry)
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
+@require_GET
+def api_cron_copiar_snapshot_pdv_loja(request):
+    """
+    Copia catálogo PDV da loja (Postgres) → staging.
+    Exige ALERTA_VENDAS_CRON_TOKEN + AGRO_STAGING_READONLY + AGRO_ERP_PEDIDOS_DRY_RUN.
+    """
+    if not getattr(settings, "AGRO_STAGING_READONLY", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Bloqueado: só no staging (AGRO_STAGING_READONLY=true)."},
+            status=403,
+        )
+    if not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Bloqueado: só com AGRO_ERP_PEDIDOS_DRY_RUN=true."},
+            status=403,
+        )
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    sem_aj = str(request.GET.get("sem_ajustes_estoque") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    from produtos.snapshot_pdv_loja_util import executar_snapshot_pdv_loja
+
+    out = executar_snapshot_pdv_loja(incluir_ajustes_estoque=not sem_aj)
     st = 200 if out.get("ok") else 503
     return JsonResponse(out, status=st)
 

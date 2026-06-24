@@ -552,6 +552,21 @@ def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     return out
 
 
+def prods_mongo_style_busca_pdv(
+    *,
+    q: str = "",
+    wizard_catalog: bool = False,
+    limit: int = 80,
+) -> list[dict]:
+    """Documentos estilo Mongo a partir do catálogo Postgres (PDV sem espelho)."""
+    if wizard_catalog:
+        rows = listar_todos_rows_ativos()
+    else:
+        termo = (q or "").strip()
+        rows = list(buscar(termo, limit=limit)) if termo else []
+    return [row_para_doc_busca_pdv(r) for r in rows]
+
+
 def mesclar_prods_busca_pdv(
     prods: list,
     *,
