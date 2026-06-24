@@ -1293,7 +1293,52 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
-- [ ] Tela contabilidade ligada ao export XML mensal (usuário indicará layout)
+- [ ] Tela contabilidade — ver **roadmap § Contabilidade** abaixo (Renan 24/06/2026)
+
+---
+
+## Roadmap — tela Contabilidade (`/contabilidade/`)
+
+**Hoje (v2.03+):** só **ZIP XML NFC-e autorizadas** do mês (`GET /api/nfce/export-xml/?ano=&mes=`). Acesso pelo BI → **Contabilidade (U)**.
+
+**Objetivo:** hub para o **escritório** baixar fiscal + espelhos gerenciais, sem entrar no PDV.
+
+### Prioridade alta (provável uso real)
+
+| Ferramenta | Para quê | Esforço | Notas |
+| ---------- | -------- | ------- | ----- |
+| **Resumo do mês NFC-e** (antes do ZIP) | Qtd autorizadas / canceladas, total R$, faixa numeração série 21 | Baixo | Dados já em `NfceDocumentoAgro` |
+| **Planilha CSV/XLSX NFC-e** | Nº, série, chave, data/hora, valor venda, CPF consumidor, status, venda # | Baixo | Contador cruza com SPED / sistema dele |
+| **ZIP incluir canceladas + índice** | XML autorizado + marcar **Cancelada** no `index.csv` dentro do ZIP | Médio | Hoje export só `status=autorizada`; canceladas somem do pacote |
+| **Atalho Lançamentos export** | Mesmo mês → CSV/XLSX/PDF financeiro (APIs já existem em `/lancamentos/`) | Baixo | Só link + mês pré-preenchido |
+| **Atalho Vendas CSV** | `/vendas/exportar-csv/` filtrado por período | Baixo | Já existe na lista de vendas |
+
+### Prioridade média
+
+| Ferramenta | Para quê | Esforço |
+| ---------- | -------- | ------- |
+| **Caixa — fechamentos do mês** | PDF/CSV por sessão (gaveta): entradas, sangrias, formas | Médio — `caixa_util`, `MovimentoCaixa` |
+| **Entrada NF / compras** | Resumo entradas no período (Mongo + Agro) | Médio |
+| **DRE / resumo gerencial** | Link `/lancamentos/dre/` + `/financeiro/resumo-gerencial/` com mês | Baixo |
+| **Pendências fiscais** | Lista NFC-e rejeitada/erro no mês (não autorizadas) | Baixo — alerta contador |
+
+### Prioridade baixa / fase 2
+
+| Ferramenta | Para quê | Esforço |
+| ---------- | -------- | ------- |
+| **Usuário «Contabilidade»** | Login só leitura + export (sem PDV/caixa) | Médio — permissão Django |
+| **Log «quem baixou o ZIP»** | Auditoria | Baixo |
+| **E-mail automático mensal** | Enviar ZIP dia 1 | Alto — Render + SMTP |
+| **NF-e devolução mod. 55** | Quando NFC-e passou 30 min e foi devolvida | Alto — emissão própria |
+| **XML cancelamento (evento)** | Guardar e exportar procEventoNFe | Médio — hoje só mudamos status local |
+
+### O que **não** misturar na contabilidade (por enquanto)
+
+- ERP série **20** (continua no ERP legado; Agro é série **21**).
+- RH folha completa (dado sensível — link separado se um dia).
+- Edição de lançamentos (contador só **exporta**, não lança).
+
+**Próximo passo sugerido (Renan escolhe):** bloco **Resumo + CSV + ZIP melhorado** num único patch na tela atual.
 - [ ] **Merge NFC-e → `producao`** após OK Renan + checklist `docs/NFCE-PRODUCAO.md`
 - [ ] Testes automatizados sync clientes / NFC-e (futuro)
 
