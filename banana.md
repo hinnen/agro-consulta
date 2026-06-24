@@ -151,7 +151,7 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 | Situação | O que significa |
 | -------- | --------------- |
-| **teste v2.05 · loja v2.03** (hoje) | Loja recebeu NFC-e emissão (**v1.93**) + cancelamento devolução (**v2.03**). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, …) — **~28 arquivos diferentes**. O badge **não mostra** isso. |
+| **teste v2.29 · loja v2.25** (hoje) | Loja recebeu Contabilidade (**v2.25**). Teste **ainda tem** outras coisas só no branch teste (Display Scale, CP perf, snapshot PDV, …). O badge **não mostra** isso. |
 | **Como saber o que falta na loja** | Tabela **«Só no teste»** no CHECKPOINT · `git diff origin/producao origin/teste --stat` — **não** olhar só o `VERSION` |
 | **Regra intuitiva (ideal)** | **`teste` > `producao`** → loja atrás (ex. teste **v1.94**, loja **v1.93** = tem pacote pendente). **`teste` = `producao`** → acabou de subir pacote **ou** teste só ganhou docs sem bump |
 | **Próximo fix de código no teste** | Deve virar **v2.06** no teste; loja fica **v2.03** até você pedir produção — aí fica óbvio que não são iguais |
@@ -561,12 +561,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.65`  
+**Versão:** `1.0.66`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** Renan confirmou Akiles teste = produção (chat PDV snapshot)  
-**Versão app (`VERSION`):** **teste** v2.26 · **produção** v2.03
+**Atualizado por:** assistente — cherry-pick Contabilidade → produção (Renan + senha)  
+**Versão app (`VERSION`):** **teste** v2.29 · **produção** v2.25 (`86d3af2`)
 
-### PDV teste — preço Akiles OK (Renan, 2026-06-24) ✅
+### Contabilidade → **produção OK** (2026-06-24, Renan + senha)
+
+| Item | Valor |
+| ---- | ----- |
+| **Pacote** | 4 commits Contabilidade (só NFC-e na tela) — **sem** PDV snapshot/Akiles |
+| **Commits teste** | `a570cd0` · `8523686` · `be536b6` · `81aa0eb` |
+| **Commits loja** | `fce67a6` · `db7ea29` · `c694537` · `4590ad1` · VERSION `86d3af2` |
+| **VERSION loja** | **v2.25** |
+| **URL** | `/contabilidade/` |
+
+**Render produção após deploy:** opcional `AGRO_CONTABILIDADE_USERNAMES=contador` · criar usuário **contador** no Admin Django.
+
+**Renan — conferir na loja:** Ctrl+F5 → `/contabilidade/` → resumo mês · CSV/XLSX · ZIP NFC-e · sem FAB PDV · sem «Outros exports».
+
+**Reverter:** revert dos 5 commits em `producao` (ordem inversa, começando por `86d3af2`).
+
 
 Renan confirmou **neste chat**: no **Render teste**, busca `akiles` bate com o **PDV produção** (referência GM0060/61). **Fase A snapshot concluída** — não mexer no fluxo de preço PDV até novo pedido.
 
@@ -615,29 +630,7 @@ Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registra
 
 Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
-**Contabilidade (teste):** tela **só NFC-e** — bloco «Outros exports do mês» **oculto** (Renan, chat contabilidade). «Login contador» fora da tela. FAB PDV F1 oculto em `/contabilidade/`. Produção v2.03 sem Contabilidade nova.
-
-### Cherry-pick produção — Contabilidade (chat contabilidade, ordem)
-
-Na branch `producao`, **nesta ordem** (do mais antigo ao mais novo):
-
-| # | Commit | O quê |
-| - | ------ | ----- |
-| 1 | `a570cd0` | Hub completo: resumo, CSV/XLSX, ZIP+index, login contador, APIs, middleware |
-| 2 | `8523686` | Layout largo desktop; remove bloco «Login contador» |
-| 3 | `be536b6` | FAB PDV F1 oculto em `/contabilidade/` |
-| 4 | `81aa0eb` | Oculta «Outros exports do mês» (só NFC-e na tela) |
-
-```bash
-git checkout producao
-git pull origin producao
-git cherry-pick a570cd0 8523686 be536b6 81aa0eb
-# resolver conflito se houver; depois push só com frase + senha Renan
-```
-
-**Render produção após deploy:** `AGRO_CONTABILIDADE_USERNAMES=contador` (opcional) · usuário no Admin Django.
-
-**Não** incluir commits de PDV snapshot / preço Akiles (`c3c08a6`, `d24b1dd`, etc.) — outro assunto.
+**Contabilidade:** **teste e loja** v2.25 — hub NFC-e (resumo, CSV/XLSX, ZIP+index), layout largo, sem FAB PDV, só NFC-e na tela.
 
 ### Regra senha produção — registrada (2026-06-24)
 
@@ -645,7 +638,7 @@ Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `9
 
 ### Referência preço PDV — produção e teste OK (Renan, 2026-06-24)
 
-**PDV produção (loja v2.03)** e **PDV teste (v2.22+)** = mesmos preços nos exemplos Akiles.
+**PDV produção (loja v2.25)** e **PDV teste (v2.22+)** = mesmos preços nos exemplos Akiles.
 
 | GM | Preço (produção = teste) |
 | -- | ------------------------ |
@@ -1380,13 +1373,13 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
-- [x] Tela contabilidade — itens **1,2,3,4,8** implementados (**teste**; ver CHECKPOINT 1.0.60)
+- [x] Tela contabilidade — itens **1,2,3,4,8** — **teste + produção** v2.25 (2026-06-24)
 
 ---
 
 ## Roadmap — tela Contabilidade (`/contabilidade/`)
 
-**Implementado (teste v2.14+):** resumo mês, CSV/XLSX, ZIP com `index.csv` + autorizadas/canceladas, atalhos exports gerenciais, login dedicado (`AGRO_CONTABILIDADE_USERNAMES`). Ver CHECKPOINT 1.0.60.
+**Implementado (teste + loja v2.25):** resumo mês, CSV/XLSX, ZIP com `index.csv` + autorizadas/canceladas, login dedicado (`AGRO_CONTABILIDADE_USERNAMES`). Ver CHECKPOINT 1.0.66.
 
 **Fluxo Renan:** sempre **teste primeiro** → validar no Render teste → **replicar produção** (mesmo código; NFC-e série **21** já é produção) quando pedir frase + senha.
 
@@ -1449,6 +1442,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.59
+### Fim do checkpoint v1.0.66
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
