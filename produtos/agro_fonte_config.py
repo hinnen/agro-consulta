@@ -50,6 +50,13 @@ def agro_gestao_usa_postgres() -> bool:
     return agro_pdv_catalogo_somente_postgres()
 
 
+def agro_estoque_ledger_ativo() -> bool:
+    """Atalho — implementação em ``produtos.estoque_agro_util``."""
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo as _ativo
+
+    return _ativo()
+
+
 def agro_estoque_usa_ledger() -> bool:
     return agro_fonte_estoque() == _FONTE_ESTOQUE_LEDGER
 
@@ -98,6 +105,7 @@ def agro_fonte_status_dict() -> dict:
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
+        "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),

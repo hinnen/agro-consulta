@@ -451,21 +451,16 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
             if _kadj not in ajustes_map:
                 ajustes_map[_kadj] = aj
     out = {}
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo, calcular_saldo_operacional_deposito
+
+    ledger = agro_estoque_ledger_ativo()
     for pid in p_ids:
         s_c = float(estoque_map.get(pid, {}).get("centro", 0.0))
         s_v = float(estoque_map.get(pid, {}).get("vila", 0.0))
         aj_c = ajustes_map.get((pid, "centro"))
         aj_v = ajustes_map.get((pid, "vila"))
-        saldo_f_c = (
-            float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia))
-            if aj_c
-            else s_c
-        )
-        saldo_f_v = (
-            float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia))
-            if aj_v
-            else s_v
-        )
+        saldo_f_c = calcular_saldo_operacional_deposito(aj_c, s_c, ledger=ledger)
+        saldo_f_v = calcular_saldo_operacional_deposito(aj_v, s_v, ledger=ledger)
         out[pid] = {
             "saldo_centro": round(saldo_f_c, 2),
             "saldo_vila": round(saldo_f_v, 2),
@@ -15668,7 +15663,7 @@ def api_buscar_produtos(request):
 
     try:
         balanca_auditoria_q: str | None = None
-        if pdv_somente_pg and not compras:
+        if pdv_somente_pg:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.prods_mongo_style_busca_pdv(
@@ -15805,14 +15800,11 @@ def api_buscar_produtos(request):
             ac = ajustes_map.get((pid, "centro"))
             av = ajustes_map.get((pid, "vila"))
 
-            saldo_centro = (
-                _float_api_json(ac.saldo_informado) + (saldo_centro_erp - _float_api_json(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
-            )
-            saldo_vila = (
-                _float_api_json(av.saldo_informado) + (saldo_vila_erp - _float_api_json(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
-            )
+            from produtos.estoque_agro_util import agro_estoque_ledger_ativo, calcular_saldo_operacional_deposito
+
+            _ledger = agro_estoque_ledger_ativo()
+            saldo_centro = calcular_saldo_operacional_deposito(ac, saldo_centro_erp, ledger=_ledger)
+            saldo_vila = calcular_saldo_operacional_deposito(av, saldo_vila_erp, ledger=_ledger)
 
             codigo = _valor_texto_campo(p.get("Codigo"))
             cod_nf = p.get("CodigoNFe")

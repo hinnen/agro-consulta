@@ -716,6 +716,19 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Produção (loja fechada):** frase + senha — **não** sobe flags Fase B/C nem snapshot. PDV/gestão loja = Mongo+overlay até novo pacote combinado.
 
+### Fase D — Estoque ledger + busca NF/Compras (2026-06-24)
+
+**Objetivo (só teste, sem env novo):** com `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` já ligado:
+
+| # | Entrega |
+| - | ------- |
+| D1 | **Ledger v1** — saldo PDV/gestão = `saldo_informado` do ajuste (snapshot), sem recalcular delta Mongo |
+| D2 | **Entrada NF + Compras** — busca produto (`?compras=1`) via Postgres (mesma base PDV) |
+
+**Conferir:** `fonte-status` → `estoque_ledger_ativo: true` · PDV/gestão saldo · Compras busca · Entrada NF passo produtos.
+
+**Renan testa após deploy** — pendente.
+
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
 Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registrar conexão fonte com chaves que o Django 6 exige (`TIME_ZONE`, etc.). **Repetir** no Shell teste após deploy v2.21:
