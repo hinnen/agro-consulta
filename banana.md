@@ -678,8 +678,10 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 | 1 Deploy cache v10 | ✅ |
 | 2 Env `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` | ✅ Renan 2026-06-24 |
 | 3 `/api/agro/fonte-status/` → `pdv_catalogo_somente_postgres: true` | ✅ |
-| 4 Ctrl+F5 PDV → Akiles + 3 produtos + barras/GM | **pendente Renan** |
-| 5 Registrar Fase B ✅ ou revert flag `false` | pendente |
+| 4 Ctrl+F5 PDV → Akiles + 3 produtos + barras/GM | ✅ preços OK (Renan); 1ª busca **mais lenta** (catálogo Postgres ~3354 itens) |
+| 5 Registrar Fase B ✅ ou revert flag `false` | pendente confirmação final |
+
+**Sync preço loja → teste (Fase B):** **não é ao vivo.** Alterou preço na **loja** hoje → **teste não muda** até rodar de novo `copiar_snapshot_pdv_loja` no Shell teste. Mongo compartilhado **não** manda preço do PDV teste com Fase B ligada (catálogo vem do Postgres **copiado**).
 
 **Armadilha Render:** key tem que ser **`AGRO_PDV_CATALOGO_SOMENTE_POSTGRES`** (maiúsculas + prefixo `AGRO_`). Renan tinha criado `pdv_catalogo_somente_postgres` → status ficava `false` até corrigir.
 
