@@ -564,7 +564,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.62`  
 **Última atualização:** `2026-06-17`  
 **Atualizado por:** assistente Cursor (Contabilidade v2.14 + regra «Render teste assistente manda»)  
-**Versão app (`VERSION`):** **teste** v2.14 · **produção** v2.03
+**Versão app (`VERSION`):** **teste** v2.15 · **produção** v2.03
 
 ### Regra Render teste — assistente manda (Renan 2026-06-17)
 
@@ -586,7 +586,7 @@ Push em `teste` **sem pedir** quando entregar código útil; registrar aqui. Pro
 
 **Produção:** não subido — Renan replica quando validar teste + frase + senha.
 
-**Commit teste:** `a570cd0` (v2.14) — deploy Render automático.
+**Commit teste:** `a570cd0` (Contabilidade) · `5329957` (banana) — **v2.15** no Render teste.
 
 ### Regra senha produção — registrada (2026-06-24)
 
