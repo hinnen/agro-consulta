@@ -570,6 +570,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Renan confirmou **neste chat**: no **Render teste**, busca `akiles` bate com o **PDV produção** (referência GM0060/61). **Fase A snapshot concluída** — não mexer no fluxo de preço PDV até novo pedido.
 
+**PDV teste lê dados da loja?** **Parcialmente — não é ao vivo.** (1) **Postgres Agro** (preços overlay, ajustes estoque): **cópia** da loja feita no snapshot (`copiar_snapshot_pdv_loja`) — fica parada até rodar de novo. (2) **Mongo** (catálogo/espelho ERP): **mesmo banco** que a loja, staging **só lê**. Na busca, o teste aplica o **overlay copiado** por cima do espelho → preço igual loja (ex. Akiles). Mudou preço na loja hoje → no teste só atualiza após **novo snapshot** (ou Fase B no futuro).
+
 | GM | Produção (certo) | Teste (v2.22+) |
 | -- | -------------- | -------------- |
 | GM0060-15 | **R$ 70,00** | **R$ 70,00** ✅ |
