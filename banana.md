@@ -636,6 +636,22 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 
 **Renan — após deploy v2.22:** Ctrl+F5 no PDV teste → buscar `akiles` → **R$ 70 / R$ 75**. ✅ **Validado Renan 2026-06-24.**
 
+**Validação ampliada Fase A (Renan, 2026-06-24):** além das Akiles, **+3 produtos** com preço alterado na loja — **OK** no teste. **Próximo:** Fase B (catálogo PDV sem Mongo no staging).
+
+### Fase B — PDV teste catálogo só Postgres (2026-06-24, em andamento)
+
+**Objetivo:** busca/catálogo do PDV no **Render teste** vêm do **Postgres copiado da loja** (snapshot), não do espelho Mongo. Estoque/médias podem continuar no Mongo. **Produção:** flag **sempre off**.
+
+| Passo | Quem | O quê |
+| ----- | ---- | ----- |
+| 1 | Assistente | Deploy teste com cache catálogo **v10** (invalida sessionStorage antigo) |
+| 2 | Renan | Render **teste** → Environment → `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` = **`true`** → Save (redeploy) |
+| 3 | Renan | Abrir `/api/agro/fonte-status/` → `pdv_catalogo_somente_postgres: true` |
+| 4 | Renan | **Ctrl+F5** PDV → Akiles + os 3 produtos + barras/GM |
+| 5 | Se OK | Registrar Fase B ✅ aqui. Se quebrar: flag **`false`** + redeploy (revert imediato) |
+
+**Pré-requisito:** snapshot já rodou (`AGRO_SNAPSHOT_FONTE_DATABASE_URL` + `copiar_snapshot_pdv_loja` OK).
+
 ### Fix snapshot PDV — TIME_ZONE Django 6 (2026-06-24, v2.21)
 
 Renan rodou passo 2 → erro `Conexão fonte falhou: 'TIME_ZONE'`. Fix: registrar conexão fonte com chaves que o Django 6 exige (`TIME_ZONE`, etc.). **Repetir** no Shell teste após deploy v2.21:
