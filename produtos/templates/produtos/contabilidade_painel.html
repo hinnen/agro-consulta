@@ -19,6 +19,11 @@
     .ctb-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.65rem; }
     .ctb-toolbar label { flex: 1 1 auto; min-width: 5.5rem; max-width: 9rem; }
     .ctb-toolbar .ctb-toolbar__btn { flex: 0 0 auto; }
+    .ctb-pend-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .ctb-pend-table th, .ctb-pend-table td { padding: 0.35rem 0.5rem; text-align: left; border-bottom: 1px solid rgb(51 65 85); vertical-align: top; }
+    .ctb-pend-table th { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: rgb(148 163 184); }
+    .ctb-pend-scroll { max-height: min(14rem, 32vh); overflow: auto; margin-top: 0.5rem; }
+    .ctb-pend-table .ctb-msg { max-width: 18rem; word-break: break-word; color: rgb(253 224 71); }
   </style>
 {% endblock %}
 
@@ -105,7 +110,37 @@
         </div>
       </div>
       <p id="ctb-resumo-erro" class="mt-2 hidden text-sm font-bold text-red-400"></p>
-      <p id="ctb-r-pend" class="mt-2 hidden text-xs font-semibold leading-snug text-amber-300"></p>
+
+      <details id="ctb-pendencias-wrap" class="mt-3 hidden rounded-lg border border-amber-500/40 bg-slate-900/60">
+        <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-black uppercase tracking-wide text-amber-300 sm:text-sm">
+          <span id="ctb-pend-summary">Pendências fiscais</span>
+        </summary>
+        <div class="border-t border-amber-500/20 px-3 pb-3 pt-2">
+          <p class="text-[10px] leading-snug text-slate-400 sm:text-xs">
+            Rejeitadas ou erro — <strong class="text-slate-300">não entram no ZIP</strong> fiscal. Use para conferência interna.
+          </p>
+          <p id="ctb-pend-trunc" class="mt-1 hidden text-[10px] font-semibold text-amber-200"></p>
+          <div class="ctb-pend-scroll">
+            <table class="ctb-pend-table">
+              <thead>
+                <tr>
+                  <th>Venda</th>
+                  <th>Data</th>
+                  <th>Nº</th>
+                  <th>Status</th>
+                  <th>Valor</th>
+                  <th>Motivo SEFAZ / erro</th>
+                </tr>
+              </thead>
+              <tbody id="ctb-pend-tbody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="btn-nfce-pend-csv"
+            class="mt-2 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg border border-amber-600/60 bg-amber-900/40 px-3 py-2 text-[10px] font-black uppercase text-amber-100 hover:bg-amber-900/70 sm:text-xs">
+            <i class="fas fa-file-csv" aria-hidden="true"></i> CSV pendências
+          </button>
+        </div>
+      </details>
     </section>
 
     <article class="ctb-export-card flex flex-col rounded-xl border border-emerald-500/40 bg-slate-800/90 p-3 sm:p-4">
@@ -149,6 +184,8 @@
   var resumoUrl = '{{ resumo_url|escapejs }}';
   var exportXmlBase = '{{ export_xml_url|escapejs }}';
   var exportPlanBase = '{{ export_planilha_url|escapejs }}';
+  var exportPendBase = '{{ export_pendencias_url|escapejs }}';
+  var somenteContabilidade = {{ somente_contabilidade|yesno:"true,false" }};
   if (!mesEl || !anoEl) return;
 
   mesEl.value = String({{ mes_default }});
@@ -165,12 +202,57 @@
     return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderPendencias(pend) {
+    var wrap = document.getElementById('ctb-pendencias-wrap');
+    var tbody = document.getElementById('ctb-pend-tbody');
+    var summary = document.getElementById('ctb-pend-summary');
+    var trunc = document.getElementById('ctb-pend-trunc');
+    if (!wrap || !tbody) return;
+    var total = pend && pend.total ? pend.total : 0;
+    if (!total) {
+      wrap.classList.add('hidden');
+      tbody.innerHTML = '';
+      return;
+    }
+    wrap.classList.remove('hidden');
+    if (summary) {
+      summary.textContent = 'Pendências fiscais (' + total + ' — rejeitada / erro)';
+    }
+    if (trunc) {
+      if (pend.truncado) {
+        trunc.textContent = 'Mostrando ' + pend.mostrando + ' de ' + total + '. Baixe o CSV para a lista completa.';
+        trunc.classList.remove('hidden');
+      } else {
+        trunc.classList.add('hidden');
+        trunc.textContent = '';
+      }
+    }
+    var html = '';
+    (pend.linhas || []).forEach(function (row) {
+      var vendaCell = somenteContabilidade
+        ? escHtml(row.venda_id)
+        : '<a href="/venda/' + encodeURIComponent(row.venda_id) + '/" class="font-bold text-emerald-400 hover:underline" target="_blank" rel="noopener">#' + escHtml(row.venda_id) + '</a>';
+      html += '<tr>'
+        + '<td class="tabular-nums">' + vendaCell + '</td>'
+        + '<td class="tabular-nums whitespace-nowrap">' + escHtml(row.data_emissao) + '</td>'
+        + '<td class="tabular-nums">' + escHtml(row.numero) + '</td>'
+        + '<td>' + escHtml(row.status) + '</td>'
+        + '<td class="tabular-nums whitespace-nowrap">' + escHtml(fmtRs(row.valor)) + '</td>'
+        + '<td class="ctb-msg">' + escHtml(row.mensagem_sefaz || '—') + '</td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
   function carregarResumo() {
     var p = periodo();
     var loadEl = document.getElementById('ctb-resumo-loading');
     var gridEl = document.getElementById('ctb-resumo-grid');
     var errEl = document.getElementById('ctb-resumo-erro');
-    var pendEl = document.getElementById('ctb-r-pend');
     if (!p) {
       if (errEl) { errEl.textContent = 'Informe mês e ano válidos.'; errEl.classList.remove('hidden'); }
       return;
@@ -178,7 +260,8 @@
     if (loadEl) loadEl.classList.remove('hidden');
     if (gridEl) gridEl.classList.add('hidden');
     if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
-    if (pendEl) { pendEl.classList.add('hidden'); pendEl.textContent = ''; }
+    var pendWrap = document.getElementById('ctb-pendencias-wrap');
+    if (pendWrap) pendWrap.classList.add('hidden');
 
     fetch(resumoUrl + '?ano=' + p.ano + '&mes=' + p.mes, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -195,11 +278,7 @@
           numTxt = 'Série ' + r.serie;
         }
         document.getElementById('ctb-r-num').textContent = numTxt;
-        var pend = (r.rejeitadas || 0) + (r.erros || 0);
-        if (pend > 0 && pendEl) {
-          pendEl.textContent = 'Atenção: ' + pend + ' nota(s) rejeitada(s) ou com erro no mês — não entram no ZIP.';
-          pendEl.classList.remove('hidden');
-        }
+        renderPendencias(r.pendencias);
         if (loadEl) loadEl.classList.add('hidden');
         if (gridEl) gridEl.classList.remove('hidden');
       })
@@ -263,6 +342,11 @@
     var p = periodo();
     if (!p) return;
     baixarBlob(exportPlanBase + '?ano=' + p.ano + '&mes=' + p.mes + '&formato=xlsx', 'nfce-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.xlsx', this);
+  });
+  document.getElementById('btn-nfce-pend-csv').addEventListener('click', function () {
+    var p = periodo();
+    if (!p) return;
+    baixarBlob(exportPendBase + '?ano=' + p.ano + '&mes=' + p.mes, 'nfce-pendencias-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.csv', this);
   });
 
   carregarResumo();

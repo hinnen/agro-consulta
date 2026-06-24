@@ -24,6 +24,8 @@ from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada, nfce
 from produtos.nfce_contabilidade_util import (
     linhas_planilha_nfce_mes,
     montar_zip_nfce_mes,
+    pendencias_nfce_csv_bytes,
+    pendencias_nfce_resumo_json,
     planilha_nfce_csv_bytes,
     planilha_nfce_xlsx_bytes,
     resumo_nfce_mes,
@@ -180,6 +182,7 @@ def contabilidade_painel(request):
             "nfce": nfce_config_resumo(),
             "export_xml_url": reverse("api_nfce_export_xml_zip"),
             "export_planilha_url": reverse("api_nfce_export_planilha"),
+            "export_pendencias_url": reverse("api_nfce_export_pendencias"),
             "resumo_url": reverse("api_nfce_contabilidade_resumo"),
             "ano_default": hoje.year,
             "mes_default": hoje.month,
@@ -209,7 +212,25 @@ def api_nfce_contabilidade_resumo(request):
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
     data = resumo_nfce_mes(ano, mes)
     data["links"] = urls_exportacao_mes(ano, mes)
+    data["pendencias"] = pendencias_nfce_resumo_json(ano, mes)
     return JsonResponse({"ok": True, "resumo": data})
+
+
+@contabilidade_login_required
+@require_GET
+def api_nfce_export_pendencias(request):
+    ano, mes = _parse_ano_mes_request(request)
+    if ano is None:
+        return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
+    if not pendencias_nfce_resumo_json(ano, mes)["total"]:
+        return JsonResponse(
+            {"ok": False, "erro": f"Nenhuma pendência em {mes:02d}/{ano}."},
+            status=404,
+        )
+    blob = pendencias_nfce_csv_bytes(ano, mes)
+    resp = HttpResponse(blob, content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="nfce-pendencias-{ano}-{mes:02d}.csv"'
+    return resp
 
 
 @contabilidade_login_required
