@@ -615,6 +615,28 @@ Doc: `docs/DEPLOY-AMBIENTES.md` § snapshot PDV.
 
 **Contabilidade (teste):** tela **só NFC-e** — bloco «Outros exports do mês» **oculto** (Renan, chat contabilidade). «Login contador» fora da tela. FAB PDV F1 oculto em `/contabilidade/`. Produção v2.03 sem Contabilidade nova.
 
+### Cherry-pick produção — Contabilidade (chat contabilidade, ordem)
+
+Na branch `producao`, **nesta ordem** (do mais antigo ao mais novo):
+
+| # | Commit | O quê |
+| - | ------ | ----- |
+| 1 | `a570cd0` | Hub completo: resumo, CSV/XLSX, ZIP+index, login contador, APIs, middleware |
+| 2 | `8523686` | Layout largo desktop; remove bloco «Login contador» |
+| 3 | `be536b6` | FAB PDV F1 oculto em `/contabilidade/` |
+| 4 | `81aa0eb` | Oculta «Outros exports do mês» (só NFC-e na tela) |
+
+```bash
+git checkout producao
+git pull origin producao
+git cherry-pick a570cd0 8523686 be536b6 81aa0eb
+# resolver conflito se houver; depois push só com frase + senha Renan
+```
+
+**Render produção após deploy:** `AGRO_CONTABILIDADE_USERNAMES=contador` (opcional) · usuário no Admin Django.
+
+**Não** incluir commits de PDV snapshot / preço Akiles (`c3c08a6`, `d24b1dd`, etc.) — outro assunto.
+
 ### Regra senha produção — registrada (2026-06-24)
 
 Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `99738595`** na mesma mensagem. Outro chat tinha só uma linha vaga no CHECKPOINT — **corrigido no topo do banana**.
