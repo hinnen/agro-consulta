@@ -552,6 +552,21 @@ def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     return out
 
 
+def _rows_pg_mapa_por_ids(ids: list[str]) -> dict[str, dict]:
+    ids_u = list(dict.fromkeys(str(x).strip()[:64] for x in ids if x and str(x).strip()))
+    if not ids_u:
+        return {}
+    out: dict[str, dict] = {}
+    for i in range(0, len(ids_u), 400):
+        chunk = ids_u[i : i + 400]
+        prods = list(Produto.objects.filter(produto_externo_id__in=chunk))
+        for row in _rows_de_produtos(prods):
+            pid = str(row.get("id") or "").strip()
+            if pid:
+                out[pid] = row
+    return out
+
+
 def mesclar_prods_busca_pdv(
     prods: list,
     *,
@@ -577,7 +592,12 @@ def mesclar_prods_busca_pdv(
         pg_rows = listar_todos_rows_ativos()
     else:
         termo = (q or "").strip()
-        pg_rows = buscar(termo, limit=limit) if termo else []
+        pg_rows = list(buscar(termo, limit=limit)) if termo else []
+        seen = {str(r.get("id") or "").strip() for r in pg_rows}
+        for pid, row in _rows_pg_mapa_por_ids(list(ids_vistos)).items():
+            if pid not in seen:
+                pg_rows.append(row)
+                seen.add(pid)
 
     for row in pg_rows:
         pid = str(row.get("id") or "").strip()

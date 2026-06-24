@@ -317,7 +317,7 @@
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v8';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v9';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -4849,7 +4849,9 @@
                 if (seq !== filterSeq) return;
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
-                var merged = mergeProductsById(payload.localList || [], remote);
+                var merged = catalogoPostgresAtivo()
+                    ? mergeProductsById([], remote)
+                    : mergeProductsById(payload.localList || [], remote);
                 if (payload.mode === 'barcode' && merged.length === 1) {
                     tryAutoAddBarcodeHit(merged[0]);
                     return;

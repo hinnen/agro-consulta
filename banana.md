@@ -555,6 +555,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.59`  
 **Última atualização:** `2026-06-23`  
 **Atualizado por:** assistente Cursor (sync push **outro chat** — Renan validou cancelamento NFC-e nº 4)  
+**Versão app (`VERSION`):** **teste** v2.09 · **produção** v2.03
+
+### Fix preço PDV v2.09
+- Servidor: overlay Postgres **por id** em todo resultado Mongo (não só `buscar(termo)`)
+- Cliente `agro_pg`: lista = **só servidor** (ignora cache espelho)
+- Cache catálogo **v9**
+
 **Versão app (`VERSION`):** **teste** v2.08 · **produção** v2.03
 
 ### Fix busca PDV — cache local com preço espelho (2026-06-24)
