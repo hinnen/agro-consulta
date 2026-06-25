@@ -2229,9 +2229,6 @@ function renderizarListaResultadosCompra(resultados) {
 function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
   const tip = document.getElementById('compra-loading-tip');
   const termoN = normalizarBuscaLocal(String(termoOriginal || '').trim());
-  if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
-    locaisOrdenados = filtrarLocaisCodigoGmExato(termoN, locaisOrdenados);
-  }
   if (compraPoolAvancado !== null) {
     if (tip) tip.classList.add('hidden');
     const resultados = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
@@ -2263,24 +2260,13 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
         if (seq !== buscaCompraMergeSeq) return;
         if (data.erro) throw new Error(data.erro);
         const api = data.produtos || [];
-        const apiById = new Map();
-        api.forEach((raw) => {
-          apiById.set(String(raw.id), raw);
-        });
-        const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
-        const idsLocal = new Set(ordemLocalIds);
-        const locaisMesclados = ordemLocalIds.map((id) => {
-          const base = locaisOrdenados.find((x) => String(x.id) === id);
-          const apiRow = apiById.get(id);
-          if (!base) return null;
-          return apiRow ? { ...base, ...apiRow } : base;
-        }).filter(Boolean);
-        const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
-        const extrasOrd = ordenarSugestoesPdv(extrasBrutos);
-        let final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_COMPRA_LIM_MAX);
-        if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
-          final = filtrarLocaisCodigoGmExato(termoN, final);
-        }
+        const final = mesclarBuscaPdvLocalComApi(
+          termoN,
+          locaisOrdenados,
+          api,
+          baseProdutos,
+          BUSCA_COMPRA_LIM_MAX
+        );
         const selAnt =
           indiceSelecionadoCompra >= 0 && ultimosResultadosCompra[indiceSelecionadoCompra]
             ? String(ultimosResultadosCompra[indiceSelecionadoCompra].id)
@@ -3631,13 +3617,28 @@ function buscar(q) {
 
   let locaisOrdenados =
     filtroEfetivo === 'TODOS'
-      ? ordenarSugestoesPdv(candidatos)
+      ? ordenarSugestoesPdv(candidatos, termoN)
       : filtroEfetivo === 'OCULTOS'
-        ? ordenarSugestoesPdv(candidatos)
+        ? ordenarSugestoesPdv(candidatos, termoN)
         : ordenarResultadosCompra(candidatos);
 
-  if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
-    locaisOrdenados = filtrarLocaisCodigoGmExato(termoN, locaisOrdenados);
+  /* PDV consulta_produtos.js executarBuscaLocal: GM/código-barras sem match local → só API */
+  if (
+    !locaisOrdenados.length &&
+    termoN.length >= 2 &&
+    compraPoolAvancado === null &&
+    !window.AGRO_MANUAL_SYNC_ONLY &&
+    ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoN)) ||
+      (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoN)))
+  ) {
+    ultimosResultadosCompra = [];
+    indiceSelecionadoCompra = -1;
+    compraOcultarCabecalhoListaResultados();
+    div.innerHTML =
+      '<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Buscando no servidor…</div>';
+    mesclarBuscaCompraComOnline(termoOriginal, []);
+    agendarSalvarEstadoCompra();
+    return;
   }
 
   if (!locaisOrdenados.length) {

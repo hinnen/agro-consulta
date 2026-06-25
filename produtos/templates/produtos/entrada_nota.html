@@ -8263,24 +8263,10 @@
   }
 
   function entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos) {
-    const map = new Map();
-    (locaisOrdenados || []).forEach((p) => { map.set(String(p.id), p); });
-    const ordemLocalIds = (locaisOrdenados || []).map((p) => String(p.id));
-    const idsLocal = new Set(ordemLocalIds);
-    const apiById = new Map();
-    (apiProdutos || []).forEach((raw) => {
-      const id = String(raw.id);
-      apiById.set(id, raw);
-      if (!map.has(id)) map.set(id, raw);
-    });
-    const locaisMesclados = ordemLocalIds.map((id) => {
-      const base = map.get(id);
-      const apiRow = apiById.get(id);
-      return apiRow ? { ...base, ...apiRow } : base;
-    }).filter(Boolean);
-    const extrasBrutos = (apiProdutos || []).filter((raw) => !idsLocal.has(String(raw.id)));
-    const extrasOrd = entradaNfeOrdenarSugestoesComoPdv(extrasBrutos, termoNorm);
-    return [...locaisMesclados, ...extrasOrd].slice(0, 80);
+    if (typeof mesclarBuscaPdvLocalComApi === 'function') {
+      return mesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos, null, 80);
+    }
+    return Array.isArray(apiProdutos) ? apiProdutos.slice(0, 80) : [];
   }
 
   /** Só o HTTP da Consulta / PDV: lista de produtos do Mongo + overlay (servidor). */
@@ -8308,11 +8294,12 @@
     const modo = /^\d{8,}$/.test(onlyDig) ? 'scanner' : 'normal';
     const baseLoc = fi ? entradaNfeCatalogoPdvCacheArray() : [];
     const locFiltrados = fi ? filtrarProdutosBuscaInteligente(baseLoc, termoNorm, modo) : [];
-    let locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
-    if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoNorm)) {
-      locOrd = filtrarLocaisCodigoGmExato(termoNorm, locOrd);
-    }
+    const locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
     const hadLocal = locOrd.length > 0;
+    const gmOuCbSemLocal =
+      !hadLocal &&
+      ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
+        (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
     if (!hadLocal) {
       await new Promise((r) => { setTimeout(r, 220); });
     }
@@ -8328,12 +8315,15 @@
       if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.hide();
     }
     if (sid !== _entradaNfeBuscaSeq) return null;
-    if (!fi || !nb) return apiList;
-    let merged = entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
-    if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoNorm)) {
-      merged = filtrarLocaisCodigoGmExato(termoNorm, merged);
+    if (!fi || !nb) {
+      return gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function'
+        ? ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80)
+        : apiList;
     }
-    return merged;
+    if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
+      return ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80);
+    }
+    return entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
   }
 
   /** Custo pré-NF (?compras=1): só após escolha, por código NF (evita travar cada tecla). */

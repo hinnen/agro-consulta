@@ -546,15 +546,6 @@
     window.ordenarSugestoesPdv = ordenarSugestoesPdv;
     window.mesclarBuscaPdvLocalComApi = mesclarBuscaPdvLocalComApi;
     window.BUSCA_PDV_LIM_MAX = 60;
-
-    function filtrarLocaisCodigoGmExato(termoNorm, lista) {
-        const t = String(termoNorm || '').trim();
-        if (!t || !pareceCodigoGmEtiqueta(t)) return Array.isArray(lista) ? lista : [];
-        return (Array.isArray(lista) ? lista : []).filter(
-            (p) => termoIgualCodigoProdutoExato(t, p) || casaCodigoGmPrefixo(t, p)
-        );
-    }
-    window.filtrarLocaisCodigoGmExato = filtrarLocaisCodigoGmExato;
     window.casaCodigoGmPrefixo = casaCodigoGmPrefixo;
 })();
 </script>

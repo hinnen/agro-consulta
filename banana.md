@@ -573,14 +573,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.73`  
-**Última atualização:** `2026-06-24`  
-**Atualizado por:** assistente — fix busca GM Compras + Entrada NF (dígitos parciais)  
-**Versão app (`VERSION`):** **teste** v2.53 · **produção** v2.27
+**Versão:** `1.0.74`  
+**Última atualização:** `2026-06-25`  
+**Atualizado por:** assistente — busca GM alinhada ao PDV (v2.57)  
+**Versão app (`VERSION`):** **teste** v2.57 · **produção** v2.27
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **B+C ✅** · **D2 preços OK (Renan)** · **busca GM Compras/NF corrigida no código (v2.54 pendente deploy teste)** · validar `gm9503`/`GM0050` após Ctrl+F5
+**Onde paramos:** §4.15 **B+C ✅** · **D2 preços OK (Renan)** · **busca GM v2.57** (`85e21c8` + refactor PDV) — Render redeploy + Ctrl+F5 → `gm9503`/`GM0050`
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -671,7 +671,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ------- |
 | **Sintoma** | `gm9503` / `GM0050` **não filtram** em Compras e Entrada NF; por nome (`teste`) funciona; PDV/Cadastro OK |
 | **Causa (Renan validou preços D2)** | Busca GM caía em **dígitos parciais** (`9503`/`0050` em barras) no Postgres e no cache local; filtro JS **seguia** após GM vazio e misturava catálogo inteiro |
-| **Fix v2.54** | `termo_eh_codigo_gm` — sem `icontains` só-dígitos · `catalogo_agro.buscar` filtra GM exato · JS: GM retorna cedo (vazio OK) · Compras/NF: `filtrarLocaisCodigoGmExato` + merge API |
+| **Fix v2.55–v2.57** | **Raiz:** `termo_eh_codigo_gm` + motor `_js_busca_produto_inteligente` (mesmo do PDV) · **v2.57:** Compras/NF usam `mesclarBuscaPdvLocalComApi` + atalho GM sem local → só API (copiado de `consulta_produtos.js`) · removido `filtrarLocaisCodigoGmExato` (camada extra) |
 | **Preço «teste» GM9503** | Compras = **custo** R$ 1,00; PDV/NF = **venda** R$ 1,09 — esperado |
 | **Arquivos** | `cadastro_busca_codigo_util.py` · `catalogo_agro.py` · `_js_busca_produto_inteligente.html` · `compras.html` · `entrada_nota.html` |
 | **Teste Renan** | Ctrl+F5 → Compras + Entrada NF → `gm9503`, `GM9503`, `gm0050` → produto certo (não ibiuna/catálogo inteiro) |
