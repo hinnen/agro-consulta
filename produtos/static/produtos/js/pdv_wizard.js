@@ -174,6 +174,7 @@
         wizardCliRapidoFechar: document.getElementById('pdv-wizard-cli-rapido-fechar'),
         clientPurchaseHistory: document.getElementById('pdv-client-purchase-history'),
         productSearch: document.getElementById('pdv-product-search'),
+        productSearchWrap: document.getElementById('pdv-product-search-wrap'),
         productSearchFeedback: document.getElementById('pdv-product-search-feedback'),
         productSearchMeta: document.getElementById('pdv-product-search-meta'),
         productAutocomplete: document.getElementById('pdv-product-autocomplete'),
@@ -2678,6 +2679,24 @@
             dom.productAutocomplete.innerHTML = '';
             dom.productAutocomplete.classList.add('hidden');
         }
+    }
+
+    function isInsideProductSearchZone(node) {
+        if (!node || typeof node.closest !== 'function') return false;
+        var wrap = dom.productSearchWrap || document.getElementById('pdv-product-search-wrap');
+        return !!(wrap && wrap.contains(node));
+    }
+
+    function dismissProductAutocomplete() {
+        if (!dom.productAutocomplete || dom.productAutocomplete.classList.contains('hidden')) return;
+        hideProductAutocomplete();
+        if (dom.productSearchMeta) {
+            var q = String((dom.productSearch && dom.productSearch.value) || '').trim();
+            dom.productSearchMeta.textContent = q
+                ? 'Lista recolhida · Enter ou digite de novo'
+                : '↑↓ Enter · +/− último';
+        }
+        updateSearchAwaitingPulse();
     }
 
     function expandProductAutocomplete() {
@@ -7434,6 +7453,13 @@
         });
 
         dom.productSearch.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                if (dom.productAutocomplete && !dom.productAutocomplete.classList.contains('hidden')) {
+                    event.preventDefault();
+                    dismissProductAutocomplete();
+                    return;
+                }
+            }
             if (event.key === 'ArrowDown') {
                 if (!lastProducts.length) return;
                 event.preventDefault();
@@ -7508,6 +7534,20 @@
             searchTimer = setTimeout(function () {
                 runProductSearch(value, 'manual');
             }, 220);
+        });
+
+        dom.productSearch.addEventListener('blur', function () {
+            window.setTimeout(function () {
+                if (!dom.productAutocomplete || dom.productAutocomplete.classList.contains('hidden')) return;
+                var ae = document.activeElement;
+                if (ae && isInsideProductSearchZone(ae)) return;
+                dismissProductAutocomplete();
+            }, 120);
+        });
+
+        document.addEventListener('mousedown', function (event) {
+            if (isInsideProductSearchZone(event.target)) return;
+            dismissProductAutocomplete();
         });
 
         if (dom.productAutocomplete) {

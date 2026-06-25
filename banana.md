@@ -587,12 +587,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
 | **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
 | **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul uniforme em toda a telinha** do autocomplete (diferente do carrinho) |
-| **Commits** | `2818944` · `c94ac1d` · `7aaca87` · `850f40a` |
+| **Ajuste 2026-05-28c** | Lista **recolhe** ao clicar fora, **Esc** ou sair do campo de busca (texto da busca permanece) |
+| **Commits** | `2818944` · `c94ac1d` · `7aaca87` · `850f40a` · `04ed383` · *(após push)* |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **B+C ✅** · **D1 parcial ✅** saldo Gestão=Compras + preço venda sync (GM9503 teste) · ajuste estoque **não testado** (PIN staging) · busca GM Compras/NF pendente · Gestão = **baixo uso** (Renan: ideias futuras, não bloqueia desvinculação)
+**Onde paramos:** §4.15 foco **Entrada NF D3** · D1 parcial ✅ · busca GM passo 2 pendente (motor único) · Gestão = baixo uso
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -604,10 +605,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **D3** | Entrada NF **resto** (casar XML, gravar estoque, financeiro título) | ❌ ainda **Mongo/ERP** — próximo bloco grande |
 | **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
 
-**Próximo passo sugerido (ordem):**
-1. **Busca unificada** (decisão Renan 2026-06-25) — ver § abaixo; **antes** de mais patch em Compras/NF.
-2. Renan valida **D2** no teste após motor único: GM prefixo (`gm0050` → `GM0050-15`…), nome, custo.
-3. Se OK → **D3** entrada NF (XML, estoque, financeiro).
+**Próximo passo (Entrada NF):**
+1. **Renan testa wizard** (exc. GM): XML → produtos (nome) → estoque (`api_entrada_nota_estoque_agro`) → financeiro → finalizar
+2. **Código:** motor busca único no passo 2 · D3 gravar rascunho/financeiro ainda Mongo (fase seguinte)
 
 ### DECISÃO — motor de busca único (Renan 2026-06-25)
 
