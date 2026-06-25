@@ -82,6 +82,24 @@ AGRO_CANONICAL_REDIRECT_FROM_RENDER_ENABLED = (
 
 # Render envia este SHA ao build/run; usar em ``?v=`` só no PDV pois lá o static vai sem Manifest.
 AGRO_PDV_ASSETS_V = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()[:12]
+if not AGRO_PDV_ASSETS_V and DEBUG:
+    import subprocess
+    from pathlib import Path
+
+    try:
+        AGRO_PDV_ASSETS_V = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=BASE_DIR,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()[:12]
+        )
+    except Exception:
+        _pdv_js = Path(BASE_DIR) / "produtos" / "static" / "produtos" / "js" / "pdv_wizard.js"
+        if _pdv_js.is_file():
+            AGRO_PDV_ASSETS_V = str(int(_pdv_js.stat().st_mtime))
 
 # Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed) sem exigir login.
 # Padrão True (painel aberto). Para exigir login de novo: AGRO_PUBLIC_DASHBOARD=false no .env / Render.

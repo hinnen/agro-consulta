@@ -318,7 +318,11 @@
     var AUTOCOMPLETE_PAGE_SIZE = 5;
     var autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v7';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
+    var stagingReadonly = !!(
+        bootstrap.stagingReadonly ||
+        (bootstrap.search && bootstrap.search.stagingReadonly)
+    );
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -545,7 +549,9 @@
 
         function tryAdd(p) {
             var row = normalizeWizardCatalogProduct(p);
-            return !!(row && State.addItem(row, qty));
+            if (!row) return false;
+            if (!String(row.nome || '').trim()) return false;
+            return !!State.addItem(row, qty);
         }
 
         function failMsg(text) {
@@ -601,7 +607,7 @@
         if (catalogReady) return Promise.resolve();
         if (catalogLoadPromise) return catalogLoadPromise;
         try {
-            var raw = sessionStorage.getItem(CATALOG_STORAGE_KEY);
+            var raw = stagingReadonly ? null : sessionStorage.getItem(CATALOG_STORAGE_KEY);
             if (raw) {
                 var parsed = JSON.parse(raw);
                 if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
@@ -835,6 +841,7 @@
 
     function tryAutoAddBarcodeHit(product, message) {
         if (!product) return false;
+        if (!String(product.nome || '').trim()) return false;
         invalidatePendingProductSearch();
         marcarWizardScannerAtivo(1500);
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
@@ -4822,31 +4829,25 @@
                 }
                 var localList = normalizeWizardCatalogList(r.list || []);
                 var skuCode = looksLikeSkuCode(query);
+                var qlSku = String(query).trim().toLowerCase();
                 if (mode === 'barcode' && localList.length === 1) {
                     tryAutoAddBarcodeHit(localList[0]);
-                    return Promise.resolve();
+                    return null;
                 }
-                if (localList.length && !skuCode) {
+                if (skuCode && localList.length && localSkuCacheSufficient(localList, qlSku)) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
-                        'Cache local (' + wizardProductCatalog.length + ' produtos)…';
+                        'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                    return null;
                 }
-                if (skuCode && localList.length) {
-                    var ql = String(query).trim().toLowerCase();
-                    if (localSkuCacheSufficient(localList, ql)) {
-                        renderProductResults(localList);
-                        dom.productSearchFeedback.textContent =
-                            'Cache local (' + wizardProductCatalog.length + ' produtos).';
-                        return Promise.resolve();
-                    }
+                if (localList.length) {
                     renderProductResults(localList);
-                    dom.productSearchFeedback.textContent =
-                        'Cache local · conferindo variantes no servidor…';
-                } else {
-                    dom.productSearchFeedback.textContent = skuCode
-                        ? 'Buscando variantes do código…'
-                        : 'Buscando no servidor…';
                 }
+                dom.productSearchFeedback.textContent = localList.length
+                    ? 'Cache local · conferindo servidor…'
+                    : skuCode
+                      ? 'Buscando variantes do código…'
+                      : 'Buscando no servidor…';
                 return fetchWizardServerSearch(query).then(function (srv) {
                     return {
                         remote: srv.produtos,
@@ -4861,7 +4862,9 @@
                 if (seq !== filterSeq) return;
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
-                var merged = mergeProductsById(payload.localList || [], remote);
+                var merged = stagingReadonly
+                    ? mergeProductsById(remote, payload.localList || [])
+                    : mergeProductsById(payload.localList || [], remote);
                 if (payload.mode === 'barcode' && merged.length === 1) {
                     tryAutoAddBarcodeHit(merged[0]);
                     return;
@@ -5460,6 +5463,7 @@
 
     function nfceErroDaResposta(data) {
         if (data && data.nfce && data.nfce.ok === false) {
+            if (data.nfce.pendente_retry) return '';
             var e = data.nfce.erro || 'Falha na NFC-e';
             if (data.nfce.c_stat) e = '[' + data.nfce.c_stat + '] ' + e;
             return e;
@@ -5541,6 +5545,10 @@
         document.addEventListener('keydown', onKey);
     }
 
+    function nfceFluxoAutomatico(state) {
+        return nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state);
+    }
+
     function resolverNfceAntesConfirmar(withPrint) {
         if (!nfceUsuarioQuerEmitir()) {
             State.setPagamentoField('nfceOpts', {});
@@ -5551,6 +5559,11 @@
         var cpfCad = nfceNormalizarCpf(state.cliente && state.cliente.documento);
         if (nfceCpfValido(cpfCad)) {
             State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
+            confirmSaleProsseguir(withPrint);
+            return;
+        }
+        if (nfceFluxoAutomatico(state)) {
+            State.setPagamentoField('nfceOpts', { cpf: '', semIdentificacao: true });
             confirmSaleProsseguir(withPrint);
             return;
         }
