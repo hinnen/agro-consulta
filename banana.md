@@ -596,7 +596,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.84`  
 **Última atualização:** `2026-06-25`  
 **Atualizado por:** Renan — reteste Compras GM9503 + milho v2.85  
-**Versão app (`VERSION`):** **teste** v2.85 · **produção** v2.28
+**Versão app (`VERSION`):** **teste** v2.87 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
@@ -680,7 +680,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **GM9503 «teste»** | ✅ **Bloco B** — chips **Teste R$ 1,00** + **Sn - Europet R$ 7,99** · ✅ **A** — sug. **20** · S3=17 · S4=2 · média **0,63/dia** · saldo **-1** |
 | **GM9503 observação** | Custo **lista R$ 0** vs **base R$ 1,00** no detalhe — cosmético (já anotado) |
 | **GM0090-47 milho** | ✅ **Esperado staging** — gráfico/média **zerados** (snapshot **não** copia vendas da loja) · saldo **30** (C9/V21) OK · «Últimas compras» vazio = sem Entrada NF desse produto **no teste** |
-| **Bloco C folhas** | ⏸ sem print — abrir **Folha Compras → categoria** com GM9503 quando quiser fechar C |
+| **Bloco C folhas** | ⏸ **bug** categoria «teste» + GM9503 — overlay PG tinha categoria, filtro só Mongo · **fix v2.87** |
+
+### FIX — Folha Compras categoria overlay (Renan 25/06, v2.87)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Planilha **categoria «teste»** → «Nenhum produto encontrado…» — GM9503 visível na **Gestão** com categoria teste |
+| **Causa** | Dropdown já misturava overlay + Mongo; **filtro do relatório** só lia ``NomeCategoria/Categoria/Grupo`` no Mongo |
+| **Fix** | ``_lista_produto_ids_catalogo_por_categoria`` — mesmo padrão da **unidade**: overlay ``ProdutoGestaoOverlayAgro.categoria`` + merge Mongo |
+| **Reteste** | Ctrl+F5 → Folha Compras → categoria **teste** → imprimir → deve listar GM9503 |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
 **Já OK Compras (não mexer):** busca nome · custo · saldo ledger · carrinho/pedido.

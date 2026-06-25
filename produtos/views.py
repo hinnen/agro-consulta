@@ -4514,6 +4514,24 @@ def _lista_produto_ids_catalogo_por_fornecedor(
     return out, nomes_out
 
 
+def _produto_overlay_ids_categoria_agro(termo: str) -> list[str]:
+    """Produtos cuja categoria no overlay Agro (PostgreSQL) casa com o texto — gestão operacional."""
+    t = str(termo or "").strip()
+    if not t:
+        return []
+    try:
+        return [
+            str(x).strip()
+            for x in ProdutoGestaoOverlayAgro.objects.filter(categoria__iexact=t[:200]).values_list(
+                "produto_externo_id", flat=True
+            )[:1600]
+            if x
+        ]
+    except Exception as exc:
+        logger.warning("relatorio overlay categoria: %s", exc)
+        return []
+
+
 def _lista_produto_ids_catalogo_por_categoria(
     db,
     client,
@@ -4522,7 +4540,7 @@ def _lista_produto_ids_catalogo_por_categoria(
     limit: int = 800,
     mongo_max_time_ms: int | None = 90_000,
 ) -> list[str]:
-    """Produtos ativos cuja categoria (Mongo) casa com o texto informado."""
+    """Produtos ativos cuja categoria (Mongo e/ou overlay Agro) casa com o texto informado."""
     col = db[client.col_p]
     cat = str(categoria or "").strip()
     if len(cat) < 1:
@@ -4541,23 +4559,63 @@ def _lista_produto_ids_catalogo_por_categoria(
             },
         ]
     }
+    lim = max(1, min(int(limit), 1200))
     try:
-        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
+        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(lim)
         if mongo_max_time_ms is not None:
             cur = cur.max_time_ms(int(mongo_max_time_ms))
         docs = list(cur)
     except Exception as exc:
         logger.warning("relatorio_compras catalogo categoria: %s", exc)
-        return []
+        docs = []
+
+    def _pid_of(p_doc) -> str:
+        return str(p_doc.get("Id") or p_doc.get("_id") or "").strip()
+
+    encontrados: set[str] = set()
+    for p in docs:
+        pid = _pid_of(p)
+        if pid and pid != "None":
+            encontrados.add(pid)
+
+    overlay_ids = _produto_overlay_ids_categoria_agro(cat)
+    faltantes = [x for x in overlay_ids if x and x not in encontrados][: lim + 400]
+    if faltantes:
+        mixed = _produto_ids_variants_mongo(faltantes)
+        if mixed:
+            try:
+                extra_q = {
+                    "$and": [
+                        {"CadastroInativo": {"$ne": True}},
+                        {"$or": [{"Id": {"$in": mixed}}, {"_id": {"$in": mixed}}]},
+                    ]
+                }
+                ex_cur = col.find(extra_q, {"Id": 1, "_id": 1, "Nome": 1}).limit(lim)
+                if mongo_max_time_ms is not None:
+                    ex_cur = ex_cur.max_time_ms(int(mongo_max_time_ms))
+                docs.extend(list(ex_cur))
+            except Exception as exc:
+                logger.warning("relatorio_compras catalogo categoria overlay: %s", exc)
+
+    uniq: dict[str, dict] = {}
+    for p in docs:
+        pid = _pid_of(p)
+        if not pid or pid == "None":
+            continue
+        if pid not in uniq:
+            uniq[pid] = p
+    docs = list(uniq.values())
     docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
     out: list[str] = []
     seen: set[str] = set()
     for p in docs:
-        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        pid = _pid_of(p)
         if not pid or pid == "None" or pid in seen:
             continue
         seen.add(pid)
         out.append(pid)
+        if len(out) >= lim:
+            break
     return out
 
 
