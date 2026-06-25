@@ -564,7 +564,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.42+ (pendente commit) · **produção** v2.27
+**Versão app (`VERSION`):** **teste** v2.43 (`3901a12`) · **produção** v2.27
 
 ### URGENTE — PDV produção produto sem nome / GM estranho (2026-06-24)
 
@@ -572,8 +572,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Busca GM (ex. postura 25 kg) acha item com nome **—**, código tipo `94a42b90be60`, preço certo; gestão mostra produto OK |
 | **Causa** | Cadastro já em **Postgres** (`AGRO_FONTE_CATALOGO=agro_pg` na loja); PDV ainda lê **fantasma Mongo** (mesmo GM, sem Nome). Dois IDs para o mesmo código |
-| **Fix (teste, pendente loja)** | Dedupe busca: prefere linha **com nome** · enriquece Mongo vazio do Postgres (por id ou GM) · PDV não auto-adiciona item sem nome · merge Postgres ligado de novo com `agro_pg` |
-| **Loja** | **Precisa deploy** — frase + senha `99738595` (não subir sem Renan) |
+| **Fix (teste v2.43)** | Commit `3901a12` — deploy Render teste |
+| **Loja** | **Precisa deploy** — frase + senha `99738595` quando validar no teste |
 | **Teste Renan** | Ctrl+F5 PDV teste → `GM1546-25` ou `ibiuna postura 25` → nome + GM corretos |
 
 ### Fix busca código GM — Compras + Entrada NF (2026-06-24, WIP teste)
