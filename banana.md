@@ -587,7 +587,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
 | **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
 | **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul uniforme em toda a telinha** do autocomplete (diferente do carrinho) |
-| **Ajuste 2026-05-28c** | Lista **recolhe** ao clicar fora, **Esc** ou sair do campo de busca (texto da busca permanece) |
+| **Ajuste 2026-05-28c** | Lista **recolhe** ao clicar fora, **Esc** ou sair do campo de busca (texto permanece); **carregar mais** não recolhe |
 | **Commits** | `2818944` · `c94ac1d` · `7aaca87` · `850f40a` · `04ed383` · `8b466d6` |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
@@ -608,6 +608,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Próximo passo (Entrada NF):**
 1. **Renan testa wizard** (exc. GM): XML → produtos (nome) → estoque (`api_entrada_nota_estoque_agro`) → financeiro → finalizar
 2. **Código:** motor busca único no passo 2 · D3 gravar rascunho/financeiro ainda Mongo (fase seguinte)
+
+### BUG — Entrada NF passo 5 sem empresa (2026-06-25)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Dropdown «Empresa (estoque)» só «Cadastre empresas no Admin» |
+| **Causa** | Lista vem de ``base.Empresa`` Postgres; **snapshot não copiava** Empresa/Loja → staging vazio |
+| **Fix** | ``listar_empresas_estoque_entrada_nfe()`` — sync loja se staging vazio + seed CNPJ GM · snapshot inclui Empresa+Loja · default «Agro Mais Centro» |
+| **Teste** | Recarregar ``/entrada-nota/`` passo 5 — ver Centro + Vila Elias (ou rodar ``copiar_snapshot_pdv_loja``) |
 
 ### DECISÃO — motor de busca único (Renan 2026-06-25)
 
