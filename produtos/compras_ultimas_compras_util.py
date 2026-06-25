@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -125,6 +125,57 @@ def _numero_doc_entrada_nf_agro(cab: dict) -> str:
     return ""
 
 
+def _normalizar_pid_compra(raw: Any) -> str:
+    return str(raw or "").strip()
+
+
+def _mapa_pid_busca(p_ids: list[str]) -> dict[str, str]:
+    """Chaves alternativas (ObjectId str, int…) → pid canônico da busca."""
+    out: dict[str, str] = {}
+    for raw in p_ids:
+        canon = _normalizar_pid_compra(raw)
+        if not canon:
+            continue
+        out[canon] = canon
+        if canon.isdigit():
+            try:
+                n = int(canon)
+                out[str(n)] = canon
+            except ValueError:
+                pass
+        if len(canon) == 24 and all(c in "0123456789abcdefABCDEF" for c in canon):
+            try:
+                from bson import ObjectId
+
+                oid = ObjectId(canon)
+                out[str(oid)] = canon
+            except Exception:
+                pass
+    return out
+
+
+def _resolver_pid_linha(raw: Any, mapa: dict[str, str]) -> str | None:
+    key = _normalizar_pid_compra(raw)
+    if not key:
+        return None
+    if key in mapa:
+        return mapa[key]
+    if key.isdigit():
+        k2 = str(int(key))
+        if k2 in mapa:
+            return mapa[k2]
+    try:
+        from bson import ObjectId
+
+        if len(key) == 24:
+            k3 = str(ObjectId(key))
+            if k3 in mapa:
+                return mapa[k3]
+    except Exception:
+        pass
+    return None
+
+
 def append_eventos_entrada_nf_agro(
     db,
     *,
@@ -141,10 +192,23 @@ def append_eventos_entrada_nf_agro(
         return
     from produtos.nfe_entrada_util import COL_ENTRADA_RASCUNHO
 
-    ids_q = list(pid_ok)
+    pid_map = _mapa_pid_busca(list(pid_ok))
+    if not pid_map:
+        return
+
+    query_variants = list({k for k in pid_map.keys() if k})
+    filtro: dict[str, Any] = {
+        "$or": [
+            {"linhas.produto_id": {"$in": query_variants}},
+            {"extra.estoque_agro_registrado_em": {"$exists": True, "$ne": ""}},
+            {"extra.aprovacao_wizard_em": {"$exists": True, "$ne": ""}},
+            {"estoque_aplicado_em": {"$exists": True}},
+        ]
+    }
+
     try:
         cur = db[COL_ENTRADA_RASCUNHO].find(
-            {"linhas.produto_id": {"$in": ids_q}},
+            filtro,
             {
                 "cabecalho": 1,
                 "linhas": 1,
@@ -174,8 +238,8 @@ def append_eventos_entrada_nf_agro(
         for ln in linhas:
             if not isinstance(ln, dict):
                 continue
-            pid = str(ln.get("produto_id") or "").strip()
-            if not pid or pid not in pid_ok:
+            pid = _resolver_pid_linha(ln.get("produto_id"), pid_map)
+            if not pid:
                 continue
             qtd = _qtd_linha_entrada_nf_agro(ln)
             if qtd <= 0:

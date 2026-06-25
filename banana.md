@@ -593,10 +593,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.79`  
+**Versão:** `1.0.80`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — Compras D4 bloco A validado no teste + nota vendas staging vs loja  
-**Versão app (`VERSION`):** **teste** v2.79 (`b37c49e`) · **produção** v2.28 (`f87955d`) → **subir pacote desvinculação hoje à noite** (D4 **fora** do pacote)
+**Atualizado por:** Renan — fix bloco B últimas compras + saldo Compras persiste após sync verde  
+**Versão app (`VERSION`):** **teste** v2.82 (pendente deploy) · **produção** v2.28
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -662,7 +662,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
-| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP (`compras_ultimas_compras_util.py`) | **✅ código** — testar GM9503 pós-NF |
+| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **fix v2.82** — query ObjectId + cache saldo |
 | **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
@@ -691,6 +691,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Na loja (pós-D4)** | Mesmo código lê **VendaAgro Postgres da loja** → produtos reais devem mostrar média/sugestão como hoje |
 | **Ainda vazio** | «Sem histórico de compra recente no ERP» = **última compra** (bloco **B**, não A) |
 | **Melhoria opcional** | Copiar vendas recentes no snapshot staging — só se quiser paridade visual antes do deploy loja |
+
+### FIX — Compras bloco B últimas compras + saldo cache (2026-06-25, v2.82)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bloco B bug** | GM9503 pós-Entrada NF não mostrava chips — query Mongo ``linhas.produto_id`` não casava ObjectId · **fix:** variantes de ID + scan rascunhos concluídos |
+| **Saldo -3 vs -2** | Catálogo em **localStorage** guardava saldo **antigo** (-3); botão verde aplicava -2 **só na memória** · **fix:** salvar saldos no cache após sync + buscar saldos ao abrir a tela |
+| **Teste Renan** | Ctrl+F5 Compras → GM9503 **-2** sem clicar verde (se já sincronizou antes) · chip **Últimas compras** no GM9503 |
 
 ### FECHADO — Entrada NF wizard + saldo ledger (Renan 25/06, v2.78)
 

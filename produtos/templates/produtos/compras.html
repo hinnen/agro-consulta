@@ -1531,6 +1531,7 @@ function aplicarSaldosNaBaseCompra(rows) {
     p.saldo_erp_centro = Number(row[3]);
     p.saldo_erp_vila = Number(row[4]);
   });
+  persistirSaldosNoCacheCompras();
   const inp = document.getElementById('busca');
   if (
     inp &&
@@ -1543,6 +1544,46 @@ function aplicarSaldosNaBaseCompra(rows) {
   renderHistoricoCompras();
   compraRefazerRenderResultados();
   return true;
+}
+
+function persistirSaldosNoCacheCompras() {
+  if (!baseProdutos.length) return;
+  const cached = lerCacheCatalogoCompras();
+  salvarCacheCatalogoCompras({
+    produtos: baseProdutos,
+    catalog_version: (cached && cached.catalog_version) || '',
+    catalog_updated_at: (cached && cached.catalog_updated_at) || '',
+    saldos_synced_at: Date.now(),
+  });
+}
+
+function restaurarRotuloSaldosComprasDoCache() {
+  const c = lerCacheCatalogoCompras();
+  if (!c || !c.saldos_synced_at) return;
+  const label = document.getElementById('agro-saldos-ultima-atualizacao');
+  if (!label || typeof AgroEstoqueSync === 'undefined') return;
+  const ts = Number(c.saldos_synced_at) || 0;
+  if (ts <= 0) return;
+  label.dataset.gmFreshAt = String(ts);
+  if (typeof AgroEstoqueSync.formatHorario === 'function') {
+    label.textContent = AgroEstoqueSync.formatHorario(new Date(ts));
+  }
+  const btn = document.getElementById('agro-btn-atualizar-saldos');
+  if (typeof AgroEstoqueSync.paintThermo === 'function') {
+    AgroEstoqueSync.paintThermo(btn, label, AgroEstoqueSync.staleMsDefault);
+  }
+}
+
+function carregarSaldosComprasServidor() {
+  return fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (sd) {
+      if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+      if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+        AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+      }
+    })
+    .catch(function () {});
 }
 
 function aplicarMetricasCompraNaBase(payload) {
@@ -2511,21 +2552,12 @@ window.agroComprasSincronizarComApi = function () {
     sincronizarCatalogoComprasServidor();
     setTimeout(function () {
       carregarMetricasCompra(true);
-      fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
-        .then(function (r) { return r.json(); })
-        .then(function (sd) {
-          if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
-          if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-            AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
-          }
-        })
-        .catch(function () {})
-        .finally(function () {
-          if (b) {
-            b.disabled = false;
-            b.removeAttribute('aria-busy');
-          }
-        });
+      carregarSaldosComprasServidor().finally(function () {
+        if (b) {
+          b.disabled = false;
+          b.removeAttribute('aria-busy');
+        }
+      });
     }, 900);
   } catch (e) {
     if (b) {
@@ -2539,6 +2571,10 @@ window.addEventListener('load', () => {
   const div = document.getElementById('resultados');
   const manual = !!window.AGRO_MANUAL_SYNC_ONLY;
   const warmed = hidratarCatalogoComprasDoCache();
+  if (warmed) {
+    restaurarRotuloSaldosComprasDoCache();
+    carregarSaldosComprasServidor();
+  }
   if (!warmed) {
     compraOcultarCabecalhoListaResultados();
     div.innerHTML = manual
@@ -2552,9 +2588,7 @@ window.addEventListener('load', () => {
     AgroEstoqueSync.mount({
       onRefresh: async function () {
         if (!baseProdutos.length) return;
-        const r = await fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' });
-        const sd = await r.json();
-        if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+        await carregarSaldosComprasServidor();
       },
       onManualClick: function () {
         if (typeof window.agroComprasSincronizarComApi === 'function') {
@@ -2575,30 +2609,20 @@ function aplicarBaseCompras(produtos) {
   carregarMetricasCompra();
   buscar(document.getElementById('busca').value);
   renderHistoricoCompras();
-  if (!window.AGRO_MANUAL_SYNC_ONLY) {
-    setTimeout(function () {
-      fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
-        .then(function (r) { return r.json(); })
-        .then(function (sd) {
-          if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
-          if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-            AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
-          }
-        })
-        .catch(function () {});
-    }, 0);
-  }
+  carregarSaldosComprasServidor();
   return true;
 }
 
 function salvarCacheCatalogoCompras(payload) {
   try {
+    const prev = lerCacheCatalogoCompras();
     localStorage.setItem(
       COMPRA_CACHE_KEY,
       JSON.stringify({
         saved_at: Date.now(),
         catalog_version: payload.catalog_version || '',
         catalog_updated_at: payload.catalog_updated_at || '',
+        saldos_synced_at: payload.saldos_synced_at || (prev && prev.saldos_synced_at) || null,
         produtos: Array.isArray(payload.produtos) ? payload.produtos : [],
       })
     );

@@ -3722,18 +3722,15 @@ def _ultimas_compras_por_produto_ids(
                 continue
 
     try:
-        from produtos.agro_fonte_config import agro_compras_metricas_postgres
+        from produtos.compras_ultimas_compras_util import append_eventos_entrada_nf_agro
 
-        if agro_compras_metricas_postgres():
-            from produtos.compras_ultimas_compras_util import append_eventos_entrada_nf_agro
-
-            append_eventos_entrada_nf_agro(
-                db,
-                eventos=eventos,
-                pid_ok=pid_ok,
-                since=since,
-                mongo_max_time_ms=mongo_max_time_ms,
-            )
+        append_eventos_entrada_nf_agro(
+            db,
+            eventos=eventos,
+            pid_ok=pid_ok,
+            since=since,
+            mongo_max_time_ms=mongo_max_time_ms,
+        )
     except Exception as exc:
         logger.warning("ultimas_compras entrada_nf_agro merge: %s", exc)
 
