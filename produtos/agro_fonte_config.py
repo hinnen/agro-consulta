@@ -95,6 +95,14 @@ def agro_staging_readonly() -> bool:
     return agro_mongo_escrita_bloqueada()
 
 
+def agro_compras_metricas_postgres() -> bool:
+    """Compras: média/sugestão via VendaAgro (Postgres). Default = mesmo gate Fase B/C."""
+    raw = getattr(settings, "AGRO_COMPRAS_METRICAS_POSTGRES", None)
+    if raw is not None:
+        return bool(raw)
+    return agro_pdv_catalogo_somente_postgres() or agro_catalogo_usa_postgres()
+
+
 def agro_fonte_status_dict() -> dict:
     from produtos.agro_mongo_guard import agro_mongo_guard_status
 
@@ -109,6 +117,7 @@ def agro_fonte_status_dict() -> dict:
         "pdv_merge_catalogo_postgres": agro_pdv_merge_catalogo_postgres(),
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
+        "compras_metricas_postgres": agro_compras_metricas_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),

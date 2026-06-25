@@ -1583,7 +1583,7 @@ function carregarMetricasCompra(forceApi) {
   if (window.AGRO_MANUAL_SYNC_ONLY && !forceApi) return;
   const d = compraDiasMediaVendas;
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  fetch(`{% url 'api_pdv_metricas_produtos' %}?dias=${d}`)
+  fetch(`{% url 'api_pdv_metricas_produtos' %}?dias=${d}&compras=1`)
     .then((r) => r.json())
     .then((data) => {
       if (data.erro || !data.rows) return;

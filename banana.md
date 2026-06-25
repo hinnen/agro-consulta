@@ -428,6 +428,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### 4.15 Desvinculação ERP (Mongo espelho → Postgres SisVale)
 
+**Resposta curta (Jun/2026):** **NÃO terminou.** Validamos **um fluxo operacional** no **teste** (catálogo PG, ledger estoque, Entrada NF wizard). **Loja (produção)** e vários módulos ainda **leem/gravam Mongo ERP** — **não** cancelar assinatura ERP ainda (§ abaixo Renan 2026-06-24).
+
 **Dois níveis:** (1) cortar **API ERP** (`Produtos/Salvar`, etc.); (2) parar de **ler/gravar no Mongo** na tela — ganho de **responsividade** e menos bugs (ex.: preço que “voltava”).
 
 **Flags** (`produtos/agro_fonte_config.py`, `.env`): `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_FONTE_ESTOQUE=ledger` · `AGRO_FONTE_FINANCEIRO=agro_pg` · `AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO=false` (padrão). Status debug: `GET /api/agro/fonte-status/`.
@@ -436,25 +438,42 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Status                 | Tela / módulo                                                     | Nota                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Feito**              | Clientes PDV, Vendas Agro, NFC-e, Caixa, RH (quase todo Postgres) | Sync ERP opcional onde existir                                                                                                                  |
-| **Feito (staging OK)** | Cadastro SisVale `/produtos/cadastro-erp/`                        | `**AGRO_FONTE_CATALOGO=agro_pg`** no teste — import 3354 prod · Renan validou busca GM/barras + salvar preço + **sem piscadinha** (v1.84–v1.85) |
-| **Infra pronta, off**  | Catálogo Postgres                                                 | `catalogo_agro.py`, modelo `Produto`, `importar_catalogo_mongo_produto` — **ligado no staging**; produção ainda Mongo                           |
-| **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Flags existem; **não ligadas** nas views                                                                                                        |
-| **Falta (alta)**       | PDV `/consulta/`, wizard `/pdv/checkout/`                         | **Teste Fase B ✅** (Postgres catálogo staging). **Loja** ainda Mongo+overlay                                                                 |
-| **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | **Teste Fase C ✅** (Postgres lista/facetas staging). **Loja** ainda Mongo                                                                 |
-| **Falta (média)**      | Entrada NF, Compras, Estoque/transferências, Validade             | **D2** busca produto ✅ teste · **D3/D4** gravar/métricas ainda Mongo                                                                                  |
+| **Teste ✅ / loja ❌** | Cadastro, PDV catálogo, Gestão lista                              | Fases A–C staging · **produção** ainda Mongo+overlay                                                                                            |
+| **Teste parcial ✅**   | Entrada NF wizard, Compras busca/saldo                            | D1 ledger + D3 wizard **teste** v2.78 · financeiro NF **dry-run** staging · **DtoLancamento** real ainda Mongo                                 |
+| **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no fluxo estoque Agro; flag `AGRO_FONTE_FINANCEIRO=agro_pg` **não** nas views de Lançamentos                                   |
+| **Falta (alta)**       | PDV `/consulta/`, `/pdv/checkout/` **na loja**                    | Staging Fase B ✅                                                                                                                                |
+| **Falta (média)**      | Compras **métricas** (D4), busca GM Compras/NF                    | Agregações Mongo · motor busca único pendente                                                                                                   |
+| **Falta (média)**      | Entrada NF **financeiro real** fora dry-run                       | Postgres ou título Agro próprio — hoje `DtoLancamento` Mongo                                                                                    |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
+| **Falta**              | Transferências, Validade, sync fornecedor NF                      | Ainda espelho Mongo                                                                                                                             |
 
 
-**Ordem sugerida:** cadastro lista → `agro_pg` → PDV `/api/buscar/` → gestão operacional → estoque ledger → **financeiro** (backup + checkpoint na tela Lançamentos).
-
-**Estimativa (Renan — linguagem simples):**
+**Estimativa (Renan — linguagem simples):** pacotes de **dias**, não “meses inteiros” — o grosso já está no teste; falta **subir na loja** + **financeiro/BI** por fatias.
 
 
-| Etapa | O quê muda na prática                                                                                                  | Risco                                                        | Tempo (dev + teste no teste) |
-| ----- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| **1** | Cadastro de produtos passa a ler/gravar **só no SisVale** (Postgres), sem depender do espelho na hora de listar/buscar | **Médio** — preço ou produto que “some” se import incompleto | **~1 semana**                |
-| **2** | PDV + gestão de produtos na mesma base                                                                                 | **Alto** — balcão não acha produto ou preço errado           | **+2 a 3 semanas**           |
-| **3** | Estoque, compras, financeiro, BI                                                                                       | **Muito alto** — impacto em caixa e contas                   | **vários meses**, por partes |
+| Etapa | O quê muda na prática                                                                                                  | Risco                                                        | Tempo (dev + teste) |
+| ----- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------- |
+| **1** | Cadastro Postgres (`agro_pg`)                                                                                          | Médio                                                        | **✅ teste** · 1 dia loja |
+| **2** | PDV + gestão mesma base + ledger                                                                                       | Alto no balcão                                               | **✅ teste** · 1–2 dias loja |
+| **3** | Compras/NF busca + métricas + Lançamentos + BI                                                                         | Alto no caixa/contas                                         | **2–5 dias por fatia** (CP primeiro) |
+
+
+**Ordem sprint (Renan — Jun/2026, ~dias):**
+
+| # | Pacote | Por quê nesta ordem | Dias (ordem de grandeza) |
+| - | ------ | ------------------- | ------------------------ |
+| **1** | **Produção = teste** (flags B+C + ledger + `agro_pg` + Entrada NF v2.78) | Código **já validado** — **agendado loja fecha 25/06 noite** (ver CHECKPOINT) | **1** deploy |
+| **2** | **Compras D4** (métricas) | Última compra / sugestão — Mongo | **1–2** |
+| **3** | **Entrada NF financeiro Agro** (título sem `DtoLancamento` loja) | Wizard OK; título real na loja | **2–3** |
+| **4** | **Lançamentos CP** (checkpoint → Postgres) | Cancelar ERP | **3–5** |
+| **5** | **BI `/` + resumo** | VendaAgro Postgres | **2–3** |
+| **6** | **Transferências · Validade · fornecedor NF** | Menor urgência | **1–2** cada |
+| **7** | **Motor busca único** | **Não é desvinculação** — bug GM Compras/NF (`gm0050`); **por último** | **1–2** |
+| **8** | **Checkpoint final + cancelar assinatura ERP** | Só após 1–6 + backup | **0.5** |
+
+**Motor busca ≠ desvinculação:** catálogo/saldo já vêm do Postgres no teste; GM quebrado é **UX/paridade de busca** entre telas — **não bloqueia** cortar Mongo. Pode ficar **último**.
+
+**Ordem técnica legada (referência):** cadastro → `agro_pg` → PDV busca → gestão → ledger → financeiro checkpoint.
 
 
 **Mitigação:** fazer só a etapa 1 no `teste`, conferir cadastro + busca + salvar preço, **só então** produção.
@@ -573,10 +592,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.77`  
+**Versão:** `1.0.78`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — cherry-pick autocomplete PDV → produção (frase + senha)  
-**Versão app (`VERSION`):** **teste** v2.77 · **produção** v2.28 (`f87955d`)
+**Atualizado por:** Renan — ordem sprint desvinculação + **deploy loja agendado noite 25/06**  
+**Versão app (`VERSION`):** **teste** v2.78 · **produção** v2.28 (`f87955d`) → **subir pacote desvinculação hoje à noite**
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -619,21 +638,54 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 foco **Entrada NF D3** · D1 parcial ✅ · busca GM passo 2 pendente (motor único) · Gestão = baixo uso
+**Onde paramos:** §4.15 **WIP Compras D4 hoje** · deploy loja **noite 25/06** · D3 NF ✅ teste
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
 | **A** | Snapshot loja→staging (`copiar_snapshot_pdv_loja`) | ✅ |
 | **B** | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — PDV catálogo Postgres | ✅ Renan |
 | **C** | Gestão operacional lista/busca/facetas Postgres | ✅ Renan |
-| **D1** | Ledger — saldo | ✅ **saldo bate** Gestão `/produtos/gestao/` = Compras (ex. GM9503 -3) · ✅ **preço venda** alterado reflete · ⏸ **ajuste estoque** — PIN não abre no Render teste (Renan) |
-| **D2** | **Compras + Entrada NF passo produtos** — `/api/buscar/?compras=1` = mesma base Postgres PDV | ✅ código · **testar** `gm9503`, nome, custo |
-| **D3** | Entrada NF **resto** (casar XML, gravar estoque, financeiro título) | ❌ ainda **Mongo/ERP** — próximo bloco grande |
+| **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (ex. GM9503 **-2** pós-entrada NF) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
+| **D2** | **Compras + Entrada NF passo produtos** | ✅ nome/custo · ❌ GM (`gm0050`…) — motor único |
+| **D3** | Entrada NF wizard (estoque Agro, financeiro dry-run staging, PIN) | ✅ **Renan 25/06** v2.78 — GM9503 «teste» **-2** igual **Consulta** e **Compras** · ⏸ título real só na **loja** |
 | **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
 
-**Próximo passo (Entrada NF):**
-1. **Renan testa wizard** (exc. GM): XML → produtos (nome) → estoque (`api_entrada_nota_estoque_agro`) → financeiro → finalizar
-2. **Código:** motor busca único no passo 2 · D3 gravar rascunho/financeiro ainda Mongo (fase seguinte)
+**Próximo passo (sprint dias):**
+1. **Deploy loja 25/06 noite** (pacote desvinculação — CHECKPOINT abaixo)
+2. **Compras D4** — fechar **esta tela** — **WIP hoje até fechar loja** (ver blocos abaixo)
+3. **Lançamentos CP** — desvinculação global
+4. **Motor busca** — por último
+
+### WIP HOJE — Compras D4 (25/06, até deploy loja)
+
+| Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
+| ----- | ------------- | ------------------- | ---------- |
+| **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ código** — testar Render |
+| **B** | **Últimas compras** nos cards da busca | `_ultimas_compras_*` → rascunhos **Entrada NF Agro** + fallback Mongo só leitura | **2º** |
+| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
+| **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
+
+**Já OK Compras (não mexer):** busca nome · custo · saldo ledger · carrinho/pedido.
+
+### AGENDADO — Deploy loja · pacote desvinculação (Renan 25/06, após fechar)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Quando** | **Hoje à noite** — loja fechada |
+| **O quê** | Merge `teste`→`producao` do pacote validado no Render teste (Fases A–D parcial) |
+| **Código** | `agro_pg` + PDV catálogo Postgres + gestão PG + ledger estoque + Entrada NF (empresas + wizard; financeiro **real** na loja, não dry-run) |
+| **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
+| **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
+| **Depois (Renan)** | Ctrl+F5 · PDV busca/preço · Compras saldo · Entrada NF passo 5 empresa · conferir 2–3 produtos anotados (ex. GM9503) |
+| **Fora do pacote** | Motor busca GM · Compras métricas D4 · Lançamentos Postgres · BI |
+
+### FECHADO — Entrada NF wizard + saldo ledger (Renan 25/06, v2.78)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fluxo** | Manual → produtos (nome) → estoque Agro → financeiro **dry-run** → **PIN** finalizar |
+| **Saldo** | GM9503 «teste» **-2** — **Consulta/orçamento** (Centro Σ) = **Compras** (coluna Saldo) |
+| **Staging** | Financeiro simulado no rascunho; estoque via ledger Postgres (`AjusteRapidoEstoque`) |
 
 ### BUG — Entrada NF passo 5 sem empresa (2026-06-25)
 
@@ -654,7 +706,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Hoje (legado)** | `_js_busca_produto_inteligente.html` = filtro local **parcial**; cada tela tem merge/cache próprio (`consulta_produtos.js`, `compras.html`, `entrada_nota.html`, `cadastro_erp_panel.js`). |
 | **Ordem migração** | 1) Extrair pipeline do PDV (`executarBuscaLocal` + merge) para módulo · 2) PDV usa módulo · 3) Cadastro (API-only) · 4) Compras · 5) Entrada NF · 6) demais (transferências, ajuste mobile…). |
 | **Regra** | **Proibido** novo `filtrar*` / merge custom por tela — só opções do motor (`compras:1`, `limite`, `cacheRef`). |
-| **Status** | ❌ **pendente implementação** — D2 busca GM **não fechada** até isso ou cópia literal do PDV nas duas telas. |
+| **Status** | ❌ **pendente** — **prioridade última** (não bloqueia desvinculação; busca **nome** OK no teste) |
+| **Nota Renan 25/06** | Motor **≠** cortar Mongo/ERP — é paridade GM Compras/NF; **deixar por último** |
 
 **Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.
 

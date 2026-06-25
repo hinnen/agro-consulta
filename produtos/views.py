@@ -2374,6 +2374,10 @@ def _pdv_metricas_cache_key(dias: int, bucket: int) -> str:
     return f"pdv_metricas_v4_{dias}_{bucket}"
 
 
+def _pdv_metricas_cache_key_pg(dias: int, bucket: int) -> str:
+    return f"pdv_metricas_pg_v1_{dias}_{bucket}"
+
+
 def _pdv_top_vendidos_cache_key(dias: int, limite: int, bucket: int) -> str:
     return f"pdv_top_vend_v3_{dias}_{limite}_{bucket}"
 
@@ -21267,17 +21271,34 @@ def api_pdv_metricas_produtos(request):
     variação % semana a semana, última entrada (compra/nota), e 4 colunas extras com qtd.
     vendida por semana (janelas de 7d nos últimos 28d, da mais antiga à mais recente).
     Cada linha de rows tem 12 elementos (índices 8–11 = sparkline 4 semanas). Cache ~5 min.
+
+    Com ``?compras=1`` e ``AGRO_COMPRAS_METRICAS_POSTGRES`` (ou Fase B/C): fonte **VendaAgro** Postgres.
     """
     try:
         dias = int(request.GET.get("dias", 30))
     except (TypeError, ValueError):
         dias = 30
     dias = max(7, min(365, dias))
+    compras = request.GET.get("compras") in ("1", "true", "yes")
+    from produtos.agro_fonte_config import agro_compras_metricas_postgres
+
+    use_pg = compras and agro_compras_metricas_postgres()
     bucket = int(time.time() // 300)
-    ck = _pdv_metricas_cache_key(dias, bucket)
+    ck = _pdv_metricas_cache_key_pg(dias, bucket) if use_pg else _pdv_metricas_cache_key(dias, bucket)
     hit = cache.get(ck)
     if hit is not None and isinstance(hit, dict) and hit.get("rows"):
         return JsonResponse(hit)
+
+    if use_pg:
+        from produtos.compras_metricas_util import metricas_compras_rows_postgres
+
+        try:
+            payload = metricas_compras_rows_postgres(dias)
+            cache.set(ck, payload, timeout=320)
+            return JsonResponse(payload)
+        except Exception as e:
+            logger.exception("api_pdv_metricas_produtos postgres")
+            return JsonResponse({"erro": str(e)}, status=500)
 
     client, db = obter_conexao_mongo()
     if db is None:
