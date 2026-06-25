@@ -175,6 +175,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         overlay_pids_por_codigo,
         parece_codigo_cadastro,
         q_icontains_cadastro,
+        termo_eh_codigo_gm,
         termo_bate_codigos_produto,
     )
 
@@ -268,7 +269,20 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     break
 
     if found:
-        return _rows_de_produtos(found[:lim])
+        if termo_eh_codigo_gm(termo):
+            found = [
+                p
+                for p in found
+                if termo_bate_codigos_produto(
+                    termo,
+                    codigo_interno=p.codigo_interno,
+                    codigo_nfe=p.codigo_nfe,
+                    codigo_barras=p.codigo_barras,
+                    extras=(p.produto_externo_id, p.erp_produto_id),
+                )
+            ]
+        if found:
+            return _rows_de_produtos(found[:lim])
 
     if parece_codigo_cadastro(termo):
         try:

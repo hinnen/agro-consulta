@@ -8308,7 +8308,10 @@
     const modo = /^\d{8,}$/.test(onlyDig) ? 'scanner' : 'normal';
     const baseLoc = fi ? entradaNfeCatalogoPdvCacheArray() : [];
     const locFiltrados = fi ? filtrarProdutosBuscaInteligente(baseLoc, termoNorm, modo) : [];
-    const locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
+    let locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
+    if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoNorm)) {
+      locOrd = filtrarLocaisCodigoGmExato(termoNorm, locOrd);
+    }
     const hadLocal = locOrd.length > 0;
     if (!hadLocal) {
       await new Promise((r) => { setTimeout(r, 220); });
@@ -8326,7 +8329,11 @@
     }
     if (sid !== _entradaNfeBuscaSeq) return null;
     if (!fi || !nb) return apiList;
-    return entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
+    let merged = entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
+    if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoNorm)) {
+      merged = filtrarLocaisCodigoGmExato(termoNorm, merged);
+    }
+    return merged;
   }
 
   /** Custo pré-NF (?compras=1): só após escolha, por código NF (evita travar cada tecla). */

@@ -2228,6 +2228,10 @@ function renderizarListaResultadosCompra(resultados) {
 
 function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
   const tip = document.getElementById('compra-loading-tip');
+  const termoN = normalizarBuscaLocal(String(termoOriginal || '').trim());
+  if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
+    locaisOrdenados = filtrarLocaisCodigoGmExato(termoN, locaisOrdenados);
+  }
   if (compraPoolAvancado !== null) {
     if (tip) tip.classList.add('hidden');
     const resultados = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
@@ -2273,7 +2277,10 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
         }).filter(Boolean);
         const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
         const extrasOrd = ordenarSugestoesPdv(extrasBrutos);
-        const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_COMPRA_LIM_MAX);
+        let final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_COMPRA_LIM_MAX);
+        if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
+          final = filtrarLocaisCodigoGmExato(termoN, final);
+        }
         const selAnt =
           indiceSelecionadoCompra >= 0 && ultimosResultadosCompra[indiceSelecionadoCompra]
             ? String(ultimosResultadosCompra[indiceSelecionadoCompra].id)
@@ -3622,12 +3629,16 @@ function buscar(q) {
     }
   }
 
-  const locaisOrdenados =
+  let locaisOrdenados =
     filtroEfetivo === 'TODOS'
       ? ordenarSugestoesPdv(candidatos)
       : filtroEfetivo === 'OCULTOS'
         ? ordenarSugestoesPdv(candidatos)
         : ordenarResultadosCompra(candidatos);
+
+  if (typeof filtrarLocaisCodigoGmExato === 'function' && pareceCodigoGmEtiqueta(termoN)) {
+    locaisOrdenados = filtrarLocaisCodigoGmExato(termoN, locaisOrdenados);
+  }
 
   if (!locaisOrdenados.length) {
     if (
