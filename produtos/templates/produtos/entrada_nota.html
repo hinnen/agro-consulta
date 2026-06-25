@@ -1389,7 +1389,7 @@
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
             <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
               {% for e in empresas_entrada_nfe %}
-              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
+              <option value="{{ e.id }}"{% if e.nome == "Agro Mais Centro" %} selected{% endif %}>{{ e.nome }}</option>
               {% empty %}
               <option value="">Cadastre empresas no Admin</option>
               {% endfor %}
@@ -9375,6 +9375,8 @@
             t = 'Conta a pagar já existia no Mongo — nota vinculada sem duplicar. IDs: ' + fin.ids.join(', ') + '.';
           } else if (fin.ja_existia) {
             t = 'Conta a pagar já estava gerada para esta nota. IDs: ' + fin.ids.join(', ') + '.';
+          } else if (fin.dry_run) {
+            t = 'Simulação (teste): financeiro registrado só no rascunho da NF — sem título real no Mongo da loja. Pode seguir para a etapa 8 · Finalizar (PIN).';
           } else if (fin.quitar_ao_salvar) {
             t = 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
           } else {
@@ -9395,6 +9397,7 @@
           if (fin.quitar_ao_salvar && !fin.ja_existia && !fin.recuperado) {
             t += ' Em Lançamentos (contas a pagar), veja na aba Quitados.';
           }
+          if (j.aviso_staging_dry_run) t += ' ' + j.aviso_staging_dry_run;
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
           if (j.erp_baixa_ok === true) t += ' ERP: baixa aceita.';
           if (j.aviso_api) t += ' ' + j.aviso_api;

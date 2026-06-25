@@ -179,6 +179,7 @@ from .nfe_entrada_util import (
     excluir_rascunho_entrada,
     gravar_ult_nsu,
     entrada_nfe_busca_params_from_request,
+    listar_empresas_estoque_entrada_nfe,
     listar_empresas_financeiro_entrada_nfe,
     listar_rascunhos_entrada,
     marcar_rascunho_estoque_aplicado,
@@ -236,6 +237,7 @@ from .mongo_financeiro_util import (
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
+    simular_lancamentos_manual_lote_staging,
     expandir_linhas_emprestimo_dual_lote,
     _fin_ln_despesa,
     _fin_banco_id_valido_quitado,
@@ -10380,10 +10382,7 @@ def _mascarar_cnpj(cnpj: str) -> str:
 @login_required(login_url="/admin/login/")
 def entrada_nota_view(request):
     """Entrada de NF-e: manual, XML e Distribuição DF-e (SEFAZ)."""
-    empresas_entrada_nfe = [
-        {"id": e.pk, "nome": e.nome_fantasia}
-        for e in Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
-    ]
+    empresas_entrada_nfe = listar_empresas_estoque_entrada_nfe()
     _client, _db = obter_conexao_mongo()
     empresas_fin_entrada_nfe = listar_empresas_financeiro_entrada_nfe(_db)
     return render(
@@ -12719,7 +12718,12 @@ def api_entrada_nota_financeiro(request):
                     }
                 )
 
-    resultado = inserir_lancamentos_manual_lote(
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    resultado = (
+        simular_lancamentos_manual_lote_staging(linhas=linhas_fin)
+        if agro_mongo_escrita_bloqueada()
+        else inserir_lancamentos_manual_lote(
         db,
         despesa=True,
         empresa_nome=empresa_nome,
@@ -12737,6 +12741,7 @@ def api_entrada_nota_financeiro(request):
         usuario_label=usuario,
         linhas=linhas_fin,
         marcar_quitado_pagar=quitar_ao_salvar,
+        )
     )
 
     ok = bool(resultado.get("ok"))
@@ -12796,7 +12801,10 @@ def api_entrada_nota_financeiro(request):
                     "data_competencia": dc_imp_use.isoformat(),
                 }
             )
-        r_imp = inserir_lancamentos_manual_lote(
+        r_imp = (
+            simular_lancamentos_manual_lote_staging(linhas=linha_imp)
+            if resultado.get("dry_run")
+            else inserir_lancamentos_manual_lote(
             db,
             despesa=True,
             empresa_nome=empresa_nome,
@@ -12814,6 +12822,7 @@ def api_entrada_nota_financeiro(request):
             usuario_label=usuario,
             linhas=linha_imp,
             marcar_quitado_pagar=quitar_ao_salvar,
+            )
         )
         if r_imp.get("ok") and r_imp.get("ids"):
             ids.extend(str(x) for x in r_imp["ids"])
@@ -12837,7 +12846,7 @@ def api_entrada_nota_financeiro(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids and not resultado.get("dry_run"):
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)
@@ -12860,7 +12869,7 @@ def api_entrada_nota_financeiro(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if quitar_ao_salvar and ids and path_baixa and agro_financeiro_erp_sync_habilitado():
+    if quitar_ao_salvar and ids and path_baixa and agro_financeiro_erp_sync_habilitado() and not resultado.get("dry_run"):
         try:
             cli_b = VendaERPAPIClient()
             dmov_fin = dv
@@ -12905,8 +12914,13 @@ def api_entrada_nota_financeiro(request):
             "ids": ids,
             "erros": erros,
             "quitar_ao_salvar": quitar_ao_salvar,
+            "dry_run": bool(resultado.get("dry_run")),
         },
     }
+    if resultado.get("dry_run"):
+        out["aviso_staging_dry_run"] = (
+            "Ambiente teste: títulos simulados no rascunho Agro — não foram gravados em DtoLancamento da loja."
+        )
     if aviso_impostos:
         out["aviso_impostos"] = aviso_impostos
     if erp_lanc_ok is not None:

@@ -289,6 +289,67 @@ def _findall_local(parent: ET.Element, name: str) -> list[ET.Element]:
     return [el for el in list(parent) if _localname(el.tag) == name]
 
 
+# CNPJs GM Agropecuária — espelho de base/migrations/0004 (Centro + Vila Elias).
+_EMPRESAS_ESTOQUE_PADRAO: tuple[tuple[str, str, str, str], ...] = (
+    ("48900774000103", "Agro Mais Centro", "Centro", "centro"),
+    ("03230457000180", "Agro Mais Vila Elias", "Vila Elias", "vila"),
+)
+
+
+def _garantir_empresas_estoque_padrao() -> None:
+    """Cria empresas/lojas mínimas no Postgres quando o Admin ainda não foi populado."""
+    from base.models import Empresa, Loja
+
+    for cnpj, nome, loja_nome, cod in _EMPRESAS_ESTOQUE_PADRAO:
+        emp, created = Empresa.objects.get_or_create(
+            cnpj=cnpj,
+            defaults={"nome_fantasia": nome, "razao_social": nome, "ativo": True},
+        )
+        if not created and (not emp.ativo or emp.nome_fantasia != nome):
+            emp.ativo = True
+            emp.nome_fantasia = nome
+            emp.save(update_fields=["ativo", "nome_fantasia"])
+        Loja.objects.get_or_create(
+            empresa=emp,
+            codigo=cod,
+            defaults={"nome": loja_nome, "ativa": True},
+        )
+
+
+def listar_empresas_estoque_entrada_nfe() -> list[dict[str, Any]]:
+    """
+    Empresas do passo 5 (estoque) da entrada NF-e — Postgres ``base.Empresa``.
+    Staging vazio: tenta copiar da loja (snapshot) ou cria padrão GM.
+    """
+    from django.conf import settings
+
+    from base.models import Empresa
+
+    qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    if not qs.exists():
+        url_fonte = (getattr(settings, "AGRO_SNAPSHOT_FONTE_DATABASE_URL", "") or "").strip()
+        if url_fonte and getattr(settings, "AGRO_STAGING_READONLY", False):
+            try:
+                from produtos.snapshot_pdv_loja_util import sincronizar_empresas_lojas_snapshot
+
+                out = sincronizar_empresas_lojas_snapshot()
+                if not out.get("ok"):
+                    logger.warning(
+                        "listar_empresas_estoque_entrada_nfe snapshot: %s",
+                        out.get("erro"),
+                    )
+            except Exception:
+                logger.exception("listar_empresas_estoque_entrada_nfe sync loja")
+        qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    if not qs.exists():
+        try:
+            _garantir_empresas_estoque_padrao()
+        except Exception:
+            logger.exception("listar_empresas_estoque_entrada_nfe seed padrao")
+        qs = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    return [{"id": e.pk, "nome": e.nome_fantasia} for e in qs]
+
+
 def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
     """
     Lojas canônicas para etapa Financeiro da entrada NF-e (uma opção por unidade).

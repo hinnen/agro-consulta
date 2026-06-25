@@ -606,7 +606,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Commits** | `2818944` … `e93e6a5` · `61fe06a` |
 | **Teste** | OK Renan — autocomplete; **Enter** `61fe06a` |
 | **Produção** | **OK deploy** v2.28 — cherry-pick 12 commits (Renan + senha 2026-06-25) |
-| **Isolamento teste** | Revertido `577e09c` (Entrada NF empresas — outro chat) · `791d0b0` — **teste = só pacote autocomplete PDV** |
+| **Isolamento teste** | Revertido `577e09c` (Entrada NF empresas — outro chat) · `791d0b0` — **teste = só pacote autocomplete PDV** · **recommit Entrada NF** empresas + financeiro dry-run (este chat) |
+
+### Staging — financeiro Entrada NF dry-run (2026-06-25)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Passo 7 «Salvar + a pagar» → «gravação no Mongo bloqueada (somente leitura)» |
+| **Motivo** | Staging **compartilha** Mongo da loja — ``DtoLancamento`` real fica bloqueado (``AGRO_STAGING_READONLY``) |
+| **Fix** | Dry-run: simula IDs no **rascunho Agro**; wizard segue até **PIN etapa 8** |
+| **Loja** | Com ``AGRO_STAGING_READONLY=false`` grava título real em Lançamentos |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 

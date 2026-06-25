@@ -33,6 +33,21 @@ def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
         return out
     return None
 
+
+def simular_lancamentos_manual_lote_staging(*, linhas: list[dict] | None = None) -> dict[str, Any]:
+    """
+    Staging (``AGRO_STAGING_READONLY``): simula IDs de título sem gravar ``DtoLancamento``.
+    Permite concluir o assistente Entrada NF-e (rascunho Agro + PIN) sem afetar a loja.
+    """
+    import uuid
+
+    n = len([x for x in (linhas or []) if isinstance(x, dict)])
+    if n < 1:
+        n = 1
+    lote = f"DRY{uuid.uuid4().hex[:8].upper()}"
+    ids = [f"staging-dry:{uuid.uuid4().hex[:24]}" for _ in range(n)]
+    return {"ok": True, "ids": ids, "lote": lote, "erros": [], "dry_run": True}
+
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 COL_DTO_VENDA = "DtoVenda"
