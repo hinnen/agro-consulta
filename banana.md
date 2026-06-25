@@ -586,20 +586,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | CSS da lista usava `overflow: hidden` — botão ficava **cortado** abaixo dos 5 itens; falha na API apagava o cache local |
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
 | **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
-| **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul mais forte** (diferente do carrinho) |
+| **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul uniforme em toda a telinha** do autocomplete (diferente do carrinho) |
 | **Commits** | `2818944` · `c94ac1d` · `7aaca87` · `850f40a` |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **B+C ✅** · **D2 preços OK** · **busca GM Compras/NF ainda falha** (`gm0050`) · **próximo: motor de busca único** (cadastro/PDV = referência)
+**Onde paramos:** §4.15 **B+C ✅** · **D1 parcial ✅** saldo Gestão=Compras + preço venda sync (GM9503 teste) · ajuste estoque **não testado** (PIN staging) · busca GM Compras/NF pendente · Gestão = **baixo uso** (Renan: ideias futuras, não bloqueia desvinculação)
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
 | **A** | Snapshot loja→staging (`copiar_snapshot_pdv_loja`) | ✅ |
 | **B** | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — PDV catálogo Postgres | ✅ Renan |
 | **C** | Gestão operacional lista/busca/facetas Postgres | ✅ Renan |
-| **D1** | Ledger — saldo = `saldo_informado` ajuste | ✅ código · **testar saldo** só onde existe UI: **Gestão**, **Compras**, **ajuste-mobile** / PIN — PDV e cadastro **sem** coluna saldo (de propósito) |
+| **D1** | Ledger — saldo | ✅ **saldo bate** Gestão `/produtos/gestao/` = Compras (ex. GM9503 -3) · ✅ **preço venda** alterado reflete · ⏸ **ajuste estoque** — PIN não abre no Render teste (Renan) |
 | **D2** | **Compras + Entrada NF passo produtos** — `/api/buscar/?compras=1` = mesma base Postgres PDV | ✅ código · **testar** `gm9503`, nome, custo |
 | **D3** | Entrada NF **resto** (casar XML, gravar estoque, financeiro título) | ❌ ainda **Mongo/ERP** — próximo bloco grande |
 | **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
@@ -850,6 +850,8 @@ Snapshot passo 2 **OK** (3354 produtos, 802 overlays, 4759 ajustes). Passo 3 **f
 **Entrega:** commit `d49e3b0` · teste **v2.40+** · `gestao_somente_postgres: true` no `fonte-status`.
 
 **Produção (loja fechada):** frase + senha — **não** sobe flags Fase B/C nem snapshot. PDV/gestão loja = Mongo+overlay até novo pacote combinado.
+
+**Renan (2026-06-25):** loja **quase não usa** `/produtos/gestao/` (ideias futuras). D1 OK: saldo Gestão=Compras · preço venda sync. Ajuste estoque na gestão: **PIN não abre no Render teste** — validar ajuste na **loja** ou corrigir PIN staging depois.
 
 ### Fase D — Estoque ledger + busca NF/Compras (2026-06-24)
 
