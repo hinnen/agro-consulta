@@ -324,6 +324,7 @@
     var productSearchPointerInside = false;
     var productSearchPointerTimer = null;
     var productSearchSuppressDismissUntil = 0;
+    var productSearchDismissedSnapshot = null;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
     var stagingReadonly = !!(
@@ -540,7 +541,6 @@
     function tryAddProductFromSearch(produto, opts) {
         opts = opts || {};
         invalidatePendingProductSearch();
-        if (opts.explicitPick) hideProductAutocomplete();
         var qty = opts.qty != null ? opts.qty : 1;
         var explicitPick = !!opts.explicitPick;
         var rowCode = productRowLookupCode(produto);
@@ -2671,7 +2671,15 @@
         filterSeq += 1;
     }
 
-    function hideProductAutocomplete() {
+    function hideProductAutocomplete(opts) {
+        opts = opts || {};
+        if (!opts.skipSnapshot && lastProducts.length) {
+            productSearchDismissedSnapshot = {
+                products: lastProducts.slice(),
+                index: Math.max(productSelectionIndex, 0),
+                query: String((dom.productSearch && dom.productSearch.value) || '').trim(),
+            };
+        }
         productSelectionIndex = -1;
         lastProducts = [];
         autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
@@ -2682,6 +2690,34 @@
             dom.productAutocomplete.innerHTML = '';
             dom.productAutocomplete.classList.add('hidden');
         }
+    }
+
+    function clearProductSearchDismissedSnapshot() {
+        productSearchDismissedSnapshot = null;
+    }
+
+    function isProductAutocompleteOpen() {
+        return !!(dom.productAutocomplete && !dom.productAutocomplete.classList.contains('hidden'));
+    }
+
+    function resolveEnterProductPick(qEnter) {
+        if (isProductAutocompleteOpen() && lastProducts.length) {
+            var liveIdx = Math.max(productSelectionIndex, 0);
+            if (liveIdx >= lastProducts.length) liveIdx = 0;
+            return lastProducts[liveIdx];
+        }
+        var snap = productSearchDismissedSnapshot;
+        if (
+            snap &&
+            snap.products &&
+            snap.products.length &&
+            String(snap.query || '') === String(qEnter || '')
+        ) {
+            var snapIdx = Math.max(snap.index, 0);
+            if (snapIdx >= snap.products.length) snapIdx = 0;
+            return snap.products[snapIdx];
+        }
+        return null;
     }
 
     function isInsideProductSearchZone(node) {
@@ -2737,6 +2773,7 @@
         var normalized = normalizeWizardCatalogList(produtos);
         if (!opts.preserveLimit) {
             autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
+            clearProductSearchDismissedSnapshot();
         }
         lastProducts = normalized;
         var visibleCount = Math.min(lastProducts.length, autocompleteVisibleLimit);
@@ -4946,8 +4983,9 @@
 
     function resetProductSearchUi(message) {
         invalidatePendingProductSearch();
+        clearProductSearchDismissedSnapshot();
         dom.productSearch.value = '';
-        hideProductAutocomplete();
+        hideProductAutocomplete({ skipSnapshot: true });
         dom.productSearchMeta.textContent = 'Aguardando busca';
         dom.productSearchFeedback.textContent = message || 'Digite para filtrar o catálogo local.';
         focusProductSearch();
@@ -7494,17 +7532,19 @@
                 clearTimeout(searchTimer);
                 var qEnter = String(dom.productSearch.value || '').trim();
                 if (qEnter) marcarWizardScannerAtivo(1500);
+                var pick = resolveEnterProductPick(qEnter);
+                if (pick) {
+                    tryAddProductFromSearch(pick, {
+                        query: productRowLookupCode(pick) || qEnter,
+                        explicitPick: true,
+                    });
+                    return;
+                }
                 if (/^\d{8,}$/.test(qEnter) || pareceCodigoGmWizard(qEnter)) {
                     runProductSearch(qEnter, 'barcode');
                     return;
                 }
-                var target = lastProducts[Math.max(productSelectionIndex, 0)];
-                if (target) {
-                    tryAddProductFromSearch(target, {
-                        query: productRowLookupCode(target) || qEnter,
-                        explicitPick: true,
-                    });
-                } else {
+                if (qEnter) {
                     runProductSearch(qEnter, 'manual');
                 }
             } else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
@@ -7554,11 +7594,11 @@
         });
 
         dom.productSearch.addEventListener('blur', function (event) {
-            if (productSearchPointerInside) return;
+            if (shouldSuppressProductAutocompleteDismiss()) return;
             var related = event.relatedTarget;
             if (related && isInsideProductSearchZone(related)) return;
             window.setTimeout(function () {
-                if (productSearchPointerInside) return;
+                if (shouldSuppressProductAutocompleteDismiss()) return;
                 if (!dom.productAutocomplete || dom.productAutocomplete.classList.contains('hidden')) return;
                 var ae = document.activeElement;
                 if (ae && isInsideProductSearchZone(ae)) return;
@@ -7571,27 +7611,22 @@
         }
 
         document.addEventListener('mousedown', function (event) {
+            if (shouldSuppressProductAutocompleteDismiss()) return;
             if (isInsideProductSearchZone(event.target)) return;
             dismissProductAutocomplete();
         });
 
         if (dom.productAutocomplete) {
             dom.productAutocomplete.addEventListener('mousedown', function (event) {
+                if (event.target.closest('[data-autocomplete-load-more]')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    markProductSearchPointerInside();
+                    return;
+                }
                 markProductSearchPointerInside();
                 var zoom = event.target.closest('[data-pdv-photo-zoom]');
                 if (zoom) return;
-                if (event.target.closest('[data-autocomplete-load-more]')) {
-                    if (
-                        productSearchAwaitingServer &&
-                        lastProducts.length <= autocompleteVisibleLimit
-                    ) {
-                        return;
-                    }
-                    event.preventDefault();
-                    expandProductAutocomplete();
-                    if (dom.productSearch) dom.productSearch.focus();
-                    return;
-                }
                 var btn = event.target.closest('[data-add-product]');
                 if (!btn) return;
                 event.preventDefault();
@@ -7604,6 +7639,21 @@
                 });
             });
             dom.productAutocomplete.addEventListener('click', function (event) {
+                var loadMore = event.target.closest('[data-autocomplete-load-more]');
+                if (loadMore) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    markProductSearchPointerInside();
+                    if (
+                        productSearchAwaitingServer &&
+                        lastProducts.length <= autocompleteVisibleLimit
+                    ) {
+                        return;
+                    }
+                    expandProductAutocomplete();
+                    if (dom.productSearch) dom.productSearch.focus();
+                    return;
+                }
                 var zoom = event.target.closest('[data-pdv-photo-zoom]');
                 if (zoom) {
                     event.preventDefault();
