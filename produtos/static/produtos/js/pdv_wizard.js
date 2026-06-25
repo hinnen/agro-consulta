@@ -4829,34 +4829,25 @@
                 }
                 var localList = normalizeWizardCatalogList(r.list || []);
                 var skuCode = looksLikeSkuCode(query);
+                var qlSku = String(query).trim().toLowerCase();
                 if (mode === 'barcode' && localList.length === 1) {
                     tryAutoAddBarcodeHit(localList[0]);
-                    return Promise.resolve();
+                    return null;
                 }
-                if (localList.length && !skuCode && !stagingReadonly) {
+                if (skuCode && localList.length && localSkuCacheSufficient(localList, qlSku)) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
-                        'Cache local (' + wizardProductCatalog.length + ' produtos)…';
+                        'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                    return null;
                 }
-                if (stagingReadonly && localList.length && !skuCode) {
-                    dom.productSearchFeedback.textContent = 'Conferindo preços no servidor…';
-                }
-                if (skuCode && localList.length) {
-                    var ql = String(query).trim().toLowerCase();
-                    if (localSkuCacheSufficient(localList, ql)) {
-                        renderProductResults(localList);
-                        dom.productSearchFeedback.textContent =
-                            'Cache local (' + wizardProductCatalog.length + ' produtos).';
-                        return Promise.resolve();
-                    }
+                if (localList.length) {
                     renderProductResults(localList);
-                    dom.productSearchFeedback.textContent =
-                        'Cache local · conferindo variantes no servidor…';
-                } else {
-                    dom.productSearchFeedback.textContent = skuCode
-                        ? 'Buscando variantes do código…'
-                        : 'Buscando no servidor…';
                 }
+                dom.productSearchFeedback.textContent = localList.length
+                    ? 'Cache local · conferindo servidor…'
+                    : skuCode
+                      ? 'Buscando variantes do código…'
+                      : 'Buscando no servidor…';
                 return fetchWizardServerSearch(query).then(function (srv) {
                     return {
                         remote: srv.produtos,
