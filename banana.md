@@ -151,7 +151,7 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 | Situação | O que significa |
 | -------- | --------------- |
-| **teste v2.33 · loja v2.27** (hoje) | Loja: Contabilidade até v2.27 (login + layout + pendências NFC-e). Teste **ainda tem** outros pacotes só no branch teste. |
+| **teste v2.77 · loja v2.28** (hoje) | Loja: Contabilidade v2.27 + **PDV autocomplete v2.28**. Teste **ainda tem** outros pacotes só no branch teste. |
 | **Como saber o que falta na loja** | Tabela **«Só no teste»** no CHECKPOINT · `git diff origin/producao origin/teste --stat` — **não** olhar só o `VERSION` |
 | **Regra intuitiva (ideal)** | **`teste` > `producao`** → loja atrás (ex. teste **v1.94**, loja **v1.93** = tem pacote pendente). **`teste` = `producao`** → acabou de subir pacote **ou** teste só ganhou docs sem bump |
 | **Próximo fix de código no teste** | Deve virar **v2.06** no teste; loja fica **v2.03** até você pedir produção — aí fica óbvio que não são iguais |
@@ -573,10 +573,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.76`  
-**Última atualização:** `2026-05-28`  
-**Atualizado por:** assistente — fix «carregar mais…» autocomplete PDV  
-**Versão app (`VERSION`):** **teste** v2.60 · **produção** v2.27
+**Versão:** `1.0.77`  
+**Última atualização:** `2026-06-25`  
+**Atualizado por:** Renan — cherry-pick autocomplete PDV → produção (frase + senha)  
+**Versão app (`VERSION`):** **teste** v2.77 · **produção** v2.28 (`f87955d`)
+
+### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pacote** | Autocomplete busca `/pdv/` — carregar mais, 10 itens, azul, Esc, Enter |
+| **Commits teste** | `c5a318b` … `61fe06a` (12 commits — ver tabela abaixo) |
+| **Commits loja** | `5e2fa57` … `8e09584` · VERSION `f87955d` |
+| **VERSION loja** | **v2.28** |
+| **Arquivos** | `pdv_wizard.js`, `pdv_wizard.html`, `step_produtos.html`, `pdv/views.py`, `config/settings.py` |
+| **Não incluído** | `577e09c` Entrada NF · `312e1ca` Compras · commits só banana |
+
+**Renan — após deploy Render:** Ctrl+F5 → `/pdv/` → buscar produto → carregar mais · Enter adiciona · Esc recolhe.
+
+**Reverter:** revert `f87955d` + 12 commits PDV em `producao` (ordem inversa).
 
 ### PDV — autocomplete «carregar mais…» (2026-05-28)
 
@@ -589,7 +604,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul uniforme em toda a telinha** do autocomplete (diferente do carrinho) |
 | **Ajuste 2026-05-28c** | Lista recolhe ao clicar fora / Esc; **carregar mais** ok; **Enter** adiciona (lista aberta ou recolhida, mesma busca) — `61fe06a` |
 | **Commits** | `2818944` … `e93e6a5` · `61fe06a` |
-| **Teste** | OK Renan — autocomplete; **Enter** `61fe06a` · deploy `69b756b` |
+| **Teste** | OK Renan — autocomplete; **Enter** `61fe06a` |
+| **Produção** | **OK deploy** v2.28 — cherry-pick 12 commits (Renan + senha 2026-06-25) |
 | **Isolamento teste** | Revertido `577e09c` (Entrada NF empresas — outro chat) · `791d0b0` — **teste = só pacote autocomplete PDV** |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
@@ -1716,6 +1732,6 @@ Ao **entregar** fix, feature ou deploy (teste ou produção) → **editar `banan
 6. **Não** inflar o doc: manter tabelas; detalhe longo vai para doc irmão ou AGENTS.md §7.
 7. **Nunca** perguntar ao Renan se deve atualizar o `AGENTS.md`.
 
-### Fim do checkpoint v1.0.70
+### Fim do checkpoint v1.0.77
 
 *Próxima edição começa abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
