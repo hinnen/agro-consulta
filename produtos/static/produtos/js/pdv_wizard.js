@@ -731,14 +731,14 @@
     }
 
     function scoreProduct(p, qRaw, barcodeMode) {
-        var q = stripAccents(qRaw.trim());
+        var q = stripAccents(qRaw.trim()).toLowerCase();
         if (!q) return 0;
-        var nome = stripAccents(p.nome || '');
-        var marca = stripAccents(p.marca || '');
-        var buscaTxt = stripAccents(p.busca_texto || '');
-        var nfe = stripAccents(String(p.codigo_nfe || ''));
-        var cod = stripAccents(String(p.codigo || ''));
-        var ean = stripAccents(String(p.codigo_barras || '').replace(/\s/g, ''));
+        var nome = stripAccents(p.nome || '').toLowerCase();
+        var marca = stripAccents(p.marca || '').toLowerCase();
+        var buscaTxt = stripAccents(p.busca_texto || '').toLowerCase();
+        var nfe = stripAccents(String(p.codigo_nfe || '')).toLowerCase();
+        var cod = stripAccents(String(p.codigo || '')).toLowerCase();
+        var ean = stripAccents(String(p.codigo_barras || '').replace(/\s/g, '')).toLowerCase();
         var qDigits = onlyDigits(q);
         var eanD = onlyDigits(ean);
 
@@ -4829,8 +4829,7 @@
                 if (localList.length && !skuCode) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
-                        'Cache local (' + wizardProductCatalog.length + ' produtos).';
-                    return Promise.resolve();
+                        'Cache local (' + wizardProductCatalog.length + ' produtos)…';
                 }
                 if (skuCode && localList.length) {
                     var ql = String(query).trim().toLowerCase();
@@ -4880,6 +4879,10 @@
                     } else if (remote.length && !(payload.localList || []).length) {
                         dom.productSearchFeedback.textContent =
                             remote.length + ' encontrado(s) no servidor (fora do cache).';
+                    } else if (remote.length) {
+                        dom.productSearchFeedback.textContent =
+                            merged.length +
+                            ' encontrado(s) (cache + servidor).';
                     } else {
                         dom.productSearchFeedback.textContent =
                             'Cache local (' + wizardProductCatalog.length + ' produtos).';
