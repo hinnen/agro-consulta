@@ -167,12 +167,20 @@
     text-decoration-color: #fca5a5;
   }
   #pdv-product-autocomplete {
+    display: flex;
+    flex-direction: column;
     padding: 0;
     overflow-x: hidden;
     overflow-y: hidden;
-    border-color: #bae6fd !important;
-    background: linear-gradient(180deg, #f0f9ff 0%, #fff 18%) !important;
-    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16) !important;
+    border: 2px solid #38bdf8 !important;
+    background: linear-gradient(180deg, #bae6fd 0%, #dbeafe 42%, #e0f2fe 100%) !important;
+    box-shadow: 0 20px 52px rgba(14, 116, 144, 0.24) !important;
+  }
+  #pdv-product-autocomplete .pdv-ac-scroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
   }
   #pdv-product-autocomplete .pdv-ac-head,
   #pdv-product-autocomplete .pdv-ac-row {
@@ -189,13 +197,13 @@
     z-index: 2;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 100%);
+    border-bottom: 2px solid #7dd3fc;
+    background: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 100%);
     font-size: 10px;
     font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #0369a1;
+    color: #0c4a6e;
   }
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(5) { text-align: right; }
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(3),
@@ -205,8 +213,8 @@
   #pdv-product-autocomplete .pdv-ac-row {
     width: 100%;
     border: 0;
-    border-bottom: 1px solid #e0f2fe;
-    background: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid #bae6fd;
+    background: #fff;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     text-align: left;
@@ -215,26 +223,28 @@
   }
   #pdv-product-autocomplete .pdv-ac-row:last-child { border-bottom: none; }
   #pdv-product-autocomplete .pdv-ac-load-more {
+    flex: 0 0 auto;
     display: block;
     width: 100%;
     border: 0;
-    border-top: 2px dashed #bae6fd;
-    background: #f8fafc;
+    border-top: 2px dashed #38bdf8;
+    background: #93c5fd;
     padding: 0.65rem 0.55rem;
     text-align: center;
     font-size: 0.95rem;
     font-weight: 900;
-    color: #0369a1;
+    color: #0c4a6e;
     cursor: pointer;
     transition: background 0.1s ease, color 0.1s ease;
   }
   #pdv-product-autocomplete .pdv-ac-load-more:disabled {
     cursor: wait;
-    color: #64748b;
+    color: #475569;
+    background: #bae6fd;
   }
-  #pdv-product-autocomplete .pdv-ac-load-more:hover {
-    background: #ecfdf5;
-    color: #047857;
+  #pdv-product-autocomplete .pdv-ac-load-more:hover:not(:disabled) {
+    background: #7dd3fc;
+    color: #064e3b;
   }
   #pdv-product-autocomplete .pdv-ac-row:hover,
   #pdv-product-autocomplete .pdv-ac-row.pdv-ac-row-selected {

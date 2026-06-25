@@ -2522,44 +2522,84 @@
         return productSearchMayHaveMore && lastProducts.length >= AUTOCOMPLETE_PAGE_SIZE;
     }
 
+    function autocompleteViewportCap() {
+        var ac = dom.productAutocomplete;
+        if (!ac || ac.classList.contains('hidden')) return Infinity;
+        var top = ac.getBoundingClientRect().top;
+        var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        return Math.max(160, vh - top - 16);
+    }
+
     function syncAutocompletePanelHeight() {
         var ac = dom.productAutocomplete;
         if (!ac || ac.classList.contains('hidden') || !lastProducts.length) return;
+
+        var scrollEl = ac.querySelector('.pdv-ac-scroll');
+        if (!scrollEl) return;
 
         var visibleCount = Math.min(lastProducts.length, autocompleteVisibleLimit);
         var hasLoadMore = shouldShowAutocompleteLoadMore();
         var needsScroll = visibleCount > AUTOCOMPLETE_SCROLL_THRESHOLD;
         var measureRowCount = needsScroll ? AUTOCOMPLETE_SCROLL_THRESHOLD : visibleCount;
 
-        ac.style.overflowY = 'hidden';
         ac.style.maxHeight = 'none';
+        scrollEl.style.maxHeight = 'none';
+        scrollEl.style.overflowY = 'hidden';
+        ac.style.overflowY = 'hidden';
 
-        var head = ac.querySelector('.pdv-ac-head');
-        var rows = ac.querySelectorAll('.pdv-ac-row');
+        var head = scrollEl.querySelector('.pdv-ac-head');
+        var rows = scrollEl.querySelectorAll('.pdv-ac-row');
         var loadMore = ac.querySelector('.pdv-ac-load-more');
-        var height = 0;
 
-        if (head) height += head.getBoundingClientRect().height;
+        var scrollPart = 0;
+        if (head) scrollPart += head.getBoundingClientRect().height;
         for (var i = 0; i < measureRowCount && i < rows.length; i++) {
-            height += rows[i].getBoundingClientRect().height;
-        }
-        if (hasLoadMore && loadMore) {
-            height += loadMore.getBoundingClientRect().height;
+            scrollPart += rows[i].getBoundingClientRect().height;
         }
 
-        height = Math.ceil(height + 2);
-        ac.setAttribute('data-pdv-ac-layout', needsScroll ? 'scroll' : 'fit');
-        ac.style.setProperty('max-height', height + 'px', 'important');
-        ac.style.overflowY = needsScroll ? 'auto' : 'hidden';
+        var loadMorePart = 0;
+        if (hasLoadMore && loadMore) {
+            loadMorePart = loadMore.getBoundingClientRect().height;
+        }
+
+        var totalHeight = Math.ceil(scrollPart + loadMorePart + 8);
+        var viewportCap = autocompleteViewportCap();
+        var scrollOverflow = needsScroll;
+
+        if (totalHeight > viewportCap) {
+            scrollPart = Math.max(96, viewportCap - loadMorePart - 8);
+            totalHeight = Math.ceil(scrollPart + loadMorePart + 8);
+            scrollOverflow = true;
+        }
+
+        ac.setAttribute('data-pdv-ac-layout', scrollOverflow ? 'scroll' : 'fit');
+        ac.style.setProperty('max-height', Math.min(totalHeight, viewportCap) + 'px', 'important');
+        scrollEl.style.maxHeight = Math.ceil(scrollPart) + 'px';
+        scrollEl.style.overflowY = scrollOverflow ? 'auto' : 'hidden';
 
         if (productSelectionIndex >= 0) {
-            var sel = ac.querySelector(
+            var sel = scrollEl.querySelector(
                 '[data-autocomplete-index="' + productSelectionIndex + '"]'
             );
             if (sel && sel.scrollIntoView) {
                 sel.scrollIntoView({ block: 'nearest' });
             }
         }
+    }
+
+    var autocompleteResizeTimer = null;
+    function onAutocompleteViewportChange() {
+        if (
+            !lastProducts.length ||
+            !dom.productAutocomplete ||
+            dom.productAutocomplete.classList.contains('hidden')
+        ) {
+            return;
+        }
+        clearTimeout(autocompleteResizeTimer);
+        autocompleteResizeTimer = setTimeout(function () {
+            syncAutocompletePanelHeight();
+        }, 40);
     }
 
     function clearAutocompletePanelHeight() {
@@ -2679,10 +2719,15 @@
                         return productAutocompleteHtml(produto, index);
                     })
                     .join('');
-                if (shouldShowAutocompleteLoadMore()) {
-                    rowsHtml += productAutocompleteLoadMoreHtml();
-                }
-                dom.productAutocomplete.innerHTML = productAutocompleteHeaderHtml() + rowsHtml;
+                var loadMoreHtml = shouldShowAutocompleteLoadMore()
+                    ? productAutocompleteLoadMoreHtml()
+                    : '';
+                dom.productAutocomplete.innerHTML =
+                    '<div class="pdv-ac-scroll">' +
+                    productAutocompleteHeaderHtml() +
+                    rowsHtml +
+                    '</div>' +
+                    loadMoreHtml;
                 dom.productAutocomplete.classList.remove('hidden');
             } else {
                 dom.productAutocomplete.innerHTML = '';
@@ -2706,7 +2751,9 @@
         }
         updateSearchAwaitingPulse();
         requestAnimationFrame(function () {
-            syncAutocompletePanelHeight();
+            requestAnimationFrame(function () {
+                syncAutocompletePanelHeight();
+            });
         });
     }
 
@@ -8625,6 +8672,10 @@
 
     State.subscribe(renderAll);
     bindEvents();
+    window.addEventListener('resize', onAutocompleteViewportChange);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onAutocompleteViewportChange);
+    }
     sincronizarOperadorPdvNoState();
     window.addEventListener('gm-sspin-operador', function (ev) {
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
