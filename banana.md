@@ -586,7 +586,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | CSS da lista usava `overflow: hidden` — botão ficava **cortado** abaixo dos 5 itens; falha na API apagava o cache local |
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
 | **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
-| **Commits** | `2818944` · `c94ac1d` · `7aaca87` |
+| **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul mais forte** (diferente do carrinho) |
+| **Commits** | `2818944` · `c94ac1d` · `7aaca87` · *(após push)* |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
@@ -598,7 +599,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **A** | Snapshot loja→staging (`copiar_snapshot_pdv_loja`) | ✅ |
 | **B** | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — PDV catálogo Postgres | ✅ Renan |
 | **C** | Gestão operacional lista/busca/facetas Postgres | ✅ Renan |
-| **D1** | Ledger — saldo = `saldo_informado` ajuste (sem delta Mongo) | ✅ código · conferir saldo Compras/gestão |
+| **D1** | Ledger — saldo = `saldo_informado` ajuste | ✅ código · **testar saldo** só onde existe UI: **Gestão**, **Compras**, **ajuste-mobile** / PIN — PDV e cadastro **sem** coluna saldo (de propósito) |
 | **D2** | **Compras + Entrada NF passo produtos** — `/api/buscar/?compras=1` = mesma base Postgres PDV | ✅ código · **testar** `gm9503`, nome, custo |
 | **D3** | Entrada NF **resto** (casar XML, gravar estoque, financeiro título) | ❌ ainda **Mongo/ERP** — próximo bloco grande |
 | **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
