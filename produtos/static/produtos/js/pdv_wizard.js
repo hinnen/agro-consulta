@@ -323,6 +323,7 @@
     var productSearchMayHaveMore = false;
     var productSearchPointerInside = false;
     var productSearchPointerTimer = null;
+    var productSearchSuppressDismissUntil = 0;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
     var stagingReadonly = !!(
@@ -2691,13 +2692,19 @@
 
     function markProductSearchPointerInside() {
         productSearchPointerInside = true;
+        productSearchSuppressDismissUntil = Date.now() + 600;
         clearTimeout(productSearchPointerTimer);
         productSearchPointerTimer = setTimeout(function () {
             productSearchPointerInside = false;
-        }, 280);
+        }, 600);
+    }
+
+    function shouldSuppressProductAutocompleteDismiss() {
+        return Date.now() < productSearchSuppressDismissUntil || productSearchPointerInside;
     }
 
     function dismissProductAutocomplete() {
+        if (shouldSuppressProductAutocompleteDismiss()) return;
         if (!dom.productAutocomplete || dom.productAutocomplete.classList.contains('hidden')) return;
         hideProductAutocomplete();
         if (dom.productSearchMeta) {
