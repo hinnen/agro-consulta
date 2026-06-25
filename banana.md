@@ -593,10 +593,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.80`  
+**Versão:** `1.0.81`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — fix bloco B últimas compras + saldo Compras persiste após sync verde  
-**Versão app (`VERSION`):** **teste** v2.83 (pendente deploy) · **produção** v2.28
+**Atualizado por:** Renan — reteste v2.83 Compras bloco B · fix v2.84 backend  
+**Versão app (`VERSION`):** **teste** v2.84 · **produção** v2.28
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -662,7 +662,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
-| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **fix v2.82** — query ObjectId + cache saldo |
+| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **fix v2.84** — match GM9503 · Agro antes ERP |
 | **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
@@ -698,7 +698,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Bloco B bug** | GM9503 pós-Entrada NF não mostrava chips — (1) query Mongo ID · (2) **staging manual:** busca **não chamava** ``/api/buscar/?compras=1`` → ``ultimas_compras`` nunca vinha · **fix v2.83** |
 | **Saldo -3 vs -2** | Catálogo em **localStorage** guardava saldo **antigo** (-3); botão verde aplicava -2 **só na memória** · **fix:** salvar saldos no cache após sync + buscar saldos ao abrir a tela |
-| **Teste Renan** | Saldo **-2** persiste OK v2.82 · chips GM9503 → retestar **v2.83** |
+| **Teste Renan** | Saldo **-2** persiste OK v2.82 · métricas OK v2.83 · chips GM9503 **❌ v2.83.1** (busca online OK; backend não casava linha NF por código GM) |
+
+### RETESTE — Compras v2.83 (Renan 25/06, prints)
+
+| Item | Resultado |
+| ---- | --------- |
+| **Saldo GM9503** | ✅ **-2** persiste após botão verde (v2.82) |
+| **Média / sugestão** | ✅ S3=17 · S4=2 · sugestão **21** (bloco A) |
+| **Últimas compras (chips)** | ❌ ainda «Sem histórico…» — Entrada NF **Concluída** no wizard |
+| **Causa v2.83** | Fix frontend (busca chama API) **funcionou**; backend só casava ``produto_id`` na linha NF, não **GM9503** em ``c_prod`` |
+| **Fix v2.84** | Match por código GM · Entrada NF Agro **antes** do ERP · ``skip_erp`` no staging · import ``Decimal`` |
+| **Próximo** | Ctrl+F5 → buscar **teste** → GM9503 → ver chip fornecedor + preço |
 
 ### FECHADO — Entrada NF wizard + saldo ledger (Renan 25/06, v2.78)
 

@@ -55,24 +55,9 @@ def _data_doc_entrada_nf_agro(cab: dict, doc: dict) -> datetime | None:
 
 
 def _qtd_linha_entrada_nf_agro(ln: dict) -> float:
-    if not isinstance(ln, dict):
-        return 0.0
-    try:
-        raw_es = str(ln.get("q_estoque") or "").replace(",", ".").strip()
-        q_es = Decimal(raw_es) if raw_es else Decimal("0")
-    except Exception:
-        q_es = Decimal("0")
-    if q_es > 0:
-        return float(q_es)
-    try:
-        qc = Decimal(str(ln.get("q_com") or "").replace(",", ".").strip() or "0")
-        un_raw = str(ln.get("un_por_embalagem") or "").replace(",", ".").strip()
-        emb = Decimal(un_raw if un_raw else "1")
-        if emb <= 0:
-            emb = Decimal("1")
-        return float(qc * emb)
-    except Exception:
-        return 0.0
+    from produtos.nfe_entrada_util import _entrada_nfe_qtd_linha
+
+    return float(_entrada_nfe_qtd_linha(ln))
 
 
 def _preco_unit_linha_entrada_nf_agro(ln: dict) -> tuple[float, bool]:
@@ -154,25 +139,56 @@ def _mapa_pid_busca(p_ids: list[str]) -> dict[str, str]:
     return out
 
 
-def _resolver_pid_linha(raw: Any, mapa: dict[str, str]) -> str | None:
-    key = _normalizar_pid_compra(raw)
-    if not key:
-        return None
-    if key in mapa:
-        return mapa[key]
-    if key.isdigit():
-        k2 = str(int(key))
-        if k2 in mapa:
-            return mapa[k2]
-    try:
-        from bson import ObjectId
+def _codigo_alnum_compra(val: Any) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(val or "").strip().lower())
 
-        if len(key) == 24:
-            k3 = str(ObjectId(key))
-            if k3 in mapa:
-                return mapa[k3]
-    except Exception:
-        pass
+
+def _mapa_codigo_para_pid(produtos_por_id: dict | None) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not isinstance(produtos_por_id, dict):
+        return out
+    for pid, p in produtos_por_id.items():
+        if not isinstance(p, dict):
+            continue
+        canon = _normalizar_pid_compra(pid)
+        if not canon:
+            continue
+        for k in ("Codigo", "CodigoNFe", "codigo", "codigo_nfe", "codigo_barras"):
+            al = _codigo_alnum_compra(p.get(k))
+            if al and len(al) >= 3:
+                out[al] = canon
+    return out
+
+
+def _resolver_pid_linha(
+    ln: dict,
+    mapa: dict[str, str],
+    codigo_map: dict[str, str] | None = None,
+) -> str | None:
+    if not isinstance(ln, dict):
+        return None
+    key = _normalizar_pid_compra(ln.get("produto_id"))
+    if key:
+        if key in mapa:
+            return mapa[key]
+        if key.isdigit():
+            k2 = str(int(key))
+            if k2 in mapa:
+                return mapa[k2]
+        try:
+            from bson import ObjectId
+
+            if len(key) == 24:
+                k3 = str(ObjectId(key))
+                if k3 in mapa:
+                    return mapa[k3]
+        except Exception:
+            pass
+    cm = codigo_map or {}
+    for field in ("c_prod", "codigo", "Codigo", "CodigoNFe"):
+        al = _codigo_alnum_compra(ln.get(field))
+        if al and al in cm:
+            return cm[al]
     return None
 
 
@@ -182,6 +198,7 @@ def append_eventos_entrada_nf_agro(
     eventos: dict[str, list[dict]],
     pid_ok: set[str],
     since: datetime,
+    produtos_por_id: dict | None = None,
     mongo_max_time_ms: int | None = 45_000,
 ) -> None:
     """
@@ -193,15 +210,14 @@ def append_eventos_entrada_nf_agro(
     from produtos.nfe_entrada_util import COL_ENTRADA_RASCUNHO
 
     pid_map = _mapa_pid_busca(list(pid_ok))
+    codigo_map = _mapa_codigo_para_pid(produtos_por_id)
     if not pid_map:
         return
 
-    query_variants = list({k for k in pid_map.keys() if k})
     filtro: dict[str, Any] = {
         "$or": [
-            {"linhas.produto_id": {"$in": query_variants}},
-            {"extra.estoque_agro_registrado_em": {"$exists": True, "$ne": ""}},
-            {"extra.aprovacao_wizard_em": {"$exists": True, "$ne": ""}},
+            {"extra.aprovacao_wizard_em": {"$exists": True, "$nin": [None, ""]}},
+            {"extra.estoque_agro_registrado_em": {"$exists": True, "$nin": [None, ""]}},
             {"estoque_aplicado_em": {"$exists": True}},
         ]
     }
@@ -238,7 +254,7 @@ def append_eventos_entrada_nf_agro(
         for ln in linhas:
             if not isinstance(ln, dict):
                 continue
-            pid = _resolver_pid_linha(ln.get("produto_id"), pid_map)
+            pid = _resolver_pid_linha(ln, pid_map, codigo_map)
             if not pid:
                 continue
             qtd = _qtd_linha_entrada_nf_agro(ln)
