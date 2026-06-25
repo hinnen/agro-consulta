@@ -576,7 +576,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.51 (auditoria fantasmas) · **produção** v2.27
+**Versão app (`VERSION`):** **teste** v2.52 · **produção** v2.27 (fantasmas: conferir Shell loja quando puder)
+
+### RESOLVIDO — fantasmas ibiuna 25 kg + auditoria (2026-06-24)
+
+| Item | Status |
+| ---- | ------ |
+| **Teste** | Código OK (busca, exibição, auditoria, import). Staging: **1 grave** (`…d31` GM=Id) → `corrigir_produto_nome_objectid_pg` ou esperar API v2.50+ na lista |
+| **batom** (`…d267`) | **Ignorar** — higiene só; Renan: não importante |
+| **Produção** | Mesmo padrão dos 3 ibiuna possível — **sem urgência** se PDV/busca OK; quando quiser: `auditar` + `corrigir` no Shell **ou** deploy cherry-pick teste→loja |
+| **Seguir a vida?** | **Sim** no teste · loja: só validar `ibiuna 25` / `gm1546` no cadastro e PDV |
 
 ### Fantasmas cadastro — prevenção + auditoria (2026-06-24)
 
