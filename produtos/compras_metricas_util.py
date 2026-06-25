@@ -134,3 +134,125 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
             ]
         )
     return {"v": 2, "dias": dias, "rows": rows, "fonte": "venda_agro_pg"}
+
+
+def _aware_bounds(desde: datetime, ate: datetime) -> tuple[datetime, datetime]:
+    d0 = timezone.make_aware(desde) if timezone.is_naive(desde) else desde
+    d1 = timezone.make_aware(ate) if timezone.is_naive(ate) else ate
+    return d0, d1
+
+
+def vendas_qtd_por_produto_intervalo_postgres(
+    pid_variants: list[str],
+    desde: datetime,
+    ate: datetime,
+) -> tuple[dict[str, float], dict[str, datetime]]:
+    """
+    Quantidades vendidas no intervalo [desde, ate] via ``ItemVendaAgro``.
+    Chaves = ``produto_id_externo`` (mesmo contrato que Mongo ``DtoVendaProduto``).
+    """
+    from produtos.models import ItemVendaAgro
+
+    tot: dict[str, float] = {}
+    first_dt: dict[str, datetime] = {}
+    variants = {str(x).strip() for x in (pid_variants or []) if str(x).strip()}
+    if not variants or desde > ate:
+        return tot, first_dt
+
+    d0, d1 = _aware_bounds(desde, ate)
+    qs = (
+        ItemVendaAgro.objects.filter(
+            venda__devolvida_em__isnull=True,
+            venda__criado_em__gte=d0,
+            venda__criado_em__lte=d1,
+            produto_id_externo__in=list(variants),
+        )
+        .select_related("venda")
+        .only("produto_id_externo", "quantidade", "venda__criado_em")
+    )
+    for item in qs.iterator(chunk_size=1500):
+        pid = str(item.produto_id_externo or "").strip()
+        if not pid:
+            continue
+        dt = _naive_local(item.venda.criado_em)
+        if dt is None:
+            continue
+        try:
+            qtd = float(item.quantidade or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if qtd == 0:
+            continue
+        tot[pid] = tot.get(pid, 0.0) + qtd
+        prev = first_dt.get(pid)
+        if prev is None or dt < prev:
+            first_dt[pid] = dt
+    return tot, first_dt
+
+
+def vendas_qtd_apos_ref_compra_postgres(
+    ref_por_canon: dict[str, datetime],
+    variant_to_canon: dict[str, str],
+) -> dict[str, float]:
+    """
+    Soma vendas **após** a data de última compra por produto (id canônico).
+    Mesmo contrato que ``_vendas_qtd_apos_ultima_compra_por_canon`` (Mongo).
+    """
+    from produtos.models import ItemVendaAgro
+
+    tot: dict[str, float] = {}
+    if not ref_por_canon or not variant_to_canon:
+        return tot
+
+    ref_n: dict[str, datetime] = {}
+    dts: list[datetime] = []
+    for canon, raw_d in ref_por_canon.items():
+        if not isinstance(raw_d, datetime):
+            continue
+        d0 = _naive_local(raw_d) or raw_d
+        ref_n[str(canon)] = d0
+        dts.append(d0)
+    if not dts:
+        return tot
+
+    desde = min(dts)
+    ate = _naive_local(timezone.now()) or datetime.now()
+    if desde > ate:
+        return tot
+
+    canon_set = set(ref_n.keys())
+    inv: dict[str, str] = {}
+    for var, canon in variant_to_canon.items():
+        if str(canon) in canon_set:
+            inv[str(var)] = str(canon)
+
+    d0, d1 = _aware_bounds(desde, ate)
+    qs = (
+        ItemVendaAgro.objects.filter(
+            venda__devolvida_em__isnull=True,
+            venda__criado_em__gt=d0,
+            venda__criado_em__lte=d1,
+            produto_id_externo__in=list(inv.keys())[:8000],
+        )
+        .select_related("venda")
+        .only("produto_id_externo", "quantidade", "venda__criado_em")
+    )
+    for item in qs.iterator(chunk_size=1500):
+        pid = str(item.produto_id_externo or "").strip()
+        canon = inv.get(pid)
+        if not canon:
+            continue
+        ref = ref_n.get(canon)
+        if ref is None:
+            continue
+        dt = _naive_local(item.venda.criado_em)
+        if dt is None or dt <= ref:
+            continue
+        try:
+            qtd = float(item.quantidade or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if qtd == 0:
+            continue
+        tot[canon] = tot.get(canon, 0.0) + qtd
+    return tot

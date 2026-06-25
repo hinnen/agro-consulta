@@ -442,7 +442,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Teste parcial ✅**   | Entrada NF wizard, Compras busca/saldo                            | D1 ledger + D3 wizard **teste** v2.78 · financeiro NF **dry-run** staging · **DtoLancamento** real ainda Mongo                                 |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no fluxo estoque Agro; flag `AGRO_FONTE_FINANCEIRO=agro_pg` **não** nas views de Lançamentos                                   |
 | **Falta (alta)**       | PDV `/consulta/`, `/pdv/checkout/` **na loja**                    | Staging Fase B ✅                                                                                                                                |
-| **Teste parcial ✅**   | Compras **métricas** D4 bloco A (média/sugestão)                  | **VendaAgro Postgres** v2.79 · staging = vendas **locais** do teste · loja = vendas reais · B/C pendente · GM motor por último                |
+| **Teste parcial ✅**   | Compras **métricas** D4 blocos **A+B** (média/sugestão + últimas compras Entrada NF) | **A** v2.79 Postgres · **B** v2.84 GM9503 OK · **C** folhas pendente · GM motor por último                |
 | **Falta (média)**      | Busca **GM** Compras/NF                                           | Motor busca único — **por último**                                                                                                              |
 | **Falta (média)**      | Entrada NF **financeiro real** fora dry-run                       | Postgres ou título Agro próprio — hoje `DtoLancamento` Mongo                                                                                    |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
@@ -593,10 +593,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.81`  
+**Versão:** `1.0.83`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — reteste v2.83 Compras bloco B · fix v2.84 backend  
-**Versão app (`VERSION`):** **teste** v2.84 · **produção** v2.28
+**Atualizado por:** assistente — Compras D4 bloco C (folhas Postgres) · deploy loja ~20h  
+**Versão app (`VERSION`):** **teste** v2.85 · **produção** v2.28
+
+### WIP AGORA — até deploy loja (~20h)
+
+| Foco | Detalhe |
+| ---- | ------- |
+| **Deploy loja** | **~20h** — loja fecha · pacote desvinculação (sem D4 completo na loja na 1ª subida) |
+| **Código agora** | **Compras D4 bloco C** — folhas categoria/unidade/fornecedor: vendas + última compra via Postgres/Entrada NF (v2.85) |
+| **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP · motor GM por último |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -639,21 +647,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 bloco B ✅ código** · testar Render · deploy loja **noite 25/06**
+**Onde paramos:** §4.15 **Compras D4 A+B ✅ · C em teste (v2.85)** · deploy loja **~20h 25/06**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
 | **A** | Snapshot loja→staging (`copiar_snapshot_pdv_loja`) | ✅ |
 | **B** | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — PDV catálogo Postgres | ✅ Renan |
 | **C** | Gestão operacional lista/busca/facetas Postgres | ✅ Renan |
-| **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (ex. GM9503 **-2** pós-entrada NF) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
+| **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (GM9503 **-1** no reteste 25/06 — era **-2** pós-entrada NF; conferir se houve venda/ajuste) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
 | **D2** | **Compras + Entrada NF passo produtos** | ✅ nome/custo · ❌ GM (`gm0050`…) — motor único |
 | **D3** | Entrada NF wizard (estoque Agro, financeiro dry-run staging, PIN) | ✅ **Renan 25/06** v2.78 — GM9503 «teste» **-2** igual **Consulta** e **Compras** · ⏸ título real só na **loja** |
-| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ teste** v2.79 Postgres · **B/C ❌** · última compra ainda Mongo/ERP |
+| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ B ✅ C WIP** v2.85 folhas · GM motor por último |
 
 **Próximo passo (sprint dias):**
 1. **Deploy loja 25/06 noite** (pacote desvinculação — CHECKPOINT abaixo)
-2. **Compras D4** — fechar **esta tela** — **WIP hoje até fechar loja** (ver blocos abaixo)
+2. **Compras D4 bloco C** (folhas) — opcional antes do deploy · **GM9503 = referência de teste**
 3. **Lançamentos CP** — desvinculação global
 4. **Motor busca** — por último
 
@@ -662,8 +670,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
-| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **fix v2.84** — match GM9503 · Agro antes ERP |
-| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
+| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **✅ Renan 25/06** v2.84 — GM9503 mostra faixa «Últimas compras (ERP)» |
+| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — vendas Postgres + última compra Entrada NF | **WIP v2.85** — retestar folha categoria GM9503 |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
 **Já OK Compras (não mexer):** busca nome · custo · saldo ledger · carrinho/pedido.
@@ -672,7 +680,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Quando** | **Hoje à noite** — loja fechada |
+| **Quando** | **Hoje ~20h** — loja fechada |
 | **O quê** | Merge `teste`→`producao` do pacote validado no Render teste (Fases A–D parcial) |
 | **Código** | `agro_pg` + PDV catálogo Postgres + gestão PG + ledger estoque + Entrada NF (empresas + wizard; financeiro **real** na loja, não dry-run) |
 | **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
@@ -689,7 +697,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Esperado no teste** | Produto **real** (ex. milho GM0090-47) → **zerado** — snapshot copia catálogo/estoque, **não** `VendaAgro` da loja |
 | **Antes (Mongo)** | Staging lia **DtoVenda** no Mongo **compartilhado** → milho mostrava vendas da loja; **não** é regressão do bloco A |
 | **Na loja (pós-D4)** | Mesmo código lê **VendaAgro Postgres da loja** → produtos reais devem mostrar média/sugestão como hoje |
-| **Ainda vazio** | «Sem histórico de compra recente no ERP» = **última compra** (bloco **B**, não A) |
+| **Ainda vazio** | ~~«Sem histórico…» bloco B~~ → **fechado v2.84** (GM9503) |
 | **Melhoria opcional** | Copiar vendas recentes no snapshot staging — só se quiser paridade visual antes do deploy loja |
 
 ### FIX — Compras bloco B últimas compras + saldo cache (2026-06-25, v2.82)
@@ -698,9 +706,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Bloco B bug** | GM9503 pós-Entrada NF não mostrava chips — (1) query Mongo ID · (2) **staging manual:** busca **não chamava** ``/api/buscar/?compras=1`` → ``ultimas_compras`` nunca vinha · **fix v2.83** |
 | **Saldo -3 vs -2** | Catálogo em **localStorage** guardava saldo **antigo** (-3); botão verde aplicava -2 **só na memória** · **fix:** salvar saldos no cache após sync + buscar saldos ao abrir a tela |
-| **Teste Renan** | Saldo **-2** persiste OK v2.82 · métricas OK v2.83 · chips GM9503 **❌ v2.83.1** (busca online OK; backend não casava linha NF por código GM) |
+| **Teste Renan** | Saldo cache OK v2.82 · chips **✅ v2.84** (ver FECHADO abaixo) |
 
-### RETESTE — Compras v2.83 (Renan 25/06, prints)
+### FECHADO — Compras D4 bloco B · últimas compras Entrada NF (Renan 25/06, v2.84)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit** | `05287c2` — match linha NF por **código GM** (`c_prod`) · Entrada NF Agro **antes** ERP · ``skip_erp`` staging Postgres |
+| **Produto teste** | **GM9503** «teste» — faixa **«Últimas compras (ERP) · fornecedor e unitário…»** visível (origem ``entrada_nf_agro``) |
+| **Também OK** | Sugestão **20** · gráfico S3=17 · S4=2 · saldo **-1** (lista; era -2 — conferir venda/ajuste no teste) |
+| **Observação** | Coluna **CUSTO** na lista **R$ 0,00** vs **custo base R$ 1,00** no detalhe — cosmético; não bloqueia |
+| **Texto tela** | Rótulo ainda diz «(ERP)» — trocar depois do corte ERP por «Entrada NF Agro» |
+| **GM PAI / outros** | Sem Entrada NF concluída → vazio é **esperado** |
+
+### RETESTE — Compras v2.83 (Renan 25/06, prints — histórico)
 
 | Item | Resultado |
 | ---- | --------- |
@@ -709,7 +728,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Últimas compras (chips)** | ❌ ainda «Sem histórico…» — Entrada NF **Concluída** no wizard |
 | **Causa v2.83** | Fix frontend (busca chama API) **funcionou**; backend só casava ``produto_id`` na linha NF, não **GM9503** em ``c_prod`` |
 | **Fix v2.84** | Match por código GM · Entrada NF Agro **antes** do ERP · ``skip_erp`` no staging · import ``Decimal`` |
-| **Próximo** | Ctrl+F5 → buscar **teste** → GM9503 → ver chip fornecedor + preço |
+| **Resultado v2.84** | ✅ GM9503 — ver **FECHADO bloco B** acima |
 
 ### FECHADO — Entrada NF wizard + saldo ledger (Renan 25/06, v2.78)
 

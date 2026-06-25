@@ -4880,7 +4880,9 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     hints = nomes_hints or {}
     now = datetime.now()
     t56 = now - timedelta(days=56)
-    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+    from produtos.agro_fonte_config import agro_compras_metricas_postgres
+
+    use_pg_metricas = agro_compras_metricas_postgres()
 
     col = db[client.col_p]
     prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
@@ -4907,20 +4909,36 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
         if px:
             produtos_map[str(pid)] = px
 
-    overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
     variant_to_canon: dict[str, str] = {}
+    pid_variants: list[str] = []
     for pid in p_ids:
         p = _catalogo_pmap_resolve(pmap, pid)
         canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
         chs = _chaves_produto(p) if p else [str(pid)]
         for k in chs:
             variant_to_canon[str(k)] = str(canon)
+            pid_variants.append(str(k))
         for v in _produto_ids_variants_mongo([str(pid)]):
             variant_to_canon.setdefault(str(v), str(canon))
+            pid_variants.append(str(v))
+
+    if use_pg_metricas:
+        from produtos.compras_metricas_util import (
+            vendas_qtd_apos_ref_compra_postgres,
+            vendas_qtd_por_produto_intervalo_postgres,
+        )
+
+        tot56, first_in56 = vendas_qtd_por_produto_intervalo_postgres(
+            pid_variants, t56, now
+        )
+    else:
+        tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
 
     tot56_canon, first56_canon = _rollup_vendas_tot_first_por_canon(
         tot56, first_in56, variant_to_canon
     )
+
+    overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
 
     ultimas: dict[str, list[dict]] = {}
     ref_por_canon: dict[str, datetime] = {}
@@ -4933,6 +4951,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             produtos_map,
             limit=1,
             mongo_max_time_ms=120_000,
+            skip_erp=use_pg_metricas,
         )
         for pid in p_ids:
             p = _catalogo_pmap_resolve(pmap, pid)
@@ -4952,9 +4971,12 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
                         qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
                     except (TypeError, ValueError):
                         qtd_ult_linha[str(canon)] = 0.0
-        vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(
-            db, ref_por_canon, variant_to_canon, mongo_max_time_ms=120_000
-        )
+        if use_pg_metricas:
+            vendas_pos = vendas_qtd_apos_ref_compra_postgres(ref_por_canon, variant_to_canon)
+        else:
+            vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(
+                db, ref_por_canon, variant_to_canon, mongo_max_time_ms=120_000
+            )
     except Exception as exc:
         logger.warning("_compras_relatorio_rows_catalogo_sem_ult_doc métricas ERP degradadas: %s", exc, exc_info=True)
 
