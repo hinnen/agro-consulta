@@ -589,7 +589,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul uniforme em toda a telinha** do autocomplete (diferente do carrinho) |
 | **Ajuste 2026-05-28c** | Lista recolhe ao clicar fora / Esc; **carregar mais** ok; **Enter** adiciona (lista aberta ou recolhida, mesma busca) — `61fe06a` |
 | **Commits** | `2818944` … `e93e6a5` · `61fe06a` |
-| **Teste** | OK Renan — autocomplete; validar **Enter** após deploy `61fe06a` |
+| **Teste** | OK Renan — autocomplete; **Enter** `61fe06a` · deploy `69b756b` |
+| **Isolamento teste** | Revertido `577e09c` (Entrada NF empresas — outro chat) · `791d0b0` — **teste = só pacote autocomplete PDV** |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
