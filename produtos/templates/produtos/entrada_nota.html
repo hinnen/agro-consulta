@@ -1389,7 +1389,7 @@
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
             <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
               {% for e in empresas_entrada_nfe %}
-              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
+              <option value="{{ e.id }}"{% if e.nome == "Agro Mais Centro" %} selected{% endif %}>{{ e.nome }}</option>
               {% empty %}
               <option value="">Cadastre empresas no Admin</option>
               {% endfor %}
