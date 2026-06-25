@@ -564,7 +564,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.45 (hotfix gestão busca) · **produção** v2.27 (`731607c`) — **nenhum push assistente em `producao`**
+**Versão app (`VERSION`):** **teste** v2.46 (nome ObjectId + busca GM) · **produção** v2.27 (`731607c`) — **nenhum push assistente em `producao`**
+
+### URGENTE — 3× ibiuna 25 kg nome = Id Mongo (2026-06-24)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cadastro pág.1: 3 linhas `69937d94…` R$ 84/86/82; busca `ibiuna` falta postura/crescimento/inicial **25 kg** |
+| **Causa** | Postgres `Produto.nome` = **ObjectId** (fantasma import Mongo sem Nome) — preços batem com as 3 variantes 25 kg |
+| **Fix teste v2.46** | `catalogo_nome_util` resolve nome/GM pelos irmãos GM · busca inclui fantasmas · comando `corrigir_produto_nome_objectid_pg` |
+| **Produção** | Mesmo dado corrompido no agro-db — deploy cherry-pick + **Render Shell:** `python manage.py corrigir_produto_nome_objectid_pg` (ou frase+senha push `producao`) |
+| **IDs** | `…d22` inicial · `…d31` crescimento · `…d49` postura (confirmar na loja) |
 
 ### URGENTE — gestão cadastro sumiu produtos / busca GM incompleta (2026-06-24)
 
