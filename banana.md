@@ -593,9 +593,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.83`  
+**Versão:** `1.0.84`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — Compras D4 bloco C (folhas Postgres) · deploy loja ~20h  
+**Atualizado por:** Renan — reteste Compras GM9503 + milho v2.85  
 **Versão app (`VERSION`):** **teste** v2.85 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
@@ -647,7 +647,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 A+B ✅ · C em teste (v2.85)** · deploy loja **~20h 25/06**
+**Onde paramos:** §4.15 **Compras D4 A+B ✅ Renan** · **C código v2.85** (folha ainda não testada) · deploy loja **~20h**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -657,7 +657,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (GM9503 **-1** no reteste 25/06 — era **-2** pós-entrada NF; conferir se houve venda/ajuste) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
 | **D2** | **Compras + Entrada NF passo produtos** | ✅ nome/custo · ❌ GM (`gm0050`…) — motor único |
 | **D3** | Entrada NF wizard (estoque Agro, financeiro dry-run staging, PIN) | ✅ **Renan 25/06** v2.78 — GM9503 «teste» **-2** igual **Consulta** e **Compras** · ⏸ título real só na **loja** |
-| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ B ✅ C WIP** v2.85 folhas · GM motor por último |
+| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ B ✅** · **C** folhas v2.85 pendente reteste impressão · GM por último |
 
 **Próximo passo (sprint dias):**
 1. **Deploy loja 25/06 noite** (pacote desvinculação — CHECKPOINT abaixo)
@@ -671,7 +671,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
 | **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **✅ Renan 25/06** v2.84 — GM9503 mostra faixa «Últimas compras (ERP)» |
-| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — vendas Postgres + última compra Entrada NF | **WIP v2.85** — retestar folha categoria GM9503 |
+| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — vendas Postgres + última compra Entrada NF | **código v2.85** — retestar **Folha Compras** (Renan ainda não mandou print) |
+
+### RETESTE — Compras v2.85 (Renan 25/06, prints GM9503 + milho)
+
+| Produto | Resultado |
+| ------- | --------- |
+| **GM9503 «teste»** | ✅ **Bloco B** — chips **Teste R$ 1,00** + **Sn - Europet R$ 7,99** · ✅ **A** — sug. **20** · S3=17 · S4=2 · média **0,63/dia** · saldo **-1** |
+| **GM9503 observação** | Custo **lista R$ 0** vs **base R$ 1,00** no detalhe — cosmético (já anotado) |
+| **GM0090-47 milho** | ✅ **Esperado staging** — gráfico/média **zerados** (snapshot **não** copia vendas da loja) · saldo **30** (C9/V21) OK · «Últimas compras» vazio = sem Entrada NF desse produto **no teste** |
+| **Bloco C folhas** | ⏸ sem print — abrir **Folha Compras → categoria** com GM9503 quando quiser fechar C |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
 **Já OK Compras (não mexer):** busca nome · custo · saldo ledger · carrinho/pedido.
