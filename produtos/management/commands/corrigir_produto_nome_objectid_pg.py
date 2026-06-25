@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 
-from produtos.catalogo_nome_util import nome_parece_objectid_corrupto, reparar_produto_nome_corrupto_persist
+from produtos.catalogo_nome_util import (
+    nome_parece_objectid_corrupto,
+    queryset_produtos_nome_corrupto,
+    reparar_produto_nome_corrupto_persist,
+)
 from produtos.models import Produto
 
 
@@ -21,7 +25,7 @@ class Command(BaseCommand):
         if pid_f:
             qs = qs.filter(produto_externo_id=pid_f)
         else:
-            qs = qs.filter(nome__iregex=r"^[0-9a-f]{24}$")
+            qs = queryset_produtos_nome_corrupto(qs)
 
         total = 0
         ok = 0

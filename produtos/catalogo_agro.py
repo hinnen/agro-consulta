@@ -233,9 +233,9 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
 
     partes_txt = [p.strip().lower() for p in termo.split() if len(p.strip()) >= 2]
     if partes_txt and len(found) < lim:
-        from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+        from produtos.catalogo_nome_util import nome_parece_objectid_corrupto, queryset_produtos_nome_corrupto
 
-        for p in qs.filter(nome__iregex=r"^[0-9a-f]{24}$").iterator(chunk_size=160):
+        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
             if p.pk in seen_pk:
                 continue
             if not nome_parece_objectid_corrupto(p.nome or "", p.produto_externo_id or ""):
@@ -248,9 +248,9 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     break
 
     if parece_codigo_cadastro(termo) and len(found) < lim:
-        from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+        from produtos.catalogo_nome_util import queryset_produtos_nome_corrupto
 
-        for p in qs.filter(nome__iregex=r"^[0-9a-f]{24}$").iterator(chunk_size=160):
+        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
             if p.pk in seen_pk:
                 continue
             if not nome_parece_objectid_corrupto(p.nome or "", p.produto_externo_id or ""):

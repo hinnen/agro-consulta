@@ -13,12 +13,30 @@ _RE_GM_BASE = re.compile(r"^(GM\d{4})-(.+)$", re.I)
 
 def nome_parece_objectid_corrupto(nome: str, pid: str = "") -> bool:
     s = (nome or "").strip()
-    if not _RE_OID.fullmatch(s):
-        return False
-    p = (pid or "").strip().lower()
-    if p and s.lower() == p:
+    if _RE_OID.fullmatch(s):
         return True
-    return True
+    p = (pid or "").strip()
+    if not _RE_OID.fullmatch(p):
+        return False
+    if s.lower() == p.lower():
+        return True
+    # Import Mongo sem Nome grava "—" mas codigo_interno = Id
+    if s in ("—", "-", "–", "---", "..."):
+        return True
+    if len(s) < 3:
+        return True
+    return False
+
+
+def queryset_produtos_nome_corrupto(qs=None):
+    """Produtos com nome ObjectId ou fantasma (— + Id Mongo 24 hex)."""
+    if qs is None:
+        qs = Produto.objects.all()
+    return qs.filter(
+        Q(nome__iregex=r"^[0-9a-f]{24}$")
+        | Q(nome__in=["—", "-", "–", "---"])
+        | Q(nome="")
+    ).filter(produto_externo_id__iregex=r"^[0-9a-f]{24}$")
 
 
 def _nome_limpo_mongo(doc: dict | None, pid: str) -> str:
