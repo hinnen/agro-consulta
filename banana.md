@@ -639,7 +639,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 bloco A ✅ teste** · **bloco B** próximo · deploy loja **noite 25/06**
+**Onde paramos:** §4.15 **Compras D4 bloco B ✅ código** · testar Render · deploy loja **noite 25/06**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -662,7 +662,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
-| **B** | **Últimas compras** nos cards da busca | `_ultimas_compras_*` → rascunhos **Entrada NF Agro** + fallback Mongo só leitura | **2º** |
+| **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP (`compras_ultimas_compras_util.py`) | **✅ código** — testar GM9503 pós-NF |
 | **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
