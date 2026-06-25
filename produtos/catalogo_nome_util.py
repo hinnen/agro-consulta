@@ -80,31 +80,73 @@ def _sufixo_gm_para_nome(suffix: str) -> str:
     return s
 
 
+def produto_fantasma_catalogo(p: Produto) -> bool:
+    """Registro importado do Mongo sem cadastro completo (Id 24 hex)."""
+    pid = (p.produto_externo_id or "").strip()
+    if not _RE_OID.fullmatch(pid):
+        return False
+    if nome_parece_objectid_corrupto(p.nome or "", pid):
+        return True
+    ci = (p.codigo_interno or "").strip().lower()
+    if ci == pid.lower():
+        return True
+    cn = (p.codigo_nfe or "").strip().lower()
+    if cn == pid.lower() or nome_parece_objectid_corrupto(cn, pid):
+        return True
+    return False
+
+
+def _qs_irmaos_gm_validos(base: str):
+    """Variantes da mesma família GM com cadastro legível (não fantasma)."""
+    return (
+        Produto.objects.filter(codigo_nfe__istartswith=f"{base}-")
+        .exclude(nome__iregex=r"^[0-9a-f]{24}$")
+        .exclude(nome__in=["—", "-", "–", "---", ""])
+        .exclude(nome__isnull=True)
+        .order_by("codigo_nfe", "pk")
+    )
+
+
+def _melhor_irmao_gm(base: str) -> Produto | None:
+    qs = _qs_irmaos_gm_validos(base)
+    for pref in (f"{base}-5", f"{base}-5S", f"{base}-1S", f"{base}-1"):
+        hit = qs.filter(codigo_nfe__iexact=pref).first()
+        if hit:
+            return hit
+    return qs.first()
+
+
 def inferir_campos_por_codigo_nfe_irmaos(codigo_nfe: str) -> dict[str, str] | None:
     cn = (codigo_nfe or "").strip().upper()
     m = _RE_GM_BASE.match(cn)
     if not m:
         return None
     base, suffix = m.group(1).upper(), m.group(2).upper()
-    siblings = list(
-        Produto.objects.filter(codigo_nfe__istartswith=f"{base}-")
-        .exclude(nome__iregex=r"^[0-9a-f]{24}$")
-        .only("nome", "marca", "categoria", "subcategoria", "codigo_nfe")[:24]
-    )
-    if not siblings:
+    s0 = _melhor_irmao_gm(base)
+    if s0 is None:
         return None
-    s0 = siblings[0]
     nome_base = _nome_base_de_irmao(s0.nome or "")
     if len(nome_base) < 3:
         return None
     tail = _sufixo_gm_para_nome(suffix)
     nome = f"{nome_base} {tail}".strip() if tail else nome_base
+    ci = (s0.codigo_interno or "").strip()
+    if _RE_OID.fullmatch(ci):
+        ci = ""
+    cb = (s0.codigo_barras or "").strip()
+    if _RE_OID.fullmatch(cb):
+        cb = ""
     return {
         "nome": nome[:300],
         "codigo_nfe": cn[:64],
+        "codigo_interno": ci[:50],
+        "codigo_barras": cb[:50],
         "marca": (s0.marca or "").strip()[:120],
         "categoria": (s0.categoria or "").strip()[:200],
         "subcategoria": (s0.subcategoria or "").strip()[:200],
+        "fornecedor_texto": (s0.fornecedor_texto or "").strip()[:300],
+        "unidade": (s0.unidade or "UN").strip()[:20] or "UN",
+        "ncm": (s0.ncm or "").strip()[:16],
     }
 
 
@@ -166,6 +208,27 @@ def _inferir_por_preco_familia_25kg(p: Produto) -> dict[str, str] | None:
     return None
 
 
+def _enriquecer_out_com_inferencia(out: dict, cnfe: str) -> dict:
+    cnfe = (cnfe or "").strip()
+    if not cnfe or nome_parece_objectid_corrupto(cnfe, ""):
+        return out
+    if not str(out.get("codigo_nfe") or "").strip() or nome_parece_objectid_corrupto(
+        str(out.get("codigo_nfe") or ""), ""
+    ):
+        out["codigo_nfe"] = cnfe
+    inf = inferir_campos_por_codigo_nfe_irmaos(cnfe.upper())
+    if not inf:
+        return out
+    for k, v in inf.items():
+        vs = str(v or "").strip()
+        if not vs:
+            continue
+        cur = str(out.get(k) or "").strip()
+        if not cur or cur in ("—", "-") or nome_parece_objectid_corrupto(cur, ""):
+            out[k] = vs
+    return out
+
+
 def resolver_campos_catalogo_produto(
     p: Produto,
     ov: ProdutoGestaoOverlayAgro | None = None,
@@ -176,17 +239,32 @@ def resolver_campos_catalogo_produto(
     out = {
         "nome": (p.nome or "").strip(),
         "marca": (p.marca or "").strip(),
-        "codigo_nfe": (p.codigo_nfe or p.codigo_interno or "").strip(),
+        "codigo_nfe": (p.codigo_nfe or "").strip(),
+        "codigo_interno": (p.codigo_interno or "").strip(),
+        "codigo_barras": (p.codigo_barras or "").strip(),
         "categoria": (p.categoria or "").strip(),
         "subcategoria": (p.subcategoria or "").strip(),
+        "fornecedor_texto": (p.fornecedor_texto or "").strip(),
+        "unidade": (p.unidade or "UN").strip() or "UN",
+        "ncm": (p.ncm or "").strip(),
     }
+    if nome_parece_objectid_corrupto(out["codigo_nfe"], pid):
+        out["codigo_nfe"] = ""
+    if _RE_OID.fullmatch((out["codigo_interno"] or "").strip()):
+        out["codigo_interno"] = ""
     if ov and ov.nome.strip():
         out["nome"] = ov.nome.strip()
     if ov and ov.marca.strip():
         out["marca"] = ov.marca.strip()
     if ov and ov.codigo_nfe.strip():
         out["codigo_nfe"] = ov.codigo_nfe.strip()
-    if not nome_parece_objectid_corrupto(out["nome"], pid):
+    if ov and ov.categoria.strip():
+        out["categoria"] = ov.categoria.strip()
+    if ov and ov.subcategoria.strip():
+        out["subcategoria"] = ov.subcategoria.strip()
+    if ov and ov.codigo_barras.strip():
+        out["codigo_barras"] = ov.codigo_barras.strip()
+    if not produto_fantasma_catalogo(p) and not nome_parece_objectid_corrupto(out["nome"], pid):
         return out
 
     if mongo_doc is None and pid:
@@ -204,23 +282,22 @@ def resolver_campos_catalogo_produto(
         out["nome"] = mn
         cnfe_m = _codigo_nfe_mongo(mongo_doc)
         if cnfe_m:
-            out["codigo_nfe"] = cnfe_m
+            out = _enriquecer_out_com_inferencia(out, cnfe_m)
         return out
 
     for cnfe in (_codigo_nfe_mongo(mongo_doc), out["codigo_nfe"]):
         if not cnfe or nome_parece_objectid_corrupto(cnfe, pid):
             continue
-        inf = inferir_campos_por_codigo_nfe_irmaos(cnfe)
-        if inf:
-            out.update(inf)
+        out = _enriquecer_out_com_inferencia(out, cnfe)
+        if out.get("nome") and not nome_parece_objectid_corrupto(out["nome"], pid):
             return out
-        out["codigo_nfe"] = cnfe
-        out["nome"] = cnfe
-        return out
 
     inf = _inferir_por_preco_familia_25kg(p)
     if inf:
-        out.update(inf)
+        for k, v in inf.items():
+            vs = str(v or "").strip()
+            if vs:
+                out[k] = vs
         return out
 
     if out["codigo_nfe"] and out["codigo_nfe"].upper().startswith("GM"):
@@ -235,14 +312,24 @@ def aplicar_nome_resolvido_em_row(
     p: Produto,
     ov: ProdutoGestaoOverlayAgro | None = None,
 ) -> dict:
-    pid = (p.produto_externo_id or "").strip()
-    if not nome_parece_objectid_corrupto(str(row.get("nome") or ""), pid):
+    if not produto_fantasma_catalogo(p):
         return row
     patch = resolver_campos_catalogo_produto(p, ov)
-    for k in ("nome", "marca", "codigo_nfe", "categoria", "subcategoria"):
-        v = str(patch.get(k) or "").strip()
+    for row_k, patch_k in (
+        ("nome", "nome"),
+        ("marca", "marca"),
+        ("codigo_nfe", "codigo_nfe"),
+        ("codigo_interno", "codigo_interno"),
+        ("codigo_barras", "codigo_barras"),
+        ("categoria", "categoria"),
+        ("subcategoria", "subcategoria"),
+        ("fornecedor", "fornecedor_texto"),
+        ("unidade", "unidade"),
+        ("ncm", "ncm"),
+    ):
+        v = str(patch.get(patch_k) or "").strip()
         if v:
-            row[k] = v
+            row[row_k] = v
     if row.get("codigo_nfe") and not row.get("codigo"):
         row["codigo"] = row["codigo_nfe"]
     row["busca_texto"] = " ".join(
@@ -264,7 +351,7 @@ def aplicar_nome_resolvido_em_row(
 
 def reparar_produto_nome_corrupto_persist(p: Produto, *, dry_run: bool = False) -> dict[str, str] | None:
     pid = (p.produto_externo_id or "").strip()
-    if not nome_parece_objectid_corrupto(p.nome or "", pid):
+    if not produto_fantasma_catalogo(p):
         return None
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     patch = resolver_campos_catalogo_produto(p, ov)
@@ -274,30 +361,66 @@ def reparar_produto_nome_corrupto_persist(p: Produto, *, dry_run: bool = False) 
     if dry_run:
         return patch
     changed = False
-    if p.nome != novo_nome:
-        p.nome = novo_nome[:300]
-        changed = True
+    updates: list[str] = []
     for fld, key in (
+        ("nome", "nome"),
         ("marca", "marca"),
         ("codigo_nfe", "codigo_nfe"),
+        ("codigo_interno", "codigo_interno"),
+        ("codigo_barras", "codigo_barras"),
         ("categoria", "categoria"),
         ("subcategoria", "subcategoria"),
+        ("fornecedor_texto", "fornecedor_texto"),
+        ("unidade", "unidade"),
+        ("ncm", "ncm"),
     ):
         v = str(patch.get(key) or "").strip()
-        if v and getattr(p, fld) != v:
-            setattr(p, fld, v[: (64 if fld == "codigo_nfe" else 200)])
-            changed = True
+        if not v:
+            continue
+        mx = 64 if fld in ("codigo_nfe",) else (50 if fld in ("codigo_interno", "codigo_barras") else 200)
+        if fld == "nome":
+            mx = 300
+        if fld == "marca":
+            mx = 120
+        if fld == "fornecedor_texto":
+            mx = 300
+        if fld == "unidade":
+            mx = 20
+        if fld == "ncm":
+            mx = 16
+        cur = str(getattr(p, fld) or "").strip()
+        if cur == v:
+            continue
+        if cur and fld not in ("codigo_interno", "codigo_nfe", "codigo_barras") and cur not in ("—", "-"):
+            continue
+        if fld in ("codigo_interno", "codigo_nfe") and nome_parece_objectid_corrupto(cur, pid):
+            pass
+        elif cur and fld == "codigo_barras":
+            continue
+        setattr(p, fld, v[:mx])
+        changed = True
+        updates.append(fld)
     if changed:
-        p.save(update_fields=["nome", "marca", "codigo_nfe", "categoria", "subcategoria"])
+        p.save(update_fields=updates)
     if ov:
         ov_changed = False
-        if not ov.nome.strip() and novo_nome:
-            ov.nome = novo_nome[:300]
-            ov_changed = True
-        cnfe = str(patch.get("codigo_nfe") or "").strip()
-        if cnfe and not ov.codigo_nfe.strip():
-            ov.codigo_nfe = cnfe[:64]
-            ov_changed = True
+        ov_fields: list[str] = []
+        for fld, key in (
+            ("nome", "nome"),
+            ("marca", "marca"),
+            ("codigo_nfe", "codigo_nfe"),
+            ("codigo_barras", "codigo_barras"),
+            ("categoria", "categoria"),
+            ("subcategoria", "subcategoria"),
+            ("fornecedor_texto", "fornecedor_texto"),
+            ("unidade", "unidade"),
+        ):
+            cur = str(getattr(ov, fld) or "").strip()
+            v = str(patch.get(key) or "").strip()
+            if v and not cur:
+                setattr(ov, fld, v[: (300 if fld == "nome" else 200)])
+                ov_changed = True
+                ov_fields.append(fld)
         if ov_changed:
-            ov.save(update_fields=["nome", "codigo_nfe"])
+            ov.save(update_fields=ov_fields)
     return patch

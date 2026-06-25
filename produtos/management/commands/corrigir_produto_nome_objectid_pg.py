@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 
 from produtos.catalogo_nome_util import (
-    nome_parece_objectid_corrupto,
+    produto_fantasma_catalogo,
     queryset_produtos_nome_corrupto,
     reparar_produto_nome_corrupto_persist,
 )
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         falha = 0
         for p in qs.iterator(chunk_size=100):
             pid = (p.produto_externo_id or "").strip()
-            if not nome_parece_objectid_corrupto(p.nome or "", pid):
+            if not produto_fantasma_catalogo(p):
                 continue
             total += 1
             patch = reparar_produto_nome_corrupto_persist(p, dry_run=dry)
