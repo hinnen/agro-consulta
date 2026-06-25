@@ -15822,7 +15822,59 @@ def api_buscar_produtos(request):
 
     try:
         balanca_auditoria_q: str | None = None
-        if pdv_somente_pg:
+        use_v2 = bool(getattr(request, "_motor_busca_v2", False))
+        if use_v2:
+            preco_por_id = {}
+            if db is None and not usa_pg_cat and not pdv_somente_pg:
+                prods = []
+            elif wizard_catalog:
+                from produtos.motor_busca_unificado_util import buscar_documentos_unificado
+
+                prods = buscar_documentos_unificado(
+                    q,
+                    db,
+                    client,
+                    limit=80,
+                    include_inactive=False,
+                    wizard_catalog=True,
+                )
+            elif not q:
+                prods = []
+            else:
+                bal = _parse_etiqueta_balanca_ean13_br(q)
+                if bal and db is not None:
+                    cod4, preco_etiqueta = bal
+                    d_lido = re.sub(r"\D", "", str(q or ""))
+                    if len(d_lido) == 13 and d_lido[0] == "2":
+                        balanca_auditoria_q = d_lido
+                    p_escolhido = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+                    if p_escolhido:
+                        pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
+                        preco_por_id[pid_b] = preco_etiqueta
+                        prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
+                    else:
+                        from produtos.motor_busca_unificado_util import buscar_documentos_unificado
+
+                        prods = buscar_documentos_unificado(
+                            q,
+                            db,
+                            client,
+                            limit=80,
+                            include_inactive=False,
+                            wizard_catalog=False,
+                        )
+                else:
+                    from produtos.motor_busca_unificado_util import buscar_documentos_unificado
+
+                    prods = buscar_documentos_unificado(
+                        q,
+                        db,
+                        client,
+                        limit=80,
+                        include_inactive=False,
+                        wizard_catalog=False,
+                    )
+        elif pdv_somente_pg:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.prods_mongo_style_busca_pdv(
@@ -15865,7 +15917,7 @@ def api_buscar_produtos(request):
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-        if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg:
+        if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg and not use_v2:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.mesclar_prods_busca_pdv(
@@ -16149,9 +16201,29 @@ def api_buscar_produtos(request):
             q_strip = str(q).strip()
             if _wizard_json_row_bate_query_exata(res[0], q_strip):
                 exact = True
-        return JsonResponse({"produtos": res, "exact_barcode_match": exact})
+        payload = {"produtos": res, "exact_barcode_match": exact}
+        if use_v2:
+            payload["motor"] = "v2"
+        return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
+
+
+@require_GET
+def api_buscar_produtos_v2(request):
+    """Busca produtos com motor unificado v2 (teste / migração)."""
+    setattr(request, "_motor_busca_v2", True)
+    try:
+        return api_buscar_produtos(request)
+    finally:
+        if hasattr(request, "_motor_busca_v2"):
+            delattr(request, "_motor_busca_v2")
+
+
+@login_required(login_url="/admin/login/")
+def interno_teste_busca_view(request):
+    """Tela provisória — compara legado vs motor busca v2."""
+    return render(request, "produtos/interno_teste_busca.html", {})
 
 
 @require_GET

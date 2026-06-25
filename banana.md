@@ -609,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.87`  
+**Versão:** `1.0.88`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — Lançamentos prep Postgres (modelo + import dry-run)  
-**Versão app (`VERSION`):** **teste** v2.90 · **produção** v2.28
+**Atualizado por:** assistente — motor busca v2 + tela teste interna  
+**Versão app (`VERSION`):** **teste** v2.91 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
@@ -622,6 +622,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
 | **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP (fonte Postgres) · motor GM por último |
 | **Lançamentos prep** | **v2.90** — modelo `TituloFinanceiroAgro` + comando `importar_titulos_financeiro_mongo_pg` (dry-run default) · **telas ainda Mongo** |
+| **Motor busca v2** | **v2.91** — tela **`/interno/teste-busca/`** (login) · API **`/api/buscar-v2/`** · Compras/NF ainda legado |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -800,7 +801,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Hoje (legado)** | `_js_busca_produto_inteligente.html` = filtro local **parcial**; cada tela tem merge/cache próprio (`consulta_produtos.js`, `compras.html`, `entrada_nota.html`, `cadastro_erp_panel.js`). |
 | **Ordem migração** | 1) Extrair pipeline do PDV (`executarBuscaLocal` + merge) para módulo · 2) PDV usa módulo · 3) Cadastro (API-only) · 4) Compras · 5) Entrada NF · 6) demais (transferências, ajuste mobile…). |
 | **Regra** | **Proibido** novo `filtrar*` / merge custom por tela — só opções do motor (`compras:1`, `limite`, `cacheRef`). |
-| **Status** | ❌ **pendente** — **prioridade última** (não bloqueia desvinculação; busca **nome** OK no teste) |
+| **Status** | **WIP v2.91** — motor servidor + API `/api/buscar-v2/` + tela **`/interno/teste-busca/`** (login) |
 | **Nota Renan 25/06** | Motor **≠** cortar Mongo/ERP — é paridade GM Compras/NF; **deixar por último** |
 
 **Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.

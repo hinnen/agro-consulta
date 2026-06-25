@@ -149,6 +149,11 @@ urlpatterns = [
         name='dashboard_interno_preview',
     ),
     path(
+        'interno/teste-busca/',
+        views.interno_teste_busca_view,
+        name='interno_teste_busca',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
@@ -429,6 +434,7 @@ urlpatterns = [
         name='api_produtos_grupo_excluir',
     ),
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_mobile'),
+    path('api/buscar-v2/', views.api_buscar_produtos_v2, name='api_buscar_v2'),
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/lancamentos/', views.api_lancamentos_lista, name='api_lancamentos_lista'),
     path(
