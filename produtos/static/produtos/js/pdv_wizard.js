@@ -316,6 +316,7 @@
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_PAGE_SIZE = 5;
+    var AUTOCOMPLETE_SCROLL_THRESHOLD = 10;
     var autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
     var productSearchAwaitingServer = false;
     var productSearchMayHaveMore = false;
@@ -2521,6 +2522,54 @@
         return productSearchMayHaveMore && lastProducts.length >= AUTOCOMPLETE_PAGE_SIZE;
     }
 
+    function syncAutocompletePanelHeight() {
+        var ac = dom.productAutocomplete;
+        if (!ac || ac.classList.contains('hidden') || !lastProducts.length) return;
+
+        var visibleCount = Math.min(lastProducts.length, autocompleteVisibleLimit);
+        var hasLoadMore = shouldShowAutocompleteLoadMore();
+        var needsScroll = visibleCount > AUTOCOMPLETE_SCROLL_THRESHOLD;
+        var measureRowCount = needsScroll ? AUTOCOMPLETE_SCROLL_THRESHOLD : visibleCount;
+
+        ac.style.overflowY = 'hidden';
+        ac.style.maxHeight = 'none';
+
+        var head = ac.querySelector('.pdv-ac-head');
+        var rows = ac.querySelectorAll('.pdv-ac-row');
+        var loadMore = ac.querySelector('.pdv-ac-load-more');
+        var height = 0;
+
+        if (head) height += head.getBoundingClientRect().height;
+        for (var i = 0; i < measureRowCount && i < rows.length; i++) {
+            height += rows[i].getBoundingClientRect().height;
+        }
+        if (hasLoadMore && loadMore) {
+            height += loadMore.getBoundingClientRect().height;
+        }
+
+        height = Math.ceil(height + 2);
+        ac.setAttribute('data-pdv-ac-layout', needsScroll ? 'scroll' : 'fit');
+        ac.style.setProperty('max-height', height + 'px', 'important');
+        ac.style.overflowY = needsScroll ? 'auto' : 'hidden';
+
+        if (productSelectionIndex >= 0) {
+            var sel = ac.querySelector(
+                '[data-autocomplete-index="' + productSelectionIndex + '"]'
+            );
+            if (sel && sel.scrollIntoView) {
+                sel.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }
+
+    function clearAutocompletePanelHeight() {
+        var ac = dom.productAutocomplete;
+        if (!ac) return;
+        ac.removeAttribute('data-pdv-ac-layout');
+        ac.style.removeProperty('max-height');
+        ac.style.removeProperty('overflow-y');
+    }
+
     function productAutocompleteLoadMoreHtml() {
         var waiting = productSearchAwaitingServer && lastProducts.length <= autocompleteVisibleLimit;
         return (
@@ -2584,6 +2633,7 @@
         autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
         productSearchAwaitingServer = false;
         productSearchMayHaveMore = false;
+        clearAutocompletePanelHeight();
         if (dom.productAutocomplete) {
             dom.productAutocomplete.innerHTML = '';
             dom.productAutocomplete.classList.add('hidden');
@@ -2655,6 +2705,9 @@
             dom.productSearchMeta.textContent = lastProducts.length + ' na lista · Enter · +/− último';
         }
         updateSearchAwaitingPulse();
+        requestAnimationFrame(function () {
+            syncAutocompletePanelHeight();
+        });
     }
 
     function renderEntregaClienteCampos(state) {

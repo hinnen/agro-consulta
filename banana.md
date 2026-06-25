@@ -585,7 +585,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Busca `ibiun` mostrava 5 itens e **sumia** o «carregar mais…» (Renan local + teste) |
 | **Causa** | CSS da lista usava `overflow: hidden` — botão ficava **cortado** abaixo dos 5 itens; falha na API apagava o cache local |
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
-| **Commits** | `2818944` |
+| **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
+| **Commits** | `2818944` · `c94ac1d` · *(após push)* |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
