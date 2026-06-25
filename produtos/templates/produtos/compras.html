@@ -2280,16 +2280,18 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
 
   const primeiro = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
   renderizarListaResultadosCompra(primeiro);
-  if (window.AGRO_MANUAL_SYNC_ONLY) {
-    if (tip) tip.classList.add('hidden');
-    return;
-  }
-  if (tip) tip.classList.remove('hidden');
 
   const to = String(termoOriginal || '').trim();
   if (to.length < 2) {
     if (tip) tip.classList.add('hidden');
     return;
+  }
+
+  /* Modo manual: catálogo não auto-sync, mas busca online traz ultimas_compras e custos. */
+  if (window.AGRO_MANUAL_SYNC_ONLY) {
+    if (tip) tip.classList.add('hidden');
+  } else if (tip) {
+    tip.classList.remove('hidden');
   }
 
   clearTimeout(mergeCompraTimer);
