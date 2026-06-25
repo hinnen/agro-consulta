@@ -442,7 +442,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Teste parcial ✅**   | Entrada NF wizard, Compras busca/saldo                            | D1 ledger + D3 wizard **teste** v2.78 · financeiro NF **dry-run** staging · **DtoLancamento** real ainda Mongo                                 |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no fluxo estoque Agro; flag `AGRO_FONTE_FINANCEIRO=agro_pg` **não** nas views de Lançamentos                                   |
 | **Falta (alta)**       | PDV `/consulta/`, `/pdv/checkout/` **na loja**                    | Staging Fase B ✅                                                                                                                                |
-| **Falta (média)**      | Compras **métricas** (D4), busca GM Compras/NF                    | Agregações Mongo · motor busca único pendente                                                                                                   |
+| **Teste parcial ✅**   | Compras **métricas** D4 bloco A (média/sugestão)                  | **VendaAgro Postgres** v2.79 · staging = vendas **locais** do teste · loja = vendas reais · B/C pendente · GM motor por último                |
+| **Falta (média)**      | Busca **GM** Compras/NF                                           | Motor busca único — **por último**                                                                                                              |
 | **Falta (média)**      | Entrada NF **financeiro real** fora dry-run                       | Postgres ou título Agro próprio — hoje `DtoLancamento` Mongo                                                                                    |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
 | **Falta**              | Transferências, Validade, sync fornecedor NF                      | Ainda espelho Mongo                                                                                                                             |
@@ -592,10 +593,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.78`  
+**Versão:** `1.0.79`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — ordem sprint desvinculação + **deploy loja agendado noite 25/06**  
-**Versão app (`VERSION`):** **teste** v2.78 · **produção** v2.28 (`f87955d`) → **subir pacote desvinculação hoje à noite**
+**Atualizado por:** Renan — Compras D4 bloco A validado no teste + nota vendas staging vs loja  
+**Versão app (`VERSION`):** **teste** v2.79 (`b37c49e`) · **produção** v2.28 (`f87955d`) → **subir pacote desvinculação hoje à noite** (D4 **fora** do pacote)
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -638,7 +639,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **WIP Compras D4 hoje** · deploy loja **noite 25/06** · D3 NF ✅ teste
+**Onde paramos:** §4.15 **Compras D4 bloco A ✅ teste** · **bloco B** próximo · deploy loja **noite 25/06**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -648,7 +649,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (ex. GM9503 **-2** pós-entrada NF) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
 | **D2** | **Compras + Entrada NF passo produtos** | ✅ nome/custo · ❌ GM (`gm0050`…) — motor único |
 | **D3** | Entrada NF wizard (estoque Agro, financeiro dry-run staging, PIN) | ✅ **Renan 25/06** v2.78 — GM9503 «teste» **-2** igual **Consulta** e **Compras** · ⏸ título real só na **loja** |
-| **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
+| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ teste** v2.79 Postgres · **B/C ❌** · última compra ainda Mongo/ERP |
 
 **Próximo passo (sprint dias):**
 1. **Deploy loja 25/06 noite** (pacote desvinculação — CHECKPOINT abaixo)
@@ -660,7 +661,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Bloco | O quê na tela | Hoje (Mongo → Agro) | Prioridade |
 | ----- | ------------- | ------------------- | ---------- |
-| **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ código** — testar Render |
+| **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
 | **B** | **Últimas compras** nos cards da busca | `_ultimas_compras_*` → rascunhos **Entrada NF Agro** + fallback Mongo só leitura | **2º** |
 | **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — mesma fonte do B | **3º** se der tempo |
 | **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
@@ -678,6 +679,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
 | **Depois (Renan)** | Ctrl+F5 · PDV busca/preço · Compras saldo · Entrada NF passo 5 empresa · conferir 2–3 produtos anotados (ex. GM9503) |
 | **Fora do pacote** | Motor busca GM · Compras métricas D4 · Lançamentos Postgres · BI |
+
+### FECHADO — Compras D4 bloco A · média/sugestão Postgres (Renan 25/06, v2.79)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit** | `b37c49e` — `compras_metricas_util.py` · flag `AGRO_COMPRAS_METRICAS_POSTGRES` (default = Fase B/C) |
+| **Teste OK** | GM9503 «teste» — gráfico S3/S4, média **0,63/dia**, sugestão **21** (vendas feitas **no Render teste**) |
+| **Esperado no teste** | Produto **real** (ex. milho GM0090-47) → **zerado** — snapshot copia catálogo/estoque, **não** `VendaAgro` da loja |
+| **Antes (Mongo)** | Staging lia **DtoVenda** no Mongo **compartilhado** → milho mostrava vendas da loja; **não** é regressão do bloco A |
+| **Na loja (pós-D4)** | Mesmo código lê **VendaAgro Postgres da loja** → produtos reais devem mostrar média/sugestão como hoje |
+| **Ainda vazio** | «Sem histórico de compra recente no ERP» = **última compra** (bloco **B**, não A) |
+| **Melhoria opcional** | Copiar vendas recentes no snapshot staging — só se quiser paridade visual antes do deploy loja |
 
 ### FECHADO — Entrada NF wizard + saldo ledger (Renan 25/06, v2.78)
 
