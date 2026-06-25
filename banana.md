@@ -513,6 +513,12 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Pendente:** `AGRO_FONTE_FINANCEIRO=agro_pg` — lista/gravação sair do `DtoLancamento` Mongo (§4.15 sprint #4).
 
+**Prep v2.90 (seguro — não liga flag):**
+- Modelo Postgres **`TituloFinanceiroAgro`** (migration `0041`).
+- Comando **`importar_titulos_financeiro_mongo_pg`** — default **dry-run**; `--apply` grava espelho idempotente por `mongo_id`.
+- Dry-run local: **~17 875** títulos no Mongo (compatível com checkpoint).
+- Próximo passo pós-deploy: `--apply` no staging · depois views lerem PG quando `agro_pg`.
+
 Fluxo **seguro** do checkpoint (só admin vê os botões):
 
 1. **Backup ZIP** — CSV no PC (**só redundância**; SisVale não importa de volta).
@@ -603,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.86`  
+**Versão:** `1.0.87`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — esclarecer §4.15 Lançamentos (preparado) vs Fiado (já Agro PG)  
-**Versão app (`VERSION`):** **teste** v2.87 · **produção** v2.28
+**Atualizado por:** assistente — Lançamentos prep Postgres (modelo + import dry-run)  
+**Versão app (`VERSION`):** **teste** v2.90 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
@@ -614,7 +620,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Deploy loja** | **~20h** — pacote desvinculação (PDV/gestão/ledger/Entrada NF — D4 Compras **fora** da 1ª subida loja) |
 | **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
-| **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP · motor GM por último |
+| **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP (fonte Postgres) · motor GM por último |
+| **Lançamentos prep** | **v2.90** — modelo `TituloFinanceiroAgro` + comando `importar_titulos_financeiro_mongo_pg` (dry-run default) · **telas ainda Mongo** |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -657,7 +664,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 A+B+C ✅ Renan** · deploy loja **~20h** · próximo sprint **Entrada NF financeiro / Lançamentos CP**
+**Onde paramos:** §4.15 **Compras D4 A+B+C ✅ Renan** · deploy loja **~20h** · **Lançamentos prep v2.90** (modelo PG + import dry-run) · sprint **Entrada NF financeiro / ligar agro_pg**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
