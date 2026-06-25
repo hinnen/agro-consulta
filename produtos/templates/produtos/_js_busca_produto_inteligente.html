@@ -164,6 +164,10 @@
         return String(val ?? '').replace(/\D/g, '');
     }
 
+    function somenteAlnumCodigoBusca(val) {
+        return String(val ?? '').replace(/[^a-z0-9]/g, '');
+    }
+
     /** Match exato só-dígitos em barras / index (7 dígitos, código loja, etc.). */
     function termoIgualCodigoBarrasNumericoExato(termoNorm, p) {
         const d = digitosCodigoBusca(termoNorm);

@@ -701,12 +701,67 @@ def row_para_doc_busca_pdv(row: dict) -> dict:
     }
 
 
+def _alnum_codigo_cmp(val: object) -> str:
+    import re
+
+    return re.sub(r"[^a-z0-9]", "", str(val or "").strip().lower())
+
+
+def _nome_doc_busca_pdv(doc: dict) -> str:
+    return str(doc.get("Nome") or doc.get("nome") or "").strip()
+
+
+def _chaves_codigo_doc_busca_pdv(doc: dict) -> set[str]:
+    keys: set[str] = set()
+    for k in ("CodigoNFe", "Codigo", "codigo_nfe", "codigo", "CodigoBarras", "codigo_barras"):
+        al = _alnum_codigo_cmp(doc.get(k))
+        if al and len(al) >= 4:
+            keys.add(al)
+    ix = doc.get("index_codigos") or doc.get("IndexCodigos")
+    if isinstance(ix, list):
+        for x in ix:
+            al = _alnum_codigo_cmp(x)
+            if al and len(al) >= 4:
+                keys.add(al)
+    return keys
+
+
+def _dedupe_prods_busca_preferir_com_nome(prods: list) -> list:
+    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/código."""
+    if not prods or len(prods) < 2:
+        return prods
+    grupos: dict[str, list[int]] = {}
+    for i, p in enumerate(prods):
+        for k in _chaves_codigo_doc_busca_pdv(p):
+            grupos.setdefault(k, []).append(i)
+    drop: set[int] = set()
+    for idxs in grupos.values():
+        if len(idxs) < 2:
+            continue
+        uniq = sorted(set(idxs))
+        if len(uniq) < 2:
+            continue
+
+        def _rank(i: int) -> tuple:
+            nome = _nome_doc_busca_pdv(prods[i])
+            return (1 if nome else 0, len(nome), i)
+
+        best = max(uniq, key=_rank)
+        for i in uniq:
+            if i != best:
+                drop.add(i)
+    if not drop:
+        return prods
+    return [p for i, p in enumerate(prods) if i not in drop]
+
+
 def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
 
     out = dict(doc)
-    if row.get("nome"):
-        out["Nome"] = row["nome"]
+    nome_pg = str(row.get("nome") or "").strip()
+    if nome_pg:
+        out["Nome"] = nome_pg
     if row.get("marca") is not None:
         out["Marca"] = row["marca"]
     cod = row.get("codigo") or ""
@@ -790,7 +845,7 @@ def mesclar_prods_busca_pdv(
             prods.append(row_para_doc_busca_pdv(row))
             ids_vistos.add(pid)
             idx_por_id[pid] = len(prods) - 1
-    return prods
+    return _dedupe_prods_busca_preferir_com_nome(prods)
 
 
 def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:

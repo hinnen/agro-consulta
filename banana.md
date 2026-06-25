@@ -561,10 +561,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.71`  
+**Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
-**Atualizado por:** Renan — intenção de cancelar assinatura ERP; checklist backups Excel  
-**Versão app (`VERSION`):** **teste** v2.34 · **produção** v2.27 (`731607c`)
+**Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
+**Versão app (`VERSION`):** **teste** v2.42+ (pendente commit) · **produção** v2.27
+
+### URGENTE — PDV produção produto sem nome / GM estranho (2026-06-24)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Busca GM (ex. postura 25 kg) acha item com nome **—**, código tipo `94a42b90be60`, preço certo; gestão mostra produto OK |
+| **Causa** | Cadastro já em **Postgres** (`AGRO_FONTE_CATALOGO=agro_pg` na loja); PDV ainda lê **fantasma Mongo** (mesmo GM, sem Nome). Dois IDs para o mesmo código |
+| **Fix (teste, pendente loja)** | Dedupe busca: prefere linha **com nome** · enriquece Mongo vazio do Postgres (por id ou GM) · PDV não auto-adiciona item sem nome · merge Postgres ligado de novo com `agro_pg` |
+| **Loja** | **Precisa deploy** — frase + senha `99738595` (não subir sem Renan) |
+| **Teste Renan** | Ctrl+F5 PDV teste → `GM1546-25` ou `ibiuna postura 25` → nome + GM corretos |
+
+### Fix busca código GM — Compras + Entrada NF (2026-06-24, WIP teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `gm9503` (e outros GM) **não retornam nada** em Compras e Entrada NF; por nome funciona; PDV e Gestão OK |
+| **Causa** | `_js_busca_produto_inteligente.html` usava `somenteAlnumCodigoBusca` **sem definir a função** → `ReferenceError` no caminho GM; Compras ainda **não chamava a API** quando o filtro local vinha vazio |
+| **Fix** | Definir `somenteAlnumCodigoBusca` · Compras: fallback `mesclarBuscaCompraComOnline` com lista vazia · Enter/bip GM case-insensitive |
+| **Preço «teste» GM9503** | Compras mostra **custo** (R$ 1,00) — igual Gestão; PDV/NF mostram **venda** (R$ 1,09) — comportamento esperado, não bug |
+| **Arquivos** | `_js_busca_produto_inteligente.html` · `compras.html` |
+| **Teste Renan** | Ctrl+F5 → Compras e Entrada NF → buscar `gm9503` / `GM9503` → deve listar Shampoo + «teste» |
 
 ### Renan — cancelar assinatura ERP (2026-06-24, planejamento)
 

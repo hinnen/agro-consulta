@@ -36,8 +36,13 @@ def agro_catalogo_usa_postgres() -> bool:
 
 
 def agro_pdv_merge_catalogo_postgres() -> bool:
-    """PDV (busca/cache): **off** por padrão = igual produção. Cadastro usa ``agro_catalogo_usa_postgres``."""
-    return bool(getattr(settings, "AGRO_PDV_MERGE_CATALOGO_POSTGRES", False))
+    """PDV busca/cache: com ``AGRO_FONTE_CATALOGO=agro_pg`` liga merge (igual loja). Desligar: ``AGRO_PDV_MERGE_CATALOGO_POSTGRES=false``."""
+    if agro_pdv_catalogo_somente_postgres():
+        return True
+    raw = getattr(settings, "AGRO_PDV_MERGE_CATALOGO_POSTGRES", None)
+    if raw is not None:
+        return bool(raw)
+    return agro_catalogo_usa_postgres()
 
 
 def agro_pdv_catalogo_somente_postgres() -> bool:

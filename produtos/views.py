@@ -811,7 +811,51 @@ def _mongo_produtos_por_overlay_codigo_busca(
         seen_p.add(ps)
         doc = _produto_mongo_por_id_externo(db, client_m, ps)
         if doc:
+            doc = _enriquecer_doc_mongo_nome_postgres(doc, ps)
             out.append(doc)
+    return out
+
+
+def _enriquecer_doc_mongo_nome_postgres(doc: dict, pid: str) -> dict:
+    """Mongo espelho sem Nome — preenche do Postgres SisVale (cadastro agro_pg)."""
+    if not doc or _valor_texto_campo(doc.get("Nome")):
+        return doc
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if not agro_catalogo_usa_postgres():
+        return doc
+    try:
+        from produtos.models import Produto
+
+        pg = (
+            Produto.objects.filter(produto_externo_id=str(pid or "").strip()[:64])
+            .only("nome", "marca", "codigo_nfe", "codigo_barras", "preco_venda")
+            .first()
+        )
+    except Exception:
+        return doc
+    if not pg or not str(pg.nome or "").strip():
+        cnfe = _valor_texto_campo(doc.get("CodigoNFe")) or _valor_texto_campo(doc.get("Codigo"))
+        if cnfe:
+            pg = (
+                Produto.objects.filter(codigo_nfe__iexact=cnfe)
+                .only("nome", "marca", "codigo_nfe", "codigo_barras", "preco_venda", "produto_externo_id")
+                .first()
+            )
+    if not pg or not str(pg.nome or "").strip():
+        return doc
+    out = dict(doc)
+    out["Nome"] = pg.nome.strip()
+    if pg.marca and not _valor_texto_campo(out.get("Marca")):
+        out["Marca"] = pg.marca.strip()
+    if pg.codigo_nfe and not _valor_texto_campo(out.get("CodigoNFe")):
+        out["CodigoNFe"] = pg.codigo_nfe.strip()
+    if pg.codigo_barras and not _valor_texto_campo(out.get("CodigoBarras")):
+        out["CodigoBarras"] = pg.codigo_barras.strip()
+    if pg.preco_venda is not None and not out.get("ValorVenda") and not out.get("PrecoVenda"):
+        pv = float(pg.preco_venda)
+        out["ValorVenda"] = pv
+        out["PrecoVenda"] = pv
     return out
 
 
@@ -15706,7 +15750,7 @@ def api_buscar_produtos(request):
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-        if pdv_merge_pg and not pdv_somente_pg:
+        if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.mesclar_prods_busca_pdv(
@@ -15793,6 +15837,8 @@ def api_buscar_produtos(request):
             pid = str(p.get("Id") or p.get("_id") or "").strip()
             if not pid or pid.lower() == "none":
                 continue
+            if usa_pg_cat and not _valor_texto_campo(p.get("Nome")):
+                p = _enriquecer_doc_mongo_nome_postgres(p, pid)
 
             saldo_centro_erp = _float_api_json(estoque_map.get(pid, {}).get("centro", 0.0))
             saldo_vila_erp = _float_api_json(estoque_map.get(pid, {}).get("vila", 0.0))

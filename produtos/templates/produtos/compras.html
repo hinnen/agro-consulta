@@ -1355,12 +1355,16 @@ function compraCodigosProduto(p) {
 function compraBuscarProdutoExatoCodigo(termo) {
   const t = String(termo || '').trim();
   if (!t) return null;
-  const tn = t.replace(/\s/g, '');
+  const tn = normalizarBuscaLocal(t.replace(/\s/g, ''));
   for (let i = 0; i < baseProdutos.length; i++) {
     const p = baseProdutos[i];
     if (!p || ehProdutoGranelCompra(p)) continue;
+    if (typeof termoIgualCodigoProdutoExato === 'function' && termoIgualCodigoProdutoExato(tn, p)) {
+      return p;
+    }
     for (const c of compraCodigosProduto(p)) {
-      if (c === t || c === tn) return p;
+      const cn = normalizarBuscaLocal(String(c).replace(/\s/g, ''));
+      if (c === t || c === tn || cn === tn) return p;
     }
   }
   return null;
@@ -2275,7 +2279,17 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
             ? String(ultimosResultadosCompra[indiceSelecionadoCompra].id)
             : null;
         const enr = final.map(enriquecerProdutoCompraBusca);
-        renderizarListaResultadosCompra(enr);
+        if (!enr.length) {
+          const divRes = document.getElementById('resultados');
+          ultimosResultadosCompra = [];
+          indiceSelecionadoCompra = -1;
+          compraOcultarCabecalhoListaResultados();
+          if (divRes) {
+            divRes.innerHTML = `<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
+          }
+        } else {
+          renderizarListaResultadosCompra(enr);
+        }
         if (selAnt) {
           const ix = ultimosResultadosCompra.findIndex((x) => String(x.id) === selAnt);
           if (ix >= 0) {
@@ -3616,6 +3630,20 @@ function buscar(q) {
         : ordenarResultadosCompra(candidatos);
 
   if (!locaisOrdenados.length) {
+    if (
+      termoN.length >= 2 &&
+      compraPoolAvancado === null &&
+      !window.AGRO_MANUAL_SYNC_ONLY
+    ) {
+      ultimosResultadosCompra = [];
+      indiceSelecionadoCompra = -1;
+      compraOcultarCabecalhoListaResultados();
+      div.innerHTML =
+        '<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Buscando no servidor…</div>';
+      mesclarBuscaCompraComOnline(termoOriginal, []);
+      agendarSalvarEstadoCompra();
+      return;
+    }
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     let msg;

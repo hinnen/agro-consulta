@@ -548,7 +548,9 @@
 
         function tryAdd(p) {
             var row = normalizeWizardCatalogProduct(p);
-            return !!(row && State.addItem(row, qty));
+            if (!row) return false;
+            if (!String(row.nome || '').trim()) return false;
+            return !!State.addItem(row, qty);
         }
 
         function failMsg(text) {
@@ -838,6 +840,7 @@
 
     function tryAutoAddBarcodeHit(product, message) {
         if (!product) return false;
+        if (!String(product.nome || '').trim()) return false;
         invalidatePendingProductSearch();
         marcarWizardScannerAtivo(1500);
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
