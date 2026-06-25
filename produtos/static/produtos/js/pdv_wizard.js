@@ -317,6 +317,8 @@
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_PAGE_SIZE = 5;
     var autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
+    var productSearchAwaitingServer = false;
+    var productSearchMayHaveMore = false;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
     var stagingReadonly = !!(
@@ -2513,10 +2515,19 @@
         );
     }
 
+    function shouldShowAutocompleteLoadMore() {
+        if (lastProducts.length > autocompleteVisibleLimit) return true;
+        if (productSearchAwaitingServer && lastProducts.length >= autocompleteVisibleLimit) return true;
+        return productSearchMayHaveMore && lastProducts.length >= AUTOCOMPLETE_PAGE_SIZE;
+    }
+
     function productAutocompleteLoadMoreHtml() {
+        var waiting = productSearchAwaitingServer && lastProducts.length <= autocompleteVisibleLimit;
         return (
-            '<button type="button" class="pdv-ac-load-more" data-autocomplete-load-more="1">' +
-            'carregar mais...' +
+            '<button type="button" class="pdv-ac-load-more" data-autocomplete-load-more="1"' +
+            (waiting ? ' disabled' : '') +
+            '>' +
+            (waiting ? 'carregando…' : 'carregar mais...') +
             '</button>'
         );
     }
@@ -2571,6 +2582,8 @@
         productSelectionIndex = -1;
         lastProducts = [];
         autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
+        productSearchAwaitingServer = false;
+        productSearchMayHaveMore = false;
         if (dom.productAutocomplete) {
             dom.productAutocomplete.innerHTML = '';
             dom.productAutocomplete.classList.add('hidden');
@@ -2579,6 +2592,13 @@
 
     function expandProductAutocomplete() {
         if (!lastProducts.length) return;
+        if (
+            autocompleteVisibleLimit >= lastProducts.length &&
+            productSearchAwaitingServer
+        ) {
+            return;
+        }
+        if (autocompleteVisibleLimit >= lastProducts.length) return;
         autocompleteVisibleLimit = Math.min(
             autocompleteVisibleLimit + AUTOCOMPLETE_PAGE_SIZE,
             lastProducts.length
@@ -2609,7 +2629,7 @@
                         return productAutocompleteHtml(produto, index);
                     })
                     .join('');
-                if (lastProducts.length > autocompleteVisibleLimit) {
+                if (shouldShowAutocompleteLoadMore()) {
                     rowsHtml += productAutocompleteLoadMoreHtml();
                 }
                 dom.productAutocomplete.innerHTML = productAutocompleteHeaderHtml() + rowsHtml;
@@ -2625,11 +2645,11 @@
             updateSearchAwaitingPulse();
             return;
         }
-        if (lastProducts.length > autocompleteVisibleLimit) {
+        if (shouldShowAutocompleteLoadMore()) {
             dom.productSearchMeta.textContent =
                 visibleCount +
                 ' de ' +
-                lastProducts.length +
+                (lastProducts.length > visibleCount ? lastProducts.length : visibleCount + '+') +
                 ' na lista · carregar mais abaixo · Enter · +/− último';
         } else {
             dom.productSearchMeta.textContent = lastProducts.length + ' na lista · Enter · +/− último';
@@ -4814,12 +4834,15 @@
             return;
         }
         var seq = ++filterSeq;
+        productSearchAwaitingServer = true;
+        productSearchMayHaveMore = false;
         dom.productSearchFeedback.textContent = catalogReady ? 'Filtrando…' : 'Carregando catálogo local…';
         loadWizardCatalog()
             .then(function () {
                 if (seq !== filterSeq) return;
                 var r = filterCatalogLocal(query, mode);
                 if (r.barcodeHit) {
+                    productSearchAwaitingServer = false;
                     tryAddProductFromSearch(r.barcodeHit, {
                         okMsg: 'Item adicionado pela leitura do código.',
                         query: query,
@@ -4831,14 +4854,20 @@
                 var skuCode = looksLikeSkuCode(query);
                 var qlSku = String(query).trim().toLowerCase();
                 if (mode === 'barcode' && localList.length === 1) {
+                    productSearchAwaitingServer = false;
                     tryAutoAddBarcodeHit(localList[0]);
                     return null;
                 }
                 if (skuCode && localList.length && localSkuCacheSufficient(localList, qlSku)) {
+                    productSearchAwaitingServer = false;
+                    productSearchMayHaveMore = localList.length > AUTOCOMPLETE_PAGE_SIZE;
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     return null;
+                }
+                if (localList.length >= AUTOCOMPLETE_PAGE_SIZE) {
+                    productSearchMayHaveMore = true;
                 }
                 if (localList.length) {
                     renderProductResults(localList);
@@ -4848,19 +4877,30 @@
                     : skuCode
                       ? 'Buscando variantes do código…'
                       : 'Buscando no servidor…';
-                return fetchWizardServerSearch(query).then(function (srv) {
-                    return {
-                        remote: srv.produtos,
-                        exactBarcode: srv.exactBarcode,
-                        localList: localList,
-                        skuCode: skuCode,
-                        mode: mode,
-                    };
-                });
+                return fetchWizardServerSearch(query)
+                    .then(function (srv) {
+                        return {
+                            remote: srv.produtos,
+                            exactBarcode: srv.exactBarcode,
+                            localList: localList,
+                            skuCode: skuCode,
+                            mode: mode,
+                        };
+                    })
+                    .catch(function () {
+                        return {
+                            remote: [],
+                            exactBarcode: false,
+                            localList: localList,
+                            skuCode: skuCode,
+                            mode: mode,
+                        };
+                    });
             })
             .then(function (payload) {
                 if (seq !== filterSeq) return;
                 if (!payload || !Array.isArray(payload.remote)) return;
+                productSearchAwaitingServer = false;
                 var remote = payload.remote;
                 var merged = stagingReadonly
                     ? mergeProductsById(remote, payload.localList || [])
@@ -4874,6 +4914,7 @@
                     return;
                 }
                 if (merged.length) {
+                    productSearchMayHaveMore = merged.length > AUTOCOMPLETE_PAGE_SIZE;
                     renderProductResults(merged);
                     if (payload.skuCode && remote.length) {
                         dom.productSearchFeedback.textContent =
@@ -4891,6 +4932,7 @@
                             'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     }
                 } else {
+                    productSearchMayHaveMore = false;
                     renderProductResults([]);
                     dom.productSearchFeedback.textContent =
                         'Nenhum produto para este termo (cache e servidor).';
@@ -4898,8 +4940,10 @@
             })
             .catch(function () {
                 if (seq !== filterSeq) return;
+                productSearchAwaitingServer = false;
+                productSearchMayHaveMore = false;
                 dom.productSearchFeedback.textContent =
-                    'Não foi possível carregar o catálogo ou buscar. Atualize a página.';
+                    'Não foi possível carregar o catálogo. Atualize a página.';
                 renderProductResults([]);
             });
     }
@@ -7371,6 +7415,12 @@
                 var zoom = event.target.closest('[data-pdv-photo-zoom]');
                 if (zoom) return;
                 if (event.target.closest('[data-autocomplete-load-more]')) {
+                    if (
+                        productSearchAwaitingServer &&
+                        lastProducts.length <= autocompleteVisibleLimit
+                    ) {
+                        return;
+                    }
                     event.preventDefault();
                     expandProductAutocomplete();
                     return;
