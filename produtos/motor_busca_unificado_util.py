@@ -234,6 +234,15 @@ def buscar_documentos_unificado(
         prods = []
 
     prods = _filtrar_gm_estrito(termo, prods)
-    prods = _ordenar_documentos_unificado(prods, termo)
+    from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv, score_relevancia_doc
+
+    prods = filtrar_documentos_estilo_pdv(prods, termo)
+    prods = sorted(
+        prods,
+        key=lambda d: (
+            -score_relevancia_doc(d, termo),
+            str(d.get("Nome") or d.get("nome") or "").lower(),
+        ),
+    )
     prods = cat_agro._dedupe_prods_busca_preferir_com_nome(prods)
     return prods[:lim]

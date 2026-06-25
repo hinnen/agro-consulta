@@ -622,7 +622,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
 | **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP (fonte Postgres) · motor GM por último |
 | **Lançamentos prep** | **v2.90** — modelo `TituloFinanceiroAgro` + comando `importar_titulos_financeiro_mongo_pg` (dry-run default) · **telas ainda Mongo** |
-| **Motor busca v2** | **v2.91** — tela **`/interno/teste-busca/`** (login) · API **`/api/buscar-v2/`** · Compras/NF ainda legado |
+| **Motor busca v2** | **v2.92** — legado e v2 **mesmo motor** · filtro+ordem **estilo PDV** · GM9503 mantém 2 produtos se existirem |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 

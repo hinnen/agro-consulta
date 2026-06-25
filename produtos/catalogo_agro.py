@@ -216,21 +216,21 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     if len(found) >= lim:
                         break
     else:
-        _cadastro_pg_append_unicos(
-            found,
-            seen_pk,
-            qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
-            lim,
-        )
+        q_tok = _q_tokens_todos_cadastro(termo)
+        if q_tok is not None:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_tok).order_by("nome", "pk")[:lim],
+                lim,
+            )
         if len(found) < lim:
-            q_tok = _q_tokens_todos_cadastro(termo)
-            if q_tok is not None:
-                _cadastro_pg_append_unicos(
-                    found,
-                    seen_pk,
-                    qs.filter(q_tok).order_by("nome", "pk")[:lim],
-                    lim,
-                )
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
+                lim,
+            )
 
     partes_txt = [p.strip().lower() for p in termo.split() if len(p.strip()) >= 2]
     if partes_txt and len(found) < lim:
@@ -826,7 +826,10 @@ def _chaves_codigo_doc_busca_pdv(doc: dict) -> set[str]:
 
 
 def _dedupe_prods_busca_preferir_com_nome(prods: list) -> list:
-    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/código."""
+    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/código.
+
+    Dois produtos **com nome** e mesmo GM (ex. GM9503 shampoo + teste) **permanecem**.
+    """
     if not prods or len(prods) < 2:
         return prods
     grupos: dict[str, list[int]] = {}
@@ -841,13 +844,20 @@ def _dedupe_prods_busca_preferir_com_nome(prods: list) -> list:
         if len(uniq) < 2:
             continue
 
+        def _tem_nome(i: int) -> bool:
+            return len(_nome_doc_busca_pdv(prods[i]).strip()) >= 2
+
+        com_nome = [i for i in uniq if _tem_nome(i)]
+        if len(com_nome) >= 2:
+            continue
+
         def _rank(i: int) -> tuple:
             nome = _nome_doc_busca_pdv(prods[i])
             return (1 if nome else 0, len(nome), i)
 
         best = max(uniq, key=_rank)
         for i in uniq:
-            if i != best:
+            if i != best and not _tem_nome(i):
                 drop.add(i)
     if not drop:
         return prods

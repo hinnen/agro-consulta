@@ -15822,9 +15822,18 @@ def api_buscar_produtos(request):
 
     try:
         balanca_auditoria_q: str | None = None
-        use_v2 = bool(getattr(request, "_motor_busca_v2", False))
-        if use_v2:
-            preco_por_id = {}
+        preco_por_id: dict[str, float] = {}
+        use_motor_unificado = bool(getattr(request, "_motor_busca_v2", False)) or pdv_somente_pg or usa_pg_cat
+
+        if wizard_catalog and db is not None and not pdv_somente_pg and not usa_pg_cat:
+            _wiz_n = _wizard_catalog_mongo_limit()
+            prods = list(
+                db[client.col_p]
+                .find({"CadastroInativo": {"$ne": True}}, _WIZARD_CATALOG_MONGO_PROJECTION)
+                .sort("Nome", 1)
+                .limit(_wiz_n)
+            )
+        elif use_motor_unificado or not wizard_catalog:
             if db is None and not usa_pg_cat and not pdv_somente_pg:
                 prods = []
             elif wizard_catalog:
@@ -15874,25 +15883,6 @@ def api_buscar_produtos(request):
                         include_inactive=False,
                         wizard_catalog=False,
                     )
-        elif pdv_somente_pg:
-            from produtos import catalogo_agro as cat_agro
-
-            prods = cat_agro.prods_mongo_style_busca_pdv(
-                q=q, wizard_catalog=wizard_catalog, limit=80
-            )
-            preco_por_id = {}
-        elif wizard_catalog:
-            if db is not None:
-                _wiz_n = _wizard_catalog_mongo_limit()
-                prods = list(
-                    db[client.col_p]
-                    .find({"CadastroInativo": {"$ne": True}}, _WIZARD_CATALOG_MONGO_PROJECTION)
-                    .sort("Nome", 1)
-                    .limit(_wiz_n)
-                )
-            else:
-                prods = []
-            preco_por_id = {}
         else:
             preco_por_id = {}
             if db is None:
@@ -15917,7 +15907,7 @@ def api_buscar_produtos(request):
                     prods = motor_busca_consulta_documentos(
                         q, db, client, limit=80, include_inactive=False, projection=None
                     )
-        if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg and not use_v2:
+        if (usa_pg_cat or pdv_merge_pg) and not pdv_somente_pg and not use_motor_unificado:
             from produtos import catalogo_agro as cat_agro
 
             prods = cat_agro.mesclar_prods_busca_pdv(
@@ -16183,12 +16173,17 @@ def api_buscar_produtos(request):
             lim_wiz = 48 if _termo_parece_codigo(q_wiz_strip) else 24
             res = res[:lim_wiz]
         else:
-            res.sort(
-                key=lambda r: (
-                    -float(r.get("media_venda_diaria_30d") or 0),
-                    str(r.get("nome") or "").lower(),
+            if use_motor_unificado and q:
+                from produtos.busca_filtro_pdv_util import ordenar_rows_api_estilo_pdv
+
+                res = ordenar_rows_api_estilo_pdv(res, q)
+            else:
+                res.sort(
+                    key=lambda r: (
+                        -float(r.get("media_venda_diaria_30d") or 0),
+                        str(r.get("nome") or "").lower(),
+                    )
                 )
-            )
 
         exact = bool(preco_por_id) and len(res) == 1 and not wizard_catalog
         if (
@@ -16202,8 +16197,10 @@ def api_buscar_produtos(request):
             if _wizard_json_row_bate_query_exata(res[0], q_strip):
                 exact = True
         payload = {"produtos": res, "exact_barcode_match": exact}
-        if use_v2:
+        if getattr(request, "_motor_busca_v2", False):
             payload["motor"] = "v2"
+        elif use_motor_unificado:
+            payload["motor"] = "unificado"
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
