@@ -104,7 +104,10 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     ).strip()
     if ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-    return _aplicar_overlay_em_row(row, ov)
+    row = _aplicar_overlay_em_row(row, ov)
+    from produtos.catalogo_nome_util import aplicar_nome_resolvido_em_row
+
+    return aplicar_nome_resolvido_em_row(row, p, ov)
 
 
 def queryset_catalogo_ativos(*, inativos: bool = False):
@@ -227,6 +230,42 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     qs.filter(q_tok).order_by("nome", "pk")[:lim],
                     lim,
                 )
+
+    partes_txt = [p.strip().lower() for p in termo.split() if len(p.strip()) >= 2]
+    if partes_txt and len(found) < lim:
+        from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+
+        for p in qs.filter(nome__iregex=r"^[0-9a-f]{24}$").iterator(chunk_size=160):
+            if p.pk in seen_pk:
+                continue
+            if not nome_parece_objectid_corrupto(p.nome or "", p.produto_externo_id or ""):
+                continue
+            row = produto_agro_para_row(p)
+            bt = str(row.get("busca_texto") or row.get("nome") or "").lower()
+            if bt and all(pl in bt for pl in partes_txt):
+                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                if len(found) >= lim:
+                    break
+
+    if parece_codigo_cadastro(termo) and len(found) < lim:
+        from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+
+        for p in qs.filter(nome__iregex=r"^[0-9a-f]{24}$").iterator(chunk_size=160):
+            if p.pk in seen_pk:
+                continue
+            if not nome_parece_objectid_corrupto(p.nome or "", p.produto_externo_id or ""):
+                continue
+            row = produto_agro_para_row(p)
+            if termo_bate_codigos_produto(
+                termo,
+                codigo_interno=row.get("codigo"),
+                codigo_nfe=row.get("codigo_nfe"),
+                codigo_barras=row.get("codigo_barras"),
+                extras=(row.get("id"),),
+            ):
+                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                if len(found) >= lim:
+                    break
 
     if found:
         return _rows_de_produtos(found[:lim])

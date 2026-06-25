@@ -70,6 +70,10 @@ def executar_importar_catalogo_mongo_produto(
             codigo = _txt(doc.get("CodigoNFe") or doc.get("Codigo") or pid, 50) or pid[:50]
             cb = _txt(_extrair_codigo_barras(doc), 50) or None
             nome = _txt(doc.get("Nome") or "—", 300) or "—"
+            from produtos.catalogo_nome_util import nome_parece_objectid_corrupto
+
+            if nome_parece_objectid_corrupto(nome, pid):
+                nome = "—"
             defaults = {
                 "codigo_interno": codigo,
                 "codigo_barras": cb,
