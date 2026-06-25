@@ -15837,8 +15837,14 @@ def api_buscar_produtos(request):
             pid = str(p.get("Id") or p.get("_id") or "").strip()
             if not pid or pid.lower() == "none":
                 continue
-            if usa_pg_cat and not _valor_texto_campo(p.get("Nome")):
+            if (usa_pg_cat or pdv_merge_pg) and not _valor_texto_campo(p.get("Nome")):
                 p = _enriquecer_doc_mongo_nome_postgres(p, pid)
+            if (
+                (usa_pg_cat or pdv_merge_pg)
+                and not wizard_catalog
+                and not _valor_texto_campo(p.get("Nome"))
+            ):
+                continue
 
             saldo_centro_erp = _float_api_json(estoque_map.get(pid, {}).get("centro", 0.0))
             saldo_vila_erp = _float_api_json(estoque_map.get(pid, {}).get("vila", 0.0))

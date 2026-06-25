@@ -145,6 +145,28 @@ def listar_paginado(
     return _rows_de_produtos(chunk[:por_pagina]), has_more
 
 
+def _q_tokens_todos_cadastro(termo: str):
+    from produtos.cadastro_busca_codigo_util import q_icontains_cadastro
+
+    parts = [p.strip() for p in (termo or "").split() if len(p.strip()) >= 2]
+    if len(parts) < 2:
+        return None
+    q = Q()
+    for pl in parts:
+        q &= q_icontains_cadastro(pl)
+    return q
+
+
+def _cadastro_pg_append_unicos(found: list, seen: set, items, lim: int) -> None:
+    for p in items:
+        if p.pk in seen:
+            continue
+        seen.add(p.pk)
+        found.append(p)
+        if len(found) >= lim:
+            return
+
+
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     from produtos.cadastro_busca_codigo_util import (
         overlay_pids_por_codigo,
@@ -158,32 +180,56 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         return []
     qs = queryset_catalogo_ativos(inativos=inativos)
     lim = max(1, min(int(limit or 80), 160))
+    found: list[Produto] = []
+    seen_pk: set[int] = set()
 
     if parece_codigo_cadastro(termo):
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
-            chunk = list(qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim])
-            if chunk:
-                return _rows_de_produtos(chunk)
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        if len(found) < lim:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        if len(found) < lim:
+            for p in qs.iterator(chunk_size=400):
+                if termo_bate_codigos_produto(
+                    termo,
+                    codigo_interno=p.codigo_interno,
+                    codigo_nfe=p.codigo_nfe,
+                    codigo_barras=p.codigo_barras,
+                    extras=(p.produto_externo_id, p.erp_produto_id),
+                ):
+                    _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                    if len(found) >= lim:
+                        break
+    else:
+        _cadastro_pg_append_unicos(
+            found,
+            seen_pk,
+            qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
+            lim,
+        )
+        if len(found) < lim:
+            q_tok = _q_tokens_todos_cadastro(termo)
+            if q_tok is not None:
+                _cadastro_pg_append_unicos(
+                    found,
+                    seen_pk,
+                    qs.filter(q_tok).order_by("nome", "pk")[:lim],
+                    lim,
+                )
 
-        matches: list[Produto] = []
-        for p in qs.iterator(chunk_size=400):
-            if termo_bate_codigos_produto(
-                termo,
-                codigo_interno=p.codigo_interno,
-                codigo_nfe=p.codigo_nfe,
-                codigo_barras=p.codigo_barras,
-                extras=(p.produto_externo_id, p.erp_produto_id),
-            ):
-                matches.append(p)
-                if len(matches) >= lim:
-                    break
-        if matches:
-            return _rows_de_produtos(matches)
-
-    chunk = list(qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim])
-    if chunk:
-        return _rows_de_produtos(chunk)
+    if found:
+        return _rows_de_produtos(found[:lim])
 
     if parece_codigo_cadastro(termo):
         try:

@@ -564,7 +564,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.43 (`3901a12`) · **produção** v2.27
+**Versão app (`VERSION`):** **teste** v2.45 (hotfix gestão busca) · **produção** v2.27 (`731607c`) — **nenhum push assistente em `producao`**
+
+### URGENTE — gestão cadastro sumiu produtos / busca GM incompleta (2026-06-24)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cadastro/gestão: `gm1546` só 1 item; `ibi pos` zero; PDV `gm1546` falta 25 kg; fantasma Mongo sem nome |
+| **Causa** | `catalogo_agro.buscar()` com `agro_pg`: **overlay** devolvia 1 PID e **parava** — não buscava demais variantes GM no Postgres; texto multi-palavra (`ibi pos`) não casava `nome__icontains` literal |
+| **Produção** | **Mesmo bug de código** já em v2.27 com `agro_pg` — **não** foi deploy v2.43/44 na loja; precisa cherry-pick deste fix + frase+senha |
+| **Fix (teste v2.45)** | `buscar()` união overlay + `q_icontains` + tokens AND · PDV: oculta fantasma sem nome após enriquecimento |
+| **Arquivos** | `catalogo_agro.py` · `views.py` (`api_buscar_produtos`) |
+| **Teste Renan** | Ctrl+F5 cadastro → `gm1546` (4 variantes) · `ibi pos` (postura) · PDV sem linha «—» |
 
 ### URGENTE — PDV produção produto sem nome / GM estranho (2026-06-24)
 
