@@ -137,19 +137,27 @@ def _sufixo_gm_para_nome(suffix: str) -> str:
 
 
 def produto_fantasma_catalogo(p: Produto) -> bool:
-    """Registro importado do Mongo sem cadastro completo (Id 24 hex)."""
+    """Fantasma que quebra busca/cadastro: nome «—»/ObjectId ou GM = Id Mongo."""
     pid = (p.produto_externo_id or "").strip()
     if not _RE_OID.fullmatch(pid):
         return False
     if nome_parece_objectid_corrupto(p.nome or "", pid):
         return True
-    ci = (p.codigo_interno or "").strip().lower()
-    if ci == pid.lower():
-        return True
-    cn = (p.codigo_nfe or "").strip().lower()
-    if cn == pid.lower() or nome_parece_objectid_corrupto(cn, pid):
+    cn = (p.codigo_nfe or "").strip()
+    if cn.lower() == pid.lower() or nome_parece_objectid_corrupto(cn, pid):
         return True
     return False
+
+
+def produto_codigo_interno_oid(p: Produto) -> bool:
+    """Id Mongo repetido em ``codigo_interno`` mas nome/GM legíveis — higiene, não some da busca."""
+    pid = (p.produto_externo_id or "").strip()
+    if not _RE_OID.fullmatch(pid):
+        return False
+    if produto_fantasma_catalogo(p):
+        return False
+    ci = (p.codigo_interno or "").strip().lower()
+    return ci == pid.lower()
 
 
 def _qs_irmaos_gm_validos(base: str):

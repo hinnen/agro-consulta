@@ -351,7 +351,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **O que é** | Documento no espelho Mongo com `_id` 24 hex **sem** `Nome` — import virou linha `Produto` com nome «—» e `codigo_interno` = Id |
 | **Caso loja** | 3× ibiuna **25 kg** (GM1541/42/46-25); demais variantes OK |
 | **Evitar de novo** | `importar_catalogo_mongo_produto` **ignora** fantasma (`deve_ignorar_import_mongo_fantasma`) · nunca grava ObjectId como nome · novo cadastro só via Agro (não duplicar GM no Mongo |
-| **Auditar (quantos?)** | Render Shell: `python manage.py auditar_produtos_fantasma_pg` → lista **todos** fantasmas; `--ativos` só ativos; `0` = só os 3 já corrigidos ou nenhum |
+| **Auditar (quantos?)** | `auditar_produtos_fantasma_pg` — **graves** (nome/GM quebrados); `--higiene` = só `codigo_interno`=Id |
 | **Corrigir lote** | `python manage.py corrigir_produto_nome_objectid_pg --dry-run` depois sem `--dry-run` |
 | **Quando rodar** | Após `importar_catalogo_mongo_produto`, após snapshot staging, se busca cadastro «sumir» produto que existe no PDV |
 | **Código** | `catalogo_nome_util.py` · comandos `auditar_*` / `corrigir_*` · exibição API herda irmãos GM (teste v2.50+) |
@@ -582,9 +582,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Pergunta | Resposta |
 | -------- | -------- |
-| **Só 3 itens?** | Rodar `auditar_produtos_fantasma_pg` no **agro-db** (teste e produção). Contagem **≠ 3** → corrigir lote ou revisar lista |
-| **Evitar** | Import Mongo→PG pula fantasma; cadastro novo no Agro; não reimportar catálogo inteiro sem auditoria |
-| **Sintoma rápido** | Cadastro pág.1 com «—» + Id `69937…` no subtítulo; busca por nome não acha |
+| **Só 3 itens?** | `auditar_produtos_fantasma_pg` no agro-db — **staging 2026-06-24:** **1 grave** (…`d31` ibiuna inicial, GM=Id) + **batom** era falso positivo (v2.52 não conta) · `--higiene` lista codigo_interno=Id |
+| **Os outros 2 ibiuna?** | No staging snapshot **já tinham nome+GM no Postgres** (só …`d31` com `codigo_nfe` = Id Mongo) — produção pode diferir; rodar o mesmo comando na loja |
+| **Evitar** | Import Mongo→PG pula fantasma; cadastro novo no Agro |
+| **Corrigir** | `corrigir_produto_nome_objectid_pg --dry-run` → sem `--dry-run` |
+
+**Auditoria staging (print Renan):**
+
+```
+Fantasmas graves: 1   # após v2.52; antes eram 2 (batom incluso)
+…d31 | ibiuna inicial 25 kg | gm_pg=69937… | → GM1542-25 IBIUNA
+batom …d267 | nome OK gm=1 | só higiene (--higiene)
+```
 
 ### FECHADO — 3× ibiuna 25 kg (fantasma Mongo, 2026-06-24)
 
