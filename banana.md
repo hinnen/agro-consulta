@@ -587,7 +587,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
 | **Ajuste 2026-05-28** | Altura da lista **cabe 5 itens + botão** sem rolar; clique **abre +5** (até 10 sem scroll); acima de 10 → scroll + setas |
 | **Ajuste 2026-05-28b** | **Zoom Chrome:** botão fora da área que rola + recalcula ao mudar zoom; fundo **azul mais forte** (diferente do carrinho) |
-| **Commits** | `2818944` · `c94ac1d` · `7aaca87` · *(após push)* |
+| **Commits** | `2818944` · `c94ac1d` · `7aaca87` · `850f40a` |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
