@@ -442,7 +442,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Teste parcial ✅**   | Entrada NF wizard, Compras busca/saldo                            | D1 ledger + D3 wizard **teste** v2.78 · financeiro NF **dry-run** staging · **DtoLancamento** real ainda Mongo                                 |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no fluxo estoque Agro; flag `AGRO_FONTE_FINANCEIRO=agro_pg` **não** nas views de Lançamentos                                   |
 | **Falta (alta)**       | PDV `/consulta/`, `/pdv/checkout/` **na loja**                    | Staging Fase B ✅                                                                                                                                |
-| **Teste parcial ✅**   | Compras **métricas** D4 blocos **A+B** (média/sugestão + últimas compras Entrada NF) | **A** v2.79 Postgres · **B** v2.84 GM9503 OK · **C** folhas pendente · GM motor por último                |
+| **Teste parcial ✅**   | Compras **métricas** D4 **A+B+C** (busca + folhas) | **A** v2.79 · **B** v2.84 · **C** v2.87 categoria overlay · GM motor por último                |
 | **Falta (média)**      | Busca **GM** Compras/NF                                           | Motor busca único — **por último**                                                                                                              |
 | **Falta (média)**      | Entrada NF **financeiro real** fora dry-run                       | Postgres ou título Agro próprio — hoje `DtoLancamento` Mongo                                                                                    |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
@@ -593,17 +593,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.84`  
+**Versão:** `1.0.85`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — reteste Compras GM9503 + milho v2.85  
+**Atualizado por:** Renan — folha categoria «teste» GM9503 OK v2.87  
 **Versão app (`VERSION`):** **teste** v2.87 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Deploy loja** | **~20h** — loja fecha · pacote desvinculação (sem D4 completo na loja na 1ª subida) |
-| **Código agora** | **Compras D4 bloco C** — folhas categoria/unidade/fornecedor: vendas + última compra via Postgres/Entrada NF (v2.85) |
+| **Deploy loja** | **~20h** — pacote desvinculação (PDV/gestão/ledger/Entrada NF — D4 Compras **fora** da 1ª subida loja) |
+| **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
 | **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP · motor GM por último |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
@@ -647,7 +647,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 A+B ✅ Renan** · **C código v2.85** (folha ainda não testada) · deploy loja **~20h**
+**Onde paramos:** §4.15 **Compras D4 A+B+C ✅ Renan** · deploy loja **~20h** · próximo sprint **Entrada NF financeiro / Lançamentos CP**
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -657,13 +657,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **D1** | Ledger — saldo | ✅ **saldo bate** Gestão = Compras = Consulta (GM9503 **-1** no reteste 25/06 — era **-2** pós-entrada NF; conferir se houve venda/ajuste) · ✅ preço venda sync · ⏸ ajuste estoque PIN staging |
 | **D2** | **Compras + Entrada NF passo produtos** | ✅ nome/custo · ❌ GM (`gm0050`…) — motor único |
 | **D3** | Entrada NF wizard (estoque Agro, financeiro dry-run staging, PIN) | ✅ **Renan 25/06** v2.78 — GM9503 «teste» **-2** igual **Consulta** e **Compras** · ⏸ título real só na **loja** |
-| **D4** | Compras **métricas** (última compra, média venda, sugestão) | **A ✅ B ✅** · **C** folhas v2.85 pendente reteste impressão · GM por último |
+| **D4** | Compras **métricas** (última compra, média venda, sugestão + folhas) | **A ✅ B ✅ C ✅** teste v2.79–v2.87 · GM por último |
 
 **Próximo passo (sprint dias):**
-1. **Deploy loja 25/06 noite** (pacote desvinculação — CHECKPOINT abaixo)
-2. **Compras D4 bloco C** (folhas) — opcional antes do deploy · **GM9503 = referência de teste**
-3. **Lançamentos CP** — desvinculação global
-4. **Motor busca** — por último
+1. **Deploy loja ~20h 25/06** (pacote desvinculação — CHECKPOINT abaixo)
+2. **Entrada NF financeiro Agro** · **Lançamentos CP**
+3. **Motor busca** — por último
 
 ### WIP HOJE — Compras D4 (25/06, até deploy loja)
 
@@ -671,7 +670,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ----- | ------------- | ------------------- | ---------- |
 | **A** | **Sugestão** (média × horizonte) | `api_pdv_metricas_produtos?compras=1` → **VendaAgro Postgres** (`compras_metricas_util.py`) | **✅ Renan 25/06** — ver nota staging abaixo |
 | **B** | **Últimas compras** nos cards da busca | Entrada NF Agro + fallback Mongo ERP | **✅ Renan 25/06** v2.84 — GM9503 mostra faixa «Últimas compras (ERP)» |
-| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — vendas Postgres + última compra Entrada NF | **código v2.85** — retestar **Folha Compras** (Renan ainda não mandou print) |
+| **C** | **Folhas** (fornecedor/categoria/unidade) | Relatórios planilha — vendas Postgres + última compra Entrada NF | **✅ Renan 25/06** v2.87 — categoria «teste» · GM9503 · últ. compra **1** · média/sem **10** |
+| **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
 
 ### RETESTE — Compras v2.85 (Renan 25/06, prints GM9503 + milho)
 
@@ -680,17 +680,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **GM9503 «teste»** | ✅ **Bloco B** — chips **Teste R$ 1,00** + **Sn - Europet R$ 7,99** · ✅ **A** — sug. **20** · S3=17 · S4=2 · média **0,63/dia** · saldo **-1** |
 | **GM9503 observação** | Custo **lista R$ 0** vs **base R$ 1,00** no detalhe — cosmético (já anotado) |
 | **GM0090-47 milho** | ✅ **Esperado staging** — gráfico/média **zerados** (snapshot **não** copia vendas da loja) · saldo **30** (C9/V21) OK · «Últimas compras» vazio = sem Entrada NF desse produto **no teste** |
-| **Bloco C folhas** | ⏸ **bug** categoria «teste» + GM9503 — overlay PG tinha categoria, filtro só Mongo · **fix v2.87** |
+| **Bloco C folhas** | ✅ **v2.87** — planilha categoria «teste» · 1 produto · últ. pedido **1** · vendida desde últ. **0** · média/sem **10** |
 
-### FIX — Folha Compras categoria overlay (Renan 25/06, v2.87)
+### FECHADO — Compras D4 bloco C · folha categoria (Renan 25/06, v2.87)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commits** | `5e23a07` métricas Postgres na planilha · `6b95614` filtro categoria overlay |
+| **Bug corrigido** | Categoria só no overlay Gestão → relatório vazio · merge overlay igual **unidade** |
+| **Teste OK** | Categoria **teste** → **1 produto** «teste» (GM9503) · colunas preenchidas |
+| **Não testado** | Folhas **fornecedor** / **unidade** — mesma base; retestar se usar |
+
+### FIX — Folha Compras categoria overlay (histórico v2.87)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Planilha **categoria «teste»** → «Nenhum produto encontrado…» — GM9503 visível na **Gestão** com categoria teste |
 | **Causa** | Dropdown já misturava overlay + Mongo; **filtro do relatório** só lia ``NomeCategoria/Categoria/Grupo`` no Mongo |
 | **Fix** | ``_lista_produto_ids_catalogo_por_categoria`` — mesmo padrão da **unidade**: overlay ``ProdutoGestaoOverlayAgro.categoria`` + merge Mongo |
-| **Reteste** | Ctrl+F5 → Folha Compras → categoria **teste** → imprimir → deve listar GM9503 |
-| **Fora hoje** | GM `gm0050` | Motor busca — **último** | — |
+| **Reteste** | ✅ Renan 25/06 18:09 — planilha A4 impressão OK |
 
 **Já OK Compras (não mexer):** busca nome · custo · saldo ledger · carrinho/pedido.
 
