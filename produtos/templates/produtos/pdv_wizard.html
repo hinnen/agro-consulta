@@ -169,7 +169,7 @@
   #pdv-product-autocomplete {
     padding: 0;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     border-color: #bae6fd !important;
     background: linear-gradient(180deg, #f0f9ff 0%, #fff 18%) !important;
     box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16) !important;
@@ -216,20 +216,16 @@
   #pdv-product-autocomplete .pdv-ac-row:last-child { border-bottom: none; }
   #pdv-product-autocomplete .pdv-ac-load-more {
     display: block;
-    position: sticky;
-    bottom: 0;
-    z-index: 3;
     width: 100%;
     border: 0;
     border-top: 2px dashed #bae6fd;
     background: #f8fafc;
-    padding: 0.85rem 0.55rem;
+    padding: 0.65rem 0.55rem;
     text-align: center;
     font-size: 0.95rem;
     font-weight: 900;
     color: #0369a1;
     cursor: pointer;
-    box-shadow: 0 -8px 16px rgba(248, 250, 252, 0.92);
     transition: background 0.1s ease, color 0.1s ease;
   }
   #pdv-product-autocomplete .pdv-ac-load-more:disabled {
@@ -1515,7 +1511,7 @@
     #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
     #pdv-step1-search-wrap h3 { font-size: 12px !important; }
     #pdv-product-search { height: 2.4rem !important; font-size: 13px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
-    #pdv-product-autocomplete { max-height: 16rem !important; }
+    #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
       grid-template-columns: 2.65rem minmax(0, 1fr) 6rem 5rem 6.25rem !important;
