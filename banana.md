@@ -564,9 +564,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.46 (nome ObjectId + busca GM) · **produção** v2.27 (`731607c`) — **nenhum push assistente em `producao`**
+**Versão app (`VERSION`):** **teste** v2.48 · **produção** v2.27 — **nenhum push assistente em `producao`**
 
-### URGENTE — 3× ibiuna 25 kg nome = Id Mongo (2026-06-24)
+### FECHADO — 3× ibiuna 25 kg (cadastro manual Renan, 2026-06-24)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Quem corrigiu** | **Renan manual** no cadastro (lápis) — assistente **não** alterou Postgres da loja nem rodou comando Shell |
+| **Código (teste)** | v2.45–v2.48: `catalogo_agro.buscar`, `catalogo_nome_util`, comando `corrigir_produto_nome_objectid_pg` — rede de segurança / busca |
+| **Estado (print)** | Nomes + GM **GM1541-25 / GM1542-25 / GM1546-25** OK · **marca/categoria** ainda «—» → preencher **IBIUNA** / **Aves** nos 3 |
+| **Conferir preço×nome** | No print: GM1541-25 (crescimento) **R$ 84** e GM1542-25 (inicial) **R$ 86** — antes deduzimos o inverso; validar na embalagem |
+| **Escopo** | Só esses **3 fantasmas** Mongo (nome «—» + Id 24 hex); resto do catálogo normal |
+
+### URGENTE — 3× ibiuna 25 kg nome = Id Mongo (2026-06-24, histórico)
 
 | Item | Detalhe |
 | ---- | ------- |
