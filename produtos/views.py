@@ -179,7 +179,6 @@ from .nfe_entrada_util import (
     excluir_rascunho_entrada,
     gravar_ult_nsu,
     entrada_nfe_busca_params_from_request,
-    listar_empresas_estoque_entrada_nfe,
     listar_empresas_financeiro_entrada_nfe,
     listar_rascunhos_entrada,
     marcar_rascunho_estoque_aplicado,
@@ -10381,7 +10380,10 @@ def _mascarar_cnpj(cnpj: str) -> str:
 @login_required(login_url="/admin/login/")
 def entrada_nota_view(request):
     """Entrada de NF-e: manual, XML e Distribuição DF-e (SEFAZ)."""
-    empresas_entrada_nfe = listar_empresas_estoque_entrada_nfe()
+    empresas_entrada_nfe = [
+        {"id": e.pk, "nome": e.nome_fantasia}
+        for e in Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    ]
     _client, _db = obter_conexao_mongo()
     empresas_fin_entrada_nfe = listar_empresas_financeiro_entrada_nfe(_db)
     return render(
