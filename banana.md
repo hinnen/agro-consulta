@@ -344,6 +344,18 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera.
 
+**Fantasmas Mongo → Postgres (`agro_pg`, 2026-06-24):**
+
+| O quê | Detalhe |
+| ----- | ------- |
+| **O que é** | Documento no espelho Mongo com `_id` 24 hex **sem** `Nome` — import virou linha `Produto` com nome «—» e `codigo_interno` = Id |
+| **Caso loja** | 3× ibiuna **25 kg** (GM1541/42/46-25); demais variantes OK |
+| **Evitar de novo** | `importar_catalogo_mongo_produto` **ignora** fantasma (`deve_ignorar_import_mongo_fantasma`) · nunca grava ObjectId como nome · novo cadastro só via Agro (não duplicar GM no Mongo |
+| **Auditar (quantos?)** | Render Shell: `python manage.py auditar_produtos_fantasma_pg` → lista **todos** fantasmas; `--ativos` só ativos; `0` = só os 3 já corrigidos ou nenhum |
+| **Corrigir lote** | `python manage.py corrigir_produto_nome_objectid_pg --dry-run` depois sem `--dry-run` |
+| **Quando rodar** | Após `importar_catalogo_mongo_produto`, após snapshot staging, se busca cadastro «sumir» produto que existe no PDV |
+| **Código** | `catalogo_nome_util.py` · comandos `auditar_*` / `corrigir_*` · exibição API herda irmãos GM (teste v2.50+) |
+
 **Produto novo — código sistema + GM (decisão 2026-06-22, Renan OK no teste):**
 
 
@@ -564,7 +576,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.48 · **produção** v2.27 — **nenhum push assistente em `producao`**
+**Versão app (`VERSION`):** **teste** v2.51 (auditoria fantasmas) · **produção** v2.27
+
+### Fantasmas cadastro — prevenção + auditoria (2026-06-24)
+
+| Pergunta | Resposta |
+| -------- | -------- |
+| **Só 3 itens?** | Rodar `auditar_produtos_fantasma_pg` no **agro-db** (teste e produção). Contagem **≠ 3** → corrigir lote ou revisar lista |
+| **Evitar** | Import Mongo→PG pula fantasma; cadastro novo no Agro; não reimportar catálogo inteiro sem auditoria |
+| **Sintoma rápido** | Cadastro pág.1 com «—» + Id `69937…` no subtítulo; busca por nome não acha |
 
 ### FECHADO — 3× ibiuna 25 kg (fantasma Mongo, 2026-06-24)
 

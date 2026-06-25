@@ -39,6 +39,62 @@ def queryset_produtos_nome_corrupto(qs=None):
     ).filter(produto_externo_id__iregex=r"^[0-9a-f]{24}$")
 
 
+def iter_fantasmas_catalogo(*, ativos_apenas: bool = False):
+    """Todos os ``Produto`` que batem ``produto_fantasma_catalogo``."""
+    qs = Produto.objects.all().order_by("nome", "pk")
+    if ativos_apenas:
+        qs = qs.filter(cadastro_inativo=False, ativo=True)
+    for p in qs.iterator(chunk_size=200):
+        if produto_fantasma_catalogo(p):
+            yield p
+
+
+def auditar_fantasmas_catalogo(*, ativos_apenas: bool = False) -> list[dict]:
+    """Lista fantasmas + campos resolvidos (para Shell/comando de auditoria)."""
+    out: list[dict] = []
+    for p in iter_fantasmas_catalogo(ativos_apenas=ativos_apenas):
+        pid = (p.produto_externo_id or "").strip()
+        patch = resolver_campos_catalogo_produto(p)
+        out.append(
+            {
+                "produto_externo_id": pid,
+                "nome_pg": (p.nome or "").strip(),
+                "codigo_nfe_pg": (p.codigo_nfe or "").strip(),
+                "preco_venda": float(p.preco_venda or 0),
+                "nome_resolvido": str(patch.get("nome") or "").strip(),
+                "codigo_nfe_resolvido": str(patch.get("codigo_nfe") or "").strip(),
+                "marca_resolvida": str(patch.get("marca") or "").strip(),
+                "categoria_resolvida": str(patch.get("categoria") or "").strip(),
+            }
+        )
+    return out
+
+
+def deve_ignorar_import_mongo_fantasma(doc: dict, pid: str) -> bool:
+    """
+    Não importar duplicata Mongo sem ``Nome`` quando o GM já existe no Postgres.
+
+    Fantasmas típicos: ``_id`` 24 hex, sem cadastro, mesmo preço/GM que variante boa.
+    """
+    nome_m = str(doc.get("Nome") or "").strip()
+    if nome_m and not nome_parece_objectid_corrupto(nome_m, pid):
+        return False
+    cnfe = str(doc.get("CodigoNFe") or doc.get("Codigo") or "").strip().upper()
+    if cnfe:
+        tem_bom = (
+            Produto.objects.filter(codigo_nfe__iexact=cnfe)
+            .exclude(produto_externo_id=pid)
+            .exclude(nome__iregex=r"^[0-9a-f]{24}$")
+            .exclude(nome__in=["—", "-", "–", "---", ""])
+            .exists()
+        )
+        if tem_bom:
+            return True
+    if _RE_OID.fullmatch((pid or "").strip()) and not nome_m:
+        return True
+    return False
+
+
 def _nome_limpo_mongo(doc: dict | None, pid: str) -> str:
     if not isinstance(doc, dict):
         return ""
