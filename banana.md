@@ -573,14 +573,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.74`  
-**Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — busca GM alinhada ao PDV (v2.57)  
-**Versão app (`VERSION`):** **teste** v2.57 · **produção** v2.27
+**Versão:** `1.0.76`  
+**Última atualização:** `2026-05-28`  
+**Atualizado por:** assistente — fix «carregar mais…» autocomplete PDV  
+**Versão app (`VERSION`):** **teste** v2.58 · **produção** v2.27
+
+### PDV — autocomplete «carregar mais…» (2026-05-28)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Busca `ibiun` mostrava 5 itens e **sumia** o «carregar mais…» (Renan local + teste) |
+| **Causa** | CSS da lista usava `overflow: hidden` — botão ficava **cortado** abaixo dos 5 itens; falha na API apagava o cache local |
+| **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
+| **Commits** | *(após push)* |
+| **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **B+C ✅** · **D2 preços OK (Renan)** · **busca GM v2.57** (`85e21c8` + refactor PDV) — Render redeploy + Ctrl+F5 → `gm9503`/`GM0050`
+**Onde paramos:** §4.15 **B+C ✅** · **D2 preços OK** · **busca GM Compras/NF ainda falha** (`gm0050`) · **próximo: motor de busca único** (cadastro/PDV = referência)
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
@@ -593,9 +603,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
 
 **Próximo passo sugerido (ordem):**
-1. Renan valida **D2** no teste: `/compras/` + `/entrada-nota/` passo 2 — busca GM/nome/custo.
-2. Se OK → **D3** entrada NF: reduzir leitura Mongo no casamento XML + confirmar gravação estoque só Agro (ledger).
-3. **Produção:** nada sem frase+senha; loja continua Mongo catálogo.
+1. **Busca unificada** (decisão Renan 2026-06-25) — ver § abaixo; **antes** de mais patch em Compras/NF.
+2. Renan valida **D2** no teste após motor único: GM prefixo (`gm0050` → `GM0050-15`…), nome, custo.
+3. Se OK → **D3** entrada NF (XML, estoque, financeiro).
+
+### DECISÃO — motor de busca único (Renan 2026-06-25)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Compras/NF ainda erram GM (`gm0050` → ibiuna); **cadastro + PDV OK**. Patches por tela não bastam — histórico de “quase copiar PDV” no cadastro levou meses até copiar de verdade. |
+| **Decisão** | **Um buscador só** (background): alteração nele → **todas** as telas ligadas buscam igual. |
+| **Alvo** | **Servidor:** `catalogo_agro.buscar` + `/api/buscar/` (modos `compras`, `wizard` = parâmetros, mesma lógica). **Cliente:** módulo único `agro_busca_produto.js` — sanitizar → GM/CB → local opcional → API → merge → ordenar; telas só **renderizam** o retorno. |
+| **Hoje (legado)** | `_js_busca_produto_inteligente.html` = filtro local **parcial**; cada tela tem merge/cache próprio (`consulta_produtos.js`, `compras.html`, `entrada_nota.html`, `cadastro_erp_panel.js`). |
+| **Ordem migração** | 1) Extrair pipeline do PDV (`executarBuscaLocal` + merge) para módulo · 2) PDV usa módulo · 3) Cadastro (API-only) · 4) Compras · 5) Entrada NF · 6) demais (transferências, ajuste mobile…). |
+| **Regra** | **Proibido** novo `filtrar*` / merge custom por tela — só opções do motor (`compras:1`, `limite`, `cacheRef`). |
+| **Status** | ❌ **pendente implementação** — D2 busca GM **não fechada** até isso ou cópia literal do PDV nas duas telas. |
 
 **Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.
 
@@ -674,7 +696,8 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | **Fix v2.55–v2.57** | **Raiz:** `termo_eh_codigo_gm` + motor `_js_busca_produto_inteligente` (mesmo do PDV) · **v2.57:** Compras/NF usam `mesclarBuscaPdvLocalComApi` + atalho GM sem local → só API (copiado de `consulta_produtos.js`) · removido `filtrarLocaisCodigoGmExato` (camada extra) |
 | **Preço «teste» GM9503** | Compras = **custo** R$ 1,00; PDV/NF = **venda** R$ 1,09 — esperado |
 | **Arquivos** | `cadastro_busca_codigo_util.py` · `catalogo_agro.py` · `_js_busca_produto_inteligente.html` · `compras.html` · `entrada_nota.html` |
-| **Teste Renan** | Ctrl+F5 → Compras + Entrada NF → `gm9503`, `GM9503`, `gm0050` → produto certo (não ibiuna/catálogo inteiro) |
+| **Deploy teste** | **Live `f538815`** (manual deploy após spend limit **$5**) — inclui fix GM `85e21c8`/`312e1ca` |
+| **Teste Renan** | Ctrl+F5 → Compras + Entrada NF → `gm9503`, `GM9503`, `gm0050` |
 
 ### Renan — cancelar assinatura ERP (2026-06-24, planejamento)
 
