@@ -576,7 +576,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.76`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix «carregar mais…» autocomplete PDV  
-**Versão app (`VERSION`):** **teste** v2.58 · **produção** v2.27
+**Versão app (`VERSION`):** **teste** v2.60 · **produção** v2.27
 
 ### PDV — autocomplete «carregar mais…» (2026-05-28)
 
@@ -585,7 +585,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Busca `ibiun` mostrava 5 itens e **sumia** o «carregar mais…» (Renan local + teste) |
 | **Causa** | CSS da lista usava `overflow: hidden` — botão ficava **cortado** abaixo dos 5 itens; falha na API apagava o cache local |
 | **Fix** | Lista com rolagem; botão **fixo no rodapé** da lista; «carregando…» enquanto o servidor responde; erro de rede não zera os 5 do cache |
-| **Commits** | *(após push)* |
+| **Commits** | `2818944` |
 | **Teste** | Pendente Renan no Render **teste** — buscar `ibiun` → ver «carregar mais…» ou «carregando…» → clicar → mais itens |
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
