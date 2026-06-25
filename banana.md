@@ -441,7 +441,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Flags existem; **não ligadas** nas views                                                                                                        |
 | **Falta (alta)**       | PDV `/consulta/`, wizard `/pdv/checkout/`                         | **Teste Fase B ✅** (Postgres catálogo staging). **Loja** ainda Mongo+overlay                                                                 |
 | **Falta (alta)**       | Gestão operacional `produtos_gestao.html`                         | **Teste Fase C ✅** (Postgres lista/facetas staging). **Loja** ainda Mongo                                                                 |
-| **Falta (média)**      | Entrada NF, Compras, Estoque/transferências, Validade             | Buscas e agregações no espelho                                                                                                                  |
+| **Falta (média)**      | Entrada NF, Compras, Estoque/transferências, Validade             | **D2** busca produto ✅ teste · **D3/D4** gravar/métricas ainda Mongo                                                                                  |
 | **Falta (grande)**     | Lançamentos (todas), BI `/`, Fiado, resumo financeiro             | `mongo_financeiro_util` + `DtoVenda`                                                                                                            |
 
 
@@ -576,7 +576,28 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.72`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — fix busca GM Compras + Entrada NF  
-**Versão app (`VERSION`):** **teste** v2.52 · **produção** v2.27 (fantasmas: conferir Shell loja quando puder)
+**Versão app (`VERSION`):** **teste** v2.53 · **produção** v2.27
+
+### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
+
+**Onde paramos:** §4.15 etapas **B+C ✅** no staging · **D entregue no código, validação Renan pendente** · fix busca GM Compras/NF (v2.43+) no teste.
+
+| Fase | O quê | Status teste |
+| ---- | ----- | ------------ |
+| **A** | Snapshot loja→staging (`copiar_snapshot_pdv_loja`) | ✅ |
+| **B** | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` — PDV catálogo Postgres | ✅ Renan |
+| **C** | Gestão operacional lista/busca/facetas Postgres | ✅ Renan |
+| **D1** | Ledger — saldo = `saldo_informado` ajuste (sem delta Mongo) | ✅ código · conferir saldo Compras/gestão |
+| **D2** | **Compras + Entrada NF passo produtos** — `/api/buscar/?compras=1` = mesma base Postgres PDV | ✅ código · **testar** `gm9503`, nome, custo |
+| **D3** | Entrada NF **resto** (casar XML, gravar estoque, financeiro título) | ❌ ainda **Mongo/ERP** — próximo bloco grande |
+| **D4** | Compras **métricas** (última compra, média venda, sugestão) | ❌ ainda **Mongo** agregações |
+
+**Próximo passo sugerido (ordem):**
+1. Renan valida **D2** no teste: `/compras/` + `/entrada-nota/` passo 2 — busca GM/nome/custo.
+2. Se OK → **D3** entrada NF: reduzir leitura Mongo no casamento XML + confirmar gravação estoque só Agro (ledger).
+3. **Produção:** nada sem frase+senha; loja continua Mongo catálogo.
+
+**Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.
 
 ### RESOLVIDO — fantasmas ibiuna 25 kg + auditoria (2026-06-24)
 
