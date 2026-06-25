@@ -321,6 +321,8 @@
     var autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
     var productSearchAwaitingServer = false;
     var productSearchMayHaveMore = false;
+    var productSearchPointerInside = false;
+    var productSearchPointerTimer = null;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
     var stagingReadonly = !!(
@@ -2685,6 +2687,14 @@
         if (!node || typeof node.closest !== 'function') return false;
         var wrap = dom.productSearchWrap || document.getElementById('pdv-product-search-wrap');
         return !!(wrap && wrap.contains(node));
+    }
+
+    function markProductSearchPointerInside() {
+        productSearchPointerInside = true;
+        clearTimeout(productSearchPointerTimer);
+        productSearchPointerTimer = setTimeout(function () {
+            productSearchPointerInside = false;
+        }, 280);
     }
 
     function dismissProductAutocomplete() {
@@ -7536,14 +7546,22 @@
             }, 220);
         });
 
-        dom.productSearch.addEventListener('blur', function () {
+        dom.productSearch.addEventListener('blur', function (event) {
+            if (productSearchPointerInside) return;
+            var related = event.relatedTarget;
+            if (related && isInsideProductSearchZone(related)) return;
             window.setTimeout(function () {
+                if (productSearchPointerInside) return;
                 if (!dom.productAutocomplete || dom.productAutocomplete.classList.contains('hidden')) return;
                 var ae = document.activeElement;
                 if (ae && isInsideProductSearchZone(ae)) return;
                 dismissProductAutocomplete();
             }, 120);
         });
+
+        if (dom.productSearchWrap) {
+            dom.productSearchWrap.addEventListener('mousedown', markProductSearchPointerInside, true);
+        }
 
         document.addEventListener('mousedown', function (event) {
             if (isInsideProductSearchZone(event.target)) return;
@@ -7552,6 +7570,7 @@
 
         if (dom.productAutocomplete) {
             dom.productAutocomplete.addEventListener('mousedown', function (event) {
+                markProductSearchPointerInside();
                 var zoom = event.target.closest('[data-pdv-photo-zoom]');
                 if (zoom) return;
                 if (event.target.closest('[data-autocomplete-load-more]')) {
@@ -7563,6 +7582,7 @@
                     }
                     event.preventDefault();
                     expandProductAutocomplete();
+                    if (dom.productSearch) dom.productSearch.focus();
                     return;
                 }
                 var btn = event.target.closest('[data-add-product]');
