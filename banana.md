@@ -715,10 +715,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.00`  
+**Versão:** `1.1.01`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — gráfico gastos Chart.js deploy teste (Renan)  
-**Versão app (`VERSION`):** **teste** v3.18 · **produção** v3.01 · HEAD loja **`087c13f`**
+**Atualizado por:** assistente — Renan backup+conferência CP ~394k OK (~R$5 live)  
+**Versão app (`VERSION`):** **teste** v3.20 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
 
