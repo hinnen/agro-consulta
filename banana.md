@@ -483,6 +483,52 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Ordem técnica legada (referência):** cadastro → `agro_pg` → PDV busca → gestão → ledger → financeiro checkpoint.
 
+---
+
+### Renan — desvinculo: duas listas (28/05/2026)
+
+**Cenário lista 1:** ERP para de enviar dados **ou** Mongo fica inacessível **de repente** (não é corte planejado).
+
+#### 1) O que **para ou fica grave** (perde ERP/Mongo)
+
+| Área | O que acontece |
+| ---- | -------------- |
+| **Entrada NF** | **Para** se Mongo cair (rascunho da nota). Título a pagar (PG) OK se Mongo só parou de sync |
+| **Gestão produtos** | **Para ou fica vazia/lenta** — facetas e parte da lista ainda Mongo |
+| **Compras** | Relatórios/dimensões e «última compra» — **param de atualizar** ou quebram sem Mongo |
+| **Lançamentos** | **DRE, calendário, export PDF/Excel** — leem Mongo → **param** |
+| **Gráfico gastos** | **Para** (só Mongo hoje) |
+| **BI `/` + resumo gerencial** | Gráficos/histórico ERP — **param ou ficam velhos** |
+| **Transferências / Validade** | **Param ou ficam velhas** |
+| **Produtos novos no ERP** | **Não entram** no Agro até import/sync |
+| **Listas auxiliares** | Fornecedor, plano de conta, formas — muitas telas ainda puxam Mongo |
+
+**Continua funcionando** (Postgres Agro — operação do dia):
+
+PDV venda · caixa · fiado · clientes · NFC-e · RH · **CP/CR Lançamentos** · saldo operacional (ledger/ajustes) · preço overlay PG · cadastro/PDV catálogo já importado.
+
+---
+
+#### 2) O que **ainda falta** para desvinculo completo (pode cancelar ERP)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| ✅ | Cadastro + PDV catálogo PG + ledger saldo | **Loja** |
+| ✅ | Compras D4 (métricas/folhas) | **Loja** |
+| ✅ | Entrada NF passo 7 título a pagar | **PG loja** |
+| ✅ | Lançamentos CP/CR lista + gravar | **PG loja** |
+| ✅ | Fiado, vendas, caixa, RH, NFC-e, clientes | **PG nativo** |
+| ✅ | Checkpoint + corte sync API financeiro | **Feito** |
+| 1 | **Gestão** 100 % PG na loja (`SOMENTE_POSTGRES`) | Falta |
+| 2 | **DRE + calendário + export PDF/Excel** Lançamentos → PG | Falta |
+| 3 | **BI `/` + resumo gerencial** → VendaAgro PG | Falta |
+| 4 | **Gráfico gastos** → PG | Falta |
+| 5 | **Transferências + Validade** | Falta |
+| 6 | **Entrada NF rascunho** (nota em andamento) → PG | Opcional / grande |
+| 7 | **Compras** dimensões 100 % PG (sem scan Mongo) | Parcial |
+| 8 | **Congelar Mongo financeiro** + só histórico | Opcional |
+| 9 | **Motor busca GM** Compras/NF | UX — por último |
+| 10 | **Cancelar assinatura ERP** | Só após 1–8 estáveis + backup |
 
 **Mitigação:** fazer só a etapa 1 no `teste`, conferir cadastro + busca + salvar preço, **só então** produção.
 
@@ -583,7 +629,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 | # | O quê | Urgência loja |
 | --- | ----- | ------------- |
-| **1** | **Entrada NF passo 7** — «Salvar + a pagar» 100 % Postgres (hoje pode ainda tocar Mongo em alguns fluxos) | Quando usar NF |
+| **1** | **Entrada NF passo 7** — títulos «Salvar + a pagar» | **✅ já Postgres na loja** (`inserir_lancamentos_manual_lote_dispatch`) · rascunho NF (etapas 1–6) continua Mongo |
 | **2** | **DRE / fluxo calendário / PDF** Lançamentos — ler Postgres | Baixa (telas secundárias) |
 | **3** | **Esconder painel amarelo** checkpoint (admin) — migração CP/CR fechada | Cosmético |
 | **4** | **Congelar Mongo financeiro** (opcional) — título novo só PG; Mongo só histórico | Só quando 1–2 estáveis |
@@ -823,7 +869,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.09 (`fe1d4f6`) · **produção** v3.08
+**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.08
+
+### FECHADO — export Lançamentos + Gestão PG **28/05 (teste v3.11)**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Export CSV/PDF/Excel** | `_lancamentos_financeiro_dados_export` → Postgres quando `financeiro_postgres` |
+| **Gestão** | `agro_gestao_usa_postgres()` ligado na **loja** com `AGRO_FONTE_CATALOGO=agro_pg` (sem env novo) |
+| **Renan testar** | Gestão: lista + filtros · CP: export PDF bate total da tela |
+
+### AUDIT rabo de solta — antes sprint desvinculo Renan **28/05**
+
+| # | Item | Status | Ação |
+| - | ---- | ------ | ---- |
+| 1 | **CP/CR Postgres loja** | **✅ fechado** v3.04–v3.08 | Nada |
+| 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
+| 3 | **Gestão lista/facetas PG loja** | **✅ v3.11 teste** | Renan: abrir gestão + filtros |
+| 4 | **Fix cashback orçamento PDV** | **teste v3.09** | Testar staging |
+| 5 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
+
+**Prioridade Renan (setas vermelhas):** Gestão · NF rascunho · BI/resumo · Transferências/Validade · fornecedor/planos/formas.
+
+**Ordem sugerida dev:** (0) export PG · (1) **Gestão** PG loja · (2) listas auxiliares PG · (3) BI/resumo · (4) Transferências/Validade · (5) NF rascunho PG (maior).
 
 ### WIP — orçamento salvo → fechar venda (cashback) **28/05**
 
@@ -851,7 +919,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **CP** | **741** · **R$ 393.652,70** — lista + gravar Postgres |
 | **CR** | **453** · **R$ 29.241,58** — lista + gravar Postgres |
 | **Fiado** | Fora — tela própria Postgres |
-| **Pausa sprint** | DRE, calendário, export PDF/XLSX, NF passo 7 — ainda Mongo (retomar depois) |
+| **Pausa sprint** | DRE, calendário, export PDF/XLSX — leitura ainda Mongo · **NF passo 7 títulos = Postgres** (rascunho NF = Mongo) |
 
 ### FECHADO — CP Postgres loja **26/06** (Renan 99738595 + conferência)
 

@@ -51,8 +51,21 @@ def agro_pdv_catalogo_somente_postgres() -> bool:
 
 
 def agro_gestao_usa_postgres() -> bool:
-    """Gestão operacional lista/facetas no Postgres (staging — mesma flag Fase B PDV)."""
-    return agro_pdv_catalogo_somente_postgres()
+    """Gestão operacional lista/facetas no Postgres (staging Fase B ou loja ``agro_pg``)."""
+    if agro_pdv_catalogo_somente_postgres():
+        return True
+    if not agro_catalogo_usa_postgres():
+        return False
+    explicit = getattr(settings, "AGRO_GESTAO_SOMENTE_POSTGRES", None)
+    if explicit is not None:
+        return bool(explicit)
+    # Loja: catálogo já é agro_pg — gestão lê Postgres sem exigir PDV somente PG.
+    if (
+        not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
+        and not getattr(settings, "AGRO_STAGING_READONLY", False)
+    ):
+        return True
+    return False
 
 
 def agro_estoque_ledger_ativo() -> bool:

@@ -13427,48 +13427,20 @@ def api_lancamentos_contas_pagar(request):
 @require_GET
 def api_lancamentos_export_csv(request):
     """Exporta CSV com os mesmos filtros da lista (até 5000 linhas)."""
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
+    err, data = _lancamentos_financeiro_dados_export(request)
+    if err:
+        return err
 
-    tipo = (request.GET.get("tipo") or "pagar").strip().lower()
-    despesa = tipo != "receber"
-    status = (request.GET.get("status") or "abertos").strip().lower()
-    if status not in ("abertos", "quitados", "todos"):
-        status = "abertos"
-    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
-    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
-    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
-    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
-    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
-    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
-    texto = (request.GET.get("q") or "").strip() or None
-    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
-    if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
-        ordenacao = "vencimento_asc"
-
-    excl_planos = _lancamentos_excluir_planos_from_request(request)
-    query = lancamentos_montar_query_mongo(
-        despesa=despesa,
-        status=status,
-        vencimento_de=v_de,
-        vencimento_ate=v_ate,
-        competencia_de=c_de,
-        competencia_ate=c_ate,
-        pagamento_de=p_de,
-        pagamento_ate=p_ate,
-        texto=texto,
-        excluir_planos_nomes=excl_planos or None,
-    )
-    linhas, _, _ = lancamentos_buscar_pagina(
-        db,
-        query,
-        despesa,
-        page=1,
-        page_size=5000,
-        ordenacao=ordenacao,
-        limite_max=5000,
-    )
+    linhas = data["linhas"]
+    despesa = data["despesa"]
+    status = data["status"]
+    v_de = data["v_de"]
+    v_ate = data["v_ate"]
+    c_de = data["c_de"]
+    c_ate = data["c_ate"]
+    p_de = data["p_de"]
+    p_ate = data["p_ate"]
+    texto = data["texto"]
 
     buf = StringIO()
     # Excel (pt-BR) costuma interpretar melhor CSV com ";".
@@ -13568,10 +13540,6 @@ def _lancamentos_financeiro_dados_export(request):
     Mesmos filtros da lista / CSV / Excel / PDF — até 5000 títulos deduplicados.
     Retorna (resposta_erro, None) ou (None, dict com linhas, despesa, v_de, v_ate, status).
     """
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8"), None
-
     tipo = (request.GET.get("tipo") or "pagar").strip().lower()
     despesa = tipo != "receber"
     status = (request.GET.get("status") or "abertos").strip().lower()
@@ -13589,27 +13557,54 @@ def _lancamentos_financeiro_dados_export(request):
         ordenacao = "vencimento_asc"
 
     excl_planos = _lancamentos_excluir_planos_from_request(request)
-    query = lancamentos_montar_query_mongo(
-        despesa=despesa,
-        status=status,
-        vencimento_de=v_de,
-        vencimento_ate=v_ate,
-        competencia_de=c_de,
-        competencia_ate=c_ate,
-        pagamento_de=p_de,
-        pagamento_ate=p_ate,
-        texto=texto,
-        excluir_planos_nomes=excl_planos or None,
-    )
-    linhas, _, _ = lancamentos_buscar_pagina(
-        db,
-        query,
-        despesa,
-        page=1,
-        page_size=5000,
-        ordenacao=ordenacao,
-        limite_max=5000,
-    )
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import titulos_financeiro_buscar_pagina_pg
+
+        linhas, _, _ = titulos_financeiro_buscar_pagina_pg(
+            despesa=despesa,
+            status=status,
+            vencimento_de=v_de,
+            vencimento_ate=v_ate,
+            competencia_de=c_de,
+            competencia_ate=c_ate,
+            pagamento_de=p_de,
+            pagamento_ate=p_ate,
+            texto=texto,
+            excluir_planos_nomes=excl_planos or None,
+            page=1,
+            page_size=5000,
+            ordenacao=ordenacao,
+            skip_totais=True,
+            limite_max=5000,
+        )
+    else:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8"), None
+
+        query = lancamentos_montar_query_mongo(
+            despesa=despesa,
+            status=status,
+            vencimento_de=v_de,
+            vencimento_ate=v_ate,
+            competencia_de=c_de,
+            competencia_ate=c_ate,
+            pagamento_de=p_de,
+            pagamento_ate=p_ate,
+            texto=texto,
+            excluir_planos_nomes=excl_planos or None,
+        )
+        linhas, _, _ = lancamentos_buscar_pagina(
+            db,
+            query,
+            despesa,
+            page=1,
+            page_size=5000,
+            ordenacao=ordenacao,
+            limite_max=5000,
+        )
+
     return None, {
         "linhas": linhas,
         "despesa": despesa,
@@ -13617,6 +13612,9 @@ def _lancamentos_financeiro_dados_export(request):
         "v_ate": v_ate,
         "c_de": c_de,
         "c_ate": c_ate,
+        "p_de": p_de,
+        "p_ate": p_ate,
+        "texto": texto,
         "status": status,
     }
 
