@@ -718,15 +718,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.01`  
 **Última atualização:** `2026-06-26`  
 **Atualizado por:** assistente — Renan backup+conferência CP ~394k OK (~R$5 live)  
-**Versão app (`VERSION`):** **teste** v3.20 · **produção** v3.01 · HEAD loja **`087c13f`**
+**Versão app (`VERSION`):** **teste** v3.22 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commits** | `11277f0` (feature) · `9b105e9` (banana) |
+| **Commits** | `11277f0` (feature) · `9b105e9` · `e77de07` · **`9979af1`** (fix tela em branco) |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
-| **API** | `GET /financeiro/api/dados-grafico-gastos/` — params: `agrupamento`, `inicio`, `fim`, `planos` (IDs vírgula), `individual` |
+| **API** | `GET` ou **`POST`** `/financeiro/api/dados-grafico-gastos/` — JSON: `agrupamento`, `inicio`, `fim`, `planos` (array), `individual` |
 | **Fonte dados** | Mongo `DtoLancamento` — despesas, data **vencimento**, valor **Saida**, dedup DRE (`DRE_DEDUP_LANCAMENTO_ID`) |
 | **Planos (checkbox)** | `DtoPlanoDeConta` com `EhDespesa=true`; se poucos, completa com distintos dos lançamentos |
 | **Modo normal** | Uma linha **«Total Selecionado»** (soma planos marcados) |
