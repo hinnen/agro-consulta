@@ -658,14 +658,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const COR_HIST = '#d97706';
 
   const pluginGgCompareDelta = {
-    id: 'ggCompareDelta',
-    afterDatasetsDraw: function (chart) {
+    id: 'ggCompareLabels',
+    afterDraw: function (chart) {
       const meta = chartSerieMeta;
       if (!meta || !meta.compareMode || !meta.deltas || !meta.deltas.length) return;
       const ds0 = chart.getDatasetMeta(0);
       const ds1 = chart.getDatasetMeta(1);
       if (!ds0 || !ds1) return;
       const ctx = chart.ctx;
+      const chartArea = chart.chartArea;
       meta.deltas.forEach(function (d, i) {
         const p0 = ds0.data[i];
         const p1 = ds1.data[i];
@@ -673,35 +674,87 @@ document.addEventListener('DOMContentLoaded', function () {
         const v0 = Number((chart.data.datasets[0].data || [])[i]) || 0;
         const v1 = Number((chart.data.datasets[1].data || [])[i]) || 0;
         if (v0 <= 0 && v1 <= 0) return;
+
+        const gap = Math.abs(p0.y - p1.y);
         const x = p0.x;
-        const yTop = Math.min(p0.y, p1.y) - 8;
-        const txt = fmtDeltaCompact(d);
         const cls = deltaClasse(d);
-        ctx.save();
-        ctx.font = '800 10px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        const w = ctx.measureText(txt).width + 12;
-        const h = 15;
-        const left = x - w / 2;
-        const top = yTop - h;
-        ctx.fillStyle = cls === 'is-mais' ? 'rgba(254, 243, 199, 0.96)' : (cls === 'is-menos' ? 'rgba(209, 250, 229, 0.96)' : 'rgba(241, 245, 249, 0.96)');
-        ctx.strokeStyle = cls === 'is-mais' ? '#d97706' : (cls === 'is-menos' ? '#059669' : '#94a3b8');
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(left, top, w, h, 4);
-        } else {
-          ctx.rect(left, top, w, h);
+        const deltaTxt = fmtDeltaCompact(d);
+
+        if (gap >= 44) {
+          desenharRotuloComparacao(ctx, x, p0.y, fmtValor(v0, 0), COR_REAL, v0 >= v1 ? 'acima' : 'abaixo', chartArea);
+          desenharRotuloComparacao(ctx, x, p1.y, fmtValor(v1, 0), COR_HIST, v1 > v0 ? 'acima' : 'abaixo', chartArea);
+          if (Math.abs(d) >= 0.01) {
+            desenharRotuloComparacao(ctx, x, (p0.y + p1.y) / 2, deltaTxt, cls, 'centro', chartArea, true);
+          }
+          return;
         }
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = cls === 'is-mais' ? '#b45309' : (cls === 'is-menos' ? '#047857' : '#64748b');
-        ctx.fillText(txt, x, yTop - 2);
-        ctx.restore();
+
+        var pilha = [];
+        if (v0 > 0) pilha.push({ txt: fmtValor(v0, 0), cor: COR_REAL, val: v0 });
+        if (v1 > 0) pilha.push({ txt: fmtValor(v1, 0), cor: COR_HIST, val: v1 });
+        pilha.sort(function (a, b) { return b.val - a.val; });
+        var yCursor = Math.min(p0.y, p1.y) - 14;
+        pilha.forEach(function (item) {
+          yCursor = desenharRotuloComparacao(ctx, x, yCursor, item.txt, item.cor, 'fixo', chartArea) - 6;
+        });
+        if (Math.abs(d) >= 0.01) {
+          desenharRotuloComparacao(ctx, x, yCursor, deltaTxt, cls, 'fixo', chartArea, true);
+        }
       });
     }
   };
+
+  function corRotuloDelta(cls) {
+    if (cls === 'is-mais') return { bg: 'rgba(254, 243, 199, 0.98)', border: '#d97706', text: '#b45309' };
+    if (cls === 'is-menos') return { bg: 'rgba(209, 250, 229, 0.98)', border: '#059669', text: '#047857' };
+    return { bg: 'rgba(241, 245, 249, 0.98)', border: '#94a3b8', text: '#64748b' };
+  }
+
+  function corRotuloSerie(cor) {
+    if (cor === COR_HIST) return { bg: 'rgba(255, 247, 237, 0.98)', border: COR_HIST, text: '#b45309' };
+    return { bg: 'rgba(236, 253, 245, 0.98)', border: COR_REAL, text: '#047857' };
+  }
+
+  /** @returns {number} próximo Y livre acima (modo empilhado) */
+  function desenharRotuloComparacao(ctx, x, y, txt, corOuCls, modo, chartArea, isDelta) {
+    if (!txt) return y;
+    const cores = typeof corOuCls === 'string' && corOuCls.indexOf('is-') === 0
+      ? corRotuloDelta(corOuCls)
+      : corRotuloSerie(corOuCls);
+    const fontSize = isDelta ? 11 : 12;
+    ctx.save();
+    ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    const padX = 8;
+    const padY = 4;
+    const w = ctx.measureText(txt).width + padX * 2;
+    const h = fontSize + padY * 2;
+    var top;
+    if (modo === 'acima') top = y - h - 12;
+    else if (modo === 'abaixo') top = y + 12;
+    else if (modo === 'centro') top = y - h / 2;
+    else top = y - h;
+
+    if (chartArea) {
+      if (top < chartArea.top + 2) top = chartArea.top + 2;
+      if (top + h > chartArea.bottom - 2) top = chartArea.bottom - h - 2;
+    }
+
+    const left = x - w / 2;
+    ctx.fillStyle = cores.bg;
+    ctx.strokeStyle = cores.border;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 6);
+    else ctx.rect(left, top, w, h);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = cores.text;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(txt, x, top + h / 2);
+    ctx.restore();
+    return top;
+  }
   let cpPopupAberto = false;
 
   function csrfToken() {
@@ -1258,6 +1311,7 @@ document.addEventListener('DOMContentLoaded', function () {
           },
           datalabels: {
             display: function (ctx) {
+              if (chartSerieMeta.compareMode) return false;
               if (!datalabelsOn) return false;
               const n = (ctx.chart.data.labels || []).length;
               const v = ctx.dataset.data[ctx.dataIndex];
@@ -1412,7 +1466,7 @@ document.addEventListener('DOMContentLoaded', function () {
           deltas: data.deltas || [],
           comparacao: data.comparacao || null
         };
-        chartGastos.options.layout.padding.top = compareMode ? 40 : 36;
+        chartGastos.options.layout.padding.top = compareMode ? 48 : 36;
         chartGastos.data.labels = data.labels || [];
         chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
           return estilizarDataset(ds, compareMode);
