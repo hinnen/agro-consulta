@@ -565,13 +565,19 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Quem | O quê |
 | ---- | ----- |
 | **Assistente** | Import PG · views CP em aberto · flag staging · testes |
-| **Renan** | Só bloco **«Renan — intervenção»** abaixo |
+| **Renan** | **1–2 ✅** · aguarda import teste (3–5) |
 
 ### Renan — intervenção (estritamente necessário)
 
-**Backup — CP nova (corrigido 25/06):** botões estavam só na tela **antiga** / hub órfão. **`/classico/`** redireciona para CP nova.
+| # | Status | Detalhe |
+| --- | ------ | ------- |
+| **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
+| **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · total **~R$ 394 mil** (quebrado) · **bate** sistema × Excel/ZIP backup · dif. **~R$ 5** — provável taxa cartão/venda ao vivo (**OK**) |
+| **3 Render env** | ⏸ | **Não** mexer — assistente avisa |
+| **4 Pós-import teste** | ⏸ | Mesmo total aberto + abrir 3 títulos |
+| **5 Fiado / CR** | ⏸ | Ignorar hoje |
 
-**Renan NA LOJA agora (superuser logado):** cole na barra do Chrome:
+**URLs backup (referência):**
 
 | O quê | URL |
 | ----- | --- |
