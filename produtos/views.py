@@ -5908,6 +5908,47 @@ def _periodo_vendas_from_request(request, *, default_preset="7d"):
     return di, df, label
 
 
+def _vendas_periodo_datetime_bounds(di: date, df: date) -> tuple[datetime, datetime]:
+    """Intervalo [início do dia di, fim do dia df] — usa índice em ``criado_em`` (sem ``__date``)."""
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(di, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(df, dtime.max), tz)
+    return ini, fim
+
+
+_VENDA_LISTA_DEFER_FIELDS = (
+    "erp_resposta",
+    "erp_envio_log_json",
+    "fiado_cronograma_json",
+    "devolucao_pagamentos_json",
+    "devolucao_movimento_caixa_ids",
+    "devolucao_motivo",
+)
+
+
+def _vendas_qs_periodo(di: date, df: date):
+    ini, fim = _vendas_periodo_datetime_bounds(di, df)
+    return (
+        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim)
+        .select_related("sessao_caixa", "nfce")
+        .defer(*_VENDA_LISTA_DEFER_FIELDS)
+        .order_by("-criado_em")
+    )
+
+
+def _venda_lista_preparar_linha(v, *, nfce_cfg: dict, tem_fiado: bool) -> None:
+    """Evita reparse de JSON fiado e NFC-e config a cada coluna do template."""
+    v.lista_tem_fiado = tem_fiado
+    v.lista_fiado_aguarda = (
+        tem_fiado
+        and (v.erp_sync_status or "") == VendaAgro.ErpSyncStatus.PENDENTE
+        and not v.enviado_erp
+    )
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    v.nfce_painel = painel_nfce_venda(v, _cfg=nfce_cfg)
+
+
 def _obter_sessao_caixa_aberta(request):
     return obter_sessao_caixa_aberta_request(request)
 
@@ -8367,11 +8408,7 @@ def api_pdv_cliente_credito_fiado(request):
 @login_required(login_url="/admin/login/")
 def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
-    qs = (
-        VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
-        .select_related("sessao_caixa", "nfce")
-        .order_by("-criado_em")
-    )
+    qs = _vendas_qs_periodo(di, df)
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
     filtro_fiado_q = Q(forma_pagamento__icontains="fiado") | Q(pagamentos_json__icontains="Fiado")
     if filtro_fiado == "1" or filtro_fiado == "sim":
@@ -8392,13 +8429,13 @@ def vendas_lista(request):
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
+    from produtos.fiado_credito_util import venda_local_tem_fiado
     from produtos.nfce_config_util import nfce_config_resumo
-    from produtos.nfce_venda_util import painel_nfce_venda
 
-    vendas = list(qs)
     nfce_cfg = nfce_config_resumo()
+    vendas = list(qs)
     for v in vendas:
-        v.nfce_painel = painel_nfce_venda(v, _cfg=nfce_cfg)
+        _venda_lista_preparar_linha(v, nfce_cfg=nfce_cfg, tem_fiado=venda_local_tem_fiado(v))
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -8415,7 +8452,7 @@ def vendas_lista(request):
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
-            "nfce_cfg": nfce_config_resumo(),
+            "nfce_cfg": nfce_cfg,
         },
     )
 
@@ -8423,11 +8460,7 @@ def vendas_lista(request):
 @login_required(login_url="/admin/login/")
 def vendas_exportar_csv(request):
     di, df, _label = _periodo_vendas_from_request(request, default_preset="hoje")
-    qs = (
-        VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
-        .select_related("sessao_caixa")
-        .order_by("-criado_em")
-    )
+    qs = _vendas_qs_periodo(di, df)
     resp = HttpResponse(content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = (
         f'attachment; filename="vendas_{di.isoformat()}_{df.isoformat()}.csv"'

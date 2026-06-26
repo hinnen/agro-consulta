@@ -418,6 +418,9 @@ class VendaAgro(models.Model):
         ordering = ["-criado_em"]
         verbose_name = "Venda Agro"
         verbose_name_plural = "Vendas Agro"
+        indexes = [
+            models.Index(fields=["-criado_em"], name="vendaagro_criado_em_idx"),
+        ]
 
     def __str__(self):
         return f"Venda #{self.pk} — {self.cliente_nome[:40]} — R$ {self.total}"

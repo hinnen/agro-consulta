@@ -872,9 +872,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.53 · **produção** v3.33
+**Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.33
 
-### WIP — lentidão teste (vendas + busca PDV) **24/06**
+### WIP — lentidão teste (vendas + PDV 1ª abertura) **24/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **v3.53** | Busca Consulta OK — validade BI não satura Mongo |
+| **v3.54** | **`/vendas/`** — filtro por data usa índice (`criado_em`); JSON pesado adiado; fiado/NFC-e 1× por linha · **PDV wizard** — catálogo no **localStorage** (mesma chave da Consulta) + delta em background; não refaz download ao fechar Chrome |
+| **Renan testar** | `/vendas/?preset=hoje` · fechar Chrome → abrir PDV (F1) — busca local deve aparecer rápido |
+
+### WIP — lentidão teste (vendas + busca PDV) **24/06** *(histórico v3.53)*
 
 | Item | Detalhe |
 | ---- | ------- |
