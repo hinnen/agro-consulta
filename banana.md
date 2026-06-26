@@ -878,10 +878,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Baixa CP (formas/bancos), autocomplete Lançamentos, fornecedores NF → Postgres quando `financeiro_postgres` |
 | **APIs** | `api/lancamentos/opcoes-baixa/`, `api/lancamentos/sugestoes/`, `api/entrada-nota/fornecedores/` |
 | **Fallback** | `apenas_cadastro_erp=1` enriquece com cadastro Mongo se disponível; NF fornecedor mescla PG + DtoPessoa + Agro local |
+| **Deploy teste** | **`01a9348`** · **v3.15** |
 | **Renan testar** | Baixa CP · Nova saída (plano/forma/banco) · NF passo 1 fornecedor · PDV preço inalterado |
 | **Produção** | Após OK teste + frase + senha |
-
-### FECHADO — export Lançamentos + Gestão PG **28/05 (teste v3.11)**
 
 | Item | Detalhe |
 | ---- | ------- |
