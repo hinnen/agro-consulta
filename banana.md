@@ -612,7 +612,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.90`  
 **Última atualização:** `2026-06-25`  
 **Atualizado por:** Renan — reteste motor busca v2.93 OK (legado=v2)  
-**Versão app (`VERSION`):** **teste** v2.93 · **produção** v2.28
+**Versão app (`VERSION`):** **teste** v2.94 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
@@ -805,6 +805,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Nota Renan 25/06** | Motor **≠** cortar Mongo/ERP — é paridade GM Compras/NF; **deixar por último** |
 
 **Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.
+
+### RETESTE — Motor busca v2.93 (Renan 25/06, prints)
+
+| Busca | Legado vs v2 | PDV teste | Nota |
+| ----- | ------------ | --------- | ---- |
+| **GM9503 / akiles / ra est car 15** | ✅ **igual** (pós v2.92) | ✅ bom | Sem bifinho/capa lixo |
+| **milho** | ✅ **18 = 18** legado v2 | ✅ **9 visíveis** + carregar mais | API traz farelo/isca antes; PDV prioriza nome «milho…» no topo — **cosmético ordem** |
+| **Próximo** | — | — | Afinar sort nome-exato · depois Compras/NF usarem só API unificada |
 
 ### RESOLVIDO — fantasmas ibiuna 25 kg + auditoria (2026-06-24)
 
