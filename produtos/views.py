@@ -7474,6 +7474,45 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
     cache.delete(f"dash:mvs:v4:pdv:{hoje.isoformat()}:{hoje.isoformat()}")
 
 
+def _dashboard_invalidar_cache_apos_venda_agro(venda: VendaAgro | None = None) -> None:
+    """Nova venda ou devolução — limpa cache do BI (hoje + mês corrente)."""
+    hoje = timezone.localdate()
+    ini_mes = hoje.replace(day=1)
+    fim_mes = _dashboard_ultimo_dia_mes(hoje.year, hoje.month)
+    _dashboard_invalidar_cache_vendas_serie(hoje, hoje)
+    _dashboard_invalidar_cache_vendas_serie(ini_mes, hoje)
+    _dashboard_invalidar_cache_vendas_serie(ini_mes, fim_mes)
+    if venda is not None and getattr(venda, "criado_em", None):
+        dv = timezone.localtime(venda.criado_em).date()
+        if dv != hoje:
+            _dashboard_invalidar_cache_vendas_serie(dv, dv)
+
+
+def _dashboard_vendas_hoje_pdv() -> tuple[float, int]:
+    """Faturamento e quantidade de hoje direto do Postgres (sem cache)."""
+    hoje = timezone.localdate()
+    qs = _dashboard_vendas_qs_pdv_periodo(hoje, hoje)
+    agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
+    return (
+        round(_dashboard_float(agg.get("soma")), 2),
+        int(agg.get("n") or 0),
+    )
+
+
+def _dashboard_devolucoes_periodo(data_ini: date, data_fim: date) -> dict[str, int | float]:
+    """Devoluções registradas no intervalo (data da devolução, não da venda)."""
+    qs = VendaAgro.objects.filter(
+        devolvida_em__isnull=False,
+        devolvida_em__date__gte=data_ini,
+        devolvida_em__date__lte=data_fim,
+    )
+    agg = qs.aggregate(n=Count("id"), soma=Sum("total"))
+    return {
+        "quantidade": int(agg.get("n") or 0),
+        "valor": round(_dashboard_float(agg.get("soma")), 2),
+    }
+
+
 def _dashboard_pedido_erp_faturado(row: dict) -> bool:
     if not isinstance(row, dict):
         return False
@@ -7724,6 +7763,11 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     vendas_ontem = blk["vendas_ontem"]
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
+    if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
+        vendas_hoje, qtd_vendas_hoje_live = _dashboard_vendas_hoje_pdv()
+    else:
+        qtd_vendas_hoje_live = None
+    devolucoes_hoje = _dashboard_devolucoes_periodo(hoje, hoje)
     validade_blk = blk["alertas_validade"] if isinstance(blk["alertas_validade"], dict) else {}
     validade_vencidos_n = int(validade_blk.get("vencidos") or 0)
     validade_vencendo_mes_n = int(validade_blk.get("vencendo_mes") or 0)
@@ -7796,7 +7840,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         tkt_trend_short = "S/ ref."
         tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
     qtd_vendas_hoje = int((atual.get("qtd_por_dia") or {}).get(hoje.isoformat()) or 0)
-    if qtd_vendas_hoje <= 0 and _dashboard_vendas_fonte_pdv():
+    if qtd_vendas_hoje_live is not None:
+        qtd_vendas_hoje = qtd_vendas_hoje_live
+    elif qtd_vendas_hoje <= 0 and _dashboard_vendas_fonte_pdv():
         qtd_vendas_hoje = _dashboard_vendas_qs_pdv_periodo(hoje, hoje).count()
     ticket_hoje = (vendas_hoje / qtd_vendas_hoje) if qtd_vendas_hoje > 0 else 0.0
     if ticket_medio_mes_civil_anterior > 0 and ticket_hoje > 0:
@@ -7819,6 +7865,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "prefix": "R$",
             "variant": "vendas_dia",
             "qtd_vendas": qtd_vendas_hoje,
+            "devolucoes_hoje_qtd": int(devolucoes_hoje.get("quantidade") or 0),
+            "devolucoes_hoje_valor": float(devolucoes_hoje.get("valor") or 0),
             "trend": f"{variacao_dia:+.1f}% vs ont.",
             "trend_short": f"{variacao_dia:+.1f}%",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
@@ -7836,6 +7884,13 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                     )
                 ),
                 f"Variação {variacao_dia:+.1f}% vs ontem ({_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}).",
+                (
+                    f"Devoluções registradas hoje: {int(devolucoes_hoje.get('quantidade') or 0)} "
+                    f"({_format_moeda_br(Decimal(str(round(float(devolucoes_hoje.get('valor') or 0), 2))))}) "
+                    "— não entram no total nem na contagem acima."
+                    if int(devolucoes_hoje.get("quantidade") or 0) > 0
+                    else "Devoluções de hoje já estão excluídas do total (venda marcada «Devolvida»)."
+                ),
                 f"Média 7d (últ. dias do filtro): {_format_moeda_br(Decimal(str(round(media_fat_7d, 2))))}/dia",
                 f"Período filtrado: {periodo_label}.",
             ],
@@ -8317,7 +8372,10 @@ def vendas_lista(request):
         ).filter(filtro_fiado_q)
     elif filtro_erp == "enviado":
         qs = qs.filter(enviado_erp=True).filter(filtro_fiado_q)
-    agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
+    qs_ativas = qs.filter(devolvida_em__isnull=True)
+    agg = qs_ativas.aggregate(soma=Sum("total"), n=Count("id"))
+    n_devolvidas = qs.filter(devolvida_em__isnull=False).count()
+    devolucoes_registradas = _dashboard_devolucoes_periodo(di, df)
     soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
@@ -8338,6 +8396,9 @@ def vendas_lista(request):
             "vendas": vendas,
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
+            "quantidade_devolvidas": n_devolvidas,
+            "devolucoes_registradas_qtd": int(devolucoes_registradas.get("quantidade") or 0),
+            "devolucoes_registradas_valor": float(devolucoes_registradas.get("valor") or 0),
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
@@ -9546,6 +9607,8 @@ def api_venda_agro_devolver(request, pk):
                 f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
                 f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
             )
+
+    _dashboard_invalidar_cache_apos_venda_agro(venda)
 
     return JsonResponse(
         {
@@ -20121,6 +20184,7 @@ def _persistir_venda_agro(
             cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
         except Exception:
             pass
+        _dashboard_invalidar_cache_apos_venda_agro(v)
     return v
 
 
