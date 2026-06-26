@@ -712,12 +712,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.00`  
 **Última atualização:** `2026-06-26`  
 **Atualizado por:** assistente — gráfico gastos Chart.js deploy teste (Renan)  
-**Versão app (`VERSION`):** **teste** v3.16 *(pós-commit)* · **produção** v3.01 · HEAD loja **`087c13f`**
+**Versão app (`VERSION`):** **teste** v3.17 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Commit** | `11277f0` — *Grafico de gastos por plano (Chart.js + Mongo)* |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
 | **API** | `GET /financeiro/api/dados-grafico-gastos/` — params: `agrupamento`, `inicio`, `fim`, `planos` (IDs vírgula), `individual` |
 | **Fonte dados** | Mongo `DtoLancamento` — despesas, data **vencimento**, valor **Saida**, dedup DRE (`DRE_DEDUP_LANCAMENTO_ID`) |
