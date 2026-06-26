@@ -870,7 +870,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.46 · **produção** v3.34 (gráfico gastos pacote 26/06)
+**Versão app (`VERSION`):** **teste** v3.46 · **produção** v3.36 (gráfico gastos pacote 26/06)
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
@@ -1032,7 +1032,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.35** |
+| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.36** |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **✅ v3.35** — cherry-pick 7 commits (26/06) · **só leitura** |
