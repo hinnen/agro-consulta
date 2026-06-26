@@ -869,7 +869,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.08
+**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.11
 
 ### FECHADO — export Lançamentos + Gestão PG **28/05 (teste v3.11)**
 
@@ -877,7 +877,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Export CSV/PDF/Excel** | `_lancamentos_financeiro_dados_export` → Postgres quando `financeiro_postgres` |
 | **Gestão** | `agro_gestao_usa_postgres()` ligado na **loja** com `AGRO_FONTE_CATALOGO=agro_pg` (sem env novo) |
-| **Renan testar** | Gestão: lista + filtros · CP: export PDF bate total da tela |
+| **Renan testar** | **✅ Renan 28/05** — gestão + export OK no teste |
+| **Produção** | **✅ Renan 28/05** — 99738595 · deploy v3.11 |
 
 ### AUDIT rabo de solta — antes sprint desvinculo Renan **28/05**
 
@@ -885,8 +886,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | ---- | ------ | ---- |
 | 1 | **CP/CR Postgres loja** | **✅ fechado** v3.04–v3.08 | Nada |
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
-| 3 | **Gestão lista/facetas PG loja** | **✅ v3.11 teste** | Renan: abrir gestão + filtros |
-| 4 | **Fix cashback orçamento PDV** | **teste v3.09** | Testar staging |
+| 3 | **Gestão lista/facetas PG loja** | **✅ Renan validou teste** | Subir produção quando autorizar |
+| 4 | **Fix cashback orçamento PDV** | **teste v3.09** | Pode ir junto na produção |
 | 5 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 
 **Prioridade Renan (setas vermelhas):** Gestão · NF rascunho · BI/resumo · Transferências/Validade · fornecedor/planos/formas.
