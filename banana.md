@@ -870,16 +870,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.22 · **produção** v3.20
+**Versão app (`VERSION`):** **teste** v3.26 · **produção** v3.20
 
-### WIP — BI / resumo gerencial → PG **26/06**
+### FECHADO — BI home financeiro → PG **26/06 (teste v3.23+)**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Home BI (`/`) cards CP/CR + totais hoje/atraso via `TituloFinanceiroAgro`; resumo gerencial default Postgres na loja |
-| **Deploy teste** | **`70fc5f1`** · **v3.22** |
-| **Renan testar** | Home BI — bloco financeiro (a pagar hoje, atraso, mini-listas) · `/financeiro/resumo-gerencial/` fonte Postgres |
-| **Fora** | Gráfico gastos por plano na home (continua Mongo) · DRE/calendário |
+| **O quê** | Home BI cards CP/CR + totais hoje/atraso via Postgres; resumo gerencial default Postgres |
+| **Deploy teste** | **`70fc5f1`** · **v3.22–v3.26** |
+| **Renan validou** | **✅ 26/06** — BI v3.23: a pagar hoje **R$ 1.475,35** · atraso CP **R$ 64.219,62** · CR hoje **R$ 0** · atraso CR **R$ 27.091,40** |
+| **Produção** | Pronta — aguarda frase + senha (sobe com pacote teste→v3.26) |
+| **Fora** | Gráfico gastos por plano na home (Mongo) · DRE/calendário |
+
+### WIP — BI / resumo gerencial → PG **26/06** *(histórico — fechado acima)*
 
 ### FECHADO — produção listas auxiliares PG **26/06**
 
@@ -919,9 +922,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
 | 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
-| 5 | **BI / resumo gerencial → PG** | **WIP teste** | cards home BI + default resumo PG |
-| 6 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
-| 7 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
+| 5 | **BI / resumo gerencial → PG** | **✅ teste v3.26** · produção pendente | cards home BI + default resumo PG |
+| 6 | **Transferências/Validade** | **próximo** | sprint desvinculo |
 
 **Prioridade Renan (setas vermelhas):** Gestão · NF rascunho · BI/resumo · Transferências/Validade · fornecedor/planos/formas.
 
