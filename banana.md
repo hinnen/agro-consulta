@@ -869,7 +869,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.11
+**Versão app (`VERSION`):** **teste** v3.12 · **produção** v3.12 (`3838594`)
 
 ### FECHADO — export Lançamentos + Gestão PG **28/05 (teste v3.11)**
 
@@ -878,7 +878,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Export CSV/PDF/Excel** | `_lancamentos_financeiro_dados_export` → Postgres quando `financeiro_postgres` |
 | **Gestão** | `agro_gestao_usa_postgres()` ligado na **loja** com `AGRO_FONTE_CATALOGO=agro_pg` (sem env novo) |
 | **Renan testar** | **✅ Renan 28/05** — gestão + export OK no teste |
-| **Produção** | **✅ Renan 28/05** — 99738595 · deploy v3.11 |
+| **Produção** | **✅ Renan 28/05** — 99738595 · deploy **v3.12** (`3838594`) |
 
 ### AUDIT rabo de solta — antes sprint desvinculo Renan **28/05**
 
