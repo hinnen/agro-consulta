@@ -569,7 +569,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | # | Quem | O quê | Quando |
 | --- | ---- | ----- | ------ |
 | **1** | **Assistente** | Código: **pagar, parcial, nova saída, editar, excluir** CP → Postgres (teste) | **✅ v3.40 teste** |
-| **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | **Agora** (aviso abaixo) |
+| **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | **✅ Renan 26/06** — «Teste» R$ 1,00 quitado PG |
 | **3** | **Assistente** | Import PG na **loja** + deploy pacote **teste→producao** | Depois do **2** OK |
 | **4** | **Renan** | Frase *«pode subir produção»* + senha **`99738595`** **no mesmo pedido** | Só no **4** |
 | **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | Junto com **4** |
@@ -577,7 +577,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
 
-**Bloqueio único hoje:** item **2** (Renan pagar 1 título no teste) — depois import loja + senha.
+**Bloqueio único hoje:** passo **3–4** — import PG na loja + deploy **só** com frase + senha **`99738595`** no mesmo pedido.
 
 
 ### Renan — intervenção (estritamente necessário)
@@ -588,6 +588,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
 | **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
 | **4 Pós-import teste** | **✅ Renan 26/06** | Staging CP aberto: **Qtd 741** · **A pagar R$ 393.652,70** — **bate loja** · amostra expandida OK (ex. Renan Hinnen **R$ 163,00**) |
+| **4b Pagamento PG teste** | **✅ Renan 26/06** | Título manual **«Teste» R$ 1,00** · quitou no Postgres · sumiu de **Em aberto** · aparece em **Quitados** (saldo 0) · juros R$ 0,10 **não** lançou (conta «ADICIONAR CONTA» — regra esperada) |
 | **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
@@ -602,8 +603,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **B** | Copiar títulos Mongo → Postgres | **✅ teste** (13,2 mil) |
 | **C** | **Lista** CP (ver, filtrar, total) no Postgres | **✅ teste** (741 / 393.652,70 bateu) |
 | **D** | **Gravar** no Postgres: pagar, parcial, nova saída, editar, excluir | **✅ teste v3.40** (deploy pendente Render) |
-| **E** | Validar **D** no teste (pagar 1 título de teste) | **⏳ Renan agora** |
-| **F** | Import + flag na **loja** (senha) | ⏳ depois de D+E |
+| **E** | Validar **D** no teste (pagar 1 título de teste) | **✅ Renan 26/06** |
+| **F** | Import + flag na **loja** (senha) | ⏳ passo **3–4** (Renan autoriza) |
 
 **Por que parou antes de D?**  
 Primeiro garantimos: *«a cópia no Postgres é a mesma coisa que a tela da loja?»* — **sim** (passo 4).  
@@ -796,9 +797,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.04`  
+**Versão:** `1.1.05`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — CP gravação Postgres (pagar/parcial/editar/excluir/lote) v3.40 teste  
+**Atualizado por:** assistente — Renan passo 2 OK (pagamento CP PG «Teste» R$ 1)  
 **Versão app (`VERSION`):** **teste** v3.40 · **produção** v3.02
 
 ### WIP CP Postgres — gravação **teste v3.40**
@@ -807,8 +808,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Novo** | `lancamentos_financeiro_pg_write_util.py` — baixa total/parcial, editar, excluir, lote manual, juros |
 | **APIs** | `api/lancamentos/baixa/`, `baixa-parcial/`, `alterar/`, `excluir/`, `criar-manual-lote/` + saída caixa + NF passo 7 → PG quando staging CP ativo |
-| **Renan teste** | `/lancamentos/contas-pagar/` → escolher título **pequeno** → **Pagar** → Ctrl+F5 → conferir se sumiu de **Em aberto** |
-| **Loja** | Continua Mongo até passo 4 (senha) — CP parada OK |
+| **Renan teste** | **✅ 26/06** — «Teste» R$ 1,00 pago · quitados OK · Mongo loja intacto |
+| **Próximo** | Import PG produção + merge `teste`→`producao` — **só** quando Renan mandar frase + senha |
+| **Loja** | Continua Mongo até passo 4 |
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
