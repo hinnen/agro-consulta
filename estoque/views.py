@@ -1264,9 +1264,184 @@ def api_atualizar_medias(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao calcular médias: {exc}'}, status=500)
 
+def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, ajustes, *, saldos_map=None):
+    from produtos.estoque_saldo_agro_util import saldos_transferencia_de_mapa
+
+    sugestoes = []
+
+    for pid, p_info in mapa_produtos.items():
+        if saldos_map is not None:
+            base_map = saldos_map
+        else:
+            base_map = {
+                pid: {
+                    "saldo_erp_centro": float(p_info["saldo_c"]),
+                    "saldo_erp_vila": float(p_info["saldo_v"]),
+                }
+            }
+        saldo_centro, saldo_vila, saldo_centro_erp, saldo_vila_erp = saldos_transferencia_de_mapa(
+            base_map, pid, ajustes
+        )
+
+        regra = mapa_regras.get(pid)
+        pedido = mapa_pedidos.get(pid)
+
+        if regra:
+            qtde_transferir = Decimal("0")
+            qtde_comprar = Decimal("0")
+            status = "OK"
+
+            if saldo_centro <= regra.capacidade_minima:
+                if regra.capacidade_maxima == Decimal("-1"):
+                    qtde_transferir = max(Decimal("0"), saldo_vila)
+                    falta_para_minimo = regra.capacidade_minima - saldo_centro
+                    qtde_comprar = max(Decimal("0"), falta_para_minimo - qtde_transferir)
+
+                    if pedido:
+                        status = "SEPARANDO"
+                        qtde_transferir = pedido.quantidade
+                    else:
+                        if qtde_transferir > 0 and qtde_comprar > 0:
+                            status = "TRANSFERIR_COMPRAR"
+                        elif qtde_transferir > 0:
+                            status = "TRANSFERIR"
+                        elif qtde_comprar > 0:
+                            status = "COMPRAR"
+                else:
+                    qtde_necessaria = regra.capacidade_maxima - saldo_centro
+                    if qtde_necessaria > 0:
+                        qtde_transferir = (
+                            qtde_necessaria
+                            if saldo_vila >= qtde_necessaria
+                            else max(Decimal("0"), saldo_vila)
+                        )
+                        qtde_comprar = qtde_necessaria - qtde_transferir
+                        if pedido:
+                            status = "SEPARANDO"
+                            qtde_transferir = pedido.quantidade
+                        else:
+                            status = (
+                                "COMPRAR"
+                                if qtde_transferir == 0
+                                else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
+                            )
+            else:
+                if pedido:
+                    pedido.delete()
+                    status = "OK"
+
+            sugestoes.append(
+                {
+                    "produto_id": pid,
+                    "codigo": p_info["codigo"],
+                    "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"] or regra.nome_produto,
+                    "saldo_centro": float(saldo_centro),
+                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp),
+                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "status": status,
+                    "qtde_transferir": float(qtde_transferir),
+                    "qtde_comprar": float(qtde_comprar),
+                    "capacidade_maxima": float(regra.capacidade_maxima),
+                    "estoque_seguranca": float(regra.estoque_seguranca),
+                    "capacidade_minima": float(regra.capacidade_minima),
+                    "configurado": True,
+                    "prioridade": 3 if status != "SEPARANDO" else 4,
+                    **_pedido_transferencia_extra(pedido),
+                }
+            )
+        else:
+            if pedido:
+                status = "SEPARANDO"
+                qtde_transferir = pedido.quantidade
+            else:
+                status = "ALTA" if saldo_vila > 0 else "MEDIA"
+                qtde_transferir = Decimal("0")
+
+            sugestoes.append(
+                {
+                    "produto_id": pid,
+                    "codigo": p_info["codigo"],
+                    "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"],
+                    "saldo_centro": float(saldo_centro),
+                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp),
+                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "status": status,
+                    "qtde_transferir": float(qtde_transferir),
+                    "qtde_comprar": 0.0,
+                    "configurado": False,
+                    "prioridade": 4 if status == "SEPARANDO" else 1,
+                    **_pedido_transferencia_extra(pedido),
+                }
+            )
+
+    sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
+    return sugestoes
+
+
+def _resposta_sugestoes_transferencia(sugestoes):
+    ultima_atualizacao = "Nunca"
+    ultima_regra = ConfiguracaoTransferencia.objects.order_by("-atualizado_em").first()
+    if ultima_regra and ultima_regra.atualizado_em:
+        ultima_atualizacao = localtime(ultima_regra.atualizado_em).strftime("%d/%m às %H:%M")
+    return JsonResponse({"sugestoes": sugestoes, "ultima_atualizacao": ultima_atualizacao})
+
+
+def _api_sugestoes_transferencia_agro(request):
+    from produtos.estoque_saldo_agro_util import (
+        mapa_produtos_info_por_externo_ids,
+        mapa_saldos_operacionais_agro,
+        produto_ids_saldo_deposito_positivo,
+    )
+
+    regras = ConfiguracaoTransferencia.objects.all()
+    mapa_regras = {str(r.produto_externo_id): r for r in regras}
+    ids_configurados = list(mapa_regras.keys())
+
+    pedidos_sep = PedidoTransferencia.objects.filter(status="IMPRESSO")
+    mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
+    ids_pedidos = list(mapa_pedidos.keys())
+
+    ids_com_saldo_vila = produto_ids_saldo_deposito_positivo("vila")
+    ids_alvo = list(set(ids_configurados + ids_com_saldo_vila + ids_pedidos))
+
+    if not ids_alvo:
+        return JsonResponse({"sugestoes": []})
+
+    info_map = mapa_produtos_info_por_externo_ids(ids_alvo)
+    saldos_map = mapa_saldos_operacionais_agro(ids_alvo, db=None, client=None)
+
+    mapa_produtos = {}
+    for pid in ids_alvo:
+        info = info_map.get(pid) or {}
+        regra = mapa_regras.get(pid)
+        saldo_info = saldos_map.get(pid) or {}
+        mapa_produtos[pid] = {
+            "nome": info.get("nome") or (regra.nome_produto if regra else f"Produto {pid}"),
+            "codigo": info.get("codigo") or pid,
+            "codigo_barras": info.get("codigo_barras") or "",
+            "saldo_c": float(saldo_info.get("saldo_erp_centro", 0.0)),
+            "saldo_v": float(saldo_info.get("saldo_erp_vila", 0.0)),
+        }
+
+    ajustes = _buscar_ajustes_mais_recentes(list(mapa_produtos.keys()))
+    sugestoes = _montar_sugestoes_transferencia(
+        mapa_produtos, mapa_regras, mapa_pedidos, ajustes, saldos_map=saldos_map
+    )
+    return _resposta_sugestoes_transferencia(sugestoes)
+
+
 @require_GET
 def api_sugestoes_transferencia(request):
     try:
+        from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+
+        if agro_estoque_operacional_sem_mongo_erp():
+            return _api_sugestoes_transferencia_agro(request)
+
         client = get_mongo_client()
 
         # 1. Pegar IDs dos produtos que possuem regras configuradas
@@ -1363,114 +1538,11 @@ def api_sugestoes_transferencia(request):
         # 7. Cruzar com ajustes e montar sugestões
         ajustes = _buscar_ajustes_mais_recentes(p_ids_encontrados)
 
-        sugestoes = []
+        sugestoes = _montar_sugestoes_transferencia(
+            mapa_produtos, mapa_regras, mapa_pedidos, ajustes
+        )
 
-        for pid, p_info in mapa_produtos.items():
-            saldo_centro_erp = Decimal(str(p_info["saldo_c"]))
-            saldo_vila_erp = Decimal(str(p_info["saldo_v"]))
-
-            ajuste_centro = ajustes.get((pid, 'centro'))
-            ajuste_vila = ajustes.get((pid, 'vila'))
-
-            saldo_centro = saldo_centro_erp + (ajuste_centro.diferenca_saldo if ajuste_centro else Decimal('0'))
-            saldo_vila = saldo_vila_erp + (ajuste_vila.diferenca_saldo if ajuste_vila else Decimal('0'))
-
-            regra = mapa_regras.get(pid)
-            pedido = mapa_pedidos.get(pid)
-
-            if regra:
-                # PRODUTO JÁ CONFIGURADO
-                qtde_transferir = Decimal('0')
-                qtde_comprar = Decimal('0')
-                status = "OK"
-
-                if saldo_centro <= regra.capacidade_minima:
-                    if regra.capacidade_maxima == Decimal('-1'):
-                        qtde_transferir = max(Decimal('0'), saldo_vila)
-                        falta_para_minimo = regra.capacidade_minima - saldo_centro
-                        qtde_comprar = max(Decimal('0'), falta_para_minimo - qtde_transferir)
-                        
-                        if pedido:
-                            status = "SEPARANDO"
-                            qtde_transferir = pedido.quantidade
-                        else:
-                            if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
-                            elif qtde_transferir > 0: status = "TRANSFERIR"
-                            elif qtde_comprar > 0: status = "COMPRAR"
-                    else:
-                        qtde_necessaria = regra.capacidade_maxima - saldo_centro
-                        if qtde_necessaria > 0:
-                            qtde_transferir = qtde_necessaria if saldo_vila >= qtde_necessaria else max(Decimal('0'), saldo_vila)
-                            qtde_comprar = qtde_necessaria - qtde_transferir
-                            if pedido:
-                                status = "SEPARANDO"
-                                qtde_transferir = pedido.quantidade
-                            else:
-                                status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
-                else:
-                    # Auto-limpeza do pedido caso o saldo tenha subido no ERP
-                    if pedido:
-                        pedido.delete()
-                        status = "OK"
-
-                sugestoes.append(
-                    {
-                        "produto_id": pid,
-                        "codigo": p_info["codigo"],
-                        "codigo_barras": p_info["codigo_barras"],
-                        "nome": p_info["nome"] or regra.nome_produto,
-                        "saldo_centro": float(saldo_centro),
-                        "saldo_vila": float(saldo_vila),
-                        "saldo_centro_erp": float(saldo_centro_erp),
-                        "saldo_vila_erp": float(saldo_vila_erp),
-                        "status": status,
-                        "qtde_transferir": float(qtde_transferir),
-                        "qtde_comprar": float(qtde_comprar),
-                        "capacidade_maxima": float(regra.capacidade_maxima),
-                        "estoque_seguranca": float(regra.estoque_seguranca),
-                        "capacidade_minima": float(regra.capacidade_minima),
-                        "configurado": True,
-                        "prioridade": 3 if status != "SEPARANDO" else 4,
-                        **_pedido_transferencia_extra(pedido),
-                    }
-                )
-            else:
-                # PRODUTO NÃO CONFIGURADO
-                if pedido:
-                    status = "SEPARANDO"
-                    qtde_transferir = pedido.quantidade
-                else:
-                    status = "ALTA" if saldo_vila > 0 else "MEDIA"
-                    qtde_transferir = Decimal('0')
-
-                sugestoes.append(
-                    {
-                        "produto_id": pid,
-                        "codigo": p_info["codigo"],
-                        "codigo_barras": p_info["codigo_barras"],
-                        "nome": p_info["nome"],
-                        "saldo_centro": float(saldo_centro),
-                        "saldo_vila": float(saldo_vila),
-                        "saldo_centro_erp": float(saldo_centro_erp),
-                        "saldo_vila_erp": float(saldo_vila_erp),
-                        "status": status,
-                        "qtde_transferir": float(qtde_transferir),
-                        "qtde_comprar": 0.0,
-                        "configurado": False,
-                        "prioridade": 4 if status == "SEPARANDO" else 1,
-                        **_pedido_transferencia_extra(pedido),
-                    }
-                )
-
-        # Ordenação mágica: Prioridade 1 (Alta) -> 3 (Configurados), e dentro delas em ordem alfabética.
-        sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
-
-        ultima_atualizacao = "Nunca"
-        ultima_regra = ConfiguracaoTransferencia.objects.order_by('-atualizado_em').first()
-        if ultima_regra and ultima_regra.atualizado_em:
-            ultima_atualizacao = localtime(ultima_regra.atualizado_em).strftime("%d/%m às %H:%M")
-
-        return JsonResponse({'sugestoes': sugestoes, 'ultima_atualizacao': ultima_atualizacao})
+        return _resposta_sugestoes_transferencia(sugestoes)
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
 
