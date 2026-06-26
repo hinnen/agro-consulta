@@ -429,48 +429,9 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
     Para cada produto em p_ids: saldos ERP (centro/vila) + ajuste rápido Django (PIN).
     Retorno: { pid_str: { saldo_centro, saldo_vila, saldo_erp_centro, saldo_erp_vila } }.
     """
-    p_ids = [str(x) for x in p_ids if x is not None]
-    if not p_ids:
-        return {}
-    estoques = list(
-        db[client.col_e].find(
-            {"ProdutoID": {"$in": p_ids}},
-            {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0},
-        )
-    )
-    estoque_map = _mapear_estoques_por_produto(estoques, client)
-    # Antes: .objects.all() puxava **todos** os ajustes históricos na RAM (~GB com tempo) para filtrar em Python.
-    ajustes_map = {}
-    _chunk_aj = 800
-    for _aj_i in range(0, len(p_ids), _chunk_aj):
-        _slice_aj = p_ids[_aj_i : _aj_i + _chunk_aj]
-        _aq = (
-            AjusteRapidoEstoque.objects.filter(produto_externo_id__in=_slice_aj)
-            .order_by("produto_externo_id", "deposito", "-criado_em")
-            .only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
-        )
-        for aj in _aq:
-            _kadj = (aj.produto_externo_id, aj.deposito)
-            if _kadj not in ajustes_map:
-                ajustes_map[_kadj] = aj
-    out = {}
-    from produtos.estoque_agro_util import agro_estoque_ledger_ativo, calcular_saldo_operacional_deposito
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-    ledger = agro_estoque_ledger_ativo()
-    for pid in p_ids:
-        s_c = float(estoque_map.get(pid, {}).get("centro", 0.0))
-        s_v = float(estoque_map.get(pid, {}).get("vila", 0.0))
-        aj_c = ajustes_map.get((pid, "centro"))
-        aj_v = ajustes_map.get((pid, "vila"))
-        saldo_f_c = calcular_saldo_operacional_deposito(aj_c, s_c, ledger=ledger)
-        saldo_f_v = calcular_saldo_operacional_deposito(aj_v, s_v, ledger=ledger)
-        out[pid] = {
-            "saldo_centro": round(saldo_f_c, 2),
-            "saldo_vila": round(saldo_f_v, 2),
-            "saldo_erp_centro": s_c,
-            "saldo_erp_vila": s_v,
-        }
-    return out
+    return mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
 
 
 def _gestao_doc_passa_status(p: dict, status_q: str) -> bool:
@@ -23906,11 +23867,19 @@ def relatorios_validade(request):
     pids = [str(ov.produto_externo_id) for ov in overlays]
     saldos_map: dict = {}
     estoque_mongo_ok = False
+    from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+
     client, db = obter_conexao_mongo()
-    if client is not None and db is not None and pids:
+    if pids:
         try:
-            saldos_map = _mapa_saldos_finais_por_produtos(db, client, pids)
-            estoque_mongo_ok = True
+            if agro_estoque_operacional_sem_mongo_erp():
+                from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+                saldos_map = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+                estoque_mongo_ok = bool(saldos_map)
+            elif client is not None and db is not None:
+                saldos_map = _mapa_saldos_finais_por_produtos(db, client, pids)
+                estoque_mongo_ok = True
         except Exception:
             saldos_map = {}
             estoque_mongo_ok = False

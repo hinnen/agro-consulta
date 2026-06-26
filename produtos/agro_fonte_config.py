@@ -75,6 +75,15 @@ def agro_estoque_ledger_ativo() -> bool:
     return _ativo()
 
 
+def agro_estoque_operacional_sem_mongo_erp() -> bool:
+    """Transferências/Validade: saldo Agro (ajuste+ledger) sem depender só do espelho Mongo."""
+    if not agro_estoque_ledger_ativo():
+        return False
+    if agro_pdv_catalogo_somente_postgres():
+        return True
+    return agro_catalogo_usa_postgres() and agro_gestao_usa_postgres()
+
+
 def agro_estoque_usa_ledger() -> bool:
     return agro_fonte_estoque() == _FONTE_ESTOQUE_LEDGER
 
@@ -181,6 +190,7 @@ def agro_fonte_status_dict() -> dict:
         "compras_metricas_postgres": agro_compras_metricas_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
+        "estoque_operacional_sem_mongo_erp": agro_estoque_operacional_sem_mongo_erp(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_pg_leitura_staging": bool(
             getattr(settings, "AGRO_FINANCEIRO_PG_LEITURA_STAGING", True)

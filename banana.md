@@ -872,9 +872,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.30 · **produção** v3.30
+**Versão app (`VERSION`):** **teste** v3.41 · **produção** v3.32
 
-### FECHADO — produção BI home PG **26/06**
+### WIP — Transferências + Validade → PG **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«banana.md sim»* — autorizou sprint no **teste** |
+| **O quê** | Saldos operacionais Agro (ajuste+ledger) sem depender só do Mongo · catálogo Postgres |
+| **Telas** | `/transferencias/` · `/relatorios/validade/` |
+| **Deploy teste** | pendente commit — **v3.41** |
+| **Renan testar** | Transferências: lista carrega · saldos centro/vila batem com gestão · Validade: coluna estoque com saldo (não só lote local) |
+| **Produção** | ❌ — só com frase + senha |
+
+### WIP — CP filtros mais rápido **26/06**
 
 | Item | Detalhe |
 | ---- | ------- |
