@@ -881,7 +881,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Renan** | *«banana.md sim»* — autorizou sprint no **teste** |
 | **O quê** | Saldos operacionais Agro (ajuste+ledger) sem depender só do Mongo · catálogo Postgres |
 | **Telas** | `/transferencias/` · `/relatorios/validade/` |
-| **Deploy teste** | pendente commit — **v3.41** |
+| **Deploy teste** | **`29a4c63`** · **v3.41** |
 | **Renan testar** | Transferências: lista carrega · saldos centro/vila batem com gestão · Validade: coluna estoque com saldo (não só lote local) |
 | **Produção** | ❌ — só com frase + senha |
 
