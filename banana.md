@@ -609,20 +609,42 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.90`  
+**Versão:** `1.0.91`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — reteste motor busca v2.93 OK (legado=v2)  
-**Versão app (`VERSION`):** **teste** v2.94 · **produção** v2.28
+**Atualizado por:** Renan — loja fechou · pausar testes · **deploy produção pedido**  
+**Versão app (`VERSION`):** **teste** v2.95 · **produção** v2.28 → alvo **pós-merge**
 
-### WIP AGORA — até deploy loja (~20h)
+### WIP AGORA — deploy loja (loja fechou 25/06)
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Deploy loja** | **~20h** — pacote desvinculação (PDV/gestão/ledger/Entrada NF — D4 Compras **fora** da 1ª subida loja) |
-| **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
-| **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP (fonte Postgres) · motor GM por último |
-| **Lançamentos prep** | **v2.90** — modelo `TituloFinanceiroAgro` + comando `importar_titulos_financeiro_mongo_pg` (dry-run default) · **telas ainda Mongo** |
-| **Motor busca v2** | **✅ Renan 25/06** v2.93 — legado=v2 · reteste **`/interno/teste-busca/`** · ver tabela abaixo |
+| **Status** | ⏸ **Testes pausados** · Renan pediu **subir produção** o validado no Render teste |
+| **Bloqueio deploy** | Falta **senha `99738595` no mesmo chat** (regra produção) — assistente prepara merge ao receber |
+| **Pacote loja (código)** | Desvinculação **A–D3** + Entrada NF empresas/wizard · **Compras D4 A+B+C** (Renan ✅) · ledger + `agro_pg` |
+| **Fora / baixo risco na loja** | Motor busca v2 (só muda API com flags PG) · Lançamentos prep (modelo+migration+dry-run, **telas ainda Mongo**) |
+| **Env Render produção** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque · **sem** `AGRO_STAGING_READONLY` |
+| **Antes abrir loja** | `migrate` · conferir catálogo PG (`importar_catalogo_mongo_produto` se necessário) · backup |
+| **Depois abrir** | Ctrl+F5 · PDV busca/preço · Gestão · Compras saldo · Entrada NF passo 5 empresa · GM9503 ou 2 produtos anotados |
+
+### DEPLOY PRODUÇÃO — fila (25/06 noite)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Loja fechou · pausar testes · produção = o **100% testado** no Render teste |
+| **Método** | Merge `teste` → `producao` · push `origin producao` · Render produção redeploy |
+| **Produção hoje** | **v2.28** (só autocomplete PDV — 25/06 cedo) |
+| **Teste hoje** | **v2.95** · commit `df3f1ef` |
+| **Merge inclui** | Entrada NF v2.78+ · Compras D4 v2.79–v2.87 · cadastro/fantasmas · busca Compras/NF alinhada PDV · prep Lançamentos · motor busca v2 |
+| **Não depende de flag na loja** | Motor busca v2 · Lançamentos Postgres (sem `agro_pg` financeiro) |
+| **Conferência pós-deploy** | Ver tabela «Depois abrir» acima |
+
+### WIP PAUSADO — pós-deploy loja
+
+| Foco | Detalhe |
+| ---- | ------- |
+| **Motor busca** | ✅ legado=v2 no teste · ordem «milho» cosmético · **ligar Compras/NF na API** — depois da loja |
+| **Lançamentos** | Prep PG feito · migração fonte `agro_pg` — sprint |
+| **Entrada NF financeiro Agro** | Título sem Mongo — sprint |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -724,8 +746,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Quando** | **Hoje ~20h** — loja fechada |
-| **O quê** | Merge `teste`→`producao` do pacote validado no Render teste (Fases A–D parcial) |
+| **Quando** | **✅ 25/06 loja fechou** — Renan pediu deploy (aguardando senha no chat) |
+| **O quê** | Merge `teste`→`producao` — pacote validado + Compras D4 (Renan ✅) |
 | **Código** | `agro_pg` + PDV catálogo Postgres + gestão PG + ledger estoque + Entrada NF (empresas + wizard; financeiro **real** na loja, não dry-run) |
 | **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
 | **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
