@@ -652,8 +652,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 6 | Compras → Folha | Planilha categoria **teste** | 1 produto · colunas últ. pedido / média preenchidas |
 | 7 | `/entrada-nota/` | Wizard passo **5 estoque** | Saldo bate Consulta/Compras (ex. GM9503) |
 | 8 | Entrada NF | Passo 7 financeiro | «Salvar + a pagar» grava título em Lançamentos (**loja**, não dry-run) |
+| 9 | `/pdv/` → Buscar cliente | **renan** → lista na hora (após fix `f697d5e`; loja ainda sem) |
 
-**Não bloqueia operação:** Display Scale · ordem busca «milho» · custo lista R$ 0 vs base GM9503.
+**Bug cliente lento (25/06):** wizard só ia ao servidor (tela ficava em «Digite 2 letras» até cold start). Fix **`f697d5e`** — cache local igual PDV legado.
+
+**Não bloqueia operação:** Display Scale · ordem busca «milho» · custo lista R$ 0 vs base GM9503 · 1ª busca cliente lenta até deploy fix.
 
 **Staging (opcional):** após deploy `49d34cf` + `AGRO_DISPLAY_SCALE_HABILITADO=true` → modal **Aa** só no teste.
 
