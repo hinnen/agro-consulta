@@ -121,7 +121,17 @@ def agro_fonte_status_dict() -> dict:
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
+        "titulos_financeiro_pg": agro_titulos_financeiro_pg_count(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
     }
+
+
+def agro_titulos_financeiro_pg_count() -> int:
+    try:
+        from produtos.models import TituloFinanceiroAgro
+
+        return int(TituloFinanceiroAgro.objects.count())
+    except Exception:
+        return 0

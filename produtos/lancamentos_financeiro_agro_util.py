@@ -83,6 +83,8 @@ def titulo_financeiro_agro_from_mongo_doc(doc: dict) -> TituloFinanceiroAgro | N
         mongo_ultima_atualizacao=_mongo_dt_para_datetime(last_up),
         dados_snapshot_json={
             "mongo_id": mongo_id,
+            "id_erp": str(doc.get("Id") or doc.get("ID") or "")[:80],
+            "lancamento_id": str(doc.get("LancamentoID") or "")[:80],
             "last_update": api.get("last_update"),
             "data_modificacao": api.get("data_modificacao"),
         },

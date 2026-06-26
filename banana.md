@@ -564,8 +564,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 | Quem | O quê |
 | ---- | ----- |
-| **Assistente** | Import PG · views CP em aberto · flag staging · testes |
-| **Renan** | **1–2 ✅** · **3 = não mexer Render (já ok)** · aguarda assistente import teste → depois **4** |
+| **Assistente** | **Em curso** — import PG staging · CP lê Postgres · flag teste |
+| **Renan** | **1–3 ✅** · aguarda aviso **passo 4** (nada a fazer agora) |
 
 ### Renan — intervenção (estritamente necessário)
 
@@ -606,6 +606,16 @@ Site = **projeto teste** no Render (branch `teste`) — **não** `sistvale.com.b
 7. Me avisar: **«passo 4 OK»** ou o que divergiu.
 
 **Passo 5:** fiado e contas a receber — **ignorar hoje**.
+
+**Assistente (26/06 — técnico):**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Código** | `lancamentos_financeiro_pg_util.py` — lista CP Postgres + dedup igual Mongo |
+| **API** | `api/lancamentos/contas-pagar/` lê PG quando `AGRO_FONTE_FINANCEIRO=agro_pg` |
+| **Import HTTP** | `GET /api/cron/importar-titulos-financeiro-mongo-pg/?token=…` (staging, `DRY_RUN=true`) |
+| **Conferência** | `GET /api/agro/financeiro-pg-conferencia/` (superuser) — Mongo vs PG abertos |
+| **Flag teste** | Assistente liga `AGRO_FONTE_FINANCEIRO=agro_pg` **só no Render teste** — Renan não mexe |
 
 **Excel 748 vs tela 741 — fechado (dedup):** backup exporta **cada** doc Mongo; lista CP **deduplica** títulos ERP repetidos (ex. **Geraldo acordo sat**, mesmo `Id`, várias linhas no CSV). **Referência para migração = tela (741 + total deduplicado)**, não soma crua do Excel.
 
