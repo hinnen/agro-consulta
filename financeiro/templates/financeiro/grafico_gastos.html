@@ -1519,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
   document.getElementById('filtro-data-referencia').addEventListener('change', function () {
-    if (isModoHistorico()) agendarAtualizacao();
+    if (isModoHistorico() || isModoComparar()) agendarAtualizacao();
   });
 
   document.getElementById('filtro-periodo').addEventListener('change', function () {
