@@ -204,6 +204,9 @@
         <span class="w-2 h-2 rounded-full bg-red-500"></span> Contas a Pagar
       </h3>
       <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'grafico_gastos' %}" data-prefetch
+           class="inline-flex items-center justify-center min-h-[1.75rem] text-[10px] font-black uppercase tracking-wide text-white px-2.5 py-1 rounded-lg shadow-md transition-all border-2 border-amber-600 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 hover:shadow-lg ring-2 ring-orange-300/60"
+           title="Gráfico de gastos por plano de contas">Gráfico gastos</a>
         <button type="button" data-agro-nova-saida-open data-tipo="pagar"
                 class="text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded-lg shadow-sm transition-colors cursor-pointer"
                 title="Lançar nova despesa">Nova saída</button>
