@@ -872,7 +872,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.59 · **produção** v3.48
+**Versão app (`VERSION`):** **teste** v3.62 · **produção** v3.51 (gráfico UX 26/06)
+
+### FECHADO — produção gráfico gastos UX **v3.51** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«cherry pick e suba produção»* · **99738595** |
+| **Commits** | `4de07de` scroll planos · `8c6d67a` rótulos comparar + fonte maior |
+| **Arquivo** | só `grafico_gastos.html` |
+| **Fora** | PDV · produtos · gravação CP/Lançamentos |
 
 ### FECHADO — produção gráfico gastos planos = CP **v3.48** (26/06)
 
