@@ -113,11 +113,12 @@
   .gg-split-body {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     gap: 0.55rem; align-items: stretch; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; grid-template-rows: minmax(0, 1fr);
   }
   @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
   .gg-split-col {
     border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc;
-    min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+    min-height: 0; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
   }
   .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; }
   .gg-split-col > summary {
@@ -142,11 +143,11 @@
   }
   .gg-split-inner--planos {
     display: flex; flex-direction: column; overflow: hidden;
-    flex: 1 1 auto; min-height: 8rem; max-height: none;
+    flex: 1 1 auto; min-height: 0; max-height: 100%;
   }
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
-    flex: 1 1 auto; min-height: 8rem; max-height: none; overflow-y: auto;
+    flex: 1 1 auto; min-height: 0; max-height: 100%; overflow-y: auto;
   }
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
