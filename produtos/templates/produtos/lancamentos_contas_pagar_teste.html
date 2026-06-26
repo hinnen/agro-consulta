@@ -763,6 +763,18 @@
     planosExcluidosMem = set instanceof Set ? set : new Set(set);
   }
 
+  /** Lista primeiro; planos em paralelo se painel aberto ou se pediu atualizar planos. */
+  function recarregarAposFiltro(opts) {
+    page = 1;
+    const listaP = carregar(false);
+    const painel = document.getElementById('painelFiltros');
+    const querPlanos = (opts && opts.planos) || (painel && painel.classList.contains('show'));
+    if (querPlanos) {
+      return Promise.all([listaP, carregarPlanos()]);
+    }
+    return listaP;
+  }
+
   function marcarPrefiltro(id) {
     prefiltroAtivo = id || '';
     document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
@@ -796,8 +808,7 @@
     document.getElementById('sv-status').value = 'abertos';
     marcarPrefiltro(tipo);
     if (dispararCarga === false) return;
-    page = 1;
-    carregarPlanos().then(() => carregar(false));
+    recarregarAposFiltro();
   }
 
   function fmtDataCurta(ymd) {
@@ -2144,8 +2155,7 @@
     document.getElementById('sv-busca').value = '';
     marcarPrefiltro('');
     saveExcludedSet(new Set());
-    page = 1;
-    carregarPlanos().then(() => carregar(false));
+    recarregarAposFiltro({ planos: true });
   }
 
   document.getElementById('sv-log-fechar')?.addEventListener('click', () => fecharModal('sv-modal-log'));
@@ -2355,14 +2365,13 @@
   document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);
   document.getElementById('sv-aplicar-filtros').addEventListener('click', () => {
     marcarPrefiltro('');
-    page = 1;
     fecharFiltros();
-    carregarPlanos().then(() => carregar(false));
+    recarregarAposFiltro({ planos: true });
   });
   document.getElementById('sv-limpar-filtros').addEventListener('click', limparFiltros);
   document.getElementById('sv-plano-todos').addEventListener('click', () => {
     saveExcludedSet(new Set());
-    carregarPlanos().then(() => { page = 1; carregar(false); });
+    recarregarAposFiltro({ planos: true });
   });
   document.getElementById('sv-plano-nenhum').addEventListener('click', () => {
     const keys = new Set();
@@ -2370,7 +2379,7 @@
       keys.add(el.dataset.planoKey);
     });
     saveExcludedSet(keys);
-    carregarPlanos().then(() => { page = 1; carregar(false); });
+    recarregarAposFiltro({ planos: true });
   });
   document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
     btn.addEventListener('click', () => aplicarPrefiltro(btn.dataset.pref || ''));
@@ -2385,14 +2394,12 @@
     clearTimeout(buscaTimer);
     buscaTimer = setTimeout(() => {
       marcarPrefiltro('');
-      page = 1;
-      carregarPlanos().then(() => carregar(false));
+      recarregarAposFiltro();
     }, 400);
   });
   document.getElementById('sv-ps').addEventListener('change', () => { page = 1; carregar(false); });
   document.getElementById('sv-status').addEventListener('change', () => {
-    page = 1;
-    carregarPlanos().then(() => carregar(false));
+    recarregarAposFiltro();
   });
   elBtnMais.addEventListener('click', () => {
     if (rowsAcum.length >= total) return;
