@@ -609,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.89`  
+**Versão:** `1.0.90`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — fix motor busca v2.92 (filtro PDV, dedupe GM, legado=unificado)  
-**Versão app (`VERSION`):** **teste** v2.92 · **produção** v2.28
+**Atualizado por:** Renan — reteste motor busca v2.93 OK (legado=v2)  
+**Versão app (`VERSION`):** **teste** v2.93 · **produção** v2.28
 
 ### WIP AGORA — até deploy loja (~20h)
 
@@ -622,7 +622,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Compras D4** | **A+B+C ✅ Renan** no teste (v2.79–v2.87) |
 | **Depois do deploy** | Entrada NF financeiro Agro · Lançamentos CP (fonte Postgres) · motor GM por último |
 | **Lançamentos prep** | **v2.90** — modelo `TituloFinanceiroAgro` + comando `importar_titulos_financeiro_mongo_pg` (dry-run default) · **telas ainda Mongo** |
-| **Motor busca v2** | **v2.92** — legado e v2 **mesmo motor** · filtro+ordem **estilo PDV** · GM9503 mantém 2 produtos se existirem |
+| **Motor busca v2** | **✅ Renan 25/06** v2.93 — legado=v2 · reteste **`/interno/teste-busca/`** · ver tabela abaixo |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -801,7 +801,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Hoje (legado)** | `_js_busca_produto_inteligente.html` = filtro local **parcial**; cada tela tem merge/cache próprio (`consulta_produtos.js`, `compras.html`, `entrada_nota.html`, `cadastro_erp_panel.js`). |
 | **Ordem migração** | 1) Extrair pipeline do PDV (`executarBuscaLocal` + merge) para módulo · 2) PDV usa módulo · 3) Cadastro (API-only) · 4) Compras · 5) Entrada NF · 6) demais (transferências, ajuste mobile…). |
 | **Regra** | **Proibido** novo `filtrar*` / merge custom por tela — só opções do motor (`compras:1`, `limite`, `cacheRef`). |
-| **Status** | **v2.92** — legado=`/api/buscar/` e v2=`/api/buscar-v2/` usam **mesmo motor** · teste **`/interno/teste-busca/`** |
+| **Status** | **✅ Renan 25/06** v2.93 — legado=v2 na tela teste · **pendente:** ordem API ≈ PDV (ex. «milho») · ligar Compras/NF na API unificada |
 | **Nota Renan 25/06** | Motor **≠** cortar Mongo/ERP — é paridade GM Compras/NF; **deixar por último** |
 
 **Flags staging (já ligadas):** `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · `AGRO_SNAPSHOT_FONTE_DATABASE_URL` · conferir `GET /api/agro/fonte-status/`.
