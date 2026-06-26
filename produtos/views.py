@@ -11887,42 +11887,69 @@ def _entrada_nota_mesclar_itens_fornecedor(
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_fornecedores(request):
-    """Fornecedores: Mongo (DtoPessoa) + nomes já usados em títulos + ClienteAgro local.
+    """Fornecedores: Postgres (títulos + catálogo) + Mongo (DtoPessoa) + Agro local.
 
     Mesmo nome em mais de uma origem vira **uma** linha (mantém a primeira: cadastro Mongo,
     senão título, senão Agro local).
     """
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_financeiro_usa_postgres
+    from produtos.nfe_entrada_util import fornecedores_entrada_nfe_pg
+
     q = (request.GET.get("q") or "").strip()
     inicial = request.GET.get("inicial") in ("1", "true", "yes")
     try:
         lim = min(int(request.GET.get("limit") or 50), 100)
     except ValueError:
         lim = 50
-    col = getattr(client, "col_c", None) or "DtoPessoa"
-    mongo_rows = buscar_fornecedores_entrada_nfe(
-        db,
-        col,
-        q or None,
-        inicial=bool(inicial and not q),
-        limit=lim,
-    )
+    use_pg = agro_financeiro_usa_postgres() or agro_catalogo_usa_postgres()
+    client, db = obter_conexao_mongo()
+    mongo_rows: list[dict[str, str]] = []
+    pg_rows: list[dict[str, str]] = []
+    if use_pg:
+        pg_rows = fornecedores_entrada_nfe_pg(q or None, inicial=bool(inicial and not q), limit=lim)
+    if db is not None:
+        col = getattr(client, "col_c", None) or "DtoPessoa"
+        mongo_rows = buscar_fornecedores_entrada_nfe(
+            db,
+            col,
+            q or None,
+            inicial=bool(inicial and not q),
+            limit=lim,
+        )
+    elif not pg_rows:
+        return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
     extras: list[dict[str, str]] = []
     if q:
-        for s in lancamentos_sugestoes_campo(db, "cliente", q=q, limit=25):
-            nm = (s.get("nome") or "").strip()
-            if not nm:
-                continue
-            extras.append(
-                {
-                    "id": str(s.get("id") or "").strip(),
-                    "nome": nm[:300],
-                    "documento": "",
-                    "origem": "titulo",
-                }
-            )
+        if use_pg:
+            from produtos.lancamentos_financeiro_pg_util import lancamentos_sugestoes_campo_pg
+
+            for s in lancamentos_sugestoes_campo_pg(
+                "cliente", q=q, limit=25, escopo="pagar", ordenar="nome"
+            ):
+                nm = (s.get("nome") or "").strip()
+                if not nm:
+                    continue
+                extras.append(
+                    {
+                        "id": str(s.get("id") or "").strip(),
+                        "nome": nm[:300],
+                        "documento": "",
+                        "origem": "titulo_pg",
+                    }
+                )
+        elif db is not None:
+            for s in lancamentos_sugestoes_campo(db, "cliente", q=q, limit=25):
+                nm = (s.get("nome") or "").strip()
+                if not nm:
+                    continue
+                extras.append(
+                    {
+                        "id": str(s.get("id") or "").strip(),
+                        "nome": nm[:300],
+                        "documento": "",
+                        "origem": "titulo",
+                    }
+                )
     agro_rows: list[dict[str, str]] = []
     if q:
         try:
@@ -11937,8 +11964,13 @@ def api_entrada_nota_fornecedores(request):
                 )
         except Exception:
             pass
-    merged = _entrada_nota_mesclar_itens_fornecedor(mongo_rows, extras, agro_rows, lim=lim)
-    return JsonResponse({"itens": merged})
+    base_rows = pg_rows if pg_rows else mongo_rows
+    if pg_rows and mongo_rows:
+        base_rows = pg_rows + [r for r in mongo_rows if r not in pg_rows]
+    merged = _entrada_nota_mesclar_itens_fornecedor(base_rows, extras, agro_rows, lim=lim)
+    return JsonResponse(
+        {"itens": merged, "fonte": "postgres" if pg_rows else "mongo"}
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -13830,14 +13862,38 @@ def api_lancamentos_opcoes_baixa(request):
     elif modo not in ("erp", "historico"):
         modo = "erp"
     _, db = obter_conexao_mongo()
-    if db is None:
+    fonte = "mongo"
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import listar_formas_e_bancos_distintos_pg
+
+        formas, bancos = listar_formas_e_bancos_distintos_pg(modo=modo)
+        fonte = "postgres"
+        if db is not None and apenas_cadastro_erp:
+            from produtos.mongo_financeiro_util import (
+                _bancos_lista_com_placeholder_inicio,
+                listar_contas_bancarias_cadastro_mongo,
+                listar_formas_pagamento_cadastro_mongo,
+            )
+
+            try:
+                bm = listar_contas_bancarias_cadastro_mongo(db, 400)
+                if len(bm) >= 2:
+                    bancos = _bancos_lista_com_placeholder_inicio(bm)
+                fm = listar_formas_pagamento_cadastro_mongo(db, 400)
+                if len(fm) >= 2:
+                    formas = fm
+                    fonte = "mongo_cadastro"
+            except Exception:
+                logger.warning("api_lancamentos_opcoes_baixa cadastro mongo", exc_info=True)
+    elif db is None:
         return JsonResponse(
             {"erro": "Mongo indisponível", "formas": [], "bancos": [], "modo": modo, "extras": []},
             status=503,
         )
-    formas, bancos = listar_formas_e_bancos_distintos(
-        db, modo=modo, fonte_cadastro_mestre=apenas_cadastro_erp
-    )
+    else:
+        formas, bancos = listar_formas_e_bancos_distintos(
+            db, modo=modo, fonte_cadastro_mestre=apenas_cadastro_erp
+        )
     if apenas_cadastro_erp:
         det_f: list[dict] = []
         det_b: list[dict] = []
@@ -13857,6 +13913,7 @@ def api_lancamentos_opcoes_baixa(request):
             "bancos": bancos,
             "modo": modo,
             "extras": det_f + det_b,
+            "fonte": fonte,
         }
     )
 
@@ -15093,9 +15150,6 @@ def api_lancamentos_sugestoes(request):
     ``ordenar`` = nome | nome_desc | recente | frequencia;
     ``empresa_id`` = filtra lançamentos dessa empresa.
     """
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
     campo = (request.GET.get("campo") or "").strip().lower()
     q = (request.GET.get("q") or "").strip()
     try:
@@ -15107,6 +15161,23 @@ def api_lancamentos_sugestoes(request):
     escopo = (request.GET.get("escopo") or "todos").strip().lower()
     ordenar = (request.GET.get("ordenar") or "nome").strip().lower()
     empresa_id = (request.GET.get("empresa_id") or "").strip() or None
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import lancamentos_sugestoes_campo_pg
+
+        itens = lancamentos_sugestoes_campo_pg(
+            campo,
+            q=q or None,
+            limit=lim,
+            escopo=escopo,
+            ordenar=ordenar,
+            empresa_id=empresa_id,
+        )
+        if campo == "plano":
+            itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
+        return JsonResponse({"campo": campo, "itens": itens, "fonte": "postgres"})
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
     itens = lancamentos_sugestoes_campo(
         db,
         campo,

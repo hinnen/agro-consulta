@@ -353,9 +353,11 @@ def listar_empresas_estoque_entrada_nfe() -> list[dict[str, Any]]:
 def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
     """
     Lojas canônicas para etapa Financeiro da entrada NF-e (uma opção por unidade).
-    Resolve ``Empresa`` / ``EmpresaID`` do Mongo (último lançamento compatível).
+    Resolve ``Empresa`` / ``EmpresaID`` do Mongo ou Postgres (último lançamento compatível).
     """
-    from .mongo_financeiro_util import COL_DTO_LANCAMENTO
+    from produtos.mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
     specs: tuple[tuple[str, str, str, list[dict[str, Any]]], ...] = (
         (
@@ -393,7 +395,36 @@ def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
     for dep, label, nome_padrao, match_ors in specs:
         nome = nome_padrao
         eid = ""
-        if db is not None:
+        if agro_financeiro_usa_postgres():
+            try:
+                from django.db.models import Q
+
+                from produtos.models import TituloFinanceiroAgro
+
+                q_pg = Q()
+                for m in match_ors:
+                    emp_rx = m.get("Empresa")
+                    if isinstance(emp_rx, dict) and "$regex" in emp_rx:
+                        pat = str(emp_rx.get("$regex") or "").strip("^$")
+                        if pat:
+                            q_pg |= Q(empresa__iregex=pat)
+                if q_pg:
+                    t = (
+                        TituloFinanceiroAgro.objects.filter(q_pg)
+                        .order_by("-data_vencimento")
+                        .first()
+                    )
+                    if t:
+                        raw = str(t.empresa or "").strip()
+                        if dep == "centro":
+                            nome = "Agro Mais Centro"
+                        elif raw:
+                            nome = raw
+                        snap = t.dados_snapshot_json or {}
+                        eid = str(snap.get("empresa_id") or snap.get("EmpresaID") or "").strip()
+            except Exception:
+                logger.debug("listar_empresas_financeiro_entrada_nfe pg dep=%s", dep, exc_info=True)
+        if not eid and db is not None:
             try:
                 doc = db[COL_DTO_LANCAMENTO].find_one(
                     {"$or": match_ors},
@@ -411,6 +442,61 @@ def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
                 logger.debug("listar_empresas_financeiro_entrada_nfe dep=%s", dep, exc_info=True)
         out.append({"deposito": dep, "label": label, "nome": nome, "id": eid})
     return out
+
+
+def fornecedores_entrada_nfe_pg(
+    q: str | None = None,
+    *,
+    inicial: bool = False,
+    limit: int = 50,
+) -> list[dict[str, str]]:
+    """Fornecedores a partir de títulos CP Postgres + catálogo ``Produto.fornecedor_texto``."""
+    from django.db.models import Count
+
+    from produtos.models import Produto, TituloFinanceiroAgro
+
+    lim = min(max(int(limit or 50), 1), 100)
+    qq = (q or "").strip()
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def _add(nome: str, pid: str, origem: str, documento: str = "") -> None:
+        nk = " ".join((nome or "").lower().split())
+        if not nk or nk in seen:
+            return
+        seen.add(nk)
+        out.append(
+            {
+                "id": (pid or "")[:64],
+                "nome": (nome or "")[:300],
+                "documento": (documento or "")[:20],
+                "origem": origem,
+            }
+        )
+
+    if qq:
+        for t in (
+            TituloFinanceiroAgro.objects.filter(despesa=True, cliente__icontains=qq)
+            .values("cliente", "cliente_id")
+            .distinct()[:30]
+        ):
+            _add(str(t.get("cliente") or ""), str(t.get("cliente_id") or ""), "titulo_pg")
+        for fn in (
+            Produto.objects.filter(ativo=True, fornecedor_texto__icontains=qq)
+            .values_list("fornecedor_texto", flat=True)
+            .distinct()[:20]
+        ):
+            _add(str(fn or ""), "", "catalogo_pg")
+    elif inicial:
+        for t in (
+            TituloFinanceiroAgro.objects.filter(despesa=True)
+            .exclude(cliente="")
+            .values("cliente", "cliente_id")
+            .annotate(c=Count("id"))
+            .order_by("-c")[:lim]
+        ):
+            _add(str(t.get("cliente") or ""), str(t.get("cliente_id") or ""), "titulo_pg")
+    return out[:lim]
 
 
 def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:

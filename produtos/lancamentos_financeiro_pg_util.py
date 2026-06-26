@@ -491,6 +491,175 @@ def planos_distintos_cr_pg(**kwargs) -> list[dict[str, str]]:
     return planos_distintos_pg(despesa=False, **kwargs)
 
 
+_SUGESTOES_CAMPOS_PG: dict[str, tuple[str, str | None]] = {
+    "empresa": ("empresa", None),
+    "cliente": ("cliente", "cliente_id"),
+    "plano": ("plano_conta", "plano_conta_id"),
+    "forma": ("forma_pagamento", "forma_pagamento_id"),
+    "banco": ("banco", "banco_id"),
+    "grupo": ("grupo", None),
+    "centro": ("centro_custo", None),
+}
+
+
+def _financeiro_id_str(v: object) -> str:
+    return str(v or "").strip()
+
+
+def listar_formas_e_bancos_distintos_pg(
+    limit: int = 400,
+    *,
+    modo: str = "erp",
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Formas/contas a partir de ``TituloFinanceiroAgro`` (modo ERP ou histórico)."""
+    from produtos.mongo_financeiro_util import (
+        _bancos_lista_com_placeholder_inicio,
+        normalizar_rotulo_banco_erp,
+    )
+
+    cap = min(max(int(limit or 400), 1), 800)
+    modo_n = (modo or "erp").strip().lower()
+    formas: list[dict[str, str]] = []
+    bancos: list[dict[str, str]] = []
+    if modo_n == "historico":
+        seen_f: set[tuple[str, str]] = set()
+        seen_b: set[tuple[str, str]] = set()
+        for fn, fid, bn, bid in TituloFinanceiroAgro.objects.values_list(
+            "forma_pagamento", "forma_pagamento_id", "banco", "banco_id"
+        ).iterator(chunk_size=4000):
+            fn_s = (fn or "").strip()
+            fid_s = _financeiro_id_str(fid)
+            if fn_s:
+                key = (fn_s.lower(), fid_s)
+                if key not in seen_f:
+                    seen_f.add(key)
+                    formas.append({"id": fid_s, "nome": fn_s})
+            bn_s = (bn or "").strip()
+            bid_s = _financeiro_id_str(bid)
+            if bn_s:
+                key_b = (bn_s.lower(), bid_s)
+                if key_b not in seen_b:
+                    seen_b.add(key_b)
+                    bancos.append({"id": bid_s, "nome": normalizar_rotulo_banco_erp(bid_s, bn_s)})
+        formas.sort(key=lambda x: (x.get("nome") or "").lower())
+        bancos.sort(key=lambda x: (x.get("nome") or "").lower())
+        return formas[:cap], _bancos_lista_com_placeholder_inicio(bancos[:cap])
+
+    by_fid: dict[str, str] = {}
+    by_bid: dict[str, str] = {}
+    for fn, fid, bn, bid in TituloFinanceiroAgro.objects.values_list(
+        "forma_pagamento", "forma_pagamento_id", "banco", "banco_id"
+    ).iterator(chunk_size=4000):
+        fn_s = (fn or "").strip()
+        fid_s = _financeiro_id_str(fid)
+        if fn_s and fid_s and not re.match(r"^criar\s+novo", fn_s, re.IGNORECASE):
+            by_fid.setdefault(fid_s, fn_s)
+        bn_s = (bn or "").strip()
+        bid_s = _financeiro_id_str(bid)
+        if (
+            bn_s
+            and bid_s
+            and bn_s.upper() not in ("ADICIONAR BANCO", "ADICIONAR CONTA")
+        ):
+            by_bid.setdefault(bid_s, normalizar_rotulo_banco_erp(bid_s, bn_s))
+    formas = [{"id": k, "nome": v} for k, v in by_fid.items()]
+    formas.sort(key=lambda x: (x.get("nome") or "").lower())
+    bancos = [{"id": k, "nome": v} for k, v in by_bid.items()]
+    bancos.sort(key=lambda x: (x.get("nome") or "").lower())
+    return formas[:cap], _bancos_lista_com_placeholder_inicio(bancos[:cap])
+
+
+def lancamentos_sugestoes_campo_pg(
+    campo: str,
+    q: str | None = None,
+    limit: int = 30,
+    *,
+    escopo: str = "todos",
+    ordenar: str = "nome",
+    empresa_id: str | None = None,
+) -> list[dict[str, str]]:
+    """Autocomplete financeiro a partir dos títulos Postgres."""
+    from django.db.models import Count, Max
+
+    from produtos.mongo_financeiro_util import _banco_placeholder_para_select
+
+    campo = (campo or "").strip().lower()
+    if campo not in _SUGESTOES_CAMPOS_PG:
+        return []
+    nome_f, id_f = _SUGESTOES_CAMPOS_PG[campo]
+    cap = 500 if campo == "plano" else 80
+    lim = min(max(int(limit or 30), 1), cap)
+    qq = (q or "").strip()
+
+    qs = TituloFinanceiroAgro.objects.all()
+    esc = (escopo or "todos").strip().lower()
+    eid = (empresa_id or "").strip()
+    if eid and campo == "cliente":
+        qs = qs.filter(
+            Q(dados_snapshot_json__empresa_id=eid)
+            | Q(dados_snapshot_json__EmpresaID=eid)
+        )
+    if campo == "cliente":
+        if esc == "pagar":
+            qs = qs.filter(despesa=True)
+        elif esc == "receber":
+            qs = qs.filter(despesa=False)
+        elif esc == "emprestimo":
+            qs = qs.filter(
+                Q(plano_conta__icontains="empréstimo") | Q(plano_conta__icontains="emprestimo")
+            )
+    if qq:
+        qs = qs.filter(**{f"{nome_f}__icontains": qq[:100]})
+    else:
+        qs = qs.exclude(**{nome_f: ""})
+
+    if campo == "banco":
+        qs = qs.exclude(banco__in=["", "ADICIONAR BANCO", "Adicionar banco"])
+
+    if campo == "cliente" and ordenar in ("recente", "frequencia"):
+        qs = (
+            qs.values(nome_f, id_f)
+            .annotate(cnt=Count("id"), ult=Max("data_vencimento"))
+            .order_by("-cnt" if ordenar == "frequencia" else "-ult")
+        )
+        out: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for row in qs[: lim * 3]:
+            nome = str(row.get(nome_f) or "").strip()
+            if not nome or nome.lower() in seen:
+                continue
+            seen.add(nome.lower())
+            rid = row.get(id_f) if id_f else ""
+            out.append({"nome": nome, "id": _financeiro_id_str(rid)})
+            if len(out) >= lim:
+                break
+        return out
+
+    seen_n: set[str] = set()
+    out = []
+    ord_n = (ordenar or "nome").strip().lower()
+    values = qs.values_list(nome_f, id_f if id_f else nome_f).distinct()
+    rows = list(values[:200])
+    if ord_n == "nome_desc":
+        rows.sort(key=lambda r: str(r[0] or "").lower(), reverse=True)
+    else:
+        rows.sort(key=lambda r: str(r[0] or "").lower())
+    for nome, rid in rows:
+        nome_s = str(nome or "").strip()
+        if not nome_s or nome_s.lower() in seen_n:
+            continue
+        seen_n.add(nome_s.lower())
+        out.append({"nome": nome_s, "id": _financeiro_id_str(rid) if id_f else ""})
+        if len(out) >= lim:
+            break
+    if campo == "banco":
+        ph = _banco_placeholder_para_select()
+        pid = str(ph.get("id") or "")
+        if pid and not any(str(x.get("id") or "") == pid for x in out):
+            out.insert(0, ph)
+    return out[:lim]
+
+
 def financeiro_pg_conferencia_abertos() -> dict[str, Any]:
     """Totais CP em aberto Mongo (dedup) vs Postgres (dedup) — diagnóstico pré-flag."""
     from produtos.mongo_financeiro_util import (
