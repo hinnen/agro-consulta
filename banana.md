@@ -400,7 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; filtros em overlay; KPIs na barra meta. Teste **v3.14**; loja **v3.02**.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica **1a·3m·1m·1s | Hoje | 1s·1m·3m·1a** (passado + futuro); painel **Filtros | Planos** lado a lado (`<details>`); **4 atalhos globais** (Postgres `GraficoGastosAtalhoAgro`, todos os usuários). Teste **v3.18**; loja **v3.02**.
 
 ### 4.11 Caixa
 
@@ -845,7 +845,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **Gráfico gastos por plano (Chart.js)** — 2026-06-26: `/financeiro/grafico-gastos/` + API Mongo; filtros, favoritos, modo individual (`financeiro/views.py`, `mongo_financeiro_util.py`).
+1. **Gráfico gastos — UX período simétrico + split filtros/planos + 4 atalhos globais** — 2026-06-26: toolbar passado/futuro · slots Postgres · APIs `grafico-gastos-atalhos` (`financeiro/`).
+2. **Gráfico gastos por plano (Chart.js)** — 2026-06-26: `/financeiro/grafico-gastos/` + API Mongo; modo individual (`financeiro/views.py`, `mongo_financeiro_util.py`).
 2. **FAB PDV — não cobrir modais/botões** — 2026-05-21: z-index 90, hide overlay/dialog, reposicionar canto direito (`_agro_pdv_fab.html`).
 2. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
 3. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
@@ -972,6 +973,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Próximo** | CR / fiado (fase futura) · desligar Mongo financeiro só quando CR migrar |
 | **Loja** | **✅ CP em uso normal** |
 
+### FECHADO — gráfico gastos UX (26/06 — teste **v3.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Período toolbar** | **1a · 3m · 1m · 1s | Hoje | 1s · 1m · 3m · 1a** — passado e futuro a partir de hoje |
+| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado (`<details>` expansíveis); meta bar com botões **Filtros** / **Planos** |
+| **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
+| **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
+| **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
+| **Loja** | **Pendente** — só teste até Renan pedir produção |
+
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
 | Item | Detalhe |
@@ -987,7 +999,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Modo normal** | Linha **«Total Selecionado»** |
 | **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
-| **UI** | **100dvh sem scroll** · filtros **overlay** · meta bar compacta (soma/pontos/planos) · Esc fecha filtros |
+| **UI** | **100dvh sem scroll** · filtros **overlay** · meta bar compacta (soma/pontos/planos) · Esc fecha filtros · **v3.18:** período simétrico + split filtros/planos + 4 atalhos Postgres |
 | **Bug valores (26/06)** | Dedup DRE + filtro por ID de plano (perdia títulos) — fix: **todos marcados = sem filtro** (igual CP); desmarcados = `excluir_plano` |
 | **UI (26/06)** | Calendário Nova saída · labels pill · 96rem · retrair auto/localStorage |
 | **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |

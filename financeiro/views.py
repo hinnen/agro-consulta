@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from base.models import Empresa
 
 from financeiro.services.dashboard_financeiro import get_dashboard_data
+from financeiro.models import GraficoGastosAtalhoAgro
 from produtos.mongo_financeiro_util import (
     grafico_gastos_planos_despesa_mongo,
     grafico_gastos_serie_mongo,
@@ -94,7 +95,7 @@ def grafico_gastos_view(request):
     _, mongo_db = obter_conexao_mongo()
     planos_conta = grafico_gastos_planos_despesa_mongo(mongo_db)
     hoje = date.today()
-    padrao_ini = (hoje.replace(day=1) - timedelta(days=1)).replace(day=1)
+    padrao_ini = hoje - timedelta(days=90)
     return render(
         request,
         "financeiro/grafico_gastos.html",
@@ -200,4 +201,70 @@ def api_dados_grafico_gastos(request):
         )
     return JsonResponse(
         {"labels": payload["labels"], "datasets": payload["datasets"]}
+    )
+
+
+def _grafico_gastos_atalhos_lista() -> list[dict]:
+    by_slot = {a.slot: a for a in GraficoGastosAtalhoAgro.objects.all()}
+    out = []
+    for slot in range(1, 5):
+        row = by_slot.get(slot)
+        if row and row.nome:
+            out.append(
+                {
+                    "slot": slot,
+                    "nome": row.nome,
+                    "payload": row.payload or {},
+                    "atualizado_em": row.atualizado_em.isoformat()
+                    if row.atualizado_em
+                    else None,
+                }
+            )
+        else:
+            out.append({"slot": slot, "nome": "", "payload": None, "atualizado_em": None})
+    return out
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET"])
+def api_grafico_gastos_atalhos(request):
+    return JsonResponse({"atalhos": _grafico_gastos_atalhos_lista()})
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_http_methods(["POST"])
+def api_grafico_gastos_atalho_salvar(request, slot: int):
+    if slot not in (1, 2, 3, 4):
+        return JsonResponse({"erro": "Slot inválido"}, status=400)
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"erro": "JSON inválido"}, status=400)
+    nome = (body.get("nome") or "").strip()
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return JsonResponse({"erro": "Payload inválido"}, status=400)
+    existente = GraficoGastosAtalhoAgro.objects.filter(slot=slot).first()
+    if not nome and not (existente and existente.nome):
+        return JsonResponse({"erro": "Informe um nome para o atalho"}, status=400)
+    if not nome and existente:
+        nome = existente.nome
+    obj, _ = GraficoGastosAtalhoAgro.objects.update_or_create(
+        slot=slot,
+        defaults={
+            "nome": nome[:80],
+            "payload": payload,
+            "atualizado_por": request.user,
+        },
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "slot": obj.slot,
+            "nome": obj.nome,
+            "payload": obj.payload,
+            "atualizado_em": obj.atualizado_em.isoformat(),
+        }
     )

@@ -79,10 +79,47 @@
     font-size: var(--gg-label); font-weight: 800; cursor: pointer;
   }
   .gg-chip:hover { border-color: #86efac; background: var(--gg-emerald-soft); color: var(--gg-emerald-dark); }
-  .gg-chip.is-active {
-    border-color: var(--gg-emerald); background: var(--gg-emerald); color: #fff;
-    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22);
+  .gg-chip.is-active { border-color: var(--gg-emerald); background: var(--gg-emerald); color: #fff; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22); }
+  .gg-chip.is-past { background: #f1f5f9; }
+  .gg-chip.is-future { background: #eff6ff; border-color: #bfdbfe; }
+  .gg-chip.is-future:hover { border-color: #60a5fa; background: #dbeafe; color: #1e40af; }
+  .gg-chip-hoje {
+    min-height: 2.35rem; padding: 0 0.85rem; border-radius: 999px; flex-shrink: 0;
+    border: 2px solid #f59e0b; background: #fffbeb; color: #92400e;
+    font-size: var(--gg-label); font-weight: 900; cursor: pointer;
   }
+  .gg-chip-hoje.is-active { background: #f59e0b; border-color: #d97706; color: #fff; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+  .gg-periodo-row { display: flex; align-items: center; gap: 0.3rem; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .gg-periodo-row::-webkit-scrollbar { display: none; }
+  .gg-periodo-sep { width: 2px; height: 1.5rem; background: #cbd5e1; flex-shrink: 0; margin: 0 0.15rem; }
+  .gg-atalhos { display: flex; gap: 0.3rem; flex-shrink: 0; margin-left: 0.35rem; padding-left: 0.35rem; border-left: 2px solid #e2e8f0; }
+  .gg-atalho-slot {
+    min-height: 2.1rem; max-width: 6.5rem; padding: 0 0.5rem; border-radius: 0.55rem;
+    border: 2px dashed #cbd5e1; background: #fafbfc; color: #64748b;
+    font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
+    cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .gg-atalho-slot.is-filled { border-style: solid; border-color: #86efac; background: #ecfdf5; color: #047857; }
+  .gg-atalho-slot.is-filled:hover { border-color: var(--gg-emerald); background: #d1fae5; }
+  .gg-atalho-slot.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
+  .gg-split-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; min-height: 0; }
+  @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
+  .gg-split-col {
+    border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc;
+    min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .gg-split-col > summary {
+    list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
+    font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
+    background: linear-gradient(90deg, #f8fafc, #fff); border-bottom: 2px solid transparent;
+    user-select: none;
+  }
+  .gg-split-col[open] > summary { border-bottom-color: #e2e8f0; }
+  .gg-split-col > summary::-webkit-details-marker { display: none; }
+  .gg-split-col > summary::after { content: ' ▼'; font-size: 0.65rem; color: var(--gg-muted); float: right; }
+  .gg-split-col[open] > summary::after { content: ' ▲'; }
+  .gg-split-inner { padding: 0.55rem; overflow-y: auto; max-height: min(36vh, 14rem); min-height: 0; }
+  .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-meta-bar {
     display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
@@ -287,18 +324,25 @@
 </div>
 
 <div class="gg-toolbar" role="toolbar" aria-label="Atalhos e filtros">
-  <div class="gg-chips" id="gg-chips-periodo" aria-label="Período rápido">
-    <button type="button" class="gg-chip" data-periodo="1w">1 sem</button>
-    <button type="button" class="gg-chip is-active" data-periodo="1m">1 mês</button>
-    <button type="button" class="gg-chip" data-periodo="3m">3 meses</button>
-    <button type="button" class="gg-chip" data-periodo="1y">1 ano</button>
-    <button type="button" class="gg-chip" data-periodo="ytd">Ano atual</button>
+  <div class="gg-periodo-row" id="gg-chips-periodo" aria-label="Período passado e futuro">
+    <button type="button" class="gg-chip is-past" data-periodo="p1a" title="1 ano para trás até hoje">1a</button>
+    <button type="button" class="gg-chip is-past is-active" data-periodo="p3m" title="3 meses para trás">3m</button>
+    <button type="button" class="gg-chip is-past" data-periodo="p1m" title="1 mês para trás">1m</button>
+    <button type="button" class="gg-chip is-past" data-periodo="p1s" title="1 semana para trás">1s</button>
+    <span class="gg-periodo-sep" aria-hidden="true"></span>
+    <button type="button" class="gg-chip-hoje" data-periodo="hoje" title="Somente hoje">Hoje</button>
+    <span class="gg-periodo-sep" aria-hidden="true"></span>
+    <button type="button" class="gg-chip is-future" data-periodo="f1s" title="De hoje até 1 semana">1s</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f1m" title="De hoje até 1 mês">1m</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f3m" title="De hoje até 3 meses">3m</button>
+    <button type="button" class="gg-chip is-future" data-periodo="f1a" title="De hoje até 1 ano">1a</button>
   </div>
+  <div class="gg-atalhos" id="gg-atalhos-slots" aria-label="Atalhos salvos (todos os usuários)"></div>
   <div class="gg-toolbar-actions">
     <button type="button" class="gg-btn gg-btn-secondary gg-btn-sm gg-btn-filtros" id="btn-toggle-filtros" aria-expanded="false" aria-controls="painel-filtros-grafico">
       <span aria-hidden="true">⚙</span> Filtros
     </button>
-    <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="btn-atualizar-grafico">
+    <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="btn-atualizar-grafico" title="Atualizar gráfico">
       <span aria-hidden="true">↻</span>
     </button>
   </div>
@@ -310,7 +354,10 @@
   <span class="gg-meta-stat"><small>Pontos</small> <strong id="gg-kpi-pontos">—</strong></span>
   <span class="gg-meta-stat is-planos"><small>Planos</small> <strong id="gg-kpi-planos">—</strong></span>
   <span class="gg-meta-time" id="gg-ultima-atualizacao">—</span>
-  <button type="button" class="gg-summary-edit" id="btn-abrir-filtros">Filtros</button>
+  <div class="gg-meta-split">
+    <button type="button" class="gg-summary-edit" id="btn-abrir-filtros" data-gg-pane="filtros">Filtros</button>
+    <button type="button" class="gg-summary-edit" id="btn-abrir-planos" data-gg-pane="planos">Planos</button>
+  </div>
 </div>
 
 <div class="gg-stage">
@@ -329,93 +376,94 @@
       </div>
     </div>
     <div class="gg-filters-body">
-      <div class="gg-filters-grid">
-        <div class="gg-field">
-          <label for="filtro-periodo">Período (lista)</label>
-          <select id="filtro-periodo">
-            <option value="1w">Última semana</option>
-            <option value="1m" selected>Último mês</option>
-            <option value="3m">Últimos 3 meses</option>
-            <option value="1y">Último ano</option>
-            <option value="ytd">Ano atual</option>
-            <option value="custom">Personalizado</option>
-          </select>
-        </div>
-        <div class="gg-field">
-          <label for="data-inicial">Data inicial</label>
-          <input type="date" id="data-inicial" data-agro-date-picker class="agro-date-picker" value="{{ data_inicial_padrao }}">
-        </div>
-        <div class="gg-field">
-          <label for="data-final">Data final</label>
-          <input type="date" id="data-final" data-agro-date-picker class="agro-date-picker" value="{{ data_final_padrao }}">
-        </div>
-        <div class="gg-field">
-          <label for="filtro-agrupamento">Agrupamento</label>
-          <select id="filtro-agrupamento">
-            <option value="dia">Dia a dia</option>
-            <option value="semana">Semana a semana</option>
-            <option value="mes" selected>Mês a mês</option>
-            <option value="ano">Ano a ano</option>
-          </select>
-        </div>
-        <div class="gg-field">
-          <label for="filtro-por">Referência</label>
-          <select id="filtro-por">
-            <option value="vencimento" selected>Vencimento</option>
-            <option value="competencia">Competência</option>
-            <option value="pagamento">Pagamento</option>
-          </select>
-        </div>
-        <div class="gg-field">
-          <label for="filtro-valor">Valor</label>
-          <select id="filtro-valor">
-            <option value="bruto">Bruto (título)</option>
-            <option value="pago">Pago</option>
-            <option value="saldo" selected>Saldo em aberto</option>
-          </select>
-        </div>
-        <div class="gg-field gg-field-span-2 gg-field-span-2-md">
-          <label for="filtro-favoritos">Favoritos salvos</label>
-          <div class="gg-fav-row">
-            <select id="filtro-favoritos">
-              <option value="">Selecione um atalho…</option>
-            </select>
-            <button type="button" id="btn-salvar-favorito" class="gg-btn gg-btn-secondary shrink-0">Salvar</button>
-            <button type="button" id="btn-excluir-favorito" class="gg-btn gg-btn-ghost shrink-0" title="Excluir atalho selecionado">✕</button>
+      <div class="gg-split-body">
+        <details class="gg-split-col" id="gg-col-filtros" open>
+          <summary>Filtros</summary>
+          <div class="gg-split-inner">
+            <div class="gg-filters-grid">
+              <div class="gg-field">
+                <label for="filtro-periodo">Período (lista)</label>
+                <select id="filtro-periodo">
+                  <option value="p1a">1 ano · passado</option>
+                  <option value="p3m" selected>3 meses · passado</option>
+                  <option value="p1m">1 mês · passado</option>
+                  <option value="p1s">1 sem · passado</option>
+                  <option value="hoje">Hoje</option>
+                  <option value="f1s">1 sem · futuro</option>
+                  <option value="f1m">1 mês · futuro</option>
+                  <option value="f3m">3 meses · futuro</option>
+                  <option value="f1a">1 ano · futuro</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="data-inicial">Data inicial</label>
+                <input type="date" id="data-inicial" data-agro-date-picker class="agro-date-picker" value="{{ data_inicial_padrao }}">
+              </div>
+              <div class="gg-field">
+                <label for="data-final">Data final</label>
+                <input type="date" id="data-final" data-agro-date-picker class="agro-date-picker" value="{{ data_final_padrao }}">
+              </div>
+              <div class="gg-field">
+                <label for="filtro-agrupamento">Agrupamento</label>
+                <select id="filtro-agrupamento">
+                  <option value="dia">Dia a dia</option>
+                  <option value="semana">Semana a semana</option>
+                  <option value="mes" selected>Mês a mês</option>
+                  <option value="ano">Ano a ano</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="filtro-por">Referência</label>
+                <select id="filtro-por">
+                  <option value="vencimento" selected>Vencimento</option>
+                  <option value="competencia">Competência</option>
+                  <option value="pagamento">Pagamento</option>
+                </select>
+              </div>
+              <div class="gg-field">
+                <label for="filtro-valor">Valor</label>
+                <select id="filtro-valor">
+                  <option value="bruto">Bruto (título)</option>
+                  <option value="pago">Pago</option>
+                  <option value="saldo" selected>Saldo em aberto</option>
+                </select>
+              </div>
+            </div>
+            <div class="gg-help">
+              <details>
+                <summary>? Comparar com Contas a pagar</summary>
+                <p>Mesma referência, valor e datas. Todos os planos marcados = total «A pagar» da CP.</p>
+              </details>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <details class="gg-planos-section">
-        <summary>Planos de contas <small style="font-weight:700;color:var(--gg-muted)">({{ total_planos }})</small></summary>
-        <div class="gg-planos-tools">
-          <div class="gg-search-wrap">
-            <span class="gg-search-icon" aria-hidden="true">🔍</span>
-            <input type="search" id="busca-planos" placeholder="Buscar plano de contas…" autocomplete="off">
+        </details>
+        <details class="gg-split-col" id="gg-col-planos" open>
+          <summary>Planos de contas <small style="font-weight:700;color:var(--gg-muted)">({{ total_planos }})</small></summary>
+          <div class="gg-split-inner">
+            <div class="gg-planos-tools">
+              <div class="gg-search-wrap">
+                <span class="gg-search-icon" aria-hidden="true">🔍</span>
+                <input type="search" id="busca-planos" placeholder="Buscar plano…" autocomplete="off">
+              </div>
+              <label class="gg-chk-toggle">
+                <input type="checkbox" id="modo-individual">
+                <span>Individual</span>
+              </label>
+              <button type="button" class="gg-mini-btn" id="btn-marcar-todos">Todos</button>
+              <button type="button" class="gg-mini-btn" id="btn-desmarcar-todos">Nenhum</button>
+            </div>
+            <div id="container-planos-contas" class="gg-planos-grid">
+              {% for plano in planos_conta %}
+              <label class="gg-plano-item" data-nome-plano="{{ plano.nome|lower }}">
+                <input class="plano-checkbox" type="checkbox" value="{{ plano.id }}" data-nome="{{ plano.nome }}" checked>
+                <span title="{{ plano.nome }}">{{ plano.nome }}</span>
+              </label>
+              {% empty %}
+              <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano de despesa encontrado no Mongo.</p>
+              {% endfor %}
+            </div>
           </div>
-          <label class="gg-chk-toggle">
-            <input type="checkbox" id="modo-individual">
-            <span>Modo individual</span>
-          </label>
-          <button type="button" class="gg-mini-btn" id="btn-marcar-todos">Marcar todos</button>
-          <button type="button" class="gg-mini-btn" id="btn-desmarcar-todos">Desmarcar todos</button>
-        </div>
-        <div id="container-planos-contas" class="gg-planos-grid">
-          {% for plano in planos_conta %}
-          <label class="gg-plano-item" data-nome-plano="{{ plano.nome|lower }}">
-            <input class="plano-checkbox" type="checkbox" value="{{ plano.id }}" data-nome="{{ plano.nome }}" checked>
-            <span title="{{ plano.nome }}">{{ plano.nome }}</span>
-          </label>
-          {% empty %}
-          <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano de despesa encontrado no Mongo.</p>
-          {% endfor %}
-        </div>
-      </details>
-
-      <div class="gg-help">
-        <details>
-          <summary>? Como comparar com Contas a pagar</summary>
-          <p>Use a mesma referência (ex.: Vencimento), o mesmo valor (ex.: Saldo em aberto) e o mesmo intervalo de datas. Com todos os planos marcados, o total bate com a barra «A pagar» da CP. No agrupamento «Ano a ano», cada ponto soma o ano inteiro dentro do período.</p>
         </details>
       </div>
     </div>
@@ -442,6 +490,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const API_URL = "{% url 'api_dados_grafico_gastos' %}";
+  const API_ATALHOS = "{% url 'api_grafico_gastos_atalhos' %}";
+  const API_ATALHO_SLOT = "{% url 'api_grafico_gastos_atalho_salvar' slot=0 %}".replace('/0/', '/');
   const LS_AUTO_RETRAIR = 'grafico_gastos_auto_retrair_v1';
   const LS_PAINEL_ABERTO = 'grafico_gastos_painel_aberto_v1';
 
@@ -462,6 +512,12 @@ document.addEventListener('DOMContentLoaded', function () {
   let carregando = false;
   let datalabelsOn = true;
   let debounceTimer = null;
+  let periodoAtivo = 'p3m';
+  let atalhosCache = [];
+
+  function csrfToken() {
+    return (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+  }
 
   function fmtValor(v, dec) {
     if (v == null || v <= 0) return '';
@@ -535,11 +591,34 @@ document.addEventListener('DOMContentLoaded', function () {
     statusEl.textContent = msg || (loading ? 'Montando gráfico…' : '');
   }
 
-  function syncChipsPeriodo() {
-    const val = document.getElementById('filtro-periodo').value;
-    document.querySelectorAll('#gg-chips-periodo .gg-chip').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-periodo') === val);
+  function syncChipsPeriodo(cod) {
+    const val = cod || document.getElementById('filtro-periodo').value || periodoAtivo;
+    periodoAtivo = val;
+    document.querySelectorAll('#gg-chips-periodo [data-periodo]').forEach(function (btn) {
+      const on = btn.getAttribute('data-periodo') === val;
+      btn.classList.toggle('is-active', on);
     });
+  }
+
+  function aplicarPeriodoCodigo(cod) {
+    if (!cod || cod === 'custom') return;
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    if (cod === 'p1a') ini.setFullYear(hoje.getFullYear() - 1);
+    else if (cod === 'p3m') ini.setMonth(hoje.getMonth() - 3);
+    else if (cod === 'p1m') ini.setMonth(hoje.getMonth() - 1);
+    else if (cod === 'p1s') ini.setDate(hoje.getDate() - 6);
+    else if (cod === 'hoje') { /* ini/fim = hoje */ }
+    else if (cod === 'f1s') fim.setDate(hoje.getDate() + 6);
+    else if (cod === 'f1m') fim.setMonth(hoje.getMonth() + 1);
+    else if (cod === 'f3m') fim.setMonth(hoje.getMonth() + 3);
+    else if (cod === 'f1a') fim.setFullYear(hoje.getFullYear() + 1);
+    else return;
+    document.getElementById('data-inicial').value = isoDate(ini);
+    document.getElementById('data-final').value = isoDate(fim);
+    document.getElementById('filtro-periodo').value = cod;
+    syncChipsPeriodo(cod);
   }
 
   function atualizarResumoFiltros() {
@@ -572,22 +651,136 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function aplicarPeriodoRapido(codigo) {
-    const sel = codigo || document.getElementById('filtro-periodo').value;
-    if (sel === 'custom') return;
-    const fim = new Date();
-    const ini = new Date(fim);
-    if (sel === '1w') ini.setDate(fim.getDate() - 6);
-    else if (sel === '1m') ini.setMonth(fim.getMonth() - 1);
-    else if (sel === '3m') ini.setMonth(fim.getMonth() - 3);
-    else if (sel === '1y') ini.setFullYear(fim.getFullYear() - 1);
-    else if (sel === 'ytd') {
-      ini.setMonth(0, 1);
-      ini.setHours(0, 0, 0, 0);
+    aplicarPeriodoCodigo(codigo || document.getElementById('filtro-periodo').value);
+  }
+
+  function abrirPainelPane(pane) {
+    expandirPainel();
+    const colF = document.getElementById('gg-col-filtros');
+    const colP = document.getElementById('gg-col-planos');
+    if (pane === 'planos') {
+      if (colP) colP.open = true;
+      if (colF) colF.open = false;
+      if (colP) colP.scrollIntoView({ block: 'nearest' });
+    } else {
+      if (colF) colF.open = true;
+      if (colP) colP.open = false;
     }
-    document.getElementById('data-inicial').value = isoDate(ini);
-    document.getElementById('data-final').value = isoDate(fim);
-    document.getElementById('filtro-periodo').value = sel;
-    syncChipsPeriodo();
+  }
+
+  function coletarEstadoFiltros() {
+    const pp = planosPayload();
+    return {
+      planos: pp.planos,
+      planos_excluir: pp.planos_excluir,
+      todos_planos: pp.todos_planos,
+      agrupamento: document.getElementById('filtro-agrupamento').value,
+      por: document.getElementById('filtro-por').value,
+      valor: document.getElementById('filtro-valor').value,
+      periodo: document.getElementById('filtro-periodo').value,
+      individual: pp.individual,
+      inicio: document.getElementById('data-inicial').value,
+      fim: document.getElementById('data-final').value
+    };
+  }
+
+  function aplicarEstadoFiltros(state) {
+    if (!state) return;
+    document.getElementById('filtro-agrupamento').value = state.agrupamento || 'mes';
+    document.getElementById('filtro-por').value = state.por || 'vencimento';
+    document.getElementById('filtro-valor').value = state.valor || 'saldo';
+    document.getElementById('modo-individual').checked = !!state.individual;
+    if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
+    if (state.fim) document.getElementById('data-final').value = state.fim;
+    if (state.periodo && state.periodo !== 'custom') {
+      aplicarPeriodoCodigo(state.periodo);
+    } else {
+      document.getElementById('filtro-periodo').value = state.periodo || 'custom';
+      syncChipsPeriodo('custom');
+    }
+    if (state.todos_planos) {
+      document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
+    } else if (state.planos && state.planos.length) {
+      document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
+        cb.checked = state.planos.includes(cb.value);
+      });
+    }
+    syncChipsPeriodo(document.getElementById('filtro-periodo').value);
+  }
+
+  function renderAtalhosSlots() {
+    const wrap = document.getElementById('gg-atalhos-slots');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    atalhosCache.forEach(function (a) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gg-atalho-slot' + (a.nome ? ' is-filled' : '');
+      btn.setAttribute('data-slot', String(a.slot));
+      btn.title = a.nome
+        ? (a.nome + ' — clique aplica · Shift+clique grava de novo')
+        : ('Slot ' + a.slot + ' — clique para salvar filtros atuais');
+      btn.textContent = a.nome || ('+' + a.slot);
+      btn.addEventListener('click', function (ev) { onAtalhoClick(a.slot, ev); });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function carregarAtalhosServidor(cb) {
+    fetch(API_ATALHOS, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        atalhosCache = data.atalhos || [];
+        renderAtalhosSlots();
+        if (cb) cb();
+      })
+      .catch(function () {
+        atalhosCache = [1, 2, 3, 4].map(function (s) { return { slot: s, nome: '', payload: null }; });
+        renderAtalhosSlots();
+      });
+  }
+
+  function salvarAtalhoServidor(slot, nome, payload, cb) {
+    fetch(API_ATALHO_SLOT + slot + '/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ nome: nome, payload: payload })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.data.erro || 'Não foi possível salvar o atalho.');
+          return;
+        }
+        carregarAtalhosServidor(cb);
+      })
+      .catch(function () { alert('Falha ao salvar atalho no servidor.'); });
+  }
+
+  function onAtalhoClick(slot, ev) {
+    const row = atalhosCache.find(function (a) { return a.slot === slot; });
+    const filled = row && row.nome && row.payload;
+    if (ev.shiftKey && filled) {
+      if (!confirm('Gravar os filtros atuais no atalho «' + row.nome + '»? (todos os usuários)')) return;
+      salvarAtalhoServidor(slot, row.nome, coletarEstadoFiltros(), function () {
+        atualizarGrafico({ forceRetract: autoRetractEl.checked });
+      });
+      return;
+    }
+    if (!filled) {
+      const nome = prompt('Nome deste atalho (visível para todos):');
+      if (!nome || !nome.trim()) return;
+      salvarAtalhoServidor(slot, nome.trim(), coletarEstadoFiltros(), function () {
+        atualizarGrafico({ forceRetract: autoRetractEl.checked });
+      });
+      return;
+    }
+    aplicarEstadoFiltros(row.payload);
+    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) {
+      b.classList.toggle('is-active', Number(b.getAttribute('data-slot')) === slot);
+    });
+    atualizarGrafico({ forceRetract: autoRetractEl.checked });
   }
 
   function waitLibs(cb, tries) {
@@ -771,17 +964,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function limparFiltros() {
-    document.getElementById('filtro-periodo').value = '1m';
     document.getElementById('filtro-agrupamento').value = 'mes';
     document.getElementById('filtro-por').value = 'vencimento';
     document.getElementById('filtro-valor').value = 'saldo';
     document.getElementById('modo-individual').checked = false;
     document.getElementById('busca-planos').value = '';
     filtrarPlanosBusca();
-    aplicarPeriodoRapido('1m');
+    aplicarPeriodoCodigo('p3m');
     document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
-    document.getElementById('filtro-favoritos').value = '';
+    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) { b.classList.remove('is-active'); });
     expandirPainel();
+    abrirPainelPane('filtros');
     atualizarGrafico();
   }
 
@@ -795,7 +988,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape' && painelAberto()) retrairPainel();
   });
   document.getElementById('btn-recolher-filtros').addEventListener('click', retrairPainel);
-  document.getElementById('btn-abrir-filtros').addEventListener('click', expandirPainel);
+  document.getElementById('btn-abrir-filtros').addEventListener('click', function () { abrirPainelPane('filtros'); });
+  document.getElementById('btn-abrir-planos').addEventListener('click', function () { abrirPainelPane('planos'); });
   document.getElementById('btn-atualizar-grafico').addEventListener('click', function () {
     atualizarGrafico({ forceRetract: autoRetractEl.checked });
   });
@@ -809,10 +1003,10 @@ document.addEventListener('DOMContentLoaded', function () {
     try { localStorage.setItem(LS_AUTO_RETRAIR, autoRetractEl.checked ? '1' : '0'); } catch (_) {}
   });
 
-  document.querySelectorAll('#gg-chips-periodo .gg-chip').forEach(function (btn) {
+  document.querySelectorAll('#gg-chips-periodo [data-periodo]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const cod = btn.getAttribute('data-periodo');
-      aplicarPeriodoRapido(cod);
+      aplicarPeriodoCodigo(cod);
       agendarAtualizacao({ forceRetract: autoRetractEl.checked });
     });
   });
@@ -852,8 +1046,8 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('busca-planos').addEventListener('input', filtrarPlanosBusca);
 
   document.getElementById('filtro-periodo').addEventListener('change', function () {
-    syncChipsPeriodo();
-    if (this.value !== 'custom') aplicarPeriodoRapido(this.value);
+    syncChipsPeriodo(this.value);
+    if (this.value !== 'custom') aplicarPeriodoCodigo(this.value);
     agendarAtualizacao();
   });
 
@@ -861,75 +1055,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById(id).addEventListener('change', function () {
       if (id.startsWith('data-')) {
         document.getElementById('filtro-periodo').value = 'custom';
-        syncChipsPeriodo();
+        syncChipsPeriodo('custom');
       }
       agendarAtualizacao();
     });
-  });
-
-  document.getElementById('btn-salvar-favorito').addEventListener('click', function () {
-    const nome = prompt('Nome para este atalho de filtros:');
-    if (!nome) return;
-    const pp = planosPayload();
-    const state = {
-      planos: pp.planos,
-      agrupamento: document.getElementById('filtro-agrupamento').value,
-      por: document.getElementById('filtro-por').value,
-      valor: document.getElementById('filtro-valor').value,
-      periodo: document.getElementById('filtro-periodo').value,
-      individual: pp.individual,
-      inicio: document.getElementById('data-inicial').value,
-      fim: document.getElementById('data-final').value
-    };
-    const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
-    favs[nome] = state;
-    localStorage.setItem('grafico_gastos_favs', JSON.stringify(favs));
-    carregarFavoritos();
-    document.getElementById('filtro-favoritos').value = nome;
-  });
-
-  document.getElementById('btn-excluir-favorito').addEventListener('click', function () {
-    const sel = document.getElementById('filtro-favoritos');
-    const nome = sel.value;
-    if (!nome) return;
-    if (!confirm('Excluir o atalho «' + nome + '»?')) return;
-    const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
-    delete favs[nome];
-    localStorage.setItem('grafico_gastos_favs', JSON.stringify(favs));
-    carregarFavoritos();
-  });
-
-  function carregarFavoritos() {
-    const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
-    const select = document.getElementById('filtro-favoritos');
-    const cur = select.value;
-    select.innerHTML = '<option value="">Selecione um atalho…</option>';
-    Object.keys(favs).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); }).forEach(function (nome) {
-      const opt = document.createElement('option');
-      opt.value = nome;
-      opt.textContent = nome;
-      select.appendChild(opt);
-    });
-    if (cur && favs[cur]) select.value = cur;
-  }
-
-  document.getElementById('filtro-favoritos').addEventListener('change', function (e) {
-    const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
-    const state = favs[e.target.value];
-    if (!state) return;
-    document.getElementById('filtro-agrupamento').value = state.agrupamento || 'mes';
-    document.getElementById('filtro-por').value = state.por || 'vencimento';
-    document.getElementById('filtro-valor').value = state.valor || 'saldo';
-    document.getElementById('filtro-periodo').value = state.periodo || 'custom';
-    document.getElementById('modo-individual').checked = !!state.individual;
-    if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
-    if (state.fim) document.getElementById('data-final').value = state.fim;
-    syncChipsPeriodo();
-    document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
-      cb.checked = (state.planos || []).includes(cb.value);
-    });
-    expandirPainel();
-    atualizarGrafico();
   });
 
   try {
@@ -947,9 +1076,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.AgroDatePicker) {
       window.AgroDatePicker.bind(document, { accent: '#059669', accentSoft: '#ecfdf5' });
     }
-    carregarFavoritos();
-    aplicarPeriodoRapido('1m');
-    syncChipsPeriodo();
+    carregarAtalhosServidor();
+    aplicarPeriodoCodigo('p3m');
     atualizarResumoFiltros();
     atualizarGrafico({ forceRetract: autoRetractEl.checked });
   });
