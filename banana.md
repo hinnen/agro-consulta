@@ -568,9 +568,19 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### Renan — intervenção (estritamente necessário)
 
+**Backup (superuser — faça na LOJA antes do import):**
+
+1. Chrome → **`/lancamentos/`** ou **`/lancamentos/contas-pagar/`** (login admin).
+2. Digite o **PIN** se pedir.
+3. Bloco amarelo **«Backup de segurança»** (só admin) — ou painel **«Segurança — antes de cortar o ERP»** ao abrir `/lancamentos/`.
+4. Clique **`Backup em aberto`** → aguarde ZIP (~1 min) → salvar no PC.
+5. Clique **`Backup todos`** → outro ZIP → salvar (**2ª cópia**, pasta ou pendrive).
+6. **Não** clique em **Fazer checkpoint** hoje — só se o assistente pedir.
+7. Anote o **nº de títulos Em aberto** na lista CP (filtro).
+
 | # | Quando | Faça |
 | --- | ------ | ---- |
-| **1** | **Antes de qualquer `--apply`** | `/lancamentos/` → painel admin → **Backup ZIP abertos** + **XLSX completo** → guardar no PC (**2 cópias** se puder) |
+| **1** | **Antes de qualquer `--apply`** | Passos **1–5** acima (ZIP aberto + ZIP todos) |
 | **2** | **Antes de ligar flag no teste** | Anotar **nº de títulos em aberto** na tela CP (filtro Em aberto) |
 | **3** | **Depois import teste** | Conferir: **mesmo nº** em aberto · abrir **3 títulos** (valor, vencimento, fornecedor) |
 | **4** | **Render** | **Não** mexer em env sozinho — assistente pede quando for hora |
