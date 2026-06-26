@@ -507,6 +507,50 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ---
 
+### Renan — Lançamentos: o que já fizemos e o que falta (linguagem leiga)
+
+**Imagine dois armários de boletos/contas:**
+
+| Armário | O que é |
+| ------- | ------- |
+| **Mongo (espelho ERP)** | Onde **hoje** ficam ~17 mil contas a pagar/receber que a loja usa |
+| **Postgres Agro** | O armário **novo** do SisVale — já existe a gaveta (`TituloFinanceiroAgro`), mas a tela **ainda não abre nele** |
+
+**Dois “cortes” diferentes (não confundir):**
+
+| Corte | Significado | Status |
+| ----- | ----------- | ------ |
+| **1 — Parar de falar com o ERP** | SisVale **não envia** mais baixa/lançamento para o sistema antigo (API WL) | **✅ Feito** (checkpoint + código v1.14) |
+| **2 — Mudar a tela Lançamentos** | Contas a pagar/receber passam a **ler e gravar no Postgres Agro**, não no Mongo | **⏸ Falta** (3–5 dias de dev + teste) |
+
+---
+
+**O que JÁ fizemos (Lançamentos + corte ERP):**
+
+1. **Tela nova** — Contas a pagar/receber mais rápida: filtros, PIN, Nova saída, excluir, empréstimo dual, etc.
+2. **Backup** — Planilha/ZIP dos títulos guardada (cópia de segurança no PC).
+3. **Checkpoint** — “Carimbo” nos ~17 mil títulos no Mongo (**não apaga nada**, só marca).
+4. **Corte API ERP** — Depois do checkpoint, o SisVale **não manda** mais lançamento/baixa para o ERP por API.
+5. **Gaveta nova no Postgres** — Tabela preparada + comando para **copiar** títulos do Mongo (hoje só **simulação** no teste, não ligou na loja).
+6. **Loja hoje** — Operador usa Lançamentos **normal**; boletos e Entrada NF passo 7 **continuam no Mongo** e **funcionam** (Renan validou ✅).
+
+**O que AINDA falta para “terminar o corte” da tela Lançamentos com Mongo:**
+
+| Passo | Em português claro | Onde |
+| ----- | ------------------ | ---- |
+| **A** | **Copiar** os ~17 mil títulos do Mongo para o Postgres (comando `importar… --apply`) | Primeiro **teste**, depois **loja** |
+| **B** | **Reprogramar a tela** — lista, busca, quitar, excluir, Nova saída, DRE, PDF, calendário — para usar o Postgres em vez do Mongo | Dev **teste** |
+| **C** | **Entrada NF passo 7** — “Salvar + a pagar” gravar no Postgres, não só no Mongo | Junto com B |
+| **D** | **Testar tudo** no staging (criar, pagar, excluir, conferir saldo) | Renan no **teste** |
+| **E** | **Ligar na loja** — flag `AGRO_FONTE_FINANCEIRO=agro_pg` **só quando B+C estiverem prontos** | Deploy **produção** + senha |
+| **F** | Mongo vira **só histórico** (não entra título novo) — opcional congelar de vez | Depois de E estável |
+
+**Tempo realista:** **3–5 dias** de trabalho focado (não é “hoje à tarde”). **Não bloqueia** a loja amanhã — é trocar o armário com cuidado.
+
+**Fiado não entra aqui** — fiado já é Postgres nativo; é outro módulo.
+
+---
+
 ### 4.16 Lançamentos — preparação corte ERP (**feito**) · migração Postgres (**pendente**)
 
 **Já feito (jun/2026):** backup, checkpoint, corte Agro→ERP na API, layout CP, PIN, perf — ver §4.10 e tabela acima.
@@ -609,9 +653,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.97`  
+**Versão:** `1.0.98`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — **auditoria produção** pós-validação Renan  
+**Atualizado por:** assistente — § leiga Lançamentos / corte Mongo  
 **Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
