@@ -572,12 +572,12 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | **✅ Renan 26/06** — «Teste» R$ 1,00 quitado PG |
 | **3** | **Assistente** | Import PG na **loja** + deploy pacote **teste→producao** | **✅ em curso v3.03** |
 | **4** | **Renan** | Frase *«pode subir produção»* + senha **`99738595`** **no mesmo pedido** | **✅ Renan 26/06** |
-| **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | Junto com **4** |
-| **6** | **Renan** | Loja: CP aberto **741** + total de novo + 1 pagamento real pequeno (opcional) | Depois deploy |
+| **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | **✅ 26/06** |
+| **6** | **Renan** | Loja: CP aberto **741** + total de novo + 1 pagamento real pequeno (opcional) | **✅ 26/06** — **741** · **R$ 393.652,70** |
 
 **Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
 
-**Bloqueio único hoje:** passo **3–4** — import PG na loja + deploy **só** com frase + senha **`99738595`** no mesmo pedido.
+**Bloqueio CP Postgres (em aberto):** **fechado 26/06** — loja operando CP no Postgres. CR/fiado fora do escopo.
 
 
 ### Renan — intervenção (estritamente necessário)
@@ -604,7 +604,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **C** | **Lista** CP (ver, filtrar, total) no Postgres | **✅ teste** (741 / 393.652,70 bateu) |
 | **D** | **Gravar** no Postgres: pagar, parcial, nova saída, editar, excluir | **✅ teste v3.40** (deploy pendente Render) |
 | **E** | Validar **D** no teste (pagar 1 título de teste) | **✅ Renan 26/06** |
-| **F** | Import + flag na **loja** (senha) | **✅ deploy v3.03** — aguardar Render + conferir CP |
+| **F** | Import + flag na **loja** (senha) | **✅ v3.04** — **741** / **393.652,70** conferido Renan |
 
 **Por que parou antes de D?**  
 Primeiro garantimos: *«a cópia no Postgres é a mesma coisa que a tela da loja?»* — **sim** (passo 4).  
@@ -797,18 +797,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.06`  
+**Versão:** `1.1.07`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — produção CP Postgres v3.03 (Renan 99738595)  
-**Versão app (`VERSION`):** **teste** v3.42 · **produção** v3.03 *(deploy Render)*
+**Atualizado por:** assistente — loja CP PG OK Renan print 741/393652  
+**Versão app (`VERSION`):** **teste** v3.04 · **produção** v3.04
 
-### DEPLOY PRODUÇÃO — CP Postgres **v3.03** (26/06, Renan 99738595)
+### FECHADO — CP Postgres loja **26/06** (Renan 99738595 + conferência)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Deploy** | `70913e0` + `7140fa4` · **v3.04** |
+| **fonte-status loja** | `financeiro_postgres: true` · `titulos_financeiro_pg: 17878` · `financeiro_pg_loja_auto: true` |
+| **Conferência Renan** | **Em aberto** sem filtro data: **Qtd 741** · **A pagar R$ 393.652,70** — **= backup 25/06** |
+| **Gravação** | Pagar/parcial/editar/excluir/nova saída → **Postgres** (Mongo intacto espelho) |
+| **Opcional** | 1 pagamento real pequeno na loja quando quiser (conta real, não «ADICIONAR CONTA») |
+| **Fora escopo** | Contas a receber / fiado |
+
+### DEPLOY PRODUÇÃO — CP Postgres **v3.03–v3.04** (26/06, Renan 99738595)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Merge** | `teste`→`producao` · CP lista+gravação PG · bootstrap import na build |
 | **Env loja** | Auto CP PG após import (`AGRO_FINANCEIRO_PG_LOJA_AUTO`, default on) — **não** precisa Render manual |
-| **Renan agora** | **~30 min** CP só consulta · depois conferir **741** abertos + total |
+| **Renan agora** | **✅ conferido** — CP pode usar normalmente (pagamentos vão pro Postgres) |
 | **Mongo loja** | **Não apagar** — espelho de backup |
 
 ### WIP CP Postgres — gravação **teste v3.40**
@@ -893,6 +904,7 @@ Cosmético (não bloqueia): ordem busca «milho» · custo lista R$ 0 GM9503.
 | `AGRO_FONTE_ESTOQUE=ledger` | ✅ *(operando — Renan validou)* |
 | `AGRO_DISPLAY_SCALE_HABILITADO` | ❌ **não** (ou omitir = off) |
 | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` | ❌ não (só staging) |
+| `AGRO_FONTE_FINANCEIRO=agro_pg` | opcional — **auto** `financeiro_pg_loja_auto` já liga com PG populado |
 | `AGRO_STAGING_READONLY` | ❌ não |
 | `AGRO_SNAPSHOT_FONTE_DATABASE_URL` | ❌ não (só teste) |
 
