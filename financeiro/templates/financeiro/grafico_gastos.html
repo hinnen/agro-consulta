@@ -103,15 +103,15 @@
   .gg-atalho-slot.is-filled:hover { border-color: var(--gg-emerald); background: #d1fae5; }
   .gg-atalho-slot.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
   .gg-split-body {
-    display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.28fr);
-    gap: 0.55rem; min-height: min(52vh, 28rem); align-items: stretch;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 0.55rem; align-items: stretch; min-height: 0;
   }
-  @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; min-height: 0; } }
+  @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
   .gg-split-col {
     border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc;
     min-height: 0; display: flex; flex-direction: column; overflow: hidden;
   }
-  #gg-col-planos[open] { min-height: min(50vh, 26rem); }
+  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; }
   .gg-split-col > summary {
     list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
     font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
@@ -123,14 +123,22 @@
   .gg-split-col > summary::after { content: ' ▼'; font-size: 0.65rem; color: var(--gg-muted); float: right; }
   .gg-split-col[open] > summary::after { content: ' ▲'; }
   .gg-split-inner {
-    padding: 0.55rem; overflow-y: auto; max-height: min(38vh, 16rem); min-height: 0;
+    padding: 0.55rem; overflow-y: auto; max-height: min(42vh, 18rem); min-height: 0;
+  }
+  .gg-split-inner--filtros .gg-filters-grid {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+  @media (min-width: 720px) {
+    .gg-split-inner--filtros .gg-filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .gg-split-inner--planos {
-    display: flex; flex-direction: column; flex: 1; overflow: hidden;
-    max-height: min(62vh, 34rem); min-height: min(44vh, 20rem);
+    display: flex; flex-direction: column; overflow: hidden;
+    max-height: min(58vh, 32rem); min-height: min(28vh, 14rem);
   }
+  .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
-    flex: 1 1 auto; min-height: min(36vh, 15rem); max-height: none;
+    flex: 1 1 auto; min-height: 8rem; max-height: none; overflow-y: auto;
   }
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
@@ -187,7 +195,7 @@
     font-size: var(--gg-label); font-weight: 700; color: #475569; cursor: pointer;
   }
   .gg-toggle-opt input { width: 1rem; height: 1rem; accent-color: var(--gg-emerald); }
-  .gg-filters-body { padding: 0.65rem 0.75rem; overflow-y: auto; flex: 1; min-height: 0; }
+  .gg-filters-body { padding: 0.65rem 0.75rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: min(68vh, 34rem); }
   .gg-filters-grid {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1rem;
   }
@@ -291,11 +299,11 @@
   .gg-help p { margin: 0.4rem 0 0; color: var(--gg-muted); line-height: 1.4; font-weight: 600; }
   .gg-kpi-row { display: none; }
   .gg-chart-card {
-    flex: 1; min-height: 0; display: flex; flex-direction: column;
+    flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
     border: 2px solid var(--gg-border); border-radius: var(--gg-radius);
     background: var(--gg-card); box-shadow: var(--gg-shadow); overflow: hidden;
   }
-  .gg-chart-inner { flex: 1; min-height: 0; padding: 0.15rem 0.45rem 0.35rem; position: relative; }
+  .gg-chart-inner { flex: 1 1 auto; min-height: 12rem; height: 100%; padding: 0.15rem 0.45rem 0.35rem; position: relative; }
   .gg-chart-inner canvas { width: 100% !important; height: 100% !important; }
   #gg-status {
     position: absolute; inset: 0; z-index: 10;
@@ -454,6 +462,7 @@
         <details class="gg-split-col" id="gg-col-planos" open>
           <summary>Planos de contas <small style="font-weight:700;color:var(--gg-muted)">({{ total_planos }})</small></summary>
           <div class="gg-split-inner gg-split-inner--planos">
+            <div class="gg-planos-tools">
               <div class="gg-search-wrap">
                 <span class="gg-search-icon" aria-hidden="true">🔍</span>
                 <input type="search" id="busca-planos" placeholder="Buscar plano…" autocomplete="off">

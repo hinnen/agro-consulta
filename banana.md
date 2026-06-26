@@ -998,9 +998,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Período toolbar** | **1a · 3m · 1m · 1s | Hoje | 1s · 1m · 3m · 1a** — passado e futuro a partir de hoje |
-| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado (`<details>` expansíveis); meta bar com botões **Filtros** / **Planos** · **planos ~2× mais altos** (v3.21) |
+| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado · **fix v3.26:** HTML planos (lista sumia) + grid filtros 2 col + gráfico preenche tela |
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
-| **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.22) |
+| **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **Pendente** — só teste até Renan pedir produção |
@@ -1024,7 +1024,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Bug valores (26/06)** | Dedup DRE + filtro por ID de plano (perdia títulos) — fix: **todos marcados = sem filtro** (igual CP); desmarcados = `excluir_plano` |
 | **UI (26/06)** | Calendário Nova saída · labels pill · 96rem · retrair auto/localStorage |
 | **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |
-| **Pendente opcional** | ~~Link no menu Lançamentos / BI~~ → **✅ card CP no BI** (v3.22) |
+| **Pendente opcional** | ~~Link no menu Lançamentos / BI~~ → **✅ card CP no BI** (v3.24) |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
