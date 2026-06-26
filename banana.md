@@ -609,41 +609,93 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.92`  
-**Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — **deploy produção OK** (Renan + senha)  
-**Versão app (`VERSION`):** **teste** v2.98 · **produção** v2.98
+**Versão:** `1.0.94`  
+**Última atualização:** `2026-06-24`  
+**Atualizado por:** assistente — **hotfix loja OK** (Renan + senha `99738595`)  
+**Versão app (`VERSION`):** **teste** v3.05 · **produção** v3.06 *(pós-hotfix)*
 
-### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
+### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
 | Item | Valor |
 | ---- | ----- |
-| **Tag Git** | `checkpoint/producao-v2.28-pre-desvinc-20260625` |
-| **Commit** | `f87955d` — *producao v2.28 PDV autocomplete* |
-| **VERSION loja** | **v2.28** |
-| **Reverter código** | `git checkout producao` → `git reset --hard f87955d` → push produção (**só emergência**, avisar Renan) |
-| **Render** | Redeploy manual do commit/tag acima no painel se precisar |
+| **Commit** | `0c10e9a` — *producao v2.99 pós-merge desvinculação* |
+| **VERSION loja** | **v2.99** |
+| **Problemas** | Modal Display Scale · busca cliente PDV lenta |
+| **Reverter** | `git reset --hard 0c10e9a` → push `producao` (**emergência**) |
 
-### DEPLOY PRODUÇÃO — **OK** (25/06 noite, Renan + senha)
+### CHECKPOINT PRODUÇÃO — merge grande 25/06 (emergência total)
+
+| Item | Valor |
+| ---- | ----- |
+| **Tag** | `checkpoint/producao-v2.28-pre-desvinc-20260625` |
+| **Commit** | `f87955d` — *v2.28 PDV autocomplete* |
+| **Reverter** | reset `f87955d` — perde pacote desvinculação |
+
+### DEPLOY PRODUÇÃO — merge desvinculação **OK com ressalva** (25/06, Renan + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Merge** | `teste` → `producao` · commit `1d82d30` |
-| **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
-| **VERSION loja** | **v2.98** (pacote desvinculação + Compras D4 + Entrada NF + prep Lançamentos + motor busca v2) |
-| **Pacote** | Fases A–D3 · Compras D4 A+B+C · ledger · `agro_pg` (código; **env Render** abaixo) |
-| **Env Render produção** | Conferir/ajustar: `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger · **sem** `AGRO_STAGING_READONLY` |
-| **Migrate loja** | Render roda migrate no deploy · migration `0041_titulo_financeiro_agro` (só tabela prep, telas Mongo) |
-| **Antes abrir** | `importar_catalogo_mongo_produto` se catálogo PG incompleto |
-| **Renan amanhã** | Ctrl+F5 · PDV · Gestão · Compras · Entrada NF passo 5 · 2–3 produtos (ex. GM9503) |
-| **Testes** | ⏸ **pausados** até loja validar |
+| **Merge** | `teste` → `producao` · `1d82d30` |
+| **VERSION** | **v2.99** |
+| **Pacote** | A–D3 · Compras D4 · ledger · `agro_pg` |
+| **Ressalvas** | Display Scale não pedido · busca cliente lenta |
 
-### WIP AGORA — pós-deploy loja
+### DEPLOY PRODUÇÃO — **hotfix OK** (24/06, Renan + senha `99738595`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commits** | `49d34cf` Display Scale off · `f697d5e` cache clientes PDV |
+| **Push** | `origin/producao` · Render redeploy |
+| **Renan** | Ctrl+F5 · sem modal zoom · buscar cliente **renan** na hora |
+
+### Renan — testar agora (loja pós-hotfix)
+
+**Antes:** Ctrl+F5 · conferir env Render (tabela abaixo) · abrir `/api/agro/fonte-status/` (`catalogo_postgres: true` · `estoque_ledger_ativo: true`).
+
+| # | Onde | O quê | OK se… |
+| --- | ---- | ----- | ------ |
+| 0 | Qualquer tela | Modal «Tamanho da tela» | **Não aparece** (`49d34cf`) |
+| 1 | `/pdv/` | Busca + autocomplete | Lista abre · **carregar mais** · **Enter** adiciona · **Esc** recolhe |
+| 2 | `/pdv/` | Venda rápida | 2–3 produtos (ex. **GM9503**, milho) · preço/saldo coerentes |
+| 3 | `/consulta/` ou PDV legado | Busca | Mesmos produtos aparecem (ordem pode diferir do teste) |
+| 4 | Gestão operacional | Lista + busca | Abre em tempo aceitável · produto abre detalhe |
+| 5 | `/compras/` | Cards + sugestão | GM9503: saldo · sug. · chips «Últimas compras» |
+| 6 | Compras → Folha | Planilha categoria **teste** | 1 produto · colunas últ. pedido / média preenchidas |
+| 7 | `/entrada-nota/` | Wizard passo **5 estoque** | Saldo bate Consulta/Compras (ex. GM9503) |
+| 8 | Entrada NF | Passo 7 financeiro | «Salvar + a pagar» grava título em Lançamentos (**loja**, não dry-run) |
+| 9 | `/pdv/` → Buscar cliente | **renan** | lista **imediata** (`f697d5e`) |
+
+**Bugs corrigidos no hotfix:** Display Scale modal · busca cliente lenta (cache local PDV wizard).
+
+**Não bloqueia:** ordem busca «milho» · custo lista R$ 0 GM9503.
+
+### Render produção — env (checklist)
+
+| Variável | Loja |
+| -------- | ---- |
+| `AGRO_FONTE_CATALOGO=agro_pg` | ✅ já tem |
+| `AGRO_FONTE_ESTOQUE=ledger` | ➕ adicionar |
+| `AGRO_DISPLAY_SCALE_HABILITADO` | ❌ **não** (ou omitir = off) |
+| `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` | ❌ não (só staging) |
+| `AGRO_STAGING_READONLY` | ❌ não |
+| `AGRO_SNAPSHOT_FONTE_DATABASE_URL` | ❌ não (só teste) |
+
+### Render teste — env (Display Scale)
+
+| Variável | Staging |
+| -------- | ------- |
+| `AGRO_DISPLAY_SCALE_HABILITADO=true` | ➕ se quiser modal/botão **Aa** no teste |
+
+Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false`
+
+### WIP AGORA — pós-hotfix loja
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Amanhã loja** | Validar operação · se OK, retomar sprint (motor Compras/NF · Lançamentos · NF financeiro) |
-| **Se bug grave** | Tag checkpoint acima → reset `f87955d` |
+| **Renan** | Checklist 0–9 acima |
+| **Env loja** | `AGRO_FONTE_ESTOQUE=ledger` se ainda falta |
+| **Revert leve** | reset `0c10e9a` (volta v2.99 + bugs) |
+| **Revert total** | tag checkpoint → `f87955d` |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -748,7 +800,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Quando** | **✅ 25/06 loja fechou** — Renan pediu deploy (aguardando senha no chat) |
 | **O quê** | Merge `teste`→`producao` — pacote validado + Compras D4 (Renan ✅) |
 | **Código** | `agro_pg` + PDV catálogo Postgres + gestão PG + ledger estoque + Entrada NF (empresas + wizard; financeiro **real** na loja, não dry-run) |
-| **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
+| **Env loja (conferir Render)** | Ver tabela **«Render produção — env»** abaixo |
 | **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
 | **Depois (Renan)** | Ctrl+F5 · PDV busca/preço · Compras saldo · Entrada NF passo 5 empresa · conferir 2–3 produtos anotados (ex. GM9503) |
 | **Fora do pacote (impacto loja)** | Motor busca **sem flags PG** ≈ legado · Lançamentos **telas Mongo** · BI |

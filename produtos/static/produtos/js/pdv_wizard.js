@@ -316,6 +316,10 @@
     var entregaPendingAfterSaveCliente = null;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
+    var PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
+    var wizardClientesCache = [];
+    var wizardClientesCacheReady = false;
+    var wizardClientesCacheLoading = false;
     var AUTOCOMPLETE_PAGE_SIZE = 5;
     var AUTOCOMPLETE_SCROLL_THRESHOLD = 10;
     var autocompleteVisibleLimit = AUTOCOMPLETE_PAGE_SIZE;
@@ -4483,6 +4487,7 @@
         dom.quickClientModal.classList.add('flex');
         pdvEnsureModalOpenBody();
         setQuickClientPickerHighlight(true);
+        loadWizardClientesCache(false);
         window.setTimeout(focusQuickClientSearchField, 40);
         window.setTimeout(focusQuickClientSearchField, 180);
     }
@@ -5122,6 +5127,101 @@
             });
     }
 
+    function normalizeClientSearchText(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function filterWizardClientesLocal(q) {
+        var n = normalizeClientSearchText(q);
+        if (n.length < 2) return [];
+        return wizardClientesCache
+            .filter(function (c) {
+                var nm = normalizeClientSearchText(c.nome || '');
+                var tel = normalizeClientSearchText(c.telefone || '');
+                var doc = normalizeClientSearchText(c.documento || c.cpf || '');
+                var ed = normalizeClientSearchText(c.endereco || '');
+                var pc = normalizeClientSearchText(c.plus_code || '');
+                return (
+                    nm.indexOf(n) >= 0 ||
+                    tel.indexOf(n) >= 0 ||
+                    doc.indexOf(n) >= 0 ||
+                    ed.indexOf(n) >= 0 ||
+                    pc.indexOf(n) >= 0
+                );
+            })
+            .slice(0, 45);
+    }
+
+    function hydrateWizardClientesFromStorage() {
+        try {
+            var raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
+            if (!raw) return false;
+            var d = JSON.parse(raw);
+            if (Array.isArray(d.clientes) && d.clientes.length) {
+                wizardClientesCache = d.clientes;
+                wizardClientesCacheReady = true;
+                return true;
+            }
+        } catch (eHydr) {}
+        return false;
+    }
+
+    function loadWizardClientesCache(force) {
+        if (wizardClientesCacheLoading && !force) {
+            return Promise.resolve(wizardClientesCache.length);
+        }
+        hydrateWizardClientesFromStorage();
+        if (!urls.apiListCustomers) return Promise.resolve(wizardClientesCache.length);
+        wizardClientesCacheLoading = true;
+        return fetch(urls.apiListCustomers, { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (data) {
+                var list = Array.isArray(data.clientes) ? data.clientes : [];
+                if (list.length) {
+                    wizardClientesCache = list;
+                    wizardClientesCacheReady = true;
+                    try {
+                        localStorage.setItem(
+                            PDV_CLIENTES_LS_KEY,
+                            JSON.stringify({ clientes: list, saved_at: Date.now() })
+                        );
+                    } catch (eLs) {}
+                }
+                return list.length;
+            })
+            .catch(function () {
+                return wizardClientesCache.length;
+            })
+            .finally(function () {
+                wizardClientesCacheLoading = false;
+            });
+    }
+
+    function showClientSearchLoadingMessage() {
+        if (!dom.quickClientResults) return;
+        dom.quickClientResults.innerHTML =
+            '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Buscando clientes…</p>';
+        dom.quickClientResults.classList.remove('hidden');
+        delete dom.quickClientResults._clientes;
+        clientListSelectIdx = -1;
+    }
+
+    function showClientSearchEmptyMessage() {
+        if (!dom.quickClientResults) return;
+        dom.quickClientResults.innerHTML =
+            '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Nenhum cliente para este termo.</p>';
+        dom.quickClientResults.classList.remove('hidden');
+        delete dom.quickClientResults._clientes;
+        clientListSelectIdx = -1;
+    }
+
     function runClientSearch(term) {
         var query = String(term || '').trim();
         lastClientSearchQuery = query;
@@ -5129,17 +5229,33 @@
             resetQuickClientResultsIdle();
             return;
         }
+        var localHits = filterWizardClientesLocal(query);
+        if (localHits.length) {
+            renderClientSearchResults(localHits);
+            dom.quickClientResults.classList.remove('hidden');
+        } else if (wizardClientesCacheReady) {
+            showClientSearchEmptyMessage();
+        } else {
+            showClientSearchLoadingMessage();
+        }
         var seq = ++clientSearchSeq;
         fetch(urls.apiBuscarClientes + '?q=' + encodeURIComponent(query), { credentials: 'same-origin' })
-            .then(function (res) { return res.json(); })
+            .then(function (res) {
+                return res.json();
+            })
             .then(function (data) {
                 if (seq !== clientSearchSeq) return;
                 var clientes = data.clientes || [];
-                renderClientSearchResults(clientes);
-                dom.quickClientResults.classList.remove('hidden');
+                if (clientes.length) {
+                    renderClientSearchResults(clientes);
+                    dom.quickClientResults.classList.remove('hidden');
+                } else if (!localHits.length) {
+                    showClientSearchEmptyMessage();
+                }
             })
             .catch(function () {
                 if (seq !== clientSearchSeq) return;
+                if (localHits.length) return;
                 dom.quickClientResults.innerHTML =
                     '<div class="px-3 py-3 text-sm font-bold text-red-500">Falha ao buscar clientes.</div>';
                 dom.quickClientResults.classList.remove('hidden');
@@ -8827,6 +8943,8 @@
                 sessionStorage.removeItem(CATALOG_STORAGE_KEY);
             } catch (errRm) {}
         });
+
+    loadWizardClientesCache(false);
 
     var currentState = State.getState();
     if (!hydratedFromConsulta && (!currentState.clienteMode || currentState.clienteMode === 'unset')) {

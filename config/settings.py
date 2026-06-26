@@ -222,6 +222,7 @@ TEMPLATES = [
                 'produtos.context_processors.agro_emprestimo_dual_ui',
                 'produtos.context_processors.agro_banco_placeholder_ui',
                 'produtos.context_processors.agro_app_build',
+                'produtos.context_processors.agro_display_scale_ui',
             ],
         },
     },
@@ -343,6 +344,10 @@ AGRO_SNAPSHOT_FONTE_DATABASE_URL = (config('AGRO_SNAPSHOT_FONTE_DATABASE_URL', d
 # Staging (após snapshot): PDV lê catálogo só do Postgres; estoque/médias ainda podem usar Mongo.
 AGRO_PDV_CATALOGO_SOMENTE_POSTGRES = config(
     'AGRO_PDV_CATALOGO_SOMENTE_POSTGRES', default=False, cast=bool
+)
+# Modal «Tamanho da tela» (Agro Display Scale) — só ligar onde Renan pedir (ex.: staging).
+AGRO_DISPLAY_SCALE_HABILITADO = config(
+    'AGRO_DISPLAY_SCALE_HABILITADO', default=False, cast=bool
 )
 
 CONSULTA_CACHE_TTL = 20
