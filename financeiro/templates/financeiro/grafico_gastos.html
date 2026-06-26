@@ -687,6 +687,80 @@ document.addEventListener('DOMContentLoaded', function () {
     return ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
   }
 
+  function ggRoundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  const pluginGgCompareDelta = {
+    id: 'ggCompareDeltaBadge',
+    afterDatasetsDraw: function (chart) {
+      if (!chartSerieMeta.compareMode || !datalabelsOn) return;
+      const deltas = chartSerieMeta.deltas || [];
+      if (!deltas.length) return;
+      const meta0 = chart.getDatasetMeta(0);
+      if (!meta0 || !meta0.data) return;
+      const ctx = chart.ctx;
+      const area = chart.chartArea || {};
+
+      meta0.data.forEach(function (point, i) {
+        const real = chart.data.datasets[0] && chart.data.datasets[0].data[i];
+        if (real == null || real <= 0) return;
+        const d = deltas[i];
+        if (d == null) return;
+
+        const text = fmtDeltaCompact(d);
+        const n = Number(d) || 0;
+        let bg, border, color;
+        if (Math.abs(n) < 0.01) {
+          bg = 'rgba(241, 245, 249, 0.98)';
+          border = '#94a3b8';
+          color = '#475569';
+        } else if (n > 0) {
+          bg = 'rgba(254, 242, 242, 0.98)';
+          border = '#ef4444';
+          color = '#b91c1c';
+        } else {
+          bg = 'rgba(236, 253, 245, 0.98)';
+          border = '#059669';
+          color = '#047857';
+        }
+
+        ctx.save();
+        ctx.font = '900 12px system-ui, -apple-system, Segoe UI, sans-serif';
+        const tw = ctx.measureText(text).width;
+        const padX = 8;
+        const w = tw + padX * 2;
+        const h = 22;
+        let y = point.y + 50;
+        if (y + h / 2 > area.bottom - 2) y = point.y - 50;
+        const x = point.x - w / 2;
+
+        ctx.fillStyle = bg;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ggRoundRect(ctx, x, y - h / 2, w, h, 7);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, point.x, y);
+        ctx.restore();
+      });
+    }
+  };
+
   function ajustarScrollPlanos() {
     var grid = document.getElementById('container-planos-contas');
     var foot = document.querySelector('.gg-filters-foot');
@@ -1373,6 +1447,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function initChart() {
     if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+    Chart.register(pluginGgCompareDelta);
     chartGastos = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [] },
@@ -1445,13 +1520,13 @@ document.addEventListener('DOMContentLoaded', function () {
             clip: false,
             backgroundColor: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? 'rgba(236, 253, 245, 0.98)' : 'rgba(255, 247, 237, 0.98)';
+                return isDatasetHistorico(ctx.dataset) ? 'rgba(255, 247, 237, 0.98)' : 'rgba(236, 253, 245, 0.98)';
               }
               return 'rgba(255, 255, 255, 0.96)';
             },
             borderColor: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? COR_REAL : COR_HIST;
+                return isDatasetHistorico(ctx.dataset) ? COR_HIST : COR_REAL;
               }
               return COR_REAL;
             },
@@ -1460,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', function () {
             padding: { top: 7, bottom: 7, left: 10, right: 10 },
             color: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? '#047857' : '#b45309';
+                return isDatasetHistorico(ctx.dataset) ? '#b45309' : '#047857';
               }
               return '#047857';
             },
@@ -1598,7 +1673,7 @@ document.addEventListener('DOMContentLoaded', function () {
           };
           chartGastos.options.plugins.tooltip.enabled = true;
           chartGastos.options.layout.padding.top = compareMode ? 52 : 44;
-          chartGastos.options.layout.padding.bottom = compareMode ? 18 : 2;
+          chartGastos.options.layout.padding.bottom = compareMode ? 36 : 2;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);
