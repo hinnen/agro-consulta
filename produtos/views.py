@@ -13011,11 +13011,9 @@ def api_entrada_nota_financeiro(request):
                 )
 
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
 
-    resultado = (
-        simular_lancamentos_manual_lote_staging(linhas=linhas_fin)
-        if agro_mongo_escrita_bloqueada()
-        else inserir_lancamentos_manual_lote(
+    resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=True,
         empresa_nome=empresa_nome,
@@ -13033,7 +13031,6 @@ def api_entrada_nota_financeiro(request):
         usuario_label=usuario,
         linhas=linhas_fin,
         marcar_quitado_pagar=quitar_ao_salvar,
-        )
     )
 
     ok = bool(resultado.get("ok"))
@@ -13096,24 +13093,24 @@ def api_entrada_nota_financeiro(request):
         r_imp = (
             simular_lancamentos_manual_lote_staging(linhas=linha_imp)
             if resultado.get("dry_run")
-            else inserir_lancamentos_manual_lote(
-            db,
-            despesa=True,
-            empresa_nome=empresa_nome,
-            empresa_id=empresa_id_fin,
-            pessoa_nome=pessoa_nome,
-            pessoa_id=pessoa_id_raw,
-            data_competencia=dc,
-            data_vencimento=dv,
-            banco_nome=banco_nome,
-            banco_id=str(fin.get("banco_id") or "").strip() or None,
-            forma_nome=forma_nome,
-            forma_id=str(fin.get("forma_id") or "").strip() or None,
-            grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
-            grupo_id=str(fin.get("grupo_id") or "").strip() or None,
-            usuario_label=usuario,
-            linhas=linha_imp,
-            marcar_quitado_pagar=quitar_ao_salvar,
+            else inserir_lancamentos_manual_lote_dispatch(
+                db,
+                despesa=True,
+                empresa_nome=empresa_nome,
+                empresa_id=empresa_id_fin,
+                pessoa_nome=pessoa_nome,
+                pessoa_id=pessoa_id_raw,
+                data_competencia=dc,
+                data_vencimento=dv,
+                banco_nome=banco_nome,
+                banco_id=str(fin.get("banco_id") or "").strip() or None,
+                forma_nome=forma_nome,
+                forma_id=str(fin.get("forma_id") or "").strip() or None,
+                grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
+                grupo_id=str(fin.get("grupo_id") or "").strip() or None,
+                usuario_label=usuario,
+                linhas=linha_imp,
+                marcar_quitado_pagar=quitar_ao_salvar,
             )
         )
         if r_imp.get("ok") and r_imp.get("ids"):
@@ -13955,32 +13952,56 @@ def api_lancamentos_baixa(request):
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
 
-    resultado = baixar_lancamentos_mongo(
-        db,
-        [str(i) for i in ids],
-        despesa=despesa,
-        data_movimento=data_movimento,
-        forma_nome=forma_nome,
-        forma_id=str(forma_id).strip() if forma_id else None,
-        banco_nome=banco_nome,
-        banco_id=str(banco_id).strip() if banco_id else None,
-        usuario_label=usuario,
+    from produtos.lancamentos_financeiro_pg_write_util import (
+        baixar_lancamentos_pg,
+        financeiro_cp_grava_postgres,
+        registrar_titulo_juros_apos_baixa_contas_pagar_pg,
     )
+
+    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    db = None
+    if not use_pg_cp:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        resultado = baixar_lancamentos_mongo(
+            db,
+            [str(i) for i in ids],
+            despesa=despesa,
+            data_movimento=data_movimento,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
+    else:
+        resultado = baixar_lancamentos_pg(
+            [str(i) for i in ids],
+            data_movimento=data_movimento,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
 
     path_baixa = (
         (config("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", default="") or "")
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("atualizados"):
+    if (
+        not use_pg_cp
+        and agro_financeiro_erp_sync_habilitado()
+        and path_baixa
+        and resultado.get("atualizados")
+        and db is not None
+    ):
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_baixa(
@@ -14002,17 +14023,32 @@ def api_lancamentos_baixa(request):
     aviso_juros = None
     juros_id = None
     if despesa and valor_juros_dec and valor_juros_dec > 0 and atual:
-        rj = registrar_titulo_juros_apos_baixa_contas_pagar(
-            db,
-            mongo_id_titulo_referencia=str(atual[0]),
-            valor_juros=valor_juros_dec,
-            data_movimento=dmov,
-            forma_nome=forma_nome,
-            forma_id=str(forma_id).strip() if forma_id else None,
-            banco_nome=banco_nome,
-            banco_id=str(banco_id).strip() if banco_id else None,
-            usuario_label=usuario,
-        )
+        if use_pg_cp:
+            if db is None:
+                _, db = obter_conexao_mongo()
+            rj = registrar_titulo_juros_apos_baixa_contas_pagar_pg(
+                mongo_id_titulo_referencia=str(atual[0]),
+                valor_juros=valor_juros_dec,
+                data_movimento=dmov,
+                forma_nome=forma_nome,
+                forma_id=str(forma_id).strip() if forma_id else None,
+                banco_nome=banco_nome,
+                banco_id=str(banco_id).strip() if banco_id else None,
+                usuario_label=usuario,
+                db=db,
+            )
+        else:
+            rj = registrar_titulo_juros_apos_baixa_contas_pagar(
+                db,
+                mongo_id_titulo_referencia=str(atual[0]),
+                valor_juros=valor_juros_dec,
+                data_movimento=dmov,
+                forma_nome=forma_nome,
+                forma_id=str(forma_id).strip() if forma_id else None,
+                banco_nome=banco_nome,
+                banco_id=str(banco_id).strip() if banco_id else None,
+                usuario_label=usuario,
+            )
         if rj.get("ok"):
             juros_id = rj.get("id")
         else:
@@ -14068,22 +14104,36 @@ def api_lancamentos_baixa_parcial(request):
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
 
-    resultado = baixar_lancamento_parcial_mongo(
-        db,
-        lid,
-        despesa=despesa,
-        data_movimento=data_movimento,
-        parcelas=parcelas,
-        usuario_label=usuario,
+    from produtos.lancamentos_financeiro_pg_write_util import (
+        baixar_lancamento_parcial_pg,
+        financeiro_cp_grava_postgres,
     )
+
+    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    db = None
+    if use_pg_cp:
+        resultado = baixar_lancamento_parcial_pg(
+            lid,
+            data_movimento=data_movimento,
+            parcelas=parcelas,
+            usuario_label=usuario,
+        )
+    else:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        resultado = baixar_lancamento_parcial_mongo(
+            db,
+            lid,
+            despesa=despesa,
+            data_movimento=data_movimento,
+            parcelas=parcelas,
+            usuario_label=usuario,
+        )
 
     if not resultado.get("ok"):
         return JsonResponse(
@@ -14103,7 +14153,13 @@ def api_lancamentos_baixa_parcial(request):
         or ""
     ).strip()
     # Sincroniza também baixa parcial (antes só quando quitado — o ERP não recebia parcelas).
-    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("id"):
+    if (
+        not use_pg_cp
+        and agro_financeiro_erp_sync_habilitado()
+        and path_baixa
+        and resultado.get("id")
+        and db is not None
+    ):
         try:
             cli = VendaERPAPIClient()
             # Mesmo corpo base da baixa total (``titulos`` + ``ids`` + ``payload``), sem chaves extras no nível raiz.
@@ -14116,7 +14172,13 @@ def api_lancamentos_baixa_parcial(request):
             out_j["erp_baixa_ok"] = False
             out_j["aviso_api"] = str(exc)[:800]
     # Resposta do ERP/sync pode regravar o DtoLancamento com DataPagamento = data mínima (.NET).
-    if resultado.get("ok") and resultado.get("id") and not resultado.get("quitado"):
+    if (
+        not use_pg_cp
+        and resultado.get("ok")
+        and resultado.get("id")
+        and not resultado.get("quitado")
+        and db is not None
+    ):
         try:
             oid = ObjectId(str(resultado["id"]).strip())
             db[COL_DTO_LANCAMENTO].update_one(
@@ -14145,13 +14207,23 @@ def api_lancamentos_alterar(request):
     if not patch:
         return JsonResponse({"ok": False, "erro": "Nenhum campo para atualizar."}, status=400)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_write_util import atualizar_lancamento_pg
+        from produtos.models import TituloFinanceiroAgro
+
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+            r = atualizar_lancamento_pg(lid, patch, usuario)
+            if not r.get("ok"):
+                return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao atualizar."}, status=400)
+            return JsonResponse({"ok": True, "id": r.get("id")})
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
     r = atualizar_lancamento_mongo_agro(db, lid, patch, usuario)
     if not r.get("ok"):
@@ -14172,13 +14244,29 @@ def api_lancamentos_excluir(request):
     if not lid:
         return JsonResponse({"ok": False, "erro": "Informe o id do lançamento."}, status=400)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_pg
+        from produtos.models import TituloFinanceiroAgro
+
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+            r = excluir_lancamento_pg(lid, usuario)
+            if not r.get("ok"):
+                return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao excluir."}, status=400)
+            try:
+                from rh.services.importador_vales_caixa import marcar_vales_cancelados_por_lancamento_removido
+
+                marcar_vales_cancelados_por_lancamento_removido(lid)
+            except Exception:
+                logger.exception("RH: cancelar vales após exclusão de lançamento")
+            return JsonResponse({"ok": True})
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
     r = excluir_lancamento_mongo_agro(db, lid, usuario)
     if not r.get("ok"):
@@ -14432,7 +14520,9 @@ def api_lancamentos_saida_caixa(request):
         }
     ]
 
-    resultado = inserir_lancamentos_manual_lote(
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=True,
         empresa_nome=empresa_nome,
@@ -15205,7 +15295,9 @@ def api_lancamentos_criar_manual_lote(request):
         return err_resp
 
     try:
-        resultado = inserir_lancamentos_manual_lote(
+        from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+        resultado = inserir_lancamentos_manual_lote_dispatch(
             db,
             despesa=despesa,
             empresa_nome=str(payload.get("empresa_nome") or "").strip(),

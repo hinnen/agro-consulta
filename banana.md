@@ -568,8 +568,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 | # | Quem | O quê | Quando |
 | --- | ---- | ----- | ------ |
-| **1** | **Assistente** | Código: **pagar, parcial, nova saída, editar, excluir** CP → Postgres (teste) | **Agora** |
-| **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | Depois do **1** (aviso «pode testar pagar») |
+| **1** | **Assistente** | Código: **pagar, parcial, nova saída, editar, excluir** CP → Postgres (teste) | **✅ v3.40 teste** |
+| **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | **Agora** (aviso abaixo) |
 | **3** | **Assistente** | Import PG na **loja** + deploy pacote **teste→producao** | Depois do **2** OK |
 | **4** | **Renan** | Frase *«pode subir produção»* + senha **`99738595`** **no mesmo pedido** | Só no **4** |
 | **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | Junto com **4** |
@@ -577,7 +577,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
 
-**Bloqueio único hoje:** item **1** (código gravação) — resto depende só de teste + sua autorização loja.
+**Bloqueio único hoje:** item **2** (Renan pagar 1 título no teste) — depois import loja + senha.
 
 
 ### Renan — intervenção (estritamente necessário)
@@ -601,8 +601,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **A** | Backup + conferir total na **loja** | **✅ Renan** |
 | **B** | Copiar títulos Mongo → Postgres | **✅ teste** (13,2 mil) |
 | **C** | **Lista** CP (ver, filtrar, total) no Postgres | **✅ teste** (741 / 393.652,70 bateu) |
-| **D** | **Gravar** no Postgres: pagar, parcial, nova saída, editar, excluir | **⏳ falta** |
-| **E** | Validar **D** no teste (pagar 1 título de teste) | ⏳ |
+| **D** | **Gravar** no Postgres: pagar, parcial, nova saída, editar, excluir | **✅ teste v3.40** (deploy pendente Render) |
+| **E** | Validar **D** no teste (pagar 1 título de teste) | **⏳ Renan agora** |
 | **F** | Import + flag na **loja** (senha) | ⏳ depois de D+E |
 
 **Por que parou antes de D?**  
@@ -796,10 +796,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.03`  
+**Versão:** `1.1.04`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — Renan passo 4 OK staging 741 / 393652  
-**Versão app (`VERSION`):** **teste** v3.39 · **produção** v3.02
+**Atualizado por:** assistente — CP gravação Postgres (pagar/parcial/editar/excluir/lote) v3.40 teste  
+**Versão app (`VERSION`):** **teste** v3.40 · **produção** v3.02
+
+### WIP CP Postgres — gravação **teste v3.40**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Novo** | `lancamentos_financeiro_pg_write_util.py` — baixa total/parcial, editar, excluir, lote manual, juros |
+| **APIs** | `api/lancamentos/baixa/`, `baixa-parcial/`, `alterar/`, `excluir/`, `criar-manual-lote/` + saída caixa + NF passo 7 → PG quando staging CP ativo |
+| **Renan teste** | `/lancamentos/contas-pagar/` → escolher título **pequeno** → **Pagar** → Ctrl+F5 → conferir se sumiu de **Em aberto** |
+| **Loja** | Continua Mongo até passo 4 (senha) — CP parada OK |
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
