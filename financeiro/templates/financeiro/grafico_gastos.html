@@ -297,6 +297,13 @@
   .gg-help details { margin-top: 0.45rem; padding: 0.45rem 0.65rem; border-radius: var(--gg-radius); border: 1px solid #e2e8f0; background: #fafbfc; font-size: var(--gg-label); }
   .gg-help summary { cursor: pointer; font-weight: 800; color: #475569; }
   .gg-help p { margin: 0.4rem 0 0; color: var(--gg-muted); line-height: 1.4; font-weight: 600; }
+  .gg-modo-tempo-row { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+  .gg-modo-tempo-row .gg-chk-toggle { margin: 0; }
+  .gg-meta-bar.is-historico { border-color: #fcd34d; background: linear-gradient(90deg, #fffbeb, #fef3c7); }
+  .gg-meta-badge-hist {
+    flex-shrink: 0; padding: 0.12rem 0.45rem; border-radius: 999px;
+    background: #f59e0b; color: #fff; font-size: 0.625rem; font-weight: 900; text-transform: uppercase;
+  }
   .gg-kpi-row { display: none; }
   .gg-chart-card {
     flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
@@ -393,6 +400,7 @@
 </div>
 
 <div class="gg-meta-bar" id="gg-meta-bar" aria-live="polite">
+  <span class="gg-meta-badge-hist" id="gg-badge-historico" hidden>Como era no dia</span>
   <span class="gg-tag" id="gg-tag-resumo" title="">—</span>
   <span class="gg-meta-stat is-soma"><small>Soma</small> <strong id="gg-kpi-soma">—</strong></span>
   <span class="gg-meta-stat"><small>Pontos</small> <strong id="gg-kpi-pontos">—</strong></span>
@@ -470,11 +478,33 @@
                   <option value="saldo" selected>Saldo em aberto</option>
                 </select>
               </div>
+              <div class="gg-field gg-field-span-2">
+                <label>Visualização</label>
+                <div class="gg-modo-tempo-row">
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-real" value="real" checked>
+                    <span>Tempo real</span>
+                  </label>
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-historico" value="historico">
+                    <span>Como era no dia</span>
+                  </label>
+                </div>
+              </div>
+              <div class="gg-field" id="gg-wrap-data-ref">
+                <label for="filtro-data-referencia">Dia de referência</label>
+                <input type="date" id="filtro-data-referencia" data-agro-date-picker class="agro-date-picker" disabled>
+              </div>
             </div>
             <div class="gg-help">
               <details>
                 <summary>? Comparar com Contas a pagar</summary>
                 <p>Mesma referência, valor e datas. Todos os planos marcados = total «A pagar» da CP.</p>
+              </details>
+              <details>
+                <summary>? Tempo real vs como era no dia</summary>
+                <p><strong>Tempo real</strong> — valores de hoje (pagamentos recentes já abatem o saldo).</p>
+                <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: títulos pagos <em>depois</em> voltam a aparecer em aberto; títulos criados depois somem. Pagamentos parciais antigos podem ter pequena diferença (Mongo não guarda histórico de cada baixa).</p>
               </details>
             </div>
           </div>
@@ -677,6 +707,30 @@ document.addEventListener('DOMContentLoaded', function () {
     syncChipsPeriodo(cod);
   }
 
+  function isModoHistorico() {
+    const el = document.querySelector('input[name="modo-tempo"]:checked');
+    return !!(el && el.value === 'historico');
+  }
+
+  function syncModoTempoUi() {
+    const hist = isModoHistorico();
+    const inp = document.getElementById('filtro-data-referencia');
+    const badge = document.getElementById('gg-badge-historico');
+    const meta = document.getElementById('gg-meta-bar');
+    if (inp) {
+      inp.disabled = !hist;
+      if (hist && !inp.value) inp.value = isoDate(new Date());
+    }
+    if (badge) badge.hidden = !hist;
+    if (meta) meta.classList.toggle('is-historico', hist);
+  }
+
+  function payloadModoTempo() {
+    if (!isModoHistorico()) return { modo_tempo: 'real' };
+    const ref = document.getElementById('filtro-data-referencia').value;
+    return { modo_tempo: 'historico', data_referencia: ref || isoDate(new Date()) };
+  }
+
   function atualizarResumoFiltros() {
     const por = document.getElementById('filtro-por');
     const valor = document.getElementById('filtro-valor');
@@ -687,9 +741,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const porTxt = por.options[por.selectedIndex].text;
     const valTxt = valor.options[valor.selectedIndex].text;
     const agrTxt = agr.options[agr.selectedIndex].text;
-    const linha = porTxt + ' · ' + valTxt + ' · ' + agrTxt + ' · ' + fmtDataBr(ini) + ' → ' + fmtDataBr(fim);
+    let linha = porTxt + ' · ' + valTxt + ' · ' + agrTxt + ' · ' + fmtDataBr(ini) + ' → ' + fmtDataBr(fim);
+    if (isModoHistorico()) {
+      const ref = document.getElementById('filtro-data-referencia').value;
+      linha += ' · como em ' + fmtDataBr(ref);
+    }
     tagResumo.textContent = linha;
     tagResumo.title = linha;
+    syncModoTempoUi();
     const planosTxt = pp.todos_planos ? pp.qtdTotal + ' (todos)' : pp.qtdMarcados + '/' + pp.qtdTotal;
     kpiPlanos.textContent = planosTxt;
   }
@@ -847,7 +906,9 @@ document.addEventListener('DOMContentLoaded', function () {
       periodo: document.getElementById('filtro-periodo').value,
       individual: pp.individual,
       inicio: document.getElementById('data-inicial').value,
-      fim: document.getElementById('data-final').value
+      fim: document.getElementById('data-final').value,
+      modo_tempo: isModoHistorico() ? 'historico' : 'real',
+      data_referencia: document.getElementById('filtro-data-referencia').value || ''
     };
   }
 
@@ -872,6 +933,13 @@ document.addEventListener('DOMContentLoaded', function () {
         cb.checked = state.planos.includes(cb.value);
       });
     }
+    const modoHist = (state.modo_tempo || 'real') === 'historico';
+    document.getElementById('modo-tempo-real').checked = !modoHist;
+    document.getElementById('modo-tempo-historico').checked = modoHist;
+    if (state.data_referencia) {
+      document.getElementById('filtro-data-referencia').value = state.data_referencia;
+    }
+    syncModoTempoUi();
     syncChipsPeriodo(document.getElementById('filtro-periodo').value);
   }
 
@@ -1078,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', function () {
       valor: document.getElementById('filtro-valor').value,
       inicio: document.getElementById('data-inicial').value,
       fim: document.getElementById('data-final').value
-    }, pp);
+    }, pp, payloadModoTempo());
 
     fetch(API_URL, {
       method: 'POST',
@@ -1153,6 +1221,10 @@ document.addEventListener('DOMContentLoaded', function () {
     aplicarPeriodoCodigo('p3m');
     document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
     document.querySelectorAll('.gg-atalho-slot').forEach(function (b) { b.classList.remove('is-active'); });
+    document.getElementById('modo-tempo-real').checked = true;
+    document.getElementById('modo-tempo-historico').checked = false;
+    document.getElementById('filtro-data-referencia').value = isoDate(new Date());
+    syncModoTempoUi();
     expandirPainel();
     abrirPainelCompleto();
     atualizarGrafico();
@@ -1231,6 +1303,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('busca-planos').addEventListener('input', filtrarPlanosBusca);
 
+  document.querySelectorAll('input[name="modo-tempo"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      syncModoTempoUi();
+      agendarAtualizacao();
+    });
+  });
+  document.getElementById('filtro-data-referencia').addEventListener('change', function () {
+    if (isModoHistorico()) agendarAtualizacao();
+  });
+
   document.getElementById('filtro-periodo').addEventListener('change', function () {
     syncChipsPeriodo(this.value);
     if (this.value !== 'custom') aplicarPeriodoCodigo(this.value);
@@ -1256,6 +1338,9 @@ document.addEventListener('DOMContentLoaded', function () {
   } catch (_) {
     setPainelAberto(false, false);
   }
+
+  document.getElementById('filtro-data-referencia').value = isoDate(new Date());
+  syncModoTempoUi();
 
   waitLibs(function () {
     initChart();
