@@ -151,6 +151,7 @@ from .models import (
     VendaAgro,
     compor_endereco_resumo_cliente,
     sync_overlay_validade_resumo_de_lotes,
+    sync_overlay_extra_validade_para_lote,
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
@@ -2070,6 +2071,29 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).delete()
             if variacoes_novas:
                 ProdutoMarcaVariacaoAgro.objects.bulk_create(variacoes_novas)
+        if "extra_validade" in payload and ex.get("validade"):
+            qtd_lote = None
+            el0 = EstoqueLote.objects.filter(overlay=ov).order_by("-quantidade_atual", "id").first()
+            if el0 is None or (el0.quantidade_atual or 0) <= 0:
+                try:
+                    client_sv, db_sv = obter_conexao_mongo()
+                    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+                    sinfo = mapa_saldos_operacionais_agro(
+                        [pid], db=db_sv, client=client_sv
+                    ).get(pid) or {}
+                    total_sv = float(sinfo.get("saldo_centro") or 0) + float(
+                        sinfo.get("saldo_vila") or 0
+                    )
+                    if total_sv > 0:
+                        qtd_lote = Decimal(str(total_sv)).quantize(Decimal("0.01"))
+                except Exception:
+                    qtd_lote = None
+            sync_overlay_extra_validade_para_lote(
+                ov,
+                lote_codigo=ex.get("lote"),
+                quantidade_atual=qtd_lote,
+            )
 
     try:
         cur_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
@@ -23787,22 +23811,61 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
 
 def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
     """
-    Produtos distintos (overlay) com lote Agro e saldo > 0, em dois grupos:
+    Produtos distintos (overlay) com validade e saldo operacional > 0:
     vencidos (data < hoje) e vencendo no mês civil atual (hoje <= data <= fim do mês).
+    Considera lotes Agro e validade gravada só no cadastro (relatório «Salvar»).
     """
     hoje = timezone.localdate()
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
-    base = EstoqueLote.objects.filter(quantidade_atual__gt=0)
-    vencidos = (
-        base.filter(data_validade__lt=hoje).values("overlay_id").distinct().count()
+    overlay_vencidos: set[int] = set()
+    overlay_mes: set[int] = set()
+
+    def _classificar(oid: int, dv: date) -> None:
+        if dv < hoje:
+            overlay_vencidos.add(oid)
+        elif hoje <= dv <= fim_mes:
+            overlay_mes.add(oid)
+
+    for el in EstoqueLote.objects.filter(quantidade_atual__gt=0).values(
+        "overlay_id", "data_validade"
+    ):
+        _classificar(int(el["overlay_id"]), el["data_validade"])
+
+    overlays_com_lote_ativo = set(
+        EstoqueLote.objects.filter(quantidade_atual__gt=0).values_list(
+            "overlay_id", flat=True
+        )
     )
-    vencendo_mes = (
-        base.filter(data_validade__gte=hoje, data_validade__lte=fim_mes)
-        .values("overlay_id")
-        .distinct()
-        .count()
-    )
-    return {"vencidos": int(vencidos), "vencendo_mes": int(vencendo_mes)}
+    extras_rows: list[tuple[int, str, date]] = []
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(
+        cadastro_extras__has_key="validade"
+    ).only("pk", "produto_externo_id", "cadastro_extras"):
+        if ov.pk in overlays_com_lote_ativo:
+            continue
+        ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+        raw_v = ex.get("validade")
+        if not raw_v:
+            continue
+        try:
+            dv = datetime.strptime(str(raw_v)[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        pid = str(ov.produto_externo_id or "").strip()
+        if pid:
+            extras_rows.append((ov.pk, pid, dv))
+
+    if extras_rows:
+        from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+        pids = list({r[1] for r in extras_rows})
+        client, db = obter_conexao_mongo()
+        saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+        for oid, pid, dv in extras_rows:
+            s = saldos.get(pid) or {}
+            if float(s.get("saldo_centro") or 0) + float(s.get("saldo_vila") or 0) > 0:
+                _classificar(oid, dv)
+
+    return {"vencidos": len(overlay_vencidos), "vencendo_mes": len(overlay_mes)}
 
 
 def _contagem_alertas_validade_lotes_agro() -> int:

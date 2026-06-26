@@ -872,6 +872,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
 **Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.38 (gráfico gastos pacote completo 26/06)
 
+### WIP — BI validade card **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan alterou validade no relatório (ex. Simparic 30/06) — card **Validade** do BI ficou **0 / 0** |
+| **Causa** | BI contava só `EstoqueLote` com qtd>0; «Salvar» no relatório gravava só `cadastro_extras` |
+| **Fix teste** | pendente — contagem inclui extras com estoque · salvar espelha lote Agro |
+| **Renan testar** | Recarregar `/` — **No mês** ≥ 1 · opcional: abrir relatório validade e **Salvar** de novo num produto |
+
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
 | Item | Detalhe |
