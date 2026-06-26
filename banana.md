@@ -572,17 +572,14 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | # | Status | Detalhe |
 | --- | ------ | ------- |
 | **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
-| **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel backup) · dif. **~R$ 14,51** · **não** é taxa cartão ao vivo (seria sistema **maior**) — ver causas abaixo |
+| **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
 | **3 Render env** | ⏸ | **Não** mexer — assistente avisa |
 | **4 Pós-import teste** | ⏸ | Mesmo total aberto + abrir 3 títulos |
 | **5 Fiado / CR** | ⏸ | Ignorar hoje |
 
-**Excel > tela (~R$ 14) — causas prováveis (ordem):**
+**Excel 748 vs tela 741 — fechado (dedup):** backup exporta **cada** doc Mongo; lista CP **deduplica** títulos ERP repetidos (ex. **Geraldo acordo sat**, mesmo `Id`, várias linhas no CSV). **Referência para migração = tela (741 + total deduplicado)**, não soma crua do Excel.
 
-1. **Backup não deduplica; a tela sim** — o ZIP exporta **cada** doc Mongo; a lista CP funde duplicatas ERP (mesmo título 2× no Mongo). Conferir: **nº linhas** no `01_a_pagar_em_aberto.csv` vs **Qtd** da tela (741). Se Excel tiver **mais linhas** → é isso.
-2. **Pagamento entre backup e a tela** — alguém quitou/parcial no intervalo → tela **menor** (não cartão novo).
-3. **Plano desmarcado no filtro** — Filtros → **Marcar todos** planos · vencimento **vazio** · **Aplicar** · Ctrl+F5.
-4. **Coluna no Excel** — somar só **«A pagar»**, não «Valor bruto».
+**Excel > tela (~R$ 14) — causas (histórico):**
 
 **URLs backup (referência):**
 
@@ -724,7 +721,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão:** `1.1.01`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — Renan CP conferido; Excel ~R$14 acima (não cartão)  
+**Atualizado por:** assistente — Excel 748 vs tela 741 dedup confirmado  
 **Versão app (`VERSION`):** **teste** v3.22 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
