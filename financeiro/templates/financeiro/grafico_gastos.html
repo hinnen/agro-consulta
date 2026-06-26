@@ -116,10 +116,11 @@
     overflow: hidden; grid-template-rows: minmax(0, 1fr);
   }
   @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
+  .gg-split-body > details.gg-split-col[open] { height: 100%; max-height: 100%; }
   details.gg-split-col { min-height: 0; overflow: hidden; border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc; }
   details.gg-split-col[open] { display: flex; flex-direction: column; }
   .gg-split-col > summary { flex-shrink: 0; }
-  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; }
+  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   .gg-split-col > summary {
     list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
     font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
@@ -146,14 +147,14 @@
   }
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
-    flex: 1 1 auto; min-height: 8rem;
-    max-height: min(34rem, calc(100dvh - 18rem));
-    overflow-y: scroll !important;
+    flex: 1 1 auto; min-height: 5rem; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin; scrollbar-color: #86efac #f1f5f9;
+    scrollbar-width: thin; scrollbar-color: #059669 #ecfdf5;
+    border: 2px solid #86efac;
   }
-  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 10px; }
-  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-thumb { background: #86efac; border-radius: 8px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 12px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-track { background: #ecfdf5; border-radius: 8px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-thumb { background: #059669; border-radius: 8px; }
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-meta-bar {
@@ -677,137 +678,29 @@ document.addEventListener('DOMContentLoaded', function () {
   let periodoAtivo = 'p3m';
   let atalhosCache = [];
   let chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
-  let ggCompareLabelRects = [];
 
   const COR_REAL = '#059669';
   const COR_HIST = '#d97706';
 
   const pluginGgCompareDelta = {
     id: 'ggCompareLabels',
-    afterDraw: function (chart) {
-      const meta = chartSerieMeta;
-      if (!meta || !meta.compareMode || !meta.deltas || !meta.deltas.length) return;
-      const ds0 = chart.getDatasetMeta(0);
-      const ds1 = chart.getDatasetMeta(1);
-      if (!ds0 || !ds1) return;
-      const ctx = chart.ctx;
-      const chartArea = chart.chartArea;
-      ggCompareLabelRects = [];
-      meta.deltas.forEach(function (d, i) {
-        const p0 = ds0.data[i];
-        const p1 = ds1.data[i];
-        if (!p0 || !p1) return;
-        const v0 = Number((chart.data.datasets[0].data || [])[i]) || 0;
-        const v1 = Number((chart.data.datasets[1].data || [])[i]) || 0;
-        if (v0 <= 0 && v1 <= 0) return;
-        desenharRotuloCompareBloco(ctx, p0.x, Math.min(p0.y, p1.y), v0, v1, d, chartArea, i);
-      });
+    afterDraw: function () {
+      /* Comparar: sem rótulos no gráfico — totais nos cards de cima; clique no ponto abre CP */
     }
   };
 
-  function corRotuloDelta(cls) {
-    if (cls === 'is-mais') return { bg: 'rgba(254, 243, 199, 0.98)', border: '#d97706', text: '#b45309' };
-    if (cls === 'is-menos') return { bg: 'rgba(209, 250, 229, 0.98)', border: '#059669', text: '#047857' };
-    return { bg: 'rgba(241, 245, 249, 0.98)', border: '#94a3b8', text: '#64748b' };
+  function ajustarScrollPlanos() {
+    var grid = document.getElementById('container-planos-contas');
+    var foot = document.querySelector('.gg-filters-foot');
+    var wrap = document.getElementById('painel-filtros-grafico');
+    if (!grid || !foot || !wrap || !wrap.classList.contains('is-open')) return;
+    var top = grid.getBoundingClientRect().top;
+    var lim = foot.getBoundingClientRect().top - top - 8;
+    if (lim < 80) lim = 80;
+    grid.style.maxHeight = Math.floor(lim) + 'px';
+    grid.style.overflowY = 'auto';
   }
 
-  function corRotuloSerie(cor) {
-    if (cor === COR_HIST) return { bg: 'rgba(255, 247, 237, 0.98)', border: COR_HIST, text: '#b45309' };
-    return { bg: 'rgba(236, 253, 245, 0.98)', border: COR_REAL, text: '#047857' };
-  }
-
-  /** Uma linha por mês — evita bloco alto e tooltip escuro no gráfico. */
-  function fmtCompareLinha(v0, v1, d) {
-    if (Math.abs(v0 - v1) < 0.01) return fmtValor(v0, 0);
-    var s = fmtValor(v0, 0) + ' \u2192 ' + fmtValor(v1, 0);
-    if (Math.abs(d) >= 0.01) s += '  ' + fmtDeltaCompact(d);
-    return s;
-  }
-
-  function ggLabelRectOverlap(left, top, w, h) {
-    for (var j = 0; j < ggCompareLabelRects.length; j++) {
-      var r = ggCompareLabelRects[j];
-      if (!(left + w + 6 < r.left || left - 6 > r.right || top + h + 6 < r.top || top - 6 > r.bottom)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function desenharRotuloCompareBloco(ctx, x, yAnchor, v0, v1, d, chartArea, index) {
-    const txt = fmtCompareLinha(v0, v1, d);
-    if (!txt) return;
-
-    const fontSize = 16;
-    const padX = 10;
-    const padY = 6;
-    ctx.save();
-    ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
-    const w = ctx.measureText(txt).width + padX * 2;
-    const h = fontSize + padY * 2;
-    var top = yAnchor - h - 16 - (index % 2 === 1 ? 20 : 0);
-    if (chartArea) {
-      if (top < chartArea.top + 6) top = chartArea.top + 6;
-    }
-    const left = x - w / 2;
-    if (ggLabelRectOverlap(left, top, w, h)) return;
-    ggCompareLabelRects.push({ left: left, top: top, right: left + w, bottom: top + h });
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
-    ctx.strokeStyle = Math.abs(d) >= 0.01 ? '#94a3b8' : '#86efac';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 8);
-    else ctx.rect(left, top, w, h);
-    ctx.fill();
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = Math.abs(d) >= 0.01 ? '#0f172a' : '#047857';
-    ctx.fillText(txt, x, top + h / 2);
-    ctx.restore();
-  }
-
-  /** @returns {number} próximo Y livre acima (modo empilhado) */
-  function desenharRotuloComparacao(ctx, x, y, txt, corOuCls, modo, chartArea, isDelta) {
-    if (!txt) return y;
-    const cores = typeof corOuCls === 'string' && corOuCls.indexOf('is-') === 0
-      ? corRotuloDelta(corOuCls)
-      : corRotuloSerie(corOuCls);
-    const fontSize = isDelta ? 16 : 17;
-    ctx.save();
-    ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    const padX = 10;
-    const padY = 5;
-    const w = ctx.measureText(txt).width + padX * 2;
-    const h = fontSize + padY * 2;
-    var top;
-    if (modo === 'acima') top = y - h - 12;
-    else if (modo === 'abaixo') top = y + 12;
-    else if (modo === 'centro') top = y - h / 2;
-    else top = y - h;
-
-    if (chartArea) {
-      if (top < chartArea.top + 2) top = chartArea.top + 2;
-      if (top + h > chartArea.bottom - 2) top = chartArea.bottom - h - 2;
-    }
-
-    const left = x - w / 2;
-    ctx.fillStyle = cores.bg;
-    ctx.strokeStyle = cores.border;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 6);
-    else ctx.rect(left, top, w, h);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = cores.text;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(txt, x, top + h / 2);
-    ctx.restore();
-    return top;
-  }
   let cpPopupAberto = false;
 
   function csrfToken() {
@@ -949,6 +842,7 @@ document.addEventListener('DOMContentLoaded', function () {
       cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>';
     }
     filtrarPlanosBusca();
+    setTimeout(ajustarScrollPlanos, 30);
   }
 
   function carregarPlanosGrafico() {
@@ -989,6 +883,10 @@ document.addEventListener('DOMContentLoaded', function () {
       try { localStorage.setItem(LS_PAINEL_ABERTO, open ? '1' : '0'); } catch (_) {}
     }
     if (chartGastos) setTimeout(function () { chartGastos.resize(); }, 120);
+    if (open) {
+      setTimeout(ajustarScrollPlanos, 50);
+      setTimeout(ajustarScrollPlanos, 200);
+    }
   }
 
   function retrairPainel() {
@@ -1509,9 +1407,6 @@ document.addEventListener('DOMContentLoaded', function () {
             titleFont: { size: 15, weight: '800' },
             bodyFont: { size: 14, weight: '700' },
             bodySpacing: 6,
-            filter: function (item) {
-              return !chartSerieMeta.compareMode;
-            },
             callbacks: {
               label: function (ctx) {
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
@@ -1680,8 +1575,8 @@ document.addEventListener('DOMContentLoaded', function () {
             deltas: data.deltas || [],
             comparacao: data.comparacao || null
           };
-          chartGastos.options.plugins.tooltip.filter = function () { return !compareMode; };
-          chartGastos.options.layout.padding.top = compareMode ? 72 : 44;
+          chartGastos.options.plugins.tooltip.enabled = !compareMode;
+          chartGastos.options.layout.padding.top = compareMode ? 28 : 44;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);
@@ -1864,6 +1759,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
+      ajustarScrollPlanos();
       if (chartGastos) chartGastos.resize();
     }, 80);
   });
