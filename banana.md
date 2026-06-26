@@ -609,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.92`  
+**Versão:** `1.0.93`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — **deploy produção com ressalva** (Display Scale não pedido)  
-**Versão app (`VERSION`):** **teste** v2.99 · **produção** v2.99
+**Atualizado por:** assistente — hotfix Display Scale off (`49d34cf` teste)  
+**Versão app (`VERSION`):** **teste** v3.02 · **produção** v2.99
 
 ### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
 
@@ -633,9 +633,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **VERSION loja** | **v2.99** |
 | **Pacote** | Fases A–D3 · Compras D4 · ledger · `agro_pg` · **Display Scale entrou no merge — Renan não pediu** |
 | **Problema** | Modal «Tamanho da tela» na loja (1ª visita) |
-| **Hotfix** | `AGRO_DISPLAY_SCALE_HABILITADO` default **false** — cherry-pick/commit em `producao` + redeploy (**precisa frase + senha**) |
+| **Hotfix** | `49d34cf` em **`teste`** — `AGRO_DISPLAY_SCALE_HABILITADO` default **false** · **loja ainda sem** (precisa frase + senha) |
 | **Env Render produção** | Ver tabela abaixo |
-| **Testes** | ⏸ pausados até loja validar e sumir modal |
+| **Testes** | ⏸ ver **«Renan — testar agora»** abaixo |
+
+### Renan — testar agora (loja v2.99)
+
+**Antes:** Ctrl+F5 · conferir env Render (tabela abaixo) · abrir `/api/agro/fonte-status/` (`catalogo_postgres: true` · `estoque_ledger_ativo: true`).
+
+| # | Onde | O quê | OK se… |
+| --- | ---- | ----- | ------ |
+| 0 | Qualquer tela | Modal «Tamanho da tela» | **Confirmar 100%** (workaround) **ou** subir hotfix `49d34cf` na loja |
+| 1 | `/pdv/` | Busca + autocomplete | Lista abre · **carregar mais** · **Enter** adiciona · **Esc** recolhe |
+| 2 | `/pdv/` | Venda rápida | 2–3 produtos (ex. **GM9503**, milho) · preço/saldo coerentes |
+| 3 | `/consulta/` ou PDV legado | Busca | Mesmos produtos aparecem (ordem pode diferir do teste) |
+| 4 | Gestão operacional | Lista + busca | Abre em tempo aceitável · produto abre detalhe |
+| 5 | `/compras/` | Cards + sugestão | GM9503: saldo · sug. · chips «Últimas compras» |
+| 6 | Compras → Folha | Planilha categoria **teste** | 1 produto · colunas últ. pedido / média preenchidas |
+| 7 | `/entrada-nota/` | Wizard passo **5 estoque** | Saldo bate Consulta/Compras (ex. GM9503) |
+| 8 | Entrada NF | Passo 7 financeiro | «Salvar + a pagar» grava título em Lançamentos (**loja**, não dry-run) |
+
+**Não bloqueia operação:** Display Scale · ordem busca «milho» · custo lista R$ 0 vs base GM9503.
+
+**Staging (opcional):** após deploy `49d34cf` + `AGRO_DISPLAY_SCALE_HABILITADO=true` → modal **Aa** só no teste.
 
 ### Render produção — env (checklist)
 
@@ -660,8 +680,9 @@ Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_le
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Urgente** | Subir hotfix Display Scale off na **produção** (Renan: frase + senha) |
-| **Amanhã loja** | Validar operação · se OK, retomar sprint |
+| **Renan** | Checklist **«Renan — testar agora»** (8 itens) |
+| **Urgente código** | Cherry-pick `49d34cf` → `producao` (frase + senha) — tira modal de vez |
+| **Env loja** | `AGRO_FONTE_ESTOQUE=ledger` se ainda não colocou |
 | **Se bug grave** | Tag checkpoint → reset `f87955d` |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
