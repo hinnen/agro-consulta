@@ -869,7 +869,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.15 · **produção** v3.12
+**Versão app (`VERSION`):** **teste** v3.16 · **produção** v3.12
 
 ### WIP — listas auxiliares PG (fornecedor / planos / formas) **28/05**
 
@@ -878,9 +878,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Baixa CP (formas/bancos), autocomplete Lançamentos, fornecedores NF → Postgres quando `financeiro_postgres` |
 | **APIs** | `api/lancamentos/opcoes-baixa/`, `api/lancamentos/sugestoes/`, `api/entrada-nota/fornecedores/` |
 | **Fallback** | `apenas_cadastro_erp=1` enriquece com cadastro Mongo se disponível; NF fornecedor mescla PG + DtoPessoa + Agro local |
-| **Deploy teste** | **`01a9348`** · **v3.15** |
+| **Deploy teste** | **`01a9348`** · **v3.15–v3.16** (banana `83333ab`) |
 | **Renan testar** | Baixa CP · Nova saída (plano/forma/banco) · NF passo 1 fornecedor · PDV preço inalterado |
 | **Produção** | Após OK teste + frase + senha |
+
+### FECHADO — export Lançamentos + Gestão PG **28/05 (teste v3.11)**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -896,7 +898,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 1 | **CP/CR Postgres loja** | **✅ fechado** v3.04–v3.08 | Nada |
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
-| 4 | **Listas auxiliares PG** | **WIP teste v3.15** | formas/bancos · sugestões · fornecedor NF |
+| 4 | **Listas auxiliares PG** | **WIP teste v3.16** | formas/bancos · sugestões · fornecedor NF |
 | 5 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
 | 6 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 
