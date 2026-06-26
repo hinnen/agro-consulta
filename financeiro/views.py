@@ -100,6 +100,7 @@ def grafico_gastos_view(request):
         "financeiro/grafico_gastos.html",
         {
             "planos_conta": planos_conta,
+            "total_planos": len(planos_conta),
             "data_inicial_padrao": padrao_ini.isoformat(),
             "data_final_padrao": hoje.isoformat(),
         },
@@ -153,6 +154,22 @@ def api_dados_grafico_gastos(request):
     por = (src.get("por") or "vencimento").strip().lower()
     valor = (src.get("valor") or "bruto").strip().lower()
 
+    todos_planos = str(src.get("todos_planos") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    planos_excluir_raw = src.get("planos_excluir")
+    if isinstance(planos_excluir_raw, list):
+        planos_excluir = [str(p).strip() for p in planos_excluir_raw if str(p).strip()]
+    else:
+        planos_excluir = [
+            p.strip()
+            for p in (planos_excluir_raw or "").split("|")
+            if p.strip()
+        ]
+
     _, mongo_db = obter_conexao_mongo()
     if mongo_db is None:
         return JsonResponse(
@@ -166,6 +183,8 @@ def api_dados_grafico_gastos(request):
         data_ate=data_fim,
         agrupamento=agrupamento,
         plano_ids=plano_ids,
+        planos_excluir_nomes=planos_excluir,
+        todos_planos=todos_planos,
         individual=individual,
         por=por,
         valor=valor,

@@ -780,7 +780,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
 | **UI** | Chart.js · favoritos `localStorage` |
-| **Bug valores (26/06)** | Dedup DRE contava duplicatas ERP — corrigido para dedup Lançamentos |
+| **Bug valores (26/06)** | Dedup DRE + filtro por ID de plano (perdia títulos) — fix: **todos marcados = sem filtro** (igual CP); desmarcados = `excluir_plano` |
+| **UI (26/06)** | Calendário Nova saída (`agro_date_picker.js`) · valores nas bolinhas · largura 96rem |
 | **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |
 | **Pendente opcional** | Link no menu Lançamentos / BI |
 

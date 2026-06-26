@@ -4544,6 +4544,8 @@ def grafico_gastos_serie_mongo(
     data_ate: date,
     agrupamento: str = "mes",
     plano_ids: list[str] | None = None,
+    planos_excluir_nomes: list[str] | None = None,
+    todos_planos: bool = False,
     individual: bool = False,
     por: str = "vencimento",
     valor: str = "bruto",
@@ -4552,7 +4554,7 @@ def grafico_gastos_serie_mongo(
     Série temporal de despesas (DtoLancamento) para Chart.js.
 
     Alinhado à lista de Lançamentos: dedup ``_lancamentos_mongo_stages_dedup_por_titulo_erp``.
-    ``por``: vencimento | competencia | pagamento · ``valor``: bruto | pago | saldo.
+    Filtro de planos: **todos marcados** = sem filtro (igual CP); desmarcados = ``excluir_plano``.
     """
     vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "datasets": []}
     if db is None:
@@ -4560,9 +4562,9 @@ def grafico_gastos_serie_mongo(
     if data_de > data_ate:
         data_de, data_ate = data_ate, data_de
 
-    ids, nomes, id_nome = _grafico_gastos_filtro_planos_mongo(db, plano_ids or [])
-    if not ids and not nomes:
-        return {"ok": True, "erro": None, "labels": [], "datasets": []}
+    id_nome: dict[str, str] = {}
+    if plano_ids and individual:
+        _, _, id_nome = _grafico_gastos_filtro_planos_mongo(db, plano_ids)
 
     modo_por = (por or "vencimento").strip().lower()
     if modo_por not in ("vencimento", "competencia", "pagamento"):
@@ -4571,6 +4573,11 @@ def grafico_gastos_serie_mongo(
     if modo_valor not in ("bruto", "pago", "saldo"):
         modo_valor = "bruto"
 
+    excl_nomes: list[str] | None = None
+    if not todos_planos:
+        raw_excl = [str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip()]
+        excl_nomes = raw_excl or None
+
     if modo_por == "competencia":
         campo_data = "DataCompetencia"
         q_base = lancamentos_montar_query_mongo(
@@ -4578,6 +4585,7 @@ def grafico_gastos_serie_mongo(
             status="todos" if modo_valor != "saldo" else "abertos",
             competencia_de=data_de,
             competencia_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
         )
     elif modo_por == "pagamento":
         campo_data = "DataPagamento"
@@ -4586,6 +4594,7 @@ def grafico_gastos_serie_mongo(
             status="quitados" if modo_valor == "pago" else "todos",
             pagamento_de=data_de,
             pagamento_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
         )
     else:
         campo_data = "DataVencimento"
@@ -4594,20 +4603,15 @@ def grafico_gastos_serie_mongo(
             status="abertos" if modo_valor == "saldo" else "todos",
             vencimento_de=data_de,
             vencimento_ate=data_ate,
+            excluir_planos_nomes=excl_nomes,
         )
 
-    match_plano = _grafico_gastos_match_planos(ids, nomes)
-    if match_plano is None:
-        return {"ok": True, "erro": None, "labels": [], "datasets": []}
-
-    pats = _dre_regexes_excluir_resultado(None)
-    q: dict[str, Any] = {
-        "$and": [
-            q_base,
-            match_plano,
-            {"$nor": [{"PlanoDeConta": {"$regex": pat}} for pat in pats]},
-        ]
-    }
+    q_parts: list[dict[str, Any]] = [q_base]
+    if not todos_planos and not excl_nomes and plano_ids and individual:
+        match_plano = _grafico_gastos_match_planos(*_grafico_gastos_filtro_planos_mongo(db, plano_ids)[:2])
+        if match_plano:
+            q_parts.append(match_plano)
+    q: dict[str, Any] = {"$and": q_parts} if len(q_parts) > 1 else q_base
 
     tz = timezone.get_current_timezone()
     agr = (agrupamento or "mes").strip().lower()
@@ -4686,8 +4690,8 @@ def grafico_gastos_serie_mongo(
             totais[bkey] += val
 
         label = "Total Selecionado"
-        if len(ids) == 1:
-            label = id_nome.get(ids[0]) or label
+        if len(id_nome) == 1:
+            label = next(iter(id_nome.values()))
         cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[0]
         datasets = [
             {
