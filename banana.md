@@ -612,7 +612,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.92`  
 **Última atualização:** `2026-06-25`  
 **Atualizado por:** assistente — **deploy produção OK** (Renan + senha)  
-**Versão app (`VERSION`):** **teste** v2.97 · **produção** v2.97
+**Versão app (`VERSION`):** **teste** v2.98 · **produção** v2.98
 
 ### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
 
@@ -630,7 +630,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Merge** | `teste` → `producao` · commit `1d82d30` |
 | **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
-| **VERSION loja** | **v2.97** (pacote desvinculação + Compras D4 + Entrada NF + prep Lançamentos + motor busca v2) |
+| **VERSION loja** | **v2.98** (pacote desvinculação + Compras D4 + Entrada NF + prep Lançamentos + motor busca v2) |
 | **Pacote** | Fases A–D3 · Compras D4 A+B+C · ledger · `agro_pg` (código; **env Render** abaixo) |
 | **Env Render produção** | Conferir/ajustar: `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger · **sem** `AGRO_STAGING_READONLY` |
 | **Migrate loja** | Render roda migrate no deploy · migration `0041_titulo_financeiro_agro` (só tabela prep, telas Mongo) |
