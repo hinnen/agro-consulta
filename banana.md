@@ -564,8 +564,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 | Quem | O quê |
 | ---- | ----- |
-| **Assistente** | Bootstrap import PG no deploy teste · CP lê PG automático no staging |
-| **Renan** | **1–3 ✅** · **passo 4** quando deploy terminar (~5 min) · **loja CP parada hoje** OK |
+| **Assistente** | **✅ import teste OK** (13,2k títulos PG · CP lê Postgres no staging) |
+| **Renan** | **Passo 4 agora** (só site **teste**) · loja CP parada hoje |
 
 ### Renan — intervenção (estritamente necessário)
 
@@ -574,7 +574,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
 | **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
 | **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
-| **4 Pós-import teste** | ⏳ **deploy** | Site teste: CP em aberto **741** + total · 3 títulos · avisa «passo 4 OK» |
+| **4 Pós-import teste** | **✅ pronto — Renan** | Staging: `financeiro_postgres: true` · **13.200** títulos PG · conferir CP aberto **741** + total |
 | **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
