@@ -872,7 +872,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.44 · **produção** v3.33
+**Versão app (`VERSION`):** **teste** v3.53 · **produção** v3.33
+
+### WIP — lentidão teste (vendas + busca PDV) **24/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma Renan** | `/vendas/` e autocomplete Consulta demoram minutos no **teste**; **produção 3.33** normal |
+| **Causa** | Pacote BI validade v3.47+ consultava **Mongo para todos** os PIDs com validade a cada abertura do BI/atalhos — competia com `/api/buscar/` e `/api/todos-produtos/` (**buscador PDV não foi alterado**) |
+| **Fix teste** | **v3.53** — validade: SQL para lotes com qtd>0 + Mongo só «conferir» + cache 3 min; vendas: NFC-e config 1× por página |
+| **Renan testar** | Fechar aba do BI · Ctrl+F5 Consulta → busca local deve voltar rápido; `/vendas/` hoje |
 
 ### WIP — BI validade «Conferir» sem saldo **26/06**
 
