@@ -579,25 +579,26 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
 
-### Renan — «podemos ligar na loja com a loja rodando?»
+### Por que Contas a pagar **não está 100 % concluída** ainda?
 
-**Resposta curta: ainda não na CP.** PDV, caixa, vendas etc. **seguem normais** — isso **não muda**.
+**Não é bug** — foi **de propósito**, em **etapas**, porque são **~17 mil títulos** e **~R$ 393 mil** em aberto.
 
-| O quê | Hoje no código | Se ligar flag na loja agora |
-| ----- | -------------- | --------------------------- |
-| **Lista CP** (ver títulos, total) | Postgres no **teste** · Mongo na **loja** | Lista viria do Postgres |
-| **Pagar / parcial / nova saída / editar** | **Ainda Mongo** (nos dois) | Continua gravando **Mongo** |
-| **Taxa cartão / título novo** | Entra no **Mongo** | **Não aparece** na lista PG até reimport |
+| Etapa | O quê | Status |
+| ----- | ----- | ------ |
+| **A** | Backup + conferir total na **loja** | **✅ Renan** |
+| **B** | Copiar títulos Mongo → Postgres | **✅ teste** (13,2 mil) |
+| **C** | **Lista** CP (ver, filtrar, total) no Postgres | **✅ teste** (741 / 393.652,70 bateu) |
+| **D** | **Gravar** no Postgres: pagar, parcial, nova saída, editar, excluir | **⏳ falta** |
+| **E** | Validar **D** no teste (pagar 1 título de teste) | ⏳ |
+| **F** | Import + flag na **loja** (senha) | ⏳ depois de D+E |
 
-**Risco:** alguém abre CP e **Paga** → Mongo muda, tela (PG) **fica errada**. Mesmo com operação «parada», **um clique** já desalinha.
+**Por que parou antes de D?**  
+Primeiro garantimos: *«a cópia no Postgres é a mesma coisa que a tela da loja?»* — **sim** (passo 4).  
+Só **depois** mexemos em **pagamento** — se errar, some dinheiro ou duplica título.
 
-**Ordem segura com loja aberta:**
+**Metáfora:** armário novo montado e **inventário conferido**; falta passar a **usar o armário de verdade** (cada pagamento sair do Mongo e ir pro Postgres).
 
-1. **Assistente** — gravar CP no Postgres (pagar, nova saída, etc.) no **teste**
-2. **Renan** — validar no teste (pagar 1 título de teste)
-3. **Loja** — import PG + flag + deploy **só** com frase + senha · ideal: CP só leitura ou aviso até validar
-
-**Até lá:** loja CP = **Mongo** (como hoje). Resto da loja **sem restrição**.
+**Loja hoje:** CP continua **Mongo inteiro** (lista + pagar) — **seguro**. Resto da loja **normal**.
 
 ### Renan — como fazer (passos 3 e 4)
 
