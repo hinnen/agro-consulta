@@ -565,7 +565,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Quem | O quê |
 | ---- | ----- |
 | **Assistente** | Import PG · views CP em aberto · flag staging · testes |
-| **Renan** | **1–2 ✅** · aguarda import teste (3–5) |
+| **Renan** | **1–2 ✅** · **3 = não mexer Render (já ok)** · aguarda assistente import teste → depois **4** |
 
 ### Renan — intervenção (estritamente necessário)
 
@@ -573,7 +573,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | --- | ------ | ------- |
 | **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
 | **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
-| **3 Render env** | ⏸ | **Não** mexer — assistente avisa |
+| **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
 | **4 Pós-import teste** | ⏸ | Mesmo total aberto + abrir 3 títulos |
 | **5 Fiado / CR** | ⏸ | Ignorar hoje |
 
