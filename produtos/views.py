@@ -2358,6 +2358,30 @@ def api_produtos_gestao_erp_sincronizar_pendentes(request):
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
 API_LIST_CUSTOMERS_CACHE_KEY = "api_list_customers_v2"
 API_LIST_CUSTOMERS_TTL = 45
+API_BUSCAR_CLIENTES_CACHE_TTL = 60
+
+_CLIENTE_PDV_ONLY_FIELDS = (
+    "id",
+    "nome",
+    "whatsapp",
+    "cpf",
+    "endereco",
+    "cep",
+    "uf",
+    "cidade",
+    "bairro",
+    "logradouro",
+    "numero",
+    "complemento",
+    "plus_code",
+    "referencia_rural",
+    "maps_url_manual",
+    "externo_id",
+    "origem_import",
+    "saldo_vale_credito",
+    "saldo_cashback",
+    "limite_fiado_local",
+)
 
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
 CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
@@ -22411,17 +22435,21 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
 
 def _clientes_locais_agro_pdv(termo=""):
     t = (termo or "").strip()
-    qs = ClienteAgro.objects.filter(ativo=True)
+    qs = ClienteAgro.objects.filter(ativo=True).only(*_CLIENTE_PDV_ONLY_FIELDS)
     if t:
-        qs = qs.filter(
-            Q(nome__icontains=t)
-            | Q(whatsapp__icontains=t)
-            | Q(cpf__icontains=t)
-            | Q(endereco__icontains=t)
-            | Q(plus_code__icontains=t)
-        )
+        q_filter = Q(nome__icontains=t)
+        digits = re.sub(r"\D", "", t)
+        if len(digits) >= 3:
+            q_filter |= Q(whatsapp__icontains=digits) | Q(cpf__icontains=digits)
+        if len(t) >= 3:
+            q_filter |= Q(endereco__icontains=t) | Q(plus_code__icontains=t)
+        qs = qs.filter(q_filter)
     qs = qs.order_by("nome")[:80]
     return [_linha_clienteagro_pdv(c) for c in qs]
+
+
+def _api_buscar_clientes_cache_key(termo: str) -> str:
+    return f"api_buscar_clientes_v1:{(termo or '').strip().lower()[:80]}"
 
 
 def _dedupe_clientes_pdv_por_nome_doc(rows):
@@ -22543,12 +22571,18 @@ def api_buscar_clientes(request):
     if not termo:
         return JsonResponse({"clientes": []})
 
+    ck = _api_buscar_clientes_cache_key(termo)
+    cached = cache.get(ck)
+    if cached is not None:
+        return JsonResponse(cached)
+
     merged = _clientes_locais_agro_pdv(termo)[:45]
     payload = {"clientes": merged}
     if settings.DEBUG:
         payload["contagem_fontes"] = {
             "cliente_agro": len(merged),
         }
+    cache.set(ck, payload, API_BUSCAR_CLIENTES_CACHE_TTL)
     return JsonResponse(payload)
 
 
