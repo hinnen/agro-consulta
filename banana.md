@@ -609,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.94`  
-**Última atualização:** `2026-06-24`  
-**Atualizado por:** assistente — **hotfix loja OK** (Renan + senha `99738595`)  
-**Versão app (`VERSION`):** **teste** v3.08 · **produção** v3.01 *(hotfix `b016b4a` + banana `087c13f`)*
+**Versão:** `1.0.95`  
+**Última atualização:** `2026-06-25`  
+**Atualizado por:** assistente — **loja validada OK** (Renan)  
+**Versão app (`VERSION`):** **teste** v3.09 · **produção** v3.01 (`b016b4a`)
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
@@ -631,50 +631,38 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Commit** | `f87955d` — *v2.28 PDV autocomplete* |
 | **Reverter** | reset `f87955d` — perde pacote desvinculação |
 
-### DEPLOY PRODUÇÃO — merge desvinculação **OK com ressalva** (25/06, Renan + senha)
+### DEPLOY PRODUÇÃO — pacote desvinculação + hotfix **OK** (25/06, Renan)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Merge** | `teste` → `producao` · `1d82d30` |
-| **VERSION** | **v2.99** |
+| **Merge** | `1d82d30` · VERSION **v2.99** → hotfix **`b016b4a`** · VERSION **v3.01** |
 | **Pacote** | A–D3 · Compras D4 · ledger · `agro_pg` |
-| **Ressalvas** | Display Scale não pedido · busca cliente lenta |
+| **Hotfix** | Display Scale off · busca cliente PDV cache (`99738595`) |
+| **Validação loja** | **✅ Renan 25/06** — checklist 0–9 OK · operação normal |
 
-### DEPLOY PRODUÇÃO — **hotfix OK** (24/06, Renan + senha `99738595`)
+### FECHADO — checklist loja pós-hotfix (Renan ✅ 25/06)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Commits** | `49d34cf` Display Scale off · `f697d5e` cache clientes PDV |
-| **Push** | `origin/producao` · Render redeploy |
-| **Renan** | Ctrl+F5 · sem modal zoom · buscar cliente **renan** na hora |
+| # | Item | Status |
+| --- | ---- | ------ |
+| 0 | Sem modal Display Scale | ✅ |
+| 1 | PDV busca produtos | ✅ |
+| 2 | Venda rápida | ✅ |
+| 3 | Consulta / busca | ✅ |
+| 4 | Gestão | ✅ |
+| 5 | Compras / GM9503 | ✅ |
+| 6 | Folha categoria teste | ✅ |
+| 7 | Entrada NF passo 5 | ✅ |
+| 8 | Entrada NF passo 7 financeiro | ✅ |
+| 9 | Buscar cliente PDV | ✅ |
 
-### Renan — testar agora (loja pós-hotfix)
-
-**Antes:** Ctrl+F5 · conferir env Render (tabela abaixo) · abrir `/api/agro/fonte-status/` (`catalogo_postgres: true` · `estoque_ledger_ativo: true`).
-
-| # | Onde | O quê | OK se… |
-| --- | ---- | ----- | ------ |
-| 0 | Qualquer tela | Modal «Tamanho da tela» | **Não aparece** (`49d34cf`) |
-| 1 | `/pdv/` | Busca + autocomplete | Lista abre · **carregar mais** · **Enter** adiciona · **Esc** recolhe |
-| 2 | `/pdv/` | Venda rápida | 2–3 produtos (ex. **GM9503**, milho) · preço/saldo coerentes |
-| 3 | `/consulta/` ou PDV legado | Busca | Mesmos produtos aparecem (ordem pode diferir do teste) |
-| 4 | Gestão operacional | Lista + busca | Abre em tempo aceitável · produto abre detalhe |
-| 5 | `/compras/` | Cards + sugestão | GM9503: saldo · sug. · chips «Últimas compras» |
-| 6 | Compras → Folha | Planilha categoria **teste** | 1 produto · colunas últ. pedido / média preenchidas |
-| 7 | `/entrada-nota/` | Wizard passo **5 estoque** | Saldo bate Consulta/Compras (ex. GM9503) |
-| 8 | Entrada NF | Passo 7 financeiro | «Salvar + a pagar» grava título em Lançamentos (**loja**, não dry-run) |
-| 9 | `/pdv/` → Buscar cliente | **renan** | lista **imediata** (`f697d5e`) |
-
-**Bugs corrigidos no hotfix:** Display Scale modal · busca cliente lenta (cache local PDV wizard).
-
-**Não bloqueia:** ordem busca «milho» · custo lista R$ 0 GM9503.
+Cosmético (não bloqueia): ordem busca «milho» · custo lista R$ 0 GM9503.
 
 ### Render produção — env (checklist)
 
 | Variável | Loja |
 | -------- | ---- |
 | `AGRO_FONTE_CATALOGO=agro_pg` | ✅ já tem |
-| `AGRO_FONTE_ESTOQUE=ledger` | ➕ adicionar |
+| `AGRO_FONTE_ESTOQUE=ledger` | ✅ *(operando — Renan validou)* |
 | `AGRO_DISPLAY_SCALE_HABILITADO` | ❌ **não** (ou omitir = off) |
 | `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` | ❌ não (só staging) |
 | `AGRO_STAGING_READONLY` | ❌ não |
@@ -688,14 +676,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false`
 
-### WIP AGORA — pós-hotfix loja
+### WIP AGORA — pós-validação loja
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Renan** | Checklist 0–9 acima |
-| **Env loja** | `AGRO_FONTE_ESTOQUE=ledger` se ainda falta |
-| **Revert leve** | reset `0c10e9a` (volta v2.99 + bugs) |
-| **Revert total** | tag checkpoint → `f87955d` |
+| **Loja** | **✅ operação normal** v3.01 — retomar sprint em `teste` |
+| **Próximo** | Entrada NF financeiro Agro · Lançamentos PG · motor busca GM |
+| **Revert** | leve `0c10e9a` · total tag `f87955d` (só emergência) |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -738,7 +725,7 @@ Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_le
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** §4.15 **Compras D4 A+B+C ✅ Renan** · deploy loja **~20h** · **Lançamentos prep v2.90** (modelo PG + import dry-run) · sprint **Entrada NF financeiro / ligar agro_pg**
+**Onde paramos:** **Loja ✅ v3.01** (desvinculação A–D3 + Compras D4 validados) · sprint **`teste`:** Entrada NF financeiro Agro · Lançamentos PG · motor busca GM
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
