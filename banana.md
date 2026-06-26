@@ -400,7 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos globais** Postgres. **Entrada BI:** botão laranja **Gráfico gastos** no card **Contas a Pagar** (`/`). Teste **v3.22**; loja **v3.02**.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos globais** Postgres. **Entrada BI:** botão laranja **Gráfico gastos** no card **Contas a Pagar** (`/`). Teste **v3.24**; loja **v3.02**.
 
 ### 4.11 Caixa
 
@@ -1024,7 +1024,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Bug valores (26/06)** | Dedup DRE + filtro por ID de plano (perdia títulos) — fix: **todos marcados = sem filtro** (igual CP); desmarcados = `excluir_plano` |
 | **UI (26/06)** | Calendário Nova saída · labels pill · 96rem · retrair auto/localStorage |
 | **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |
-| **Pendente opcional** | Link no menu Lançamentos / BI |
+| **Pendente opcional** | ~~Link no menu Lançamentos / BI~~ → **✅ card CP no BI** (v3.22) |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
