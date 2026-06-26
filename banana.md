@@ -870,7 +870,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.37 (gráfico gastos pacote completo 26/06)
+**Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.38 (gráfico gastos pacote completo 26/06)
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
