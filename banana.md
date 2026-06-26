@@ -573,7 +573,21 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **3** | **Assistente** | Import PG na **loja** + deploy pacote **teste→producao** | **✅ em curso v3.03** |
 | **4** | **Renan** | Frase *«pode subir produção»* + senha **`99738595`** **no mesmo pedido** | **✅ Renan 26/06** |
 | **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | **✅ 26/06** |
-| **6** | **Renan** | Loja: CP aberto **741** + total de novo + 1 pagamento real pequeno (opcional) | **✅ 26/06** — **741** · **R$ 393.652,70** |
+| **6** | Loja: CP aberto **741** + total | **✅ 26/06** — pagamento real **dispensado** |
+| **7 CR loja** | Conferência lista CR | **✅ 26/06** — **453** · **R$ 29.241,58** |
+| **8 Painel backup** | Card amarelo recolhido (admin) | **✅ v3.08** deploy loja |
+
+**Renan (26/06):** não precisa teste de pagar na CP na loja · **fiado** = operação principal (já Postgres nativo).
+
+### Próximo — finalizar Lançamentos / financeiro (ordem)
+
+| # | O quê | Urgência loja |
+| --- | ----- | ------------- |
+| **1** | **Entrada NF passo 7** — «Salvar + a pagar» 100 % Postgres (hoje pode ainda tocar Mongo em alguns fluxos) | Quando usar NF |
+| **2** | **DRE / fluxo calendário / PDF** Lançamentos — ler Postgres | Baixa (telas secundárias) |
+| **3** | **Esconder painel amarelo** checkpoint (admin) — migração CP/CR fechada | Cosmético |
+| **4** | **Congelar Mongo financeiro** (opcional) — título novo só PG; Mongo só histórico | Só quando 1–2 estáveis |
+| **—** | **Fiado** | **Nada** — já fora deste pacote |
 
 **Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
 
@@ -586,7 +600,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Lista + filtros + planos CR | **✅ código teste** (mesmo PG dos 17,8 mil títulos) |
 | Receber / parcial / editar / excluir / lote | **✅ código teste** |
 | Fiado | **fora** — tela própria Postgres |
-| Deploy loja | após push **teste→producao** |
+| Deploy loja | **✅ v3.07** — CR conferida **453** / **29.241,58** |
 
 
 ### Renan — intervenção (estritamente necessário)
@@ -806,10 +820,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.07`  
+**Versão:** `1.1.08`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — loja CP PG OK Renan print 741/393652  
-**Versão app (`VERSION`):** **teste** v3.04 · **produção** v3.04
+**Atualizado por:** assistente — painel backup recolhido + deploy loja v3.08  
+**Versão app (`VERSION`):** **teste** v3.08 · **produção** v3.08 (após merge Renan 99738595)
+
+### FECHADO — painel backup Lançamentos recolhido **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Card amarelo backup/checkpoint (só admin) em `<details>` **fechado** por padrão |
+| **Telas** | CP, hub Lançamentos, CR (filtros) |
+| **Deploy** | Renan **99738595** · **v3.08** |
+
+### FECHADO — CP/CR Postgres loja **26/06** (uso normal liberado)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **CP** | **741** · **R$ 393.652,70** — lista + gravar Postgres |
+| **CR** | **453** · **R$ 29.241,58** — lista + gravar Postgres |
+| **Fiado** | Fora — tela própria Postgres |
+| **Pausa sprint** | DRE, calendário, export PDF/XLSX, NF passo 7 — ainda Mongo (retomar depois) |
 
 ### FECHADO — CP Postgres loja **26/06** (Renan 99738595 + conferência)
 

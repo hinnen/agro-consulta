@@ -1,12 +1,15 @@
 {% if lancamentos_pre_corte_admin %}
-{# Painel provisório — backup + checkpoint antes de cortar vínculo ERP (só admin). #}
-<div id="agro-lanc-pre-corte-panel" class="rounded-xl border-2 border-amber-400 bg-amber-50/95 p-3 sm:p-4 space-y-3 text-left shadow-sm">
-  <div>
-    <p class="text-xs sm:text-sm font-black uppercase text-amber-950 tracking-tight">Segurança — antes de cortar o ERP</p>
-    <p class="text-[11px] sm:text-xs font-semibold text-amber-900/90 mt-1 leading-snug">
-      Nada é apagado. Primeiro baixe o Excel no seu PC; depois faça o checkpoint. Só então subimos a atualização e você combina com a loja.
-    </p>
-  </div>
+{# Painel provisório — backup + checkpoint (só admin). Recolhido por padrão para não atrapalhar a operação. #}
+<details id="agro-lanc-pre-corte-panel" class="rounded-xl border-2 border-amber-400 bg-amber-50/95 text-left shadow-sm group">
+  <summary class="cursor-pointer list-none px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 select-none [&::-webkit-details-marker]:hidden">
+    <span class="text-xs sm:text-sm font-black uppercase text-amber-950 tracking-tight">Backup / checkpoint (admin)</span>
+    <span class="text-[10px] font-bold uppercase text-amber-800/80 shrink-0 group-open:hidden">Expandir</span>
+    <span class="text-[10px] font-bold uppercase text-amber-800/80 shrink-0 hidden group-open:inline">Recolher</span>
+  </summary>
+  <div class="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-3 border-t border-amber-200/80">
+  <p class="text-[11px] sm:text-xs font-semibold text-amber-900/90 leading-snug">
+    Nada é apagado. Baixe o ZIP no PC; depois faça o checkpoint quando for cortar o ERP.
+  </p>
   <p id="agro-lanc-pre-corte-status" class="text-[11px] font-bold text-slate-800 rounded-lg bg-white/80 border border-amber-200/80 px-3 py-2 min-h-[2.5rem]">
     Carregando status…
   </p>
@@ -30,7 +33,8 @@
     </button>
   </div>
   <p id="agro-lanc-pre-corte-msg" class="hidden text-[11px] font-bold rounded-lg px-3 py-2"></p>
-</div>
+  </div>
+</details>
 <script>
 (function () {
   if (window.__agroLancPreCorteBound) return;

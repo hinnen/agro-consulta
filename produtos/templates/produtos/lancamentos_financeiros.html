@@ -565,14 +565,19 @@
           </button>
         </div>
         {% if lancamentos_pre_corte_admin %}
-        <div class="rounded-xl border-2 border-amber-400 bg-amber-50/90 p-3 space-y-2">
-          <p class="text-[11px] font-black uppercase text-amber-950">Backup de segurança (antes de cortar ERP)</p>
-          <p class="text-[10px] font-semibold text-amber-900/90">ZIP leve: a pagar, a receber (espelho) e fiado PDV. Opção <strong>todos</strong> ou <strong>só em aberto</strong>.</p>
-          <div class="flex flex-wrap gap-2">
-            <a href="{% url 'api_lancamentos_backup_completo_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] uppercase" download>Backup todos</a>
-            <a href="{% url 'api_lancamentos_backup_abertos_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-black text-[11px] uppercase" download>Backup em aberto</a>
+        <details class="rounded-xl border-2 border-amber-400 bg-amber-50/90 group">
+          <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-2 select-none [&::-webkit-details-marker]:hidden">
+            <span class="text-[11px] font-black uppercase text-amber-950">Backup de segurança (admin)</span>
+            <span class="text-[10px] font-bold uppercase text-amber-800/80 group-open:hidden">Expandir</span>
+          </summary>
+          <div class="px-3 pb-3 pt-0 space-y-2 border-t border-amber-200/80">
+            <p class="text-[10px] font-semibold text-amber-900/90">ZIP leve: a pagar, a receber (espelho) e fiado PDV. Opção <strong>todos</strong> ou <strong>só em aberto</strong>.</p>
+            <div class="flex flex-wrap gap-2">
+              <a href="{% url 'api_lancamentos_backup_completo_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] uppercase" download>Backup todos</a>
+              <a href="{% url 'api_lancamentos_backup_abertos_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-black text-[11px] uppercase" download>Backup em aberto</a>
+            </div>
           </div>
-        </div>
+        </details>
         {% endif %}
         <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
           <label class="block flex-1 min-w-[10rem] max-w-xs">
