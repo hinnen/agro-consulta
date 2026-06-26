@@ -8396,8 +8396,9 @@ def vendas_lista(request):
     from produtos.nfce_venda_util import painel_nfce_venda
 
     vendas = list(qs)
+    nfce_cfg = nfce_config_resumo()
     for v in vendas:
-        v.nfce_painel = painel_nfce_venda(v)
+        v.nfce_painel = painel_nfce_venda(v, _cfg=nfce_cfg)
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -23885,27 +23886,57 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     return a, b
 
 
+VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v3"
+VALIDADE_DASHBOARD_CACHE_TTL = 180
+
+
 def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
     """
     Produtos distintos (overlay) com validade no prazo:
     - com saldo (lote qtd>0 ou centro+vila>0): vencidos / vencendo_mes
     - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
+
+    Cache curto (3 min) + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
     """
     hoje = timezone.localdate()
+    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}"
+    cached = cache.get(ck)
+    if isinstance(cached, dict) and "vencidos" in cached:
+        return cached
+    out = _contagem_validade_dashboard_lotes_agro_compute(hoje)
+    cache.set(ck, out, timeout=VALIDADE_DASHBOARD_CACHE_TTL)
+    return out
+
+
+def _contagem_validade_dashboard_lotes_agro_compute(hoje: date) -> dict[str, int]:
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
     overlay_v_conf: set[int] = set()
     overlay_m_conf: set[int] = set()
 
-    eventos: list[tuple[int, str, date]] = []
-    for el in EstoqueLote.objects.select_related("overlay").values(
+    base_qtd = EstoqueLote.objects.filter(quantidade_atual__gt=0)
+    for oid in base_qtd.filter(data_validade__lt=hoje).values_list("overlay_id", flat=True).distinct():
+        overlay_vencidos.add(int(oid))
+    for oid in base_qtd.filter(
+        data_validade__gte=hoje, data_validade__lte=fim_mes
+    ).values_list("overlay_id", flat=True).distinct():
+        overlay_mes.add(int(oid))
+
+    overlays_com_lote_qty = set(
+        base_qtd.values_list("overlay_id", flat=True).distinct()
+    )
+
+    pendentes: list[tuple[int, str, date]] = []
+    for el in EstoqueLote.objects.filter(quantidade_atual__lte=0).values(
         "overlay_id", "data_validade", "overlay__produto_externo_id"
     ):
         oid = int(el["overlay_id"])
+        if oid in overlays_com_lote_qty:
+            continue
         pid = str(el["overlay__produto_externo_id"] or "").strip()
         if pid:
-            eventos.append((oid, pid, el["data_validade"]))
+            pendentes.append((oid, pid, el["data_validade"]))
 
     overlays_com_lote = set(
         EstoqueLote.objects.values_list("overlay_id", flat=True).distinct()
@@ -23925,46 +23956,31 @@ def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
             continue
         pid = str(ov.produto_externo_id or "").strip()
         if pid:
-            eventos.append((ov.pk, pid, dv))
+            pendentes.append((ov.pk, pid, dv))
 
-    if not eventos:
-        return {
-            "vencidos": 0,
-            "vencendo_mes": 0,
-            "vencidos_conferir": 0,
-            "vencendo_mes_conferir": 0,
-        }
+    if pendentes:
+        pids = list({e[1] for e in pendentes})
+        from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-    pids = list({e[1] for e in eventos})
-    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+        client, db = obter_conexao_mongo()
+        saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
 
-    client, db = obter_conexao_mongo()
-    saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+        def _tem_estoque(pid: str) -> bool:
+            s = saldos.get(pid) or {}
+            return float(s.get("saldo_centro") or 0) + float(s.get("saldo_vila") or 0) > 0
 
-    overlays_com_lote_qty = set(
-        EstoqueLote.objects.filter(quantidade_atual__gt=0).values_list(
-            "overlay_id", flat=True
-        )
-    )
-
-    def _tem_estoque(oid: int, pid: str) -> bool:
-        if oid in overlays_com_lote_qty:
-            return True
-        s = saldos.get(pid) or {}
-        return float(s.get("saldo_centro") or 0) + float(s.get("saldo_vila") or 0) > 0
-
-    for oid, pid, dv in eventos:
-        com_estoque = _tem_estoque(oid, pid)
-        if dv < hoje:
-            if com_estoque:
-                overlay_vencidos.add(oid)
-            else:
-                overlay_v_conf.add(oid)
-        elif hoje <= dv <= fim_mes:
-            if com_estoque:
-                overlay_mes.add(oid)
-            else:
-                overlay_m_conf.add(oid)
+        for oid, pid, dv in pendentes:
+            com_estoque = _tem_estoque(pid)
+            if dv < hoje:
+                if com_estoque:
+                    overlay_vencidos.add(oid)
+                else:
+                    overlay_v_conf.add(oid)
+            elif hoje <= dv <= fim_mes:
+                if com_estoque:
+                    overlay_mes.add(oid)
+                else:
+                    overlay_m_conf.add(oid)
 
     return {
         "vencidos": len(overlay_vencidos),

@@ -35,8 +35,8 @@ def _erro_nfce_venda(venda: VendaAgro, nfce: NfceDocumentoAgro | None) -> str:
     return ""
 
 
-def painel_nfce_venda(venda: VendaAgro) -> dict[str, Any]:
-    cfg = nfce_config_resumo()
+def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+    cfg = _cfg if _cfg is not None else nfce_config_resumo()
     ativo = bool(cfg.get("ativo"))
     nfce = getattr(venda, "nfce", None)
     solic = bool(getattr(venda, "nfce_solicitada", False))

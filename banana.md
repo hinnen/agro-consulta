@@ -870,26 +870,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.38 (gráfico gastos pacote completo 26/06)
+**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.43 *(deploy cherry-pick 26/06 — Renan **99738595**, sem testar)*
 
-### WIP — BI validade «Conferir» sem saldo **26/06**
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido Renan** | Opção **2**: card com fila **Conf. venc. / Conf. mês** (validade ok, saldo C+V e lote zerados — estoque furado) |
-| **Regra com saldo** | **Vencidos / No mês** (topo) = só com estoque operacional > 0 ou lote qtd > 0 |
-| **Opção 1 (auto)** | Salvar validade no relatório espelha data no lote Agro (já no código) |
-| **Deploy teste** | pendente |
-| **Renan testar** | `/` — Simparic e outros furos devem aparecer em **Conf. mês** (roxo) |
-
-### WIP — BI validade card **26/06** *(histórico — fix contagem extras)*
+### FECHADO — produção perf + BI validade + CP **v3.43** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Renan alterou validade no relatório (ex. Simparic 30/06) — card **Validade** do BI ficou **0 / 0** |
-| **Causa** | BI contava só `EstoqueLote` com qtd>0; «Salvar» no relatório gravava só `cadastro_extras` |
-| **Fix teste** | pendente — contagem inclui extras com estoque · salvar espelha lote Agro |
-| **Renan testar** | Recarregar `/` — **No mês** ≥ 1 · opcional: abrir relatório validade e **Salvar** de novo num produto |
+| **Renan** | *«pode mandar para produção»* · **99738595** · cuidado PDV/produtos/lançamentos — **sem alterar dados** |
+| **Método** | Cherry-pick (não merge teste inteiro): `7c84d57` · `1473620` · `b48d142` · `510f4d9` · `927dba0` · `88b5a60` |
+| **Conteúdo** | BI validade + conferir · perf Mongo BI · lista vendas rápida · PDV catálogo localStorage · CP filtros mais rápido |
+| **Fora** | Flags staging PG · snapshot · motor busca — **inalterados na loja** |
+| **Migrate** | `0042_vendaagro_criado_em_idx` — índice só leitura |
+
+### WIP — lentidão teste *(histórico — fix v3.53+)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | Validade BI não satura Mongo; vendas NFC-e 1×; catálogo PDV localStorage |
+| **Renan testar loja** | `/vendas/?preset=hoje` · fechar Chrome → PDV F1 |
+
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
