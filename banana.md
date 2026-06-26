@@ -872,9 +872,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.59 · **produção** v3.47
+**Versão app (`VERSION`):** **teste** v3.59 · **produção** v3.48
 
-### WIP — gráfico gastos planos = CP **24/06**
+### FECHADO — produção gráfico gastos planos = CP **v3.48** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Teste OK · *«suba para produção»* · cherry-pick isolado |
+| **Commit loja** | **`40d037a`** (cherry-pick `3c85b6f`) |
+| **Conteúdo** | Lista planos gráfico = CP; **só leitura** — PDV/produtos/lançamentos inalterados |
+| **Migrate** | **Nenhuma** |
+
+### WIP — gráfico gastos planos = CP **24/06** *(fechado loja v3.48)*
 
 | Item | Detalhe |
 | ---- | ------- |
