@@ -632,7 +632,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
 | **VERSION loja** | **v2.99** (merge deploy `1d82d30`; hook VERSION pós-banana) |
 | **Pacote** | Fases A–D3 · Compras D4 A+B+C · ledger · `agro_pg` (código; **env Render** abaixo) |
-| **Env Render produção** | Conferir/ajustar: `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger · **sem** `AGRO_STAGING_READONLY` |
+| **Env Render produção** | Ver tabela **«Render produção — env»** abaixo |
 | **Migrate loja** | Render roda migrate no deploy · migration `0041_titulo_financeiro_agro` (só tabela prep, telas Mongo) |
 | **Antes abrir** | `importar_catalogo_mongo_produto` se catálogo PG incompleto |
 | **Renan amanhã** | Ctrl+F5 · PDV · Gestão · Compras · Entrada NF passo 5 · 2–3 produtos (ex. GM9503) |
@@ -748,7 +748,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Quando** | **✅ 25/06 loja fechou** — Renan pediu deploy (aguardando senha no chat) |
 | **O quê** | Merge `teste`→`producao` — pacote validado + Compras D4 (Renan ✅) |
 | **Código** | `agro_pg` + PDV catálogo Postgres + gestão PG + ledger estoque + Entrada NF (empresas + wizard; financeiro **real** na loja, não dry-run) |
-| **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
+| **Env loja (conferir Render)** | Ver tabela **«Render produção — env»** abaixo |
 | **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
 | **Depois (Renan)** | Ctrl+F5 · PDV busca/preço · Compras saldo · Entrada NF passo 5 empresa · conferir 2–3 produtos anotados (ex. GM9503) |
 | **Fora do pacote (impacto loja)** | Motor busca **sem flags PG** ≈ legado · Lançamentos **telas Mongo** · BI |
