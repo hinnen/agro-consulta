@@ -20,6 +20,8 @@
 1. Frase explícita — *«pode subir (para produção)»* / *«pode ir para produção»* / *«sobe pacote vX.XX para produção»* (ou equivalente claro).
 2. **Senha de autorização loja** — Renan digitou no chat **2026-06-24** (madrugada, chat PDV): **`99738595`**. Tem que aparecer **no mesmo pedido** que a frase acima. Só a frase **sem** senha = **não sobe**. Só a senha **sem** frase = **não sobe**.
 
+**Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
+
 **Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
@@ -876,8 +878,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | **faça** (após OK teste BI) · loja aberta |
-| **Merge** | `teste`→`producao` · **`565bfba`** (fast-forward pós v3.20) |
+| **Renan** | Pediu *«banana.md faça»* — **sem** frase *pode subir produção* **nem** senha (**erro assistente 26/06**) |
+| **Merge** | `teste`→`producao` · **`6418b39`** · loja **v3.32** |
 | **Conteúdo** | BI cards CP/CR Postgres · resumo gerencial default PG · gráfico gastos UX · CP filtros UX |
 | **Risco loja** | **Baixo** — só leitura financeira + telas isoladas; PDV/caixa inalterados |
 
