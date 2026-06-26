@@ -1,4 +1,4 @@
-"""Lista CP (contas a pagar) no Postgres ``TituloFinanceiroAgro`` — espelho Mongo com dedup."""
+"""Lista CP/CR no Postgres ``TituloFinanceiroAgro`` — espelho Mongo com dedup."""
 from __future__ import annotations
 
 import logging
@@ -142,8 +142,9 @@ def _aplicar_texto_qs(qs: QuerySet, texto: str | None) -> QuerySet:
     return qs
 
 
-def contas_pagar_montar_qs(
+def titulos_financeiro_montar_qs(
     *,
+    despesa: bool,
     status: str = "abertos",
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
@@ -155,7 +156,7 @@ def contas_pagar_montar_qs(
     excluir_planos_nomes: list[str] | None = None,
     mongo_id: str | None = None,
 ) -> QuerySet:
-    qs = TituloFinanceiroAgro.objects.filter(despesa=True)
+    qs = TituloFinanceiroAgro.objects.filter(despesa=bool(despesa))
     mid = (mongo_id or "").strip()
     if mid:
         return qs.filter(mongo_id=mid)
@@ -175,6 +176,38 @@ def contas_pagar_montar_qs(
     qs = _aplicar_exclusao_planos(qs, excluir_planos_nomes)
     qs = _aplicar_texto_qs(qs, texto)
     return qs
+
+
+def contas_pagar_montar_qs(
+    *,
+    status: str = "abertos",
+    vencimento_de: date | None = None,
+    vencimento_ate: date | None = None,
+    competencia_de: date | None = None,
+    competencia_ate: date | None = None,
+    pagamento_de: date | None = None,
+    pagamento_ate: date | None = None,
+    texto: str | None = None,
+    excluir_planos_nomes: list[str] | None = None,
+    mongo_id: str | None = None,
+) -> QuerySet:
+    return titulos_financeiro_montar_qs(
+        despesa=True,
+        status=status,
+        vencimento_de=vencimento_de,
+        vencimento_ate=vencimento_ate,
+        competencia_de=competencia_de,
+        competencia_ate=competencia_ate,
+        pagamento_de=pagamento_de,
+        pagamento_ate=pagamento_ate,
+        texto=texto,
+        excluir_planos_nomes=excluir_planos_nomes,
+        mongo_id=mongo_id,
+    )
+
+
+def contas_receber_montar_qs(**kwargs) -> QuerySet:
+    return titulos_financeiro_montar_qs(despesa=False, **kwargs)
 
 
 def _sort_key_titulo(t: TituloFinanceiroAgro, ordenacao: str) -> tuple:
@@ -226,11 +259,12 @@ def _totais_de_titulos(titulos: list[TituloFinanceiroAgro]) -> dict[str, float]:
 
 
 def titulo_financeiro_agro_para_api(t: TituloFinanceiroAgro) -> dict[str, Any]:
-    """Formato compatível com ``lancamento_para_api`` (lista CP)."""
+    """Formato compatível com ``lancamento_para_api`` (lista CP/CR)."""
     quitado = _titulo_quitado_negocio(t)
     mov_r = round(float(t.valor_pago), 2)
     rest = round(float(t.valor_restante), 2)
     bruto = round(float(t.valor_bruto), 2)
+    despesa = bool(t.despesa)
 
     def _iso_d(d: date | None) -> str | None:
         if d is None:
@@ -249,7 +283,7 @@ def titulo_financeiro_agro_para_api(t: TituloFinanceiroAgro) -> dict[str, Any]:
     snap = t.dados_snapshot_json or {}
     return {
         "id": t.mongo_id,
-        "despesa": True,
+        "despesa": despesa,
         "descricao": t.descricao or "",
         "cliente": t.cliente or "",
         "cliente_id": t.cliente_id or "",
@@ -292,8 +326,9 @@ def titulo_financeiro_agro_para_api(t: TituloFinanceiroAgro) -> dict[str, Any]:
     }
 
 
-def contas_pagar_buscar_pagina_pg(
+def titulos_financeiro_buscar_pagina_pg(
     *,
+    despesa: bool,
     status: str = "abertos",
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
@@ -315,7 +350,8 @@ def contas_pagar_buscar_pagina_pg(
     page_size = min(cap, max(1, page_size))
     skip = (page - 1) * page_size
 
-    qs = contas_pagar_montar_qs(
+    qs = titulos_financeiro_montar_qs(
+        despesa=despesa,
         status=status,
         vencimento_de=vencimento_de,
         vencimento_ate=vencimento_ate,
@@ -329,7 +365,11 @@ def contas_pagar_buscar_pagina_pg(
     )
     rows = list(qs[: _CAP_LINHAS + 1])
     if len(rows) > _CAP_LINHAS:
-        logger.warning("contas_pagar_buscar_pagina_pg: truncado em %s linhas", _CAP_LINHAS)
+        logger.warning(
+            "titulos_financeiro_buscar_pagina_pg: truncado em %s linhas (despesa=%s)",
+            _CAP_LINHAS,
+            despesa,
+        )
         rows = rows[:_CAP_LINHAS]
 
     if mongo_id and rows:
@@ -346,8 +386,51 @@ def contas_pagar_buscar_pagina_pg(
     return linhas, total, totais
 
 
-def planos_distintos_cp_pg(
+def contas_pagar_buscar_pagina_pg(
     *,
+    status: str = "abertos",
+    vencimento_de: date | None = None,
+    vencimento_ate: date | None = None,
+    competencia_de: date | None = None,
+    competencia_ate: date | None = None,
+    pagamento_de: date | None = None,
+    pagamento_ate: date | None = None,
+    texto: str | None = None,
+    excluir_planos_nomes: list[str] | None = None,
+    mongo_id: str | None = None,
+    page: int = 1,
+    page_size: int = 50,
+    ordenacao: str = "vencimento_asc",
+    skip_totais: bool = False,
+    limite_max: int = 200,
+) -> tuple[list[dict], int, dict[str, float] | None]:
+    return titulos_financeiro_buscar_pagina_pg(
+        despesa=True,
+        status=status,
+        vencimento_de=vencimento_de,
+        vencimento_ate=vencimento_ate,
+        competencia_de=competencia_de,
+        competencia_ate=competencia_ate,
+        pagamento_de=pagamento_de,
+        pagamento_ate=pagamento_ate,
+        texto=texto,
+        excluir_planos_nomes=excluir_planos_nomes,
+        mongo_id=mongo_id,
+        page=page,
+        page_size=page_size,
+        ordenacao=ordenacao,
+        skip_totais=skip_totais,
+        limite_max=limite_max,
+    )
+
+
+def contas_receber_buscar_pagina_pg(**kwargs) -> tuple[list[dict], int, dict[str, float] | None]:
+    return titulos_financeiro_buscar_pagina_pg(despesa=False, **kwargs)
+
+
+def planos_distintos_pg(
+    *,
+    despesa: bool,
     status: str = "abertos",
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
@@ -358,7 +441,8 @@ def planos_distintos_cp_pg(
     texto: str | None = None,
     limit: int = 400,
 ) -> list[dict[str, str]]:
-    qs = contas_pagar_montar_qs(
+    qs = titulos_financeiro_montar_qs(
+        despesa=despesa,
         status=status,
         vencimento_de=vencimento_de,
         vencimento_ate=vencimento_ate,
@@ -375,6 +459,36 @@ def planos_distintos_cp_pg(
         nomes.add(n if n else "(sem plano)")
     lim = min(max(int(limit or 400), 1), 500)
     return [{"nome": x} for x in sorted(nomes, key=lambda s: s.lower())][:lim]
+
+
+def planos_distintos_cp_pg(
+    *,
+    status: str = "abertos",
+    vencimento_de: date | None = None,
+    vencimento_ate: date | None = None,
+    competencia_de: date | None = None,
+    competencia_ate: date | None = None,
+    pagamento_de: date | None = None,
+    pagamento_ate: date | None = None,
+    texto: str | None = None,
+    limit: int = 400,
+) -> list[dict[str, str]]:
+    return planos_distintos_pg(
+        despesa=True,
+        status=status,
+        vencimento_de=vencimento_de,
+        vencimento_ate=vencimento_ate,
+        competencia_de=competencia_de,
+        competencia_ate=competencia_ate,
+        pagamento_de=pagamento_de,
+        pagamento_ate=pagamento_ate,
+        texto=texto,
+        limit=limit,
+    )
+
+
+def planos_distintos_cr_pg(**kwargs) -> list[dict[str, str]]:
+    return planos_distintos_pg(despesa=False, **kwargs)
 
 
 def financeiro_pg_conferencia_abertos() -> dict[str, Any]:

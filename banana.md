@@ -577,7 +577,16 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
 
-**Bloqueio CP Postgres (em aberto):** **fechado 26/06** — loja operando CP no Postgres. CR/fiado fora do escopo.
+**Bloqueio CP Postgres (em aberto):** **fechado 26/06** — loja operando CP no Postgres.
+
+### WIP — Contas a receber Postgres **26/06**
+
+| Item | Status |
+| ---- | ------ |
+| Lista + filtros + planos CR | **✅ código teste** (mesmo PG dos 17,8 mil títulos) |
+| Receber / parcial / editar / excluir / lote | **✅ código teste** |
+| Fiado | **fora** — tela própria Postgres |
+| Deploy loja | após push **teste→producao** |
 
 
 ### Renan — intervenção (estritamente necessário)
@@ -589,7 +598,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
 | **4 Pós-import teste** | **✅ Renan 26/06** | Staging CP aberto: **Qtd 741** · **A pagar R$ 393.652,70** — **bate loja** · amostra expandida OK (ex. Renan Hinnen **R$ 163,00**) |
 | **4b Pagamento PG teste** | **✅ Renan 26/06** | Título manual **«Teste» R$ 1,00** · quitou no Postgres · sumiu de **Em aberto** · aparece em **Quitados** (saldo 0) · juros R$ 0,10 **não** lançou (conta «ADICIONAR CONTA» — regra esperada) |
-| **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
+| **5 Fiado / CR** | CR **✅ código 26/06** · fiado fora |
 
 **Loja hoje (26/06):** **Contas a pagar liberada** — lista + pagar no **Postgres** (conferido **741** / **393.652,70**). Caixa/PDV normal.
 
@@ -811,7 +820,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Conferência Renan** | **Em aberto** sem filtro data: **Qtd 741** · **A pagar R$ 393.652,70** — **= backup 25/06** |
 | **Gravação** | Pagar/parcial/editar/excluir/nova saída → **Postgres** (Mongo intacto espelho) |
 | **Opcional** | 1 pagamento real pequeno na loja quando quiser (conta real, não «ADICIONAR CONTA») |
-| **Fora escopo** | Contas a receber / fiado |
+| **Fora escopo** | Fiado (tela própria) |
+
+### FECHADO — CR Postgres código **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Dados** | CR já estava no import PG (mesmo snapshot CP) |
+| **Telas** | `/lancamentos/contas-receber/` lista + gravar no Postgres quando `financeiro_postgres` |
+| **Validar** | Renan: teste staging ou loja após deploy — conferir total aberto CR |
 
 ### DEPLOY PRODUÇÃO — CP Postgres **v3.03–v3.04** (26/06, Renan 99738595)
 

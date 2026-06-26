@@ -1,4 +1,4 @@
-"""Gravação CP (contas a pagar) em ``TituloFinanceiroAgro`` — desvinculação Mongo."""
+"""Gravação CP/CR em ``TituloFinanceiroAgro`` — desvinculação Mongo."""
 from __future__ import annotations
 
 import logging
@@ -39,17 +39,28 @@ logger = logging.getLogger(__name__)
 _TOL = Decimal("0.02")
 
 
-def financeiro_cp_grava_postgres(despesa: bool) -> bool:
+def financeiro_grava_postgres(despesa: bool) -> bool:
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
-    return bool(despesa) and agro_financeiro_usa_postgres()
+    return agro_financeiro_usa_postgres()
 
 
-def _get_titulo_cp(mongo_id: str) -> TituloFinanceiroAgro | None:
+def financeiro_cp_grava_postgres(despesa: bool) -> bool:
+    return financeiro_grava_postgres(despesa)
+
+
+def _get_titulo(mongo_id: str, *, despesa: bool | None = None) -> TituloFinanceiroAgro | None:
     mid = str(mongo_id or "").strip()
     if not mid:
         return None
-    return TituloFinanceiroAgro.objects.filter(mongo_id=mid, despesa=True).first()
+    qs = TituloFinanceiroAgro.objects.filter(mongo_id=mid)
+    if despesa is not None:
+        qs = qs.filter(despesa=bool(despesa))
+    return qs.first()
+
+
+def _get_titulo_cp(mongo_id: str) -> TituloFinanceiroAgro | None:
+    return _get_titulo(mongo_id, despesa=True)
 
 
 def _titulo_quitado(t: TituloFinanceiroAgro) -> bool:
@@ -111,7 +122,7 @@ def _criar_proximo_recorrente_pg(t: TituloFinanceiroAgro, *, usuario_label: str)
     obs = " | ".join(p for p in (linha_rec, obs_ant) if p)[:2000]
     novo = TituloFinanceiroAgro(
         mongo_id=new_id,
-        despesa=True,
+        despesa=bool(t.despesa),
         descricao=t.descricao,
         cliente=t.cliente,
         cliente_id=t.cliente_id,
@@ -153,6 +164,7 @@ def _criar_proximo_recorrente_pg(t: TituloFinanceiroAgro, *, usuario_label: str)
 def baixar_lancamentos_pg(
     ids: list[str],
     *,
+    despesa: bool,
     data_movimento: datetime,
     forma_nome: str,
     forma_id: str | None,
@@ -171,12 +183,13 @@ def baixar_lancamentos_pg(
     mod = ((usuario_label or "Agro")[:80] + " — baixa SisVale")[:200]
     now = timezone.now()
     dp = data_movimento.date() if hasattr(data_movimento, "date") else None
+    lbl_saldo = "Sem saldo a pagar" if despesa else "Sem saldo a receber"
 
     res_ok: list[str] = []
     res_err: list[dict] = []
 
     for sid in (ids or [])[:80]:
-        t = _get_titulo_cp(sid)
+        t = _get_titulo(sid, despesa=despesa)
         if t is None:
             res_err.append({"id": sid, "erro": "Lançamento não encontrado"})
             continue
@@ -186,7 +199,7 @@ def baixar_lancamentos_pg(
         rest = _dec2(t.valor_restante)
         bruto = _dec2(t.valor_bruto)
         if rest <= 0 or bruto <= 0:
-            res_err.append({"id": sid, "erro": "Sem saldo a pagar"})
+            res_err.append({"id": sid, "erro": lbl_saldo})
             continue
         t.forma_pagamento = forma_nome[:120]
         t.forma_pagamento_id = fid or ""
@@ -208,6 +221,7 @@ def baixar_lancamentos_pg(
 def baixar_lancamento_parcial_pg(
     lancamento_id: str,
     *,
+    despesa: bool,
     data_movimento: datetime,
     parcelas: list[dict[str, Any]],
     usuario_label: str,
@@ -217,7 +231,7 @@ def baixar_lancamento_parcial_pg(
         return {"ok": False, "id": None, "erro": "Informe de 1 a 24 parcelas (valor + forma + banco).", "quitado": False}
 
     lid = str(lancamento_id or "").strip()
-    t = _get_titulo_cp(lid)
+    t = _get_titulo(lid, despesa=despesa)
     if t is None:
         return {"ok": False, "id": None, "erro": "Lançamento não encontrado", "quitado": False}
     if _titulo_quitado(t):
@@ -293,7 +307,7 @@ def baixar_lancamento_parcial_pg(
 
 
 def excluir_lancamento_pg(lancamento_id: str, usuario_label: str) -> dict[str, Any]:
-    t = _get_titulo_cp(lancamento_id)
+    t = _get_titulo(lancamento_id)
     if t is None:
         return {"ok": False, "erro": "Lançamento não encontrado"}
     if not _titulo_pode_excluir(t):
@@ -311,7 +325,7 @@ def excluir_lancamento_pg(lancamento_id: str, usuario_label: str) -> dict[str, A
 
 
 def atualizar_lancamento_pg(lancamento_id: str, patch: dict[str, Any], usuario_label: str) -> dict[str, Any]:
-    t = _get_titulo_cp(lancamento_id)
+    t = _get_titulo(lancamento_id)
     if t is None:
         return {"ok": False, "erro": "Lançamento não encontrado"}
     if _titulo_quitado(t):
@@ -397,7 +411,7 @@ def registrar_titulo_juros_apos_baixa_contas_pagar_pg(
     valor_juros = _dec2(valor_juros)
     if valor_juros <= 0:
         return {"ok": False, "erro": "Valor de juros inválido."}
-    ref = _get_titulo_cp(mongo_id_titulo_referencia)
+    ref = _get_titulo(mongo_id_titulo_referencia, despesa=True)
     if ref is None:
         return {"ok": False, "erro": "Título de referência não encontrado."}
     fn = (forma_nome or "").strip()
@@ -476,9 +490,6 @@ def inserir_lancamentos_manual_lote_pg(
     recorrente_modo: str = "sempre",
     recorrente_parcelas: int = 1,
 ) -> dict[str, Any]:
-    if not despesa:
-        return {"ok": False, "ids": [], "erros": [{"erro": "Contas a receber ainda usa Mongo."}]}
-
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas:
         return {"ok": False, "ids": [], "erros": [{"erro": "Informe ao menos uma linha."}]}
@@ -584,6 +595,7 @@ def inserir_lancamentos_manual_lote_pg(
         n_copies = ln_n if (ln_rec and ln_mod == "normal") else 1
         ln_quit = _fin_ln_bool(ln, "quitado", marcar_quitado_pagar or marcar_quitado_receber)
         ln_quit_pagar = ln_quit and ln_despesa
+        ln_quit_receber = ln_quit and not ln_despesa
         if ln_quit_pagar and not _fin_banco_id_valido_quitado(lb_id):
             erros.append(
                 {
@@ -615,18 +627,20 @@ def inserir_lancamentos_manual_lote_pg(
             obs_quitado = ""
             if ln_quit_pagar:
                 obs_quitado = "Título lançado como quitado via lote manual"
+            elif ln_quit_receber:
+                obs_quitado = "Título lançado como recebido via lote manual"
             observacoes = " | ".join(
                 p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
             )[:2000]
             mongo_id = str(ObjectId())
-            quitado = bool(ln_quit_pagar)
+            quitado = bool(ln_quit_pagar or ln_quit_receber)
             pago = valor_dec if quitado else Decimal("0")
             rest = Decimal("0") if quitado else valor_dec
-            bn_norm = normalizar_rotulo_banco_erp(lb_id, ln_banco)[:120]
+            bn_norm = normalizar_rotulo_banco_erp(lb_id, ln_banco)[:120] if ln_banco else ""
 
             titulo = TituloFinanceiroAgro(
                 mongo_id=mongo_id,
-                despesa=True,
+                despesa=bool(ln_despesa),
                 descricao=(desc_base + desc_suf)[:500],
                 cliente=ln_pessoa[:300],
                 cliente_id=lp_id,
@@ -699,7 +713,7 @@ def inserir_lancamentos_manual_lote_dispatch(
         simular_lancamentos_manual_lote_staging,
     )
 
-    if financeiro_cp_grava_postgres(despesa):
+    if financeiro_grava_postgres(despesa):
         return inserir_lancamentos_manual_lote_pg(despesa=despesa, **kwargs)
     if agro_mongo_escrita_bloqueada():
         return simular_lancamentos_manual_lote_staging(linhas=kwargs.get("linhas", []))

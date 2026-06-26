@@ -9876,10 +9876,11 @@ def _lancamentos_excluir_planos_from_request(request) -> list[str]:
     return out
 
 
-def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
-    """Lista CP via ``TituloFinanceiroAgro`` (flag ``AGRO_FONTE_FINANCEIRO=agro_pg``)."""
-    from produtos.lancamentos_financeiro_pg_util import contas_pagar_buscar_pagina_pg
+def _api_lancamentos_postgres_lista(request, *, despesa: bool) -> JsonResponse:
+    """Lista CP/CR via ``TituloFinanceiroAgro``."""
+    from produtos.lancamentos_financeiro_pg_util import titulos_financeiro_buscar_pagina_pg
 
+    tipo = "pagar" if despesa else "receber"
     status = (request.GET.get("status") or "abertos").strip().lower()
     if status not in ("abertos", "quitados", "todos"):
         status = "abertos"
@@ -9917,7 +9918,8 @@ def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
     if mongo_id_deep:
         texto = None
 
-    linhas, total, totais = contas_pagar_buscar_pagina_pg(
+    linhas, total, totais = titulos_financeiro_buscar_pagina_pg(
+        despesa=despesa,
         status=status,
         vencimento_de=v_de,
         vencimento_ate=v_ate,
@@ -9948,10 +9950,11 @@ def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
                     "saldo_aberto": 0.0,
                     "previsto": 0.0,
                     "pago": 0.0,
-                    "a_pagar": 0.0,
+                    "a_pagar": 0.0 if despesa else 0.0,
+                    "a_receber": 0.0 if not despesa else 0.0,
                 },
                 "status_filtro": status,
-                "tipo": "pagar",
+                "tipo": tipo,
                 "planos_excluidos_aplicados": len(excl_planos),
                 "filtros": filtros_echo,
                 "erro_deep_link": "Título não encontrado no Postgres.",
@@ -9965,7 +9968,7 @@ def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
         "page": page,
         "page_size": page_size,
         "status_filtro": status,
-        "tipo": "pagar",
+        "tipo": tipo,
         "planos_excluidos_aplicados": len(excl_planos),
         "filtros": filtros_echo,
         "fonte": "postgres",
@@ -9980,10 +9983,14 @@ def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
             "saldo_aberto": totais["saldo_aberto"],
             "previsto": totais["bruto"],
             "pago": totais["movimentado"],
-            "a_pagar": totais["saldo_aberto"],
-            "a_receber": 0.0,
+            "a_pagar": totais["saldo_aberto"] if despesa else 0.0,
+            "a_receber": totais["saldo_aberto"] if not despesa else 0.0,
         }
     return JsonResponse(payload)
+
+
+def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
+    return _api_lancamentos_postgres_lista(request, despesa=True)
 
 
 def _api_lancamentos_lista_core(request, despesa: bool):
@@ -10003,8 +10010,8 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         request.GET.get("mongo_id") or request.GET.get("lancamento_id") or ""
     ).strip()
 
-    if agro_financeiro_usa_postgres() and despesa:
-        return _api_lancamentos_cp_postgres_lista(request)
+    if agro_financeiro_usa_postgres():
+        return _api_lancamentos_postgres_lista(request, despesa=despesa)
 
     _, db = obter_conexao_mongo()
     if db is None:
@@ -10549,10 +10556,11 @@ def api_lancamentos_planos_distintos(request):
         lim = min(int(request.GET.get("limit") or 400), 500)
     except ValueError:
         lim = 400
-    if agro_financeiro_usa_postgres() and despesa:
-        from produtos.lancamentos_financeiro_pg_util import planos_distintos_cp_pg
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
 
-        planos = planos_distintos_cp_pg(
+        planos = planos_distintos_pg(
+            despesa=despesa,
             status=status,
             vencimento_de=v_de,
             vencimento_ate=v_ate,
@@ -13958,13 +13966,13 @@ def api_lancamentos_baixa(request):
 
     from produtos.lancamentos_financeiro_pg_write_util import (
         baixar_lancamentos_pg,
-        financeiro_cp_grava_postgres,
+        financeiro_grava_postgres,
         registrar_titulo_juros_apos_baixa_contas_pagar_pg,
     )
 
-    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    use_pg = financeiro_grava_postgres(despesa)
     db = None
-    if not use_pg_cp:
+    if not use_pg:
         _, db = obter_conexao_mongo()
         if db is None:
             return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
@@ -13982,6 +13990,7 @@ def api_lancamentos_baixa(request):
     else:
         resultado = baixar_lancamentos_pg(
             [str(i) for i in ids],
+            despesa=despesa,
             data_movimento=data_movimento,
             forma_nome=forma_nome,
             forma_id=str(forma_id).strip() if forma_id else None,
@@ -13996,7 +14005,7 @@ def api_lancamentos_baixa(request):
         or ""
     ).strip()
     if (
-        not use_pg_cp
+        not use_pg
         and agro_financeiro_erp_sync_habilitado()
         and path_baixa
         and resultado.get("atualizados")
@@ -14023,7 +14032,7 @@ def api_lancamentos_baixa(request):
     aviso_juros = None
     juros_id = None
     if despesa and valor_juros_dec and valor_juros_dec > 0 and atual:
-        if use_pg_cp:
+        if use_pg:
             if db is None:
                 _, db = obter_conexao_mongo()
             rj = registrar_titulo_juros_apos_baixa_contas_pagar_pg(
@@ -14110,14 +14119,15 @@ def api_lancamentos_baixa_parcial(request):
 
     from produtos.lancamentos_financeiro_pg_write_util import (
         baixar_lancamento_parcial_pg,
-        financeiro_cp_grava_postgres,
+        financeiro_grava_postgres,
     )
 
-    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    use_pg = financeiro_grava_postgres(despesa)
     db = None
-    if use_pg_cp:
+    if use_pg:
         resultado = baixar_lancamento_parcial_pg(
             lid,
+            despesa=despesa,
             data_movimento=data_movimento,
             parcelas=parcelas,
             usuario_label=usuario,
@@ -14154,7 +14164,7 @@ def api_lancamentos_baixa_parcial(request):
     ).strip()
     # Sincroniza também baixa parcial (antes só quando quitado — o ERP não recebia parcelas).
     if (
-        not use_pg_cp
+        not use_pg
         and agro_financeiro_erp_sync_habilitado()
         and path_baixa
         and resultado.get("id")
@@ -14173,7 +14183,7 @@ def api_lancamentos_baixa_parcial(request):
             out_j["aviso_api"] = str(exc)[:800]
     # Resposta do ERP/sync pode regravar o DtoLancamento com DataPagamento = data mínima (.NET).
     if (
-        not use_pg_cp
+        not use_pg
         and resultado.get("ok")
         and resultado.get("id")
         and not resultado.get("quitado")
@@ -14215,7 +14225,7 @@ def api_lancamentos_alterar(request):
         from produtos.lancamentos_financeiro_pg_write_util import atualizar_lancamento_pg
         from produtos.models import TituloFinanceiroAgro
 
-        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid).exists():
             r = atualizar_lancamento_pg(lid, patch, usuario)
             if not r.get("ok"):
                 return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao atualizar."}, status=400)
@@ -14252,7 +14262,7 @@ def api_lancamentos_excluir(request):
         from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_pg
         from produtos.models import TituloFinanceiroAgro
 
-        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid).exists():
             r = excluir_lancamento_pg(lid, usuario)
             if not r.get("ok"):
                 return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao excluir."}, status=400)
