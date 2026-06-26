@@ -4556,7 +4556,7 @@ def grafico_gastos_serie_mongo(
     Alinhado à lista de Lançamentos: dedup ``_lancamentos_mongo_stages_dedup_por_titulo_erp``.
     Filtro de planos: **todos marcados** = sem filtro (igual CP); desmarcados = ``excluir_plano``.
     """
-    vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "datasets": []}
+    vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "bucket_keys": [], "datasets": []}
     if db is None:
         return vazio
     if data_de > data_ate:
@@ -4703,7 +4703,7 @@ def grafico_gastos_serie_mongo(
             }
         ]
 
-    return {"ok": True, "erro": None, "labels": labels, "datasets": datasets}
+    return {"ok": True, "erro": None, "labels": labels, "bucket_keys": bucket_keys, "datasets": datasets}
 
 
 # Campos usuais do DtoLancamento (WL / Venda ERP) enviados ao POST de integração — evita payload gigante.

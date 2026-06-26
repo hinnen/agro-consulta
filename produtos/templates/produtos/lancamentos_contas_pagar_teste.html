@@ -380,6 +380,9 @@
   .sv-edl-details summary { cursor: pointer; font-weight: 700; color: var(--cor-texto-secundario); font-size: 0.9rem; }
   .sv-edl-details .sv-form-group { margin-top: 10px; }
   .sv-edl-details input[type="text"] { min-height: 42px; font-size: 0.95rem; }
+  body.sv-embed-grafico header { display: none !important; }
+  body.sv-embed-grafico .sv-prefiltros { display: none !important; }
+  body.sv-embed-grafico .sv-container { padding-top: 4px; }
 </style>
 
 <div class="sv-container">
@@ -749,6 +752,8 @@
   let planosCarregados = false;
   /** Planos desmarcados só nesta sessão — não persiste ao fechar o sistema. */
   let planosExcluidosMem = new Set();
+  /** Datas vindas do gráfico (competência / pagamento / vencimento). */
+  let filtroRemotoCp = null;
 
   function getExcludedSet() {
     return planosExcluidosMem;
@@ -766,6 +771,7 @@
   }
 
   function aplicarPrefiltro(tipo, dispararCarga) {
+    filtroRemotoCp = null;
     const hoje = hojeYmd();
     let de = '';
     let ate = '';
@@ -1505,10 +1511,24 @@
     p.set('ordenacao', 'vencimento_asc');
     const q = (document.getElementById('sv-busca').value || '').trim();
     if (q) p.set('q', q);
-    const de = document.getElementById('sv-venc-de').value;
-    const ate = document.getElementById('sv-venc-ate').value;
-    if (de) p.set('venc_de', de);
-    if (ate) p.set('venc_ate', ate);
+    if (filtroRemotoCp) {
+      const r = filtroRemotoCp;
+      if (r.ref === 'competencia') {
+        if (r.de) p.set('comp_de', r.de);
+        if (r.ate) p.set('comp_ate', r.ate);
+      } else if (r.ref === 'pagamento') {
+        if (r.de) p.set('pag_de', r.de);
+        if (r.ate) p.set('pag_ate', r.ate);
+      } else {
+        if (r.de) p.set('venc_de', r.de);
+        if (r.ate) p.set('venc_ate', r.ate);
+      }
+    } else {
+      const de = document.getElementById('sv-venc-de').value;
+      const ate = document.getElementById('sv-venc-ate').value;
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+    }
     return p;
   }
 
@@ -1682,20 +1702,47 @@
 
   function aplicarFiltrosDaUrl() {
     const params = new URLSearchParams(window.location.search);
+    filtroRemotoCp = null;
+    if (params.get('embed') === 'grafico') {
+      document.body.classList.add('sv-embed-grafico');
+    }
     const st = (params.get('status') || '').trim().toLowerCase();
     if (st === 'abertos' || st === 'quitados' || st === 'todos') {
       document.getElementById('sv-status').value = st;
     }
     const q = (params.get('q') || '').trim();
     if (q) document.getElementById('sv-busca').value = q;
+
+    const exc = params.getAll('excluir_plano');
+    if (exc.length) {
+      saveExcludedSet(new Set(exc.map((n) => (n === '(sem plano)' ? SEM_PLANO_KEY : n))));
+    }
+
     const pref = (params.get('pref') || '').trim();
     if (pref) {
       aplicarPrefiltro(pref, false);
+      if (params.get('mongo_id')) document.getElementById('sv-status').value = 'todos';
+      return;
+    }
+
+    const ref = (params.get('ref') || '').trim().toLowerCase();
+    const compDe = (params.get('comp_de') || '').slice(0, 10);
+    const compAte = (params.get('comp_ate') || '').slice(0, 10);
+    const pagDe = (params.get('pag_de') || '').slice(0, 10);
+    const pagAte = (params.get('pag_ate') || '').slice(0, 10);
+    const vencDe = (params.get('venc_de') || params.get('data_inicial') || '').slice(0, 10);
+    const vencAte = (params.get('venc_ate') || params.get('data_final') || '').slice(0, 10);
+
+    if (ref === 'competencia' || compDe || compAte) {
+      filtroRemotoCp = { ref: 'competencia', de: compDe, ate: compAte };
+    } else if (ref === 'pagamento' || pagDe || pagAte) {
+      filtroRemotoCp = { ref: 'pagamento', de: pagDe, ate: pagAte };
     } else {
-      const urlVencDe = params.get('venc_de') || params.get('data_inicial');
-      const urlVencAte = params.get('venc_ate') || params.get('data_final');
-      if (urlVencDe) document.getElementById('sv-venc-de').value = urlVencDe.slice(0, 10);
-      if (urlVencAte) document.getElementById('sv-venc-ate').value = urlVencAte.slice(0, 10);
+      if (vencDe) document.getElementById('sv-venc-de').value = vencDe;
+      if (vencAte) document.getElementById('sv-venc-ate').value = vencAte;
+      if (vencDe || vencAte || params.get('embed') === 'grafico') {
+        filtroRemotoCp = { ref: 'vencimento', de: vencDe, ate: vencAte };
+      }
     }
     if (params.get('mongo_id')) document.getElementById('sv-status').value = 'todos';
   }
@@ -1706,7 +1753,8 @@
       p.get('venc_de') || p.get('venc_ate') || p.get('data_inicial') || p.get('data_final')
       || p.get('status') || p.get('q') || p.get('pref')
       || p.get('comp_de') || p.get('comp_ate') || p.get('pag_de') || p.get('pag_ate')
-      || p.get('mongo_id')
+      || p.get('mongo_id') || p.get('embed') === 'grafico' || p.get('ref')
+      || p.getAll('excluir_plano').length
     );
   }
 
@@ -2328,7 +2376,10 @@
     btn.addEventListener('click', () => aplicarPrefiltro(btn.dataset.pref || ''));
   });
   ['sv-venc-de', 'sv-venc-ate'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('change', () => marcarPrefiltro(''));
+    document.getElementById(id)?.addEventListener('change', () => {
+      filtroRemotoCp = null;
+      marcarPrefiltro('');
+    });
   });
   document.getElementById('sv-busca').addEventListener('input', () => {
     clearTimeout(buscaTimer);

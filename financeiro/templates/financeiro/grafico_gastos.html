@@ -323,6 +323,29 @@
   .gg-btn-filtros[aria-expanded="true"] {
     border-color: var(--gg-emerald); background: var(--gg-emerald-soft); color: var(--gg-emerald-dark);
   }
+  .gg-cp-popup {
+    position: fixed; inset: 0; z-index: 120; display: flex;
+    align-items: center; justify-content: center; padding: 0.75rem;
+  }
+  .gg-cp-popup[hidden] { display: none !important; }
+  .gg-cp-popup-backdrop {
+    position: absolute; inset: 0; background: rgba(15, 23, 42, 0.58); backdrop-filter: blur(2px);
+  }
+  .gg-cp-popup-panel {
+    position: relative; z-index: 1; display: flex; flex-direction: column;
+    width: min(80vw, 96rem); height: min(80vh, calc(100dvh - 1.5rem));
+    background: #fff; border-radius: var(--gg-radius); overflow: hidden;
+    border: 2px solid var(--gg-border); box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  }
+  .gg-cp-popup-head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
+    padding: 0.45rem 0.65rem; border-bottom: 2px solid #f1f5f9;
+    background: linear-gradient(90deg, #ecfdf5, #fff); shrink: 0;
+  }
+  .gg-cp-popup-head strong { font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); flex: 1; min-width: 0; }
+  .gg-cp-popup-head .gg-btn { min-height: 2.1rem; }
+  .gg-cp-popup-iframe { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; background: #f8fafc; }
+  body.gg-cp-popup-open { overflow: hidden; }
 </style>
 {% endblock %}
 
@@ -506,11 +529,24 @@
   </div>
 </div>
 
+<div id="gg-cp-popup" class="gg-cp-popup" hidden aria-hidden="true">
+  <div class="gg-cp-popup-backdrop" id="gg-cp-popup-backdrop" aria-hidden="true"></div>
+  <div class="gg-cp-popup-panel" role="dialog" aria-modal="true" aria-labelledby="gg-cp-popup-titulo">
+    <div class="gg-cp-popup-head">
+      <strong id="gg-cp-popup-titulo">Contas a pagar</strong>
+      <a href="#" id="gg-cp-popup-nova-aba" class="gg-btn gg-btn-secondary gg-btn-sm" target="_blank" rel="noopener">Nova aba</a>
+      <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="gg-cp-popup-fechar">Fechar</button>
+    </div>
+    <iframe id="gg-cp-popup-iframe" class="gg-cp-popup-iframe" title="Contas a pagar — detalhe do período"></iframe>
+  </div>
+</div>
+
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const API_URL = "{% url 'api_dados_grafico_gastos' %}";
+  const CP_URL = "{% url 'lancamentos_contas_pagar' %}";
   const API_ATALHOS = "{% url 'api_grafico_gastos_atalhos' %}";
   const API_ATALHO_SLOT = "{% url 'api_grafico_gastos_atalho_salvar' slot=0 %}".replace('/0/', '/');
   const LS_AUTO_RETRAIR = 'grafico_gastos_auto_retrair_v1';
@@ -535,6 +571,8 @@ document.addEventListener('DOMContentLoaded', function () {
   let debounceTimer = null;
   let periodoAtivo = 'p3m';
   let atalhosCache = [];
+  let chartSerieMeta = { bucket_keys: [], labels: [] };
+  let cpPopupAberto = false;
 
   function csrfToken() {
     return (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
@@ -669,6 +707,123 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function isoDate(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function isoWeekStart(y, w) {
+    const jan4 = new Date(y, 0, 4);
+    const day = jan4.getDay() || 7;
+    const mondayWeek1 = new Date(jan4);
+    mondayWeek1.setDate(jan4.getDate() - day + 1);
+    const start = new Date(mondayWeek1);
+    start.setDate(start.getDate() + (w - 1) * 7);
+    return start;
+  }
+
+  function bucketParaIntervalo(bucketKey, agrupamento) {
+    if (!bucketKey) return null;
+    const agr = (agrupamento || 'mes').toLowerCase();
+    if (agr === 'dia') {
+      return { de: bucketKey, ate: bucketKey };
+    }
+    if (agr === 'ano') {
+      const y = parseInt(bucketKey, 10);
+      if (!y) return null;
+      return { de: y + '-01-01', ate: y + '-12-31' };
+    }
+    if (agr === 'semana') {
+      const m = String(bucketKey).match(/^(\d{4})-W(\d{2})$/);
+      if (!m) return null;
+      const ini = isoWeekStart(parseInt(m[1], 10), parseInt(m[2], 10));
+      const fim = new Date(ini);
+      fim.setDate(fim.getDate() + 6);
+      return { de: isoDate(ini), ate: isoDate(fim) };
+    }
+    const p = String(bucketKey).split('-');
+    if (p.length < 2) return null;
+    const y = parseInt(p[0], 10);
+    const mo = parseInt(p[1], 10);
+    if (!y || !mo) return null;
+    const ini = new Date(y, mo - 1, 1);
+    const fim = new Date(y, mo, 0);
+    return { de: isoDate(ini), ate: isoDate(fim) };
+  }
+
+  function cpStatusFromGrafico(por, valor) {
+    const v = (valor || 'saldo').toLowerCase();
+    const p = (por || 'vencimento').toLowerCase();
+    if (v === 'saldo') return 'abertos';
+    if (v === 'pago' && p === 'pagamento') return 'quitados';
+    return 'todos';
+  }
+
+  function montarUrlCpPonto(index) {
+    const keys = chartSerieMeta.bucket_keys || [];
+    const labels = chartSerieMeta.labels || [];
+    const key = keys[index];
+    if (!key) return null;
+    const agr = document.getElementById('filtro-agrupamento').value;
+    const por = document.getElementById('filtro-por').value;
+    const valor = document.getElementById('filtro-valor').value;
+    const intervalo = bucketParaIntervalo(key, agr);
+    if (!intervalo) return null;
+
+    const p = new URLSearchParams();
+    p.set('embed', 'grafico');
+    p.set('ref', por);
+    p.set('status', cpStatusFromGrafico(por, valor));
+    if (por === 'competencia') {
+      if (intervalo.de) p.set('comp_de', intervalo.de);
+      if (intervalo.ate) p.set('comp_ate', intervalo.ate);
+    } else if (por === 'pagamento') {
+      if (intervalo.de) p.set('pag_de', intervalo.de);
+      if (intervalo.ate) p.set('pag_ate', intervalo.ate);
+    } else {
+      if (intervalo.de) p.set('venc_de', intervalo.de);
+      if (intervalo.ate) p.set('venc_ate', intervalo.ate);
+    }
+
+    const pp = planosPayload();
+    if (!pp.todos_planos && pp.planos_excluir.length) {
+      pp.planos_excluir.forEach(function (nome) {
+        if (nome) p.append('excluir_plano', nome);
+      });
+    }
+
+    return {
+      url: CP_URL + '?' + p.toString(),
+      titulo: 'Contas a pagar · ' + (labels[index] || key)
+    };
+  }
+
+  function abrirCpPopup(index) {
+    const info = montarUrlCpPonto(index);
+    if (!info) return;
+    const popup = document.getElementById('gg-cp-popup');
+    const iframe = document.getElementById('gg-cp-popup-iframe');
+    const titulo = document.getElementById('gg-cp-popup-titulo');
+    const novaAba = document.getElementById('gg-cp-popup-nova-aba');
+    if (!popup || !iframe) return;
+    titulo.textContent = info.titulo;
+    if (novaAba) {
+      novaAba.href = info.url;
+    }
+    iframe.src = info.url;
+    popup.hidden = false;
+    popup.setAttribute('aria-hidden', 'false');
+    cpPopupAberto = true;
+    document.body.classList.add('gg-cp-popup-open');
+    document.getElementById('gg-cp-popup-fechar')?.focus();
+  }
+
+  function fecharCpPopup() {
+    const popup = document.getElementById('gg-cp-popup');
+    const iframe = document.getElementById('gg-cp-popup-iframe');
+    if (!popup) return;
+    popup.hidden = true;
+    popup.setAttribute('aria-hidden', 'true');
+    cpPopupAberto = false;
+    document.body.classList.remove('gg-cp-popup-open');
+    if (iframe) iframe.src = 'about:blank';
   }
 
   function aplicarPeriodoRapido(codigo) {
@@ -821,7 +976,16 @@ document.addEventListener('DOMContentLoaded', function () {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
+        interaction: { mode: 'nearest', intersect: true },
+        onHover: function (evt, elements) {
+          if (evt.native && evt.native.target) {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          }
+        },
+        onClick: function (_evt, elements) {
+          if (!elements || !elements.length) return;
+          abrirCpPopup(elements[0].index);
+        },
         layout: { padding: { top: 28, right: 8, left: 4, bottom: 2 } },
         plugins: {
           legend: {
@@ -945,6 +1109,10 @@ document.addEventListener('DOMContentLoaded', function () {
           setStatus('', false, false);
         }
         datalabelsOn = ((data.labels || []).length <= 48);
+        chartSerieMeta = {
+          bucket_keys: data.bucket_keys || [],
+          labels: data.labels || []
+        };
         chartGastos.data.labels = data.labels || [];
         chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
           return Object.assign({}, ds, {
@@ -1006,8 +1174,15 @@ document.addEventListener('DOMContentLoaded', function () {
     backdropEl.addEventListener('click', retrairPainel);
   }
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && cpPopupAberto) {
+      e.preventDefault();
+      fecharCpPopup();
+      return;
+    }
     if (e.key === 'Escape' && painelAberto()) retrairPainel();
   });
+  document.getElementById('gg-cp-popup-fechar')?.addEventListener('click', fecharCpPopup);
+  document.getElementById('gg-cp-popup-backdrop')?.addEventListener('click', fecharCpPopup);
   document.getElementById('btn-recolher-filtros').addEventListener('click', retrairPainel);
   document.getElementById('btn-abrir-filtros').addEventListener('click', function () { abrirPainelPane('filtros'); });
   document.getElementById('btn-abrir-planos').addEventListener('click', function () { abrirPainelPane('planos'); });

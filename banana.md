@@ -923,7 +923,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
 | 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
 | 5 | **BI / resumo gerencial → PG** | **✅ teste v3.26** · produção pendente | cards home BI + default resumo PG |
-| 6 | **Transferências/Validade** | **próximo** | sprint desvinculo |
+| 7 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
+| 8 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 
 **Prioridade Renan (setas vermelhas):** Gestão · NF rascunho · BI/resumo · Transferências/Validade · fornecedor/planos/formas.
 
@@ -1003,6 +1004,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado · **fix v3.26:** HTML planos (lista sumia) + grid filtros 2 col + gráfico preenche tela |
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
+| **Drill-down CP** | Clique na **bolinha** do gráfico → popup **80%** com CP filtrada (período do bucket + referência/valor + planos excluídos) · v3.27 |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **Pendente** — só teste até Renan pedir produção |
@@ -2333,7 +2335,8 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] Catálogo Postgres **teste** — Renan OK 2026-06-22
 - [x] Catálogo Postgres **produção** — v1.53
 - [x] PDV catálogo + Gestão + ledger + Compras D4 — **teste** (deploy loja ~20h)
-- [ ] BI / resumo gerencial — Mongo em partes
+- [x] BI home financeiro → PG (cards CP/CR teste v3.23+)
+- [ ] BI / resumo gerencial — gráfico gastos home ainda Mongo
 - [ ] Transferências, Validade, fornecedor NF
 
 **Outras:**
