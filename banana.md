@@ -438,7 +438,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Status                 | Tela / módulo                                                     | Nota                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Feito (Agro PG)**    | Clientes PDV, **Vendas**, **NFC-e**, **Caixa**, **RH**, **Fiado** (`/fiado/`, `FiadoTituloAgro`…) | **Fiado = Postgres nativo** — não usa `DtoLancamento`. Sync ERP opcional onde existir |
-| **Teste ✅ / loja ❌** | Cadastro, PDV catálogo, Gestão lista                              | Fases A–C staging · **produção** ainda Mongo+overlay                                                                                            |
+| **Teste ✅ / loja parcial** | Cadastro, PDV catálogo (`agro_pg`), Compras D4, ledger | **Loja ✅** desde merge 25/06 · **Gestão lista** ainda Mongo (sem `SOMENTE_POSTGRES`) |
 | **Teste ✅**           | Compras D4 **A+B+C**, Entrada NF wizard, ledger saldo             | v2.79–v2.87 · D3 financeiro **dry-run** staging                                                                                                 |
 | **Preparado / dados Mongo** | **Lançamentos** CP/CR, DRE, fluxo, Nova saída, lote manual   | **Muito feito** (layout, PIN, perf, backup, checkpoint, corte API v1.14) — **fonte ainda** `DtoLancamento` Mongo · falta `AGRO_FONTE_FINANCEIRO=agro_pg` |
 | **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no estoque Agro; flag `agro_pg` financeiro **não** nas views de Lançamentos                                                   |
@@ -609,10 +609,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.96`  
+**Versão:** `1.0.97`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — Renan: motor busca **pausado**; sprint financeiro **não urgente loja**  
-**Versão app (`VERSION`):** **teste** v3.09 · **produção** v3.01 (`b016b4a`)
+**Atualizado por:** assistente — **auditoria produção** pós-validação Renan  
+**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.01 · HEAD loja **`087c13f`**
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
@@ -697,7 +697,38 @@ Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_le
 
 **Resumo:** sprint financeiro = **melhoria de arquitetura**, não **pré-requisito** da operação de amanhã.
 
-### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
+### AUDITORIA PRODUÇÃO — pontas soltas (25/06, pós-validação Renan)
+
+**Diff código `origin/producao` vs `origin/teste`:** só **3 arquivos** — `VERSION` · `banana.md` · `agro_fonte_config.py`. **Operação = mesmo código** (merge + hotfix `b016b4a`).
+
+| Área | Loja hoje | Ponta solta? | Ação |
+| ---- | --------- | ------------ | ---- |
+| **Env Render** | `agro_pg` + `ledger` · sem staging flags | ✅ OK | **Não** ligar `SOMENTE_POSTGRES` · `STAGING_READONLY` · `AGRO_FONTE_FINANCEIRO=agro_pg` |
+| **Display Scale** | Off (`49d34cf` / `b016b4a`) | ✅ OK | Quem confirmou modal antes: irrelevante (flag off) |
+| **PDV + catálogo** | Merge Postgres (`agro_pg`) | ✅ validado | — |
+| **Compras D4** | Métricas Postgres (flag catálogo) | ✅ validado | — |
+| **Gestão lista** | Ainda **Mongo+overlay** (loja **sem** `SOMENTE_POSTGRES`) | ⚠️ conhecido | Lentidão **pós Entrada NF** — investigação aberta (§4.9); não bloqueia amanhã |
+| **Lançamentos CP/CR** | **Mongo** `DtoLancamento` | ✅ OK operação | Migração PG = sprint futuro |
+| **Entrada NF passo 7** | Grava Mongo | ✅ validado | Fix «título duplicado» só no **teste** (baixo risco; workaround F5) |
+| **Migration `0041`** | Tabela prep `TituloFinanceiroAgro` vazia | ✅ inofensiva | Telas **não** usam ainda |
+| **Motor busca GM** | Legado + v2 | ⏸ pausado | Cosmético (`gm0050`, ordem «milho») |
+| **`agro_fonte_config`** | Loja: gate checkpoint ERP sync (import morto → `except`) | 🟡 baixo | Teste simplificou (#7 diff); **sem efeito** se env sync off |
+| **Banana / VERSION** | Loja atrás só em docs + 1 util | ✅ | Normal — deploy loja = cherry-pick/hotfix, não banana inteiro |
+
+**Conferência rápida Renan (opcional):** `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false` · `financeiro_postgres: false` · `pdv_catalogo_somente_postgres: false`
+
+**Revert:** leve `0c10e9a` (v2.99 + bugs Display Scale/cliente) · total tag `f87955d`.
+
+### Só no teste — diff real hoje (2026-06-25)
+
+| # | O quê | Risco se subir na loja |
+| - | ----- | ---------------------- |
+| 1 | ~~Display Scale~~ | **✅ já na loja OFF** — hotfix |
+| 2 | `agro_fonte_config` — ERP sync sem gate checkpoint | Baixo — alinhar quando quiser |
+| 3 | `banana.md` + `VERSION` bump | N/A |
+
+**Lista antiga (#2–#9 CP perf, Entrada NF duplicado, BI, …)** — **já entrou no merge `1d82d30`** na loja, exceto itens acima. **Não** usar tabela de 2026-06-23 como pendência.
+
 
 | Item | Detalhe |
 | ---- | ------- |
