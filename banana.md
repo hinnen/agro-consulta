@@ -611,7 +611,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão:** `1.0.92`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — **deploy produção OK** (Renan + senha)  
+**Atualizado por:** assistente — **deploy produção com ressalva** (Display Scale não pedido)  
 **Versão app (`VERSION`):** **teste** v2.99 · **produção** v2.99
 
 ### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
@@ -624,26 +624,45 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Reverter código** | `git checkout producao` → `git reset --hard f87955d` → push produção (**só emergência**, avisar Renan) |
 | **Render** | Redeploy manual do commit/tag acima no painel se precisar |
 
-### DEPLOY PRODUÇÃO — **OK** (25/06 noite, Renan + senha)
+### DEPLOY PRODUÇÃO — **OK com ressalva** (25/06 noite, Renan + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Merge** | `teste` → `producao` · commit `1d82d30` |
 | **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
-| **VERSION loja** | **v2.99** (merge deploy `1d82d30`; hook VERSION pós-banana) |
-| **Pacote** | Fases A–D3 · Compras D4 A+B+C · ledger · `agro_pg` (código; **env Render** abaixo) |
-| **Env Render produção** | Ver tabela **«Render produção — env»** abaixo |
-| **Migrate loja** | Render roda migrate no deploy · migration `0041_titulo_financeiro_agro` (só tabela prep, telas Mongo) |
-| **Antes abrir** | `importar_catalogo_mongo_produto` se catálogo PG incompleto |
-| **Renan amanhã** | Ctrl+F5 · PDV · Gestão · Compras · Entrada NF passo 5 · 2–3 produtos (ex. GM9503) |
-| **Testes** | ⏸ **pausados** até loja validar |
+| **VERSION loja** | **v2.99** |
+| **Pacote** | Fases A–D3 · Compras D4 · ledger · `agro_pg` · **Display Scale entrou no merge — Renan não pediu** |
+| **Problema** | Modal «Tamanho da tela» na loja (1ª visita) |
+| **Hotfix** | `AGRO_DISPLAY_SCALE_HABILITADO` default **false** — cherry-pick/commit em `producao` + redeploy (**precisa frase + senha**) |
+| **Env Render produção** | Ver tabela abaixo |
+| **Testes** | ⏸ pausados até loja validar e sumir modal |
+
+### Render produção — env (checklist)
+
+| Variável | Loja |
+| -------- | ---- |
+| `AGRO_FONTE_CATALOGO=agro_pg` | ✅ já tem |
+| `AGRO_FONTE_ESTOQUE=ledger` | ➕ adicionar |
+| `AGRO_DISPLAY_SCALE_HABILITADO` | ❌ **não** (ou omitir = off) |
+| `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES` | ❌ não (só staging) |
+| `AGRO_STAGING_READONLY` | ❌ não |
+| `AGRO_SNAPSHOT_FONTE_DATABASE_URL` | ❌ não (só teste) |
+
+### Render teste — env (Display Scale)
+
+| Variável | Staging |
+| -------- | ------- |
+| `AGRO_DISPLAY_SCALE_HABILITADO=true` | ➕ se quiser modal/botão **Aa** no teste |
+
+Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false`
 
 ### WIP AGORA — pós-deploy loja
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Amanhã loja** | Validar operação · se OK, retomar sprint (motor Compras/NF · Lançamentos · NF financeiro) |
-| **Se bug grave** | Tag checkpoint acima → reset `f87955d` |
+| **Urgente** | Subir hotfix Display Scale off na **produção** (Renan: frase + senha) |
+| **Amanhã loja** | Validar operação · se OK, retomar sprint |
+| **Se bug grave** | Tag checkpoint → reset `f87955d` |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 

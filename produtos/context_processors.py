@@ -36,6 +36,16 @@ def agro_banco_placeholder_ui(request):
         return {"agro_banco_placeholder_id": "6990cf726c4d856abaa670c6"}
 
 
+def agro_display_scale_ui(request):
+    from django.conf import settings
+
+    return {
+        'agro_display_scale_habilitado': bool(
+            getattr(settings, 'AGRO_DISPLAY_SCALE_HABILITADO', False)
+        ),
+    }
+
+
 def agro_app_build(request):
     try:
         from config.app_build_util import get_app_build_info

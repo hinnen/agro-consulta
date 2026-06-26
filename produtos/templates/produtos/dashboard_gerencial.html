@@ -789,6 +789,7 @@
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
                 </div>
                 <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+                {% if agro_display_scale_habilitado %}
                 <button
                     type="button"
                     id="dash-link-display-scale"
@@ -796,9 +797,11 @@
                     title="Ajustar tamanho da tela"
                     aria-label="Ajustar tamanho da tela"
                 >Aa</button>
+                {% endif %}
             </div>
             <div class="xl:hidden flex items-center gap-1.5 shrink-0">
                 <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+                {% if agro_display_scale_habilitado %}
                 <button
                     type="button"
                     id="dash-link-display-scale-sm"
@@ -806,6 +809,7 @@
                     title="Ajustar tamanho da tela"
                     aria-label="Ajustar tamanho da tela"
                 >Aa</button>
+                {% endif %}
             </div>
         </div>
 
