@@ -19,4 +19,9 @@ urlpatterns = [
         views.api_grafico_gastos_atalho_salvar,
         name="api_grafico_gastos_atalho_salvar",
     ),
+    path(
+        "api/grafico-gastos-atalhos/<int:slot>/padrao/",
+        views.api_grafico_gastos_atalho_padrao,
+        name="api_grafico_gastos_atalho_padrao",
+    ),
 ]

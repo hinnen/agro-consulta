@@ -1067,7 +1067,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Período toolbar** | **1a · 3m · 1m · 1s | Hoje | 1s · 1m · 3m · 1a** — passado e futuro a partir de hoje |
 | **Painel overlay** | **Filtros | Planos** · flex+rem (acompanha zoom navegador) · v3.45 |
-| **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
+| **Atalhos (4 slots)** | Clique aplica · Shift+clique grava · **Alt+clique fixa padrão** (📌 abre sempre) · Postgres global · v3.47 |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
 | **Modo tempo** | **Comparar** — faixa totais acima do gráfico · Δ por ponto sem sobrepor (v3.44) |
