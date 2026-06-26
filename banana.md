@@ -400,7 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos globais** Postgres. **Entrada BI:** botão laranja **Gráfico gastos** no card **Contas a Pagar** (`/`). Teste **v3.24**; loja **v3.02**.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrão 📌); modos tempo real / histórico / comparar; drill-down CP popup. **Entrada BI:** botão laranja no card **Contas a Pagar** (`/`). Teste **v3.54**; loja **v3.37**.
 
 ### 4.11 Caixa
 
@@ -870,7 +870,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.46 · **produção** v3.36 (gráfico gastos pacote 26/06)
+**Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.37 (gráfico gastos pacote completo 26/06)
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
@@ -1032,21 +1032,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Clique aplica · Shift+clique grava · **Alt+clique fixa padrão** (📌 abre sempre) · Postgres global · v3.47 |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.36** |
-| **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
-| **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
-| **Loja** | **✅ v3.35** — cherry-pick 7 commits (26/06) · **só leitura** |
+| **Modo tempo** | Tempo real · **Como era no dia** · **Comparar** (faixa totais · Δ por ponto) |
+| **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` · `POST …/atalhos/<slot>/padrao/` |
+| **Migration** | `0002_grafico_gastos_atalho_agro` · `0003_grafico_gastos_atalho_padrao` |
+| **Loja** | **✅ v3.37** — cherry-pick 8 commits (26/06) · **só leitura** |
 
-### DEPLOY PRODUÇÃO — gráfico gastos pacote **v3.35** (26/06)
+### FECHADO — produção gráfico gastos pacote **v3.37** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Cherry-pick só gráfico · **não** CP perf · **não** Transferências extra |
+| **Renan** | *«monte pacote cherry pick e suba produção»* · **99738595** |
 | **Base loja** | `b3db16e` (v3.33) |
-| **Commits** | `ac8ffae` · `e2cc338` · `70201d7` · `018c5e2` · `1b4ab47` · `d160216` · `2db72d8` |
-| **Arquivos** | `grafico_gastos.html` · `financeiro/views.py` · `mongo_financeiro_util.py` (funções gráfico) · `VERSION` |
-| **Fora do pacote** | PDV · produtos · gravação CP · `lancamentos_contas_pagar_teste.html` |
-| **Risco** | **Baixo** — agregação Mongo **read-only** · atalhos Postgres só tela gráfico |
+| **Commits** | `1d35d12` … `7607fa3` (8 cherry-picks: tempo real · comparar · drill-down · atalho padrão) |
+| **Arquivos (8)** | `grafico_gastos.html` · `financeiro/views.py` · `financeiro/models.py` · `financeiro/urls.py` · migrations `0003` · `mongo_financeiro_util.py` (só funções gráfico) · `VERSION` |
+| **Fora do pacote** | PDV · produtos (views/templates) · gravação CP/Lançamentos · `88b5a60` CP perf · BI validade · Transferências extra teste |
+| **Risco** | **Baixo** — Mongo **read-only** · Postgres só tabela atalhos gráfico · **não mexe** em dados PDV/produtos/lançamentos |
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
