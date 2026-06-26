@@ -1032,7 +1032,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Comparar** — faixa grande acima do gráfico (totais + Δ) · Δ por bolinha no gráfico · v3.41 |
+| **Modo tempo** | **Comparar** — faixa totais acima do gráfico · Δ por ponto sem sobrepor (v3.44) |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **Pendente** — só teste até Renan pedir produção |
