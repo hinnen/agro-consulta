@@ -565,7 +565,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Quem | O quê |
 | ---- | ----- |
 | **Assistente** | **✅ import teste OK** (13,2k títulos PG · CP lê Postgres no staging) |
-| **Renan** | **Passo 4 agora** (só site **teste**) · loja CP parada hoje |
+| **Renan** | **1–4 ✅** · amostra 3 títulos = opcional (total já bateu) |
 
 ### Renan — intervenção (estritamente necessário)
 
@@ -574,7 +574,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
 | **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
 | **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
-| **4 Pós-import teste** | **✅ pronto — Renan** | Staging: `financeiro_postgres: true` · **13.200** títulos PG · conferir CP aberto **741** + total |
+| **4 Pós-import teste** | **✅ Renan 26/06** | Staging CP aberto: **Qtd 741** · **A pagar R$ 393.652,70** — **bate loja** |
 | **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
@@ -604,8 +604,8 @@ Site = **projeto teste** no Render (branch `teste`) — **não** `sistvale.com.b
 5. Conferir rodapé — deve bater com a **loja** (referência anotada):
    - **Qtd: 741** (pode variar ±1 se alguém pagou entre ontem e hoje)
    - **A pagar: ~R$ 393.652,70**
-6. Escolher **3 títulos** que você conhece (ou anotou no passo 2) → clicar na linha → conferir favorecido, vencimento, saldo.
-7. Me avisar: **«passo 4 OK»** ou o que divergiu.
+6. **Opcional (amostra):** clique **em cima de 3 linhas** da lista (ex. Detran, Renan Hinnen, Caminhão) — a linha **abre** e mostra detalhes; confira se **saldo** = coluna Saldo (ex. R$ 234,78). **Não precisa pagar** nem editar.
+7. Me avisar **«passo 4 OK»** — se **Qtd + A pagar** já bateram (como no print), **pode pular o item 6**.
 
 **Passo 5:** fiado e contas a receber — **ignorar hoje**.
 
