@@ -591,7 +591,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **4b Pagamento PG teste** | **✅ Renan 26/06** | Título manual **«Teste» R$ 1,00** · quitou no Postgres · sumiu de **Em aberto** · aparece em **Quitados** (saldo 0) · juros R$ 0,10 **não** lançou (conta «ADICIONAR CONTA» — regra esperada) |
 | **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
 
-**Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
+**Loja hoje (26/06):** **Contas a pagar liberada** — lista + pagar no **Postgres** (conferido **741** / **393.652,70**). Caixa/PDV normal.
 
 ### Por que Contas a pagar **não está 100 % concluída** ainda?
 
@@ -612,7 +612,7 @@ Só **depois** mexemos em **pagamento** — se errar, some dinheiro ou duplica t
 
 **Metáfora:** armário novo montado e **inventário conferido**; falta passar a **usar o armário de verdade** (cada pagamento sair do Mongo e ir pro Postgres).
 
-**Loja hoje:** CP continua **Mongo inteiro** (lista + pagar) — **seguro**. Resto da loja **normal**.
+**Loja:** CP **Postgres** (lista + pagamento). Mongo **não apagado** — só espelho/backup.
 
 ### Renan — como fazer (passos 3 e 4)
 
@@ -829,8 +829,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Novo** | `lancamentos_financeiro_pg_write_util.py` — baixa total/parcial, editar, excluir, lote manual, juros |
 | **APIs** | `api/lancamentos/baixa/`, `baixa-parcial/`, `alterar/`, `excluir/`, `criar-manual-lote/` + saída caixa + NF passo 7 → PG quando staging CP ativo |
 | **Renan teste** | **✅ 26/06** — «Teste» R$ 1,00 pago · quitados OK · Mongo loja intacto |
-| **Próximo** | Import PG produção + merge `teste`→`producao` — **só** quando Renan mandar frase + senha |
-| **Loja** | Continua Mongo até passo 4 |
+| **Próximo** | CR / fiado (fase futura) · desligar Mongo financeiro só quando CR migrar |
+| **Loja** | **✅ CP em uso normal** |
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
