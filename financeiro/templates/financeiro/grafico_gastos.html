@@ -682,12 +682,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const COR_REAL = '#059669';
   const COR_HIST = '#d97706';
 
-  const pluginGgCompareDelta = {
-    id: 'ggCompareLabels',
-    afterDraw: function () {
-      /* Comparar: sem rótulos no gráfico — totais nos cards de cima; clique no ponto abre CP */
-    }
-  };
+  function isDatasetHistorico(ds) {
+    ds = ds || {};
+    return ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
+  }
 
   function ajustarScrollPlanos() {
     var grid = document.getElementById('container-planos-contas');
@@ -1375,7 +1373,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function initChart() {
     if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
-    Chart.register(pluginGgCompareDelta);
     chartGastos = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [] },
@@ -1411,23 +1408,39 @@ document.addEventListener('DOMContentLoaded', function () {
               label: function (ctx) {
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               },
+              afterBody: function (items) {
+                if (!chartSerieMeta.compareMode || !items || !items.length) return [];
+                const i = items[0].dataIndex;
+                const d = (chartSerieMeta.deltas || [])[i];
+                if (d == null) return [];
+                return ['Variação: ' + fmtDeltaSigned(d)];
+              },
               footer: function () {
-                return 'Clique para ver Contas a pagar';
+                return 'Clique no ponto → Contas a pagar';
               }
             }
           },
           datalabels: {
             display: function (ctx) {
-              if (chartSerieMeta.compareMode) return false;
               if (!datalabelsOn) return false;
               const n = (ctx.chart.data.labels || []).length;
               const v = ctx.dataset.data[ctx.dataIndex];
-              return n > 0 && n <= 48 && v != null && v > 0;
+              if (!(n > 0 && n <= 48 && v != null && v > 0)) return false;
+              if (!chartSerieMeta.compareMode) return true;
+              const d = (chartSerieMeta.deltas || [])[ctx.dataIndex];
+              if (Math.abs(Number(d) || 0) < 0.01) return !isDatasetHistorico(ctx.dataset);
+              return true;
             },
-            align: 'top',
-            anchor: 'end',
+            align: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'bottom';
+              return 'top';
+            },
+            anchor: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'start';
+              return 'end';
+            },
             offset: function (ctx) {
-              return chartSerieMeta.compareMode ? 6 : 10;
+              return chartSerieMeta.compareMode ? 10 : 10;
             },
             clip: false,
             backgroundColor: function (ctx) {
@@ -1451,7 +1464,9 @@ document.addEventListener('DOMContentLoaded', function () {
               }
               return '#047857';
             },
-            font: { weight: '900', size: 17 },
+            font: function (ctx) {
+              return { weight: '900', size: chartSerieMeta.compareMode ? 14 : 17 };
+            },
             formatter: function (v) { return fmtValor(v, 0); }
           }
         },
@@ -1494,14 +1509,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function estilizarDataset(ds, compareMode) {
     const cor = ds.borderColor || COR_REAL;
-    const isHist = ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
-    return Object.assign({}, ds, {
+    const isHist = isDatasetHistorico(ds);
+    const styled = Object.assign({}, ds, {
       tension: 0.32,
-      borderWidth: 3,
-      pointRadius: 7,
-      pointHoverRadius: 10,
+      borderWidth: compareMode && isHist ? 3 : 3,
+      pointRadius: compareMode ? (isHist ? 9 : 7) : 7,
+      pointHoverRadius: compareMode ? (isHist ? 12 : 10) : 10,
       pointHitRadius: 18,
-      pointBorderWidth: 2,
+      pointBorderWidth: compareMode && isHist ? 3 : 2,
       pointBackgroundColor: '#fff',
       pointBorderColor: cor,
       fill: !compareMode,
@@ -1509,6 +1524,12 @@ document.addEventListener('DOMContentLoaded', function () {
         ? (isHist ? 'rgba(217, 119, 6, 0.06)' : 'rgba(5, 150, 105, 0.06)')
         : (ds.backgroundColor || 'rgba(5, 150, 105, 0.1)')
     });
+    if (compareMode) {
+      styled.borderDash = isHist ? [10, 6] : [];
+      styled.pointStyle = isHist ? 'triangle' : 'circle';
+      styled.order = isHist ? 2 : 1;
+    }
+    return styled;
   }
 
   function marcarUltimaAtualizacao() {
@@ -1575,8 +1596,9 @@ document.addEventListener('DOMContentLoaded', function () {
             deltas: data.deltas || [],
             comparacao: data.comparacao || null
           };
-          chartGastos.options.plugins.tooltip.enabled = !compareMode;
-          chartGastos.options.layout.padding.top = compareMode ? 28 : 44;
+          chartGastos.options.plugins.tooltip.enabled = true;
+          chartGastos.options.layout.padding.top = compareMode ? 52 : 44;
+          chartGastos.options.layout.padding.bottom = compareMode ? 18 : 2;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);

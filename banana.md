@@ -872,7 +872,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.64+ · **produção** v3.51 — **pendente** reforço rótulos comparar (bloco único)
+**Versão app (`VERSION`):** **teste** v3.68 · **produção** v3.51 — gráfico comparar: rótulos + tooltip + linhas distintas (pendente Renan)
+
+### WIP — gráfico gastos comparar **v3.68** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Scroll planos ✅ v3.67 · valores no gráfico sumiram + card detalhe + linha laranja invisível quando iguais |
+| **Fix teste** | Tooltip reativado no Comparar (tempo real + como era + variação) · rótulos verde acima / laranja abaixo · linha hist **tracejada + triângulo** por cima da sólida · scroll planos intacto |
+| **Arquivo** | `financeiro/templates/financeiro/grafico_gastos.html` |
+| **Renan testar** | Modo Comparar: passar mouse no ponto (card) · números nos meses · ver **duas** linhas/marcadores mesmo valores iguais |
 
 ### FECHADO — produção gráfico gastos UX **v3.51** (26/06)
 
