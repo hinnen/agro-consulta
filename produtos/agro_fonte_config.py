@@ -76,7 +76,23 @@ def agro_financeiro_usa_postgres() -> bool:
         and getattr(settings, "AGRO_FINANCEIRO_PG_LEITURA_STAGING", True)
     ):
         return _staging_financeiro_cp_pg_pronto()
+    # Loja: após import CP no Postgres (bootstrap build/boot), liga sem env manual.
+    if (
+        not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
+        and not getattr(settings, "AGRO_STAGING_READONLY", False)
+        and getattr(settings, "AGRO_FINANCEIRO_PG_LOJA_AUTO", True)
+    ):
+        return _producao_financeiro_cp_pg_pronto()
     return False
+
+
+def _producao_financeiro_cp_pg_pronto() -> bool:
+    try:
+        from produtos.models import TituloFinanceiroAgro
+
+        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+    except Exception:
+        return False
 
 
 def _staging_financeiro_cp_pg_pronto() -> bool:
@@ -157,6 +173,11 @@ def agro_fonte_status_dict() -> dict:
             getattr(settings, "AGRO_FINANCEIRO_PG_LEITURA_STAGING", True)
             and getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
             and getattr(settings, "AGRO_STAGING_READONLY", False)
+        ),
+        "financeiro_pg_loja_auto": bool(
+            getattr(settings, "AGRO_FINANCEIRO_PG_LOJA_AUTO", True)
+            and not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
+            and not getattr(settings, "AGRO_STAGING_READONLY", False)
         ),
         "titulos_financeiro_pg": agro_titulos_financeiro_pg_count(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),

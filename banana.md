@@ -807,7 +807,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Merge** | `teste`→`producao` · CP lista+gravação PG · bootstrap import na build |
-| **Env loja** | `AGRO_FONTE_FINANCEIRO=agro_pg` *(Render — assistente)* |
+| **Env loja** | Auto CP PG após import (`AGRO_FINANCEIRO_PG_LOJA_AUTO`, default on) — **não** precisa Render manual |
 | **Renan agora** | **~30 min** CP só consulta · depois conferir **741** abertos + total |
 | **Mongo loja** | **Não apagar** — espelho de backup |
 
