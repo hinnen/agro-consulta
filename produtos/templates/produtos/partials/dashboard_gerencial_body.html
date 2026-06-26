@@ -90,6 +90,9 @@
       <div class="font-black text-slate-900 tabular-nums leading-none" style="font-size: clamp(1.15rem, 1.5vw + 0.35rem, 1.95rem);">{% if kpi.prefix %}<span class="text-slate-500">{{ kpi.prefix }}</span> {% endif %}{{ kpi.value }}</div>
       <p class="mt-1.5 text-[11px] sm:text-xs font-bold text-slate-600 tabular-nums leading-tight">
         {{ kpi.qtd_vendas|default:0 }} venda{{ kpi.qtd_vendas|default:0|pluralize }}
+        {% if kpi.devolucoes_hoje_qtd %}
+        <span class="text-rose-700" title="Devoluções registradas hoje — não entram no total acima"> · excl. {{ kpi.devolucoes_hoje_qtd }} dev.</span>
+        {% endif %}
       </p>
     </div>
     {% else %}

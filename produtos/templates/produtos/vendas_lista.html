@@ -78,6 +78,14 @@
         <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex flex-col justify-center">
           <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
           <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-slate-900 tabular-nums leading-none mt-1">{{ quantidade_vendas }}</p>
+          {% if quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-slate-400 mt-1" title="Vendas do período já marcadas devolvida — não entram no total nem no BI">+ {{ quantidade_devolvidas }} devolvida{{ quantidade_devolvidas|pluralize }} no período</p>
+          {% endif %}
+          {% if devolucoes_registradas_qtd and devolucoes_registradas_qtd != quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-rose-600 mt-1" title="Estorno registrado hoje; a venda original pode ser de outro dia">↳ {{ devolucoes_registradas_qtd }} estorno(s) hoje · R$ {{ devolucoes_registradas_valor|floatformat:2 }}</p>
+          {% elif devolucoes_registradas_qtd and not quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-rose-600 mt-1" title="Estorno registrado no período; venda original pode ser de outro dia">{{ devolucoes_registradas_qtd }} estorno(s) no período · R$ {{ devolucoes_registradas_valor|floatformat:2 }} (BI já exclui se a venda for de hoje)</p>
+          {% endif %}
         </div>
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 shadow-sm flex flex-col justify-center">
           <p class="text-[10px] font-black uppercase text-emerald-800/70 tracking-wide">Total no período</p>
