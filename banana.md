@@ -577,6 +577,36 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **4 Pós-import teste** | ⏸ | Mesmo total aberto + abrir 3 títulos |
 | **5 Fiado / CR** | ⏸ | Ignorar hoje |
 
+### Renan — como fazer (passos 3 e 4)
+
+**Passo 3 — agora (só não mexer)**
+
+| Faça | Não faça |
+| ---- | -------- |
+| **Nada** — pode usar a **loja** normal (PDV, CP, etc.) | Abrir Render → **Environment** → **Save** em variável nova |
+| Se abrir o Render por curiosidade: **só olhar**, sem salvar | Criar/editar `AGRO_FONTE_FINANCEIRO`, `SOMENTE_POSTGRES`, `STAGING_READONLY`, etc. |
+| | Pedir deploy **produção** / merge `teste`→`producao` hoje |
+
+**Passo 3 = já feito** se você **não** alterou env no Render desde o backup.
+
+---
+
+**Passo 4 — quando o assistente avisar «import teste pronto»**
+
+Site = **projeto teste** no Render (branch `teste`) — **não** `sistvale.com.br`.
+
+1. Login **admin** no **teste**.
+2. **Ctrl+F5** (recarregar sem cache).
+3. Abrir **`/lancamentos/contas-pagar/`**.
+4. **Filtros** → Situação **Em aberto** → **limpar** vencimento (de/até **vazios**) → **Marcar todos** planos → **Aplicar**.
+5. Conferir rodapé — deve bater com a **loja** (referência anotada):
+   - **Qtd: 741** (pode variar ±1 se alguém pagou entre ontem e hoje)
+   - **A pagar: ~R$ 393.652,70**
+6. Escolher **3 títulos** que você conhece (ou anotou no passo 2) → clicar na linha → conferir favorecido, vencimento, saldo.
+7. Me avisar: **«passo 4 OK»** ou o que divergiu.
+
+**Passo 5:** fiado e contas a receber — **ignorar hoje**.
+
 **Excel 748 vs tela 741 — fechado (dedup):** backup exporta **cada** doc Mongo; lista CP **deduplica** títulos ERP repetidos (ex. **Geraldo acordo sat**, mesmo `Id`, várias linhas no CSV). **Referência para migração = tela (741 + total deduplicado)**, não soma crua do Excel.
 
 **Excel > tela (~R$ 14) — causas (histórico):**
