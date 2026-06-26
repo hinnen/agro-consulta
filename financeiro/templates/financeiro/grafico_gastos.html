@@ -3,9 +3,10 @@
 
 {% block admin_title %}SisVale | Gráfico de gastos{% endblock %}
 {% block admin_header %}{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh]{% endblock %}
 
-{% block admin_shell_class %}min-h-screen bg-gradient-to-b from-slate-100 to-slate-200/80 flex flex-col overflow-hidden{% endblock %}
-{% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-3 sm:px-5 lg:px-8 pb-3 pt-0 overflow-hidden flex flex-col gap-2.5{% endblock %}
+{% block admin_shell_class %}h-[100dvh] max-h-[100dvh] bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-3 sm:px-5 lg:px-8 pb-2 pt-1 overflow-hidden flex flex-col{% endblock %}
 
 {% block head_extra %}
 {% include "produtos/includes/agro_date_picker_styles.html" %}
@@ -25,29 +26,33 @@
     --gg-text: #0f172a;
     --gg-radius: 0.875rem;
     --gg-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
-    --gg-label: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
-    --gg-field: clamp(0.9375rem, 0.4vw + 0.82rem, 1.0625rem);
-    --gg-title: clamp(1.05rem, 0.55vw + 0.88rem, 1.25rem);
-    --gg-kpi: clamp(1.35rem, 1vw + 0.95rem, 1.75rem);
+    --gg-label: clamp(0.75rem, 0.3vw + 0.68rem, 0.875rem);
+    --gg-field: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
+    --gg-title: clamp(0.9375rem, 0.45vw + 0.8rem, 1.0625rem);
+  }
+  .gg-shell-wrap {
+    display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 0.35rem;
   }
   .gg-page-head {
-    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
-    gap: 0.75rem 1rem; padding: 0.65rem 0 0.35rem; shrink: 0;
+    display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between;
+    gap: 0.5rem; padding: 0.1rem 0 0; shrink: 0;
   }
   .gg-page-head h1 {
-    margin: 0; font-size: clamp(1.35rem, 1.2vw + 0.95rem, 1.85rem);
-    font-weight: 900; letter-spacing: -0.02em; color: var(--gg-text); line-height: 1.15;
+    margin: 0; font-size: clamp(1.05rem, 0.9vw + 0.75rem, 1.35rem);
+    font-weight: 900; color: var(--gg-text); line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   }
   .gg-page-head h1 em { font-style: normal; color: var(--gg-emerald); }
-  .gg-page-sub { margin: 0.25rem 0 0; font-size: var(--gg-field); font-weight: 600; color: var(--gg-muted); }
-  .gg-head-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .gg-page-sub { display: none; }
+  .gg-head-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
   .gg-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    min-height: 2.85rem; padding: 0 1rem; border-radius: var(--gg-radius);
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem;
+    min-height: 2.35rem; padding: 0 0.75rem; border-radius: 0.65rem;
     font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.04em; text-decoration: none; cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
+    letter-spacing: 0.03em; text-decoration: none; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
   }
+  .gg-btn-sm { min-height: 2.1rem; padding: 0 0.55rem; font-size: 0.6875rem; }
   .gg-btn:active { transform: translateY(1px); }
   .gg-btn-secondary { border: 2px solid var(--gg-border); background: var(--gg-card); color: var(--gg-text); }
   .gg-btn-secondary:hover { border-color: #f59e0b; color: #92400e; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); }
@@ -61,60 +66,67 @@
   }
   .gg-btn-ghost:hover { background: #f1f5f9; border-color: #e2e8f0; }
   .gg-toolbar {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.65rem;
-    padding: 0.65rem 0.85rem; border-radius: calc(var(--gg-radius) + 0.15rem);
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
+    padding: 0.35rem 0.55rem; border-radius: var(--gg-radius);
     border: 2px solid var(--gg-border); background: var(--gg-card); box-shadow: var(--gg-shadow);
-    shrink: 0;
+    shrink: 0; overflow: hidden;
   }
-  .gg-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; flex: 1 1 auto; min-width: min(100%, 12rem); }
+  .gg-chips { display: flex; gap: 0.3rem; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .gg-chips::-webkit-scrollbar { display: none; }
   .gg-chip {
-    min-height: 2.65rem; padding: 0 0.95rem; border-radius: 999px;
+    min-height: 2.1rem; padding: 0 0.65rem; border-radius: 999px; flex-shrink: 0;
     border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
     font-size: var(--gg-label); font-weight: 800; cursor: pointer;
-    transition: all 0.15s ease;
   }
   .gg-chip:hover { border-color: #86efac; background: var(--gg-emerald-soft); color: var(--gg-emerald-dark); }
   .gg-chip.is-active {
     border-color: var(--gg-emerald); background: var(--gg-emerald); color: #fff;
     box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22);
   }
-  .gg-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-left: auto; }
-  .gg-summary-bar {
-    display: none; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.65rem;
-    padding: 0.55rem 0.85rem; border-radius: var(--gg-radius);
+  .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
+  .gg-meta-bar {
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
+    padding: 0.3rem 0.55rem; border-radius: var(--gg-radius);
     border: 2px dashed #86efac; background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
-    font-size: var(--gg-label); font-weight: 700; color: #065f46; shrink: 0;
+    font-size: var(--gg-label); shrink: 0; overflow: hidden; min-height: 2.35rem;
   }
-  .gg-summary-bar.is-visible { display: flex; }
-  .gg-summary-bar .gg-tag {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.25rem 0.65rem; border-radius: 999px;
+  .gg-meta-bar .gg-tag {
+    max-width: min(38vw, 22rem); padding: 0.15rem 0.5rem; border-radius: 999px;
     background: #fff; border: 1px solid #bbf7d0; font-weight: 800; color: #047857;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
   }
+  .gg-meta-stat {
+    display: inline-flex; align-items: baseline; gap: 0.2rem; flex-shrink: 0;
+    padding: 0.08rem 0.4rem; border-radius: 0.45rem; background: rgba(255,255,255,0.9); font-weight: 800;
+  }
+  .gg-meta-stat small { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; color: var(--gg-muted); }
+  .gg-meta-stat strong { font-size: var(--gg-field); font-variant-numeric: tabular-nums; }
+  .gg-meta-stat.is-soma strong { color: var(--gg-emerald-dark); }
+  .gg-meta-stat.is-planos strong { color: var(--gg-orange); }
+  .gg-meta-time { margin-left: auto; flex-shrink: 0; font-size: 0.625rem; font-weight: 700; color: var(--gg-muted); }
   .gg-summary-edit {
-    margin-left: auto; min-height: 2.35rem; padding: 0 0.75rem;
-    border-radius: 999px; border: 2px solid var(--gg-emerald); background: #fff;
-    font-size: var(--gg-label); font-weight: 800; color: var(--gg-emerald-dark); cursor: pointer;
+    flex-shrink: 0; min-height: 2rem; padding: 0 0.55rem; border-radius: 999px;
+    border: 2px solid var(--gg-emerald); background: #fff;
+    font-size: 0.6875rem; font-weight: 800; color: var(--gg-emerald-dark); cursor: pointer;
   }
   .gg-summary-edit:hover { background: var(--gg-emerald-soft); }
+  .gg-stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+  .gg-backdrop { display: none; position: absolute; inset: 0; z-index: 30; background: rgba(15,23,42,0.42); backdrop-filter: blur(2px); }
+  .gg-backdrop.is-visible { display: block; }
   .gg-filters-wrap {
-    overflow: hidden; max-height: 0; opacity: 0;
-    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, margin 0.28s ease;
-    margin-top: 0; shrink: 0;
+    display: none; position: absolute; left: 0; right: 0; top: 0; z-index: 40; max-height: 92%;
   }
-  .gg-filters-wrap.is-open {
-    max-height: min(78vh, 920px); opacity: 1; margin-top: 0.15rem;
-  }
+  .gg-filters-wrap.is-open { display: block; }
   .gg-filters-card {
     background: var(--gg-card); border: 2px solid var(--gg-border);
-    border-radius: calc(var(--gg-radius) + 0.15rem); box-shadow: var(--gg-shadow);
-    overflow: hidden;
+    border-radius: var(--gg-radius); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    overflow: hidden; max-height: 100%; display: flex; flex-direction: column;
   }
   .gg-filters-head {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    gap: 0.5rem 0.75rem; padding: 0.75rem 1rem;
+    gap: 0.35rem; padding: 0.45rem 0.75rem;
     background: linear-gradient(90deg, #f8fafc, #fff);
-    border-bottom: 2px solid #f1f5f9;
+    border-bottom: 2px solid #f1f5f9; shrink: 0;
   }
   .gg-filters-head h2 { margin: 0; font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); }
   .gg-filters-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
@@ -124,8 +136,8 @@
     border: 2px solid #e2e8f0; background: #fff;
     font-size: var(--gg-label); font-weight: 700; color: #475569; cursor: pointer;
   }
-  .gg-toggle-opt input { width: 1.05rem; height: 1.05rem; accent-color: var(--gg-emerald); }
-  .gg-filters-body { padding: 1rem; }
+  .gg-toggle-opt input { width: 1rem; height: 1rem; accent-color: var(--gg-emerald); }
+  .gg-filters-body { padding: 0.65rem 0.75rem; overflow-y: auto; flex: 1; min-height: 0; }
   .gg-filters-grid {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1rem;
   }
@@ -139,7 +151,7 @@
   }
   .gg-field select,
   .gg-field input[type="date"].agro-date-picker {
-    width: 100%; min-height: 3rem; border-radius: var(--gg-radius);
+    width: 100%; min-height: 2.65rem; border-radius: var(--gg-radius);
     border: 2px solid #e2e8f0; background: #fff; padding: 0 0.85rem;
     font-size: var(--gg-field); font-weight: 700; color: var(--gg-text);
   }
@@ -201,7 +213,7 @@
   .gg-chk-toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--gg-emerald); }
   .gg-planos-grid {
     display: flex; flex-wrap: wrap; gap: 0.45rem; align-content: flex-start;
-    max-height: min(28vh, 10.5rem); overflow-y: auto;
+    max-height: min(22vh, 7.5rem); overflow-y: auto;
     padding: 0.7rem; border-radius: var(--gg-radius);
     border: 2px solid #e2e8f0; background: #f8fafc;
     scrollbar-width: thin; scrollbar-color: #86efac #f1f5f9;
@@ -221,50 +233,19 @@
   .gg-plano-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gg-filters-foot {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    gap: 0.65rem; padding: 0.85rem 1rem;
-    border-top: 2px solid #f1f5f9; background: #fafbfc;
+    gap: 0.45rem; padding: 0.45rem 0.75rem;
+    border-top: 2px solid #f1f5f9; background: #fafbfc; shrink: 0;
   }
-  .gg-help details {
-    margin-top: 0.65rem; padding: 0.65rem 0.85rem; border-radius: var(--gg-radius);
-    border: 1px solid #e2e8f0; background: #fafbfc; font-size: var(--gg-label);
-  }
+  .gg-help details { margin-top: 0.45rem; padding: 0.45rem 0.65rem; border-radius: var(--gg-radius); border: 1px solid #e2e8f0; background: #fafbfc; font-size: var(--gg-label); }
   .gg-help summary { cursor: pointer; font-weight: 800; color: #475569; }
-  .gg-help p { margin: 0.5rem 0 0; color: var(--gg-muted); line-height: 1.45; font-weight: 600; }
-  .gg-main { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.55rem; }
-  .gg-kpi-row {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; shrink: 0;
-  }
-  @media (max-width: 720px) { .gg-kpi-row { grid-template-columns: 1fr; } }
-  .gg-kpi {
-    padding: 0.65rem 0.85rem; border-radius: var(--gg-radius);
-    border: 2px solid var(--gg-border); background: var(--gg-card);
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-  }
-  .gg-kpi-label {
-    font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--gg-muted);
-  }
-  .gg-kpi-value {
-    margin-top: 0.15rem; font-size: var(--gg-kpi); font-weight: 900;
-    font-variant-numeric: tabular-nums; color: var(--gg-text); line-height: 1.1;
-  }
-  .gg-kpi.is-accent { border-color: #fdba74; background: var(--gg-orange-soft); }
-  .gg-kpi.is-accent .gg-kpi-value { color: var(--gg-orange); }
-  .gg-kpi.is-emerald { border-color: #86efac; background: var(--gg-emerald-soft); }
-  .gg-kpi.is-emerald .gg-kpi-value { color: var(--gg-emerald-dark); }
+  .gg-help p { margin: 0.4rem 0 0; color: var(--gg-muted); line-height: 1.4; font-weight: 600; }
+  .gg-kpi-row { display: none; }
   .gg-chart-card {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    border: 2px solid var(--gg-border); border-radius: calc(var(--gg-radius) + 0.15rem);
+    border: 2px solid var(--gg-border); border-radius: var(--gg-radius);
     background: var(--gg-card); box-shadow: var(--gg-shadow); overflow: hidden;
   }
-  .gg-chart-head {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    gap: 0.45rem 0.75rem; padding: 0.65rem 1rem;
-    border-bottom: 2px solid #f1f5f9;
-    background: linear-gradient(90deg, #fff, #f8fafc);
-  }
-  .gg-chart-head span { font-size: var(--gg-label); font-weight: 700; color: var(--gg-muted); }
-  .gg-chart-inner { flex: 1; min-height: 12rem; padding: 0.35rem 0.85rem 0.85rem; position: relative; }
+  .gg-chart-inner { flex: 1; min-height: 0; padding: 0.15rem 0.45rem 0.35rem; position: relative; }
   .gg-chart-inner canvas { width: 100% !important; height: 100% !important; }
   #gg-status {
     position: absolute; inset: 0; z-index: 10;
@@ -291,43 +272,51 @@
 {% csrf_token %}
 {% include "produtos/_gm_loading_bar.html" %}
 
+<div class="gg-shell-wrap">
+
 <div class="gg-page-head">
   <div>
-    <h1><em>Gráfico</em> · Gastos por plano</h1>
+    <h1 title="Só leitura · totais iguais Contas a pagar"><em>Gráfico</em> · Gastos por plano</h1>
     <p class="gg-page-sub">Só leitura · totais iguais Contas a pagar · dedup + filtro de planos</p>
   </div>
   <div class="gg-head-actions">
-    <a href="{% url 'lancamentos_contas_pagar' %}" class="gg-btn gg-btn-secondary" data-prefetch>Contas a pagar</a>
-    <a href="{% url 'lancamentos_financeiros' %}" class="gg-btn gg-btn-secondary" data-prefetch>Lançamentos</a>
-    {% include "produtos/_pdv_voltar_link.html" with link_class="gg-btn gg-btn-secondary" %}
+    <a href="{% url 'lancamentos_contas_pagar' %}" class="gg-btn gg-btn-secondary gg-btn-sm" data-prefetch>CP</a>
+    <a href="{% url 'lancamentos_financeiros' %}" class="gg-btn gg-btn-secondary gg-btn-sm" data-prefetch>Lanç.</a>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="gg-btn gg-btn-secondary gg-btn-sm" %}
   </div>
 </div>
 
 <div class="gg-toolbar" role="toolbar" aria-label="Atalhos e filtros">
   <div class="gg-chips" id="gg-chips-periodo" aria-label="Período rápido">
-    <button type="button" class="gg-chip" data-periodo="1w">1 semana</button>
+    <button type="button" class="gg-chip" data-periodo="1w">1 sem</button>
     <button type="button" class="gg-chip is-active" data-periodo="1m">1 mês</button>
     <button type="button" class="gg-chip" data-periodo="3m">3 meses</button>
     <button type="button" class="gg-chip" data-periodo="1y">1 ano</button>
     <button type="button" class="gg-chip" data-periodo="ytd">Ano atual</button>
   </div>
   <div class="gg-toolbar-actions">
-    <button type="button" class="gg-btn gg-btn-secondary gg-btn-filtros" id="btn-toggle-filtros" aria-expanded="true" aria-controls="painel-filtros-grafico">
+    <button type="button" class="gg-btn gg-btn-secondary gg-btn-sm gg-btn-filtros" id="btn-toggle-filtros" aria-expanded="false" aria-controls="painel-filtros-grafico">
       <span aria-hidden="true">⚙</span> Filtros
     </button>
-    <button type="button" class="gg-btn gg-btn-primary" id="btn-atualizar-grafico">
-      <span aria-hidden="true">↻</span> Atualizar
+    <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="btn-atualizar-grafico">
+      <span aria-hidden="true">↻</span>
     </button>
   </div>
 </div>
 
-<div class="gg-summary-bar" id="gg-summary-bar" aria-live="polite">
-  <span class="gg-tag" id="gg-tag-resumo">—</span>
-  <span class="gg-tag" id="gg-tag-planos">—</span>
-  <button type="button" class="gg-summary-edit" id="btn-abrir-filtros">Editar filtros</button>
+<div class="gg-meta-bar" id="gg-meta-bar" aria-live="polite">
+  <span class="gg-tag" id="gg-tag-resumo" title="">—</span>
+  <span class="gg-meta-stat is-soma"><small>Soma</small> <strong id="gg-kpi-soma">—</strong></span>
+  <span class="gg-meta-stat"><small>Pontos</small> <strong id="gg-kpi-pontos">—</strong></span>
+  <span class="gg-meta-stat is-planos"><small>Planos</small> <strong id="gg-kpi-planos">—</strong></span>
+  <span class="gg-meta-time" id="gg-ultima-atualizacao">—</span>
+  <button type="button" class="gg-summary-edit" id="btn-abrir-filtros">Filtros</button>
 </div>
 
-<div class="gg-filters-wrap is-open" id="painel-filtros-grafico">
+<div class="gg-stage">
+  <div class="gg-backdrop" id="gg-backdrop" aria-hidden="true"></div>
+
+  <div class="gg-filters-wrap" id="painel-filtros-grafico">
   <div class="gg-filters-card">
     <div class="gg-filters-head">
       <h2>Filtros do gráfico</h2>
@@ -397,7 +386,7 @@
         </div>
       </div>
 
-      <details class="gg-planos-section" open>
+      <details class="gg-planos-section">
         <summary>Planos de contas <small style="font-weight:700;color:var(--gg-muted)">({{ total_planos }})</small></summary>
         <div class="gg-planos-tools">
           <div class="gg-search-wrap">
@@ -438,34 +427,16 @@
       </div>
     </div>
   </div>
-</div>
-
-<div class="gg-main">
-  <div class="gg-kpi-row">
-    <div class="gg-kpi is-emerald">
-      <div class="gg-kpi-label">Soma no gráfico</div>
-      <div class="gg-kpi-value" id="gg-kpi-soma">—</div>
-    </div>
-    <div class="gg-kpi">
-      <div class="gg-kpi-label">Pontos no período</div>
-      <div class="gg-kpi-value" id="gg-kpi-pontos">—</div>
-    </div>
-    <div class="gg-kpi is-accent">
-      <div class="gg-kpi-label">Planos selecionados</div>
-      <div class="gg-kpi-value" id="gg-kpi-planos">—</div>
-    </div>
   </div>
 
   <div class="gg-chart-card">
-    <div class="gg-chart-head">
-      <span id="gg-resumo-filtros">Carregando…</span>
-      <span id="gg-ultima-atualizacao">—</span>
-    </div>
     <div class="gg-chart-inner">
       <div id="gg-status" class="is-loading">Montando gráfico…</div>
       <canvas id="graficoGastos"></canvas>
     </div>
   </div>
+</div>
+
 </div>
 
 <script>
@@ -476,15 +447,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const statusEl = document.getElementById('gg-status');
   const painelEl = document.getElementById('painel-filtros-grafico');
+  const backdropEl = document.getElementById('gg-backdrop');
   const btnToggle = document.getElementById('btn-toggle-filtros');
-  const summaryBar = document.getElementById('gg-summary-bar');
   const tagResumo = document.getElementById('gg-tag-resumo');
-  const tagPlanos = document.getElementById('gg-tag-planos');
   const autoRetractEl = document.getElementById('gg-auto-retrair');
   const kpiSoma = document.getElementById('gg-kpi-soma');
   const kpiPontos = document.getElementById('gg-kpi-pontos');
   const kpiPlanos = document.getElementById('gg-kpi-planos');
-  const resumoEl = document.getElementById('gg-resumo-filtros');
   const ultimaEl = document.getElementById('gg-ultima-atualizacao');
   const canvas = document.getElementById('graficoGastos');
   if (!canvas) return;
@@ -536,11 +505,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function setPainelAberto(open, persist) {
     painelEl.classList.toggle('is-open', open);
     btnToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    summaryBar.classList.toggle('is-visible', !open);
+    if (backdropEl) {
+      backdropEl.classList.toggle('is-visible', open);
+      backdropEl.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
     if (persist !== false) {
       try { localStorage.setItem(LS_PAINEL_ABERTO, open ? '1' : '0'); } catch (_) {}
     }
-    if (chartGastos) setTimeout(function () { chartGastos.resize(); }, 400);
+    if (chartGastos) setTimeout(function () { chartGastos.resize(); }, 120);
   }
 
   function retrairPainel() {
@@ -581,11 +553,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const valTxt = valor.options[valor.selectedIndex].text;
     const agrTxt = agr.options[agr.selectedIndex].text;
     const linha = porTxt + ' · ' + valTxt + ' · ' + agrTxt + ' · ' + fmtDataBr(ini) + ' → ' + fmtDataBr(fim);
-    resumoEl.textContent = linha;
     tagResumo.textContent = linha;
-    const planosTxt = pp.todos_planos ? 'Todos os planos (' + pp.qtdTotal + ')' : pp.qtdMarcados + ' de ' + pp.qtdTotal + ' planos';
-    tagPlanos.textContent = planosTxt;
-    kpiPlanos.textContent = pp.todos_planos ? pp.qtdTotal + ' (todos)' : pp.qtdMarcados;
+    tagResumo.title = linha;
+    const planosTxt = pp.todos_planos ? pp.qtdTotal + ' (todos)' : pp.qtdMarcados + '/' + pp.qtdTotal;
+    kpiPlanos.textContent = planosTxt;
   }
 
   function filtrarPlanosBusca() {
@@ -637,11 +608,11 @@ document.addEventListener('DOMContentLoaded', function () {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { top: 42, right: 12, left: 6, bottom: 6 } },
+        layout: { padding: { top: 28, right: 8, left: 4, bottom: 2 } },
         plugins: {
           legend: {
             position: 'top',
-            labels: { font: { weight: '800', size: 14 }, padding: 18, boxWidth: 16, boxHeight: 16, color: '#334155' }
+            labels: { font: { weight: '800', size: 11 }, padding: 6, boxWidth: 12, boxHeight: 12, color: '#475569' }
           },
           tooltip: {
             usePointStyle: true,
@@ -817,6 +788,12 @@ document.addEventListener('DOMContentLoaded', function () {
   btnToggle.addEventListener('click', function () {
     setPainelAberto(!painelAberto());
   });
+  if (backdropEl) {
+    backdropEl.addEventListener('click', retrairPainel);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && painelAberto()) retrairPainel();
+  });
   document.getElementById('btn-recolher-filtros').addEventListener('click', retrairPainel);
   document.getElementById('btn-abrir-filtros').addEventListener('click', expandirPainel);
   document.getElementById('btn-atualizar-grafico').addEventListener('click', function () {
@@ -959,9 +936,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const ar = localStorage.getItem(LS_AUTO_RETRAIR);
     if (ar === '0') autoRetractEl.checked = false;
     const pa = localStorage.getItem(LS_PAINEL_ABERTO);
-    if (pa === '0') setPainelAberto(false, false);
-    else if (pa === '1') setPainelAberto(true, false);
-  } catch (_) {}
+    if (pa === '1') setPainelAberto(true, false);
+    else setPainelAberto(false, false);
+  } catch (_) {
+    setPainelAberto(false, false);
+  }
 
   waitLibs(function () {
     initChart();
