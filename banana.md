@@ -870,7 +870,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.46 · **produção** v3.43 (gráfico gastos pacote 26/06)
+**Versão app (`VERSION`):** **teste** v3.46 · **produção** v3.34 (gráfico gastos pacote 26/06)
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
@@ -1032,10 +1032,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Comparar** — faixa totais acima do gráfico · Δ por ponto sem sobrepor (v3.44) |
+| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.34** |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
-| **Loja** | **Pendente** — só teste até Renan pedir produção |
+| **Loja** | **✅ v3.34** — cherry-pick 7 commits (26/06) · **só leitura** |
+
+### DEPLOY PRODUÇÃO — gráfico gastos pacote **v3.34** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Cherry-pick só gráfico · **não** CP perf · **não** Transferências extra |
+| **Base loja** | `b3db16e` (v3.33) |
+| **Commits** | `ac8ffae` · `e2cc338` · `70201d7` · `018c5e2` · `1b4ab47` · `d160216` · `2db72d8` |
+| **Arquivos** | `grafico_gastos.html` · `financeiro/views.py` · `mongo_financeiro_util.py` (funções gráfico) · `VERSION` |
+| **Fora do pacote** | PDV · produtos · gravação CP · `lancamentos_contas_pagar_teste.html` |
+| **Risco** | **Baixo** — agregação Mongo **read-only** · atalhos Postgres só tela gráfico |
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
