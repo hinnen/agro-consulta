@@ -150,6 +150,9 @@ def api_dados_grafico_gastos(request):
         "on",
     )
 
+    por = (src.get("por") or "vencimento").strip().lower()
+    valor = (src.get("valor") or "bruto").strip().lower()
+
     _, mongo_db = obter_conexao_mongo()
     if mongo_db is None:
         return JsonResponse(
@@ -164,6 +167,8 @@ def api_dados_grafico_gastos(request):
         agrupamento=agrupamento,
         plano_ids=plano_ids,
         individual=individual,
+        por=por,
+        valor=valor,
     )
     if not payload.get("ok"):
         return JsonResponse(

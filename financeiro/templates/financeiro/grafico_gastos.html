@@ -20,7 +20,7 @@
       <h1 class="text-lg sm:text-xl font-black tracking-tight text-slate-900">
         <span class="text-emerald-600">Gráfico</span><span class="text-slate-400 font-bold mx-1">·</span><span class="text-amber-900">Gastos por plano</span>
       </h1>
-      <p class="text-xs font-semibold text-slate-600 mt-0.5">Despesas no Mongo (vencimento · valor bruto) · só leitura</p>
+      <p class="text-xs font-semibold text-slate-600 mt-0.5">Só leitura · dedup igual Lançamentos · padrão: vencimento + bruto</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <a href="{% url 'lancamentos_financeiros' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 transition-colors">Lançamentos</a>
@@ -31,7 +31,7 @@
 
   <div class="rounded-xl border border-slate-200 bg-white shadow-sm shrink-0">
     <div class="p-3 sm:p-4 space-y-3">
-      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 items-end">
+      <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 items-end">
         <div>
           <label for="filtro-periodo" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Período rápido</label>
           <select id="filtro-periodo" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-800">
@@ -57,6 +57,22 @@
             <option value="semana">Semana a semana</option>
             <option value="mes" selected>Mês a mês</option>
             <option value="ano">Ano a ano</option>
+          </select>
+        </div>
+        <div>
+          <label for="filtro-por" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Referência</label>
+          <select id="filtro-por" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
+            <option value="vencimento" selected>Vencimento</option>
+            <option value="competencia">Competência</option>
+            <option value="pagamento">Pagamento</option>
+          </select>
+        </div>
+        <div>
+          <label for="filtro-valor" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Valor</label>
+          <select id="filtro-valor" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
+            <option value="bruto" selected>Bruto (título)</option>
+            <option value="pago">Pago</option>
+            <option value="saldo">Saldo em aberto</option>
           </select>
         </div>
         <div class="col-span-2 xl:col-span-2">
@@ -195,6 +211,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const payload = {
       agrupamento: document.getElementById('filtro-agrupamento').value,
+      por: document.getElementById('filtro-por').value,
+      valor: document.getElementById('filtro-valor').value,
       inicio: document.getElementById('data-inicial').value,
       fim: document.getElementById('data-final').value,
       individual: document.getElementById('modo-individual').checked,
@@ -275,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     atualizarGrafico();
   });
 
-  ['data-inicial', 'data-final', 'filtro-agrupamento'].forEach(function (id) {
+  ['data-inicial', 'data-final', 'filtro-agrupamento', 'filtro-por', 'filtro-valor'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', function () {
       if (id.startsWith('data-')) {
         document.getElementById('filtro-periodo').value = 'custom';
@@ -290,6 +308,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const state = {
       planos: Array.from(document.querySelectorAll('.plano-checkbox:checked')).map(function (cb) { return cb.value; }),
       agrupamento: document.getElementById('filtro-agrupamento').value,
+      por: document.getElementById('filtro-por').value,
+      valor: document.getElementById('filtro-valor').value,
       periodo: document.getElementById('filtro-periodo').value,
       individual: document.getElementById('modo-individual').checked,
       inicio: document.getElementById('data-inicial').value,
@@ -318,6 +338,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const state = favs[e.target.value];
     if (!state) return;
     document.getElementById('filtro-agrupamento').value = state.agrupamento || 'mes';
+    document.getElementById('filtro-por').value = state.por || 'vencimento';
+    document.getElementById('filtro-valor').value = state.valor || 'bruto';
     document.getElementById('filtro-periodo').value = state.periodo || 'custom';
     document.getElementById('modo-individual').checked = !!state.individual;
     if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
