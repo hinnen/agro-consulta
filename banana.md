@@ -586,13 +586,13 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 
 1. Chrome → login **admin** → URLs acima **ou** CP nova após deploy.
 2. **Não** clique em **Fazer checkpoint** hoje — só se assistente pedir.
-3. Anote **nº Em aberto** (ex.: **3** títulos · R$ 1.475,35 — Renan 25/06).
+3. Anote **todos CP em aberto** — **não** só «Hoje»: Filtros → situação **Em aberto** → **limpar** vencimento (sem data) → anotar **Qtd** + **A pagar** do rodapé.
 
 | # | Quando | Faça |
 | --- | ------ | ---- |
 | **1** | **Antes de qualquer `--apply`** | Passos **1–5** acima (ZIP aberto + ZIP todos) |
-| **2** | **Antes de ligar flag no teste** | Anotar **nº de títulos em aberto** na tela CP (filtro Em aberto) |
-| **3** | **Depois import teste** | Conferir: **mesmo nº** em aberto · abrir **3 títulos** (valor, vencimento, fornecedor) |
+| **2** | **Antes import** | **Todos** CP em aberto (sem filtro de data) — Qtd + total «A pagar» |
+| **3** | **Antes import** | Backup URLs (item 1) — ZIP bate com **todos** abertos, não só venc. de hoje |
 | **4** | **Render** | **Não** mexer em env sozinho — assistente pede quando for hora |
 | **5** | **Loja** | Flag PG / deploy **só** com frase + senha · **só** após teste OK |
 | **6** | **CR / fiado** | Ignorar hoje — fiado já é Postgres |
