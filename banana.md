@@ -612,7 +612,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.0.94`  
 **Última atualização:** `2026-06-24`  
 **Atualizado por:** assistente — **hotfix loja OK** (Renan + senha `99738595`)  
-**Versão app (`VERSION`):** **teste** v3.05 · **produção** v3.06 *(pós-hotfix)*
+**Versão app (`VERSION`):** **teste** v3.06 · **produção** v3.00 *(hotfix `b016b4a`)*
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
