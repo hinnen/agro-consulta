@@ -823,7 +823,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** (deploy pendente) · **produção** v3.08
+**Versão app (`VERSION`):** **teste** v3.09 (`fe1d4f6`) · **produção** v3.08
 
 ### WIP — orçamento salvo → fechar venda (cashback) **28/05**
 
