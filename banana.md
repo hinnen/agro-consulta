@@ -609,41 +609,52 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.93`  
-**Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — hotfix Display Scale off (`49d34cf` teste)  
-**Versão app (`VERSION`):** **teste** v3.02 · **produção** v2.99
+**Versão:** `1.0.94`  
+**Última atualização:** `2026-06-24`  
+**Atualizado por:** assistente — **hotfix loja OK** (Renan + senha `99738595`)  
+**Versão app (`VERSION`):** **teste** v3.05 · **produção** v3.06 *(pós-hotfix)*
 
-### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
+### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
 | Item | Valor |
 | ---- | ----- |
-| **Tag Git** | `checkpoint/producao-v2.28-pre-desvinc-20260625` |
-| **Commit** | `f87955d` — *producao v2.28 PDV autocomplete* |
-| **VERSION loja** | **v2.28** |
-| **Reverter código** | `git checkout producao` → `git reset --hard f87955d` → push produção (**só emergência**, avisar Renan) |
-| **Render** | Redeploy manual do commit/tag acima no painel se precisar |
+| **Commit** | `0c10e9a` — *producao v2.99 pós-merge desvinculação* |
+| **VERSION loja** | **v2.99** |
+| **Problemas** | Modal Display Scale · busca cliente PDV lenta |
+| **Reverter** | `git reset --hard 0c10e9a` → push `producao` (**emergência**) |
 
-### DEPLOY PRODUÇÃO — **OK com ressalva** (25/06 noite, Renan + senha)
+### CHECKPOINT PRODUÇÃO — merge grande 25/06 (emergência total)
+
+| Item | Valor |
+| ---- | ----- |
+| **Tag** | `checkpoint/producao-v2.28-pre-desvinc-20260625` |
+| **Commit** | `f87955d` — *v2.28 PDV autocomplete* |
+| **Reverter** | reset `f87955d` — perde pacote desvinculação |
+
+### DEPLOY PRODUÇÃO — merge desvinculação **OK com ressalva** (25/06, Renan + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Merge** | `teste` → `producao` · commit `1d82d30` |
-| **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
-| **VERSION loja** | **v2.99** |
-| **Pacote** | Fases A–D3 · Compras D4 · ledger · `agro_pg` · **Display Scale entrou no merge — Renan não pediu** |
-| **Problema** | Modal «Tamanho da tela» na loja (1ª visita) |
-| **Hotfix** | `49d34cf` em **`teste`** — `AGRO_DISPLAY_SCALE_HABILITADO` default **false** · **loja ainda sem** (precisa frase + senha) |
-| **Env Render produção** | Ver tabela abaixo |
-| **Testes** | ⏸ ver **«Renan — testar agora»** abaixo |
+| **Merge** | `teste` → `producao` · `1d82d30` |
+| **VERSION** | **v2.99** |
+| **Pacote** | A–D3 · Compras D4 · ledger · `agro_pg` |
+| **Ressalvas** | Display Scale não pedido · busca cliente lenta |
 
-### Renan — testar agora (loja v2.99)
+### DEPLOY PRODUÇÃO — **hotfix OK** (24/06, Renan + senha `99738595`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commits** | `49d34cf` Display Scale off · `f697d5e` cache clientes PDV |
+| **Push** | `origin/producao` · Render redeploy |
+| **Renan** | Ctrl+F5 · sem modal zoom · buscar cliente **renan** na hora |
+
+### Renan — testar agora (loja pós-hotfix)
 
 **Antes:** Ctrl+F5 · conferir env Render (tabela abaixo) · abrir `/api/agro/fonte-status/` (`catalogo_postgres: true` · `estoque_ledger_ativo: true`).
 
 | # | Onde | O quê | OK se… |
 | --- | ---- | ----- | ------ |
-| 0 | Qualquer tela | Modal «Tamanho da tela» | **Confirmar 100%** (workaround) **ou** subir hotfix `49d34cf` na loja |
+| 0 | Qualquer tela | Modal «Tamanho da tela» | **Não aparece** (`49d34cf`) |
 | 1 | `/pdv/` | Busca + autocomplete | Lista abre · **carregar mais** · **Enter** adiciona · **Esc** recolhe |
 | 2 | `/pdv/` | Venda rápida | 2–3 produtos (ex. **GM9503**, milho) · preço/saldo coerentes |
 | 3 | `/consulta/` ou PDV legado | Busca | Mesmos produtos aparecem (ordem pode diferir do teste) |
@@ -652,13 +663,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 6 | Compras → Folha | Planilha categoria **teste** | 1 produto · colunas últ. pedido / média preenchidas |
 | 7 | `/entrada-nota/` | Wizard passo **5 estoque** | Saldo bate Consulta/Compras (ex. GM9503) |
 | 8 | Entrada NF | Passo 7 financeiro | «Salvar + a pagar» grava título em Lançamentos (**loja**, não dry-run) |
-| 9 | `/pdv/` → Buscar cliente | **renan** → lista na hora (após fix `f697d5e`; loja ainda sem) |
+| 9 | `/pdv/` → Buscar cliente | **renan** | lista **imediata** (`f697d5e`) |
 
-**Bug cliente lento (25/06):** wizard só ia ao servidor (tela ficava em «Digite 2 letras» até cold start). Fix **`f697d5e`** — cache local igual PDV legado.
+**Bugs corrigidos no hotfix:** Display Scale modal · busca cliente lenta (cache local PDV wizard).
 
-**Não bloqueia operação:** Display Scale · ordem busca «milho» · custo lista R$ 0 vs base GM9503 · 1ª busca cliente lenta até deploy fix.
-
-**Staging (opcional):** após deploy `49d34cf` + `AGRO_DISPLAY_SCALE_HABILITADO=true` → modal **Aa** só no teste.
+**Não bloqueia:** ordem busca «milho» · custo lista R$ 0 GM9503.
 
 ### Render produção — env (checklist)
 
@@ -679,14 +688,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false`
 
-### WIP AGORA — pós-deploy loja
+### WIP AGORA — pós-hotfix loja
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Renan** | Checklist **«Renan — testar agora»** (8 itens) |
-| **Urgente código** | Cherry-pick `49d34cf` → `producao` (frase + senha) — tira modal de vez |
-| **Env loja** | `AGRO_FONTE_ESTOQUE=ledger` se ainda não colocou |
-| **Se bug grave** | Tag checkpoint → reset `f87955d` |
+| **Renan** | Checklist 0–9 acima |
+| **Env loja** | `AGRO_FONTE_ESTOQUE=ledger` se ainda falta |
+| **Revert leve** | reset `0c10e9a` (volta v2.99 + bugs) |
+| **Revert total** | tag checkpoint → `f87955d` |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
