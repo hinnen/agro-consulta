@@ -331,7 +331,7 @@
     border-color: var(--gg-emerald); background: var(--gg-emerald-soft); color: var(--gg-emerald-dark);
   }
   .gg-cp-popup {
-    position: fixed; inset: 0; z-index: 120; display: flex;
+    position: fixed; inset: 0; z-index: 9999; display: flex;
     align-items: center; justify-content: center; padding: 0.75rem;
   }
   .gg-cp-popup[hidden] { display: none !important; }
@@ -851,9 +851,21 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function indicePontoNoClique(evt) {
+    if (!chartGastos || !evt) return -1;
+    const pts = chartGastos.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+    if (pts.length) return pts[0].index;
+    const near = chartGastos.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
+    return near.length ? near[0].index : -1;
+  }
+
   function abrirCpPopup(index) {
+    if (index == null || index < 0) return;
     const info = montarUrlCpPonto(index);
-    if (!info) return;
+    if (!info) {
+      setStatus('Não foi possível abrir o detalhe deste ponto.', true, false);
+      return;
+    }
     const popup = document.getElementById('gg-cp-popup');
     const iframe = document.getElementById('gg-cp-popup-iframe');
     const titulo = document.getElementById('gg-cp-popup-titulo');
@@ -1035,15 +1047,16 @@ document.addEventListener('DOMContentLoaded', function () {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: 'nearest', intersect: true },
+        interaction: { mode: 'index', intersect: false },
         onHover: function (evt, elements) {
-          if (evt.native && evt.native.target) {
-            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+          const target = canvas;
+          if (!target) return;
+          if (elements && elements.length) {
+            target.style.cursor = 'pointer';
+            return;
           }
-        },
-        onClick: function (_evt, elements) {
-          if (!elements || !elements.length) return;
-          abrirCpPopup(elements[0].index);
+          const native = evt.native || evt;
+          target.style.cursor = indicePontoNoClique(native) >= 0 ? 'pointer' : 'default';
         },
         layout: { padding: { top: 28, right: 8, left: 4, bottom: 2 } },
         plugins: {
@@ -1060,6 +1073,9 @@ document.addEventListener('DOMContentLoaded', function () {
             callbacks: {
               label: function (ctx) {
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
+              },
+              footer: function () {
+                return 'Clique para ver Contas a pagar';
               }
             }
           },
@@ -1178,7 +1194,8 @@ document.addEventListener('DOMContentLoaded', function () {
             tension: 0.32,
             borderWidth: 3,
             pointRadius: 7,
-            pointHoverRadius: 9,
+            pointHoverRadius: 10,
+            pointHitRadius: 18,
             pointBorderWidth: 2,
             pointBackgroundColor: '#fff',
             pointBorderColor: ds.borderColor || '#059669',
@@ -1341,6 +1358,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('filtro-data-referencia').value = isoDate(new Date());
   syncModoTempoUi();
+
+  const cpPopupEl = document.getElementById('gg-cp-popup');
+  if (cpPopupEl && cpPopupEl.parentElement !== document.body) {
+    document.body.appendChild(cpPopupEl);
+  }
+  canvas.addEventListener('click', function (evt) {
+    const idx = indicePontoNoClique(evt);
+    if (idx >= 0) abrirCpPopup(idx);
+  });
 
   waitLibs(function () {
     initChart();
