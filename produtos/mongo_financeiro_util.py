@@ -4391,20 +4391,51 @@ def grafico_gastos_planos_despesa_mongo(db) -> list[dict[str, str]]:
 def _grafico_gastos_filtro_planos_mongo(
     db, plano_ids: list[str]
 ) -> tuple[list[str], list[str], dict[str, str]]:
-    """Resolve IDs selecionados → (ids, nomes, mapa id→nome)."""
+    """Resolve IDs selecionados → (ids, nomes, mapa id→nome). Lookup em lote no cadastro."""
     ids: list[str] = []
     nomes: list[str] = []
     id_nome: dict[str, str] = {}
+    seen: set[str] = set()
     for raw in plano_ids:
         pid = (raw or "").strip()
-        if not pid:
+        if not pid or pid in seen:
             continue
-        pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
+        seen.add(pid)
+        ids.append(pid)
+
+    if not ids:
+        return ids, nomes, id_nome
+
+    catalog: dict[str, str] = {}
+    try:
+        col = db[COL_DTO_PLANO_CONTA]
+        oid_vals: list[Any] = []
+        for pid in ids:
+            oid = _pedido_erp_oid_24(pid)
+            if oid is not None:
+                oid_vals.append(oid)
+        flt_or: list[dict[str, Any]] = []
+        if oid_vals:
+            flt_or.append({"_id": {"$in": oid_vals}})
+        flt_or.append({"PlanoDeContaID": {"$in": ids}})
+        for doc in col.find({"$or": flt_or}, {"Nome": 1, "_id": 1, "PlanoDeContaID": 1}):
+            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
+                doc.get("PlanoDeContaID")
+            )
+            nome = str(doc.get("Nome") or "").strip()
+            if pid and nome:
+                catalog[pid] = nome
+    except Exception as exc:
+        logger.warning("_grafico_gastos_filtro_planos_mongo catalog: %s", exc)
+
+    for pid in ids:
+        pn = catalog.get(pid)
+        if not pn and len(ids) <= 20:
+            pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
         if not pn:
             pn = pid
-        ids.append(pid)
         id_nome[pid] = pn
-        if pn and pn not in nomes:
+        if pn not in nomes:
             nomes.append(pn)
     return ids, nomes, id_nome
 
@@ -4486,6 +4517,26 @@ def _grafico_gastos_match_planos(ids: list[str], nomes: list[str]) -> dict[str, 
     return {"$or": ors}
 
 
+def _grafico_gastos_bucket_expr(campo_data: str, agrupamento: str, tz) -> dict[str, Any]:
+    agr = (agrupamento or "mes").strip().lower()
+    ref = f"${campo_data}"
+    if agr == "dia":
+        fmt = "%Y-%m-%d"
+    elif agr == "semana":
+        fmt = "%G-W%V"
+    elif agr == "ano":
+        fmt = "%Y"
+    else:
+        fmt = "%Y-%m"
+    return {
+        "$dateToString": {
+            "format": fmt,
+            "date": ref,
+            "timezone": str(tz),
+        }
+    }
+
+
 def grafico_gastos_serie_mongo(
     db,
     *,
@@ -4494,12 +4545,14 @@ def grafico_gastos_serie_mongo(
     agrupamento: str = "mes",
     plano_ids: list[str] | None = None,
     individual: bool = False,
+    por: str = "vencimento",
+    valor: str = "bruto",
 ) -> dict[str, Any]:
     """
     Série temporal de despesas (DtoLancamento) para Chart.js.
 
-    ``individual``: uma linha por plano (JS envia 1 ID) ou soma única «Total Selecionado».
-    Data de referência: vencimento; valor bruto (``Saida``).
+    Alinhado à lista de Lançamentos: dedup ``_lancamentos_mongo_stages_dedup_por_titulo_erp``.
+    ``por``: vencimento | competencia | pagamento · ``valor``: bruto | pago | saldo.
     """
     vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "datasets": []}
     if db is None:
@@ -4509,103 +4562,85 @@ def grafico_gastos_serie_mongo(
 
     ids, nomes, id_nome = _grafico_gastos_filtro_planos_mongo(db, plano_ids or [])
     if not ids and not nomes:
-        return {
-            "ok": True,
-            "erro": None,
-            "labels": [],
-            "datasets": [],
-        }
+        return {"ok": True, "erro": None, "labels": [], "datasets": []}
 
-    tz = timezone.get_current_timezone()
-    ini = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
-    fim = timezone.make_aware(datetime.combine(data_ate, dtime.max), tz)
+    modo_por = (por or "vencimento").strip().lower()
+    if modo_por not in ("vencimento", "competencia", "pagamento"):
+        modo_por = "vencimento"
+    modo_valor = (valor or "bruto").strip().lower()
+    if modo_valor not in ("bruto", "pago", "saldo"):
+        modo_valor = "bruto"
+
+    if modo_por == "competencia":
+        campo_data = "DataCompetencia"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status="todos" if modo_valor != "saldo" else "abertos",
+            competencia_de=data_de,
+            competencia_ate=data_ate,
+        )
+    elif modo_por == "pagamento":
+        campo_data = "DataPagamento"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status="quitados" if modo_valor == "pago" else "todos",
+            pagamento_de=data_de,
+            pagamento_ate=data_ate,
+        )
+    else:
+        campo_data = "DataVencimento"
+        q_base = lancamentos_montar_query_mongo(
+            despesa=True,
+            status="abertos" if modo_valor == "saldo" else "todos",
+            vencimento_de=data_de,
+            vencimento_ate=data_ate,
+        )
 
     match_plano = _grafico_gastos_match_planos(ids, nomes)
     if match_plano is None:
         return {"ok": True, "erro": None, "labels": [], "datasets": []}
 
     pats = _dre_regexes_excluir_resultado(None)
-    match0: dict[str, Any] = {
+    q: dict[str, Any] = {
         "$and": [
-            {"Despesa": True, "DataVencimento": {"$gte": ini, "$lte": fim}},
+            q_base,
             match_plano,
             {"$nor": [{"PlanoDeConta": {"$regex": pat}} for pat in pats]},
         ]
     }
 
+    tz = timezone.get_current_timezone()
     agr = (agrupamento or "mes").strip().lower()
-    if agr == "dia":
-        bucket_expr: dict[str, Any] = {
-            "$dateToString": {
-                "format": "%Y-%m-%d",
-                "date": "$DataVencimento",
-                "timezone": str(tz),
-            }
-        }
-    elif agr == "semana":
-        bucket_expr = {
-            "$dateToString": {
-                "format": "%G-W%V",
-                "date": "$DataVencimento",
-                "timezone": str(tz),
-            }
-        }
-    elif agr == "ano":
-        bucket_expr = {
-            "$dateToString": {
-                "format": "%Y",
-                "date": "$DataVencimento",
-                "timezone": str(tz),
-            }
-        }
-    else:
-        bucket_expr = {
-            "$dateToString": {
-                "format": "%Y-%m",
-                "date": "$DataVencimento",
-                "timezone": str(tz),
-            }
-        }
+    bucket_expr = _grafico_gastos_bucket_expr(campo_data, agr, tz)
 
-    group_id: dict[str, Any] = {"bucket": bucket_expr}
+    if modo_valor == "pago":
+        vl_expr: dict[str, Any] = {"$ifNull": ["$ValorPago", 0]}
+    elif modo_valor == "saldo":
+        vl_expr = _mongo_expr_restante_max0_inner(True)
+    else:
+        vl_expr = {"$ifNull": ["$Saida", 0]}
+
+    sort_dedup = _lancamentos_sort_spec_list("vencimento_asc", True)
+    group_id: dict[str, Any] = {"bucket": "$gg_bucket"}
     if individual:
         group_id["plano"] = {"$ifNull": ["$PlanoDeConta", ""]}
 
+    pipe: list[dict[str, Any]] = [
+        {"$match": q},
+        *_lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup),
+        {
+            "$addFields": {
+                "gg_bucket": bucket_expr,
+                "gg_vl": vl_expr,
+            }
+        },
+        {"$match": {"gg_vl": {"$gt": 0.02}}},
+        {"$group": {"_id": group_id, "soma": {"$sum": "$gg_vl"}}},
+    ]
+
     col = db[COL_DTO_LANCAMENTO]
     try:
-        dedup_id = getattr(settings, "DRE_DEDUP_LANCAMENTO_ID", True)
-        if dedup_id:
-            pipe = [
-                {"$match": match0},
-                {"$addFields": {"vl_graf": {"$ifNull": ["$Saida", 0]}}},
-                {"$addFields": {"dk_graf": _mongo_expr_dre_dedup_key()}},
-                {
-                    "$group": {
-                        "_id": {"dk": "$dk_graf", **group_id},
-                        "soma": {"$max": "$vl_graf"},
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": {
-                            "bucket": "$_id.bucket",
-                            **({"plano": "$_id.plano"} if individual else {}),
-                        },
-                        "soma": {"$sum": "$soma"},
-                    }
-                },
-            ]
-        else:
-            pipe = [
-                {"$match": match0},
-                {
-                    "$group": {
-                        "_id": group_id,
-                        "soma": {"$sum": {"$ifNull": ["$Saida", 0]}},
-                    }
-                },
-            ]
-        agg = list(col.aggregate(pipe))
+        agg = list(col.aggregate(pipe, maxTimeMS=120_000, allowDiskUse=True))
     except Exception as exc:
         logger.exception("grafico_gastos_serie_mongo: %s", exc)
         out = dict(vazio)
@@ -4644,9 +4679,7 @@ def grafico_gastos_serie_mongo(
         totais: dict[str, float] = defaultdict(float)
         for r in agg:
             gid = r.get("_id") or {}
-            bkey = str(gid.get("bucket") or gid if isinstance(gid, str) else "")
-            if isinstance(gid, dict):
-                bkey = str(gid.get("bucket") or "")
+            bkey = str(gid.get("bucket") or "") if isinstance(gid, dict) else str(gid or "")
             val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
             if val <= 0:
                 continue

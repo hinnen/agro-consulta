@@ -1,10 +1,11 @@
 from datetime import date, timedelta
+import json
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_http_methods
 
 from base.models import Empresa
 
@@ -107,18 +108,34 @@ def grafico_gastos_view(request):
 
 @never_cache
 @login_required(login_url="/admin/login/")
-@require_GET
+@require_http_methods(["GET", "POST"])
 def api_dados_grafico_gastos(request):
-    agrupamento = (request.GET.get("agrupamento") or "mes").strip().lower()
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"erro": "JSON inválido", "labels": [], "datasets": []},
+                status=400,
+            )
+        src = body
+    else:
+        src = request.GET
+
+    agrupamento = (src.get("agrupamento") or "mes").strip().lower()
     if agrupamento not in ("dia", "semana", "mes", "ano"):
         agrupamento = "mes"
 
-    planos_raw = (request.GET.get("planos") or "").strip()
-    plano_ids = [p.strip() for p in planos_raw.split(",") if p.strip()]
+    planos_raw = src.get("planos")
+    if isinstance(planos_raw, list):
+        plano_ids = [str(p).strip() for p in planos_raw if str(p).strip()]
+    else:
+        planos_raw = (planos_raw or "").strip()
+        plano_ids = [p.strip() for p in planos_raw.split(",") if p.strip()]
 
     hoje = date.today()
-    data_ini = _grafico_gastos_parse_date(request.GET.get("inicio"))
-    data_fim = _grafico_gastos_parse_date(request.GET.get("fim"))
+    data_ini = _grafico_gastos_parse_date(src.get("inicio"))
+    data_fim = _grafico_gastos_parse_date(src.get("fim"))
     if data_ini is None:
         data_ini = (hoje.replace(day=1) - timedelta(days=1)).replace(day=1)
     if data_fim is None:
@@ -126,12 +143,15 @@ def api_dados_grafico_gastos(request):
     if data_ini > data_fim:
         data_ini, data_fim = data_fim, data_ini
 
-    individual = (request.GET.get("individual") or "").strip().lower() in (
+    individual = str(src.get("individual") or "").strip().lower() in (
         "1",
         "true",
         "yes",
         "on",
     )
+
+    por = (src.get("por") or "vencimento").strip().lower()
+    valor = (src.get("valor") or "bruto").strip().lower()
 
     _, mongo_db = obter_conexao_mongo()
     if mongo_db is None:
@@ -147,6 +167,8 @@ def api_dados_grafico_gastos(request):
         agrupamento=agrupamento,
         plano_ids=plano_ids,
         individual=individual,
+        por=por,
+        valor=valor,
     )
     if not payload.get("ok"):
         return JsonResponse(
