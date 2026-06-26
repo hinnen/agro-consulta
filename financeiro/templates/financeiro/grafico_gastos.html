@@ -116,10 +116,9 @@
     overflow: hidden; grid-template-rows: minmax(0, 1fr);
   }
   @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
-  .gg-split-col {
-    border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc;
-    min-height: 0; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
-  }
+  details.gg-split-col { min-height: 0; overflow: hidden; border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc; }
+  details.gg-split-col[open] { display: flex; flex-direction: column; }
+  .gg-split-col > summary { flex-shrink: 0; }
   .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; }
   .gg-split-col > summary {
     list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
@@ -148,7 +147,10 @@
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
     flex: 1 1 auto; min-height: 0; max-height: 100%; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: #86efac #f1f5f9;
   }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 10px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-thumb { background: #86efac; border-radius: 8px; }
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-meta-bar {
@@ -686,7 +688,6 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!ds0 || !ds1) return;
       const ctx = chart.ctx;
       const chartArea = chart.chartArea;
-      const stackGap = 12;
       meta.deltas.forEach(function (d, i) {
         const p0 = ds0.data[i];
         const p1 = ds1.data[i];
@@ -694,29 +695,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const v0 = Number((chart.data.datasets[0].data || [])[i]) || 0;
         const v1 = Number((chart.data.datasets[1].data || [])[i]) || 0;
         if (v0 <= 0 && v1 <= 0) return;
-
-        const x = p0.x;
-        const cls = deltaClasse(d);
-        const deltaTxt = fmtDeltaCompact(d);
-        const pilha = [];
-        if (Math.abs(d) >= 0.01) {
-          pilha.push({ txt: deltaTxt, cls: cls, isDelta: true });
-        }
-        if (Math.abs(v0 - v1) < 0.01) {
-          if (v0 > 0) pilha.push({ txt: fmtValor(v0, 0), cor: COR_REAL, isDelta: false });
-        } else {
-          var vals = [];
-          if (v0 > 0) vals.push({ txt: fmtValor(v0, 0), cor: COR_REAL, isDelta: false, val: v0 });
-          if (v1 > 0) vals.push({ txt: fmtValor(v1, 0), cor: COR_HIST, isDelta: false, val: v1 });
-          vals.sort(function (a, b) { return b.val - a.val; });
-          vals.forEach(function (v) { pilha.push(v); });
-        }
-
-        var yCursor = Math.min(p0.y, p1.y) - 18;
-        pilha.forEach(function (item) {
-          var cor = item.isDelta ? item.cls : item.cor;
-          yCursor = desenharRotuloComparacao(ctx, x, yCursor, item.txt, cor, 'fixo', chartArea, !!item.isDelta) - stackGap;
-        });
+        desenharRotuloCompareBloco(ctx, p0.x, Math.min(p0.y, p1.y), v0, v1, d, chartArea, i);
       });
     }
   };
@@ -732,13 +711,65 @@ document.addEventListener('DOMContentLoaded', function () {
     return { bg: 'rgba(236, 253, 245, 0.98)', border: COR_REAL, text: '#047857' };
   }
 
+  /** Um bloco só por mês — evita caixas empilhadas se sobrepondo. */
+  function desenharRotuloCompareBloco(ctx, x, yAnchor, v0, v1, d, chartArea, index) {
+    const cls = deltaClasse(d);
+    const dc = corRotuloDelta(cls);
+    const linhas = [];
+    if (Math.abs(v0 - v1) < 0.01) {
+      if (v0 > 0) linhas.push({ txt: fmtValor(v0, 0), color: '#047857', size: 17 });
+    } else {
+      if (v0 > 0) linhas.push({ txt: fmtValor(v0, 0), color: '#047857', size: 17 });
+      if (v1 > 0) linhas.push({ txt: fmtValor(v1, 0), color: '#b45309', size: 17 });
+    }
+    if (Math.abs(d) >= 0.01) {
+      linhas.push({ txt: fmtDeltaCompact(d), color: dc.text, size: 16 });
+    }
+    if (!linhas.length) return;
+
+    const padX = 12;
+    const padY = 8;
+    const gap = 5;
+    ctx.save();
+    var maxW = 0;
+    linhas.forEach(function (ln) {
+      ctx.font = '900 ' + ln.size + 'px system-ui, -apple-system, sans-serif';
+      maxW = Math.max(maxW, ctx.measureText(ln.txt).width);
+    });
+    const w = maxW + padX * 2;
+    const h = padY * 2 + linhas.reduce(function (acc, ln) { return acc + ln.size + gap; }, 0) - gap;
+    var top = yAnchor - h - 18 - (index % 2 === 1 ? 24 : 0);
+    if (chartArea) {
+      if (top < chartArea.top + 6) top = chartArea.top + 6;
+    }
+    const left = x - w / 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 8);
+    else ctx.rect(left, top, w, h);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    var yTxt = top + padY;
+    linhas.forEach(function (ln) {
+      ctx.font = '900 ' + ln.size + 'px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = ln.color;
+      ctx.fillText(ln.txt, x, yTxt);
+      yTxt += ln.size + gap;
+    });
+    ctx.restore();
+  }
+
   /** @returns {number} próximo Y livre acima (modo empilhado) */
   function desenharRotuloComparacao(ctx, x, y, txt, corOuCls, modo, chartArea, isDelta) {
     if (!txt) return y;
     const cores = typeof corOuCls === 'string' && corOuCls.indexOf('is-') === 0
       ? corRotuloDelta(corOuCls)
       : corRotuloSerie(corOuCls);
-    const fontSize = isDelta ? 14 : 15;
+    const fontSize = isDelta ? 16 : 17;
     ctx.save();
     ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
     ctx.textAlign = 'center';
@@ -1469,19 +1500,31 @@ document.addEventListener('DOMContentLoaded', function () {
             usePointStyle: true,
             padding: 14,
             backgroundColor: 'rgba(15, 23, 42, 0.92)',
-            titleFont: { size: 14, weight: '800' },
-            bodyFont: { size: 13, weight: '700' },
+            titleFont: { size: 15, weight: '800' },
+            bodyFont: { size: 14, weight: '700' },
+            bodySpacing: 6,
             callbacks: {
               label: function (ctx) {
+                if (chartSerieMeta.compareMode) return [];
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               },
-              footer: function (items) {
+              afterBody: function (items) {
                 if (!items || !items.length) return '';
                 if (chartSerieMeta.compareMode) {
                   const i = items[0].dataIndex;
+                  const v0 = (chartGastos.data.datasets[0].data || [])[i];
+                  const v1 = (chartGastos.data.datasets[1].data || [])[i];
                   const d = (chartSerieMeta.deltas || [])[i];
-                  return 'Variação: ' + fmtDeltaSigned(d);
+                  return [
+                    'Tempo real: ' + fmtMoeda(v0),
+                    'Como era: ' + fmtMoeda(v1),
+                    'Variação: ' + fmtDeltaSigned(d)
+                  ];
                 }
+                return '';
+              },
+              footer: function () {
+                if (chartSerieMeta.compareMode) return '';
                 return 'Clique para ver Contas a pagar';
               }
             }
@@ -1521,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', function () {
               }
               return '#047857';
             },
-            font: { weight: '900', size: 15 },
+            font: { weight: '900', size: 17 },
             formatter: function (v) { return fmtValor(v, 0); }
           }
         },
@@ -1645,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', function () {
             deltas: data.deltas || [],
             comparacao: data.comparacao || null
           };
-          chartGastos.options.layout.padding.top = compareMode ? 64 : 40;
+          chartGastos.options.layout.padding.top = compareMode ? 88 : 44;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);
