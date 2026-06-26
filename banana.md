@@ -820,10 +820,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.08`  
-**Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — painel backup recolhido + deploy loja v3.08  
-**Versão app (`VERSION`):** **teste** v3.08 · **produção** v3.08 (após merge Renan 99738595)
+**Versão:** `1.1.09`  
+**Última atualização:** `2026-05-28`  
+**Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
+**Versão app (`VERSION`):** **teste** (deploy pendente) · **produção** v3.08
+
+### WIP — orçamento salvo → fechar venda (cashback) **28/05**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma loja** | Ao confirmar venda reaberta de orçamento (F6): alerta «Cashback exige cliente cadastrado»; botões ficam «Confirmando…» |
+| **Causa** | `hydrateFromBudget` restaurava só o **nome** do cliente; ignorava `cliente_extra` (com `cliente_agro_pk`) salvo no `localStorage` |
+| **Fix** | `pdv_state.js` — hidratar cliente igual ao rascunho de sessão (`cliente_extra` + consumidor final) |
+| **Rede de segurança** | `cashback_venda_util.py` — se **não** pagou com cashback (`usado=0`) e falta cliente cadastrado, **deixa fechar** (não credita cashback gerado) |
+| **Renan testar** | Salvar orçamento com cliente cadastrado → F6 reabrir → pagar cartão → confirmar verde/branco |
+| **Produção** | Cherry-pick após OK no teste + frase + senha |
 
 ### FECHADO — painel backup Lançamentos recolhido **26/06**
 

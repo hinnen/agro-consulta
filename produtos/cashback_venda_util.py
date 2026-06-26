@@ -143,8 +143,10 @@ def validar_cashback_payload(
             if usado > 0:
                 return False, "Cashback exige cliente cadastrado (não use consumidor final).", info
             return True, "", info
-        if usado > 0 or gerado > 0:
+        if usado > 0:
             return False, "Cashback exige cliente cadastrado.", info
+        if gerado > 0:
+            return True, "", info
         return True, "", info
     saldo = _dec(cliente_agro.saldo_cashback)
     if usado > saldo + Decimal("0.009"):

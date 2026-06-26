@@ -519,25 +519,42 @@
                 observacao: ''
             };
         }) : [];
-        if (entry.cliente && String(entry.cliente).trim()) {
-            state.clienteMode = 'cliente';
-            state.cliente = {
-                id: '',
-                nome: String(entry.cliente),
-                documento: '',
-                telefone: '',
-                endereco: '',
-                logradouro: '',
-                numero: '',
-                bairro: '',
-                cidade: '',
-                uf: '',
-                cep: '',
-                plus_code: '',
-                referencia_rural: '',
-                maps_url_manual: '',
-                cliente_agro_pk: null
-            };
+        var nomeLinha = String(entry.cliente || '').trim();
+        var ex = entry.cliente_extra;
+        if (ex && typeof ex === 'object' && Object.keys(ex).length) {
+            var raw = Object.assign({}, ex);
+            if (!String(raw.nome || '').trim() && String(raw.razao_social || '').trim()) {
+                raw.nome = raw.razao_social;
+            }
+            if (!String(raw.nome || '').trim()) raw.nome = nomeLinha || 'Cliente';
+            state.cliente = sanitizeCliente(raw);
+            state.clienteMode = /consumidor\s+n[aã]o\s+identificado/i.test(state.cliente.nome || '')
+                ? 'consumidor_final'
+                : 'cliente';
+        } else if (nomeLinha) {
+            if (/consumidor\s+n[aã]o\s+identificado/i.test(nomeLinha)) {
+                state.clienteMode = 'consumidor_final';
+                state.cliente = {
+                    id: '',
+                    nome: nomeLinha,
+                    documento: '',
+                    telefone: '',
+                    endereco: '',
+                    logradouro: '',
+                    numero: '',
+                    bairro: '',
+                    cidade: '',
+                    uf: '',
+                    cep: '',
+                    plus_code: '',
+                    referencia_rural: '',
+                    maps_url_manual: '',
+                    cliente_agro_pk: null
+                };
+            } else {
+                state.clienteMode = 'cliente';
+                state.cliente = sanitizeCliente({ nome: nomeLinha, id: '' });
+            }
         }
         if (entry.entrega) {
             state.entrega.ativa = true;
