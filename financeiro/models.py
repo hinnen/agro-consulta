@@ -157,6 +157,10 @@ class GraficoGastosAtalhoAgro(models.Model):
     slot = models.PositiveSmallIntegerField(unique=True)
     nome = models.CharField(max_length=80, blank=True, default="")
     payload = models.JSONField(default=dict, blank=True)
+    eh_padrao = models.BooleanField(
+        default=False,
+        help_text="Ao abrir o gráfico, aplica este atalho automaticamente (só um por vez).",
+    )
     atualizado_por = models.ForeignKey(
         "auth.User",
         null=True,

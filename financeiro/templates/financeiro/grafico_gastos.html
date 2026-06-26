@@ -102,6 +102,14 @@
   .gg-atalho-slot.is-filled { border-style: solid; border-color: #86efac; background: #ecfdf5; color: #047857; }
   .gg-atalho-slot.is-filled:hover { border-color: var(--gg-emerald); background: #d1fae5; }
   .gg-atalho-slot.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
+  .gg-atalho-slot.is-padrao {
+    border-color: #2563eb; background: #eff6ff; color: #1d4ed8;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+  }
+  .gg-atalho-slot.is-padrao::before {
+    content: '📌\00a0'; font-size: 0.55rem; vertical-align: middle;
+  }
+  .gg-atalho-slot.is-padrao.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
   .gg-split-body {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     gap: 0.55rem; align-items: stretch; flex: 1 1 auto; min-height: 0;
@@ -564,6 +572,10 @@
                 <p><strong>Tempo real</strong> — valores de hoje (pagamentos recentes já abatem o saldo).</p>
                 <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: títulos pagos <em>depois</em> voltam a aparecer em aberto; títulos criados depois somem. Pagamentos parciais antigos podem ter pequena diferença (Mongo não guarda histórico de cada baixa).</p>
                 <p><strong>Comparar</strong> — duas linhas no gráfico (verde = hoje, laranja = como era na data). Em cada mês aparece a <em>variação</em>; no canto, totais e diferença geral. Desliga «Individual».</p>
+              </details>
+              <details>
+                <summary>? Atalhos salvos (barra superior)</summary>
+                <p><strong>Clique</strong> — aplica o atalho · <strong>Shift+clique</strong> — grava filtros atuais no slot · <strong>Alt+clique</strong> — fixa como <em>padrão ao abrir</em> (📌 azul; vale para todos os usuários). Alt+clique de novo no fixado — tira o padrão.</p>
               </details>
             </div>
           </div>
@@ -1183,6 +1195,15 @@ document.addEventListener('DOMContentLoaded', function () {
     syncChipsPeriodo(document.getElementById('filtro-periodo').value);
   }
 
+  function marcarAtalhoAtivo(slot) {
+    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) {
+      const n = Number(b.getAttribute('data-slot'));
+      const row = atalhosCache.find(function (a) { return a.slot === n; });
+      b.classList.toggle('is-active', slot != null && n === slot);
+      b.classList.toggle('is-padrao', !!(row && row.eh_padrao));
+    });
+  }
+
   function renderAtalhosSlots() {
     const wrap = document.getElementById('gg-atalhos-slots');
     if (!wrap) return;
@@ -1190,11 +1211,19 @@ document.addEventListener('DOMContentLoaded', function () {
     atalhosCache.forEach(function (a) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'gg-atalho-slot' + (a.nome ? ' is-filled' : '');
+      let cls = 'gg-atalho-slot';
+      if (a.nome) cls += ' is-filled';
+      if (a.eh_padrao) cls += ' is-padrao';
+      btn.className = cls;
       btn.setAttribute('data-slot', String(a.slot));
-      btn.title = a.nome
-        ? (a.nome + ' — clique aplica · Shift+clique grava de novo')
-        : ('Slot ' + a.slot + ' — clique para salvar filtros atuais');
+      if (a.nome) {
+        let titulo = a.nome + ' — clique aplica · Shift+clique grava de novo';
+        if (a.eh_padrao) titulo += ' · padrão ao abrir';
+        titulo += ' · Alt+clique fixa/desfixa padrão';
+        btn.title = titulo;
+      } else {
+        btn.title = 'Slot ' + a.slot + ' — clique para salvar filtros atuais';
+      }
       btn.textContent = a.nome || ('+' + a.slot);
       btn.addEventListener('click', function (ev) { onAtalhoClick(a.slot, ev); });
       wrap.appendChild(btn);
@@ -1233,9 +1262,41 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () { alert('Falha ao salvar atalho no servidor.'); });
   }
 
+  function definirAtalhoPadrao(slot, acao, cb) {
+    fetch(API_ATALHO_SLOT + slot + '/padrao/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ acao: acao || 'definir' })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          alert(res.data.erro || 'Não foi possível fixar o atalho.');
+          return;
+        }
+        carregarAtalhosServidor(cb);
+      })
+      .catch(function () { alert('Falha ao fixar atalho no servidor.'); });
+  }
+
   function onAtalhoClick(slot, ev) {
     const row = atalhosCache.find(function (a) { return a.slot === slot; });
     const filled = row && row.nome && row.payload;
+    if (ev.altKey) {
+      if (!filled) {
+        alert('Salve um atalho neste slot antes de fixar como padrão.');
+        return;
+      }
+      if (row.eh_padrao) {
+        if (!confirm('Tirar «' + row.nome + '» como padrão ao abrir o gráfico?')) return;
+        definirAtalhoPadrao(slot, 'remover');
+        return;
+      }
+      if (!confirm('Fixar «' + row.nome + '» para abrir sempre neste gráfico? (todos os usuários)')) return;
+      definirAtalhoPadrao(slot, 'definir');
+      return;
+    }
     if (ev.shiftKey && filled) {
       if (!confirm('Gravar os filtros atuais no atalho «' + row.nome + '»? (todos os usuários)')) return;
       salvarAtalhoServidor(slot, row.nome, coletarEstadoFiltros(), function () {
@@ -1252,9 +1313,20 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     aplicarEstadoFiltros(row.payload);
-    document.querySelectorAll('.gg-atalho-slot').forEach(function (b) {
-      b.classList.toggle('is-active', Number(b.getAttribute('data-slot')) === slot);
-    });
+    marcarAtalhoAtivo(slot);
+    atualizarGrafico({ forceRetract: autoRetractEl.checked });
+  }
+
+  function aplicarEstadoInicialGrafico() {
+    const padrao = atalhosCache.find(function (a) { return a.eh_padrao && a.nome && a.payload; });
+    if (padrao) {
+      aplicarEstadoFiltros(padrao.payload);
+      marcarAtalhoAtivo(padrao.slot);
+    } else {
+      aplicarPeriodoCodigo('p3m');
+      marcarAtalhoAtivo(null);
+    }
+    atualizarResumoFiltros();
     atualizarGrafico({ forceRetract: autoRetractEl.checked });
   }
 
@@ -1656,10 +1728,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.AgroDatePicker) {
       window.AgroDatePicker.bind(document, { accent: '#059669', accentSoft: '#ecfdf5' });
     }
-    carregarAtalhosServidor();
-    aplicarPeriodoCodigo('p3m');
-    atualizarResumoFiltros();
-    atualizarGrafico({ forceRetract: autoRetractEl.checked });
+    carregarAtalhosServidor(function () {
+      aplicarEstadoInicialGrafico();
+    });
   });
 });
 </script>

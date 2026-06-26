@@ -2,6 +2,7 @@ from datetime import date, timedelta
 import json
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
@@ -330,13 +331,22 @@ def _grafico_gastos_atalhos_lista() -> list[dict]:
                     "slot": slot,
                     "nome": row.nome,
                     "payload": row.payload or {},
+                    "eh_padrao": bool(row.eh_padrao),
                     "atualizado_em": row.atualizado_em.isoformat()
                     if row.atualizado_em
                     else None,
                 }
             )
         else:
-            out.append({"slot": slot, "nome": "", "payload": None, "atualizado_em": None})
+            out.append(
+                {
+                    "slot": slot,
+                    "nome": "",
+                    "payload": None,
+                    "eh_padrao": False,
+                    "atualizado_em": None,
+                }
+            )
     return out
 
 
@@ -344,7 +354,9 @@ def _grafico_gastos_atalhos_lista() -> list[dict]:
 @login_required(login_url="/admin/login/")
 @require_http_methods(["GET"])
 def api_grafico_gastos_atalhos(request):
-    return JsonResponse({"atalhos": _grafico_gastos_atalhos_lista()})
+    atalhos = _grafico_gastos_atalhos_lista()
+    slot_padrao = next((a["slot"] for a in atalhos if a.get("eh_padrao")), None)
+    return JsonResponse({"atalhos": atalhos, "slot_padrao": slot_padrao})
 
 
 @never_cache
@@ -383,3 +395,26 @@ def api_grafico_gastos_atalho_salvar(request, slot: int):
             "atualizado_em": obj.atualizado_em.isoformat(),
         }
     )
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_http_methods(["POST"])
+def api_grafico_gastos_atalho_padrao(request, slot: int):
+    if slot not in (1, 2, 3, 4):
+        return JsonResponse({"erro": "Slot inválido"}, status=400)
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"erro": "JSON inválido"}, status=400)
+    acao = (body.get("acao") or "definir").strip().lower()
+    if acao == "remover":
+        GraficoGastosAtalhoAgro.objects.filter(slot=slot, eh_padrao=True).update(eh_padrao=False)
+        return JsonResponse({"ok": True, "slot_padrao": None})
+    row = GraficoGastosAtalhoAgro.objects.filter(slot=slot).first()
+    if not row or not row.nome:
+        return JsonResponse({"erro": "Salve um atalho neste slot antes de fixar."}, status=400)
+    with transaction.atomic():
+        GraficoGastosAtalhoAgro.objects.filter(eh_padrao=True).update(eh_padrao=False)
+        GraficoGastosAtalhoAgro.objects.filter(pk=row.pk).update(eh_padrao=True)
+    return JsonResponse({"ok": True, "slot_padrao": slot})
