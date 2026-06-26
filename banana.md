@@ -521,7 +521,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | Corte | Significado | Status |
 | ----- | ----------- | ------ |
 | **1 — Parar de falar com o ERP** | SisVale **não envia** mais baixa/lançamento para o sistema antigo (API WL) | **✅ Feito** (checkpoint + código v1.14) |
-| **2 — Mudar a tela Lançamentos** | Contas a pagar/receber passam a **ler e gravar no Postgres Agro**, não no Mongo | **⏸ Falta** (3–5 dias de dev + teste) |
+| **2 — Mudar a tela Lançamentos** | Contas a pagar/receber passam a **ler e gravar no Postgres Agro**, não no Mongo | **🔥 HOJE** — escopo **CP primeiro** |
 
 ---
 
@@ -545,13 +545,48 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **E** | **Ligar na loja** — flag `AGRO_FONTE_FINANCEIRO=agro_pg` **só quando B+C estiverem prontos** | Deploy **produção** + senha |
 | **F** | Mongo vira **só histórico** (não entra título novo) — opcional congelar de vez | Depois de E estável |
 
-**Tempo realista:** **3–5 dias** de trabalho focado (não é “hoje à tarde”). **Não bloqueia** a loja amanhã — é trocar o armário com cuidado.
+**Prioridade Renan (25/06 — ordem fixa):**
 
-**Fiado não entra aqui** — fiado já é Postgres nativo; é outro módulo.
+1. **Contas a pagar EM ABERTO** — máxima segurança · zero perda  
+2. **Contas a pagar** (todas)  
+3. **Contas a receber** — **por último** (quase não usam; fiado = outra tela)
+
+**Regra:** Mongo **não some** até espelho PG conferido · leitura PG **só** com flag · gravação dupla ou rollback se falhar.
+
+**Escopo HOJE:** CP em aberto → CP lista/filtros → CR depois (se der tempo).
+
+**Fiado não entra** — já Postgres nativo.
 
 ---
 
-### 4.16 Lançamentos — preparação corte ERP (**feito**) · migração Postgres (**pendente**)
+### WIP HOJE — Lançamentos Postgres (CP primeiro)
+
+| Quem | O quê |
+| ---- | ----- |
+| **Assistente** | Import PG · views CP em aberto · flag staging · testes |
+| **Renan** | Só bloco **«Renan — intervenção»** abaixo |
+
+### Renan — intervenção (estritamente necessário)
+
+| # | Quando | Faça |
+| --- | ------ | ---- |
+| **1** | **Antes de qualquer `--apply`** | `/lancamentos/` → painel admin → **Backup ZIP abertos** + **XLSX completo** → guardar no PC (**2 cópias** se puder) |
+| **2** | **Antes de ligar flag no teste** | Anotar **nº de títulos em aberto** na tela CP (filtro Em aberto) |
+| **3** | **Depois import teste** | Conferir: **mesmo nº** em aberto · abrir **3 títulos** (valor, vencimento, fornecedor) |
+| **4** | **Render** | **Não** mexer em env sozinho — assistente pede quando for hora |
+| **5** | **Loja** | Flag PG / deploy **só** com frase + senha · **só** após teste OK |
+| **6** | **CR / fiado** | Ignorar hoje — fiado já é Postgres |
+
+**Não fazer:** apagar Mongo · ligar `AGRO_FONTE_FINANCEIRO=agro_pg` na loja sem OK do assistente.
+
+### WIP AGORA — pós-validação loja
+
+| Foco | Detalhe |
+| ---- | ------- |
+| **🔥 HOJE** | Lançamentos PG — **CP em aberto** primeiro |
+| **Loja operando** | Continua **Mongo** até Renan + assistente validarem teste |
+| **Motor busca** | ⏸ pausado |
+| **NF passo 7 PG** | Depois da CP em aberto estável |
 
 **Já feito (jun/2026):** backup, checkpoint, corte Agro→ERP na API, layout CP, PIN, perf — ver §4.10 e tabela acima.
 
@@ -653,10 +688,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.98`  
-**Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — § leiga Lançamentos / corte Mongo  
+**Versão:** `1.0.99`  
+**Última atualização:** `2026-06-26`  
+**Atualizado por:** assistente — gráfico gastos Chart.js (Mongo)  
 **Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.01 · HEAD loja **`087c13f`**
+
+### WIP — gráfico gastos por plano (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Rota** | `/financeiro/grafico-gastos/` · API `/financeiro/api/dados-grafico-gastos/` |
+| **Fonte** | Mongo `DtoLancamento` (vencimento · `Saida` · dedup DRE) |
+| **Planos** | `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos |
+| **UI** | Chart.js · filtros · favoritos localStorage · modo individual |
+| **Pendente** | commit/push teste · link no menu Lançamentos/BI (se Renan quiser) |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
@@ -720,28 +765,25 @@ Cosmético (não bloqueia): ordem busca «milho» · custo lista R$ 0 GM9503.
 
 Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_ledger_ativo: true` · `staging_readonly: false`
 
-### WIP AGORA — pós-validação loja
+### WIP AGORA — (histórico 25/06 manhã — substituído por WIP HOJE acima)
 
-| Foco | Detalhe |
-| ---- | ------- |
-| **Loja amanhã** | **✅ OK sem código hoje** — v3.01 validado (checklist 0–9) |
-| **Motor busca GM** | **⏸ PAUSADO** (Renan cansado — não bloqueia operação) |
-| **Entrada NF financeiro Agro** | **⏸ sprint** — loja **já grava** passo 7 no **Mongo** (`DtoLancamento`) |
-| **Lançamentos → Postgres** | **⏸ sprint** — CP/CR **continuam Mongo** na loja (funcionando) |
-| **Retomar quando quiser** | NF financeiro Agro (2–3 d dev) → depois Lançamentos PG (3–5 d) |
+<details>
+<summary>pausado motor / NF financeiro</summary>
 
-### Renan — precisa fazer hoje para amanhã?
+Motor busca ⏸ · NF financeiro Agro depois CP PG.
 
-| Pergunta | Resposta |
-| -------- | -------- |
-| **Loja abre normal amanhã?** | **Sim** — PDV · vendas · caixa · Compras · Gestão · Entrada NF **completa** (estoque + título a pagar no Mongo) · Lançamentos |
-| **Entrada NF financeiro Agro hoje?** | **Não** — é **desvinculação** (título no Postgres em vez do Mongo). Passo 7 **✅ validado** na loja com Mongo |
-| **Lançamentos Postgres hoje?** | **Não** — telas ainda Mongo; prep `TituloFinanceiroAgro` só staging. Operador usa Lançamentos **como sempre** |
-| **Motor busca hoje?** | **Não** — GM/código estranho é incômodo, não trava balcão |
+</details>
 
-**Resumo:** sprint financeiro = **melhoria de arquitetura**, não **pré-requisito** da operação de amanhã.
+### Renan — precisa fazer hoje para amanhã? (obsoleto — ver «intervenção»)
 
-### AUDITORIA PRODUÇÃO — pontas soltas (25/06, pós-validação Renan)
+<details>
+<summary>checklist operação loja — já validado ✅</summary>
+
+Loja OK v3.01 — checklist 0–9 fechado.
+
+</details>
+
+### 4.16 Lançamentos — preparação corte ERP (**feito**) · migração Postgres (**🔥 HOJE — CP**)
 
 **Diff código `origin/producao` vs `origin/teste`:** só **3 arquivos** — `VERSION` · `banana.md` · `agro_fonte_config.py`. **Operação = mesmo código** (merge + hotfix `b016b4a`).
 
