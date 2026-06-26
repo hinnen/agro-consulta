@@ -307,24 +307,37 @@
   }
   .gg-meta-badge-hist.is-comparar { background: #2563eb; }
   .gg-chk-toggle.is-disabled { opacity: 0.55; cursor: not-allowed; }
-  .gg-compare-box {
-    position: absolute; top: 0.35rem; right: 0.35rem; z-index: 12;
-    max-width: min(17rem, 44%); padding: 0.45rem 0.6rem;
-    border-radius: 0.65rem; border: 2px solid #cbd5e1;
-    background: rgba(255, 255, 255, 0.97); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
-    font-size: var(--gg-label); line-height: 1.35; pointer-events: none;
+  .gg-compare-strip {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem;
+    padding: 0.45rem 0.55rem; border-radius: var(--gg-radius);
+    border: 2px solid #93c5fd; background: linear-gradient(90deg, #eff6ff, #fff);
+    shrink: 0;
   }
-  .gg-compare-box[hidden] { display: none !important; }
-  .gg-compare-box strong { font-weight: 900; color: var(--gg-text); }
-  .gg-compare-line { display: flex; justify-content: space-between; gap: 0.45rem; margin-bottom: 0.12rem; }
-  .gg-compare-line small { color: var(--gg-muted); font-weight: 700; white-space: nowrap; }
-  .gg-compare-delta {
-    margin-top: 0.25rem; padding-top: 0.3rem; border-top: 1px solid #e2e8f0;
-    font-weight: 900; text-align: right;
+  .gg-compare-strip[hidden] { display: none !important; }
+  .gg-compare-cell {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.2rem; min-height: 3.25rem; padding: 0.4rem 0.55rem;
+    border-radius: 0.65rem; background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #e2e8f0; text-align: center;
   }
-  .gg-compare-delta.is-mais { color: #b45309; }
-  .gg-compare-delta.is-menos { color: #047857; }
-  .gg-compare-delta.is-zero { color: #64748b; }
+  .gg-compare-lbl {
+    font-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem);
+    font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gg-muted);
+  }
+  .gg-compare-cell strong {
+    font-size: clamp(1.05rem, 1.4vw + 0.7rem, 1.45rem);
+    font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.15;
+  }
+  .gg-compare-cell.is-real { border-color: #86efac; background: #f0fdf4; }
+  .gg-compare-cell.is-real strong { color: #047857; }
+  .gg-compare-cell.is-hist { border-color: #fdba74; background: #fff7ed; }
+  .gg-compare-cell.is-hist strong { color: #b45309; }
+  .gg-compare-cell.is-delta { border-color: #cbd5e1; background: #f8fafc; }
+  .gg-compare-cell.is-delta.is-mais { border-color: #fdba74; background: #fffbeb; }
+  .gg-compare-cell.is-delta.is-mais strong { color: #b45309; }
+  .gg-compare-cell.is-delta.is-menos { border-color: #86efac; background: #ecfdf5; }
+  .gg-compare-cell.is-delta.is-menos strong { color: #047857; }
+  .gg-compare-cell.is-delta.is-zero strong { color: #64748b; }
   .gg-kpi-row { display: none; }
   .gg-chart-card {
     flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
@@ -428,6 +441,21 @@
   <span class="gg-meta-stat is-planos"><small>Planos</small> <strong id="gg-kpi-planos">—</strong></span>
   <span class="gg-meta-time" id="gg-ultima-atualizacao">—</span>
   <button type="button" class="gg-summary-edit" id="btn-abrir-painel-filtros" title="Filtros e planos de contas">Filtros</button>
+</div>
+
+<div id="gg-compare-strip" class="gg-compare-strip" hidden aria-live="polite">
+  <div class="gg-compare-cell is-real">
+    <span class="gg-compare-lbl">Tempo real</span>
+    <strong id="gg-compare-real">—</strong>
+  </div>
+  <div class="gg-compare-cell is-hist">
+    <span class="gg-compare-lbl">Como era</span>
+    <strong id="gg-compare-hist">—</strong>
+  </div>
+  <div class="gg-compare-cell is-delta" id="gg-compare-delta-wrap">
+    <span class="gg-compare-lbl">Variação total</span>
+    <strong id="gg-compare-delta">—</strong>
+  </div>
 </div>
 
 <div class="gg-stage">
@@ -576,11 +604,6 @@
 
   <div class="gg-chart-card">
     <div class="gg-chart-inner">
-      <div id="gg-compare-box" class="gg-compare-box" hidden aria-live="polite">
-        <div class="gg-compare-line"><small>Tempo real</small> <strong id="gg-compare-real">—</strong></div>
-        <div class="gg-compare-line"><small>Como era</small> <strong id="gg-compare-hist">—</strong></div>
-        <div class="gg-compare-delta" id="gg-compare-delta">Variação —</div>
-      </div>
       <div id="gg-status" class="is-loading">Montando gráfico…</div>
       <canvas id="graficoGastos"></canvas>
     </div>
@@ -856,21 +879,22 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function atualizarCompareBox(comparacao) {
-    const box = document.getElementById('gg-compare-box');
+    const strip = document.getElementById('gg-compare-strip');
     const elReal = document.getElementById('gg-compare-real');
     const elHist = document.getElementById('gg-compare-hist');
     const elDelta = document.getElementById('gg-compare-delta');
-    if (!box || !elReal || !elHist || !elDelta) return;
+    const elDeltaWrap = document.getElementById('gg-compare-delta-wrap');
+    if (!strip || !elReal || !elHist || !elDelta || !elDeltaWrap) return;
     if (!comparacao) {
-      box.hidden = true;
+      strip.hidden = true;
       return;
     }
-    box.hidden = false;
+    strip.hidden = false;
     elReal.textContent = fmtMoeda(comparacao.total_real);
     elHist.textContent = fmtMoeda(comparacao.total_historico);
     const cls = deltaClasse(comparacao.delta_total);
-    elDelta.className = 'gg-compare-delta ' + cls;
-    elDelta.textContent = 'Variação ' + fmtDeltaSigned(comparacao.delta_total);
+    elDeltaWrap.className = 'gg-compare-cell is-delta ' + cls;
+    elDelta.textContent = fmtDeltaSigned(comparacao.delta_total);
   }
 
   function atualizarResumoFiltros() {
@@ -1388,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', function () {
           deltas: data.deltas || [],
           comparacao: data.comparacao || null
         };
-        chartGastos.options.layout.padding.top = compareMode ? 44 : 36;
+        chartGastos.options.layout.padding.top = compareMode ? 40 : 36;
         chartGastos.data.labels = data.labels || [];
         chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
           return estilizarDataset(ds, compareMode);
