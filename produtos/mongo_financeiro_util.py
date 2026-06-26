@@ -4301,6 +4301,374 @@ def dashboard_despesas_plano_serie_mongo(
     )
 
 
+_GRAFICO_GASTOS_CORES = (
+    ("#059669", "rgba(5, 150, 105, 0.12)"),
+    ("#ea580c", "rgba(234, 88, 12, 0.12)"),
+    ("#2563eb", "rgba(37, 99, 235, 0.12)"),
+    ("#7c3aed", "rgba(124, 58, 237, 0.12)"),
+    ("#dc2626", "rgba(220, 38, 38, 0.12)"),
+    ("#0891b2", "rgba(8, 145, 178, 0.12)"),
+)
+
+_MESES_PT = (
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+)
+
+
+def grafico_gastos_planos_despesa_mongo(db) -> list[dict[str, str]]:
+    """Planos de despesa (cadastro Mongo + fallback em lançamentos) para checkboxes."""
+    if db is None:
+        return []
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def _add(pid: str, nome: str) -> None:
+        pid = (pid or "").strip()
+        nome = (nome or "").strip()
+        if not pid or not nome or pid in seen:
+            return
+        if _dashboard_plano_excluido_gastos_chart(nome):
+            return
+        seen.add(pid)
+        out.append({"id": pid, "nome": nome})
+
+    try:
+        col = db[COL_DTO_PLANO_CONTA]
+        cursor = col.find(
+            {"EhDespesa": True, "Nome": {"$regex": r"\S"}},
+            {"Nome": 1, "_id": 1, "PlanoDeContaID": 1},
+        ).sort("Nome", 1)
+        for doc in cursor:
+            nome = str(doc.get("Nome") or "").strip()
+            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
+                doc.get("PlanoDeContaID")
+            )
+            _add(pid, nome)
+    except Exception as exc:
+        logger.warning("grafico_gastos_planos_despesa_mongo cadastro: %s", exc)
+
+    if len(out) < 8:
+        try:
+            pipe = [
+                {"$match": {"Despesa": True, "PlanoDeConta": {"$regex": r"\S"}}},
+                {
+                    "$group": {
+                        "_id": {
+                            "id": {"$ifNull": [{"$toString": "$PlanoDeContaID"}, ""]},
+                            "nome": {"$ifNull": ["$PlanoDeConta", ""]},
+                        }
+                    }
+                },
+                {"$sort": {"_id.nome": 1}},
+                {"$limit": 500},
+            ]
+            for r in db[COL_DTO_LANCAMENTO].aggregate(pipe):
+                gid = r.get("_id") or {}
+                nome = str(gid.get("nome") or "").strip()
+                pid = str(gid.get("id") or "").strip()
+                if not pid and nome:
+                    _, pid_fb = buscar_plano_conta_mestre_por_nome_mongo(db, nome)
+                    pid = pid_fb or nome
+                _add(pid, nome)
+        except Exception as exc:
+            logger.warning("grafico_gastos_planos_despesa_mongo fallback: %s", exc)
+
+    out.sort(key=lambda x: x["nome"].casefold())
+    return out
+
+
+def _grafico_gastos_filtro_planos_mongo(
+    db, plano_ids: list[str]
+) -> tuple[list[str], list[str], dict[str, str]]:
+    """Resolve IDs selecionados → (ids, nomes, mapa id→nome)."""
+    ids: list[str] = []
+    nomes: list[str] = []
+    id_nome: dict[str, str] = {}
+    for raw in plano_ids:
+        pid = (raw or "").strip()
+        if not pid:
+            continue
+        pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
+        if not pn:
+            pn = pid
+        ids.append(pid)
+        id_nome[pid] = pn
+        if pn and pn not in nomes:
+            nomes.append(pn)
+    return ids, nomes, id_nome
+
+
+def _grafico_gastos_bucket_key(dt: date, agrupamento: str) -> str:
+    agr = (agrupamento or "mes").strip().lower()
+    if agr == "dia":
+        return dt.isoformat()
+    if agr == "semana":
+        iso = dt.isocalendar()
+        return f"{iso.year}-W{iso.week:02d}"
+    if agr == "ano":
+        return str(dt.year)
+    return f"{dt.year}-{dt.month:02d}"
+
+
+def _grafico_gastos_bucket_label(key: str, agrupamento: str) -> str:
+    agr = (agrupamento or "mes").strip().lower()
+    if agr == "dia":
+        try:
+            d = date.fromisoformat(key)
+            return d.strftime("%d/%m/%Y")
+        except ValueError:
+            return key
+    if agr == "semana":
+        if "-W" in key:
+            y, w = key.split("-W", 1)
+            return f"Sem {w}/{y}"
+        return key
+    if agr == "ano":
+        return key
+    try:
+        y, m = key.split("-", 1)
+        mi = int(m)
+        return f"{_MESES_PT[mi - 1]}/{y}"
+    except (ValueError, IndexError):
+        return key
+
+
+def _grafico_gastos_iter_bucket_keys(data_de: date, data_ate: date, agrupamento: str) -> list[str]:
+    agr = (agrupamento or "mes").strip().lower()
+    keys: list[str] = []
+    seen: set[str] = set()
+    cur = data_de
+    while cur <= data_ate:
+        k = _grafico_gastos_bucket_key(cur, agr)
+        if k not in seen:
+            seen.add(k)
+            keys.append(k)
+        if agr == "dia":
+            cur += timedelta(days=1)
+        elif agr == "semana":
+            cur += timedelta(days=7)
+        elif agr == "ano":
+            cur = date(cur.year + 1, 1, 1)
+        else:
+            if cur.month == 12:
+                cur = date(cur.year + 1, 1, 1)
+            else:
+                cur = date(cur.year, cur.month + 1, 1)
+    return keys
+
+
+def _grafico_gastos_match_planos(ids: list[str], nomes: list[str]) -> dict[str, Any] | None:
+    ors: list[dict[str, Any]] = []
+    if ids:
+        id_vals: list[Any] = list(dict.fromkeys(ids))
+        for pid in ids:
+            oid = _pedido_erp_oid_24(pid)
+            if oid is not None and oid not in id_vals:
+                id_vals.append(oid)
+        ors.append({"PlanoDeContaID": {"$in": id_vals}})
+    if nomes:
+        ors.append({"PlanoDeConta": {"$in": list(dict.fromkeys(nomes))}})
+    if not ors:
+        return None
+    if len(ors) == 1:
+        return ors[0]
+    return {"$or": ors}
+
+
+def grafico_gastos_serie_mongo(
+    db,
+    *,
+    data_de: date,
+    data_ate: date,
+    agrupamento: str = "mes",
+    plano_ids: list[str] | None = None,
+    individual: bool = False,
+) -> dict[str, Any]:
+    """
+    Série temporal de despesas (DtoLancamento) para Chart.js.
+
+    ``individual``: uma linha por plano (JS envia 1 ID) ou soma única «Total Selecionado».
+    Data de referência: vencimento; valor bruto (``Saida``).
+    """
+    vazio = {"ok": False, "erro": "Mongo indisponível", "labels": [], "datasets": []}
+    if db is None:
+        return vazio
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+
+    ids, nomes, id_nome = _grafico_gastos_filtro_planos_mongo(db, plano_ids or [])
+    if not ids and not nomes:
+        return {
+            "ok": True,
+            "erro": None,
+            "labels": [],
+            "datasets": [],
+        }
+
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_ate, dtime.max), tz)
+
+    match_plano = _grafico_gastos_match_planos(ids, nomes)
+    if match_plano is None:
+        return {"ok": True, "erro": None, "labels": [], "datasets": []}
+
+    pats = _dre_regexes_excluir_resultado(None)
+    match0: dict[str, Any] = {
+        "$and": [
+            {"Despesa": True, "DataVencimento": {"$gte": ini, "$lte": fim}},
+            match_plano,
+            {"$nor": [{"PlanoDeConta": {"$regex": pat}} for pat in pats]},
+        ]
+    }
+
+    agr = (agrupamento or "mes").strip().lower()
+    if agr == "dia":
+        bucket_expr: dict[str, Any] = {
+            "$dateToString": {
+                "format": "%Y-%m-%d",
+                "date": "$DataVencimento",
+                "timezone": str(tz),
+            }
+        }
+    elif agr == "semana":
+        bucket_expr = {
+            "$dateToString": {
+                "format": "%G-W%V",
+                "date": "$DataVencimento",
+                "timezone": str(tz),
+            }
+        }
+    elif agr == "ano":
+        bucket_expr = {
+            "$dateToString": {
+                "format": "%Y",
+                "date": "$DataVencimento",
+                "timezone": str(tz),
+            }
+        }
+    else:
+        bucket_expr = {
+            "$dateToString": {
+                "format": "%Y-%m",
+                "date": "$DataVencimento",
+                "timezone": str(tz),
+            }
+        }
+
+    group_id: dict[str, Any] = {"bucket": bucket_expr}
+    if individual:
+        group_id["plano"] = {"$ifNull": ["$PlanoDeConta", ""]}
+
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        dedup_id = getattr(settings, "DRE_DEDUP_LANCAMENTO_ID", True)
+        if dedup_id:
+            pipe = [
+                {"$match": match0},
+                {"$addFields": {"vl_graf": {"$ifNull": ["$Saida", 0]}}},
+                {"$addFields": {"dk_graf": _mongo_expr_dre_dedup_key()}},
+                {
+                    "$group": {
+                        "_id": {"dk": "$dk_graf", **group_id},
+                        "soma": {"$max": "$vl_graf"},
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "bucket": "$_id.bucket",
+                            **({"plano": "$_id.plano"} if individual else {}),
+                        },
+                        "soma": {"$sum": "$soma"},
+                    }
+                },
+            ]
+        else:
+            pipe = [
+                {"$match": match0},
+                {
+                    "$group": {
+                        "_id": group_id,
+                        "soma": {"$sum": {"$ifNull": ["$Saida", 0]}},
+                    }
+                },
+            ]
+        agg = list(col.aggregate(pipe))
+    except Exception as exc:
+        logger.exception("grafico_gastos_serie_mongo: %s", exc)
+        out = dict(vazio)
+        out["erro"] = str(exc)[:300]
+        return out
+
+    bucket_keys = _grafico_gastos_iter_bucket_keys(data_de, data_ate, agr)
+    labels = [_grafico_gastos_bucket_label(k, agr) for k in bucket_keys]
+
+    if individual:
+        por_plano: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        for r in agg:
+            gid = r.get("_id") or {}
+            bkey = str(gid.get("bucket") or "")
+            plano = str(gid.get("plano") or "").strip() or "(sem plano)"
+            if _dashboard_plano_excluido_gastos_chart(plano):
+                continue
+            val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
+            if val <= 0:
+                continue
+            por_plano[plano][bkey] += val
+
+        datasets = []
+        for i, (plano, vals) in enumerate(sorted(por_plano.items(), key=lambda x: x[0].casefold())):
+            cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[i % len(_GRAFICO_GASTOS_CORES)]
+            datasets.append(
+                {
+                    "label": plano,
+                    "data": [round(vals.get(k, 0.0), 2) for k in bucket_keys],
+                    "borderColor": cor_borda,
+                    "backgroundColor": cor_fundo,
+                    "fill": True,
+                }
+            )
+    else:
+        totais: dict[str, float] = defaultdict(float)
+        for r in agg:
+            gid = r.get("_id") or {}
+            bkey = str(gid.get("bucket") or gid if isinstance(gid, str) else "")
+            if isinstance(gid, dict):
+                bkey = str(gid.get("bucket") or "")
+            val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
+            if val <= 0:
+                continue
+            totais[bkey] += val
+
+        label = "Total Selecionado"
+        if len(ids) == 1:
+            label = id_nome.get(ids[0]) or label
+        cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[0]
+        datasets = [
+            {
+                "label": label,
+                "data": [round(totais.get(k, 0.0), 2) for k in bucket_keys],
+                "borderColor": cor_borda,
+                "backgroundColor": cor_fundo,
+                "fill": True,
+            }
+        ]
+
+    return {"ok": True, "erro": None, "labels": labels, "datasets": datasets}
+
+
 # Campos usuais do DtoLancamento (WL / Venda ERP) enviados ao POST de integração — evita payload gigante.
 _ERP_DOC_KEYS_EXPORT = frozenset(
     {

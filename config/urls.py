@@ -12,6 +12,7 @@ def healthz(_request):
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path("api/financeiro/", include("financeiro.api.urls")),
+    path("financeiro/", include("financeiro.urls")),
     path("api/indicadores/", include("estoque.api.urls")),
     path("api/transferencias/", include("transferencias.api.urls")),
     path("pdv/", include("pdv.urls")),

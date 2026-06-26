@@ -1,9 +1,18 @@
+from datetime import date, timedelta
+
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 
 from base.models import Empresa
 
 from financeiro.services.dashboard_financeiro import get_dashboard_data
+from produtos.mongo_financeiro_util import (
+    grafico_gastos_planos_despesa_mongo,
+    grafico_gastos_serie_mongo,
+)
 from produtos.views import _dashboard_periodo_from_request, obter_conexao_mongo
 
 
@@ -66,4 +75,88 @@ def dashboard_financeiro_completo(request):
             "periodo_cal_ini": data_ini.isoformat(),
             "periodo_cal_fim": data_fim.isoformat(),
         },
+    )
+
+
+def _grafico_gastos_parse_date(raw: str | None) -> date | None:
+    s = (raw or "").strip()
+    if not s:
+        return None
+    try:
+        return date.fromisoformat(s[:10])
+    except ValueError:
+        return None
+
+
+@login_required(login_url="/admin/login/")
+def grafico_gastos_view(request):
+    _, mongo_db = obter_conexao_mongo()
+    planos_conta = grafico_gastos_planos_despesa_mongo(mongo_db)
+    hoje = date.today()
+    padrao_ini = (hoje.replace(day=1) - timedelta(days=1)).replace(day=1)
+    return render(
+        request,
+        "financeiro/grafico_gastos.html",
+        {
+            "planos_conta": planos_conta,
+            "data_inicial_padrao": padrao_ini.isoformat(),
+            "data_final_padrao": hoje.isoformat(),
+        },
+    )
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_dados_grafico_gastos(request):
+    agrupamento = (request.GET.get("agrupamento") or "mes").strip().lower()
+    if agrupamento not in ("dia", "semana", "mes", "ano"):
+        agrupamento = "mes"
+
+    planos_raw = (request.GET.get("planos") or "").strip()
+    plano_ids = [p.strip() for p in planos_raw.split(",") if p.strip()]
+
+    hoje = date.today()
+    data_ini = _grafico_gastos_parse_date(request.GET.get("inicio"))
+    data_fim = _grafico_gastos_parse_date(request.GET.get("fim"))
+    if data_ini is None:
+        data_ini = (hoje.replace(day=1) - timedelta(days=1)).replace(day=1)
+    if data_fim is None:
+        data_fim = hoje
+    if data_ini > data_fim:
+        data_ini, data_fim = data_fim, data_ini
+
+    individual = (request.GET.get("individual") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+    _, mongo_db = obter_conexao_mongo()
+    if mongo_db is None:
+        return JsonResponse(
+            {"erro": "Mongo indisponível", "labels": [], "datasets": []},
+            status=503,
+        )
+
+    payload = grafico_gastos_serie_mongo(
+        mongo_db,
+        data_de=data_ini,
+        data_ate=data_fim,
+        agrupamento=agrupamento,
+        plano_ids=plano_ids,
+        individual=individual,
+    )
+    if not payload.get("ok"):
+        return JsonResponse(
+            {
+                "erro": payload.get("erro") or "Falha na agregação",
+                "labels": [],
+                "datasets": [],
+            },
+            status=500,
+        )
+    return JsonResponse(
+        {"labels": payload["labels"], "datasets": payload["datasets"]}
     )
