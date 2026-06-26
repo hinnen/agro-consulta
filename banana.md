@@ -881,7 +881,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Opção **2**: card com fila **Conf. venc. / Conf. mês** (validade ok, saldo C+V e lote zerados — estoque furado) |
 | **Regra com saldo** | **Vencidos / No mês** (topo) = só com estoque operacional > 0 ou lote qtd > 0 |
 | **Opção 1 (auto)** | Salvar validade no relatório espelha data no lote Agro (já no código) |
-| **Deploy teste** | pendente |
+| **Deploy teste** | **`b48d142`** · **v3.51** |
 | **Renan testar** | `/` — Simparic e outros furos devem aparecer em **Conf. mês** (roxo) |
 
 ### WIP — BI validade card **26/06** *(histórico — fix contagem extras)*
