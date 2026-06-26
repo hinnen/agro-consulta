@@ -872,9 +872,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.55 · **produção** v3.39 (gráfico gastos pacote completo 26/06)
+**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.47
 
-### WIP — lentidão teste (vendas + PDV 1ª abertura) **24/06**
+### FECHADO — produção perf + BI validade + CP **v3.47** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«pode mandar para produção»* · **99738595** · sem testar · cuidado PDV/produtos/lançamentos |
+| **Método** | Cherry-pick (não merge teste inteiro) sobre v3.39 |
+| **Commits** | `7c84d57` · `1473620` · `b48d142` · `510f4d9` · `927dba0` · `88b5a60` → **`3793af9`** |
+| **Conteúdo loja** | BI validade + conferir · perf Mongo · `/vendas/` rápido · PDV cache localStorage · CP filtros |
+| **Dados** | **Sem** flags staging · **sem** mudar gravação PDV/lançamentos/produtos (só índice + UI + leitura) |
+| **Migrate Render** | `python manage.py migrate` — índice `vendaagro_criado_em_idx` |
+
+### WIP — lentidão teste (vendas + PDV 1ª abertura) **24/06** *(Renan não testou antes do deploy)*
 
 | Item | Detalhe |
 | ---- | ------- |
