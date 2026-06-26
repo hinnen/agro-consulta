@@ -609,42 +609,41 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.91`  
+**Versão:** `1.0.92`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** Renan — loja fechou · pausar testes · **deploy produção pedido**  
-**Versão app (`VERSION`):** **teste** v2.95 · **produção** v2.28 → alvo **pós-merge**
+**Atualizado por:** assistente — **deploy produção OK** (Renan + senha)  
+**Versão app (`VERSION`):** **teste** v2.97 · **produção** v2.97
 
-### WIP AGORA — deploy loja (loja fechou 25/06)
+### CHECKPOINT PRODUÇÃO — antes deste deploy (reverter aqui se der problema)
 
-| Foco | Detalhe |
-| ---- | ------- |
-| **Status** | ⏸ **Testes pausados** · Renan pediu **subir produção** o validado no Render teste |
-| **Bloqueio deploy** | Falta **senha `99738595` no mesmo chat** (regra produção) — assistente prepara merge ao receber |
-| **Pacote loja (código)** | Desvinculação **A–D3** + Entrada NF empresas/wizard · **Compras D4 A+B+C** (Renan ✅) · ledger + `agro_pg` |
-| **Fora / baixo risco na loja** | Motor busca v2 (só muda API com flags PG) · Lançamentos prep (modelo+migration+dry-run, **telas ainda Mongo**) |
-| **Env Render produção** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque · **sem** `AGRO_STAGING_READONLY` |
-| **Antes abrir loja** | `migrate` · conferir catálogo PG (`importar_catalogo_mongo_produto` se necessário) · backup |
-| **Depois abrir** | Ctrl+F5 · PDV busca/preço · Gestão · Compras saldo · Entrada NF passo 5 empresa · GM9503 ou 2 produtos anotados |
+| Item | Valor |
+| ---- | ----- |
+| **Tag Git** | `checkpoint/producao-v2.28-pre-desvinc-20260625` |
+| **Commit** | `f87955d` — *producao v2.28 PDV autocomplete* |
+| **VERSION loja** | **v2.28** |
+| **Reverter código** | `git checkout producao` → `git reset --hard f87955d` → push produção (**só emergência**, avisar Renan) |
+| **Render** | Redeploy manual do commit/tag acima no painel se precisar |
 
-### DEPLOY PRODUÇÃO — fila (25/06 noite)
+### DEPLOY PRODUÇÃO — **OK** (25/06 noite, Renan + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Loja fechou · pausar testes · produção = o **100% testado** no Render teste |
-| **Método** | Merge `teste` → `producao` · push `origin producao` · Render produção redeploy |
-| **Produção hoje** | **v2.28** (só autocomplete PDV — 25/06 cedo) |
-| **Teste hoje** | **v2.95** · commit `df3f1ef` |
-| **Merge inclui** | Entrada NF v2.78+ · Compras D4 v2.79–v2.87 · cadastro/fantasmas · busca Compras/NF alinhada PDV · prep Lançamentos · motor busca v2 |
-| **Não depende de flag na loja** | Motor busca v2 · Lançamentos Postgres (sem `agro_pg` financeiro) |
-| **Conferência pós-deploy** | Ver tabela «Depois abrir» acima |
+| **Merge** | `teste` → `producao` · commit `1d82d30` |
+| **Push** | `origin producao` · Render **Sistvale - Produção** redeploy automático |
+| **VERSION loja** | **v2.97** (pacote desvinculação + Compras D4 + Entrada NF + prep Lançamentos + motor busca v2) |
+| **Pacote** | Fases A–D3 · Compras D4 A+B+C · ledger · `agro_pg` (código; **env Render** abaixo) |
+| **Env Render produção** | Conferir/ajustar: `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger · **sem** `AGRO_STAGING_READONLY` |
+| **Migrate loja** | Render roda migrate no deploy · migration `0041_titulo_financeiro_agro` (só tabela prep, telas Mongo) |
+| **Antes abrir** | `importar_catalogo_mongo_produto` se catálogo PG incompleto |
+| **Renan amanhã** | Ctrl+F5 · PDV · Gestão · Compras · Entrada NF passo 5 · 2–3 produtos (ex. GM9503) |
+| **Testes** | ⏸ **pausados** até loja validar |
 
-### WIP PAUSADO — pós-deploy loja
+### WIP AGORA — pós-deploy loja
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Motor busca** | ✅ legado=v2 no teste · ordem «milho» cosmético · **ligar Compras/NF na API** — depois da loja |
-| **Lançamentos** | Prep PG feito · migração fonte `agro_pg` — sprint |
-| **Entrada NF financeiro Agro** | Título sem Mongo — sprint |
+| **Amanhã loja** | Validar operação · se OK, retomar sprint (motor Compras/NF · Lançamentos · NF financeiro) |
+| **Se bug grave** | Tag checkpoint acima → reset `f87955d` |
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
