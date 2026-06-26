@@ -26,9 +26,9 @@
     --gg-text: #0f172a;
     --gg-radius: 0.875rem;
     --gg-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
-    --gg-label: clamp(0.75rem, 0.3vw + 0.68rem, 0.875rem);
-    --gg-field: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
-    --gg-title: clamp(0.9375rem, 0.45vw + 0.8rem, 1.0625rem);
+    --gg-label: clamp(0.75rem, 0.82rem, 0.875rem);
+    --gg-field: clamp(0.8125rem, 0.9rem, 0.9375rem);
+    --gg-title: clamp(0.9375rem, 1rem, 1.0625rem);
   }
   .gg-shell-wrap {
     display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 0.35rem;
@@ -38,7 +38,7 @@
     gap: 0.5rem; padding: 0.1rem 0 0; shrink: 0;
   }
   .gg-page-head h1 {
-    margin: 0; font-size: clamp(1.05rem, 0.9vw + 0.75rem, 1.35rem);
+    margin: 0; font-size: clamp(1.05rem, 1.15rem, 1.35rem);
     font-weight: 900; color: var(--gg-text); line-height: 1.1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   }
@@ -104,7 +104,7 @@
   .gg-atalho-slot.is-active { border-color: var(--gg-emerald); box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
   .gg-split-body {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    gap: 0.55rem; align-items: stretch; min-height: 0;
+    gap: 0.55rem; align-items: stretch; flex: 1 1 auto; min-height: 0;
   }
   @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
   .gg-split-col {
@@ -123,7 +123,7 @@
   .gg-split-col > summary::after { content: ' ▼'; font-size: 0.65rem; color: var(--gg-muted); float: right; }
   .gg-split-col[open] > summary::after { content: ' ▲'; }
   .gg-split-inner {
-    padding: 0.55rem; overflow-y: auto; max-height: min(42vh, 18rem); min-height: 0;
+    padding: 0.55rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: none;
   }
   .gg-split-inner--filtros .gg-filters-grid {
     grid-template-columns: 1fr;
@@ -134,7 +134,7 @@
   }
   .gg-split-inner--planos {
     display: flex; flex-direction: column; overflow: hidden;
-    max-height: min(58vh, 32rem); min-height: min(28vh, 14rem);
+    flex: 1 1 auto; min-height: 8rem; max-height: none;
   }
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
@@ -149,7 +149,7 @@
     font-size: var(--gg-label); shrink: 0; overflow: hidden; min-height: 2.35rem;
   }
   .gg-meta-bar .gg-tag {
-    max-width: min(38vw, 22rem); padding: 0.15rem 0.5rem; border-radius: 999px;
+    max-width: min(22rem, 100%); padding: 0.15rem 0.5rem; border-radius: 999px;
     background: #fff; border: 1px solid #bbf7d0; font-weight: 800; color: #047857;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
   }
@@ -172,13 +172,15 @@
   .gg-backdrop { display: none; position: absolute; inset: 0; z-index: 30; background: rgba(15,23,42,0.42); backdrop-filter: blur(2px); }
   .gg-backdrop.is-visible { display: block; }
   .gg-filters-wrap {
-    display: none; position: absolute; left: 0; right: 0; top: 0; z-index: 40; max-height: 96%;
+    display: none; position: absolute; inset: 0; z-index: 40;
+    padding: 0.2rem 0; min-height: 0;
   }
-  .gg-filters-wrap.is-open { display: block; }
+  .gg-filters-wrap.is-open { display: flex; flex-direction: column; min-height: 0; }
   .gg-filters-card {
     background: var(--gg-card); border: 2px solid var(--gg-border);
     border-radius: var(--gg-radius); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
-    overflow: hidden; max-height: 100%; display: flex; flex-direction: column;
+    overflow: hidden; flex: 1 1 auto; min-height: 0; max-height: 100%;
+    display: flex; flex-direction: column;
   }
   .gg-filters-head {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -195,7 +197,10 @@
     font-size: var(--gg-label); font-weight: 700; color: #475569; cursor: pointer;
   }
   .gg-toggle-opt input { width: 1rem; height: 1rem; accent-color: var(--gg-emerald); }
-  .gg-filters-body { padding: 0.65rem 0.75rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; max-height: min(68vh, 34rem); }
+  .gg-filters-body {
+    padding: 0.65rem 0.75rem; flex: 1 1 auto; min-height: 0;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
   .gg-filters-grid {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem 1rem;
   }
@@ -321,11 +326,11 @@
     border: 2px solid #e2e8f0; text-align: center;
   }
   .gg-compare-lbl {
-    font-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem);
+    font-size: clamp(0.75rem, 0.82rem, 0.875rem);
     font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gg-muted);
   }
   .gg-compare-cell strong {
-    font-size: clamp(1.05rem, 1.4vw + 0.7rem, 1.45rem);
+    font-size: clamp(1.05rem, 1.2rem, 1.45rem);
     font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.15;
   }
   .gg-compare-cell.is-real { border-color: #86efac; background: #f0fdf4; }
@@ -1636,6 +1641,14 @@ document.addEventListener('DOMContentLoaded', function () {
   canvas.addEventListener('click', function (evt) {
     const idx = indicePontoNoClique(evt);
     if (idx >= 0) abrirCpPopup(idx);
+  });
+
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (chartGastos) chartGastos.resize();
+    }, 80);
   });
 
   waitLibs(function () {
