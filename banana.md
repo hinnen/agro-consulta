@@ -1032,12 +1032,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.34** |
+| **Modo tempo** | **Comparar** — faixa totais · Δ por ponto · painel flex+zoom · **loja v3.35** |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
-| **Loja** | **✅ v3.34** — cherry-pick 7 commits (26/06) · **só leitura** |
+| **Loja** | **✅ v3.35** — cherry-pick 7 commits (26/06) · **só leitura** |
 
-### DEPLOY PRODUÇÃO — gráfico gastos pacote **v3.34** (26/06)
+### DEPLOY PRODUÇÃO — gráfico gastos pacote **v3.35** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
