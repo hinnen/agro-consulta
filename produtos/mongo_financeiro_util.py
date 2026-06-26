@@ -4326,65 +4326,55 @@ _MESES_PT = (
 )
 
 
-def grafico_gastos_planos_despesa_mongo(db) -> list[dict[str, str]]:
-    """Planos de despesa (cadastro Mongo + fallback em lançamentos) para checkboxes."""
+def _grafico_gastos_status_para_lista_planos(
+    por: str,
+    valor: str,
+    *,
+    data_referencia: date | None = None,
+) -> str:
+    """Espelha ``grafico_gastos_serie_mongo`` — mesma situação que a lista CP."""
+    modo_por = (por or "vencimento").strip().lower()
+    modo_valor = (valor or "saldo").strip().lower()
+    if modo_por == "pagamento":
+        return "quitados" if (modo_valor == "pago" and not data_referencia) else "todos"
+    return "todos" if (modo_valor != "saldo" or data_referencia) else "abertos"
+
+
+def grafico_gastos_planos_despesa_mongo(
+    db,
+    *,
+    por: str = "vencimento",
+    valor: str = "saldo",
+    data_de: date | None = None,
+    data_ate: date | None = None,
+    data_referencia: date | None = None,
+    limit: int = 500,
+) -> list[dict[str, str]]:
+    """
+    Planos distintos nos lançamentos do filtro — **mesma fonte que Contas a pagar**.
+    Não lista planos «pai» do cadastro sem título (ex. Despesas Dispensáveis).
+    """
     if db is None:
         return []
+    st = _grafico_gastos_status_para_lista_planos(por, valor, data_referencia=data_referencia)
+    modo_por = (por or "vencimento").strip().lower()
+    kwargs: dict[str, Any] = dict(despesa=True, status=st, limit=limit)
+    if modo_por == "competencia":
+        kwargs["competencia_de"] = data_de
+        kwargs["competencia_ate"] = data_ate
+    elif modo_por == "pagamento":
+        kwargs["pagamento_de"] = data_de
+        kwargs["pagamento_ate"] = data_ate
+    else:
+        kwargs["vencimento_de"] = data_de
+        kwargs["vencimento_ate"] = data_ate
+    raw = lancamentos_planos_distintos_no_filtro(db, **kwargs)
     out: list[dict[str, str]] = []
-    seen: set[str] = set()
-
-    def _add(pid: str, nome: str) -> None:
-        pid = (pid or "").strip()
-        nome = (nome or "").strip()
-        if not pid or not nome or pid in seen:
-            return
-        if _dashboard_plano_excluido_gastos_chart(nome):
-            return
-        seen.add(pid)
-        out.append({"id": pid, "nome": nome})
-
-    try:
-        col = db[COL_DTO_PLANO_CONTA]
-        cursor = col.find(
-            {"EhDespesa": True, "Nome": {"$regex": r"\S"}},
-            {"Nome": 1, "_id": 1, "PlanoDeContaID": 1},
-        ).sort("Nome", 1)
-        for doc in cursor:
-            nome = str(doc.get("Nome") or "").strip()
-            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
-                doc.get("PlanoDeContaID")
-            )
-            _add(pid, nome)
-    except Exception as exc:
-        logger.warning("grafico_gastos_planos_despesa_mongo cadastro: %s", exc)
-
-    if len(out) < 8:
-        try:
-            pipe = [
-                {"$match": {"Despesa": True, "PlanoDeConta": {"$regex": r"\S"}}},
-                {
-                    "$group": {
-                        "_id": {
-                            "id": {"$ifNull": [{"$toString": "$PlanoDeContaID"}, ""]},
-                            "nome": {"$ifNull": ["$PlanoDeConta", ""]},
-                        }
-                    }
-                },
-                {"$sort": {"_id.nome": 1}},
-                {"$limit": 500},
-            ]
-            for r in db[COL_DTO_LANCAMENTO].aggregate(pipe):
-                gid = r.get("_id") or {}
-                nome = str(gid.get("nome") or "").strip()
-                pid = str(gid.get("id") or "").strip()
-                if not pid and nome:
-                    _, pid_fb = buscar_plano_conta_mestre_por_nome_mongo(db, nome)
-                    pid = pid_fb or nome
-                _add(pid, nome)
-        except Exception as exc:
-            logger.warning("grafico_gastos_planos_despesa_mongo fallback: %s", exc)
-
-    out.sort(key=lambda x: x["nome"].casefold())
+    for item in raw:
+        nome = str(item.get("nome") or "").strip()
+        if not nome or nome == "(sem plano)":
+            continue
+        out.append({"id": nome, "nome": nome})
     return out
 
 

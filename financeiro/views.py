@@ -4,6 +4,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
@@ -94,9 +95,35 @@ def _grafico_gastos_parse_date(raw: str | None) -> date | None:
 @login_required(login_url="/admin/login/")
 def grafico_gastos_view(request):
     _, mongo_db = obter_conexao_mongo()
-    planos_conta = grafico_gastos_planos_despesa_mongo(mongo_db)
     hoje = date.today()
     padrao_ini = hoje - timedelta(days=90)
+    por = "vencimento"
+    valor = "saldo"
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
+
+        raw = planos_distintos_pg(
+            despesa=True,
+            status="abertos",
+            vencimento_de=padrao_ini,
+            vencimento_ate=hoje,
+            limit=500,
+        )
+        planos_conta = [
+            {"id": str(p.get("nome") or ""), "nome": str(p.get("nome") or "")}
+            for p in raw
+            if str(p.get("nome") or "").strip() and str(p.get("nome") or "").strip() != "(sem plano)"
+        ]
+    else:
+        planos_conta = grafico_gastos_planos_despesa_mongo(
+            mongo_db,
+            por=por,
+            valor=valor,
+            data_de=padrao_ini,
+            data_ate=hoje,
+        )
     return render(
         request,
         "financeiro/grafico_gastos.html",
@@ -105,6 +132,7 @@ def grafico_gastos_view(request):
             "total_planos": len(planos_conta),
             "data_inicial_padrao": padrao_ini.isoformat(),
             "data_final_padrao": hoje.isoformat(),
+            "api_planos_cp_url": reverse("api_lancamentos_planos_distintos"),
         },
     )
 

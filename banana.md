@@ -870,9 +870,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.46 *(deploy cherry-pick 26/06 — Renan **99738595**, sem testar)*
+**Versão app (`VERSION`):** **teste** v3.59 · **produção** v3.48
 
-### FECHADO — produção perf + BI validade + CP **v3.46** (26/06)
+### FECHADO — produção gráfico gastos planos = CP **v3.48** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Teste OK · *«suba para produção»* · cherry-pick isolado · **só leitura** (PDV/produtos/lançamentos inalterados) |
+| **Commit** | `3c85b6f` → cherry-pick na loja |
+| **Conteúdo** | Lista de planos no gráfico = **Contas a pagar** (`/api/lancamentos/planos-distintos/`); some plano pai sem título (ex. Despesas Dispensáveis) |
+| **Arquivos** | `grafico_gastos.html` · `financeiro/views.py` · `mongo_financeiro_util.py` (funções gráfico) |
+| **Migrate** | **Nenhuma** |
+
+### FECHADO — produção perf + BI validade + CP **v3.47** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1077,7 +1087,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fonte dados** | Mongo `DtoLancamento` · dedup **`_lancamentos_mongo_stages_dedup_por_titulo_erp`** (igual CP) |
 | **Referência (`por`)** | `vencimento` · `competencia` · `pagamento` |
 | **Valor** | `bruto` (Saida) · `pago` (ValorPago) · `saldo` (em aberto — só títulos abertos) |
-| **Planos (checkbox)** | `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos |
+| **Planos (checkbox)** | **Igual CP** — distintos nos lançamentos do filtro (`/api/lancamentos/planos-distintos/`), não catálogo `DtoPlanoDeConta` |
 | **Modo normal** | Linha **«Total Selecionado»** |
 | **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
