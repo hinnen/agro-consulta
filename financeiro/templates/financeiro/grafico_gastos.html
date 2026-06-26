@@ -2,24 +2,25 @@
 {% load static %}
 {% block title %}SisVale | Gráfico de gastos{% endblock %}
 {% block head_extra %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   .gg-shell { height: calc(100dvh - 1.5rem); min-height: 32rem; }
-  .gg-chart-wrap { min-height: 0; }
-  .gg-chart-wrap canvas { max-height: 100%; }
+  .gg-chart-wrap { min-height: 16rem; }
+  .gg-chart-inner { min-height: 14rem; height: 100%; }
 </style>
 {% endblock %}
 
 {% block body_class %}bg-slate-100 text-slate-800 overflow-hidden{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="gg-shell max-w-[1600px] mx-auto px-3 sm:px-4 py-3 flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-2 shrink-0">
     <div class="min-w-0">
       <h1 class="text-lg sm:text-xl font-black tracking-tight text-slate-900">
         <span class="text-emerald-600">Gráfico</span><span class="text-slate-400 font-bold mx-1">·</span><span class="text-amber-900">Gastos por plano</span>
       </h1>
-      <p class="text-xs font-semibold text-slate-600 mt-0.5">Despesas no Mongo (vencimento · valor bruto)</p>
+      <p class="text-xs font-semibold text-slate-600 mt-0.5">Despesas no Mongo (vencimento · valor bruto) · só leitura</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <a href="{% url 'lancamentos_financeiros' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 transition-colors">Lançamentos</a>
@@ -95,18 +96,35 @@
     </div>
   </div>
 
-  <div class="rounded-xl border border-slate-200 bg-white shadow-sm flex-1 min-h-0 gg-chart-wrap">
-    <div class="relative h-full p-3 sm:p-4">
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm flex-1 min-h-0 gg-chart-wrap relative">
+    <div id="gg-status" class="absolute inset-0 z-10 flex items-center justify-center p-4 text-sm font-bold text-slate-500 bg-white/90 pointer-events-none">Carregando gráfico…</div>
+    <div class="gg-chart-inner p-3 sm:p-4">
       <canvas id="graficoGastos"></canvas>
     </div>
   </div>
 </div>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   const API_URL = "{% url 'api_dados_grafico_gastos' %}";
-  const ctx = document.getElementById('graficoGastos').getContext('2d');
-  let chartGastos;
+  const statusEl = document.getElementById('gg-status');
+  const canvas = document.getElementById('graficoGastos');
+  if (!canvas) return;
+
+  let chartGastos = null;
+  let carregando = false;
+
+  function setStatus(msg, isError) {
+    if (!statusEl) return;
+    if (!msg) {
+      statusEl.classList.add('hidden');
+      return;
+    }
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = msg;
+    statusEl.classList.toggle('text-red-700', !!isError);
+    statusEl.classList.toggle('text-slate-500', !isError);
+  }
 
   function isoDate(d) {
     const y = d.getFullYear();
@@ -128,7 +146,20 @@
     document.getElementById('data-final').value = isoDate(fim);
   }
 
+  function waitChart(cb, tries) {
+    if (typeof Chart !== 'undefined') {
+      cb();
+      return;
+    }
+    if ((tries || 0) >= 40) {
+      setStatus('Biblioteca do gráfico não carregou. Recarregue a página (F5).', true);
+      return;
+    }
+    setTimeout(function () { waitChart(cb, (tries || 0) + 1); }, 50);
+  }
+
   function initChart() {
+    const ctx = canvas.getContext('2d');
     chartGastos = new Chart(ctx, {
       type: 'line',
       data: { labels: [], datasets: [] },
@@ -149,43 +180,68 @@
   }
 
   function atualizarGrafico() {
-    const planosSelecionados = Array.from(document.querySelectorAll('.plano-checkbox:checked')).map(cb => cb.value);
-    const agrupamento = document.getElementById('filtro-agrupamento').value;
-    const dataInicial = document.getElementById('data-inicial').value;
-    const dataFinal = document.getElementById('data-final').value;
-    const modoIndividual = document.getElementById('modo-individual').checked;
+    if (!chartGastos || carregando) return;
+    const planosSelecionados = Array.from(document.querySelectorAll('.plano-checkbox:checked')).map(function (cb) { return cb.value; });
+    if (!planosSelecionados.length) {
+      chartGastos.data.labels = [];
+      chartGastos.data.datasets = [];
+      chartGastos.update();
+      setStatus('Marque ao menos um plano de contas.', true);
+      return;
+    }
 
-    const params = new URLSearchParams({
-      agrupamento,
-      inicio: dataInicial,
-      fim: dataFinal,
-      individual: modoIndividual,
-      planos: planosSelecionados.join(',')
-    });
+    carregando = true;
+    setStatus('Montando gráfico…');
 
-    fetch(`${API_URL}?${params.toString()}`, { credentials: 'same-origin' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.erro) {
-          console.warn(data.erro);
+    const payload = {
+      agrupamento: document.getElementById('filtro-agrupamento').value,
+      inicio: document.getElementById('data-inicial').value,
+      fim: document.getElementById('data-final').value,
+      individual: document.getElementById('modo-individual').checked,
+      planos: planosSelecionados
+    };
+
+    fetch(API_URL, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        const data = result.data || {};
+        if (!result.ok || data.erro) {
+          setStatus(data.erro || 'Erro ao buscar dados.', true);
+        } else if (!(data.datasets || []).length) {
+          setStatus('Sem valores no período para os planos marcados.', true);
+        } else {
+          setStatus('');
         }
         chartGastos.data.labels = data.labels || [];
-        chartGastos.data.datasets = (data.datasets || []).map(ds => ({
-          ...ds,
-          tension: 0.4,
-          borderWidth: 3,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }));
+        chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
+          return Object.assign({}, ds, {
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          });
+        });
         chartGastos.update();
       })
-      .catch(err => console.error(err));
+      .catch(function (err) {
+        console.error(err);
+        setStatus('Falha na comunicação com o servidor.', true);
+      })
+      .finally(function () { carregando = false; });
   }
 
-  document.querySelectorAll('.plano-checkbox').forEach(cb => {
-    cb.addEventListener('change', (e) => {
+  document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', function (e) {
       if (document.getElementById('modo-individual').checked && e.target.checked) {
-        document.querySelectorAll('.plano-checkbox').forEach(other => {
+        document.querySelectorAll('.plano-checkbox').forEach(function (other) {
           if (other !== e.target) other.checked = false;
         });
       }
@@ -193,7 +249,7 @@
     });
   });
 
-  document.getElementById('modo-individual').addEventListener('change', (e) => {
+  document.getElementById('modo-individual').addEventListener('change', function (e) {
     if (e.target.checked) {
       const checked = document.querySelectorAll('.plano-checkbox:checked');
       if (checked.length > 1) {
@@ -203,24 +259,24 @@
     atualizarGrafico();
   });
 
-  document.getElementById('btn-marcar-todos').addEventListener('click', () => {
+  document.getElementById('btn-marcar-todos').addEventListener('click', function () {
     document.getElementById('modo-individual').checked = false;
-    document.querySelectorAll('.plano-checkbox').forEach(cb => { cb.checked = true; });
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
     atualizarGrafico();
   });
 
-  document.getElementById('btn-desmarcar-todos').addEventListener('click', () => {
-    document.querySelectorAll('.plano-checkbox').forEach(cb => { cb.checked = false; });
+  document.getElementById('btn-desmarcar-todos').addEventListener('click', function () {
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = false; });
     atualizarGrafico();
   });
 
-  document.getElementById('filtro-periodo').addEventListener('change', () => {
+  document.getElementById('filtro-periodo').addEventListener('change', function () {
     aplicarPeriodoRapido();
     atualizarGrafico();
   });
 
-  ['data-inicial', 'data-final', 'filtro-agrupamento'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => {
+  ['data-inicial', 'data-final', 'filtro-agrupamento'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
       if (id.startsWith('data-')) {
         document.getElementById('filtro-periodo').value = 'custom';
       }
@@ -228,11 +284,11 @@
     });
   });
 
-  document.getElementById('btn-salvar-favorito').addEventListener('click', () => {
+  document.getElementById('btn-salvar-favorito').addEventListener('click', function () {
     const nome = prompt('Nome para este atalho de filtros:');
     if (!nome) return;
     const state = {
-      planos: Array.from(document.querySelectorAll('.plano-checkbox:checked')).map(cb => cb.value),
+      planos: Array.from(document.querySelectorAll('.plano-checkbox:checked')).map(function (cb) { return cb.value; }),
       agrupamento: document.getElementById('filtro-agrupamento').value,
       periodo: document.getElementById('filtro-periodo').value,
       individual: document.getElementById('modo-individual').checked,
@@ -249,7 +305,7 @@
     const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
     const select = document.getElementById('filtro-favoritos');
     select.innerHTML = '<option value="">Selecione...</option>';
-    Object.keys(favs).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(nome => {
+    Object.keys(favs).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); }).forEach(function (nome) {
       const opt = document.createElement('option');
       opt.value = nome;
       opt.textContent = nome;
@@ -257,7 +313,7 @@
     });
   }
 
-  document.getElementById('filtro-favoritos').addEventListener('change', (e) => {
+  document.getElementById('filtro-favoritos').addEventListener('change', function (e) {
     const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
     const state = favs[e.target.value];
     if (!state) return;
@@ -266,16 +322,18 @@
     document.getElementById('modo-individual').checked = !!state.individual;
     if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
     if (state.fim) document.getElementById('data-final').value = state.fim;
-    document.querySelectorAll('.plano-checkbox').forEach(cb => {
+    document.querySelectorAll('.plano-checkbox').forEach(function (cb) {
       cb.checked = (state.planos || []).includes(cb.value);
     });
     atualizarGrafico();
   });
 
-  initChart();
-  carregarFavoritos();
-  aplicarPeriodoRapido();
-  atualizarGrafico();
-})();
+  waitChart(function () {
+    initChart();
+    carregarFavoritos();
+    aplicarPeriodoRapido();
+    atualizarGrafico();
+  });
+});
 </script>
 {% endblock %}

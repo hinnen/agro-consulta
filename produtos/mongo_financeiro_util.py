@@ -4391,20 +4391,51 @@ def grafico_gastos_planos_despesa_mongo(db) -> list[dict[str, str]]:
 def _grafico_gastos_filtro_planos_mongo(
     db, plano_ids: list[str]
 ) -> tuple[list[str], list[str], dict[str, str]]:
-    """Resolve IDs selecionados → (ids, nomes, mapa id→nome)."""
+    """Resolve IDs selecionados → (ids, nomes, mapa id→nome). Lookup em lote no cadastro."""
     ids: list[str] = []
     nomes: list[str] = []
     id_nome: dict[str, str] = {}
+    seen: set[str] = set()
     for raw in plano_ids:
         pid = (raw or "").strip()
-        if not pid:
+        if not pid or pid in seen:
             continue
-        pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
+        seen.add(pid)
+        ids.append(pid)
+
+    if not ids:
+        return ids, nomes, id_nome
+
+    catalog: dict[str, str] = {}
+    try:
+        col = db[COL_DTO_PLANO_CONTA]
+        oid_vals: list[Any] = []
+        for pid in ids:
+            oid = _pedido_erp_oid_24(pid)
+            if oid is not None:
+                oid_vals.append(oid)
+        flt_or: list[dict[str, Any]] = []
+        if oid_vals:
+            flt_or.append({"_id": {"$in": oid_vals}})
+        flt_or.append({"PlanoDeContaID": {"$in": ids}})
+        for doc in col.find({"$or": flt_or}, {"Nome": 1, "_id": 1, "PlanoDeContaID": 1}):
+            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
+                doc.get("PlanoDeContaID")
+            )
+            nome = str(doc.get("Nome") or "").strip()
+            if pid and nome:
+                catalog[pid] = nome
+    except Exception as exc:
+        logger.warning("_grafico_gastos_filtro_planos_mongo catalog: %s", exc)
+
+    for pid in ids:
+        pn = catalog.get(pid)
+        if not pn and len(ids) <= 20:
+            pn, _ = buscar_plano_conta_mestre_por_id_mongo(db, pid)
         if not pn:
             pn = pid
-        ids.append(pid)
         id_nome[pid] = pn
-        if pn and pn not in nomes:
+        if pn not in nomes:
             nomes.append(pn)
     return ids, nomes, id_nome
 
@@ -4605,7 +4636,9 @@ def grafico_gastos_serie_mongo(
                     }
                 },
             ]
-        agg = list(col.aggregate(pipe))
+        agg = list(
+            col.aggregate(pipe, maxTimeMS=120_000, allowDiskUse=True)
+        )
     except Exception as exc:
         logger.exception("grafico_gastos_serie_mongo: %s", exc)
         out = dict(vazio)

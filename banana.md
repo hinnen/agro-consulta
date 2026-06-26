@@ -735,7 +735,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **UI** | Tailwind + Chart.js 4.4.1 · período rápido · favoritos `localStorage` (`grafico_gastos_favs`) |
 | **Arquivos** | `financeiro/templates/financeiro/grafico_gastos.html` · `financeiro/urls.py` · `financeiro/views.py` · `config/urls.py` · `produtos/mongo_financeiro_util.py` (`grafico_gastos_*`) |
 | **Deploy** | push `teste` — Render staging automático |
-| **Pendente opcional** | Link no menu Lançamentos / BI / Indicadores |
+| **Bug 26/06 (blank)** | Chart.js com `defer` rodava antes da lib · API GET com centenas de planos (lento/URL longa) · fix: init após Chart + POST JSON + lookup planos em lote |
+| **Isolamento** | **Só leitura** Mongo — **não grava**, **não altera** Lançamentos/CP/ERP; rotas novas em `financeiro/` |
+| **Pendente opcional** | Link no menu Lançamentos / BI / Indicadores · produção (frase + senha) |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
