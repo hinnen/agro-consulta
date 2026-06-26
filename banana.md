@@ -560,12 +560,12 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ---
 
-### WIP HOJE — Lançamentos Postgres (CP primeiro)
+### WIP HOJE — Lançamentos Postgres (CP primeiro) — **teste OK 26/06**
 
 | Quem | O quê |
 | ---- | ----- |
-| **Assistente** | **✅ import teste OK** (13,2k títulos PG · CP lê Postgres no staging) |
-| **Renan** | **1–4 ✅** · amostra 3 títulos = opcional (total já bateu) |
+| **Assistente** | Próximo: gravação CP no Postgres · depois produção (senha) |
+| **Renan** | **1–4 ✅ fechado** · loja CP parada · fiado/CR fora |
 
 ### Renan — intervenção (estritamente necessário)
 
@@ -574,7 +574,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 | **1 Backup** | **✅ Renan 25/06** | ZIP abertos + todos no PC |
 | **2 Conferir total aberto** | **✅ Renan 25/06** | CP **sem filtro de data** · tela **Qtd 741** · Excel **`01_a_pagar_em_aberto.csv` = 748 linhas** (+7) · total **~R$ 393.652,70** (tela) vs **~R$ 393.667,21** (Excel) · dif. **~R$ 14,51** · **causa: backup sem dedup** (tela funde dup. ERP; ZIP não) · bloco **Geraldo / acordo sat / R$ 600** = mesmo **ID ERP** repetido — linhas extras, saldo pode ser 0 |
 | **3 Render env** | **✅ Renan — nada a fazer** | **Não** alterar variáveis no Render (loja nem teste) · passo = **ficar parada** até assistente avisar |
-| **4 Pós-import teste** | **✅ Renan 26/06** | Staging CP aberto: **Qtd 741** · **A pagar R$ 393.652,70** — **bate loja** |
+| **4 Pós-import teste** | **✅ Renan 26/06** | Staging CP aberto: **Qtd 741** · **A pagar R$ 393.652,70** — **bate loja** · amostra expandida OK (ex. Renan Hinnen **R$ 163,00**) |
 | **5 Fiado / CR** | ✅ | Ignorar hoje (combinado) |
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
@@ -762,10 +762,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.02`  
+**Versão:** `1.1.03`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — CP Postgres + cron import (`d55c70b` teste v3.28)  
-**Versão app (`VERSION`):** **teste** v3.28 · **produção** v3.02
+**Atualizado por:** assistente — Renan passo 4 OK staging 741 / 393652  
+**Versão app (`VERSION`):** **teste** v3.33 · **produção** v3.02
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
