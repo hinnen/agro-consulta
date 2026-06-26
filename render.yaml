@@ -10,7 +10,7 @@ services:
     name: agro-consulta
     branch: producao
     runtime: python
-    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python scripts/producao_financeiro_pg_bootstrap.py
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
     # Produção com domínio próprio: AGRO_CANONICAL_ORIGIN=https://www.example.com.br
@@ -22,7 +22,7 @@ services:
     name: agro-consulta-teste
     branch: teste
     runtime: python
-    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python scripts/record_deploy.py && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python scripts/staging_financeiro_pg_bootstrap.py
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
     # Ex.: AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_STAGING_READONLY=true

@@ -637,6 +637,16 @@ urlpatterns = [
         name='api_cron_importar_catalogo_mongo',
     ),
     path(
+        'api/cron/importar-titulos-financeiro-mongo-pg/',
+        views.api_cron_importar_titulos_financeiro_mongo_pg,
+        name='api_cron_importar_titulos_financeiro_mongo_pg',
+    ),
+    path(
+        'api/agro/financeiro-pg-conferencia/',
+        views.api_agro_financeiro_pg_conferencia,
+        name='api_agro_financeiro_pg_conferencia',
+    ),
+    path(
         'api/cron/copiar-snapshot-pdv-loja/',
         views.api_cron_copiar_snapshot_pdv_loja,
         name='api_cron_copiar_snapshot_pdv_loja',

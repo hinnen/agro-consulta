@@ -383,6 +383,11 @@
 </style>
 
 <div class="sv-container">
+  {% if lancamentos_pre_corte_admin %}
+  <div class="mb-3">
+    {% include "produtos/includes/lancamentos_pre_corte_erp_panel.html" %}
+  </div>
+  {% endif %}
   <div class="sv-prefiltros" id="sv-prefiltros" role="toolbar" aria-label="Atalhos de vencimento">
     <button type="button" class="sv-pref-btn" data-pref="hoje">Hoje</button>
     <button type="button" class="sv-pref-btn" data-pref="hoje_sexta">Hoje até sexta-feira</button>

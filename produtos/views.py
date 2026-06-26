@@ -157,6 +157,7 @@ from integracoes.venda_erp_mongo import VendaERPMongoClient
 from produtos.agro_fonte_config import (
     agro_cadastro_produto_erp_sync_habilitado,
     agro_financeiro_erp_sync_habilitado,
+    agro_financeiro_usa_postgres,
 )
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
@@ -9875,6 +9876,116 @@ def _lancamentos_excluir_planos_from_request(request) -> list[str]:
     return out
 
 
+def _api_lancamentos_cp_postgres_lista(request) -> JsonResponse:
+    """Lista CP via ``TituloFinanceiroAgro`` (flag ``AGRO_FONTE_FINANCEIRO=agro_pg``)."""
+    from produtos.lancamentos_financeiro_pg_util import contas_pagar_buscar_pagina_pg
+
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
+    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
+    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
+    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
+    filtros_echo = _lancamentos_filtros_echo_dict(v_de, v_ate, c_de, c_ate, p_de, p_ate)
+    texto = (request.GET.get("q") or "").strip() or None
+    mongo_id_deep = (
+        request.GET.get("mongo_id") or request.GET.get("lancamento_id") or ""
+    ).strip()
+    excl_planos = _lancamentos_excluir_planos_from_request(request)
+
+    try:
+        page = max(1, int(request.GET.get("page") or 1))
+    except ValueError:
+        page = 1
+    try:
+        page_size = int(request.GET.get("page_size") or 50)
+    except ValueError:
+        page_size = 50
+    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
+    if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
+        ordenacao = "vencimento_asc"
+    skip_totais = str(request.GET.get("skip_totais") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "yes",
+    ) or page > 1
+
+    if mongo_id_deep:
+        texto = None
+
+    linhas, total, totais = contas_pagar_buscar_pagina_pg(
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        competencia_de=c_de,
+        competencia_ate=c_ate,
+        pagamento_de=p_de,
+        pagamento_ate=p_ate,
+        texto=texto,
+        excluir_planos_nomes=excl_planos or None,
+        mongo_id=mongo_id_deep or None,
+        page=page,
+        page_size=page_size,
+        ordenacao=ordenacao,
+        skip_totais=skip_totais,
+    )
+
+    if mongo_id_deep and not linhas:
+        return JsonResponse(
+            {
+                "lancamentos": [],
+                "total": 0,
+                "page": page,
+                "page_size": page_size,
+                "totais": {
+                    "quantidade": 0,
+                    "bruto": 0.0,
+                    "movimentado": 0.0,
+                    "saldo_aberto": 0.0,
+                    "previsto": 0.0,
+                    "pago": 0.0,
+                    "a_pagar": 0.0,
+                },
+                "status_filtro": status,
+                "tipo": "pagar",
+                "planos_excluidos_aplicados": len(excl_planos),
+                "filtros": filtros_echo,
+                "erro_deep_link": "Título não encontrado no Postgres.",
+                "fonte": "postgres",
+            }
+        )
+
+    payload: dict[str, Any] = {
+        "lancamentos": linhas,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "status_filtro": status,
+        "tipo": "pagar",
+        "planos_excluidos_aplicados": len(excl_planos),
+        "filtros": filtros_echo,
+        "fonte": "postgres",
+    }
+    if mongo_id_deep:
+        payload["mongo_id_aplicado"] = mongo_id_deep
+    if totais is not None:
+        payload["totais"] = {
+            "quantidade": totais["quantidade"],
+            "bruto": totais["bruto"],
+            "movimentado": totais["movimentado"],
+            "saldo_aberto": totais["saldo_aberto"],
+            "previsto": totais["bruto"],
+            "pago": totais["movimentado"],
+            "a_pagar": totais["saldo_aberto"],
+            "a_receber": 0.0,
+        }
+    return JsonResponse(payload)
+
+
 def _api_lancamentos_lista_core(request, despesa: bool):
     status = (request.GET.get("status") or "abertos").strip().lower()
     if status not in ("abertos", "quitados", "todos"):
@@ -9891,6 +10002,9 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     mongo_id_deep = (
         request.GET.get("mongo_id") or request.GET.get("lancamento_id") or ""
     ).strip()
+
+    if agro_financeiro_usa_postgres() and despesa:
+        return _api_lancamentos_cp_postgres_lista(request)
 
     _, db = obter_conexao_mongo()
     if db is None:
@@ -10099,6 +10213,41 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
     if _lancamentos_cp_url_tem_filtros_explicitos(request):
         return None
     hoje = timezone.localdate()
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import contas_pagar_buscar_pagina_pg
+
+        try:
+            linhas, total, totais = contas_pagar_buscar_pagina_pg(
+                status="abertos",
+                vencimento_de=hoje,
+                vencimento_ate=hoje,
+                page=1,
+                page_size=50,
+                ordenacao="vencimento_asc",
+                skip_totais=False,
+            )
+        except Exception:
+            logger.exception("lancamentos_cp_bootstrap_payload postgres")
+            return None
+        tot_out = None
+        if totais is not None:
+            tot_out = {
+                "quantidade": totais["quantidade"],
+                "bruto": totais["bruto"],
+                "movimentado": totais["movimentado"],
+                "saldo_aberto": totais["saldo_aberto"],
+                "previsto": totais["bruto"],
+                "pago": totais["movimentado"],
+                "a_pagar": totais["saldo_aberto"],
+            }
+        return {
+            "lancamentos": linhas,
+            "total": total,
+            "page": 1,
+            "page_size": 50,
+            "totais": tot_out,
+            "fonte": "postgres",
+        }
     _, db = obter_conexao_mongo()
     if db is None:
         return None
@@ -10237,7 +10386,12 @@ def lancamentos_contas_pagar_view(request):
     return render(
         request,
         "produtos/lancamentos_contas_pagar_teste.html",
-        {"lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request)},
+        {
+            "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
+            "lancamentos_pre_corte_admin": bool(
+                getattr(request.user, "is_superuser", False)
+            ),
+        },
     )
 
 
@@ -10379,9 +10533,6 @@ def api_lancamentos_contas_pagar_calendario(request):
 @require_GET
 def api_lancamentos_planos_distintos(request):
     """Planos de conta distintos no filtro atual (para marcar/desmarcar exclusões)."""
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "planos": []}, status=503)
     tipo = (request.GET.get("tipo") or "pagar").strip().lower()
     despesa = tipo != "receber"
     status = (request.GET.get("status") or "abertos").strip().lower()
@@ -10398,6 +10549,22 @@ def api_lancamentos_planos_distintos(request):
         lim = min(int(request.GET.get("limit") or 400), 500)
     except ValueError:
         lim = 400
+    if agro_financeiro_usa_postgres() and despesa:
+        from produtos.lancamentos_financeiro_pg_util import planos_distintos_cp_pg
+
+        planos = planos_distintos_cp_pg(
+            status=status,
+            vencimento_de=v_de,
+            vencimento_ate=v_ate,
+            competencia_de=c_de,
+            competencia_ate=c_ate,
+            pagamento_de=p_de,
+            pagamento_ate=p_ate,
+            texto=texto,
+            limit=lim,
+        )
+        return JsonResponse({"planos": planos, "fonte": "postgres"})
+    _, db = obter_conexao_mongo()
     planos = lancamentos_planos_distintos_no_filtro(
         db,
         despesa=despesa,
@@ -12844,11 +13011,9 @@ def api_entrada_nota_financeiro(request):
                 )
 
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
 
-    resultado = (
-        simular_lancamentos_manual_lote_staging(linhas=linhas_fin)
-        if agro_mongo_escrita_bloqueada()
-        else inserir_lancamentos_manual_lote(
+    resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=True,
         empresa_nome=empresa_nome,
@@ -12866,7 +13031,6 @@ def api_entrada_nota_financeiro(request):
         usuario_label=usuario,
         linhas=linhas_fin,
         marcar_quitado_pagar=quitar_ao_salvar,
-        )
     )
 
     ok = bool(resultado.get("ok"))
@@ -12929,24 +13093,24 @@ def api_entrada_nota_financeiro(request):
         r_imp = (
             simular_lancamentos_manual_lote_staging(linhas=linha_imp)
             if resultado.get("dry_run")
-            else inserir_lancamentos_manual_lote(
-            db,
-            despesa=True,
-            empresa_nome=empresa_nome,
-            empresa_id=empresa_id_fin,
-            pessoa_nome=pessoa_nome,
-            pessoa_id=pessoa_id_raw,
-            data_competencia=dc,
-            data_vencimento=dv,
-            banco_nome=banco_nome,
-            banco_id=str(fin.get("banco_id") or "").strip() or None,
-            forma_nome=forma_nome,
-            forma_id=str(fin.get("forma_id") or "").strip() or None,
-            grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
-            grupo_id=str(fin.get("grupo_id") or "").strip() or None,
-            usuario_label=usuario,
-            linhas=linha_imp,
-            marcar_quitado_pagar=quitar_ao_salvar,
+            else inserir_lancamentos_manual_lote_dispatch(
+                db,
+                despesa=True,
+                empresa_nome=empresa_nome,
+                empresa_id=empresa_id_fin,
+                pessoa_nome=pessoa_nome,
+                pessoa_id=pessoa_id_raw,
+                data_competencia=dc,
+                data_vencimento=dv,
+                banco_nome=banco_nome,
+                banco_id=str(fin.get("banco_id") or "").strip() or None,
+                forma_nome=forma_nome,
+                forma_id=str(fin.get("forma_id") or "").strip() or None,
+                grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
+                grupo_id=str(fin.get("grupo_id") or "").strip() or None,
+                usuario_label=usuario,
+                linhas=linha_imp,
+                marcar_quitado_pagar=quitar_ao_salvar,
             )
         )
         if r_imp.get("ok") and r_imp.get("ids"):
@@ -13788,32 +13952,56 @@ def api_lancamentos_baixa(request):
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
 
-    resultado = baixar_lancamentos_mongo(
-        db,
-        [str(i) for i in ids],
-        despesa=despesa,
-        data_movimento=data_movimento,
-        forma_nome=forma_nome,
-        forma_id=str(forma_id).strip() if forma_id else None,
-        banco_nome=banco_nome,
-        banco_id=str(banco_id).strip() if banco_id else None,
-        usuario_label=usuario,
+    from produtos.lancamentos_financeiro_pg_write_util import (
+        baixar_lancamentos_pg,
+        financeiro_cp_grava_postgres,
+        registrar_titulo_juros_apos_baixa_contas_pagar_pg,
     )
+
+    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    db = None
+    if not use_pg_cp:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        resultado = baixar_lancamentos_mongo(
+            db,
+            [str(i) for i in ids],
+            despesa=despesa,
+            data_movimento=data_movimento,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
+    else:
+        resultado = baixar_lancamentos_pg(
+            [str(i) for i in ids],
+            data_movimento=data_movimento,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
 
     path_baixa = (
         (config("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", default="") or "")
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("atualizados"):
+    if (
+        not use_pg_cp
+        and agro_financeiro_erp_sync_habilitado()
+        and path_baixa
+        and resultado.get("atualizados")
+        and db is not None
+    ):
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_baixa(
@@ -13835,17 +14023,32 @@ def api_lancamentos_baixa(request):
     aviso_juros = None
     juros_id = None
     if despesa and valor_juros_dec and valor_juros_dec > 0 and atual:
-        rj = registrar_titulo_juros_apos_baixa_contas_pagar(
-            db,
-            mongo_id_titulo_referencia=str(atual[0]),
-            valor_juros=valor_juros_dec,
-            data_movimento=dmov,
-            forma_nome=forma_nome,
-            forma_id=str(forma_id).strip() if forma_id else None,
-            banco_nome=banco_nome,
-            banco_id=str(banco_id).strip() if banco_id else None,
-            usuario_label=usuario,
-        )
+        if use_pg_cp:
+            if db is None:
+                _, db = obter_conexao_mongo()
+            rj = registrar_titulo_juros_apos_baixa_contas_pagar_pg(
+                mongo_id_titulo_referencia=str(atual[0]),
+                valor_juros=valor_juros_dec,
+                data_movimento=dmov,
+                forma_nome=forma_nome,
+                forma_id=str(forma_id).strip() if forma_id else None,
+                banco_nome=banco_nome,
+                banco_id=str(banco_id).strip() if banco_id else None,
+                usuario_label=usuario,
+                db=db,
+            )
+        else:
+            rj = registrar_titulo_juros_apos_baixa_contas_pagar(
+                db,
+                mongo_id_titulo_referencia=str(atual[0]),
+                valor_juros=valor_juros_dec,
+                data_movimento=dmov,
+                forma_nome=forma_nome,
+                forma_id=str(forma_id).strip() if forma_id else None,
+                banco_nome=banco_nome,
+                banco_id=str(banco_id).strip() if banco_id else None,
+                usuario_label=usuario,
+            )
         if rj.get("ok"):
             juros_id = rj.get("id")
         else:
@@ -13901,22 +14104,36 @@ def api_lancamentos_baixa_parcial(request):
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
 
-    resultado = baixar_lancamento_parcial_mongo(
-        db,
-        lid,
-        despesa=despesa,
-        data_movimento=data_movimento,
-        parcelas=parcelas,
-        usuario_label=usuario,
+    from produtos.lancamentos_financeiro_pg_write_util import (
+        baixar_lancamento_parcial_pg,
+        financeiro_cp_grava_postgres,
     )
+
+    use_pg_cp = financeiro_cp_grava_postgres(despesa)
+    db = None
+    if use_pg_cp:
+        resultado = baixar_lancamento_parcial_pg(
+            lid,
+            data_movimento=data_movimento,
+            parcelas=parcelas,
+            usuario_label=usuario,
+        )
+    else:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        resultado = baixar_lancamento_parcial_mongo(
+            db,
+            lid,
+            despesa=despesa,
+            data_movimento=data_movimento,
+            parcelas=parcelas,
+            usuario_label=usuario,
+        )
 
     if not resultado.get("ok"):
         return JsonResponse(
@@ -13936,7 +14153,13 @@ def api_lancamentos_baixa_parcial(request):
         or ""
     ).strip()
     # Sincroniza também baixa parcial (antes só quando quitado — o ERP não recebia parcelas).
-    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("id"):
+    if (
+        not use_pg_cp
+        and agro_financeiro_erp_sync_habilitado()
+        and path_baixa
+        and resultado.get("id")
+        and db is not None
+    ):
         try:
             cli = VendaERPAPIClient()
             # Mesmo corpo base da baixa total (``titulos`` + ``ids`` + ``payload``), sem chaves extras no nível raiz.
@@ -13949,7 +14172,13 @@ def api_lancamentos_baixa_parcial(request):
             out_j["erp_baixa_ok"] = False
             out_j["aviso_api"] = str(exc)[:800]
     # Resposta do ERP/sync pode regravar o DtoLancamento com DataPagamento = data mínima (.NET).
-    if resultado.get("ok") and resultado.get("id") and not resultado.get("quitado"):
+    if (
+        not use_pg_cp
+        and resultado.get("ok")
+        and resultado.get("id")
+        and not resultado.get("quitado")
+        and db is not None
+    ):
         try:
             oid = ObjectId(str(resultado["id"]).strip())
             db[COL_DTO_LANCAMENTO].update_one(
@@ -13978,13 +14207,23 @@ def api_lancamentos_alterar(request):
     if not patch:
         return JsonResponse({"ok": False, "erro": "Nenhum campo para atualizar."}, status=400)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_write_util import atualizar_lancamento_pg
+        from produtos.models import TituloFinanceiroAgro
+
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+            r = atualizar_lancamento_pg(lid, patch, usuario)
+            if not r.get("ok"):
+                return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao atualizar."}, status=400)
+            return JsonResponse({"ok": True, "id": r.get("id")})
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
     r = atualizar_lancamento_mongo_agro(db, lid, patch, usuario)
     if not r.get("ok"):
@@ -14005,13 +14244,29 @@ def api_lancamentos_excluir(request):
     if not lid:
         return JsonResponse({"ok": False, "erro": "Informe o id do lançamento."}, status=400)
 
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-
     usuario, err_resp = _lancamentos_operador_label(request, payload)
     if err_resp:
         return err_resp
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_pg
+        from produtos.models import TituloFinanceiroAgro
+
+        if TituloFinanceiroAgro.objects.filter(mongo_id=lid, despesa=True).exists():
+            r = excluir_lancamento_pg(lid, usuario)
+            if not r.get("ok"):
+                return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao excluir."}, status=400)
+            try:
+                from rh.services.importador_vales_caixa import marcar_vales_cancelados_por_lancamento_removido
+
+                marcar_vales_cancelados_por_lancamento_removido(lid)
+            except Exception:
+                logger.exception("RH: cancelar vales após exclusão de lançamento")
+            return JsonResponse({"ok": True})
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
     r = excluir_lancamento_mongo_agro(db, lid, usuario)
     if not r.get("ok"):
@@ -14265,7 +14520,9 @@ def api_lancamentos_saida_caixa(request):
         }
     ]
 
-    resultado = inserir_lancamentos_manual_lote(
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=True,
         empresa_nome=empresa_nome,
@@ -15038,7 +15295,9 @@ def api_lancamentos_criar_manual_lote(request):
         return err_resp
 
     try:
-        resultado = inserir_lancamentos_manual_lote(
+        from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+        resultado = inserir_lancamentos_manual_lote_dispatch(
             db,
             despesa=despesa,
             empresa_nome=str(payload.get("empresa_nome") or "").strip(),
@@ -21366,6 +21625,58 @@ def api_cron_importar_catalogo_mongo(request):
     out = executar_importar_catalogo_mongo_produto(limit=lim, skip=skip, dry_run=dry)
     st = 200 if out.get("ok") else 503
     return JsonResponse(out, status=st)
+
+
+@require_GET
+def api_cron_importar_titulos_financeiro_mongo_pg(request):
+    """
+    Importa DtoLancamento → TituloFinanceiroAgro via HTTP (staging sem Shell).
+    Exige ALERTA_VENDAS_CRON_TOKEN e AGRO_ERP_PEDIDOS_DRY_RUN=true.
+    """
+    if not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Bloqueado: só com AGRO_ERP_PEDIDOS_DRY_RUN=true (staging)."},
+            status=403,
+        )
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+    filtro = (request.GET.get("despesa") or "todos").strip().lower()
+    despesa: bool | None
+    if filtro == "pagar":
+        despesa = True
+    elif filtro == "receber":
+        despesa = False
+    else:
+        despesa = None
+    try:
+        limite = int(str(request.GET.get("limit") or "0").strip() or "0")
+    except ValueError:
+        limite = 0
+    limite = limite if limite > 0 else None
+
+    from produtos.lancamentos_financeiro_agro_util import importar_titulos_financeiro_mongo_para_postgres
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    out = importar_titulos_financeiro_mongo_para_postgres(
+        db, dry_run=dry, limite=limite, despesa=despesa
+    )
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_agro_financeiro_pg_conferencia(request):
+    """Superuser: compara CP abertos Mongo (dedup) vs Postgres (dedup)."""
+    if not request.user.is_superuser:
+        return JsonResponse({"ok": False, "erro": "Acesso negado."}, status=403)
+    from produtos.lancamentos_financeiro_pg_util import financeiro_pg_conferencia_abertos
+
+    return JsonResponse(financeiro_pg_conferencia_abertos())
 
 
 @require_GET

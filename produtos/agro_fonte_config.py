@@ -67,7 +67,25 @@ def agro_estoque_usa_ledger() -> bool:
 
 
 def agro_financeiro_usa_postgres() -> bool:
-    return agro_fonte_financeiro() == _FONTE_FINANCEIRO_AGRO
+    if agro_fonte_financeiro() == _FONTE_FINANCEIRO_AGRO:
+        return True
+    # Staging teste: após bootstrap (import na build), CP lê Postgres sem env manual.
+    if (
+        getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
+        and getattr(settings, "AGRO_STAGING_READONLY", False)
+        and getattr(settings, "AGRO_FINANCEIRO_PG_LEITURA_STAGING", True)
+    ):
+        return _staging_financeiro_cp_pg_pronto()
+    return False
+
+
+def _staging_financeiro_cp_pg_pronto() -> bool:
+    try:
+        from produtos.models import TituloFinanceiroAgro
+
+        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+    except Exception:
+        return False
 
 
 def agro_financeiro_erp_sync_env_ligado() -> bool:
@@ -135,8 +153,23 @@ def agro_fonte_status_dict() -> dict:
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
+        "financeiro_pg_leitura_staging": bool(
+            getattr(settings, "AGRO_FINANCEIRO_PG_LEITURA_STAGING", True)
+            and getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
+            and getattr(settings, "AGRO_STAGING_READONLY", False)
+        ),
+        "titulos_financeiro_pg": agro_titulos_financeiro_pg_count(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
         "financeiro_erp_sync_env": agro_financeiro_erp_sync_env_ligado(),
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
     }
+
+
+def agro_titulos_financeiro_pg_count() -> int:
+    try:
+        from produtos.models import TituloFinanceiroAgro
+
+        return int(TituloFinanceiroAgro.objects.count())
+    except Exception:
+        return 0
