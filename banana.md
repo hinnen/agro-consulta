@@ -870,7 +870,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.17 · **produção** v3.12
+**Versão app (`VERSION`):** **teste** v3.19 · **produção** v3.20
+
+### FECHADO — produção listas auxiliares PG **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | **99738595** · loja aberta — pacote só leitura PG + gráfico gastos UX (isolado) |
+| **Merge** | `teste`→`producao` · **`4e22328`** (fast-forward pós v3.12) |
+| **Conteúdo** | Listas auxiliares PG · gráfico gastos atalhos/UX · migration `0002_grafico_gastos_atalho_agro` |
+| **Risco loja** | **Baixo** — CP/CR/gravação já PG; PDV/caixa/fiado inalterados; deploy Render rolling (~1 min) |
 
 ### FECHADO — listas auxiliares PG **26/06 (teste v3.17)**
 
@@ -880,7 +889,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy teste** | **`01a9348`** · **v3.17** |
 | **Renan validou** | **✅ 26/06** — `fonte-status` (`financeiro_postgres: true`) · CP filtro **Hoje** · baixa **R$ 1,49** «Lançamento manual 1» planno **teste** → **Quitados/Pago** |
 | **Prints** | Não veio NF passo 1 nem PDV — baixa fim-a-fim cobre `opcoes-baixa`; nova saída implícita pelo título manual |
-| **Produção** | Pronta — aguarda **«pode subir produção» + senha** (sobe junto pacote v3.12→v3.17) |
+| **Produção** | **✅ Renan 26/06** — 99738595 · **v3.20** (`4e22328`) |
 
 ### WIP — listas auxiliares PG (fornecedor / planos / formas) **28/05** *(histórico)*
 
@@ -900,7 +909,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 1 | **CP/CR Postgres loja** | **✅ fechado** v3.04–v3.08 | Nada |
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
-| 4 | **Listas auxiliares PG** | **✅ teste v3.17** · produção pendente | formas/bancos · sugestões · fornecedor NF |
+| 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
 | 5 | **BI / resumo gerencial → PG** | **próximo** | home BI + cards financeiros |
 | 6 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
 | 7 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
