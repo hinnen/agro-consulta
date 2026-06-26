@@ -400,7 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — Chart.js, filtros (período, agrupamento dia/semana/mês/ano, planos, modo individual), favoritos `localStorage`. API `GET /financeiro/api/dados-grafico-gastos/`. Fonte Mongo: `DtoLancamento` (vencimento · `Saida` · dedup DRE); planos de `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos. Agregação: `grafico_gastos_serie_mongo` / `grafico_gastos_planos_despesa_mongo` em `mongo_financeiro_util.py`. **Sem link no menu** ainda — URL direta ou pedir ao assistente.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — Chart.js, dedup **igual Lançamentos**, filtros referência (vencimento/competência/pagamento) e valor (bruto/pago/saldo em aberto). **Só leitura.** Loja **v3.02** (`3935d1a`).
 
 ### 4.11 Caixa
 
@@ -722,26 +722,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.01`  
 **Última atualização:** `2026-06-26`  
 **Atualizado por:** assistente — Excel 748 vs tela 741 dedup confirmado  
-**Versão app (`VERSION`):** **teste** v3.22 · **produção** v3.01 · HEAD loja **`087c13f`**
+**Versão app (`VERSION`):** **teste** v3.26 · **produção** v3.02 · HEAD loja **`3935d1a`**
 
-### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
+### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commits** | `11277f0` (feature) · `9b105e9` · `e77de07` · **`9979af1`** (fix tela em branco) |
+| **Commits teste** | `11277f0` · `9979af1` · **`cd881aa`** (dedup Lancamentos + filtros por/valor) |
+| **Commits loja** | `ec13fc4` · **`3935d1a`** (mesmo pacote · VERSION **v3.02**) |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
-| **API** | `GET` ou **`POST`** `/financeiro/api/dados-grafico-gastos/` — JSON: `agrupamento`, `inicio`, `fim`, `planos` (array), `individual` |
-| **Fonte dados** | Mongo `DtoLancamento` — despesas, data **vencimento**, valor **Saida**, dedup DRE (`DRE_DEDUP_LANCAMENTO_ID`) |
-| **Planos (checkbox)** | `DtoPlanoDeConta` com `EhDespesa=true`; se poucos, completa com distintos dos lançamentos |
-| **Modo normal** | Uma linha **«Total Selecionado»** (soma planos marcados) |
-| **Modo individual** | Uma linha com nome do plano (JS limita 1 checkbox) |
+| **API** | `POST` (preferido) ou `GET` `/financeiro/api/dados-grafico-gastos/` — `agrupamento`, `inicio`, `fim`, `planos[]`, `individual`, **`por`**, **`valor`** |
+| **Fonte dados** | Mongo `DtoLancamento` · dedup **`_lancamentos_mongo_stages_dedup_por_titulo_erp`** (igual CP) |
+| **Referência (`por`)** | `vencimento` · `competencia` · `pagamento` |
+| **Valor** | `bruto` (Saida) · `pago` (ValorPago) · `saldo` (em aberto — só títulos abertos) |
+| **Planos (checkbox)** | `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos |
+| **Modo normal** | Linha **«Total Selecionado»** |
+| **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
-| **UI** | Tailwind + Chart.js 4.4.1 · período rápido · favoritos `localStorage` (`grafico_gastos_favs`) |
-| **Arquivos** | `financeiro/templates/financeiro/grafico_gastos.html` · `financeiro/urls.py` · `financeiro/views.py` · `config/urls.py` · `produtos/mongo_financeiro_util.py` (`grafico_gastos_*`) |
-| **Deploy** | push `teste` — Render staging automático |
-| **Bug 26/06 (blank)** | Chart.js com `defer` rodava antes da lib · API GET com centenas de planos (lento/URL longa) · fix: init após Chart + POST JSON + lookup planos em lote |
-| **Isolamento** | **Só leitura** Mongo — **não grava**, **não altera** Lançamentos/CP/ERP; rotas novas em `financeiro/` |
-| **Pendente opcional** | Link no menu Lançamentos / BI / Indicadores · produção (frase + senha) |
+| **UI** | Chart.js · favoritos `localStorage` |
+| **Bug valores (26/06)** | Dedup DRE contava duplicatas ERP — corrigido para dedup Lançamentos |
+| **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |
+| **Pendente opcional** | Link no menu Lançamentos / BI |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 
