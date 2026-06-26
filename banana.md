@@ -609,9 +609,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.95`  
+**Versão:** `1.0.96`  
 **Última atualização:** `2026-06-25`  
-**Atualizado por:** assistente — **loja validada OK** (Renan)  
+**Atualizado por:** assistente — Renan: motor busca **pausado**; sprint financeiro **não urgente loja**  
 **Versão app (`VERSION`):** **teste** v3.09 · **produção** v3.01 (`b016b4a`)
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
@@ -680,9 +680,22 @@ Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_le
 
 | Foco | Detalhe |
 | ---- | ------- |
-| **Loja** | **✅ operação normal** v3.01 — retomar sprint em `teste` |
-| **Próximo** | Entrada NF financeiro Agro · Lançamentos PG · motor busca GM |
-| **Revert** | leve `0c10e9a` · total tag `f87955d` (só emergência) |
+| **Loja amanhã** | **✅ OK sem código hoje** — v3.01 validado (checklist 0–9) |
+| **Motor busca GM** | **⏸ PAUSADO** (Renan cansado — não bloqueia operação) |
+| **Entrada NF financeiro Agro** | **⏸ sprint** — loja **já grava** passo 7 no **Mongo** (`DtoLancamento`) |
+| **Lançamentos → Postgres** | **⏸ sprint** — CP/CR **continuam Mongo** na loja (funcionando) |
+| **Retomar quando quiser** | NF financeiro Agro (2–3 d dev) → depois Lançamentos PG (3–5 d) |
+
+### Renan — precisa fazer hoje para amanhã?
+
+| Pergunta | Resposta |
+| -------- | -------- |
+| **Loja abre normal amanhã?** | **Sim** — PDV · vendas · caixa · Compras · Gestão · Entrada NF **completa** (estoque + título a pagar no Mongo) · Lançamentos |
+| **Entrada NF financeiro Agro hoje?** | **Não** — é **desvinculação** (título no Postgres em vez do Mongo). Passo 7 **✅ validado** na loja com Mongo |
+| **Lançamentos Postgres hoje?** | **Não** — telas ainda Mongo; prep `TituloFinanceiroAgro` só staging. Operador usa Lançamentos **como sempre** |
+| **Motor busca hoje?** | **Não** — GM/código estranho é incômodo, não trava balcão |
+
+**Resumo:** sprint financeiro = **melhoria de arquitetura**, não **pré-requisito** da operação de amanhã.
 
 ### PDV autocomplete → **produção OK** (2026-06-25, Renan + senha)
 
@@ -725,7 +738,7 @@ Conferir: `/api/agro/fonte-status/` → `catalogo_postgres: true` · `estoque_le
 
 ### WIP — Desvinculação ERP · Fase D (Compras + Entrada NF) — retomada 2026-06-24
 
-**Onde paramos:** **Loja ✅ v3.01** (desvinculação A–D3 + Compras D4 validados) · sprint **`teste`:** Entrada NF financeiro Agro · Lançamentos PG · motor busca GM
+**Onde paramos:** **Loja ✅ v3.01** · **⏸ motor busca** · **⏸ NF financeiro Agro + Lançamentos PG** (não bloqueiam loja amanhã)
 
 | Fase | O quê | Status teste |
 | ---- | ----- | ------------ |
