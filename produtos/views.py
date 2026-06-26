@@ -7771,7 +7771,14 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     validade_blk = blk["alertas_validade"] if isinstance(blk["alertas_validade"], dict) else {}
     validade_vencidos_n = int(validade_blk.get("vencidos") or 0)
     validade_vencendo_mes_n = int(validade_blk.get("vencendo_mes") or 0)
-    alertas_validade_n = validade_vencidos_n + validade_vencendo_mes_n
+    validade_venc_conf_n = int(validade_blk.get("vencidos_conferir") or 0)
+    validade_mes_conf_n = int(validade_blk.get("vencendo_mes_conferir") or 0)
+    alertas_validade_n = (
+        validade_vencidos_n
+        + validade_vencendo_mes_n
+        + validade_venc_conf_n
+        + validade_mes_conf_n
+    )
     novos_clientes_30, ref_clientes_media_90 = blk["novos_clientes"]
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
@@ -7924,10 +7931,15 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "variant": "validade_duplo",
             "vencidos": validade_vencidos_n,
             "vencendo_mes": validade_vencendo_mes_n,
+            "vencidos_conferir": validade_venc_conf_n,
+            "vencendo_mes_conferir": validade_mes_conf_n,
             "context_lines": [
-                f"Vencidos: {validade_vencidos_n} produto(s) com lote e saldo > 0 e validade já passou.",
-                f"Vencem neste mês: {validade_vencendo_mes_n} produto(s) com validade entre hoje e o fim do mês civil.",
-                "Clique no cartão para abrir o relatório de validade (baixa e conferência em loja).",
+                f"Vencidos (com saldo): {validade_vencidos_n} produto(s) — validade passou e ainda há estoque no Agro.",
+                f"No mês (com saldo): {validade_vencendo_mes_n} produto(s) — vencem até o fim deste mês e há estoque.",
+                f"Conferir vencidos: {validade_venc_conf_n} — validade passou, saldo C+V e lote zerados (estoque furado; ir na prateleira).",
+                f"Conferir no mês: {validade_mes_conf_n} — vence neste mês, sem saldo no sistema.",
+                "Ao gravar validade no relatório, a data também vai para o lote Agro (ajuda quando o ERP está zerado).",
+                "Clique no cartão para abrir o relatório de validade.",
             ],
         },
         {
@@ -23875,36 +23887,33 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
 
 def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
     """
-    Produtos distintos (overlay) com validade e saldo operacional > 0:
-    vencidos (data < hoje) e vencendo no mês civil atual (hoje <= data <= fim do mês).
-    Considera lotes Agro e validade gravada só no cadastro (relatório «Salvar»).
+    Produtos distintos (overlay) com validade no prazo:
+    - com saldo (lote qtd>0 ou centro+vila>0): vencidos / vencendo_mes
+    - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
     """
     hoje = timezone.localdate()
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
+    overlay_v_conf: set[int] = set()
+    overlay_m_conf: set[int] = set()
 
-    def _classificar(oid: int, dv: date) -> None:
-        if dv < hoje:
-            overlay_vencidos.add(oid)
-        elif hoje <= dv <= fim_mes:
-            overlay_mes.add(oid)
-
-    for el in EstoqueLote.objects.filter(quantidade_atual__gt=0).values(
-        "overlay_id", "data_validade"
+    eventos: list[tuple[int, str, date]] = []
+    for el in EstoqueLote.objects.select_related("overlay").values(
+        "overlay_id", "data_validade", "overlay__produto_externo_id"
     ):
-        _classificar(int(el["overlay_id"]), el["data_validade"])
+        oid = int(el["overlay_id"])
+        pid = str(el["overlay__produto_externo_id"] or "").strip()
+        if pid:
+            eventos.append((oid, pid, el["data_validade"]))
 
-    overlays_com_lote_ativo = set(
-        EstoqueLote.objects.filter(quantidade_atual__gt=0).values_list(
-            "overlay_id", flat=True
-        )
+    overlays_com_lote = set(
+        EstoqueLote.objects.values_list("overlay_id", flat=True).distinct()
     )
-    extras_rows: list[tuple[int, str, date]] = []
     for ov in ProdutoGestaoOverlayAgro.objects.filter(
         cadastro_extras__has_key="validade"
     ).only("pk", "produto_externo_id", "cadastro_extras"):
-        if ov.pk in overlays_com_lote_ativo:
+        if ov.pk in overlays_com_lote:
             continue
         ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
         raw_v = ex.get("validade")
@@ -23916,26 +23925,64 @@ def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
             continue
         pid = str(ov.produto_externo_id or "").strip()
         if pid:
-            extras_rows.append((ov.pk, pid, dv))
+            eventos.append((ov.pk, pid, dv))
 
-    if extras_rows:
-        from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+    if not eventos:
+        return {
+            "vencidos": 0,
+            "vencendo_mes": 0,
+            "vencidos_conferir": 0,
+            "vencendo_mes_conferir": 0,
+        }
 
-        pids = list({r[1] for r in extras_rows})
-        client, db = obter_conexao_mongo()
-        saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
-        for oid, pid, dv in extras_rows:
-            s = saldos.get(pid) or {}
-            if float(s.get("saldo_centro") or 0) + float(s.get("saldo_vila") or 0) > 0:
-                _classificar(oid, dv)
+    pids = list({e[1] for e in eventos})
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-    return {"vencidos": len(overlay_vencidos), "vencendo_mes": len(overlay_mes)}
+    client, db = obter_conexao_mongo()
+    saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+
+    overlays_com_lote_qty = set(
+        EstoqueLote.objects.filter(quantidade_atual__gt=0).values_list(
+            "overlay_id", flat=True
+        )
+    )
+
+    def _tem_estoque(oid: int, pid: str) -> bool:
+        if oid in overlays_com_lote_qty:
+            return True
+        s = saldos.get(pid) or {}
+        return float(s.get("saldo_centro") or 0) + float(s.get("saldo_vila") or 0) > 0
+
+    for oid, pid, dv in eventos:
+        com_estoque = _tem_estoque(oid, pid)
+        if dv < hoje:
+            if com_estoque:
+                overlay_vencidos.add(oid)
+            else:
+                overlay_v_conf.add(oid)
+        elif hoje <= dv <= fim_mes:
+            if com_estoque:
+                overlay_mes.add(oid)
+            else:
+                overlay_m_conf.add(oid)
+
+    return {
+        "vencidos": len(overlay_vencidos),
+        "vencendo_mes": len(overlay_mes),
+        "vencidos_conferir": len(overlay_v_conf),
+        "vencendo_mes_conferir": len(overlay_m_conf),
+    }
 
 
 def _contagem_alertas_validade_lotes_agro() -> int:
-    """Soma vencidos + vencendo no mês (home atalhos e totais legados)."""
+    """Soma vencidos + vencendo no mês + fila «conferir» (home atalhos)."""
     c = _contagem_validade_dashboard_lotes_agro()
-    return c["vencidos"] + c["vencendo_mes"]
+    return (
+        c["vencidos"]
+        + c["vencendo_mes"]
+        + c["vencidos_conferir"]
+        + c["vencendo_mes_conferir"]
+    )
 
 
 def _bounds_proximo_mes(hoje: date) -> tuple[date, date]:

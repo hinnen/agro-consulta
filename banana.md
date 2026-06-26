@@ -872,7 +872,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
 **Versão app (`VERSION`):** **teste** v3.54 · **produção** v3.38 (gráfico gastos pacote completo 26/06)
 
-### WIP — BI validade card **26/06**
+### WIP — BI validade «Conferir» sem saldo **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Opção **2**: card com fila **Conf. venc. / Conf. mês** (validade ok, saldo C+V e lote zerados — estoque furado) |
+| **Regra com saldo** | **Vencidos / No mês** (topo) = só com estoque operacional > 0 ou lote qtd > 0 |
+| **Opção 1 (auto)** | Salvar validade no relatório espelha data no lote Agro (já no código) |
+| **Deploy teste** | pendente |
+| **Renan testar** | `/` — Simparic e outros furos devem aparecer em **Conf. mês** (roxo) |
+
+### WIP — BI validade card **26/06** *(histórico — fix contagem extras)*
 
 | Item | Detalhe |
 | ---- | ------- |
