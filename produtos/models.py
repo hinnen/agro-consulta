@@ -1190,6 +1190,57 @@ class EstoqueLote(models.Model):
         sync_overlay_validade_resumo_de_lotes(self.overlay)
 
 
+def sync_overlay_extra_validade_para_lote(
+    overlay: ProdutoGestaoOverlayAgro,
+    *,
+    lote_codigo: str | None = None,
+    data_validade=None,
+    quantidade_atual=None,
+) -> EstoqueLote | None:
+    """
+    Espelha validade/lote do cadastro_extras em ``EstoqueLote`` (contagem do BI).
+    Mantém quantidade existente; só preenche saldo operacional se ainda zero.
+    """
+    from decimal import Decimal
+    from datetime import datetime as _dt
+
+    ex = (
+        dict(overlay.cadastro_extras) if isinstance(overlay.cadastro_extras, dict) else {}
+    )
+    if data_validade is None:
+        raw_v = ex.get("validade")
+        if not raw_v:
+            return None
+        try:
+            data_validade = _dt.strptime(str(raw_v)[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+    if lote_codigo is None:
+        lote_codigo = str(ex.get("lote") or "—").strip()[:100] or "—"
+    code = str(lote_codigo)[:100]
+    el = EstoqueLote.objects.filter(overlay=overlay, lote_codigo=code).first()
+    if el is None:
+        el = (
+            EstoqueLote.objects.filter(overlay=overlay, quantidade_atual__gt=0)
+            .order_by("data_validade", "id")
+            .first()
+        )
+        if el is not None:
+            code = el.lote_codigo
+    qtd = quantidade_atual
+    if qtd is None:
+        qtd = el.quantidade_atual if el is not None else Decimal("0")
+    el, _ = EstoqueLote.objects.update_or_create(
+        overlay=overlay,
+        lote_codigo=code,
+        defaults={
+            "data_validade": data_validade,
+            "quantidade_atual": qtd,
+        },
+    )
+    return el
+
+
 def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> None:
     """
     Atualiza cadastro_extras.validade e .lote com o lote mais crítico
