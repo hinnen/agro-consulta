@@ -341,6 +341,7 @@
   function shouldHide() {
     if (pathIsPdv()) return true;
     if (pathIsContabilidade()) return true;
+    if (document.body && document.body.classList.contains("gg-grafico-page")) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;
     if (document.documentElement && document.documentElement.classList.contains("modal-open")) return true;
     if (hasOpenOverlay()) return true;

@@ -3,7 +3,7 @@
 
 {% block admin_title %}SisVale | Gráfico de gastos{% endblock %}
 {% block admin_header %}{% endblock %}
-{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh]{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh] gg-grafico-page{% endblock %}
 
 {% block admin_shell_class %}h-[100dvh] max-h-[100dvh] bg-slate-100 flex flex-col overflow-hidden{% endblock %}
 {% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-3 sm:px-5 lg:px-8 pb-2 pt-1 overflow-hidden flex flex-col{% endblock %}
@@ -146,7 +146,10 @@
   }
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
-    flex: 1 1 auto; min-height: 0; max-height: 100%; overflow-y: auto;
+    flex: 1 1 auto; min-height: 8rem;
+    max-height: min(34rem, calc(100dvh - 18rem));
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin; scrollbar-color: #86efac #f1f5f9;
   }
   .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 10px; }
@@ -674,6 +677,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let periodoAtivo = 'p3m';
   let atalhosCache = [];
   let chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+  let ggCompareLabelRects = [];
 
   const COR_REAL = '#059669';
   const COR_HIST = '#d97706';
@@ -688,6 +692,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!ds0 || !ds1) return;
       const ctx = chart.ctx;
       const chartArea = chart.chartArea;
+      ggCompareLabelRects = [];
       meta.deltas.forEach(function (d, i) {
         const p0 = ds0.data[i];
         const p1 = ds1.data[i];
@@ -711,40 +716,45 @@ document.addEventListener('DOMContentLoaded', function () {
     return { bg: 'rgba(236, 253, 245, 0.98)', border: COR_REAL, text: '#047857' };
   }
 
-  /** Um bloco só por mês — evita caixas empilhadas se sobrepondo. */
-  function desenharRotuloCompareBloco(ctx, x, yAnchor, v0, v1, d, chartArea, index) {
-    const cls = deltaClasse(d);
-    const dc = corRotuloDelta(cls);
-    const linhas = [];
-    if (Math.abs(v0 - v1) < 0.01) {
-      if (v0 > 0) linhas.push({ txt: fmtValor(v0, 0), color: '#047857', size: 17 });
-    } else {
-      if (v0 > 0) linhas.push({ txt: fmtValor(v0, 0), color: '#047857', size: 17 });
-      if (v1 > 0) linhas.push({ txt: fmtValor(v1, 0), color: '#b45309', size: 17 });
-    }
-    if (Math.abs(d) >= 0.01) {
-      linhas.push({ txt: fmtDeltaCompact(d), color: dc.text, size: 16 });
-    }
-    if (!linhas.length) return;
+  /** Uma linha por mês — evita bloco alto e tooltip escuro no gráfico. */
+  function fmtCompareLinha(v0, v1, d) {
+    if (Math.abs(v0 - v1) < 0.01) return fmtValor(v0, 0);
+    var s = fmtValor(v0, 0) + ' \u2192 ' + fmtValor(v1, 0);
+    if (Math.abs(d) >= 0.01) s += '  ' + fmtDeltaCompact(d);
+    return s;
+  }
 
-    const padX = 12;
-    const padY = 8;
-    const gap = 5;
+  function ggLabelRectOverlap(left, top, w, h) {
+    for (var j = 0; j < ggCompareLabelRects.length; j++) {
+      var r = ggCompareLabelRects[j];
+      if (!(left + w + 6 < r.left || left - 6 > r.right || top + h + 6 < r.top || top - 6 > r.bottom)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function desenharRotuloCompareBloco(ctx, x, yAnchor, v0, v1, d, chartArea, index) {
+    const txt = fmtCompareLinha(v0, v1, d);
+    if (!txt) return;
+
+    const fontSize = 16;
+    const padX = 10;
+    const padY = 6;
     ctx.save();
-    var maxW = 0;
-    linhas.forEach(function (ln) {
-      ctx.font = '900 ' + ln.size + 'px system-ui, -apple-system, sans-serif';
-      maxW = Math.max(maxW, ctx.measureText(ln.txt).width);
-    });
-    const w = maxW + padX * 2;
-    const h = padY * 2 + linhas.reduce(function (acc, ln) { return acc + ln.size + gap; }, 0) - gap;
-    var top = yAnchor - h - 18 - (index % 2 === 1 ? 24 : 0);
+    ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
+    const w = ctx.measureText(txt).width + padX * 2;
+    const h = fontSize + padY * 2;
+    var top = yAnchor - h - 16 - (index % 2 === 1 ? 20 : 0);
     if (chartArea) {
       if (top < chartArea.top + 6) top = chartArea.top + 6;
     }
     const left = x - w / 2;
+    if (ggLabelRectOverlap(left, top, w, h)) return;
+    ggCompareLabelRects.push({ left: left, top: top, right: left + w, bottom: top + h });
+
     ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
-    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeStyle = Math.abs(d) >= 0.01 ? '#94a3b8' : '#86efac';
     ctx.lineWidth = 2;
     ctx.beginPath();
     if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 8);
@@ -752,14 +762,9 @@ document.addEventListener('DOMContentLoaded', function () {
     ctx.fill();
     ctx.stroke();
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    var yTxt = top + padY;
-    linhas.forEach(function (ln) {
-      ctx.font = '900 ' + ln.size + 'px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = ln.color;
-      ctx.fillText(ln.txt, x, yTxt);
-      yTxt += ln.size + gap;
-    });
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = Math.abs(d) >= 0.01 ? '#0f172a' : '#047857';
+    ctx.fillText(txt, x, top + h / 2);
     ctx.restore();
   }
 
@@ -1497,34 +1502,21 @@ document.addEventListener('DOMContentLoaded', function () {
             labels: { font: { weight: '800', size: 11 }, padding: 6, boxWidth: 12, boxHeight: 12, color: '#475569' }
           },
           tooltip: {
+            enabled: true,
             usePointStyle: true,
             padding: 14,
             backgroundColor: 'rgba(15, 23, 42, 0.92)',
             titleFont: { size: 15, weight: '800' },
             bodyFont: { size: 14, weight: '700' },
             bodySpacing: 6,
+            filter: function (item) {
+              return !chartSerieMeta.compareMode;
+            },
             callbacks: {
               label: function (ctx) {
-                if (chartSerieMeta.compareMode) return [];
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               },
-              afterBody: function (items) {
-                if (!items || !items.length) return '';
-                if (chartSerieMeta.compareMode) {
-                  const i = items[0].dataIndex;
-                  const v0 = (chartGastos.data.datasets[0].data || [])[i];
-                  const v1 = (chartGastos.data.datasets[1].data || [])[i];
-                  const d = (chartSerieMeta.deltas || [])[i];
-                  return [
-                    'Tempo real: ' + fmtMoeda(v0),
-                    'Como era: ' + fmtMoeda(v1),
-                    'Variação: ' + fmtDeltaSigned(d)
-                  ];
-                }
-                return '';
-              },
               footer: function () {
-                if (chartSerieMeta.compareMode) return '';
                 return 'Clique para ver Contas a pagar';
               }
             }
@@ -1688,7 +1680,8 @@ document.addEventListener('DOMContentLoaded', function () {
             deltas: data.deltas || [],
             comparacao: data.comparacao || null
           };
-          chartGastos.options.layout.padding.top = compareMode ? 88 : 44;
+          chartGastos.options.plugins.tooltip.filter = function () { return !compareMode; };
+          chartGastos.options.layout.padding.top = compareMode ? 72 : 44;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);
