@@ -759,10 +759,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.01`  
+**Versão:** `1.1.02`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — Excel 748 vs tela 741 dedup confirmado  
-**Versão app (`VERSION`):** **teste** v3.26 · **produção** v3.02 · HEAD loja **`3935d1a`**
+**Atualizado por:** assistente — CP Postgres + cron import (`d55c70b` teste v3.28)  
+**Versão app (`VERSION`):** **teste** v3.28 · **produção** v3.02
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
