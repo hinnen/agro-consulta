@@ -164,6 +164,10 @@
         return String(val ?? '').replace(/\D/g, '');
     }
 
+    function somenteAlnumCodigoBusca(val) {
+        return String(val ?? '').replace(/[^a-z0-9]/g, '');
+    }
+
     /** Match exato só-dígitos em barras / index (7 dígitos, código loja, etc.). */
     function termoIgualCodigoBarrasNumericoExato(termoNorm, p) {
         const d = digitosCodigoBusca(termoNorm);
@@ -375,12 +379,11 @@
         if (!palavras.length) return [];
 
         if (palavras.length === 1 && pareceCodigoGmEtiqueta(palavras[0])) {
-            const gmHits = lista.filter(
+            return lista.filter(
                 (p) =>
                     termoIgualCodigoProdutoExato(palavras[0], p)
                     || casaCodigoGmPrefixo(palavras[0], p)
             );
-            if (gmHits.length) return gmHits;
         }
         if (palavras.length === 1 && pareceCodigoBarrasNumerico(palavras[0])) {
             const cbHits = lista.filter(
@@ -396,6 +399,7 @@
         if (palavras.length) {
             let idxUnion = null;
             palavras.forEach((pl) => {
+                if (pl.startsWith('gm') && pareceCodigoGmEtiqueta(pl)) return;
                 const d = String(pl || '').replace(/\D/g, '');
                 const local = (d.length >= 4 ? _indicesPorCodigo(index, d) : _indicesPorTokenParcial(index, pl));
                 if (!local || !local.length) return;
@@ -542,5 +546,6 @@
     window.ordenarSugestoesPdv = ordenarSugestoesPdv;
     window.mesclarBuscaPdvLocalComApi = mesclarBuscaPdvLocalComApi;
     window.BUSCA_PDV_LIM_MAX = 60;
+    window.casaCodigoGmPrefixo = casaCodigoGmPrefixo;
 })();
 </script>

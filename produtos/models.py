@@ -662,6 +662,76 @@ class FiadoEventoAgro(models.Model):
         return f"{self.get_tipo_display()} · {self.criado_em:%d/%m/%Y %H:%M}"
 
 
+class TituloFinanceiroAgro(models.Model):
+    """Título CP/CR no Postgres — espelho de ``DtoLancamento`` (desvinculação ERP).
+
+    Telas de Lançamentos ainda leem Mongo; este modelo é alimentado por importação
+    (``importar_titulos_financeiro_mongo_pg``) até ``AGRO_FONTE_FINANCEIRO=agro_pg``.
+    """
+
+    mongo_id = models.CharField(
+        max_length=32,
+        unique=True,
+        db_index=True,
+        help_text="ObjectId string do DtoLancamento (idempotência).",
+    )
+    despesa = models.BooleanField(
+        db_index=True,
+        help_text="True = contas a pagar; False = contas a receber.",
+    )
+    descricao = models.CharField(max_length=500, blank=True, default="")
+    cliente = models.CharField(max_length=300, blank=True, default="")
+    cliente_id = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    numero_documento = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    parcela = models.PositiveSmallIntegerField(default=0)
+    plano_conta = models.CharField(max_length=200, blank=True, default="", db_index=True)
+    plano_conta_id = models.CharField(max_length=32, blank=True, default="")
+    grupo = models.CharField(max_length=200, blank=True, default="")
+    forma_pagamento = models.CharField(max_length=120, blank=True, default="")
+    forma_pagamento_id = models.CharField(max_length=32, blank=True, default="")
+    banco = models.CharField(max_length=120, blank=True, default="")
+    banco_id = models.CharField(max_length=32, blank=True, default="")
+    centro_custo = models.CharField(max_length=120, blank=True, default="")
+    empresa = models.CharField(max_length=200, blank=True, default="")
+    observacoes = models.TextField(blank=True, default="")
+    valor_bruto = models.DecimalField(max_digits=14, decimal_places=2)
+    valor_pago = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    valor_restante = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    quitado = models.BooleanField(default=False, db_index=True)
+    data_vencimento = models.DateField(null=True, blank=True, db_index=True)
+    data_competencia = models.DateField(null=True, blank=True, db_index=True)
+    data_fluxo = models.DateField(null=True, blank=True, db_index=True)
+    data_pagamento = models.DateField(null=True, blank=True, db_index=True)
+    agro_recorrente = models.BooleanField(default=False)
+    recorrencia_intervalo_meses = models.PositiveSmallIntegerField(default=1)
+    agro_recorrente_sempre = models.BooleanField(default=False)
+    boleto_codigo_barras = models.CharField(max_length=54, blank=True, default="")
+    usuario_lancou = models.CharField(max_length=150, blank=True, default="")
+    usuario_quitou = models.CharField(max_length=150, blank=True, default="")
+    modificado_por = models.CharField(max_length=200, blank=True, default="")
+    criado_por = models.CharField(max_length=200, blank=True, default="")
+    mongo_congelado = models.BooleanField(
+        default=False,
+        help_text="``AgroFonteVerdade`` no documento Mongo.",
+    )
+    mongo_ultima_atualizacao = models.DateTimeField(null=True, blank=True)
+    dados_snapshot_json = models.JSONField(default=dict, blank=True)
+    importado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-data_vencimento", "pk"]
+        verbose_name = "Título financeiro Agro"
+        verbose_name_plural = "Títulos financeiros Agro"
+        indexes = [
+            models.Index(fields=["despesa", "quitado", "data_vencimento"]),
+        ]
+
+    def __str__(self):
+        tipo = "CP" if self.despesa else "CR"
+        return f"{tipo} · {self.descricao[:40] or self.numero_documento or self.mongo_id}"
+
+
 class PdvMercadoPagoPointOrder(models.Model):
     """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
 

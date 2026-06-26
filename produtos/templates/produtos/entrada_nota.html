@@ -1389,7 +1389,7 @@
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
             <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
               {% for e in empresas_entrada_nfe %}
-              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
+              <option value="{{ e.id }}"{% if e.nome == "Agro Mais Centro" %} selected{% endif %}>{{ e.nome }}</option>
               {% empty %}
               <option value="">Cadastre empresas no Admin</option>
               {% endfor %}
@@ -3784,6 +3784,9 @@
     }
     if (s === 7) {
       if (entradaNfeBonificacaoAtiva()) {
+        return { ok: true, irPara: 7, erro: '' };
+      }
+      if (entradaNfeFinanceiroTituloJaGeradoEditor()) {
         return { ok: true, irPara: 7, erro: '' };
       }
       const finE = document.getElementById('fin-empresa-loja')?.value?.trim()
@@ -8260,24 +8263,10 @@
   }
 
   function entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos) {
-    const map = new Map();
-    (locaisOrdenados || []).forEach((p) => { map.set(String(p.id), p); });
-    const ordemLocalIds = (locaisOrdenados || []).map((p) => String(p.id));
-    const idsLocal = new Set(ordemLocalIds);
-    const apiById = new Map();
-    (apiProdutos || []).forEach((raw) => {
-      const id = String(raw.id);
-      apiById.set(id, raw);
-      if (!map.has(id)) map.set(id, raw);
-    });
-    const locaisMesclados = ordemLocalIds.map((id) => {
-      const base = map.get(id);
-      const apiRow = apiById.get(id);
-      return apiRow ? { ...base, ...apiRow } : base;
-    }).filter(Boolean);
-    const extrasBrutos = (apiProdutos || []).filter((raw) => !idsLocal.has(String(raw.id)));
-    const extrasOrd = entradaNfeOrdenarSugestoesComoPdv(extrasBrutos, termoNorm);
-    return [...locaisMesclados, ...extrasOrd].slice(0, 80);
+    if (typeof mesclarBuscaPdvLocalComApi === 'function') {
+      return mesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos, null, 80);
+    }
+    return Array.isArray(apiProdutos) ? apiProdutos.slice(0, 80) : [];
   }
 
   /** Só o HTTP da Consulta / PDV: lista de produtos do Mongo + overlay (servidor). */
@@ -8307,6 +8296,10 @@
     const locFiltrados = fi ? filtrarProdutosBuscaInteligente(baseLoc, termoNorm, modo) : [];
     const locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
     const hadLocal = locOrd.length > 0;
+    const gmOuCbSemLocal =
+      !hadLocal &&
+      ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
+        (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
     if (!hadLocal) {
       await new Promise((r) => { setTimeout(r, 220); });
     }
@@ -8322,7 +8315,14 @@
       if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.hide();
     }
     if (sid !== _entradaNfeBuscaSeq) return null;
-    if (!fi || !nb) return apiList;
+    if (!fi || !nb) {
+      return gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function'
+        ? ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80)
+        : apiList;
+    }
+    if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
+      return ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80);
+    }
     return entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
   }
 
@@ -9370,9 +9370,18 @@
             entradaNfeAplicarTravasEtapasWizardUi();
             entradaNfeAplicarCongelamentoEditorUi();
           } catch (_) {}
-          let t = fin.quitar_ao_salvar
-            ? 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
-            : 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          let t = '';
+          if (fin.recuperado) {
+            t = 'Conta a pagar já existia no Mongo — nota vinculada sem duplicar. IDs: ' + fin.ids.join(', ') + '.';
+          } else if (fin.ja_existia) {
+            t = 'Conta a pagar já estava gerada para esta nota. IDs: ' + fin.ids.join(', ') + '.';
+          } else if (fin.dry_run) {
+            t = 'Simulação (teste): financeiro registrado só no rascunho da NF — sem título real no Mongo da loja. Pode seguir para a etapa 8 · Finalizar (PIN).';
+          } else if (fin.quitar_ao_salvar) {
+            t = 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          } else {
+            t = 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          }
           const fnTit = (cab.emit_nome || '').trim();
           if (fnTit) {
             t += ' Favorecido do título: «' + fnTit + '».';
@@ -9385,9 +9394,10 @@
             if (id0) u.searchParams.set('mongo_id', id0);
             t += ' Abrir: ' + u.href;
           } catch (_) {}
-          if (fin.quitar_ao_salvar) {
+          if (fin.quitar_ao_salvar && !fin.ja_existia && !fin.recuperado) {
             t += ' Em Lançamentos (contas a pagar), veja na aba Quitados.';
           }
+          if (j.aviso_staging_dry_run) t += ' ' + j.aviso_staging_dry_run;
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
           if (j.erp_baixa_ok === true) t += ' ERP: baixa aceita.';
           if (j.aviso_api) t += ' ' + j.aviso_api;
@@ -9405,7 +9415,9 @@
         }
         carregarRascunhos();
       } else {
-        const er = j.erro || 'Falha ao salvar.';
+        const fin = j.financeiro || {};
+        const erFin = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
+        const er = j.erro || erFin || j.aviso_financeiro_rascunho || 'Falha ao salvar.';
         showMsg(er, false);
       }
     } catch (e) {

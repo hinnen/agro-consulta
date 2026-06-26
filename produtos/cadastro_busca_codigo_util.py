@@ -15,6 +15,11 @@ from produtos.mongo_index_codigos import (
 _RE_NAO_ALNUM = re.compile(r"[^a-zA-Z0-9]")
 
 
+def termo_eh_codigo_gm(termo: str) -> bool:
+    """Etiqueta GM (ex. GM9503) — não usar ``icontains`` só-dígitos (9503 ≠ GM9503)."""
+    return bool(re.match(r"^gm", str(termo or "").strip(), re.I))
+
+
 def parece_codigo_cadastro(termo: str) -> bool:
     t = str(termo or "").strip()
     if not t:
@@ -116,7 +121,7 @@ def q_icontains_cadastro(termo: str) -> Q:
     )
     for v in variantes_gm_literal(termo):
         q_obj |= Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v)
-    if digits and len(digits) >= 4:
+    if digits and len(digits) >= 4 and not termo_eh_codigo_gm(termo):
         q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_interno__icontains=digits)
         if digits.isdigit():
             q_obj |= Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits)
@@ -133,7 +138,7 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     for v in variantes_gm_literal(termo):
         q_obj |= Q(codigo_nfe__iexact=v)
     digits = _RE_NAO_ALNUM.sub("", termo)
-    if digits and len(digits) >= 4:
+    if digits and len(digits) >= 4 and not termo_eh_codigo_gm(termo):
         q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_barras=digits)
     out: list[str] = []
     seen: set[str] = set()

@@ -161,7 +161,7 @@
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'competencia' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="competencia">Competência</button>
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'vencimento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="vencimento">Vencimento</button>
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'pagamento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="pagamento">Pagamento</button>
-          <a href="{{ lancamentos_pagar_url }}" class="ml-1 text-[10px] font-black uppercase text-orange-700 hover:underline">Abrir contas a pagar</a>
+          <a href="{{ lancamentos_pagar_url }}" data-prefetch class="ml-1 text-[10px] font-black uppercase text-orange-700 hover:underline">Abrir contas a pagar</a>
         </div>
       </div>
       <span id="gastos-plano-total-badge" class="text-[11px] font-black text-orange-800 bg-orange-100 border border-orange-200 rounded-md px-2 py-1 shrink-0">
@@ -188,7 +188,7 @@
       </h3>
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-[10px] font-bold text-slate-500 uppercase">Próximos 7 dias</span>
-        <a href="{{ lancamentos_receber_url }}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
+        <a href="{{ lancamentos_receber_url }}" data-prefetch class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
       </div>
     </div>
     <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
@@ -208,7 +208,7 @@
                 class="text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded-lg shadow-sm transition-colors cursor-pointer"
                 title="Lançar nova despesa">Nova saída</button>
         <span class="text-[10px] font-bold text-slate-500 uppercase">Pendentes</span>
-        <a href="{{ lancamentos_pagar_url }}" class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
+        <a href="{{ lancamentos_pagar_url }}" data-prefetch class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
       </div>
     </div>
     <div class="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -305,7 +305,7 @@
   </div>
 </div>
 <p class="mt-2 text-center">
-  <a href="{{ lancamentos_hub_url }}" class="text-[10px] font-black uppercase text-slate-500 hover:text-[#00BFFF]">Hub financeiro</a>
+  <a href="{{ lancamentos_hub_url }}" data-prefetch class="text-[10px] font-black uppercase text-slate-500 hover:text-[#00BFFF]">Hub financeiro</a>
 </p>
 
 <script>

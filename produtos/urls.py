@@ -149,6 +149,11 @@ urlpatterns = [
         name='dashboard_interno_preview',
     ),
     path(
+        'interno/teste-busca/',
+        views.interno_teste_busca_view,
+        name='interno_teste_busca',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
@@ -429,6 +434,7 @@ urlpatterns = [
         name='api_produtos_grupo_excluir',
     ),
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_mobile'),
+    path('api/buscar-v2/', views.api_buscar_produtos_v2, name='api_buscar_v2'),
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/lancamentos/', views.api_lancamentos_lista, name='api_lancamentos_lista'),
     path(
@@ -629,6 +635,11 @@ urlpatterns = [
         'api/cron/importar-catalogo-mongo/',
         views.api_cron_importar_catalogo_mongo,
         name='api_cron_importar_catalogo_mongo',
+    ),
+    path(
+        'api/cron/copiar-snapshot-pdv-loja/',
+        views.api_cron_copiar_snapshot_pdv_loja,
+        name='api_cron_copiar_snapshot_pdv_loja',
     ),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),

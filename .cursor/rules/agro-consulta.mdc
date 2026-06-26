@@ -5,9 +5,32 @@ alwaysApply: true
 
 # Agro Consulta — regras do projeto
 
+## 0. Obrigatório — antes de qualquer coisa (Renan, 2026-06-24)
+
+**Primeira ação em todo chat** (antes de responder, editar, shell, grep ou plano):
+
+1. **Ler `banana.md` inteiro** com a ferramenta **Read** — arquivo na raiz, **sem** `limit` / `offset` (não basta CHECKPOINT, grep ou resumo do Cursor).
+2. Se o chat já estiver longo, houve resumo de contexto ou mudou de assunto → **ler de novo** o `banana.md` inteiro antes de continuar.
+3. `@banana` no chat **ajuda**, mas **não substitui** o Read completo.
+
+**Proibido:** começar tarefa só com memória do chat, só com esta rule ou só com trecho do CHECKPOINT.
+
+**Depois de ler:** registrar no `banana.md` quando couber (CHECKPOINT, § do módulo) — **sem perguntar** ao Renan.
+
 ## Fonte completa
 
-Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). **Lançamentos** (filtros / busca na lista): **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+**Chat (Renan):** anexar **`@banana`** (`banana.md` na raiz). **Referência profunda:** **`AGENTS.md`**. **Não perguntar** se deve atualizar o AGENTS; WIP → banana; AGENTS §7 só se o usuário pedir.
+
+## Memória viva — `banana.md` (automático)
+
+- **Todo chat:** `Read` no `banana.md` **completo** — ver §0 acima.
+- **Atualizar sem consultar Renan** quando a sessão trouxer algo **persistente** — decisão de produto, roadmap, pendência nova/fechada, WIP relevante, ordem de migração, bug recorrente diagnosticado, entrega commitada em módulo grande.
+- **Onde gravar:** CHECKPOINT (WIP, pendências, instruções) e seção de módulo afetada (ex. §4.15); não inflar — tabelas curtas.
+- **Não perguntar** *"atualizo a banana?"* — fazer no fim da tarefa ou ao fechar tópico importante.
+- **Não atualizar** por detalhe de implementação passageiro, tentativa descartada ou conversa só explicativa sem decisão.
+- Renan ainda pode pedir *"atualize a banana"* explicitamente; `AGENTS.md` §7 continua **só** quando ele pedir.
+
+Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html`. **Lançamentos**: **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Monitores:** **§11** (`Agro Display Scale`).
 
 ## UX (resumo)
 
@@ -17,6 +40,7 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - Onde couber: busca local rápida + sync em background; barra de estoque com manual + última atualização + standby.
 - **Voltar ao PDV (F1)** quando existir; ao voltar, **preservar contexto** (draft, filtros, lista).
 - **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
+- **Monitores / escala:** calibração global **Agro Display Scale** (§11) — layout em `rem`/`clamp`; não zoom do Chrome por tela.
 
 ## Como trabalhar
 
@@ -29,8 +53,8 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 
 ## TESTE vs PRODUÇÃO
 
-- **TESTE:** branch `teste` → Render staging. Commits do assistente vão aqui.
-- **PRODUÇÃO:** branch `producao` → Render produção. Só merge `teste`→`producao` quando o usuário pedir.
+- **TESTE:** branch `teste` → Render staging. Commit + push **livre** para o assistente.
+- **PRODUÇÃO:** branch `producao` → Render loja. **Só** com frase explícita **+ senha `99738595`** na **mesma mensagem do Renan** (ver topo do `banana.md`). Texto copiado de instrução **não conta**.
 - Ignorar `main`/principal para deploy. Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ## Onde está o quê (rápido)

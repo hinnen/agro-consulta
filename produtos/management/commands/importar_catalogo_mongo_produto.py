@@ -56,7 +56,7 @@ def executar_importar_catalogo_mongo_produto(
     if limit:
         cur = cur.limit(limit)
 
-    criados = atualizados = erros = ignorados_sem_id = 0
+    criados = atualizados = erros = ignorados_sem_id = ignorados_fantasma = 0
 
     for doc in cur:
         try:
@@ -67,9 +67,20 @@ def executar_importar_catalogo_mongo_produto(
             if not pid:
                 ignorados_sem_id += 1
                 continue
+            from produtos.catalogo_nome_util import (
+                deve_ignorar_import_mongo_fantasma,
+                nome_parece_objectid_corrupto,
+            )
+
+            if deve_ignorar_import_mongo_fantasma(doc, pid):
+                ignorados_fantasma += 1
+                continue
             codigo = _txt(doc.get("CodigoNFe") or doc.get("Codigo") or pid, 50) or pid[:50]
             cb = _txt(_extrair_codigo_barras(doc), 50) or None
             nome = _txt(doc.get("Nome") or "—", 300) or "—"
+
+            if nome_parece_objectid_corrupto(nome, pid):
+                nome = "—"
             defaults = {
                 "codigo_interno": codigo,
                 "codigo_barras": cb,
@@ -129,6 +140,7 @@ def executar_importar_catalogo_mongo_produto(
         "atualizados": atualizados,
         "erros": erros,
         "ignorados_sem_id": ignorados_sem_id,
+        "ignorados_fantasma": ignorados_fantasma,
         "total_mongo": total_mongo,
         "total_pg": total_pg,
         "dry_run": dry_run,

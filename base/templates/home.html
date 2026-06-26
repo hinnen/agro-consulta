@@ -340,7 +340,16 @@
       <p class="min-w-0 truncate text-[10px] font-bold text-slate-500 sm:text-[11px]">Loja: <span class="text-slate-900">{{ empresa_atual.nome_fantasia }}</span></p>
     {% endif %}
   </div>
-  <div id="relogio-header" class="shrink-0 pl-1.5 font-mono text-[9px] text-slate-500 tabular-nums sm:text-[10px]" aria-live="polite"></div>
+  <div class="flex shrink-0 items-center gap-1.5 pl-1.5">
+    <button
+      type="button"
+      id="home-link-display-scale"
+      class="agro-scale-trigger agro-scale-trigger--header"
+      title="Ajustar tamanho da tela (textos e botões neste computador)"
+      aria-label="Ajustar tamanho da tela"
+    >Aa</button>
+    <div id="relogio-header" class="font-mono text-[9px] text-slate-500 tabular-nums sm:text-[10px]" aria-live="polite"></div>
+  </div>
 </div>
 <script>
   (function () {

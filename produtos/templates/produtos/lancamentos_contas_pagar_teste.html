@@ -47,6 +47,20 @@
   .sv-toolbar-grow { flex: 1 1 280px; min-width: min(100%, 240px); }
   .sv-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .sv-sub { font-size: 0.88rem; color: var(--cor-texto-secundario); margin: 0; }
+  .sv-meta-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .sv-sync-badge {
+    display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #b45309; background: #fffbeb; border: 1px solid #f59e0b; line-height: 1.2;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+    animation: sv-sync-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes sv-sync-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
+  }
+  .sv-sync-badge[hidden] { display: none !important; }
+  .sv-list-refreshing { opacity: 0.94; pointer-events: none; }
   .sv-action-bar { display: flex; gap: 10px; margin: 0; flex-wrap: wrap; align-items: center; }
   .sv-search-wrapper { position: relative; flex-grow: 1; max-width: 600px; min-width: min(100%, 280px); }
   .sv-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--cor-texto-secundario); pointer-events: none; }
@@ -442,7 +456,10 @@
   </div>
 
   <div class="sv-meta-row">
-    <p class="sv-sub" id="sv-resumo-lista">Carregando…</p>
+    <p class="sv-sub sv-meta-resumo">
+      <span id="sv-resumo-lista">Carregando…</span>
+      <span id="sv-sync-badge" class="sv-sync-badge" hidden aria-live="polite">Sincronizando…</span>
+    </p>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
       <div class="sv-totais" id="sv-totais" hidden></div>
       <div class="sv-cols-wrap">
@@ -622,6 +639,10 @@
   </div>
 </div>
 
+{% if lancamentos_cp_bootstrap %}
+{{ lancamentos_cp_bootstrap|json_script:"sv-cp-bootstrap" }}
+{% endif %}
+
 <script>
 (function () {
   const API_LISTA = "{% url 'api_lancamentos_lista' %}";
@@ -634,6 +655,7 @@
   const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const LS_FIN_LISTA = 'gm_fin_sv_teste_lista_v1';
+  const LS_FIN_DIA = 'gm_fin_sv_cp_dia_v1';
   const LS_COLS_PIN = 'gm_fin_sv_cp_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
   const TIPO_CONTAS = 'pagar';
@@ -673,6 +695,7 @@
 
   const elCorpo = document.getElementById('sv-lista-corpo');
   const elResumo = document.getElementById('sv-resumo-lista');
+  const elSyncBadge = document.getElementById('sv-sync-badge');
   const elTotais = document.getElementById('sv-totais');
   const elPager = document.getElementById('sv-pager');
   const elPagerInfo = document.getElementById('sv-pager-info');
@@ -1545,28 +1568,87 @@
     return p.toString();
   }
 
+  function textoExtraVencimento() {
+    const de = document.getElementById('sv-venc-de').value;
+    const ate = document.getElementById('sv-venc-ate').value;
+    if (!de && !ate) return '';
+    return ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
+  }
+
+  function atualizarResumoLista(extra) {
+    const st = document.getElementById('sv-status');
+    const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+    elResumo.textContent = `${total} título(s) · ${stTxt}${extra != null ? extra : textoExtraVencimento()}`;
+  }
+
+  function setSyncBadge(on, msg) {
+    if (!elSyncBadge) return;
+    if (on) {
+      elSyncBadge.textContent = msg || 'Sincronizando…';
+      elSyncBadge.hidden = false;
+    } else {
+      elSyncBadge.hidden = true;
+    }
+  }
+
+  function ehFiltroPadraoHojeAbertos() {
+    const hoje = hojeYmd();
+    return (
+      (document.getElementById('sv-status').value || '') === 'abertos'
+      && document.getElementById('sv-venc-de').value === hoje
+      && document.getElementById('sv-venc-ate').value === hoje
+      && !(document.getElementById('sv-busca').value || '').trim()
+      && getExcludedSet().size === 0
+    );
+  }
+
+  function aplicarDadosListaCache(data) {
+    if (!data || !Array.isArray(data.lancamentos)) return false;
+    rowsAcum.length = 0;
+    rowsAcum.push(...data.lancamentos);
+    total = Number(data.total) || rowsAcum.length;
+    if (data.totais) atualizarTotais(data.totais);
+    atualizarResumoLista();
+    renderLista(false, rowsAcum);
+    return true;
+  }
+
   function salvarListaCache(data) {
     try {
       sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: paramsCacheKey(), data }));
+      if (ehFiltroPadraoHojeAbertos()) {
+        sessionStorage.setItem(LS_FIN_DIA, JSON.stringify({ day: hojeYmd(), data }));
+      }
     } catch (_) {}
   }
 
   function tentarHidratarListaCache() {
     try {
       const raw = sessionStorage.getItem(LS_FIN_LISTA);
-      if (!raw) return false;
-      const o = JSON.parse(raw);
-      if (String(o.params_qs || '') !== paramsCacheKey()) return false;
-      const data = o.data;
-      if (!data || !Array.isArray(data.lancamentos)) return false;
-      rowsAcum.length = 0;
-      rowsAcum.push(...data.lancamentos);
-      total = Number(data.total) || rowsAcum.length;
-      if (data.totais) atualizarTotais(data.totais);
-      const st = document.getElementById('sv-status');
-      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
-      elResumo.textContent = `${total} título(s) · ${stTxt}`;
-      renderLista(false, rowsAcum);
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (String(o.params_qs || '') === paramsCacheKey() && aplicarDadosListaCache(o.data)) {
+          return true;
+        }
+      }
+      if (!ehFiltroPadraoHojeAbertos()) return false;
+      const rawDia = sessionStorage.getItem(LS_FIN_DIA);
+      if (!rawDia) return false;
+      const od = JSON.parse(rawDia);
+      if (od.day !== hojeYmd()) return false;
+      return aplicarDadosListaCache(od.data);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function tentarHidratarBootstrapServidor() {
+    const el = document.getElementById('sv-cp-bootstrap');
+    if (!el || !el.textContent) return false;
+    try {
+      const data = JSON.parse(el.textContent);
+      if (!aplicarDadosListaCache(data)) return false;
+      salvarListaCache(data);
       return true;
     } catch (_) {
       return false;
@@ -1927,15 +2009,21 @@
     opts = opts || {};
     if (carregando) return;
     carregando = true;
+    const stale = !!opts.staleRefresh;
+    const subtle = stale || !!opts.silent;
+    let syncErrKept = false;
     if (!acrescentar) {
-      rowsAcum.length = 0;
+      if (!stale) rowsAcum.length = 0;
       if (!opts.keepSelecao) limparSelecao();
-      if (opts.silent && elCorpo.querySelector('.sv-list-item')) {
+      if (subtle && elCorpo.querySelector('.sv-list-item')) {
         elCorpo.classList.add('sv-list-refreshing');
-      } else if (!tentarHidratarListaCache()) {
+        setSyncBadge(true);
+      } else if (!stale && !tentarHidratarListaCache()) {
         elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      } else if (stale) {
+        setSyncBadge(true);
       }
-      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+      if (!subtle && window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
     }
     try {
       const r = await fetch(API_LISTA + '?' + montarParams(!acrescentar).toString(), {
@@ -1947,6 +2035,7 @@
       if (data.erro_deep_link) {
         elCorpo.innerHTML = `<div class="sv-erro">${esc(data.erro_deep_link)}</div>`;
         elResumo.textContent = data.erro_deep_link;
+        setSyncBadge(false);
         return;
       }
       total = Number(data.total) || 0;
@@ -1957,24 +2046,24 @@
       }
       rowsAcum.push(...linhas);
       if (data.totais) atualizarTotais(data.totais);
-      const st = document.getElementById('sv-status');
-      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
-      const de = document.getElementById('sv-venc-de').value;
-      const ate = document.getElementById('sv-venc-ate').value;
-      let extra = '';
-      if (de || ate) {
-        extra = ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
-      }
-      elResumo.textContent = `${total} título(s) · ${stTxt}${extra}`;
+      atualizarResumoLista();
       renderLista(acrescentar, linhas);
       sincronizarUrlComFiltrosAtuais();
     } catch (err) {
-      elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
-      elResumo.textContent = 'Erro ao carregar';
+      if (stale && rowsAcum.length) {
+        syncErrKept = true;
+        setSyncBadge(true, 'Falha ao sincronizar');
+        setTimeout(() => setSyncBadge(false), 3200);
+      } else {
+        elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
+        elResumo.textContent = 'Erro ao carregar';
+        setSyncBadge(false);
+      }
     } finally {
       carregando = false;
       elCorpo.classList.remove('sv-list-refreshing');
-      if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+      if (!subtle && window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+      if (!syncErrKept) setSyncBadge(false);
     }
   }
 
@@ -2294,7 +2383,9 @@
     if (!urlTemFiltrosExplicitos()) {
       aplicarPrefiltro('hoje', false);
     }
-    carregar(false);
+    const fromBootstrap = tentarHidratarBootstrapServidor();
+    const fromCache = !fromBootstrap && tentarHidratarListaCache();
+    carregar(false, (fromBootstrap || fromCache) ? { staleRefresh: true } : {});
   }
 
     window.agroNovaSaidaOnSuccess = function (info) {

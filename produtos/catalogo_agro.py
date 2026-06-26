@@ -104,7 +104,10 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     ).strip()
     if ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-    return _aplicar_overlay_em_row(row, ov)
+    row = _aplicar_overlay_em_row(row, ov)
+    from produtos.catalogo_nome_util import aplicar_nome_resolvido_em_row
+
+    return aplicar_nome_resolvido_em_row(row, p, ov)
 
 
 def queryset_catalogo_ativos(*, inativos: bool = False):
@@ -145,11 +148,34 @@ def listar_paginado(
     return _rows_de_produtos(chunk[:por_pagina]), has_more
 
 
+def _q_tokens_todos_cadastro(termo: str):
+    from produtos.cadastro_busca_codigo_util import q_icontains_cadastro
+
+    parts = [p.strip() for p in (termo or "").split() if len(p.strip()) >= 2]
+    if len(parts) < 2:
+        return None
+    q = Q()
+    for pl in parts:
+        q &= q_icontains_cadastro(pl)
+    return q
+
+
+def _cadastro_pg_append_unicos(found: list, seen: set, items, lim: int) -> None:
+    for p in items:
+        if p.pk in seen:
+            continue
+        seen.add(p.pk)
+        found.append(p)
+        if len(found) >= lim:
+            return
+
+
 def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     from produtos.cadastro_busca_codigo_util import (
         overlay_pids_por_codigo,
         parece_codigo_cadastro,
         q_icontains_cadastro,
+        termo_eh_codigo_gm,
         termo_bate_codigos_produto,
     )
 
@@ -158,32 +184,105 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         return []
     qs = queryset_catalogo_ativos(inativos=inativos)
     lim = max(1, min(int(limit or 80), 160))
+    found: list[Produto] = []
+    seen_pk: set[int] = set()
 
     if parece_codigo_cadastro(termo):
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
-            chunk = list(qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim])
-            if chunk:
-                return _rows_de_produtos(chunk)
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        if len(found) < lim:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        if len(found) < lim:
+            for p in qs.iterator(chunk_size=400):
+                if termo_bate_codigos_produto(
+                    termo,
+                    codigo_interno=p.codigo_interno,
+                    codigo_nfe=p.codigo_nfe,
+                    codigo_barras=p.codigo_barras,
+                    extras=(p.produto_externo_id, p.erp_produto_id),
+                ):
+                    _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                    if len(found) >= lim:
+                        break
+    else:
+        q_tok = _q_tokens_todos_cadastro(termo)
+        if q_tok is not None:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_tok).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        if len(found) < lim:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
+                lim,
+            )
 
-        matches: list[Produto] = []
-        for p in qs.iterator(chunk_size=400):
+    partes_txt = [p.strip().lower() for p in termo.split() if len(p.strip()) >= 2]
+    if partes_txt and len(found) < lim:
+        from produtos.catalogo_nome_util import produto_fantasma_catalogo, queryset_produtos_nome_corrupto
+
+        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
+            if p.pk in seen_pk:
+                continue
+            if not produto_fantasma_catalogo(p):
+                continue
+            row = produto_agro_para_row(p)
+            bt = str(row.get("busca_texto") or row.get("nome") or "").lower()
+            if bt and all(pl in bt for pl in partes_txt):
+                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                if len(found) >= lim:
+                    break
+
+    if parece_codigo_cadastro(termo) and len(found) < lim:
+        from produtos.catalogo_nome_util import produto_fantasma_catalogo, queryset_produtos_nome_corrupto
+
+        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
+            if p.pk in seen_pk:
+                continue
+            if not produto_fantasma_catalogo(p):
+                continue
+            row = produto_agro_para_row(p)
             if termo_bate_codigos_produto(
                 termo,
-                codigo_interno=p.codigo_interno,
-                codigo_nfe=p.codigo_nfe,
-                codigo_barras=p.codigo_barras,
-                extras=(p.produto_externo_id, p.erp_produto_id),
+                codigo_interno=row.get("codigo"),
+                codigo_nfe=row.get("codigo_nfe"),
+                codigo_barras=row.get("codigo_barras"),
+                extras=(row.get("id"),),
             ):
-                matches.append(p)
-                if len(matches) >= lim:
+                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
+                if len(found) >= lim:
                     break
-        if matches:
-            return _rows_de_produtos(matches)
 
-    chunk = list(qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim])
-    if chunk:
-        return _rows_de_produtos(chunk)
+    if found:
+        if termo_eh_codigo_gm(termo):
+            found = [
+                p
+                for p in found
+                if termo_bate_codigos_produto(
+                    termo,
+                    codigo_interno=p.codigo_interno,
+                    codigo_nfe=p.codigo_nfe,
+                    codigo_barras=p.codigo_barras,
+                    extras=(p.produto_externo_id, p.erp_produto_id),
+                )
+            ]
+        if found:
+            return _rows_de_produtos(found[:lim])
 
     if parece_codigo_cadastro(termo):
         try:
@@ -477,6 +576,192 @@ def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
     return out
 
 
+def _queryset_gestao_status(status_q: str):
+    """Queryset ``Produto`` conforme filtro status da gestão operacional."""
+    status_q = (status_q or "ativos").strip().lower()
+    if status_q == "inativos":
+        return Produto.objects.filter(Q(cadastro_inativo=True) | Q(ativo=False))
+    if status_q == "todos":
+        return Produto.objects.all()
+    return queryset_catalogo_ativos(inativos=False)
+
+
+def row_para_doc_gestao_lista(row: dict) -> dict:
+    """Documento estilo Mongo para ``_linha_gestao_produto_json``."""
+    inativo = bool(row.get("inativo"))
+    cat = str(row.get("categoria") or "").strip()
+    sub = str(row.get("subcategoria") or "").strip()
+    forn = str(row.get("fornecedor") or "").strip()
+    cod = str(row.get("codigo") or "").strip()
+    cnfe = str(row.get("codigo_nfe") or cod).strip()
+    pid = str(row.get("id") or "").strip()
+    return {
+        "Id": pid,
+        "_id": pid,
+        "CadastroInativo": inativo,
+        "Nome": str(row.get("nome") or "").strip(),
+        "Marca": str(row.get("marca") or "").strip(),
+        "NomeCategoria": cat,
+        "Categoria": cat,
+        "Grupo": cat,
+        "NomeFornecedor": forn,
+        "Fornecedor": forn,
+        "SubGrupo": sub,
+        "Subcategoria": sub,
+        "NomeSubcategoria": sub,
+        "CodigoNFe": cnfe,
+        "Codigo": cod,
+        "CodigoBarras": str(row.get("codigo_barras") or "").strip(),
+        "Unidade": str(row.get("unidade") or "UN").strip() or "UN",
+        "ValorVenda": row.get("preco_venda"),
+        "PrecoVenda": row.get("preco_venda"),
+        "PrecoCusto": row.get("preco_custo"),
+        "ValorCusto": row.get("preco_custo"),
+        "Descricao": str(row.get("descricao") or "").strip(),
+    }
+
+
+def _gestao_aplicar_filtros_qs(qs, *, marca: str, categoria: str, fornecedor: str):
+    marca = (marca or "").strip()
+    categoria = (categoria or "").strip()
+    fornecedor = (fornecedor or "").strip()
+    if marca:
+        qs = qs.filter(marca=marca)
+    if categoria:
+        qs = qs.filter(categoria=categoria)
+    if fornecedor:
+        qs = qs.filter(fornecedor_texto__icontains=fornecedor)
+    return qs
+
+
+def listar_gestao_paginado(
+    *,
+    pagina: int = 1,
+    por_pagina: int = 40,
+    status_q: str = "ativos",
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
+) -> tuple[list[dict], bool, int | None]:
+    """Lista paginada gestão operacional (Postgres + overlay)."""
+    qs = _queryset_gestao_status(status_q)
+    qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
+    skip = max(0, (pagina - 1) * por_pagina)
+    chunk = list(qs.order_by("nome", "pk")[skip : skip + por_pagina + 1])
+    has_more = len(chunk) > por_pagina
+    rows = _rows_de_produtos(chunk[:por_pagina])
+    return rows, has_more, None
+
+
+def _gestao_row_passa_status(row: dict, status_q: str) -> bool:
+    inativo = bool(row.get("inativo"))
+    if status_q == "inativos":
+        return inativo
+    if status_q == "todos":
+        return True
+    return not inativo
+
+
+def _gestao_row_passa_filtros(row: dict, marca: str, categoria: str, fornecedor: str) -> bool:
+    if marca and str(row.get("marca") or "").strip() != marca:
+        return False
+    if categoria and str(row.get("categoria") or "").strip() != categoria:
+        return False
+    if fornecedor:
+        f = str(row.get("fornecedor") or "").strip().lower()
+        if fornecedor.strip().lower() not in f:
+            return False
+    return True
+
+
+def buscar_gestao(
+    q: str,
+    *,
+    limit: int = 120,
+    status_q: str = "ativos",
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
+) -> list[dict]:
+    """Busca gestão com filtros (Postgres)."""
+    include_inactive = status_q in ("todos", "inativos")
+    rows = buscar(q, limit=limit, inativos=include_inactive)
+    out: list[dict] = []
+    for row in rows:
+        if not _gestao_row_passa_status(row, status_q):
+            continue
+        if not _gestao_row_passa_filtros(row, marca, categoria, fornecedor):
+            continue
+        out.append(row)
+    return out
+
+
+def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in valores:
+        s = str(raw or "").strip()
+        if not s:
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+        if len(out) >= limite:
+            break
+    return sorted(out, key=lambda x: x.lower())
+
+
+def facetas_gestao(*, limite: int = 200) -> dict[str, list[str]]:
+    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay)."""
+    lim = max(1, min(int(limite or 200), 300))
+    qs = queryset_catalogo_ativos(inativos=False)
+    marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=lim)
+    categorias = _faceta_valores_distintos(
+        qs.exclude(categoria="").values_list("categoria", flat=True).distinct(), limite=lim
+    )
+    subcategorias = _faceta_valores_distintos(
+        qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct(), limite=lim
+    )
+    fornecedores = _faceta_valores_distintos(
+        qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct(), limite=lim + 100
+    )
+
+    ov_qs = ProdutoGestaoOverlayAgro.objects.all()
+    marcas = _faceta_valores_distintos(
+        list(marcas)
+        + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    categorias = _faceta_valores_distintos(
+        list(categorias)
+        + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    subcategorias = _faceta_valores_distintos(
+        list(subcategorias)
+        + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()[: lim + 50]],
+        limite=lim,
+    )
+    fornecedores = _faceta_valores_distintos(
+        list(fornecedores)
+        + [
+            x
+            for x in ov_qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct()[
+                : lim + 100
+            ]
+        ],
+        limite=lim + 100,
+    )
+    return {
+        "marcas": marcas,
+        "categorias": categorias,
+        "subcategorias": subcategorias,
+        "fornecedores": fornecedores,
+    }
+
+
 def listar_todos_rows_ativos() -> list[dict]:
     """Todos os produtos ativos do Postgres (catálogo ``agro_pg``)."""
     out: list[dict] = []
@@ -515,12 +800,77 @@ def row_para_doc_busca_pdv(row: dict) -> dict:
     }
 
 
+def _alnum_codigo_cmp(val: object) -> str:
+    import re
+
+    return re.sub(r"[^a-z0-9]", "", str(val or "").strip().lower())
+
+
+def _nome_doc_busca_pdv(doc: dict) -> str:
+    return str(doc.get("Nome") or doc.get("nome") or "").strip()
+
+
+def _chaves_codigo_doc_busca_pdv(doc: dict) -> set[str]:
+    keys: set[str] = set()
+    for k in ("CodigoNFe", "Codigo", "codigo_nfe", "codigo", "CodigoBarras", "codigo_barras"):
+        al = _alnum_codigo_cmp(doc.get(k))
+        if al and len(al) >= 4:
+            keys.add(al)
+    ix = doc.get("index_codigos") or doc.get("IndexCodigos")
+    if isinstance(ix, list):
+        for x in ix:
+            al = _alnum_codigo_cmp(x)
+            if al and len(al) >= 4:
+                keys.add(al)
+    return keys
+
+
+def _dedupe_prods_busca_preferir_com_nome(prods: list) -> list:
+    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/código.
+
+    Dois produtos **com nome** e mesmo GM (ex. GM9503 shampoo + teste) **permanecem**.
+    """
+    if not prods or len(prods) < 2:
+        return prods
+    grupos: dict[str, list[int]] = {}
+    for i, p in enumerate(prods):
+        for k in _chaves_codigo_doc_busca_pdv(p):
+            grupos.setdefault(k, []).append(i)
+    drop: set[int] = set()
+    for idxs in grupos.values():
+        if len(idxs) < 2:
+            continue
+        uniq = sorted(set(idxs))
+        if len(uniq) < 2:
+            continue
+
+        def _tem_nome(i: int) -> bool:
+            return len(_nome_doc_busca_pdv(prods[i]).strip()) >= 2
+
+        com_nome = [i for i in uniq if _tem_nome(i)]
+        if len(com_nome) >= 2:
+            continue
+
+        def _rank(i: int) -> tuple:
+            nome = _nome_doc_busca_pdv(prods[i])
+            return (1 if nome else 0, len(nome), i)
+
+        best = max(uniq, key=_rank)
+        for i in uniq:
+            if i != best and not _tem_nome(i):
+                drop.add(i)
+    if not drop:
+        return prods
+    return [p for i, p in enumerate(prods) if i not in drop]
+
+
 def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
 
     out = dict(doc)
-    if row.get("nome"):
-        out["Nome"] = row["nome"]
+    nome_pg = str(row.get("nome") or "").strip()
+    if nome_pg:
+        out["Nome"] = nome_pg
     if row.get("marca") is not None:
         out["Marca"] = row["marca"]
     cod = row.get("codigo") or ""
@@ -552,6 +902,21 @@ def fundir_doc_mongo_com_row_pg(doc: dict, row: dict) -> dict:
     return out
 
 
+def prods_mongo_style_busca_pdv(
+    *,
+    q: str = "",
+    wizard_catalog: bool = False,
+    limit: int = 80,
+) -> list[dict]:
+    """Documentos estilo Mongo a partir do catálogo Postgres (PDV sem espelho)."""
+    if wizard_catalog:
+        rows = listar_todos_rows_ativos()
+    else:
+        termo = (q or "").strip()
+        rows = list(buscar(termo, limit=limit)) if termo else []
+    return [row_para_doc_busca_pdv(r) for r in rows]
+
+
 def mesclar_prods_busca_pdv(
     prods: list,
     *,
@@ -560,9 +925,9 @@ def mesclar_prods_busca_pdv(
     limit: int = 80,
 ) -> list:
     """Inclui/atualiza produtos do Postgres no resultado de busca do PDV."""
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
 
-    if not agro_catalogo_usa_postgres():
+    if not agro_pdv_merge_catalogo_postgres():
         return prods
 
     ids_vistos: set[str] = set()
@@ -589,15 +954,15 @@ def mesclar_prods_busca_pdv(
             prods.append(row_para_doc_busca_pdv(row))
             ids_vistos.add(pid)
             idx_por_id[pid] = len(prods) - 1
-    return prods
+    return _dedupe_prods_busca_preferir_com_nome(prods)
 
 
 def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
     """Mescla catálogo local do PDV (``api_todos_produtos_local``) com Postgres."""
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
     from produtos.mongo_index_codigos import normalizar
 
-    if not agro_catalogo_usa_postgres():
+    if not agro_pdv_merge_catalogo_postgres():
         return itens
 
     por_id = {str(x.get("id") or ""): x for x in itens if x.get("id") is not None}

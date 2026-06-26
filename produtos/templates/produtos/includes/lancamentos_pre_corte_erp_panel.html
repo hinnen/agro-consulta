@@ -4,7 +4,7 @@
   <div>
     <p class="text-xs sm:text-sm font-black uppercase text-amber-950 tracking-tight">Segurança — antes de cortar o ERP</p>
     <p class="text-[11px] sm:text-xs font-semibold text-amber-900/90 mt-1 leading-snug">
-      Nada é apagado. Backup no PC é <strong>só cópia de segurança</strong> (o SisVale não importa de volta). Checkpoint carimba os títulos; depois disso a API Agro→ERP fica bloqueada automaticamente.
+      Nada é apagado. Primeiro baixe o Excel no seu PC; depois faça o checkpoint. Só então subimos a atualização e você combina com a loja.
     </p>
   </div>
   <p id="agro-lanc-pre-corte-status" class="text-[11px] font-bold text-slate-800 rounded-lg bg-white/80 border border-amber-200/80 px-3 py-2 min-h-[2.5rem]">
@@ -12,8 +12,8 @@
   </p>
   <ol class="text-[11px] font-semibold text-slate-700 space-y-1.5 list-decimal list-inside">
     <li><strong>Passo 1</strong> — Baixar backup ZIP (todos ou <strong>só em aberto</strong>)</li>
-    <li><strong>Passo 2</strong> — Checkpoint (carimbo; valores não mudam)</li>
-    <li><strong>Depois do checkpoint</strong> — SisVale para de enviar lançamento/baixa à API do ERP (automático). Lançamentos na loja segue normal.</li>
+    <li><strong>Passo 2</strong> — Checkpoint (trava o retrato; valores não mudam)</li>
+    <li><strong>Depois do deploy</strong> — Peça à loja para não usar Lançamentos por algumas horas; avise o suporte do ERP para parar de atualizar financeiro</li>
   </ol>
   <div class="flex flex-wrap gap-2">
     <button type="button" id="agro-lanc-btn-backup-xlsx"
@@ -50,9 +50,6 @@
     linhas.push('Títulos no sistema: ~' + (st.total_titulos_estimado || 0));
     if (st.todos_marcados) {
       linhas.push('Checkpoint: FEITO' + (st.congelado_em ? ' em ' + String(st.congelado_em).slice(0, 16).replace('T', ' ') : ''));
-      if (st.erp_sync_agro_envia === false) {
-        linhas.push('API Agro→ERP: bloqueada (corte ativo)');
-      }
     } else {
       linhas.push('Checkpoint: ainda não feito (' + (st.marcados_fonte_agro || 0) + ' já marcados)');
     }
