@@ -300,10 +300,31 @@
   .gg-modo-tempo-row { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
   .gg-modo-tempo-row .gg-chk-toggle { margin: 0; }
   .gg-meta-bar.is-historico { border-color: #fcd34d; background: linear-gradient(90deg, #fffbeb, #fef3c7); }
+  .gg-meta-bar.is-comparar { border-color: #93c5fd; background: linear-gradient(90deg, #eff6ff, #dbeafe); }
   .gg-meta-badge-hist {
     flex-shrink: 0; padding: 0.12rem 0.45rem; border-radius: 999px;
     background: #f59e0b; color: #fff; font-size: 0.625rem; font-weight: 900; text-transform: uppercase;
   }
+  .gg-meta-badge-hist.is-comparar { background: #2563eb; }
+  .gg-chk-toggle.is-disabled { opacity: 0.55; cursor: not-allowed; }
+  .gg-compare-box {
+    position: absolute; top: 0.35rem; right: 0.35rem; z-index: 12;
+    max-width: min(17rem, 44%); padding: 0.45rem 0.6rem;
+    border-radius: 0.65rem; border: 2px solid #cbd5e1;
+    background: rgba(255, 255, 255, 0.97); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+    font-size: var(--gg-label); line-height: 1.35; pointer-events: none;
+  }
+  .gg-compare-box[hidden] { display: none !important; }
+  .gg-compare-box strong { font-weight: 900; color: var(--gg-text); }
+  .gg-compare-line { display: flex; justify-content: space-between; gap: 0.45rem; margin-bottom: 0.12rem; }
+  .gg-compare-line small { color: var(--gg-muted); font-weight: 700; white-space: nowrap; }
+  .gg-compare-delta {
+    margin-top: 0.25rem; padding-top: 0.3rem; border-top: 1px solid #e2e8f0;
+    font-weight: 900; text-align: right;
+  }
+  .gg-compare-delta.is-mais { color: #b45309; }
+  .gg-compare-delta.is-menos { color: #047857; }
+  .gg-compare-delta.is-zero { color: #64748b; }
   .gg-kpi-row { display: none; }
   .gg-chart-card {
     flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
@@ -489,6 +510,10 @@
                     <input type="radio" name="modo-tempo" id="modo-tempo-historico" value="historico">
                     <span>Como era no dia</span>
                   </label>
+                  <label class="gg-chk-toggle">
+                    <input type="radio" name="modo-tempo" id="modo-tempo-comparar" value="comparar">
+                    <span>Comparar</span>
+                  </label>
                 </div>
               </div>
               <div class="gg-field" id="gg-wrap-data-ref">
@@ -505,6 +530,7 @@
                 <summary>? Tempo real vs como era no dia</summary>
                 <p><strong>Tempo real</strong> — valores de hoje (pagamentos recentes já abatem o saldo).</p>
                 <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: títulos pagos <em>depois</em> voltam a aparecer em aberto; títulos criados depois somem. Pagamentos parciais antigos podem ter pequena diferença (Mongo não guarda histórico de cada baixa).</p>
+                <p><strong>Comparar</strong> — duas linhas no gráfico (verde = hoje, laranja = como era na data). Em cada mês aparece a <em>variação</em>; no canto, totais e diferença geral. Desliga «Individual».</p>
               </details>
             </div>
           </div>
@@ -550,6 +576,11 @@
 
   <div class="gg-chart-card">
     <div class="gg-chart-inner">
+      <div id="gg-compare-box" class="gg-compare-box" hidden aria-live="polite">
+        <div class="gg-compare-line"><small>Tempo real</small> <strong id="gg-compare-real">—</strong></div>
+        <div class="gg-compare-line"><small>Como era</small> <strong id="gg-compare-hist">—</strong></div>
+        <div class="gg-compare-delta" id="gg-compare-delta">Variação —</div>
+      </div>
       <div id="gg-status" class="is-loading">Montando gráfico…</div>
       <canvas id="graficoGastos"></canvas>
     </div>
@@ -598,7 +629,56 @@ document.addEventListener('DOMContentLoaded', function () {
   let debounceTimer = null;
   let periodoAtivo = 'p3m';
   let atalhosCache = [];
-  let chartSerieMeta = { bucket_keys: [], labels: [] };
+  let chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+
+  const COR_REAL = '#059669';
+  const COR_HIST = '#d97706';
+
+  const pluginGgCompareDelta = {
+    id: 'ggCompareDelta',
+    afterDatasetsDraw: function (chart) {
+      const meta = chartSerieMeta;
+      if (!meta || !meta.compareMode || !meta.deltas || !meta.deltas.length) return;
+      const ds0 = chart.getDatasetMeta(0);
+      const ds1 = chart.getDatasetMeta(1);
+      if (!ds0 || !ds1) return;
+      const ctx = chart.ctx;
+      meta.deltas.forEach(function (d, i) {
+        const p0 = ds0.data[i];
+        const p1 = ds1.data[i];
+        if (!p0 || !p1) return;
+        const v0 = Number((chart.data.datasets[0].data || [])[i]) || 0;
+        const v1 = Number((chart.data.datasets[1].data || [])[i]) || 0;
+        if (v0 <= 0 && v1 <= 0) return;
+        const x = p0.x;
+        const yTop = Math.min(p0.y, p1.y) - 8;
+        const txt = fmtDeltaCompact(d);
+        const cls = deltaClasse(d);
+        ctx.save();
+        ctx.font = '800 10px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const w = ctx.measureText(txt).width + 12;
+        const h = 15;
+        const left = x - w / 2;
+        const top = yTop - h;
+        ctx.fillStyle = cls === 'is-mais' ? 'rgba(254, 243, 199, 0.96)' : (cls === 'is-menos' ? 'rgba(209, 250, 229, 0.96)' : 'rgba(241, 245, 249, 0.96)');
+        ctx.strokeStyle = cls === 'is-mais' ? '#d97706' : (cls === 'is-menos' ? '#059669' : '#94a3b8');
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(left, top, w, h, 4);
+        } else {
+          ctx.rect(left, top, w, h);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = cls === 'is-mais' ? '#b45309' : (cls === 'is-menos' ? '#047857' : '#64748b');
+        ctx.fillText(txt, x, yTop - 2);
+        ctx.restore();
+      });
+    }
+  };
   let cpPopupAberto = false;
 
   function csrfToken() {
@@ -616,6 +696,31 @@ document.addEventListener('DOMContentLoaded', function () {
   function fmtMoeda(v) {
     if (v == null) return '—';
     return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function deltaClasse(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return 'is-zero';
+    return n > 0 ? 'is-mais' : 'is-menos';
+  }
+
+  function fmtDeltaSigned(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return '± R$ 0';
+    const sign = n > 0 ? '+' : '−';
+    return sign + ' ' + fmtMoeda(Math.abs(n)).replace(/^R\$\s*/, 'R$ ');
+  }
+
+  function fmtDeltaCompact(d) {
+    const n = Number(d) || 0;
+    if (Math.abs(n) < 0.01) return '±0';
+    const sign = n > 0 ? '+' : '−';
+    return sign + Number(Math.abs(n)).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  }
+
+  function getModoTempo() {
+    const el = document.querySelector('input[name="modo-tempo"]:checked');
+    return el ? el.value : 'real';
   }
 
   function fmtDataBr(iso) {
@@ -708,27 +813,64 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function isModoHistorico() {
-    const el = document.querySelector('input[name="modo-tempo"]:checked');
-    return !!(el && el.value === 'historico');
+    return getModoTempo() === 'historico';
+  }
+
+  function isModoComparar() {
+    return getModoTempo() === 'comparar';
   }
 
   function syncModoTempoUi() {
     const hist = isModoHistorico();
+    const comp = isModoComparar();
     const inp = document.getElementById('filtro-data-referencia');
     const badge = document.getElementById('gg-badge-historico');
     const meta = document.getElementById('gg-meta-bar');
+    const ind = document.getElementById('modo-individual');
+    const indWrap = ind ? ind.closest('.gg-chk-toggle') : null;
     if (inp) {
-      inp.disabled = !hist;
-      if (hist && !inp.value) inp.value = isoDate(new Date());
+      inp.disabled = !(hist || comp);
+      if ((hist || comp) && !inp.value) inp.value = isoDate(new Date());
     }
-    if (badge) badge.hidden = !hist;
-    if (meta) meta.classList.toggle('is-historico', hist);
+    if (badge) {
+      badge.hidden = !(hist || comp);
+      badge.textContent = comp ? 'Comparando' : 'Como era no dia';
+      badge.classList.toggle('is-comparar', comp);
+    }
+    if (meta) {
+      meta.classList.toggle('is-historico', hist);
+      meta.classList.toggle('is-comparar', comp);
+    }
+    if (ind) {
+      if (comp && ind.checked) ind.checked = false;
+      ind.disabled = comp;
+      if (indWrap) indWrap.classList.toggle('is-disabled', comp);
+    }
   }
 
   function payloadModoTempo() {
-    if (!isModoHistorico()) return { modo_tempo: 'real' };
-    const ref = document.getElementById('filtro-data-referencia').value;
-    return { modo_tempo: 'historico', data_referencia: ref || isoDate(new Date()) };
+    const ref = document.getElementById('filtro-data-referencia').value || isoDate(new Date());
+    if (isModoComparar()) return { modo_tempo: 'comparar', data_referencia: ref };
+    if (isModoHistorico()) return { modo_tempo: 'historico', data_referencia: ref };
+    return { modo_tempo: 'real' };
+  }
+
+  function atualizarCompareBox(comparacao) {
+    const box = document.getElementById('gg-compare-box');
+    const elReal = document.getElementById('gg-compare-real');
+    const elHist = document.getElementById('gg-compare-hist');
+    const elDelta = document.getElementById('gg-compare-delta');
+    if (!box || !elReal || !elHist || !elDelta) return;
+    if (!comparacao) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    elReal.textContent = fmtMoeda(comparacao.total_real);
+    elHist.textContent = fmtMoeda(comparacao.total_historico);
+    const cls = deltaClasse(comparacao.delta_total);
+    elDelta.className = 'gg-compare-delta ' + cls;
+    elDelta.textContent = 'Variação ' + fmtDeltaSigned(comparacao.delta_total);
   }
 
   function atualizarResumoFiltros() {
@@ -745,6 +887,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isModoHistorico()) {
       const ref = document.getElementById('filtro-data-referencia').value;
       linha += ' · como em ' + fmtDataBr(ref);
+    } else if (isModoComparar()) {
+      const ref = document.getElementById('filtro-data-referencia').value;
+      linha += ' · comparar com ' + fmtDataBr(ref);
     }
     tagResumo.textContent = linha;
     tagResumo.title = linha;
@@ -919,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function () {
       individual: pp.individual,
       inicio: document.getElementById('data-inicial').value,
       fim: document.getElementById('data-final').value,
-      modo_tempo: isModoHistorico() ? 'historico' : 'real',
+      modo_tempo: getModoTempo(),
       data_referencia: document.getElementById('filtro-data-referencia').value || ''
     };
   }
@@ -945,9 +1090,10 @@ document.addEventListener('DOMContentLoaded', function () {
         cb.checked = state.planos.includes(cb.value);
       });
     }
-    const modoHist = (state.modo_tempo || 'real') === 'historico';
-    document.getElementById('modo-tempo-real').checked = !modoHist;
-    document.getElementById('modo-tempo-historico').checked = modoHist;
+    const modo = state.modo_tempo || 'real';
+    document.getElementById('modo-tempo-real').checked = modo === 'real';
+    document.getElementById('modo-tempo-historico').checked = modo === 'historico';
+    document.getElementById('modo-tempo-comparar').checked = modo === 'comparar';
     if (state.data_referencia) {
       document.getElementById('filtro-data-referencia').value = state.data_referencia;
     }
@@ -1041,6 +1187,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function initChart() {
     if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+    Chart.register(pluginGgCompareDelta);
     chartGastos = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [] },
@@ -1058,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const native = evt.native || evt;
           target.style.cursor = indicePontoNoClique(native) >= 0 ? 'pointer' : 'default';
         },
-        layout: { padding: { top: 28, right: 8, left: 4, bottom: 2 } },
+        layout: { padding: { top: 36, right: 8, left: 4, bottom: 2 } },
         plugins: {
           legend: {
             position: 'top',
@@ -1074,7 +1221,13 @@ document.addEventListener('DOMContentLoaded', function () {
               label: function (ctx) {
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               },
-              footer: function () {
+              footer: function (items) {
+                if (!items || !items.length) return '';
+                if (chartSerieMeta.compareMode) {
+                  const i = items[0].dataIndex;
+                  const d = (chartSerieMeta.deltas || [])[i];
+                  return 'Variação: ' + fmtDeltaSigned(d);
+                }
                 return 'Clique para ver Contas a pagar';
               }
             }
@@ -1088,15 +1241,32 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             align: 'top',
             anchor: 'end',
-            offset: 10,
+            offset: function (ctx) {
+              return chartSerieMeta.compareMode ? 6 : 10;
+            },
             clip: false,
-            backgroundColor: 'rgba(255, 255, 255, 0.96)',
-            borderColor: '#059669',
+            backgroundColor: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return ctx.datasetIndex === 0 ? 'rgba(236, 253, 245, 0.98)' : 'rgba(255, 247, 237, 0.98)';
+              }
+              return 'rgba(255, 255, 255, 0.96)';
+            },
+            borderColor: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return ctx.datasetIndex === 0 ? COR_REAL : COR_HIST;
+              }
+              return COR_REAL;
+            },
             borderRadius: 8,
             borderWidth: 2,
             padding: { top: 5, bottom: 5, left: 8, right: 8 },
-            color: '#047857',
-            font: { weight: '900', size: 13 },
+            color: function (ctx) {
+              if (chartSerieMeta.compareMode) {
+                return ctx.datasetIndex === 0 ? '#047857' : '#b45309';
+              }
+              return '#047857';
+            },
+            font: { weight: '900', size: 12 },
             formatter: function (v) { return fmtValor(v, 0); }
           }
         },
@@ -1125,11 +1295,35 @@ document.addEventListener('DOMContentLoaded', function () {
   function atualizarKpis(data) {
     let total = 0;
     let pontos = (data.labels || []).length;
-    (data.datasets || []).forEach(function (ds) {
-      (ds.data || []).forEach(function (v) { total += Number(v) || 0; });
-    });
+    const comp = data.modo_tempo === 'comparar' && data.comparacao;
+    if (comp) {
+      total = Number(comp.total_real) || 0;
+    } else {
+      (data.datasets || []).forEach(function (ds) {
+        (ds.data || []).forEach(function (v) { total += Number(v) || 0; });
+      });
+    }
     kpiSoma.textContent = total > 0 ? fmtMoeda(total) : '—';
     kpiPontos.textContent = pontos > 0 ? String(pontos) : '—';
+  }
+
+  function estilizarDataset(ds, compareMode) {
+    const cor = ds.borderColor || COR_REAL;
+    const isHist = ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
+    return Object.assign({}, ds, {
+      tension: 0.32,
+      borderWidth: 3,
+      pointRadius: 7,
+      pointHoverRadius: 10,
+      pointHitRadius: 18,
+      pointBorderWidth: 2,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: cor,
+      fill: !compareMode,
+      backgroundColor: compareMode
+        ? (isHist ? 'rgba(217, 119, 6, 0.06)' : 'rgba(5, 150, 105, 0.06)')
+        : (ds.backgroundColor || 'rgba(5, 150, 105, 0.1)')
+    });
   }
 
   function marcarUltimaAtualizacao() {
@@ -1146,6 +1340,8 @@ document.addEventListener('DOMContentLoaded', function () {
       chartGastos.data.labels = [];
       chartGastos.data.datasets = [];
       chartGastos.update();
+      chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+      atualizarCompareBox(null);
       kpiSoma.textContent = '—';
       kpiPontos.textContent = '—';
       setStatus('Marque ao menos um plano de contas.', true, false);
@@ -1184,26 +1380,21 @@ document.addEventListener('DOMContentLoaded', function () {
           setStatus('', false, false);
         }
         datalabelsOn = ((data.labels || []).length <= 48);
+        const compareMode = data.modo_tempo === 'comparar';
         chartSerieMeta = {
           bucket_keys: data.bucket_keys || [],
-          labels: data.labels || []
+          labels: data.labels || [],
+          compareMode: compareMode,
+          deltas: data.deltas || [],
+          comparacao: data.comparacao || null
         };
+        chartGastos.options.layout.padding.top = compareMode ? 44 : 36;
         chartGastos.data.labels = data.labels || [];
         chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
-          return Object.assign({}, ds, {
-            tension: 0.32,
-            borderWidth: 3,
-            pointRadius: 7,
-            pointHoverRadius: 10,
-            pointHitRadius: 18,
-            pointBorderWidth: 2,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: ds.borderColor || '#059669',
-            fill: true,
-            backgroundColor: 'rgba(5, 150, 105, 0.1)'
-          });
+          return estilizarDataset(ds, compareMode);
         });
         chartGastos.update();
+        atualizarCompareBox(compareMode ? data.comparacao : null);
         atualizarKpis(data);
         marcarUltimaAtualizacao();
         const ok = result.ok && !data.erro && (data.datasets || []).length;
@@ -1240,6 +1431,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.gg-atalho-slot').forEach(function (b) { b.classList.remove('is-active'); });
     document.getElementById('modo-tempo-real').checked = true;
     document.getElementById('modo-tempo-historico').checked = false;
+    document.getElementById('modo-tempo-comparar').checked = false;
     document.getElementById('filtro-data-referencia').value = isoDate(new Date());
     syncModoTempoUi();
     expandirPainel();

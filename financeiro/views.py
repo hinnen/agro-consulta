@@ -173,7 +173,7 @@ def api_dados_grafico_gastos(request):
 
     modo_tempo = (src.get("modo_tempo") or "real").strip().lower()
     data_ref = None
-    if modo_tempo == "historico":
+    if modo_tempo in ("historico", "comparar"):
         data_ref = _grafico_gastos_parse_date(src.get("data_referencia"))
         if data_ref is None:
             data_ref = hoje
@@ -187,19 +187,28 @@ def api_dados_grafico_gastos(request):
             status=503,
         )
 
-    payload = grafico_gastos_serie_mongo(
-        mongo_db,
+    common_kw = dict(
         data_de=data_ini,
         data_ate=data_fim,
         agrupamento=agrupamento,
         plano_ids=plano_ids,
         planos_excluir_nomes=planos_excluir,
         todos_planos=todos_planos,
-        individual=individual,
         por=por,
         valor=valor,
-        data_referencia=data_ref,
     )
+
+    if modo_tempo == "comparar":
+        payload = _grafico_gastos_comparar_payload(
+            mongo_db, data_ref=data_ref, **common_kw
+        )
+    else:
+        payload = grafico_gastos_serie_mongo(
+            mongo_db,
+            individual=individual,
+            data_referencia=data_ref if modo_tempo == "historico" else None,
+            **common_kw,
+        )
     if not payload.get("ok"):
         return JsonResponse(
             {
@@ -209,9 +218,105 @@ def api_dados_grafico_gastos(request):
             },
             status=500,
         )
-    return JsonResponse(
-        {"labels": payload["labels"], "datasets": payload["datasets"]}
+    return JsonResponse(_grafico_gastos_api_json(payload))
+
+
+def _grafico_gastos_api_json(payload: dict) -> dict:
+    out = {
+        "labels": payload.get("labels") or [],
+        "bucket_keys": payload.get("bucket_keys") or [],
+        "datasets": payload.get("datasets") or [],
+    }
+    if payload.get("modo_tempo"):
+        out["modo_tempo"] = payload["modo_tempo"]
+    if payload.get("data_referencia"):
+        out["data_referencia"] = payload["data_referencia"]
+    if payload.get("deltas") is not None:
+        out["deltas"] = payload["deltas"]
+    if payload.get("comparacao"):
+        out["comparacao"] = payload["comparacao"]
+    return out
+
+
+def _grafico_gastos_comparar_payload(
+    mongo_db,
+    *,
+    data_de,
+    data_ate,
+    agrupamento,
+    plano_ids,
+    planos_excluir_nomes,
+    todos_planos,
+    por,
+    valor,
+    data_ref,
+) -> dict:
+    """Duas séries agregadas: tempo real vs como era na data de referência."""
+    common = dict(
+        data_de=data_de,
+        data_ate=data_ate,
+        agrupamento=agrupamento,
+        plano_ids=plano_ids,
+        planos_excluir_nomes=planos_excluir_nomes,
+        todos_planos=todos_planos,
+        individual=False,
+        por=por,
+        valor=valor,
     )
+    real = grafico_gastos_serie_mongo(mongo_db, **common, data_referencia=None)
+    if not real.get("ok"):
+        return real
+    hist = grafico_gastos_serie_mongo(mongo_db, **common, data_referencia=data_ref)
+    if not hist.get("ok"):
+        return hist
+
+    labels = real.get("labels") or []
+    bucket_keys = real.get("bucket_keys") or []
+    n = len(labels)
+    real_data = list((real.get("datasets") or [{}])[0].get("data") or [])
+    hist_data = list((hist.get("datasets") or [{}])[0].get("data") or [])
+    if len(real_data) < n:
+        real_data.extend([0.0] * (n - len(real_data)))
+    if len(hist_data) < n:
+        hist_data.extend([0.0] * (n - len(hist_data)))
+    real_data = real_data[:n]
+    hist_data = hist_data[:n]
+
+    deltas = [round(float(r) - float(h), 2) for r, h in zip(real_data, hist_data)]
+    total_real = round(sum(real_data), 2)
+    total_hist = round(sum(hist_data), 2)
+    ref_label = data_ref.strftime("%d/%m/%Y")
+
+    return {
+        "ok": True,
+        "erro": None,
+        "labels": labels,
+        "bucket_keys": bucket_keys,
+        "modo_tempo": "comparar",
+        "data_referencia": data_ref.isoformat(),
+        "deltas": deltas,
+        "comparacao": {
+            "total_real": total_real,
+            "total_historico": total_hist,
+            "delta_total": round(total_real - total_hist, 2),
+        },
+        "datasets": [
+            {
+                "label": "Tempo real (hoje)",
+                "data": real_data,
+                "borderColor": "#059669",
+                "backgroundColor": "rgba(5, 150, 105, 0.08)",
+                "ggSerie": "real",
+            },
+            {
+                "label": f"Como era ({ref_label})",
+                "data": hist_data,
+                "borderColor": "#d97706",
+                "backgroundColor": "rgba(217, 119, 6, 0.08)",
+                "ggSerie": "historico",
+            },
+        ],
+    }
 
 
 def _grafico_gastos_atalhos_lista() -> list[dict]:
