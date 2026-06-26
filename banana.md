@@ -877,6 +877,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Home BI (`/`) cards CP/CR + totais hoje/atraso via `TituloFinanceiroAgro`; resumo gerencial default Postgres na loja |
+| **Deploy teste** | **`70fc5f1`** · **v3.22** |
 | **Renan testar** | Home BI — bloco financeiro (a pagar hoje, atraso, mini-listas) · `/financeiro/resumo-gerencial/` fonte Postgres |
 | **Fora** | Gráfico gastos por plano na home (continua Mongo) · DRE/calendário |
 
