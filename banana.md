@@ -989,7 +989,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Período toolbar** | **1a · 3m · 1m · 1s | Hoje | 1s · 1m · 3m · 1a** — passado e futuro a partir de hoje |
-| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado (`<details>` expansíveis); meta bar com botões **Filtros** / **Planos** |
+| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado (`<details>` expansíveis); meta bar com botões **Filtros** / **Planos** · **planos ~2× mais altos** (v3.21) |
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
