@@ -4517,6 +4517,48 @@ def _grafico_gastos_match_planos(ids: list[str], nomes: list[str]) -> dict[str, 
     return {"$or": ors}
 
 
+def _grafico_gastos_as_of_end_dt(d: date, tz) -> datetime:
+    return timezone.make_aware(datetime.combine(d, dtime.max), tz)
+
+
+def _grafico_gastos_objectid_max_ate(d: date) -> ObjectId:
+    """Limite superior de ``_id`` ≈ documentos existentes até o fim do dia (UTC)."""
+    tz = timezone.get_current_timezone()
+    end_utc = _grafico_gastos_as_of_end_dt(d, tz).astimezone(timezone.utc)
+    return ObjectId.from_datetime(end_utc.replace(tzinfo=None))
+
+
+def _grafico_gastos_expr_pagamento_ate(as_of: datetime) -> dict[str, Any]:
+    return {
+        "$and": [
+            {"$gt": ["$DataPagamento", _SENTINEL]},
+            {"$lte": ["$DataPagamento", as_of]},
+        ]
+    }
+
+
+def _grafico_gastos_vl_expr_as_of(modo_valor: str, as_of: datetime) -> dict[str, Any]:
+    """
+    Valor do ponto como era na data ``as_of`` (fim do dia local).
+    Pagamento depois dessa data → saldo = bruto do título; quitado até lá → 0.
+    """
+    pay_ate = _grafico_gastos_expr_pagamento_ate(as_of)
+    saida = {"$ifNull": ["$Saida", 0]}
+    vp = {"$ifNull": ["$ValorPago", 0]}
+    rest = _mongo_expr_restante_max0_inner(True)
+    if modo_valor == "bruto":
+        return saida
+    if modo_valor == "pago":
+        return {"$cond": [pay_ate, vp, 0]}
+    return {
+        "$cond": [
+            {"$and": [pay_ate, {"$eq": ["$Pago", True]}]},
+            0,
+            {"$cond": [pay_ate, rest, saida]},
+        ]
+    }
+
+
 def _grafico_gastos_bucket_expr(campo_data: str, agrupamento: str, tz) -> dict[str, Any]:
     agr = (agrupamento or "mes").strip().lower()
     ref = f"${campo_data}"
@@ -4549,6 +4591,7 @@ def grafico_gastos_serie_mongo(
     individual: bool = False,
     por: str = "vencimento",
     valor: str = "bruto",
+    data_referencia: date | None = None,
 ) -> dict[str, Any]:
     """
     Série temporal de despesas (DtoLancamento) para Chart.js.
@@ -4578,29 +4621,36 @@ def grafico_gastos_serie_mongo(
         raw_excl = [str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip()]
         excl_nomes = raw_excl or None
 
+    as_of = data_referencia
+    if as_of and as_of > timezone.localdate():
+        as_of = timezone.localdate()
+
     if modo_por == "competencia":
         campo_data = "DataCompetencia"
+        st = "todos" if (modo_valor != "saldo" or as_of) else "abertos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
-            status="todos" if modo_valor != "saldo" else "abertos",
+            status=st,
             competencia_de=data_de,
             competencia_ate=data_ate,
             excluir_planos_nomes=excl_nomes,
         )
     elif modo_por == "pagamento":
         campo_data = "DataPagamento"
+        st = "quitados" if (modo_valor == "pago" and not as_of) else "todos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
-            status="quitados" if modo_valor == "pago" else "todos",
+            status=st,
             pagamento_de=data_de,
             pagamento_ate=data_ate,
             excluir_planos_nomes=excl_nomes,
         )
     else:
         campo_data = "DataVencimento"
+        st = "todos" if (modo_valor != "saldo" or as_of) else "abertos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
-            status="abertos" if modo_valor == "saldo" else "todos",
+            status=st,
             vencimento_de=data_de,
             vencimento_ate=data_ate,
             excluir_planos_nomes=excl_nomes,
@@ -4617,7 +4667,10 @@ def grafico_gastos_serie_mongo(
     agr = (agrupamento or "mes").strip().lower()
     bucket_expr = _grafico_gastos_bucket_expr(campo_data, agr, tz)
 
-    if modo_valor == "pago":
+    if as_of:
+        as_of_end = _grafico_gastos_as_of_end_dt(as_of, tz)
+        vl_expr = _grafico_gastos_vl_expr_as_of(modo_valor, as_of_end)
+    elif modo_valor == "pago":
         vl_expr: dict[str, Any] = {"$ifNull": ["$ValorPago", 0]}
     elif modo_valor == "saldo":
         vl_expr = _mongo_expr_restante_max0_inner(True)
@@ -4629,9 +4682,17 @@ def grafico_gastos_serie_mongo(
     if individual:
         group_id["plano"] = {"$ifNull": ["$PlanoDeConta", ""]}
 
+    dedup_stages = list(_lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup))
+    if as_of:
+        try:
+            oid_max = _grafico_gastos_objectid_max_ate(as_of)
+            dedup_stages.append({"$match": {"_id": {"$lte": oid_max}}})
+        except Exception:
+            logger.warning("grafico_gastos as_of objectid", exc_info=True)
+
     pipe: list[dict[str, Any]] = [
         {"$match": q},
-        *_lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup),
+        *dedup_stages,
         {
             "$addFields": {
                 "gg_bucket": bucket_expr,
@@ -4703,7 +4764,19 @@ def grafico_gastos_serie_mongo(
             }
         ]
 
-    return {"ok": True, "erro": None, "labels": labels, "bucket_keys": bucket_keys, "datasets": datasets}
+    out = {
+        "ok": True,
+        "erro": None,
+        "labels": labels,
+        "bucket_keys": bucket_keys,
+        "datasets": datasets,
+    }
+    if as_of:
+        out["modo_tempo"] = "historico"
+        out["data_referencia"] = as_of.isoformat()
+    else:
+        out["modo_tempo"] = "real"
+    return out
 
 
 # Campos usuais do DtoLancamento (WL / Venda ERP) enviados ao POST de integração — evita payload gigante.

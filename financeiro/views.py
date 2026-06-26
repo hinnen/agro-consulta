@@ -171,6 +171,15 @@ def api_dados_grafico_gastos(request):
             if p.strip()
         ]
 
+    modo_tempo = (src.get("modo_tempo") or "real").strip().lower()
+    data_ref = None
+    if modo_tempo == "historico":
+        data_ref = _grafico_gastos_parse_date(src.get("data_referencia"))
+        if data_ref is None:
+            data_ref = hoje
+        if data_ref > hoje:
+            data_ref = hoje
+
     _, mongo_db = obter_conexao_mongo()
     if mongo_db is None:
         return JsonResponse(
@@ -189,6 +198,7 @@ def api_dados_grafico_gastos(request):
         individual=individual,
         por=por,
         valor=valor,
+        data_referencia=data_ref,
     )
     if not payload.get("ok"):
         return JsonResponse(
