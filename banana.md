@@ -400,7 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — Chart.js, dedup **igual Lançamentos**, filtros referência (vencimento/competência/pagamento) e valor (bruto/pago/saldo em aberto). Layout **base_admin** (igual CP), busca planos, labels com fundo. **Só leitura.** Teste **v3.35** (`14f9d11`); loja **v3.02**.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — Chart.js, dedup **igual Lançamentos**. Painel filtros retrátil, KPIs, atalhos período. **Só leitura.** Teste **v3.39**; loja **v3.02**.
 
 ### 4.11 Caixa
 
@@ -799,13 +799,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.03`  
 **Última atualização:** `2026-06-26`  
 **Atualizado por:** assistente — Renan passo 4 OK staging 741 / 393652  
-**Versão app (`VERSION`):** **teste** v3.35 · **produção** v3.02
+**Versão app (`VERSION`):** **teste** v3.39 · **produção** v3.02
 
 ### FECHADO — gráfico gastos por plano (26/06 — teste + **loja** Renan 99738595)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commits teste** | `11277f0` · `9979af1` · `cd881aa` · `c140940` · **`14f9d11`** (layout admin + tipografia) |
+| **Commits teste** | `11277f0` … **`7c9774f`** (UX filtros retráteis + KPIs) |
 | **Commits loja** | `ec13fc4` · **`3935d1a`** (mesmo pacote · VERSION **v3.02**) |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
 | **API** | `POST` (preferido) ou `GET` `/financeiro/api/dados-grafico-gastos/` — `agrupamento`, `inicio`, `fim`, `planos[]`, `individual`, **`por`**, **`valor`** |
@@ -816,9 +816,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Modo normal** | Linha **«Total Selecionado»** |
 | **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
-| **UI** | Chart.js · favoritos `localStorage` · **shell base_admin** (igual CP) · busca planos · soma visível · labels com fundo branco |
+| **UI** | Toolbar atalhos · painel filtros **retrátil** (manual + auto) · barra resumo · KPIs · favoritos · ajuda «?» |
 | **Bug valores (26/06)** | Dedup DRE + filtro por ID de plano (perdia títulos) — fix: **todos marcados = sem filtro** (igual CP); desmarcados = `excluir_plano` |
-| **UI (26/06)** | Calendário Nova saída · valores nas bolinhas (pill) · largura 96rem · campos 48px+ · fontes `clamp` |
+| **UI (26/06)** | Calendário Nova saída · labels pill · 96rem · retrair auto/localStorage |
 | **Isolamento** | **Só leitura** — não grava, não altera CP/Lançamentos |
 | **Pendente opcional** | Link no menu Lançamentos / BI |
 
