@@ -870,7 +870,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.26 · **produção** v3.20
+**Versão app (`VERSION`):** **teste** v3.27 · **produção** v3.28
+
+### FECHADO — produção BI home PG **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | **faça** (após OK teste BI) · loja aberta |
+| **Merge** | `teste`→`producao` · **`565bfba`** (fast-forward pós v3.20) |
+| **Conteúdo** | BI cards CP/CR Postgres · resumo gerencial default PG · gráfico gastos UX · CP filtros UX |
+| **Risco loja** | **Baixo** — só leitura financeira + telas isoladas; PDV/caixa inalterados |
 
 ### FECHADO — BI home financeiro → PG **26/06 (teste v3.23+)**
 
@@ -879,7 +888,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Home BI cards CP/CR + totais hoje/atraso via Postgres; resumo gerencial default Postgres |
 | **Deploy teste** | **`70fc5f1`** · **v3.22–v3.26** |
 | **Renan validou** | **✅ 26/06** — BI v3.23: a pagar hoje **R$ 1.475,35** · atraso CP **R$ 64.219,62** · CR hoje **R$ 0** · atraso CR **R$ 27.091,40** |
-| **Produção** | Pronta — aguarda frase + senha (sobe com pacote teste→v3.26) |
+| **Produção** | **✅ Renan 26/06** — **v3.28** (`565bfba`) |
 | **Fora** | Gráfico gastos por plano na home (Mongo) · DRE/calendário |
 
 ### WIP — BI / resumo gerencial → PG **26/06** *(histórico — fechado acima)*
@@ -922,7 +931,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
 | 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
-| 5 | **BI / resumo gerencial → PG** | **✅ teste v3.26** · produção pendente | cards home BI + default resumo PG |
+| 5 | **BI / resumo gerencial → PG** | **✅ v3.28 produção** | cards home BI + default resumo PG |
 | 7 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
 | 8 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 
