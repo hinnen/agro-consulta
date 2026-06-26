@@ -7612,6 +7612,28 @@ def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
     total_pagar_hoje = 0.0
     total_receber_atraso = 0.0
     total_pagar_atraso = 0.0
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_util import (
+            dashboard_gerencial_linhas_financeiras_pg,
+            dashboard_gerencial_totais_financeiros_pg,
+        )
+
+        try:
+            contas_receber, contas_pagar = dashboard_gerencial_linhas_financeiras_pg(
+                hoje=hoje, limite=12
+            )
+            tot = dashboard_gerencial_totais_financeiros_pg(hoje, ontem)
+            return {
+                "contas_receber": contas_receber,
+                "contas_pagar": contas_pagar,
+                "total_receber_hoje": tot["total_receber_hoje"],
+                "total_pagar_hoje": tot["total_pagar_hoje"],
+                "total_receber_atraso": tot["total_receber_atraso"],
+                "total_pagar_atraso": tot["total_pagar_atraso"],
+                "fonte": "postgres",
+            }
+        except Exception:
+            logger.exception("_dashboard_capri_financeiro postgres")
     _mdb, db_fin = obter_conexao_mongo()
     if db_fin is None:
         return {
@@ -10336,6 +10358,7 @@ def resumo_financeiro_gerencial_view(request):
         {
             "empresas": empresas,
             "grupos": grupos,
+            "financeiro_postgres": agro_financeiro_usa_postgres(),
         },
     )
 

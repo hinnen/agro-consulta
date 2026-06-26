@@ -870,7 +870,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.19 · **produção** v3.20
+**Versão app (`VERSION`):** **teste** v3.20 · **produção** v3.20
+
+### WIP — BI / resumo gerencial → PG **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Home BI (`/`) cards CP/CR + totais hoje/atraso via `TituloFinanceiroAgro`; resumo gerencial default Postgres na loja |
+| **Renan testar** | Home BI — bloco financeiro (a pagar hoje, atraso, mini-listas) · `/financeiro/resumo-gerencial/` fonte Postgres |
+| **Fora** | Gráfico gastos por plano na home (continua Mongo) · DRE/calendário |
 
 ### FECHADO — produção listas auxiliares PG **26/06**
 
@@ -910,7 +918,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
 | 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
-| 5 | **BI / resumo gerencial → PG** | **próximo** | home BI + cards financeiros |
+| 5 | **BI / resumo gerencial → PG** | **WIP teste** | cards home BI + default resumo PG |
 | 6 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
 | 7 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 

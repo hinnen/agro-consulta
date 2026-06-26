@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -658,6 +658,93 @@ def lancamentos_sugestoes_campo_pg(
         if pid and not any(str(x.get("id") or "") == pid for x in out):
             out.insert(0, ph)
     return out[:lim]
+
+
+def dashboard_gerencial_linhas_financeiras_pg(
+    *,
+    hoje: date,
+    limite: int = 12,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Linhas CP/CR para cards da home BI — espelha ``dashboard_gerencial_linhas_financeiras``."""
+    from produtos.mongo_financeiro_util import _dashboard_mapear_linha_financeiro
+
+    lim = min(max(int(limite or 12), 1), 50)
+    fim_janela = hoje + timedelta(days=7)
+    try:
+        rec_rows, _, _ = contas_receber_buscar_pagina_pg(
+            status="abertos",
+            vencimento_de=hoje,
+            vencimento_ate=fim_janela,
+            page=1,
+            page_size=lim,
+            ordenacao="vencimento_asc",
+            skip_totais=True,
+        )
+        pag_rows, _, _ = contas_pagar_buscar_pagina_pg(
+            status="abertos",
+            page=1,
+            page_size=lim,
+            ordenacao="vencimento_asc",
+            skip_totais=True,
+        )
+    except Exception:
+        logger.exception("dashboard_gerencial_linhas_financeiras_pg")
+        return [], []
+    out_rec = [_dashboard_mapear_linha_financeiro(r, hoje, despesa=False) for r in rec_rows]
+    out_pag = [_dashboard_mapear_linha_financeiro(r, hoje, despesa=True) for r in pag_rows]
+    return out_rec, out_pag
+
+
+def dashboard_gerencial_totais_financeiros_pg(hoje: date, ontem: date) -> dict[str, float]:
+    """Totais saldo aberto (hoje + atraso) para KPIs financeiros da home BI."""
+    out = {
+        "total_receber_hoje": 0.0,
+        "total_pagar_hoje": 0.0,
+        "total_receber_atraso": 0.0,
+        "total_pagar_atraso": 0.0,
+    }
+    try:
+        _, _, tot_rec_hoje = contas_receber_buscar_pagina_pg(
+            status="abertos",
+            vencimento_de=hoje,
+            vencimento_ate=hoje,
+            page=1,
+            page_size=1,
+            skip_totais=False,
+            limite_max=200,
+        )
+        _, _, tot_pag_hoje = contas_pagar_buscar_pagina_pg(
+            status="abertos",
+            vencimento_de=hoje,
+            vencimento_ate=hoje,
+            page=1,
+            page_size=1,
+            skip_totais=False,
+            limite_max=200,
+        )
+        out["total_receber_hoje"] = round(float((tot_rec_hoje or {}).get("saldo_aberto") or 0), 2)
+        out["total_pagar_hoje"] = round(float((tot_pag_hoje or {}).get("saldo_aberto") or 0), 2)
+        _, _, tot_rec_atraso = contas_receber_buscar_pagina_pg(
+            status="abertos",
+            vencimento_ate=ontem,
+            page=1,
+            page_size=1,
+            skip_totais=False,
+            limite_max=200,
+        )
+        _, _, tot_pag_atraso = contas_pagar_buscar_pagina_pg(
+            status="abertos",
+            vencimento_ate=ontem,
+            page=1,
+            page_size=1,
+            skip_totais=False,
+            limite_max=200,
+        )
+        out["total_receber_atraso"] = round(float((tot_rec_atraso or {}).get("saldo_aberto") or 0), 2)
+        out["total_pagar_atraso"] = round(float((tot_pag_atraso or {}).get("saldo_aberto") or 0), 2)
+    except Exception:
+        logger.exception("dashboard_gerencial_totais_financeiros_pg")
+    return out
 
 
 def financeiro_pg_conferencia_abertos() -> dict[str, Any]:

@@ -94,8 +94,8 @@
         <div class="rg-field" style="width:11rem;min-width:9rem">
           <span class="rg-field__label">Fonte dos dados</span>
           <select id="f-fonte" title="Mongo = DtoLancamento (ERP). Postgres = Agro.">
-            <option value="mongo" selected>Mongo — DtoLancamento (ERP)</option>
-            <option value="postgres">Postgres — Agro</option>
+            <option value="mongo"{% if not financeiro_postgres %} selected{% endif %}>Mongo — DtoLancamento (ERP)</option>
+            <option value="postgres"{% if financeiro_postgres %} selected{% endif %}>Postgres — Agro</option>
           </select>
         </div>
         <div class="rg-field" id="wrap-mongo-por" style="width:9.5rem">
