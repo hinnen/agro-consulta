@@ -400,6 +400,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — Chart.js, filtros (período, agrupamento dia/semana/mês/ano, planos, modo individual), favoritos `localStorage`. API `GET /financeiro/api/dados-grafico-gastos/`. Fonte Mongo: `DtoLancamento` (vencimento · `Saida` · dedup DRE); planos de `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos. Agregação: `grafico_gastos_serie_mongo` / `grafico_gastos_planos_despesa_mongo` em `mongo_financeiro_util.py`. **Sem link no menu** ainda — URL direta ou pedir ao assistente.
 
 ### 4.11 Caixa
 
@@ -568,15 +569,24 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### Renan — intervenção (estritamente necessário)
 
+**Backup — CP nova (corrigido 25/06):** botões estavam só na tela **antiga** / hub órfão. **`/classico/`** redireciona para CP nova.
+
+**Renan NA LOJA agora (superuser logado):** cole na barra do Chrome:
+
+| O quê | URL |
+| ----- | --- |
+| **Em aberto** | `https://sistvale.com.br/api/lancamentos/backup-abertos.zip` |
+| **Todos** | `https://sistvale.com.br/api/lancamentos/backup-completo.xlsx` |
+
+Aguarde ~1 min · salva ZIP · repita o segundo link.
+
+**Depois deploy teste:** painel amarelo **«Segurança — antes de cortar o ERP»** no topo de **`/lancamentos/contas-pagar/`** (admin).
+
 **Backup (superuser — faça na LOJA antes do import):**
 
-1. Chrome → **`/lancamentos/`** ou **`/lancamentos/contas-pagar/`** (login admin).
-2. Digite o **PIN** se pedir.
-3. Bloco amarelo **«Backup de segurança»** (só admin) — ou painel **«Segurança — antes de cortar o ERP»** ao abrir `/lancamentos/`.
-4. Clique **`Backup em aberto`** → aguarde ZIP (~1 min) → salvar no PC.
-5. Clique **`Backup todos`** → outro ZIP → salvar (**2ª cópia**, pasta ou pendrive).
-6. **Não** clique em **Fazer checkpoint** hoje — só se o assistente pedir.
-7. Anote o **nº de títulos Em aberto** na lista CP (filtro).
+1. Chrome → login **admin** → URLs acima **ou** CP nova após deploy.
+2. **Não** clique em **Fazer checkpoint** hoje — só se assistente pedir.
+3. Anote **nº Em aberto** (ex.: **3** títulos · R$ 1.475,35 — Renan 25/06).
 
 | # | Quando | Faça |
 | --- | ------ | ---- |
@@ -678,7 +688,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 Últimos temas entregues (mais recente primeiro):
 
-1. **FAB PDV — não cobrir modais/botões** — 2026-05-21: z-index 90, hide overlay/dialog, reposicionar canto direito (`_agro_pdv_fab.html`).
+1. **Gráfico gastos por plano (Chart.js)** — 2026-06-26: `/financeiro/grafico-gastos/` + API Mongo; filtros, favoritos, modo individual (`financeiro/views.py`, `mongo_financeiro_util.py`).
+2. **FAB PDV — não cobrir modais/botões** — 2026-05-21: z-index 90, hide overlay/dialog, reposicionar canto direito (`_agro_pdv_fab.html`).
 2. **Lançamentos CP — layout novo padrão + vista preservada + perf lista** — 2026-06-19 (CHECKPOINT).
 3. **PDV wizard — GM no barras remove carrinho** — `e055761` · `pdv_wizard.js`: hífen `GM1546-5S` não remove carrinho; GM modo barcode.
 4. **Lançamentos — Empréstimo (entrada + pagamento)** — pseudo-plano Nova saída + lote manual (`fbccf19`).
@@ -698,20 +709,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.0.99`  
+**Versão:** `1.1.00`  
 **Última atualização:** `2026-06-26`  
-**Atualizado por:** assistente — gráfico gastos Chart.js (Mongo)  
-**Versão app (`VERSION`):** **teste** v3.11 · **produção** v3.01 · HEAD loja **`087c13f`**
+**Atualizado por:** assistente — gráfico gastos Chart.js deploy teste (Renan)  
+**Versão app (`VERSION`):** **teste** v3.16 *(pós-commit)* · **produção** v3.01 · HEAD loja **`087c13f`**
 
-### WIP — gráfico gastos por plano (26/06)
+### FECHADO — gráfico gastos por plano (26/06, Renan pediu push teste)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Rota** | `/financeiro/grafico-gastos/` · API `/financeiro/api/dados-grafico-gastos/` |
-| **Fonte** | Mongo `DtoLancamento` (vencimento · `Saida` · dedup DRE) |
-| **Planos** | `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos |
-| **UI** | Chart.js · filtros · favoritos localStorage · modo individual |
-| **Pendente** | commit/push teste · link no menu Lançamentos/BI (se Renan quiser) |
+| **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
+| **API** | `GET /financeiro/api/dados-grafico-gastos/` — params: `agrupamento`, `inicio`, `fim`, `planos` (IDs vírgula), `individual` |
+| **Fonte dados** | Mongo `DtoLancamento` — despesas, data **vencimento**, valor **Saida**, dedup DRE (`DRE_DEDUP_LANCAMENTO_ID`) |
+| **Planos (checkbox)** | `DtoPlanoDeConta` com `EhDespesa=true`; se poucos, completa com distintos dos lançamentos |
+| **Modo normal** | Uma linha **«Total Selecionado»** (soma planos marcados) |
+| **Modo individual** | Uma linha com nome do plano (JS limita 1 checkbox) |
+| **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
+| **UI** | Tailwind + Chart.js 4.4.1 · período rápido · favoritos `localStorage` (`grafico_gastos_favs`) |
+| **Arquivos** | `financeiro/templates/financeiro/grafico_gastos.html` · `financeiro/urls.py` · `financeiro/views.py` · `config/urls.py` · `produtos/mongo_financeiro_util.py` (`grafico_gastos_*`) |
+| **Deploy** | push `teste` — Render staging automático |
+| **Pendente opcional** | Link no menu Lançamentos / BI / Indicadores |
 
 ### CHECKPOINT PRODUÇÃO — antes do hotfix 24/06 (reverter aqui)
 

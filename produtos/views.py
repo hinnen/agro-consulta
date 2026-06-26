@@ -10237,7 +10237,12 @@ def lancamentos_contas_pagar_view(request):
     return render(
         request,
         "produtos/lancamentos_contas_pagar_teste.html",
-        {"lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request)},
+        {
+            "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
+            "lancamentos_pre_corte_admin": bool(
+                getattr(request.user, "is_superuser", False)
+            ),
+        },
     )
 
 
