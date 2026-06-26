@@ -870,7 +870,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.27 · **produção** v3.28
+**Versão app (`VERSION`):** **teste** v3.30 · **produção** v3.30
 
 ### FECHADO — produção BI home PG **26/06**
 
@@ -888,7 +888,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Home BI cards CP/CR + totais hoje/atraso via Postgres; resumo gerencial default Postgres |
 | **Deploy teste** | **`70fc5f1`** · **v3.22–v3.26** |
 | **Renan validou** | **✅ 26/06** — BI v3.23: a pagar hoje **R$ 1.475,35** · atraso CP **R$ 64.219,62** · CR hoje **R$ 0** · atraso CR **R$ 27.091,40** |
-| **Produção** | **✅ Renan 26/06** — **v3.28** (`565bfba`) |
+| **Produção** | **✅ Renan 26/06** — **v3.30** (`6418b39`) |
 | **Fora** | Gráfico gastos por plano na home (Mongo) · DRE/calendário |
 
 ### WIP — BI / resumo gerencial → PG **26/06** *(histórico — fechado acima)*
