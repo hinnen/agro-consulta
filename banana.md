@@ -870,9 +870,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.43 *(deploy cherry-pick 26/06 — Renan **99738595**, sem testar)*
+**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.44 *(deploy cherry-pick 26/06 — Renan **99738595**, sem testar)*
 
-### FECHADO — produção perf + BI validade + CP **v3.43** (26/06)
+### FECHADO — produção perf + BI validade + CP **v3.44** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -882,7 +882,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fora** | Flags staging PG · snapshot · motor busca — **inalterados na loja** |
 | **Migrate** | `0042_vendaagro_criado_em_idx` — índice só leitura |
 
-### WIP — lentidão teste *(histórico — fix v3.53+)*
+### WIP — lentidão *(histórico — fix v3.53+)*
 
 | Item | Detalhe |
 | ---- | ------- |

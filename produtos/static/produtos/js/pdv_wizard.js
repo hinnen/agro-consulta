@@ -331,6 +331,9 @@
     var productSearchDismissedSnapshot = null;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
+    /** Mesma chave da Consulta — sobrevive fechar o navegador. */
+    var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v2';
+    var WIZARD_CATALOG_TTL_MS = 1000 * 60 * 60 * 8;
     var stagingReadonly = !!(
         bootstrap.stagingReadonly ||
         (bootstrap.search && bootstrap.search.stagingReadonly)
@@ -614,45 +617,167 @@
         });
     }
 
+    function lerWizardCatalogSharedCache() {
+        try {
+            var raw = localStorage.getItem(PDV_SHARED_CATALOG_LS_KEY);
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return null;
+            var age = Date.now() - Number(parsed.saved_at || 0);
+            if (age > WIZARD_CATALOG_TTL_MS) return null;
+            return parsed;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function salvarWizardCatalogSharedCache(payload) {
+        try {
+            localStorage.setItem(
+                PDV_SHARED_CATALOG_LS_KEY,
+                JSON.stringify({
+                    saved_at: Date.now(),
+                    catalog_version: payload.catalog_version || '',
+                    catalog_updated_at: payload.catalog_updated_at || '',
+                    produtos: Array.isArray(payload.produtos) ? payload.produtos : wizardProductCatalog,
+                })
+            );
+        } catch (err2) {}
+        try {
+            sessionStorage.setItem(
+                CATALOG_STORAGE_KEY,
+                JSON.stringify({ produtos: wizardProductCatalog, t: Date.now() })
+            );
+        } catch (err3) {}
+    }
+
+    function aplicarWizardCatalogRows(produtos, silent) {
+        wizardProductCatalog = normalizeWizardCatalogList(produtos);
+        catalogReady = wizardProductCatalog.length > 0;
+        if (!silent && catalogReady) {
+            updateSearchAwaitingPulse();
+        }
+        return catalogReady;
+    }
+
+    function syncWizardCatalogDelta(since, silent) {
+        var u = new URL('/api/todos-produtos/delta/', window.location.origin);
+        if (since) u.searchParams.set('since', since);
+        return fetch(u.toString(), { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.json();
+            })
+            .then(function (d) {
+                if (!d) return;
+                if (d.unchanged) return;
+                if (d.delta && wizardProductCatalog.length) {
+                    var map = {};
+                    wizardProductCatalog.forEach(function (p) {
+                        map[String(p.id)] = p;
+                    });
+                    (d.changed || []).forEach(function (row) {
+                        if (!row || row.id == null) return;
+                        var pid = String(row.id);
+                        var prev = map[pid];
+                        map[pid] = normalizeWizardCatalogProduct(
+                            prev ? Object.assign({}, prev, row) : row
+                        );
+                    });
+                    (d.removed_ids || []).forEach(function (pid) {
+                        delete map[String(pid)];
+                    });
+                    wizardProductCatalog = normalizeWizardCatalogList(Object.keys(map).map(function (k) {
+                        return map[k];
+                    }));
+                    catalogReady = wizardProductCatalog.length > 0;
+                    salvarWizardCatalogSharedCache({
+                        produtos: wizardProductCatalog,
+                        catalog_version: d.catalog_version || '',
+                        catalog_updated_at: d.catalog_updated_at || '',
+                    });
+                    return;
+                }
+                if (Array.isArray(d.produtos) && d.produtos.length) {
+                    aplicarWizardCatalogRows(d.produtos, silent);
+                    salvarWizardCatalogSharedCache(d);
+                }
+            })
+            .catch(function () {});
+    }
+
     function loadWizardCatalog() {
         if (catalogReady) return Promise.resolve();
         if (catalogLoadPromise) return catalogLoadPromise;
+
         try {
-            var raw = stagingReadonly ? null : sessionStorage.getItem(CATALOG_STORAGE_KEY);
+            var raw = sessionStorage.getItem(CATALOG_STORAGE_KEY);
             if (raw) {
                 var parsed = JSON.parse(raw);
                 if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
-                    wizardProductCatalog = normalizeWizardCatalogList(parsed.produtos);
-                    catalogReady = wizardProductCatalog.length > 0;
-                    if (catalogReady) return Promise.resolve();
+                    if (aplicarWizardCatalogRows(parsed.produtos, true)) {
+                        var shared = lerWizardCatalogSharedCache();
+                        syncWizardCatalogDelta(shared && shared.catalog_version ? shared.catalog_version : '');
+                        return Promise.resolve();
+                    }
                 }
             }
         } catch (err) {}
-        var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
-        catalogLoadPromise = fetch(url, { credentials: 'same-origin' })
+
+        var sharedCache = lerWizardCatalogSharedCache();
+        if (sharedCache && sharedCache.produtos.length) {
+            aplicarWizardCatalogRows(sharedCache.produtos, true);
+            syncWizardCatalogDelta(sharedCache.catalog_version || '');
+            return Promise.resolve();
+        }
+
+        var urlDelta = new URL('/api/todos-produtos/delta/', window.location.origin);
+        catalogLoadPromise = fetch(urlDelta.toString(), { credentials: 'same-origin' })
             .then(function (res) {
                 return res.text().then(function (text) {
                     if (!res.ok) {
-                        var hint = (text || '').trim().slice(0, 200);
-                        throw new Error(
-                            'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
-                        );
+                        throw new Error('delta HTTP ' + res.status);
                     }
                     try {
                         return JSON.parse(text);
                     } catch (eJson) {
-                        throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
+                        throw new Error('delta JSON inválido');
                     }
                 });
             })
-            .then(function (data) {
-                wizardProductCatalog = normalizeWizardCatalogList(
-                    Array.isArray(data.produtos) ? data.produtos : []
-                );
-                catalogReady = true;
-                try {
-                    sessionStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify({ produtos: wizardProductCatalog, t: Date.now() }));
-                } catch (err2) {}
+            .then(function (d) {
+                if (d && Array.isArray(d.produtos) && d.produtos.length) {
+                    aplicarWizardCatalogRows(d.produtos, false);
+                    salvarWizardCatalogSharedCache(d);
+                    return;
+                }
+                var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
+                return fetch(url, { credentials: 'same-origin' })
+                    .then(function (res) {
+                        return res.text().then(function (text) {
+                            if (!res.ok) {
+                                var hint = (text || '').trim().slice(0, 200);
+                                throw new Error(
+                                    'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
+                                );
+                            }
+                            try {
+                                return JSON.parse(text);
+                            } catch (eJson2) {
+                                throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
+                            }
+                        });
+                    })
+                    .then(function (data) {
+                        aplicarWizardCatalogRows(
+                            Array.isArray(data.produtos) ? data.produtos : [],
+                            false
+                        );
+                        salvarWizardCatalogSharedCache({
+                            produtos: wizardProductCatalog,
+                            catalog_version: data.catalog_version || '',
+                            catalog_updated_at: data.catalog_updated_at || '',
+                        });
+                    });
             })
             .finally(function () {
                 catalogLoadPromise = null;
