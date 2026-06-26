@@ -215,6 +215,27 @@ def importar_titulos_financeiro_mongo_para_postgres(
     return stats
 
 
+def maybe_bootstrap_financeiro_pg_producao(*, force: bool = False) -> dict[str, Any]:
+    """Import Mongo→PG na loja (build deploy). Idempotente; pula se PG já tem dados."""
+    from django.conf import settings
+
+    if getattr(settings, "AGRO_STAGING_READONLY", False):
+        return {"ok": True, "skipped": True, "motivo": "staging_readonly"}
+    if getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+        return {"ok": True, "skipped": True, "motivo": "dry_run_staging"}
+
+    n = TituloFinanceiroAgro.objects.count()
+    if n > 0 and not force:
+        return {"ok": True, "skipped": True, "motivo": "pg_ja_populado", "pg_depois": n}
+
+    from produtos.views import obter_conexao_mongo
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    return importar_titulos_financeiro_mongo_para_postgres(db, dry_run=False)
+
+
 def maybe_bootstrap_financeiro_pg_staging(*, force: bool = False) -> dict[str, Any]:
     """Import Mongo→PG no staging (build ou 1º boot). Idempotente se PG já tem dados."""
     from django.conf import settings
