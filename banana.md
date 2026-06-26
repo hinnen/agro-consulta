@@ -872,18 +872,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.42 · **produção** v3.32
+**Versão app (`VERSION`):** **teste** v3.44 · **produção** v3.33
 
-### WIP — Transferências + Validade → PG **26/06**
+### FECHADO — produção Transferências + Validade PG **26/06**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | *«banana.md sim»* — autorizou sprint no **teste** |
-| **O quê** | Saldos operacionais Agro (ajuste+ledger) sem depender só do Mongo · catálogo Postgres |
-| **Telas** | `/transferencias/` · `/relatorios/validade/` |
-| **Deploy teste** | **`29a4c63`** (+ banana **`3f4cec0`**) · **v3.42** |
-| **Renan testar** | Transferências: lista carrega · saldos centro/vila batem com gestão · Validade: coluna estoque com saldo (não só lote local) |
-| **Produção** | ❌ — só com frase + senha |
+| **Renan** | Teste OK · **99738595** · *«pode enviar para produção»* |
+| **Cherry-pick** | **`29a4c63`** → **`b3db16e`** · loja **v3.33** |
+| **Conteúdo** | Saldos operacionais Agro (ajuste+ledger) · Transferências + Validade |
+| **Risco loja** | **Baixo** — só leitura estoque; PDV/caixa/financeiro inalterados |
+
+### FECHADO — Transferências + Validade → PG **26/06 (teste)**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«banana.md sim»* · teste **✅** sem problema |
+| **Deploy teste** | **`29a4c63`** · **v3.42+** |
+| **Produção** | **✅ Renan 26/06** — **99738595** · **v3.33** (`b3db16e`) |
 
 ### WIP — CP filtros mais rápido **26/06**
 
