@@ -872,7 +872,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.41 · **produção** v3.32
+**Versão app (`VERSION`):** **teste** v3.42 · **produção** v3.32
 
 ### WIP — Transferências + Validade → PG **26/06**
 
@@ -881,7 +881,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Renan** | *«banana.md sim»* — autorizou sprint no **teste** |
 | **O quê** | Saldos operacionais Agro (ajuste+ledger) sem depender só do Mongo · catálogo Postgres |
 | **Telas** | `/transferencias/` · `/relatorios/validade/` |
-| **Deploy teste** | **`29a4c63`** · **v3.41** |
+| **Deploy teste** | **`29a4c63`** (+ banana **`3f4cec0`**) · **v3.42** |
 | **Renan testar** | Transferências: lista carrega · saldos centro/vila batem com gestão · Validade: coluna estoque com saldo (não só lote local) |
 | **Produção** | ❌ — só com frase + senha |
 
@@ -1036,7 +1036,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
 | **Drill-down CP** | Clique na **bolinha** (ou número acima) → popup **80%** CP filtrada · fix clique v3.37 |
-| **Modo tempo** | **Tempo real** · **Como era no dia** · **Comparar** (2 linhas verde/laranja + Δ por bolinha + total no canto) · v3.39 |
+| **Modo tempo** | **Comparar** — faixa grande acima do gráfico (totais + Δ) · Δ por bolinha no gráfico · v3.41 |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **Pendente** — só teste até Renan pedir produção |
