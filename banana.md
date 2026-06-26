@@ -893,6 +893,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Produção** | **✅ Renan 26/06** — **v3.30** (`6418b39`) |
 | **Fora** | Gráfico gastos por plano na home (Mongo) · DRE/calendário |
 
+### WIP — CP filtros mais rápido **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan: filtragem CP um pouco mais lenta |
+| **Causa** | Tela esperava carregar **planos** antes da **lista** (2 idas seguidas) |
+| **Fix teste** | **`88b5a60`** · v3.35 — lista primeiro; planos só se painel Filtros aberto |
+| **Renan testar** | Atalho **Hoje** / **Aplicar** — lista deve aparecer mais rápido |
+
 ### WIP — BI / resumo gerencial → PG **26/06** *(histórico — fechado acima)*
 
 ### FECHADO — produção listas auxiliares PG **26/06**
