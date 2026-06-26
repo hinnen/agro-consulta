@@ -1,137 +1,279 @@
-{% extends "base.html" %}
+{% extends "layouts/base_admin.html" %}
 {% load static %}
-{% block title %}SisVale | Gráfico de gastos{% endblock %}
+
+{% block admin_title %}SisVale | Gráfico de gastos{% endblock %}
+{% block admin_header_title %}Gráfico · Gastos por plano{% endblock %}
+{% block admin_header_meta %}
+<p class="mt-1 text-sm font-semibold text-slate-600">Só leitura · totais iguais Contas a pagar</p>
+{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3{% endblock %}
+{% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-4 pt-3 overflow-hidden flex flex-col gap-3{% endblock %}
+
+{% block admin_header_actions %}
+<div class="flex flex-wrap items-center justify-end gap-2">
+  <a href="{% url 'lancamentos_financeiros' %}" class="gg-btn gg-btn-secondary">Lançamentos</a>
+  <a href="{% url 'dashboard_financeiro_completo' %}" class="gg-btn gg-btn-secondary">Indicadores</a>
+  {% include "produtos/_pdv_voltar_link.html" with link_class="gg-btn gg-btn-secondary" %}
+</div>
+{% endblock %}
+
 {% block head_extra %}
 {% include "produtos/includes/agro_date_picker_styles.html" %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 <script src="{% static 'produtos/js/agro_date_picker.js' %}" defer></script>
 <style>
-  .gg-page { max-width: 96rem; margin: 0 auto; }
-  .gg-shell { height: calc(100dvh - 1.25rem); min-height: 32rem; }
-  .gg-chart-wrap { min-height: 18rem; }
-  .gg-chart-inner { min-height: 16rem; height: 100%; }
-  .gg-input-date { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); background: #fff; padding: 0.5rem 0.65rem; }
+  :root {
+    --gg-emerald: #059669;
+    --gg-emerald-soft: #ecfdf5;
+    --gg-border: #cbd5e1;
+    --gg-card: #ffffff;
+    --gg-muted: #64748b;
+    --gg-text: #0f172a;
+    --gg-radius: 0.875rem;
+    --gg-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    --gg-label: clamp(0.8125rem, 0.35vw + 0.72rem, 0.9375rem);
+    --gg-field: clamp(0.9375rem, 0.4vw + 0.82rem, 1.0625rem);
+    --gg-title: clamp(1rem, 0.5vw + 0.88rem, 1.125rem);
+  }
+  .gg-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.75rem; padding: 0 1rem; border-radius: var(--gg-radius);
+    font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; text-decoration: none; transition: border-color 0.15s, background 0.15s;
+  }
+  .gg-btn-secondary {
+    border: 2px solid var(--gg-border); background: var(--gg-card); color: var(--gg-text);
+  }
+  .gg-btn-secondary:hover { border-color: #f59e0b; color: #92400e; }
+  .gg-btn-primary {
+    border: 2px solid var(--gg-emerald); background: var(--gg-emerald-soft); color: #065f46;
+  }
+  .gg-btn-primary:hover { background: #d1fae5; }
+  .gg-card {
+    background: var(--gg-card); border: 2px solid var(--gg-border);
+    border-radius: calc(var(--gg-radius) + 0.125rem); box-shadow: var(--gg-shadow);
+  }
+  .gg-card-pad { padding: clamp(1rem, 1.2vw + 0.65rem, 1.35rem); }
+  .gg-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 1rem;
+  }
+  @media (min-width: 768px) {
+    .gg-filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1280px) {
+    .gg-filters-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .gg-field { min-width: 0; }
+  .gg-field label {
+    display: block; margin-bottom: 0.4rem;
+    font-size: var(--gg-label); font-weight: 800; color: var(--gg-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .gg-field select,
+  .gg-field input[type="date"].agro-date-picker {
+    width: 100%; min-height: 3rem;
+    border-radius: var(--gg-radius); border: 2px solid #e2e8f0;
+    background: #fff; padding: 0 0.85rem;
+    font-size: var(--gg-field); font-weight: 700; color: var(--gg-text);
+  }
+  .gg-field select:focus,
+  .gg-field input[type="date"].agro-date-picker:focus {
+    outline: none; border-color: var(--gg-emerald);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+  }
+  .gg-field-span-2 { grid-column: span 2; }
+  @media (min-width: 768px) {
+    .gg-field-span-2-md { grid-column: span 2; }
+  }
+  .gg-fav-row { display: flex; gap: 0.65rem; align-items: stretch; }
+  .gg-fav-row select { flex: 1; min-width: 0; }
+  .gg-planos-head {
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+    gap: 0.75rem 1rem; margin-bottom: 0.75rem;
+  }
+  .gg-planos-title {
+    margin: 0; font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
+  }
+  .gg-planos-title small {
+    font-size: var(--gg-label); font-weight: 700; color: var(--gg-muted);
+  }
+  .gg-planos-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .gg-search-wrap { position: relative; flex: 1 1 14rem; min-width: min(100%, 14rem); max-width: 22rem; }
+  .gg-search-wrap input {
+    width: 100%; min-height: 2.75rem; padding: 0 0.85rem 0 2.5rem;
+    border-radius: var(--gg-radius); border: 2px solid #e2e8f0;
+    font-size: var(--gg-field); font-weight: 600;
+  }
+  .gg-search-wrap input:focus {
+    outline: none; border-color: var(--gg-emerald);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+  }
+  .gg-search-icon {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    font-size: 1.1rem; color: var(--gg-muted); pointer-events: none;
+  }
+  .gg-mini-btn {
+    min-height: 2.75rem; padding: 0 0.85rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #fff;
+    font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
+    color: #475569; cursor: pointer;
+  }
+  .gg-mini-btn:hover { border-color: var(--gg-emerald); color: #065f46; background: var(--gg-emerald-soft); }
+  .gg-chk-toggle {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #f8fafc;
+    font-size: var(--gg-label); font-weight: 700; color: #334155; cursor: pointer;
+  }
+  .gg-chk-toggle input { width: 1.125rem; height: 1.125rem; accent-color: var(--gg-emerald); }
+  .gg-planos-grid {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start;
+    max-height: min(32vh, 11rem); overflow-y: auto;
+    padding: 0.75rem; border-radius: var(--gg-radius);
+    border: 2px solid #e2e8f0; background: #f8fafc;
+  }
+  .gg-plano-item {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; border-radius: 0.65rem;
+    border: 2px solid #e2e8f0; background: #fff;
+    font-size: var(--gg-field); font-weight: 600; color: #334155;
+    cursor: pointer; max-width: min(100%, 20rem);
+  }
+  .gg-plano-item:hover { border-color: #86efac; background: var(--gg-emerald-soft); }
+  .gg-plano-item.is-hidden { display: none !important; }
+  .gg-plano-item input { width: 1.125rem; height: 1.125rem; accent-color: var(--gg-emerald); flex-shrink: 0; }
+  .gg-plano-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gg-chart-card { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+  .gg-chart-meta {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0.5rem 1rem; padding: 0.75rem 1rem 0;
+    font-size: var(--gg-label); font-weight: 700; color: var(--gg-muted);
+  }
+  .gg-chart-meta strong { color: var(--gg-text); font-size: clamp(1.05rem, 0.6vw + 0.9rem, 1.25rem); font-variant-numeric: tabular-nums; }
+  .gg-chart-inner { flex: 1; min-height: 14rem; padding: 0.5rem 1rem 1rem; position: relative; }
+  .gg-chart-inner canvas { width: 100% !important; height: 100% !important; }
+  #gg-status {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem; font-size: var(--gg-field); font-weight: 800;
+    color: var(--gg-muted); background: rgba(255, 255, 255, 0.92);
+    pointer-events: none;
+  }
+  #gg-status.hidden { display: none !important; }
+  #gg-status.is-error { color: #b91c1c; }
 </style>
 {% endblock %}
 
-{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden{% endblock %}
-
-{% block content %}
+{% block admin_content %}
 {% csrf_token %}
-<div class="gg-page px-3 sm:px-4 py-3">
-<div class="gg-shell flex flex-col gap-3">
-  <header class="flex flex-wrap items-center justify-between gap-2 shrink-0">
-    <div class="min-w-0">
-      <h1 class="text-lg sm:text-xl font-black tracking-tight text-slate-900">
-        <span class="text-emerald-600">Gráfico</span><span class="text-slate-400 font-bold mx-1">·</span><span class="text-amber-900">Gastos por plano</span>
-      </h1>
-      <p class="text-xs font-semibold text-slate-600 mt-0.5">Só leitura · totais iguais Contas a pagar (dedup + filtro de planos)</p>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <a href="{% url 'lancamentos_financeiros' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 transition-colors">Lançamentos</a>
-      <a href="{% url 'dashboard_financeiro_completo' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 transition-colors">Indicadores</a>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-600 hover:border-emerald-400 hover:text-emerald-900 transition-colors" %}
-    </div>
-  </header>
 
-  <div class="rounded-xl border border-slate-200 bg-white shadow-sm shrink-0">
-    <div class="p-3 sm:p-4 space-y-3">
-      <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 items-end">
-        <div>
-          <label for="filtro-periodo" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Período rápido</label>
-          <select id="filtro-periodo" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-800">
-            <option value="1w">Última semana</option>
-            <option value="1m" selected>Último mês</option>
-            <option value="3m">Últimos 3 meses</option>
-            <option value="1y">Último ano</option>
-            <option value="custom">Personalizado</option>
-          </select>
-        </div>
-        <div>
-          <label for="data-inicial" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Data inicial</label>
-          <input type="date" id="data-inicial" data-agro-date-picker class="agro-date-picker gg-input-date" value="{{ data_inicial_padrao }}">
-        </div>
-        <div>
-          <label for="data-final" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Data final</label>
-          <input type="date" id="data-final" data-agro-date-picker class="agro-date-picker gg-input-date" value="{{ data_final_padrao }}">
-        </div>
-        <div>
-          <label for="filtro-agrupamento" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Agrupamento</label>
-          <select id="filtro-agrupamento" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
-            <option value="dia">Dia a dia</option>
-            <option value="semana">Semana a semana</option>
-            <option value="mes" selected>Mês a mês</option>
-            <option value="ano">Ano a ano</option>
-          </select>
-        </div>
-        <div>
-          <label for="filtro-por" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Referência</label>
-          <select id="filtro-por" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
-            <option value="vencimento" selected>Vencimento</option>
-            <option value="competencia">Competência</option>
-            <option value="pagamento">Pagamento</option>
-          </select>
-        </div>
-        <div>
-          <label for="filtro-valor" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Valor</label>
-          <select id="filtro-valor" class="w-full min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
-            <option value="bruto">Bruto (título)</option>
-            <option value="pago">Pago</option>
-            <option value="saldo" selected>Saldo em aberto</option>
-          </select>
-        </div>
-        <div class="col-span-2 xl:col-span-2">
-          <label for="filtro-favoritos" class="block text-[10px] font-black uppercase tracking-wide text-slate-500 mb-1">Favoritos</label>
-          <div class="flex gap-2">
-            <select id="filtro-favoritos" class="flex-1 min-h-[44px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold">
-              <option value="">Selecione...</option>
-            </select>
-            <button type="button" id="btn-salvar-favorito" class="shrink-0 min-h-[44px] px-3 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-black uppercase text-emerald-900 hover:bg-emerald-100">Salvar atual</button>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <span class="text-sm font-black text-slate-800">Planos de contas <span class="text-slate-500 font-semibold text-xs">({{ total_planos }})</span></span>
-          <div class="flex flex-wrap items-center gap-2">
-            <label class="inline-flex items-center gap-2 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer">
-              <input class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" type="checkbox" id="modo-individual">
-              <span>Modo individual (1 item)</span>
-            </label>
-            <button type="button" class="min-h-[36px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-600 hover:border-slate-300" id="btn-marcar-todos">Marcar todos</button>
-            <button type="button" class="min-h-[36px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-600 hover:border-slate-300" id="btn-desmarcar-todos">Desmarcar todos</button>
-          </div>
-        </div>
-        <div id="container-planos-contas" class="flex flex-wrap gap-2 border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-[8rem] overflow-y-auto">
-          {% for plano in planos_conta %}
-          <label class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer hover:border-emerald-300">
-            <input class="plano-checkbox rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" type="checkbox" value="{{ plano.id }}" data-nome="{{ plano.nome }}" checked>
-            <span>{{ plano.nome }}</span>
-          </label>
-          {% empty %}
-          <p class="text-sm font-semibold text-slate-500 px-2 py-1">Nenhum plano de despesa encontrado no Mongo.</p>
-          {% endfor %}
-        </div>
+<div class="gg-card gg-card-pad shrink-0">
+  <div class="gg-filters-grid">
+    <div class="gg-field">
+      <label for="filtro-periodo">Período rápido</label>
+      <select id="filtro-periodo">
+        <option value="1w">Última semana</option>
+        <option value="1m" selected>Último mês</option>
+        <option value="3m">Últimos 3 meses</option>
+        <option value="1y">Último ano</option>
+        <option value="custom">Personalizado</option>
+      </select>
+    </div>
+    <div class="gg-field">
+      <label for="data-inicial">Data inicial</label>
+      <input type="date" id="data-inicial" data-agro-date-picker class="agro-date-picker" value="{{ data_inicial_padrao }}">
+    </div>
+    <div class="gg-field">
+      <label for="data-final">Data final</label>
+      <input type="date" id="data-final" data-agro-date-picker class="agro-date-picker" value="{{ data_final_padrao }}">
+    </div>
+    <div class="gg-field">
+      <label for="filtro-agrupamento">Agrupamento</label>
+      <select id="filtro-agrupamento">
+        <option value="dia">Dia a dia</option>
+        <option value="semana">Semana a semana</option>
+        <option value="mes" selected>Mês a mês</option>
+        <option value="ano">Ano a ano</option>
+      </select>
+    </div>
+    <div class="gg-field">
+      <label for="filtro-por">Referência</label>
+      <select id="filtro-por">
+        <option value="vencimento" selected>Vencimento</option>
+        <option value="competencia">Competência</option>
+        <option value="pagamento">Pagamento</option>
+      </select>
+    </div>
+    <div class="gg-field">
+      <label for="filtro-valor">Valor</label>
+      <select id="filtro-valor">
+        <option value="bruto">Bruto (título)</option>
+        <option value="pago">Pago</option>
+        <option value="saldo" selected>Saldo em aberto</option>
+      </select>
+    </div>
+    <div class="gg-field gg-field-span-2 gg-field-span-2-md">
+      <label for="filtro-favoritos">Favoritos</label>
+      <div class="gg-fav-row">
+        <select id="filtro-favoritos">
+          <option value="">Selecione um atalho…</option>
+        </select>
+        <button type="button" id="btn-salvar-favorito" class="gg-btn gg-btn-primary shrink-0">Salvar atual</button>
       </div>
     </div>
   </div>
 
-  <div class="rounded-xl border border-slate-200 bg-white shadow-sm flex-1 min-h-0 gg-chart-wrap relative">
-    <div id="gg-status" class="absolute inset-0 z-10 flex items-center justify-center p-4 text-sm font-bold text-slate-500 bg-white/90 pointer-events-none">Carregando gráfico…</div>
-    <div class="gg-chart-inner p-3 sm:p-4">
-      <canvas id="graficoGastos"></canvas>
+  <div class="mt-4 pt-4 border-t-2 border-slate-100">
+    <div class="gg-planos-head">
+      <p class="gg-planos-title">Planos de contas <small>({{ total_planos }})</small></p>
+      <div class="gg-planos-tools">
+        <div class="gg-search-wrap">
+          <span class="gg-search-icon" aria-hidden="true">🔍</span>
+          <input type="search" id="busca-planos" placeholder="Buscar plano…" autocomplete="off">
+        </div>
+        <label class="gg-chk-toggle">
+          <input type="checkbox" id="modo-individual">
+          <span>Modo individual</span>
+        </label>
+        <button type="button" class="gg-mini-btn" id="btn-marcar-todos">Marcar todos</button>
+        <button type="button" class="gg-mini-btn" id="btn-desmarcar-todos">Desmarcar todos</button>
+      </div>
+    </div>
+    <div id="container-planos-contas" class="gg-planos-grid">
+      {% for plano in planos_conta %}
+      <label class="gg-plano-item" data-nome-plano="{{ plano.nome|lower }}">
+        <input class="plano-checkbox" type="checkbox" value="{{ plano.id }}" data-nome="{{ plano.nome }}" checked>
+        <span title="{{ plano.nome }}">{{ plano.nome }}</span>
+      </label>
+      {% empty %}
+      <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano de despesa encontrado no Mongo.</p>
+      {% endfor %}
     </div>
   </div>
 </div>
+
+<div class="gg-card gg-chart-card flex-1 min-h-0">
+  <div class="gg-chart-meta">
+    <span id="gg-resumo-filtros">Ajuste os filtros acima</span>
+    <span>Soma visível: <strong id="gg-soma-visivel">—</strong></span>
+  </div>
+  <div class="gg-chart-inner">
+    <div id="gg-status">Carregando gráfico…</div>
+    <canvas id="graficoGastos"></canvas>
+  </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const API_URL = "{% url 'api_dados_grafico_gastos' %}";
-  const TOTAL_PLANOS = {{ total_planos|default:0 }};
   const statusEl = document.getElementById('gg-status');
+  const somaEl = document.getElementById('gg-soma-visivel');
+  const resumoEl = document.getElementById('gg-resumo-filtros');
   const canvas = document.getElementById('graficoGastos');
   if (!canvas) return;
 
@@ -139,9 +281,17 @@ document.addEventListener('DOMContentLoaded', function () {
   let carregando = false;
   let datalabelsOn = true;
 
-  function fmtValor(v) {
-    if (!v || v <= 0) return '';
-    return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  function fmtValor(v, dec) {
+    if (v == null || v <= 0) return '';
+    return Number(v).toLocaleString('pt-BR', {
+      minimumFractionDigits: dec != null ? dec : 0,
+      maximumFractionDigits: dec != null ? dec : 0
+    });
+  }
+
+  function fmtMoeda(v) {
+    if (v == null) return '—';
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function planosPayload() {
@@ -159,15 +309,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function setStatus(msg, isError) {
     if (!statusEl) return;
-    if (!msg) { statusEl.classList.add('hidden'); return; }
+    if (!msg) {
+      statusEl.classList.add('hidden');
+      statusEl.classList.remove('is-error');
+      return;
+    }
     statusEl.classList.remove('hidden');
     statusEl.textContent = msg;
-    statusEl.classList.toggle('text-red-700', !!isError);
-    statusEl.classList.toggle('text-slate-500', !isError);
+    statusEl.classList.toggle('is-error', !!isError);
+  }
+
+  function atualizarResumoFiltros() {
+    const por = document.getElementById('filtro-por');
+    const valor = document.getElementById('filtro-valor');
+    const agr = document.getElementById('filtro-agrupamento');
+    const ini = document.getElementById('data-inicial').value;
+    const fim = document.getElementById('data-final').value;
+    const porTxt = por.options[por.selectedIndex].text;
+    const valTxt = valor.options[valor.selectedIndex].text;
+    const agrTxt = agr.options[agr.selectedIndex].text;
+    resumoEl.textContent = porTxt + ' · ' + valTxt + ' · ' + agrTxt + ' · ' + (ini || '—') + ' → ' + (fim || '—');
+  }
+
+  function filtrarPlanosBusca() {
+    const q = (document.getElementById('busca-planos').value || '').trim().toLowerCase();
+    document.querySelectorAll('.gg-plano-item').forEach(function (el) {
+      const nome = el.getAttribute('data-nome-plano') || '';
+      el.classList.toggle('is-hidden', q.length > 0 && nome.indexOf(q) === -1);
+    });
   }
 
   function isoDate(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   function aplicarPeriodoRapido() {
@@ -193,9 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function initChart() {
-    if (typeof ChartDataLabels !== 'undefined') {
-      Chart.register(ChartDataLabels);
-    }
+    if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
     chartGastos = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: { labels: [], datasets: [] },
@@ -203,16 +374,25 @@ document.addEventListener('DOMContentLoaded', function () {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { top: 24 } },
+        layout: { padding: { top: 36, right: 8, left: 4, bottom: 4 } },
         plugins: {
-          legend: { position: 'top', labels: { font: { weight: 'bold', size: 12 } } },
+          legend: {
+            position: 'top',
+            labels: {
+              font: { weight: '800', size: 14 },
+              padding: 16,
+              boxWidth: 14,
+              boxHeight: 14
+            }
+          },
           tooltip: {
             usePointStyle: true,
-            padding: 12,
+            padding: 14,
+            titleFont: { size: 14, weight: '800' },
+            bodyFont: { size: 13, weight: '700' },
             callbacks: {
               label: function (ctx) {
-                const v = ctx.parsed.y;
-                return (ctx.dataset.label || '') + ': R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               }
             }
           },
@@ -220,39 +400,67 @@ document.addEventListener('DOMContentLoaded', function () {
             display: function (ctx) {
               if (!datalabelsOn) return false;
               const n = (ctx.chart.data.labels || []).length;
-              return n > 0 && n <= 48;
+              const v = ctx.dataset.data[ctx.dataIndex];
+              return n > 0 && n <= 48 && v != null && v > 0;
             },
             align: 'top',
             anchor: 'end',
-            offset: 2,
+            offset: 8,
+            clip: false,
+            backgroundColor: 'rgba(255, 255, 255, 0.94)',
+            borderColor: '#059669',
+            borderRadius: 8,
+            borderWidth: 1.5,
+            padding: { top: 4, bottom: 4, left: 7, right: 7 },
             color: '#047857',
-            font: { weight: '800', size: 10 },
-            formatter: function (v) { return fmtValor(v); }
+            font: { weight: '900', size: 12 },
+            formatter: function (v) { return fmtValor(v, 0); }
           }
         },
         scales: {
           y: {
             beginAtZero: true,
-            grid: { borderDash: [5, 5] },
+            grid: { borderDash: [4, 4], color: '#e2e8f0' },
             ticks: {
+              font: { size: 13, weight: '700' },
+              padding: 8,
               callback: function (v) {
                 return 'R$ ' + Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
               }
             }
           },
-          x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, font: { weight: '600' } } }
+          x: {
+            grid: { display: false },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0,
+              font: { size: 13, weight: '700' },
+              padding: 6
+            }
+          }
         }
       }
     });
   }
 
+  function atualizarSomaVisivel(data) {
+    if (!somaEl) return;
+    let total = 0;
+    (data.datasets || []).forEach(function (ds) {
+      (ds.data || []).forEach(function (v) { total += Number(v) || 0; });
+    });
+    somaEl.textContent = total > 0 ? fmtMoeda(total) : '—';
+  }
+
   function atualizarGrafico() {
     if (!chartGastos || carregando) return;
+    atualizarResumoFiltros();
     const pp = planosPayload();
     if (!pp.planos.length) {
       chartGastos.data.labels = [];
       chartGastos.data.datasets = [];
       chartGastos.update();
+      if (somaEl) somaEl.textContent = '—';
       setStatus('Marque ao menos um plano de contas.', true);
       return;
     }
@@ -282,8 +490,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = result.data || {};
         if (!result.ok || data.erro) {
           setStatus(data.erro || 'Erro ao buscar dados.', true);
+          if (somaEl) somaEl.textContent = '—';
         } else if (!(data.datasets || []).length) {
           setStatus('Sem valores no período para os filtros.', true);
+          if (somaEl) somaEl.textContent = '—';
         } else {
           setStatus('');
         }
@@ -291,18 +501,24 @@ document.addEventListener('DOMContentLoaded', function () {
         chartGastos.data.labels = data.labels || [];
         chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
           return Object.assign({}, ds, {
-            tension: 0.35,
+            tension: 0.3,
             borderWidth: 3,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointBackgroundColor: ds.borderColor || '#059669'
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointBorderWidth: 2,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: ds.borderColor || '#059669',
+            fill: true,
+            backgroundColor: 'rgba(5, 150, 105, 0.08)'
           });
         });
         chartGastos.update();
+        atualizarSomaVisivel(data);
       })
       .catch(function (err) {
         console.error(err);
         setStatus('Falha na comunicação com o servidor.', true);
+        if (somaEl) somaEl.textContent = '—';
       })
       .finally(function () { carregando = false; });
   }
@@ -339,6 +555,8 @@ document.addEventListener('DOMContentLoaded', function () {
     atualizarGrafico();
   });
 
+  document.getElementById('busca-planos').addEventListener('input', filtrarPlanosBusca);
+
   document.getElementById('filtro-periodo').addEventListener('change', function () {
     aplicarPeriodoRapido();
     atualizarGrafico();
@@ -374,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function carregarFavoritos() {
     const favs = JSON.parse(localStorage.getItem('grafico_gastos_favs') || '{}');
     const select = document.getElementById('filtro-favoritos');
-    select.innerHTML = '<option value="">Selecione...</option>';
+    select.innerHTML = '<option value="">Selecione um atalho…</option>';
     Object.keys(favs).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); }).forEach(function (nome) {
       const opt = document.createElement('option');
       opt.value = nome;
@@ -407,6 +625,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     carregarFavoritos();
     aplicarPeriodoRapido();
+    atualizarResumoFiltros();
     atualizarGrafico();
   });
 });
