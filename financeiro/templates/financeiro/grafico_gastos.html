@@ -602,7 +602,7 @@
                 <span title="{{ plano.nome }}">{{ plano.nome }}</span>
               </label>
               {% empty %}
-              <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano de despesa encontrado no Mongo.</p>
+              <p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>
               {% endfor %}
             </div>
           </div>
@@ -644,6 +644,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const API_URL = "{% url 'api_dados_grafico_gastos' %}";
+  const API_PLANOS_CP = "{{ api_planos_cp_url|default:'/api/lancamentos/planos-distintos/'|escapejs }}";
   const CP_URL = "{% url 'lancamentos_contas_pagar' %}";
   const API_ATALHOS = "{% url 'api_grafico_gastos_atalhos' %}";
   const API_ATALHO_SLOT = "{% url 'api_grafico_gastos_atalho_salvar' slot=0 %}".replace('/0/', '/');
@@ -836,6 +837,106 @@ document.addEventListener('DOMContentLoaded', function () {
       qtdMarcados: checked.length,
       qtdTotal: all.length
     };
+  }
+
+  function statusPlanosComoCp(por, valor, dataRef) {
+    por = (por || 'vencimento').toLowerCase();
+    valor = (valor || 'saldo').toLowerCase();
+    if (por === 'pagamento') {
+      return (valor === 'pago' && !dataRef) ? 'quitados' : 'todos';
+    }
+    return (valor !== 'saldo' || dataRef) ? 'todos' : 'abertos';
+  }
+
+  function montarParamsPlanosCp() {
+    const por = document.getElementById('filtro-por').value;
+    const valor = document.getElementById('filtro-valor').value;
+    const de = document.getElementById('data-inicial').value;
+    const ate = document.getElementById('data-final').value;
+    const modo = getModoTempo();
+    const dataRef = (modo === 'historico' || modo === 'comparar')
+      ? (document.getElementById('filtro-data-referencia').value || '')
+      : '';
+    const p = new URLSearchParams();
+    p.set('tipo', 'pagar');
+    p.set('status', statusPlanosComoCp(por, valor, dataRef));
+    p.set('limit', '500');
+    if (por === 'competencia') {
+      if (de) p.set('comp_de', de);
+      if (ate) p.set('comp_ate', ate);
+    } else if (por === 'pagamento') {
+      if (de) p.set('pag_de', de);
+      if (ate) p.set('pag_ate', ate);
+    } else {
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+    }
+    return p;
+  }
+
+  function renderPlanosGrid(planos, excluirNomes) {
+    const cont = document.getElementById('container-planos-contas');
+    const summary = document.querySelector('#gg-col-planos summary small');
+    if (!cont) return;
+    const excl = excluirNomes instanceof Set ? excluirNomes : new Set(excluirNomes || []);
+    cont.innerHTML = '';
+    (planos || []).forEach(function (nome) {
+      const n = String(nome || '').trim();
+      if (!n || n === '(sem plano)') return;
+      const label = document.createElement('label');
+      label.className = 'gg-plano-item';
+      label.setAttribute('data-nome-plano', n.toLowerCase());
+      const cb = document.createElement('input');
+      cb.className = 'plano-checkbox';
+      cb.type = 'checkbox';
+      cb.value = n;
+      cb.setAttribute('data-nome', n);
+      cb.checked = !excl.has(n);
+      cb.addEventListener('change', function (e) {
+        if (document.getElementById('modo-individual').checked && e.target.checked) {
+          document.querySelectorAll('.plano-checkbox').forEach(function (other) {
+            if (other !== e.target) other.checked = false;
+          });
+        }
+        agendarAtualizacao({ syncPlanos: false });
+      });
+      label.appendChild(cb);
+      const span = document.createElement('span');
+      span.title = n;
+      span.textContent = n;
+      label.appendChild(span);
+      cont.appendChild(label);
+    });
+    if (summary) {
+      summary.textContent = '(' + (planos || []).length + ')';
+    }
+    if (!(planos || []).length) {
+      cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>';
+    }
+    filtrarPlanosBusca();
+  }
+
+  function carregarPlanosGrafico() {
+    const cont = document.getElementById('container-planos-contas');
+    if (!cont) return Promise.resolve();
+    const unchecked = Array.from(document.querySelectorAll('.plano-checkbox'))
+      .filter(function (cb) { return !cb.checked; })
+      .map(function (cb) { return cb.getAttribute('data-nome') || ''; })
+      .filter(Boolean);
+    const excluir = new Set(unchecked);
+    cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Carregando planos…</p>';
+    return fetch(API_PLANOS_CP + '?' + montarParamsPlanosCp().toString(), {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        const nomes = (data.planos || []).map(function (x) { return x.nome || ''; }).filter(Boolean);
+        renderPlanosGrid(nomes, excluir);
+      })
+      .catch(function () {
+        cont.innerHTML = '<p class="text-base font-semibold text-rose-600 px-1">Erro ao carregar planos.</p>';
+      });
   }
 
   function painelAberto() {
@@ -1489,82 +1590,91 @@ document.addEventListener('DOMContentLoaded', function () {
   function atualizarGrafico(opts) {
     opts = opts || {};
     if (!chartGastos || carregando) return;
-    atualizarResumoFiltros();
-    const pp = planosPayload();
-    if (!pp.planos.length) {
-      chartGastos.data.labels = [];
-      chartGastos.data.datasets = [];
-      chartGastos.update();
-      chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
-      atualizarCompareBox(null);
-      kpiSoma.textContent = '—';
-      kpiPontos.textContent = '—';
-      setStatus('Marque ao menos um plano de contas.', true, false);
-      return;
+
+    function continuarGrafico() {
+      atualizarResumoFiltros();
+      const pp = planosPayload();
+      if (!pp.planos.length) {
+        chartGastos.data.labels = [];
+        chartGastos.data.datasets = [];
+        chartGastos.update();
+        chartSerieMeta = { bucket_keys: [], labels: [], compareMode: false, deltas: [], comparacao: null };
+        atualizarCompareBox(null);
+        kpiSoma.textContent = '—';
+        kpiPontos.textContent = '—';
+        setStatus('Marque ao menos um plano de contas.', true, false);
+        return;
+      }
+
+      carregando = true;
+      setStatus('Montando gráfico…', false, true);
+      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+
+      const payload = Object.assign({
+        agrupamento: document.getElementById('filtro-agrupamento').value,
+        por: document.getElementById('filtro-por').value,
+        valor: document.getElementById('filtro-valor').value,
+        inicio: document.getElementById('data-inicial').value,
+        fim: document.getElementById('data-final').value
+      }, pp, payloadModoTempo());
+
+      fetch(API_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          const data = result.data || {};
+          if (!result.ok || data.erro) {
+            setStatus(data.erro || 'Erro ao buscar dados.', true, false);
+          } else if (!(data.datasets || []).length) {
+            setStatus('Sem valores no período para os filtros.', true, false);
+          } else {
+            setStatus('', false, false);
+          }
+          datalabelsOn = ((data.labels || []).length <= 48);
+          const compareMode = data.modo_tempo === 'comparar';
+          chartSerieMeta = {
+            bucket_keys: data.bucket_keys || [],
+            labels: data.labels || [],
+            compareMode: compareMode,
+            deltas: data.deltas || [],
+            comparacao: data.comparacao || null
+          };
+          chartGastos.options.layout.padding.top = compareMode ? 48 : 36;
+          chartGastos.data.labels = data.labels || [];
+          chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
+            return estilizarDataset(ds, compareMode);
+          });
+          chartGastos.update();
+          atualizarCompareBox(compareMode ? data.comparacao : null);
+          atualizarKpis(data);
+          marcarUltimaAtualizacao();
+          const ok = result.ok && !data.erro && (data.datasets || []).length;
+          if (ok && (opts.fecharDepois || (autoRetractEl.checked && opts.forceRetract))) {
+            retrairPainel();
+          }
+        })
+        .catch(function (err) {
+          console.error(err);
+          setStatus('Falha na comunicação com o servidor.', true, false);
+        })
+        .finally(function () {
+          carregando = false;
+          if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+        });
     }
 
-    carregando = true;
-    setStatus('Montando gráfico…', false, true);
-    if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
-
-    const payload = Object.assign({
-      agrupamento: document.getElementById('filtro-agrupamento').value,
-      por: document.getElementById('filtro-por').value,
-      valor: document.getElementById('filtro-valor').value,
-      inicio: document.getElementById('data-inicial').value,
-      fim: document.getElementById('data-final').value
-    }, pp, payloadModoTempo());
-
-    fetch(API_URL, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || ''
-      },
-      body: JSON.stringify(payload)
-    })
-      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-      .then(function (result) {
-        const data = result.data || {};
-        if (!result.ok || data.erro) {
-          setStatus(data.erro || 'Erro ao buscar dados.', true, false);
-        } else if (!(data.datasets || []).length) {
-          setStatus('Sem valores no período para os filtros.', true, false);
-        } else {
-          setStatus('', false, false);
-        }
-        datalabelsOn = ((data.labels || []).length <= 48);
-        const compareMode = data.modo_tempo === 'comparar';
-        chartSerieMeta = {
-          bucket_keys: data.bucket_keys || [],
-          labels: data.labels || [],
-          compareMode: compareMode,
-          deltas: data.deltas || [],
-          comparacao: data.comparacao || null
-        };
-        chartGastos.options.layout.padding.top = compareMode ? 48 : 36;
-        chartGastos.data.labels = data.labels || [];
-        chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
-          return estilizarDataset(ds, compareMode);
-        });
-        chartGastos.update();
-        atualizarCompareBox(compareMode ? data.comparacao : null);
-        atualizarKpis(data);
-        marcarUltimaAtualizacao();
-        const ok = result.ok && !data.erro && (data.datasets || []).length;
-        if (ok && (opts.fecharDepois || (autoRetractEl.checked && opts.forceRetract))) {
-          retrairPainel();
-        }
-      })
-      .catch(function (err) {
-        console.error(err);
-        setStatus('Falha na comunicação com o servidor.', true, false);
-      })
-      .finally(function () {
-        carregando = false;
-        if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
-      });
+    if (opts.syncPlanos !== false) {
+      carregarPlanosGrafico().then(continuarGrafico);
+    } else {
+      continuarGrafico();
+    }
   }
 
   function agendarAtualizacao(opts) {
@@ -1591,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', function () {
     syncModoTempoUi();
     expandirPainel();
     abrirPainelCompleto();
-    atualizarGrafico();
+    atualizarGrafico({ syncPlanos: true });
   }
 
   btnToggle.addEventListener('click', function () {
@@ -1640,7 +1750,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (other !== e.target) other.checked = false;
         });
       }
-      agendarAtualizacao();
+      agendarAtualizacao({ syncPlanos: false });
     });
   });
 

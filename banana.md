@@ -872,7 +872,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.57 · **produção** v3.47
+**Versão app (`VERSION`):** **teste** v3.59 · **produção** v3.47
+
+### WIP — gráfico gastos planos = CP **24/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Planos no gráfico tinham itens do cadastro (ex. **Despesas Dispensáveis**, plano pai sem título) que **não** aparecem em Contas a pagar — quer **lista igual ao CP** |
+| **Fix teste** | Lista via **`/api/lancamentos/planos-distintos/`** (mesmos filtros venc/comp/pag + status); SSR backend alinhado; ao **Aplicar** recarrega planos antes do gráfico |
+| **Arquivos** | `mongo_financeiro_util.py` · `financeiro/views.py` · `grafico_gastos.html` |
+| **Renan testar** | Mesmo filtro CP (venc., saldo aberto, 3 meses) — contagem e nomes dos planos devem bater; pai sem lançamento **some** dos dois |
 
 ### FECHADO — produção perf + BI validade + CP **v3.47** (26/06)
 
@@ -1117,7 +1126,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fonte dados** | Mongo `DtoLancamento` · dedup **`_lancamentos_mongo_stages_dedup_por_titulo_erp`** (igual CP) |
 | **Referência (`por`)** | `vencimento` · `competencia` · `pagamento` |
 | **Valor** | `bruto` (Saida) · `pago` (ValorPago) · `saldo` (em aberto — só títulos abertos) |
-| **Planos (checkbox)** | `DtoPlanoDeConta` (`EhDespesa`) + fallback lançamentos |
+| **Planos (checkbox)** | **Igual CP** — distintos nos lançamentos do filtro (`/api/lancamentos/planos-distintos/`), não catálogo `DtoPlanoDeConta` |
 | **Modo normal** | Linha **«Total Selecionado»** |
 | **Modo individual** | Uma linha por plano (1 checkbox) |
 | **Agrupamento** | `dia` · `semana` · `mes` · `ano` |
