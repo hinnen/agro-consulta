@@ -931,7 +931,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | **Export PDF/Excel/CSV Lançamentos** | **✅ v3.11 teste** | — |
 | 3 | **Gestão lista/facetas PG loja** | **✅ v3.12 produção** | — |
 | 4 | **Listas auxiliares PG** | **✅ v3.20 produção** | formas/bancos · sugestões · fornecedor NF |
-| 5 | **BI / resumo gerencial → PG** | **✅ v3.28 produção** | cards home BI + default resumo PG |
+| 5 | **BI / resumo gerencial → PG** | **✅ v3.30 produção** | cards home BI + default resumo PG |
 | 7 | **Fix cashback orçamento PDV** | **✅ v3.12 produção** | — |
 | 8 | **DRE / calendário** | Mongo — pausa | Sprint desvinculo |
 
