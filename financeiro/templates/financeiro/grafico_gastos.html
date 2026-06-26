@@ -398,10 +398,7 @@
   <span class="gg-meta-stat"><small>Pontos</small> <strong id="gg-kpi-pontos">—</strong></span>
   <span class="gg-meta-stat is-planos"><small>Planos</small> <strong id="gg-kpi-planos">—</strong></span>
   <span class="gg-meta-time" id="gg-ultima-atualizacao">—</span>
-  <div class="gg-meta-split">
-    <button type="button" class="gg-summary-edit" id="btn-abrir-filtros" data-gg-pane="filtros">Filtros</button>
-    <button type="button" class="gg-summary-edit" id="btn-abrir-planos" data-gg-pane="planos">Planos</button>
-  </div>
+  <button type="button" class="gg-summary-edit" id="btn-abrir-painel-filtros" title="Filtros e planos de contas">Filtros</button>
 </div>
 
 <div class="gg-stage">
@@ -830,18 +827,12 @@ document.addEventListener('DOMContentLoaded', function () {
     aplicarPeriodoCodigo(codigo || document.getElementById('filtro-periodo').value);
   }
 
-  function abrirPainelPane(pane) {
+  function abrirPainelCompleto() {
     expandirPainel();
     const colF = document.getElementById('gg-col-filtros');
     const colP = document.getElementById('gg-col-planos');
-    if (pane === 'planos') {
-      if (colP) colP.open = true;
-      if (colF) colF.open = false;
-      if (colP) colP.scrollIntoView({ block: 'nearest' });
-    } else {
-      if (colF) colF.open = true;
-      if (colP) colP.open = false;
-    }
+    if (colF) colF.open = true;
+    if (colP) colP.open = true;
   }
 
   function coletarEstadoFiltros() {
@@ -1163,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.plano-checkbox').forEach(function (cb) { cb.checked = true; });
     document.querySelectorAll('.gg-atalho-slot').forEach(function (b) { b.classList.remove('is-active'); });
     expandirPainel();
-    abrirPainelPane('filtros');
+    abrirPainelCompleto();
     atualizarGrafico();
   }
 
@@ -1184,8 +1175,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('gg-cp-popup-fechar')?.addEventListener('click', fecharCpPopup);
   document.getElementById('gg-cp-popup-backdrop')?.addEventListener('click', fecharCpPopup);
   document.getElementById('btn-recolher-filtros').addEventListener('click', retrairPainel);
-  document.getElementById('btn-abrir-filtros').addEventListener('click', function () { abrirPainelPane('filtros'); });
-  document.getElementById('btn-abrir-planos').addEventListener('click', function () { abrirPainelPane('planos'); });
+  document.getElementById('btn-abrir-painel-filtros')?.addEventListener('click', abrirPainelCompleto);
   document.getElementById('btn-atualizar-grafico').addEventListener('click', function () {
     atualizarGrafico({ forceRetract: autoRetractEl.checked });
   });

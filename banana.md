@@ -1001,10 +1001,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Período toolbar** | **1a · 3m · 1m · 1s | Hoje | 1s · 1m · 3m · 1a** — passado e futuro a partir de hoje |
-| **Painel overlay** | Colunas **Filtros** e **Planos de contas** lado a lado · **fix v3.26:** HTML planos (lista sumia) + grid filtros 2 col + gráfico preenche tela |
+| **Painel overlay** | **Filtros | Planos** lado a lado · barra meta: **1 botão Filtros** abre os dois · fix layout v3.26 |
 | **Atalhos (4 slots)** | Botões na toolbar · 1º clique vazio → prompt nome → salva filtros atuais · **Postgres global** (`GraficoGastosAtalhoAgro`) · clique aplica · Shift+clique regrava |
 | **Entrada BI** | Botão **Gráfico gastos** (laranja) no card **Contas a Pagar** da home `/` (v3.24) |
-| **Drill-down CP** | Clique na **bolinha** do gráfico → popup **80%** com CP filtrada (período do bucket + referência/valor + planos excluídos) · v3.27 |
+| **Drill-down CP** | Clique na **bolinha** do gráfico → popup **80%** com CP filtrada (período do bucket + referência/valor + planos excluídos) · v3.28 |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` |
 | **Migration** | `financeiro.0002_grafico_gastos_atalho_agro` |
 | **Loja** | **Pendente** — só teste até Renan pedir produção |
