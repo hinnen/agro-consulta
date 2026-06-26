@@ -579,6 +579,26 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 **Loja hoje (26/06 — Renan):** operação **não usa** tela CP · caixa/manual OK · **produção CP continua Mongo** até passo 4 OK no teste + senha loja.
 
+### Renan — «podemos ligar na loja com a loja rodando?»
+
+**Resposta curta: ainda não na CP.** PDV, caixa, vendas etc. **seguem normais** — isso **não muda**.
+
+| O quê | Hoje no código | Se ligar flag na loja agora |
+| ----- | -------------- | --------------------------- |
+| **Lista CP** (ver títulos, total) | Postgres no **teste** · Mongo na **loja** | Lista viria do Postgres |
+| **Pagar / parcial / nova saída / editar** | **Ainda Mongo** (nos dois) | Continua gravando **Mongo** |
+| **Taxa cartão / título novo** | Entra no **Mongo** | **Não aparece** na lista PG até reimport |
+
+**Risco:** alguém abre CP e **Paga** → Mongo muda, tela (PG) **fica errada**. Mesmo com operação «parada», **um clique** já desalinha.
+
+**Ordem segura com loja aberta:**
+
+1. **Assistente** — gravar CP no Postgres (pagar, nova saída, etc.) no **teste**
+2. **Renan** — validar no teste (pagar 1 título de teste)
+3. **Loja** — import PG + flag + deploy **só** com frase + senha · ideal: CP só leitura ou aviso até validar
+
+**Até lá:** loja CP = **Mongo** (como hoje). Resto da loja **sem restrição**.
+
 ### Renan — como fazer (passos 3 e 4)
 
 **Passo 3 — agora (só não mexer)**
