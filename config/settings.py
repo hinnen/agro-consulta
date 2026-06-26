@@ -339,6 +339,10 @@ AGRO_FINANCEIRO_MONGO_CONGELADO = config(
 AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
 # Staging: true = lê Mongo (espelho ERP) mas não grava preço/financeiro/etc. no Mongo compartilhado.
 AGRO_STAGING_READONLY = config('AGRO_STAGING_READONLY', default=False, cast=bool)
+# Staging: CP lê Postgres após import bootstrap (sem AGRO_FONTE_FINANCEIRO manual).
+AGRO_FINANCEIRO_PG_LEITURA_STAGING = config(
+    'AGRO_FINANCEIRO_PG_LEITURA_STAGING', default=True, cast=bool
+)
 # Staging: URL interna do Postgres da loja — só leitura para snapshot PDV (ver copiar_snapshot_pdv_loja).
 AGRO_SNAPSHOT_FONTE_DATABASE_URL = (config('AGRO_SNAPSHOT_FONTE_DATABASE_URL', default='') or '').strip()
 # Staging (após snapshot): PDV lê catálogo só do Postgres; estoque/médias ainda podem usar Mongo.
