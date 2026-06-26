@@ -752,7 +752,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Env loja (conferir Render)** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · ledger estoque ativo · **sem** `AGRO_STAGING_READONLY` |
 | **Antes** | `importar_catalogo_mongo_produto` na loja se Postgres catálogo incompleto · backup · Renan confirma com **frase + senha** no chat do deploy |
 | **Depois (Renan)** | Ctrl+F5 · PDV busca/preço · Compras saldo · Entrada NF passo 5 empresa · conferir 2–3 produtos anotados (ex. GM9503) |
-| **Fora do pacote** | Motor busca GM · Compras métricas D4 · Lançamentos Postgres · BI |
+| **Fora do pacote (impacto loja)** | Motor busca **sem flags PG** ≈ legado · Lançamentos **telas Mongo** · BI |
 
 ### FECHADO — Compras D4 bloco A · média/sugestão Postgres (Renan 25/06, v2.79)
 
