@@ -564,8 +564,21 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 | Quem | O quê |
 | ---- | ----- |
-| **Assistente** | Próximo: gravação CP no Postgres · depois produção (senha) |
-| **Renan** | **1–4 ✅ fechado** · loja CP parada · fiado/CR fora |
+### CP Postgres — o que falta + quem faz (fechar o serviço)
+
+| # | Quem | O quê | Quando |
+| --- | ---- | ----- | ------ |
+| **1** | **Assistente** | Código: **pagar, parcial, nova saída, editar, excluir** CP → Postgres (teste) | **Agora** |
+| **2** | **Renan** | No **teste**: pagar **1 título pequeno** (ou de teste) + conferir se sumiu da lista / saldo certo | Depois do **1** (aviso «pode testar pagar») |
+| **3** | **Assistente** | Import PG na **loja** + deploy pacote **teste→producao** | Depois do **2** OK |
+| **4** | **Renan** | Frase *«pode subir produção»* + senha **`99738595`** **no mesmo pedido** | Só no **4** |
+| **5** | **Renan** | **~30 min** CP só consulta na loja (ou avisar equipe: **não pagar** na CP na hora H) | Junto com **4** |
+| **6** | **Renan** | Loja: CP aberto **741** + total de novo + 1 pagamento real pequeno (opcional) | Depois deploy |
+
+**Renan NÃO precisa:** mexer Render · import manual · código · backup de novo (já tem no PC).
+
+**Bloqueio único hoje:** item **1** (código gravação) — resto depende só de teste + sua autorização loja.
+
 
 ### Renan — intervenção (estritamente necessário)
 
