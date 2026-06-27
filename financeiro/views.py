@@ -98,15 +98,17 @@ def grafico_gastos_view(request):
     hoje = date.today()
     padrao_ini = hoje - timedelta(days=90)
     por = "vencimento"
-    valor = "saldo"
+    valor = "bruto"
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
 
     if agro_financeiro_usa_postgres():
         from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
 
+        st_planos = _grafico_gastos_status_para_lista_planos(por, valor)
         raw = planos_distintos_pg(
             despesa=True,
-            status="abertos",
+            status=st_planos,
             vencimento_de=padrao_ini,
             vencimento_ate=hoje,
             limit=500,

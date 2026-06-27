@@ -322,19 +322,22 @@ def grafico_gastos_serie_pg(
     vazio = {"ok": False, "erro": "Sem dados", "labels": [], "bucket_keys": [], "datasets": []}
     modo_por = (por or "vencimento").strip().lower()
     modo_valor = (valor or "bruto").strip().lower()
-    if modo_por == "pagamento":
-        st = "quitados" if modo_valor == "pago" and not data_referencia else "todos"
-    else:
-        st = "todos" if (modo_valor != "saldo" or data_referencia) else "abertos"
+    from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
+
+    st = _grafico_gastos_status_para_lista_planos(
+        modo_por, modo_valor, data_referencia=data_referencia
+    )
 
     titulos = _titulos_no_periodo_pg(
         data_de=data_de, data_ate=data_ate, por=modo_por, despesa=True, status=st
     )
 
     excl = set(str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip())
-    incluir_nomes: set[str] | None = None
-    if not todos_planos and plano_ids and not excl:
-        incluir_nomes = {str(x).strip() for x in plano_ids if str(x).strip()}
+    incluir_individual: set[str] | None = None
+    if individual and plano_ids:
+        nomes = {str(x).strip() for x in plano_ids if str(x).strip()}
+        if nomes:
+            incluir_individual = nomes
 
     agr = (agrupamento or "mes").strip().lower()
     bucket_keys = _grafico_gastos_iter_bucket_keys(data_de, data_ate, agr)
@@ -349,7 +352,7 @@ def grafico_gastos_serie_pg(
             continue
         if excl and plano in excl:
             continue
-        if incluir_nomes is not None and plano not in incluir_nomes:
+        if incluir_individual is not None and plano not in incluir_individual:
             continue
         dt = _campo_data_titulo(t, modo_por)
         if dt is None or dt < data_de or dt > data_ate:

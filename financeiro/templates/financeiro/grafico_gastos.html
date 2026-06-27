@@ -542,9 +542,9 @@
               <div class="gg-field">
                 <label for="filtro-valor">Valor</label>
                 <select id="filtro-valor">
-                  <option value="bruto">Bruto (título)</option>
+                  <option value="bruto" selected>Bruto (título)</option>
                   <option value="pago">Pago</option>
-                  <option value="saldo" selected>Saldo em aberto</option>
+                  <option value="saldo">Saldo em aberto</option>
                 </select>
               </div>
               <div class="gg-field gg-field-span-2">
@@ -841,11 +841,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function statusPlanosComoCp(por, valor, dataRef) {
     por = (por || 'vencimento').toLowerCase();
-    valor = (valor || 'saldo').toLowerCase();
+    valor = (valor || 'bruto').toLowerCase();
     if (por === 'pagamento') {
       return (valor === 'pago' && !dataRef) ? 'quitados' : 'todos';
     }
-    return (valor !== 'saldo' || dataRef) ? 'todos' : 'abertos';
+    if (dataRef) return 'todos';
+    if (valor === 'saldo') return 'abertos';
+    if (valor === 'bruto' && (por === 'vencimento' || por === 'competencia')) return 'abertos';
+    return 'todos';
   }
 
   function montarParamsPlanosCp() {
@@ -1150,10 +1153,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function cpStatusFromGrafico(por, valor) {
-    const v = (valor || 'saldo').toLowerCase();
+    const v = (valor || 'bruto').toLowerCase();
     const p = (por || 'vencimento').toLowerCase();
+    if (p === 'pagamento') {
+      if (v === 'pago') return 'quitados';
+      return 'todos';
+    }
     if (v === 'saldo') return 'abertos';
-    if (v === 'pago' && p === 'pagamento') return 'quitados';
+    if (v === 'bruto' && (p === 'vencimento' || p === 'competencia')) return 'abertos';
     return 'todos';
   }
 
@@ -1273,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!state) return;
     document.getElementById('filtro-agrupamento').value = state.agrupamento || 'mes';
     document.getElementById('filtro-por').value = state.por || 'vencimento';
-    document.getElementById('filtro-valor').value = state.valor || 'saldo';
+    document.getElementById('filtro-valor').value = state.valor || 'bruto';
     document.getElementById('modo-individual').checked = !!state.individual;
     if (state.inicio) document.getElementById('data-inicial').value = state.inicio;
     if (state.fim) document.getElementById('data-final').value = state.fim;
@@ -1714,7 +1721,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function limparFiltros() {
     document.getElementById('filtro-agrupamento').value = 'mes';
     document.getElementById('filtro-por').value = 'vencimento';
-    document.getElementById('filtro-valor').value = 'saldo';
+    document.getElementById('filtro-valor').value = 'bruto';
     document.getElementById('modo-individual').checked = false;
     document.getElementById('busca-planos').value = '';
     filtrarPlanosBusca();

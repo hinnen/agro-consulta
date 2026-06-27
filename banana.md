@@ -871,6 +871,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.54
 
+### INCIDENTE — loja lenta geral (27/06) · diagnóstico fechado pelos gráficos
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | SisVale demora abrir (tela cinza); balcão lento; vídeo WhatsApp ~11:54 |
+| **Gargalo** | **`agro-db`** (Postgres 256 MB) — **não** o servidor web |
+| **Web `Sistvale - Produção`** | 512 MB · memória **~40–50%** · CPU picos **~30–40%** · **1 worker** — saudável, **espera o banco** |
+| **Memória DB — 7 dias** | Working set **80–95% a semana inteira** — pressão **crônica**, não só 27/06 |
+| **Disco DB — 7 dias** | ~100 MB até **25/06** → **~150–180 MB a partir 26/06** (import CP/CR ~18k títulos) |
+| **CPU DB** | ~10–12% — **não** é gargalo |
+| **Escrita DB** | **40–60 KB/s estável a semana** + ops 1k–3k/intervalo — loja + ledger + financeiro PG |
+| **Conexões DB** | Picos **70–80 / limite 100** — fila quando memória alta |
+| **Transações** | Pico **~6000** **22/06 ~17h** — provável import/bootstrap financeiro |
+| **Indisponível** | **24/06 19h10** e **26/06 16h51** — restart Render (coincide CP PG) |
+| **Top query agora** | `TituloFinanceiroAgro` — **142k linhas** lidas · ~115 ms/chamada (CP/BI pesado) |
+| **Deploys 27/06 manhã** | 3 seguidos (8h51–10h) — piora momentânea, **não causa raiz** |
+| **Por que «até ontem»** | **26/06** dados financeiros no Postgres + disco subiu; **27/06** loja aberta + deploys + Mongo ERP fora |
+| **Ação** | **`agro-db` → Basic-1gb** ✅ **Renan 27/06** — pós-upgrade working set **&lt;20%** (limite **1 GB**; antes ~90% em 256 MB) |
+| **Renan agora** | **Ctrl+F5** loja · testar abrir SisVale + PDV + 1 venda · gestão/DRE ainda podem ser Mongo |
+| **Depois do upgrade** | Conferir working set **~30–50%**; otimizar queries financeiro se CP/BI ainda pesado |
+
 ### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.77**
 
 | Item | Detalhe |
@@ -900,17 +921,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Checklist Renan — testar no Render teste (Ctrl+F5):**
 
-1. **PDV** `/consulta/` — busca e lista carregam
-2. **CP/CR** `/lancamentos/` — lista, filtrar, pagar, nova saída
-3. **DRE** `/lancamentos/dre/` — abre e bate totais com CP
-4. **Fluxo calendário** `/lancamentos/fluxo-calendario/` — grade 60d
-5. **Gráfico gastos** — série + comparar mês
-6. **BI** `/` — card gastos por plano (se visível)
-7. **Gestão** `/produtos/gestao/` — lista + saldos
-8. **Compras** — Folha Compras → planilha **categoria** e **unidade** (dim + impressão)
-9. **Cadastro ERP** `/produtos/cadastro-erp/` — lista Excel
+| # | Tela | Renan 27/06 | Nota |
+| - | ---- | ----------- | ---- |
+| 1 | PDV busca | **✅** teste + **✅** produção | — |
+| 2 | CP/CR | **✅** | — |
+| 3 | DRE | **⏭** desativado opcional | Ignorar no pacote |
+| 4 | Calendário fluxo | **⚠️** vendas incluem vendas **do teste** | **Esperado no staging** — Postgres próprio · na **loja** só vendas loja |
+| 5 | Gráfico gastos | **❌→fix v3.81** jul ~34,9k vs CP ~68,2k | Gráfico usava **Saldo**; CP compara **Bruto em aberto** · alinhado · **retestar no teste** |
+| 6 | BI `/` card gastos-plano | **⏭** Renan não achou | Card **só** se `AGRO_DASHBOARD_GASTOS_PLANO=true` — **opcional** · pode pular |
+| 7 | Gestão | **⏸** não soube URL | **`/produtos/gestao/`** — pendente teste |
+| 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
+| 9 | Cadastro ERP | **✅** lista OK · um pouco mais lenta que loja | Aceitável |
 
-**Produção:** só quando Renan pedir com frase + senha **99738595**.
+**Produção:** só quando Renan pedir com frase + senha **99738595** — **reteste item 5** antes de cherry-pick.
+
+### FIX teste — gráfico gastos = CP Bruto **27/06 · v3.81**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Padrão **Saldo em aberto** (~35k) vs CP rodapé **Bruto** (~68k) · PG também filtrava planos errado no modo individual |
+| **Fix** | `_grafico_gastos_status_para_lista_planos` · default **Bruto** · status **Em aberto** alinhado CP |
+| **Renan retestar** | Gráfico gastos · jul · **Bruto** + vencimento · deve bater **Bruto** do CP (mesmo filtro) |
 
 ### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste + **loja v3.54**
 
