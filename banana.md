@@ -917,7 +917,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Rota** | `/caixa/retiradas/` · filtros: data (calendário Agro), plano, quem levou · padrão **hoje** |
 | **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
 | **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
-| **Deploy teste** | push `teste` **v4.00** — Renan valida no Render teste |
+| **Deploy teste** | **`3396125`** · push `teste` **v4.00** — aguardando Renan no Render teste |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
