@@ -4802,6 +4802,16 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     }
 }
 
+function fetchCatalogoPdvLocalCompleto() {
+    return fetch('/api/todos-produtos/local/', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d && Array.isArray(d.produtos) && d.produtos.length) return d;
+            return null;
+        })
+        .catch(function () { return null; });
+}
+
 function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
     opts = opts || {};
     const silent = !!opts.silent;
@@ -4854,16 +4864,36 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     finish();
                     return;
                 }
-                if (window.gmLoader) window.gmLoader.hide(180);
-                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                finish();
+                fetchCatalogoPdvLocalCompleto().then(function (full) {
+                    if (full && Array.isArray(full.produtos) && full.produtos.length) {
+                        aplicarBasePdv(full.produtos, silent ? '' : `Base local pronta com ${full.produtos.length} itens`);
+                        salvarCacheCatalogoPdv(full);
+                    } else if (!jahAquecido && cached && cached.produtos && cached.produtos.length) {
+                        aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                    } else if (!jahAquecido && !silent) {
+                        mostrarStatusBusca('Catálogo indisponível — tente F5 ou aguarde o ERP.', 'orange');
+                    }
+                    if (window.gmLoader) window.gmLoader.hide(180);
+                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    finish();
+                });
+                return;
             })
             .catch((e) => {
                 console.error('Falha na carga local:', e);
-                if (!jahAquecido) mostrarStatusBusca('Falha de rede; usando cache local.', 'orange');
-                if (window.gmLoader) window.gmLoader.hide(180);
-                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                finish();
+                fetchCatalogoPdvLocalCompleto().then(function (full) {
+                    if (full && Array.isArray(full.produtos) && full.produtos.length) {
+                        aplicarBasePdv(full.produtos, `Base local pronta com ${full.produtos.length} itens`);
+                        salvarCacheCatalogoPdv(full);
+                    } else if (cached && cached.produtos && cached.produtos.length) {
+                        aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                    } else if (!jahAquecido) {
+                        mostrarStatusBusca('Falha de rede; catálogo indisponível.', 'orange');
+                    }
+                    if (window.gmLoader) window.gmLoader.hide(180);
+                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    finish();
+                });
             });
     });
 }
