@@ -955,11 +955,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Fix v3.85 (teste) / v3.55 (prod):** gráfico PG = CP · **Renan OK teste 82.643** · prod CP ainda **~94k** — ver abaixo.
 
-**Prod ~94k vs backup ~82k (27/06 — sem fix ainda):**
-- **Checkpoint 19/06 não muda valor** — só carimba Mongo (`AgroFonteVerdade`); backup Excel = foto daquele dia.
-- **CP hoje lê Postgres** importado **~26/06** do Mongo **vivo** (não “congela” na data 19).
-- **Gap ~12k** = títulos/movimentos entre **19/06 e import** OU diferença staging vs loja — **não é bug do gráfico v3.55**.
-- **Antes de código:** comparar qtd jul/2026 backup Excel vs CP prod; achar 1 título na CP que **não** está no Excel.
+**Prod ~94k vs backup ~82k (27/06):**
+- **Checkpoint 19/06** — só carimbo Mongo; **não muda valor**.
+- **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **139** tít. → **6 a menos no PG** + soma prod ainda acima do Excel.
+- **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP (Excel = 1 linha/doc Mongo, CP deduplica).
+- **Próximo passo (sem código):** na CP prod com mesmo filtro — **Qtd + A pagar** exatos; opcional 1 ID do Excel que não aparece na CP.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
