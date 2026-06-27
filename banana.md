@@ -869,9 +869,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v3.76 · **produção** v3.52
+**Versão app (`VERSION`):** **teste** v3.77 · **produção** v3.52
 
-### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.76**
+### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.77**
 
 | Item | Detalhe |
 | ---- | ------- |
