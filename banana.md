@@ -877,7 +877,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Renan** | *«suba esse cherrypick»* · **99738595** |
-| **Commit loja** | cherry-pick **`3907006`** sobre **`e23ae38`** |
+| **Commit loja** | **`676ea13`** (cherry-pick **`3907006`** sobre **`e23ae38`**) |
 | **Conteúdo** | Venda sem Mongo ERP · NFC-e em background · MP Point ERP assíncrono |
 | **Migrate** | **Nenhuma** |
 | **Fora** | DRE · Compras PG · pacote teste inteiro |
