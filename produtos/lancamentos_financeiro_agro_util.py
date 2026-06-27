@@ -92,11 +92,9 @@ def titulo_financeiro_agro_from_mongo_doc(doc: dict) -> TituloFinanceiroAgro | N
 
 
 def _campos_update() -> list[str]:
-    return [
-        f.name
-        for f in TituloFinanceiroAgro._meta.fields
-        if f.name not in ("id", "importado_em", "mongo_id")
-    ]
+    """Campos para bulk_update — exclui auto_now (bulk_update não preenche sozinho)."""
+    skip = {"id", "importado_em", "mongo_id", "atualizado_em"}
+    return [f.name for f in TituloFinanceiroAgro._meta.fields if f.name not in skip]
 
 
 def importar_titulos_financeiro_mongo_para_postgres(
@@ -159,12 +157,21 @@ def importar_titulos_financeiro_mongo_para_postgres(
             batch_upd = []
             return
         if batch_novos:
+            now = timezone.now()
+            for t in batch_novos:
+                if t.importado_em is None:
+                    t.importado_em = now
+                t.atualizado_em = now
             TituloFinanceiroAgro.objects.bulk_create(batch_novos, batch_size=_BATCH)
             batch_novos = []
         if batch_upd:
+            now = timezone.now()
+            pks = [t.pk for t in batch_upd if t.pk]
             TituloFinanceiroAgro.objects.bulk_update(
                 batch_upd, update_fields, batch_size=_BATCH
             )
+            if pks:
+                TituloFinanceiroAgro.objects.filter(pk__in=pks).update(atualizado_em=now)
             batch_upd = []
 
     for doc in cursor:
