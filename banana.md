@@ -959,11 +959,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - **Checkpoint 19/06** — só carimbo Mongo; **não muda valor**.
 - **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **147** tít. **A pagar 94.879,36** (Bruto 96.948,53).
 - **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP; **+2 títulos** e **~+12k saldo** vs Excel.
-**Qual é o correto?**
-- **Baseline migração / conferência:** Excel backup **19/06** — **145** tít. · **82.642,99** (foto do checkpoint; é o que vocês planejaram congelar).
-- **O que a loja mostra hoje:** CP prod **147** tít. · **94.879,36** = Postgres importado **~26/06** do Mongo **vivo** (19→26 mudou título/valor).
-- **Teste ~82k** = alinhado ao backup ✅ · **Prod ~94k** = Mongo pós-checkpoint, **não** a foto 19/06.
-- **Operar agora:** use **94k** como “sistema hoje”; para **fechar desvinculação**, o alvo é **82k** (reimport ou reconciliar PG ↔ backup).
+**Qual é o correto? (Renan — operação loja)**
+
+| Pergunta | Resposta direta |
+| -------- | ---------------- |
+| **O que usar para pagar conta / operar amanhã?** | **CP produção hoje** (~**94.879** jul · **147** tít.) — é o que o SisVale da **loja** lê agora (Postgres). |
+| **O Excel 19/06 (~82.643)?** | **Só arquivo de segurança** do dia do checkpoint — **não** substitui a CP se vocês **seguiram usando** Lançamentos/CP depois do dia 19. |
+| **Teste ~82k?** | Cópia **staging** ≈ backup — **certo para testar código**, **não** é espelho ao vivo da loja. |
+| **Checkpoint “autoriza” algo?** | **Não.** Só carimba Mongo; **não trava** valores na tela. Pagamentos/baixas **depois do 19** entram no total de hoje. |
+| **Por que 94 ≠ 82?** | Loja **operou** 19/06 → import ~26/06 → hoje: títulos/valores **mudaram** (novos lançamentos, baixas parciais, +2 títulos jul, saldos maiores). |
+
+**Regra prática:** loja = **confie na CP produção** até reconciliarmos PG ↔ Mongo ao vivo (próximo passo migração, **sem** apressar gráfico).
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
