@@ -927,13 +927,33 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | CP/CR | **✅** | — |
 | 3 | DRE | **⏭** desativado opcional | Ignorar no pacote |
 | 4 | Calendário fluxo | **⚠️** vendas incluem vendas **do teste** | **Esperado no staging** — Postgres próprio · na **loja** só vendas loja |
-| 5 | Gráfico gastos | **❌→fix v3.82** falha conexão + alinhamento Bruto | Typo API 500 · **retestar jul** |
+| 5 | Gráfico gastos | **fix v3.85 teste** | PG por bucket = CP · saldo default · sem excluir empréstimo no gráfico |
 | 6 | BI `/` card gastos-plano | **⏭** Renan não achou | Card **só** se `AGRO_DASHBOARD_GASTOS_PLANO=true` — **opcional** · pode pular |
 | 7 | Gestão saldo pós-venda | **❌→fix v3.82** vendeu 7 · ficou -3 | v3.54 não baixava estoque sem Mongo · **retestar venda** |
 | 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
 | 9 | Cadastro ERP | **✅** lista OK · um pouco mais lenta que loja | Aceitável |
 
 **Produção:** só quando Renan pedir com frase + senha **99738595** — pacote único (gráfico + baixa estoque + desvinculo); **sem** cherry-pick avulso.
+
+### ANÁLISE item 5 — gráfico vs CP vs backup (Jul/2026 · Renan 27/06)
+
+| Fonte | Ambiente | Jul/2026 |
+| ----- | -------- | -------- |
+| Gráfico | Produção | **82.643** |
+| CP (direto ou bolinha) | Produção | **94.879** (147 tít.) |
+| Gráfico | Teste | **49.385** ❌ |
+| CP | Teste | **82.643** (145 tít.) |
+| Backup Excel RP | PC | Renan: **~93–94k** (≈ prod CP) |
+
+**Correção 27/06:** CP produção **direto na tela** = mesmo **94.879** — não é bug só da bolinha.
+
+**Leitura atual:**
+- **Prod CP ~94k ≈ backup ~93–94k** → provável foto **Mongo/ERP completa** (todos planos em aberto).
+- **Gráfico prod ~82k** → **exclui empréstimo** por regra do BI (~12k a menos) — não bate CP.
+- **Teste CP 82k vs prod 94k** → staging PG **145 tít.** vs loja **147** — import/cópia não idêntica ao Mongo ao vivo.
+- **Gráfico teste 49k** → bug agregação PG (pacote).
+
+**Fix v3.85 (teste):** gráfico PG soma **por bucket** igual CP · **saldo** default · **não** exclui empréstimo (só planos desmarcados). Retestar jul = CP.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 

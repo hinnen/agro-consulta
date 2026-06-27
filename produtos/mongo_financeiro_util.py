@@ -4448,6 +4448,52 @@ def _grafico_gastos_bucket_key(dt: date, agrupamento: str) -> str:
     return f"{dt.year}-{dt.month:02d}"
 
 
+def _grafico_gastos_bucket_intervalo(
+    bucket_key: str, agrupamento: str
+) -> tuple[date, date] | None:
+    """Intervalo [de, ate] do bucket — espelha ``bucketParaIntervalo`` do gráfico (JS)."""
+    agr = (agrupamento or "mes").strip().lower()
+    key = str(bucket_key or "").strip()
+    if not key:
+        return None
+    if agr == "dia":
+        try:
+            d = date.fromisoformat(key)
+        except ValueError:
+            return None
+        return d, d
+    if agr == "ano":
+        try:
+            y = int(key)
+        except ValueError:
+            return None
+        return date(y, 1, 1), date(y, 12, 31)
+    if agr == "semana":
+        m = re.match(r"^(\d{4})-W(\d{2})$", key)
+        if not m:
+            return None
+        try:
+            ini = date.fromisocalendar(int(m.group(1)), int(m.group(2)), 1)
+        except ValueError:
+            return None
+        return ini, ini + timedelta(days=6)
+    parts = key.split("-")
+    if len(parts) < 2:
+        return None
+    try:
+        y, mo = int(parts[0]), int(parts[1])
+    except ValueError:
+        return None
+    if mo < 1 or mo > 12:
+        return None
+    ini = date(y, mo, 1)
+    if mo == 12:
+        fim = date(y, 12, 31)
+    else:
+        fim = date(y, mo + 1, 1) - timedelta(days=1)
+    return ini, fim
+
+
 def _grafico_gastos_bucket_label(key: str, agrupamento: str) -> str:
     agr = (agrupamento or "mes").strip().lower()
     if agr == "dia":
@@ -4718,8 +4764,6 @@ def grafico_gastos_serie_mongo(
             gid = r.get("_id") or {}
             bkey = str(gid.get("bucket") or "")
             plano = str(gid.get("plano") or "").strip() or "(sem plano)"
-            if _dashboard_plano_excluido_gastos_chart(plano):
-                continue
             val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
             if val <= 0:
                 continue

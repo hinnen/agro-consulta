@@ -98,7 +98,7 @@ def grafico_gastos_view(request):
     hoje = date.today()
     padrao_ini = hoje - timedelta(days=90)
     por = "vencimento"
-    valor = "bruto"
+    valor = "saldo"
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
     from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
 

@@ -67,6 +67,29 @@ def _valor_titulo_grafico(t: TituloFinanceiroAgro, valor: str, *, as_of: date | 
     return _dec2(t.valor_bruto)
 
 
+def _grafico_gastos_somar_titulos_pg(
+    titulos: list[TituloFinanceiroAgro],
+    *,
+    modo_valor: str,
+    excluir_planos: set[str],
+    incluir_planos: set[str] | None,
+    data_referencia: date | None,
+) -> Decimal:
+    """Soma alinhada à lista CP (mesmos títulos dedup, sem exclusão fixa de empréstimo)."""
+    total = Decimal("0")
+    for t in titulos:
+        plano = str(t.plano_conta or "").strip() or "(sem plano)"
+        if excluir_planos and plano in excluir_planos:
+            continue
+        if incluir_planos is not None and plano not in incluir_planos:
+            continue
+        val = _valor_titulo_grafico(t, modo_valor, as_of=data_referencia)
+        if val <= Decimal("0.02"):
+            continue
+        total += val
+    return total.quantize(Decimal("0.01"))
+
+
 def _titulos_no_periodo_pg(
     *,
     data_de: date,
@@ -313,7 +336,7 @@ def grafico_gastos_serie_pg(
 ) -> dict[str, Any]:
     from produtos.mongo_financeiro_util import (
         _GRAFICO_GASTOS_CORES,
-        _dashboard_plano_excluido_gastos_chart,
+        _grafico_gastos_bucket_intervalo,
         _grafico_gastos_bucket_key,
         _grafico_gastos_bucket_label,
         _grafico_gastos_iter_bucket_keys,
@@ -326,10 +349,6 @@ def grafico_gastos_serie_pg(
 
     st = _grafico_gastos_status_para_lista_planos(
         modo_por, modo_valor, data_referencia=data_referencia
-    )
-
-    titulos = _titulos_no_periodo_pg(
-        data_de=data_de, data_ate=data_ate, por=modo_por, despesa=True, status=st
     )
 
     excl = set(str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip())
@@ -346,26 +365,42 @@ def grafico_gastos_serie_pg(
     por_plano: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     totais: dict[str, float] = defaultdict(float)
 
-    for t in titulos:
-        plano = str(t.plano_conta or "").strip() or "(sem plano)"
-        if _dashboard_plano_excluido_gastos_chart(plano):
-            continue
-        if excl and plano in excl:
-            continue
-        if incluir_individual is not None and plano not in incluir_individual:
-            continue
-        dt = _campo_data_titulo(t, modo_por)
-        if dt is None or dt < data_de or dt > data_ate:
-            continue
-        val = _valor_titulo_grafico(t, modo_valor, as_of=data_referencia)
-        if val <= Decimal("0.02"):
-            continue
-        bkey = _grafico_gastos_bucket_key(dt, agr)
-        vf = float(val.quantize(Decimal("0.01")))
-        if individual:
-            por_plano[plano][bkey] += vf
-        else:
-            totais[bkey] += vf
+    if individual:
+        titulos = _titulos_no_periodo_pg(
+            data_de=data_de, data_ate=data_ate, por=modo_por, despesa=True, status=st
+        )
+        for t in titulos:
+            plano = str(t.plano_conta or "").strip() or "(sem plano)"
+            if excl and plano in excl:
+                continue
+            if incluir_individual is not None and plano not in incluir_individual:
+                continue
+            dt = _campo_data_titulo(t, modo_por)
+            if dt is None or dt < data_de or dt > data_ate:
+                continue
+            val = _valor_titulo_grafico(t, modo_valor, as_of=data_referencia)
+            if val <= Decimal("0.02"):
+                continue
+            bkey = _grafico_gastos_bucket_key(dt, agr)
+            por_plano[plano][bkey] += float(val.quantize(Decimal("0.01")))
+    else:
+        for bkey in bucket_keys:
+            intervalo = _grafico_gastos_bucket_intervalo(bkey, agr)
+            if not intervalo:
+                totais[bkey] = 0.0
+                continue
+            b_de, b_ate = intervalo
+            titulos = _titulos_no_periodo_pg(
+                data_de=b_de, data_ate=b_ate, por=modo_por, despesa=True, status=st
+            )
+            soma = _grafico_gastos_somar_titulos_pg(
+                titulos,
+                modo_valor=modo_valor,
+                excluir_planos=excl,
+                incluir_planos=None,
+                data_referencia=data_referencia,
+            )
+            totais[bkey] = float(soma)
 
     datasets = []
     if individual:
