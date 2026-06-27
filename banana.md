@@ -872,7 +872,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.69 · **produção** v3.51 — gráfico comparar: variação fixa nos pontos (pendente Renan)
+**Versão app (`VERSION`):** **teste** v3.71 · **produção** v3.52 *(hotfix PDV — deploy urgente)*
+
+### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma Renan** | ERP caiu · PDV não busca produtos |
+| **Causa** | Catálogo PDV ainda montava lista no **Mongo** (`/api/todos-produtos/delta/` exigia Mongo); loja tem `agro_pg` mas delta/local não usavam Postgres como fonte |
+| **Fix** | **`901d646`** — catálogo PDV = Postgres quando `AGRO_FONTE_CATALOGO=agro_pg`; delta/local sem Mongo; JS fallback `/local/` |
+| **Arquivos** | `views.py` (só leitura catálogo) · `consulta_produtos.js` |
+| **Dados** | **Não altera** gravação PDV/venda/lançamentos — só **de onde lê** o catálogo |
+| **Renan testar loja** | Ctrl+F5 no PDV (`/consulta/` ou `/pdv/`) — busca local deve carregar; saldo via ledger/ajuste PG |
 
 ### WIP — gráfico gastos comparar **v3.69** (26/06)
 
