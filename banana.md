@@ -964,14 +964,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Fonte | Jul/2026 aberto | Confiável? |
 | ----- | ----------------- | ---------- |
 | **Mongo ao vivo** (diag. 27/06) | **145 · 82.642,99** | **Sim** — bate Excel 19/06 |
-| **CP prod (Postgres)** | 147 · 94.879 | **Não** — PG **dessincronizado** do Mongo |
+| **CP prod (Postgres)** | ~~147 · 94.879~~ → **145 · 82.642,99** | **Sim** — sync shell 27/06 pós v3.58 |
 | **Teste** | ~82k | Sim (PG staging ≈ Mongo) |
 
-**Para a loja:** o certo é **~82.643** (Mongo). Tela prod **94k** = import PG errado/desatualizado — **reimport Mongo→PG** (próximo passo, com calma).
+**Para a loja:** o certo é **~82.643** (Mongo). ~~Tela prod **94k**~~ → **corrigido** sync shell 27/06.
 
-**Próximo passo:** `sincronizar_titulos_financeiro_mongo_pg --apply --conferir-jul` ou cron `/api/cron/sincronizar-titulos-financeiro-mongo-pg/?dry_run=0&token=…` — reimport + remove órfãos PG.
+### FECHADO — produção sync Mongo→PG **v3.58** (27/06)
 
-**Bloqueador 27/06 (shell prod):** `bulk_update` zerava `atualizado_em` (NOT NULL) — **fix v3.95 teste / v3.58 prod** (`7a01ae9`). Após deploy Render na loja, re-roda `--apply --conferir-jul`.
+| Item | Resultado |
+| ---- | --------- |
+| **Shell prod** | `--apply --conferir-jul` OK |
+| **PG** | 17 886 → **17 878** títulos · **8 órfãos** removidos |
+| **CP jul/2026 aberto** | **145 · R$ 82.642,99** — bate Mongo/Excel |
+| **Renan** | Conferir CP na tela (Ctrl+F5) e gráfico jul = mesmo valor |
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
