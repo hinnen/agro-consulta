@@ -1,13 +1,17 @@
-# BANANA — contexto SisVale (anexe com `@banana`)
+# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
-**Este é o único anexo obrigatório** no dia a dia. O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
+**Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
+
+**Este é o anexo obrigatório para tarefas da loja GM.** O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
 
 
 | Você quer…                            | Faça                                                  |
 | ------------------------------------- | ----------------------------------------------------- |
-| Começar qualquer tarefa               | Anexe `@banana` + descreva a tarefa                   |
+| **Loja GM Agro** (PDV, caixa, CP…)    | Anexe **`@banana`** + descreva a tarefa               |
+| **FOOD** (delivery em branco)         | Anexe **`@FOOD`** + `FOOD.md`                         |
+| Visão produto SisVale / multi-cliente | `SISTVALE.md`                                         |
 | Detalhe fino de UX / RH / Lançamentos | Some `@AGENTS.md` (§5–11, §9, §10)                    |
-| Registrar onde paramos                | Automático no fim da sessão; ou *"atualize a banana"* |
+| Registrar onde paramos (GM)           | Automático no fim da sessão; ou *"atualize a banana"* |
 | Decisão permanente no changelog       | *"atualize o AGENTS"* (raro; só quando você pedir)    |
 
 
@@ -762,6 +766,16 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 
 **Fechado hoje:** sync shell prod · CP jul **145 · 82.642,99** = Mongo/Excel/gráfico.
 
+**Assistente avançou (teste — Renan valida depois, um a um):**
+
+| # | Entrega teste | Renan testar quando puder |
+| - | ------------- | ------------------------- |
+| **A** | **Resumo gerencial** → Postgres (`TituloFinanceiroAgro`) quando financeiro PG | `/financeiro/resumo-gerencial/` · fonte Postgres · competência/vencimento |
+| **B** | **PDV pós-venda** — API devolve `pdv_catalog_patches` · cache local atualiza saldo | Vender 1 un. → Consulta/Gestão saldo desce sem F5 estoque |
+| **C** | **Painel amarelo CP** — some para admin quando PG já tem títulos | `/lancamentos/contas-pagar/` superuser |
+| **D** | *(já no teste)* DRE · fluxo calendário · export PDF/XLSX PG | ⏭ DRE opcional |
+| **E** | *(pendente próxima sessão)* Entrada NF rascunho PG · motor GM · Transferências/Validade | — |
+
 **Ordem sugerida (banana + checklist pacote corte ERP):**
 
 | # | O quê | Quem | Urgência |
@@ -893,6 +907,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 **Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.54
+
+### PRODUTO — FOOD delivery em branco (27/06 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Nomes** | **SISTVALE** = produto · **BANANA** = GM Agro · **FOOD** = delivery em branco |
+| **Repo FOOD** | GitHub **`hinnen/food`** (privado, vazio → espelho código) |
+| **Docs** | **`FOOD.md`** · **`SISTVALE.md`** (mapa) · `docs/FOOD-INSTANCIA-BRANCA.md` · `.env.food.example` · `render-food.yaml` · `scripts/espelhar_repo_food.ps1` |
+| **Chat** | Loja GM → `@banana` · FOOD → `@FOOD` |
+| **Próximo Renan** | Criar repo `food` no GitHub → script espelho → Render |
+| **GM Agro** | Sem mudança de deploy/dados |
 
 ### INCIDENTE — loja lenta geral (27/06) · diagnóstico fechado pelos gráficos
 

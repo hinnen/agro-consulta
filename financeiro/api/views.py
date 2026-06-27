@@ -25,6 +25,15 @@ from financeiro.services.resumo_operacional_mongo import (
 _log_resumo = logging.getLogger("financeiro.resumo_diagnostico")
 
 
+def _resumo_usa_titulos_pg(params: dict) -> bool:
+    """Postgres via ``TituloFinanceiroAgro`` (Lançamentos PG), não ``LancamentoFinanceiro`` legado."""
+    if params.get("fonte") == "mongo":
+        return False
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    return agro_financeiro_usa_postgres()
+
+
 def _resumo_diagnostico_ativo(request) -> bool:
     return request.query_params.get("debug_resumo") == "1" or getattr(
         settings, "FINANCEIRO_DEBUG_RESUMO", False
@@ -177,22 +186,72 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                 if isinstance(data, dict) and "linhas_dre" in data:
                     data = {k: v for k, v in data.items() if k != "linhas_dre"}
         else:
-            service = ConsolidacaoFinanceiraService()
-            if params["modo"] == "empresa":
-                data = service.consolidar_empresa(
-                    empresa_id=params["empresa_id"],
-                    data_inicio=params["data_inicio"],
-                    data_fim=params["data_fim"],
+            if _resumo_usa_titulos_pg(params):
+                from financeiro.services.resumo_operacional_pg import (
+                    consolidar_empresa_pg,
+                    consolidar_grupo_pg,
                 )
+
+                por = params.get("por") or "competencia"
+                valor = params.get("valor") or "bruto"
+                fc = (params.get("contas") or "").strip()
+                if params["modo"] == "empresa":
+                    data = consolidar_empresa_pg(
+                        empresa_id=params["empresa_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                        por=por,
+                        valor=valor,
+                        filtro_contas=fc,
+                        diagnostico=diagnostico,
+                    )
+                else:
+                    get_object_or_404(
+                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                    )
+                    pack = consolidar_grupo_pg(
+                        grupo_id=params["grupo_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                        por=por,
+                        valor=valor,
+                        filtro_contas=fc,
+                        diagnostico=diagnostico,
+                    )
+                    if pack.get("erro"):
+                        return Response(
+                            json_safe({"detail": pack["erro"], **pack}),
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    data = pack["consolidado"]
+                if isinstance(data, dict) and data.get("erro"):
+                    return Response(
+                        json_safe({"detail": data["erro"], **data}),
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if not params.get("incluir_linhas"):
+                    if isinstance(data, dict) and "linhas_dre" in data:
+                        data = {k: v for k, v in data.items() if k != "linhas_dre"}
             else:
-                get_object_or_404(
-                    GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                )
-                data = service.consolidar_grupo(
-                    grupo_id=params["grupo_id"],
-                    data_inicio=params["data_inicio"],
-                    data_fim=params["data_fim"],
-                )
+                service = ConsolidacaoFinanceiraService()
+                if params["modo"] == "empresa":
+                    data = service.consolidar_empresa(
+                        empresa_id=params["empresa_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                    )
+                else:
+                    get_object_or_404(
+                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                    )
+                    data = service.consolidar_grupo(
+                        grupo_id=params["grupo_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                    )
+                if not params.get("incluir_linhas"):
+                    if isinstance(data, dict) and "linhas_dre" in data:
+                        data = {k: v for k, v in data.items() if k != "linhas_dre"}
 
         if diagnostico and params.get("fonte") == "mongo":
             _log_resumo.info(
@@ -261,23 +320,68 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     )
                 resumo = grupo["consolidado"]
         else:
-            consolidacao_service = ConsolidacaoFinanceiraService()
-            if params["modo"] == "empresa":
-                resumo = consolidacao_service.consolidar_empresa(
-                    empresa_id=params["empresa_id"],
-                    data_inicio=params["data_inicio"],
-                    data_fim=params["data_fim"],
+            if _resumo_usa_titulos_pg(params):
+                from financeiro.services.resumo_operacional_pg import (
+                    consolidar_empresa_pg,
+                    consolidar_grupo_pg,
                 )
+
+                por = params.get("por") or "competencia"
+                valor = params.get("valor") or "bruto"
+                fc = (params.get("contas") or "").strip()
+                if params["modo"] == "empresa":
+                    pack = consolidar_empresa_pg(
+                        empresa_id=params["empresa_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                        por=por,
+                        valor=valor,
+                        filtro_contas=fc,
+                        diagnostico=diagnostico,
+                    )
+                    if pack.get("erro"):
+                        return Response(
+                            json_safe({"detail": pack["erro"]}),
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    resumo = pack
+                else:
+                    get_object_or_404(
+                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                    )
+                    grupo = consolidar_grupo_pg(
+                        grupo_id=params["grupo_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                        por=por,
+                        valor=valor,
+                        filtro_contas=fc,
+                        diagnostico=diagnostico,
+                    )
+                    if grupo.get("erro"):
+                        return Response(
+                            json_safe({"detail": grupo["erro"]}),
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    resumo = grupo["consolidado"]
             else:
-                get_object_or_404(
-                    GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                )
-                grupo = consolidacao_service.consolidar_grupo(
-                    grupo_id=params["grupo_id"],
-                    data_inicio=params["data_inicio"],
-                    data_fim=params["data_fim"],
-                )
-                resumo = grupo["consolidado"]
+                consolidacao_service = ConsolidacaoFinanceiraService()
+                if params["modo"] == "empresa":
+                    resumo = consolidacao_service.consolidar_empresa(
+                        empresa_id=params["empresa_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                    )
+                else:
+                    get_object_or_404(
+                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                    )
+                    grupo = consolidacao_service.consolidar_grupo(
+                        grupo_id=params["grupo_id"],
+                        data_inicio=params["data_inicio"],
+                        data_fim=params["data_fim"],
+                    )
+                    resumo = grupo["consolidado"]
 
         dias = params.get("dias_periodo") or 30
         data = equilibrio_service.calcular(

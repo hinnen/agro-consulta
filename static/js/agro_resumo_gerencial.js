@@ -314,8 +314,9 @@
 
     function toggleFonte() {
       var mongo = el("f-fonte").value === "mongo";
+      var pgTitulos = el("f-fonte").value === "postgres";
       ["wrap-mongo-por", "wrap-mongo-valor", "wrap-mongo-contas"].forEach(function (id) {
-        el(id).classList.toggle("hidden", !mongo);
+        el(id).classList.toggle("hidden", !(mongo || pgTitulos));
       });
     }
 
@@ -433,7 +434,7 @@
         encodeURIComponent(fim) +
         "&fonte=" +
         encodeURIComponent(fonte);
-      if (fonte === "mongo") {
+      if (fonte === "mongo" || fonte === "postgres") {
         q += "&por=" + encodeURIComponent(el("f-por").value);
         q += "&valor=" + encodeURIComponent(el("f-valor").value);
         var ct = el("f-contas").value;

@@ -10495,6 +10495,17 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
     return payload
 
 
+def _lancamentos_mostrar_painel_pre_corte(request) -> bool:
+    """Painel amarelo checkpoint — oculto quando financeiro PG já populado."""
+    if not request or not getattr(request.user, "is_superuser", False):
+        return False
+    if not agro_financeiro_usa_postgres():
+        return True
+    from produtos.models import TituloFinanceiroAgro
+
+    return TituloFinanceiroAgro.objects.count() == 0
+
+
 def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     """
     ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
@@ -10502,9 +10513,7 @@ def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     ctx = {
         "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
         "modo_contas": modo_contas,
-        "lancamentos_pre_corte_admin": bool(
-            request and getattr(request.user, "is_superuser", False)
-        ),
+        "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
     }
     return ctx
 
@@ -10583,9 +10592,7 @@ def lancamentos_contas_pagar_view(request):
         "produtos/lancamentos_contas_pagar_teste.html",
         {
             "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
-            "lancamentos_pre_corte_admin": bool(
-                getattr(request.user, "is_superuser", False)
-            ),
+            "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
         },
     )
 
@@ -20191,6 +20198,37 @@ def _cliente_id_e_valido_para_erp(cid) -> bool:
     return True
 
 
+def _pdv_patches_saldos_de_baixa_venda(venda: VendaAgro | None) -> list[dict]:
+    """Patches para cache PDV após baixa de estoque na venda."""
+    if venda is None:
+        return []
+    r = getattr(venda, "_pdv_baixa_estoque", None)
+    if not isinstance(r, dict):
+        return []
+    patches: dict[str, dict] = {}
+    for a in r.get("aplicados") or []:
+        if not isinstance(a, dict):
+            continue
+        pid = str(a.get("produto_id") or "").strip()
+        if not pid:
+            continue
+        slot = patches.setdefault(pid, {"id": pid})
+        dep = str(a.get("deposito") or "centro").strip().lower()
+        saldo = a.get("saldo_agro_depois")
+        if dep == "vila":
+            slot["saldo_vila"] = saldo
+        else:
+            slot["saldo_centro"] = saldo
+    return list(patches.values())
+
+
+def _anexar_pdv_patches_resposta_venda(venda: VendaAgro | None, payload: dict) -> dict:
+    patches = _pdv_patches_saldos_de_baixa_venda(venda)
+    if patches:
+        payload["pdv_catalog_patches"] = patches
+    return payload
+
+
 def _persistir_venda_agro(
     request,
     data,
@@ -20323,6 +20361,7 @@ def _persistir_venda_agro(
                 if r_baixa.get("ok"):
                     v.estoque_baixa_agro_aplicada = True
                     v.save(update_fields=["estoque_baixa_agro_aplicada"])
+                    v._pdv_baixa_estoque = r_baixa
                     _invalidar_caches_apos_ajuste_pin()
                 elif r_baixa.get("erros"):
                     logger.warning(
@@ -20900,6 +20939,7 @@ def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
+        payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
     try:
