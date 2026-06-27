@@ -957,8 +957,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Prod ~94k vs backup ~82k (27/06):**
 - **Checkpoint 19/06** — só carimbo Mongo; **não muda valor**.
-- **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **139** tít. → **6 a menos no PG** + soma prod ainda acima do Excel.
-- **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP (Excel = 1 linha/doc Mongo, CP deduplica).
+- **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **147** tít. **A pagar 94.879,36** (Bruto 96.948,53).
+- **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP; **+2 títulos** e **~+12k saldo** vs Excel.
 - **Próximo passo (sem código):** na CP prod com mesmo filtro — **Qtd + A pagar** exatos; opcional 1 ID do Excel que não aparece na CP.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
