@@ -971,7 +971,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Próximo passo:** `sincronizar_titulos_financeiro_mongo_pg --apply --conferir-jul` ou cron `/api/cron/sincronizar-titulos-financeiro-mongo-pg/?dry_run=0&token=…` — reimport + remove órfãos PG.
 
-**Bloqueador 27/06 (shell prod):** `bulk_update` zerava `atualizado_em` (NOT NULL) — **fix v3.95 teste** (`lancamentos_financeiro_agro_util.py`: excluir auto_now do bulk + `.update(atualizado_em=now)` após flush). Re-deploy teste → Renan re-roda `--apply --conferir-jul` na loja após cherry-pick prod.
+**Bloqueador 27/06 (shell prod):** `bulk_update` zerava `atualizado_em` (NOT NULL) — **fix v3.95 teste / v3.58 prod** (`7a01ae9`). Após deploy Render na loja, re-roda `--apply --conferir-jul`.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
