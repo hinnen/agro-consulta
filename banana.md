@@ -969,7 +969,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Para a loja:** o certo é **~82.643** (Mongo). Tela prod **94k** = import PG errado/desatualizado — **reimport Mongo→PG** (próximo passo, com calma).
 
-**Comando:** `python manage.py diagnosticar_cp_pg_mongo` (read-only).
+**Próximo passo:** `sincronizar_titulos_financeiro_mongo_pg --apply` ou cron `/api/cron/sincronizar-titulos-financeiro-mongo-pg/?dry_run=0&token=…` — reimport + remove órfãos PG.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 

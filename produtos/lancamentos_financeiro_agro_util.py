@@ -215,6 +215,65 @@ def importar_titulos_financeiro_mongo_para_postgres(
     return stats
 
 
+def sincronizar_titulos_financeiro_mongo_para_postgres(
+    db,
+    *,
+    dry_run: bool = True,
+    limite: int | None = None,
+    despesa: bool | None = None,
+    remover_orfaos: bool = True,
+) -> dict[str, Any]:
+    """
+    Reimporta Mongo → Postgres e remove linhas PG cujo ``mongo_id`` não existe mais no Mongo.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+
+    query: dict[str, Any] = {}
+    if despesa is True:
+        query["Despesa"] = True
+    elif despesa is False:
+        query["Despesa"] = False
+
+    col = db[COL_DTO_LANCAMENTO]
+    mongo_ids: set[str] = set()
+    cursor = col.find(query, {"_id": 1})
+    if limite and limite > 0:
+        cursor = cursor.limit(int(limite))
+    for doc in cursor:
+        mid = str(doc.get("_id") or "").strip()
+        if mid:
+            mongo_ids.add(mid)
+
+    imp = importar_titulos_financeiro_mongo_para_postgres(
+        db, dry_run=dry_run, limite=limite, despesa=despesa
+    )
+    if not imp.get("ok"):
+        return imp
+
+    qs_orfaos = TituloFinanceiroAgro.objects.all()
+    if despesa is True:
+        qs_orfaos = qs_orfaos.filter(despesa=True)
+    elif despesa is False:
+        qs_orfaos = qs_orfaos.filter(despesa=False)
+
+    orfaos = [t for t in qs_orfaos.only("pk", "mongo_id") if t.mongo_id not in mongo_ids]
+    imp["orfaos_pg"] = len(orfaos)
+    imp["orfaos_removidos"] = 0
+
+    if remover_orfaos and orfaos and not dry_run:
+        with transaction.atomic():
+            deleted, _ = TituloFinanceiroAgro.objects.filter(
+                pk__in=[t.pk for t in orfaos]
+            ).delete()
+            imp["orfaos_removidos"] = int(deleted)
+        imp["pg_depois"] = TituloFinanceiroAgro.objects.count()
+
+    imp["sync"] = True
+    imp["remover_orfaos"] = remover_orfaos
+    return imp
+
+
 def maybe_bootstrap_financeiro_pg_producao(*, force: bool = False) -> dict[str, Any]:
     """Import Mongo→PG na loja (build deploy). Idempotente; pula se PG já tem dados."""
     from django.conf import settings
@@ -233,7 +292,9 @@ def maybe_bootstrap_financeiro_pg_producao(*, force: bool = False) -> dict[str, 
     _, db = obter_conexao_mongo()
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
-    return importar_titulos_financeiro_mongo_para_postgres(db, dry_run=False)
+    return sincronizar_titulos_financeiro_mongo_para_postgres(
+        db, dry_run=False, remover_orfaos=True
+    )
 
 
 def maybe_bootstrap_financeiro_pg_staging(*, force: bool = False) -> dict[str, Any]:
@@ -254,4 +315,6 @@ def maybe_bootstrap_financeiro_pg_staging(*, force: bool = False) -> dict[str, A
     _, db = obter_conexao_mongo()
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
-    return importar_titulos_financeiro_mongo_para_postgres(db, dry_run=False)
+    return sincronizar_titulos_financeiro_mongo_para_postgres(
+        db, dry_run=False, remover_orfaos=True
+    )

@@ -21964,6 +21964,57 @@ def api_cron_importar_titulos_financeiro_mongo_pg(request):
     return JsonResponse(out, status=st)
 
 
+@require_GET
+def api_cron_sincronizar_titulos_financeiro_mongo_pg(request):
+    """
+    Reimport Mongo→PG + remove órfãos. Cron token (loja ou staging).
+    ``dry_run=1`` (padrão) só simula; ``dry_run=0`` aplica.
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    dry = str(request.GET.get("dry_run") or "1").strip().lower() in ("1", "true", "yes")
+    sem_orfaos = str(request.GET.get("sem_orfaos") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+    from produtos.lancamentos_financeiro_agro_util import (
+        sincronizar_titulos_financeiro_mongo_para_postgres,
+    )
+    from produtos.lancamentos_financeiro_pg_util import contas_pagar_buscar_pagina_pg
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+    out = sincronizar_titulos_financeiro_mongo_para_postgres(
+        db,
+        dry_run=dry,
+        despesa=None,
+        remover_orfaos=not sem_orfaos,
+    )
+    if out.get("ok") and not dry:
+        from datetime import date
+
+        _, tot, totais = contas_pagar_buscar_pagina_pg(
+            status="abertos",
+            vencimento_de=date(2026, 7, 1),
+            vencimento_ate=date(2026, 7, 31),
+            page=1,
+            page_size=1,
+            skip_totais=False,
+            limite_max=25_000,
+        )
+        out["cp_jul_2026"] = {
+            "quantidade": tot,
+            **(totais or {}),
+        }
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_agro_financeiro_pg_conferencia(request):
