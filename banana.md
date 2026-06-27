@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.02 · **produção** v3.54
+**Versão app (`VERSION`):** **teste** v4.04 · **produção** v3.54
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
@@ -917,8 +917,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Rota** | `/caixa/retiradas/` · filtros: data (calendário Agro), plano, quem levou · padrão **hoje** |
 | **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
 | **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
-| **Deploy teste** | **`0f16dbd`** · **v4.02** — aguardando Renan no Render teste |
-| **Fix escala (27/06)** | Histórico retiradas + form saída em **rem**; escala Agro herda perfil calibrado e iframe pai |
+| **Deploy teste** | **`2f6fbb7`** · **v4.04** — fix escala retiradas |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
