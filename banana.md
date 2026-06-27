@@ -933,7 +933,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
 | 9 | Cadastro ERP | **✅** lista OK · um pouco mais lenta que loja | Aceitável |
 
-**Produção:** só quando Renan pedir com frase + senha **99738595** — **reteste item 5** antes de cherry-pick.
+**Produção:** só quando Renan pedir com frase + senha **99738595** — pacote único (gráfico + baixa estoque + desvinculo); **sem** cherry-pick avulso.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
@@ -943,7 +943,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Gestão -3** | `AGRO_PDV_VENDA_SEM_MONGO_ERP` desligava baixa estoque na venda · gestão/BI divergiam |
 | **Fix** | Baixa sempre via ledger Postgres · gestão ledger sem Mongo espelho |
 | **Renan retestar** | 1) Gráfico jul Bruto 2) Venda teste GM9503 → gestão deve ir **-10** (Ctrl+F5 busca) |
-| **Loja v3.54** | **Mesmo bug baixa** — cherry-pick urgente quando teste OK |
+| **Loja v3.54** | **Mesmo bug baixa** — **não cherry-pick urgente** (Renan 27/06: estoque loja perdido · vai recontar · sobe **no pacote** junto com desvinculo) |
 
 ### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste + **loja v3.54**
 
