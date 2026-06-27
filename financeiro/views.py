@@ -210,7 +210,10 @@ def api_dados_grafico_gastos(request):
             data_ref = hoje
 
     _, mongo_db = obter_conexao_mongo()
-    if mongo_db is None:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    usa_pg_fin = agro_financeiro_usa_postgres()
+    if not usa_pg_fin and mongo_db is None:
         return JsonResponse(
             {"erro": "Mongo indisponível", "labels": [], "datasets": []},
             status=503,
@@ -227,7 +230,30 @@ def api_dados_grafico_gastos(request):
         valor=valor,
     )
 
-    if modo_tempo == "comparar":
+    if usa_pg_fin:
+        from produtos.lancamentos_financeiro_pg_analytics_util import grafico_gastos_serie_pg
+
+        if modo_tempo == "comparar":
+            common = dict(
+                **common_kw,
+                individual=False,
+            )
+            real = grafico_gastos_serie_pg(**common, data_referencia=None)
+            if not real.get("ok"):
+                payload = real
+            else:
+                hist = grafico_gastos_serie_pg(**common, data_referencia=data_ref)
+                if not hist.get("ok"):
+                    payload = hist
+                else:
+                    payload = _grafico_gastos_comparar_payload_from_series(real, hist, data_ref)
+        else:
+            payload = grafico_gastos_serie_pg(
+                individual=individual,
+                data_referencia=data_ref if modo_tempo == "historico" else None,
+                **common_kw,
+            )
+    elif modo_tempo == "comparar":
         payload = _grafico_gastos_comparar_payload(
             mongo_db, data_ref=data_ref, **common_kw
         )
@@ -267,6 +293,55 @@ def _grafico_gastos_api_json(payload: dict) -> dict:
     return out
 
 
+def _grafico_gastos_comparar_payload_from_series(real: dict, hist: dict, data_ref) -> dict:
+    """Monta payload comparar a partir de duas séries já calculadas (Mongo ou PG)."""
+    labels = real.get("labels") or []
+    bucket_keys = real.get("bucket_keys") or []
+    n = len(labels)
+    real_data = list((real.get("datasets") or [{}])[0].get("data") or [])
+    hist_data = list((hist.get("datasets") or [{}])[0].get("data") or [])
+    if len(real_data) < n:
+        real_data.extend([0.0] * (n - len(real_data)))
+    if len(hist_data) < n:
+        hist_data.extend([0.0] * (n - len(hist_data)))
+    real_data = real_data[:n]
+    hist_data = hist_data[:n]
+    deltas = [round(float(r) - float(h), 2) for r, h in zip(real_data, hist_data)]
+    total_real = round(sum(real_data), 2)
+    total_hist = round(sum(hist_data), 2)
+    ref_label = data_ref.strftime("%d/%m/%Y")
+    return {
+        "ok": True,
+        "erro": None,
+        "labels": labels,
+        "bucket_keys": bucket_keys,
+        "modo_tempo": "comparar",
+        "data_referencia": data_ref.isoformat(),
+        "deltas": deltas,
+        "comparacao": {
+            "total_real": total_real,
+            "total_historico": total_hist,
+            "delta_total": round(total_real - total_hist, 2),
+        },
+        "datasets": [
+            {
+                "label": "Tempo real (hoje)",
+                "data": real_data,
+                "borderColor": "#059669",
+                "backgroundColor": "rgba(5, 150, 105, 0.08)",
+                "ggSerie": "real",
+            },
+            {
+                "label": f"Como era ({ref_label})",
+                "data": hist_data,
+                "borderColor": "#d97706",
+                "backgroundColor": "rgba(217, 119, 6, 0.08)",
+                "ggSerie": "historico",
+            },
+        ],
+    }
+
+
 def _grafico_gastos_comparar_payload(
     mongo_db,
     *,
@@ -298,54 +373,7 @@ def _grafico_gastos_comparar_payload(
     hist = grafico_gastos_serie_mongo(mongo_db, **common, data_referencia=data_ref)
     if not hist.get("ok"):
         return hist
-
-    labels = real.get("labels") or []
-    bucket_keys = real.get("bucket_keys") or []
-    n = len(labels)
-    real_data = list((real.get("datasets") or [{}])[0].get("data") or [])
-    hist_data = list((hist.get("datasets") or [{}])[0].get("data") or [])
-    if len(real_data) < n:
-        real_data.extend([0.0] * (n - len(real_data)))
-    if len(hist_data) < n:
-        hist_data.extend([0.0] * (n - len(hist_data)))
-    real_data = real_data[:n]
-    hist_data = hist_data[:n]
-
-    deltas = [round(float(r) - float(h), 2) for r, h in zip(real_data, hist_data)]
-    total_real = round(sum(real_data), 2)
-    total_hist = round(sum(hist_data), 2)
-    ref_label = data_ref.strftime("%d/%m/%Y")
-
-    return {
-        "ok": True,
-        "erro": None,
-        "labels": labels,
-        "bucket_keys": bucket_keys,
-        "modo_tempo": "comparar",
-        "data_referencia": data_ref.isoformat(),
-        "deltas": deltas,
-        "comparacao": {
-            "total_real": total_real,
-            "total_historico": total_hist,
-            "delta_total": round(total_real - total_hist, 2),
-        },
-        "datasets": [
-            {
-                "label": "Tempo real (hoje)",
-                "data": real_data,
-                "borderColor": "#059669",
-                "backgroundColor": "rgba(5, 150, 105, 0.08)",
-                "ggSerie": "real",
-            },
-            {
-                "label": f"Como era ({ref_label})",
-                "data": hist_data,
-                "borderColor": "#d97706",
-                "backgroundColor": "rgba(217, 119, 6, 0.08)",
-                "ggSerie": "historico",
-            },
-        ],
-    }
+    return _grafico_gastos_comparar_payload_from_series(real, hist, data_ref)
 
 
 def _grafico_gastos_atalhos_lista() -> list[dict]:

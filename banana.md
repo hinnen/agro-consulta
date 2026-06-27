@@ -869,10 +869,48 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.09`  
-**Última atualização:** `2026-05-28`  
-**Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.72 · **produção** v3.52
+**Versão app (`VERSION`):** **teste** v3.75 · **produção** v3.52
+
+### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.75**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Contexto** | ERP caiu (loja não pagou); Renan pediu **fechar pendências do corte** no **teste** — validar um a um antes de produção |
+| **Commit** | *(após push)* — pacote analytics PG + Compras dim/planilha + gestão saldos sem Mongo |
+| **Migrate** | **Nenhuma** |
+| **Flags Render teste** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · financeiro PG auto se títulos existirem · ledger estoque se já ligado |
+
+**O que entrou neste pacote:**
+
+| Módulo | Mudança |
+| ------ | ------- |
+| **DRE** | `/api/lancamentos/dre/resumo/` → Postgres quando financeiro PG |
+| **Fluxo calendário** | projeção diária via `TituloFinanceiroAgro` + média `VendaAgro` |
+| **BI card gastos-plano** | totais por plano no Postgres |
+| **Gráfico gastos (série)** | API `/api/financeiro/grafico-gastos/dados/` + planos iniciais PG |
+| **Gestão produtos** | saldos via ledger/Agro quando Mongo off |
+| **Compras planilha** | dim categoria/unidade + relatórios categoria/unidade **100% catálogo Postgres**; métricas vendas via `VendaAgro` |
+
+**Ainda FORA deste pacote (próximas fases):**
+
+- Entrada NF rascunho (etapas 1–6) ainda `AgroEntradaNotaRascunho` Mongo
+- Relatório Compras **por fornecedor** ainda exige Mongo catálogo
+- Motor busca GM unificado (Compras/NF)
+- Resumo gerencial financeiro completo PG
+
+**Checklist Renan — testar no Render teste (Ctrl+F5):**
+
+1. **PDV** `/consulta/` — busca e lista carregam
+2. **CP/CR** `/lancamentos/` — lista, filtrar, pagar, nova saída
+3. **DRE** `/lancamentos/dre/` — abre e bate totais com CP
+4. **Fluxo calendário** `/lancamentos/fluxo-calendario/` — grade 60d
+5. **Gráfico gastos** — série + comparar mês
+6. **BI** `/` — card gastos por plano (se visível)
+7. **Gestão** `/produtos/gestao/` — lista + saldos
+8. **Compras** — Folha Compras → planilha **categoria** e **unidade** (dim + impressão)
+9. **Cadastro ERP** `/produtos/cadastro-erp/` — lista Excel
+
+**Produção:** só quando Renan pedir com frase + senha **99738595**.
 
 ### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
 

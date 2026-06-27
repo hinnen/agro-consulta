@@ -940,7 +940,13 @@ def api_produtos_gestao_lista(request):
                 )
             chunk = [cat_agro.row_para_doc_gestao_lista(r) for r in chunk_rows]
             p_ids = [str(p.get("Id") or p.get("_id") or "") for p in chunk if p.get("Id") or p.get("_id")]
-            saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+            from produtos.agro_fonte_config import agro_estoque_ledger_ativo
+            from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+            if agro_estoque_ledger_ativo() or db is None:
+                saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
+            else:
+                saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
             ovs = _overlay_mapa_por_ids(p_ids)
             rows = [
                 _linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p.get("_id") or "")))
@@ -4948,12 +4954,20 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     hints = nomes_hints or {}
     now = datetime.now()
     t56 = now - timedelta(days=56)
-    from produtos.agro_fonte_config import agro_compras_metricas_postgres
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
 
     use_pg_metricas = agro_compras_metricas_postgres()
+    use_pg_catalogo = agro_catalogo_usa_postgres()
 
-    col = db[client.col_p]
-    prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
+    if use_pg_catalogo:
+        from produtos import catalogo_agro as cat_agro
+
+        prods = cat_agro.produtos_docs_relatorio_por_externo_ids(p_ids)
+    else:
+        if db is None:
+            raise ValueError("Mongo indisponível para catálogo Compras.")
+        col = db[client.col_p]
+        prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
 
     def _chaves_produto(p) -> list[str]:
         keys: list[str] = []
@@ -4990,7 +5004,8 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             variant_to_canon.setdefault(str(v), str(canon))
             pid_variants.append(str(v))
 
-    if use_pg_metricas:
+    use_pg_vendas = use_pg_metricas or (use_pg_catalogo and db is None)
+    if use_pg_vendas:
         from produtos.compras_metricas_util import (
             vendas_qtd_apos_ref_compra_postgres,
             vendas_qtd_por_produto_intervalo_postgres,
@@ -5019,7 +5034,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             produtos_map,
             limit=1,
             mongo_max_time_ms=120_000,
-            skip_erp=use_pg_metricas,
+            skip_erp=use_pg_vendas,
         )
         for pid in p_ids:
             p = _catalogo_pmap_resolve(pmap, pid)
@@ -5039,7 +5054,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
                         qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
                     except (TypeError, ValueError):
                         qtd_ult_linha[str(canon)] = 0.0
-        if use_pg_metricas:
+        if use_pg_vendas:
             vendas_pos = vendas_qtd_apos_ref_compra_postgres(ref_por_canon, variant_to_canon)
         else:
             vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(
@@ -5191,6 +5206,17 @@ def api_compras_relatorio_dim_sugestao(request):
         lim_req = 400 if completa else 40
     lim = min(max(lim_req, 1), 500 if completa else 80)
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if tipo not in ("categoria", "unidade"):
+        return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        itens = cat_agro.compras_dimensoes_relatorio(tipo, q, completa=completa, limit=lim)
+        return JsonResponse({"ok": True, "fonte": "agro_pg", "itens": itens})
+
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "itens": [], "erro": "Mongo indisponível."}, status=503)
@@ -5225,9 +5251,6 @@ def api_compras_relatorio_dim_sugestao(request):
             "SiglaUnidadeEstoque": 1,
         }
     )
-    if tipo not in ("categoria", "unidade"):
-        return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
-
     seen: set[str] = set()
     out: list[str] = []
     mongo_docs_cap = 5000 if completa else 400
@@ -5327,9 +5350,14 @@ def api_compras_relatorio_categoria(request):
     if not categoria:
         return JsonResponse({"ok": False, "erro": "Informe a categoria."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
     if isinstance(raw_ids, list) and raw_ids:
@@ -5341,7 +5369,12 @@ def api_compras_relatorio_categoria(request):
             seen.add(s)
             p_ids.append(s)
     if not p_ids:
-        p_ids = _lista_produto_ids_catalogo_por_categoria(db, client, categoria, limit=800)
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            p_ids = cat_agro.lista_produto_externo_ids_por_categoria(categoria, limit=800)
+        else:
+            p_ids = _lista_produto_ids_catalogo_por_categoria(db, client, categoria, limit=800)
     if not p_ids:
         return JsonResponse(
             {
@@ -5385,9 +5418,14 @@ def api_compras_relatorio_unidade(request):
     if not unidade:
         return JsonResponse({"ok": False, "erro": "Informe a unidade."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
     nomes_unidade: dict[str, str] = {}
@@ -5400,7 +5438,12 @@ def api_compras_relatorio_unidade(request):
             seen.add(s)
             p_ids.append(s)
     if not p_ids:
-        p_ids, nomes_unidade = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            p_ids = cat_agro.lista_produto_externo_ids_por_unidade(unidade, limit=800)
+        else:
+            p_ids, nomes_unidade = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
     if not p_ids:
         return JsonResponse(
             {
@@ -6390,8 +6433,18 @@ def _dashboard_gastos_plano_pack(blk: dict) -> dict:
 
 
 def _dashboard_gastos_plano_cache_worker(data_ini, data_fim):
-    _client, db = obter_conexao_mongo()
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
     cache: dict[str, dict] = {}
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import dashboard_despesas_plano_totais_pg
+
+        for por in ("competencia", "vencimento", "pagamento"):
+            blk = dashboard_despesas_plano_totais_pg(data_de=data_ini, data_ate=data_fim, por=por)
+            cache[por] = _dashboard_gastos_plano_pack(blk)
+        return cache
+
+    _client, db = obter_conexao_mongo()
     for por in ("competencia", "vencimento", "pagamento"):
         blk = dashboard_despesas_plano_totais_mongo(
             db, data_de=data_ini, data_ate=data_fim, por=por
@@ -10759,9 +10812,8 @@ def api_lancamentos_atalhos_filtro(request):
 @require_GET
 def api_lancamentos_fluxo_calendario(request):
     """JSON: projeção diária (média vendas + títulos a pagar/receber por vencimento)."""
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "dias": [], "meta": {}}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
     try:
         horiz = int(request.GET.get("horizonte") or 60)
     except ValueError:
@@ -10777,6 +10829,19 @@ def api_lancamentos_fluxo_calendario(request):
         "não",
         "no",
     )
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import financeiro_projecao_fluxo_diario_pg
+
+        out = financeiro_projecao_fluxo_diario_pg(
+            dias_media_vendas=dias_m,
+            horizonte_dias=horiz,
+            incluir_media_vendas=incl,
+        )
+        return JsonResponse(out)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "dias": [], "meta": {}}, status=503)
     out = financeiro_projecao_fluxo_diario(
         db,
         dias_media_vendas=dias_m,
@@ -14819,20 +14884,35 @@ def api_lancamentos_dre_resumo(request):
     empresa_id = (request.GET.get("empresa_id") or "").strip() or None
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
-    r = dre_resumo_simples_mongo(
-        db,
-        data_de=de,
-        data_ate=ate,
-        por=por,
-        valor=valor,
-        filtro_contas=contas,
-        regex_excluir_extra=extra_rx or None,
-        empresa=empresa,
-        empresa_id=empresa_id,
-    )
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import dre_resumo_simples_pg
+
+        r = dre_resumo_simples_pg(
+            data_de=de,
+            data_ate=ate,
+            por=por,
+            valor=valor,
+            filtro_contas=contas,
+            regex_excluir_extra=extra_rx or None,
+            empresa=empresa,
+            empresa_id=empresa_id,
+        )
+    else:
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        r = dre_resumo_simples_mongo(
+            db,
+            data_de=de,
+            data_ate=ate,
+            por=por,
+            valor=valor,
+            filtro_contas=contas,
+            regex_excluir_extra=extra_rx or None,
+            empresa=empresa,
+            empresa_id=empresa_id,
+        )
     if not r.get("ok"):
         return JsonResponse(r, status=500)
     return JsonResponse(r)
