@@ -958,7 +958,11 @@ def api_produtos_gestao_lista(request):
             from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
             if agro_estoque_ledger_ativo() or db is None:
-                saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
+                saldos = mapa_saldos_operacionais_agro(
+                    p_ids,
+                    db=None if agro_estoque_ledger_ativo() else db,
+                    client=None if agro_estoque_ledger_ativo() else client,
+                )
             else:
                 saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
             ovs = _overlay_mapa_por_ids(p_ids)
@@ -20301,41 +20305,34 @@ def _persistir_venda_agro(
 
         if getattr(settings, "PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", True):
             cm, dbe = obter_conexao_mongo_pdv()
-            # PyMongo: Database/MongoClient não implementam __bool__ — usar "is not None".
-            if cm is not None and dbe is not None:
-                dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
-                if dep_v not in ("centro", "vila"):
-                    dep_v = "centro"
-                try:
-                    r_baixa = aplicar_baixa_estoque_venda_agro(
-                        db=dbe,
-                        client_m=cm,
-                        venda=v,
-                        deposito=dep_v,
-                        usuario_label=user_label,
-                        usuario_django=request.user
-                        if getattr(request, "user", None) is not None
-                        and getattr(request.user, "is_authenticated", False)
-                        else None,
-                    )
-                    if r_baixa.get("ok"):
-                        v.estoque_baixa_agro_aplicada = True
-                        v.save(update_fields=["estoque_baixa_agro_aplicada"])
-                        _invalidar_caches_apos_ajuste_pin()
-                    elif r_baixa.get("erros"):
-                        logger.warning(
-                            "Venda %s: baixa estoque Agro incompleta: %s",
-                            v.pk,
-                            r_baixa.get("erros"),
-                        )
-                except Exception:
-                    logger.exception(
-                        "Venda %s: falha na baixa estoque Agro (venda permanece gravada).",
+            dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
+            if dep_v not in ("centro", "vila"):
+                dep_v = "centro"
+            try:
+                r_baixa = aplicar_baixa_estoque_venda_agro(
+                    db=dbe,
+                    client_m=cm,
+                    venda=v,
+                    deposito=dep_v,
+                    usuario_label=user_label,
+                    usuario_django=request.user
+                    if getattr(request, "user", None) is not None
+                    and getattr(request.user, "is_authenticated", False)
+                    else None,
+                )
+                if r_baixa.get("ok"):
+                    v.estoque_baixa_agro_aplicada = True
+                    v.save(update_fields=["estoque_baixa_agro_aplicada"])
+                    _invalidar_caches_apos_ajuste_pin()
+                elif r_baixa.get("erros"):
+                    logger.warning(
+                        "Venda %s: baixa estoque Agro incompleta: %s",
                         v.pk,
+                        r_baixa.get("erros"),
                     )
-            else:
-                logger.warning(
-                    "Venda %s: Mongo indisponível — baixa estoque Agro não aplicada.",
+            except Exception:
+                logger.exception(
+                    "Venda %s: falha na baixa estoque Agro (venda permanece gravada).",
                     v.pk,
                 )
 

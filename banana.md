@@ -935,13 +935,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Produção:** só quando Renan pedir com frase + senha **99738595** — **reteste item 5** antes de cherry-pick.
 
-### FIX teste — gráfico gastos = CP Bruto **27/06 · v3.81**
+### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Causa** | Padrão **Saldo em aberto** (~35k) vs CP rodapé **Bruto** (~68k) · PG também filtrava planos errado no modo individual |
-| **Fix** | `_grafico_gastos_status_para_lista_planos` · default **Bruto** · status **Em aberto** alinhado CP |
-| **Renan retestar** | Gráfico gastos · jul · **Bruto** + vencimento · deve bater **Bruto** do CP (mesmo filtro) |
+| **Gráfico 500** | Variável `incluir_nomes` renomeada e quebrou API → «Falha na comunicação» |
+| **Gestão -3** | `AGRO_PDV_VENDA_SEM_MONGO_ERP` desligava baixa estoque na venda · gestão/BI divergiam |
+| **Fix** | Baixa sempre via ledger Postgres · gestão ledger sem Mongo espelho |
+| **Renan retestar** | 1) Gráfico jul Bruto 2) Venda teste GM9503 → gestão deve ir **-10** (Ctrl+F5 busca) |
+| **Loja v3.54** | **Mesmo bug baixa** — cherry-pick urgente quando teste OK |
 
 ### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste + **loja v3.54**
 

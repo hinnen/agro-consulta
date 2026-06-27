@@ -382,8 +382,8 @@ def grafico_gastos_serie_pg(
             )
     else:
         label = "Total Selecionado"
-        if incluir_nomes and len(incluir_nomes) == 1:
-            label = next(iter(incluir_nomes))
+        if incluir_individual and len(incluir_individual) == 1:
+            label = next(iter(incluir_individual))
         cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[0]
         datasets = [
             {
