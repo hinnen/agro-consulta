@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.04 · **produção** v3.54
+**Versão app (`VERSION`):** **teste** v4.07 · **produção** v4.07
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
@@ -917,8 +917,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Rota** | `/caixa/retiradas/` · filtros: data (calendário Agro), plano, quem levou · padrão **hoje** |
 | **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
 | **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
-| **Deploy teste** | **`2f6fbb7`** · **v4.04** — fix escala retiradas |
+| **Deploy teste** | **`619fbba`** · **v4.07** · Renan OK |
 | **Fix FAB (27/06)** | PDV + **Aa** reposicionam para canto livre (caixa prioriza inferior direito) |
+| **Deploy produção** | **27/06** · merge `teste`→`producao` **`5568302`** · **v4.07** · Renan autorizou |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
