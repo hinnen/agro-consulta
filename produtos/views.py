@@ -9003,6 +9003,60 @@ def caixa_painel(request):
 
 
 @login_required(login_url="/admin/login/")
+def caixa_retiradas_historico(request):
+    from produtos.caixa_retiradas_util import listar_quem_retiradas_distintas, listar_retiradas_historico
+    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+
+    hoje = timezone.localdate()
+    data_de = _lancamentos_parse_date_param(request.GET.get("de")) or hoje
+    data_ate = _lancamentos_parse_date_param(request.GET.get("ate")) or hoje
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+    plano_filtro = (request.GET.get("plano") or "").strip()
+    quem_filtro = (request.GET.get("quem") or "").strip()
+
+    resultado = listar_retiradas_historico(
+        data_de=data_de,
+        data_ate=data_ate,
+        plano=plano_filtro,
+        quem=quem_filtro,
+    )
+    total = resultado["total"]
+    total_str = f"{total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    linhas_fmt = []
+    for row in resultado["linhas"]:
+        criado = row.get("criado_em")
+        hora_txt = timezone.localtime(criado).strftime("%H:%M") if criado else "—"
+        val = row["valor"]
+        val_str = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        linhas_fmt.append({**row, "hora_txt": hora_txt, "valor_str": val_str})
+
+    embed = _caixa_request_embed(request)
+    url_nova = reverse("caixa_painel") + "?painel=retirada"
+    if embed:
+        url_nova += "&embed=1"
+
+    return render(
+        request,
+        "produtos/caixa_retiradas_historico.html",
+        {
+            "data_de": data_de,
+            "data_ate": data_ate,
+            "plano_filtro": plano_filtro,
+            "quem_filtro": quem_filtro,
+            "linhas": linhas_fmt,
+            "qtd": resultado["qtd"],
+            "total_str": total_str,
+            "planos_opts": SAIDA_CAIXA_PLANOS,
+            "quem_opts": listar_quem_retiradas_distintas(),
+            "url_nova_saida": url_nova,
+            "caixa_embed": embed,
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
 def caixa_relatorio(request):
     from produtos.caixa_relatorio_util import montar_relatorio_caixa
 
@@ -9525,7 +9579,7 @@ def caixa_fechar(request):
             "fiado_baixas_conferencia": fiado_baixas_conferencia,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
             "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
-            "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
+            "caixa_popup_retirada": reverse("caixa_retiradas_historico") + "?embed=1",
             "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
             "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",
             "caixa_popup_conferencias": reverse("caixa_relatorio_conferencias")

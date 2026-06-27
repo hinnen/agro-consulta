@@ -1,6 +1,13 @@
 {# Saída financeira (plano de conta) + retirada no turno — layout widescreen (viewport cheio) #}
 <div class="caixa-painel-full caixa-saida-panel flex flex-col flex-1 min-h-0 w-full max-w-none rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-white to-orange-50/40 shadow-sm overflow-hidden">
   <div class="shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-2 border-b border-orange-100/80">
+    <div id="cx-sucesso-retirada" class="hidden mb-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-3 flex items-center gap-3 shadow-sm cx-sucesso-pop" role="status" aria-live="polite">
+      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xl font-black" aria-hidden="true">✓</span>
+      <div>
+        <p id="cx-sucesso-retirada-texto" class="text-sm sm:text-base font-black uppercase text-emerald-900">Retirada concluída com sucesso!</p>
+        <p class="text-xs font-semibold text-emerald-800/80">Campos limpos — pode registrar outra saída.</p>
+      </div>
+    </div>
     <h2 class="text-base sm:text-lg font-black uppercase text-orange-900">Retirada / saída</h2>
     <p id="cx-legenda-painel" class="mt-1 text-xs sm:text-sm font-semibold text-orange-900/75 leading-snug">Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.</p>
   </div>
@@ -93,6 +100,11 @@
 </div>
 <style>
   #cx-gaveta-pagamento summary::-webkit-details-marker { display: none; }
+  @keyframes cxSucessoPop {
+    0% { opacity: 0; transform: translateY(-0.35rem) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .cx-sucesso-pop { animation: cxSucessoPop 0.35s ease-out; }
 </style>
 <script type="application/json" id="planos-saida-json">{{ planos_json|safe }}</script>
 <script>
@@ -236,6 +248,55 @@
     }
     return -1;
   }
+  function aplicarDefaultsPagamento() {
+    var fs = document.getElementById('cx-forma');
+    var bs = document.getElementById('cx-banco');
+    if (!fs || !bs || fs.options.length < 2) return;
+    var ifs = -1;
+    var ibs = -1;
+    for (var i = 1; i < fs.options.length; i++) {
+      if ((fs.options[i].textContent || '').toUpperCase().indexOf('DINHEIRO') >= 0) { ifs = i; break; }
+    }
+    for (var j = 1; j < bs.options.length; j++) {
+      if ((bs.options[j].textContent || '').toUpperCase().indexOf('CAIXA 1') >= 0) { ibs = j; break; }
+    }
+    if (ifs >= 0) fs.selectedIndex = ifs;
+    if (ibs >= 0) bs.selectedIndex = ibs;
+    atualizarResumoPagamento();
+  }
+  function limparFormularioRetirada() {
+    document.getElementById('cx-valor').value = '';
+    document.getElementById('cx-motivo').value = '';
+    selPlano.selectedIndex = 0;
+    atualizarMotivoObrigatorio();
+    if (selQuem.options.length) selQuem.selectedIndex = 0;
+    wrapOutro.classList.add('hidden');
+    document.getElementById('cx-quem-outro').value = '';
+    document.getElementById('cx-data').value = hojeISO();
+    var gav = document.getElementById('cx-gaveta-pagamento');
+    if (gav) gav.open = false;
+    aplicarDefaultsPagamento();
+  }
+  function mostrarFeedbackSucesso(isDeposito) {
+    var el = document.getElementById('cx-sucesso-retirada');
+    var txt = document.getElementById('cx-sucesso-retirada-texto');
+    if (!el) return;
+    if (txt) {
+      txt.textContent = isDeposito
+        ? 'Depósito registrado no caixa!'
+        : 'Retirada concluída com sucesso!';
+    }
+    el.classList.remove('hidden');
+    clearTimeout(window.__cxSucessoTimer);
+    window.__cxSucessoTimer = setTimeout(function () {
+      el.classList.add('hidden');
+    }, 7000);
+    var inpValor = document.getElementById('cx-valor');
+    if (inpValor) {
+      try { inpValor.focus(); } catch (_) {}
+      try { inpValor.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
+  }
   async function carregarOpcoes() {
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
@@ -331,13 +392,9 @@
       });
       var out = await r.json();
       if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
-        if (CAIXA_EMBED) {
-          notifyParentFecharAtualizar();
-          document.getElementById('cx-valor').value = '';
-          document.getElementById('cx-motivo').value = '';
-        } else {
-          alert(out.deposito ? 'Depósito registrado no caixa.' : 'Saída registrada.');
-        }
+        limparFormularioRetirada();
+        mostrarFeedbackSucesso(!!out.deposito);
+        if (CAIXA_EMBED) notifyParentFecharAtualizar();
       } else {
         alert(out.erro || 'Não gravou.');
       }

@@ -413,6 +413,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Gaveta** = turno principal · **Notebook** = vínculo sem sessão própria · **Teste** = isolado (`ponto_caixa=teste`), fora do fechamento em lote.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
+- **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`).
 
 ### 4.12 RH
 
@@ -906,7 +907,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.54
+**Versão app (`VERSION`):** **teste** v4.00 · **produção** v3.54
+
+### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | «Retirada / saída» no painel → tela de **histórico** (não form direto) |
+| **Rota** | `/caixa/retiradas/` · filtros: data (calendário Agro), plano, quem levou · padrão **hoje** |
+| **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
+| **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
+| **Deploy teste** | push `teste` **v4.00** — Renan valida no Render teste |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
@@ -916,7 +927,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Repo FOOD** | GitHub **`hinnen/food`** (privado, vazio → espelho código) |
 | **Docs** | **`FOOD.md`** · **`SISTVALE.md`** (mapa) · `docs/FOOD-INSTANCIA-BRANCA.md` · `.env.food.example` · `render-food.yaml` · `scripts/espelhar_repo_food.ps1` |
 | **Chat** | Loja GM → `@banana` · FOOD → `@FOOD` |
-| **Próximo Renan** | Criar repo `food` no GitHub → script espelho → Render |
+| **Próximo Renan** | Clone FOOD local ✅ · Render **pausado** |
 | **GM Agro** | Sem mudança de deploy/dados |
 
 ### INCIDENTE — loja lenta geral (27/06) · diagnóstico fechado pelos gráficos
