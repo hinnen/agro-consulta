@@ -24,15 +24,27 @@ class ProdutosConfig(AppConfig):
 
         def _run() -> None:
             try:
+                import os
+
                 from django.core.cache import cache
 
-                if not cache.add("agro_financeiro_pg_bootstrap_producao_v1", 1, timeout=7200):
+                force = os.environ.get("AGRO_FINANCEIRO_PG_REIMPORT", "").lower() in (
+                    "1",
+                    "true",
+                    "yes",
+                )
+                lock_key = (
+                    "agro_financeiro_pg_reimport_v1"
+                    if force
+                    else "agro_financeiro_pg_bootstrap_producao_v1"
+                )
+                if not cache.add(lock_key, 1, timeout=7200):
                     return
                 from produtos.lancamentos_financeiro_agro_util import (
                     maybe_bootstrap_financeiro_pg_producao,
                 )
 
-                r = maybe_bootstrap_financeiro_pg_producao()
+                r = maybe_bootstrap_financeiro_pg_producao(force=force)
                 if not r.get("skipped") and not r.get("ok"):
                     logging.getLogger(__name__).error(
                         "bootstrap financeiro PG produção: %s", r.get("erro")
