@@ -959,7 +959,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - **Checkpoint 19/06** — só carimbo Mongo; **não muda valor**.
 - **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **147** tít. **A pagar 94.879,36** (Bruto 96.948,53).
 - **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP; **+2 títulos** e **~+12k saldo** vs Excel.
-- **Próximo passo (sem código):** na CP prod com mesmo filtro — **Qtd + A pagar** exatos; opcional 1 ID do Excel que não aparece na CP.
+**Qual é o correto?**
+- **Baseline migração / conferência:** Excel backup **19/06** — **145** tít. · **82.642,99** (foto do checkpoint; é o que vocês planejaram congelar).
+- **O que a loja mostra hoje:** CP prod **147** tít. · **94.879,36** = Postgres importado **~26/06** do Mongo **vivo** (19→26 mudou título/valor).
+- **Teste ~82k** = alinhado ao backup ✅ · **Prod ~94k** = Mongo pós-checkpoint, **não** a foto 19/06.
+- **Operar agora:** use **94k** como “sistema hoje”; para **fechar desvinculação**, o alvo é **82k** (reimport ou reconciliar PG ↔ backup).
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
