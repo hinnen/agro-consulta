@@ -869,7 +869,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v3.77 · **produção** v3.52
+**Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.54
 
 ### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.77**
 
@@ -912,13 +912,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Produção:** só quando Renan pedir com frase + senha **99738595**.
 
-### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste
+### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste + **loja v3.54**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Reclamação loja** | Demora ao confirmar venda (Mongo/SEFAZ síncronos) |
-| **Fix** | `AGRO_PDV_VENDA_SEM_MONGO_ERP=true` (default) · `AGRO_PDV_NFCE_ASSINCRONA=true` (default) · catálogo/baixa estoque via Postgres · NFC-e em thread · MP Point alinhado ao ERP assíncrono |
-| **Renan testar teste** | PIX/cartão e dinheiro — barra deve sumir em segundos; cupom fiscal sai em background (Consultar vendas se demorar) |
+| **Fix teste** | **`3907006`** · v3.79 |
+| **Fix loja** | **`676ea13`** cherry-pick · **99738595** 27/06 · Render **v3.54** |
+| **Conteúdo** | `AGRO_PDV_VENDA_SEM_MONGO_ERP` · `AGRO_PDV_NFCE_ASSINCRONA` · baixa estoque Postgres · NFC-e thread |
+| **Loja** | Ctrl+F5 PDV · confirmar PIX/dinheiro — barra rápida; cupom em background |
 
 ### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
 
