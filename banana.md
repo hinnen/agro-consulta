@@ -881,7 +881,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma Renan** | ERP caiu · PDV não busca produtos |
 | **Causa** | Catálogo PDV montava lista no **Mongo**; `/api/todos-produtos/delta/` falhava sem Mongo mesmo com `agro_pg` na loja |
 | **Fix teste** | **`89400df`** / código **`901d646`** |
-| **Fix loja** | **`e23ae38`** cherry-pick · **v3.52** — deploy urgente |
+| **Fix loja** | **`e23ae38`** cherry-pick · **v3.52** — **✅ push produção** (Renan **99738595** · teste OK · problema só loja) |
+| **Render** | Aguardar deploy Sistvale Produção · **Ctrl+F5** no PDV |
 | **Arquivos** | `views.py` · `consulta_produtos.js` — **só leitura** catálogo |
 | **Renan testar loja** | Aguardar Render · **Ctrl+F5** no PDV — catálogo deve carregar do Postgres |
 
