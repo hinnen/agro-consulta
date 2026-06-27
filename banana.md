@@ -876,7 +876,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Contexto** | ERP caiu (loja não pagou); Renan pediu **fechar pendências do corte** no **teste** — validar um a um antes de produção |
-| **Commit** | **`7992b0a`** (código) + **`f9bd827`** (banana) — analytics PG + Compras + gestão |
+| **Commit** | **`7992b0a`** (código) · push **`94616aa`** — analytics PG + Compras + gestão |
 | **Migrate** | **Nenhuma** |
 | **Flags Render teste** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · financeiro PG auto se títulos existirem · ledger estoque se já ligado |
 
@@ -911,6 +911,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 9. **Cadastro ERP** `/produtos/cadastro-erp/` — lista Excel
 
 **Produção:** só quando Renan pedir com frase + senha **99738595**.
+
+### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Reclamação loja** | Demora ao confirmar venda (Mongo/SEFAZ síncronos) |
+| **Fix** | `AGRO_PDV_VENDA_SEM_MONGO_ERP=true` (default) · `AGRO_PDV_NFCE_ASSINCRONA=true` (default) · catálogo/baixa estoque via Postgres · NFC-e em thread · MP Point alinhado ao ERP assíncrono |
+| **Renan testar teste** | PIX/cartão e dinheiro — barra deve sumir em segundos; cupom fiscal sai em background (Consultar vendas se demorar) |
 
 ### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
 

@@ -798,6 +798,36 @@ def lista_produto_externo_ids_por_categoria(categoria: str, *, limit: int = 800)
     return ids[:lim]
 
 
+def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
+    """Documento estilo Mongo para ``_linha_item_pedido_erp`` sem espelho ERP."""
+    esc = str(pid or "").strip()
+    if not esc:
+        return None
+    q = Q(produto_externo_id=esc) | Q(erp_produto_id=esc)
+    if esc.isdigit():
+        try:
+            q |= Q(pk=int(esc))
+        except ValueError:
+            pass
+    p = Produto.objects.filter(q).first()
+    if p:
+        pid_key = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
+        ov_map = _overlay_mapa_por_ids([pid_key])
+        return row_para_doc_gestao_lista(produto_agro_para_row(p, ov=ov_map.get(pid_key)))
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=esc[:64]).first()
+    if not ov:
+        return None
+    row = {
+        "id": esc,
+        "nome": (ov.nome or "").strip() or esc,
+        "codigo": (ov.codigo_nfe or ov.codigo_barras or esc).strip(),
+        "codigo_nfe": (ov.codigo_nfe or esc).strip(),
+        "codigo_barras": (ov.codigo_barras or "").strip(),
+        "inativo": False,
+    }
+    return row_para_doc_gestao_lista(row)
+
+
 def produtos_docs_relatorio_por_externo_ids(p_ids: list[str]) -> list[dict]:
     """Documentos estilo Mongo para planilhas Compras (categoria/unidade) sem catálogo Mongo."""
     ids: list[str] = []

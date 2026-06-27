@@ -51,9 +51,9 @@ _NFCE_RETRY_DELAYS_S = (2.0, 5.0, 10.0)
 
 
 def _mongo_conn():
-    from produtos.views import obter_conexao_mongo
+    from produtos.views import obter_conexao_mongo_pdv
 
-    return obter_conexao_mongo()
+    return obter_conexao_mongo_pdv()
 
 def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
     cpf = re.sub(r"\D", "", str(data.get("nfce_cpf") or data.get("cliente_documento") or ""))[:11]
@@ -189,6 +189,18 @@ def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | 
     if not nfce_emissao_solicitada(data):
         return None
     _marcar_nfce_solicitada(venda)
+    from django.conf import settings
+
+    if getattr(settings, "AGRO_PDV_NFCE_ASSINCRONA", True):
+        cfg = nfce_config_resumo()
+        tp_amb = int(cfg.get("tp_amb") or 2)
+        _disparar_nfce_pos_venda_background(venda.pk, data)
+        return {
+            "ok": False,
+            "erro": "Cupom fiscal em processamento. Se não sair em instantes, reemita em Consultar vendas.",
+            "pendente_retry": True,
+            "tp_amb": tp_amb,
+        }
     out = _emitir_nfce_pos_venda_sync(venda, data)
     if out is not None:
         return out

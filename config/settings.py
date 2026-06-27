@@ -492,6 +492,10 @@ VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA = config(
 PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA = config("PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", default=True, cast=bool)
 # PDV Wizard: grava venda + baixa estoque na hora; Pedidos/Salvar no ERP roda em thread (libera a tela).
 PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast=bool)
+# Finalização PDV sem consultar Mongo espelho ERP (catálogo/estoque ref/fiscal usam Postgres + defaults).
+AGRO_PDV_VENDA_SEM_MONGO_ERP = config("AGRO_PDV_VENDA_SEM_MONGO_ERP", default=True, cast=bool)
+# NFC-e após venda: não esperar SEFAZ na requisição HTTP (emite em thread).
+AGRO_PDV_NFCE_ASSINCRONA = config("AGRO_PDV_NFCE_ASSINCRONA", default=True, cast=bool)
 NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)
 # Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
