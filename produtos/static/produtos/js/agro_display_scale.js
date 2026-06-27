@@ -372,6 +372,48 @@
     }
     if (show) fab.removeAttribute('hidden');
     else fab.setAttribute('hidden', '');
+    if (show) repositionScaleFab();
+  }
+
+  function scaleFabOverlaps(pad) {
+    var fab = document.getElementById('agro-display-scale-fab');
+    if (!fab || fab.hasAttribute('hidden')) return false;
+    var rect = fab.getBoundingClientRect();
+    var nodes = document.querySelectorAll('header button, header a, .caixa-shell header a, .caixa-shell header button, #agro-pdv-fab');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (!el || el === fab || fab.contains(el)) continue;
+      var st = window.getComputedStyle(el);
+      if (st.display === 'none' || st.visibility === 'hidden') continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) continue;
+      if (!(rect.right + pad < r.left || rect.left - pad > r.right || rect.bottom + pad < r.top || rect.top - pad > r.bottom)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function repositionScaleFab() {
+    var fab = document.getElementById('agro-display-scale-fab');
+    if (!fab || fab.hasAttribute('hidden')) return;
+    fab.classList.remove('agro-scale-fab--left', 'agro-scale-fab--bottom-right', 'agro-scale-fab--bottom-left');
+    var slots = ['tr', 'tl', 'br', 'bl'];
+    for (var s = 0; s < slots.length; s++) {
+      if (slots[s] === 'tr') {
+        fab.style.top = '';
+        fab.style.right = '';
+        fab.style.left = '';
+        fab.style.bottom = '';
+      } else if (slots[s] === 'tl') {
+        fab.classList.add('agro-scale-fab--left');
+      } else if (slots[s] === 'br') {
+        fab.classList.add('agro-scale-fab--bottom-right');
+      } else if (slots[s] === 'bl') {
+        fab.classList.add('agro-scale-fab--bottom-left');
+      }
+      if (!scaleFabOverlaps(10)) return;
+    }
   }
 
   function closeModal() {
@@ -574,6 +616,7 @@
     ensureFab();
     bindTriggers();
     setFabVisible(true);
+    global.addEventListener('resize', repositionScaleFab);
     if (isConfigured()) {
       applyToRoot(read());
       return;
@@ -597,6 +640,7 @@
     open: open,
     findMaxSafeScale: findMaxSafeScale,
     detectLayoutBreak: detectLayoutBreak,
+    repositionFab: repositionScaleFab,
     applyEarly: function () {
       if (isConfigured()) applyToRoot(read());
     },

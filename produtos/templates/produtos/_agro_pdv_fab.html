@@ -66,6 +66,12 @@
     right: max(0.85rem, env(safe-area-inset-right, 0px));
     align-items: flex-end;
   }
+  #agro-pdv-fab-wrap.agro-pdv-fab-wrap--top {
+    bottom: auto;
+  }
+  #agro-pdv-fab-wrap.agro-pdv-fab-wrap--mid {
+    bottom: auto;
+  }
   #agro-pdv-fab-wrap.is-hidden {
     display: none !important;
   }
@@ -373,77 +379,131 @@
     return !(a.right + pad < b.left || a.left - pad > b.right || a.bottom + pad < b.top || a.top - pad > b.bottom);
   }
 
-  function resetFabSide() {
+  function resetFabPosition() {
+    wrap.style.top = "";
+    wrap.style.bottom = "";
     wrap.style.left = "";
     wrap.style.right = "";
-    wrap.classList.remove("agro-pdv-fab-wrap--right");
+    wrap.style.transform = "";
+    wrap.classList.remove("agro-pdv-fab-wrap--right", "agro-pdv-fab-wrap--top", "agro-pdv-fab-wrap--mid");
   }
 
   function fabRect() {
     return wrap.getBoundingClientRect();
   }
 
-  function collidesWithClickables(pad) {
-    var vh = window.innerHeight;
-    var vw = window.innerWidth;
-    var zoneTop = vh * 0.52;
-    var zoneRight = vw * 0.58;
+  function isScaleFabBlocking(rect) {
+    var aa = document.getElementById("agro-display-scale-fab");
+    if (!aa || aa.hasAttribute("hidden")) return false;
+    return rectsOverlap(rect, aa.getBoundingClientRect(), 8);
+  }
+
+  function collisionScore(pad) {
     var rect = fabRect();
+    var score = 0;
     var nodes = document.querySelectorAll(
-      "button, a[href], input[type='submit'], input[type='button'], [role='button']"
+      "button, a[href], input:not([type='hidden']), select, textarea, summary, [role='button']"
     );
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
-      if (wrap.contains(el)) continue;
-      if (!elVisible(el)) continue;
+      if (!el || wrap.contains(el) || !elVisible(el)) continue;
+      if (el.id === "agro-display-scale-fab") continue;
       var r = el.getBoundingClientRect();
-      if (r.bottom < zoneTop || r.top > vh - 2) continue;
-      if (r.left > zoneRight) continue;
-      if (rectsOverlap(rect, r, pad)) return true;
+      if (r.width < 10 || r.height < 10) continue;
+      if (rectsOverlap(rect, r, pad)) score += 120 + Math.min(r.width * r.height * 0.02, 800);
     }
-    return false;
+    if (isScaleFabBlocking(rect)) score += 600;
+    return score;
+  }
+
+  function pathPrefersBottomRight() {
+    var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+    return p.indexOf("/caixa") === 0;
+  }
+
+  function fabSlotsOrdered() {
+    var slots = ["br", "bl", "tr", "tl", "mr", "ml"];
+    if (pathPrefersBottomRight()) {
+      slots = ["br", "tr", "mr", "bl", "tl", "ml"];
+    }
+    return slots;
+  }
+
+  function applyFabSlot(slotId) {
+    resetFabPosition();
+    var inset = Math.max(12, baseBottomPx());
+    var headerGap = 56;
+    if (slotId === "bl") {
+      wrap.style.bottom = inset + "px";
+    } else if (slotId === "br") {
+      wrap.classList.add("agro-pdv-fab-wrap--right");
+      wrap.style.bottom = inset + "px";
+    } else if (slotId === "tl") {
+      wrap.classList.add("agro-pdv-fab-wrap--top");
+      wrap.style.top = headerGap + inset + "px";
+    } else if (slotId === "tr") {
+      wrap.classList.add("agro-pdv-fab-wrap--right", "agro-pdv-fab-wrap--top");
+      wrap.style.top = headerGap + inset + "px";
+    } else if (slotId === "mr") {
+      wrap.classList.add("agro-pdv-fab-wrap--right", "agro-pdv-fab-wrap--mid");
+      wrap.style.top = "50%";
+      wrap.style.transform = "translateY(-50%)";
+    } else if (slotId === "ml") {
+      wrap.classList.add("agro-pdv-fab-wrap--mid");
+      wrap.style.top = "50%";
+      wrap.style.transform = "translateY(-50%)";
+    }
+    wrap.dataset.agroFabSlot = slotId;
+  }
+
+  function liftBottomFabIfNeeded() {
+    if (wrap.dataset.agroFabSlot !== "bl" && wrap.dataset.agroFabSlot !== "br") return;
+    var base = Math.max(12, baseBottomPx());
+    wrap.style.bottom = base + "px";
+    var margin = 10;
+    var lift = 0;
+    var rect = fabRect();
+    var scanLeft = wrap.classList.contains("agro-pdv-fab-wrap--right")
+      ? window.innerWidth
+      : rect.right + 24;
+    var vh = window.innerHeight;
+    var nodes = document.querySelectorAll("footer, nav, aside, button, a[href], [class*='fixed'], [class*='sticky']");
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (!el || wrap.contains(el) || !elVisible(el)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.height < 8 || r.width < 8) continue;
+      if (r.top < vh * 0.45) continue;
+      if (!wrap.classList.contains("agro-pdv-fab-wrap--right") && r.left > scanLeft) continue;
+      if (wrap.classList.contains("agro-pdv-fab-wrap--right") && r.right < rect.left - 24) continue;
+      var overlap = rect.bottom + margin - r.top;
+      if (overlap > 0) lift = Math.max(lift, overlap + margin);
+    }
+    if (lift > 0) wrap.style.bottom = Math.max(base, base + lift) + "px";
   }
 
   function adjustPosition() {
     if (wrap.classList.contains("is-hidden")) return;
-    resetFabSide();
-    var base = baseBottomPx();
-    wrap.style.bottom = base + "px";
-    var rect = fabRect();
-    var lift = 0;
-    var margin = 10;
-    var scanLeft = rect.right + 24;
-    var vh = window.innerHeight;
-    var nodes = document.querySelectorAll("footer, nav, aside, [class*='fixed'], [class*='sticky']");
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
-      if (el === wrap || wrap.contains(el) || el.contains(wrap)) continue;
-      var st = window.getComputedStyle(el);
-      if (st.visibility === "hidden" || st.display === "none" || parseFloat(st.opacity || "1") < 0.05) continue;
-      var r = el.getBoundingClientRect();
-      if (r.height < 8 || r.width < 8) continue;
-      if (r.top < vh * 0.5) continue;
-      if (r.left > scanLeft) continue;
-      var touchesBottom = st.position === "fixed" || st.position === "sticky" || r.bottom >= vh - 4;
-      if (!touchesBottom) continue;
-      var overlap = rect.bottom + margin - r.top;
-      if (overlap > 0) lift = Math.max(lift, overlap + margin);
+    var slots = fabSlotsOrdered();
+    var bestSlot = slots[0];
+    var bestScore = Infinity;
+    for (var s = 0; s < slots.length; s++) {
+      applyFabSlot(slots[s]);
+      if (slots[s] === "bl" || slots[s] === "br") liftBottomFabIfNeeded();
+      var sc = collisionScore(12);
+      if (sc < bestScore) {
+        bestScore = sc;
+        bestSlot = slots[s];
+      }
     }
-    wrap.style.bottom = Math.max(base, base + lift) + "px";
-
-    if (collidesWithClickables(12)) {
-      var extraLift = 0;
-      var tries = 0;
-      while (collidesWithClickables(12) && tries < 8) {
-        extraLift += 52;
-        wrap.style.bottom = Math.max(base, base + lift + extraLift) + "px";
-        tries++;
-      }
-      if (collidesWithClickables(12)) {
-        resetFabSide();
-        wrap.style.bottom = Math.max(base, base + lift) + "px";
-        wrap.classList.add("agro-pdv-fab-wrap--right");
-      }
+    applyFabSlot(bestSlot);
+    if (bestSlot === "bl" || bestSlot === "br") liftBottomFabIfNeeded();
+    if (collisionScore(8) > 0) {
+      applyFabSlot("mr");
+      if (collisionScore(8) > 0) applyFabSlot("ml");
+    }
+    if (window.AgroDisplayScale && typeof window.AgroDisplayScale.repositionFab === "function") {
+      window.AgroDisplayScale.repositionFab();
     }
   }
 
