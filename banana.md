@@ -918,6 +918,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
 | **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
 | **Deploy teste** | **`2f6fbb7`** · **v4.04** — fix escala retiradas |
+| **Fix FAB (27/06)** | PDV + **Aa** reposicionam para canto livre (caixa prioriza inferior direito) |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
