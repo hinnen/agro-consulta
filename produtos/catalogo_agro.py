@@ -713,6 +713,91 @@ def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
     return sorted(out, key=lambda x: x.lower())
 
 
+def compras_dimensoes_relatorio(
+    tipo: str,
+    q: str = "",
+    *,
+    completa: bool = False,
+    limit: int = 40,
+) -> list[str]:
+    """Categorias ou unidades distintas (Postgres + overlay) — relatórios Compras sem Mongo."""
+    tipo = (tipo or "").strip().lower()
+    if tipo not in ("categoria", "unidade"):
+        return []
+    lim = min(max(int(limit or 40), 1), 500 if completa else 80)
+    qtxt = (q or "").strip()[:120]
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def _add(val: object) -> None:
+        s = str(val or "").strip()
+        if not s:
+            return
+        if qtxt and qtxt.lower() not in s.lower():
+            return
+        k = s.lower()
+        if k in seen:
+            return
+        seen.add(k)
+        out.append(s)
+
+    qs = queryset_catalogo_ativos(inativos=False)
+    if tipo == "categoria":
+        for fld in ("categoria", "subcategoria"):
+            qv = qs.exclude(**{fld: ""})
+            if qtxt:
+                qv = qv.filter(**{f"{fld}__icontains": qtxt})
+            cap = 5000 if completa else 400
+            for v in qv.values_list(fld, flat=True).distinct()[:cap]:
+                _add(v)
+                if not completa and len(out) >= lim:
+                    break
+        oqs = ProdutoGestaoOverlayAgro.objects.exclude(categoria="")
+        if qtxt:
+            oqs = oqs.filter(categoria__icontains=qtxt)
+        for v in oqs.values_list("categoria", flat=True).distinct()[:2400 if completa else 240]:
+            _add(v)
+    else:
+        for v in qs.exclude(unidade="").values_list("unidade", flat=True).distinct()[
+            :5000 if completa else 400
+        ]:
+            _add(v)
+        oqs = ProdutoGestaoOverlayAgro.objects.exclude(unidade="")
+        if qtxt:
+            oqs = oqs.filter(unidade__icontains=qtxt)
+        for v in oqs.values_list("unidade", flat=True).distinct()[:2400 if completa else 240]:
+            _add(v)
+
+    out.sort(key=lambda x: x.lower())
+    return out[:lim]
+
+
+def lista_produto_externo_ids_por_categoria(categoria: str, *, limit: int = 800) -> list[str]:
+    cat = str(categoria or "").strip()
+    if not cat:
+        return []
+    lim = max(1, min(int(limit or 800), 1200))
+    esc = cat[:200]
+    qs = queryset_catalogo_ativos(inativos=False).filter(
+        Q(categoria__icontains=esc) | Q(subcategoria__icontains=esc)
+    )
+    ids: list[str] = []
+    seen: set[str] = set()
+    for p in qs.order_by("nome")[: lim + 200]:
+        pid = str(p.produto_externo_id or p.pk).strip()
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        ids.append(pid)
+        if len(ids) >= lim:
+            break
+    for oid in _produto_overlay_ids_categoria_agro(cat):
+        if oid not in seen and len(ids) < lim:
+            seen.add(oid)
+            ids.append(oid)
+    return ids[:lim]
+
+
 def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
     """Documento estilo Mongo para ``_linha_item_pedido_erp`` sem espelho ERP."""
     esc = str(pid or "").strip()
@@ -741,6 +826,83 @@ def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
         "inativo": False,
     }
     return row_para_doc_gestao_lista(row)
+
+
+def produtos_docs_relatorio_por_externo_ids(p_ids: list[str]) -> list[dict]:
+    """Documentos estilo Mongo para planilhas Compras (categoria/unidade) sem catálogo Mongo."""
+    ids: list[str] = []
+    seen: set[str] = set()
+    pk_cand: list[int] = []
+    for raw in p_ids or []:
+        s = str(raw or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        ids.append(s[:64])
+        if s.isdigit():
+            try:
+                pk_cand.append(int(s))
+            except ValueError:
+                pass
+    if not ids:
+        return []
+    q = Q(produto_externo_id__in=ids[:900]) | Q(erp_produto_id__in=ids[:900])
+    if pk_cand:
+        q |= Q(pk__in=pk_cand[:900])
+    produtos = list(Produto.objects.filter(q).distinct()[:1200])
+    return [row_para_doc_gestao_lista(r) for r in _rows_de_produtos(produtos)]
+
+
+def lista_produto_externo_ids_por_unidade(unidade: str, *, limit: int = 800) -> list[str]:
+    uni = str(unidade or "").strip()
+    if not uni:
+        return []
+    lim = max(1, min(int(limit or 800), 1200))
+    qs = queryset_catalogo_ativos(inativos=False).filter(unidade__iexact=uni[:20])
+    ids: list[str] = []
+    seen: set[str] = set()
+    for p in qs.order_by("nome")[:lim]:
+        pid = str(p.produto_externo_id or p.pk).strip()
+        if pid and pid not in seen:
+            seen.add(pid)
+            ids.append(pid)
+    for oid in _produto_overlay_ids_unidade_agro(uni):
+        if oid not in seen and len(ids) < lim:
+            seen.add(oid)
+            ids.append(oid)
+    return ids[:lim]
+
+
+def _produto_overlay_ids_categoria_agro(termo: str) -> list[str]:
+    t = str(termo or "").strip()
+    if not t:
+        return []
+    try:
+        return [
+            str(x).strip()
+            for x in ProdutoGestaoOverlayAgro.objects.filter(categoria__iexact=t[:200]).values_list(
+                "produto_externo_id", flat=True
+            )[:1600]
+            if x
+        ]
+    except Exception:
+        return []
+
+
+def _produto_overlay_ids_unidade_agro(termo: str) -> list[str]:
+    t = str(termo or "").strip()
+    if not t:
+        return []
+    try:
+        return [
+            str(x).strip()
+            for x in ProdutoGestaoOverlayAgro.objects.filter(unidade__iexact=t[:20]).values_list(
+                "produto_externo_id", flat=True
+            )[:1600]
+            if x
+        ]
+    except Exception:
+        return []
 
 
 def facetas_gestao(*, limite: int = 200) -> dict[str, list[str]]:

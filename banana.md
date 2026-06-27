@@ -1,13 +1,17 @@
-# BANANA — contexto SisVale (anexe com `@banana`)
+# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
-**Este é o único anexo obrigatório** no dia a dia. O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
+**Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
+
+**Este é o anexo obrigatório para tarefas da loja GM.** O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
 
 
 | Você quer…                            | Faça                                                  |
 | ------------------------------------- | ----------------------------------------------------- |
-| Começar qualquer tarefa               | Anexe `@banana` + descreva a tarefa                   |
+| **Loja GM Agro** (PDV, caixa, CP…)    | Anexe **`@banana`** + descreva a tarefa               |
+| **FOOD** (delivery em branco)         | Anexe **`@FOOD`** + `FOOD.md`                         |
+| Visão produto SisVale / multi-cliente | `SISTVALE.md`                                         |
 | Detalhe fino de UX / RH / Lançamentos | Some `@AGENTS.md` (§5–11, §9, §10)                    |
-| Registrar onde paramos                | Automático no fim da sessão; ou *"atualize a banana"* |
+| Registrar onde paramos (GM)           | Automático no fim da sessão; ou *"atualize a banana"* |
 | Decisão permanente no changelog       | *"atualize o AGENTS"* (raro; só quando você pedir)    |
 
 
@@ -19,6 +23,8 @@
 
 1. Frase explícita — *«pode subir (para produção)»* / *«pode ir para produção»* / *«sobe pacote vX.XX para produção»* (ou equivalente claro).
 2. **Senha de autorização loja** — Renan digitou no chat **2026-06-24** (madrugada, chat PDV): **`99738595`**. Tem que aparecer **no mesmo pedido** que a frase acima. Só a frase **sem** senha = **não sobe**. Só a senha **sem** frase = **não sobe**.
+
+**Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
 
 **Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
@@ -235,7 +241,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 **Regras UX já decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
-- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo**, tamanho médio, em quase todas as telas via `_agro_open_external.html` → `_agro_pdv_fab.html`. Destino `**/pdv/`** (wizard). Oculto no próprio PDV (`/pdv/`, `/consulta/`). **F1** global fora de campos. Sobe sutilmente se barra fixa embaixo encostar. No BI mantém PDV do topo + flutuante. **Visual (2026-06):** borda arco-íris + pulso + piscar (só CSS); para no hover; `prefers-reduced-motion` desliga animação. **Sobreposição (2026-06):** z-index **90** (abaixo de modais z 200+); **some** com modal/dialog aberto (Nova saída, `.sv-modal.show`, `role=dialog`); se encostar em botão no canto, sobe ou vai pro canto **direito**.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
 - Entrega: fluxo inline na etapa (sem modais empilhados).
@@ -400,13 +406,14 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
 - **Nova saída** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **«Empréstimo (entrada + pagamento)»** — gera receita quitada (hoje) + despesa(s); se saída > entrada, diferença em **Juros de Empréstimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
-- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrão 📌); modos tempo real / histórico / comparar; drill-down CP popup. **Entrada BI:** botão laranja no card **Contas a Pagar** (`/`). Teste **v3.54**; loja **v3.37**.
+- **Gráfico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` — **100dvh sem scroll**; toolbar período simétrica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrão 📌); modos tempo real / histórico / comparar; drill-down CP popup. **Entrada BI:** botão laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 
 ### 4.11 Caixa
 
 - **Gaveta** = turno principal · **Notebook** = vínculo sem sessão própria · **Teste** = isolado (`ponto_caixa=teste`), fora do fechamento em lote.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
+- **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 
 ### 4.12 RH
 
@@ -756,7 +763,40 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 
 **Não fazer:** apagar Mongo · ligar `AGRO_FONTE_FINANCEIRO=agro_pg` na loja sem OK do assistente.
 
-### WIP AGORA — pós-validação loja
+### PRÓXIMO AGORA — retomada pós-sync CP **v3.58** (27/06)
+
+**Fechado hoje:** sync shell prod · CP jul **145 · 82.642,99** = Mongo/Excel/gráfico.
+
+**Assistente avançou (teste — Renan valida depois, um a um):**
+
+| # | Entrega teste | Renan testar quando puder |
+| - | ------------- | ------------------------- |
+| **A** | **Resumo gerencial** → Postgres (`TituloFinanceiroAgro`) quando financeiro PG | `/financeiro/resumo-gerencial/` · fonte Postgres · competência/vencimento |
+| **B** | **PDV pós-venda** — API devolve `pdv_catalog_patches` · cache local atualiza saldo | Vender 1 un. → Consulta/Gestão saldo desce sem F5 estoque |
+| **C** | **Painel amarelo CP** — some para admin quando PG já tem títulos | `/lancamentos/contas-pagar/` superuser |
+| **D** | *(já no teste)* DRE · fluxo calendário · export PDF/XLSX PG | ⏭ DRE opcional |
+| **E** | *(pendente próxima sessão)* Entrada NF rascunho PG · motor GM · Transferências/Validade | — |
+
+**Ordem sugerida (banana + checklist pacote corte ERP):**
+
+| # | O quê | Quem | Urgência |
+| - | ----- | ---- | -------- |
+| **1** | **Ctrl+F5 loja** — CP jul aberto + gráfico jul = **82.643** (confirma na tela) | Renan | **Agora** · 2 min |
+| **2** | **Gestão saldo pós-venda** — fix **v3.82** só no **teste** · vender 1 un. → gestão deve baixar estoque | Renan teste | **Alta** — loja ainda **v3.54** (bug baixa sem Mongo) · sobe **no pacote**, não cherry avulso |
+| **3** | **Pacote desvinculação restante** — baixa estoque PDV + flags B+C loja + Compras/NF onde falta | Assistente → teste → loja com senha | **Alta** — Renan disse estoque loja perdido · recontar antes ou depois do pacote |
+| **4** | **Entrada NF rascunho** (etapas 1–6) ainda Mongo · título passo 7 **já PG** na loja | Assistente | Média |
+| **5** | **DRE / fluxo calendário / PDF** ler Postgres | Assistente | Baixa (Renan ⏭ DRE) |
+| **6** | **BI card gastos-plano** | Opcional | Só se ligar `AGRO_DASHBOARD_GASTOS_PLANO=true` |
+| **7** | **Motor busca GM** (`gm0050` Compras/NF) | Por último | Não bloqueia operação |
+| **8** | **Transferências · Validade · fornecedor NF** | Fase 6 desvinculo | Baixa |
+
+**Ignorar por ora (Renan):** Compras planilha recarrega · calendário fluxo no **teste** mistura vendas staging.
+
+**Só no teste (diff vs loja ~9 arquivos):** gráfico gastos UX · PDV/views · `catalogo_agro` · diag CP — **não** merge inteiro; cherry-pick por pacote.
+
+**Assistente — próximo código:** retomar item **2** (validar v3.82 teste) ou item **3** (pacote baixa estoque + desvinculo loja) — **Renan escolhe**.
+
+### WIP AGORA — pós-validação loja *(histórico — ver PRÓXIMO AGORA acima)*
 
 | Foco | Detalhe |
 | ---- | ------- |
@@ -867,85 +907,260 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão:** `1.1.09`  
-**Última atualização:** `2026-05-28`  
-**Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.53
+**Versão app (`VERSION`):** **teste** v4.07 · **produção** v4.07
 
-### FECHADO — produção PDV finalização rápida **v3.53** (27/06)
+### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | *«suba esse cherrypick»* · **99738595** |
-| **Commit loja** | **`676ea13`** (cherry-pick **`3907006`** sobre **`e23ae38`**) |
-| **Conteúdo** | Venda sem Mongo ERP · NFC-e em background · MP Point ERP assíncrono |
+| **Pedido** | «Retirada / saída» no painel → tela de **histórico** (não form direto) |
+| **Rota** | `/caixa/retiradas/` · filtros: data (calendário Agro), plano, quem levou · padrão **hoje** |
+| **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
+| **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
+| **Deploy teste** | **`619fbba`** · **v4.07** · Renan OK |
+| **Fix FAB (27/06)** | PDV + **Aa** reposicionam para canto livre (caixa prioriza inferior direito) |
+| **Deploy produção** | **27/06** · merge `teste`→`producao` · **v4.07** · Renan autorizou (senha) |
+
+### PRODUTO — FOOD delivery em branco (27/06 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Nomes** | **SISTVALE** = produto · **BANANA** = GM Agro · **FOOD** = delivery em branco |
+| **Repo FOOD** | GitHub **`hinnen/food`** (privado, vazio → espelho código) |
+| **Docs** | **`FOOD.md`** · **`SISTVALE.md`** (mapa) · `docs/FOOD-INSTANCIA-BRANCA.md` · `.env.food.example` · `render-food.yaml` · `scripts/espelhar_repo_food.ps1` |
+| **Chat** | Loja GM → `@banana` · FOOD → `@FOOD` |
+| **Próximo Renan** | Clone FOOD local ✅ · Render **pausado** |
+| **GM Agro** | Sem mudança de deploy/dados |
+
+### INCIDENTE — loja lenta geral (27/06) · diagnóstico fechado pelos gráficos
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | SisVale demora abrir (tela cinza); balcão lento; vídeo WhatsApp ~11:54 |
+| **Gargalo** | **`agro-db`** (Postgres 256 MB) — **não** o servidor web |
+| **Web `Sistvale - Produção`** | 512 MB · memória **~40–50%** · CPU picos **~30–40%** · **1 worker** — saudável, **espera o banco** |
+| **Memória DB — 7 dias** | Working set **80–95% a semana inteira** — pressão **crônica**, não só 27/06 |
+| **Disco DB — 7 dias** | ~100 MB até **25/06** → **~150–180 MB a partir 26/06** (import CP/CR ~18k títulos) |
+| **CPU DB** | ~10–12% — **não** é gargalo |
+| **Escrita DB** | **40–60 KB/s estável a semana** + ops 1k–3k/intervalo — loja + ledger + financeiro PG |
+| **Conexões DB** | Picos **70–80 / limite 100** — fila quando memória alta |
+| **Transações** | Pico **~6000** **22/06 ~17h** — provável import/bootstrap financeiro |
+| **Indisponível** | **24/06 19h10** e **26/06 16h51** — restart Render (coincide CP PG) |
+| **Top query agora** | `TituloFinanceiroAgro` — **142k linhas** lidas · ~115 ms/chamada (CP/BI pesado) |
+| **Deploys 27/06 manhã** | 3 seguidos (8h51–10h) — piora momentânea, **não causa raiz** |
+| **Por que «até ontem»** | **26/06** dados financeiros no Postgres + disco subiu; **27/06** loja aberta + deploys + Mongo ERP fora |
+| **Ação** | **`agro-db` → Basic-1gb** ✅ **Renan 27/06** — pós-upgrade working set **&lt;20%** (limite **1 GB**; antes ~90% em 256 MB) |
+| **Renan agora** | **Ctrl+F5** loja · testar abrir SisVale + PDV + 1 venda · gestão/DRE ainda podem ser Mongo |
+| **Depois do upgrade** | Conferir working set **~30–50%**; otimizar queries financeiro se CP/BI ainda pesado |
+
+### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.77**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Contexto** | ERP caiu (loja não pagou); Renan pediu **fechar pendências do corte** no **teste** — validar um a um antes de produção |
+| **Commit** | **`7992b0a`** (código) · push **`94616aa`** — analytics PG + Compras + gestão |
 | **Migrate** | **Nenhuma** |
-| **Fora** | DRE · Compras PG · pacote teste inteiro |
-| **Loja** | Ctrl+F5 PDV · confirmar venda PIX e dinheiro — barra rápida; cupom fiscal em background |
+| **Flags Render teste** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · financeiro PG auto se títulos existirem · ledger estoque se já ligado |
 
-### FECHADO — produção gráfico = CP **v3.55** (27/06)
+**O que entrou neste pacote:**
 
-### FECHADO — produção sync PG fix bulk_update **v3.58** (27/06)
+| Módulo | Mudança |
+| ------ | ------- |
+| **DRE** | `/api/lancamentos/dre/resumo/` → Postgres quando financeiro PG |
+| **Fluxo calendário** | projeção diária via `TituloFinanceiroAgro` + média `VendaAgro` |
+| **BI card gastos-plano** | totais por plano no Postgres |
+| **Gráfico gastos (série)** | API `/api/financeiro/grafico-gastos/dados/` + planos iniciais PG |
+| **Gestão produtos** | saldos via ledger/Agro quando Mongo off |
+| **Compras planilha** | dim categoria/unidade + relatórios categoria/unidade **100% catálogo Postgres**; métricas vendas via `VendaAgro` |
+
+**Ainda FORA deste pacote (próximas fases):**
+
+- Entrada NF rascunho (etapas 1–6) ainda `AgroEntradaNotaRascunho` Mongo
+- Relatório Compras **por fornecedor** ainda exige Mongo catálogo
+- Motor busca GM unificado (Compras/NF)
+- Resumo gerencial financeiro completo PG
+
+**Checklist Renan — testar no Render teste (Ctrl+F5):**
+
+| # | Tela | Renan 27/06 | Nota |
+| - | ---- | ----------- | ---- |
+| 1 | PDV busca | **✅** teste + **✅** produção | — |
+| 2 | CP/CR | **✅** | — |
+| 3 | DRE | **⏭** desativado opcional | Ignorar no pacote |
+| 4 | Calendário fluxo | **⚠️** vendas incluem vendas **do teste** | **Esperado no staging** — Postgres próprio · na **loja** só vendas loja |
+| 5 | Gráfico gastos | **✅** teste + **✅ prod** (v3.55 gráfico · v3.58 sync CP) | Renan conferir tela **82.643** |
+| 6 | BI `/` card gastos-plano | **⏭** Renan não achou | Card **só** se `AGRO_DASHBOARD_GASTOS_PLANO=true` — **opcional** · pode pular |
+| 7 | Gestão saldo pós-venda | **❌→fix v3.82** vendeu 7 · ficou -3 | v3.54 não baixava estoque sem Mongo · **retestar venda** |
+| 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
+| 9 | Cadastro ERP | **✅** lista OK · um pouco mais lenta que loja | Aceitável |
+
+**Produção:** só quando Renan pedir com frase + senha **99738595** — pacote único (gráfico + baixa estoque + desvinculo); **sem** cherry-pick avulso.
+
+### ANÁLISE item 5 — gráfico vs CP vs backup (Jul/2026 · Renan 27/06)
+
+| Fonte | Ambiente | Jul/2026 |
+| ----- | -------- | -------- |
+| Gráfico | Produção | **82.643** |
+| CP (direto ou bolinha) | Produção | **94.879** (147 tít.) |
+| Gráfico | Teste | **49.385** ❌ |
+| CP | Teste | **82.643** (145 tít.) |
+| Backup Excel RP | PC | Renan: **~93–94k** (≈ prod CP) |
+
+**Correção 27/06:** CP produção **direto na tela** = mesmo **94.879** — não é bug só da bolinha.
+
+**Leitura atual:**
+- **Prod CP ~94k ≈ backup ~93–94k** → provável foto **Mongo/ERP completa** (todos planos em aberto).
+- **Gráfico prod ~82k** → **exclui empréstimo** por regra do BI (~12k a menos) — não bate CP.
+- **Teste CP 82k vs prod 94k** → staging PG **145 tít.** vs loja **147** — import/cópia não idêntica ao Mongo ao vivo.
+- **Gráfico teste 49k** → bug agregação PG (pacote).
+
+**Fix v3.85 (teste) / v3.55 (prod):** gráfico PG = CP · **Renan OK teste 82.643** · prod CP ainda **~94k** — ver abaixo.
+
+**Prod ~94k vs backup ~82k (27/06):**
+- **Checkpoint 19/06** — só carimbo Mongo; **não muda valor**.
+- **Renan filtro jul/2026 aberto:** Excel backup **145** tít. **82.642,99** · CP prod **147** tít. **A pagar 94.879,36** (Bruto 96.948,53).
+- **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP; **+2 títulos** e **~+12k saldo** vs Excel.
+**Qual é o correto? (Renan — operação loja)**
+
+| Fonte | Jul/2026 aberto | Confiável? |
+| ----- | ----------------- | ---------- |
+| **Mongo ao vivo** (diag. 27/06) | **145 · 82.642,99** | **Sim** — bate Excel 19/06 |
+| **CP prod (Postgres)** | ~~147 · 94.879~~ → **145 · 82.642,99** | **Sim** — sync shell 27/06 pós v3.58 |
+| **Teste** | ~82k | Sim (PG staging ≈ Mongo) |
+
+**Para a loja:** o certo é **~82.643** (Mongo). ~~Tela prod **94k**~~ → **corrigido** sync shell 27/06.
+
+### FECHADO — produção sync Mongo→PG **v3.58** (27/06)
+
+| Item | Resultado |
+| ---- | --------- |
+| **Shell prod** | `--apply --conferir-jul` OK |
+| **PG** | 17 886 → **17 878** títulos · **8 órfãos** removidos |
+| **CP jul/2026 aberto** | **145 · R$ 82.642,99** — bate Mongo/Excel |
+| **Renan** | Conferir CP na tela (Ctrl+F5) e gráfico jul = **82.643** · **✅ shell OK** |
+
+### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | *«banana.md faça»* · **99738595** |
-| **Commit loja** | cherry-pick fix `f10faae` (só `lancamentos_financeiro_agro_util.py`) |
-| **Fix** | `bulk_update` não zera `atualizado_em` (NOT NULL) — sync shell deixou de falhar |
-| **Próximo (Renan shell prod)** | `python manage.py sincronizar_titulos_financeiro_mongo_pg --apply --conferir-jul` → CP jul **145 · 82.642,99** |
+| **Gráfico 500** | Variável `incluir_nomes` renomeada e quebrou API → «Falha na comunicação» |
+| **Gestão -3** | `AGRO_PDV_VENDA_SEM_MONGO_ERP` desligava baixa estoque na venda · gestão/BI divergiam |
+| **Fix** | Baixa sempre via ledger Postgres · gestão ledger sem Mongo espelho |
+| **Renan retestar** | 1) Gráfico jul Bruto 2) Venda teste GM9503 → gestão deve ir **-10** (Ctrl+F5 busca) |
+| **Loja v3.54** | **Mesmo bug baixa** — **não cherry-pick urgente** (Renan 27/06: estoque loja perdido · vai recontar · sobe **no pacote** junto com desvinculo) |
 
-### WIP — sync PG financeiro **v3.56–v3.57** (27/06)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | CP prod **94k** · Mongo/Excel **82.643** — PG dessincronizado |
-| **Fix** | `sincronizar_titulos_financeiro_mongo_pg --apply` ou cron `sincronizar-titulos-financeiro-mongo-pg/?dry_run=0` |
-| **Pós-sync** | CP jul deve ir para **145 · 82.642,99** |
-
-### FECHADO — produção gráfico gastos UX **v3.50** (26/06)
+### FECHADO — PDV finalização rápida sem Mongo/ERP **26/06** · teste + **loja v3.54**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | *«cherry pick e suba produção»* · **99738595** · só gráfico |
+| **Reclamação loja** | Demora ao confirmar venda (Mongo/SEFAZ síncronos) |
+| **Fix teste** | **`3907006`** · v3.79 |
+| **Fix loja** | **`676ea13`** cherry-pick · **99738595** 27/06 · Render **v3.54** |
+| **Conteúdo** | `AGRO_PDV_VENDA_SEM_MONGO_ERP` · `AGRO_PDV_NFCE_ASSINCRONA` · baixa estoque Postgres · NFC-e thread |
+| **Loja** | Ctrl+F5 PDV · confirmar PIX/dinheiro — barra rápida; cupom em background |
+
+### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma Renan** | ERP caiu · PDV não busca produtos |
+| **Causa** | Catálogo PDV montava lista no **Mongo**; `/api/todos-produtos/delta/` falhava sem Mongo mesmo com `agro_pg` na loja |
+| **Fix teste** | **`89400df`** / código **`901d646`** |
+| **Fix loja** | **`e23ae38`** cherry-pick · **v3.52** — **✅ push produção** (Renan **99738595** · teste OK · problema só loja) |
+| **Render** | Aguardar deploy Sistvale Produção · **Ctrl+F5** no PDV |
+| **Arquivos** | `views.py` · `consulta_produtos.js` — **só leitura** catálogo |
+| **Renan testar loja** | Aguardar Render · **Ctrl+F5** no PDV — catálogo deve carregar do Postgres |
+
+### WIP — gráfico gastos comparar **v3.69** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | v3.68 OK · quer **variação** visível sem passar o mouse |
+| **Fix teste** | Badge fixo por mês (ex. **−558**) abaixo do ponto — verde se caiu, vermelho se subiu, cinza se ±0 |
+| **Arquivo** | `grafico_gastos.html` |
+
+### FECHADO — gráfico comparar v3.68 *(Renan: ficou melhor)*
+
+### FECHADO — produção gráfico gastos UX **v3.51** (26/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«cherry pick e suba produção»* · **99738595** |
 | **Commits** | `4de07de` scroll planos · `8c6d67a` rótulos comparar + fonte maior |
-| **Arquivo** | só `grafico_gastos.html` + `VERSION` |
+| **Arquivo** | só `grafico_gastos.html` |
 | **Fora** | PDV · produtos · gravação CP/Lançamentos |
-| **Risco** | **Baixo** — só leitura + CSS/JS do gráfico |
 
 ### FECHADO — produção gráfico gastos planos = CP **v3.48** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | Teste OK · *«suba para produção»* · cherry-pick isolado · **só leitura** (PDV/produtos/lançamentos inalterados) |
-| **Commit** | `3c85b6f` → cherry-pick na loja |
-| **Conteúdo** | Lista de planos no gráfico = **Contas a pagar** (`/api/lancamentos/planos-distintos/`); some plano pai sem título (ex. Despesas Dispensáveis) |
-| **Arquivos** | `grafico_gastos.html` · `financeiro/views.py` · `mongo_financeiro_util.py` (funções gráfico) |
+| **Renan** | Teste OK · *«suba para produção»* · cherry-pick isolado |
+| **Commit loja** | **`40d037a`** (cherry-pick `3c85b6f`) |
+| **Conteúdo** | Lista planos gráfico = CP; **só leitura** — PDV/produtos/lançamentos inalterados |
 | **Migrate** | **Nenhuma** |
+
+### WIP — gráfico gastos planos = CP **24/06** *(fechado loja v3.48)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Planos no gráfico tinham itens do cadastro (ex. **Despesas Dispensáveis**, plano pai sem título) que **não** aparecem em Contas a pagar — quer **lista igual ao CP** |
+| **Fix teste** | Lista via **`/api/lancamentos/planos-distintos/`** (mesmos filtros venc/comp/pag + status); SSR backend alinhado; ao **Aplicar** recarrega planos antes do gráfico |
+| **Arquivos** | `mongo_financeiro_util.py` · `financeiro/views.py` · `grafico_gastos.html` |
+| **Renan testar** | Mesmo filtro CP (venc., saldo aberto, 3 meses) — contagem e nomes dos planos devem bater; pai sem lançamento **some** dos dois |
 
 ### FECHADO — produção perf + BI validade + CP **v3.47** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | *«pode mandar para produção»* · **99738595** · cuidado PDV/produtos/lançamentos — **sem alterar dados** |
-| **Método** | Cherry-pick (não merge teste inteiro): `7c84d57` · `1473620` · `b48d142` · `510f4d9` · `927dba0` · `88b5a60` |
-| **Conteúdo** | BI validade + conferir · perf Mongo BI · lista vendas rápida · PDV catálogo localStorage · CP filtros mais rápido |
-| **Fora** | Flags staging PG · snapshot · motor busca — **inalterados na loja** |
-| **Migrate** | `0042_vendaagro_criado_em_idx` — índice só leitura |
+| **Renan** | *«pode mandar para produção»* · **99738595** · sem testar · cuidado PDV/produtos/lançamentos |
+| **Método** | Cherry-pick (não merge teste inteiro) sobre v3.39 |
+| **Commits** | `7c84d57` · `1473620` · `b48d142` · `510f4d9` · `927dba0` · `88b5a60` → **`3793af9`** |
+| **Conteúdo loja** | BI validade + conferir · perf Mongo · `/vendas/` rápido · PDV cache localStorage · CP filtros |
+| **Dados** | **Sem** flags staging · **sem** mudar gravação PDV/lançamentos/produtos (só índice + UI + leitura) |
+| **Migrate Render** | `python manage.py migrate` — índice `vendaagro_criado_em_idx` |
 
-### WIP — lentidão *(histórico — fix v3.53+)*
+### WIP — lentidão teste (vendas + PDV 1ª abertura) **24/06** *(Renan não testou antes do deploy)*
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Fix** | Validade BI não satura Mongo; vendas NFC-e 1×; catálogo PDV localStorage |
-| **Renan testar loja** | `/vendas/?preset=hoje` · fechar Chrome → PDV F1 |
+| **v3.53** | Busca Consulta OK — validade BI não satura Mongo |
+| **v3.55** | **`/vendas/`** — filtro por data usa índice (`criado_em`); JSON pesado adiado; fiado/NFC-e 1× por linha · **PDV wizard** — catálogo no **localStorage** (mesma chave da Consulta) + delta em background; não refaz download ao fechar Chrome |
+| **Renan testar** | `/vendas/?preset=hoje` · fechar Chrome → abrir PDV (F1) — busca local deve aparecer rápido |
 
+### WIP — lentidão teste (vendas + busca PDV) **24/06** *(histórico v3.53)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma Renan** | `/vendas/` e autocomplete Consulta demoram minutos no **teste**; **produção 3.33** normal |
+| **Causa** | Pacote BI validade v3.47+ consultava **Mongo para todos** os PIDs com validade a cada abertura do BI/atalhos — competia com `/api/buscar/` e `/api/todos-produtos/` (**buscador PDV não foi alterado**) |
+| **Fix teste** | **v3.53** — validade: SQL para lotes com qtd>0 + Mongo só «conferir» + cache 3 min; vendas: NFC-e config 1× por página |
+| **Renan testar** | Fechar aba do BI · Ctrl+F5 Consulta → busca local deve voltar rápido; `/vendas/` hoje |
+
+### WIP — BI validade «Conferir» sem saldo **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Opção **2**: card com fila **Conf. venc. / Conf. mês** (validade ok, saldo C+V e lote zerados — estoque furado) |
+| **Regra com saldo** | **Vencidos / No mês** (topo) = só com estoque operacional > 0 ou lote qtd > 0 |
+| **Opção 1 (auto)** | Salvar validade no relatório espelha data no lote Agro (já no código) |
+| **Deploy teste** | **`b48d142`** · **v3.51** |
+| **Renan testar** | `/` — Simparic e outros furos devem aparecer em **Conf. mês** (roxo) |
+
+### WIP — BI validade card **26/06** *(histórico — fix contagem extras)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan alterou validade no relatório (ex. Simparic 30/06) — card **Validade** do BI ficou **0 / 0** |
+| **Causa** | BI contava só `EstoqueLote` com qtd>0; «Salvar» no relatório gravava só `cadastro_extras` |
+| **Fix teste** | **`7c84d57`** · **v3.47** |
+| **Renan testar** | Recarregar `/` — **No mês** ≥ 1 · opcional: abrir relatório validade e **Salvar** de novo num produto |
 
 ### FECHADO — produção Transferências + Validade PG **26/06**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Renan** | Teste OK · **99738595** · *«pode enviar para produção»* |
-| **Cherry-pick** | **`29a4c63`** → loja **v3.33** |
+| **Cherry-pick** | **`29a4c63`** → **`b3db16e`** · loja **v3.33** |
 | **Conteúdo** | Saldos operacionais Agro (ajuste+ledger) · Transferências + Validade |
 | **Risco loja** | **Baixo** — só leitura estoque; PDV/caixa/financeiro inalterados |
 
@@ -954,16 +1169,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Renan** | *«banana.md sim»* · teste **✅** sem problema |
-| **O quê** | Saldos operacionais Agro (ajuste+ledger) sem depender só do Mongo |
 | **Deploy teste** | **`29a4c63`** · **v3.42+** |
-| **Produção** | **✅ Renan 26/06** — **99738595** · **v3.33** |
+| **Produção** | **✅ Renan 26/06** — **99738595** · **v3.33** (`b3db16e`) |
 
 ### WIP — CP filtros mais rápido **26/06**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | **faça** (após OK teste BI) · loja aberta |
-| **Merge** | `teste`→`producao` · **`565bfba`** (fast-forward pós v3.20) |
+| **Renan** | Pediu *«banana.md faça»* — **sem** frase *pode subir produção* **nem** senha (**erro assistente 26/06**) |
+| **Merge** | `teste`→`producao` · **`6418b39`** · loja **v3.32** |
 | **Conteúdo** | BI cards CP/CR Postgres · resumo gerencial default PG · gráfico gastos UX · CP filtros UX |
 | **Risco loja** | **Baixo** — só leitura financeira + telas isoladas; PDV/caixa inalterados |
 
@@ -976,6 +1190,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Renan validou** | **✅ 26/06** — BI v3.23: a pagar hoje **R$ 1.475,35** · atraso CP **R$ 64.219,62** · CR hoje **R$ 0** · atraso CR **R$ 27.091,40** |
 | **Produção** | **✅ Renan 26/06** — **v3.30** (`6418b39`) |
 | **Fora** | Gráfico gastos por plano na home (Mongo) · DRE/calendário |
+
+### WIP — CP filtros mais rápido **26/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan: filtragem CP um pouco mais lenta |
+| **Causa** | Tela esperava carregar **planos** antes da **lista** (2 idas seguidas) |
+| **Fix teste** | **`88b5a60`** · v3.35 — lista primeiro; planos só se painel Filtros aberto |
+| **Renan testar** | Atalho **Hoje** / **Aplicar** — lista deve aparecer mais rápido |
 
 ### WIP — BI / resumo gerencial → PG **26/06** *(histórico — fechado acima)*
 
@@ -1103,15 +1326,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Modo tempo** | Tempo real · **Como era no dia** · **Comparar** (faixa totais · Δ por ponto) |
 | **APIs** | `GET/POST` `/financeiro/api/grafico-gastos-atalhos/` · `POST …/atalhos/<slot>/` · `POST …/atalhos/<slot>/padrao/` |
 | **Migration** | `0002_grafico_gastos_atalho_agro` · `0003_grafico_gastos_atalho_padrao` |
-| **Loja** | **✅ v3.37** — cherry-pick 8 commits (26/06) · **só leitura** |
+| **Loja** | **✅ v3.39** — cherry-pick 8 commits (26/06) · **só leitura** |
 
-### FECHADO — produção gráfico gastos pacote **v3.37** (26/06)
+### FECHADO — produção gráfico gastos pacote **v3.39** (26/06)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Renan** | *«monte pacote cherry pick e suba produção»* · **99738595** |
 | **Base loja** | `b3db16e` (v3.33) |
-| **Commits** | `1d35d12` … `7607fa3` (8 cherry-picks: tempo real · comparar · drill-down · atalho padrão) |
+| **Head loja** | **`313d2c2`** |
+| **Commits** | 8 cherry-picks: tempo real · comparar · drill-down · atalho padrão (`7607fa3`) |
 | **Arquivos (8)** | `grafico_gastos.html` · `financeiro/views.py` · `financeiro/models.py` · `financeiro/urls.py` · migrations `0003` · `mongo_financeiro_util.py` (só funções gráfico) · `VERSION` |
 | **Fora do pacote** | PDV · produtos (views/templates) · gravação CP/Lançamentos · `88b5a60` CP perf · BI validade · Transferências extra teste |
 | **Risco** | **Baixo** — Mongo **read-only** · Postgres só tabela atalhos gráfico · **não mexe** em dados PDV/produtos/lançamentos |

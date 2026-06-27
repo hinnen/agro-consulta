@@ -95,6 +95,54 @@
     } catch (e3) {}
   }
 
+  function readFromParentFrame() {
+    try {
+      if (global.parent === global) return null;
+      var pel = global.parent.document.documentElement;
+      var attr = pel.getAttribute('data-agro-scale');
+      if (attr) {
+        var na = parseFloat(attr, 10);
+        if (isFinite(na) && na >= MIN && na <= MAX) return na;
+      }
+      var z = pel.style.zoom;
+      if (z) {
+        var nz = parseFloat(z, 10);
+        if (isFinite(nz) && nz >= MIN && nz <= MAX) return nz;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function readAnyProfileScale() {
+    try {
+      if (global.localStorage.getItem(CONFIGURED_BASE) === '1') {
+        var leg = parseFloat(global.localStorage.getItem(STORAGE_BASE), 10);
+        if (isFinite(leg) && leg >= MIN && leg <= MAX) return leg;
+      }
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var k = global.localStorage.key(i);
+        if (!k || k.indexOf(CONFIGURED_BASE + '_') !== 0) continue;
+        if (global.localStorage.getItem(k) !== '1') continue;
+        var scaleKey = STORAGE_BASE + k.slice(CONFIGURED_BASE.length);
+        var n = parseFloat(global.localStorage.getItem(scaleKey), 10);
+        if (isFinite(n) && n >= MIN && n <= MAX) return n;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function isAnyProfileConfigured() {
+    try {
+      if (global.localStorage.getItem(configuredKey()) === '1') return true;
+      if (global.localStorage.getItem(CONFIGURED_BASE) === '1') return true;
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var k = global.localStorage.key(i);
+        if (k && k.indexOf(CONFIGURED_BASE + '_') === 0 && global.localStorage.getItem(k) === '1') return true;
+      }
+    } catch (e) {}
+    return readFromParentFrame() != null;
+  }
+
   function read() {
     migrateLegacyStorage();
     try {
@@ -102,16 +150,16 @@
       var n = parseFloat(s, 10);
       if (isFinite(n) && n >= MIN && n <= MAX) return n;
     } catch (e) {}
+    var any = readAnyProfileScale();
+    if (any != null) return clamp(any);
+    var parent = readFromParentFrame();
+    if (parent != null) return clamp(parent);
     return DEFAULT;
   }
 
   function isConfigured() {
     migrateLegacyStorage();
-    try {
-      return global.localStorage.getItem(configuredKey()) === '1';
-    } catch (e) {
-      return false;
-    }
+    return isAnyProfileConfigured();
   }
 
   function applyToRoot(scale) {
@@ -324,6 +372,48 @@
     }
     if (show) fab.removeAttribute('hidden');
     else fab.setAttribute('hidden', '');
+    if (show) repositionScaleFab();
+  }
+
+  function scaleFabOverlaps(pad) {
+    var fab = document.getElementById('agro-display-scale-fab');
+    if (!fab || fab.hasAttribute('hidden')) return false;
+    var rect = fab.getBoundingClientRect();
+    var nodes = document.querySelectorAll('header button, header a, .caixa-shell header a, .caixa-shell header button, #agro-pdv-fab');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (!el || el === fab || fab.contains(el)) continue;
+      var st = window.getComputedStyle(el);
+      if (st.display === 'none' || st.visibility === 'hidden') continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) continue;
+      if (!(rect.right + pad < r.left || rect.left - pad > r.right || rect.bottom + pad < r.top || rect.top - pad > r.bottom)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function repositionScaleFab() {
+    var fab = document.getElementById('agro-display-scale-fab');
+    if (!fab || fab.hasAttribute('hidden')) return;
+    fab.classList.remove('agro-scale-fab--left', 'agro-scale-fab--bottom-right', 'agro-scale-fab--bottom-left');
+    var slots = ['tr', 'tl', 'br', 'bl'];
+    for (var s = 0; s < slots.length; s++) {
+      if (slots[s] === 'tr') {
+        fab.style.top = '';
+        fab.style.right = '';
+        fab.style.left = '';
+        fab.style.bottom = '';
+      } else if (slots[s] === 'tl') {
+        fab.classList.add('agro-scale-fab--left');
+      } else if (slots[s] === 'br') {
+        fab.classList.add('agro-scale-fab--bottom-right');
+      } else if (slots[s] === 'bl') {
+        fab.classList.add('agro-scale-fab--bottom-left');
+      }
+      if (!scaleFabOverlaps(10)) return;
+    }
   }
 
   function closeModal() {
@@ -526,6 +616,7 @@
     ensureFab();
     bindTriggers();
     setFabVisible(true);
+    global.addEventListener('resize', repositionScaleFab);
     if (isConfigured()) {
       applyToRoot(read());
       return;
@@ -549,6 +640,7 @@
     open: open,
     findMaxSafeScale: findMaxSafeScale,
     detectLayoutBreak: detectLayoutBreak,
+    repositionFab: repositionScaleFab,
     applyEarly: function () {
       if (isConfigured()) applyToRoot(read());
     },

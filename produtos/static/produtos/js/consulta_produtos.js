@@ -2008,6 +2008,7 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         });
         const data = await res.json();
         if (data.ok) {
+            agroPdvAplicarPatchesRespostaVenda(data);
             const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
             const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
             alert('✅ ' + msg + vid);
@@ -4665,6 +4666,30 @@ function salvarCacheCatalogoPdv(payload) {
         );
     } catch (_) {}
 }
+
+function agroPdvAplicarPatchesRespostaVenda(data) {
+    const patches = data && data.pdv_catalog_patches;
+    if (!Array.isArray(patches) || !patches.length) return false;
+    const ok = aplicarPatchesProdutosPdv(patches);
+    if (!ok) return false;
+    try {
+        const raw = localStorage.getItem(PDV_CACHE_KEY);
+        if (!raw) return ok;
+        const cache = JSON.parse(raw);
+        const map = new Map((cache.produtos || []).map((p) => [String(p.id), p]));
+        patches.forEach((patch) => {
+            if (!patch || patch.id == null) return;
+            const pid = String(patch.id);
+            const prev = map.get(pid);
+            if (prev) map.set(pid, Object.assign({}, prev, patch));
+        });
+        cache.produtos = Array.from(map.values());
+        cache.saved_at = Date.now();
+        localStorage.setItem(PDV_CACHE_KEY, JSON.stringify(cache));
+    } catch (_) {}
+    return ok;
+}
+window.agroPdvAplicarPatchesRespostaVenda = agroPdvAplicarPatchesRespostaVenda;
 
 function aplicarPatchesProdutosPdv(patches) {
     const rows = Array.isArray(patches) ? patches : [];

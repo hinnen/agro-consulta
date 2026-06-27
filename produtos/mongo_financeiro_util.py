@@ -4332,12 +4332,18 @@ def _grafico_gastos_status_para_lista_planos(
     *,
     data_referencia: date | None = None,
 ) -> str:
-    """Espelha ``grafico_gastos_serie_mongo`` — mesma situação que a lista CP."""
+    """Espelha filtros da lista CP (Contas a pagar) — gráfico e planos distintos."""
     modo_por = (por or "vencimento").strip().lower()
-    modo_valor = (valor or "saldo").strip().lower()
+    modo_valor = (valor or "bruto").strip().lower()
     if modo_por == "pagamento":
         return "quitados" if (modo_valor == "pago" and not data_referencia) else "todos"
-    return "todos" if (modo_valor != "saldo" or data_referencia) else "abertos"
+    if data_referencia:
+        return "todos"
+    if modo_valor == "saldo":
+        return "abertos"
+    if modo_valor == "bruto" and modo_por in ("vencimento", "competencia"):
+        return "abertos"
+    return "todos"
 
 
 def grafico_gastos_planos_despesa_mongo(
@@ -4661,9 +4667,12 @@ def grafico_gastos_serie_mongo(
     if as_of and as_of > timezone.localdate():
         as_of = timezone.localdate()
 
+    st = _grafico_gastos_status_para_lista_planos(
+        modo_por, modo_valor, data_referencia=as_of
+    )
+
     if modo_por == "competencia":
         campo_data = "DataCompetencia"
-        st = "todos" if (modo_valor != "saldo" or as_of) else "abertos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
             status=st,
@@ -4673,7 +4682,6 @@ def grafico_gastos_serie_mongo(
         )
     elif modo_por == "pagamento":
         campo_data = "DataPagamento"
-        st = "quitados" if (modo_valor == "pago" and not as_of) else "todos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
             status=st,
@@ -4683,7 +4691,6 @@ def grafico_gastos_serie_mongo(
         )
     else:
         campo_data = "DataVencimento"
-        st = "todos" if (modo_valor != "saldo" or as_of) else "abertos"
         q_base = lancamentos_montar_query_mongo(
             despesa=True,
             status=st,

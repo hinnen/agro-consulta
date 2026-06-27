@@ -14,9 +14,46 @@
       var suf = profSuffix();
       var ok = localStorage.getItem('agro_display_scale_configured_v1' + suf) === '1';
       if (!ok) ok = localStorage.getItem('agro_display_scale_configured_v1') === '1';
+      if (!ok) {
+        for (var i = 0; i < localStorage.length; i++) {
+          var ck = localStorage.key(i);
+          if (ck && ck.indexOf('agro_display_scale_configured_v1_') === 0 && localStorage.getItem(ck) === '1') {
+            ok = true;
+            break;
+          }
+        }
+      }
+      if (!ok) {
+        try {
+          if (window.parent !== window) {
+            var pel = window.parent.document.documentElement;
+            if (pel.getAttribute('data-agro-scale') || pel.style.zoom) ok = true;
+          }
+        } catch (e2) {}
+      }
       if (!ok) return;
       var s = localStorage.getItem('agro_display_scale_v1' + suf);
       if (s == null) s = localStorage.getItem('agro_display_scale_v1');
+      if (s == null) {
+        for (var j = 0; j < localStorage.length; j++) {
+          var sk = localStorage.key(j);
+          if (!sk || sk.indexOf('agro_display_scale_v1_') !== 0) continue;
+          var cfg = 'agro_display_scale_configured_v1' + sk.slice('agro_display_scale_v1'.length);
+          if (localStorage.getItem(cfg) === '1') {
+            s = localStorage.getItem(sk);
+            if (s != null) break;
+          }
+        }
+      }
+      if (s == null) {
+        try {
+          if (window.parent !== window) {
+            var pel2 = window.parent.document.documentElement;
+            var pa = pel2.getAttribute('data-agro-scale') || pel2.style.zoom;
+            if (pa) s = pa;
+          }
+        } catch (e3) {}
+      }
       var n = parseFloat(s, 10);
       if (!isFinite(n) || n < 0.7 || n > 1.5) return;
       if (n === 1) return;
@@ -222,6 +259,20 @@
     justify-content: center;
     box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
     zoom: 1 !important;
+  }
+  .agro-scale-trigger--fab.agro-scale-fab--left {
+    right: auto;
+    left: max(0.45rem, env(safe-area-inset-left, 0px));
+  }
+  .agro-scale-trigger--fab.agro-scale-fab--bottom-right {
+    top: auto;
+    right: max(0.85rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  }
+  .agro-scale-trigger--fab.agro-scale-fab--bottom-left {
+    top: auto;
+    left: max(0.85rem, env(safe-area-inset-left, 0px));
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
   }
   .agro-scale-trigger--fab[hidden] {
     display: none !important;

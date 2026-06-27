@@ -333,6 +333,34 @@
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
     /** Mesma chave da Consulta — sobrevive fechar o navegador. */
     var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v2';
+    var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+
+    function agroPdvEnqueuePatchesRespostaVenda(data) {
+        var patches = data && data.pdv_catalog_patches;
+        if (!patches || !patches.length) return;
+        try {
+            var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+            var q = raw ? JSON.parse(raw) : { items: [] };
+            if (!q.items) q.items = [];
+            patches.forEach(function (p) {
+                if (p && p.id != null) q.items.push({ patch: p, at: Date.now() });
+            });
+            if (q.items.length > 24) q.items = q.items.slice(q.items.length - 24);
+            localStorage.setItem(PDV_PATCH_QUEUE_KEY, JSON.stringify(q));
+        } catch (_) {}
+        patches.forEach(function (patch) {
+            if (!patch || patch.id == null) return;
+            var pid = String(patch.id);
+            for (var i = 0; i < wizardProductCatalog.length; i++) {
+                var row = wizardProductCatalog[i];
+                if (String(row.id || row.Id || '') === pid) {
+                    if (patch.saldo_centro != null) row.saldo_centro = patch.saldo_centro;
+                    if (patch.saldo_vila != null) row.saldo_vila = patch.saldo_vila;
+                }
+            }
+        });
+    }
+
     var WIZARD_CATALOG_TTL_MS = 1000 * 60 * 60 * 8;
     var stagingReadonly = !!(
         bootstrap.stagingReadonly ||
@@ -6234,6 +6262,11 @@
                     throw new Error(
                         (erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) || 'Falha ao confirmar venda.'
                     );
+                }
+                if (typeof window.agroPdvAplicarPatchesRespostaVenda === 'function') {
+                    window.agroPdvAplicarPatchesRespostaVenda(erpRes.data);
+                } else {
+                    agroPdvEnqueuePatchesRespostaVenda(erpRes.data);
                 }
                 var erpPendente = !!erpRes.data.erp_pendente;
                 var fiadoAguardaErp = !!erpRes.data.fiado_aguarda_erp;

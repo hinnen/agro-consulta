@@ -100,13 +100,15 @@ def grafico_gastos_view(request):
     por = "vencimento"
     valor = "saldo"
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
 
     if agro_financeiro_usa_postgres():
         from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
 
+        st_planos = _grafico_gastos_status_para_lista_planos(por, valor)
         raw = planos_distintos_pg(
             despesa=True,
-            status="abertos",
+            status=st_planos,
             vencimento_de=padrao_ini,
             vencimento_ate=hoje,
             limit=500,
@@ -234,7 +236,10 @@ def api_dados_grafico_gastos(request):
         from produtos.lancamentos_financeiro_pg_analytics_util import grafico_gastos_serie_pg
 
         if modo_tempo == "comparar":
-            common = dict(**common_kw, individual=False)
+            common = dict(
+                **common_kw,
+                individual=False,
+            )
             real = grafico_gastos_serie_pg(**common, data_referencia=None)
             if not real.get("ok"):
                 payload = real

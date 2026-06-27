@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Retiradas / saídas | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  {% include "produtos/includes/agro_date_picker_styles.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(15px, 0.35vw + 14px, 18px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin: 0 auto; }
+    .crh-touch { min-height: 2.75rem; }
+    .crh-touch-lg { min-height: 3.25rem; }
+    .crh-nova-saida {
+      min-height: clamp(3.25rem, 5vh + 2rem, 4.5rem);
+      font-size: clamp(0.95rem, 0.5vw + 0.85rem, 1.35rem);
+      letter-spacing: 0.04em;
+      box-shadow: 0 8px 24px rgba(234, 88, 12, 0.35);
+    }
+    .crh-filtros input,
+    .crh-filtros select,
+    .crh-filtros button,
+    .crh-filtros a.crh-touch {
+      font-size: 1rem;
+    }
+    .crh-table { font-size: 0.9375rem; }
+    .crh-table th { font-size: 0.6875rem; }
+  </style>
+  {% include "produtos/includes/caixa_embed_mode.html" %}
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden{% if caixa_embed %} caixa-embed-mode{% endif %}">
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0{% if caixa_embed %} hidden{% endif %}">
+    <div class="caixa-shell px-3 sm:px-5 py-2.5 flex flex-wrap justify-between items-center gap-2">
+      <div>
+        <h1 class="text-[clamp(1.1rem,0.9vw+1rem,1.5rem)] font-black uppercase text-slate-900">Retiradas / saídas</h1>
+        <p class="text-xs sm:text-sm font-bold text-slate-500">
+          {{ data_de|date:"d/m/Y" }}{% if data_ate != data_de %} — {{ data_ate|date:"d/m/Y" }}{% endif %}
+          · {{ qtd }} registro(s)
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'caixa_painel' %}" class="crh-touch inline-flex items-center px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black uppercase text-slate-700">Painel</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="crh-touch inline-flex items-center px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-xs font-black uppercase text-emerald-800 shrink-0" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="caixa-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 overflow-hidden">
+    <a href="{{ url_nova_saida }}" class="crh-nova-saida shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-orange-500 bg-orange-500 text-white font-black uppercase hover:bg-orange-600 hover:border-orange-600 transition-colors">
+      <span aria-hidden="true" class="text-2xl leading-none">+</span>
+      Nova saída
+    </a>
+
+    <form method="get" id="crh-filtros" class="crh-filtros shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm flex flex-wrap items-end gap-2">
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-de">De</label>
+        <input type="date" name="de" id="id-de" value="{{ data_de|date:'Y-m-d' }}" class="agro-date-picker crh-touch mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold w-full min-w-[10rem]">
+      </div>
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-ate">Até</label>
+        <input type="date" name="ate" id="id-ate" value="{{ data_ate|date:'Y-m-d' }}" class="agro-date-picker crh-touch mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold w-full min-w-[10rem]">
+      </div>
+      <div class="flex-1 min-w-[12rem]">
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-plano">Plano de contas</label>
+        <select name="plano" id="id-plano" class="crh-touch mt-0.5 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold">
+          <option value="">Todos</option>
+          {% for p in planos_opts %}
+          {% if p.plano %}
+          <option value="{{ p.plano }}" {% if plano_filtro == p.plano %}selected{% endif %}>{{ p.label }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex-1 min-w-[12rem]">
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-quem">Quem está levando</label>
+        <select name="quem" id="id-quem" class="crh-touch mt-0.5 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold">
+          <option value="">Todos</option>
+          {% for nome in quem_opts %}
+          <option value="{{ nome }}" {% if quem_filtro == nome %}selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="crh-touch px-4 rounded-lg bg-slate-900 text-white text-xs font-black uppercase">Filtrar</button>
+      <a href="{% url 'caixa_retiradas_historico' %}" class="crh-touch inline-flex items-center px-3 rounded-lg border border-slate-200 text-xs font-black uppercase text-slate-600">Hoje</a>
+    </form>
+
+    <div class="shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+      <p class="text-[10px] font-black uppercase text-orange-800">Total no período</p>
+      <p class="text-xl font-black text-orange-700 tabular-nums">R$ {{ total_str }}</p>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-sm">
+      {% if linhas %}
+      <table class="crh-table w-full min-w-[48rem]">
+        <thead class="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
+          <tr class="text-left font-black uppercase text-slate-400">
+            <th class="px-3 py-2.5">Data</th>
+            <th class="px-3 py-2.5">Hora</th>
+            <th class="px-3 py-2.5">Plano</th>
+            <th class="px-3 py-2.5">Quem levou</th>
+            <th class="px-3 py-2.5">Forma</th>
+            <th class="px-3 py-2.5 text-right">Valor</th>
+            <th class="px-3 py-2.5">Operador</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in linhas %}
+          <tr class="border-b border-slate-100 hover:bg-orange-50/40">
+            <td class="px-3 py-2 font-bold tabular-nums whitespace-nowrap">{{ row.data|date:"d/m/Y" }}</td>
+            <td class="px-3 py-2 font-bold tabular-nums text-slate-500">{{ row.hora_txt }}</td>
+            <td class="px-3 py-2 font-semibold text-slate-800 max-w-[14rem] truncate" title="{{ row.plano }}">{{ row.plano }}</td>
+            <td class="px-3 py-2 font-bold text-slate-800 max-w-[12rem] truncate" title="{{ row.quem }}">{{ row.quem }}</td>
+            <td class="px-3 py-2 text-slate-600">{{ row.forma }}</td>
+            <td class="px-3 py-2 text-right font-black tabular-nums text-orange-700">R$ {{ row.valor_str }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500 max-w-[10rem] truncate" title="{{ row.operador }}">{{ row.operador|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="p-8 text-center">
+        <p class="text-base font-black uppercase text-slate-500">Nenhuma retirada no período</p>
+        <p class="mt-2 text-sm font-bold text-slate-400">Ajuste os filtros ou registre uma nova saída.</p>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <script src="{% static 'produtos/js/agro_date_picker.js' %}"></script>
+  <script>
+  (function () {
+    var API_QUEM = "{% url 'api_rh_caixa_quem_leva' %}";
+    var selQuem = document.getElementById('id-quem');
+    var quemAtual = "{{ quem_filtro|escapejs }}";
+
+    if (window.AgroDatePicker) {
+      window.AgroDatePicker.bind(document.getElementById('crh-filtros'), {
+        accent: '#ea580c',
+        accentSoft: '#fff7ed'
+      });
+    }
+
+    fetch(API_QUEM, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!selQuem || !data || !data.ok || !Array.isArray(data.pessoas)) return;
+        var vistos = {};
+        Array.prototype.forEach.call(selQuem.options, function (o) {
+          if (o.value) vistos[o.value.toLowerCase()] = true;
+        });
+        data.pessoas.forEach(function (it) {
+          var nome = (it.label || it.nome || '').trim();
+          if (!nome || vistos[nome.toLowerCase()]) return;
+          vistos[nome.toLowerCase()] = true;
+          var opt = document.createElement('option');
+          opt.value = nome;
+          opt.textContent = nome;
+          if (quemAtual && quemAtual.toLowerCase() === nome.toLowerCase()) opt.selected = true;
+          selQuem.appendChild(opt);
+        });
+      })
+      .catch(function () {});
+  })();
+  </script>
+</body>
+</html>

@@ -954,7 +954,17 @@ def api_produtos_gestao_lista(request):
                 )
             chunk = [cat_agro.row_para_doc_gestao_lista(r) for r in chunk_rows]
             p_ids = [str(p.get("Id") or p.get("_id") or "") for p in chunk if p.get("Id") or p.get("_id")]
-            saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+            from produtos.agro_fonte_config import agro_estoque_ledger_ativo
+            from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+            if agro_estoque_ledger_ativo() or db is None:
+                saldos = mapa_saldos_operacionais_agro(
+                    p_ids,
+                    db=None if agro_estoque_ledger_ativo() else db,
+                    client=None if agro_estoque_ledger_ativo() else client,
+                )
+            else:
+                saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
             ovs = _overlay_mapa_por_ids(p_ids)
             rows = [
                 _linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p.get("_id") or "")))
@@ -4962,12 +4972,20 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     hints = nomes_hints or {}
     now = datetime.now()
     t56 = now - timedelta(days=56)
-    from produtos.agro_fonte_config import agro_compras_metricas_postgres
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
 
     use_pg_metricas = agro_compras_metricas_postgres()
+    use_pg_catalogo = agro_catalogo_usa_postgres()
 
-    col = db[client.col_p]
-    prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
+    if use_pg_catalogo:
+        from produtos import catalogo_agro as cat_agro
+
+        prods = cat_agro.produtos_docs_relatorio_por_externo_ids(p_ids)
+    else:
+        if db is None:
+            raise ValueError("Mongo indisponível para catálogo Compras.")
+        col = db[client.col_p]
+        prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
 
     def _chaves_produto(p) -> list[str]:
         keys: list[str] = []
@@ -5004,7 +5022,8 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             variant_to_canon.setdefault(str(v), str(canon))
             pid_variants.append(str(v))
 
-    if use_pg_metricas:
+    use_pg_vendas = use_pg_metricas or (use_pg_catalogo and db is None)
+    if use_pg_vendas:
         from produtos.compras_metricas_util import (
             vendas_qtd_apos_ref_compra_postgres,
             vendas_qtd_por_produto_intervalo_postgres,
@@ -5033,7 +5052,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             produtos_map,
             limit=1,
             mongo_max_time_ms=120_000,
-            skip_erp=use_pg_metricas,
+            skip_erp=use_pg_vendas,
         )
         for pid in p_ids:
             p = _catalogo_pmap_resolve(pmap, pid)
@@ -5053,7 +5072,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
                         qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
                     except (TypeError, ValueError):
                         qtd_ult_linha[str(canon)] = 0.0
-        if use_pg_metricas:
+        if use_pg_vendas:
             vendas_pos = vendas_qtd_apos_ref_compra_postgres(ref_por_canon, variant_to_canon)
         else:
             vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(
@@ -5205,6 +5224,17 @@ def api_compras_relatorio_dim_sugestao(request):
         lim_req = 400 if completa else 40
     lim = min(max(lim_req, 1), 500 if completa else 80)
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if tipo not in ("categoria", "unidade"):
+        return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        itens = cat_agro.compras_dimensoes_relatorio(tipo, q, completa=completa, limit=lim)
+        return JsonResponse({"ok": True, "fonte": "agro_pg", "itens": itens})
+
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "itens": [], "erro": "Mongo indisponível."}, status=503)
@@ -5239,9 +5269,6 @@ def api_compras_relatorio_dim_sugestao(request):
             "SiglaUnidadeEstoque": 1,
         }
     )
-    if tipo not in ("categoria", "unidade"):
-        return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
-
     seen: set[str] = set()
     out: list[str] = []
     mongo_docs_cap = 5000 if completa else 400
@@ -5341,9 +5368,14 @@ def api_compras_relatorio_categoria(request):
     if not categoria:
         return JsonResponse({"ok": False, "erro": "Informe a categoria."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
     if isinstance(raw_ids, list) and raw_ids:
@@ -5355,7 +5387,12 @@ def api_compras_relatorio_categoria(request):
             seen.add(s)
             p_ids.append(s)
     if not p_ids:
-        p_ids = _lista_produto_ids_catalogo_por_categoria(db, client, categoria, limit=800)
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            p_ids = cat_agro.lista_produto_externo_ids_por_categoria(categoria, limit=800)
+        else:
+            p_ids = _lista_produto_ids_catalogo_por_categoria(db, client, categoria, limit=800)
     if not p_ids:
         return JsonResponse(
             {
@@ -5399,9 +5436,14 @@ def api_compras_relatorio_unidade(request):
     if not unidade:
         return JsonResponse({"ok": False, "erro": "Informe a unidade."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
     nomes_unidade: dict[str, str] = {}
@@ -5414,7 +5456,12 @@ def api_compras_relatorio_unidade(request):
             seen.add(s)
             p_ids.append(s)
     if not p_ids:
-        p_ids, nomes_unidade = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
+        if use_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            p_ids = cat_agro.lista_produto_externo_ids_por_unidade(unidade, limit=800)
+        else:
+            p_ids, nomes_unidade = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
     if not p_ids:
         return JsonResponse(
             {
@@ -6404,8 +6451,18 @@ def _dashboard_gastos_plano_pack(blk: dict) -> dict:
 
 
 def _dashboard_gastos_plano_cache_worker(data_ini, data_fim):
-    _client, db = obter_conexao_mongo()
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
     cache: dict[str, dict] = {}
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import dashboard_despesas_plano_totais_pg
+
+        for por in ("competencia", "vencimento", "pagamento"):
+            blk = dashboard_despesas_plano_totais_pg(data_de=data_ini, data_ate=data_fim, por=por)
+            cache[por] = _dashboard_gastos_plano_pack(blk)
+        return cache
+
+    _client, db = obter_conexao_mongo()
     for por in ("competencia", "vencimento", "pagamento"):
         blk = dashboard_despesas_plano_totais_mongo(
             db, data_de=data_ini, data_ate=data_fim, por=por
@@ -8946,6 +9003,60 @@ def caixa_painel(request):
 
 
 @login_required(login_url="/admin/login/")
+def caixa_retiradas_historico(request):
+    from produtos.caixa_retiradas_util import listar_quem_retiradas_distintas, listar_retiradas_historico
+    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+
+    hoje = timezone.localdate()
+    data_de = _lancamentos_parse_date_param(request.GET.get("de")) or hoje
+    data_ate = _lancamentos_parse_date_param(request.GET.get("ate")) or hoje
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+    plano_filtro = (request.GET.get("plano") or "").strip()
+    quem_filtro = (request.GET.get("quem") or "").strip()
+
+    resultado = listar_retiradas_historico(
+        data_de=data_de,
+        data_ate=data_ate,
+        plano=plano_filtro,
+        quem=quem_filtro,
+    )
+    total = resultado["total"]
+    total_str = f"{total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    linhas_fmt = []
+    for row in resultado["linhas"]:
+        criado = row.get("criado_em")
+        hora_txt = timezone.localtime(criado).strftime("%H:%M") if criado else "—"
+        val = row["valor"]
+        val_str = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        linhas_fmt.append({**row, "hora_txt": hora_txt, "valor_str": val_str})
+
+    embed = _caixa_request_embed(request)
+    url_nova = reverse("caixa_painel") + "?painel=retirada"
+    if embed:
+        url_nova += "&embed=1"
+
+    return render(
+        request,
+        "produtos/caixa_retiradas_historico.html",
+        {
+            "data_de": data_de,
+            "data_ate": data_ate,
+            "plano_filtro": plano_filtro,
+            "quem_filtro": quem_filtro,
+            "linhas": linhas_fmt,
+            "qtd": resultado["qtd"],
+            "total_str": total_str,
+            "planos_opts": SAIDA_CAIXA_PLANOS,
+            "quem_opts": listar_quem_retiradas_distintas(),
+            "url_nova_saida": url_nova,
+            "caixa_embed": embed,
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
 def caixa_relatorio(request):
     from produtos.caixa_relatorio_util import montar_relatorio_caixa
 
@@ -9468,7 +9579,7 @@ def caixa_fechar(request):
             "fiado_baixas_conferencia": fiado_baixas_conferencia,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
             "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
-            "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
+            "caixa_popup_retirada": reverse("caixa_retiradas_historico") + "?embed=1",
             "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
             "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",
             "caixa_popup_conferencias": reverse("caixa_relatorio_conferencias")
@@ -10438,6 +10549,17 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
     return payload
 
 
+def _lancamentos_mostrar_painel_pre_corte(request) -> bool:
+    """Painel amarelo checkpoint — oculto quando financeiro PG já populado."""
+    if not request or not getattr(request.user, "is_superuser", False):
+        return False
+    if not agro_financeiro_usa_postgres():
+        return True
+    from produtos.models import TituloFinanceiroAgro
+
+    return TituloFinanceiroAgro.objects.count() == 0
+
+
 def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     """
     ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
@@ -10445,9 +10567,7 @@ def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
     ctx = {
         "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
         "modo_contas": modo_contas,
-        "lancamentos_pre_corte_admin": bool(
-            request and getattr(request.user, "is_superuser", False)
-        ),
+        "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
     }
     return ctx
 
@@ -10526,9 +10646,7 @@ def lancamentos_contas_pagar_view(request):
         "produtos/lancamentos_contas_pagar_teste.html",
         {
             "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
-            "lancamentos_pre_corte_admin": bool(
-                getattr(request.user, "is_superuser", False)
-            ),
+            "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
         },
     )
 
@@ -10773,9 +10891,8 @@ def api_lancamentos_atalhos_filtro(request):
 @require_GET
 def api_lancamentos_fluxo_calendario(request):
     """JSON: projeção diária (média vendas + títulos a pagar/receber por vencimento)."""
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "dias": [], "meta": {}}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
     try:
         horiz = int(request.GET.get("horizonte") or 60)
     except ValueError:
@@ -10791,6 +10908,19 @@ def api_lancamentos_fluxo_calendario(request):
         "não",
         "no",
     )
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import financeiro_projecao_fluxo_diario_pg
+
+        out = financeiro_projecao_fluxo_diario_pg(
+            dias_media_vendas=dias_m,
+            horizonte_dias=horiz,
+            incluir_media_vendas=incl,
+        )
+        return JsonResponse(out)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "dias": [], "meta": {}}, status=503)
     out = financeiro_projecao_fluxo_diario(
         db,
         dias_media_vendas=dias_m,
@@ -14860,20 +14990,35 @@ def api_lancamentos_dre_resumo(request):
     empresa_id = (request.GET.get("empresa_id") or "").strip() or None
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
-    r = dre_resumo_simples_mongo(
-        db,
-        data_de=de,
-        data_ate=ate,
-        por=por,
-        valor=valor,
-        filtro_contas=contas,
-        regex_excluir_extra=extra_rx or None,
-        empresa=empresa,
-        empresa_id=empresa_id,
-    )
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import dre_resumo_simples_pg
+
+        r = dre_resumo_simples_pg(
+            data_de=de,
+            data_ate=ate,
+            por=por,
+            valor=valor,
+            filtro_contas=contas,
+            regex_excluir_extra=extra_rx or None,
+            empresa=empresa,
+            empresa_id=empresa_id,
+        )
+    else:
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        r = dre_resumo_simples_mongo(
+            db,
+            data_de=de,
+            data_ate=ate,
+            por=por,
+            valor=valor,
+            filtro_contas=contas,
+            regex_excluir_extra=extra_rx or None,
+            empresa=empresa,
+            empresa_id=empresa_id,
+        )
     if not r.get("ok"):
         return JsonResponse(r, status=500)
     return JsonResponse(r)
@@ -20107,6 +20252,37 @@ def _cliente_id_e_valido_para_erp(cid) -> bool:
     return True
 
 
+def _pdv_patches_saldos_de_baixa_venda(venda: VendaAgro | None) -> list[dict]:
+    """Patches para cache PDV após baixa de estoque na venda."""
+    if venda is None:
+        return []
+    r = getattr(venda, "_pdv_baixa_estoque", None)
+    if not isinstance(r, dict):
+        return []
+    patches: dict[str, dict] = {}
+    for a in r.get("aplicados") or []:
+        if not isinstance(a, dict):
+            continue
+        pid = str(a.get("produto_id") or "").strip()
+        if not pid:
+            continue
+        slot = patches.setdefault(pid, {"id": pid})
+        dep = str(a.get("deposito") or "centro").strip().lower()
+        saldo = a.get("saldo_agro_depois")
+        if dep == "vila":
+            slot["saldo_vila"] = saldo
+        else:
+            slot["saldo_centro"] = saldo
+    return list(patches.values())
+
+
+def _anexar_pdv_patches_resposta_venda(venda: VendaAgro | None, payload: dict) -> dict:
+    patches = _pdv_patches_saldos_de_baixa_venda(venda)
+    if patches:
+        payload["pdv_catalog_patches"] = patches
+    return payload
+
+
 def _persistir_venda_agro(
     request,
     data,
@@ -20221,41 +20397,35 @@ def _persistir_venda_agro(
 
         if getattr(settings, "PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", True):
             cm, dbe = obter_conexao_mongo_pdv()
-            # PyMongo: Database/MongoClient não implementam __bool__ — usar "is not None".
-            if cm is not None and dbe is not None:
-                dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
-                if dep_v not in ("centro", "vila"):
-                    dep_v = "centro"
-                try:
-                    r_baixa = aplicar_baixa_estoque_venda_agro(
-                        db=dbe,
-                        client_m=cm,
-                        venda=v,
-                        deposito=dep_v,
-                        usuario_label=user_label,
-                        usuario_django=request.user
-                        if getattr(request, "user", None) is not None
-                        and getattr(request.user, "is_authenticated", False)
-                        else None,
-                    )
-                    if r_baixa.get("ok"):
-                        v.estoque_baixa_agro_aplicada = True
-                        v.save(update_fields=["estoque_baixa_agro_aplicada"])
-                        _invalidar_caches_apos_ajuste_pin()
-                    elif r_baixa.get("erros"):
-                        logger.warning(
-                            "Venda %s: baixa estoque Agro incompleta: %s",
-                            v.pk,
-                            r_baixa.get("erros"),
-                        )
-                except Exception:
-                    logger.exception(
-                        "Venda %s: falha na baixa estoque Agro (venda permanece gravada).",
+            dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
+            if dep_v not in ("centro", "vila"):
+                dep_v = "centro"
+            try:
+                r_baixa = aplicar_baixa_estoque_venda_agro(
+                    db=dbe,
+                    client_m=cm,
+                    venda=v,
+                    deposito=dep_v,
+                    usuario_label=user_label,
+                    usuario_django=request.user
+                    if getattr(request, "user", None) is not None
+                    and getattr(request.user, "is_authenticated", False)
+                    else None,
+                )
+                if r_baixa.get("ok"):
+                    v.estoque_baixa_agro_aplicada = True
+                    v.save(update_fields=["estoque_baixa_agro_aplicada"])
+                    v._pdv_baixa_estoque = r_baixa
+                    _invalidar_caches_apos_ajuste_pin()
+                elif r_baixa.get("erros"):
+                    logger.warning(
+                        "Venda %s: baixa estoque Agro incompleta: %s",
                         v.pk,
+                        r_baixa.get("erros"),
                     )
-            else:
-                logger.warning(
-                    "Venda %s: Mongo indisponível — baixa estoque Agro não aplicada.",
+            except Exception:
+                logger.exception(
+                    "Venda %s: falha na baixa estoque Agro (venda permanece gravada).",
                     v.pk,
                 )
 
@@ -20823,6 +20993,7 @@ def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
+        payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
     try:

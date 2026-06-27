@@ -109,9 +109,9 @@
           <span class="cx-title">Fechar caixa</span>
           <span class="cx-sub text-slate-300">Conferência e encerramento do turno</span>
         </a>
-        <a href="{% url 'caixa_painel' %}?painel=retirada" class="caixa-menu-btn border-orange-300 bg-orange-50 text-orange-950">
+        <a href="{% url 'caixa_retiradas_historico' %}" class="caixa-menu-btn border-orange-300 bg-orange-50 text-orange-950">
           <span class="cx-title">Retirada / saída</span>
-          <span class="cx-sub">Despesa com plano de contas e baixa no caixa</span>
+          <span class="cx-sub">Histórico, filtros e nova despesa no caixa</span>
         </a>
         <a href="{% url 'caixa_painel' %}?painel=reforco" class="caixa-menu-btn border-sky-300 bg-sky-50 text-sky-950">
           <span class="cx-title">Reforço manual</span>
@@ -132,9 +132,9 @@
           <span class="cx-sub text-slate-300">Conferência e encerramento</span>
         </a>
         {% endif %}
-        <a href="{% url 'caixa_painel' %}?painel=retirada" class="caixa-menu-btn border-orange-300 bg-orange-50 text-orange-950">
+        <a href="{% url 'caixa_retiradas_historico' %}" class="caixa-menu-btn border-orange-300 bg-orange-50 text-orange-950">
           <span class="cx-title">Retirada / saída</span>
-          <span class="cx-sub">Registrar despesa (financeiro)</span>
+          <span class="cx-sub">Histórico, filtros e nova despesa no caixa</span>
         </a>
         {% endif %}
         <a href="{% url 'caixa_relatorio' %}" class="caixa-menu-btn border-sky-400 bg-sky-100 text-sky-950">

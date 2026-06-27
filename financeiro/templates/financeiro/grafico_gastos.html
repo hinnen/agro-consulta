@@ -3,7 +3,7 @@
 
 {% block admin_title %}SisVale | Gráfico de gastos{% endblock %}
 {% block admin_header %}{% endblock %}
-{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh]{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800 overflow-hidden h-[100dvh] max-h-[100dvh] gg-grafico-page{% endblock %}
 
 {% block admin_shell_class %}h-[100dvh] max-h-[100dvh] bg-slate-100 flex flex-col overflow-hidden{% endblock %}
 {% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 min-h-0 px-3 sm:px-5 lg:px-8 pb-2 pt-1 overflow-hidden flex flex-col{% endblock %}
@@ -116,11 +116,11 @@
     overflow: hidden; grid-template-rows: minmax(0, 1fr);
   }
   @media (max-width: 900px) { .gg-split-body { grid-template-columns: 1fr; } }
-  .gg-split-col {
-    border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc;
-    min-height: 0; max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
-  }
-  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; }
+  .gg-split-body > details.gg-split-col[open] { height: 100%; max-height: 100%; }
+  details.gg-split-col { min-height: 0; overflow: hidden; border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc; }
+  details.gg-split-col[open] { display: flex; flex-direction: column; }
+  .gg-split-col > summary { flex-shrink: 0; }
+  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   .gg-split-col > summary {
     list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
     font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
@@ -147,8 +147,14 @@
   }
   .gg-split-inner--planos .gg-planos-tools { flex-shrink: 0; margin-top: 0; margin-bottom: 0.45rem; }
   .gg-split-inner--planos .gg-planos-grid {
-    flex: 1 1 auto; min-height: 0; max-height: 100%; overflow-y: auto;
+    flex: 1 1 auto; min-height: 5rem; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: #059669 #ecfdf5;
+    border: 2px solid #86efac;
   }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar { width: 12px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-track { background: #ecfdf5; border-radius: 8px; }
+  .gg-split-inner--planos .gg-planos-grid::-webkit-scrollbar-thumb { background: #059669; border-radius: 8px; }
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-meta-bar {
@@ -676,102 +682,97 @@ document.addEventListener('DOMContentLoaded', function () {
   const COR_REAL = '#059669';
   const COR_HIST = '#d97706';
 
+  function isDatasetHistorico(ds) {
+    ds = ds || {};
+    return ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
+  }
+
+  function ggRoundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
   const pluginGgCompareDelta = {
-    id: 'ggCompareLabels',
-    afterDraw: function (chart) {
-      const meta = chartSerieMeta;
-      if (!meta || !meta.compareMode || !meta.deltas || !meta.deltas.length) return;
-      const ds0 = chart.getDatasetMeta(0);
-      const ds1 = chart.getDatasetMeta(1);
-      if (!ds0 || !ds1) return;
+    id: 'ggCompareDeltaBadge',
+    afterDatasetsDraw: function (chart) {
+      if (!chartSerieMeta.compareMode || !datalabelsOn) return;
+      const deltas = chartSerieMeta.deltas || [];
+      if (!deltas.length) return;
+      const meta0 = chart.getDatasetMeta(0);
+      if (!meta0 || !meta0.data) return;
       const ctx = chart.ctx;
-      const chartArea = chart.chartArea;
-      const stackGap = 12;
-      meta.deltas.forEach(function (d, i) {
-        const p0 = ds0.data[i];
-        const p1 = ds1.data[i];
-        if (!p0 || !p1) return;
-        const v0 = Number((chart.data.datasets[0].data || [])[i]) || 0;
-        const v1 = Number((chart.data.datasets[1].data || [])[i]) || 0;
-        if (v0 <= 0 && v1 <= 0) return;
+      const area = chart.chartArea || {};
 
-        const x = p0.x;
-        const cls = deltaClasse(d);
-        const deltaTxt = fmtDeltaCompact(d);
-        const pilha = [];
-        if (Math.abs(d) >= 0.01) {
-          pilha.push({ txt: deltaTxt, cls: cls, isDelta: true });
-        }
-        if (Math.abs(v0 - v1) < 0.01) {
-          if (v0 > 0) pilha.push({ txt: fmtValor(v0, 0), cor: COR_REAL, isDelta: false });
+      meta0.data.forEach(function (point, i) {
+        const real = chart.data.datasets[0] && chart.data.datasets[0].data[i];
+        if (real == null || real <= 0) return;
+        const d = deltas[i];
+        if (d == null) return;
+
+        const text = fmtDeltaCompact(d);
+        const n = Number(d) || 0;
+        let bg, border, color;
+        if (Math.abs(n) < 0.01) {
+          bg = 'rgba(241, 245, 249, 0.98)';
+          border = '#94a3b8';
+          color = '#475569';
+        } else if (n > 0) {
+          bg = 'rgba(254, 242, 242, 0.98)';
+          border = '#ef4444';
+          color = '#b91c1c';
         } else {
-          var vals = [];
-          if (v0 > 0) vals.push({ txt: fmtValor(v0, 0), cor: COR_REAL, isDelta: false, val: v0 });
-          if (v1 > 0) vals.push({ txt: fmtValor(v1, 0), cor: COR_HIST, isDelta: false, val: v1 });
-          vals.sort(function (a, b) { return b.val - a.val; });
-          vals.forEach(function (v) { pilha.push(v); });
+          bg = 'rgba(236, 253, 245, 0.98)';
+          border = '#059669';
+          color = '#047857';
         }
 
-        var yCursor = Math.min(p0.y, p1.y) - 18;
-        pilha.forEach(function (item) {
-          var cor = item.isDelta ? item.cls : item.cor;
-          yCursor = desenharRotuloComparacao(ctx, x, yCursor, item.txt, cor, 'fixo', chartArea, !!item.isDelta) - stackGap;
-        });
+        ctx.save();
+        ctx.font = '900 12px system-ui, -apple-system, Segoe UI, sans-serif';
+        const tw = ctx.measureText(text).width;
+        const padX = 8;
+        const w = tw + padX * 2;
+        const h = 22;
+        let y = point.y + 50;
+        if (y + h / 2 > area.bottom - 2) y = point.y - 50;
+        const x = point.x - w / 2;
+
+        ctx.fillStyle = bg;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ggRoundRect(ctx, x, y - h / 2, w, h, 7);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, point.x, y);
+        ctx.restore();
       });
     }
   };
 
-  function corRotuloDelta(cls) {
-    if (cls === 'is-mais') return { bg: 'rgba(254, 243, 199, 0.98)', border: '#d97706', text: '#b45309' };
-    if (cls === 'is-menos') return { bg: 'rgba(209, 250, 229, 0.98)', border: '#059669', text: '#047857' };
-    return { bg: 'rgba(241, 245, 249, 0.98)', border: '#94a3b8', text: '#64748b' };
+  function ajustarScrollPlanos() {
+    var grid = document.getElementById('container-planos-contas');
+    var foot = document.querySelector('.gg-filters-foot');
+    var wrap = document.getElementById('painel-filtros-grafico');
+    if (!grid || !foot || !wrap || !wrap.classList.contains('is-open')) return;
+    var top = grid.getBoundingClientRect().top;
+    var lim = foot.getBoundingClientRect().top - top - 8;
+    if (lim < 80) lim = 80;
+    grid.style.maxHeight = Math.floor(lim) + 'px';
+    grid.style.overflowY = 'auto';
   }
 
-  function corRotuloSerie(cor) {
-    if (cor === COR_HIST) return { bg: 'rgba(255, 247, 237, 0.98)', border: COR_HIST, text: '#b45309' };
-    return { bg: 'rgba(236, 253, 245, 0.98)', border: COR_REAL, text: '#047857' };
-  }
-
-  /** @returns {number} próximo Y livre acima (modo empilhado) */
-  function desenharRotuloComparacao(ctx, x, y, txt, corOuCls, modo, chartArea, isDelta) {
-    if (!txt) return y;
-    const cores = typeof corOuCls === 'string' && corOuCls.indexOf('is-') === 0
-      ? corRotuloDelta(corOuCls)
-      : corRotuloSerie(corOuCls);
-    const fontSize = isDelta ? 14 : 15;
-    ctx.save();
-    ctx.font = '900 ' + fontSize + 'px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    const padX = 10;
-    const padY = 5;
-    const w = ctx.measureText(txt).width + padX * 2;
-    const h = fontSize + padY * 2;
-    var top;
-    if (modo === 'acima') top = y - h - 12;
-    else if (modo === 'abaixo') top = y + 12;
-    else if (modo === 'centro') top = y - h / 2;
-    else top = y - h;
-
-    if (chartArea) {
-      if (top < chartArea.top + 2) top = chartArea.top + 2;
-      if (top + h > chartArea.bottom - 2) top = chartArea.bottom - h - 2;
-    }
-
-    const left = x - w / 2;
-    ctx.fillStyle = cores.bg;
-    ctx.strokeStyle = cores.border;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') ctx.roundRect(left, top, w, h, 6);
-    else ctx.rect(left, top, w, h);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = cores.text;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(txt, x, top + h / 2);
-    ctx.restore();
-    return top;
-  }
   let cpPopupAberto = false;
 
   function csrfToken() {
@@ -840,11 +841,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function statusPlanosComoCp(por, valor, dataRef) {
     por = (por || 'vencimento').toLowerCase();
-    valor = (valor || 'saldo').toLowerCase();
+    valor = (valor || 'bruto').toLowerCase();
     if (por === 'pagamento') {
       return (valor === 'pago' && !dataRef) ? 'quitados' : 'todos';
     }
-    return (valor !== 'saldo' || dataRef) ? 'todos' : 'abertos';
+    if (dataRef) return 'todos';
+    if (valor === 'saldo') return 'abertos';
+    if (valor === 'bruto' && (por === 'vencimento' || por === 'competencia')) return 'abertos';
+    return 'todos';
   }
 
   function montarParamsPlanosCp() {
@@ -913,6 +917,7 @@ document.addEventListener('DOMContentLoaded', function () {
       cont.innerHTML = '<p class="text-base font-semibold text-slate-500 px-1">Nenhum plano distinto no filtro (igual Contas a pagar).</p>';
     }
     filtrarPlanosBusca();
+    setTimeout(ajustarScrollPlanos, 30);
   }
 
   function carregarPlanosGrafico() {
@@ -953,6 +958,10 @@ document.addEventListener('DOMContentLoaded', function () {
       try { localStorage.setItem(LS_PAINEL_ABERTO, open ? '1' : '0'); } catch (_) {}
     }
     if (chartGastos) setTimeout(function () { chartGastos.resize(); }, 120);
+    if (open) {
+      setTimeout(ajustarScrollPlanos, 50);
+      setTimeout(ajustarScrollPlanos, 200);
+    }
   }
 
   function retrairPainel() {
@@ -1144,10 +1153,14 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function cpStatusFromGrafico(por, valor) {
-    const v = (valor || 'saldo').toLowerCase();
+    const v = (valor || 'bruto').toLowerCase();
     const p = (por || 'vencimento').toLowerCase();
+    if (p === 'pagamento') {
+      if (v === 'pago') return 'quitados';
+      return 'todos';
+    }
     if (v === 'saldo') return 'abertos';
-    if (v === 'pago' && p === 'pagamento') return 'quitados';
+    if (v === 'bruto' && (p === 'vencimento' || p === 'competencia')) return 'abertos';
     return 'todos';
   }
 
@@ -1466,49 +1479,61 @@ document.addEventListener('DOMContentLoaded', function () {
             labels: { font: { weight: '800', size: 11 }, padding: 6, boxWidth: 12, boxHeight: 12, color: '#475569' }
           },
           tooltip: {
+            enabled: true,
             usePointStyle: true,
             padding: 14,
             backgroundColor: 'rgba(15, 23, 42, 0.92)',
-            titleFont: { size: 14, weight: '800' },
-            bodyFont: { size: 13, weight: '700' },
+            titleFont: { size: 15, weight: '800' },
+            bodyFont: { size: 14, weight: '700' },
+            bodySpacing: 6,
             callbacks: {
               label: function (ctx) {
                 return (ctx.dataset.label || '') + ': ' + fmtMoeda(ctx.parsed.y);
               },
-              footer: function (items) {
-                if (!items || !items.length) return '';
-                if (chartSerieMeta.compareMode) {
-                  const i = items[0].dataIndex;
-                  const d = (chartSerieMeta.deltas || [])[i];
-                  return 'Variação: ' + fmtDeltaSigned(d);
-                }
-                return 'Clique para ver Contas a pagar';
+              afterBody: function (items) {
+                if (!chartSerieMeta.compareMode || !items || !items.length) return [];
+                const i = items[0].dataIndex;
+                const d = (chartSerieMeta.deltas || [])[i];
+                if (d == null) return [];
+                return ['Variação: ' + fmtDeltaSigned(d)];
+              },
+              footer: function () {
+                return 'Clique no ponto → Contas a pagar';
               }
             }
           },
           datalabels: {
             display: function (ctx) {
-              if (chartSerieMeta.compareMode) return false;
               if (!datalabelsOn) return false;
               const n = (ctx.chart.data.labels || []).length;
               const v = ctx.dataset.data[ctx.dataIndex];
-              return n > 0 && n <= 48 && v != null && v > 0;
+              if (!(n > 0 && n <= 48 && v != null && v > 0)) return false;
+              if (!chartSerieMeta.compareMode) return true;
+              const d = (chartSerieMeta.deltas || [])[ctx.dataIndex];
+              if (Math.abs(Number(d) || 0) < 0.01) return !isDatasetHistorico(ctx.dataset);
+              return true;
             },
-            align: 'top',
-            anchor: 'end',
+            align: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'bottom';
+              return 'top';
+            },
+            anchor: function (ctx) {
+              if (chartSerieMeta.compareMode && isDatasetHistorico(ctx.dataset)) return 'start';
+              return 'end';
+            },
             offset: function (ctx) {
-              return chartSerieMeta.compareMode ? 6 : 10;
+              return chartSerieMeta.compareMode ? 10 : 10;
             },
             clip: false,
             backgroundColor: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? 'rgba(236, 253, 245, 0.98)' : 'rgba(255, 247, 237, 0.98)';
+                return isDatasetHistorico(ctx.dataset) ? 'rgba(255, 247, 237, 0.98)' : 'rgba(236, 253, 245, 0.98)';
               }
               return 'rgba(255, 255, 255, 0.96)';
             },
             borderColor: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? COR_REAL : COR_HIST;
+                return isDatasetHistorico(ctx.dataset) ? COR_HIST : COR_REAL;
               }
               return COR_REAL;
             },
@@ -1517,11 +1542,13 @@ document.addEventListener('DOMContentLoaded', function () {
             padding: { top: 7, bottom: 7, left: 10, right: 10 },
             color: function (ctx) {
               if (chartSerieMeta.compareMode) {
-                return ctx.datasetIndex === 0 ? '#047857' : '#b45309';
+                return isDatasetHistorico(ctx.dataset) ? '#b45309' : '#047857';
               }
               return '#047857';
             },
-            font: { weight: '900', size: 15 },
+            font: function (ctx) {
+              return { weight: '900', size: chartSerieMeta.compareMode ? 14 : 17 };
+            },
             formatter: function (v) { return fmtValor(v, 0); }
           }
         },
@@ -1564,14 +1591,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function estilizarDataset(ds, compareMode) {
     const cor = ds.borderColor || COR_REAL;
-    const isHist = ds.ggSerie === 'historico' || String(ds.label || '').indexOf('Como era') === 0;
-    return Object.assign({}, ds, {
+    const isHist = isDatasetHistorico(ds);
+    const styled = Object.assign({}, ds, {
       tension: 0.32,
-      borderWidth: 3,
-      pointRadius: 7,
-      pointHoverRadius: 10,
+      borderWidth: compareMode && isHist ? 3 : 3,
+      pointRadius: compareMode ? (isHist ? 9 : 7) : 7,
+      pointHoverRadius: compareMode ? (isHist ? 12 : 10) : 10,
       pointHitRadius: 18,
-      pointBorderWidth: 2,
+      pointBorderWidth: compareMode && isHist ? 3 : 2,
       pointBackgroundColor: '#fff',
       pointBorderColor: cor,
       fill: !compareMode,
@@ -1579,6 +1606,12 @@ document.addEventListener('DOMContentLoaded', function () {
         ? (isHist ? 'rgba(217, 119, 6, 0.06)' : 'rgba(5, 150, 105, 0.06)')
         : (ds.backgroundColor || 'rgba(5, 150, 105, 0.1)')
     });
+    if (compareMode) {
+      styled.borderDash = isHist ? [10, 6] : [];
+      styled.pointStyle = isHist ? 'triangle' : 'circle';
+      styled.order = isHist ? 2 : 1;
+    }
+    return styled;
   }
 
   function marcarUltimaAtualizacao() {
@@ -1645,7 +1678,9 @@ document.addEventListener('DOMContentLoaded', function () {
             deltas: data.deltas || [],
             comparacao: data.comparacao || null
           };
-          chartGastos.options.layout.padding.top = compareMode ? 64 : 40;
+          chartGastos.options.plugins.tooltip.enabled = true;
+          chartGastos.options.layout.padding.top = compareMode ? 52 : 44;
+          chartGastos.options.layout.padding.bottom = compareMode ? 36 : 2;
           chartGastos.data.labels = data.labels || [];
           chartGastos.data.datasets = (data.datasets || []).map(function (ds) {
             return estilizarDataset(ds, compareMode);
@@ -1828,6 +1863,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
+      ajustarScrollPlanos();
       if (chartGastos) chartGastos.resize();
     }, 80);
   });
