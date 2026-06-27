@@ -885,7 +885,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### FECHADO — produção gráfico = CP **v3.55** (27/06)
 
-### WIP — sync PG financeiro **v3.56** (27/06)
+### FECHADO — produção sync PG fix bulk_update **v3.58** (27/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«banana.md faça»* · **99738595** |
+| **Commit loja** | cherry-pick fix `f10faae` (só `lancamentos_financeiro_agro_util.py`) |
+| **Fix** | `bulk_update` não zera `atualizado_em` (NOT NULL) — sync shell deixou de falhar |
+| **Próximo (Renan shell prod)** | `python manage.py sincronizar_titulos_financeiro_mongo_pg --apply --conferir-jul` → CP jul **145 · 82.642,99** |
+
+### WIP — sync PG financeiro **v3.56–v3.57** (27/06)
 
 | Item | Detalhe |
 | ---- | ------- |
