@@ -927,9 +927,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | CP/CR | **✅** | — |
 | 3 | DRE | **⏭** desativado opcional | Ignorar no pacote |
 | 4 | Calendário fluxo | **⚠️** vendas incluem vendas **do teste** | **Esperado no staging** — Postgres próprio · na **loja** só vendas loja |
-| 5 | Gráfico gastos | **❌→fix v3.81** jul ~34,9k vs CP ~68,2k | Gráfico usava **Saldo**; CP compara **Bruto em aberto** · alinhado · **retestar no teste** |
+| 5 | Gráfico gastos | **❌→fix v3.82** falha conexão + alinhamento Bruto | Typo API 500 · **retestar jul** |
 | 6 | BI `/` card gastos-plano | **⏭** Renan não achou | Card **só** se `AGRO_DASHBOARD_GASTOS_PLANO=true` — **opcional** · pode pular |
-| 7 | Gestão | **⏸** não soube URL | **`/produtos/gestao/`** — pendente teste |
+| 7 | Gestão saldo pós-venda | **❌→fix v3.82** vendeu 7 · ficou -3 | v3.54 não baixava estoque sem Mongo · **retestar venda** |
 | 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
 | 9 | Cadastro ERP | **✅** lista OK · um pouco mais lenta que loja | Aceitável |
 
