@@ -872,18 +872,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.71 · **produção** v3.52 *(hotfix PDV — deploy urgente)*
+**Versão app (`VERSION`):** **teste** v3.72 · **produção** v3.52
 
 ### URGENTE — PDV sem produtos com ERP/Mongo fora **26/06**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma Renan** | ERP caiu · PDV não busca produtos |
-| **Causa** | Catálogo PDV ainda montava lista no **Mongo** (`/api/todos-produtos/delta/` exigia Mongo); loja tem `agro_pg` mas delta/local não usavam Postgres como fonte |
-| **Fix** | **`901d646`** — catálogo PDV = Postgres quando `AGRO_FONTE_CATALOGO=agro_pg`; delta/local sem Mongo; JS fallback `/local/` |
-| **Arquivos** | `views.py` (só leitura catálogo) · `consulta_produtos.js` |
-| **Dados** | **Não altera** gravação PDV/venda/lançamentos — só **de onde lê** o catálogo |
-| **Renan testar loja** | Ctrl+F5 no PDV (`/consulta/` ou `/pdv/`) — busca local deve carregar; saldo via ledger/ajuste PG |
+| **Causa** | Catálogo PDV montava lista no **Mongo**; `/api/todos-produtos/delta/` falhava sem Mongo mesmo com `agro_pg` na loja |
+| **Fix teste** | **`89400df`** / código **`901d646`** |
+| **Fix loja** | **`e23ae38`** cherry-pick · **v3.52** — deploy urgente |
+| **Arquivos** | `views.py` · `consulta_produtos.js` — **só leitura** catálogo |
+| **Renan testar loja** | Aguardar Render · **Ctrl+F5** no PDV — catálogo deve carregar do Postgres |
 
 ### WIP — gráfico gastos comparar **v3.69** (26/06)
 
