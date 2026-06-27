@@ -953,7 +953,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - **Teste CP 82k vs prod 94k** → staging PG **145 tít.** vs loja **147** — import/cópia não idêntica ao Mongo ao vivo.
 - **Gráfico teste 49k** → bug agregação PG (pacote).
 
-**Fix v3.85 (teste) / v3.55 (prod):** gráfico PG = CP · **Renan OK 27/06** · prod cherry-pick **99738595**.
+**Fix v3.85 (teste) / v3.55 (prod):** gráfico PG = CP · **Renan OK teste 82.643** · prod CP ainda **~94k** — ver abaixo.
+
+**Prod ~94k vs backup ~82k (27/06 — sem fix ainda):**
+- **Checkpoint 19/06 não muda valor** — só carimba Mongo (`AgroFonteVerdade`); backup Excel = foto daquele dia.
+- **CP hoje lê Postgres** importado **~26/06** do Mongo **vivo** (não “congela” na data 19).
+- **Gap ~12k** = títulos/movimentos entre **19/06 e import** OU diferença staging vs loja — **não é bug do gráfico v3.55**.
+- **Antes de código:** comparar qtd jul/2026 backup Excel vs CP prod; achar 1 título na CP que **não** está no Excel.
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
