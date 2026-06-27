@@ -758,7 +758,30 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 
 **Não fazer:** apagar Mongo · ligar `AGRO_FONTE_FINANCEIRO=agro_pg` na loja sem OK do assistente.
 
-### WIP AGORA — pós-validação loja
+### PRÓXIMO AGORA — retomada pós-sync CP **v3.58** (27/06)
+
+**Fechado hoje:** sync shell prod · CP jul **145 · 82.642,99** = Mongo/Excel/gráfico.
+
+**Ordem sugerida (banana + checklist pacote corte ERP):**
+
+| # | O quê | Quem | Urgência |
+| - | ----- | ---- | -------- |
+| **1** | **Ctrl+F5 loja** — CP jul aberto + gráfico jul = **82.643** (confirma na tela) | Renan | **Agora** · 2 min |
+| **2** | **Gestão saldo pós-venda** — fix **v3.82** só no **teste** · vender 1 un. → gestão deve baixar estoque | Renan teste | **Alta** — loja ainda **v3.54** (bug baixa sem Mongo) · sobe **no pacote**, não cherry avulso |
+| **3** | **Pacote desvinculação restante** — baixa estoque PDV + flags B+C loja + Compras/NF onde falta | Assistente → teste → loja com senha | **Alta** — Renan disse estoque loja perdido · recontar antes ou depois do pacote |
+| **4** | **Entrada NF rascunho** (etapas 1–6) ainda Mongo · título passo 7 **já PG** na loja | Assistente | Média |
+| **5** | **DRE / fluxo calendário / PDF** ler Postgres | Assistente | Baixa (Renan ⏭ DRE) |
+| **6** | **BI card gastos-plano** | Opcional | Só se ligar `AGRO_DASHBOARD_GASTOS_PLANO=true` |
+| **7** | **Motor busca GM** (`gm0050` Compras/NF) | Por último | Não bloqueia operação |
+| **8** | **Transferências · Validade · fornecedor NF** | Fase 6 desvinculo | Baixa |
+
+**Ignorar por ora (Renan):** Compras planilha recarrega · calendário fluxo no **teste** mistura vendas staging.
+
+**Só no teste (diff vs loja ~9 arquivos):** gráfico gastos UX · PDV/views · `catalogo_agro` · diag CP — **não** merge inteiro; cherry-pick por pacote.
+
+**Assistente — próximo código:** retomar item **2** (validar v3.82 teste) ou item **3** (pacote baixa estoque + desvinculo loja) — **Renan escolhe**.
+
+### WIP AGORA — pós-validação loja *(histórico — ver PRÓXIMO AGORA acima)*
 
 | Foco | Detalhe |
 | ---- | ------- |
@@ -927,7 +950,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | 2 | CP/CR | **✅** | — |
 | 3 | DRE | **⏭** desativado opcional | Ignorar no pacote |
 | 4 | Calendário fluxo | **⚠️** vendas incluem vendas **do teste** | **Esperado no staging** — Postgres próprio · na **loja** só vendas loja |
-| 5 | Gráfico gastos | **✅** teste + **→ prod v3.55** | Renan OK **82.643** gráfico = CP |
+| 5 | Gráfico gastos | **✅** teste + **✅ prod** (v3.55 gráfico · v3.58 sync CP) | Renan conferir tela **82.643** |
 | 6 | BI `/` card gastos-plano | **⏭** Renan não achou | Card **só** se `AGRO_DASHBOARD_GASTOS_PLANO=true` — **opcional** · pode pular |
 | 7 | Gestão saldo pós-venda | **❌→fix v3.82** vendeu 7 · ficou -3 | v3.54 não baixava estoque sem Mongo · **retestar venda** |
 | 8 | Compras planilha | **⏭** tela recarrega sozinha | Pouco usada · dados PG depois · **ignorar por ora** (Renan) |
@@ -976,7 +999,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Shell prod** | `--apply --conferir-jul` OK |
 | **PG** | 17 886 → **17 878** títulos · **8 órfãos** removidos |
 | **CP jul/2026 aberto** | **145 · R$ 82.642,99** — bate Mongo/Excel |
-| **Renan** | Conferir CP na tela (Ctrl+F5) e gráfico jul = mesmo valor |
+| **Renan** | Conferir CP na tela (Ctrl+F5) e gráfico jul = **82.643** · **✅ shell OK** |
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
