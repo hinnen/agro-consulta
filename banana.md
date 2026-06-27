@@ -883,6 +883,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fora** | DRE · Compras PG · pacote teste inteiro |
 | **Loja** | Ctrl+F5 PDV · confirmar venda PIX e dinheiro — barra rápida; cupom fiscal em background |
 
+### FECHADO — produção gráfico = CP **v3.55** (27/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Teste OK gráfico = CP **82.643** · **99738595** |
+| **Conteúdo** | Série PG por bucket = CP · saldo default |
+
 ### FECHADO — produção gráfico gastos UX **v3.50** (26/06)
 
 | Item | Detalhe |
