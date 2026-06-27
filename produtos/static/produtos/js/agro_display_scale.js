@@ -95,6 +95,54 @@
     } catch (e3) {}
   }
 
+  function readFromParentFrame() {
+    try {
+      if (global.parent === global) return null;
+      var pel = global.parent.document.documentElement;
+      var attr = pel.getAttribute('data-agro-scale');
+      if (attr) {
+        var na = parseFloat(attr, 10);
+        if (isFinite(na) && na >= MIN && na <= MAX) return na;
+      }
+      var z = pel.style.zoom;
+      if (z) {
+        var nz = parseFloat(z, 10);
+        if (isFinite(nz) && nz >= MIN && nz <= MAX) return nz;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function readAnyProfileScale() {
+    try {
+      if (global.localStorage.getItem(CONFIGURED_BASE) === '1') {
+        var leg = parseFloat(global.localStorage.getItem(STORAGE_BASE), 10);
+        if (isFinite(leg) && leg >= MIN && leg <= MAX) return leg;
+      }
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var k = global.localStorage.key(i);
+        if (!k || k.indexOf(CONFIGURED_BASE + '_') !== 0) continue;
+        if (global.localStorage.getItem(k) !== '1') continue;
+        var scaleKey = STORAGE_BASE + k.slice(CONFIGURED_BASE.length);
+        var n = parseFloat(global.localStorage.getItem(scaleKey), 10);
+        if (isFinite(n) && n >= MIN && n <= MAX) return n;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function isAnyProfileConfigured() {
+    try {
+      if (global.localStorage.getItem(configuredKey()) === '1') return true;
+      if (global.localStorage.getItem(CONFIGURED_BASE) === '1') return true;
+      for (var i = 0; i < global.localStorage.length; i++) {
+        var k = global.localStorage.key(i);
+        if (k && k.indexOf(CONFIGURED_BASE + '_') === 0 && global.localStorage.getItem(k) === '1') return true;
+      }
+    } catch (e) {}
+    return readFromParentFrame() != null;
+  }
+
   function read() {
     migrateLegacyStorage();
     try {
@@ -102,16 +150,16 @@
       var n = parseFloat(s, 10);
       if (isFinite(n) && n >= MIN && n <= MAX) return n;
     } catch (e) {}
+    var any = readAnyProfileScale();
+    if (any != null) return clamp(any);
+    var parent = readFromParentFrame();
+    if (parent != null) return clamp(parent);
     return DEFAULT;
   }
 
   function isConfigured() {
     migrateLegacyStorage();
-    try {
-      return global.localStorage.getItem(configuredKey()) === '1';
-    } catch (e) {
-      return false;
-    }
+    return isAnyProfileConfigured();
   }
 
   function applyToRoot(scale) {

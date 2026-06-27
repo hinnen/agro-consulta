@@ -413,7 +413,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Gaveta** = turno principal · **Notebook** = vínculo sem sessão própria · **Teste** = isolado (`ponto_caixa=teste`), fora do fechamento em lote.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
-- **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`).
+- **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 
 ### 4.12 RH
 
@@ -918,6 +918,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Nova saída** | Botão laranja grande → `?painel=retirada` (form existente) |
 | **Feedback saída** | Após registrar: banner verde «Retirada concluída» + limpa todos os campos |
 | **Deploy teste** | **`0f16dbd`** · **v4.02** — aguardando Renan no Render teste |
+| **Fix escala (27/06)** | Histórico retiradas + form saída em **rem**; escala Agro herda perfil calibrado e iframe pai |
 
 ### PRODUTO — FOOD delivery em branco (27/06 · Renan)
 
