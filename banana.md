@@ -961,15 +961,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - **Causa provável:** import PG **~26/06** do Mongo **vivo** (≠ foto 19/06) + **dedup** CP; **+2 títulos** e **~+12k saldo** vs Excel.
 **Qual é o correto? (Renan — operação loja)**
 
-| Pergunta | Resposta direta |
-| -------- | ---------------- |
-| **O que usar para pagar conta / operar amanhã?** | **CP produção hoje** (~**94.879** jul · **147** tít.) — é o que o SisVale da **loja** lê agora (Postgres). |
-| **O Excel 19/06 (~82.643)?** | **Só arquivo de segurança** do dia do checkpoint — **não** substitui a CP se vocês **seguiram usando** Lançamentos/CP depois do dia 19. |
-| **Teste ~82k?** | Cópia **staging** ≈ backup — **certo para testar código**, **não** é espelho ao vivo da loja. |
-| **Checkpoint “autoriza” algo?** | **Não.** Só carimba Mongo; **não trava** valores na tela. Pagamentos/baixas **depois do 19** entram no total de hoje. |
-| **Por que 94 ≠ 82?** | Loja **operou** 19/06 → import ~26/06 → hoje: títulos/valores **mudaram** (novos lançamentos, baixas parciais, +2 títulos jul, saldos maiores). |
+| Fonte | Jul/2026 aberto | Confiável? |
+| ----- | ----------------- | ---------- |
+| **Mongo ao vivo** (diag. 27/06) | **145 · 82.642,99** | **Sim** — bate Excel 19/06 |
+| **CP prod (Postgres)** | 147 · 94.879 | **Não** — PG **dessincronizado** do Mongo |
+| **Teste** | ~82k | Sim (PG staging ≈ Mongo) |
 
-**Regra prática:** loja = **confie na CP produção** até reconciliarmos PG ↔ Mongo ao vivo (próximo passo migração, **sem** apressar gráfico).
+**Para a loja:** o certo é **~82.643** (Mongo). Tela prod **94k** = import PG errado/desatualizado — **reimport Mongo→PG** (próximo passo, com calma).
+
+**Comando:** `python manage.py diagnosticar_cp_pg_mongo` (read-only).
 
 ### FIX teste — gráfico gastos + baixa estoque PDV **27/06 · v3.82**
 
