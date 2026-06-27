@@ -317,6 +317,11 @@ def _token_cron_alerta_valido(request) -> bool:
 _cached_mongo_client = None
 
 
+def invalidar_cache_conexao_mongo():
+    global _cached_mongo_client
+    _cached_mongo_client = None
+
+
 def obter_conexao_mongo():
     global _cached_mongo_client
     try:
@@ -325,8 +330,17 @@ def obter_conexao_mongo():
         db = _cached_mongo_client.db if _cached_mongo_client else None
         return _cached_mongo_client, db
     except Exception:
-        _cached_mongo_client = None
+        invalidar_cache_conexao_mongo()
         return None, None
+
+
+def obter_conexao_mongo_pdv():
+    """Mongo para fluxos PDV venda — respeita ``AGRO_PDV_VENDA_SEM_MONGO_ERP``."""
+    from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+
+    if agro_pdv_venda_sem_mongo_erp():
+        return None, None
+    return obter_conexao_mongo()
 
 
 @require_GET
@@ -11505,6 +11519,30 @@ def aplicar_baixa_estoque_venda_agro(
     user = (usuario_label or "PDV")[:80]
     aplicados: list[dict] = []
     erros: list[dict] = []
+    from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+
+    sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _saldo_antes_baixa(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
+        """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
+        if sem_mongo:
+            if pid_loc not in saldos_op_cache:
+                from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+                saldos_op_cache.update(
+                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                )
+            info = saldos_op_cache.get(pid_loc) or {}
+            if dep_l == "vila":
+                antes = Decimal(str(info.get("saldo_vila", 0)))
+                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+            else:
+                antes = Decimal(str(info.get("saldo_centro", 0)))
+                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
+        return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 
     def _uma_baixa(
         pid_loc: str,
@@ -11517,8 +11555,7 @@ def aplicar_baixa_estoque_venda_agro(
         if dep_l not in ("centro", "vila"):
             dep_l = "centro"
         empresa, loja = _empresa_loja_padrao_agro_estoque(dep_l)
-        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
-        saldo_antes = _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp)
+        saldo_antes, saldo_erp = _saldo_antes_baixa(pid_loc, dep_l)
         saldo_depois = (saldo_antes - qtd_loc).quantize(Decimal("0.001"))
         try:
             AjusteRapidoEstoque.objects.create(
@@ -11568,7 +11605,11 @@ def aplicar_baixa_estoque_venda_agro(
         baixa_cmp = bool(kit_cfg.get("baixa_componentes"))
         dep_kit = _deposito_baixa_kit_componente(kit_cfg, dep_sess)
 
-        p_doc = _produto_mongo_por_id_externo(db, client_m, pid) if db is not None else None
+        p_doc = (
+            _produto_mongo_por_id_externo(db, client_m, pid)
+            if db is not None and not sem_mongo
+            else None
+        )
         comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
 
         if baixa_cmp and comp:
@@ -19843,7 +19884,15 @@ def _linha_item_pedido_erp(
     qtd = float(item.get("qtd") or 0)
     vu = float(item.get("preco") or 0)
     nome = str(item.get("nome") or "").strip()
-    p_doc = _produto_mongo_por_id_externo(db, client_m, pid)
+    from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+
+    p_doc = None
+    if db is not None and client_m is not None and not agro_pdv_venda_sem_mongo_erp():
+        p_doc = _produto_mongo_por_id_externo(db, client_m, pid)
+    elif agro_pdv_venda_sem_mongo_erp():
+        from produtos import catalogo_agro as cat_agro
+
+        p_doc = cat_agro.doc_pedido_erp_por_externo_id(pid)
     produto_id = pid
     codigo = pid
     codigo_barras = ""
@@ -20171,7 +20220,7 @@ def _persistir_venda_agro(
             ItemVendaAgro.objects.create(venda=v, **it)
 
         if getattr(settings, "PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", True):
-            cm, dbe = obter_conexao_mongo()
+            cm, dbe = obter_conexao_mongo_pdv()
             # PyMongo: Database/MongoClient não implementam __bool__ — usar "is not None".
             if cm is not None and dbe is not None:
                 dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
@@ -20789,7 +20838,7 @@ def api_enviar_pedido_erp(request):
     if err_cashback is not None:
         return err_cashback
     try:
-        client_m, db = obter_conexao_mongo()
+        client_m, db = obter_conexao_mongo_pdv()
         if venda_payload_tem_fiado(data):
             err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
                 data, client_m=client_m, db=db

@@ -165,6 +165,16 @@ def agro_staging_readonly() -> bool:
     return agro_mongo_escrita_bloqueada()
 
 
+def agro_pdv_venda_sem_mongo_erp() -> bool:
+    """PDV confirmar venda: não bloquear em DtoProduto/DtoEstoque Mongo (ERP fora)."""
+    return bool(getattr(settings, "AGRO_PDV_VENDA_SEM_MONGO_ERP", True))
+
+
+def agro_pdv_nfce_assincrona() -> bool:
+    """NFC-e pós-venda PDV: SEFAZ em thread, resposta HTTP imediata."""
+    return bool(getattr(settings, "AGRO_PDV_NFCE_ASSINCRONA", True))
+
+
 def agro_compras_metricas_postgres() -> bool:
     """Compras: média/sugestão via VendaAgro (Postgres). Default = mesmo gate Fase B/C."""
     raw = getattr(settings, "AGRO_COMPRAS_METRICAS_POSTGRES", None)
@@ -188,6 +198,8 @@ def agro_fonte_status_dict() -> dict:
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "compras_metricas_postgres": agro_compras_metricas_postgres(),
+        "pdv_venda_sem_mongo_erp": agro_pdv_venda_sem_mongo_erp(),
+        "pdv_nfce_assincrona": agro_pdv_nfce_assincrona(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),
         "estoque_operacional_sem_mongo_erp": agro_estoque_operacional_sem_mongo_erp(),

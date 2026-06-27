@@ -20,14 +20,15 @@ from .mercado_pago_point import (
     mp_point_mensagem_erro,
     mp_point_order_indica_pago,
 )
-from .models import PdvMercadoPagoPointOrder
+from .models import PdvMercadoPagoPointOrder, VendaAgro
 from .caixa_util import SessaoCaixaObrigatoriaError, exigir_sessao_caixa_para_venda
 from .views import (
+    _disparar_envio_erp_venda_background,
     _fluxo_enviar_pedido_erp_interno,
     _json_legivel,
     _pdv_pedido_linhas_e_valor_final,
     _persistir_venda_agro,
-    obter_conexao_mongo,
+    obter_conexao_mongo_pdv,
 )
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ def api_pdv_mp_point_criar(request):
     if not erp_payload.get("itens"):
         return JsonResponse({"ok": False, "erro": "Informe os itens da venda."}, status=400)
 
-    client_m, db = obter_conexao_mongo()
+    client_m, db = obter_conexao_mongo_pdv()
     err_resp, _linhas, valor_final = _pdv_pedido_linhas_e_valor_final(erp_payload, client_m=client_m, db=db)
     if err_resp is not None:
         try:
@@ -208,7 +209,7 @@ def api_pdv_mp_point_finalizar(request):
     if not order_id:
         return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
 
-    client_m, db = obter_conexao_mongo()
+    client_m, db = obter_conexao_mongo_pdv()
     token = settings.MP_POINT_ACCESS_TOKEN.strip()
     ok_mp, st, body = mp_point_get_order(access_token=token, order_id=order_id)
     if not ok_mp or not isinstance(body, dict):
@@ -274,6 +275,49 @@ def api_pdv_mp_point_finalizar(request):
                 status=409,
             )
 
+        try:
+            exigir_sessao_caixa_para_venda(request, erp_data)
+        except SessaoCaixaObrigatoriaError as e:
+            row.status = PdvMercadoPagoPointOrder.Status.FAILED
+            row.save(update_fields=["status", "atualizado_em"])
+            return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+
+        raw_itens = erp_data.get("itens", [])
+        if not isinstance(raw_itens, list):
+            raw_itens = []
+
+        from produtos.views_nfce import anexar_nfce_resposta_venda
+
+        if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
+            try:
+                venda_local = _persistir_venda_agro(
+                    request,
+                    erp_data,
+                    raw_itens,
+                    None,
+                    None,
+                    False,
+                    erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
+                )
+            except SessaoCaixaObrigatoriaError as e:
+                row.status = PdvMercadoPagoPointOrder.Status.FAILED
+                row.save(update_fields=["status", "atualizado_em"])
+                return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+            vid = venda_local.pk if venda_local else None
+            if vid:
+                _disparar_envio_erp_venda_background(vid, erp_data)
+            row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
+            row.venda_id = vid
+            row.save(update_fields=["status", "venda", "atualizado_em"])
+            payload = {
+                "ok": True,
+                "mensagem": "Venda registrada. Envio ao ERP em segundo plano.",
+                "venda_id": vid,
+                "erp_pendente": True,
+            }
+            anexar_nfce_resposta_venda(venda_local, erp_data, payload)
+            return JsonResponse(payload)
+
         err, out = _fluxo_enviar_pedido_erp_interno(request, erp_data, client_m=client_m, db=db)
         if err is not None:
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
@@ -283,13 +327,6 @@ def api_pdv_mp_point_finalizar(request):
             except Exception:
                 pe = {"erro": str(err)}
             return JsonResponse({"ok": False, **pe}, status=err.status_code)
-
-        try:
-            exigir_sessao_caixa_para_venda(request, erp_data)
-        except SessaoCaixaObrigatoriaError as e:
-            row.status = PdvMercadoPagoPointOrder.Status.FAILED
-            row.save(update_fields=["status", "atualizado_em"])
-            return JsonResponse({"ok": False, "erro": str(e)}, status=400)
 
         try:
             venda_local = _persistir_venda_agro(

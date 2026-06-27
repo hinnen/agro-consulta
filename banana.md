@@ -870,7 +870,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Versão:** `1.1.09`  
 **Última atualização:** `2026-05-28`  
 **Atualizado por:** assistente — fix cashback ao fechar orçamento salvo no PDV  
-**Versão app (`VERSION`):** **teste** v3.62 · **produção** v3.50 (gráfico UX 26/06)
+**Versão app (`VERSION`):** **teste** v3.79 · **produção** v3.53
+
+### FECHADO — produção PDV finalização rápida **v3.53** (27/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | *«suba esse cherrypick»* · **99738595** |
+| **Commit loja** | cherry-pick **`3907006`** sobre **`e23ae38`** |
+| **Conteúdo** | Venda sem Mongo ERP · NFC-e em background · MP Point ERP assíncrono |
+| **Migrate** | **Nenhuma** |
+| **Fora** | DRE · Compras PG · pacote teste inteiro |
+| **Loja** | Ctrl+F5 PDV · confirmar venda PIX e dinheiro — barra rápida; cupom fiscal em background |
 
 ### FECHADO — produção gráfico gastos UX **v3.50** (26/06)
 
