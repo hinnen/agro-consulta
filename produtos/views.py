@@ -21451,9 +21451,9 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
 
 
 def _catalogo_pdv_montar_produtos(db, client):
-    from produtos.agro_fonte_config import agro_pdv_catalogo_somente_postgres
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
 
-    if agro_pdv_catalogo_somente_postgres():
+    if agro_pdv_catalogo_somente_postgres() or agro_catalogo_usa_postgres():
         return _catalogo_pdv_montar_produtos_somente_postgres(db, client)
 
     query = {"CadastroInativo": {"$ne": True}}
@@ -21630,44 +21630,14 @@ def api_todos_produtos_local(request):
     from estoque.sync_health import registrar_ping_mongo
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
 
+    usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
     client, db = obter_conexao_mongo()
-    usa_pg_cat = agro_catalogo_usa_postgres()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        if pdv_somente_pg:
-            if db is not None:
-                entry = _catalogo_pdv_entry_atual(db, client)
-            else:
-                produtos = _catalogo_pdv_montar_produtos_somente_postgres(None, None)
-                now_iso = timezone.now().isoformat()
-                version = _catalogo_pdv_version(produtos)
-                entry = {
-                    "body": {
-                        "produtos": produtos,
-                        "catalog_version": version,
-                        "catalog_updated_at": now_iso,
-                    }
-                }
-        elif db is not None:
-            entry = _catalogo_pdv_entry_atual(db, client)
-        elif usa_pg_cat:
-            from produtos import catalogo_agro as cat_agro
-
-            produtos = cat_agro.mesclar_catalogo_pdv_cache([])
-            now_iso = timezone.now().isoformat()
-            version = _catalogo_pdv_version(produtos)
-            entry = {
-                "body": {
-                    "produtos": produtos,
-                    "catalog_version": version,
-                    "catalog_updated_at": now_iso,
-                }
-            }
-        else:
-            return JsonResponse({"erro": "Erro conexao"}, status=500)
+        entry = _catalogo_pdv_entry_atual(db, client)
         registrar_ping_mongo(db is not None)
         return JsonResponse(entry["body"])
     except Exception as e:
@@ -21678,9 +21648,12 @@ def api_todos_produtos_local(request):
 @require_GET
 def api_todos_produtos_delta(request):
     from estoque.sync_health import registrar_ping_mongo
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
 
+    usa_pg_cat = agro_catalogo_usa_postgres()
+    pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
     client, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not usa_pg_cat and not pdv_somente_pg:
         registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     since = str(request.GET.get("since") or "").strip()
