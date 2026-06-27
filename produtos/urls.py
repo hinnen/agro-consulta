@@ -642,6 +642,11 @@ urlpatterns = [
         name='api_cron_importar_titulos_financeiro_mongo_pg',
     ),
     path(
+        'api/cron/sincronizar-titulos-financeiro-mongo-pg/',
+        views.api_cron_sincronizar_titulos_financeiro_mongo_pg,
+        name='api_cron_sincronizar_titulos_financeiro_mongo_pg',
+    ),
+    path(
         'api/agro/financeiro-pg-conferencia/',
         views.api_agro_financeiro_pg_conferencia,
         name='api_agro_financeiro_pg_conferencia',

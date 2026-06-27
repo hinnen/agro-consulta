@@ -885,10 +885,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### FECHADO — produção gráfico = CP **v3.55** (27/06)
 
+### WIP — sync PG financeiro **v3.56** (27/06)
+
 | Item | Detalhe |
 | ---- | ------- |
-| **Renan** | Teste OK gráfico = CP **82.643** · **99738595** |
-| **Conteúdo** | Série PG por bucket = CP · saldo default |
+| **Problema** | CP prod **94k** · Mongo/Excel **82.643** — PG dessincronizado |
+| **Fix** | `sincronizar_titulos_financeiro_mongo_pg --apply` ou cron `sincronizar-titulos-financeiro-mongo-pg/?dry_run=0` |
+| **Pós-sync** | CP jul deve ir para **145 · 82.642,99** |
 
 ### FECHADO — produção gráfico gastos UX **v3.50** (26/06)
 
