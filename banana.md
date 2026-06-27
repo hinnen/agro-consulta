@@ -869,14 +869,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v3.75 · **produção** v3.52
+**Versão app (`VERSION`):** **teste** v3.76 · **produção** v3.52
 
-### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.75**
+### PACOTE — corte ERP sem Mongo (26/06) · **teste v3.76**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Contexto** | ERP caiu (loja não pagou); Renan pediu **fechar pendências do corte** no **teste** — validar um a um antes de produção |
-| **Commit** | **`7992b0a`** — pacote analytics PG + Compras dim/planilha + gestão saldos sem Mongo |
+| **Commit** | **`7992b0a`** (código) + **`f9bd827`** (banana) — analytics PG + Compras + gestão |
 | **Migrate** | **Nenhuma** |
 | **Flags Render teste** | `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=true` · financeiro PG auto se títulos existirem · ledger estoque se já ligado |
 
