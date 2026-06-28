@@ -916,7 +916,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Rascunho assistente (etapas 1–6) sair do Mongo `AgroEntradaNotaRascunho` |
 | **Modelo** | `EntradaNotaRascunhoAgro` · migration `0043` + `0044` |
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
-| **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
+| **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` · **auto** na listagem + boot (`maybe_bootstrap_rascunhos_entrada_nota_pg`) |
+| **Incidente 28/06** | Loja lista vazia — PG ligado, dados ainda no Mongo; **fix v4.20** bootstrap automático |
 | **Audit v4.17** | Fix `_object_id_rascunho` Mongo (ObjectId) vs PG (str) · reabrir etapa 4/lote · msgs etapa 8 · pós-reabrir vai etapa 5 |
 | **Deploy teste** | v4.09–v4.17 validado · NF 112 GM9503 **47** ✅ |
 | **Deploy produção** | **28/06** · **`cdc198f`** · **v4.17** · Renan autorizou (senha) ✅ |

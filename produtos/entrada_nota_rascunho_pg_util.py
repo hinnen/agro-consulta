@@ -588,6 +588,38 @@ def importar_rascunhos_mongo_batch(db, *, limit: int = 5000) -> dict[str, int]:
     return {"ok": n, "erro": 0}
 
 
+def maybe_bootstrap_rascunhos_entrada_nota_pg(
+    db,
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Import Mongo→PG na 1ª listagem ou boot (loja/staging). Idempotente."""
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+    from produtos.models import EntradaNotaRascunhoAgro
+
+    if not agro_entrada_nota_rascunho_postgres():
+        return {"ok": True, "skipped": True, "motivo": "mongo_store"}
+
+    n = EntradaNotaRascunhoAgro.objects.count()
+    if n > 0 and not force:
+        return {"ok": True, "skipped": True, "motivo": "pg_ja_populado", "pg_depois": n}
+
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+
+    antes = n
+    r = importar_rascunhos_mongo_batch(db)
+    depois = EntradaNotaRascunhoAgro.objects.count()
+    ok = not r.get("erro") and depois >= antes
+    return {
+        "ok": ok,
+        "importados": int(r.get("ok") or 0),
+        "pg_antes": antes,
+        "pg_depois": depois,
+        "erro": None if ok else "import_parcial_ou_falhou",
+    }
+
+
 def lazy_import_rascunho_mongo(db, oid: str) -> dict[str, Any] | None:
     """Se PG ativo e rascunho ausente, tenta copiar do Mongo legado."""
     from bson.objectid import ObjectId

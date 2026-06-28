@@ -8,6 +8,37 @@ class ProdutosConfig(AppConfig):
         import produtos.signals  # noqa: F401
         self._agendar_bootstrap_financeiro_pg_staging()
         self._agendar_bootstrap_financeiro_pg_producao()
+        self._agendar_bootstrap_entrada_nota_rascunho_pg()
+
+    @staticmethod
+    def _agendar_bootstrap_entrada_nota_rascunho_pg() -> None:
+        """Import rascunhos Entrada NF Mongo→PG se tabela PG vazia (pós-deploy v4.17)."""
+        import logging
+        import threading
+
+        def _run() -> None:
+            try:
+                from django.core.cache import cache
+
+                if not cache.add("agro_entrada_nf_rascunho_pg_bootstrap_v1", 1, timeout=7200):
+                    return
+                from produtos.entrada_nota_rascunho_pg_util import (
+                    maybe_bootstrap_rascunhos_entrada_nota_pg,
+                )
+                from produtos.views import obter_conexao_mongo
+
+                _, db = obter_conexao_mongo()
+                r = maybe_bootstrap_rascunhos_entrada_nota_pg(db)
+                if not r.get("skipped") and not r.get("ok"):
+                    logging.getLogger(__name__).error(
+                        "bootstrap Entrada NF rascunho PG: %s", r.get("erro")
+                    )
+            except Exception:
+                logging.getLogger(__name__).exception("bootstrap Entrada NF rascunho PG")
+
+        threading.Thread(
+            target=_run, daemon=True, name="agro-entrada-nf-rascunho-pg-bootstrap"
+        ).start()
 
     @staticmethod
     def _agendar_bootstrap_financeiro_pg_producao() -> None:
