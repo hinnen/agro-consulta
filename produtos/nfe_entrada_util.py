@@ -1866,18 +1866,12 @@ def listar_rascunhos_entrada(
         return []
     try:
         from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
-        from produtos.entrada_nota_rascunho_pg_util import (
-            maybe_bootstrap_rascunhos_entrada_nota_pg,
-        )
+        from produtos.entrada_nota_rascunho_pg_util import ensure_rascunhos_entrada_nota_pg
 
         if agro_entrada_nota_rascunho_postgres():
-            from django.core.cache import cache
-            from produtos.models import EntradaNotaRascunhoAgro
-
-            if EntradaNotaRascunhoAgro.objects.count() == 0 and cache.add(
-                "agro_entrada_nf_rascunho_pg_bootstrap_v1", 1, timeout=300
-            ):
-                maybe_bootstrap_rascunhos_entrada_nota_pg(db)
+            pg_ok = ensure_rascunhos_entrada_nota_pg(db)
+            if not pg_ok and db is not None:
+                col = db[COL_ENTRADA_RASCUNHO]
 
         lim = min(max(limit, 1), 100)
         busca = busca if isinstance(busca, dict) else {}

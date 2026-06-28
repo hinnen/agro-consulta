@@ -20,18 +20,19 @@ class ProdutosConfig(AppConfig):
             try:
                 from django.core.cache import cache
 
-                if not cache.add("agro_entrada_nf_rascunho_pg_bootstrap_v1", 1, timeout=7200):
+                if not cache.add(
+                    "agro_entrada_nf_rascunho_pg_boot_thread_v1", 1, timeout=3600
+                ):
                     return
                 from produtos.entrada_nota_rascunho_pg_util import (
-                    maybe_bootstrap_rascunhos_entrada_nota_pg,
+                    ensure_rascunhos_entrada_nota_pg,
                 )
                 from produtos.views import obter_conexao_mongo
 
                 _, db = obter_conexao_mongo()
-                r = maybe_bootstrap_rascunhos_entrada_nota_pg(db)
-                if not r.get("skipped") and not r.get("ok"):
-                    logging.getLogger(__name__).error(
-                        "bootstrap Entrada NF rascunho PG: %s", r.get("erro")
+                if not ensure_rascunhos_entrada_nota_pg(db, max_wait_s=120.0):
+                    logging.getLogger(__name__).warning(
+                        "bootstrap Entrada NF rascunho PG: PG ainda vazio após import"
                     )
             except Exception:
                 logging.getLogger(__name__).exception("bootstrap Entrada NF rascunho PG")
