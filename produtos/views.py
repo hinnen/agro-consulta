@@ -855,6 +855,11 @@ def api_produtos_gestao_facetas(request):
             return JsonResponse({"ok": False, "erro": str(e)}, status=500)
         return JsonResponse({"ok": True, "fonte": "agro_pg", **fac})
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        return JsonResponse({"ok": False, "erro": "Facetas indisponíveis (Postgres)."}, status=503)
+
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
@@ -981,6 +986,14 @@ def api_produtos_gestao_lista(request):
         except Exception as e:
             logger.warning("api_produtos_gestao_lista (agro_pg): %s", e, exc_info=True)
             return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        return JsonResponse(
+            {"ok": False, "erro": "Gestão indisponível (Postgres).", "produtos": []},
+            status=503,
+        )
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -6671,11 +6684,14 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
 def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> dict:
     """
     Base histórica (M-1 / M-2) para meta C.
-    Preferência: ``VendaAgro`` (PDV). Só usa espelho ERP se o período não tiver venda Agro.
+    Preferência: ``VendaAgro`` (PDV). Só usa espelho ERP se o período não tiver venda Agro
+    e o catálogo ainda não migrou para Postgres.
     """
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
     if _dashboard_vendas_fonte_pdv():
         ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
-        if float(ser.get("total") or 0) > 0:
+        if float(ser.get("total") or 0) > 0 or agro_catalogo_usa_postgres():
             return ser
         return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
     return _dashboard_mongo_vendas_serie(data_ini, data_fim)
@@ -6683,6 +6699,8 @@ def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> di
 
 def _dashboard_vendas_fonte_modo() -> str:
     """``hibrido``, ``erp`` (DtoVenda) ou ``pdv`` (VendaAgro). Ver ``AGRO_DASHBOARD_VENDAS_FONTE``."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
     v = (getattr(settings, "AGRO_DASHBOARD_VENDAS_FONTE", "pdv") or "pdv").strip().lower()
     if v in ("pdv", "local", "sqlite", "vendaagro"):
         return "pdv"
@@ -6690,6 +6708,8 @@ def _dashboard_vendas_fonte_modo() -> str:
         return "erp"
     if v in ("hibrido", "hybrid", "misto", "both", "pdv+erp", "agro"):
         return "hibrido"
+    if agro_catalogo_usa_postgres():
+        return "pdv"
     return "hibrido"
 
 
@@ -6753,6 +6773,10 @@ def _dashboard_ids_erp_vinculados_venda_agro(data_ini: date, data_fim: date) -> 
     for v in qs.iterator(chunk_size=400):
         ids.add(str(v.pk))
         ids |= _extrair_ids_pedido_resposta_erp(v.erp_resposta)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        return ids
     _mdb, db = obter_conexao_mongo()
     if db is not None:
         dt_buf = datetime.combine(buf_ini, dtime.min)
@@ -12582,9 +12606,9 @@ def _entrada_nfe_compras_mapa_batch_para_spark(
             if pid in produtos_por_id and isinstance(produtos_por_id[pid], dict):
                 por_id[pid] = produtos_por_id[pid]
             else:
-                por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+                por_id[pid] = _produto_doc_por_id_externo(db, client_m, pid) or {}
         else:
-            por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+            por_id[pid] = _produto_doc_por_id_externo(db, client_m, pid) or {}
         pids_ord.append(pid)
     if not pids_ord:
         return {}
@@ -12623,9 +12647,15 @@ def _entrada_nfe_custo_spark_quatro_pontos(
         rows_src: list[dict] = []
         if compras_rows_precalc is not None:
             rows_src = [r for r in compras_rows_precalc[:3] if isinstance(r, dict)]
-        elif db is not None and client_m is not None and pid and not pid.lower().startswith("local:"):
+        elif pid and not pid.lower().startswith("local:"):
+            doc_ref = doc if isinstance(doc, dict) else {}
+            if not doc_ref:
+                doc_ref = _produto_doc_por_id_externo(db, client_m, pid) or {}
             rows_src = list(
-                (_ultimas_compras_por_produto_ids(db, [pid], {pid: doc}, limit=3).get(pid)) or []
+                (
+                    _ultimas_compras_por_produto_ids(db, [pid], {pid: doc_ref}, limit=3).get(pid)
+                )
+                or []
             )[:3]
         for row in rows_src:
             try:
@@ -16660,19 +16690,21 @@ def api_buscar_produtos(request):
             logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
 
         ultimas_compras_map: dict[str, list] = {}
-        if compras and prods and db is not None and not (wizard_catalog and len(prods) > 400):
+        if compras and prods and not (wizard_catalog and len(prods) > 400):
             try:
-                from produtos.agro_fonte_config import agro_compras_metricas_postgres
+                from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
 
-                prod_por_id = {str(x.get("Id") or x.get("_id")): x for x in prods}
-                p_ids_busca = [str(x.get("Id") or x.get("_id")) for x in prods]
-                ultimas_compras_map = _ultimas_compras_por_produto_ids(
-                    db,
-                    p_ids_busca,
-                    prod_por_id,
-                    limit=3,
-                    skip_erp=agro_compras_metricas_postgres(),
-                )
+                skip_uc = agro_compras_metricas_postgres() or agro_catalogo_usa_postgres()
+                if skip_uc or db is not None:
+                    prod_por_id = {str(x.get("Id") or x.get("_id")): x for x in prods}
+                    p_ids_busca = [str(x.get("Id") or x.get("_id")) for x in prods]
+                    ultimas_compras_map = _ultimas_compras_por_produto_ids(
+                        db if db is not None else None,
+                        p_ids_busca,
+                        prod_por_id,
+                        limit=3,
+                        skip_erp=skip_uc,
+                    )
             except Exception as exc:
                 logger.warning("api_buscar_produtos: ultimas_compras indisponível — %s", exc)
 
@@ -19157,6 +19189,23 @@ def _produto_mongo_por_id_externo(db, client_m, pid_str):
     except Exception:
         pass
     return db[client_m.col_p].find_one({"$or": ors})
+
+
+def _produto_doc_por_id_externo(db, client_m, pid_str):
+    """Documento estilo Mongo — Postgres (``agro_pg``) ou espelho ERP."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    pid_str = str(pid_str or "").strip()
+    if not pid_str:
+        return None
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro as cat_agro
+
+        row = cat_agro.produto_por_externo_id(pid_str)
+        if row:
+            return cat_agro.row_para_doc_gestao_lista(row)
+        return None
+    return _produto_mongo_por_id_externo(db, client_m, pid_str)
 
 
 def _mongo_filtro_id_produto_externo(pid_str: str) -> dict:
