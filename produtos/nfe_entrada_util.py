@@ -2539,9 +2539,12 @@ def reverter_integracao_entrada_nota_para_reabertura(
             "wizard_etapa1_confirmada_em",
             "wizard_etapa2_confirmada_em",
             "wizard_etapa3_confirmada_em",
+            "wizard_etapa4_lote_confirmada_em",
+            "wizard_lote_pular_em",
             "financeiro_lancado",
             "financeiro_ids",
             "financeiro_lancado_em",
+            "financeiro_ui",
             "estoque_agro_ajuste_ids",
             "estoque_agro_registrado_em",
         ):

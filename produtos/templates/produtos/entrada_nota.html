@@ -2775,6 +2775,13 @@
       btn.removeAttribute('aria-busy');
       return;
     }
+    if (entradaNfeEstoqueBloqueadoNotaFinalizada(rz)) {
+      btn.disabled = true;
+      btn.textContent = 'Reabra a nota (etapa 8) para registrar estoque';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
+      return;
+    }
     if (st === 'descartada') {
       btn.disabled = true;
       btn.textContent = 'Entrada descartada';
@@ -3011,7 +3018,7 @@
     return false;
   }
 
-  /** Estoque Agro já registrado (status Mongo, carimbo ou nota concluída/PIN). */
+  /** Estoque Agro já registrado (status ou carimbo explícito — não confundir com PIN/financeiro). */
   function entradaNfeEstoqueJaRegistrado(rzOpt) {
     const rz = rzOpt && typeof rzOpt === 'object' ? rzOpt : null;
     const st = String(
@@ -3021,7 +3028,25 @@
     const ex = rz && rz.extra && typeof rz.extra === 'object'
       ? rz.extra
       : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
+    if (String(ex.estoque_agro_registrado_em || '').trim()) return true;
+    const topEm = rz && rz.estoque_aplicado_em != null ? rz.estoque_aplicado_em : null;
+    if (topEm && String(topEm).trim()) return true;
     if (String(ex.estoque_aplicado_em || '').trim()) return true;
+    return false;
+  }
+
+  /** Nota avançada (PIN/financeiro) mas estoque Agro ainda não aplicado. */
+  function entradaNfeEstoqueBloqueadoNotaFinalizada(rzOpt) {
+    if (entradaNfeEstoqueJaRegistrado(rzOpt)) return false;
+    const rz = rzOpt && typeof rzOpt === 'object' ? rzOpt : null;
+    const ex = rz && rz.extra && typeof rz.extra === 'object'
+      ? rz.extra
+      : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
+    const st = String(
+      rz && rz.status != null ? rz.status : entradaNfeRascunhoStatusUltimo || '',
+    ).trim().toLowerCase();
+    if (String(ex.aprovacao_wizard_em || '').trim()) return true;
+    if (ex.financeiro_lancado) return true;
     return entradaNfeWizardFluxoLegadoOuConcluido(ex, st, entradaNfeRascunhoBucketUltimo);
   }
 
@@ -5362,7 +5387,7 @@
       entradaNfeWizardAgendarAtualizarCores();
       const det = [];
       if (Number(j.estoque_ajustes_removidos) > 0) det.push(`${j.estoque_ajustes_removidos} ajuste(s) de estoque Agro`);
-      if (Number(j.financeiro_titulos_removidos) > 0) det.push(`${j.financeiro_titulos_removidos} título(s) no Mongo`);
+      if (Number(j.financeiro_titulos_removidos) > 0) det.push(`${j.financeiro_titulos_removidos} título(s) a pagar`);
       showMsg(
         'Nota reaberta para edição.'
           + (det.length ? ` Estornados: ${det.join(' · ')}.` : '')
