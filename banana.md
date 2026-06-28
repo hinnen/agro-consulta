@@ -947,7 +947,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **BI vendas (#3)** | Modo PDV forçado com `agro_pg`; meta C sem fallback DtoVenda; vínculos sem coleção Mongo `vendas_agro` |
 | **Gestão (#4)** | Com catálogo PG: **sem fallback Mongo** em lista/facetas; saldo já ledger (pacote 2) |
 | **Compras (#5)** | `api_buscar` últimas compras **sem exigir Mongo**; Entrada NF etapa 6 lê produto via Postgres |
-| **Deploy teste** | push **`teste`** · **v4.35** |
+| **Deploy teste** | **`a516a64`** · **v4.35** |
 
 **Renan — retestar no staging (Ctrl+F5):** BI `/` · Gestão lista/filtros · Compras card «últimas compras» · folha categoria.
 
