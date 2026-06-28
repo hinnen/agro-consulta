@@ -436,11 +436,42 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### 4.15 Desvinculação ERP (Mongo espelho → Postgres SisVale)
 
-**Resposta curta (Jun/2026):** **NÃO terminou.** Validamos **um fluxo operacional** no **teste** (catálogo PG, ledger estoque, Entrada NF wizard). **Loja (produção)** e vários módulos ainda **leem/gravam Mongo ERP** — **não** cancelar assinatura ERP ainda (§ abaixo Renan 2026-06-24).
+**Resposta curta (Jul/2026):** **~85 % operação diária já Postgres.** Mongo ERP = **espelho + relatórios que faltam**. **Não** cancelar assinatura ERP até fechar checklist abaixo.
 
-**Dois níveis:** (1) cortar **API ERP** (`Produtos/Salvar`, etc.); (2) parar de **ler/gravar no Mongo** na tela — ganho de **responsividade** e menos bugs (ex.: preço que “voltava”).
+**Dois níveis:** (1) cortar **API ERP** → **✅ feito**; (2) parar de **ler/gravar Mongo** em **todas** as telas → **em andamento**.
 
-**Flags** (`produtos/agro_fonte_config.py`, `.env`): `AGRO_FONTE_CATALOGO=agro_pg` · `AGRO_FONTE_ESTOQUE=ledger` · `AGRO_FONTE_FINANCEIRO=agro_pg` · `AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO=false` (padrão). Status debug: `GET /api/agro/fonte-status/`.
+### Checklist — corte total Mongo (ordem de prioridade)
+
+Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
+
+| # | Pacote | Por quê nesta ordem | Loja hoje | Próximo passo |
+| - | ------ | ------------------- | --------- | ------------- |
+| ✅ | **API ERP** (Agro não grava no legado) | Corte WL | **OK** | — |
+| ✅ | **PDV · vendas · NFC-e · caixa · RH · clientes · fiado** | Nativo Postgres | **OK** | — |
+| ✅ | **Cadastro + catálogo PDV + ledger estoque** | Balcão | **OK** | — |
+| ✅ | **CP/CR** lista + pagar + nova saída + editar | Financeiro dia | **OK** | — |
+| ✅ | **Entrada NF** passo 7 + rascunho PG | Compras/estoque | **OK v4.20** | — |
+| ✅ | **Compras D4** (métricas + folhas) | Reposição | **OK** | — |
+| ✅ | **BI cards CP/CR + resumo gerencial** | Gestão rápida | **OK** | — |
+| ✅ | **Transferências + Validade** (leitura) | Estoque | **OK** | — |
+| ✅ | **Listas auxiliares** (plano, forma, banco, fornecedor NF) | Baixa CP / NF | **OK** | — |
+| **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | Mongo | Teste → loja |
+| **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | Mongo leitura | Teste → loja |
+| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | Parcial Mongo | Teste → loja |
+| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | Parcial | Teste → loja |
+| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | Parcial | Teste → loja |
+| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | Mongo | Teste → loja |
+| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | Fix no teste | Pacote loja |
+| **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
+| **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
+| **10** | **Backup PC** (CP/CR ZIP, cadastro Excel, vendas, NFC-e) | Seguro | Renan | Antes do 11 |
+| **11** | **Checkpoint Lançamentos** + conferência totais | Prova corte | Feito parcial | Renan + assistente |
+| **12** | **Cancelar assinatura ERP** | Fim espelho | — | Só após **1–11** estáveis |
+
+**Regra deploy loja:** teste OK → Renan *«pode subir produção»* + senha **99738595** · pacote por pacote (não merge inteiro).
+
+**Status debug:** `GET /api/agro/fonte-status/`
+
 
 
 | Status                 | Tela / módulo                                                     | Nota                                                                                                                                            |
