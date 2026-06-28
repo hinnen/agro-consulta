@@ -939,14 +939,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.36** · **produção** v4.21
+**Versão app (`VERSION`):** **teste v4.37** · **produção** v4.21
 
 ### banana — alinhamento checklist §4.15 (03/06 · assistente)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Tabelas duplicadas §4.15 sincronizadas; status teste vs loja; CHECKPOINT v4.36 |
-| **Deploy teste** | push **`teste`** (banana only) |
+| **O quê** | Tabelas duplicadas §4.15 sincronizadas; status teste vs loja; rodapé roadmap |
+| **Deploy teste** | **`3fec909`** · **v4.37** |
 
 ### Corte Mongo — pacote 3 parciais fechados (03/06 · assistente)
 
