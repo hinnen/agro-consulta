@@ -207,7 +207,11 @@ def append_eventos_entrada_nf_agro(
     """
     if db is None or not pid_ok:
         return
-    from produtos.nfe_entrada_util import COL_ENTRADA_RASCUNHO
+    from produtos.nfe_entrada_util import _entrada_nota_rascunho_store
+
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return
 
     pid_map = _mapa_pid_busca(list(pid_ok))
     codigo_map = _mapa_codigo_para_pid(produtos_por_id)
@@ -223,7 +227,7 @@ def append_eventos_entrada_nf_agro(
     }
 
     try:
-        cur = db[COL_ENTRADA_RASCUNHO].find(
+        cur = col.find(
             filtro,
             {
                 "cabecalho": 1,

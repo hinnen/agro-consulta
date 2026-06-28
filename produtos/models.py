@@ -735,6 +735,38 @@ class TituloFinanceiroAgro(models.Model):
         return f"{tipo} · {self.descricao[:40] or self.numero_documento or self.mongo_id}"
 
 
+class EntradaNotaRascunhoAgro(models.Model):
+    """Rascunho do assistente Entrada NF (etapas 1–6); substitui ``AgroEntradaNotaRascunho`` no Mongo."""
+
+    rascunho_id = models.CharField(max_length=24, primary_key=True)
+    status = models.CharField(max_length=40, db_index=True, default="com_pendencias")
+    modo = models.CharField(max_length=40, blank=True, default="manual")
+    usuario = models.CharField(max_length=200, blank=True, default="")
+    usuario_ultima_alteracao = models.CharField(max_length=200, blank=True, default="")
+    usuario_estoque_aplicado = models.CharField(max_length=200, blank=True, default="")
+    xml_chave = models.CharField(max_length=44, blank=True, default="")
+    cabecalho = models.JSONField(default=dict, blank=True)
+    linhas = models.JSONField(default=list, blank=True)
+    extra = models.JSONField(default=dict, blank=True)
+    criado_em = models.DateTimeField(db_index=True)
+    atualizado_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    estoque_aplicado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Rascunho Entrada NF Agro"
+        verbose_name_plural = "Rascunhos Entrada NF Agro"
+        indexes = [
+            models.Index(fields=["-criado_em"]),
+            models.Index(fields=["status", "-atualizado_em"]),
+        ]
+
+    def __str__(self):
+        cab = self.cabecalho if isinstance(self.cabecalho, dict) else {}
+        nf = str(cab.get("numero") or "").strip() or "—"
+        return f"Entrada NF {nf} · {self.rascunho_id[:8]}…"
+
+
 class PdvMercadoPagoPointOrder(models.Model):
     """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
 

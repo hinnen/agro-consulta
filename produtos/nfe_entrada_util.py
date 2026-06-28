@@ -22,6 +22,12 @@ COL_ENTRADA_RASCUNHO = "AgroEntradaNotaRascunho"
 COL_ENTRADA_VINCULO = "AgroEntradaNfeVinculo"
 COL_DFE_CURSOR = "AgroNFeDistribuicaoCursor"
 
+
+def _entrada_nota_rascunho_store(db):
+    from produtos.entrada_nota_rascunho_pg_util import rascunho_entrada_col
+
+    return rascunho_entrada_col(db)
+
 # Fluxo na tela Entrada NF-e (persistido em ``status``; exibição pode corrigir inconsistências).
 ENTRADA_NFE_STATUS_COM_PENDENCIAS = "com_pendencias"
 ENTRADA_NFE_STATUS_PRONTA = "pronta"
@@ -1026,8 +1032,9 @@ def salvar_rascunho_entrada(
     extra: dict | None = None,
     col_pessoa: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     cab_norm = cabecalho
     if col_pessoa:
         cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
@@ -1043,7 +1050,7 @@ def salvar_rascunho_entrada(
         "extra": extra or {},
     }
     try:
-        ins = db[COL_ENTRADA_RASCUNHO].insert_one(doc)
+        ins = col.insert_one(doc)
         return {"ok": True, "id": str(ins.inserted_id)}
     except Exception as exc:
         logger.exception("salvar_rascunho_entrada")
@@ -1399,9 +1406,10 @@ def auditar_entrada_nfe_financeiro_lote(
     limit: int = 300,
     busca: dict | None = None,
 ) -> dict[str, Any]:
-    """Auditoria em lote das notas salvas (Mongo)."""
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível", "itens": [], "resumo": {}}
+    """Auditoria em lote das notas salvas."""
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível", "itens": [], "resumo": {}}
     lim = min(max(int(limit or 300), 1), 500)
     f = (filtro_lista or "todas").strip().lower()
     busca = busca if isinstance(busca, dict) else {}
@@ -1427,7 +1435,7 @@ def auditar_entrada_nfe_financeiro_lote(
         scan_cap = min(lim * 2, 300)
     try:
         cur = (
-            db[COL_ENTRADA_RASCUNHO]
+            col
             .find(mongo_q, proj_aud)
             .sort("atualizado_em", -1)
             .limit(scan_cap)
@@ -1853,7 +1861,8 @@ def listar_rascunhos_entrada(
     filtro: str | None = None,
     busca: dict | None = None,
 ) -> list[dict]:
-    if db is None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return []
     try:
         lim = min(max(limit, 1), 100)
@@ -1874,7 +1883,7 @@ def listar_rascunhos_entrada(
         }
         if busca_ativa:
             proj["linhas"] = {"$slice": ["$linhas", 150]}
-        cur = db[COL_ENTRADA_RASCUNHO].aggregate(
+        cur = col.aggregate(
             [
                 {"$sort": {"criado_em": -1}},
                 {"$limit": scan_lim},
@@ -1955,28 +1964,41 @@ def listar_rascunhos_entrada(
 
 
 def _object_id_rascunho(oid: str):
+    """ObjectId no Mongo; string hex 24 no Postgres (``EntradaNotaRascunhoAgro``)."""
+    s = str(oid or "").strip()
     from bson.errors import InvalidId
     from bson.objectid import ObjectId
 
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    use_pg = agro_entrada_nota_rascunho_postgres()
+    if re.fullmatch(r"[0-9a-fA-F]{24}", s):
+        return s.lower() if use_pg else ObjectId(s)
     try:
-        return ObjectId(str(oid).strip())
+        oid_obj = ObjectId(s)
     except (InvalidId, TypeError, ValueError):
         return None
+    return str(oid_obj).lower() if use_pg else oid_obj
 
 
 def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
     """
     Trava o rascunho para um único POST de estoque Agro (evita somar várias vezes no duplo clique).
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID de rascunho inválido."}
     agora = datetime.now(timezone.utc)
     stale = agora - ESTOQUE_AGRO_LOCK_MAX_AGE
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
+        if not doc:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            doc = lazy_import_rascunho_mongo(db, str(_id))
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         if str(doc.get("status") or "").strip().lower() == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
@@ -1984,7 +2006,7 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
                 "ok": False,
                 "erro": "Estoque Agro já foi registrado para este rascunho.",
             }
-        r = db[COL_ENTRADA_RASCUNHO].update_one(
+        r = col.update_one(
             {
                 "_id": _id,
                 "status": {"$nin": list(ENTRADA_NFE_STATUS_CONGELADOS)},
@@ -1994,11 +2016,11 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
                     {"extra.estoque_agro_lock": {"$lte": stale}},
                 ],
             },
-            {"$set": {"extra.estoque_agro_lock": agora}},
+            {"$set": {"extra.estoque_agro_lock": agora.isoformat()}},
         )
         if r.modified_count == 1:
             return {"ok": True}
-        doc2 = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}) or {}
+        doc2 = col.find_one({"_id": _id}) or {}
         ex2 = doc2.get("extra") if isinstance(doc2.get("extra"), dict) else {}
         if ex2.get("estoque_agro_lock"):
             return {
@@ -2013,13 +2035,14 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
 
 def release_rascunho_estoque_agro_claim(db, oid: str) -> None:
     """Remove a trava de POST duplicado (falha antes de marcar estoque aplicado)."""
-    if db is None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return
     _id = _object_id_rascunho(oid)
     if _id is None:
         return
     try:
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {"$unset": {"extra.estoque_agro_lock": ""}},
         )
@@ -2099,13 +2122,14 @@ def sincronizar_financeiro_rascunho_entrada_nfe(
     Quando o título a pagar já existe no Mongo mas o rascunho perdeu ``financeiro_lancado``
     (corrida autosave, falha ao marcar, etc.), regrava o carimbo sem duplicar título.
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
@@ -2167,13 +2191,18 @@ def obter_rascunho_entrada(
     col_pessoa: str | None = None,
     sincronizar_financeiro: bool = True,
 ) -> dict[str, Any] | None:
-    if db is None:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
         return None
     _id = _object_id_rascunho(oid)
     if _id is None:
         return None
     try:
-        d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        d = col.find_one({"_id": _id})
+        if not d:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            d = lazy_import_rascunho_mongo(db, str(_id))
         if not d:
             return None
         ex0 = d.get("extra") if isinstance(d.get("extra"), dict) else {}
@@ -2183,7 +2212,7 @@ def obter_rascunho_entrada(
                 str(_id),
                 col_pessoa=col_pessoa,
             )
-            d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+            d = col.find_one({"_id": _id})
             if not d:
                 return None
         return _serialize_rascunho_leitura(d)
@@ -2193,14 +2222,15 @@ def obter_rascunho_entrada(
 
 
 def excluir_rascunho_entrada(db, oid: str) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     try:
-        r = db[COL_ENTRADA_RASCUNHO].delete_one({"_id": _id})
-        return {"ok": r.deleted_count == 1}
+        r = col.delete_one({"_id": _id})
+        return {"ok": r.matched_count == 1}
     except Exception as exc:
         logger.exception("excluir_rascunho_entrada")
         return {"ok": False, "erro": str(exc)[:500]}
@@ -2218,8 +2248,9 @@ def atualizar_rascunho_entrada(
     extra: dict | None = None,
     col_pessoa: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
@@ -2227,7 +2258,11 @@ def atualizar_rascunho_entrada(
     if col_pessoa:
         cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
     try:
-        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        atual = col.find_one({"_id": _id})
+        if not atual:
+            from produtos.entrada_nota_rascunho_pg_util import lazy_import_rascunho_mongo
+
+            atual = lazy_import_rascunho_mongo(db, str(_id))
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         st_atual = str(atual.get("status") or "").strip().lower()
@@ -2240,7 +2275,7 @@ def atualizar_rascunho_entrada(
         merged_extra = {**prev_ex, **(extra or {})}
         # Evita corrida autosave/manual vs. ``marcar_rascunho_financeiro_lancado``: merge com snapshot
         # antigo não pode reapagar nem reintroduzir sozinho o carimbo de financeiro.
-        fresh_mini = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
         fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
         if entrada_nfe_extra_financeiro_ok(fresh_ex):
             merged_extra["financeiro_lancado"] = True
@@ -2264,7 +2299,7 @@ def atualizar_rascunho_entrada(
         }
         if novo_status is not None:
             set_doc["status"] = novo_status
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {"$set": set_doc},
         )
@@ -2309,18 +2344,19 @@ def patch_rascunho_entrada_extra(
     extra: dict | None = None,
 ) -> dict[str, Any]:
     """Atualiza só ``extra`` (wizard / financeiro em memória) sem regravar ``linhas`` nem propagar preços."""
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     try:
-        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        atual = col.find_one({"_id": _id})
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
         merged_extra = {**prev_ex, **(extra or {})}
-        fresh_mini = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
         fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
         if entrada_nfe_extra_financeiro_ok(fresh_ex):
             merged_extra["financeiro_lancado"] = True
@@ -2333,7 +2369,7 @@ def patch_rascunho_entrada_extra(
             merged_extra.pop("financeiro_lancado", None)
             merged_extra.pop("financeiro_ids", None)
             merged_extra.pop("financeiro_lancado_em", None)
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {
                 "$set": {
@@ -2356,21 +2392,22 @@ def marcar_rascunho_estoque_aplicado(
     usuario: str = "",
     patch_extra: dict | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
         ex.pop("estoque_agro_lock", None)
         if patch_extra:
             ex.update(patch_extra)
-        r = db[COL_ENTRADA_RASCUNHO].update_one(
+        r = col.update_one(
             {"_id": _id},
             {
                 "$set": {
@@ -2399,8 +2436,8 @@ def reverter_integracao_entrada_nota_para_reabertura(
     """
     Remove carimbo ``aprovacao_wizard_*``, flags de etapa do assistente e estorna o que for rastreável:
 
-    - Títulos Mongo em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
-      ``excluir_lancamento_mongo_agro`` (falha se quitado ou vínculo ERP).
+    - Títulos em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
+      ``excluir_lancamento_dispatch`` (Postgres no teste; Mongo na loja legado).
     - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
       do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
 
@@ -2409,17 +2446,18 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
     Falha sem alterar o documento se alguma exclusão financeira não for permitida.
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
 
-    from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
+    from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_dispatch
 
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
@@ -2427,12 +2465,23 @@ def reverter_integracao_entrada_nota_para_reabertura(
         had_wiz1 = bool(str(ex.get("wizard_etapa1_confirmada_em") or "").strip())
         had_wiz2 = bool(str(ex.get("wizard_etapa2_confirmada_em") or "").strip())
         had_wiz3 = bool(str(ex.get("wizard_etapa3_confirmada_em") or "").strip())
+        had_wiz4 = bool(str(ex.get("wizard_etapa4_lote_confirmada_em") or "").strip())
+        had_lote_pul = bool(str(ex.get("wizard_lote_pular_em") or "").strip())
 
         st_doc = str(doc.get("status") or "").strip().lower()
         had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
         had_fin = bool(ex.get("financeiro_lancado"))
 
-        if not (had_pin or had_wiz1 or had_wiz2 or had_wiz3 or had_estoque or had_fin):
+        if not (
+            had_pin
+            or had_wiz1
+            or had_wiz2
+            or had_wiz3
+            or had_wiz4
+            or had_lote_pul
+            or had_estoque
+            or had_fin
+        ):
             return {
                 "ok": False,
                 "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
@@ -2468,7 +2517,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         fin_falhas: list[dict[str, str]] = []
         for fid in fin_ids:
-            r = excluir_lancamento_mongo_agro(db, fid, usuario or "")
+            r = excluir_lancamento_dispatch(db, fid, usuario or "", despesa=True)
             if not r.get("ok"):
                 msg = str(r.get("erro") or "exclusão não permitida")[:400]
                 fin_falhas.append({"id": fid, "erro": msg})
@@ -2506,9 +2555,13 @@ def reverter_integracao_entrada_nota_para_reabertura(
             "wizard_etapa1_confirmada_em",
             "wizard_etapa2_confirmada_em",
             "wizard_etapa3_confirmada_em",
+            "wizard_etapa4_lote_confirmada_em",
+            "wizard_lote_pular_em",
+            "wizard_etapa6_etiquetas_em",
             "financeiro_lancado",
             "financeiro_ids",
             "financeiro_lancado_em",
+            "financeiro_ui",
             "estoque_agro_ajuste_ids",
             "estoque_agro_registrado_em",
         ):
@@ -2532,7 +2585,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
         if unset_doc:
             upd["$unset"] = unset_doc
 
-        db[COL_ENTRADA_RASCUNHO].update_one({"_id": _id}, upd)
+        col.update_one({"_id": _id}, upd)
         return {
             "ok": True,
             "id": str(_id),
@@ -2553,14 +2606,15 @@ def marcar_rascunho_financeiro_lancado(
     usuario: str = "",
     lote: str | None = None,
 ) -> dict[str, Any]:
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         fin_ids_lim = [str(x) for x in (ids or [])][:80]
@@ -2574,7 +2628,7 @@ def marcar_rascunho_financeiro_lancado(
         lote_s = str(lote or "").strip().upper()
         if lote_s:
             sets["extra.financeiro_lote"] = lote_s[:32]
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {"$set": sets},
         )
@@ -2649,10 +2703,11 @@ def _ids_titulos_mongo_por_lote_agro(db, lote: str) -> list[str]:
 def _rascunho_entrada_por_ids_financeiro(
     db, titulo_ids: list[str]
 ) -> str | None:
-    if db is None or not titulo_ids:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None or not titulo_ids:
         return None
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+        doc = col.find_one(
             {
                 "extra.financeiro_ids": {"$in": titulo_ids},
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2670,11 +2725,12 @@ def _rascunho_entrada_por_ids_financeiro(
 def _rascunho_entrada_por_lote_agro(
     db, lote: str, *, cliente: str = ""
 ) -> str | None:
-    if db is None or not lote:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None or not lote:
         return None
     lote = str(lote).strip().upper()
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+        doc = col.find_one(
             {
                 "extra.financeiro_lote": lote,
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2696,7 +2752,7 @@ def _rascunho_entrada_por_lote_agro(
     if not cliente:
         return None
     try:
-        cur = db[COL_ENTRADA_RASCUNHO].find(
+        cur = col.find(
             {
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
                 "extra.financeiro_lancado": True,
@@ -2720,7 +2776,8 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
     db, linhas: list[dict[str, Any]]
 ) -> dict[str, str]:
     """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
-    if db is None or not linhas:
+    col = _entrada_nota_rascunho_store(db)
+    if col is None or not linhas:
         return {}
     ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
     ids = [x for x in ids if x]
@@ -2728,7 +2785,7 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
         return {}
     out: dict[str, str] = {}
     try:
-        cur = db[COL_ENTRADA_RASCUNHO].find(
+        cur = col.find(
             {
                 "extra.financeiro_ids": {"$in": ids},
                 "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
@@ -2758,7 +2815,7 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
     if nf_por_lanc:
         try:
             ors = [{"cabecalho.numero": nf} for nf in nf_por_lanc]
-            cur2 = db[COL_ENTRADA_RASCUNHO].find(
+            cur2 = col.find(
                 {
                     "$and": [
                         {"$or": ors},
@@ -2827,15 +2884,16 @@ def pipeline_acao_rascunho_entrada(
 
     ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     ac = (acao or "").strip().lower()
     agora = datetime.now(timezone.utc)
     try:
-        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         st = str(doc.get("status") or "").strip().lower()
@@ -2861,7 +2919,7 @@ def pipeline_acao_rascunho_entrada(
             if st == ENTRADA_NFE_STATUS_DESCARTADA:
                 return {"ok": False, "erro": "Nota descartada."}
             if ac == "correcao_sistemica_on":
-                db[COL_ENTRADA_RASCUNHO].update_one(
+                col.update_one(
                     {"_id": _id},
                     {
                         "$set": {
@@ -2873,7 +2931,7 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
             else:
-                db[COL_ENTRADA_RASCUNHO].update_one(
+                col.update_one(
                     {"_id": _id},
                     {
                         "$unset": {
@@ -2896,7 +2954,7 @@ def pipeline_acao_rascunho_entrada(
                     return {"ok": False, "erro": "Digite o aviso para a nota."}
                 if len(txt) > 500:
                     txt = txt[:500]
-                db[COL_ENTRADA_RASCUNHO].update_one(
+                col.update_one(
                     {"_id": _id},
                     {
                         "$set": {
@@ -2909,7 +2967,7 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
                 return {"ok": True, "id": str(_id), "aviso_operacional": txt}
-            db[COL_ENTRADA_RASCUNHO].update_one(
+            col.update_one(
                 {"_id": _id},
                 {
                     "$unset": {
@@ -2926,7 +2984,7 @@ def pipeline_acao_rascunho_entrada(
             return {"ok": True, "id": str(_id), "aviso_operacional": ""}
         else:
             return {"ok": False, "erro": "Ação inválida."}
-        db[COL_ENTRADA_RASCUNHO].update_one(
+        col.update_one(
             {"_id": _id},
             {
                 "$set": {
