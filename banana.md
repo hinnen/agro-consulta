@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.17 · **produção** v4.17 (deploy 28/06)
+**Versão app (`VERSION`):** **teste** v4.23 · **produção** v4.20 (hotfix lista NF 28/06)
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -918,10 +918,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` · **auto** na listagem + boot (`maybe_bootstrap_rascunhos_entrada_nota_pg`) |
 | **Incidente 28/06** | Loja lista vazia — PG ligado, dados ainda no Mongo; **fix v4.20** import auto no boot + listagem + **fallback Mongo** até PG popular |
-| **Hotfix loja agora** | Render Shell: `python manage.py importar_rascunhos_entrada_nota_mongo_pg` **ou** env `AGRO_ENTRADA_NF_RASCUNHO_PG=false` (volta a ler Mongo) até subir v4.20 |
-| **Audit v4.17** | Fix `_object_id_rascunho` Mongo (ObjectId) vs PG (str) · reabrir etapa 4/lote · msgs etapa 8 · pós-reabrir vai etapa 5 |
-| **Deploy teste** | v4.09–v4.17 validado · NF 112 GM9503 **47** ✅ |
-| **Deploy produção** | **28/06** · **`cdc198f`** · **v4.17** · Renan autorizou (senha) ✅ |
+| **Hotfix loja** | ~~Shell/env~~ → **v4.20 no ar** · 1ª abertura importa Mongo→PG · fallback se PG vazio |
+| **Deploy produção v4.20** | **28/06** · **`7834e66`** · Renan autorizou (senha) ✅ |
+| **Deploy produção v4.17** | **28/06** · **`cdc198f`** · Renan autorizou (senha) ✅ |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
