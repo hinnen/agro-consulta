@@ -1412,6 +1412,16 @@
         <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
           Registrar entrada no estoque Agro
         </button>
+        <div id="nfe-wiz-estoque-reabrir-wrap" class="hidden mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-3 space-y-2.5">
+          <p class="text-sm font-bold text-amber-950 leading-snug">Esta nota foi <strong>finalizada com PIN</strong> sem registrar o estoque. Digite o mesmo PIN e reabra — depois use o botão azul acima.</p>
+          <label class="block max-w-xs">
+            <span class="text-[10px] font-black uppercase text-amber-900 tracking-wide">PIN (senha rápida)</span>
+            <input type="password" id="nfe-wiz-pin-estoque" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-amber-300 px-4 text-lg font-mono tracking-[0.15em] bg-white focus:border-amber-600 outline-none" inputmode="numeric" maxlength="12" placeholder="····">
+          </label>
+          <button type="button" id="btn-estoque-reabrir-nota" class="min-h-[52px] px-6 py-3 rounded-xl border-2 border-amber-800 bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 shadow-sm w-full sm:w-auto">
+            Reabrir nota
+          </button>
+        </div>
       </div>
       </div>
 
@@ -2759,7 +2769,9 @@
   /** Alinha o botão da etapa 4 · Estoque ao ``status`` Mongo (ex.: após F5 com estoque já aplicado). */
   function entradaNfeAtualizarUiBotaoEstoqueAgro(rz) {
     const btn = document.getElementById('btn-estoque-agro');
+    const reabWrap = document.getElementById('nfe-wiz-estoque-reabrir-wrap');
     if (!btn) return;
+    if (reabWrap) reabWrap.classList.add('hidden');
     if (!rz || typeof rz !== 'object') {
       btn.disabled = false;
       btn.textContent = ENTRADA_NFE_BTN_ESTOQUE_PADRAO;
@@ -2777,9 +2789,10 @@
     }
     if (entradaNfeEstoqueBloqueadoNotaFinalizada(rz)) {
       btn.disabled = true;
-      btn.textContent = 'Reabra a nota (etapa 8) para registrar estoque';
+      btn.textContent = 'Reabra a nota abaixo para registrar estoque';
       btn.classList.add('opacity-90', 'cursor-not-allowed');
       btn.removeAttribute('aria-busy');
+      if (reabWrap) reabWrap.classList.remove('hidden');
       return;
     }
     if (st === 'descartada') {
@@ -3688,6 +3701,14 @@
    * @param {boolean} [opt.ignorarConfirmacaoCodigos] — só etapa 3: não exige botão «Confirmar códigos».
    * @param {boolean} [opt.ignorarConfirmacaoLote] — só etapa 4: não exige botão «Confirmar lote».
    */
+  /** Nota finalizada (PIN/financeiro) mas estoque ainda pendente — libera ir à etapa 8. */
+  function entradaNfeWizardIgnorarEstoquePendente(st, destino) {
+    const d = Math.floor(Number(destino)) || 1;
+    if (d < 6) return false;
+    if (Math.floor(Number(st)) !== 5) return false;
+    return entradaNfeEstoqueBloqueadoNotaFinalizada() && !entradaNfeEstoqueJaRegistrado();
+  }
+
   function entradaNfeWizardValidarEtapaDetalhe(st, opt) {
     const ignFornConf = !!(opt && opt.ignorarConfirmacaoFornecedor);
     const ignProdConf = !!(opt && opt.ignorarConfirmacaoProdutos);
@@ -3796,6 +3817,13 @@
         return { ok: false, irPara: 5, erro: 'Selecione o depósito na etapa 5 · Estoque.' };
       }
       if (!entradaNfeEstoqueJaRegistrado()) {
+        if (entradaNfeEstoqueBloqueadoNotaFinalizada()) {
+          return {
+            ok: false,
+            irPara: 5,
+            erro: 'Nota finalizada sem estoque: use «Reabrir nota» nesta etapa (caixa amarela) ou vá à etapa 8 · Finalizar.',
+          };
+        }
         return {
           ok: false,
           irPara: 5,
@@ -4010,7 +4038,7 @@
     entradaNfeWizardSincronizarConfirmacoesLegado();
     const s = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(n)) || 1));
     if (s === ENTRADA_NFE_WIZ_TOTAL) {
-      const v = entradaNfeWizardValidarPassosAnteriores();
+      const v = entradaNfeWizardValidarPassosAnteriores({ destino: s });
       if (!v.ok) {
         showMsg(v.erro, false);
         const elMsg = document.getElementById('nfe-wiz-aprov-msg');
@@ -4028,6 +4056,7 @@
       }
     } else if (s >= 2 && s <= 7) {
       for (let st = 1; st < s; st++) {
+        if (entradaNfeWizardIgnorarEstoquePendente(st, s)) continue;
         const d = entradaNfeWizardValidarEtapaDetalhe(st);
         if (!d.ok) {
           showMsg(d.erro, false);
@@ -5346,15 +5375,22 @@
     const rid = entradaNfeRascunhoEditId;
     if (!rid) return;
     if (!entradaNfeEditorCongeladoAtivo() && !entradaNfeWizardAlgumaEtapaIntermediariaTravada()) return;
-    const pin = document.getElementById('nfe-wiz-pin')?.value?.trim() || '';
+    const pin = document.getElementById('nfe-wiz-pin')?.value?.trim()
+      || document.getElementById('nfe-wiz-pin-estoque')?.value?.trim()
+      || '';
     if (!pin) {
       showMsg('Informe o PIN para reabrir a nota.', false);
       return;
     }
     const btn = document.getElementById('nfe-wiz-btn-reabrir');
+    const btnEst = document.getElementById('btn-estoque-reabrir-nota');
     if (btn) {
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
+    }
+    if (btnEst) {
+      btnEst.disabled = true;
+      btnEst.setAttribute('aria-busy', 'true');
     }
     try {
       const r = await fetch(URL_REABRIR_NOTA, {
@@ -5401,11 +5437,13 @@
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
       }
+      if (btnEst) {
+        btnEst.disabled = false;
+        btnEst.removeAttribute('aria-busy');
+      }
       entradaNfeAplicarCongelamentoEditorUi();
     }
   }
-
-  document.getElementById('entrada-nfe-wizard-nav')?.querySelectorAll('[data-nfe-w-go]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const n = Number(btn.getAttribute('data-nfe-w-go'));
       entradaNfeWizardSetStep(n);
@@ -5523,6 +5561,7 @@
   });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
   document.getElementById('nfe-wiz-btn-reabrir')?.addEventListener('click', () => { entradaNfeReabrirNota(); });
+  document.getElementById('btn-estoque-reabrir-nota')?.addEventListener('click', () => { entradaNfeReabrirNota(); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -6393,8 +6432,10 @@
   }
 
   /** Etapas 1–7 válidas antes do PIN (etapa 8 · Finalizar). */
-  function entradaNfeWizardValidarPassosAnteriores() {
+  function entradaNfeWizardValidarPassosAnteriores(opt) {
+    const destino = opt && opt.destino != null ? opt.destino : ENTRADA_NFE_WIZ_TOTAL;
     for (let st = 1; st <= 7; st++) {
+      if (entradaNfeWizardIgnorarEstoquePendente(st, destino)) continue;
       const d = entradaNfeWizardValidarEtapaDetalhe(st);
       if (!d.ok) return d;
     }

@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.13 · **produção** v4.07
+**Versão app (`VERSION`):** **teste** v4.14 · **produção** v4.07
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -918,7 +918,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
 | **Lazy read** | 1ª abertura de rascunho antigo copia Mongo→PG se ainda não importado |
-| **Deploy** | v4.12 reabrir CP Postgres · **v4.13** botão estoque distingue «já registrado» vs «reabra nota» |
+| **Deploy** | v4.13 UX estoque · **v4.14** reabrir na etapa 5 (PIN) + navegação até etapa 8 |
 | **Renan NF 112** | Reabrir (etapa 8) → etapa 5 registrar 50 → saldo GM9503 em `/consulta/` (esperado ~+48 vs -2 anterior) |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
