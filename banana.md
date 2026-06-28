@@ -795,6 +795,18 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 
 **Não fazer:** apagar Mongo · ligar `AGRO_FONTE_FINANCEIRO=agro_pg` na loja sem OK do assistente.
 
+### PRÓXIMO AGORA — validação corte Mongo **v4.38** *(substitui bloco 27/06 abaixo)*
+
+| Quem | Ação |
+| ---- | ---- |
+| **Renan** | Roteiro **7 passos** no CHECKPOINT acima — marcar OK ou reportar # + erro |
+| **Assistente** | Só após 7 OK + senha → cherry-pick loja · item **8–12** §4.15 depois |
+
+**Não fazer agora:** merge `teste`→`producao` inteiro · ligar `SOMENTE_POSTGRES` na **loja** sem pacote · apagar Mongo.
+
+<details>
+<summary>histórico — retomada pós-sync CP v3.58 (27/06)</summary>
+
 ### PRÓXIMO AGORA — retomada pós-sync CP **v3.58** (27/06)
 
 **Fechado hoje:** sync shell prod · CP jul **145 · 82.642,99** = Mongo/Excel/gráfico.
@@ -827,6 +839,20 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 **Só no teste (diff vs loja ~9 arquivos):** gráfico gastos UX · PDV/views · `catalogo_agro` · diag CP — **não** merge inteiro; cherry-pick por pacote.
 
 **Assistente — próximo código:** retomar item **2** (validar v3.82 teste) ou item **3** (pacote baixa estoque + desvinculo loja) — **Renan escolhe**.
+
+</details>
+
+### WIP AGORA — validação corte Mongo v4.38
+
+| Foco | Detalhe |
+| ---- | ------- |
+| **🔥 AGORA** | Renan — roteiro **7 passos** (CHECKPOINT) no **staging** |
+| **Assistente** | Parado até OK ou reporte de bug (# + URL) |
+| **Loja** | v4.21 — pacote corte **não** entrou ainda |
+| **Depois 7 OK** | Cherry-pick loja com senha · itens **8–12** §4.15 |
+
+<details>
+<summary>histórico WIP — CP PG jun/2026</summary>
 
 ### WIP AGORA — pós-validação loja *(histórico — ver PRÓXIMO AGORA acima)*
 
@@ -863,6 +889,8 @@ Fluxo **seguro** do checkpoint (só admin vê os botões):
 - **PIN Lançamentos:** 1× por sessão ao entrar em qualquer tela `/lancamentos/*` (sem hub modal); navegação interna sem repetir; **modo descanso** (~3 min idle) pede de novo; sair para PDV/outra tela limpa a sessão.
 
 Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` · `congelar-pre-corte/`. Painel na entrada `/lancamentos/`.
+
+</details>
 
 ---
 
@@ -939,7 +967,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.37** · **produção** v4.21
+**Versão app (`VERSION`):** **teste v4.38** · **produção** v4.21
+
+### AGORA — Renan valida pacote corte Mongo **v4.31–v4.38** (staging)
+
+**Assistente:** código **fechado** no `teste` · **não** sobe loja sem senha.
+
+**Antes de começar:** Ctrl+F5 · conferir `/api/agro/fonte-status/` → `catalogo_postgres: true` · `pdv_catalogo_somente_postgres: true` · `gestao_somente_postgres: true`
+
+| # | Tela | Passos | OK? | Nota |
+| - | ---- | ------ | --- | ---- |
+| **1** | **Entrada NF** | Abrir NF **concluída** → **Auditar financeiro** (títulos batem CP PG) | ☐ | |
+| **2** | **PDV → Gestão** | Vender **1 un.** de produto conhecido · **Gestão** já aberta → saldo **desce** sem F5 | ☐ | §4.15 item 7 |
+| **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | §4.15 item 3 |
+| **4** | **Gráfico gastos** | Abre · totais **≈ CP** mesmo período (competência ou vencimento) | ☐ | §4.15 item 2 |
+| **5** | **Lançamentos DRE** | Abre período · totais batem (sem tela vazia / 503) | ☐ | §4.15 item 1 |
+| **6** | **Gestão** | Lista abre rápido · filtros **marca / categoria** · após Entrada NF **não** trava minutos | ☐ | §4.15 item 4 |
+| **7** | **Compras** | Card «**últimas compras**» · **Folha Compras** → categoria (planilha A4) | ☐ | §4.15 item 5 |
+
+**Se falhar:** anotar **# da linha** + mensagem na tela ou URL vermelha no DevTools (Rede).
+
+**Depois dos 7 OK:** Renan manda *«pode subir produção»* + senha **99738595** → assistente cherry-pick **pacote corte** (não merge inteiro `teste`).
+
+**Commits pacote corte:** `bc805e7` v4.31 · `d21a718` v4.33 · `a516a64` v4.36 · banana `57885fa` v4.38
 
 ### banana — alinhamento checklist §4.15 (03/06 · assistente)
 
