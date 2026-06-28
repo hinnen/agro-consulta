@@ -919,6 +919,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` · **auto** na listagem + boot (`maybe_bootstrap_rascunhos_entrada_nota_pg`) |
 | **Incidente 28/06** | Loja lista vazia — PG ligado, dados ainda no Mongo; **fix v4.20** import auto no boot + listagem + **fallback Mongo** até PG popular |
 | **Hotfix loja** | ~~Shell/env~~ → **v4.20 no ar** · 1ª abertura importa Mongo→PG · fallback se PG vazio |
+| **Audit v4.17** | Fix `_object_id_rascunho` · reabrir etapas · msgs etapa 8 |
+| **Deploy teste** | v4.09–v4.22 · NF 112 GM9503 **47** ✅ |
 | **Deploy produção v4.20** | **28/06** · **`7834e66`** · Renan autorizou (senha) ✅ |
 | **Deploy produção v4.17** | **28/06** · **`cdc198f`** · Renan autorizou (senha) ✅ |
 
