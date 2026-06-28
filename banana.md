@@ -460,7 +460,7 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **✅ teste v4.36** — sem DtoVenda/`vendas_agro` com `agro_pg` | Validar BI |
 | **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **✅ teste v4.36** — sem fallback Mongo; saldo ledger (v4.33) | Validar gestão |
 | **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **✅ teste v4.36** — buscar + NF etapa 6 sem Mongo obrigatório | Validar Compras |
-| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **v4.31** PG | Validar NF |
+| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **✅ teste 28/06** Renan | NF 112 · alertas 0 |
 | **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **v4.31** patch fila PDV | Renan: vender 1 un. |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
 | **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
@@ -967,9 +967,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.38** · **produção** v4.21
+**Versão app (`VERSION`):** **teste v4.39.1** · **produção** v4.21
 
-### AGORA — Renan valida pacote corte Mongo **v4.31–v4.38** (staging)
+### AGORA — Renan valida pacote corte Mongo **v4.31–v4.39** (staging)
 
 **Assistente:** código **fechado** no `teste` · **não** sobe loja sem senha.
 
@@ -977,13 +977,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Tela | Passos | OK? | Nota |
 | - | ---- | ------ | --- | ---- |
-| **1** | **Entrada NF** | Abrir NF **concluída** → **Auditar financeiro** (títulos batem CP PG) | ☐ | |
-| **2** | **PDV → Gestão** | Vender **1 un.** de produto conhecido · **Gestão** já aberta → saldo **desce** sem F5 | ☐ | §4.15 item 7 |
-| **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | §4.15 item 3 |
+| **1** | **Entrada NF** | Auditar financeiro (filtro **Concluída**) | **✅ 28/06** | Alertas **0** · NF 112 Teste · financeiro Agro OK |
+| **2** | **PDV → Gestão** | Vender **1 un.** de produto conhecido · **Gestão** já aberta → saldo **desce** sem F5 | ☐ | §4.15 item 7 · **próximo** |
+| **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | BI abriu v4.39.1 — conferir meta no gráfico |
 | **4** | **Gráfico gastos** | Abre · totais **≈ CP** mesmo período (competência ou vencimento) | ☐ | §4.15 item 2 |
 | **5** | **Lançamentos DRE** | Abre período · totais batem (sem tela vazia / 503) | ☐ | §4.15 item 1 |
 | **6** | **Gestão** | Lista abre rápido · filtros **marca / categoria** · após Entrada NF **não** trava minutos | ☐ | §4.15 item 4 |
 | **7** | **Compras** | Card «**últimas compras**» · **Folha Compras** → categoria (planilha A4) | ☐ | §4.15 item 5 |
+
+**Incidente 28/06:** 1ª abertura staging = tela cinza (cold start Render) · Ctrl+Shift+R → BI v4.39.1 OK.
 
 **Se falhar:** anotar **# da linha** + mensagem na tela ou URL vermelha no DevTools (Rede).
 
