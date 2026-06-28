@@ -919,7 +919,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Atalhos Hoje/Sáb…** | Continuam no eixo **vencimento** |
 | **Gráfico gastos** | Drill-down `embed=grafico` inalterado |
 | **Arquivo** | `lancamentos_contas_pagar_teste.html` |
-| **Deploy teste** | pendente commit/push |
+| **Deploy teste** | **`fc1abe8`** · **v4.25** |
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
