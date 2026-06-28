@@ -457,9 +457,9 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | ✅ | **Listas auxiliares** (plano, forma, banco, fornecedor NF) | Baixa CP / NF | **OK** | — |
 | **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | **PG** (flag auto loja) | Validar loja |
 | **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | **PG** (flag auto loja) | Validar vs CP |
-| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **v4.31** meta + ticket PDV | Validar BI |
-| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **v4.32** saldo sem Mongo ERP | Validar gestão |
-| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **v4.32** última compra só Entrada NF Agro | Validar Compras |
+| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **✅ teste v4.35** — sem DtoVenda/`vendas_agro` com `agro_pg` | Validar BI |
+| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **✅ teste v4.35** — sem fallback Mongo; saldo ledger (v4.32) | Validar gestão |
+| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **✅ teste v4.35** — buscar + NF etapa 6 sem Mongo obrigatório | Validar Compras |
 | **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **v4.31** PG | Validar NF |
 | **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **v4.31** patch fila PDV | Renan: vender 1 un. |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
@@ -563,7 +563,7 @@ PDV venda · caixa · fiado · clientes · NFC-e · RH · **CP/CR Lançamentos**
 | 4 | **Gráfico gastos** → PG | Falta |
 | 5 | **Transferências + Validade** | Falta |
 | 6 | **Entrada NF rascunho** (etapas 1–6) → PG | Opcional / grande | **✅ teste v4.09** |
-| 7 | **Compras** dimensões 100 % PG (sem scan Mongo) | Parcial |
+| 7 | **Compras** dimensões 100 % PG (sem scan Mongo) | **✅ teste v4.35** |
 | 8 | **Congelar Mongo financeiro** + só histórico | Opcional |
 | 9 | **Motor busca GM** Compras/NF | UX — por último |
 | 10 | **Cancelar assinatura ERP** | Só após 1–8 estáveis + backup |
@@ -938,7 +938,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** (deploy pendente) · **produção** v4.21
+**Versão app (`VERSION`):** **teste v4.35** · **produção** v4.21
+
+### Corte Mongo — pacote 3 parciais fechados (03/06 · assistente)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **BI vendas (#3)** | Modo PDV forçado com `agro_pg`; meta C sem fallback DtoVenda; vínculos sem coleção Mongo `vendas_agro` |
+| **Gestão (#4)** | Com catálogo PG: **sem fallback Mongo** em lista/facetas; saldo já ledger (pacote 2) |
+| **Compras (#5)** | `api_buscar` últimas compras **sem exigir Mongo**; Entrada NF etapa 6 lê produto via Postgres |
+| **Deploy teste** | push **`teste`** · **v4.35** |
+
+**Renan — retestar no staging (Ctrl+F5):** BI `/` · Gestão lista/filtros · Compras card «últimas compras» · folha categoria.
 
 ### Corte Mongo — pacote 2 (03/06 · assistente)
 
