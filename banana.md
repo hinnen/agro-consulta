@@ -977,7 +977,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Tela | Passos | OK? | Nota |
 | - | ---- | ------ | --- | ---- |
-| **1** | **Entrada NF** | Auditar financeiro (filtro **Concluída**) | **✅ 28/06** | Alertas **0** · NF 112 Teste · financeiro Agro OK |
+| **1** | **Entrada NF** | Busca **NF** (ex. `112`) → **Auditar financeiro** | **✅ 28/06** | OK **1** · alertas **0** · título CP PG conferido na NF 112 |
 | **2** | **PDV → Gestão** | Vender **1 un.** de produto conhecido · **Gestão** já aberta → saldo **desce** sem F5 | ☐ | §4.15 item 7 · **próximo** |
 | **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | BI abriu v4.39.1 — conferir meta no gráfico |
 | **4** | **Gráfico gastos** | Abre · totais **≈ CP** mesmo período (competência ou vencimento) | ☐ | §4.15 item 2 |
@@ -986,6 +986,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **7** | **Compras** | Card «**últimas compras**» · **Folha Compras** → categoria (planilha A4) | ☐ | §4.15 item 5 |
 
 **Incidente 28/06:** 1ª abertura staging = tela cinza (cold start Render) · Ctrl+Shift+R → BI v4.39.1 OK.
+
+**Auditoria NF — dois modos (Renan perguntou brecha):**
+
+| Modo | Quando | O quê audita |
+| ---- | ------ | ------------ |
+| **Suspeitas** | Filtro Concluída **sem busca** | Só notas concluídas **sem** flag «financeiro gravado» — caça esquecimento de «Salvar + a pagar» |
+| **Ampliada** | **Com busca** (NF/fornecedor) ou filtro Financeiro | Conferência **nota a nota**: título existe no CP Postgres + fornecedor bate |
+
+**Brecha conhecida:** nota **Concluída + financeiro gravado** não reentra no modo suspeitas. Se a flag estiver errada (marcada sem título real), passa batido **até** auditar com busca ou amostragem. **Teste staging:** buscar NF conhecida (112) → OK:1. **Operação:** amostrar 2–3 NFs/mês com busca; comando `auditar_corte_mongo_pg` no CP (read-only).
 
 **Se falhar:** anotar **# da linha** + mensagem na tela ou URL vermelha no DevTools (Rede).
 
