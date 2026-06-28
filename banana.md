@@ -949,7 +949,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Compras planilha** | Métricas/vendas pós-compra 100 % Postgres quando catálogo PG |
 | **BI ticket** | Ticket médio usa **VendaAgro** no modo PDV |
 | **Gráfico gastos** | Mensagem erro amigável se PG ativo e Mongo cair |
-| **Deploy teste** | pendente push |
+| **Deploy teste** | **`d21a718`** · **v4.33** |
 
 **Renan — testar 1 a 1 no staging (Ctrl+F5):**
 
