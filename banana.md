@@ -455,13 +455,13 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | ✅ | **BI cards CP/CR + resumo gerencial** | Gestão rápida | **OK** | — |
 | ✅ | **Transferências + Validade** (leitura) | Estoque | **OK** | — |
 | ✅ | **Listas auxiliares** (plano, forma, banco, fornecedor NF) | Baixa CP / NF | **OK** | — |
-| **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | **PG no teste** (flag) | Validar loja |
-| **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | Mongo leitura | Teste → loja |
-| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **Meta C → VendaAgro** (teste) | Validar BI |
-| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | Parcial | Teste → loja |
-| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | Parcial | Próximo pacote |
-| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **PG no teste** | Validar NF |
-| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **Patch fila PDV** (teste) | Renan: vender 1 un. |
+| **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | **PG** (flag auto loja) | Validar loja |
+| **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | **PG** (flag auto loja) | Validar vs CP |
+| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **v4.31** meta + ticket PDV | Validar BI |
+| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **v4.32** saldo sem Mongo ERP | Validar gestão |
+| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **v4.32** última compra só Entrada NF Agro | Validar Compras |
+| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **v4.31** PG | Validar NF |
+| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **v4.31** patch fila PDV | Renan: vender 1 un. |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
 | **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
 | **10** | **Backup PC** (CP/CR ZIP, cadastro Excel, vendas, NFC-e) | Seguro | Renan | Antes do 11 |
@@ -940,7 +940,30 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste** (deploy pendente) · **produção** v4.21
 
-### Corte Mongo — pacote segurança (03/06 · assistente)
+### Corte Mongo — pacote 2 (03/06 · assistente)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Gestão saldo** | Lista PG não lê estoque Mongo quando ledger operacional (`agro_estoque_operacional_sem_mongo_erp`) |
+| **Compras última compra** | Com `agro_pg`: só **Entrada NF Agro** + vendas PG — sem scan DtoCompra* ERP |
+| **Compras planilha** | Métricas/vendas pós-compra 100 % Postgres quando catálogo PG |
+| **BI ticket** | Ticket médio usa **VendaAgro** no modo PDV |
+| **Gráfico gastos** | Mensagem erro amigável se PG ativo e Mongo cair |
+| **Deploy teste** | pendente push |
+
+**Renan — testar 1 a 1 no staging (Ctrl+F5):**
+
+| # | Tela | O que conferir |
+| - | ---- | -------------- |
+| 1 | Entrada NF | Auditar financeiro (concluídas) |
+| 2 | PDV → Gestão | Vender 1 un. · saldo desce na gestão aberta |
+| 3 | BI `/` | Gráfico vendas + meta |
+| 4 | Gráfico gastos | Abre · totais vs CP mesmo período |
+| 5 | Lançamentos DRE | Abre período · totais |
+| 6 | Gestão | Lista + filtros marca/categoria |
+| 7 | Compras | Card produto «últimas compras» · folha categoria |
+
+### Corte Mongo — pacote 1 segurança (03/06 · assistente)
 
 | Item | Detalhe |
 | ---- | ------- |
