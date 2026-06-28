@@ -155,6 +155,14 @@ def agro_financeiro_mongo_congelado() -> bool:
     return bool(getattr(settings, "AGRO_FINANCEIRO_MONGO_CONGELADO", False))
 
 
+def agro_entrada_nota_rascunho_postgres() -> bool:
+    """Rascunho Entrada NF (etapas 1–6) no Postgres. Default: ligado quando financeiro PG está ativo."""
+    raw = getattr(settings, "AGRO_ENTRADA_NF_RASCUNHO_PG", None)
+    if raw is not None:
+        return bool(raw)
+    return agro_financeiro_usa_postgres()
+
+
 def agro_erp_pedidos_dry_run() -> bool:
     return bool(getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False))
 
@@ -219,6 +227,7 @@ def agro_fonte_status_dict() -> dict:
         "financeiro_erp_sync_env": agro_financeiro_erp_sync_env_ligado(),
         "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
+        "entrada_nota_rascunho_postgres": agro_entrada_nota_rascunho_postgres(),
     }
 
 

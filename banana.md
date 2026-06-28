@@ -531,7 +531,7 @@ PDV venda · caixa · fiado · clientes · NFC-e · RH · **CP/CR Lançamentos**
 | 3 | **BI `/` + resumo gerencial** → VendaAgro PG | Falta |
 | 4 | **Gráfico gastos** → PG | Falta |
 | 5 | **Transferências + Validade** | Falta |
-| 6 | **Entrada NF rascunho** (nota em andamento) → PG | Opcional / grande |
+| 6 | **Entrada NF rascunho** (etapas 1–6) → PG | Opcional / grande | **✅ teste v4.09** |
 | 7 | **Compras** dimensões 100 % PG (sem scan Mongo) | Parcial |
 | 8 | **Congelar Mongo financeiro** + só histórico | Opcional |
 | 9 | **Motor busca GM** Compras/NF | UX — por último |
@@ -775,7 +775,7 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 | **B** | **PDV pós-venda** — API devolve `pdv_catalog_patches` · cache local atualiza saldo | Vender 1 un. → Consulta/Gestão saldo desce sem F5 estoque |
 | **C** | **Painel amarelo CP** — some para admin quando PG já tem títulos | `/lancamentos/contas-pagar/` superuser |
 | **D** | *(já no teste)* DRE · fluxo calendário · export PDF/XLSX PG | ⏭ DRE opcional |
-| **E** | *(pendente próxima sessão)* Entrada NF rascunho PG · motor GM · Transferências/Validade | — |
+| **E** | **Entrada NF rascunho PG** (código pronto teste) · motor GM · Transferências/Validade | `/entrada-nota/` wizard 1–7 |
 
 **Ordem sugerida (banana + checklist pacote corte ERP):**
 
@@ -784,7 +784,7 @@ Aguarde ~1 min · salva ZIP · repita o segundo link.
 | **1** | **Ctrl+F5 loja** — CP jul aberto + gráfico jul = **82.643** (confirma na tela) | Renan | **Agora** · 2 min |
 | **2** | **Gestão saldo pós-venda** — fix **v3.82** só no **teste** · vender 1 un. → gestão deve baixar estoque | Renan teste | **Alta** — loja ainda **v3.54** (bug baixa sem Mongo) · sobe **no pacote**, não cherry avulso |
 | **3** | **Pacote desvinculação restante** — baixa estoque PDV + flags B+C loja + Compras/NF onde falta | Assistente → teste → loja com senha | **Alta** — Renan disse estoque loja perdido · recontar antes ou depois do pacote |
-| **4** | **Entrada NF rascunho** (etapas 1–6) ainda Mongo · título passo 7 **já PG** na loja | Assistente | Média |
+| **4** | **Entrada NF rascunho** etapas 1–6 → **Postgres** (teste v4.09) · passo 7 financeiro **já PG** | Assistente → Renan testa staging | Média |
 | **5** | **DRE / fluxo calendário / PDF** ler Postgres | Assistente | Baixa (Renan ⏭ DRE) |
 | **6** | **BI card gastos-plano** | Opcional | Só se ligar `AGRO_DASHBOARD_GASTOS_PLANO=true` |
 | **7** | **Motor busca GM** (`gm0050` Compras/NF) | Por último | Não bloqueia operação |
@@ -907,7 +907,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.07 · **produção** v4.07
+**Versão app (`VERSION`):** **teste** v4.09 · **produção** v4.07
+
+### Entrada NF — rascunho Postgres (24/06 · assistente)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Rascunho assistente (etapas 1–6) sair do Mongo `AgroEntradaNotaRascunho` |
+| **Modelo** | `EntradaNotaRascunhoAgro` · migration `0043` |
+| **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
+| **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
+| **Lazy read** | 1ª abertura de rascunho antigo copia Mongo→PG se ainda não importado |
+| **Deploy** | Push **teste** v4.09 · Renan validar wizard completo no staging |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
@@ -973,9 +984,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Gestão produtos** | saldos via ledger/Agro quando Mongo off |
 | **Compras planilha** | dim categoria/unidade + relatórios categoria/unidade **100% catálogo Postgres**; métricas vendas via `VendaAgro` |
 
-**Ainda FORA deste pacote (próximas fases):**
+**Próximas fases (fora deste pacote):**
 
-- Entrada NF rascunho (etapas 1–6) ainda `AgroEntradaNotaRascunho` Mongo
 - Relatório Compras **por fornecedor** ainda exige Mongo catálogo
 - Motor busca GM unificado (Compras/NF)
 - Resumo gerencial financeiro completo PG
