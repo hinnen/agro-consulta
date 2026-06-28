@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.26 · **produção** v4.20 (hotfix lista NF 28/06)
+**Versão app (`VERSION`):** **teste** v4.28 · **produção** v4.21 (CP filtro data 28/06)
 
 ### CP — filtro por competência e pagamento (03/06 · Renan)
 
@@ -920,6 +920,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Gráfico gastos** | Drill-down `embed=grafico` inalterado |
 | **Arquivo** | `lancamentos_contas_pagar_teste.html` |
 | **Deploy teste** | **`fc1abe8`** · **v4.26** (hook pós-checkpoint) |
+| **Deploy produção** | **`69e5eb8`** · **v4.21** · Renan **99738595** · **28/06** |
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
