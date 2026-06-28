@@ -401,7 +401,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
-- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
+- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas. **Filtrar por:** vencimento (padrão) · competência · pagamento (**loja v4.21**).
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
@@ -907,8 +907,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.22 · **produção** v4.20 (deploy 28/06 hotfix lista NF)
+**Versão app (`VERSION`):** **teste** v4.28 · **produção** v4.21 (CP filtro data 28/06)
 
+### CP — filtro competência e pagamento (28/06 · Renan · loja)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Lista CP: **Filtrar por** vencimento (padrão) · competência · pagamento |
+| **Escopo** | Só `lancamentos_contas_pagar_teste.html` — mesma API `ref` / `venc_*` / `comp_*` / `pag_*` |
+| **Vencimento** | Abertura «Hoje», atalhos e calendário **inalterados** |
+| **Teste staging** | Poucos títulos PG (256 MB) · tela cinza = memória PG, não o filtro |
+| **Deploy teste** | **`fc1abe8`** · v4.26+ |
+| **Deploy produção** | cherry-pick template **`fc1abe8`** · **v4.21** · Renan **99738595** · **28/06** |
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -2691,7 +2701,7 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] **PDV legado carrinho GM** — produção `59bdedc` v1.02 (2026-06-18)
 - [x] **Lançamentos CP — perf abertura Chrome** — bootstrap + prefetch + cache (`teste` v1.48); Renan OK melhora sutil; **próximo salto adiado**
 - [ ] **Lançamentos CP perf — roadmap adiado** — retomar: (A) `agro_pg` financeiro **ou** (B) lista no BI sem navegar **ou** (C) enxugar página CP. **Não** micro-otimizar até Renan pedir.
-- [ ] **Layout novo CP + perf lista** → produção (cherry-pick quando Renan pedir)
+- [x] **CP filtro competência/pagamento** → produção **v4.21** (28/06 · Renan 99738595)
 - [ ] **PDV wizard carrinho GM** — em staging `teste`; Renan validar → cherry-pick produção quando pedir
 - [ ] Dedupe clientes Mongo vs ERP por CPF (futuro)
 - [x] Tela contabilidade — itens **1,2,3,4,8** — **teste + produção** v2.25 (2026-06-24)

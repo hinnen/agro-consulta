@@ -419,11 +419,19 @@
   <div class="sv-filters-panel" id="painelFiltros" role="region" aria-label="Filtros avançados">
     <div class="sv-details-grid">
       <div class="sv-form-group">
-        <label for="sv-venc-de">Vencimento inicial</label>
+        <label for="sv-filtro-data-ref">Filtrar por</label>
+        <select id="sv-filtro-data-ref" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+          <option value="vencimento" selected>Vencimento</option>
+          <option value="competencia">Competência</option>
+          <option value="pagamento">Pagamento / quitação</option>
+        </select>
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-venc-de" id="sv-data-de-label">Vencimento — de</label>
         <input type="date" id="sv-venc-de" class="sv-input-large" style="height: 48px; padding-left: 16px;">
       </div>
       <div class="sv-form-group">
-        <label for="sv-venc-ate">Vencimento final</label>
+        <label for="sv-venc-ate" id="sv-data-ate-label">Vencimento — até</label>
         <input type="date" id="sv-venc-ate" class="sv-input-large" style="height: 48px; padding-left: 16px;">
       </div>
       <div class="sv-form-group">
@@ -443,6 +451,9 @@
         </select>
       </div>
     </div>
+    <p id="sv-filtro-data-hint" class="sv-sub" style="margin: 0 0 12px; font-size: 0.82rem; line-height: 1.35; color: var(--cor-texto-secundario);">
+      Com <strong>Em aberto</strong> e filtro só por <strong>pagamento</strong>, a lista pode ficar vazia — use <strong>Todos</strong> ou <strong>Quitados</strong>.
+    </p>
     <div class="sv-planos-block" aria-label="Planos de contas">
       <div class="sv-planos-head">
         <div>
@@ -782,8 +793,91 @@
     });
   }
 
+  const FILTRO_DATA_NOMES = {
+    vencimento: 'Vencimento',
+    competencia: 'Competência',
+    pagamento: 'Pagamento',
+  };
+
+  function getFiltroDataRef() {
+    if (filtroRemotoCp && filtroRemotoCp.ref) return filtroRemotoCp.ref;
+    const sel = document.getElementById('sv-filtro-data-ref');
+    const v = (sel && sel.value) || 'vencimento';
+    return v === 'competencia' || v === 'pagamento' ? v : 'vencimento';
+  }
+
+  function setFiltroDataRef(ref) {
+    const sel = document.getElementById('sv-filtro-data-ref');
+    if (sel) {
+      sel.value = ref === 'competencia' || ref === 'pagamento' ? ref : 'vencimento';
+    }
+    atualizarLabelsFiltroData();
+  }
+
+  function atualizarLabelsFiltroData() {
+    const ref = getFiltroDataRef();
+    const nome = FILTRO_DATA_NOMES[ref] || FILTRO_DATA_NOMES.vencimento;
+    const deLbl = document.getElementById('sv-data-de-label');
+    const ateLbl = document.getElementById('sv-data-ate-label');
+    const hint = document.getElementById('sv-filtro-data-hint');
+    if (deLbl) deLbl.textContent = `${nome} — de`;
+    if (ateLbl) ateLbl.textContent = `${nome} — até`;
+    if (hint) hint.hidden = ref !== 'pagamento';
+  }
+
+  function aplicarDatasAoParams(p, ref, de, ate) {
+    if (!de && !ate) return;
+    if (ref === 'competencia') {
+      if (de) p.set('comp_de', de);
+      if (ate) p.set('comp_ate', ate);
+      p.set('ref', 'competencia');
+    } else if (ref === 'pagamento') {
+      if (de) p.set('pag_de', de);
+      if (ate) p.set('pag_ate', ate);
+      p.set('ref', 'pagamento');
+    } else {
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+    }
+  }
+
+  function popularFiltroDataDaUrl(params) {
+    const ref = (params.get('ref') || '').trim().toLowerCase();
+    const compDe = (params.get('comp_de') || '').slice(0, 10);
+    const compAte = (params.get('comp_ate') || '').slice(0, 10);
+    const pagDe = (params.get('pag_de') || '').slice(0, 10);
+    const pagAte = (params.get('pag_ate') || '').slice(0, 10);
+    const vencDe = (params.get('venc_de') || params.get('data_inicial') || '').slice(0, 10);
+    const vencAte = (params.get('venc_ate') || params.get('data_final') || '').slice(0, 10);
+
+    let mode = 'vencimento';
+    let de = '';
+    let ate = '';
+    if (ref === 'competencia' || compDe || compAte) {
+      mode = 'competencia';
+      de = compDe;
+      ate = compAte;
+    } else if (ref === 'pagamento' || pagDe || pagAte) {
+      mode = 'pagamento';
+      de = pagDe;
+      ate = pagAte;
+    } else {
+      de = vencDe;
+      ate = vencAte;
+    }
+    setFiltroDataRef(mode);
+    document.getElementById('sv-venc-de').value = de;
+    document.getElementById('sv-venc-ate').value = ate;
+    if (params.get('embed') === 'grafico' && (de || ate)) {
+      filtroRemotoCp = { ref: mode, de, ate };
+    } else {
+      filtroRemotoCp = null;
+    }
+  }
+
   function aplicarPrefiltro(tipo, dispararCarga) {
     filtroRemotoCp = null;
+    setFiltroDataRef('vencimento');
     const hoje = hojeYmd();
     let de = '';
     let ate = '';
@@ -1523,22 +1617,14 @@
     const q = (document.getElementById('sv-busca').value || '').trim();
     if (q) p.set('q', q);
     if (filtroRemotoCp) {
-      const r = filtroRemotoCp;
-      if (r.ref === 'competencia') {
-        if (r.de) p.set('comp_de', r.de);
-        if (r.ate) p.set('comp_ate', r.ate);
-      } else if (r.ref === 'pagamento') {
-        if (r.de) p.set('pag_de', r.de);
-        if (r.ate) p.set('pag_ate', r.ate);
-      } else {
-        if (r.de) p.set('venc_de', r.de);
-        if (r.ate) p.set('venc_ate', r.ate);
-      }
+      aplicarDatasAoParams(p, filtroRemotoCp.ref || 'vencimento', filtroRemotoCp.de, filtroRemotoCp.ate);
     } else {
-      const de = document.getElementById('sv-venc-de').value;
-      const ate = document.getElementById('sv-venc-ate').value;
-      if (de) p.set('venc_de', de);
-      if (ate) p.set('venc_ate', ate);
+      aplicarDatasAoParams(
+        p,
+        getFiltroDataRef(),
+        document.getElementById('sv-venc-de').value,
+        document.getElementById('sv-venc-ate').value,
+      );
     }
     return p;
   }
@@ -1608,7 +1694,12 @@
     const de = document.getElementById('sv-venc-de').value;
     const ate = document.getElementById('sv-venc-ate').value;
     if (!de && !ate) return '';
-    return ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
+    const ref = getFiltroDataRef();
+    const tag = ref === 'competencia' ? 'comp.' : ref === 'pagamento' ? 'pag.' : 'venc.';
+    const faixa = de && ate && de === ate
+      ? fmtDataCurta(de)
+      : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`;
+    return ` · ${tag} ${faixa}`;
   }
 
   function atualizarResumoLista(extra) {
@@ -1630,7 +1721,8 @@
   function ehFiltroPadraoHojeAbertos() {
     const hoje = hojeYmd();
     return (
-      (document.getElementById('sv-status').value || '') === 'abertos'
+      getFiltroDataRef() === 'vencimento'
+      && (document.getElementById('sv-status').value || '') === 'abertos'
       && document.getElementById('sv-venc-de').value === hoje
       && document.getElementById('sv-venc-ate').value === hoje
       && !(document.getElementById('sv-busca').value || '').trim()
@@ -1736,25 +1828,7 @@
       return;
     }
 
-    const ref = (params.get('ref') || '').trim().toLowerCase();
-    const compDe = (params.get('comp_de') || '').slice(0, 10);
-    const compAte = (params.get('comp_ate') || '').slice(0, 10);
-    const pagDe = (params.get('pag_de') || '').slice(0, 10);
-    const pagAte = (params.get('pag_ate') || '').slice(0, 10);
-    const vencDe = (params.get('venc_de') || params.get('data_inicial') || '').slice(0, 10);
-    const vencAte = (params.get('venc_ate') || params.get('data_final') || '').slice(0, 10);
-
-    if (ref === 'competencia' || compDe || compAte) {
-      filtroRemotoCp = { ref: 'competencia', de: compDe, ate: compAte };
-    } else if (ref === 'pagamento' || pagDe || pagAte) {
-      filtroRemotoCp = { ref: 'pagamento', de: pagDe, ate: pagAte };
-    } else {
-      if (vencDe) document.getElementById('sv-venc-de').value = vencDe;
-      if (vencAte) document.getElementById('sv-venc-ate').value = vencAte;
-      if (vencDe || vencAte || params.get('embed') === 'grafico') {
-        filtroRemotoCp = { ref: 'vencimento', de: vencDe, ate: vencAte };
-      }
-    }
+    popularFiltroDataDaUrl(params);
     if (params.get('mongo_id')) document.getElementById('sv-status').value = 'todos';
   }
 
@@ -2148,6 +2222,8 @@
   }
 
   function limparFiltros() {
+    filtroRemotoCp = null;
+    setFiltroDataRef('vencimento');
     document.getElementById('sv-venc-de').value = '';
     document.getElementById('sv-venc-ate').value = '';
     document.getElementById('sv-status').value = 'abertos';
@@ -2384,6 +2460,12 @@
   document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
     btn.addEventListener('click', () => aplicarPrefiltro(btn.dataset.pref || ''));
   });
+  document.getElementById('sv-filtro-data-ref')?.addEventListener('change', () => {
+    filtroRemotoCp = null;
+    marcarPrefiltro('');
+    atualizarLabelsFiltroData();
+    recarregarAposFiltro();
+  });
   ['sv-venc-de', 'sv-venc-ate'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => {
       filtroRemotoCp = null;
@@ -2422,6 +2504,7 @@
   });
 
   aplicarFiltrosDaUrl();
+  atualizarLabelsFiltroData();
   const params = new URLSearchParams(window.location.search);
   const mid = params.get('mongo_id');
   if (mid) {
