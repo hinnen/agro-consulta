@@ -721,6 +721,58 @@
     });
   }
 
+  var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+
+  function gmAplicarPatchSaldoPdv(patch) {
+    if (!patch || patch.id == null) return false;
+    var pid = String(patch.id);
+    var touched = false;
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) !== pid) continue;
+      var p = ultimos[i];
+      if (patch.saldo_centro != null) {
+        p.saldo_centro = patch.saldo_centro;
+        touched = true;
+      }
+      if (patch.saldo_vila != null) {
+        p.saldo_vila = patch.saldo_vila;
+        touched = true;
+      }
+      if (touched) {
+        var sc = Number(p.saldo_centro);
+        var sv = Number(p.saldo_vila);
+        if (isFinite(sc) && isFinite(sv)) p.saldo_total = sc + sv;
+        else if (patch.saldo_total != null) p.saldo_total = patch.saldo_total;
+      }
+      break;
+    }
+    if (!touched) return false;
+    renderLista(ultimos);
+    return true;
+  }
+
+  function gmConsumirFilaPatchPdv() {
+    try {
+      var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+      if (!raw) return;
+      var q = JSON.parse(raw);
+      if (!q || !Array.isArray(q.items) || !q.items.length) return;
+      var applied = false;
+      q.items.forEach(function (it) {
+        var patch = (it && it.patch) ? it.patch : it;
+        if (gmAplicarPatchSaldoPdv(patch)) applied = true;
+      });
+      if (applied) {
+        try { localStorage.removeItem(PDV_PATCH_QUEUE_KEY); } catch (_e) {}
+      }
+    } catch (_e2) {}
+  }
+
+  window.addEventListener('storage', function (ev) {
+    if (ev.key === PDV_PATCH_QUEUE_KEY) gmConsumirFilaPatchPdv();
+  });
+  gmConsumirFilaPatchPdv();
+
   fillFacetSelects();
   carregar();
 })();
