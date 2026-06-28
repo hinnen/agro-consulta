@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.17 · **produção** v4.07 → merge pendente
+**Versão app (`VERSION`):** **teste** v4.17 · **produção** v4.17 (deploy 28/06)
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -918,8 +918,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
 | **Audit v4.17** | Fix `_object_id_rascunho` Mongo (ObjectId) vs PG (str) · reabrir etapa 4/lote · msgs etapa 8 · pós-reabrir vai etapa 5 |
-| **Deploy teste** | v4.09–v4.16 validado · NF 112 GM9503 **47** ✅ |
-| **Produção** | Renan autorizou subir **28/06** — aguardando senha no chat para `push producao` |
+| **Deploy teste** | v4.09–v4.17 validado · NF 112 GM9503 **47** ✅ |
+| **Deploy produção** | **28/06** · merge `cdc198f` · **v4.17** · Renan autorizou subir |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
