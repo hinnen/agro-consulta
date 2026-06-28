@@ -919,7 +919,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
 | **Audit v4.17** | Fix `_object_id_rascunho` Mongo (ObjectId) vs PG (str) · reabrir etapa 4/lote · msgs etapa 8 · pós-reabrir vai etapa 5 |
 | **Deploy teste** | v4.09–v4.17 validado · NF 112 GM9503 **47** ✅ |
-| **Deploy produção** | **28/06** · merge `cdc198f` · **v4.17** · Renan autorizou subir |
+| **Deploy produção** | **28/06** · **`cdc198f`** · **v4.17** · Renan autorizou (senha) ✅ |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
