@@ -949,7 +949,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **BI meta C** | Histórico M-1/M-2 prefere **VendaAgro**; ERP só se período vazio |
 | **Gestão saldo** | Ouve fila `agro_pdv_catalog_patch_queue_v1` — saldo atualiza após venda PDV |
 | **Comando** | `python manage.py auditar_corte_mongo_pg` — CP PG vs Mongo read-only |
-| **Deploy teste** | pendente push |
+| **Deploy teste** | **`bc805e7`** · **v4.31** |
 | **Renan testar** | (1) Entrada NF → Auditar financeiro · (2) Vender 1 un. → Gestão saldo desce · (3) BI meta |
 
 ### CP — filtro por competência e pagamento (03/06 · Renan)
