@@ -2431,8 +2431,8 @@ def reverter_integracao_entrada_nota_para_reabertura(
     """
     Remove carimbo ``aprovacao_wizard_*``, flags de etapa do assistente e estorna o que for rastreável:
 
-    - Títulos Mongo em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
-      ``excluir_lancamento_mongo_agro`` (falha se quitado ou vínculo ERP).
+    - Títulos em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
+      ``excluir_lancamento_dispatch`` (Postgres no teste; Mongo na loja legado).
     - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
       do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
 
@@ -2449,7 +2449,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
         return {"ok": False, "erro": "ID inválido."}
     from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
 
-    from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
+    from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_dispatch
 
     try:
         doc = col.find_one({"_id": _id})
@@ -2501,7 +2501,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         fin_falhas: list[dict[str, str]] = []
         for fid in fin_ids:
-            r = excluir_lancamento_mongo_agro(db, fid, usuario or "")
+            r = excluir_lancamento_dispatch(db, fid, usuario or "", despesa=True)
             if not r.get("ok"):
                 msg = str(r.get("erro") or "exclusão não permitida")[:400]
                 fin_falhas.append({"id": fid, "erro": msg})

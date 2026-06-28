@@ -718,3 +718,23 @@ def inserir_lancamentos_manual_lote_dispatch(
     if agro_mongo_escrita_bloqueada():
         return simular_lancamentos_manual_lote_staging(linhas=kwargs.get("linhas", []))
     return inserir_lancamentos_manual_lote(db, despesa=despesa, **kwargs)
+
+
+def excluir_lancamento_dispatch(
+    db,
+    lancamento_id: str,
+    usuario_label: str,
+    *,
+    despesa: bool = True,
+) -> dict[str, Any]:
+    """Postgres CP vs Mongo — espelha ``inserir_lancamentos_manual_lote_dispatch``."""
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+    from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
+
+    if financeiro_grava_postgres(despesa):
+        r = excluir_lancamento_pg(lancamento_id, usuario_label)
+        if r.get("ok"):
+            return r
+        if agro_mongo_escrita_bloqueada():
+            return r
+    return excluir_lancamento_mongo_agro(db, lancamento_id, usuario_label)
