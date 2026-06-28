@@ -1908,7 +1908,7 @@
     </div>
   </div>
 
-  {{ csrf_token }}
+  {% csrf_token %}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=4"></script>
   <script>
@@ -5444,6 +5444,8 @@
       entradaNfeAplicarCongelamentoEditorUi();
     }
   }
+
+  document.getElementById('entrada-nfe-wizard-nav')?.querySelectorAll('[data-nfe-w-go]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const n = Number(btn.getAttribute('data-nfe-w-go'));
       entradaNfeWizardSetStep(n);
@@ -9497,7 +9499,7 @@
 
   const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
   let entradaNfeEstoqueAgroEmCurso = false;
-  btnEstoqueAgro.addEventListener('click', async () => {
+  btnEstoqueAgro?.addEventListener('click', async () => {
     if (entradaNfeEstoqueAgroEmCurso || btnEstoqueAgro.disabled) return;
     if (entradaNfeEditorCongeladoAtivo()) {
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
@@ -9990,7 +9992,7 @@
     carregarSefazStatus();
   });
 
-  document.getElementById('entrada-nfe-filtros-wrap').addEventListener('click', (e) => {
+  document.getElementById('entrada-nfe-filtros-wrap')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.filtro-nfe-chip');
     if (!btn) return;
     const f = btn.getAttribute('data-filtro') || 'todas';
@@ -10029,7 +10031,7 @@
     if (e.target === e.currentTarget) entradaNfeFecharModalListaFiltros();
   });
 
-  document.getElementById('btn-entrada-nfe-nova').addEventListener('click', () => {
+  document.getElementById('btn-entrada-nfe-nova')?.addEventListener('click', () => {
     entradaNfeAbrirEditor();
     entradaNfeExtraUltimo = null;
     setEntradaNfeRascunhoEdit(null);
@@ -10047,7 +10049,7 @@
     showMsg('Nova entrada.', true);
   });
 
-  document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
+  document.getElementById('btn-refresh-rasc')?.addEventListener('click', carregarRascunhos);
 
   async function entradaNfeAuditoriaFinanceiro() {
     const modal = document.getElementById('modal-entrada-nfe-auditoria-fin');
