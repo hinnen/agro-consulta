@@ -6665,10 +6665,12 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
 def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> dict:
     """
     Base histórica (M-1 / M-2) para meta C.
-    Com vendas do gráfico só no PDV, meses antigos quase não têm VendaAgro — usa DtoVenda ERP
-    só como referência de weekday, sem somar de novo no total do dia.
+    Preferência: ``VendaAgro`` (PDV). Só usa espelho ERP se o período não tiver venda Agro.
     """
     if _dashboard_vendas_fonte_pdv():
+        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+        if float(ser.get("total") or 0) > 0:
+            return ser
         return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
     return _dashboard_mongo_vendas_serie(data_ini, data_fim)
 
@@ -11067,11 +11069,11 @@ def api_entrada_nota_rascunhos(request):
 @require_GET
 def api_entrada_nota_auditoria_financeiro(request):
     """
-    Auditoria em lote: verifica títulos em DtoLancamento vs. notas salvas.
+    Auditoria em lote: verifica títulos CP vs. notas salvas (Postgres ou Mongo legado).
     **Concluída** na lista = PIN etapa 6; use ``filtro=concluida`` para revisar só as verdes.
     """
     client, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not agro_financeiro_usa_postgres():
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
     busca = entrada_nfe_busca_params_from_request(request)

@@ -1181,6 +1181,98 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
         return []
 
 
+def _titulo_pg_para_dict_entrada_nfe(t) -> dict[str, Any]:
+    """Formato compatível com helpers de auditoria (campos Mongo + PG)."""
+    return {
+        "_id": t.mongo_id,
+        "Id": t.mongo_id,
+        "Cliente": t.cliente or "",
+        "ClienteID": t.cliente_id or "",
+        "Descricao": t.descricao or "",
+        "Observacao": t.observacoes or "",
+        "NumeroDocumento": t.numero_documento or "",
+        "Despesa": bool(t.despesa),
+        "observacoes": t.observacoes or "",
+        "descricao": t.descricao or "",
+        "numero_documento": t.numero_documento or "",
+    }
+
+
+def _titulos_pg_por_ids_entrada_nfe(ids: list[str]) -> list[dict[str, Any]]:
+    from produtos.models import TituloFinanceiroAgro
+
+    if not ids:
+        return []
+    uniq = []
+    seen: set[str] = set()
+    for raw in ids[:80]:
+        rid = str(raw or "").strip()
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        uniq.append(rid)
+    if not uniq:
+        return []
+    by_id = {
+        t.mongo_id: t
+        for t in TituloFinanceiroAgro.objects.filter(despesa=True, mongo_id__in=uniq)
+    }
+    out: list[dict[str, Any]] = []
+    for rid in uniq:
+        t = by_id.get(rid)
+        if t:
+            out.append(_titulo_pg_para_dict_entrada_nfe(t))
+    return out
+
+
+def _titulos_pg_por_rastro_entrada_nfe(cab: dict) -> list[dict[str, Any]]:
+    """Busca títulos CP no Postgres por rastro NF/chave (espelho do Mongo)."""
+    from django.db.models import Q
+    from produtos.models import TituloFinanceiroAgro
+
+    if not isinstance(cab, dict):
+        return []
+    ch = str(cab.get("chave") or "").strip()
+    nf = str(cab.get("numero") or "").strip()
+    ors = Q(observacoes__icontains="Entrada NF-e Agro")
+    if ch and len(ch) >= 12:
+        ors = ors | Q(observacoes__icontains=ch[-24:])
+    if nf and nf not in ("", "0", "000"):
+        ors = ors | Q(descricao__icontains=nf) | Q(observacoes__icontains=nf)
+    try:
+        qs = TituloFinanceiroAgro.objects.filter(Q(despesa=True) & ors).order_by("-atualizado_em")[:8]
+        return [_titulo_pg_para_dict_entrada_nfe(t) for t in qs]
+    except Exception as exc:
+        logger.warning("_titulos_pg_por_rastro_entrada_nfe: %s", exc)
+        return []
+
+
+def _entrada_nfe_financeiro_titulos_por_ids(
+    db,
+    ids: list[str],
+) -> list[dict[str, Any]]:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    if agro_financeiro_usa_postgres():
+        pg = _titulos_pg_por_ids_entrada_nfe(ids)
+        if pg or db is None:
+            return pg
+    return _titulos_mongo_por_ids_entrada_nfe(db, ids)
+
+
+def _entrada_nfe_financeiro_titulos_por_rastro(
+    db,
+    cab: dict,
+) -> list[dict[str, Any]]:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    if agro_financeiro_usa_postgres():
+        pg = _titulos_pg_por_rastro_entrada_nfe(cab)
+        if pg or db is None:
+            return pg
+    return _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+
+
 def auditar_financeiro_rascunho_entrada_nfe(
     db,
     doc: dict[str, Any],
@@ -1205,10 +1297,12 @@ def auditar_financeiro_rascunho_entrada_nfe(
     emit_nome = str(cab.get("emit_nome") or "").strip()
     emit_canon = emit_nome
 
-    titulos_ids = _titulos_mongo_por_ids_entrada_nfe(db, ids_list) if fin_flag and ids_list else []
+    titulos_ids = (
+        _entrada_nfe_financeiro_titulos_por_ids(db, ids_list) if fin_flag and ids_list else []
+    )
     titulos_rastro: list[dict[str, Any]] = []
     if not titulos_ids and permitir_rastro and fin_flag:
-        titulos_rastro = _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+        titulos_rastro = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
     titulos = titulos_ids if titulos_ids else titulos_rastro
 
     n_titulos = len(titulos)
@@ -1317,12 +1411,12 @@ def auditar_financeiro_rascunho_entrada_nfe(
     elif n_titulos and not cliente_ok:
         situacao = "cliente_divergente"
         detalhe = (
-            f"Título(s) existem, mas Cliente no Mongo ({', '.join(clientes_titulo[:2])}) "
+            f"Título(s) existem, mas Cliente no financeiro ({', '.join(clientes_titulo[:2])}) "
             f"não bate com «{emit_nome}». Pode não aparecer na busca de Lançamentos."
         )
     elif fin_flag and n_ids_pedidos and n_ids_achados == 0:
         situacao = "titulo_sumido"
-        detalhe = "Nota marcada com financeiro, mas os IDs do título não existem mais no Mongo."
+        detalhe = "Nota marcada com financeiro, mas os IDs do título não existem mais no financeiro."
     elif fin_flag and not n_ids_pedidos:
         situacao = "flag_sem_id"
         detalhe = "Nota marcada com financeiro lançado, mas sem IDs de título salvos."
@@ -2084,10 +2178,10 @@ def _titulos_entrada_nfe_ids_do_rascunho(
     ids_raw = extra.get("financeiro_ids")
     ids_gravados = [str(x).strip() for x in ids_raw if str(x).strip()] if isinstance(ids_raw, list) else []
     if entrada_nfe_extra_financeiro_ok(extra) and ids_gravados:
-        if _titulos_mongo_por_ids_entrada_nfe(db, ids_gravados):
+        if _entrada_nfe_financeiro_titulos_por_ids(db, ids_gravados):
             return ids_gravados[:80]
 
-    titulos = _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+    titulos = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
     if not titulos:
         return ids_gravados[:80] if ids_gravados else []
 
@@ -2155,12 +2249,12 @@ def sincronizar_financeiro_rascunho_entrada_nfe(
 
         titulo_ids = _titulos_entrada_nfe_ids_do_rascunho(db, doc, col_pessoa=col_pessoa)
         if not titulo_ids:
-            return {"ok": False, "erro": "Nenhum título a pagar encontrado no Mongo para esta nota."}
+            return {"ok": False, "erro": "Nenhum título a pagar encontrado no financeiro para esta nota."}
 
         lote: str | None = None
-        titulos_ref = _titulos_mongo_por_ids_entrada_nfe(db, titulo_ids)
+        titulos_ref = _entrada_nfe_financeiro_titulos_por_ids(db, titulo_ids)
         if not titulos_ref:
-            titulos_ref = _titulos_mongo_por_rastro_entrada_nfe(
+            titulos_ref = _entrada_nfe_financeiro_titulos_por_rastro(
                 db, doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
             )
         for t in titulos_ref:

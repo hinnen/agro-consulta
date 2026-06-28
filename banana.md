@@ -455,13 +455,13 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | ✅ | **BI cards CP/CR + resumo gerencial** | Gestão rápida | **OK** | — |
 | ✅ | **Transferências + Validade** (leitura) | Estoque | **OK** | — |
 | ✅ | **Listas auxiliares** (plano, forma, banco, fornecedor NF) | Baixa CP / NF | **OK** | — |
-| **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | Mongo | Teste → loja |
+| **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | **PG no teste** (flag) | Validar loja |
 | **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | Mongo leitura | Teste → loja |
-| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | Parcial Mongo | Teste → loja |
+| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **Meta C → VendaAgro** (teste) | Validar BI |
 | **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | Parcial | Teste → loja |
-| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | Parcial | Teste → loja |
-| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | Mongo | Teste → loja |
-| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | Fix no teste | Pacote loja |
+| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | Parcial | Próximo pacote |
+| **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **PG no teste** | Validar NF |
+| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **Patch fila PDV** (teste) | Renan: vender 1 un. |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
 | **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
 | **10** | **Backup PC** (CP/CR ZIP, cadastro Excel, vendas, NFC-e) | Seguro | Renan | Antes do 11 |
@@ -938,7 +938,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.28 · **produção** v4.21 (CP filtro data 28/06)
+**Versão app (`VERSION`):** **teste** (deploy pendente) · **produção** v4.21
+
+### Corte Mongo — pacote segurança (03/06 · assistente)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan: avançar desvinculação com paridade segura; acionar só se necessário |
+| **NF auditoria** | Títulos CP via **Postgres** quando financeiro PG (`_titulos_pg_por_*`) |
+| **BI meta C** | Histórico M-1/M-2 prefere **VendaAgro**; ERP só se período vazio |
+| **Gestão saldo** | Ouve fila `agro_pdv_catalog_patch_queue_v1` — saldo atualiza após venda PDV |
+| **Comando** | `python manage.py auditar_corte_mongo_pg` — CP PG vs Mongo read-only |
+| **Deploy teste** | pendente push |
+| **Renan testar** | (1) Entrada NF → Auditar financeiro · (2) Vender 1 un. → Gestão saldo desce · (3) BI meta |
 
 ### CP — filtro por competência e pagamento (03/06 · Renan)
 
