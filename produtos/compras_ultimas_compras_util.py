@@ -205,7 +205,7 @@ def append_eventos_entrada_nf_agro(
     Acrescenta eventos de compra a partir de ``AgroEntradaNotaRascunho`` (Entrada NF Agro).
     Mesmo formato interno que ``_ultimas_compras_por_produto_ids`` (Mongo ERP).
     """
-    if db is None or not pid_ok:
+    if not pid_ok:
         return
     from produtos.nfe_entrada_util import _entrada_nota_rascunho_store
 

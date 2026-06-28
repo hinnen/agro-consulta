@@ -928,8 +928,13 @@ def api_produtos_gestao_lista(request):
 
     if agro_gestao_usa_postgres():
         from produtos import catalogo_agro as cat_agro
+        from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+        from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-        client, db = obter_conexao_mongo()
+        client, db = (None, None)
+        if not agro_estoque_operacional_sem_mongo_erp():
+            client, db = obter_conexao_mongo()
+
         try:
             if q_raw:
                 rows_pg = cat_agro.buscar_gestao(
@@ -955,17 +960,7 @@ def api_produtos_gestao_lista(request):
                 )
             chunk = [cat_agro.row_para_doc_gestao_lista(r) for r in chunk_rows]
             p_ids = [str(p.get("Id") or p.get("_id") or "") for p in chunk if p.get("Id") or p.get("_id")]
-            from produtos.agro_fonte_config import agro_estoque_ledger_ativo
-            from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
-
-            if agro_estoque_ledger_ativo() or db is None:
-                saldos = mapa_saldos_operacionais_agro(
-                    p_ids,
-                    db=None if agro_estoque_ledger_ativo() else db,
-                    client=None if agro_estoque_ledger_ativo() else client,
-                )
-            else:
-                saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+            saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
             ovs = _overlay_mapa_por_ids(p_ids)
             rows = [
                 _linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p.get("_id") or "")))
@@ -3613,16 +3608,24 @@ def _ultimas_compras_por_produto_ids(
     Últimas compras por produto a partir de DtoCompra*, DtoNotaEntrada*, etc. (Mongo ERP).
     """
     out_map: dict[str, list[dict]] = {str(pid): [] for pid in p_ids}
-    if db is None or not p_ids:
+    if not p_ids:
         return out_map
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
+
+    if agro_compras_metricas_postgres() or agro_catalogo_usa_postgres():
+        skip_erp = True
+
     variants = _produto_ids_variants_mongo([str(x) for x in p_ids])
     if not variants:
         return out_map
-    try:
-        names = set(db.list_collection_names())
-    except Exception as exc:
-        logger.warning("ultimas_compras list_collection_names: %s", exc)
-        names = set()
+    names: set[str] = set()
+    if db is not None:
+        try:
+            names = set(db.list_collection_names())
+        except Exception as exc:
+            logger.warning("ultimas_compras list_collection_names: %s", exc)
+            names = set()
     since = _ultimas_compras_cutoff_dt()
     eventos: dict[str, list[dict]] = {str(pid): [] for pid in p_ids}
     pid_ok = {str(x) for x in p_ids}
@@ -3641,7 +3644,7 @@ def _ultimas_compras_por_produto_ids(
     except Exception as exc:
         logger.warning("ultimas_compras entrada_nf_agro merge: %s", exc)
 
-    if not skip_erp:
+    if not skip_erp and db is not None:
         pares = (
             ("DtoCompraProduto", "CompraID", "DtoCompra", "compra"),
             ("DtoPedidoCompraProduto", "PedidoCompraID", "DtoPedidoCompra", "pedido_compra"),
@@ -5023,7 +5026,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             variant_to_canon.setdefault(str(v), str(canon))
             pid_variants.append(str(v))
 
-    use_pg_vendas = use_pg_metricas or (use_pg_catalogo and db is None)
+    use_pg_vendas = use_pg_metricas or use_pg_catalogo
     if use_pg_vendas:
         from produtos.compras_metricas_util import (
             vendas_qtd_apos_ref_compra_postgres,
@@ -6480,8 +6483,11 @@ def _dashboard_float(value):
 
 
 def _dashboard_ticket_medio_intervalo(data_ini: date, data_fim: date) -> float:
-    """Ticket médio (Soma faturamento / N pedidos) no intervalo, Mongo + fallback SQLite como no dashboard."""
-    ser = _dashboard_mongo_vendas_serie(data_ini, data_fim)
+    """Ticket médio no intervalo — VendaAgro (PDV) com fallback histórico Mongo."""
+    if _dashboard_vendas_fonte_pdv():
+        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+    else:
+        ser = _dashboard_mongo_vendas_serie(data_ini, data_fim)
     qtd = sum(int(v or 0) for v in (ser.get("qtd_por_dia") or {}).values())
     total = _dashboard_float(ser.get("total"))
     if qtd <= 0:

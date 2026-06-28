@@ -217,7 +217,7 @@ def api_dados_grafico_gastos(request):
     usa_pg_fin = agro_financeiro_usa_postgres()
     if not usa_pg_fin and mongo_db is None:
         return JsonResponse(
-            {"erro": "Mongo indisponível", "labels": [], "datasets": []},
+            {"erro": "Financeiro indisponível", "labels": [], "datasets": []},
             status=503,
         )
 
