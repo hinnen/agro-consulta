@@ -41,7 +41,22 @@ def _as_aware_dt(val: Any) -> datetime | None:
 
 
 def _id_str(val: Any) -> str:
-    return str(val).strip()
+    if val is None:
+        return ""
+    s = str(val).strip()
+    if s.lower() in ("none", "null", "undefined"):
+        return ""
+    return s
+
+
+def _rascunho_id_hex_valido(rid: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-fA-F]{24}", str(rid or "").strip()))
+
+
+def gerar_rascunho_id_entrada_nfe() -> str:
+    from bson.objectid import ObjectId
+
+    return str(ObjectId())
 
 
 def _get_nested(doc: dict, path: str) -> Any:
@@ -185,12 +200,11 @@ class EntradaNotaRascunhoPgCollection:
     """Adaptador mínimo da API pymongo usada por ``nfe_entrada_util``."""
 
     def insert_one(self, doc: dict[str, Any]) -> _InsertOneResult:
-        from bson.objectid import ObjectId
         from produtos.models import EntradaNotaRascunhoAgro
 
         rid = _id_str(doc.get("_id"))
-        if not rid:
-            rid = str(ObjectId())
+        if not _rascunho_id_hex_valido(rid):
+            rid = gerar_rascunho_id_entrada_nfe()
         fields = _doc_to_row_fields(doc)
         EntradaNotaRascunhoAgro.objects.create(rascunho_id=rid, **fields)
         return _InsertOneResult(inserted_id=rid)

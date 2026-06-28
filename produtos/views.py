@@ -174,6 +174,7 @@ from .mongo_vendas_util import (
 )
 from .nfe_entrada_util import (
     _entrada_nota_rascunho_store,
+    _object_id_rascunho,
     atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
@@ -11156,7 +11157,9 @@ def api_entrada_nota_rascunho_atualizar(request):
     if col_rasc is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     try:
-        _oid_chk = ObjectId(oid)
+        _oid_chk = _object_id_rascunho(oid)
+        if _oid_chk is None:
+            raise ValueError("invalid")
     except Exception:
         return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
     doc_prev = col_rasc.find_one({"_id": _oid_chk})
@@ -11970,10 +11973,12 @@ def api_entrada_nota_estoque_agro(request):
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     linhas_prev_est: list = []
     if rascunho_id_req:
+        _oid_req = _object_id_rascunho(rascunho_id_req)
         try:
-            doc_est = _entrada_nota_rascunho_store(db).find_one({"_id": ObjectId(rascunho_id_req)})
-            if isinstance(doc_est, dict):
-                linhas_prev_est = doc_est.get("linhas") if isinstance(doc_est.get("linhas"), list) else []
+            if _oid_req:
+                doc_est = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_req})
+                if isinstance(doc_est, dict):
+                    linhas_prev_est = doc_est.get("linhas") if isinstance(doc_est.get("linhas"), list) else []
         except Exception:
             linhas_prev_est = []
     _entrada_nota_propagar_precos_se_mudou(
@@ -11989,11 +11994,8 @@ def api_entrada_nota_estoque_agro(request):
     r_rasc: dict | None = None
     if salvar_rascunho:
         rid_sv = str(payload.get("rascunho_id") or "").strip()
-        if rid_sv:
-            try:
-                ObjectId(rid_sv)
-            except Exception:
-                rid_sv = ""
+        if rid_sv and _object_id_rascunho(rid_sv) is None:
+            rid_sv = ""
         if rid_sv:
             r_rasc = atualizar_rascunho_entrada(
                 db,
@@ -12026,7 +12028,9 @@ def api_entrada_nota_estoque_agro(request):
 
     if draft_lock_id:
         try:
-            _oid_st = ObjectId(draft_lock_id)
+            _oid_st = _object_id_rascunho(draft_lock_id)
+            if _oid_st is None:
+                raise ValueError("invalid")
             doc_st = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_st})
             ex_st = doc_st.get("extra") if isinstance(doc_st.get("extra"), dict) else {}
             if str(ex_st.get("aprovacao_wizard_em") or "").strip():
@@ -12091,12 +12095,16 @@ def api_entrada_nota_estoque_agro(request):
                 ]
                 if ajuste_ids:
                     try:
-                        doc_u = _entrada_nota_rascunho_store(db).find_one({"_id": ObjectId(rid_marcar)})
+                        _oid_m = _object_id_rascunho(rid_marcar)
+                        if _oid_m:
+                            doc_u = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_m})
+                        else:
+                            doc_u = None
                         if doc_u:
                             ex_u = dict(doc_u.get("extra") or {})
                             ex_u["estoque_agro_ajuste_ids"] = ajuste_ids
                             _entrada_nota_rascunho_store(db).update_one(
-                                {"_id": ObjectId(rid_marcar)},
+                                {"_id": _oid_m},
                                 {"$set": {"extra": ex_u, "atualizado_em": timezone.now()}},
                             )
                     except Exception:
@@ -12320,9 +12328,8 @@ def api_entrada_nota_aprovar_wizard(request):
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     if not oid:
         return JsonResponse({"ok": False, "erro": "Informe o rascunho."}, status=400)
-    try:
-        _oid = ObjectId(oid)
-    except Exception:
+    _oid = _object_id_rascunho(oid)
+    if _oid is None:
         return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
 
     usuario = ""
@@ -12865,9 +12872,8 @@ def api_entrada_nota_preview_custo(request):
     rid = str(request.GET.get("id") or request.GET.get("rascunho_id") or "").strip()
     if not rid:
         return JsonResponse({"ok": False, "erro": "Informe id do rascunho."}, status=400)
-    try:
-        _oid = ObjectId(rid)
-    except Exception:
+    _oid = _object_id_rascunho(rid)
+    if _oid is None:
         return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
     client, db = obter_conexao_mongo()
     col_rasc = _entrada_nota_rascunho_store(db)
@@ -12969,14 +12975,13 @@ def api_entrada_nota_financeiro(request):
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     cab = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cab)
 
-    rid_up = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
-    if rid_up:
-        try:
-            ObjectId(rid_up)
-        except Exception:
-            rid_up = ""
-    if rid_up:
-        doc_nf = _entrada_nota_rascunho_store(db).find_one({"_id": ObjectId(rid_up)})
+    rid_raw = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
+    _oid_up = _object_id_rascunho(rid_raw) if rid_raw else None
+    doc_nf: dict | None = None
+    if _oid_up:
+        doc_nf = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_up})
+    rid_up = str(_oid_up) if _oid_up and doc_nf else ""
+    if rid_up and doc_nf:
         ex_nf = doc_nf.get("extra") if isinstance(doc_nf.get("extra"), dict) else {}
         if str(ex_nf.get("aprovacao_wizard_em") or "").strip():
             return JsonResponse(

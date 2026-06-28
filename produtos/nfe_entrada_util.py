@@ -1964,11 +1964,14 @@ def listar_rascunhos_entrada(
 
 
 def _object_id_rascunho(oid: str):
+    s = str(oid or "").strip()
+    if re.fullmatch(r"[0-9a-fA-F]{24}", s):
+        return s
     from bson.errors import InvalidId
     from bson.objectid import ObjectId
 
     try:
-        return ObjectId(str(oid).strip())
+        return str(ObjectId(s))
     except (InvalidId, TypeError, ValueError):
         return None
 

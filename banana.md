@@ -907,7 +907,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.09 · **produção** v4.07
+**Versão app (`VERSION`):** **teste** v4.10 · **produção** v4.07
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -918,7 +918,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
 | **Lazy read** | 1ª abertura de rascunho antigo copia Mongo→PG se ainda não importado |
-| **Deploy** | Push **teste** v4.09 · Renan validar wizard completo no staging |
+| **Deploy** | Fix ID rascunho v4.10 · Renan validar «Salvar + a pagar» no staging |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 
