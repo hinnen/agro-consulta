@@ -2011,7 +2011,7 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
                     {"extra.estoque_agro_lock": {"$lte": stale}},
                 ],
             },
-            {"$set": {"extra.estoque_agro_lock": agora}},
+            {"$set": {"extra.estoque_agro_lock": agora.isoformat()}},
         )
         if r.modified_count == 1:
             return {"ok": True}

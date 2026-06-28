@@ -40,6 +40,20 @@ def _as_aware_dt(val: Any) -> datetime | None:
     return None
 
 
+def _sanitize_json_value(val: Any) -> Any:
+    """Garante JSONField Postgres serializável (sem ``datetime`` bruto dentro de ``extra``)."""
+    if isinstance(val, datetime):
+        dt = val if val.tzinfo else val.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
+    if isinstance(val, dict):
+        return {str(k): _sanitize_json_value(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [_sanitize_json_value(v) for v in val]
+    if isinstance(val, tuple):
+        return [_sanitize_json_value(v) for v in val]
+    return val
+
+
 def _id_str(val: Any) -> str:
     if val is None:
         return ""
@@ -123,9 +137,9 @@ def row_to_doc(row, *, projection: dict | None = None) -> dict[str, Any]:
         "usuario_ultima_alteracao": row.usuario_ultima_alteracao,
         "usuario_estoque_aplicado": row.usuario_estoque_aplicado,
         "xml_chave": row.xml_chave or None,
-        "cabecalho": row.cabecalho if isinstance(row.cabecalho, dict) else {},
-        "linhas": row.linhas if isinstance(row.linhas, list) else [],
-        "extra": row.extra if isinstance(row.extra, dict) else {},
+        "cabecalho": _sanitize_json_value(row.cabecalho if isinstance(row.cabecalho, dict) else {}),
+        "linhas": _sanitize_json_value(row.linhas if isinstance(row.linhas, list) else []),
+        "extra": _sanitize_json_value(row.extra if isinstance(row.extra, dict) else {}),
         "criado_em": row.criado_em,
         "atualizado_em": row.atualizado_em,
         "estoque_aplicado_em": row.estoque_aplicado_em,
@@ -173,9 +187,9 @@ def _doc_to_row_fields(doc: dict[str, Any]) -> dict[str, Any]:
         "usuario_ultima_alteracao": str(doc.get("usuario_ultima_alteracao") or "")[:200],
         "usuario_estoque_aplicado": str(doc.get("usuario_estoque_aplicado") or "")[:200],
         "xml_chave": str(doc.get("xml_chave") or "")[:44],
-        "cabecalho": doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {},
-        "linhas": doc.get("linhas") if isinstance(doc.get("linhas"), list) else [],
-        "extra": doc.get("extra") if isinstance(doc.get("extra"), dict) else {},
+        "cabecalho": _sanitize_json_value(doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}),
+        "linhas": _sanitize_json_value(doc.get("linhas") if isinstance(doc.get("linhas"), list) else []),
+        "extra": _sanitize_json_value(doc.get("extra") if isinstance(doc.get("extra"), dict) else {}),
         "criado_em": criado,
         "atualizado_em": atualizado,
         "estoque_aplicado_em": estoque_ap,
@@ -521,6 +535,7 @@ def _doc_matches_clause(doc: dict[str, Any], clause: dict[str, Any]) -> bool:
 def _apply_update_to_doc(doc: dict[str, Any], update: dict[str, Any]) -> bool:
     changed = False
     for path, val in (update.get("$set") or {}).items():
+        val = _sanitize_json_value(val)
         if "." in path:
             prev = _get_nested(doc, path)
             if prev != val:
