@@ -401,7 +401,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
 - Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
-- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas.
+- **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas. **Filtro de data:** vencimento (padrão) · competência · pagamento (`ref` + `venc_*` / `comp_*` / `pag_*` na URL e na API).
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **página nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** próximo salto = Postgres financeiro **ou** lista no BI — ver CHECKPOINT.
@@ -907,7 +907,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.23 · **produção** v4.20 (hotfix lista NF 28/06)
+**Versão app (`VERSION`):** **teste** v4.25 · **produção** v4.20 (hotfix lista NF 28/06)
+
+### CP — filtro por competência e pagamento (03/06 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Lista nova CP: além de vencimento, filtrar por **competência** e **pagamento** (vencimento = padrão) |
+| **UI** | Select **Filtrar por** no painel Filtros; labels De/Até dinâmicos; aviso pagamento + em aberto |
+| **API** | Reutiliza `ref` + `comp_de/ate` · `pag_de/ate` · `venc_de/ate` (já existentes) |
+| **Atalhos Hoje/Sáb…** | Continuam no eixo **vencimento** |
+| **Gráfico gastos** | Drill-down `embed=grafico` inalterado |
+| **Arquivo** | `lancamentos_contas_pagar_teste.html` |
+| **Deploy teste** | pendente commit/push |
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
@@ -2514,7 +2526,7 @@ Até lá: manter bootstrap + prefetch + cache; **não** empilhar micro-otimizaç
 
 **Planos de contas (filtros):** todos **marcados ao abrir**; desmarcar vale só na sessão (não grava — ao reabrir o sistema volta tudo marcado).
 
-**Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados.
+**Abertura:** lista padrão = **em aberto · vencimento hoje** (sem filtros na URL). Deep link / filtros salvos na URL respeitados. Painel **Filtros** → **Filtrar por:** vencimento (padrão) · competência · pagamento (mesmos campos De/Até; aviso se pagamento + em aberto).
 
 **PIN:** uma vez ao entrar em Lançamentos (qualquer rota `/lancamentos/*`); navegação interna sem repetir; só de novo no **modo descanso** (idle). `/lancamentos/` redireciona direto para **Contas a pagar** (sem popup hub).
 
