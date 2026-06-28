@@ -5415,11 +5415,12 @@
       }
       aplicarRascunhoNaGrade(j2.rascunho);
       entradaNfeWizardConferenciaRegistrada = false;
+      const irEstoque = !entradaNfeEstoqueJaRegistrado(j2.rascunho);
+      entradaNfeWizardSetStep(irEstoque ? 5 : 1);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
-      entradaNfeWizardSetStep(1);
       entradaNfeWizardAgendarAtualizarCores();
       const det = [];
       if (Number(j.estoque_ajustes_removidos) > 0) det.push(`${j.estoque_ajustes_removidos} ajuste(s) de estoque Agro`);

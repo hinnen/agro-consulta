@@ -1964,16 +1964,21 @@ def listar_rascunhos_entrada(
 
 
 def _object_id_rascunho(oid: str):
+    """ObjectId no Mongo; string hex 24 no Postgres (``EntradaNotaRascunhoAgro``)."""
     s = str(oid or "").strip()
-    if re.fullmatch(r"[0-9a-fA-F]{24}", s):
-        return s
     from bson.errors import InvalidId
     from bson.objectid import ObjectId
 
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    use_pg = agro_entrada_nota_rascunho_postgres()
+    if re.fullmatch(r"[0-9a-fA-F]{24}", s):
+        return s.lower() if use_pg else ObjectId(s)
     try:
-        return str(ObjectId(s))
+        oid_obj = ObjectId(s)
     except (InvalidId, TypeError, ValueError):
         return None
+    return str(oid_obj).lower() if use_pg else oid_obj
 
 
 def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
@@ -2460,12 +2465,23 @@ def reverter_integracao_entrada_nota_para_reabertura(
         had_wiz1 = bool(str(ex.get("wizard_etapa1_confirmada_em") or "").strip())
         had_wiz2 = bool(str(ex.get("wizard_etapa2_confirmada_em") or "").strip())
         had_wiz3 = bool(str(ex.get("wizard_etapa3_confirmada_em") or "").strip())
+        had_wiz4 = bool(str(ex.get("wizard_etapa4_lote_confirmada_em") or "").strip())
+        had_lote_pul = bool(str(ex.get("wizard_lote_pular_em") or "").strip())
 
         st_doc = str(doc.get("status") or "").strip().lower()
         had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
         had_fin = bool(ex.get("financeiro_lancado"))
 
-        if not (had_pin or had_wiz1 or had_wiz2 or had_wiz3 or had_estoque or had_fin):
+        if not (
+            had_pin
+            or had_wiz1
+            or had_wiz2
+            or had_wiz3
+            or had_wiz4
+            or had_lote_pul
+            or had_estoque
+            or had_fin
+        ):
             return {
                 "ok": False,
                 "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
@@ -2541,6 +2557,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
             "wizard_etapa3_confirmada_em",
             "wizard_etapa4_lote_confirmada_em",
             "wizard_lote_pular_em",
+            "wizard_etapa6_etiquetas_em",
             "financeiro_lancado",
             "financeiro_ids",
             "financeiro_lancado_em",

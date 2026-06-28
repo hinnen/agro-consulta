@@ -907,19 +907,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.15 · **produção** v4.07
+**Versão app (`VERSION`):** **teste** v4.17 · **produção** v4.07 → merge pendente
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Rascunho assistente (etapas 1–6) sair do Mongo `AgroEntradaNotaRascunho` |
-| **Modelo** | `EntradaNotaRascunhoAgro` · migration `0043` |
+| **Modelo** | `EntradaNotaRascunhoAgro` · migration `0043` + `0044` |
 | **Flag** | `AGRO_ENTRADA_NF_RASCUNHO_PG` — default **ligado** quando financeiro PG ativo |
 | **Import legado** | `python manage.py importar_rascunhos_entrada_nota_mongo_pg` |
-| **Lazy read** | 1ª abertura de rascunho antigo copia Mongo→PG se ainda não importado |
-| **Deploy** | v4.12–v4.15 reabrir CP PG · estoque etapa 5 · fix JS lista |
-| **Renan NF 112** | **✅ 28/06** — reabrir + estoque 50 · GM9503 **47** Centro (`/consulta/` e Compras) |
+| **Audit v4.17** | Fix `_object_id_rascunho` Mongo (ObjectId) vs PG (str) · reabrir etapa 4/lote · msgs etapa 8 · pós-reabrir vai etapa 5 |
+| **Deploy teste** | v4.09–v4.16 validado · NF 112 GM9503 **47** ✅ |
+| **Produção** | Renan autorizou subir **28/06** — aguardando senha no chat para `push producao` |
 
 ### Caixa — histórico retiradas + feedback saída (24/06 · Renan)
 

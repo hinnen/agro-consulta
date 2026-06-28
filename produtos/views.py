@@ -11170,7 +11170,7 @@ def api_entrada_nota_rascunho_atualizar(request):
         return JsonResponse(
             {
                 "ok": False,
-                "erro": "Nota finalizada no assistente: use «Reabrir nota» na etapa 6 antes de alterar.",
+                "erro": "Nota finalizada no assistente: use «Reabrir nota» na etapa 8 antes de alterar.",
             },
             status=403,
         )
@@ -12037,7 +12037,7 @@ def api_entrada_nota_estoque_agro(request):
                 return JsonResponse(
                     {
                         "ok": False,
-                        "erro": "Nota finalizada no assistente. Reabra na etapa 6 antes de registrar estoque de novo.",
+                        "erro": "Nota finalizada no assistente. Reabra na etapa 8 antes de registrar estoque de novo.",
                         "estoque": None,
                         "rascunho": r_rasc,
                     },
@@ -12987,7 +12987,7 @@ def api_entrada_nota_financeiro(request):
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Nota finalizada no assistente. Reabra na etapa 6 antes de gerar financeiro de novo.",
+                    "erro": "Nota finalizada no assistente. Reabra na etapa 8 antes de gerar financeiro de novo.",
                 },
                 status=403,
             )
