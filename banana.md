@@ -457,9 +457,9 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | ✅ | **Listas auxiliares** (plano, forma, banco, fornecedor NF) | Baixa CP / NF | **OK** | — |
 | **1** | **DRE + fluxo calendário + export PDF/Excel** Lançamentos | Param se Mongo cair | **PG** (flag auto loja) | Validar loja |
 | **2** | **Gráfico gastos** (dados, não só UX) | BI financeiro | **PG** (flag auto loja) | Validar vs CP |
-| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **✅ teste v4.35** — sem DtoVenda/`vendas_agro` com `agro_pg` | Validar BI |
-| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **✅ teste v4.35** — sem fallback Mongo; saldo ledger (v4.32) | Validar gestão |
-| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **✅ teste v4.35** — buscar + NF etapa 6 sem Mongo obrigatório | Validar Compras |
+| **3** | **BI `/` histórico vendas** → `VendaAgro` | Dashboard completo | **✅ teste v4.36** — sem DtoVenda/`vendas_agro` com `agro_pg` | Validar BI |
+| **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **✅ teste v4.36** — sem fallback Mongo; saldo ledger (v4.33) | Validar gestão |
+| **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **✅ teste v4.36** — buscar + NF etapa 6 sem Mongo obrigatório | Validar Compras |
 | **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **v4.31** PG | Validar NF |
 | **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **v4.31** patch fila PDV | Renan: vender 1 un. |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
@@ -477,20 +477,17 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | Status                 | Tela / módulo                                                     | Nota                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Feito (Agro PG)**    | Clientes PDV, **Vendas**, **NFC-e**, **Caixa**, **RH**, **Fiado** (`/fiado/`, `FiadoTituloAgro`…) | **Fiado = Postgres nativo** — não usa `DtoLancamento`. Sync ERP opcional onde existir |
-| **Teste ✅ / loja parcial** | Cadastro, PDV catálogo (`agro_pg`), Compras D4, ledger | **Loja ✅** desde merge 25/06 · **Gestão lista** ainda Mongo (sem `SOMENTE_POSTGRES`) |
-| **Teste ✅**           | Compras D4 **A+B+C**, Entrada NF wizard, ledger saldo             | v2.79–v2.87 · D3 financeiro **dry-run** staging                                                                                                 |
-| **Preparado / dados Mongo** | **Lançamentos** CP/CR, DRE, fluxo, Nova saída, lote manual   | **Muito feito** (layout, PIN, perf, backup, checkpoint, corte API v1.14) — **fonte ainda** `DtoLancamento` Mongo · falta `AGRO_FONTE_FINANCEIRO=agro_pg` |
-| **Infra só flag**      | Estoque ledger, Financeiro Postgres                               | Ledger **ativo** no estoque Agro; flag `agro_pg` financeiro **não** nas views de Lançamentos                                                   |
-| **Falta (alta)**       | PDV/gestão **na loja** (flags B+C)                                | Staging ✅                                                                                                                                       |
-| **Falta (média)**      | Busca **GM** Compras/NF · Entrada NF título real (fora dry-run)   | Motor GM por último · NF título hoje Mongo na loja                                                                                              |
-| **Falta (grande)**     | **Lançamentos → Postgres** · **BI `/`** · resumo gerencial       | `mongo_financeiro_util` + `DtoVenda` no BI — **não confundir com Fiado** (já Agro)                                                               |
-| **Falta**              | Transferências, Validade, sync fornecedor NF                      | Ainda espelho Mongo                                                                                                                             |
+| **Teste ✅**           | Cadastro, PDV catálogo (`agro_pg` + `SOMENTE_POSTGRES`), gestão/lista PG, Compras D4 + dimensões, BI vendas VendaAgro, pacotes corte v4.31–v4.36 | Staging — **Renan validar** checklist §4.15 itens 3–7 |
+| **Loja ✅ parcial**    | Cadastro, PDV merge PG, Compras D4, CP/CR, Entrada NF v4.20, ledger | **Gestão lista** ainda Mongo (sem `SOMENTE_POSTGRES`) · pacotes corte **só teste** |
+| **PG loja — validar** | DRE, calendário, export PDF/Excel, gráfico gastos (dados)         | Flag financeiro PG auto — conferir totais vs CP                                                                                                 |
+| **Falta (média)**      | Busca **GM** Compras/NF                                           | Motor GM por último — **não bloqueia** corte Mongo no teste                                                                                      |
+| **Falta (operacional)** | Backup PC · checkpoint totais · congelar Mongo · cancelar ERP    | Itens **8–12** §4.15 — Renan + assistente                                                                                                        |
 
 **Lançamentos vs desvinculação (Renan 2026-06-25 — não confundir):**
 
 | | **Já fizemos** | **Ainda falta (§4.15)** |
 | --- | --- | --- |
-| **Lançamentos** | Layout CP, PIN, filtros, Nova saída, empréstimo dual, editar/excluir, backup ZIP, **checkpoint** (~17 703 títulos), **corte sync API ERP** (v1.14), perf bootstrap | Títulos ler/gravar **Postgres Agro** em vez de `DtoLancamento` — flag `agro_pg` **existe, telas não usam** |
+| **Lançamentos** | Layout CP, PIN, filtros, Nova saída, empréstimo dual, editar/excluir, backup ZIP, **checkpoint** (~17 703 títulos), **corte sync API ERP** (v1.14), perf bootstrap, **CP/CR PG loja** | DRE/calendário/export — **PG** se financeiro PG; validar totais |
 | **Fiado** | Gestão `/fiado/`, PDV limite/parcelas, títulos **`FiadoTituloAgro`** Postgres | Nada no pacote «desvincular Mongo catálogo/financeiro». BI ainda pode cruzar `DtoVenda` para não duplicar gráfico — **não é a tela Fiado** |
 
 
@@ -512,7 +509,7 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | **2** | **Compras D4** (métricas + folhas) | Última compra / sugestão | **✅ teste** v2.79–v2.87 |
 | **3** | **Entrada NF financeiro Agro** (título sem `DtoLancamento` loja) | Wizard OK; título real na loja | **2–3** |
 | **4** | **Lançamentos — migração Postgres** (`agro_pg` financeiro) | Checkpoint/corte API **já feitos** · falta **fonte de dados** | **3–5** |
-| **5** | **BI `/` + resumo** | VendaAgro Postgres | **2–3** |
+| **5** | **BI `/` + resumo** | VendaAgro Postgres | **✅ teste v4.36** — validar · loja pendente |
 | **6** | **Transferências · Validade · fornecedor NF** | Menor urgência | **1–2** cada |
 | **7** | **Motor busca único** | **Não é desvinculação** — bug GM Compras/NF (`gm0050`); **por último** | **1–2** |
 | **8** | **Checkpoint final + cancelar assinatura ERP** | Só após 1–6 + backup | **0.5** |
@@ -531,13 +528,13 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 
 | Área | O que acontece |
 | ---- | -------------- |
-| **Entrada NF** | **Para** se Mongo cair (rascunho da nota). Título a pagar (PG) OK se Mongo só parou de sync |
-| **Gestão produtos** | **Para ou fica vazia/lenta** — facetas e parte da lista ainda Mongo |
-| **Compras** | Relatórios/dimensões e «última compra» — **param de atualizar** ou quebram sem Mongo |
-| **Lançamentos** | **DRE, calendário, export PDF/Excel** — leem Mongo → **param** |
-| **Gráfico gastos** | **Para** (só Mongo hoje) |
-| **BI `/` + resumo gerencial** | Gráficos/histórico ERP — **param ou ficam velhos** |
-| **Transferências / Validade** | **Param ou ficam velhas** |
+| **Entrada NF** | Rascunho **PG** no teste/loja v4.20+; se Mongo cair, fallback legado até PG popular |
+| **Gestão produtos** | **Teste ✅** lista/facetas PG · **Loja** ainda Mongo (sem `SOMENTE_POSTGRES`) |
+| **Compras** | **Teste ✅** dimensões/última compra sem scan ERP · **Loja** D4 OK; folhas grandes dependem de histórico Entrada NF Agro |
+| **Lançamentos** | CP/CR **PG loja** · DRE/calendário/export **PG** se financeiro PG — validar totais |
+| **Gráfico gastos** | **PG loja** (flag auto) — validar vs CP |
+| **BI `/` + resumo gerencial** | **Teste ✅** VendaAgro (v4.36) · cards CP/CR **OK loja** |
+| **Transferências / Validade** | Leitura OK; sync profundo ainda espelho Mongo |
 | **Produtos novos no ERP** | **Não entram** no Agro até import/sync |
 | **Listas auxiliares** | Fornecedor, plano de conta, formas — muitas telas ainda puxam Mongo |
 
@@ -549,24 +546,28 @@ PDV venda · caixa · fiado · clientes · NFC-e · RH · **CP/CR Lançamentos**
 
 #### 2) O que **ainda falta** para desvinculo completo (pode cancelar ERP)
 
+*Espelho da tabela **Checklist — corte total Mongo** (§4.15 acima).*
+
 | # | Pacote | Status |
 | - | ------ | ------ |
 | ✅ | Cadastro + PDV catálogo PG + ledger saldo | **Loja** |
 | ✅ | Compras D4 (métricas/folhas) | **Loja** |
-| ✅ | Entrada NF passo 7 título a pagar | **PG loja** |
+| ✅ | Entrada NF passo 7 + rascunho PG | **PG loja v4.20** |
 | ✅ | Lançamentos CP/CR lista + gravar | **PG loja** |
 | ✅ | Fiado, vendas, caixa, RH, NFC-e, clientes | **PG nativo** |
 | ✅ | Checkpoint + corte sync API financeiro | **Feito** |
-| 1 | **Gestão** 100 % PG na loja (`SOMENTE_POSTGRES`) | Falta |
-| 2 | **DRE + calendário + export PDF/Excel** Lançamentos → PG | Falta |
-| 3 | **BI `/` + resumo gerencial** → VendaAgro PG | Falta |
-| 4 | **Gráfico gastos** → PG | Falta |
-| 5 | **Transferências + Validade** | Falta |
-| 6 | **Entrada NF rascunho** (etapas 1–6) → PG | Opcional / grande | **✅ teste v4.09** |
-| 7 | **Compras** dimensões 100 % PG (sem scan Mongo) | **✅ teste v4.35** |
-| 8 | **Congelar Mongo financeiro** + só histórico | Opcional |
-| 9 | **Motor busca GM** Compras/NF | UX — por último |
-| 10 | **Cancelar assinatura ERP** | Só após 1–8 estáveis + backup |
+| **1** | DRE + calendário + export PDF/Excel Lançamentos | **PG loja** — validar |
+| **2** | Gráfico gastos (dados) | **PG loja** — validar |
+| **3** | BI `/` histórico → VendaAgro | **✅ teste v4.36** — validar BI |
+| **4** | Gestão 100 % PG | **✅ teste v4.36** · loja ainda Mongo |
+| **5** | Compras dimensões sem scan Mongo | **✅ teste v4.36** — validar Compras |
+| **6** | NF auditoria financeiro | **✅ teste v4.31** — validar NF |
+| **7** | PDV → Gestão saldo pós-venda | **✅ teste v4.31** — vender 1 un. |
+| **8** | Congelar Mongo financeiro | Off — após 1–7 OK |
+| **9** | Motor busca GM Compras/NF | Por último |
+| **10** | Backup PC | Renan |
+| **11** | Checkpoint Lançamentos + totais | Parcial |
+| **12** | Cancelar assinatura ERP | Só após **1–11** + backup |
 
 **Mitigação:** fazer só a etapa 1 no `teste`, conferir cadastro + busca + salvar preço, **só então** produção.
 
@@ -938,7 +939,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.35** · **produção** v4.21
+**Versão app (`VERSION`):** **teste v4.36** · **produção** v4.21
+
+### banana — alinhamento checklist §4.15 (03/06 · assistente)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tabelas duplicadas §4.15 sincronizadas; status teste vs loja; CHECKPOINT v4.36 |
+| **Deploy teste** | push **`teste`** (banana only) |
 
 ### Corte Mongo — pacote 3 parciais fechados (03/06 · assistente)
 
@@ -947,7 +955,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **BI vendas (#3)** | Modo PDV forçado com `agro_pg`; meta C sem fallback DtoVenda; vínculos sem coleção Mongo `vendas_agro` |
 | **Gestão (#4)** | Com catálogo PG: **sem fallback Mongo** em lista/facetas; saldo já ledger (pacote 2) |
 | **Compras (#5)** | `api_buscar` últimas compras **sem exigir Mongo**; Entrada NF etapa 6 lê produto via Postgres |
-| **Deploy teste** | **`a516a64`** · **v4.35** |
+| **Deploy teste** | **`a516a64`** (código) · **`f986160`** (banana) · **v4.36** |
 
 **Renan — retestar no staging (Ctrl+F5):** BI `/` · Gestão lista/filtros · Compras card «últimas compras» · folha categoria.
 
@@ -1378,7 +1386,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **CP** | **741** · **R$ 393.652,70** — lista + gravar Postgres |
 | **CR** | **453** · **R$ 29.241,58** — lista + gravar Postgres |
 | **Fiado** | Fora — tela própria Postgres |
-| **Pausa sprint** | DRE, calendário, export PDF/XLSX — leitura ainda Mongo · **NF passo 7 títulos = Postgres** (rascunho NF = Mongo) |
+| **Pausa sprint** | DRE, calendário, export PDF/XLSX — **PG loja** (validar) · **NF passo 7 + rascunho = Postgres** |
 
 ### FECHADO — CP Postgres loja **26/06** (Renan 99738595 + conferência)
 
@@ -1548,17 +1556,17 @@ Loja OK v3.01 — checklist 0–9 fechado.
 
 ### 4.16 Lançamentos — preparação corte ERP (**feito**) · migração Postgres (**🔥 HOJE — CP**)
 
-**Diff código `origin/producao` vs `origin/teste`:** só **3 arquivos** — `VERSION` · `banana.md` · `agro_fonte_config.py`. **Operação = mesmo código** (merge + hotfix `b016b4a`).
+**Diff código `origin/producao` vs `origin/teste`:** *(snapshot 25/06 — estado atual: §4.15 + CHECKPOINT)*
 
 | Área | Loja hoje | Ponta solta? | Ação |
 | ---- | --------- | ------------ | ---- |
-| **Env Render** | `agro_pg` + `ledger` · sem staging flags | ✅ OK | **Não** ligar `SOMENTE_POSTGRES` · `STAGING_READONLY` · `AGRO_FONTE_FINANCEIRO=agro_pg` |
+| **Env Render** | `agro_pg` + `ledger` · sem staging flags | ✅ OK | **Não** ligar `SOMENTE_POSTGRES` · `STAGING_READONLY` na loja sem combinar |
 | **Display Scale** | Off (`49d34cf` / `b016b4a`) | ✅ OK | Quem confirmou modal antes: irrelevante (flag off) |
 | **PDV + catálogo** | Merge Postgres (`agro_pg`) | ✅ validado | — |
 | **Compras D4** | Métricas Postgres (flag catálogo) | ✅ validado | — |
-| **Gestão lista** | Ainda **Mongo+overlay** (loja **sem** `SOMENTE_POSTGRES`) | ⚠️ conhecido | Lentidão **pós Entrada NF** — investigação aberta (§4.9); não bloqueia amanhã |
-| **Lançamentos CP/CR** | **Mongo** `DtoLancamento` | ✅ OK operação | Migração PG = sprint futuro |
-| **Entrada NF passo 7** | Grava Mongo | ✅ validado | Fix «título duplicado» só no **teste** (baixo risco; workaround F5) |
+| **Gestão lista** | Loja **Mongo+overlay** · teste **PG v4.36** | ⚠️ loja | Deploy pacote corte quando Renan OK teste |
+| **Lançamentos CP/CR** | **Postgres loja** | ✅ OK | DRE/calendário/export — validar |
+| **Entrada NF** | Rascunho + passo 7 **PG loja v4.20** | ✅ validado | Pacotes auditoria v4.31 só teste |
 | **Migration `0041`** | Tabela prep `TituloFinanceiroAgro` vazia | ✅ inofensiva | Telas **não** usam ainda |
 | **Motor busca GM** | Legado + v2 | ⏸ pausado | Cosmético (`gm0050`, ordem «milho») |
 | **`agro_fonte_config`** | Loja: gate checkpoint ERP sync (import morto → `except`) | 🟡 baixo | Teste simplificou (#7 diff); **sem efeito** se env sync off |
@@ -2765,14 +2773,16 @@ Renan validou no staging → subiu **só** o patch urgente (`59bdedc` em `produc
 - [x] **Fiado** — Postgres nativo (`FiadoTituloAgro`); **fora** do pacote Lançamentos→Mongo
 - [x] Lançamentos — backup ZIP + checkpoint (~17 703 títulos) + layout/PIN/perf
 - [x] Corte Agro→ERP (API) — **produção v1.14** (`372f90f`; automático após checkpoint)
-- [ ] **Próxima fase financeiro:** `AGRO_FONTE_FINANCEIRO=agro_pg` — Lançamentos **dados** Postgres (não espelho Mongo)
+- [x] **Próxima fase financeiro:** CP/CR **PG loja** — DRE/calendário/export validar
 - [ ] **Nunca** merge `teste` inteiro em `producao` — só cherry-pick do escopo combinado
 - [x] Catálogo Postgres **teste** — Renan OK 2026-06-22
 - [x] Catálogo Postgres **produção** — v1.53
-- [x] PDV catálogo + Gestão + ledger + Compras D4 — **teste** (deploy loja ~20h)
+- [x] PDV catálogo + Gestão + ledger + Compras D4 — **teste** (pacotes corte v4.31–v4.36)
 - [x] BI home financeiro → PG (cards CP/CR teste v3.23+)
-- [ ] BI / resumo gerencial — gráfico gastos home ainda Mongo
-- [ ] Transferências, Validade, fornecedor NF
+- [x] BI vendas histórico → VendaAgro — **teste v4.36** (validar Renan)
+- [ ] Gráfico gastos dados — **PG loja** (validar vs CP)
+- [ ] Pacotes corte Mongo v4.31–v4.36 → **loja** (só com senha)
+- [ ] Transferências, Validade, fornecedor NF (sync profundo)
 
 **Outras:**
 
