@@ -979,6 +979,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-002** | **P3** | Promoções | Revisar **usabilidade** da tela de promoção e **limpar textos inúteis** | 📋 Pendente | 29/06 |
 | **FL-003** | **P2** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
 | **FL-004** | **P3** | RH | **Batida de ponto** dos funcionários (registro entrada/saída) | 📋 Pendente | 29/06 |
+| **FL-005** | **P2** | Entrega / impressão | Na impressão (separação/entrega): **valor em R$ do troco a levar** na ida — **conferir antes** (hoje só «troco: sim/não») | 📋 Pendente · 🔍 conferir | 29/06 |
+| **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
+| **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** das telas (Agro Display Scale) e corrigir as necessárias | 📋 Pendente | 29/06 |
+| **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove (só limpando carrinho inteiro) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -988,8 +992,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-002 | `promo-ux-copy` | `promocoes` form/wizard — UX + textos «?» / labels / ajuda |
 | FL-003 | `pdv-promo-badge-dre-cupom` | (1) badge/feedback PDV ao atingir regra promo · (2) classificar desconto promo em relatório/DRE «desconto clientes» · (3) cupom 80mm/PDF venda |
 | FL-004 | `rh-batida-ponto` | Módulo novo em `rh/` — hoje só folha/vales/ficha; definir: tablet/celular, PIN, export folha, integração fechamento |
+| FL-005 | `entrega-print-troco-r$` | `wizardPrintHtmlSeparacao` — hoje `troco: sim/não`; falta **R$ a levar** (troco calculado = paga com − total) |
+| FL-006 | `pdv-entregas-painel-link` | Fluxo PDV → `entregas_painel.html` + polish visual painel |
+| FL-007 | `layout-scale-audit` | Auditoria §11 telas críticas (PDV, caixa, entrega, CP…) |
+| FL-008 | `pdv-carrinho-item-travado` | Bug: linha carrinho sem editar qty/preço/remover — reproduzir + `pdv_wizard.js` cart handlers |
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
+
+**Notas FL-005:** pré-análise 29/06 — via **Separação** já imprime «troco: sim/não»; **não** imprime o **valor em reais** a levar. Campo `entrega.troco` no PDV = «cliente paga com». Implementar linha explícita tipo **«Levar troco: R$ X,XX»** nas vias separação + entregador (se dinheiro na entrega).
+
+**Notas FL-008:** **P1** — impacto direto no balcão. Pedir à loja: produto/código GM, forma de pagamento, se promo ativa, print DevTools se possível.
 
 **Notas FL-004:** projeto **novo** — RH atual cobre folha, vales e ficha; **não** tem ponto. Antes de codar: Renan define se é só registro interno, se entra no fechamento da folha e quem bate (PIN, lista na loja, celular).
 
