@@ -2065,7 +2065,18 @@
         } else {
             el.hidden = true;
             el.classList.add('hidden');
+            el.classList.remove('flex');
         }
+    }
+
+    function esconderSubpainelsEntregaForaDaEtapa() {
+        var onEntrega = State.getState().currentStep === 'entrega';
+        if (onEntrega) return;
+        ['pdv-entrega-partida-bar', 'pdv-entrega-main', 'pdv-entrega-resumo'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) showElement(el, false);
+        });
+        if (dom.entregaWizard) showElement(dom.entregaWizard, false);
     }
 
     function renderStepPanels(state, computed) {
@@ -2074,7 +2085,9 @@
             var step = panel.getAttribute('data-step-panel');
             var visible = step === state.currentStep;
             panel.hidden = !visible;
+            panel.classList.toggle('hidden', !visible);
         });
+        esconderSubpainelsEntregaForaDaEtapa();
         dom.stepNavs.forEach(function (btn) {
             var step = btn.getAttribute('data-step-nav');
             var idx = flowIndex(flow, step);
@@ -2190,6 +2203,9 @@
         if (dom.stepHint) {
             dom.stepHint.textContent = hints[state.currentStep] || '';
             dom.stepHint.style.display = hints[state.currentStep] ? '' : 'none';
+        }
+        if (document.body) {
+            document.body.setAttribute('data-pdv-step', state.currentStep || 'produtos');
         }
     }
 
@@ -4545,6 +4561,10 @@
     }
 
     function renderEntrega(state) {
+        if (state.currentStep !== 'entrega') {
+            esconderSubpainelsEntregaForaDaEtapa();
+            return;
+        }
         syncEntregaToolbarLinks(state);
         initBairroSelectsOnce();
         var e = state.entrega || {};
