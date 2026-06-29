@@ -967,16 +967,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.90** · **produção v4.89** (hotfix promo Continuar **urgente**)
+**Versão app (`VERSION`):** **teste v4.90** · **produção v4.90** (hotfix promo Continuar **29/06**)
+
+### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
+
+**Renan:** *«manda»* + senha **99738595**.
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · fast-forward **`54aa23b`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · Nova promoção → **Continuar — escolher produtos** → etapa 2.
 
 ### INCIDENTE LOJA — promo «Continuar» não avança etapa 1 **v4.90** (29/06)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Clicar **Continuar — escolher produtos** não vai para etapa 2 |
-| **Causa** | Erro de sintaxe JS: `tentarAutoAdicionarBusca` quebrada no patch v4.88 — script inteiro não carregava |
-| **Fix v4.90** | Restaurar função + bind **Continuar** fora do bloco da etapa 2 |
-| **Loja** | **Pendente** — hotfix urgente (1 arquivo JS inline) |
+| **Causa** | Erro de sintaxe JS no v4.88 — script inteiro não carregava |
+| **Fix v4.90** | Restaurar `tentarAutoAdicionarBusca` + bind **Continuar** independente da etapa 2 |
 
 ### FECHADO + DEPLOY LOJA — promo UX + keep-warm staging **v4.86–v4.88** (29/06)
 
