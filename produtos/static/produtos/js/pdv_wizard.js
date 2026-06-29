@@ -313,6 +313,7 @@
     var entregaPlusGeocodeLastQ = '';
     var entregaClienteSnapshot = null;
     var entregaWizardAguardandoTroco = false;
+    var _ensuringEntregaModo = false;
     var entregaPendingAfterSaveCliente = null;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
@@ -3176,6 +3177,22 @@
         });
     }
 
+    function ensureEntregaModoNaEtapa() {
+        if (_ensuringEntregaModo) return;
+        var state = State.getState();
+        if (state.currentStep !== 'entrega') return;
+        var modo = String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim();
+        if (modo !== 'entrega') {
+            _ensuringEntregaModo = true;
+            prepararEntregaAoSairDeProdutos();
+            _ensuringEntregaModo = false;
+        }
+    }
+
+    function entregaModoEfetivo(state) {
+        return String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim();
+    }
+
     function onEntregaBtnNext() {
         commitEntregaClienteCamposFromDom();
         commitEntregaCamposEndereco();
@@ -3786,7 +3803,7 @@
     function entregaWizardPrecisaExibir(state) {
         state = state || State.getState();
         if (state.currentStep !== 'entrega') return false;
-        if (String((state.entrega && state.entrega.modoRetiradaEntrega) || '') !== 'entrega') return false;
+        if (entregaModoEfetivo(state) !== 'entrega') return false;
         return !entregaFluxoPagamentoCompleto(state);
     }
 
@@ -3795,12 +3812,21 @@
         var needsWizard = entregaWizardPrecisaExibir(state);
         if (dom.entregaWizard) showElement(dom.entregaWizard, needsWizard, 'flex');
         if (dom.entregaMain) {
-            var modo = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
+            var modo = entregaModoEfetivo(state);
             showElement(
                 dom.entregaMain,
                 modo === 'entrega' && entregaFluxoPagamentoCompleto(state),
                 'flex'
             );
+        }
+        if (state.currentStep === 'entrega' && dom.entregaWizard && dom.entregaMain) {
+            var wizOff =
+                dom.entregaWizard.hidden || dom.entregaWizard.classList.contains('hidden');
+            var mainOff = dom.entregaMain.hidden || dom.entregaMain.classList.contains('hidden');
+            if (wizOff && mainOff) {
+                showElement(dom.entregaWizard, true, 'flex');
+                syncEntregaDetalhesModalUi();
+            }
         }
     }
 
@@ -3813,7 +3839,7 @@
     function entregaFluxoPagamentoCompleto(state) {
         state = state || State.getState();
         var e = state.entrega || {};
-        if (String(e.modoRetiradaEntrega || '') !== 'entrega') return false;
+        if (entregaModoEfetivo(state) !== 'entrega') return false;
         var lp = String(e.localPagamento || '').trim();
         if (!lp) return false;
         if (lp === 'loja') return true;
@@ -3823,7 +3849,7 @@
     function entregaWizardPainelAtual(state) {
         state = state || State.getState();
         var e = state.entrega || {};
-        if (String(e.modoRetiradaEntrega || '') !== 'entrega') return 'done';
+        if (entregaModoEfetivo(state) !== 'entrega') return 'pagamento_local';
         if (entregaWizardAguardandoTroco) return 'troco';
         var lp = String(e.localPagamento || '').trim();
         if (!lp) return 'pagamento_local';
@@ -4308,12 +4334,12 @@
             return;
         }
         var wasStep = prevStepCache;
-        if (state.currentStep === 'entrega') {
-            var modoEnt = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
-            if (!modoEnt) {
-                prepararEntregaAoSairDeProdutos();
-                return;
-            }
+        ensureEntregaModoNaEtapa();
+        state = State.getState();
+        computed = State.getComputed();
+        if (state.currentStep === 'entrega' && wasStep !== 'entrega') {
+            entregaWizardAguardandoTroco = false;
+            if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
         }
         renderStepPanels(state, computed);
         renderSummary(state, computed);
