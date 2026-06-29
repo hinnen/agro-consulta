@@ -6155,6 +6155,16 @@
         );
     }
 
+    function pdvReservarJanelaCupomFallback(withPrint) {
+        if (!withPrint) return null;
+        if (typeof window.agroImprimirCupomVenda80mm === 'function') return null;
+        try {
+            return window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
+        } catch (eWin) {
+            return null;
+        }
+    }
+
     function printSaleReceiptWindow(win, state, computed, extras) {
         extras = extras || {};
         var payload = buildCupomPayloadFromWizard(state, computed, extras);
@@ -6693,14 +6703,11 @@
         }
         isProcessingSale = true;
         setConfirmButtonsBusy(true);
-        var printWin = null;
-        if (withPrint) {
-            printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
-            if (!printWin) {
-                alert(
-                    'Não foi possível abrir a janela do cupom. Permita pop-ups para este site e use de novo “Confirmar com impressão”.'
-                );
-            }
+        var printWin = pdvReservarJanelaCupomFallback(withPrint);
+        if (withPrint && !printWin && typeof window.agroImprimirCupomVenda80mm !== 'function') {
+            alert(
+                'Não foi possível abrir a janela do cupom. Permita pop-ups para este site e use de novo “Confirmar com impressão”.'
+            );
         }
         State.setPagamentoField('imprimirCupom', !!withPrint);
         state = State.getState();
@@ -6846,14 +6853,11 @@
         var computed = State.getComputed();
         isProcessingSale = true;
         setConfirmButtonsBusy(true);
-        var printWin = null;
-        if (withPrint) {
-            printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
-            if (!printWin) {
-                alert(
-                    'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.'
-                );
-            }
+        var printWin = pdvReservarJanelaCupomFallback(withPrint);
+        if (withPrint && !printWin && typeof window.agroImprimirCupomVenda80mm !== 'function') {
+            alert(
+                'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.'
+            );
         }
         State.setPagamentoField('imprimirCupom', withPrint);
         state = State.getState();
@@ -7809,72 +7813,22 @@
                 iframeId: 'agro-print-iframe-entregas-pdv',
                 title: 'Entrega PDV',
                 styles: packStyles,
-                gapMs: 550,
-                readyDelay: 120
+                gapMs: 420,
+                readyDelay: 80
             });
             return;
         }
 
-        var inner = parts.join('');
-        var docHtml =
-            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega PDV</title><style>' +
-            packStyles +
-            '</style></head><body>' +
-            inner +
-            '</body></html>';
-
-        var iframe = document.getElementById('agro-print-iframe-entregas-pdv');
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'agro-print-iframe-entregas-pdv';
-            iframe.title = 'Impressão entrega PDV';
-            iframe.setAttribute('aria-hidden', 'true');
-            iframe.style.cssText =
-                'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
-            document.body.appendChild(iframe);
+        if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+            window.agroCupomPrintBodyInIframe({
+                iframeId: 'agro-print-iframe-entregas-pdv',
+                title: 'Entrega PDV',
+                styles: packStyles,
+                bodyHtml: parts.join(''),
+                barcodeVal: opt.sep ? barcodeVal : '',
+                readyDelay: 80
+            });
         }
-        var idoc = iframe.contentDocument || iframe.contentWindow.document;
-        idoc.open();
-        idoc.write(docHtml);
-        idoc.close();
-
-        var runPrint = function () {
-            try {
-                var svg = idoc.getElementById('barc-orc');
-                var iw = iframe.contentWindow;
-                if (svg && iw && typeof iw.JsBarcode !== 'undefined') {
-                    iw.JsBarcode(svg, barcodeVal, {
-                        format: 'CODE128',
-                        width: 1.35,
-                        height: 44,
-                        displayValue: true,
-                        fontSize: 11,
-                        margin: 0,
-                        marginTop: 4,
-                        marginBottom: 2
-                    });
-                }
-            } catch (eBr) {}
-            var doPrint = function () {
-                try {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                } catch (ePr) {}
-            };
-            if (typeof window.agroCupomWhenImagesReady === 'function') {
-                window.agroCupomWhenImagesReady(idoc, doPrint, 120);
-            } else {
-                setTimeout(doPrint, 280);
-            }
-        };
-        var old = idoc.querySelector('script[data-agro-jsbarcode-pdv]');
-        if (old) old.remove();
-        var s = idoc.createElement('script');
-        s.setAttribute('data-agro-jsbarcode-pdv', '1');
-        s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-        s.onload = runPrint;
-        s.onerror = runPrint;
-        idoc.head.appendChild(s);
     }
 
     function wizardModalEscolhaImpressaoEntrega() {
