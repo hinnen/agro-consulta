@@ -967,15 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.45** · **produção v4.36** (deploy **28/06 22:20**)
+**Versão app (`VERSION`):** **teste v4.45** · **produção v4.45** (deploy meta C **29/06**)
 
 ### WIP → TESTE — meta C planilha + 3 meses (**29/06**)
 
 **Pacote:** migration **`0045`** + **`DashboardVendaDiaHistoricoAgro`** · import **`docs/dados/vendas_centro_nov2025.xlsx`** (272 dias · set/25–mai/26 Centro) · merge meta C **VendaAgro > planilha** · fórmula **M-1+M-2+M-3** · fix datas Excel (nov/dez 2025 + linha espúria 2027-01-01).
 
-**Renan:** Ctrl+F5 no BI **teste** → conferir tooltip meta «**3 meses anteriores**» · cores jun/2026 · % vs meta coerente (não +1394%). Comando reimport: `python manage.py importar_dashboard_vendas_historico --limpar-tudo`.
+**Validação Renan staging v4.45 (29/06 ~00:08):** **✅ parcial** — no **teste** quase não há vendas PDV (mês **R$ 84,62**), então gráfico/cores do mês **corrente** não dá para julgar direito. **Média base ~R$ 104 mil** no tooltip **faz sentido** (planilha + 3 meses).
 
-**Produção:** **não** — só após OK staging + frase + senha.
+**Produção v4.45 (29/06):** Renan *«pode enviar»* + senha **99738595** · cherry-pick **`d75927d`** → **`d078b4e`** · **push OK**. Conferir BI loja: Ctrl+F5 · tooltip «3 meses» · jun/2026 sem +1394%.
 
 ### FECHADO + DEPLOY LOJA — pacote corte Mongo **v4.31–v4.36** (28/06)
 
@@ -1026,7 +1026,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Importante:** fase **1** = Excel + **meta C** (3 meses + merge PG/planilha). SES/clima **não** entra neste pacote.
 
-**Próximo passo Renan:** validar BI **teste** (meta C jun/2026) → se OK, pedir cherry-pick loja com senha.
+**Próximo passo:** se Renan quiser **loja** → cherry-pick **`d75927d`** (v4.45) com frase + senha · na loja conferir jun/2026 (tooltip + % meta, sem +1394%).
 
 **WIP — Renan quer revisar fórmula da meta (28/06 noite):**
 
@@ -1062,7 +1062,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Incidente 28/06:** 1ª abertura staging = tela cinza (cold start Render) · Ctrl+Shift+R → BI OK. **BI passo 3:** card vendas **não atualiza sozinho** — precisa **Ctrl+F5** após venda (KPI hoje é live no servidor, mas a **página** já estava aberta).
 
-**Meta C no staging:** tooltip «sem base nos 2 meses anteriores» / metas **R$ 0,00** = **normal** — poucas vendas PDV em abr/mai no Postgres de teste. Na **loja** (histórico cheio) cores e «falta para bater meta %» funcionam.
+**Meta C no staging:** poucas vendas PDV → mês corrente **R$ 0–84** e **-99% vs base** = **esperado**. A **média base ~R$ 104 mil** (planilha 3 meses) é o sinal de que import/merge **OK**. Cores e «falta para bater meta %» no mês cheio = validar na **loja**.
 
 **Passo 4 — Gráfico gastos (Renan agora):**
 
