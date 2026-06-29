@@ -230,6 +230,7 @@
         clienteEditClose: document.getElementById('pdv-cliente-edit-close'),
         clienteZapWhatsapp: document.getElementById('pdv-step2-cliente-zap'),
         entregaMain: document.getElementById('pdv-entrega-main'),
+        entregaResumo: document.getElementById('pdv-entrega-resumo'),
         entregaWizard: document.getElementById('pdv-entrega-wizard'),
         vendaObservacao: document.getElementById('pdv-venda-observacao'),
         entregaLogradouro: document.getElementById('pdv-entrega-logradouro'),
@@ -2146,6 +2147,14 @@
                     dom.btnNext.innerHTML = 'Confirmar troco' + kbdF7;
                     dom.btnNext.disabled = false;
                     dom.btnNext.title = 'Confirma valor em dinheiro · F7';
+                } else if (faseEnt === 'done' && lp === 'loja') {
+                    dom.btnNext.innerHTML = 'Ir para pagamento' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Imprime as vias e abre a etapa Pagamento · F7';
+                } else if (faseEnt === 'done' && lp === 'entrega') {
+                    dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Imprime, registra no painel Entregas e reinicia o PDV · F7';
                 } else if (lp === 'loja') {
                     dom.btnNext.innerHTML = 'Ir para pagamento' + kbdF7;
                     dom.btnNext.disabled = !endOk;
@@ -3210,6 +3219,7 @@
     function onEntregaBtnNext() {
         commitEntregaClienteCamposFromDom();
         commitEntregaCamposEndereco();
+        commitEntregaObsFromDom();
         var state = State.getState();
         var computed = State.getComputed();
         var fase = entregaFaseAtual(state);
@@ -3888,28 +3898,35 @@
         state = state || State.getState();
         var needsWizard = entregaWizardPrecisaExibir(state);
         if (dom.entregaWizard) showElement(dom.entregaWizard, needsWizard, 'flex');
+        var modo = entregaModoEfetivo(state);
+        var fase = entregaFaseAtual(state);
         if (dom.entregaMain) {
-            var modo = entregaModoEfetivo(state);
-            var fase = entregaFaseAtual(state);
-            showElement(
-                dom.entregaMain,
-                modo === 'entrega' && (fase === 'endereco' || fase === 'done'),
-                'flex'
-            );
+            showElement(dom.entregaMain, modo === 'entrega' && fase === 'endereco', 'flex');
         }
-        if (state.currentStep === 'entrega' && dom.entregaWizard && dom.entregaMain) {
+        if (dom.entregaResumo) {
+            showElement(dom.entregaResumo, modo === 'entrega' && fase === 'done', 'flex');
+        }
+        if (state.currentStep === 'entrega' && dom.entregaWizard && dom.entregaMain && dom.entregaResumo) {
             var wizOff =
                 dom.entregaWizard.hidden || dom.entregaWizard.classList.contains('hidden');
             var mainOff = dom.entregaMain.hidden || dom.entregaMain.classList.contains('hidden');
-            if (wizOff && mainOff) {
+            var resumoOff =
+                dom.entregaResumo.hidden || dom.entregaResumo.classList.contains('hidden');
+            if (wizOff && mainOff && resumoOff) {
                 var faseFb = entregaFaseAtual(state);
-                if (faseFb === 'endereco' || faseFb === 'done') {
+                if (faseFb === 'endereco') {
                     showElement(dom.entregaMain, true, 'flex');
+                } else if (faseFb === 'done') {
+                    showElement(dom.entregaResumo, true, 'flex');
+                    renderEntregaResumo(state, State.getComputed());
                 } else {
                     showElement(dom.entregaWizard, true, 'flex');
                     syncEntregaDetalhesModalUi();
                 }
             }
+        }
+        if (modo === 'entrega' && fase === 'done') {
+            renderEntregaResumo(state, State.getComputed());
         }
     }
 
@@ -4062,8 +4079,171 @@
 
     function aposConcluirFluxoPagamentoEntrega() {
         if (!entregaFluxoPagamentoCompleto()) return;
-        if (!enderecoEntregaMinimoOkParaUi(State.getState())) {
+        renderEntregaResumo(State.getState(), State.getComputed());
+    }
+
+    function entregaResumoLabelTaxa(state) {
+        var modo = entregaTaxaModoEfetivo(state);
+        if (modo === 'nao') return 'Sem frete';
+        if (modo === 'depois') return 'Frete a definir depois';
+        if (modo === 'sim') {
+            return 'Frete ' + formatMoney(Number((state.pagamento && state.pagamento.frete) || 0));
+        }
+        return '—';
+    }
+
+    function entregaResumoHorarioTexto(hor) {
+        hor = String(hor || '').trim();
+        if (!hor) return 'Horário não informado';
+        var parts = hor.split(':');
+        if (parts.length >= 2) return 'Entregar às ' + parts[0] + ':' + parts[1];
+        return 'Horário: ' + hor;
+    }
+
+    function renderEntregaResumo(state, computed) {
+        state = state || State.getState();
+        computed = computed || State.getComputed();
+        var e = state.entrega || {};
+        var c = state.cliente || {};
+        var lp = String(e.localPagamento || '').trim();
+        var meio = String(e.meioNaEntrega || '').trim();
+        var nome =
+            currentClientName(state) ||
+            (dom.entregaClienteNome && dom.entregaClienteNome.value) ||
+            '—';
+        var tel =
+            String((c && c.telefone) || '').trim() ||
+            (dom.entregaClienteTelefone && dom.entregaClienteTelefone.value) ||
+            '';
+        var linha = buildLinhaEnderecoEntrega({ entrega: e, cliente: c });
+        var elLocal = document.getElementById('pdv-resumo-pagamento-local');
+        var elMeio = document.getElementById('pdv-resumo-pagamento-meio');
+        var elTroco = document.getElementById('pdv-resumo-pagamento-troco');
+        if (elLocal) {
+            elLocal.textContent =
+                lp === 'entrega' ? 'Pagamento na entrega' : lp === 'loja' ? 'Pagamento na loja' : '—';
+        }
+        if (elMeio) {
+            if (lp === 'entrega' && meio) {
+                elMeio.textContent =
+                    meio === 'dinheiro' ? 'Forma: dinheiro' : meio === 'cartao' ? 'Forma: cartão (maquininha)' : '';
+                elMeio.classList.remove('hidden');
+            } else {
+                elMeio.classList.add('hidden');
+            }
+        }
+        if (elTroco) {
+            if (lp === 'entrega' && meio === 'dinheiro' && String(e.troco || '').trim()) {
+                elTroco.textContent = 'Troco para: R$ ' + String(e.troco).trim();
+                elTroco.classList.remove('hidden');
+            } else {
+                elTroco.classList.add('hidden');
+            }
+        }
+        var elNome = document.getElementById('pdv-resumo-cliente-nome');
+        var elTel = document.getElementById('pdv-resumo-cliente-tel');
+        var elLinha = document.getElementById('pdv-resumo-endereco-linha');
+        var elExtra = document.getElementById('pdv-resumo-endereco-extra');
+        if (elNome) elNome.textContent = nome;
+        if (elTel) elTel.textContent = tel || 'Telefone não informado';
+        if (elLinha) elLinha.textContent = String(linha || e.endereco || '').trim() || 'Endereço incompleto';
+        if (elExtra) {
+            var extras = [];
+            if (String(e.plusCode || '').trim()) extras.push('Plus Code: ' + e.plusCode);
+            if (String(e.complemento || '').trim()) extras.push('Compl.: ' + e.complemento);
+            if (String(e.referencia || '').trim()) extras.push('Ref.: ' + e.referencia);
+            if (extras.length) {
+                elExtra.textContent = extras.join(' · ');
+                elExtra.classList.remove('hidden');
+            } else {
+                elExtra.classList.add('hidden');
+            }
+        }
+        var elTaxa = document.getElementById('pdv-resumo-taxa');
+        var elHor = document.getElementById('pdv-resumo-horario');
+        if (elTaxa) elTaxa.textContent = entregaResumoLabelTaxa(state);
+        if (elHor) elHor.textContent = entregaResumoHorarioTexto(e.horario);
+        var totalWrap = document.getElementById('pdv-resumo-total-wrap');
+        var elTotal = document.getElementById('pdv-resumo-total');
+        if (totalWrap && elTotal) {
+            var showTotal = lp === 'entrega';
+            totalWrap.classList.toggle('hidden', !showTotal);
+            if (showTotal) elTotal.textContent = formatMoney(Number(computed.total || 0));
+        }
+        var resumoVendaObs = document.getElementById('pdv-resumo-venda-observacao');
+        var resumoEntObs = document.getElementById('pdv-resumo-entrega-observacao');
+        if (resumoVendaObs) setInputValue(resumoVendaObs, state.venda.observacao);
+        if (resumoEntObs) setInputValue(resumoEntObs, e.observacao);
+    }
+
+    function commitEntregaObsFromDom() {
+        var fase = entregaFaseAtual();
+        var resumoVendaObs = document.getElementById('pdv-resumo-venda-observacao');
+        var resumoEntObs = document.getElementById('pdv-resumo-entrega-observacao');
+        if (fase === 'done' && resumoVendaObs) {
+            State.setVendaField('observacao', resumoVendaObs.value);
+            if (resumoEntObs) State.setEntregaField('observacao', resumoEntObs.value);
+            return;
+        }
+        if (dom.vendaObservacao) State.setVendaField('observacao', dom.vendaObservacao.value);
+        if (dom.entregaObservacao) State.setEntregaField('observacao', dom.entregaObservacao.value);
+    }
+
+    function entregaIrEditarFase(destino) {
+        entregaWizardAguardandoTroco = false;
+        if (destino === 'pagamento') {
+            var st = State.getState();
+            var e = st.entrega || {};
+            var lp = String(e.localPagamento || '').trim();
+            var meio = String(e.meioNaEntrega || '').trim();
+            if (lp === 'entrega' && meio === 'dinheiro') destino = 'troco';
+            else if (lp === 'entrega' && meio) destino = 'meio';
+            else destino = 'pagamento_local';
+        }
+        if (destino === 'pagamento_local') {
+            State.setEntregaPatch({
+                localPagamento: '',
+                meioNaEntrega: '',
+                troco: '',
+                taxaEntregaRespondida: false,
+                taxaEntregaModo: '',
+                detalhesEntregaRespondidos: false,
+                enderecoPassoConcluido: false
+            });
+            State.setPagamentoField('frete', 0);
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return;
+        }
+        if (destino === 'endereco') {
+            State.setEntregaPatch({ enderecoPassoConcluido: false });
+            atualizarEntregaWizardVisibilidade(State.getState());
             focarPrimeiroCampoEnderecoEntrega();
+            return;
+        }
+        if (destino === 'detalhes') {
+            State.setEntregaPatch({
+                taxaEntregaRespondida: false,
+                detalhesEntregaRespondidos: false,
+                meioNaEntrega: '',
+                troco: ''
+            });
+            State.setPagamentoField('frete', 0);
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return;
+        }
+        if (destino === 'meio') {
+            State.setEntregaPatch({ meioNaEntrega: '', troco: '' });
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return;
+        }
+        if (destino === 'troco') {
+            State.setEntregaPatch({ meioNaEntrega: '', troco: '' });
+            entregaWizardAguardandoTroco = true;
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
         }
     }
 
@@ -4247,6 +4427,8 @@
         atualizarEntregaWizardVisibilidade(state);
         if (entregaWizardPrecisaExibir(state)) {
             syncEntregaDetalhesModalUi();
+        } else if (entregaFaseAtual(state) === 'done') {
+            renderEntregaResumo(state, State.getComputed());
         }
         if (dom.entregaMain && dom.entregaMain.classList.contains('flex') && !entregaClienteSnapshot) {
             entregaClienteSnapshot = clienteEntregaSnapshotFromState(state);
@@ -7658,6 +7840,7 @@
             return;
         }
         commitEntregaCamposEndereco();
+        commitEntregaObsFromDom();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -7717,6 +7900,7 @@
             return;
         }
         commitEntregaCamposEndereco();
+        commitEntregaObsFromDom();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -7732,6 +7916,24 @@
             wizardImprimirPacoteEntrega(orcId, opt);
             State.setCurrentStep('pagamento');
         });
+    }
+
+    function reiniciarFluxoPagamentoEntregaUi() {
+        entregaWizardAguardandoTroco = false;
+        State.setEntregaPatch({
+            localPagamento: '',
+            meioNaEntrega: '',
+            troco: '',
+            taxaEntregaRespondida: false,
+            taxaEntregaModo: '',
+            detalhesEntregaRespondidos: false,
+            enderecoPassoConcluido: false
+        });
+        State.setPagamentoField('frete', 0);
+        State.setEntregaField('maquininha', '');
+        if (dom.entregaTroco) dom.entregaTroco.value = '';
+        syncEntregaDetalhesModalUi();
+        scrollEntregaWizardIntoView();
     }
 
     function bindEvents() {
@@ -8482,6 +8684,20 @@
             ],
             [dom.entregaTroco, function () { State.setEntregaField('troco', dom.entregaTroco.value); }],
             [dom.entregaObservacao, function () { State.setEntregaField('observacao', dom.entregaObservacao.value); }],
+            [
+                document.getElementById('pdv-resumo-venda-observacao'),
+                function () {
+                    var el = document.getElementById('pdv-resumo-venda-observacao');
+                    if (el) State.setVendaField('observacao', el.value);
+                }
+            ],
+            [
+                document.getElementById('pdv-resumo-entrega-observacao'),
+                function () {
+                    var el = document.getElementById('pdv-resumo-entrega-observacao');
+                    if (el) State.setEntregaField('observacao', el.value);
+                }
+            ],
             [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }],
             [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }]
         ].forEach(function (entry) {
@@ -8799,24 +9015,18 @@
 
         var btnReiniciarFluxoPagamento = document.getElementById('pdv-entrega-reiniciar-fluxo-pagamento');
         if (btnReiniciarFluxoPagamento) {
-            btnReiniciarFluxoPagamento.addEventListener('click', function () {
-                entregaWizardAguardandoTroco = false;
-                State.setEntregaPatch({
-                    localPagamento: '',
-                    meioNaEntrega: '',
-                    troco: '',
-                    taxaEntregaRespondida: false,
-                    taxaEntregaModo: '',
-                    detalhesEntregaRespondidos: false,
-                    enderecoPassoConcluido: false
-                });
-                State.setPagamentoField('frete', 0);
-                State.setEntregaField('maquininha', '');
-                if (dom.entregaTroco) dom.entregaTroco.value = '';
-                syncEntregaDetalhesModalUi();
-                scrollEntregaWizardIntoView();
-            });
+            btnReiniciarFluxoPagamento.addEventListener('click', reiniciarFluxoPagamentoEntregaUi);
         }
+        var btnReiniciarResumo = document.getElementById('pdv-entrega-reiniciar-fluxo-pagamento-resumo');
+        if (btnReiniciarResumo) {
+            btnReiniciarResumo.addEventListener('click', reiniciarFluxoPagamentoEntregaUi);
+        }
+        document.querySelectorAll('.pdv-entrega-resumo-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var dest = btn.getAttribute('data-pdv-edit-fase');
+                if (dest) entregaIrEditarFase(dest);
+            });
+        });
 
         var btnEdConfirmar = document.getElementById('pdv-ed-confirmar');
         if (btnEdConfirmar) {

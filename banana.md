@@ -244,7 +244,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega wizard **F3:** **Onde será o pagamento?** → **endereço** → popup **taxa + horário** → (na entrega) **dinheiro/cartão** → troco com **total** (produtos + frete). Frete grátis por endereço no futuro pula o popup taxa (`entregaTaxaDevePularAuto`). Sem «retirada ou entrega?».
+- Entrega wizard **F3:** pagamento local → endereço → taxa → meio → troco → **Conferir entrega** (resumo com Editar por bloco). Frete grátis por endereço no futuro pula popup taxa.
 - Endereço oculto até escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualização manual + horário + standby.
 
@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.55** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.57** · **produção v4.49** (deploy merge **29/06**)
 
 ### PDV entrega fluxo — sequência taxa/troco (29/06)
 
@@ -976,7 +976,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Taxa fora do form de endereço; popup após endereço; dinheiro/cartão depois da taxa; troco mostra total |
 | **Sequência** | F3 → pagamento local → endereço → taxa+horário → meio → troco (total) → enviar/ir pagamento |
 | **Futuro** | `entregaTaxaDevePularAuto()` — frete grátis por endereço omite popup taxa |
-| **Versão** | **v4.55** → **v4.56** — Voltar 1 passo no fluxo entrega; campo frete R$ 10,00 no popup taxa |
+| **Versão** | **v4.57** — tela **Conferir entrega** (resumo) no fim do fluxo; endereço não repete |
 
 ### PDV entrega fluxo — fix (29/06 madrugada)
 
