@@ -967,16 +967,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.81** · **produção v4.80** (excluir promoção pendente loja)
+**Versão app (`VERSION`):** **teste v4.81** · **produção v4.81** (deploy promoções excluir **29/06**)
 
-### WIP — promoções: botão Excluir na lista **v4.81** (29/06)
+### FECHADO + DEPLOY LOJA — promoções botão Excluir **v4.81** (29/06)
+
+**Renan:** *«manda produção»* + senha **99738595**.
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · fast-forward **`536527a`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · Promoções → **Excluir** duplicatas · manter a de 4 produtos.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Apagar duplicatas «Promoção 4 por 10» (só tinha Editar) |
-| **v4.81** | Botão **Excluir** na lista · confirmação · API POST `api/promocoes/<id>/excluir/` · produtos vinculados somem junto (CASCADE) |
-| **Teste** | Lista promoções → **Excluir** → confirmar → linha some |
-| **Loja** | Após validar no Render teste |
+| **v4.81** | Botão **Excluir** na lista · confirmação · PG (`PromocaoAgro` CASCADE) |
+| **Dados** | Promoções 100 % Postgres — Mongo só na busca de produto |
 
 ### FECHADO + DEPLOY LOJA — fix promoção «Salvar» **v4.80** (29/06)
 
