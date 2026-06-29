@@ -967,13 +967,30 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.78** · **produção v4.78** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.80** · **produção v4.80** (deploy fix promoções **29/06**)
+
+### FECHADO + DEPLOY LOJA — fix promoção «Salvar» **v4.80** (29/06)
+
+**Renan:** *«pode subir direto»* + senha **99738595** (fix isolado — só mensagem JS, sem banco/API).
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · **push OK** (após resolver conflito `banana.md`).
+
+**Pós-deploy loja:** Ctrl+F5 · Nova promoção → produtos → **Salvar promoção** → mensagem verde + lista.
+
+### FIX — promoção «Salvar» quebra com classList (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Etapa 2 · adicionar produtos · **Salvar promoção** → erro `DOMTokenList` / token com espaços |
+| **Causa** | `showMsg` passava 3 classes Tailwind numa string só para `classList.add()` |
+| **Fix v4.80** | Cada classe como argumento separado |
+| **Risco loja** | **Baixo** — 2 linhas JS na tela de promoção; não altera PDV, caixa, financeiro |
 
 ### FECHADO + DEPLOY LOJA — fix endereço entrega grudado **v4.78** (29/06)
 
 **Renan:** *«suba»* + senha **99738595**.
 
-**Loja (`producao`):** merge **`teste`** → **`producao`** · commit **`91dbc09`** · **push OK**.
+**Loja (`producao`):** merge **`teste`** → **`producao`** · commit **`91dbc09`** · merge **`6791b80`** · **push OK**.
 
 **Pós-deploy loja:** Ctrl+F5 · trocar cliente na entrega F3 → endereço do cadastro (não gruda o da venda anterior).
 
@@ -984,6 +1001,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Todo cliente na entrega F3 mostrava o mesmo endereço do teste (Av. Adhemar…) |
 | **Causa** | Endereço da venda anterior ficava no estado da sessão; ao trocar cliente não limpava |
 | **Fix v4.78** | Troca de cliente repõe endereço do cadastro; F3 entrega sincroniza; voltar a Produtos zera |
+| **Agora na loja** | Após deploy **v4.78** · **Ctrl+F5** se ainda aparecer endereço antigo |
 
 ### FECHADO + DEPLOY LOJA — merge teste → producao **v4.77** (29/06)
 

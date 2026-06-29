@@ -73,7 +73,8 @@
         dom.msg.textContent = text;
         dom.msg.style.display = 'block';
         dom.msg.classList.remove('hidden', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-red-200', 'bg-red-50', 'text-red-900');
-        dom.msg.classList.add(ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900');
+        if (ok) dom.msg.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+        else dom.msg.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
     }
 
     function setStatus(text) {
