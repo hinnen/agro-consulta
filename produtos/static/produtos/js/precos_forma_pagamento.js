@@ -74,6 +74,9 @@
 
     function aplicarCarrinho(itens, forma) {
         if (!Array.isArray(itens)) return itens;
+        if (global.AgroPdvPromocoes && global.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            return global.AgroPdvPromocoes.recalcCarrinhoComForma(itens, forma);
+        }
         itens.forEach(function (item) {
             if (!item || item.preco_manual) return;
             aplicarNoItem(item, forma);

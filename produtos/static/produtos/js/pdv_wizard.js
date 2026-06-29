@@ -2320,7 +2320,13 @@
         if (!promo) return empty;
         var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
         if (!isFinite(padrao)) padrao = 0;
-        var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao);
+        var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao, {
+            pooled: item.promo_qtd_pool != null,
+            qtdPool: item.promo_qtd_pool,
+            qtdLinhaPromo: item.promo_unidades_promo,
+            qtdLinhaNormal: item.promo_unidades_normal,
+            linhasNoPool: item.promo_linhas_pool,
+        });
         if (!resumo || !resumo.badges || !resumo.badges.length) return empty;
         var html =
             '<span class="pdv-cart-promo-wrap pdv-cart-promo--' +

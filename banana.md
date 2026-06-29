@@ -967,7 +967,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.09** · **produção v5.08** — FL-003 fase 1 selo promo PDV no teste
+**Versão app (`VERSION`):** **teste v5.10** · **produção v5.08** — promo **mix** mesma regra + FL-003 fase 1
+
+### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | 2+2 saches da promo «teste» → cada linha «Faltam 2» · total errado |
+| **Era** | Contava qtd **por produto**, não por promoção |
+| **Fix** | Soma unidades de **todos os produtos da mesma promo** (id) · leve X e acima de X |
+| **Exemplo** | GM1769 ×2 + GM1771 ×2 → **R$ 10,00** · selo **2 promo** em cada linha |
+| **Teste** | Ctrl+F5 · promo «teste» · mix 4 un. |
 
 ### WIP — FL-003 fase 1: selo promo no carrinho PDV (29/06)
 
@@ -985,7 +995,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Fase | Escopo | Status |
 | ---- | ------ | ------ |
-| **1** | Selo visual no carrinho PDV (wizard) | 🔄 teste |
+| **1** | Selo visual no carrinho PDV (wizard) | 🔄 teste **v5.09** |
 | **2** | Desconto promo no **DRE/relatórios** como «desconto clientes» | 📋 pendente |
 | **3** | Linha de desconto promo na **impressão** da venda (80 mm / PDF) | 📋 pendente |
 

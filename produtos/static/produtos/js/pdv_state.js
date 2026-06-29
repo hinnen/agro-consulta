@@ -365,20 +365,29 @@
 
     function aplicarPromocaoNoItem(item) {
         if (!item || item.preco_manual) return item;
-        var forma = '';
-        if (typeof window.AgroPrecosFormaPagamento !== 'undefined') {
-            forma = window.AgroPrecosFormaPagamento.obterFormaDoState
-                ? window.AgroPrecosFormaPagamento.obterFormaDoState(state)
-                : window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual();
-            if (window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
-                return window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
-            }
-        }
-        if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
-            if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
-            return window.AgroPdvPromocoes.aplicarNoItem(item);
-        }
+        recalcularTodasPromocoes();
         return item;
+    }
+
+    function recalcularTodasPromocoes() {
+        if (!state.itens || !state.itens.length) return;
+        var fp = '';
+        if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+            fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
+        }
+        if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);
+            return;
+        }
+        (state.itens || []).forEach(function (item) {
+            if (!item || item.preco_manual) return;
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, fp);
+            } else if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
+                if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
+                window.AgroPdvPromocoes.aplicarNoItem(item);
+            }
+        });
     }
 
     function recalcularPrecosFormaItens(forma) {
@@ -386,14 +395,7 @@
         if (!fp && typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
             fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
         }
-        (state.itens || []).forEach(function (item) {
-            if (!item || item.preco_manual) return;
-            if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
-                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, fp);
-            } else {
-                aplicarPromocaoNoItem(item);
-            }
-        });
+        recalcularTodasPromocoes();
     }
 
     function addItem(produto, quantidade) {
@@ -408,7 +410,7 @@
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
-            if (!existing.preco_manual) aplicarPromocaoNoItem(existing);
+            if (!existing.preco_manual) recalcularTodasPromocoes();
         } else {
             var novo = {
                 id: pid,
@@ -426,8 +428,8 @@
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
-            aplicarPromocaoNoItem(novo);
             state.itens.push(novo);
+            recalcularTodasPromocoes();
         }
         notify();
         return true;
@@ -443,9 +445,9 @@
             if (String(item.id) !== String(itemId)) return item;
             var next = Object.assign({}, item, { qtd: q });
             if (next.preco_padrao == null) next.preco_padrao = toNumber(next.preco);
-            if (next.preco_manual) return next;
-            return aplicarPromocaoNoItem(next);
+            return next;
         });
+        recalcularTodasPromocoes();
         notify();
     }
 
