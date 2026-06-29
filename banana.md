@@ -562,7 +562,7 @@ PDV venda · caixa · fiado · clientes · NFC-e · RH · **CP/CR Lançamentos**
 | **4** | Gestão 100 % PG | **✅ teste v4.36** · loja ainda Mongo |
 | **5** | Compras dimensões sem scan Mongo | **✅ teste v4.36** — validar Compras |
 | **6** | NF auditoria financeiro | **✅ teste v4.31** — validar NF |
-| **7** | PDV → Gestão saldo pós-venda | **✅ teste v4.31** — vender 1 un. |
+| **7** | PDV → Gestão saldo pós-venda | **✅ teste 28/06** | GM9503 47→46 sem F5 |
 | **8** | Congelar Mongo financeiro | Off — após 1–7 OK |
 | **9** | Motor busca GM Compras/NF | Por último |
 | **10** | Backup PC | Renan |
