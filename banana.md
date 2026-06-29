@@ -974,9 +974,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido Renan** | Staging 1ª abertura demora minutos — autorizou ajuste sem ele |
-| **v4.86** | Cron **`agro-staging-keep-warm`** a cada **5 min** → `GET /healthz` (rede privada + URL pública fallback) · script `scripts/render_keep_warm.py` |
-| **Nota** | Não elimina cold start 100 % (plano Render dorme) — reduz muito se ficou >15 min parado · 1º ping após deploy ainda pode demorar |
-| **Custo** | ~US$ 1/mês cron Render (starter) |
+| **v4.86** | Cron **`estoque_mongo_ping`** passa a **5 min** e no fim chama **`render_keep_warm.py`** → `GET /healthz` staging (rede privada + URL pública) |
+| **Nota** | Não elimina cold start 100 % — reduz se ficou >15 min parado · após deploy do cron, esperar ~5 min |
+| **Painel Render** | MCP sem auth aqui — se staging ainda dormir, conferir cron **`agro-estoque-mongo-ping`** ativo · env opcional **`AGRO_KEEP_WARM_URLS`** |
 
 ### FECHADO + DEPLOY LOJA — promoções bip + autocomplete GM/nome **v4.83–v4.84** (29/06)
 

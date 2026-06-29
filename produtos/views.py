@@ -8411,7 +8411,14 @@ def api_cron_estoque_mongo_ping(request):
     try:
         db[client.col_p].find_one({}, {"_id": 1})
         registrar_ping_mongo(True)
-        return JsonResponse({"ok": True, "mongo": True})
+        warm = {"ok": False}
+        try:
+            from scripts.render_keep_warm import main as keep_warm_main
+
+            warm["ok"] = keep_warm_main() == 0
+        except Exception as exc:
+            warm["erro"] = str(exc)[:200]
+        return JsonResponse({"ok": True, "mongo": True, "keep_warm": warm})
     except Exception as e:
         registrar_ping_mongo(False, str(e))
         return JsonResponse({"ok": False, "mongo": False, "erro": str(e)[:500]}, status=503)

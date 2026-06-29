@@ -32,16 +32,9 @@ services:
     name: agro-estoque-mongo-ping
     runtime: python
     # A cada 10 min: um find_one no Mongo + gravação em EstoqueSyncHealth (erros acumulam em falhas_sequenciais_mongo).
-    schedule: "*/10 * * * *"
+    schedule: "*/5 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python manage.py estoque_mongo_ping
 
-  # Mantém o web staging acordado (spin-down Render ~15 min sem HTTP). Só pinga /healthz — leve.
-  - type: cron
-    name: agro-staging-keep-warm
-    runtime: python
-    branch: teste
-    schedule: "*/5 * * * *"
-    buildCommand: "true"
-    startCommand: python scripts/render_keep_warm.py
-    # Opcional no painel: AGRO_KEEP_WARM_URLS=https://SEU-STAGING.onrender.com/healthz
+  # Ping /healthz do staging — mesma rotina no final de estoque_mongo_ping (evita serviço cron extra).
+  # Se o Blueprint não sincronizar sozinho, confira no painel Render que o cron existe e branch teste.

@@ -27,3 +27,20 @@ class Command(BaseCommand):
             registrar_ping_mongo(False, str(e))
             self.stderr.write(self.style.ERROR(str(e)))
             raise SystemExit(1)
+        self._keep_warm_staging()
+
+    def _keep_warm_staging(self):
+        """Acorda o web staging (Render spin-down ~15 min). Falha não derruba o ping Mongo."""
+        try:
+            from scripts.render_keep_warm import main as keep_warm_main
+
+            if keep_warm_main() == 0:
+                self.stdout.write(self.style.SUCCESS("Keep-warm staging OK."))
+            else:
+                self.stderr.write(
+                    self.style.WARNING(
+                        "Keep-warm staging: nenhuma URL respondeu (confira AGRO_KEEP_WARM_URLS no Render)."
+                    )
+                )
+        except Exception as exc:
+            self.stderr.write(self.style.WARNING(f"Keep-warm staging ignorado: {exc}"))
