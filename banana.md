@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.11** · **produção v5.08** — selo promo 2 linhas + mix contagem
+**Versão app (`VERSION`):** **teste v5.13** · **produção v5.08** — fix catálogo PDV local
+
+### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `python manage.py runserver` · busca não acha produto |
+| **Causa** | Import errado em `mesclar_catalogo_pdv_cache` → delta HTTP 500 · cache vazio |
+| **Fix** | `integracoes.texto.normalizar` + fallback catálogo no wizard |
+| **Local** | `.env` com Mongo (`VENDA_ERP_MONGO_*`) · reiniciar runserver · Ctrl+F5 PDV |
 
 ### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
 
