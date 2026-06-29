@@ -737,6 +737,34 @@
             .catch(function () {});
     }
 
+    function fetchWizardCatalogFallback() {
+        var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.text().then(function (text) {
+                    if (!res.ok) {
+                        var hint = (text || '').trim().slice(0, 200);
+                        throw new Error(
+                            'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
+                        );
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (eJson2) {
+                        throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
+                    }
+                });
+            })
+            .then(function (data) {
+                aplicarWizardCatalogRows(Array.isArray(data.produtos) ? data.produtos : [], false);
+                salvarWizardCatalogSharedCache({
+                    produtos: wizardProductCatalog,
+                    catalog_version: data.catalog_version || '',
+                    catalog_updated_at: data.catalog_updated_at || '',
+                });
+            });
+    }
+
     function loadWizardCatalog() {
         if (catalogReady) return Promise.resolve();
         if (catalogLoadPromise) return catalogLoadPromise;
@@ -782,34 +810,10 @@
                     salvarWizardCatalogSharedCache(d);
                     return;
                 }
-                var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
-                return fetch(url, { credentials: 'same-origin' })
-                    .then(function (res) {
-                        return res.text().then(function (text) {
-                            if (!res.ok) {
-                                var hint = (text || '').trim().slice(0, 200);
-                                throw new Error(
-                                    'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
-                                );
-                            }
-                            try {
-                                return JSON.parse(text);
-                            } catch (eJson2) {
-                                throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
-                            }
-                        });
-                    })
-                    .then(function (data) {
-                        aplicarWizardCatalogRows(
-                            Array.isArray(data.produtos) ? data.produtos : [],
-                            false
-                        );
-                        salvarWizardCatalogSharedCache({
-                            produtos: wizardProductCatalog,
-                            catalog_version: data.catalog_version || '',
-                            catalog_updated_at: data.catalog_updated_at || '',
-                        });
-                    });
+                return fetchWizardCatalogFallback();
+            })
+            .catch(function () {
+                return fetchWizardCatalogFallback();
             })
             .finally(function () {
                 catalogLoadPromise = null;
