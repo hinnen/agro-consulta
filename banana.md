@@ -967,24 +967,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.88** · **produção v4.85** (promo add sem recarregar busca)
+**Versão app (`VERSION`):** **teste v4.88** · **produção v4.88** (deploy promo UX + keep-warm staging **29/06**)
 
-### WIP — promoções: manter lista após + Add **v4.88** (29/06)
+### FECHADO + DEPLOY LOJA — promo UX + keep-warm staging **v4.86–v4.88** (29/06)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido Renan** | Ao add, busca recarregava — operador perde lista «champ» com vários itens |
-| **v4.88** | + Add / Enter mantém termo e resultados; linha vira «Na promoção»; foco no próximo · Limpa campo só no **bip barras** / GM completo automático |
-| **Teste** | Buscar «champ» → add 3 itens seguidos sem perder lista |
+**Renan:** *«pode subir para produção»* + senha **99738595** (não perigoso para loja em uso).
 
-### WIP — Render teste: cron keep-warm **v4.86** (29/06)
+**Loja (`producao`):** merge **`teste`** → **`producao`** · fast-forward **`871c4b4`** · **push OK**.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido Renan** | Staging 1ª abertura demora minutos — autorizou ajuste sem ele |
-| **v4.86** | Cron **`estoque_mongo_ping`** passa a **5 min** e no fim chama **`render_keep_warm.py`** → `GET /healthz` staging (rede privada + URL pública) |
-| **Nota** | Não elimina cold start 100 % — reduz se ficou >15 min parado · após deploy do cron, esperar ~5 min |
-| **Painel Render** | MCP sem auth aqui — se staging ainda dormir, conferir cron **`agro-estoque-mongo-ping`** ativo · env opcional **`AGRO_KEEP_WARM_URLS`** |
+**Pós-deploy loja:** Ctrl+F5 · Promoções etapa 2 — add vários da mesma busca · bip/autocomplete GM/nome · **Excluir** duplicatas.
+
+| Pacote | O quê | Risco loja |
+| ------ | ----- | ---------- |
+| **v4.88** | + Add mantém lista de busca | Só tela promoção |
+| **v4.83–v4.84** | Bip + autocomplete GM/nome | Só tela promoção |
+| **v4.81** | Botão Excluir promoção | PG |
+| **v4.86–v4.87** | Cron ping Mongo 5 min + keep-warm **staging** | Não acelera nem desacelera PDV/caixa |
 
 ### FECHADO + DEPLOY LOJA — promoções bip + autocomplete GM/nome **v4.83–v4.84** (29/06)
 
