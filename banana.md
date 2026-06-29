@@ -967,7 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.43.1** · **produção v4.36** (deploy **28/06 22:20**)
+**Versão app (`VERSION`):** **teste v4.45** · **produção v4.36** (deploy **28/06 22:20**)
+
+### WIP → TESTE — meta C planilha + 3 meses (**29/06**)
+
+**Pacote:** migration **`0045`** + **`DashboardVendaDiaHistoricoAgro`** · import **`docs/dados/vendas_centro_nov2025.xlsx`** (272 dias · set/25–mai/26 Centro) · merge meta C **VendaAgro > planilha** · fórmula **M-1+M-2+M-3** · fix datas Excel (nov/dez 2025 + linha espúria 2027-01-01).
+
+**Renan:** Ctrl+F5 no BI **teste** → conferir tooltip meta «**3 meses anteriores**» · cores jun/2026 · % vs meta coerente (não +1394%). Comando reimport: `python manage.py importar_dashboard_vendas_historico --limpar-tudo`.
+
+**Produção:** **não** — só após OK staging + frase + senha.
 
 ### FECHADO + DEPLOY LOJA — pacote corte Mongo **v4.31–v4.36** (28/06)
 
@@ -976,6 +984,58 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Loja (`producao`):** cherry-pick **`bc805e7`** · **`d21a718`** · **`a516a64`** → **`77f1254`** · **push OK** · **não** merge inteiro `teste` · banana loja **intacto** (só código).
 
 **Pós-deploy loja:** Ctrl+F5 · badge BI **v4.36+** · `/api/agro/fonte-status/` · smoke: vender 1 un. → Gestão saldo · BI Fonte PDV.
+
+**Smoke produção pós v4.36 (28/06 ~22:27 — Renan):** **✅ PDV → estoque desce**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Produto** | GM9503 **teste** |
+| **Venda** | **#2273** · R$ 1,00 · **BAIXA REGISTRADA** · ERP ACEITO |
+| **Cadastro ERP** | estoque **-5 → -6** (C) |
+| **Gestão** | saldo acompanhou (print) |
+
+**Incidente pós v4.36 — meta C / comparação BI (28/06 noite):**
+
+| Sintoma | Causa |
+| ------- | ----- |
+| **Mês ant.** gráfico ~**R$ 18k** (só fim de mai) · tooltip meta «**+1394%**» · cores estranhas | Pacote corte: **histórico da meta C** passou a usar **só VendaAgro** (`agro_pg`). Loja tem PDV SisVale **só desde ~fim/mai** — abr/mai quase vazios no PG |
+| Card **-75,3%** hoje | **Normal** — é **hoje vs ontem**, não meta C |
+| Gráfico mês **R$ 95.988** (Fonte PDV) | **OK** — vendas do mês corrente no PG |
+
+**Regra meta C (não é 60 dias):** para cada dia, média de **M-1 + M-2 + M-3** (3 meses civis anteriores) — **Renan 29/06** (antes eram 2). Weekday + ocorrência no mês. Histórico: planilha set/25–mai/26 + jun+ PG.
+
+**Correção provisória meta C — decisão Renan (28/06):** **opção B — Excel manual** (não híbrido Mongo).
+
+| # | Caminho | Status |
+| - | ------- | ------ |
+| ~~A~~ | Híbrido Mongo só meta histórico | **Descartado** (Renan prefere planilha) |
+| **B** | Tabela PG **`DashboardVendaDiaHistoricoAgro`** (data + total) · Renan cola/importa Excel · merge na meta C: **VendaAgro** > planilha > 0 | **✅ implementado teste v4.45** |
+| C | Backfill Mongo → PG | Não |
+
+**Formato Excel (Renan enviar):**
+
+| Campo | Exemplo | Nota |
+| ----- | ------- | ---- |
+| **Data** | `01/set` · `02/set` · … | **DD/mmm** (abr, mai, jun, jul, ago, **set**, out, nov, dez, jan, fev, mar) — **como no print** ✅ |
+| **Total** | `R$ 5.090,37` | Faturamento **do dia** (loja toda) · ponto milhar + vírgula decimal OK |
+| **Período planilha** | **set/2025 – mai/2026** | Jun/2026+ **não** entra no Excel — vendas **já no SisVale** (PDV) |
+| **Arquivo Renan** | `vendas.cvs.xlsx` → **`docs/dados/vendas_centro_nov2025.xlsx`** | **✅ 29/06** · **272 linhas** (1 espúria omitida) · **01/09/2025 – 31/05/2026** · **só Centro** |
+| **Merge meta C** | **VendaAgro (PG) > planilha > 0** | Dia com venda no PDV usa PG; histórico vazio usa planilha |
+| **Ano** | Se a planilha **não** tiver coluna ano | Assumimos **2025** para nov–dez e **2026** para jan em diante (Renan corrige se errar) |
+| **Dia sem venda** | `0` ou linha omitida | Omitir = sem venda naquele dia |
+
+**Importante:** fase **1** = Excel + **meta C** (3 meses + merge PG/planilha). SES/clima **não** entra neste pacote.
+
+**Próximo passo Renan:** validar BI **teste** (meta C jun/2026) → se OK, pedir cherry-pick loja com senha.
+
+**WIP — Renan quer revisar fórmula da meta (28/06 noite):**
+
+| Tema | Decisão / nota |
+| ---- | -------------- |
+| **Dados** | Planilha **set/2025–mai/2026** + **jun+ PG** (merge) — meta C atual |
+| **Fórmula** | **Meta C = média M-1 + M-2 + M-3** (29/06 Renan; antes 2 meses) · SES/clima **não** agora |
+| **Clima/chuva** | Código Gemini (`previsao_mensal.py` + OpenWeather) — **fase separada**; não substitui meta C atual |
+| **Parecer assistente** | SES **≠** meta C de hoje (weekday + ocorrência no mês); ver CHECKPOINT ou chat 28/06 |
 
 **Baseline produção ANTES deploy (28/06 ~22:13 — prints Renan):**
 
