@@ -967,7 +967,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.45** · **produção v4.45** (deploy meta C **29/06**)
+**Versão app (`VERSION`):** **teste v4.47** · **produção v4.47** (deploy gráfico **29/06**)
+
+### FECHADO + DEPLOY LOJA — gráfico planilha **v4.47** (29/06)
+
+**Renan:** *«manda»* + senha **99738595** · cherry-pick **`def40ba`** → **`d67a1b3`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · **Mês anterior (mai)** → barras mês cheio · jun+ só PDV.
 
 ### WIP → TESTE — meta C planilha + 3 meses (**29/06**)
 
@@ -977,7 +983,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Produção v4.45 (29/06):** Renan *«pode enviar»* + senha **99738595** · cherry-pick **`d75927d`** → **`d078b4e`** · **push OK**. Conferir BI loja: Ctrl+F5 · tooltip «3 meses» · jun/2026 sem +1394%.
 
-**Ajuste 29/06 (pós-deploy):** planilha passa a preencher **barras do gráfico** (não só meta C) em set/25–mai/26 · jun+ continua só PDV · pendente subir loja.
+**Ajuste gráfico (v4.47):** planilha preenche **barras** set/25–mai/26 · **✅ loja 29/06**.
 
 ### FECHADO + DEPLOY LOJA — pacote corte Mongo **v4.31–v4.36** (28/06)
 
