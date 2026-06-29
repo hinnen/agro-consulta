@@ -967,14 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.83** · **produção v4.82** (promo bip + autocomplete pendente loja)
+**Versão app (`VERSION`):** **teste v4.84** · **produção v4.82** (promo bip + autocomplete pendente loja)
 
 ### WIP — promoções etapa 2: bip direto + autocomplete nome **v4.83** (29/06)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido Renan** | Código de barras entra direto na promoção; nome sem clicar Buscar |
-| **v4.83** | Barras (8–14 dígitos): busca + add automático ao bipar/Enter · Nome: autocomplete ~320 ms · Botão Buscar mantido |
+| **v4.83** | Barras: add automático · **GM + nome**: autocomplete (~180 ms GM / ~320 ms nome) · GM completo (ex. GM1769) entra se match exato |
+| **v4.84** | Refino GM: prefixo `GM` nunca trata como barras · parcial `GM17`/`1769` autocomplete · Enter no código GM |
 | **Teste** | Ctrl+F5 · bip EAN → item na lista direita · digitar «champ» → sugestões sozinhas |
 
 ### FECHADO + DEPLOY LOJA — promoções botão Excluir **v4.81** (29/06)

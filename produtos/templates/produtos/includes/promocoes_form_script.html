@@ -8,6 +8,7 @@
     cfg.apiBuscar = cfg.apiBuscar || '/api/promocoes/buscar-produto/';
     var LIMITE_EXIBIR = 12;
     var AUTO_BUSCA_MS = 320;
+    var GM_BUSCA_MS = 180;
     var SCAN_DEBOUNCE_MS = 90;
 
     var elData = document.getElementById('promo-initial-data');
@@ -62,7 +63,45 @@
 
     function ehCodigoBarras(q) {
         var t = String(q || '').trim();
+        if (/^GM/i.test(t)) return false;
         return /^\d{8,14}$/.test(t);
+    }
+
+    function normalizarCodigoGm(q) {
+        return String(q || '').trim().toUpperCase();
+    }
+
+    /** GM1769, gm123, ou numérico curto (sem ser EAN 8–14 dígitos). */
+    function ehCodigoGm(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^GM\d+$/i.test(t)) return true;
+        if (/^\d{1,7}$/.test(t)) return true;
+        return false;
+    }
+
+    /** Parcial: G, GM, GM17, 176… — dispara autocomplete. */
+    function ehCodigoGmParcial(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^G(M(\d*)?)?$/.test(t)) return true;
+        if (/^\d{1,7}$/.test(t)) return true;
+        return false;
+    }
+
+    function codigoGmCompleto(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^GM\d{3,}$/.test(t)) return true;
+        if (/^\d{4,7}$/.test(t)) return true;
+        return false;
+    }
+
+    function codigoProdutoMatch(p, q) {
+        var c = normalizarCodigoGm(p.codigo || '');
+        var qq = normalizarCodigoGm(q);
+        if (!c || !qq) return false;
+        if (c === qq) return true;
+        var cNum = c.replace(/^GM/, '');
+        var qNum = qq.replace(/^GM/, '');
+        return cNum === qNum;
     }
 
     function limparTimersBusca() {
@@ -407,14 +446,39 @@
         return false;
     }
 
+    function tentarAutoAdicionarGm(q, items) {
+        if (!ehCodigoGm(q) && !/^GM/i.test(q)) return false;
+        var disp = (items || []).filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        });
+        var exatos = disp.filter(function (p) {
+            return codigoProdutoMatch(p, q);
+        });
+        if (exatos.length === 1) {
+            incluirProduto(exatos[0]);
+            return true;
+        }
+        if (codigoGmCompleto(q) && disp.length === 1) {
+            incluirProduto(disp[0]);
+            return true;
+        }
+        return false;
+    }
+
+    function minLenBusca(q) {
+        if (ehCodigoBarras(q)) return 8;
+        if (ehCodigoGmParcial(q)) return 2;
+        return 2;
+    }
+
     function buscarProdutos(opts) {
         opts = opts || {};
         var q = dom.busca ? dom.busca.value.trim() : '';
-        var minLen = ehCodigoBarras(q) ? 8 : 2;
+        var minLen = minLenBusca(q);
         if (q.length < minLen) {
             if (!opts.silent) {
-                setStatus('Digite ao menos <strong>2 letras</strong> do nome ou bip o código de barras.');
-                showMsg('Digite ao menos 2 letras do nome ou bip o código de barras.', false);
+                setStatus('Digite nome, <strong>GM</strong> ou bip o código de barras.');
+                showMsg('Digite ao menos 2 caracteres (nome ou código GM) ou bip o código de barras.', false);
             }
             return Promise.resolve([]);
         }
@@ -456,8 +520,12 @@
                 selIdx = sugestoesVisiveis.length ? 0 : -1;
                 renderListaProdutos();
 
-                if (opts.autoAddBarcode || ehCodigoBarras(q)) {
+                if (opts.autoAddBarcode || (ehCodigoBarras(q) && !opts.autocomplete)) {
                     if (tentarAutoAdicionarBusca(q, items)) {
+                        return sugestoesVisiveis;
+                    }
+                } else if (opts.autoAddGm || (ehCodigoGm(q) && codigoGmCompleto(q))) {
+                    if (tentarAutoAdicionarGm(q, items)) {
                         return sugestoesVisiveis;
                     }
                 }
@@ -537,9 +605,13 @@
             showMsg('Use ↑↓ e Enter, ou clique na linha.', false);
             return;
         }
-        buscarProdutos({ autoAddBarcode: ehCodigoBarras(q) }).then(function (items) {
+        buscarProdutos({
+            autoAddBarcode: ehCodigoBarras(q),
+            autoAddGm: ehCodigoGm(q) || /^GM/i.test(q),
+        }).then(function (items) {
             var disp = items.filter(function (p) { return !produtoJaNaLista(p.produto_externo_id); });
             if (disp.length === 1) incluirProduto(disp[0]);
+            else if (ehCodigoGm(q) || /^GM/i.test(q)) tentarAutoAdicionarGm(q, items);
         });
     }
 
@@ -553,19 +625,21 @@
             }, SCAN_DEBOUNCE_MS);
             return;
         }
-        if (q.length < 2) {
+        if (q.length < minLenBusca(q)) {
             ultimaBusca = '';
             sugestoesCache = [];
             sugestoesVisiveis = [];
             totalEncontrados = 0;
             selIdx = -1;
-            setStatus('Nome: autocomplete · Barras: bipa direto na promoção.');
+            setStatus('GM, nome ou barras — autocomplete · Barras bipa direto.');
             renderResultadosBusca();
             return;
         }
+        var delay = ehCodigoGmParcial(q) ? GM_BUSCA_MS : AUTO_BUSCA_MS;
+        var addGm = codigoGmCompleto(q);
         autoBuscaTimer = setTimeout(function () {
-            buscarProdutos({ silent: true, autocomplete: true });
-        }, AUTO_BUSCA_MS);
+            buscarProdutos({ silent: true, autocomplete: true, autoAddGm: addGm });
+        }, delay);
     }
 
     function moverSelecao(delta) {
@@ -674,6 +748,10 @@
                 var q = dom.busca ? dom.busca.value.trim() : '';
                 if (ehCodigoBarras(q)) {
                     buscarProdutos({ autoAddBarcode: true });
+                    return;
+                }
+                if (ehCodigoGm(q) || /^GM/i.test(q)) {
+                    buscarProdutos({ autoAddGm: true });
                     return;
                 }
                 confirmarBuscaOuAdicionar();
