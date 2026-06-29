@@ -237,6 +237,54 @@
         return (nome ? nome + ' — ' : '') + mix;
     }
 
+    function badgePendenteStack(lineBottom, title) {
+        return {
+            stack: true,
+            lineTop: 'PROMO',
+            lineBottom: lineBottom,
+            title: title,
+        };
+    }
+
+    /** Soma quantidades no carrinho para a mesma promoção (mix). */
+    function poolContextoFromCarrinho(item, itens) {
+        if (!item) return null;
+        var promo = item.promocao || getPromo(item.id);
+        if (!promo || promo.tipo === 'valor_direto') return null;
+        var key = promoPoolKey(promo);
+        if (!key) return null;
+
+        if (item.promo_qtd_pool != null) {
+            return {
+                pooled: true,
+                qtdPool: toNum(item.promo_qtd_pool, 0),
+                qtdLinhaPromo: toNum(item.promo_unidades_promo, 0),
+                qtdLinhaNormal: toNum(item.promo_unidades_normal, 0),
+                linhasNoPool: Math.max(1, toNum(item.promo_linhas_pool, 1)),
+            };
+        }
+
+        var total = 0;
+        var nLinhas = 0;
+        (itens || []).forEach(function (it) {
+            if (!it || it.preco_manual) return;
+            var p = it.promocao || getPromo(it.id);
+            if (!p || promoPoolKey(p) !== key) return;
+            if (!it.promocao) it.promocao = p;
+            total += toNum(it.qtd, 0);
+            nLinhas += 1;
+        });
+        if (nLinhas <= 0) return null;
+        return {
+            pooled: true,
+            qtdPool: total,
+            qtdLinhaPromo: toNum(item.promo_unidades_promo, 0),
+            qtdLinhaNormal:
+                item.promo_unidades_normal != null ? toNum(item.promo_unidades_normal, 0) : toNum(item.qtd, 0),
+            linhasNoPool: nLinhas,
+        };
+    }
+
     /**
      * Textos do selo no carrinho (fase 1 FL-003).
      * ctx.pooled: usa promo_qtd_pool e unidades alocadas por linha.
@@ -247,11 +295,11 @@
         qtd = toNum(qtd, 0);
         precoPadrao = toNum(precoPadrao, 0);
         if (qtd <= 0) return null;
-        var pooled = !!ctx.pooled && ctx.qtdPool != null;
-        var qtdPool = pooled ? toNum(ctx.qtdPool, 0) : qtd;
-        var qLinPromo = pooled ? toNum(ctx.qtdLinhaPromo, 0) : null;
-        var qLinNorm = pooled ? toNum(ctx.qtdLinhaNormal, 0) : null;
-        var linhasNoPool = pooled ? toNum(ctx.linhasNoPool, 1) : 1;
+        var qtdPool = ctx.qtdPool != null ? toNum(ctx.qtdPool, 0) : qtd;
+        var pooled = !!ctx.pooled || ctx.qtdPool != null;
+        var qLinPromo = pooled && ctx.qtdLinhaPromo != null ? toNum(ctx.qtdLinhaPromo, 0) : null;
+        var qLinNorm = pooled && ctx.qtdLinhaNormal != null ? toNum(ctx.qtdLinhaNormal, 0) : null;
+        var linhasNoPool = pooled ? Math.max(1, toNum(ctx.linhasNoPool, 1)) : 1;
         var lim = toNum(promo.qtd_x);
         var py = toNum(promo.preco_y);
         var nome = String(promo.nome || '').trim();
@@ -282,13 +330,14 @@
             var restoPool = qtdPool - gruposPool * lim;
 
             if (gruposPool <= 0) {
+                var falta = Math.max(0, lim - qtdPool);
                 return {
                     state: 'pendente',
                     badges: [
-                        {
-                            text: 'Faltam ' + fmtQtdLabel(lim - qtdPool),
-                            title: tituloBase + (linhasNoPool > 1 ? ' (soma mix no carrinho)' : ''),
-                        },
+                        badgePendenteStack(
+                            'Faltam ' + fmtQtdLabel(falta),
+                            tituloBase + (linhasNoPool > 1 ? ' (soma mix no carrinho)' : '')
+                        ),
                     ],
                 };
             }
@@ -379,10 +428,15 @@
                 return {
                     state: 'pendente',
                     badges: [
-                        {
-                            text: pooled ? 'Faltam ' + fmtQtdLabel(faltaAcima) : '>' + fmtQtdLabel(lim) + ' un',
-                            title: tituloAcima + (linhasNoPool > 1 ? ' (soma mix)' : ''),
-                        },
+                        pooled
+                            ? badgePendenteStack(
+                                  'Faltam ' + fmtQtdLabel(faltaAcima),
+                                  tituloAcima + (linhasNoPool > 1 ? ' (soma mix)' : '')
+                              )
+                            : {
+                                  text: '>' + fmtQtdLabel(lim) + ' un',
+                                  title: tituloAcima,
+                              },
                     ],
                 };
             }
@@ -447,6 +501,7 @@
         recalcCarrinhoComForma: recalcCarrinhoComForma,
         criterioAtendido: criterioAtendido,
         resumoIndicadorPromo: resumoIndicadorPromo,
+        poolContextoFromCarrinho: poolContextoFromCarrinho,
         estaCarregado: function () {
             return carregado;
         },

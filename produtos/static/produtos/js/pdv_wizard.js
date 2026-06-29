@@ -2311,7 +2311,7 @@
         return null;
     }
 
-    function renderCartPromoBadges(item) {
+    function renderCartPromoBadges(item, itens) {
         var empty = '<span class="pdv-cart-promo-wrap pdv-cart-promo--empty" aria-hidden="true"></span>';
         if (!item || item.preco_manual) return empty;
         var promo = item.promocao;
@@ -2320,19 +2320,31 @@
         if (!promo) return empty;
         var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
         if (!isFinite(padrao)) padrao = 0;
-        var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao, {
-            pooled: item.promo_qtd_pool != null,
-            qtdPool: item.promo_qtd_pool,
-            qtdLinhaPromo: item.promo_unidades_promo,
-            qtdLinhaNormal: item.promo_unidades_normal,
-            linhasNoPool: item.promo_linhas_pool,
-        });
+        var ctx =
+            window.AgroPdvPromocoes.poolContextoFromCarrinho &&
+            window.AgroPdvPromocoes.poolContextoFromCarrinho(item, itens);
+        if (!ctx) ctx = {};
+        var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao, ctx);
         if (!resumo || !resumo.badges || !resumo.badges.length) return empty;
         var html =
             '<span class="pdv-cart-promo-wrap pdv-cart-promo--' +
             escapeHtml(resumo.state || 'ativo') +
             '">';
         resumo.badges.forEach(function (badge) {
+            if (badge.stack) {
+                html +=
+                    '<span class="pdv-cart-promo-badge pdv-cart-promo-badge--stack" title="' +
+                    escapeHtml(badge.title || badge.lineBottom || '') +
+                    '">' +
+                    '<span class="pdv-cart-promo-line pdv-cart-promo-line-top">' +
+                    escapeHtml(badge.lineTop || 'PROMO') +
+                    '</span>' +
+                    '<span class="pdv-cart-promo-line pdv-cart-promo-line-sub">' +
+                    escapeHtml(badge.lineBottom || '') +
+                    '</span>' +
+                    '</span>';
+                return;
+            }
             html +=
                 '<span class="pdv-cart-promo-badge" title="' +
                 escapeHtml(badge.title || badge.text || '') +
@@ -2411,7 +2423,7 @@
                     '    <span class="pdv-cart-gm" title="Código GM">' +
                     escapeHtml(cartCodigoGm(item)) +
                     '</span>' +
-                    renderCartPromoBadges(item) +
+                    renderCartPromoBadges(item, state.itens) +
                     '    <div class="pdv-cart-qty-wrap">' +
                     '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +

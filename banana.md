@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.10** · **produção v5.08** — promo **mix** mesma regra + FL-003 fase 1
+**Versão app (`VERSION`):** **teste v5.11** · **produção v5.08** — selo promo 2 linhas + mix contagem
 
 ### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
 
@@ -985,7 +985,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Onde** | Linha do carrinho — entre **GM** e **qtd** (área indicada no print) |
 | **Selo verde** | Critério atingido — ex. **PROMO 4×** |
-| **Selo amarelo** | Ainda falta — ex. **Faltam 1** |
+| **Selo amarelo** | Duas linhas: **PROMO** (cima) + **Faltam N** (baixo) · N = mix no carrinho |
 | **Dois selos** | Passou do critério — ex. **4 promo** + **+1 normal** (5 un. leve 4) |
 | **Remover** | Texto virou **lixeira** (ícone) para ganhar espaço |
 | **Só visual** | Preço já calculado antes; **não** mexe em venda/caixa/fiscal |
