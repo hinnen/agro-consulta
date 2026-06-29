@@ -907,25 +907,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.47 · **produção** v4.47 (deploy gráfico **29/06**)
+**Versão app (`VERSION`):** **teste** v4.49 · **produção** v4.49 (deploy merge **29/06**)
 
-### FECHADO + DEPLOY LOJA — gráfico planilha **v4.47** (29/06)
+### FECHADO + DEPLOY LOJA — merge max planilha/PDV **v4.49** (29/06)
 
 **Renan:** *«manda»* + senha **99738595**.
 
-**Loja (`producao`):** cherry-pick **`def40ba`** · **push OK** · **não** merge inteiro `teste`.
+**Loja (`producao`):** cherry-pick **`f0c6f29`** · **push OK** · **não** merge inteiro `teste`.
 
-**Pós-deploy:** Ctrl+F5 BI `/` · **Mês anterior (mai)** → barras mês cheio (~R$ 100 mil) · jun+ só PDV.
+**Pós-deploy:** Ctrl+F5 · **Mês anterior (mai)** · dias **21–22** ~**R$ 2.451 / R$ 2.870** (não R$ 53 teste PDV).
+
+### FECHADO + DEPLOY LOJA — gráfico planilha **v4.47** (29/06)
+
+**Loja:** cherry-pick **`def40ba`** → **`d67a1b3`**.
 
 ### FECHADO + DEPLOY LOJA — meta C planilha **v4.45** (29/06)
 
-**Renan:** *«pode enviar»* + senha **99738595**.
-
-**Loja (`producao`):** cherry-pick **`d75927d`** → **`d078b4e`** · **push OK**.
-
-**Pós-deploy:** migration **0045** · meta C 3 meses · planilha set/25–mai/26.
+**Loja:** cherry-pick **`d75927d`** → **`d078b4e`**.
 
 ### CP — filtro competência e pagamento (28/06 · Renan · loja)
+
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Lista CP: **Filtrar por** vencimento (padrão) · competência · pagamento |
@@ -934,6 +935,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Teste staging** | Poucos títulos PG (256 MB) · tela cinza = memória PG, não o filtro |
 | **Deploy teste** | **`fc1abe8`** · v4.26+ |
 | **Deploy produção** | cherry-pick template **`fc1abe8`** · **v4.21** · Renan **99738595** · **28/06** |
+
 
 ### Entrada NF — rascunho Postgres (24/06 · assistente)
 
