@@ -95,6 +95,41 @@ def criterio_promocao_atendido(
     return False
 
 
+def calcular_total_linha_promocional(
+    *,
+    tipo: str,
+    qtd_x: float | Decimal | None,
+    preco_y: float | Decimal | None,
+    quantidade: float,
+    preco_padrao: float,
+    preco_produto_promo: float | Decimal | None = None,
+) -> float:
+    """Total da linha no carrinho (grupos completos + resto ao preço normal)."""
+    qtd = _float_val(quantidade)
+    padrao = _float_val(preco_padrao)
+    if qtd <= 0:
+        return 0.0
+
+    if tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
+        unit = _float_val(preco_produto_promo, 0) or _float_val(preco_y, 0) or padrao
+        return round(qtd * unit, 2)
+
+    lim = _float_val(qtd_x)
+    py = _float_val(preco_y)
+    if lim <= 0 or py <= 0:
+        return round(qtd * padrao, 2)
+
+    if tipo == PromocaoAgro.Tipo.LEVE_PAGUE:
+        grupos = int(qtd // lim)
+        resto = qtd - (grupos * lim)
+        return round((grupos * lim * py) + (resto * padrao), 2)
+
+    if tipo == PromocaoAgro.Tipo.ACIMA_UNIDADES and criterio_promocao_atendido(tipo, lim, qtd):
+        return round(qtd * py, 2)
+
+    return round(qtd * padrao, 2)
+
+
 def calcular_preco_promocional(
     *,
     tipo: str,
@@ -104,14 +139,27 @@ def calcular_preco_promocional(
     preco_padrao: float,
     preco_produto_promo: float | Decimal | None = None,
 ) -> float:
-    """Retorna o preço unitário a aplicar no carrinho."""
+    """Retorna preço unitário efetivo (total da linha ÷ quantidade) para exibição no PDV."""
     padrao = _float_val(preco_padrao)
+    qtd = _float_val(quantidade)
+    if qtd <= 0:
+        return padrao
     if tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
         pp = _float_val(preco_produto_promo, 0)
         if pp > 0:
             return round(pp, 4)
         py = _float_val(preco_y, 0)
         return round(py, 4) if py > 0 else padrao
+
+    if tipo == PromocaoAgro.Tipo.LEVE_PAGUE:
+        total = calcular_total_linha_promocional(
+            tipo=tipo,
+            qtd_x=qtd_x,
+            preco_y=preco_y,
+            quantidade=qtd,
+            preco_padrao=padrao,
+        )
+        return round(total / qtd, 4)
 
     lim = _float_val(qtd_x)
     py = _float_val(preco_y)

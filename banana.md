@@ -977,6 +977,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Conferência (29/06):** itens **P1,x** já na fila batem com a regra (entre **P1** e **P2**): **FL-021** · **FL-022** = **P1,1** · **FL-019** · **FL-020** = **P1,5**. Nenhum precisou mudar de faixa. Ordem sugerida ao atacar: P1 → P1,1 → P1,5 → P2.
 
+**Lote Zap 29/06/2026 16:20** — neste envio: **FL-023…FL-035** (fim da fila **FL-035**). Na conversa do Zap: procurar mensagens do **29/06** **até ~16:20** para achar o trecho; o último item deste lote é **FL-035**.
+
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
 | **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
@@ -1001,6 +1003,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | 📋 Pendente | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
+| **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** (não manter período antigo preso na busca) | 📋 Pendente | 29/06 16:20 |
+| **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
+| **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** — está indo para **9000+** em vez da faixa combinada (**~4–5 mil**) | 📋 Pendente · 🔍 conferir | 29/06 16:20 |
+| **FL-026** | **P2** | Entrada NF | Ao **adicionar produto novo** na nota: itens já conferidos perdem **código de barras** (etapa 3) e **lote/validade** (etapas 4–5) | 📋 Pendente | 29/06 16:20 |
+| **FL-027** | **P2** | Entrada NF | Etapa **7**: notas via **XML** preenchem forma de pagamento só **«Boleto Bancário»** — corrigir para **«Boleto Bancário CN»** | 📋 Pendente | 29/06 16:20 |
+| **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | 📋 Pendente | 29/06 16:20 |
+| **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
+| **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
+| **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
+| **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
+| **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
+| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 📋 Pendente | 29/06 16:20 |
+| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1028,6 +1043,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-020 | `cupom-frete-separado` | `venda_cupom_80mm` + NFC-e — frete não linha de produto / não base tributável cupom |
 | FL-021 | `cp-btn-nf-ausente` | `lancamentos_contas_pagar_teste.html` — `urlEntradaNfeEmbed` / vínculo NF entrada · ex. **RBS 781,64** |
 | FL-022 | `cp-busca-inconsistente` | Filtro busca lista CP — `mongo_financeiro_util` + JS modal filtros |
+| FL-023 | `cp-busca-limpa-datas` | Ao buscar na lista CP: resetar filtros de **data** (período não deve persistir na busca textual) |
+| FL-024 | `cadastro-popup-cat-marca-food` | Modal estilo instância Food — cadastro rápido **categoria** + **marca** |
+| FL-025 | `codigo-interno-seq-4k` | Sequência código interno GM — hoje **9000+**; alvo combinado **~4000–5000** — `cadastro_erp` / overlay |
+| FL-026 | `entrada-nf-perde-conferencia` | Add linha nova na NF: zera barras (passo 3) e lote/val (4–5) dos itens já conferidos |
+| FL-027 | `entrada-nf-xml-forma-boleto-cn` | Parse XML etapa 7: mapear forma pag. **Boleto Bancário CN** (não só «Boleto Bancário») |
+| FL-028 | `fiado-baixa-lote-erro` | Botão baixa fiado tenta quitar **todas** as notas — erro; fluxo deve ser seletivo ou corrigir aggregate |
+| FL-029 | `fiado-baixa-parcial-credito` | Validar baixa parcial + saldo em **crédito** cliente |
+| FL-030 | `fiado-ignorar-vencido-pin` | Override bloqueio notinhas vencidas — PIN **Geraldo** / **Geraldinho** |
+| FL-031 | `entregas-polish` | Continuar FL-006 — `entregas_painel.html` + APIs |
+| FL-032 | `pdv-reset-nova-venda` | Botão explícito reset carrinho/contexto e nova venda |
+| FL-033 | `bi-vendas-dia-nth-weekday` | Dashboard: comparar **N-ésimo** dia da semana no mês vs mês anterior |
+| FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
+| FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
+
+**Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
 **Notas FL-021 / FL-022 (CP — 29/06):** **P1,1**. FL-021: coluna/botão **NF** só renderiza se `urlEntradaNfeEmbed(row)` achar vínculo entrada NF — reproduzir com fornecedor **RBS** · valor **R$ 781,64**. FL-022: busca na lista (modal Filtros) — anotar termo que falha vs que acha.
 

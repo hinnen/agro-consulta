@@ -22,6 +22,25 @@
         return false;
     }
 
+    function calcTotalLinha(promo, qtd, precoPadrao) {
+        if (!promo) return qtd * precoPadrao;
+        if (promo.tipo === 'valor_direto') {
+            return qtd * calcularPreco(promo, qtd, precoPadrao);
+        }
+        var lim = toNum(promo.qtd_x);
+        var py = toNum(promo.preco_y);
+        if (lim <= 0 || py <= 0) return qtd * precoPadrao;
+        if (promo.tipo === 'leve_pague') {
+            var grupos = Math.floor(qtd / lim);
+            var resto = qtd - grupos * lim;
+            return grupos * lim * py + resto * precoPadrao;
+        }
+        if (promo.tipo === 'acima_unidades' && criterioAtendido(promo, qtd)) {
+            return qtd * py;
+        }
+        return qtd * precoPadrao;
+    }
+
     function calcularPreco(promo, qtd, precoPadrao) {
         if (!promo) return precoPadrao;
         if (promo.tipo === 'valor_direto') {
@@ -29,6 +48,10 @@
             if (pp > 0) return pp;
             var py = toNum(promo.preco_y, 0);
             return py > 0 ? py : precoPadrao;
+        }
+        if (promo.tipo === 'leve_pague') {
+            if (qtd <= 0) return precoPadrao;
+            return calcTotalLinha(promo, qtd, precoPadrao) / qtd;
         }
         if (criterioAtendido(promo, qtd)) {
             return toNum(promo.preco_y, precoPadrao);
@@ -107,6 +130,7 @@
         setEmpresa: setEmpresa,
         setApiUrl: setApiUrl,
         getPromo: getPromo,
+        calcTotalLinha: calcTotalLinha,
         resolvePreco: resolvePreco,
         aplicarNoItem: aplicarNoItem,
         recalcCarrinho: recalcCarrinho,
