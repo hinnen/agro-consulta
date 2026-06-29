@@ -967,16 +967,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.06** · **produção v5.05** (fix leve X pague Y — resto preço normal)
+**Versão app (`VERSION`):** **teste v5.07** · **produção v5.07** (promo leve X pague Y — resto preço normal · deploy **29/06**)
 
-### WIP — promo «Leve X pague Y» — resto ao preço normal **v5.06** (29/06)
+### Promo «Leve X pague Y» — resto ao preço normal **v5.07** (29/06) ✅ loja
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido Renan** | Leve 4 @ R$ 2,50 → 5º sache preço normal (12,90 não 12,50) |
 | **Era** | qty ≥ X → **todas** as unidades a R$ Y |
-| **v5.06** | Grupos completos de X a R$ Y · resto ao preço tabela · 4→10,00 · 5→12,90 |
-| **Teste** | Ctrl+F5 PDV · GM1787 · qty 5 → total **R$ 12,90** |
+| **Fix** | Grupos completos de X a R$ Y · resto ao preço tabela · 4→10,00 · 5→12,90 |
+| **Deploy** | `teste`→`producao` **29/06** (senha OK) · commits `f9a00ef` + checkpoint `fe3e9a6` |
+| **Conferir loja** | Ctrl+F5 PDV · GM1787 · qty 5 → total **R$ 12,90** |
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
