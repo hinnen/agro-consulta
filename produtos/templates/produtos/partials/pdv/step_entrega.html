@@ -13,9 +13,9 @@
     </div>
   </div>
 
-  <div id="pdv-entrega-main" class="min-h-0 flex flex-1 flex-col gap-2 overflow-hidden hidden">
-    <div class="pdv-wiz-panel min-h-0 flex-1 overflow-y-auto">
-      <div class="pdv-wiz-block pdv-wiz-block--sky h-full">
+  <div id="pdv-entrega-main" class="pdv-entrega-main min-h-0 flex shrink-0 flex-col gap-2 overflow-hidden hidden">
+    <div class="pdv-wiz-panel shrink-0">
+      <div class="pdv-wiz-block pdv-wiz-block--sky">
         <div class="pdv-wiz-block-head">
           <span class="pdv-wiz-head-icon pdv-wiz-head-icon--user" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
@@ -24,65 +24,58 @@
           <button type="button" id="pdv-entrega-reiniciar-fluxo-pagamento" class="pdv-action-btn ml-auto shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[9px] font-black uppercase text-slate-700 hover:bg-slate-50" title="Refazer escolha de pagamento na entrega ou na loja">Reiniciar pagamento</button>
         </div>
 
-        <div class="mt-2 grid gap-3 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
-          <div class="pdv-wiz-inner-card space-y-2">
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome</span>
-              <input id="pdv-entrega-cliente-nome" type="text" class="pdv-input border-sky-200 bg-white text-base font-bold" placeholder="Nome do cliente" autocomplete="name">
-            </label>
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
-              <div class="flex flex-wrap items-center gap-2">
-                <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
-                <input id="pdv-entrega-cliente-telefone" type="text" class="pdv-input min-w-0 flex-1 border-sky-200 bg-white" placeholder="Telefone / WhatsApp" autocomplete="tel">
-              </div>
-            </label>
-          </div>
-
-          <div class="space-y-3">
-            <div class="grid gap-2 sm:grid-cols-2">
-              <label class="block sm:col-span-2">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Logradouro</span>
-                <input id="pdv-entrega-logradouro" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Rua, avenida, estrada…" autocomplete="street-address">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Número</span>
-                <input id="pdv-entrega-numero" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Nº, km, s/n" inputmode="text">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Bairro</span>
-                <select id="pdv-entrega-bairro" class="pdv-input border-sky-200 bg-white">
-                  <option value="">Selecione ou digite em observação</option>
-                </select>
-              </label>
-              <label class="block sm:col-span-2">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
-                <input id="pdv-entrega-pluscode" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off" title="Preenche logradouro e bairro automaticamente">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Complemento</span>
-                <input id="pdv-entrega-complemento" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Casa, bloco, sítio">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Referência</span>
-                <input id="pdv-entrega-referencia" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Referência curta">
-              </label>
+        <div class="pdv-entrega-endereco-form">
+          <label class="pdv-entrega-field pdv-entrega-field--nome">
+            <span class="pdv-entrega-field-label">Nome</span>
+            <input id="pdv-entrega-cliente-nome" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white font-bold" placeholder="Nome do cliente" autocomplete="name">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--tel">
+            <span class="pdv-entrega-field-label">Telefone</span>
+            <div class="flex min-w-0 items-center gap-2">
+              <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
+              <input id="pdv-entrega-cliente-telefone" type="text" class="pdv-input pdv-entrega-field-input min-w-0 flex-1 border-sky-200 bg-white" placeholder="Telefone / WhatsApp" autocomplete="tel">
             </div>
-          </div>
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--log">
+            <span class="pdv-entrega-field-label">Logradouro</span>
+            <input id="pdv-entrega-logradouro" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Rua, avenida, estrada…" autocomplete="street-address">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--num">
+            <span class="pdv-entrega-field-label">Número</span>
+            <input id="pdv-entrega-numero" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Nº, km, s/n" inputmode="text">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--bai">
+            <span class="pdv-entrega-field-label">Bairro</span>
+            <select id="pdv-entrega-bairro" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white">
+              <option value="">Selecione ou digite em observação</option>
+            </select>
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--plus">
+            <span class="pdv-entrega-field-label">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
+            <input id="pdv-entrega-pluscode" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off" title="Preenche logradouro e bairro automaticamente">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--comp">
+            <span class="pdv-entrega-field-label">Complemento</span>
+            <input id="pdv-entrega-complemento" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Casa, bloco, sítio">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--ref">
+            <span class="pdv-entrega-field-label">Referência</span>
+            <input id="pdv-entrega-referencia" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Referência curta">
+          </label>
         </div>
       </div>
     </div>
 
     <div class="pdv-wiz-panel shrink-0">
       <div class="pdv-wiz-block pdv-wiz-block--slate py-2">
-        <div class="grid gap-2 md:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Observação da venda</span>
-            <textarea id="pdv-venda-observacao" rows="2" class="pdv-input min-h-[2.75rem] resize-y border-slate-200 bg-white text-sm" placeholder="Informações para o fechamento ou equipe."></textarea>
+        <div class="pdv-entrega-obs-grid">
+          <label class="block min-w-0">
+            <span class="pdv-entrega-field-label text-slate-600">Observação da venda</span>
+            <input id="pdv-venda-observacao" type="text" class="pdv-input pdv-entrega-field-input border-slate-200 bg-white" placeholder="Opcional — fechamento ou equipe" autocomplete="off">
           </label>
-          <label class="block">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Observação da entrega</span>
-            <textarea id="pdv-entrega-observacao" rows="2" class="pdv-input min-h-[2.75rem] resize-y border-orange-200 bg-white text-sm" placeholder="Ponto de encontro, rotas ou avisos ao entregador."></textarea>
+          <label class="block min-w-0">
+            <span class="pdv-entrega-field-label text-orange-800/80">Observação da entrega</span>
+            <input id="pdv-entrega-observacao" type="text" class="pdv-input pdv-entrega-field-input border-orange-200 bg-white" placeholder="Opcional — aviso ao entregador" autocomplete="off">
           </label>
         </div>
       </div>

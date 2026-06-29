@@ -1086,12 +1086,73 @@
   }
   .pdv-step-entrega-shell {
     container-type: inline-size;
+    justify-content: flex-start;
   }
   .pdv-step-entrega-shell.pdv-step-entrega-shell--resumo {
     gap: 0;
+    justify-content: stretch;
   }
-  @container (max-width: 42rem) {
-    .pdv-step-entrega-shell .lg\:grid-cols-\[minmax\(0\,14rem\)_minmax\(0\,1fr\)\] {
+  .pdv-entrega-main:not(.hidden) {
+    flex: 0 1 auto;
+  }
+  .pdv-entrega-endereco-form {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.65rem 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .pdv-entrega-field {
+    display: block;
+    min-width: 0;
+  }
+  .pdv-entrega-field-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: clamp(0.72rem, 0.25vw + 0.66rem, 0.88rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  .pdv-entrega-field-input {
+    width: 100%;
+    min-height: 2.85rem;
+    font-size: clamp(0.95rem, 0.3vw + 0.88rem, 1.12rem);
+  }
+  .pdv-entrega-field--nome { grid-column: span 5; }
+  .pdv-entrega-field--tel { grid-column: span 7; }
+  .pdv-entrega-field--log { grid-column: 1 / -1; }
+  .pdv-entrega-field--num { grid-column: span 3; }
+  .pdv-entrega-field--bai { grid-column: span 5; }
+  .pdv-entrega-field--plus { grid-column: span 4; }
+  .pdv-entrega-field--comp { grid-column: span 6; }
+  .pdv-entrega-field--ref { grid-column: span 6; }
+  .pdv-entrega-obs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 0.75rem;
+  }
+  @container (max-width: 52rem) {
+    .pdv-entrega-endereco-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .pdv-entrega-field--nome,
+    .pdv-entrega-field--tel,
+    .pdv-entrega-field--log,
+    .pdv-entrega-field--num,
+    .pdv-entrega-field--bai,
+    .pdv-entrega-field--plus,
+    .pdv-entrega-field--comp,
+    .pdv-entrega-field--ref {
+      grid-column: auto;
+    }
+    .pdv-entrega-field--log {
+      grid-column: 1 / -1;
+    }
+  }
+  @container (max-width: 36rem) {
+    .pdv-entrega-endereco-form,
+    .pdv-entrega-obs-grid {
       grid-template-columns: 1fr;
     }
   }
