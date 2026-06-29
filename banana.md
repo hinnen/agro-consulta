@@ -967,13 +967,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.77** · **produção v4.77** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.78** · **produção v4.78** (deploy merge **29/06**)
+
+### FECHADO + DEPLOY LOJA — fix endereço entrega grudado **v4.78** (29/06)
+
+**Renan:** *«suba»* + senha **99738595**.
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · commit **`91dbc09`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · trocar cliente na entrega F3 → endereço do cadastro (não gruda o da venda anterior).
+
+### INCIDENTE LOJA — endereço entrega grudado em todos os clientes (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Todo cliente na entrega F3 mostrava o mesmo endereço do teste (Av. Adhemar…) |
+| **Causa** | Endereço da venda anterior ficava no estado da sessão; ao trocar cliente não limpava |
+| **Fix v4.78** | Troca de cliente repõe endereço do cadastro; F3 entrega sincroniza; voltar a Produtos zera |
 
 ### FECHADO + DEPLOY LOJA — merge teste → producao **v4.77** (29/06)
 
 **Renan:** *«manda para produção - seja oque Deus quiser»* + senha **99738595**.
 
-**Loja (`producao`):** merge **`teste`** → **`producao`** · pacote PDV entrega **v4.59–v4.77** · **push OK**.
+**Loja (`producao`):** merge **`teste`** → **`producao`** · pacote PDV entrega **v4.59–v4.77** · **push OK** · commit **`987f75c`**.
 
 **Pós-deploy loja:** Ctrl+F5 · PDV entrega F3 → espaço no logradouro · Conferir entrega (frete/total) · popups entrega revisados.
 

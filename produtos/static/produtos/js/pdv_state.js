@@ -251,9 +251,63 @@
         notify();
     }
 
+    function clienteIdentityKey(cliente) {
+        if (!cliente || typeof cliente !== 'object') return '';
+        var pk = cliente.cliente_agro_pk != null ? String(cliente.cliente_agro_pk).trim() : '';
+        if (pk) return 'pk:' + pk;
+        var id = String(cliente.id || '').trim();
+        if (id) return 'id:' + id;
+        var tel = String(cliente.telefone || '').replace(/\D/g, '');
+        var nome = String(cliente.nome || '').trim().toLowerCase();
+        return 'tmp:' + nome + ':' + tel;
+    }
+
+    function composeEntregaEnderecoLinhaRapida(entregaPatch, cliente) {
+        entregaPatch = entregaPatch || {};
+        var log = String(entregaPatch.logradouro || '').trim();
+        var num = String(entregaPatch.numero || '').trim();
+        var bai = String(entregaPatch.bairro || '').trim();
+        var pc = String(entregaPatch.plusCode || '').trim();
+        var parts = [];
+        if (log || num) {
+            var ln = [log, num].filter(Boolean).join(', ');
+            if (ln) parts.push(ln);
+        }
+        if (bai) parts.push(bai);
+        if (pc) parts.push('Plus ' + pc);
+        if (parts.length) return parts.join(' — ') + ' — Jacupiranga/SP';
+        return String((cliente && cliente.endereco) || '').trim();
+    }
+
+    function aplicarEnderecoEntregaDoCliente(cliente) {
+        if (!state.entrega) return;
+        cliente = cliente || {};
+        var patch = {
+            logradouro: String(cliente.logradouro || '').trim(),
+            numero: String(cliente.numero || '').trim(),
+            bairro: String(cliente.bairro || '').trim(),
+            plusCode: String(cliente.plus_code || '').trim(),
+            complemento: '',
+            referencia: String(cliente.referencia_rural || '').trim()
+        };
+        state.entrega.logradouro = patch.logradouro;
+        state.entrega.numero = patch.numero;
+        state.entrega.bairro = patch.bairro;
+        state.entrega.plusCode = patch.plusCode;
+        state.entrega.complemento = patch.complemento;
+        state.entrega.referencia = patch.referencia;
+        state.entrega.endereco = composeEntregaEnderecoLinhaRapida(patch, cliente);
+        state.entrega.enderecoPassoConcluido = false;
+    }
+
     function setCliente(cliente, mode) {
+        var prevKey = clienteIdentityKey(state.cliente);
         state.cliente = sanitizeCliente(cliente);
         state.clienteMode = mode || 'cliente';
+        var nextKey = clienteIdentityKey(state.cliente);
+        if (prevKey !== nextKey) {
+            aplicarEnderecoEntregaDoCliente(state.cliente);
+        }
         if (state.cliente && state.clienteMode !== 'consumidor_final') {
             try {
                 localStorage.setItem(LAST_CLIENT_KEY, JSON.stringify(state.cliente));
@@ -758,7 +812,14 @@
         if (keepClient && state.cliente) {
             next.cliente = deepClone(state.cliente);
             next.clienteMode = state.clienteMode;
-            next.entrega.endereco = state.cliente.endereco || '';
+            var c = next.cliente;
+            next.entrega.logradouro = String(c.logradouro || '').trim();
+            next.entrega.numero = String(c.numero || '').trim();
+            next.entrega.bairro = String(c.bairro || '').trim();
+            next.entrega.plusCode = String(c.plus_code || '').trim();
+            next.entrega.referencia = String(c.referencia_rural || '').trim();
+            next.entrega.complemento = '';
+            next.entrega.endereco = composeEntregaEnderecoLinhaRapida(next.entrega, c);
         }
         state = next;
         notify();
