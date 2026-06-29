@@ -907,17 +907,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste** v4.45 · **produção** v4.45 (deploy meta C **29/06**)
+**Versão app (`VERSION`):** **teste** v4.47 · **produção** v4.47 (deploy gráfico **29/06**)
+
+### FECHADO + DEPLOY LOJA — gráfico planilha **v4.47** (29/06)
+
+**Renan:** *«manda»* + senha **99738595**.
+
+**Loja (`producao`):** cherry-pick **`def40ba`** · **push OK** · **não** merge inteiro `teste`.
+
+**Pós-deploy:** Ctrl+F5 BI `/` · **Mês anterior (mai)** → barras mês cheio (~R$ 100 mil) · jun+ só PDV.
 
 ### FECHADO + DEPLOY LOJA — meta C planilha **v4.45** (29/06)
 
 **Renan:** *«pode enviar»* + senha **99738595**.
 
-**Loja (`producao`):** cherry-pick **`d75927d`** · **push OK** · **não** merge inteiro `teste`.
+**Loja (`producao`):** cherry-pick **`d75927d`** → **`d078b4e`** · **push OK**.
 
-**Pós-deploy:** Ctrl+F5 BI `/` · badge **v4.45** · conferir tooltip meta «3 meses» · jun/2026 sem +1394% · migration **0045** seed planilha no deploy.
-
-**Versão app (`VERSION`):** **teste** v4.28 · **produção** v4.21 (CP filtro data 28/06)
+**Pós-deploy:** migration **0045** · meta C 3 meses · planilha set/25–mai/26.
 
 ### CP — filtro competência e pagamento (28/06 · Renan · loja)
 | Item | Detalhe |
