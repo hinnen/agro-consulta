@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.90** · **produção v4.90** (hotfix promo Continuar **29/06**)
+**Versão app (`VERSION`):** **teste v5.06** · **produção v5.05** (fix leve X pague Y — resto preço normal)
+
+### WIP — promo «Leve X pague Y» — resto ao preço normal **v5.06** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Leve 4 @ R$ 2,50 → 5º sache preço normal (12,90 não 12,50) |
+| **Era** | qty ≥ X → **todas** as unidades a R$ Y |
+| **v5.06** | Grupos completos de X a R$ Y · resto ao preço tabela · 4→10,00 · 5→12,90 |
+| **Teste** | Ctrl+F5 PDV · GM1787 · qty 5 → total **R$ 12,90** |
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
