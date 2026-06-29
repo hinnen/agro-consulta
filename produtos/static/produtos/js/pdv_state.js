@@ -109,6 +109,8 @@
                 observacao: '',
                 taxaEntregaRespondida: false,
                 taxaEntregaModo: '',
+                /** true após F7 no form de endereço (mesmo com campos já preenchidos) */
+                enderecoPassoConcluido: false,
                 localPagamento: '',
                 meioNaEntrega: '',
                 pedidoEntregaPendenteId: null
@@ -560,7 +562,7 @@
             state.entrega.ativa = true;
             state.entrega.modoRetiradaEntrega = 'entrega';
         }
-        state.entrega.detalhesEntregaRespondidos = false;
+        state.entrega.detalhesEntregaRespondidos = true;
         state.entrega.taxaEntregaRespondida = false;
         state.entrega.taxaEntregaModo = '';
         state.entrega.localPagamento = '';

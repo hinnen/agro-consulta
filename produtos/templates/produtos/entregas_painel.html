@@ -88,7 +88,7 @@
     </div>
   </div>
 
-  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
+  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
     <div class="bg-white w-full max-w-[min(28rem,96vw)] rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
       <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
         <h2 id="modal-imp-titulo" class="text-base font-black uppercase text-slate-800">Imprimir</h2>
@@ -229,6 +229,7 @@
     </div>
   </div>
 
+  <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   <script>
 (function () {
   var ORIGENS = {{ origens_maps_json }};
@@ -1126,16 +1127,31 @@
     if (opt.cup) parts.push(htmlPagCupom(e));
     if (!parts.length) return;
     var barcodeVal = codigoBarrasEntrega(e);
+    var packStyles =
+      '@page{margin:0;size:80mm 200mm}' +
+      'html,body{margin:0;padding:0}' +
+      'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box;page-break-after:always;break-after:page}' +
+      '.pg:last-child{page-break-after:auto;break-after:auto}';
+
+    if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+      window.agroCupomPrintBodyInIframe({
+        iframeId: 'agro-print-iframe-entregas',
+        title: 'Entrega #' + String(e.id),
+        styles: packStyles,
+        bodyHtml: parts.join(''),
+        barcodeVal: opt.sep ? barcodeVal : '',
+        readyDelay: 80
+      });
+      return;
+    }
+
     var inner = parts.join('');
     var docHtml =
       '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega #' +
       String(e.id) +
       '</title><style>' +
-      '@page{margin:0;size:80mm 200mm}' +
-      'html,body{margin:0;padding:0}' +
-      'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box;page-break-after:always;break-after:page}' +
-      '.pg:last-child{page-break-after:auto;break-after:auto}' +
+      packStyles +
       '</style></head><body>' +
       inner +
       '</body></html>';
@@ -1158,9 +1174,8 @@
     var runPrint = function () {
       try {
         var svg = idoc.getElementById('barc-orc');
-        var iw = iframe.contentWindow;
-        if (svg && iw && typeof iw.JsBarcode !== 'undefined') {
-          iw.JsBarcode(svg, barcodeVal, {
+        if (svg && window.JsBarcode) {
+          window.JsBarcode(svg, barcodeVal, {
             format: 'CODE128',
             width: 1.35,
             height: 44,
@@ -1177,16 +1192,13 @@
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
         } catch (e4) {}
-      }, 100);
+      }, 80);
     };
-    var old = idoc.querySelector('script[data-agro-jsbarcode]');
-    if (old) old.remove();
-    var s = idoc.createElement('script');
-    s.setAttribute('data-agro-jsbarcode', '1');
-    s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-    s.onload = runPrint;
-    s.onerror = runPrint;
-    idoc.head.appendChild(s);
+    if (typeof window.agroCupomEnsureJsBarcode === 'function') {
+      window.agroCupomEnsureJsBarcode(runPrint);
+    } else {
+      runPrint();
+    }
   }
 
   function imprimirSequenciaRota80mm(origem, paradas, kmTotal) {
@@ -1207,13 +1219,13 @@
           '<div style="font-size:9px;color:#333;margin-top:3px;line-height:1.25;word-break:break-word;">' + esc(String(p.texto || '')) + '</div>' +
         '</div>';
     });
-    var html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rota Entregas</title><style>' +
+    var rotaStyles =
       '@page{margin:0;size:80mm auto}' +
       'html,body{margin:0;padding:0}' +
       'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box}' +
-      '</style></head><body><div class="pg">' +
+      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box}';
+    var bodyHtml =
+      '<div class="pg">' +
       '<div style="text-align:center;font-size:13px;font-weight:900;letter-spacing:.02em;">SEQUÊNCIA DE ENTREGA</div>' +
       '<div style="font-size:9px;margin-top:4px;text-align:center;">' + esc(when) + '</div>' +
       '<div style="border-top:2px solid #000;margin:8px 0 6px;"></div>' +
@@ -1223,7 +1235,25 @@
       '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
       itensHtml +
       '<div style="border-top:1px dashed #000;margin-top:8px;padding-top:6px;text-align:center;font-size:9px;">SisVale · Entregas</div>' +
-      '</div></body></html>';
+      '</div>';
+
+    if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+      window.agroCupomPrintBodyInIframe({
+        iframeId: 'agro-print-iframe-rota',
+        title: 'Rota Entregas',
+        styles: rotaStyles,
+        bodyHtml: bodyHtml,
+        readyDelay: 40
+      });
+      return;
+    }
+
+    var html =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rota Entregas</title><style>' +
+      rotaStyles +
+      '</style></head><body>' +
+      bodyHtml +
+      '</body></html>';
 
     var iframe = document.getElementById('agro-print-iframe-rota');
     if (!iframe) {

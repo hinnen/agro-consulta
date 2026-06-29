@@ -15,6 +15,43 @@
             .replace(/"/g, '&quot;');
     }
 
+    var _jsBarcodePromise = null;
+
+    function cupomEnsureJsBarcode(cb) {
+        cb = typeof cb === 'function' ? cb : function () {};
+        if (global.JsBarcode) {
+            cb();
+            return Promise.resolve();
+        }
+        if (!_jsBarcodePromise) {
+            _jsBarcodePromise = new Promise(function (resolve) {
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
+                s.async = true;
+                s.onload = function () {
+                    resolve();
+                };
+                s.onerror = function () {
+                    resolve();
+                };
+                (document.head || document.documentElement).appendChild(s);
+            });
+        }
+        return _jsBarcodePromise.then(cb);
+    }
+
+    function cupomPreloadRecursos() {
+        cupomEnsureJsBarcode(function () {});
+        try {
+            var url = cupomLogoUrl();
+            if (url) {
+                var img = new Image();
+                img.decoding = 'async';
+                img.src = url;
+            }
+        } catch (ePre) {}
+    }
+
     function cupomLogoUrl() {
         var u = String(global.AGRO_CUPOM_LOGO_URL || '').trim();
         if (!u) u = '/static/produtos/img/logo_termica.png';
@@ -425,9 +462,9 @@
         cb = typeof cb === 'function' ? cb : function () {};
         try {
             var svg = idoc.getElementById('barc-orc');
-            var win = idoc.defaultView;
-            if (svg && win && typeof win.JsBarcode !== 'undefined') {
-                win.JsBarcode(svg, barcodeVal, {
+            var JB = global.JsBarcode;
+            if (svg && JB) {
+                JB(svg, barcodeVal, {
                     format: 'CODE128',
                     width: 1.35,
                     height: 44,
@@ -443,15 +480,7 @@
     }
 
     function cupomLoadJsBarcodeInDoc(idoc, cb) {
-        cb = typeof cb === 'function' ? cb : function () {};
-        var old = idoc.querySelector('script[data-agro-jsbarcode-cupom]');
-        if (old) old.remove();
-        var s = idoc.createElement('script');
-        s.setAttribute('data-agro-jsbarcode-cupom', '1');
-        s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-        s.onload = cb;
-        s.onerror = cb;
-        idoc.head.appendChild(s);
+        cupomEnsureJsBarcode(cb);
     }
 
     function cupomPrintIframeWindow(win, cb) {
@@ -481,8 +510,8 @@
         if (!pages.length) return Promise.resolve(false);
         var styles = opts.styles || cupomStyles();
         var iframe = cupomEnsureIframe(opts.iframeId || 'agro-print-iframe-cupom-venda', opts.title || 'Cupom');
-        var gapMs = isFinite(opts.gapMs) ? opts.gapMs : 500;
-        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 120;
+        var gapMs = isFinite(opts.gapMs) ? opts.gapMs : 420;
+        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 80;
         var idx = 0;
 
         return new Promise(function (resolve) {
@@ -555,13 +584,44 @@
             } catch (errP) {
                 alert('Não foi possível abrir a impressão. Verifique a impressora térmica 80mm.');
             }
-        }, 120);
+        }, 80);
         return true;
+    }
+
+    function cupomPrintBodyInIframe(opts) {
+        opts = opts || {};
+        var bodyHtml = opts.bodyHtml || '';
+        if (!bodyHtml) return;
+        var styles = opts.styles || cupomStyles();
+        var iframe = cupomEnsureIframe(opts.iframeId || 'agro-print-iframe-generic', opts.title || 'Impressão');
+        var idoc = cupomWritePageInIframe(iframe, styles, opts.title || 'Impressão', bodyHtml);
+        var readyDelay = isFinite(opts.readyDelay) ? opts.readyDelay : 80;
+        var barcodeVal = opts.barcodeVal != null ? String(opts.barcodeVal) : '';
+        var goPrint = function () {
+            cupomWhenImagesReady(
+                idoc,
+                function () {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (ePr) {}
+                    if (typeof opts.onDone === 'function') opts.onDone();
+                },
+                readyDelay
+            );
+        };
+        if (barcodeVal) {
+            cupomEnsureJsBarcode(function () {
+                cupomRunJsBarcodeInDoc(idoc, barcodeVal, goPrint);
+            });
+        } else {
+            goPrint();
+        }
     }
 
     function cupomWhenImagesReady(doc, fn, minDelayMs) {
         fn = typeof fn === 'function' ? fn : function () {};
-        minDelayMs = isFinite(minDelayMs) ? minDelayMs : 150;
+        minDelayMs = isFinite(minDelayMs) ? minDelayMs : 80;
         if (!doc || !doc.querySelectorAll) {
             setTimeout(fn, minDelayMs);
             return;
@@ -571,7 +631,15 @@
             setTimeout(fn, minDelayMs);
             return;
         }
-        var pending = imgs.length;
+        var pending = 0;
+        var i;
+        for (i = 0; i < imgs.length; i++) {
+            if (!imgs[i].complete) pending += 1;
+        }
+        if (pending <= 0) {
+            setTimeout(fn, Math.min(minDelayMs, 40));
+            return;
+        }
         var done = false;
         var finish = function () {
             if (done) return;
@@ -582,17 +650,16 @@
             pending -= 1;
             if (pending <= 0) finish();
         };
-        for (var i = 0; i < imgs.length; i++) {
+        for (i = 0; i < imgs.length; i++) {
             var img = imgs[i];
             if (img.complete) {
                 tick();
             } else {
-                img.addEventListener('load', tick);
-                img.addEventListener('error', tick);
+                img.addEventListener('load', tick, { once: true });
+                img.addEventListener('error', tick, { once: true });
             }
         }
-        if (pending <= 0) finish();
-        setTimeout(finish, 4000);
+        setTimeout(finish, 2500);
     }
 
     function agroCarregarEImprimirCupomVenda(vendaId, opts) {
@@ -720,4 +787,13 @@
     global.agroCupomRodapeSistvaleHtml = cupomRodapeSistvaleHtml;
     global.agroCupomZapHtml = cupomZapHtml;
     global.agroCupomWhenImagesReady = cupomWhenImagesReady;
+    global.agroCupomEnsureJsBarcode = cupomEnsureJsBarcode;
+    global.agroCupomPreloadRecursos = cupomPreloadRecursos;
+    global.agroCupomPrintBodyInIframe = cupomPrintBodyInIframe;
+
+    if (typeof global.requestIdleCallback === 'function') {
+        global.requestIdleCallback(cupomPreloadRecursos, { timeout: 5000 });
+    } else {
+        setTimeout(cupomPreloadRecursos, 1200);
+    }
 })(typeof window !== 'undefined' ? window : globalThis);

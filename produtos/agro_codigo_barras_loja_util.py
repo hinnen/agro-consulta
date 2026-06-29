@@ -39,9 +39,29 @@ def parsear_seq_codigo_barras_loja(cb: str) -> int | None:
         return None
 
 
-def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
+def _cb_loja_ocupado_overlays(cb: str) -> bool:
     from .models import ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
 
+    if ProdutoGestaoOverlayAgro.objects.filter(codigo_barras=cb).exists():
+        return True
+    if ProdutoMarcaVariacaoAgro.objects.filter(codigo_barras=cb).exists():
+        return True
+    return False
+
+
+def _cb_loja_ocupado_postgres(cb: str) -> bool:
+    from django.db.models import Q
+
+    from .models import Produto
+
+    if Produto.objects.filter(
+        Q(codigo_barras=cb) | Q(codigo_interno=cb) | Q(codigo_nfe=cb)
+    ).exists():
+        return True
+    return _cb_loja_ocupado_overlays(cb)
+
+
+def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
     or_dup = [{fld: cb} for fld in ("CodigoBarras", "CodigoBarrasProduto", "Codigo", "CodigoNFe", "EAN_NFe")]
     try:
         if db[col].find_one({"$or": or_dup}):
@@ -49,11 +69,7 @@ def _cb_loja_ocupado(db: Database, col: str, cb: str) -> bool:
     except Exception:
         logger.warning("cb loja: colisão Mongo", exc_info=True)
         return True
-    if ProdutoGestaoOverlayAgro.objects.filter(codigo_barras=cb).exists():
-        return True
-    if ProdutoMarcaVariacaoAgro.objects.filter(codigo_barras=cb).exists():
-        return True
-    return False
+    return _cb_loja_ocupado_overlays(cb)
 
 
 def _max_seq_cb_loja_catalogo(db: Database, col: str) -> int:
@@ -90,19 +106,35 @@ def _max_seq_cb_loja_catalogo(db: Database, col: str) -> int:
     return max_seq
 
 
-def mongo_alocar_proximo_codigo_barras_loja(
-    db: Database, col: str
-) -> tuple[JsonResponse | None, str | None]:
-    """Próximo EAN 230… livre no catálogo (Mongo + overlays Agro)."""
-    n = max(1, _max_seq_cb_loja_catalogo(db, col) + 1)
-    max_steps = 100_000
-    steps = 0
-    while steps < max_steps:
-        cb = formatar_codigo_barras_loja(n)
-        if not _cb_loja_ocupado(db, col, cb):
-            return None, cb
-        n += 1
-        steps += 1
+def _max_seq_cb_loja_postgres() -> int:
+    from .models import Produto, ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
+
+    max_seq = 0
+
+    def bump(cb_raw: object) -> None:
+        nonlocal max_seq
+        s = parsear_seq_codigo_barras_loja(str(cb_raw or ""))
+        if s is not None and s > max_seq:
+            max_seq = s
+
+    for cb in Produto.objects.exclude(codigo_barras="").values_list("codigo_barras", flat=True):
+        bump(cb)
+    for cb in Produto.objects.exclude(codigo_interno="").values_list("codigo_interno", flat=True):
+        bump(cb)
+    for cb in Produto.objects.exclude(codigo_nfe="").values_list("codigo_nfe", flat=True):
+        bump(cb)
+    for cb in ProdutoGestaoOverlayAgro.objects.exclude(codigo_barras="").values_list(
+        "codigo_barras", flat=True
+    ):
+        bump(cb)
+    for cb in ProdutoMarcaVariacaoAgro.objects.exclude(codigo_barras="").values_list(
+        "codigo_barras", flat=True
+    ):
+        bump(cb)
+    return max_seq
+
+
+def _erro_cb_loja_esgotado() -> tuple[JsonResponse, None]:
     return (
         JsonResponse(
             {
@@ -116,3 +148,33 @@ def mongo_alocar_proximo_codigo_barras_loja(
         ),
         None,
     )
+
+
+def alocar_proximo_codigo_barras_loja_postgres() -> tuple[JsonResponse | None, str | None]:
+    """Próximo EAN 230… livre no catálogo Postgres + overlays Agro."""
+    n = max(1, _max_seq_cb_loja_postgres() + 1)
+    max_steps = 100_000
+    steps = 0
+    while steps < max_steps:
+        cb = formatar_codigo_barras_loja(n)
+        if not _cb_loja_ocupado_postgres(cb):
+            return None, cb
+        n += 1
+        steps += 1
+    return _erro_cb_loja_esgotado()
+
+
+def mongo_alocar_proximo_codigo_barras_loja(
+    db: Database, col: str
+) -> tuple[JsonResponse | None, str | None]:
+    """Próximo EAN 230… livre no catálogo (Mongo + overlays Agro)."""
+    n = max(1, _max_seq_cb_loja_catalogo(db, col) + 1)
+    max_steps = 100_000
+    steps = 0
+    while steps < max_steps:
+        cb = formatar_codigo_barras_loja(n)
+        if not _cb_loja_ocupado(db, col, cb):
+            return None, cb
+        n += 1
+        steps += 1
+    return _erro_cb_loja_esgotado()

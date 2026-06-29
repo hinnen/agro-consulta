@@ -1,6 +1,6 @@
 <section class="pdv-step-panel pdv-step-entrega-shell flex min-h-0 flex-1 flex-col gap-2" data-step-panel="entrega" hidden>
 
-  <div class="pdv-wiz-panel shrink-0">
+  <div id="pdv-entrega-partida-bar" class="pdv-wiz-panel shrink-0">
     <div class="pdv-wiz-block pdv-wiz-block--sky py-2">
       <div class="pdv-wiz-toolbar pdv-wiz-toolbar--oneline">
         <label class="shrink-0" for="pdv-entrega-origem-maps">Partida</label>
@@ -13,83 +13,9 @@
     </div>
   </div>
 
-  <div id="pdv-entrega-wizard" class="min-h-0 flex flex-1 flex-col overflow-y-auto">
-    <div id="pdv-ed-shell" class="pdv-wiz-panel mx-auto w-full max-w-lg shrink-0">
-      <div id="pdv-ed-header" class="rounded-t-2xl border-[3px] border-b-0 border-amber-400 bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-4 sm:px-5 sm:py-5">
-        <p id="pdv-ed-etapa" class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Etapa 2 · Entrega</p>
-        <h2 id="pdv-ed-titulo" class="mt-1.5 text-lg font-black leading-tight text-white sm:text-xl">Retirada ou entrega?</h2>
-        <p id="pdv-ed-subtitulo" class="mt-1.5 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
-      </div>
-      <div id="pdv-ed-body" class="rounded-b-2xl border-[3px] border-t-0 border-amber-400 bg-white shadow-md">
-        <div id="pdv-ed-modo-panel" class="flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
-          <button type="button" id="pdv-ed-retirada" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[3.75rem] sm:text-lg">Retirada na loja</button>
-          <button type="button" id="pdv-ed-entrega" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[3.75rem] sm:text-lg">Entrega</button>
-        </div>
-        <div id="pdv-ed-detalhes-panel" class="hidden max-h-[min(55vh,26rem)] space-y-4 overflow-y-auto p-4 sm:p-5">
-          <div>
-            <p class="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-600">Taxa de entrega</p>
-            <div class="space-y-2">
-              <label class="pdv-wiz-choice pdv-wiz-choice--green min-h-[2.5rem] has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/80">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 text-emerald-600 accent-emerald-600">
-                <span class="text-xs font-black uppercase text-slate-800">Não cobrar frete</span>
-              </label>
-              <div class="flex flex-wrap items-center gap-2">
-                <label class="pdv-wiz-choice pdv-wiz-choice--orange min-h-[2.5rem] shrink-0 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/90">
-                  <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 text-orange-600 accent-orange-600">
-                  <span class="text-xs font-black uppercase text-slate-800">Cobrar frete</span>
-                </label>
-                <div id="pdv-entrega-taxa-valor-wrap" class="hidden min-w-0 flex-1 basis-[8rem]">
-                  <label class="block rounded-xl border-2 border-dashed border-amber-400 bg-white/90 px-3 py-2">
-                    <span class="mb-1 block text-[10px] font-black uppercase text-slate-600">Valor (R$)</span>
-                    <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input w-full text-base font-bold" placeholder="10,00" inputmode="decimal" autocomplete="off">
-                  </label>
-                </div>
-              </div>
-              <label class="pdv-wiz-choice min-h-[2.5rem] border-slate-300 has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 text-slate-600 accent-slate-600">
-                <span class="text-xs font-black uppercase text-slate-700">Decidir depois</span>
-              </label>
-            </div>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Horário</span>
-              <input id="pdv-ed-horario" type="time" class="pdv-input border-sky-200 bg-white" title="Lembretes 20 min antes e no horário">
-            </label>
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Troco <span class="font-semibold normal-case text-slate-400">(dinheiro na entrega)</span></span>
-              <input id="pdv-ed-troco" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Ex.: 100,00" inputmode="decimal">
-            </label>
-          </div>
-        </div>
-        <div id="pdv-ed-confirmar-wrap" class="hidden border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
-          <button type="button" id="pdv-ed-confirmar" class="pdv-action-btn w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700">Confirmar taxa e detalhes</button>
-        </div>
-        <div id="pdv-ed-pagamento-local-panel" class="hidden flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
-          <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[3.75rem] sm:text-lg">Pagamento na entrega</button>
-          <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[3.75rem] sm:text-lg">Pagamento na loja</button>
-        </div>
-        <div id="pdv-ed-meio-panel" class="hidden flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
-          <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[3.75rem] sm:text-lg">Dinheiro</button>
-          <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[3.75rem] sm:text-lg">Cartão</button>
-        </div>
-        <div id="pdv-ed-troco-panel" class="hidden space-y-4 px-4 py-4 sm:px-5 sm:py-5">
-          <label class="block">
-            <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
-            <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
-          </label>
-          <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
-            <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-2xl border-2 border-slate-200 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
-            <button type="button" id="pdv-ef3-ok" class="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3 text-sm font-black uppercase text-white shadow-lg hover:brightness-105">Confirmar troco</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="pdv-entrega-main" class="min-h-0 flex flex-1 flex-col gap-2 overflow-hidden hidden">
-    <div class="pdv-wiz-panel min-h-0 flex-1 overflow-y-auto">
-      <div class="pdv-wiz-block pdv-wiz-block--sky h-full">
+  <div id="pdv-entrega-main" class="pdv-entrega-main min-h-0 flex shrink-0 flex-col gap-2 overflow-hidden hidden">
+    <div class="pdv-wiz-panel shrink-0">
+      <div class="pdv-wiz-block pdv-wiz-block--sky">
         <div class="pdv-wiz-block-head">
           <span class="pdv-wiz-head-icon pdv-wiz-head-icon--user" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
@@ -98,72 +24,162 @@
           <button type="button" id="pdv-entrega-reiniciar-fluxo-pagamento" class="pdv-action-btn ml-auto shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[9px] font-black uppercase text-slate-700 hover:bg-slate-50" title="Refazer escolha de pagamento na entrega ou na loja">Reiniciar pagamento</button>
         </div>
 
-        <div class="mt-2 grid gap-3 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
-          <div class="pdv-wiz-inner-card space-y-2">
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome</span>
-              <input id="pdv-entrega-cliente-nome" type="text" class="pdv-input border-sky-200 bg-white text-base font-bold" placeholder="Nome do cliente" autocomplete="name">
-            </label>
-            <label class="block">
-              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
-              <div class="flex flex-wrap items-center gap-2">
-                <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
-                <input id="pdv-entrega-cliente-telefone" type="text" class="pdv-input min-w-0 flex-1 border-sky-200 bg-white" placeholder="Telefone / WhatsApp" autocomplete="tel">
-              </div>
-            </label>
-          </div>
-
-          <div class="space-y-3">
-            <div class="grid gap-2 sm:grid-cols-2">
-              <label class="block sm:col-span-2">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Logradouro</span>
-                <input id="pdv-entrega-logradouro" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Rua, avenida, estrada…" autocomplete="street-address">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Número</span>
-                <input id="pdv-entrega-numero" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Nº, km, s/n" inputmode="text">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Bairro</span>
-                <select id="pdv-entrega-bairro" class="pdv-input border-sky-200 bg-white">
-                  <option value="">Selecione ou digite em observação</option>
-                </select>
-              </label>
-              <label class="block sm:col-span-2">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
-                <input id="pdv-entrega-pluscode" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off" title="Preenche logradouro e bairro automaticamente">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Complemento</span>
-                <input id="pdv-entrega-complemento" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Casa, bloco, sítio">
-              </label>
-              <label class="block">
-                <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Referência</span>
-                <input id="pdv-entrega-referencia" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Referência curta">
-              </label>
+        <div class="pdv-entrega-endereco-form">
+          <label class="pdv-entrega-field pdv-entrega-field--nome">
+            <span class="pdv-entrega-field-label">Nome</span>
+            <input id="pdv-entrega-cliente-nome" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white font-bold" placeholder="Nome do cliente" autocomplete="name">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--tel">
+            <span class="pdv-entrega-field-label">Telefone</span>
+            <div class="flex min-w-0 items-center gap-2">
+              <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
+              <input id="pdv-entrega-cliente-telefone" type="text" class="pdv-input pdv-entrega-field-input min-w-0 flex-1 border-sky-200 bg-white" placeholder="Telefone / WhatsApp" autocomplete="tel">
             </div>
-          </div>
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--log">
+            <span class="pdv-entrega-field-label">Logradouro</span>
+            <input id="pdv-entrega-logradouro" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Rua, avenida, estrada…" autocomplete="street-address">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--num">
+            <span class="pdv-entrega-field-label">Número</span>
+            <input id="pdv-entrega-numero" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Nº, km, s/n" inputmode="text">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--bai">
+            <span class="pdv-entrega-field-label">Bairro</span>
+            <select id="pdv-entrega-bairro" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white">
+              <option value="">Selecione ou digite em observação</option>
+            </select>
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--plus">
+            <span class="pdv-entrega-field-label">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
+            <input id="pdv-entrega-pluscode" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off" title="Preenche logradouro e bairro automaticamente">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--comp">
+            <span class="pdv-entrega-field-label">Complemento</span>
+            <input id="pdv-entrega-complemento" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Casa, bloco, sítio">
+          </label>
+          <label class="pdv-entrega-field pdv-entrega-field--ref">
+            <span class="pdv-entrega-field-label">Referência</span>
+            <input id="pdv-entrega-referencia" type="text" class="pdv-input pdv-entrega-field-input border-sky-200 bg-white" placeholder="Referência curta">
+          </label>
         </div>
       </div>
     </div>
 
     <div class="pdv-wiz-panel shrink-0">
       <div class="pdv-wiz-block pdv-wiz-block--slate py-2">
-        <div class="grid gap-2 md:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Observação da venda</span>
-            <textarea id="pdv-venda-observacao" rows="2" class="pdv-input min-h-[2.75rem] resize-y border-slate-200 bg-white text-sm" placeholder="Informações para o fechamento ou equipe."></textarea>
+        <div class="pdv-entrega-obs-grid">
+          <label class="block min-w-0">
+            <span class="pdv-entrega-field-label text-slate-600">Observação da venda</span>
+            <input id="pdv-venda-observacao" type="text" class="pdv-input pdv-entrega-field-input border-slate-200 bg-white" placeholder="Opcional — fechamento ou equipe" autocomplete="off">
           </label>
-          <label class="block">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Observação da entrega</span>
-            <textarea id="pdv-entrega-observacao" rows="2" class="pdv-input min-h-[2.75rem] resize-y border-orange-200 bg-white text-sm" placeholder="Ponto de encontro, rotas ou avisos ao entregador."></textarea>
+          <label class="block min-w-0">
+            <span class="pdv-entrega-field-label text-orange-800/80">Observação da entrega</span>
+            <input id="pdv-entrega-observacao" type="text" class="pdv-input pdv-entrega-field-input border-orange-200 bg-white" placeholder="Opcional — aviso ao entregador" autocomplete="off">
           </label>
         </div>
       </div>
     </div>
   </div>
 
-  <input type="hidden" id="pdv-entrega-horario" value="">
+  <div id="pdv-entrega-resumo" class="pdv-entrega-resumo min-h-0 hidden w-full shrink-0 flex-col overflow-hidden">
+    <div class="pdv-wiz-panel pdv-wiz-panel--green pdv-entrega-review-panel shrink-0">
+      <div class="pdv-entrega-review-top pdv-wiz-step-bar pdv-wiz-step-bar--green shrink-0">
+        <span class="pdv-wiz-head-icon pdv-wiz-head-icon--review shrink-0" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        </span>
+        <h3 class="pdv-wiz-block-title pdv-wiz-block-title--green min-w-0 flex-1">Conferir entrega</h3>
+        <div id="pdv-resumo-aside" class="pdv-entrega-review-total-inline hidden shrink-0">
+          <div id="pdv-resumo-total-wrap" class="pdv-entrega-review-total-box">
+            <span class="pdv-entrega-review-total-label">Total na entrega</span>
+            <span id="pdv-resumo-total" class="pdv-entrega-review-total-value">R$ 0,00</span>
+          </div>
+        </div>
+        <button type="button" id="pdv-entrega-reiniciar-fluxo-pagamento-resumo" class="pdv-wiz-action-btn pdv-wiz-action-btn--slate shrink-0" title="Refazer escolha de pagamento na entrega ou na loja">Reiniciar</button>
+      </div>
+
+      <div class="pdv-entrega-review-body">
+        <div class="pdv-entrega-review-grid">
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-pagamento">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-pagamento" class="pdv-entrega-review-section-title">Pagamento</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="pagamento">Editar</button>
+            </div>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Local</dt>
+                <dd id="pdv-resumo-pagamento-local" class="pdv-entrega-review-val--lg">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Forma</dt>
+                <dd id="pdv-resumo-pagamento-meio">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Troco</dt>
+                <dd id="pdv-resumo-pagamento-troco">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-cliente">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-cliente" class="pdv-entrega-review-section-title">Cliente e endereço</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="endereco">Editar</button>
+            </div>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Cliente</dt>
+                <dd id="pdv-resumo-cliente-nome" class="pdv-entrega-review-val--lg pdv-entrega-review-clamp">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Telefone</dt>
+                <dd id="pdv-resumo-cliente-tel" class="pdv-entrega-review-clamp">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Endereço</dt>
+                <dd id="pdv-resumo-endereco-linha" class="pdv-entrega-review-clamp-2">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Compl.</dt>
+                <dd id="pdv-resumo-endereco-extra" class="pdv-entrega-review-clamp-2 text-slate-600">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-taxa">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-taxa" class="pdv-entrega-review-section-title">Taxa e horário</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="detalhes">Editar</button>
+            </div>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Frete</dt>
+                <dd id="pdv-resumo-taxa">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Horário</dt>
+                <dd id="pdv-resumo-horario">—</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="pdv-entrega-review-obs">
+          <div class="pdv-entrega-review-obs-grid">
+            <label class="block min-w-0">
+              <span class="pdv-entrega-review-obs-label">Obs. venda</span>
+              <input id="pdv-resumo-venda-observacao" type="text" class="pdv-input pdv-entrega-review-obs-input border-slate-200 bg-white" placeholder="Opcional — fechamento ou equipe" autocomplete="off">
+            </label>
+            <label class="block min-w-0">
+              <span class="pdv-entrega-review-obs-label">Obs. entrega</span>
+              <input id="pdv-resumo-entrega-observacao" type="text" class="pdv-input pdv-entrega-review-obs-input border-orange-200 bg-white" placeholder="Opcional — aviso ao entregador" autocomplete="off">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <input type="hidden" id="pdv-entrega-troco" value="">
 
 </section>
