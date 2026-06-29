@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.08** · **produção v5.08** — **WIP teste:** FL-003 fase 1 selo promo PDV
+**Versão app (`VERSION`):** **teste v5.09** · **produção v5.08** — FL-003 fase 1 selo promo PDV no teste
 
 ### WIP — FL-003 fase 1: selo promo no carrinho PDV (29/06)
 
