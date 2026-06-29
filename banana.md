@@ -971,7 +971,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
-**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade. **P0** para a loja · **P1** grave · **P1,5** importante · **P2** melhoria · **P3** depois.
+**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade. **P0** para a loja · **P1** grave · **P1,1** / **P1,5** importantes · **P2** melhoria · **P3** depois.
 
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
@@ -995,6 +995,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
+| **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | 📋 Pendente | 29/06 |
+| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1020,6 +1022,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-018 | `vendas-detalhe-frete` | `/vendas/` detalhe/lista total sem frete; caixa relatório OK — alinhar `VendaAgro.frete` |
 | FL-019 | `fiado-recibo-pagamento` | Fiado: impressão/PDF recibo ao registrar pagamento parcial |
 | FL-020 | `cupom-frete-separado` | `venda_cupom_80mm` + NFC-e — frete não linha de produto / não base tributável cupom |
+| FL-021 | `cp-btn-nf-ausente` | `lancamentos_contas_pagar_teste.html` — `urlEntradaNfeEmbed` / vínculo NF entrada · ex. **RBS 781,64** |
+| FL-022 | `cp-busca-inconsistente` | Filtro busca lista CP — `mongo_financeiro_util` + JS modal filtros |
+
+**Notas FL-021 / FL-022 (CP — 29/06):** **P1,1**. FL-021: coluna/botão **NF** só renderiza se `urlEntradaNfeEmbed(row)` achar vínculo entrada NF — reproduzir com fornecedor **RBS** · valor **R$ 781,64**. FL-022: busca na lista (modal Filtros) — anotar termo que falha vs que acha.
 
 **Notas FL-016 / FL-017 (caixa — 29/06):** dois **P1** operacionais. FL-017: conferir se devolução gera movimento caixa **e** reverte venda sem idempotência. Pedir nº venda + print fechamento se repetir.
 
