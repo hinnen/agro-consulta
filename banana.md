@@ -244,7 +244,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega: fluxo inline na etapa (sem modais empilhados).
+- Entrega: **Entregar (F3)** → pergunta **pagamento na entrega ou na loja** (sem «retirada ou entrega?» nem pop-up de taxa antes). Taxa + horário no formulário de endereço (após pagamento). Fluxo inline na etapa (sem modais empilhados).
 - Endereço de entrega oculto até concluir pagamento da entrega.
 - Barra de estoque: atualização manual + horário + standby.
 
@@ -967,27 +967,85 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.51** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.52** · **produção v4.49** (deploy merge **29/06**)
 
-### WIP AGORA — desvinculação Mongo §4.15 (**29/06** · Renan retoma)
+### PDV entrega fluxo — fix (29/06 madrugada)
 
-**Feito recente:** pacotes corte v4.31–v4.49 (BI/Gestão/Compras/meta planilha) · loja **v4.49** · **cadastro ERP auxiliares 100 % PG** (**v4.51** teste).
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após **Entregar F3**, repetia «Retirada ou entrega?» e «Taxa/horário/troco» antes do pagamento |
+| **Fix** | F3 → direto **Onde será o pagamento?**; taxa+horário no form de endereço; troco só no fluxo dinheiro |
+| **Teste** | Push `teste` v4.52 — validar no Render staging (Ctrl+F5) |
 
-**Próxima trilha (ordem banana):**
+### AGENDA AMANHÃ — itens **8–11** §4.15 (Renan **29/06 noite**)
 
-| Fase | # | O quê | Tipo |
-| ---- | - | ----- | ---- |
-| **A** | **10** | Backup PC atualizado (CP abertos ZIP + cadastro Excel) | Renan |
-| **B** | **8** | Congelar financeiro Mongo (`congelar_lancamentos_financeiro_agro` + env) | Renan Render + assistente |
-| ~~**C**~~ | código | ~~**Cadastro ERP** lista 100 % PG~~ | **✅ v4.51 teste** (lista já era PG; rotas aux + Excel import) |
-| **D** | código | **Compras relatório fornecedor** sem scan Mongo | Dev teste |
-| **E** | **11** | Checkpoint Lançamentos + conferir totais CP deduplicado | Renan + assistente |
-| **F** | **9** | Motor busca GM Compras/NF | Por último |
-| **G** | **12** | Cancelar assinatura ERP | Só após A–E estáveis |
+**Decisão Renan:** *«amanhã mexemos com isso»* — retomar **backup + congelar + checkpoint CP** (trilha operacional antes do item **12** cancelar ERP). **Outro chat** aberto para **outro problema** (não é CP) — este tópico continua aqui no CHECKPOINT.
 
-**Fora desta trilha:** DRE · meta/planilha (fechado v4.49) · CP/congelar/backup (Renan pausou) · revisão fórmula meta (Renan depois).
+**Por que mexer se CP já funciona no Postgres?** Operação diária **não precisa** — 8–11 é **fechamento seguro** (cópia no PC, carimbo Mongo, prova de totais) **antes** de cancelar assinatura ERP. Não é consertar CP.
 
-**Renan 29/06 — medo de mexer CP de novo:** **OK — CP fora da trilha.** Itens **8–11** §4.15 **congelados** até pedir. **Próximo código sem CP:** fase **D** Compras relatório fornecedor (teste).
+**O que já está OK (não refazer do zero):**
+
+| Item | Status |
+| ---- | ------ |
+| CP/CR **lista + pagar** na **loja** | **Postgres** · **741** em aberto · **~R$ 393.652,70** (25–26/06) |
+| **Backup PC (#10)** | **✅ 25/06** — ZIP abertos + Excel no PC |
+| **Checkpoint parcial (#11)** | **✅** ~17,7 mil títulos carimbo + **corte Agro→ERP** API (v1.14) — SisVale **não envia** baixa pro WL |
+| **Congelar Mongo (#8)** | **Off** — flag `AGRO_FINANCEIRO_MONGO_CONGELADO` ainda **não** na loja |
+| Código desvinculação | **teste v4.51** cadastro aux PG · loja **v4.49** |
+
+**Ordem amanhã (Renan + assistente):**
+
+| Passo | # | O quê | Onde |
+| ----- | - | ----- | ---- |
+| **1** | **10** | Backup **atualizado** no PC (CP abertos ZIP + Excel completo + cadastro Excel se quiser) | **sistvale.com.br** (loja) — URLs abaixo |
+| **2** | **11** | Conferir totais CP **deduplicados** (referência = **tela**, não soma crua CSV) | Loja · filtros Em aberto sem data |
+| **3** | **8** | Congelar financeiro Mongo + `AGRO_FINANCEIRO_MONGO_CONGELADO=true` | **Render SistVale (produção)** — **não** ensaio no teste |
+| **4** | **11** | Se faltar carimbo: botão **CONGELAR** em `/lancamentos/` (admin) ou `manage.py congelar_lancamentos_financeiro_agro` | **Loja** |
+| **5** | — | Conferir `/api/agro/fonte-status/` · `financeiro_mongo_congelado: true` | Loja |
+
+**URLs backup (loja):**
+
+| Arquivo | URL |
+| ------- | --- |
+| Em aberto | `https://sistvale.com.br/api/lancamentos/backup-abertos.zip` |
+| Todos | `https://sistvale.com.br/api/lancamentos/backup-completo.xlsx` |
+
+**Teste vs loja (importante — conversa 29/06):**
+
+| Ambiente | CP Postgres | Mongo |
+| -------- | ----------- | ----- |
+| **Render teste** | Banco **isolado** — pagar/editar no teste **não mexe** na loja | **Lê** espelho compartilhado · `AGRO_STAGING_READONLY` bloqueia quase toda gravação |
+| **Render loja** | CP real da operação | Espelho compartilhado · **congelar/checkpoint definitivo é aqui** |
+
+**Cuidado:** botão **CONGELAR** no **teste** ainda **carimba** o Mongo compartilhado (não apaga valores, mas é redundante). Ritual **8–11 = loja**.
+
+**Referência totais (dedup):** Qtd **741** · A pagar **~R$ 393.652,70** · Excel abertos **748 linhas** (+7 dup. ERP, ex. Geraldo) — **usar tela**.
+
+**Render amanhã:** assistente **só mexe env produção** se Renan pedir **explícito** na sessão. **Não** push `producao` / cherry-pick loja sem frase + senha **99738595**.
+
+**Depois de 8–11 estável:** item **12** cancelar ERP (Renan decide) · fase **D** código Compras fornecedor **continua pausada** até fechar CP ou outro chat.
+
+**Novo chat (outro problema):** ler CHECKPOINT + §4.15 · **não** misturar com passos 8–11 salvo Renan pedir.
+
+---
+
+### WIP — desvinculação Mongo §4.15 (**29/06**)
+
+**Feito recente:** pacotes corte v4.31–v4.49 · loja **v4.49** · cadastro aux PG **v4.51 teste** (`17210f7`).
+
+**Trilha (atualizada):**
+
+| Fase | # | O quê | Status |
+| ---- | - | ----- | ------ |
+| **Amanhã** | **10→8→11** | Backup + congelar + checkpoint CP | **📅 Renan 30/06** |
+| ~~**C**~~ | código | Cadastro ERP aux PG | **✅ v4.51 teste** |
+| **D** | código | Compras relatório fornecedor sem Mongo | Pendente (outro chat) |
+| **F** | **9** | Motor busca GM | Por último |
+| **G** | **12** | Cancelar ERP | Só após 8–11 OK |
+
+**Pausado até amanhã:** nada — CP **volta** na agenda. **Código fase D** pode seguir em chat separado se Renan quiser.
+
+**Renan 29/06 — medo CP:** entendido — amanhã é **operacional fechamento**, não remigrar títulos. CP **já PG** na loja.
 
 ### FECHADO TESTE — cadastro ERP auxiliares Postgres **v4.51** (29/06)
 

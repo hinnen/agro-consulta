@@ -2004,9 +2004,6 @@
             if (state.clienteMode === 'unset') return 'Defina o cliente ou consumidor final antes de continuar.';
         }
         if (state.currentStep === 'entrega') {
-            if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
-                return 'Escolha retirada na loja ou entrega no pop-up.';
-            }
             if (!enderecoEntregaMinimoOk(state)) return 'Informe o endereço básico da entrega (logradouro e bairro ou endereço legível).';
         }
         if (state.currentStep === 'pagamento') {
@@ -2123,20 +2120,11 @@
             var kbdCtrl =
                 '<kbd class="pointer-events-none ml-1 hidden rounded border border-emerald-800/40 bg-emerald-700 px-1 font-mono text-[8px] text-white sm:inline">Ctrl+Enter</kbd>';
             if (state.currentStep === 'entrega') {
-                var modoRe = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
                 var lp = String((state.entrega && state.entrega.localPagamento) || '');
                 var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
                 var endOk = enderecoEntregaMinimoOkParaUi(state);
                 dom.btnNext.classList.remove('opacity-40');
-                if (!modoRe) {
-                    dom.btnNext.innerHTML = 'Retirada ou entrega' + kbdF7;
-                    dom.btnNext.disabled = false;
-                    dom.btnNext.title = 'Escolha na tela acima · F7 rola até o bloco';
-                } else if (modoRe === 'entrega' && !(state.entrega && state.entrega.detalhesEntregaRespondidos)) {
-                    dom.btnNext.innerHTML = 'Confirmar taxa' + kbdF7;
-                    dom.btnNext.disabled = false;
-                    dom.btnNext.title = 'Confirma taxa, horário e troco · F7';
-                } else if (!entregaFluxoPagamentoCompleto(state)) {
+                if (!entregaFluxoPagamentoCompleto(state)) {
                     dom.btnNext.innerHTML = !lp
                         ? 'Pagamento entrega ou loja' + kbdF7
                         : 'Dinheiro ou cartão' + kbdF7;
@@ -3180,22 +3168,19 @@
         }
     }
 
+    function prepararEntregaAoSairDeProdutos() {
+        State.setEntregaPatch({
+            modoRetiradaEntrega: 'entrega',
+            ativa: true,
+            detalhesEntregaRespondidos: true
+        });
+    }
+
     function onEntregaBtnNext() {
         commitEntregaClienteCamposFromDom();
         commitEntregaCamposEndereco();
         var state = State.getState();
         var computed = State.getComputed();
-        if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
-            scrollEntregaWizardIntoView();
-            return;
-        }
-        if (
-            state.entrega.modoRetiradaEntrega === 'entrega' &&
-            !state.entrega.detalhesEntregaRespondidos
-        ) {
-            confirmarEntregaDetalhesModal();
-            return;
-        }
         if (abrirFluxoPagamentoEntregaSePendente()) return;
         var validation = canAdvance(state, computed);
         if (validation) {
@@ -3801,10 +3786,8 @@
     function entregaWizardPrecisaExibir(state) {
         state = state || State.getState();
         if (state.currentStep !== 'entrega') return false;
-        var modo = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
-        if (!modo) return true;
-        if (modo === 'entrega' && !entregaFluxoPagamentoCompleto(state)) return true;
-        return false;
+        if (String((state.entrega && state.entrega.modoRetiradaEntrega) || '') !== 'entrega') return false;
+        return !entregaFluxoPagamentoCompleto(state);
     }
 
     function atualizarEntregaWizardVisibilidade(state) {
@@ -3831,7 +3814,6 @@
         state = state || State.getState();
         var e = state.entrega || {};
         if (String(e.modoRetiradaEntrega || '') !== 'entrega') return false;
-        if (!e.detalhesEntregaRespondidos) return false;
         var lp = String(e.localPagamento || '').trim();
         if (!lp) return false;
         if (lp === 'loja') return true;
@@ -3841,9 +3823,7 @@
     function entregaWizardPainelAtual(state) {
         state = state || State.getState();
         var e = state.entrega || {};
-        var modo = String(e.modoRetiradaEntrega || '');
-        if (!modo) return 'modo';
-        if (modo === 'entrega' && !e.detalhesEntregaRespondidos) return 'detalhes';
+        if (String(e.modoRetiradaEntrega || '') !== 'entrega') return 'done';
         if (entregaWizardAguardandoTroco) return 'troco';
         var lp = String(e.localPagamento || '').trim();
         if (!lp) return 'pagamento_local';
@@ -3858,20 +3838,6 @@
         var titulo = document.getElementById('pdv-ed-titulo');
         var subtitulo = document.getElementById('pdv-ed-subtitulo');
         var themes = {
-            modo: {
-                border: 'border-amber-400',
-                header: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white',
-                etapa: 'Etapa 2 · Entrega',
-                titulo: 'Retirada ou entrega?',
-                sub: 'Escolha uma opção para continuar.'
-            },
-            detalhes: {
-                border: 'border-amber-400',
-                header: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white',
-                etapa: 'Entrega',
-                titulo: 'Taxa, horário e troco',
-                sub: 'Confirme para seguir com o pagamento.'
-            },
             pagamento_local: {
                 border: 'border-emerald-400',
                 header: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white',
@@ -3894,7 +3860,7 @@
                 sub: 'Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).'
             }
         };
-        var t = themes[painel] || themes.modo;
+        var t = themes[painel] || themes.pagamento_local;
         if (header) {
             header.className =
                 'rounded-t-2xl border-[3px] border-b-0 px-4 py-4 sm:px-5 sm:py-5 ' +
@@ -3918,17 +3884,13 @@
         var st = State.getState();
         var painel = entregaWizardPainelAtual(st);
         var map = {
-            modo: document.getElementById('pdv-ed-modo-panel'),
-            detalhes: document.getElementById('pdv-ed-detalhes-panel'),
             pagamento_local: document.getElementById('pdv-ed-pagamento-local-panel'),
             meio: document.getElementById('pdv-ed-meio-panel'),
             troco: document.getElementById('pdv-ed-troco-panel')
         };
-        var confirmWrap = document.getElementById('pdv-ed-confirmar-wrap');
         Object.keys(map).forEach(function (k) {
             if (map[k]) map[k].classList.toggle('hidden', k !== painel);
         });
-        if (confirmWrap) confirmWrap.classList.toggle('hidden', painel !== 'detalhes');
         if (painel === 'done') {
             entregaWizardAguardandoTroco = false;
             atualizarEntregaWizardVisibilidade(st);
@@ -4041,10 +4003,6 @@
         setInputValue(dom.entregaTroco, e.troco);
         setInputValue(dom.entregaObservacao, e.observacao);
         setInputValue(dom.vendaObservacao, state.venda.observacao);
-        var edHor = document.getElementById('pdv-ed-horario');
-        var edTro = document.getElementById('pdv-ed-troco');
-        setInputValue(edHor, e.horario);
-        setInputValue(edTro, e.troco);
         renderEntregaTaxaCard(state);
         renderEntregaClienteCampos(state);
         entregaPlusGeocodeLastQ = String(e.plusCode || c.plus_code || '').trim();
@@ -4350,6 +4308,13 @@
             return;
         }
         var wasStep = prevStepCache;
+        if (state.currentStep === 'entrega') {
+            var modoEnt = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
+            if (!modoEnt) {
+                prepararEntregaAoSairDeProdutos();
+                return;
+            }
+        }
         renderStepPanels(state, computed);
         renderSummary(state, computed);
         renderQuickClient(state);
@@ -4461,9 +4426,7 @@
     }
 
     function isRetiradaEntregaModalOpen() {
-        if (!isEntregaDetalhesModalOpen()) return false;
-        var modoPanel = document.getElementById('pdv-ed-modo-panel');
-        return !!(modoPanel && !modoPanel.classList.contains('hidden'));
+        return false;
     }
     function isEntregaDetalhesModalOpen() {
         return !!(
@@ -4479,11 +4442,6 @@
     function closeEntregaDetalhesModal() {}
     function openEntregaDetalhesModal() {
         renderEntregaTaxaCard(State.getState());
-        var st = State.getState();
-        var edHor = document.getElementById('pdv-ed-horario');
-        var edTro = document.getElementById('pdv-ed-troco');
-        setInputValue(edHor, (st.entrega && st.entrega.horario) || '');
-        setInputValue(edTro, (st.entrega && st.entrega.troco) || '');
         syncEntregaDetalhesModalUi();
         scrollEntregaWizardIntoView();
     }
@@ -4516,37 +4474,8 @@
                 meioNaEntrega: ''
             });
             State.setPagamentoField('frete', 0);
-            closeRetiradaEntregaModal();
             State.setCurrentStep('pagamento');
-            return;
         }
-        State.setEntregaPatch({ modoRetiradaEntrega: 'entrega', ativa: true });
-        syncEntregaDetalhesModalUi();
-        renderEntregaTaxaCard(State.getState());
-        scrollEntregaWizardIntoView();
-    }
-    function confirmarEntregaDetalhesModal() {
-        var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
-        if (!taxaChecked) {
-            alert('Escolha se cobra frete, decide depois ou não cobra.');
-            return;
-        }
-        commitEntregaTaxaModo(taxaChecked.value);
-        commitEntregaTaxaValorInput();
-        var h = document.getElementById('pdv-ed-horario');
-        var t = document.getElementById('pdv-ed-troco');
-        var hor = h ? h.value : '';
-        var tro = t ? String(t.value || '').trim() : '';
-        State.setEntregaPatch({
-            horario: hor,
-            troco: tro,
-            detalhesEntregaRespondidos: true
-        });
-        if (dom.entregaHorario) dom.entregaHorario.value = hor;
-        if (dom.entregaTroco) dom.entregaTroco.value = tro;
-        wizardSyncLembretesFromEntregaHorario();
-        entregaClienteSnapshot = null;
-        syncEntregaDetalhesModalUi();
     }
 
     function isEntregaFluxo1Open() {
@@ -4559,11 +4488,7 @@
         return isEntregaDetalhesModalOpen() && entregaWizardPainelAtual() === 'troco';
     }
     function isAnyEntregaFluxoModalOpen() {
-        return (
-            isRetiradaEntregaModalOpen() ||
-            isEntregaDetalhesModalOpen() ||
-            isEntregaSalvarClienteModalOpen()
-        );
+        return isEntregaDetalhesModalOpen() || isEntregaSalvarClienteModalOpen();
     }
 
     function closeEntregaFluxoModal1() {}
@@ -4582,13 +4507,8 @@
         entregaWizardAguardandoTroco = true;
         var inp = document.getElementById('pdv-ef3-troco-input');
         var st = State.getState();
-        var edTro = document.getElementById('pdv-ed-troco');
         if (inp) {
-            inp.value = String(
-                (st.entrega && st.entrega.troco) ||
-                    (edTro && edTro.value) ||
-                    ''
-            ).trim();
+            inp.value = String((st.entrega && st.entrega.troco) || '').trim();
         }
         openEntregaDetalhesModal();
         if (inp) {
@@ -8088,6 +8008,7 @@
                     alert(validation);
                     return;
                 }
+                prepararEntregaAoSairDeProdutos();
                 var target = nextStep(state, computed);
                 if (target) State.setCurrentStep(target);
             });
@@ -8241,13 +8162,6 @@
                 }
             });
         }
-
-        var btnEdRetirada = document.getElementById('pdv-ed-retirada');
-        if (btnEdRetirada) btnEdRetirada.addEventListener('click', function () { escolherRetiradaEntrega('retirada'); });
-        var btnEdEntrega = document.getElementById('pdv-ed-entrega');
-        if (btnEdEntrega) btnEdEntrega.addEventListener('click', function () { escolherRetiradaEntrega('entrega'); });
-        var btnEdOk = document.getElementById('pdv-ed-confirmar');
-        if (btnEdOk) btnEdOk.addEventListener('click', confirmarEntregaDetalhesModal);
 
         [dom.entregaLogradouro, dom.entregaNumero, dom.entregaPluscode].forEach(function (el) {
             if (el) el.addEventListener('input', commitEntregaCamposEndereco);
@@ -8672,13 +8586,8 @@
                 entregaWizardAguardandoTroco = true;
                 var inpTroco = document.getElementById('pdv-ef3-troco-input');
                 var stTroco = State.getState();
-                var edTroco = document.getElementById('pdv-ed-troco');
                 if (inpTroco) {
-                    inpTroco.value = String(
-                        (stTroco.entrega && stTroco.entrega.troco) ||
-                            (edTroco && edTroco.value) ||
-                            ''
-                    ).trim();
+                    inpTroco.value = String((stTroco.entrega && stTroco.entrega.troco) || '').trim();
                 }
                 syncEntregaDetalhesModalUi();
                 if (inpTroco) {
@@ -8768,41 +8677,10 @@
                         return;
                     }
                     if (painelEsc === 'pagamento_local') {
-                        State.setEntregaPatch({
-                            detalhesEntregaRespondidos: false,
-                            localPagamento: '',
-                            meioNaEntrega: ''
-                        });
-                        syncEntregaDetalhesModalUi();
+                        resetEntregaModoAoVoltarProdutos();
+                        State.setCurrentStep('produtos');
                         return;
                     }
-                    if (painelEsc === 'detalhes') {
-                        State.setEntregaPatch({
-                            modoRetiradaEntrega: '',
-                            ativa: false,
-                            detalhesEntregaRespondidos: false,
-                            localPagamento: '',
-                            meioNaEntrega: ''
-                        });
-                        syncEntregaDetalhesModalUi();
-                        return;
-                    }
-                    if (painelEsc === 'modo') {
-                        State.setEntregaPatch({
-                            modoRetiradaEntrega: '',
-                            ativa: false,
-                            detalhesEntregaRespondidos: false
-                        });
-                        syncEntregaDetalhesModalUi();
-                        return;
-                    }
-                    State.setEntregaPatch({
-                        modoRetiradaEntrega: '',
-                        ativa: false,
-                        detalhesEntregaRespondidos: false
-                    });
-                    syncEntregaDetalhesModalUi();
-                    return;
                 }
                 if (isClienteEditModalOpen()) {
                     event.preventDefault();
@@ -8916,12 +8794,19 @@
                     }
                     return;
                 }
-                if (!inField) {
+                if (!inField && isEntregaFluxo1Open()) {
                     var d1e = event.code === 'Digit1' || event.code === 'Numpad1';
                     var d2e = event.code === 'Digit2' || event.code === 'Numpad2';
-                    if (isRetiradaEntregaModalOpen() && (d1e || d2e)) {
+                    if (d1e) {
                         event.preventDefault();
-                        escolherRetiradaEntrega(d2e ? 'entrega' : 'retirada');
+                        var bEnt = document.getElementById('pdv-ef1-entrega');
+                        if (bEnt) bEnt.click();
+                        return;
+                    }
+                    if (d2e) {
+                        event.preventDefault();
+                        var bLoja = document.getElementById('pdv-ef1-loja');
+                        if (bLoja) bLoja.click();
                         return;
                     }
                 }
