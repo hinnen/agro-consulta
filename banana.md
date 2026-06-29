@@ -967,7 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.77** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.77** · **produção v4.77** (deploy merge **29/06**)
+
+### FECHADO + DEPLOY LOJA — merge teste → producao **v4.77** (29/06)
+
+**Renan:** *«manda para produção - seja oque Deus quiser»* + senha **99738595**.
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · pacote PDV entrega **v4.59–v4.77** · **push OK** · commit **`987f75c`**.
+
+**Pós-deploy loja:** Ctrl+F5 · PDV entrega F3 → espaço no logradouro · Conferir entrega (frete/total) · popups entrega revisados.
 
 ### PDV entrega fluxo — sequência taxa/troco (29/06)
 
