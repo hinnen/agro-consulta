@@ -476,6 +476,8 @@
         renderResultadosBusca();
         focoBusca();
     }
+
+    function tentarAutoAdicionarBusca(q, items) {
         var disp = (items || []).filter(function (p) {
             return !produtoJaNaLista(p.produto_externo_id);
         });
@@ -777,15 +779,16 @@
         });
     }
 
+    if (dom.tipo) dom.tipo.addEventListener('change', syncTipoUi);
+    if (dom.permanente) dom.permanente.addEventListener('change', syncPermanenteUi);
+    bindClick('promo-btn-continuar', continuarParaProdutos);
+    bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
+    bindClick('promo-btn-salvar', salvar);
+
     if (!dom.busca || !dom.lista || !dom.resultados) {
-        showMsg('Erro ao iniciar. Recarregue (Ctrl+F5).', false);
+        showMsg('Erro na busca de produtos. Recarregue (Ctrl+F5).', false);
     } else {
-        if (dom.tipo) dom.tipo.addEventListener('change', syncTipoUi);
-        if (dom.permanente) dom.permanente.addEventListener('change', syncPermanenteUi);
         bindClick('promo-btn-buscar', function () { buscarProdutos(); });
-        bindClick('promo-btn-salvar', salvar);
-        bindClick('promo-btn-continuar', continuarParaProdutos);
-        bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
 
         dom.busca.setAttribute('autocomplete', 'off');
         dom.busca.addEventListener('input', agendarBuscaInput);

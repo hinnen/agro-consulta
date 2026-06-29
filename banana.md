@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.88** · **produção v4.88** (deploy promo UX + keep-warm staging **29/06**)
+**Versão app (`VERSION`):** **teste v4.90** · **produção v4.89** (hotfix promo Continuar **urgente**)
+
+### INCIDENTE LOJA — promo «Continuar» não avança etapa 1 **v4.90** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Clicar **Continuar — escolher produtos** não vai para etapa 2 |
+| **Causa** | Erro de sintaxe JS: `tentarAutoAdicionarBusca` quebrada no patch v4.88 — script inteiro não carregava |
+| **Fix v4.90** | Restaurar função + bind **Continuar** fora do bloco da etapa 2 |
+| **Loja** | **Pendente** — hotfix urgente (1 arquivo JS inline) |
 
 ### FECHADO + DEPLOY LOJA — promo UX + keep-warm staging **v4.86–v4.88** (29/06)
 
