@@ -7651,7 +7651,7 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
         cache.delete(f"dash:mvs:{ver}:erp:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v8:hibrido:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}")
-    cache.delete(f"dash:mvs:v5:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
+    cache.delete(f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
     hoje = timezone.localdate()
     cache.delete(f"dash:mvs:v7:erp:{hoje.isoformat()}:{hoje.isoformat()}")
     cache.delete(f"dash:mvs:v8:hibrido:{hoje.isoformat()}:{hoje.isoformat()}")

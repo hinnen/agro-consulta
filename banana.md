@@ -975,6 +975,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Pós-deploy loja:** Ctrl+F5 · **Mês anterior (mai)** → barras mês cheio · jun+ só PDV.
 
+**Nota Renan 29/06 — média vs barras 21–22/mai:** **média base R$ 2.882** no tooltip **está correta** (abr+mar+fev planilha, fórmula 3 meses). Barras **21–22** ficaram **R$ 53** porque venda **teste PDV** substituía planilha (R$ 2.451 / R$ 2.870) — **fix teste:** merge **max(PDV, planilha)** · pendente loja se Renan pedir.
+
 ### WIP → TESTE — meta C planilha + 3 meses (**29/06**)
 
 **Pacote:** migration **`0045`** + **`DashboardVendaDiaHistoricoAgro`** · import **`docs/dados/vendas_centro_nov2025.xlsx`** (272 dias · set/25–mai/26 Centro) · merge meta C **VendaAgro > planilha** · fórmula **M-1+M-2+M-3** · fix datas Excel (nov/dez 2025 + linha espúria 2027-01-01).
@@ -1028,7 +1030,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Total** | `R$ 5.090,37` | Faturamento **do dia** (loja toda) · ponto milhar + vírgula decimal OK |
 | **Período planilha** | **set/2025 – mai/2026** | Jun/2026+ **não** entra no Excel — vendas **já no SisVale** (PDV) |
 | **Arquivo Renan** | `vendas.cvs.xlsx` → **`docs/dados/vendas_centro_nov2025.xlsx`** | **✅ 29/06** · **272 linhas** (1 espúria omitida) · **01/09/2025 – 31/05/2026** · **só Centro** |
-| **Merge meta C** | **VendaAgro (PG) > planilha > 0** | Dia com venda no PDV usa PG; histórico vazio usa planilha |
+| **Merge meta C** | **max(PDV, planilha)** por dia | Venda teste PDV não apaga planilha; jun+ só PDV |
 | **Ano** | Se a planilha **não** tiver coluna ano | Assumimos **2025** para nov–dez e **2026** para jan em diante (Renan corrige se errar) |
 | **Dia sem venda** | `0` ou linha omitida | Omitir = sem venda naquele dia |
 

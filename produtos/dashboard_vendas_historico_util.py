@@ -32,10 +32,10 @@ def dashboard_vendas_historico_planilha_por_dia(
 
 def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
     """
-    Série diária merge planilha + PDV (PDV sobrescreve o dia).
-    Usada na meta C e no gráfico de barras do BI (meses set/25–mai/26).
+    Série diária merge planilha + PDV: usa o **maior** dos dois no dia (evita venda teste
+    PDV apagar histórico da planilha). Jun+ só tem PDV. Usada na meta C e no gráfico.
     """
-    ck = f"dash:mvs:v5:meta:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    ck = f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -44,8 +44,12 @@ def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
 
     plan = dashboard_vendas_historico_planilha_por_dia(data_ini, data_fim)
     pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim)
-    por_dia = dict(plan)
-    por_dia.update(pdv.get("por_dia") or {})
+    pdv_por_dia = pdv.get("por_dia") or {}
+    por_dia: dict[str, float] = {}
+    for k in set(plan) | set(pdv_por_dia):
+        vp = float(plan.get(k) or 0)
+        vd = float(pdv_por_dia.get(k) or 0)
+        por_dia[k] = round(max(vp, vd), 2)
 
     qtd_por_dia = dict(pdv.get("qtd_por_dia") or {})
     total = round(sum(float(v or 0) for v in por_dia.values()), 2)
@@ -77,16 +81,16 @@ def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
 def dashboard_invalidar_cache_meta_merged(
     data_ini: date | None = None, data_fim: date | None = None
 ) -> None:
-    """Limpa cache v5 da meta C (intervalo ou últimos ~18 meses civis)."""
+    """Limpa cache v6 da meta C (intervalo ou últimos ~18 meses civis)."""
     if data_ini and data_fim:
-        cache.delete(f"dash:mvs:v5:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
+        cache.delete(f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
         return
     hoje = timezone.localdate()
     cur = hoje.replace(day=1)
     for _ in range(18):
         fp = cur
         lp = (cur.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-        cache.delete(f"dash:mvs:v5:meta:{fp.isoformat()}:{lp.isoformat()}")
+        cache.delete(f"dash:mvs:v6:meta:{fp.isoformat()}:{lp.isoformat()}")
         cur = fp - timedelta(days=1)
         cur = cur.replace(day=1)
 
