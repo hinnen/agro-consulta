@@ -967,16 +967,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.84** · **produção v4.82** (promo bip + autocomplete pendente loja)
+**Versão app (`VERSION`):** **teste v4.84** · **produção v4.84** (deploy promoções bip/autocomplete **29/06**)
 
-### WIP — promoções etapa 2: bip direto + autocomplete nome **v4.83** (29/06)
+### FECHADO + DEPLOY LOJA — promoções bip + autocomplete GM/nome **v4.83–v4.84** (29/06)
+
+**Renan:** *«manda direto produção»* + senha **99738595** (Render teste lento na 1ª abertura — validação direto na loja).
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · fast-forward **`536c5c5`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · Promoções etapa 2 · bip barras · autocomplete GM/nome · **Excluir** duplicatas se ainda houver.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Código de barras entra direto na promoção; nome sem clicar Buscar |
-| **v4.83** | Barras: add automático · **GM + nome**: autocomplete (~180 ms GM / ~320 ms nome) · GM completo (ex. GM1769) entra se match exato |
-| **v4.84** | Refino GM: prefixo `GM` nunca trata como barras · parcial `GM17`/`1769` autocomplete · Enter no código GM |
-| **Teste** | Ctrl+F5 · bip EAN → item na lista direita · digitar «champ» → sugestões sozinhas |
+| **v4.83–v4.84** | Barras entra direto · GM/nome autocomplete · GM completo match exato · botão Excluir (v4.81) |
+| **Dados** | Promoções 100 % Postgres |
 
 ### FECHADO + DEPLOY LOJA — promoções botão Excluir **v4.81** (29/06)
 
