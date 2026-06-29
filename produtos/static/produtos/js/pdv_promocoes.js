@@ -235,6 +235,80 @@
             }
         });
 
+        return agruparCarrinhoPromoAtiva(itens);
+    }
+
+    /** Promo de pool (mix) com critério atingido — usado para agrupar linhas no carrinho. */
+    function poolAtivoNoItem(item) {
+        if (!item || item.preco_manual) return false;
+        var promo = item.promocao || getPromo(item.id);
+        if (!promo || promo.tipo === 'valor_direto') return false;
+        if (!promoPoolKey(promo)) return false;
+        if (item.promo_grupos_pool != null) return toNum(item.promo_grupos_pool, 0) > 0;
+        return false;
+    }
+
+    /**
+     * Junta linhas da mesma promo ativa (mix) — bloco na posição da 1ª linha do grupo.
+     * Só reordena quando o critério da promo já foi atingido.
+     */
+    function agruparCarrinhoPromoAtiva(itens) {
+        if (!Array.isArray(itens) || itens.length < 2) return itens;
+
+        var itemPoolKey = [];
+        var poolMembers = {};
+
+        itens.forEach(function (item, i) {
+            var key = '';
+            if (poolAtivoNoItem(item)) {
+                var promo = item.promocao || getPromo(item.id);
+                key = promoPoolKey(promo);
+            }
+            itemPoolKey[i] = key;
+            if (key) {
+                if (!poolMembers[key]) poolMembers[key] = [];
+                poolMembers[key].push(item);
+            }
+        });
+
+        var keys = Object.keys(poolMembers);
+        if (!keys.length) return itens;
+
+        var needsReorder = false;
+        keys.forEach(function (key) {
+            if (poolMembers[key].length < 2) return;
+            var indices = [];
+            for (var i = 0; i < itens.length; i++) {
+                if (itemPoolKey[i] === key) indices.push(i);
+            }
+            for (var j = 1; j < indices.length; j++) {
+                if (indices[j] !== indices[j - 1] + 1) {
+                    needsReorder = true;
+                    break;
+                }
+            }
+        });
+        if (!needsReorder) return itens;
+
+        var emittedPools = {};
+        var out = [];
+        for (var i = 0; i < itens.length; i++) {
+            var key = itemPoolKey[i];
+            if (!key) {
+                out.push(itens[i]);
+                continue;
+            }
+            if (emittedPools[key]) continue;
+            poolMembers[key].forEach(function (item) {
+                out.push(item);
+            });
+            emittedPools[key] = true;
+        }
+
+        itens.length = 0;
+        out.forEach(function (item) {
+            itens.push(item);
+        });
         return itens;
     }
 
@@ -333,8 +407,38 @@
         };
     }
 
+    /** Linha anterior no carrinho é do mesmo mix ativo (bloco já mostrou cabeçalho). */
+    function mixBlocoContextoCarrinho(item, itens) {
+        var key = '';
+        if (poolAtivoNoItem(item)) {
+            var promo = item.promocao || getPromo(item.id);
+            key = promoPoolKey(promo);
+        }
+        if (!key || !Array.isArray(itens) || itens.length < 2) {
+            return { mixContinuacao: false, mixCabecalho: true };
+        }
+        if (toNum(item.promo_linhas_pool, 0) <= 1) {
+            return { mixContinuacao: false, mixCabecalho: true };
+        }
+        var idx = -1;
+        for (var i = 0; i < itens.length; i++) {
+            if (itens[i] === item) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx <= 0) return { mixContinuacao: false, mixCabecalho: true };
+        var prev = itens[idx - 1];
+        var prevKey = '';
+        if (prev && poolAtivoNoItem(prev)) {
+            var pPromo = prev.promocao || getPromo(prev.id);
+            prevKey = promoPoolKey(pPromo);
+        }
+        var mixContinuacao = prevKey === key;
+        return { mixContinuacao: mixContinuacao, mixCabecalho: !mixContinuacao };
+    }
+
     /**
-     * Textos do selo no carrinho (fase 1 FL-003).
      * ctx.pooled: usa promo_qtd_pool e unidades alocadas por linha.
      */
     function resumoIndicadorPromo(promo, qtd, precoPadrao, ctx) {
@@ -379,11 +483,15 @@
 
             if (gruposPool <= 0) {
                 var falta = Math.max(0, lim - qtdPool);
+                var faltaTxt =
+                    linhasNoPool > 1
+                        ? 'Faltam ' + fmtQtdLabel(falta) + ' · ' + fmtQtdLabel(qtdPool) + '/' + fmtQtdLabel(lim)
+                        : 'Faltam ' + fmtQtdLabel(falta);
                 return {
                     state: 'pendente',
                     badges: [
                         badgePendenteStack(
-                            'Faltam ' + fmtQtdLabel(falta),
+                            faltaTxt,
                             tituloBase + (linhasNoPool > 1 ? ' (soma mix no carrinho)' : '')
                         ),
                     ],
@@ -394,20 +502,35 @@
                 var badgesMix = [];
                 var mixMulti = linhasNoPool > 1 || !!ctx.mixMultiLinha;
                 if (qLinPromo > 0) {
-                    if (mixMulti) {
+                    if (mixMulti && ctx.mixContinuacao) {
                         badgesMix.push({
-                            stack: true,
-                            lineTop: 'MIX',
-                            lineBottom: fmtQtdLabel(qLinPromo) + ' de ' + fmtQtdLabel(lim),
+                            text: fmtQtdLabel(qLinPromo) + ' aqui',
+                            mixLinha: true,
                             title:
                                 tituloBase +
                                 ' — ' +
                                 fmtQtdLabel(qLinPromo) +
-                                ' un. desta linha no grupo de ' +
+                                ' un. desta linha no bloco mix',
+                        });
+                    } else if (mixMulti) {
+                        var unGrupo =
+                            gruposPool === 1
+                                ? fmtQtdLabel(lim) + ' un.'
+                                : fmtQtdLabel(gruposPool) + '×' + fmtQtdLabel(lim);
+                        badgesMix.push({
+                            stack: true,
+                            lineTop: 'MIX ' + unGrupo,
+                            lineBottom: fmtQtdLabel(qLinPromo) + ' aqui',
+                            title:
+                                tituloBase +
+                                ' — bloco de ' +
                                 fmtQtdLabel(lim) +
-                                ' (total mix ' +
+                                ' un. no mix (' +
                                 fmtQtdLabel(qtdPool) +
-                                ')',
+                                ' no carrinho) · desta linha: ' +
+                                fmtQtdLabel(qLinPromo) +
+                                ' com promo' +
+                                (qLinNorm > 0 ? ', ' + fmtQtdLabel(qLinNorm) + ' normal' : ''),
                         });
                     } else if (
                         qLinPromo === qtd &&
@@ -561,6 +684,8 @@
         aplicarNoItem: aplicarNoItem,
         recalcCarrinho: recalcCarrinho,
         recalcCarrinhoComForma: recalcCarrinhoComForma,
+        agruparCarrinhoPromoAtiva: agruparCarrinhoPromoAtiva,
+        mixBlocoContextoCarrinho: mixBlocoContextoCarrinho,
         criterioAtendido: criterioAtendido,
         resumoIndicadorPromo: resumoIndicadorPromo,
         poolContextoFromCarrinho: poolContextoFromCarrinho,

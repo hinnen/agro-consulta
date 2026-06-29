@@ -2326,7 +2326,7 @@
 
     function renderCartMixNameTag(item) {
         if (!item || item.preco_manual || item.promo_mix_cor == null) return '';
-        var titulo = 'Mesma promoção mix — linhas com a mesma cor somam juntas';
+        var titulo = 'Mesma promo mix — linhas com a mesma cor formam o bloco juntas';
         return (
             '<span class="pdv-cart-mix-tag" title="' +
             escapeHtml(titulo) +
@@ -2347,6 +2347,17 @@
             window.AgroPdvPromocoes.poolContextoFromCarrinho &&
             window.AgroPdvPromocoes.poolContextoFromCarrinho(item, itens);
         if (!ctx) ctx = {};
+        if (
+            window.AgroPdvPromocoes.mixBlocoContextoCarrinho &&
+            itens &&
+            itens.length
+        ) {
+            var mixBloco = window.AgroPdvPromocoes.mixBlocoContextoCarrinho(item, itens);
+            if (mixBloco) {
+                ctx.mixContinuacao = mixBloco.mixContinuacao;
+                ctx.mixCabecalho = mixBloco.mixCabecalho;
+            }
+        }
         var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao, ctx);
         if (!resumo || !resumo.badges || !resumo.badges.length) return empty;
         var html =
@@ -2369,7 +2380,9 @@
                 return;
             }
             html +=
-                '<span class="pdv-cart-promo-badge" title="' +
+                '<span class="pdv-cart-promo-badge' +
+                (badge.mixLinha ? ' pdv-cart-promo-badge--mix-linha' : '') +
+                '" title="' +
                 escapeHtml(badge.title || badge.text || '') +
                 '">' +
                 escapeHtml(badge.text || '') +

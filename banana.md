@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.16** · **produção v5.08** — promo mix 3+2 + selo MIX
+**Versão app (`VERSION`):** **teste v5.17** · **produção v5.08** — promo mix 3+2 + selo MIX
 
 ### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
 
@@ -989,6 +989,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `pdv_promocoes.js` · `pdv_wizard.js` · `pdv_wizard.html` |
 | **Teste** | Ctrl+F5 · GM1769 ×3 + GM1771 ×2 (promo leve 4) → total **R$ 12,90** · mesma cor nas 2 linhas |
 
+### UX — selo mix menos confuso **v5.18** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | «MIX 3 de 4» + «MIX 1 de 4» parecia **duas promos incompletas** (ex. 5+1 un.) |
+| **Fix** | Selo mix ativo: **MIX 4 un.** (bloco fechado) + **N aqui** (quanto veio **desta linha**) |
+| **Pendente mix** | **Faltam N · 3/4** — mostra progresso no carrinho |
+| **Exemplo 5+1** | Linha A: **MIX 4 un.** / **3 aqui** + **+2 normal** · Linha B: **MIX 4 un.** / **1 aqui** |
+| **Layout selo** | Coluna promo **largura/altura fixa** — GM e qtd alinhados mesmo com 1 ou 2 selos |
+| **Cor mix** | Borda + gradiente **esquerda e direita** (mesma cor = mesma promo no carrinho) |
+| **Ordem carrinho** | Critério atingido → linhas da **mesma promo ativa** **juntam** automaticamente |
+| **Selo mix camadas** | **1ª linha do bloco:** `MIX 4 un.` + `N aqui` · **demais:** só `N aqui` (+ normal se houver) |
+
 ### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
 
 | Item | Detalhe |
@@ -1006,7 +1019,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Onde** | Linha do carrinho — entre **GM** e **qtd** (área indicada no print) |
 | **Selo verde** | Critério atingido — ex. **PROMO 4×** |
 | **Selo amarelo** | Duas linhas: **PROMO** (cima) + **Faltam N** (baixo) · N = mix no carrinho |
-| **Mix ativo** | Borda colorida + **MIX** no nome · selo **MIX / N de X** (+ **+N normal** se houver) |
+| **Mix ativo** | Borda colorida + **MIX** no nome · **1ª linha:** `MIX 4 un.` + `N aqui` · **demais:** só `N aqui` |
 | **Dois selos** | Passou do critério — ex. **4 promo** + **+1 normal** (5 un. leve 4) |
 | **Remover** | Texto virou **lixeira** (ícone) para ganhar espaço |
 | **Só visual** | Preço já calculado antes; **não** mexe em venda/caixa/fiscal |
@@ -1077,6 +1090,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 📋 Pendente | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
+| **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
+| **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1117,6 +1132,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-033 | `bi-vendas-dia-nth-weekday` | Dashboard: comparar **N-ésimo** dia da semana no mês vs mês anterior |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
+| FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
+| FL-037 | `pdv-mix-selo-rowspan` | Selo mix único central entre linhas — experimental (opção 3) |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
