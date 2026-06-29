@@ -3994,6 +3994,12 @@
 
     function atualizarEntregaWizardVisibilidade(state) {
         state = state || State.getState();
+        if (state.currentStep !== 'entrega') {
+            if (dom.entregaWizard) showElement(dom.entregaWizard, false);
+            if (dom.entregaMain) showElement(dom.entregaMain, false);
+            if (dom.entregaResumo) showElement(dom.entregaResumo, false);
+            return;
+        }
         var needsWizard = entregaWizardPrecisaExibir(state);
         var modo = entregaModoEfetivo(state);
         var fase = entregaFaseAtual(state);
