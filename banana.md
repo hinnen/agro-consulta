@@ -977,6 +977,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Produção v4.45 (29/06):** Renan *«pode enviar»* + senha **99738595** · cherry-pick **`d75927d`** → **`d078b4e`** · **push OK**. Conferir BI loja: Ctrl+F5 · tooltip «3 meses» · jun/2026 sem +1394%.
 
+**Ajuste 29/06 (pós-deploy):** planilha passa a preencher **barras do gráfico** (não só meta C) em set/25–mai/26 · jun+ continua só PDV · pendente subir loja.
+
 ### FECHADO + DEPLOY LOJA — pacote corte Mongo **v4.31–v4.36** (28/06)
 
 **Renan:** *«pode subir»* + senha **99738595** · prints baseline produção **antes** do deploy (comparar se precisar).

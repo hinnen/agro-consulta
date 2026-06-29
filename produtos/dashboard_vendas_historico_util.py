@@ -32,8 +32,8 @@ def dashboard_vendas_historico_planilha_por_dia(
 
 def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
     """
-    Série diária para meta C: planilha importada + sobrescreve dias com VendaAgro (PDV).
-    Mesmo formato de ``_dashboard_vendas_serie_pdv``.
+    Série diária merge planilha + PDV (PDV sobrescreve o dia).
+    Usada na meta C e no gráfico de barras do BI (meses set/25–mai/26).
     """
     ck = f"dash:mvs:v5:meta:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
@@ -50,16 +50,25 @@ def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
     qtd_por_dia = dict(pdv.get("qtd_por_dia") or {})
     total = round(sum(float(v or 0) for v in por_dia.values()), 2)
 
+    pdv_lojas = pdv.get("vendas_por_loja") or []
+    pdv_vila = 0.0
+    for row in pdv_lojas:
+        if "Vila" in str(row.get("loja") or ""):
+            pdv_vila = round(float(row.get("total") or 0), 2)
+            break
+    centro_total = round(max(total - pdv_vila, 0.0), 2)
+
     out = {
         "ok": True,
         "erro": "",
         "total": total,
         "por_dia": por_dia,
         "qtd_por_dia": qtd_por_dia,
-        "vendas_por_loja": pdv.get("vendas_por_loja") or [
-            {"nome": "Centro", "total": total},
-            {"nome": "Vila Elias", "total": 0.0},
+        "vendas_por_loja": [
+            {"loja": "Centro", "total": centro_total, "color": "#00BFFF"},
+            {"loja": "Vila Elias", "total": pdv_vila, "color": "#64748b"},
         ],
+        "fonte": "pdv+planilha",
     }
     cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out

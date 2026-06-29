@@ -7021,7 +7021,20 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     Cache curto evita repetir a mesma varredura (metas C, ticket mês ant., etc.).
     Com ``AGRO_DASHBOARD_VENDAS_FONTE=pdv``, usa só ``VendaAgro`` (sem espelho ERP).
     ``pdv`` (padrão): só VendaAgro. ``hibrido``: PDV + DtoVenda sem par no PDV.
+    Com catálogo PG: gráfico e meta C usam planilha histórica + PDV (dia a dia).
     """
+    if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
+        try:
+            from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+            if agro_catalogo_usa_postgres() and _dashboard_vendas_fonte_pdv():
+                from produtos.dashboard_vendas_historico_util import (
+                    dashboard_vendas_serie_meta_merged,
+                )
+
+                return dashboard_vendas_serie_meta_merged(data_ini, data_fim)
+        except Exception:
+            pass
     if _dashboard_vendas_fonte_pdv():
         return _dashboard_vendas_serie_pdv(data_ini, data_fim)
     if _dashboard_vendas_fonte_hibrido():
