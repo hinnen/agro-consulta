@@ -6642,21 +6642,49 @@ def _dashboard_meta_c_um_mes(
     return round((a + b) / 2.0, 2)
 
 
+def _dashboard_meta_c_meses_anteriores() -> int:
+    """Quantos meses civis anteriores entram na meta C (M-1 … M-n)."""
+    try:
+        n = int(getattr(settings, "AGRO_DASHBOARD_META_C_MESES", 3) or 3)
+    except (TypeError, ValueError):
+        n = 3
+    return max(1, min(n, 6))
+
+
+def _dashboard_meta_c_meses_por_dia(
+    d: date, cache: dict[tuple[date, date], dict] | None = None
+) -> list[tuple[date, date, dict]]:
+    """M-1, M-2, M-3… por_dia para o dia ``d`` (cache opcional por intervalo de mês)."""
+    if cache is None:
+        cache = {}
+    meses: list[tuple[date, date, dict]] = []
+    cur = d
+    for _ in range(_dashboard_meta_c_meses_anteriores()):
+        fp, lp = _dashboard_bounds_mes_anterior_para_dia(cur)
+        key = (fp, lp)
+        if key not in cache:
+            ser = _dashboard_vendas_serie_meta_historico(fp, lp)
+            cache[key] = ser.get("por_dia") or {}
+        meses.append((fp, lp, cache[key]))
+        cur = fp
+    return meses
+
+
 def _dashboard_vendas_meta_c_para_dia(
-    d: date, por_dia_mes_m1: dict, por_dia_mes_m2: dict
+    d: date, meses_por_dia: list[tuple[date, date, dict]]
 ) -> float:
     """
-    Meta diária C = média aritmética das metas dos dois últimos meses civis (M-1 e M-2
-    em relação ao mês de ``d``). Em cada mês aplica-se a mesma regra interna
-    ``_dashboard_meta_c_um_mes``. Se só um mês tiver base, usa-se só esse valor.
+    Meta diária C = média aritmética das metas dos últimos meses civis (M-1, M-2, M-3…).
+    Em cada mês aplica-se ``_dashboard_meta_c_um_mes``. Se só alguns meses tiverem base,
+    usa-se a média só dos que tiverem.
     """
-    fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
-    fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
     wd = d.weekday()
     ocorrencia_idx = ((d.day - 1) // 7) + 1
-    m1 = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia_mes_m1, fp1, lp1)
-    m2 = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia_mes_m2, fp2, lp2)
-    partes = [x for x in (m1, m2) if x is not None]
+    partes: list[float] = []
+    for first_m, last_m, por_dia in meses_por_dia:
+        m = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia, first_m, last_m)
+        if m is not None:
+            partes.append(m)
     if not partes:
         return 0.0
     return round(sum(partes) / len(partes), 2)
@@ -6669,29 +6697,26 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
-        fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
-        fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
-        for key in ((fp1, lp1), (fp2, lp2)):
-            if key not in cache:
-                ser = _dashboard_vendas_serie_meta_historico(key[0], key[1])
-                cache[key] = ser.get("por_dia") or {}
         out.append(
-            _dashboard_vendas_meta_c_para_dia(d, cache[(fp1, lp1)], cache[(fp2, lp2)])
+            _dashboard_vendas_meta_c_para_dia(d, _dashboard_meta_c_meses_por_dia(d, cache))
         )
     return out
 
 
 def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> dict:
     """
-    Base histórica (M-1 / M-2) para meta C.
-    Preferência: ``VendaAgro`` (PDV). Só usa espelho ERP se o período não tiver venda Agro
-    e o catálogo ainda não migrou para Postgres.
+    Base histórica (M-1 / M-2 / M-3…) para meta C.
+    Com catálogo PG: planilha importada + VendaAgro (PDV sobrescreve o dia).
     """
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
+    if _dashboard_vendas_fonte_pdv() and agro_catalogo_usa_postgres():
+        from produtos.dashboard_vendas_historico_util import dashboard_vendas_serie_meta_merged
+
+        return dashboard_vendas_serie_meta_merged(data_ini, data_fim)
     if _dashboard_vendas_fonte_pdv():
         ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
-        if float(ser.get("total") or 0) > 0 or agro_catalogo_usa_postgres():
+        if float(ser.get("total") or 0) > 0:
             return ser
         return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
     return _dashboard_mongo_vendas_serie(data_ini, data_fim)
@@ -7613,6 +7638,7 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
         cache.delete(f"dash:mvs:{ver}:erp:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v8:hibrido:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}")
+    cache.delete(f"dash:mvs:v5:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
     hoje = timezone.localdate()
     cache.delete(f"dash:mvs:v7:erp:{hoje.isoformat()}:{hoje.isoformat()}")
     cache.delete(f"dash:mvs:v8:hibrido:{hoje.isoformat()}:{hoje.isoformat()}")

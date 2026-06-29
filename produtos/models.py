@@ -1507,3 +1507,27 @@ class CadastroPlanilhaImportHistoricoAgro(models.Model):
 
     def __str__(self):
         return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.n_produtos} prod. · {self.status}"
+
+
+class DashboardVendaDiaHistoricoAgro(models.Model):
+    """Vendas diárias importadas (Excel Centro) — base da meta C quando o PDV ainda não tem o dia."""
+
+    data = models.DateField("Data", unique=True, db_index=True)
+    total = models.DecimalField("Total (R$)", max_digits=14, decimal_places=2)
+    deposito = models.CharField(
+        "Depósito",
+        max_length=16,
+        default="centro",
+        blank=True,
+        help_text="centro · vila — planilha Renan hoje é só Centro.",
+    )
+    fonte = models.CharField("Fonte", max_length=64, default="planilha", blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Venda diária histórico BI"
+        verbose_name_plural = "Vendas diárias histórico BI"
+        ordering = ["-data"]
+
+    def __str__(self):
+        return f"{self.data:%d/%m/%Y} · R$ {self.total}"

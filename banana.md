@@ -907,10 +907,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+**Versão app (`VERSION`):** **teste** v4.45 · **produção** v4.45 (deploy meta C **29/06**)
+
+### FECHADO + DEPLOY LOJA — meta C planilha **v4.45** (29/06)
+
+**Renan:** *«pode enviar»* + senha **99738595**.
+
+**Loja (`producao`):** cherry-pick **`d75927d`** · **push OK** · **não** merge inteiro `teste`.
+
+**Pós-deploy:** Ctrl+F5 BI `/` · badge **v4.45** · conferir tooltip meta «3 meses» · jun/2026 sem +1394% · migration **0045** seed planilha no deploy.
+
 **Versão app (`VERSION`):** **teste** v4.28 · **produção** v4.21 (CP filtro data 28/06)
 
 ### CP — filtro competência e pagamento (28/06 · Renan · loja)
-
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Lista CP: **Filtrar por** vencimento (padrão) · competência · pagamento |

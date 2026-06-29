@@ -339,20 +339,15 @@ def faturamento_dia_vendas_agro(alvo: date | None = None) -> Decimal:
 
 def previsao_vendas_dia_dashboard_agro(alvo: date) -> Decimal:
     """
-    Previsão diária = meta C do dashboard (média dos dois meses anteriores
+    Previsão diária = meta C do dashboard (média dos 3 meses anteriores
     no mesmo weekday/ocorrência), mesma regra do tooltip «Média base».
     """
     from produtos.views import (
-        _dashboard_bounds_mes_anterior_para_dia,
+        _dashboard_meta_c_meses_por_dia,
         _dashboard_vendas_meta_c_para_dia,
-        _dashboard_vendas_serie_meta_historico,
     )
 
-    fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(alvo)
-    fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
-    m1 = _dashboard_vendas_serie_meta_historico(fp1, lp1).get("por_dia") or {}
-    m2 = _dashboard_vendas_serie_meta_historico(fp2, lp2).get("por_dia") or {}
-    val = _dashboard_vendas_meta_c_para_dia(alvo, m1, m2)
+    val = _dashboard_vendas_meta_c_para_dia(alvo, _dashboard_meta_c_meses_por_dia(alvo))
     return Decimal(str(val)).quantize(Decimal("0.01"))
 
 

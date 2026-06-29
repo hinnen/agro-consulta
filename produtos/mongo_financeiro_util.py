@@ -7117,14 +7117,12 @@ def financeiro_calendario_contas_pagar_dias(
 
     def previsao_vendas_dia(d: date) -> float:
         from produtos.views import (
-            _dashboard_bounds_mes_anterior_para_dia,
+            _dashboard_meta_c_meses_por_dia,
             _dashboard_vendas_meta_c_para_dia,
         )
 
-        fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
-        fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
         val = _dashboard_vendas_meta_c_para_dia(
-            d, _por_dia_meta_hist(fp1, lp1), _por_dia_meta_hist(fp2, lp2)
+            d, _dashboard_meta_c_meses_por_dia(d, meta_hist_cache)
         )
         return round(float(val), 2)
 

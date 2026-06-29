@@ -130,7 +130,7 @@
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
           <div class="absolute left-0 z-30 mt-1 w-[min(22rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
             <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.{% if dashboard_vendas_fonte == "pdv" %} <strong>Fonte atual: só PDV</strong> (VendaAgro), para não somar com orçamentos que viram outro pedido no ERP antigo.{% endif %}</p>
-            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong>. Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
+            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (média dos <strong>3 meses</strong> anteriores no mesmo dia da semana). Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
         </details>
@@ -416,7 +416,7 @@
             : '<span style="font-weight:800;color:' + cMedia + '">-R$ ' + diffAbs + " abaixo da média</span>";
         metaLinha = "R$ " + meta.toFixed(2) + " · " + diffTxt;
       } else {
-        metaLinha = "R$ " + meta.toFixed(2) + " · sem base nos 2 meses anteriores";
+        metaLinha = "R$ " + meta.toFixed(2) + " · sem base nos 3 meses anteriores";
       }
       function pctSpan(v) {
         var cor = perfColor(v);
