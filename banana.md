@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.15** · **produção v5.08** — promo mix 3+2 + selo MIX
+**Versão app (`VERSION`):** **teste v5.16** · **produção v5.08** — promo mix 3+2 + selo MIX
 
 ### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
 
@@ -978,7 +978,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `integracoes.texto.normalizar` + fallback catálogo no wizard |
 | **Local** | `.env` com Mongo (`VENDA_ERP_MONGO_*`) · reiniciar runserver · Ctrl+F5 PDV |
 
-### FIX — promo mix 3+2 + indicador visual ligação **v5.15** (29/06)
+### FIX — promo mix 3+2 + indicador visual ligação **v5.15–5.16** (29/06)
 
 | Item | Detalhe |
 | ---- | ------- |
