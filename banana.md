@@ -967,7 +967,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.19** · **produção v5.19** — promo mix PDV + selos FL-003 fase 1
+**Versão app (`VERSION`):** **teste v5.22** · **produção v5.22** — fix FL-017 devolução caixa **loja**
+
+### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode enviar produção* + senha **99738595** · *com muito cuidado* |
+| **Risco** | **Baixo** — só `caixa_util.py` + `caixa_relatorio_util.py` · **sem** migração · **sem** PDV |
+| **Pacote** | Cherry-pick código teste **`a936f97`** + **`bed21ee`** (não merge inteiro `teste`) |
+| **O quê** | Fechamento: devolução no mesmo turno não desconta 2× · Relatório: vendas bruto + devoluções → saldo certo |
+| **Loja** | Ctrl+F5 após Render · conferir badge **v5.22** · devolução teste: falta fictícia (ex. 3× R$ 70) **não** deve voltar |
+| **Revert** | redeploy commit **`a44422c`** (produção v5.19 pré-fix) |
 
 ### DEPLOY LOJA — promo mix + selos carrinho **v5.19** (29/06) ✅
 
@@ -1082,7 +1093,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-014** | **P3** | PDV | Projetar forma **mais prática** de alterar **quantidade** no carrinho | 📋 Pendente | 29/06 |
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** não zera / confunde fechamento) | 📋 Pendente | 29/06 |
-| **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | 📋 Pendente | 29/06 |
+| **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | **✅ loja v5.22** · validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |

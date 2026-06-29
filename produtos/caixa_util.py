@@ -174,6 +174,52 @@ def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
     return dict(totais)
 
 
+def eh_movimento_retirada_devolucao(obs: str) -> bool:
+    """Retirada gerada por devolução de venda (obs «Devolução venda #…»)."""
+    o = (obs or "").strip().lower()
+    return o.startswith("devolução venda") or o.startswith("devolucao venda")
+
+
+def _pk_venda_devolucao_obs(obs: str) -> int | None:
+    m = re.search(r"#(\d+)", str(obs or ""))
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def _movimentos_retirada_devolucao_duplicados_turno(sessao, movimentos) -> set[int]:
+    """
+    IDs de retirada de devolução que não devem subtrair do esperado: a venda devolvida
+    já saiu da soma de vendas do mesmo turno (evita FL-017 — desconto em dobro).
+    Devolução de venda de outro turno continua contando só pela retirada.
+    """
+    sid = getattr(sessao, "pk", None)
+    if sid is None:
+        return set()
+    candidatos: list[tuple[int, int]] = []
+    for m in movimentos:
+        if getattr(m, "tipo", None) != "retirada":
+            continue
+        if not eh_movimento_retirada_devolucao(getattr(m, "observacao", None)):
+            continue
+        vp = _pk_venda_devolucao_obs(getattr(m, "observacao", None))
+        mpk = getattr(m, "pk", None)
+        if vp is not None and mpk is not None:
+            candidatos.append((int(mpk), vp))
+    if not candidatos:
+        return set()
+    from produtos.models import VendaAgro
+
+    venda_pks = {vp for _, vp in candidatos}
+    mesma_sessao = set(
+        VendaAgro.objects.filter(pk__in=venda_pks, sessao_caixa_id=sid).values_list("pk", flat=True)
+    )
+    return {mpk for mpk, vp in candidatos if vp in mesma_sessao}
+
+
 def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
     """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
     totais: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
@@ -189,12 +235,16 @@ def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
 
     movimentos = getattr(sessao, "movimentos", None)
     if movimentos is not None:
-        for m in movimentos.all():
+        mov_list = list(movimentos.all())
+        retiradas_dev_dup = _movimentos_retirada_devolucao_duplicados_turno(sessao, mov_list)
+        for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
             val = _dec(m.valor)
             if m.tipo == "reforco":
                 totais[fn] += val
             elif m.tipo == "retirada":
+                if getattr(m, "pk", None) in retiradas_dev_dup:
+                    continue
                 totais[fn] -= val
 
     return {k: v.quantize(Decimal("0.01")) for k, v in totais.items() if v != 0 or k in FORMAS_PAGAMENTO_CAIXA}

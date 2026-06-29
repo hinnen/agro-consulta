@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from produtos.caixa_util import (
     FORMAS_PAGAMENTO_CAIXA,
+    eh_movimento_retirada_devolucao,
     extrair_linhas_conferencia_sessao,
     formatar_opcao_sessao_caixa,
     normalizar_forma_pagamento_caixa,
@@ -61,11 +62,6 @@ def _sessoes_opts_enriquecidas(df: date, *, limite: int = 80) -> list[dict[str, 
     for row in rows:
         row["rotulo_opcao"] = formatar_opcao_sessao_caixa(row)
     return rows
-
-
-def _eh_devolucao_mov(obs: str) -> bool:
-    o = (obs or "").strip().lower()
-    return o.startswith("devolução venda") or o.startswith("devolucao venda")
 
 
 def _eh_frete_mov(obs: str) -> bool:
@@ -161,9 +157,9 @@ def montar_relatorio_caixa(
                 )
             )
 
-    # Vendas (não devolvidas)
+    # Vendas no período (bruto por data da venda; devoluções abatem na seção «Devoluções»)
     vendas_qs = (
-        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim, devolvida_em__isnull=True)
+        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim)
         .select_related("sessao_caixa")
         .order_by("criado_em")
     )
@@ -262,7 +258,7 @@ def montar_relatorio_caixa(
                 )
             )
         elif m.tipo == MovimentoCaixa.Tipo.RETIRADA:
-            if _eh_devolucao_mov(obs):
+            if eh_movimento_retirada_devolucao(obs):
                 continue
             if _eh_deposito_mov(obs) and _forma_ok(m.forma_pagamento):
                 buckets["depositos"].append(
