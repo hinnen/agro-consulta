@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.84** · **produção v4.84** (deploy promoções bip/autocomplete **29/06**)
+**Versão app (`VERSION`):** **teste v4.86** · **produção v4.85** (keep-warm staging Render)
+
+### WIP — Render teste: cron keep-warm **v4.86** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Staging 1ª abertura demora minutos — autorizou ajuste sem ele |
+| **v4.86** | Cron **`agro-staging-keep-warm`** a cada **5 min** → `GET /healthz` (rede privada + URL pública fallback) · script `scripts/render_keep_warm.py` |
+| **Nota** | Não elimina cold start 100 % (plano Render dorme) — reduz muito se ficou >15 min parado · 1º ping após deploy ainda pode demorar |
+| **Custo** | ~US$ 1/mês cron Render (starter) |
 
 ### FECHADO + DEPLOY LOJA — promoções bip + autocomplete GM/nome **v4.83–v4.84** (29/06)
 

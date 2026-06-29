@@ -35,3 +35,13 @@ services:
     schedule: "*/10 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python manage.py estoque_mongo_ping
+
+  # Mantém o web staging acordado (spin-down Render ~15 min sem HTTP). Só pinga /healthz — leve.
+  - type: cron
+    name: agro-staging-keep-warm
+    runtime: python
+    branch: teste
+    schedule: "*/5 * * * *"
+    buildCommand: "true"
+    startCommand: python scripts/render_keep_warm.py
+    # Opcional no painel: AGRO_KEEP_WARM_URLS=https://SEU-STAGING.onrender.com/healthz
