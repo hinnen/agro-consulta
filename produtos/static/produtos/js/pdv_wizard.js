@@ -4160,8 +4160,6 @@
         Object.keys(map).forEach(function (k) {
             if (map[k]) map[k].classList.toggle('hidden', k !== painel);
         });
-        var confirmWrap = document.getElementById('pdv-ed-confirmar-wrap');
-        if (confirmWrap) confirmWrap.classList.toggle('hidden', painel !== 'detalhes');
         if (painel === 'detalhes') {
             var stDet = State.getState();
             if (!String((stDet.entrega && stDet.entrega.taxaEntregaModo) || '').trim()) {
@@ -4429,6 +4427,8 @@
             r.checked = modo !== '' && r.value === modo;
         });
         if (wrap) wrap.classList.toggle('hidden', modo !== 'sim');
+        var campos = document.getElementById('pdv-ed-detalhes-campos');
+        if (campos) campos.classList.toggle('pdv-ed-detalhes-campos--so-horario', modo !== 'sim');
         if (inpVal && modo === 'sim') {
             var display = frete > 0.009 ? String(frete.toFixed(2)).replace('.', ',') : '10,00';
             setInputValue(inpVal, display);
@@ -9128,11 +9128,6 @@
                 if (dest) entregaIrEditarFase(dest);
             });
         });
-
-        var btnEdConfirmar = document.getElementById('pdv-ed-confirmar');
-        if (btnEdConfirmar) {
-            btnEdConfirmar.addEventListener('click', confirmarEntregaDetalhesModal);
-        }
 
         var btnEf1Entrega = document.getElementById('pdv-ef1-entrega');
         if (btnEf1Entrega) {

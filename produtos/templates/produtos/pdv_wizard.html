@@ -918,7 +918,7 @@
     flex: none;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
-    width: min(94vw, 40rem);
+    width: min(94vw, 34rem);
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
     width: min(94vw, 38rem);
@@ -935,9 +935,84 @@
   #pdv-ed-meio-panel:not(.hidden) {
     display: grid;
   }
-  #pdv-ed-detalhes-panel:not(.hidden),
+  #pdv-ed-detalhes-panel:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+  }
   #pdv-ed-troco-panel:not(.hidden) {
     display: block;
+  }
+  .pdv-ed-detalhes-panel {
+    gap: 0.65rem;
+    padding: 0.85rem 1rem 0.95rem;
+  }
+  .pdv-ed-section-label {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .pdv-ed-taxa-opcoes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+  .pdv-ed-opcao {
+    display: flex;
+    min-height: 2.85rem;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border-radius: 0.8rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 0.45rem 0.35rem;
+    text-align: center;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: #334155;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .pdv-ed-opcao--verde { border-color: #6ee7b7; background: #f0fdf4; }
+  .pdv-ed-opcao--laranja { border-color: #fdba74; background: #fff7ed; }
+  .pdv-ed-opcao:hover { filter: brightness(0.98); }
+  .pdv-ed-opcao input { margin: 0; }
+  .pdv-ed-detalhes-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    align-items: end;
+  }
+  .pdv-ed-detalhes-campos--so-horario {
+    grid-template-columns: 1fr;
+  }
+  .pdv-ed-field-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  .pdv-ed-field-input {
+    width: 100%;
+    min-height: 2.7rem;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .pdv-ed-detalhes-hint {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
   }
   .pdv-modal-panel-50 {
     width: min(92vw, calc(85dvh * 16 / 9));

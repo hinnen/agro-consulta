@@ -10,41 +10,33 @@
         <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-3 text-left text-sm font-black uppercase tracking-wide text-white shadow-md hover:brightness-105 sm:min-h-[3.25rem] sm:text-base">Pagamento na entrega</button>
         <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-3 py-3 text-left text-sm font-black uppercase tracking-wide text-emerald-950 shadow-sm hover:bg-emerald-100 sm:min-h-[3.25rem] sm:text-base">Pagamento na loja</button>
       </div>
-      <div id="pdv-ed-detalhes-panel" class="hidden p-3.5 sm:p-4">
-        <div class="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] sm:items-start">
-          <div>
-            <p class="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-600">Taxa de entrega</p>
-            <div class="grid gap-2 sm:grid-cols-2">
-              <label class="pdv-wiz-choice pdv-wiz-choice--green min-h-[2.5rem] has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/80">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 text-emerald-600 accent-emerald-600">
-                <span class="text-xs font-black uppercase text-slate-800">Não cobrar frete</span>
-              </label>
-              <label class="pdv-wiz-choice min-h-[2.5rem] border-slate-300 has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100 sm:col-span-2">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 text-slate-600 accent-slate-600">
-                <span class="text-xs font-black uppercase text-slate-700">Decidir depois</span>
-              </label>
-              <div class="flex flex-wrap items-stretch gap-2 sm:col-span-2">
-                <label class="pdv-wiz-choice pdv-wiz-choice--orange min-h-[2.5rem] shrink-0 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/90">
-                  <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 text-orange-600 accent-orange-600">
-                  <span class="text-xs font-black uppercase text-slate-800">Cobrar frete</span>
-                </label>
-                <div id="pdv-entrega-taxa-valor-wrap" class="hidden min-w-0 flex-1 basis-[8rem]">
-                  <label class="block h-full rounded-xl border-2 border-dashed border-amber-400 bg-white/90 px-3 py-2">
-                    <span class="mb-1 block text-[10px] font-black uppercase text-slate-600">Valor (R$)</span>
-                    <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input w-full text-base font-bold" placeholder="10,00" inputmode="decimal" autocomplete="off">
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <label class="block">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Horário</span>
-            <input id="pdv-entrega-horario" type="time" class="pdv-input border-sky-200 bg-white" title="Lembretes 20 min antes e no horário">
+      <div id="pdv-ed-detalhes-panel" class="pdv-ed-detalhes-panel hidden">
+        <p class="pdv-ed-section-label">Frete</p>
+        <div class="pdv-ed-taxa-opcoes" role="radiogroup" aria-label="Taxa de entrega">
+          <label class="pdv-ed-opcao pdv-ed-opcao--verde has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 accent-emerald-600">
+            <span>Sem frete</span>
+          </label>
+          <label class="pdv-ed-opcao has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 accent-slate-600">
+            <span>Decidir depois</span>
+          </label>
+          <label class="pdv-ed-opcao pdv-ed-opcao--laranja has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+            <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 accent-orange-600">
+            <span>Cobrar frete</span>
           </label>
         </div>
-      </div>
-      <div id="pdv-ed-confirmar-wrap" class="hidden border-t border-slate-100 bg-slate-50 px-3.5 py-2.5 sm:px-4">
-        <button type="button" id="pdv-ed-confirmar" class="pdv-action-btn w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-black uppercase text-white shadow-md hover:bg-emerald-700">Confirmar taxa e horário</button>
+        <div id="pdv-ed-detalhes-campos" class="pdv-ed-detalhes-campos pdv-ed-detalhes-campos--so-horario">
+          <div id="pdv-entrega-taxa-valor-wrap" class="pdv-ed-field hidden">
+            <label id="pdv-ed-label-taxa-valor" class="pdv-ed-field-label" for="pdv-entrega-taxa-valor">Valor do frete (R$)</label>
+            <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input pdv-ed-field-input" placeholder="10,00" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-taxa-valor">
+          </div>
+          <div class="pdv-ed-field">
+            <span id="pdv-ed-label-horario" class="pdv-ed-field-label">Horário</span>
+            <input id="pdv-entrega-horario" type="time" class="pdv-input pdv-ed-field-input" title="Lembretes 20 min antes e no horário" aria-labelledby="pdv-ed-label-horario">
+          </div>
+        </div>
+        <p class="pdv-ed-detalhes-hint">Use <strong>F7</strong> ou o botão verde do rodapé para confirmar.</p>
       </div>
       <div id="pdv-ed-meio-panel" class="hidden grid gap-2.5 p-3.5 sm:grid-cols-2 sm:gap-3 sm:p-4">
         <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-3 py-3 text-left text-sm font-black uppercase tracking-wide text-slate-900 shadow-sm hover:bg-slate-100 sm:min-h-[3.25rem] sm:text-base">Dinheiro</button>
