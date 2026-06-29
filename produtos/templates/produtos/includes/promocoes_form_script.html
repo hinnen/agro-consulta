@@ -432,12 +432,55 @@
         renderResultadosBusca();
     }
 
-    function tentarAutoAdicionarBusca(q, items) {
+    function avancarSelecaoProximoDisponivel() {
+        for (var i = 0; i < sugestoesVisiveis.length; i++) {
+            if (!produtoJaNaLista(sugestoesVisiveis[i].produto_externo_id)) {
+                selIdx = i;
+                marcarSelecao();
+                return;
+            }
+        }
+        selIdx = -1;
+        marcarSelecao();
+    }
+
+    function contarDisponiveisBusca() {
+        return sugestoesVisiveis.filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        }).length;
+    }
+
+    function statusAposAdd(codigo) {
+        var restantes = contarDisponiveisBusca();
+        if (ultimaBusca && restantes > 0) {
+            setStatus(
+                'Adicionado <strong>' + (codigo || '') + '</strong> · ainda <strong>' +
+                restantes + '</strong> na lista «' + ultimaBusca + '».'
+            );
+            return;
+        }
+        if (ultimaBusca && restantes === 0) {
+            setStatus('Todos os itens de «' + ultimaBusca + '» já estão na promoção.');
+            return;
+        }
+        setStatus('Adicionado <strong>' + (codigo || '') + '</strong>.');
+    }
+
+    function limparCampoBusca() {
+        if (dom.busca) dom.busca.value = '';
+        ultimaBusca = '';
+        sugestoesCache = [];
+        sugestoesVisiveis = [];
+        totalEncontrados = 0;
+        selIdx = -1;
+        renderResultadosBusca();
+        focoBusca();
+    }
         var disp = (items || []).filter(function (p) {
             return !produtoJaNaLista(p.produto_externo_id);
         });
         if (disp.length === 1) {
-            incluirProduto(disp[0]);
+            incluirProduto(disp[0], { limparBusca: true });
             return true;
         }
         if (ehCodigoBarras(q) && disp.length > 1) {
@@ -455,11 +498,11 @@
             return codigoProdutoMatch(p, q);
         });
         if (exatos.length === 1) {
-            incluirProduto(exatos[0]);
+            incluirProduto(exatos[0], { limparBusca: true });
             return true;
         }
         if (codigoGmCompleto(q) && disp.length === 1) {
-            incluirProduto(disp[0]);
+            incluirProduto(disp[0], { limparBusca: true });
             return true;
         }
         return false;
@@ -556,7 +599,8 @@
             });
     }
 
-    function incluirProduto(p) {
+    function incluirProduto(p, opts) {
+        opts = opts || {};
         if (!p) return false;
         var pid = String(p.produto_externo_id || '').trim();
         if (!pid) {
@@ -574,17 +618,21 @@
             preco_padrao: Number(p.preco_padrao || 0),
             preco_promocional: tipoAtual() === 'valor_direto' ? Number(p.preco_padrao || 0) : null,
         });
-        limparTimersBusca();
+        var codigo = p.codigo || pid;
         renderListaProdutos();
-        showMsg('Adicionado: ' + (p.codigo || pid), true);
-        setStatus('Adicionado <strong>' + (p.codigo || pid) + '</strong>. Próximo item…');
-        if (dom.busca) dom.busca.value = '';
-        ultimaBusca = '';
-        sugestoesCache = [];
-        sugestoesVisiveis = [];
-        selIdx = -1;
+        showMsg('Adicionado: ' + codigo, true);
+
+        if (opts.limparBusca) {
+            limparTimersBusca();
+            limparCampoBusca();
+            setStatus('Adicionado <strong>' + codigo + '</strong>. Próximo item…');
+            return true;
+        }
+
         renderResultadosBusca();
-        focoBusca();
+        avancarSelecaoProximoDisponivel();
+        statusAposAdd(codigo);
+        if (dom.busca) dom.busca.focus();
         return true;
     }
 
@@ -610,8 +658,9 @@
             autoAddGm: ehCodigoGm(q) || /^GM/i.test(q),
         }).then(function (items) {
             var disp = items.filter(function (p) { return !produtoJaNaLista(p.produto_externo_id); });
-            if (disp.length === 1) incluirProduto(disp[0]);
-            else if (ehCodigoGm(q) || /^GM/i.test(q)) tentarAutoAdicionarGm(q, items);
+            if (disp.length === 1 && (ehCodigoBarras(q) || codigoGmCompleto(q))) {
+                incluirProduto(disp[0], { limparBusca: true });
+            }
         });
     }
 

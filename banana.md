@@ -967,7 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.86** · **produção v4.85** (keep-warm staging Render)
+**Versão app (`VERSION`):** **teste v4.88** · **produção v4.85** (promo add sem recarregar busca)
+
+### WIP — promoções: manter lista após + Add **v4.88** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Ao add, busca recarregava — operador perde lista «champ» com vários itens |
+| **v4.88** | + Add / Enter mantém termo e resultados; linha vira «Na promoção»; foco no próximo · Limpa campo só no **bip barras** / GM completo automático |
+| **Teste** | Buscar «champ» → add 3 itens seguidos sem perder lista |
 
 ### WIP — Render teste: cron keep-warm **v4.86** (29/06)
 
