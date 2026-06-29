@@ -973,7 +973,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
 
-**Escala P (Renan):** **Px,y** = entre **Px** e **P(x+1)** — mais urgente que o de baixo, menos que o de cima. Ex.: **P0,5** entre P0 e P1 · **P1,1** / **P1,5** entre P1 e P2 · **P2,3** entre P2 e P3. Inteiros: **P0** para a loja · **P1** grave · **P2** melhoria · **P3** depois.
+**Escala P (Renan):** **Px,y** = entre **Px** e **P(x+1)** — mais urgente que o de baixo, menos que o de cima. Decimal **menor** = mais perto do **P** inteiro de cima (ex. **P1,1** antes de **P1,5**). Inteiros: **P0** para a loja · **P1** grave · **P2** melhoria · **P3** depois.
+
+**Conferência (29/06):** itens **P1,x** já na fila batem com a regra (entre **P1** e **P2**): **FL-021** · **FL-022** = **P1,1** · **FL-019** · **FL-020** = **P1,5**. Nenhum precisou mudar de faixa. Ordem sugerida ao atacar: P1 → P1,1 → P1,5 → P2.
 
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
