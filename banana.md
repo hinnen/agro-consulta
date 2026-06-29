@@ -967,7 +967,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.18** · **produção v5.08** — promo mix selo camadas + agrupa linhas
+**Versão app (`VERSION`):** **teste v5.19** · **produção v5.19** — promo mix PDV + selos FL-003 fase 1
+
+### DEPLOY LOJA — promo mix + selos carrinho **v5.19** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — staging lento · *pode enviar produção* + senha **99738595** |
+| **Risco** | Baixo — só **PDV wizard** (JS/CSS) + fix catálogo delta · **sem** migração banco |
+| **Pacote** | `teste` → `producao` merge **`a44422c`** (v5.08 → v5.19) |
+| **O quê** | Promo mix (preço correto 3+2) · selos MIX · agrupa linhas · fix import catálogo |
+| **Loja** | **Ctrl+F5** no Chrome após deploy Render · vendas em andamento: OK continuar após refresh |
+| **Revert** | redeploy commit **`8ea8ac9`** (produção pré-merge) |
 
 ### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
 
