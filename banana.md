@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.70** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.71** · **produção v4.49** (deploy merge **29/06**)
 
 ### PDV entrega fluxo — sequência taxa/troco (29/06)
 
@@ -976,6 +976,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Taxa fora do form de endereço; popup após endereço; dinheiro/cartão depois da taxa; troco mostra total |
 | **Sequência** | F3 → pagamento local → endereço → taxa+horário → meio → troco (total) → enviar/ir pagamento |
 | **Futuro** | `entregaTaxaDevePularAuto()` — frete grátis por endereço omite popup taxa |
+| **v4.71** | Popup pagamento local/meio mais largo (~40rem); botões sem quebra de linha |
 | **v4.70** | Fix: `</div>` sobrando em `step_entrega.html` (v4.65) exibia Conferir entrega na etapa Produtos; JS guarda visibilidade fora de entrega |
 | **v4.69** | Popups entrega: tipografia maior (título, total troco, campos, botões) |
 | **v4.68** | Popup troco: layout compacto; não sobrepõe conferir entrega; corpo do card visível |

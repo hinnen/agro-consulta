@@ -947,7 +947,7 @@
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"],
   .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] {
-    width: min(94vw, 26rem);
+    width: min(94vw, 40rem);
   }
   #pdv-ed-body {
     display: block;
@@ -1062,11 +1062,15 @@
     gap: 0.65rem;
   }
   #pdv-ed-pagamento-local-panel .pdv-action-btn,
-  #pdv-ed-meio-panel .pdv-action-btn {
+  #pdv-ed-meio-panel .pdv-action-btn,
+  .pdv-ed-choice-btn {
     min-height: 3.35rem;
-    font-size: clamp(0.88rem, 0.3vw + 0.8rem, 1.05rem);
-    padding-top: 0.65rem;
-    padding-bottom: 0.65rem;
+    font-size: clamp(0.82rem, 0.28vw + 0.76rem, 1rem);
+    padding: 0.65rem 0.75rem;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
   }
   .pdv-modal-panel-50 {
     width: min(92vw, calc(85dvh * 16 / 9));
