@@ -1,6 +1,6 @@
 <section class="pdv-step-panel pdv-step-entrega-shell flex min-h-0 flex-1 flex-col gap-2" data-step-panel="entrega" hidden>
 
-  <div class="pdv-wiz-panel shrink-0">
+  <div id="pdv-entrega-partida-bar" class="pdv-wiz-panel shrink-0">
     <div class="pdv-wiz-block pdv-wiz-block--sky py-2">
       <div class="pdv-wiz-toolbar pdv-wiz-toolbar--oneline">
         <label class="shrink-0" for="pdv-entrega-origem-maps">Partida</label>
@@ -166,102 +166,95 @@
 
   <div id="pdv-entrega-resumo" class="min-h-0 hidden flex-1 flex-col overflow-hidden">
     <div class="pdv-wiz-panel pdv-wiz-panel--green min-h-0 flex flex-1 flex-col overflow-hidden">
-      <div class="pdv-wiz-step-bar pdv-wiz-step-bar--green shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+      <div class="pdv-entrega-review-top pdv-wiz-step-bar pdv-wiz-step-bar--green shrink-0">
         <span class="pdv-wiz-head-icon pdv-wiz-head-icon--review shrink-0" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
         </span>
-        <div class="min-w-0 flex-1">
-          <h3 class="pdv-wiz-block-title pdv-wiz-block-title--green text-[clamp(0.8rem,0.25vw+0.72rem,0.95rem)]">Conferir entrega</h3>
-          <p class="text-[11px] font-semibold leading-snug text-emerald-950/75">Revise antes de enviar · <strong class="font-black">Editar</strong> corrige um bloco</p>
+        <h3 class="pdv-wiz-block-title pdv-wiz-block-title--green min-w-0 flex-1">Conferir entrega</h3>
+        <div id="pdv-resumo-aside" class="pdv-entrega-review-total-inline hidden shrink-0">
+          <div id="pdv-resumo-total-wrap" class="pdv-entrega-review-total-box">
+            <span class="pdv-entrega-review-total-label">Total na entrega</span>
+            <span id="pdv-resumo-total" class="pdv-entrega-review-total-value">R$ 0,00</span>
+          </div>
         </div>
-        <button type="button" id="pdv-entrega-reiniciar-fluxo-pagamento-resumo" class="pdv-wiz-action-btn pdv-wiz-action-btn--slate shrink-0" title="Refazer escolha de pagamento na entrega ou na loja">Reiniciar pagamento</button>
+        <button type="button" id="pdv-entrega-reiniciar-fluxo-pagamento-resumo" class="pdv-wiz-action-btn pdv-wiz-action-btn--slate shrink-0" title="Refazer escolha de pagamento na entrega ou na loja">Reiniciar</button>
       </div>
 
       <div class="pdv-entrega-review-body">
         <div class="pdv-entrega-review-grid">
-          <div class="pdv-entrega-review-doc pdv-wizard-scroll">
-            <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-pagamento">
-              <div class="pdv-entrega-review-section-head">
-                <h4 id="pdv-review-sec-pagamento" class="pdv-entrega-review-section-title">Pagamento</h4>
-                <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="pagamento">Editar</button>
-              </div>
-              <dl class="pdv-entrega-review-rows pdv-entrega-review-rows--2">
-                <div class="pdv-entrega-review-row">
-                  <dt>Local</dt>
-                  <dd id="pdv-resumo-pagamento-local" class="pdv-entrega-review-val--lg">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row hidden">
-                  <dt>Forma</dt>
-                  <dd id="pdv-resumo-pagamento-meio">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row pdv-entrega-review-row--full hidden">
-                  <dt>Troco</dt>
-                  <dd id="pdv-resumo-pagamento-troco">—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-cliente">
-              <div class="pdv-entrega-review-section-head">
-                <h4 id="pdv-review-sec-cliente" class="pdv-entrega-review-section-title">Cliente e endereço</h4>
-                <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="endereco">Editar</button>
-              </div>
-              <dl class="pdv-entrega-review-rows pdv-entrega-review-rows--2">
-                <div class="pdv-entrega-review-row">
-                  <dt>Cliente</dt>
-                  <dd id="pdv-resumo-cliente-nome" class="pdv-entrega-review-val--lg">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row">
-                  <dt>Telefone</dt>
-                  <dd id="pdv-resumo-cliente-tel">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row pdv-entrega-review-row--full">
-                  <dt>Endereço</dt>
-                  <dd id="pdv-resumo-endereco-linha">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row pdv-entrega-review-row--full hidden">
-                  <dt>Complementos</dt>
-                  <dd id="pdv-resumo-endereco-extra" class="text-slate-600">—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-taxa">
-              <div class="pdv-entrega-review-section-head">
-                <h4 id="pdv-review-sec-taxa" class="pdv-entrega-review-section-title">Taxa e horário</h4>
-                <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="detalhes">Editar</button>
-              </div>
-              <dl class="pdv-entrega-review-rows pdv-entrega-review-rows--2">
-                <div class="pdv-entrega-review-row">
-                  <dt>Frete</dt>
-                  <dd id="pdv-resumo-taxa">—</dd>
-                </div>
-                <div class="pdv-entrega-review-row">
-                  <dt>Horário</dt>
-                  <dd id="pdv-resumo-horario">—</dd>
-                </div>
-              </dl>
-            </section>
-          </div>
-
-          <aside id="pdv-resumo-aside" class="pdv-entrega-review-aside hidden">
-            <div id="pdv-resumo-total-wrap" class="pdv-entrega-review-total-box">
-              <p class="pdv-entrega-review-total-label">Total na entrega</p>
-              <p id="pdv-resumo-total" class="pdv-entrega-review-total-value">R$ 0,00</p>
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-pagamento">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-pagamento" class="pdv-entrega-review-section-title">Pagamento</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="pagamento">Editar</button>
             </div>
-            <p class="pdv-entrega-review-hint">Confira com o cliente antes de <strong class="font-black">Enviar entrega</strong> (F7).</p>
-          </aside>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Local</dt>
+                <dd id="pdv-resumo-pagamento-local" class="pdv-entrega-review-val--lg">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Forma</dt>
+                <dd id="pdv-resumo-pagamento-meio">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Troco</dt>
+                <dd id="pdv-resumo-pagamento-troco">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-cliente">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-cliente" class="pdv-entrega-review-section-title">Cliente e endereço</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="endereco">Editar</button>
+            </div>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Cliente</dt>
+                <dd id="pdv-resumo-cliente-nome" class="pdv-entrega-review-val--lg pdv-entrega-review-clamp">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Telefone</dt>
+                <dd id="pdv-resumo-cliente-tel" class="pdv-entrega-review-clamp">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Endereço</dt>
+                <dd id="pdv-resumo-endereco-linha" class="pdv-entrega-review-clamp-2">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row hidden">
+                <dt>Compl.</dt>
+                <dd id="pdv-resumo-endereco-extra" class="pdv-entrega-review-clamp-2 text-slate-600">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="pdv-entrega-review-section" aria-labelledby="pdv-review-sec-taxa">
+            <div class="pdv-entrega-review-section-head">
+              <h4 id="pdv-review-sec-taxa" class="pdv-entrega-review-section-title">Taxa e horário</h4>
+              <button type="button" class="pdv-entrega-resumo-edit pdv-entrega-review-edit" data-pdv-edit-fase="detalhes">Editar</button>
+            </div>
+            <dl class="pdv-entrega-review-rows">
+              <div class="pdv-entrega-review-row">
+                <dt>Frete</dt>
+                <dd id="pdv-resumo-taxa">—</dd>
+              </div>
+              <div class="pdv-entrega-review-row">
+                <dt>Horário</dt>
+                <dd id="pdv-resumo-horario">—</dd>
+              </div>
+            </dl>
+          </section>
         </div>
 
         <div class="pdv-entrega-review-obs">
           <div class="pdv-entrega-review-obs-grid">
-            <label class="block">
-              <span class="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">Observação da venda</span>
-              <textarea id="pdv-resumo-venda-observacao" rows="2" class="pdv-input min-h-[2.5rem] resize-y border-slate-200 bg-white text-sm" placeholder="Informações para o fechamento ou equipe."></textarea>
+            <label class="block min-w-0">
+              <span class="pdv-entrega-review-obs-label">Obs. venda</span>
+              <input id="pdv-resumo-venda-observacao" type="text" class="pdv-input pdv-entrega-review-obs-input border-slate-200 bg-white" placeholder="Opcional — fechamento ou equipe" autocomplete="off">
             </label>
-            <label class="block">
-              <span class="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">Observação da entrega</span>
-              <textarea id="pdv-resumo-entrega-observacao" rows="2" class="pdv-input min-h-[2.5rem] resize-y border-orange-200 bg-white text-sm" placeholder="Ponto de encontro, rotas ou avisos ao entregador."></textarea>
+            <label class="block min-w-0">
+              <span class="pdv-entrega-review-obs-label">Obs. entrega</span>
+              <input id="pdv-resumo-entrega-observacao" type="text" class="pdv-input pdv-entrega-review-obs-input border-orange-200 bg-white" placeholder="Opcional — aviso ao entregador" autocomplete="off">
             </label>
           </div>
         </div>

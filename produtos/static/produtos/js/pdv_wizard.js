@@ -4005,6 +4005,14 @@
         if (dom.entregaResumo) {
             showElement(dom.entregaResumo, modo === 'entrega' && fase === 'done', 'flex');
         }
+        var partidaBar = document.getElementById('pdv-entrega-partida-bar');
+        if (partidaBar) {
+            showElement(partidaBar, modo === 'entrega' && fase !== 'done');
+        }
+        var entregaShell = document.querySelector('.pdv-step-entrega-shell');
+        if (entregaShell) {
+            entregaShell.classList.toggle('pdv-step-entrega-shell--resumo', modo === 'entrega' && fase === 'done');
+        }
         if (state.currentStep === 'entrega' && dom.entregaWizard && dom.entregaMain && dom.entregaResumo) {
             var wizOff =
                 dom.entregaWizard.hidden || dom.entregaWizard.classList.contains('hidden');
@@ -4271,13 +4279,11 @@
         var elHor = document.getElementById('pdv-resumo-horario');
         if (elTaxa) elTaxa.textContent = entregaResumoLabelTaxa(state);
         if (elHor) elHor.textContent = entregaResumoHorarioTexto(e.horario);
-        var totalWrap = document.getElementById('pdv-resumo-total-wrap');
-        var elTotal = document.getElementById('pdv-resumo-total');
         var aside = document.getElementById('pdv-resumo-aside');
-        if (totalWrap && elTotal) {
+        var elTotal = document.getElementById('pdv-resumo-total');
+        if (aside && elTotal) {
             var showTotal = lp === 'entrega';
-            totalWrap.classList.toggle('hidden', !showTotal);
-            if (aside) aside.classList.toggle('hidden', !showTotal);
+            aside.classList.toggle('hidden', !showTotal);
             if (showTotal) elTotal.textContent = formatMoney(Number(computed.total || 0));
         }
         var resumoVendaObs = document.getElementById('pdv-resumo-venda-observacao');

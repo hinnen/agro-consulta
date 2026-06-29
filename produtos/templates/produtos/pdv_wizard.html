@@ -899,12 +899,23 @@
   .pdv-step-entrega-shell {
     container-type: inline-size;
   }
+  .pdv-step-entrega-shell.pdv-step-entrega-shell--resumo {
+    gap: 0;
+  }
   @container (max-width: 42rem) {
     .pdv-step-entrega-shell .lg\:grid-cols-\[minmax\(0\,14rem\)_minmax\(0\,1fr\)\] {
       grid-template-columns: 1fr;
     }
   }
-  /* Conferir entrega — revisão tipo documento ERP (grade label/valor) */
+  /* Conferir entrega — grade 3 colunas, sem rolagem interna */
+  .pdv-entrega-review-top {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+    padding: 0.45rem 0.65rem;
+    min-height: 0;
+  }
   .pdv-entrega-review-body {
     display: flex;
     flex-direction: column;
@@ -918,51 +929,54 @@
     min-height: 0;
     flex: 1;
     overflow: hidden;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
   }
-  @container (min-width: 52rem) {
+  @container (max-width: 36rem) {
     .pdv-entrega-review-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+      grid-template-columns: 1fr;
     }
-  }
-  .pdv-entrega-review-doc {
-    min-height: 0;
-    overflow-y: auto;
-    background: #fff;
+    .pdv-entrega-review-section {
+      border-right: none !important;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pdv-entrega-review-section:last-child {
+      border-bottom: none;
+    }
   }
   .pdv-entrega-review-section {
-    border-bottom: 2px solid #e2e8f0;
-    padding: 0.65rem 0.85rem 0.75rem;
-  }
-  @container (min-width: 40rem) {
-    .pdv-entrega-review-section {
-      padding: 0.75rem 1.1rem 0.85rem;
-    }
+    min-height: 0;
+    overflow: hidden;
+    border-right: 2px solid #e2e8f0;
+    padding: 0.45rem 0.55rem 0.5rem;
+    display: flex;
+    flex-direction: column;
   }
   .pdv-entrega-review-section:last-child {
-    border-bottom: none;
+    border-right: none;
   }
   .pdv-entrega-review-section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.45rem;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+    flex-shrink: 0;
   }
   .pdv-entrega-review-section-title {
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
     color: #64748b;
   }
   .pdv-entrega-review-edit {
-    min-height: 1.85rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: 0.5rem;
+    min-height: 1.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.45rem;
     border: 2px solid #cbd5e1;
     background: #f8fafc;
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -974,104 +988,99 @@
     color: #047857;
   }
   .pdv-entrega-review-rows {
-    display: grid;
-    gap: 0.35rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
     margin: 0;
-  }
-  @container (min-width: 40rem) {
-    .pdv-entrega-review-rows--2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    min-height: 0;
+    flex: 1;
   }
   .pdv-entrega-review-row dt {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: #94a3b8;
     margin: 0;
   }
   .pdv-entrega-review-row dd {
-    margin: 0.1rem 0 0;
-    font-size: 0.9375rem;
+    margin: 0;
+    font-size: clamp(0.8125rem, 0.2vw + 0.76rem, 0.9rem);
     font-weight: 700;
     color: #0f172a;
-    line-height: 1.35;
+    line-height: 1.25;
   }
   .pdv-entrega-review-row dd.pdv-entrega-review-val--lg {
-    font-size: clamp(1rem, 0.35vw + 0.92rem, 1.15rem);
+    font-size: clamp(0.875rem, 0.25vw + 0.8rem, 1rem);
     font-weight: 900;
   }
-  .pdv-entrega-review-row--full {
-    grid-column: 1 / -1;
+  .pdv-entrega-review-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .pdv-entrega-review-aside {
-    order: -1;
-    border-bottom: 2px solid #a7f3d0;
-    background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
-    padding: 0.75rem 0.85rem;
-    display: flex;
+  .pdv-entrega-review-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: break-word;
+  }
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-box {
+    display: inline-flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 0.5rem;
+    align-items: flex-end;
+    padding: 0.35rem 0.55rem;
+    border-width: 2px;
+    border-radius: 0.65rem;
+    box-shadow: none;
   }
-  @container (min-width: 52rem) {
-    .pdv-entrega-review-aside {
-      order: 0;
-      border-bottom: none;
-      border-left: 2px solid #a7f3d0;
-      padding: 1rem;
-    }
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-label {
+    font-size: 0.5rem;
+    line-height: 1.1;
   }
-  .pdv-entrega-review-total-box {
-    text-align: center;
-    padding: 0.85rem 0.75rem;
-    border: 3px solid #34d399;
-    border-radius: 1rem;
-    background: #fff;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+  .pdv-entrega-review-total-inline .pdv-entrega-review-total-value {
+    margin-top: 0.1rem;
+    font-size: clamp(1.05rem, 0.5vw + 0.9rem, 1.35rem);
+    line-height: 1;
   }
   .pdv-entrega-review-total-label {
     font-size: 0.625rem;
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     color: #047857;
   }
   .pdv-entrega-review-total-value {
-    margin-top: 0.35rem;
-    font-size: clamp(1.5rem, 0.9vw + 1.2rem, 2.15rem);
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #064e3b;
-    line-height: 1.1;
-  }
-  .pdv-entrega-review-hint {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: #047857;
-    text-align: center;
-    line-height: 1.35;
   }
   .pdv-entrega-review-obs {
     flex-shrink: 0;
     border-top: 2px solid #e2e8f0;
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-    padding: 0.55rem 0.85rem 0.65rem;
-  }
-  @container (min-width: 40rem) {
-    .pdv-entrega-review-obs {
-      padding: 0.6rem 1.1rem 0.7rem;
-    }
+    background: #f8fafc;
+    padding: 0.35rem 0.55rem 0.4rem;
   }
   .pdv-entrega-review-obs-grid {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.35rem 0.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  @container (min-width: 48rem) {
-    .pdv-entrega-review-obs-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .pdv-entrega-review-obs-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.5625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+  .pdv-entrega-review-obs-input {
+    min-height: 2.15rem !important;
+    padding: 0.4rem 0.55rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
   }
   .pdv-wiz-toolbar label {
     font-size: 10px;
