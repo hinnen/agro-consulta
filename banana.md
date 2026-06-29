@@ -969,6 +969,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v4.90** · **produção v4.90** (hotfix promo Continuar **29/06**)
 
+### Fila loja — pedidos Zap / melhorias (Renan triagem)
+
+**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
+
+| # | P | Módulo | Pedido | Status | Desde |
+| - | - | ------ | ------ | ------ | ----- |
+| **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
+
+**Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
+
 ### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
 
 **Renan:** *«manda»* + senha **99738595**.
