@@ -967,7 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.22** · **produção v5.22** — fix FL-017 **loja deployado**
+**Versão app (`VERSION`):** **teste v5.24** · **produção v5.24** — FL-017 + perf menu caixa **loja**
+
+### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — teste OK · *pode subir* + senha **99738595** |
+| **Pacote** | Cherry-pick teste **`11d8634`** → loja **`eb9fcc9`** |
+| **Revert loja** | redeploy **`0a0fd52`** (v5.22) |
 
 ### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
 
