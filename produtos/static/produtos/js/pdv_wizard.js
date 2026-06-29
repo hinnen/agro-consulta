@@ -3166,7 +3166,7 @@
 
     function buildPayloadSalvarClienteEntrega(state) {
         commitEntregaClienteCamposFromDom();
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         state = state || State.getState();
         aplicarEntregaEnderecoNoClienteMemoria();
         state = State.getState();
@@ -3229,7 +3229,7 @@
             return false;
         }
         commitEntregaClienteCamposFromDom();
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         entregaPendingAfterSaveCliente = continuarAposEnderecoEntrega;
         openEntregaSalvarClienteModal();
         return true;
@@ -3334,7 +3334,7 @@
 
     function onEntregaBtnNext() {
         commitEntregaClienteCamposFromDom();
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         commitEntregaObsFromDom();
         var state = State.getState();
         var computed = State.getComputed();
@@ -3356,7 +3356,7 @@
                 alert('Informe o endereço básico da entrega (logradouro e bairro ou endereço legível).');
                 return;
             }
-            commitEntregaCamposEndereco();
+            commitEntregaCamposEndereco({ trimEnds: true });
             State.setEntregaPatch({ enderecoPassoConcluido: true });
             if (tentarModalSalvarClienteAposEndereco()) return;
             continuarAposEnderecoEntrega();
@@ -3370,14 +3370,21 @@
         tryProsseguirEntregaStep();
     }
 
-    function commitEntregaCamposEndereco() {
+    function commitEntregaCamposEndereco(opts) {
+        opts = opts || {};
+        var trimEnds = !!opts.trimEnds;
+        function campoEndereco(el, sempreTrim) {
+            if (!el) return '';
+            var v = String(el.value != null ? el.value : '');
+            return sempreTrim || trimEnds ? v.trim() : v;
+        }
         var st = State.getState();
         var e0 = st.entrega || {};
         var e = Object.assign({}, e0, {
-            logradouro: dom.entregaLogradouro ? dom.entregaLogradouro.value.trim() : '',
-            numero: dom.entregaNumero ? dom.entregaNumero.value.trim() : '',
+            logradouro: campoEndereco(dom.entregaLogradouro, false),
+            numero: campoEndereco(dom.entregaNumero, true),
             bairro: dom.entregaBairro ? dom.entregaBairro.value : '',
-            plusCode: dom.entregaPluscode ? dom.entregaPluscode.value.trim() : ''
+            plusCode: campoEndereco(dom.entregaPluscode, false)
         });
         var line = buildLinhaEnderecoEntrega({ entrega: e, cliente: st.cliente });
         State.setEntregaPatch({
@@ -3403,7 +3410,7 @@
                 dom.entregaBairro.value = bai;
             }
         }
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         if (!entregaEnderecoEditadoPeloUsuario && entregaFaseAtual() === 'endereco') {
             entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
         }
@@ -4579,15 +4586,15 @@
         var num = String(e.numero || '').trim();
         var bai = String(e.bairro || '').trim();
         if (!log && !num && !bai && String(e.endereco || '').trim()) {
-            setInputValue(dom.entregaLogradouro, e.endereco);
+            setInputValueUnlessFocused(dom.entregaLogradouro, e.endereco);
         } else {
-            setInputValue(dom.entregaLogradouro, e.logradouro || c.logradouro || '');
+            setInputValueUnlessFocused(dom.entregaLogradouro, e.logradouro || c.logradouro || '');
         }
-        setInputValue(dom.entregaNumero, e.numero || c.numero || '');
+        setInputValueUnlessFocused(dom.entregaNumero, e.numero || c.numero || '');
         setSelectValue(dom.entregaBairro, e.bairro || c.bairro || '', '');
-        setInputValue(dom.entregaPluscode, e.plusCode || c.plus_code || '');
-        setInputValue(dom.entregaComplemento, e.complemento);
-        setInputValue(dom.entregaReferencia, e.referencia || (c && c.referencia_rural) || '');
+        setInputValueUnlessFocused(dom.entregaPluscode, e.plusCode || c.plus_code || '');
+        setInputValueUnlessFocused(dom.entregaComplemento, e.complemento);
+        setInputValueUnlessFocused(dom.entregaReferencia, e.referencia || (c && c.referencia_rural) || '');
         setInputValue(dom.entregaHorario, e.horario);
         setInputValue(dom.entregaTroco, e.troco);
         setInputValue(dom.entregaObservacao, e.observacao);
@@ -7964,7 +7971,7 @@
             alert('Adicione itens à venda antes de enviar a entrega.');
             return;
         }
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         commitEntregaObsFromDom();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
@@ -8024,7 +8031,7 @@
             alert('Adicione itens à venda antes de continuar.');
             return;
         }
-        commitEntregaCamposEndereco();
+        commitEntregaCamposEndereco({ trimEnds: true });
         commitEntregaObsFromDom();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
@@ -8741,6 +8748,9 @@
                 el.addEventListener('input', function () {
                     marcarEntregaEnderecoEditadoPeloUsuario();
                     commitEntregaCamposEndereco();
+                });
+                el.addEventListener('blur', function () {
+                    commitEntregaCamposEndereco({ trimEnds: true });
                 });
             }
         });
