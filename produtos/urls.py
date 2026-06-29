@@ -52,6 +52,7 @@ urlpatterns = [
     path('promocoes/nova/', promocoes_views.promocoes_nova_view, name='promocoes_nova'),
     path('promocoes/<int:pk>/editar/', promocoes_views.promocoes_editar_view, name='promocoes_editar'),
     path('api/promocoes/salvar/', promocoes_views.api_promocoes_salvar, name='api_promocoes_salvar'),
+    path('api/promocoes/<int:pk>/excluir/', promocoes_views.api_promocoes_excluir, name='api_promocoes_excluir'),
     path('api/promocoes/buscar-produto/', promocoes_views.api_promocoes_buscar_produto, name='api_promocoes_buscar_produto'),
     path('api/promocoes/ativas-pdv/', promocoes_views.api_promocoes_ativas_pdv, name='api_promocoes_ativas_pdv'),
     path('compras/relatorio-a4/', views.compras_relatorio_a4_view, name='compras_relatorio_a4'),

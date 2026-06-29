@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.80** · **produção v4.80** (deploy fix promoções **29/06**)
+**Versão app (`VERSION`):** **teste v4.81** · **produção v4.80** (excluir promoção pendente loja)
+
+### WIP — promoções: botão Excluir na lista **v4.81** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Apagar duplicatas «Promoção 4 por 10» (só tinha Editar) |
+| **v4.81** | Botão **Excluir** na lista · confirmação · API POST `api/promocoes/<id>/excluir/` · produtos vinculados somem junto (CASCADE) |
+| **Teste** | Lista promoções → **Excluir** → confirmar → linha some |
+| **Loja** | Após validar no Render teste |
 
 ### FECHADO + DEPLOY LOJA — fix promoção «Salvar» **v4.80** (29/06)
 

@@ -254,6 +254,15 @@ def api_promocoes_salvar(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_promocoes_excluir(request, pk: int):
+    promo = get_object_or_404(PromocaoAgro, pk=pk)
+    nome = promo.nome
+    promo.delete()
+    return JsonResponse({"ok": True, "nome": nome})
+
+
+@login_required(login_url="/admin/login/")
 @require_GET
 def api_promocoes_buscar_produto(request):
     q = (request.GET.get("q") or "").strip()
