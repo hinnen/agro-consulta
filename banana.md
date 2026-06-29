@@ -971,7 +971,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
-**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade. **P0** para a loja · **P1** grave · **P1,1** / **P1,5** importantes · **P2** melhoria · **P3** depois.
+**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
+
+**Escala P (Renan):** **P0** para a loja · **P1** grave · **P1,x** (ex. P1,1 · P1,5 · qualquer decimal) = **entre P1 e P2** — mais urgente que **P2**, menos que **P1** · **P2** melhoria · **P3** depois.
 
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
