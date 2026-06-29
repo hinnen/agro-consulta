@@ -25,14 +25,53 @@
           <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[3.75rem] sm:text-lg">Pagamento na entrega</button>
           <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[3.75rem] sm:text-lg">Pagamento na loja</button>
         </div>
+        <div id="pdv-ed-detalhes-panel" class="hidden max-h-[min(55vh,26rem)] space-y-4 overflow-y-auto p-4 sm:p-5">
+          <div>
+            <p class="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-600">Taxa de entrega</p>
+            <div class="space-y-2">
+              <label class="pdv-wiz-choice pdv-wiz-choice--green min-h-[2.5rem] has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/80">
+                <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 text-emerald-600 accent-emerald-600">
+                <span class="text-xs font-black uppercase text-slate-800">Não cobrar frete</span>
+              </label>
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="pdv-wiz-choice pdv-wiz-choice--orange min-h-[2.5rem] shrink-0 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/90">
+                  <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 text-orange-600 accent-orange-600">
+                  <span class="text-xs font-black uppercase text-slate-800">Cobrar frete</span>
+                </label>
+                <div id="pdv-entrega-taxa-valor-wrap" class="hidden min-w-0 flex-1 basis-[8rem]">
+                  <label class="block rounded-xl border-2 border-dashed border-amber-400 bg-white/90 px-3 py-2">
+                    <span class="mb-1 block text-[10px] font-black uppercase text-slate-600">Valor (R$)</span>
+                    <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input w-full text-base font-bold" placeholder="10,00" inputmode="decimal" autocomplete="off">
+                  </label>
+                </div>
+              </div>
+              <label class="pdv-wiz-choice min-h-[2.5rem] border-slate-300 has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
+                <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 text-slate-600 accent-slate-600">
+                <span class="text-xs font-black uppercase text-slate-700">Decidir depois</span>
+              </label>
+            </div>
+          </div>
+          <label class="block max-w-xs">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Horário</span>
+            <input id="pdv-entrega-horario" type="time" class="pdv-input border-sky-200 bg-white" title="Lembretes 20 min antes e no horário">
+          </label>
+        </div>
+        <div id="pdv-ed-confirmar-wrap" class="hidden border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
+          <button type="button" id="pdv-ed-confirmar" class="pdv-action-btn w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700">Confirmar taxa e horário</button>
+        </div>
         <div id="pdv-ed-meio-panel" class="hidden flex flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
           <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[3.75rem] sm:text-lg">Dinheiro</button>
           <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.25rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-3.5 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[3.75rem] sm:text-lg">Cartão</button>
         </div>
         <div id="pdv-ed-troco-panel" class="hidden space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3 text-center">
+            <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800">Total na entrega</p>
+            <p id="pdv-ed-troco-total" class="mt-1 text-2xl font-black tabular-nums text-emerald-950">R$ 0,00</p>
+            <p class="mt-1 text-[11px] font-semibold text-emerald-900/80">Informe ao cliente e pergunte se precisa de troco.</p>
+          </div>
           <label class="block">
-            <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
-            <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
+            <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor em dinheiro (troco)</span>
+            <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00 ou 0 se não precisar" inputmode="decimal" autocomplete="off">
           </label>
           <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-2xl border-2 border-slate-200 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
@@ -99,39 +138,6 @@
               </label>
             </div>
           </div>
-        </div>
-
-        <div class="pdv-wiz-inner-card mt-3 space-y-3 border-2 border-amber-200 bg-amber-50/40 p-3 sm:p-4">
-          <p class="text-[11px] font-black uppercase tracking-wide text-amber-900">Taxa e horário</p>
-          <div>
-            <p class="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-600">Taxa de entrega</p>
-            <div class="space-y-2">
-              <label class="pdv-wiz-choice pdv-wiz-choice--green min-h-[2.5rem] has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/80">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="nao" class="h-4 w-4 shrink-0 text-emerald-600 accent-emerald-600">
-                <span class="text-xs font-black uppercase text-slate-800">Não cobrar frete</span>
-              </label>
-              <div class="flex flex-wrap items-center gap-2">
-                <label class="pdv-wiz-choice pdv-wiz-choice--orange min-h-[2.5rem] shrink-0 has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/90">
-                  <input type="radio" name="pdv-entrega-taxa-modo" value="sim" class="h-4 w-4 shrink-0 text-orange-600 accent-orange-600">
-                  <span class="text-xs font-black uppercase text-slate-800">Cobrar frete</span>
-                </label>
-                <div id="pdv-entrega-taxa-valor-wrap" class="hidden min-w-0 flex-1 basis-[8rem]">
-                  <label class="block rounded-xl border-2 border-dashed border-amber-400 bg-white/90 px-3 py-2">
-                    <span class="mb-1 block text-[10px] font-black uppercase text-slate-600">Valor (R$)</span>
-                    <input id="pdv-entrega-taxa-valor" type="text" class="pdv-input w-full text-base font-bold" placeholder="10,00" inputmode="decimal" autocomplete="off">
-                  </label>
-                </div>
-              </div>
-              <label class="pdv-wiz-choice min-h-[2.5rem] border-slate-300 has-[:checked]:border-slate-500 has-[:checked]:bg-slate-100">
-                <input type="radio" name="pdv-entrega-taxa-modo" value="depois" class="h-4 w-4 shrink-0 text-slate-600 accent-slate-600">
-                <span class="text-xs font-black uppercase text-slate-700">Decidir depois</span>
-              </label>
-            </div>
-          </div>
-          <label class="block max-w-xs">
-            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-600">Horário</span>
-            <input id="pdv-entrega-horario" type="time" class="pdv-input border-sky-200 bg-white" title="Lembretes 20 min antes e no horário">
-          </label>
         </div>
       </div>
     </div>

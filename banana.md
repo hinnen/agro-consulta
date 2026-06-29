@@ -244,8 +244,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animações (decisão Renan, 2026-06):** acúmulo de efeitos no app inteiro *pode* pesar em PC fraco — mas **este FAB é impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA página inteira, listas grandes, Mongo, JS do PDV/Lançamentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botão minúsculo **«FX on / FX off»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** → classe `html.agro-fx-reduced`: desliga arco-íris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/Orçamento no BI. **Não** desliga: barra de loading, feedback de scanner, spinners de «salvando» (úteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
-- Entrega: **Entregar (F3)** → pergunta **pagamento na entrega ou na loja** (sem «retirada ou entrega?» nem pop-up de taxa antes). Taxa + horário no formulário de endereço (após pagamento). Fluxo inline na etapa (sem modais empilhados).
-- Endereço de entrega oculto até concluir pagamento da entrega.
+- Entrega wizard **F3:** **Onde será o pagamento?** → **endereço** → popup **taxa + horário** → (na entrega) **dinheiro/cartão** → troco com **total** (produtos + frete). Frete grátis por endereço no futuro pula o popup taxa (`entregaTaxaDevePularAuto`). Sem «retirada ou entrega?».
+- Endereço oculto até escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualização manual + horário + standby.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.54** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.55** · **produção v4.49** (deploy merge **29/06**)
+
+### PDV entrega fluxo — sequência taxa/troco (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Taxa fora do form de endereço; popup após endereço; dinheiro/cartão depois da taxa; troco mostra total |
+| **Sequência** | F3 → pagamento local → endereço → taxa+horário → meio → troco (total) → enviar/ir pagamento |
+| **Futuro** | `entregaTaxaDevePularAuto()` — frete grátis por endereço omite popup taxa |
+| **Versão** | **v4.55** (após v4.54 tela cinza) |
 
 ### PDV entrega fluxo — fix (29/06 madrugada)
 

@@ -109,6 +109,8 @@
                 observacao: '',
                 taxaEntregaRespondida: false,
                 taxaEntregaModo: '',
+                /** true após F7 no form de endereço (mesmo com campos já preenchidos) */
+                enderecoPassoConcluido: false,
                 localPagamento: '',
                 meioNaEntrega: '',
                 pedidoEntregaPendenteId: null
