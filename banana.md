@@ -967,7 +967,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.22** · **produção v5.19** — fix FL-017 devolução caixa (painel + relatório)
+**Versão app (`VERSION`):** **teste v5.22** · **produção v5.22** — fix FL-017 **loja deployado**
+
+### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode enviar produção* + senha **99738595** · *com muito cuidado* |
+| **Risco** | **Baixo** — só `caixa_util.py` + `caixa_relatorio_util.py` · **sem** migração · **sem** PDV |
+| **Pacote** | Cherry-pick código teste **`a936f97`** + **`bed21ee`** → commit loja **`0a0fd52`** (não merge inteiro `teste`) |
+| **O quê** | Fechamento: devolução no mesmo turno não desconta 2× · Relatório: vendas bruto + devoluções → saldo certo |
+| **Loja** | Ctrl+F5 após Render · badge **v5.22** · falta fictícia (ex. 3× R$ 70 = R$ 210) **não** deve voltar |
+| **Revert** | redeploy **`a44422c`** (produção v5.19 pré-fix) |
+
+### ✅ FL-017 — validação Renan **teste v5.22** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relatório caixa** | **✅** — Vendas + Devoluções batem · saldo coerente (print: entradas R$ 26 − saídas R$ 6 = **R$ 20**) |
+| **Fechamento turno** | **✅ teste** — esperado deixa de «inventar falta» em dobro na devolução |
+| **Frete no relatório** | Renan viu linha de frete que antes não aparecia — efeito colateral do relatório voltar a fechar certo (não era foco do fix) |
+| **Loja — relato operador** | 3 devoluções **R$ 70** → fechamento mostrava **falta ~R$ 210** (70×3, desconto em dobro) — **fix v5.22 na loja** |
+| **Próximo** | Conferir loja pós-deploy (Ctrl+F5 · badge v5.22) |
+
+### ⚠️ FL-017 — confusão teste vs loja (29/06 — histórico)
+
+| Onde | Versão | Fix devolução caixa |
+| ---- | ------ | ------------------- |
+| **Render teste** | **v5.22** | **✅** |
+| **Render SistVale** | **v5.22** | **✅ deploy `0a0fd52`** |
 
 ### FIX — relatório caixa saldo devolução **FL-017** **v5.22** (29/06)
 
@@ -1102,7 +1130,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-014** | **P3** | PDV | Projetar forma **mais prática** de alterar **quantidade** no carrinho | 📋 Pendente | 29/06 |
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** não zera / confunde fechamento) | 📋 Pendente | 29/06 |
-| **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | 🔄 **teste v5.21** — validar staging | 29/06 |
+| **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | **✅ loja v5.22** · validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
