@@ -874,20 +874,64 @@
     min-width: 6rem;
     max-width: none;
   }
-  /* Pop-ups PDV — proporção 16:9; escala com Agro Display Scale (zoom no <html>) */
-  .pdv-ed-wizard-panel,
-  .pdv-modal-panel-50 {
-    width: min(92vw, calc(85dvh * 16 / 9));
-    height: min(85dvh, calc(92vw * 9 / 16));
-    max-width: 96vw;
-    max-height: 90dvh;
+  /* Pop-ups entrega — altura conforme conteúdo; rodapé Voltar/F7 clicável */
+  .pdv-ed-wizard-overlay {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: var(--pdv-footer-clearance, 3.4rem);
+    z-index: 125;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.6rem;
+    pointer-events: none;
+    background: rgba(15, 23, 42, 0.44);
+  }
+  #pdv-main-footer {
+    position: relative;
+    z-index: 130;
   }
   .pdv-ed-wizard-panel {
+    pointer-events: auto;
     display: flex;
     flex-direction: column;
+    width: min(94vw, 32rem);
+    height: auto;
+    max-height: 100%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
+    width: min(94vw, 42rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
+    width: min(94vw, 38rem);
+  }
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"],
+  .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] {
+    width: min(94vw, 30rem);
+  }
+  #pdv-ed-body {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
     overflow: hidden;
   }
+  #pdv-ed-pagamento-local-panel,
+  #pdv-ed-meio-panel {
+    flex: 0 0 auto;
+  }
+  #pdv-ed-detalhes-panel,
+  #pdv-ed-troco-panel {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
   .pdv-modal-panel-50 {
+    width: min(92vw, calc(85dvh * 16 / 9));
+    max-width: 96vw;
+    max-height: min(85dvh, calc(92vw * 9 / 16));
     overflow: auto;
   }
   .pdv-modal-panel-70 {

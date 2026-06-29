@@ -4056,6 +4056,7 @@
     }
 
     function aplicarEntregaWizardHeader(painel) {
+        var shell = document.getElementById('pdv-ed-shell');
         var header = document.getElementById('pdv-ed-header');
         var body = document.getElementById('pdv-ed-body');
         var etapa = document.getElementById('pdv-ed-etapa');
@@ -4092,16 +4093,18 @@
             }
         };
         var t = themes[painel] || themes.pagamento_local;
+        if (shell) {
+            shell.setAttribute('data-pdv-ed-painel', painel || 'pagamento_local');
+            shell.className =
+                'pdv-ed-wizard-panel rounded-[1.2rem] border-[3px] bg-white shadow-2xl ' + t.border;
+        }
         if (header) {
             header.className =
-                'rounded-t-2xl border-[3px] border-b-0 px-4 py-4 sm:px-5 sm:py-5 ' +
-                t.border +
-                ' ' +
+                'shrink-0 rounded-t-[1.05rem] border-b border-white/15 px-4 py-2.5 sm:px-5 sm:py-3 ' +
                 t.header;
         }
         if (body) {
-            body.className =
-                'rounded-b-2xl border-[3px] border-t-0 bg-white shadow-md ' + t.border;
+            body.className = 'shrink-0 bg-white';
         }
         if (etapa) etapa.textContent = t.etapa;
         if (titulo) titulo.textContent = t.titulo;
