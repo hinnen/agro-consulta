@@ -976,8 +976,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
 | **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
+| **FL-002** | **P3** | Promoções | Revisar **usabilidade** da tela de promoção e **limpar textos inúteis** | 📋 Pendente | 29/06 |
+| **FL-003** | **P3** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
+
+**Notas assistente (código interno — Renan ignora se quiser):**
+
+| ID | Tag | Escopo técnico resumido |
+| -- | --- | --------------------- |
+| FL-001 | `preco-tabela-forma-grupo` | Cadastro tabelas preço × forma ou × grupo — fora do `precos_por_forma` atual |
+| FL-002 | `promo-ux-copy` | `promocoes` form/wizard — UX + textos «?» / labels / ajuda |
+| FL-003 | `pdv-promo-badge-dre-cupom` | (1) badge/feedback PDV ao atingir regra promo · (2) classificar desconto promo em relatório/DRE «desconto clientes» · (3) cupom 80mm/PDF venda |
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
+
+**Notas FL-003:** hoje promo já altera preço no item; falta **feedback visível no balcão**, trilha contábil/gerencial explícita e linha na impressão — alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda.
 
 ### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
 
