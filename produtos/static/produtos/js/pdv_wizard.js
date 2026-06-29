@@ -1158,12 +1158,13 @@
     function syncEntregaEnderecoFromCliente(st) {
         st = st || State.getState();
         var c = st.cliente || {};
-        var e0 = st.entrega || {};
         var patch = {
-            logradouro: String(e0.logradouro || c.logradouro || '').trim(),
-            numero: String(e0.numero || c.numero || '').trim(),
-            bairro: String(e0.bairro || c.bairro || '').trim(),
-            plusCode: String(e0.plusCode || c.plus_code || '').trim()
+            logradouro: String(c.logradouro || '').trim(),
+            numero: String(c.numero || '').trim(),
+            bairro: String(c.bairro || '').trim(),
+            plusCode: String(c.plus_code || '').trim(),
+            complemento: '',
+            referencia: String(c.referencia_rural || '').trim()
         };
         var line = buildLinhaEnderecoEntrega({ entrega: patch, cliente: c });
         State.setEntregaPatch({
@@ -1171,8 +1172,13 @@
             numero: patch.numero,
             bairro: patch.bairro,
             plusCode: patch.plusCode,
-            endereco: line
+            complemento: patch.complemento,
+            referencia: patch.referencia,
+            endereco: line,
+            enderecoPassoConcluido: false
         });
+        entregaPlusGeocodeLastQ = String(patch.plusCode || '').trim();
+        resetEntregaClienteSnapshot();
     }
 
     function composeClienteEnderecoLinha(c) {
@@ -3314,6 +3320,7 @@
             modoRetiradaEntrega: 'entrega',
             ativa: true
         });
+        syncEntregaEnderecoFromCliente();
     }
 
     function ensureEntregaModoNaEtapa() {
@@ -5054,7 +5061,14 @@
             taxaEntregaModo: '',
             enderecoPassoConcluido: false,
             horario: '',
-            troco: ''
+            troco: '',
+            logradouro: '',
+            numero: '',
+            bairro: '',
+            plusCode: '',
+            complemento: '',
+            referencia: '',
+            endereco: ''
         });
         State.setPagamentoField('frete', 0);
         closeEntregaSalvarClienteModal();

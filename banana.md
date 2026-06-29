@@ -967,7 +967,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.77** · **produção v4.77** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.78** · **produção v4.77** (deploy merge **29/06**)
+
+### INCIDENTE LOJA — endereço entrega grudado em todos os clientes (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Todo cliente na entrega F3 mostrava o mesmo endereço do teste (Av. Adhemar…) |
+| **Causa** | Endereço da venda anterior ficava no estado da sessão; ao trocar cliente não limpava |
+| **Fix v4.78** | Troca de cliente repõe endereço do cadastro; F3 entrega sincroniza; voltar a Produtos zera |
+| **Agora na loja** | **Ctrl+F5** no Chrome (limpa sessão) até subir **v4.78** |
 
 ### FECHADO + DEPLOY LOJA — merge teste → producao **v4.77** (29/06)
 
