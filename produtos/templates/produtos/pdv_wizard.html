@@ -874,59 +874,66 @@
     min-width: 6rem;
     max-width: none;
   }
-  /* Pop-ups entrega — altura conforme conteúdo; rodapé Voltar/F7 clicável */
+  /* Pop-ups entrega — card só do tamanho do conteúdo; rodapé Voltar/F7 livre */
+  :root {
+    --pdv-footer-clearance: 4.35rem;
+  }
   .pdv-ed-wizard-overlay {
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    bottom: var(--pdv-footer-clearance, 3.4rem);
+    bottom: var(--pdv-footer-clearance);
     z-index: 125;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.45rem 0.6rem;
+    padding: 0.5rem 0.65rem;
     pointer-events: none;
+    overflow: visible;
+  }
+  .pdv-ed-wizard-overlay.hidden {
+    display: none !important;
+  }
+  .pdv-ed-wizard-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
     background: rgba(15, 23, 42, 0.44);
+    pointer-events: none;
   }
   #pdv-main-footer {
     position: relative;
-    z-index: 130;
+    z-index: 140;
   }
   .pdv-ed-wizard-panel {
+    position: relative;
+    z-index: 1;
     pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    width: min(94vw, 32rem);
-    height: auto;
-    max-height: 100%;
-    overflow: hidden;
-    flex-shrink: 0;
+    display: block;
+    width: min(94vw, 28rem);
+    height: fit-content;
+    max-height: calc(100dvh - var(--pdv-footer-clearance) - 1.25rem);
+    overflow: auto;
+    flex: none;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
-    width: min(94vw, 42rem);
+    width: min(94vw, 40rem);
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
     width: min(94vw, 38rem);
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"],
   .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] {
-    width: min(94vw, 30rem);
+    width: min(94vw, 26rem);
   }
   #pdv-ed-body {
-    display: flex;
-    flex-direction: column;
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow: hidden;
+    display: block;
+    height: auto;
   }
-  #pdv-ed-pagamento-local-panel,
-  #pdv-ed-meio-panel {
-    flex: 0 0 auto;
-  }
-  #pdv-ed-detalhes-panel,
-  #pdv-ed-troco-panel {
-    flex: 0 0 auto;
-    overflow: visible;
+  #pdv-ed-body > .hidden,
+  #pdv-ed-body > [hidden] {
+    display: none !important;
   }
   .pdv-modal-panel-50 {
     width: min(92vw, calc(85dvh * 16 / 9));
@@ -1873,6 +1880,8 @@
       </div>
     </section>
 </div>
+
+{% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
   <div id="pdv-quick-client-picker" class="pdv-client-picker-16x9 relative flex flex-col overflow-hidden rounded-2xl border-2 border-sky-400 bg-white shadow-2xl" role="document">
