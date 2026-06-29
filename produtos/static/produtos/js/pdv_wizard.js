@@ -313,6 +313,8 @@
     var entregaPlusGeocodeSeq = 0;
     var entregaPlusGeocodeLastQ = '';
     var entregaClienteSnapshot = null;
+    var entregaEnderecoEditadoPeloUsuario = false;
+    var entregaClienteSnapshotTimer = null;
     var entregaWizardAguardandoTroco = false;
     var _ensuringEntregaModo = false;
     var entregaPendingAfterSaveCliente = null;
@@ -3019,6 +3021,50 @@
         }
     }
 
+    function clienteEntregaSnapshotFromDom() {
+        return {
+            nome: dom.entregaClienteNome ? String(dom.entregaClienteNome.value || '').trim() : '',
+            telefone: dom.entregaClienteTelefone ? String(dom.entregaClienteTelefone.value || '').trim() : '',
+            logradouro: dom.entregaLogradouro ? String(dom.entregaLogradouro.value || '').trim() : '',
+            numero: dom.entregaNumero ? String(dom.entregaNumero.value || '').trim() : '',
+            bairro: dom.entregaBairro ? String(dom.entregaBairro.value || '').trim() : '',
+            plus_code: dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '',
+            complemento: dom.entregaComplemento ? String(dom.entregaComplemento.value || '').trim() : '',
+            referencia: dom.entregaReferencia ? String(dom.entregaReferencia.value || '').trim() : ''
+        };
+    }
+
+    function clienteEntregaTelefoneNormalizado(tel) {
+        return String(tel || '').replace(/\D/g, '');
+    }
+
+    function clienteEntregaSnapshotsIguais(a, b) {
+        if (!a || !b) return true;
+        var keys = [
+            'nome',
+            'telefone',
+            'logradouro',
+            'numero',
+            'bairro',
+            'plus_code',
+            'complemento',
+            'referencia'
+        ];
+        for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            var va = String(a[k] || '').trim();
+            var vb = String(b[k] || '').trim();
+            if (k === 'telefone') {
+                if (clienteEntregaTelefoneNormalizado(va) !== clienteEntregaTelefoneNormalizado(vb)) {
+                    return false;
+                }
+            } else if (va !== vb) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function clienteEntregaSnapshotFromState(state) {
         state = state || State.getState();
         var c = state.cliente || {};
@@ -3035,11 +3081,42 @@
         };
     }
 
-    function clienteEntregaDadosAlterados(state) {
+    function resetEntregaClienteSnapshot() {
+        entregaClienteSnapshot = null;
+        entregaEnderecoEditadoPeloUsuario = false;
+        if (entregaClienteSnapshotTimer) {
+            clearTimeout(entregaClienteSnapshotTimer);
+            entregaClienteSnapshotTimer = null;
+        }
+        agendarCapturaEntregaClienteSnapshot();
+    }
+
+    function marcarEntregaEnderecoEditadoPeloUsuario() {
+        entregaEnderecoEditadoPeloUsuario = true;
+    }
+
+    function agendarCapturaEntregaClienteSnapshot() {
+        if (entregaClienteSnapshotTimer) clearTimeout(entregaClienteSnapshotTimer);
+        if (entregaFaseAtual() !== 'endereco') return;
+        entregaClienteSnapshotTimer = setTimeout(function () {
+            entregaClienteSnapshotTimer = null;
+            if (entregaFaseAtual() !== 'endereco') return;
+            if (entregaEnderecoEditadoPeloUsuario || entregaClienteSnapshot) return;
+            entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
+        }, 400);
+    }
+
+    function garantirEntregaClienteSnapshotInicial() {
+        if (!entregaClienteSnapshot && entregaFaseAtual() === 'endereco') {
+            entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
+        }
+    }
+
+    function clienteEntregaDadosAlterados() {
         if (!entregaClienteSnapshot) return false;
-        return (
-            JSON.stringify(clienteEntregaSnapshotFromState(state)) !==
-            JSON.stringify(entregaClienteSnapshot)
+        return !clienteEntregaSnapshotsIguais(
+            entregaClienteSnapshot,
+            clienteEntregaSnapshotFromDom()
         );
     }
 
@@ -3130,12 +3207,13 @@
     }
 
     function tentarModalSalvarClienteAposEndereco() {
-        commitEntregaClienteCamposFromDom();
-        commitEntregaCamposEndereco();
+        garantirEntregaClienteSnapshotInicial();
         var state = State.getState();
-        if (!clienteEntregaDadosAlterados(state) || !clienteAgroPkFromCliente(state.cliente)) {
+        if (!clienteEntregaDadosAlterados() || !clienteAgroPkFromCliente(state.cliente)) {
             return false;
         }
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
         entregaPendingAfterSaveCliente = continuarAposEnderecoEntrega;
         openEntregaSalvarClienteModal();
         return true;
@@ -3146,7 +3224,7 @@
         entregaPendingAfterSaveCliente = null;
         if (!salvarNoCadastro) {
             aplicarEntregaEnderecoNoClienteMemoria();
-            entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+            entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
             closeEntregaSalvarClienteModal();
             if (continuar) continuar();
             return;
@@ -3175,7 +3253,7 @@
             return;
         }
         aplicarEntregaEnderecoNoClienteMemoria();
-        entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+        entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
         closeEntregaSalvarClienteModal();
         if (continuar) continuar();
         jsonPost(pattern.replace('__pk__', String(pk)), payload)
@@ -3191,7 +3269,7 @@
                 }
                 patchClienteInSearchResults(res.data.cliente);
                 syncEntregaEnderecoFromCliente(State.getState());
-                entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+                entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
             })
             .catch(function () {
                 showSaleDoneFeedback(
@@ -3311,6 +3389,9 @@
             }
         }
         commitEntregaCamposEndereco();
+        if (!entregaEnderecoEditadoPeloUsuario && entregaFaseAtual() === 'endereco') {
+            entregaClienteSnapshot = clienteEntregaSnapshotFromDom();
+        }
         var st = State.getState();
         if (!st.cliente) return;
         var pc = dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '';
@@ -4230,6 +4311,7 @@
             return;
         }
         if (destino === 'endereco') {
+            resetEntregaClienteSnapshot();
             State.setEntregaPatch({ enderecoPassoConcluido: false });
             atualizarEntregaWizardVisibilidade(State.getState());
             focarPrimeiroCampoEnderecoEntrega();
@@ -4353,6 +4435,7 @@
             return true;
         }
         if (fase === 'detalhes') {
+            resetEntregaClienteSnapshot();
             State.setEntregaPatch({
                 taxaEntregaRespondida: false,
                 taxaEntregaModo: '',
@@ -4365,6 +4448,7 @@
         }
         if (fase === 'endereco') {
             entregaWizardAguardandoTroco = false;
+            resetEntregaClienteSnapshot();
             State.setEntregaPatch({
                 localPagamento: '',
                 meioNaEntrega: '',
@@ -4444,8 +4528,8 @@
         } else if (entregaFaseAtual(state) === 'done') {
             renderEntregaResumo(state, State.getComputed());
         }
-        if (dom.entregaMain && dom.entregaMain.classList.contains('flex') && !entregaClienteSnapshot) {
-            entregaClienteSnapshot = clienteEntregaSnapshotFromState(state);
+        if (entregaFaseAtual(state) === 'endereco') {
+            agendarCapturaEntregaClienteSnapshot();
         }
     }
 
@@ -4895,9 +4979,9 @@
         State.setPagamentoField('frete', 0);
         closeEntregaSalvarClienteModal();
         entregaWizardAguardandoTroco = false;
-        entregaClienteSnapshot = null;
         entregaPendingAfterSaveCliente = null;
         entregaPlusGeocodeLastQ = '';
+        resetEntregaClienteSnapshot();
     }
     function escolherRetiradaEntrega(modo) {
         if (modo === 'retirada') {
@@ -7934,6 +8018,7 @@
 
     function reiniciarFluxoPagamentoEntregaUi() {
         entregaWizardAguardandoTroco = false;
+        resetEntregaClienteSnapshot();
         State.setEntregaPatch({
             localPagamento: '',
             meioNaEntrega: '',
@@ -8625,14 +8710,26 @@
         }
 
         [dom.entregaLogradouro, dom.entregaNumero, dom.entregaPluscode].forEach(function (el) {
-            if (el) el.addEventListener('input', commitEntregaCamposEndereco);
+            if (el) {
+                el.addEventListener('input', function () {
+                    marcarEntregaEnderecoEditadoPeloUsuario();
+                    commitEntregaCamposEndereco();
+                });
+            }
         });
         if (dom.entregaBairro) {
-            dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
-            dom.entregaBairro.addEventListener('input', commitEntregaCamposEndereco);
+            dom.entregaBairro.addEventListener('change', function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
+                commitEntregaCamposEndereco();
+            });
+            dom.entregaBairro.addEventListener('input', function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
+                commitEntregaCamposEndereco();
+            });
         }
         if (dom.entregaPluscode) {
             dom.entregaPluscode.addEventListener('input', function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
                 commitEntregaCamposEndereco();
                 scheduleEntregaPlusGeocode(false);
             });
@@ -8647,10 +8744,14 @@
             });
         }
         if (dom.entregaClienteNome) {
-            dom.entregaClienteNome.addEventListener('input', commitEntregaClienteCamposFromDom);
+            dom.entregaClienteNome.addEventListener('input', function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
+                commitEntregaClienteCamposFromDom();
+            });
         }
         if (dom.entregaClienteTelefone) {
             dom.entregaClienteTelefone.addEventListener('input', function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
                 commitEntregaClienteCamposFromDom();
                 renderEntregaClienteCampos(State.getState());
             });
@@ -8687,8 +8788,14 @@
 
         [
             [dom.vendaObservacao, function () { State.setVendaField('observacao', dom.vendaObservacao.value); }],
-            [dom.entregaComplemento, function () { State.setEntregaField('complemento', dom.entregaComplemento.value); }],
-            [dom.entregaReferencia, function () { State.setEntregaField('referencia', dom.entregaReferencia.value); }],
+            [dom.entregaComplemento, function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
+                State.setEntregaField('complemento', dom.entregaComplemento.value);
+            }],
+            [dom.entregaReferencia, function () {
+                marcarEntregaEnderecoEditadoPeloUsuario();
+                State.setEntregaField('referencia', dom.entregaReferencia.value);
+            }],
             [
                 dom.entregaHorario,
                 function () {
@@ -9051,6 +9158,7 @@
         if (btnEf1Entrega) {
             btnEf1Entrega.addEventListener('click', function () {
                 entregaWizardAguardandoTroco = false;
+                resetEntregaClienteSnapshot();
                 State.setEntregaPatch({
                     localPagamento: 'entrega',
                     meioNaEntrega: '',
@@ -9068,6 +9176,7 @@
         if (btnEf1Loja) {
             btnEf1Loja.addEventListener('click', function () {
                 entregaWizardAguardandoTroco = false;
+                resetEntregaClienteSnapshot();
                 State.setEntregaPatch({
                     localPagamento: 'loja',
                     meioNaEntrega: '',

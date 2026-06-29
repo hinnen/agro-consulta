@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.58** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.59** · **produção v4.49** (deploy merge **29/06**)
 
 ### PDV entrega fluxo — sequência taxa/troco (29/06)
 
@@ -976,7 +976,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Taxa fora do form de endereço; popup após endereço; dinheiro/cartão depois da taxa; troco mostra total |
 | **Sequência** | F3 → pagamento local → endereço → taxa+horário → meio → troco (total) → enviar/ir pagamento |
 | **Futuro** | `entregaTaxaDevePularAuto()` — frete grátis por endereço omite popup taxa |
-| **Versão** | **v4.58** — popup salvar cadastro após endereço; gravação em 2º plano |
+| **Versão** | **v4.59** — fix popup cadastro só quando usuário altera dados na tela |
 
 ### PDV entrega fluxo — fix (29/06 madrugada)
 
