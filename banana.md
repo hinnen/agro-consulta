@@ -982,7 +982,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-005** | **P2** | Entrega / impressão | Na impressão (separação/entrega): **valor em R$ do troco a levar** na ida — **conferir antes** (hoje só «troco: sim/não») | 📋 Pendente · 🔍 conferir | 29/06 |
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
 | **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** das telas (Agro Display Scale) e corrigir as necessárias | 📋 Pendente | 29/06 |
-| **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove (só limpando carrinho inteiro) | 📋 Pendente | 29/06 |
+| **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove (só limpando carrinho inteiro) · ex. loja: **GM6083** | 📋 Pendente | 29/06 |
 | **FL-009** | **P2** | Etiquetas | Na tela de **impressão de etiquetas**: ao adicionar item, **não fechar** o autocomplete (manter busca aberta para bipar/digitar o próximo) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
@@ -1003,7 +1003,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Notas FL-005:** pré-análise 29/06 — via **Separação** já imprime «troco: sim/não»; **não** imprime o **valor em reais** a levar. Campo `entrega.troco` no PDV = «cliente paga com». Implementar linha explícita tipo **«Levar troco: R$ X,XX»** nas vias separação + entregador (se dinheiro na entrega).
 
-**Notas FL-008:** **P1** — impacto direto no balcão. Pedir à loja: produto/código GM, forma de pagamento, se promo ativa, print DevTools se possível.
+**Notas FL-008:** **P1** — impacto direto no balcão. **Caso reportado (29/06):** **GM6083** — após add no carrinho, qtd/preço/remover não respondem; só «Limpar carrinho». Reproduzir no staging com esse código; anotar se promo ou forma de pagamento estava ativa.
 
 **Notas FL-004:** projeto **novo** — RH atual cobre folha, vales e ficha; **não** tem ponto. Antes de codar: Renan define se é só registro interno, se entra no fechamento da folha e quem bate (PIN, lista na loja, celular).
 
