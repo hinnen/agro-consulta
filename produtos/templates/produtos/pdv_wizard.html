@@ -874,11 +874,26 @@
     min-width: 6rem;
     max-width: none;
   }
-  /* Pop-up entrega — largura alinhada ao fluxo de pagamento (max-w-lg) */
+  /* Pop-ups PDV — proporção 16:9; escala com Agro Display Scale (zoom no <html>) */
+  .pdv-ed-wizard-panel,
   .pdv-modal-panel-50 {
-    width: min(50vw, calc(88vh * 16 / 9));
-    max-width: 32rem;
-    max-height: min(88vh, calc(96vw * 9 / 16));
+    width: min(92vw, calc(85dvh * 16 / 9));
+    height: min(85dvh, calc(92vw * 9 / 16));
+    max-width: 96vw;
+    max-height: 90dvh;
+  }
+  .pdv-ed-wizard-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pdv-modal-panel-50 {
+    overflow: auto;
+  }
+  .pdv-modal-panel-70 {
+    width: min(92vw, calc(85dvh * 16 / 9));
+    max-width: min(56rem, 96vw);
+    max-height: min(85dvh, calc(96vw * 9 / 16));
     overflow: auto;
   }
   .pdv-step-entrega-shell {

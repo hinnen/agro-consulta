@@ -3972,13 +3972,17 @@
 
     function scrollEntregaWizardIntoView() {
         if (!dom.entregaWizard || dom.entregaWizard.classList.contains('hidden')) return;
-        try {
-            dom.entregaWizard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } catch (eScroll) {
+        var painel = entregaWizardPainelAtual();
+        var foco =
+            (painel === 'detalhes' && document.getElementById('pdv-entrega-horario')) ||
+            (painel === 'troco' && document.getElementById('pdv-ef3-troco-input')) ||
+            document.getElementById('pdv-ed-shell');
+        if (!foco) return;
+        setTimeout(function () {
             try {
-                dom.entregaWizard.scrollIntoView();
-            } catch (eScroll2) {}
-        }
+                foco.focus();
+            } catch (eFoco) {}
+        }, 80);
     }
 
     function entregaWizardPrecisaExibir(state) {
