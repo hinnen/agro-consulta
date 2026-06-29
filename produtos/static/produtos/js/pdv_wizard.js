@@ -2315,6 +2315,25 @@
         return null;
     }
 
+    function cartRowMixClass(item) {
+        if (!item || item.preco_manual) return '';
+        var cor = item.promo_mix_cor;
+        if (cor == null || cor === '') return '';
+        var cls = ' pdv-cart-row--mix pdv-cart-row--mix-' + String(cor);
+        if (item.promo_mix_pendente) cls += ' pdv-cart-row--mix-pendente';
+        return cls;
+    }
+
+    function renderCartMixNameTag(item) {
+        if (!item || item.preco_manual || item.promo_mix_cor == null) return '';
+        var titulo = 'Mesma promoção mix — linhas com a mesma cor somam juntas';
+        return (
+            '<span class="pdv-cart-mix-tag" title="' +
+            escapeHtml(titulo) +
+            '">MIX</span>'
+        );
+    }
+
     function renderCartPromoBadges(item, itens) {
         var empty = '<span class="pdv-cart-promo-wrap pdv-cart-promo--empty" aria-hidden="true"></span>';
         if (!item || item.preco_manual) return empty;
@@ -2410,7 +2429,9 @@
                     : formatPriceEdit(lineSubtotal(item));
                 return (
                     '' +
-                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5">' +
+                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5' +
+                    cartRowMixClass(item) +
+                    '">' +
                     '  <span class="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +
                     '" tabindex="0" role="button" title="Ampliar foto (Enter)">' +
@@ -2420,6 +2441,7 @@
                     '  </span>' +
                     '  <div class="pdv-cart-line overflow-hidden">' +
                     '    <span class="pdv-cart-nome">' +
+                    renderCartMixNameTag(item) +
                     escapeHtml(item.nome) +
                     '</span>' +
                     '  </div>' +

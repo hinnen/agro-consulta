@@ -85,6 +85,70 @@
         delete item.promo_unidades_normal;
         delete item.promo_qtd_pool;
         delete item.promo_linhas_pool;
+        delete item.promo_grupos_pool;
+        delete item.promo_mix_cor;
+        delete item.promo_mix_ativo;
+        delete item.promo_mix_pendente;
+    }
+
+    function alocarLevePaguePool(entries, promo) {
+        var lim = toNum(promo.qtd_x);
+        var py = toNum(promo.preco_y);
+        var units = [];
+        entries.forEach(function (e, ei) {
+            var qtd = toNum(e.qtd, 0);
+            for (var u = 0; u < qtd; u++) {
+                units.push({ entry: e, sortKey: ei * 10000 + u, padrao: e.padrao });
+            }
+        });
+        var totalQtd = units.length;
+        var nLinhas = entries.length;
+        var gruposPool = lim > 0 ? Math.floor(totalQtd / lim) : 0;
+        var promoSlots = gruposPool * lim;
+        var mixCor =
+            nLinhas > 1 && promo.id != null ? Math.abs(parseInt(String(promo.id), 10) || 0) % 6 : -1;
+        var promoCount = {};
+        var normalCount = {};
+
+        entries.forEach(function (e) {
+            var id = String(e.item.id);
+            promoCount[id] = 0;
+            normalCount[id] = 0;
+        });
+
+        if (promoSlots > 0) {
+            units.sort(function (a, b) {
+                if (b.padrao !== a.padrao) return b.padrao - a.padrao;
+                return a.sortKey - b.sortKey;
+            });
+            units.forEach(function (u, i) {
+                var id = String(u.entry.item.id);
+                if (i < promoSlots) promoCount[id]++;
+                else normalCount[id]++;
+            });
+        } else {
+            units.forEach(function (u) {
+                normalCount[String(u.entry.item.id)]++;
+            });
+        }
+
+        entries.forEach(function (e) {
+            var id = String(e.item.id);
+            var qPromo = promoCount[id] || 0;
+            var qNormal = normalCount[id] || 0;
+            var qtd = toNum(e.qtd, 0);
+            var total = qPromo * py + qNormal * e.padrao;
+            e.item.promocao = promo;
+            e.item.promo_unidades_promo = qPromo;
+            e.item.promo_unidades_normal = qNormal;
+            e.item.promo_qtd_pool = totalQtd;
+            e.item.promo_linhas_pool = nLinhas;
+            e.item.promo_grupos_pool = gruposPool;
+            e.item.promo_mix_ativo = gruposPool > 0 && qPromo > 0;
+            e.item.promo_mix_pendente = gruposPool <= 0 && totalQtd > 0;
+            e.item.promo_mix_cor = nLinhas > 1 && mixCor >= 0 ? mixCor : null;
+            e.item.preco = qtd > 0 ? Math.round((total / qtd) * 10000) / 10000 : e.padrao;
+        });
     }
 
     function padraoItemComForma(item, forma) {
@@ -100,30 +164,6 @@
         return padrao;
     }
 
-    function alocarLevePaguePool(entries, promo) {
-        var lim = toNum(promo.qtd_x);
-        var py = toNum(promo.preco_y);
-        var totalQtd = 0;
-        var nLinhas = entries.length;
-        entries.forEach(function (e) {
-            totalQtd += toNum(e.qtd, 0);
-        });
-        var slots = Math.floor(totalQtd / lim) * lim;
-        entries.forEach(function (e) {
-            var qtd = toNum(e.qtd, 0);
-            var qPromo = Math.min(qtd, slots);
-            slots -= qPromo;
-            var qNormal = qtd - qPromo;
-            var total = qPromo * py + qNormal * e.padrao;
-            e.item.promocao = promo;
-            e.item.promo_unidades_promo = qPromo;
-            e.item.promo_unidades_normal = qNormal;
-            e.item.promo_qtd_pool = totalQtd;
-            e.item.promo_linhas_pool = nLinhas;
-            e.item.preco = qtd > 0 ? Math.round((total / qtd) * 10000) / 10000 : e.padrao;
-        });
-    }
-
     function alocarAcimaUnidadesPool(entries, promo) {
         var lim = toNum(promo.qtd_x);
         var py = toNum(promo.preco_y);
@@ -133,6 +173,8 @@
             totalQtd += toNum(e.qtd, 0);
         });
         var ativo = totalQtd > lim;
+        var mixCor =
+            nLinhas > 1 && promo.id != null ? Math.abs(parseInt(String(promo.id), 10) || 0) % 6 : -1;
         entries.forEach(function (e) {
             var qtd = toNum(e.qtd, 0);
             e.item.promocao = promo;
@@ -140,6 +182,10 @@
             e.item.promo_unidades_normal = ativo ? 0 : qtd;
             e.item.promo_qtd_pool = totalQtd;
             e.item.promo_linhas_pool = nLinhas;
+            e.item.promo_grupos_pool = ativo ? 1 : 0;
+            e.item.promo_mix_ativo = ativo;
+            e.item.promo_mix_pendente = !ativo && totalQtd > 0;
+            e.item.promo_mix_cor = nLinhas > 1 && mixCor >= 0 ? mixCor : null;
             e.item.preco = ativo ? py : e.padrao;
         });
     }
@@ -261,6 +307,7 @@
                 qtdLinhaPromo: toNum(item.promo_unidades_promo, 0),
                 qtdLinhaNormal: toNum(item.promo_unidades_normal, 0),
                 linhasNoPool: Math.max(1, toNum(item.promo_linhas_pool, 1)),
+                mixMultiLinha: toNum(item.promo_linhas_pool, 0) > 1,
             };
         }
 
@@ -282,6 +329,7 @@
             qtdLinhaNormal:
                 item.promo_unidades_normal != null ? toNum(item.promo_unidades_normal, 0) : toNum(item.qtd, 0),
             linhasNoPool: nLinhas,
+            mixMultiLinha: nLinhas > 1,
         };
     }
 
@@ -343,28 +391,42 @@
             }
 
             if (pooled && qLinPromo != null) {
-                var badges = [];
+                var badgesMix = [];
+                var mixMulti = linhasNoPool > 1 || !!ctx.mixMultiLinha;
                 if (qLinPromo > 0) {
-                    var txtPromo =
-                        linhasNoPool === 1 &&
+                    if (mixMulti) {
+                        badgesMix.push({
+                            stack: true,
+                            lineTop: 'MIX',
+                            lineBottom: fmtQtdLabel(qLinPromo) + ' de ' + fmtQtdLabel(lim),
+                            title:
+                                tituloBase +
+                                ' — ' +
+                                fmtQtdLabel(qLinPromo) +
+                                ' un. desta linha no grupo de ' +
+                                fmtQtdLabel(lim) +
+                                ' (total mix ' +
+                                fmtQtdLabel(qtdPool) +
+                                ')',
+                        });
+                    } else if (
                         qLinPromo === qtd &&
                         restoPool <= 0 &&
                         gruposPool === 1
-                            ? 'PROMO ' + fmtQtdLabel(lim) + '×'
-                            : fmtQtdLabel(qLinPromo) + ' promo';
-                    badges.push({
-                        text: txtPromo,
-                        title:
-                            tituloBase +
-                            ' — ' +
-                            fmtQtdLabel(qtdPool) +
-                            ' un. no mix · ' +
-                            fmtQtdLabel(qLinPromo) +
-                            ' nesta linha',
-                    });
+                    ) {
+                        badgesMix.push({
+                            text: 'PROMO ' + fmtQtdLabel(lim) + '×',
+                            title: tituloBase,
+                        });
+                    } else {
+                        badgesMix.push({
+                            text: fmtQtdLabel(qLinPromo) + ' promo',
+                            title: tituloBase + ' — ' + fmtQtdLabel(qLinPromo) + ' nesta linha',
+                        });
+                    }
                 }
                 if (qLinNorm > 0) {
-                    badges.push({
+                    badgesMix.push({
                         text: '+' + fmtQtdLabel(qLinNorm) + ' normal',
                         title:
                             fmtQtdLabel(qLinNorm) +
@@ -373,10 +435,10 @@
                             ')',
                     });
                 }
-                if (!badges.length) return null;
+                if (!badgesMix.length) return null;
                 return {
                     state: qLinNorm > 0 ? 'misto' : 'ativo',
-                    badges: badges,
+                    badges: badgesMix,
                 };
             }
 

@@ -978,6 +978,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `integracoes.texto.normalizar` + fallback catálogo no wizard |
 | **Local** | `.env` com Mongo (`VENDA_ERP_MONGO_*`) · reiniciar runserver · Ctrl+F5 PDV |
 
+### FIX — promo mix 3+2 + indicador visual ligação **v5.14** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Mix 3 un. produto A + 2 un. produto B → preço/selo errado (ex. R$ 13,00 em vez de **R$ 12,90**) |
+| **Causa** | Slots promocionais na ordem FIFO do carrinho (3× promo na 1ª linha) |
+| **Fix** | Aloca slots promocionais priorizando **maior preço de tabela** (melhor desconto ao cliente) |
+| **Visual** | Linhas da mesma promo mix: **borda colorida** + pill **MIX** no nome + selo **MIX / N de X** |
+| **Arquivos** | `pdv_promocoes.js` · `pdv_wizard.js` · `pdv_wizard.html` |
+| **Teste** | Ctrl+F5 · GM1769 ×3 + GM1771 ×2 (promo leve 4) → total **R$ 12,90** · mesma cor nas 2 linhas |
+
 ### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
 
 | Item | Detalhe |
@@ -995,6 +1006,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Onde** | Linha do carrinho — entre **GM** e **qtd** (área indicada no print) |
 | **Selo verde** | Critério atingido — ex. **PROMO 4×** |
 | **Selo amarelo** | Duas linhas: **PROMO** (cima) + **Faltam N** (baixo) · N = mix no carrinho |
+| **Mix ativo** | Borda colorida + **MIX** no nome · selo **MIX / N de X** (+ **+N normal** se houver) |
 | **Dois selos** | Passou do critério — ex. **4 promo** + **+1 normal** (5 un. leve 4) |
 | **Remover** | Texto virou **lixeira** (ícone) para ganhar espaço |
 | **Só visual** | Preço já calculado antes; **não** mexe em venda/caixa/fiscal |
