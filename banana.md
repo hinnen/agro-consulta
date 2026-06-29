@@ -981,9 +981,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-004** | **P3** | RH | **Batida de ponto** dos funcionários (registro entrada/saída) | 📋 Pendente | 29/06 |
 | **FL-005** | **P2** | Entrega / impressão | Na impressão (separação/entrega): **valor em R$ do troco a levar** na ida — **conferir antes** (hoje só «troco: sim/não») | 📋 Pendente · 🔍 conferir | 29/06 |
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
-| **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** das telas (Agro Display Scale) e corrigir as necessárias | 📋 Pendente | 29/06 |
+| **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** (Agro Display Scale) — **começar por** `/vendas/` (consulta de vendas) | 📋 Pendente | 29/06 |
 | **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove (só limpando carrinho inteiro) · ex. loja: **GM6083** | 📋 Pendente | 29/06 |
 | **FL-009** | **P2** | Etiquetas | Na tela de **impressão de etiquetas**: ao adicionar item, **não fechar** o autocomplete (manter busca aberta para bipar/digitar o próximo) | 📋 Pendente | 29/06 |
+| **FL-010** | **P2** | Vendas | **Consulta de vendas** (`/vendas/`): buscador e **filtros completos** (período, cliente, forma, status, texto…) | 📋 Pendente | 29/06 |
+| **FL-011** | **P3** | Cashback | Revisar tela de **cashback** — melhorar usabilidade | 📋 Pendente | 29/06 |
+| **FL-012** | **P2** | Entrada NF | **Lixeira** para **desvincular produto da nota** — alinhar escopo com **Queila** antes de codar | 📋 Pendente · ❓ Queila | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -995,11 +998,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-004 | `rh-batida-ponto` | Módulo novo em `rh/` — hoje só folha/vales/ficha; definir: tablet/celular, PIN, export folha, integração fechamento |
 | FL-005 | `entrega-print-troco-r$` | `wizardPrintHtmlSeparacao` — hoje `troco: sim/não`; falta **R$ a levar** (troco calculado = paga com − total) |
 | FL-006 | `pdv-entregas-painel-link` | Fluxo PDV → `entregas_painel.html` + polish visual painel |
-| FL-007 | `layout-scale-audit` | Auditoria §11 telas críticas (PDV, caixa, entrega, CP…) |
-| FL-008 | `pdv-carrinho-item-travado` | Bug: linha carrinho sem editar qty/preço/remover — reproduzir + `pdv_wizard.js` cart handlers |
+| FL-007 | `layout-scale-audit` | **1ª tela:** `vendas_lista` / `/vendas/` — depois PDV, caixa, entrega, CP… |
+| FL-008 | `pdv-carrinho-item-travado` | Bug: linha carrinho sem editar qty/preço/remover — reproduzir + `pdv_wizard.js` · ex. **GM6083** |
 | FL-009 | `etiquetas-autocomplete-aberto` | `produtos_etiquetas.js` / core — após add na fila, manter painel de busca + foco no campo |
+| FL-010 | `vendas-lista-filtros` | `vendas_lista` view + template — busca texto + filtros avançados |
+| FL-011 | `cashback-ux` | Tela cashback — mapear rota/template atual; UX + textos |
+| FL-012 | `entrada-nf-desvincular-lixeira` | `entrada_nota.html` — API já tem `*_desvincular_de`; falta UI lixeira + fluxo com Queila |
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
+
+**Notas FL-007:** Renan (29/06) — **priorizar `/vendas/`** como piloto do ajuste de layout (Agro Display Scale §11); usar como referência antes das demais telas.
+
+**Notas FL-012:** backend parcial em `entrada_nota` / overlay (`c_prod_nf_desvincular_de`, `ean_embalagem_nf_desvincular_de`). **Pendente:** conversa com **Queila** — quando usar lixeira, nota em qual etapa, confirmação.
 
 **Notas FL-005:** pré-análise 29/06 — via **Separação** já imprime «troco: sim/não»; **não** imprime o **valor em reais** a levar. Campo `entrega.troco` no PDV = «cliente paga com». Implementar linha explícita tipo **«Levar troco: R$ X,XX»** nas vias separação + entregador (se dinheiro na entrega).
 
