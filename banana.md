@@ -461,7 +461,7 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | **4** | **Gestão produtos 100 % PG** (facetas + perf pós-NF) | Lentidão / lista | **✅ teste v4.36** — sem fallback Mongo; saldo ledger (v4.33) | Validar gestão |
 | **5** | **Compras dimensões** relatório (categoria/unidade sem scan Mongo) | Folhas grandes | **✅ teste v4.36** — buscar + NF etapa 6 sem Mongo obrigatório | Validar Compras |
 | **6** | **Entrada NF auditoria financeiro** + recovery títulos PG | Botão auditoria | **✅ teste 28/06** Renan | NF 112 · alertas 0 |
-| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **v4.31** patch fila PDV | Renan: vender 1 un. |
+| **7** | **PDV → Gestão saldo** pós-venda (v3.82) | Estoque gestão | **✅ teste 28/06** | GM9503 47→46 |
 | **8** | **Congelar Mongo financeiro** (`AGRO_FINANCEIRO_MONGO_CONGELADO`) | Só histórico | Off | Após 1–6 OK |
 | **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
 | **10** | **Backup PC** (CP/CR ZIP, cadastro Excel, vendas, NFC-e) | Seguro | Renan | Antes do 11 |
@@ -978,8 +978,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | # | Tela | Passos | OK? | Nota |
 | - | ---- | ------ | --- | ---- |
 | **1** | **Entrada NF** | Busca **NF** (ex. `112`) → **Auditar financeiro** | **✅ 28/06** | OK **1** · alertas **0** · título CP PG conferido na NF 112 |
-| **2** | **PDV → Gestão** | Vender **1 un.** de produto conhecido · **Gestão** já aberta → saldo **desce** sem F5 | ☐ | §4.15 item 7 · **próximo** |
-| **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | BI abriu v4.39.1 — conferir meta no gráfico |
+| **2** | **PDV → Gestão** | Vender **1 un.** · Gestão aberta → saldo desce | **✅ 28/06** | GM9503 **teste** · **47 → 46** (C) |
+| **3** | **BI `/`** | Gráfico vendas carrega · meta C / ticket coerentes (sem erro Mongo) | ☐ | **próximo** |
 | **4** | **Gráfico gastos** | Abre · totais **≈ CP** mesmo período (competência ou vencimento) | ☐ | §4.15 item 2 |
 | **5** | **Lançamentos DRE** | Abre período · totais batem (sem tela vazia / 503) | ☐ | §4.15 item 1 |
 | **6** | **Gestão** | Lista abre rápido · filtros **marca / categoria** · após Entrada NF **não** trava minutos | ☐ | §4.15 item 4 |
