@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.17** · **produção v5.08** — promo mix 3+2 + selo MIX
+**Versão app (`VERSION`):** **teste v5.18** · **produção v5.08** — promo mix selo camadas + agrupa linhas
 
 ### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
 
