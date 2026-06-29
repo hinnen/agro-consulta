@@ -411,6 +411,29 @@ def _mapa_estado_atual_produtos(
     if not uniq:
         return {}
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro
+        from produtos.models import Produto
+
+        if on_progress:
+            on_progress(10, "Catálogo Postgres…")
+        ovs = _overlay_mapa_por_ids_chunked(uniq)
+        prod_map = {
+            str(p.produto_externo_id or "")[:64]: p
+            for p in Produto.objects.filter(produto_externo_id__in=uniq)
+        }
+        out: dict[str, dict] = {}
+        for pid in uniq:
+            p = prod_map.get(pid) or catalogo_agro.obter_produto_model(pid)
+            if p is None:
+                continue
+            pid_key = str(p.produto_externo_id or pid)[:64]
+            row = catalogo_agro.produto_agro_para_row(p, ovs.get(pid_key) or ovs.get(pid))
+            out[pid] = row
+        return out
+
     client, db = obter_conexao_mongo()
     if db is None:
         return {}
@@ -721,6 +744,19 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
                 if mk in doc and doc[mk] is not None:
                     mongo[mk] = float(doc[mk])
 
+    produto_pg: dict[str, Any] = {}
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro
+
+        p_pg = catalogo_agro.obter_produto_model(pid)
+        if p_pg is not None:
+            produto_pg = {
+                "custo": float(p_pg.custo or 0),
+                "preco_venda": float(p_pg.preco_venda or 0),
+            }
+
     campos = [k for k in IMPORT_KEYS if k in patch]
     para: dict[str, Any] = {}
     for k in campos:
@@ -737,6 +773,7 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
         "overlay_existia": ov is not None,
         "overlay": overlay,
         "mongo": mongo,
+        "produto_pg": produto_pg,
         "para": para,
     }
 
@@ -827,7 +864,39 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
                 if mk in mongo_antes:
                     mongo_set[mk] = float(mongo_antes[mk])
         if mongo_set:
-            db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+            from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+            if not agro_mongo_escrita_bloqueada():
+                db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        from decimal import Decimal
+
+        from produtos import catalogo_agro
+
+        pg_antes = item.get("produto_pg") or {}
+        ov_atual = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+        if ov_atual is not None:
+            custo_rev = None
+            if COL_PRECO_CUSTO in patch_keys and "custo" in pg_antes:
+                custo_rev = Decimal(str(pg_antes["custo"])).quantize(Decimal("0.01"))
+            catalogo_agro.sincronizar_modelo_produto_de_overlay(
+                pid, ov_atual, custo_payload=custo_rev
+            )
+        elif pg_antes:
+            p = catalogo_agro.obter_produto_model(pid)
+            if p is not None:
+                changed = False
+                if COL_PRECO_CUSTO in patch_keys and "custo" in pg_antes:
+                    p.custo = Decimal(str(pg_antes["custo"])).quantize(Decimal("0.01"))
+                    changed = True
+                if COL_PRECO_VENDA in patch_keys and "preco_venda" in pg_antes:
+                    p.preco_venda = Decimal(str(pg_antes["preco_venda"])).quantize(Decimal("0.01"))
+                    changed = True
+                if changed:
+                    p.save()
 
 
 def _historico_import_resumo_item(item: dict) -> dict:
@@ -883,11 +952,15 @@ def reverter_importacao_cadastro(historico_id: int, user) -> dict[str, Any]:
     if not items:
         raise ValueError("Backup vazio — não é possível desfazer.")
 
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
     from produtos.views import obter_conexao_mongo
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        raise ValueError("Mongo indisponível.")
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            raise ValueError("Mongo indisponível.")
 
     with transaction.atomic():
         for item in items:
@@ -924,6 +997,7 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         produto_externo_id=pid[:64],
         defaults={"usuario": user if user and user.is_authenticated else None},
     )
+    ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
     if COL_CODIGO_GM in patch:
         ov.codigo_nfe = str(patch[COL_CODIGO_GM] or "")[:64]
     if COL_NOME in patch:
@@ -938,7 +1012,21 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         ov.codigo_barras = str(patch[COL_CODIGO_BARRAS] or "")[:80]
     if COL_PRECO_VENDA in patch:
         ov.preco_venda = patch[COL_PRECO_VENDA]
+    if COL_PRECO_CUSTO in patch:
+        ex["preco_custo_overlay"] = float(patch[COL_PRECO_CUSTO])
+    ov.cadastro_extras = ex
     ov.save()
+
+    custo_payload = patch.get(COL_PRECO_CUSTO) if COL_PRECO_CUSTO in patch else None
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro
+
+        catalogo_agro.sincronizar_modelo_produto_de_overlay(
+            pid, ov, custo_payload=custo_payload
+        )
 
     mongo_set: dict[str, float] = {}
     if COL_PRECO_CUSTO in patch:
@@ -963,11 +1051,15 @@ def aplicar_importacao_cadastro(
     nome_arquivo: str = "",
     on_progress: None | Any = None,
 ) -> dict[str, Any]:
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
     from produtos.views import obter_conexao_mongo
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        raise ValueError("Mongo indisponível.")
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            raise ValueError("Mongo indisponível.")
 
     headers, rows_raw = _ler_planilha(path)
     colmap = _map_headers(headers)

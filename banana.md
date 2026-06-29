@@ -967,7 +967,40 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.49** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.51** · **produção v4.49** (deploy merge **29/06**)
+
+### WIP AGORA — desvinculação Mongo §4.15 (**29/06** · Renan retoma)
+
+**Feito recente:** pacotes corte v4.31–v4.49 (BI/Gestão/Compras/meta planilha) · loja **v4.49** · **cadastro ERP auxiliares 100 % PG** (**v4.51** teste).
+
+**Próxima trilha (ordem banana):**
+
+| Fase | # | O quê | Tipo |
+| ---- | - | ----- | ---- |
+| **A** | **10** | Backup PC atualizado (CP abertos ZIP + cadastro Excel) | Renan |
+| **B** | **8** | Congelar financeiro Mongo (`congelar_lancamentos_financeiro_agro` + env) | Renan Render + assistente |
+| ~~**C**~~ | código | ~~**Cadastro ERP** lista 100 % PG~~ | **✅ v4.51 teste** (lista já era PG; rotas aux + Excel import) |
+| **D** | código | **Compras relatório fornecedor** sem scan Mongo | Dev teste |
+| **E** | **11** | Checkpoint Lançamentos + conferir totais CP deduplicado | Renan + assistente |
+| **F** | **9** | Motor busca GM Compras/NF | Por último |
+| **G** | **12** | Cancelar assinatura ERP | Só após A–E estáveis |
+
+**Fora desta trilha:** DRE · meta/planilha (fechado v4.49) · CP/congelar/backup (Renan pausou) · revisão fórmula meta (Renan depois).
+
+**Renan 29/06 — medo de mexer CP de novo:** **OK — CP fora da trilha.** Itens **8–11** §4.15 **congelados** até pedir. **Próximo código sem CP:** fase **D** Compras relatório fornecedor (teste).
+
+### FECHADO TESTE — cadastro ERP auxiliares Postgres **v4.51** (29/06)
+
+| Rota / fluxo | Antes | Agora (`agro_pg`) |
+| ------------ | ----- | ----------------- |
+| `api_produtos_cadastro_proximo_cb_loja` | Mongo obrigatório | Seq **230…** só Postgres + overlays |
+| `api_produtos_cadastro_detalhe` (`__novo__`) | Código seq consultava Mongo | Seq só Postgres |
+| `try_criar_produto_postgres_somente_agro` | Idem | Idem |
+| `api_produtos_somente_agro_excluir` | Mongo obrigatório | Apaga `Produto` PG + limpa overlay |
+| Excel import/export prévia/aplicar/reverter | Estado/import exigia Mongo | Catálogo + gravação via `Produto` |
+| `api_produtos_cadastro_compras_historico` | 503 sem Mongo | Lista vazia + aviso (histórico ERP opcional) |
+
+**Conferir staging:** Ctrl+F5 cadastro · novo produto (código auto) · botão **230…** · Excel ↑↓ · `/api/agro/fonte-status/` → `cadastro_somente_postgres: true`.
 
 ### FECHADO + DEPLOY LOJA — merge max planilha/PDV **v4.49** (29/06)
 

@@ -467,11 +467,7 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     )
 
     if not cod_int and not cod_nfe:
-        from produtos.views import obter_conexao_mongo
-
-        client, db = obter_conexao_mongo()
-        col = client.col_p if client is not None else None
-        err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db, col)
+        err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(None, None)
         if err_al is not None:
             return (
                 JsonResponse(

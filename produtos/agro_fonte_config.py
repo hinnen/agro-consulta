@@ -202,6 +202,7 @@ def agro_fonte_status_dict() -> dict:
         "staging_readonly": agro_staging_readonly(),
         **agro_mongo_guard_status(),
         "catalogo_postgres": agro_catalogo_usa_postgres(),
+        "cadastro_somente_postgres": agro_catalogo_usa_postgres(),
         "pdv_merge_catalogo_postgres": agro_pdv_merge_catalogo_postgres(),
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "gestao_somente_postgres": agro_gestao_usa_postgres(),

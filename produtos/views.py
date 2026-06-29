@@ -204,7 +204,10 @@ from .nfe_entrada_util import (
     salvar_rascunho_entrada,
     sincronizar_financeiro_rascunho_entrada_nfe,
 )
-from .agro_codigo_barras_loja_util import mongo_alocar_proximo_codigo_barras_loja
+from .agro_codigo_barras_loja_util import (
+    alocar_proximo_codigo_barras_loja_postgres,
+    mongo_alocar_proximo_codigo_barras_loja,
+)
 from .agro_produto_fiscal_defaults import (
     fiscal_padrao_ui_cadastro,
     merge_fiscal_padrao_cadastro_manual_sp_sn,
@@ -17995,9 +17998,20 @@ def api_produtos_cadastro_compras_historico(request):
     """
     Histórico de compras (Mongo ERP) para o cadastro: agrega por produto mestre,
     variantes de Id e produtos encontrados pelos códigos de barras / fornecedor (aba Marcas).
+    Com catálogo Postgres: leitura opcional do Mongo ERP; se indisponível, retorna lista vazia.
     """
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
     client, db = obter_conexao_mongo()
     if db is None:
+        if agro_catalogo_usa_postgres():
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "linhas": [],
+                    "aviso": "Histórico de compras ERP indisponível (Mongo).",
+                }
+            )
         return JsonResponse({"ok": False, "erro": "Mongo indisponível", "linhas": []}, status=503)
     pid = str(request.GET.get("produto_id") or "").strip()
     if not pid:
@@ -18072,9 +18086,7 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
         if agro_catalogo_usa_postgres():
             from produtos.cadastro_codigo_sequencial_util import alocar_codigo_sequencial_novo_cadastro
 
-            client_pg, db_pg = obter_conexao_mongo()
-            col_pg = client_pg.col_p if client_pg is not None else None
-            err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(db_pg, col_pg)
+            err_al, c_sys, c_gm = alocar_codigo_sequencial_novo_cadastro(None, None)
             if err_al is not None:
                 return JsonResponse(
                     {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
@@ -18150,10 +18162,15 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
 @require_GET
 def api_produtos_cadastro_proximo_cb_loja(request):
     """Próximo código de barras interno 230 + 10 dígitos (embalagem loja / bipar no caixa)."""
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    err, cb = mongo_alocar_proximo_codigo_barras_loja(db, client.col_p)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    if agro_catalogo_usa_postgres():
+        err, cb = alocar_proximo_codigo_barras_loja_postgres()
+    else:
+        client, db = obter_conexao_mongo()
+        if db is None or client is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        err, cb = mongo_alocar_proximo_codigo_barras_loja(db, client.col_p)
     if err is not None:
         return err
     return JsonResponse({"ok": True, "codigo_barras": cb})
@@ -18163,8 +18180,8 @@ def api_produtos_cadastro_proximo_cb_loja(request):
 @require_POST
 def api_produtos_somente_agro_excluir(request):
     """
-    Remove produto criado apenas no Agro (Mongo ``CadastroSomenteAgro``), overlays SQLite e vínculos locais.
-    Não permite excluir espelho de produto ERP.
+    Remove produto criado apenas no Agro, overlays locais e vínculos Agro.
+    Com ``AGRO_FONTE_CATALOGO=agro_pg``: exclui ``Produto`` Postgres (sem exigir espelho Mongo).
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -18174,38 +18191,65 @@ def api_produtos_somente_agro_excluir(request):
     if not pid_raw or pid_raw.lower() in ("__novo__", "novo", "_novo"):
         return JsonResponse({"ok": False, "erro": "produto_id inválido"}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos import catalogo_agro as cat_agro
 
-    col = client.col_p
-
-    doc = _produto_mongo_por_id_externo(db, client, pid_raw)
-    if not doc:
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo Mongo."}, status=404)
+    use_pg = agro_catalogo_usa_postgres()
+    p_mod = cat_agro.obter_produto_model(pid_raw) if use_pg else None
+    client, db = (None, None)
+    doc: dict | None = None
 
     forcar_staff = bool(payload.get("forcar_exclusao_mongo_staff")) and getattr(
         request.user, "is_staff", False
     )
-    if _mongo_primeiro_bool(doc, ("CadastroSomenteAgro", "cadastroSomenteAgro")) is not True:
-        if not forcar_staff:
+
+    if use_pg:
+        if p_mod is None:
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
+        somente_agro = bool(p_mod.cadastro_somente_agro) or _erp_wl_id_produto_eh_prefixo_agro(pid_raw)
+        if not somente_agro and not forcar_staff:
             return JsonResponse(
                 {
                     "ok": False,
                     "erro": (
                         "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
-                        "Itens espelhados do ERP devem ser inativados ou removidos no sistema antigo. "
-                        "Em emergência, usuário staff pode chamar a mesma API com "
-                        '{"forcar_exclusao_mongo_staff": true} (remove só o espelho Mongo + dados locais Agro).'
+                        "Itens importados do ERP legado devem ser inativados no cadastro."
                     ),
                 },
                 status=403,
             )
-        logger.warning(
-            "api_produtos_somente_agro_excluir: exclusão Mongo forçada (staff) produto_id=%s user_id=%s",
-            pid_raw,
-            getattr(request.user, "pk", None),
-        )
+        if forcar_staff and not somente_agro:
+            logger.warning(
+                "api_produtos_somente_agro_excluir: exclusão Postgres forçada (staff) produto_id=%s user_id=%s",
+                pid_raw,
+                getattr(request.user, "pk", None),
+            )
+    else:
+        client, db = obter_conexao_mongo()
+        if db is None or client is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        doc = _produto_mongo_por_id_externo(db, client, pid_raw)
+        if not doc:
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo Mongo."}, status=404)
+        if _mongo_primeiro_bool(doc, ("CadastroSomenteAgro", "cadastroSomenteAgro")) is not True:
+            if not forcar_staff:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": (
+                            "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
+                            "Itens espelhados do ERP devem ser inativados ou removidos no sistema antigo. "
+                            "Em emergência, usuário staff pode chamar a mesma API com "
+                            '{"forcar_exclusao_mongo_staff": true} (remove só o espelho Mongo + dados locais Agro).'
+                        ),
+                    },
+                    status=403,
+                )
+            logger.warning(
+                "api_produtos_somente_agro_excluir: exclusão Mongo forçada (staff) produto_id=%s user_id=%s",
+                pid_raw,
+                getattr(request.user, "pk", None),
+            )
 
     pid64 = pid_raw[:64]
     pid100 = pid_raw[:100]
@@ -18219,18 +18263,22 @@ def api_produtos_somente_agro_excluir(request):
         )
 
     mongo_issues: list[str] = []
+    col = client.col_p if client is not None else None
 
     def _mongo_pos_commit_delete() -> None:
+        if db is None or not col:
+            return
         try:
             res = db[col].delete_one(_mongo_filtro_id_produto_externo(pid_raw))
             cnt = getattr(res, "deleted_count", 0) or 0
-            if cnt < 1:
+            if cnt < 1 and not use_pg:
                 mongo_issues.append(
                     "Não foi possível remover o documento no Mongo (já foi excluído ou ID não confere)."
                 )
         except Exception as exc:
             logger.warning("api_produtos_somente_agro_excluir: delete_one", exc_info=True)
-            mongo_issues.append(str(exc).strip()[:400] or "Falha ao excluir no Mongo.")
+            if not use_pg:
+                mongo_issues.append(str(exc).strip()[:400] or "Falha ao excluir no Mongo.")
         try:
             cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
             cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
@@ -18245,8 +18293,12 @@ def api_produtos_somente_agro_excluir(request):
             PedidoTransferencia.objects.filter(produto_externo_id=pid100).delete()
             ConfiguracaoTransferencia.objects.filter(produto_externo_id=pid100).delete()
             HistoricoTransferencia.objects.filter(produto_externo_id=pid100).delete()
-            transaction.on_commit(_mongo_pos_commit_delete)
-    except Exception as exc:
+            if use_pg and p_mod is not None:
+                p_mod.delete()
+                transaction.on_commit(_mongo_pos_commit_delete)
+            elif db is not None:
+                transaction.on_commit(_mongo_pos_commit_delete)
+    except Exception:
         logger.exception("api_produtos_somente_agro_excluir: Django")
         return JsonResponse({"ok": False, "erro": "Erro ao limpar registros locais. Nada foi alterado."}, status=500)
 
@@ -18255,7 +18307,10 @@ def api_produtos_somente_agro_excluir(request):
             {"ok": False, "erro": mongo_issues[0], "aviso_limpeza_parcial": True},
             status=503,
         )
-    return JsonResponse({"ok": True, "produto_id": pid_raw})
+    out = {"ok": True, "produto_id": pid_raw}
+    if use_pg:
+        out["fonte"] = "agro_pg"
+    return JsonResponse(out)
 
 
 @login_required(login_url="/admin/login/")
