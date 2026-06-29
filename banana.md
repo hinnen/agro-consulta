@@ -977,7 +977,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | - | ------ | ------ | ------ | ----- |
 | **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
 | **FL-002** | **P3** | Promoções | Revisar **usabilidade** da tela de promoção e **limpar textos inúteis** | 📋 Pendente | 29/06 |
-| **FL-003** | **P3** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
+| **FL-003** | **P2** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -989,7 +989,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
 
-**Notas FL-003:** hoje promo já altera preço no item; falta **feedback visível no balcão**, trilha contábil/gerencial explícita e linha na impressão — alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda.
+**Notas FL-003:** prioridade **P2** (29/06 Renan). Hoje promo já altera preço no item; falta **feedback visível no balcão**, trilha contábil/gerencial explícita e linha na impressão — alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda.
 
 ### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
 
