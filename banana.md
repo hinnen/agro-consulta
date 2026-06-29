@@ -967,7 +967,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.52** · **produção v4.49** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.53** · **produção v4.49** (deploy merge **29/06**)
 
 ### PDV entrega fluxo — fix (29/06 madrugada)
 
@@ -975,7 +975,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Após **Entregar F3**, repetia «Retirada ou entrega?» e «Taxa/horário/troco» antes do pagamento |
 | **Fix** | F3 → direto **Onde será o pagamento?**; taxa+horário no form de endereço; troco só no fluxo dinheiro |
-| **Teste** | `427655b` · push `teste` **v4.52** — validar no Render staging (Ctrl+F5) |
+| **Teste** | `427655b` (+ banana `ae52d39`) · push `teste` **v4.53** — validar no Render staging (Ctrl+F5) |
 
 ### AGENDA AMANHÃ — itens **8–11** §4.15 (Renan **29/06 noite**)
 
