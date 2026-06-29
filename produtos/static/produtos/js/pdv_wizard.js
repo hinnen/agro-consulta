@@ -3120,6 +3120,27 @@
         pdvEnsureModalOpenBody();
     }
 
+    function continuarAposEnderecoEntrega() {
+        var state = State.getState();
+        if (entregaTaxaDevePularAuto(state)) {
+            aplicarEntregaTaxaGratisAuto();
+        }
+        syncEntregaDetalhesModalUi();
+        scrollEntregaWizardIntoView();
+    }
+
+    function tentarModalSalvarClienteAposEndereco() {
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
+        var state = State.getState();
+        if (!clienteEntregaDadosAlterados(state) || !clienteAgroPkFromCliente(state.cliente)) {
+            return false;
+        }
+        entregaPendingAfterSaveCliente = continuarAposEnderecoEntrega;
+        openEntregaSalvarClienteModal();
+        return true;
+    }
+
     function finalizarEscolhaSalvarCliente(salvarNoCadastro) {
         var continuar = entregaPendingAfterSaveCliente;
         entregaPendingAfterSaveCliente = null;
@@ -3136,47 +3157,48 @@
         if (!pk || !pattern) {
             alert('Não foi possível salvar no cadastro (cliente sem vínculo local).');
             closeEntregaSalvarClienteModal();
+            if (continuar) continuar();
             return;
         }
         var payload = buildPayloadSalvarClienteEntrega(st);
         if (payload.nome.length < 2) {
             alert('Informe o nome do cliente (mínimo 2 caracteres).');
+            entregaPendingAfterSaveCliente = continuar;
+            openEntregaSalvarClienteModal();
             return;
         }
         var waDigits = String(payload.whatsapp || '').replace(/\D/g, '');
         if (waDigits.length < 10) {
             alert('Informe o telefone com DDD (mínimo 10 dígitos).');
+            entregaPendingAfterSaveCliente = continuar;
+            openEntregaSalvarClienteModal();
             return;
         }
-        var btn = document.getElementById('pdv-esc-salvar-cadastro');
-        var prev = btn ? btn.textContent : '';
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Salvando…';
-        }
+        aplicarEntregaEnderecoNoClienteMemoria();
+        entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+        closeEntregaSalvarClienteModal();
+        if (continuar) continuar();
         jsonPost(pattern.replace('__pk__', String(pk)), payload)
             .then(function (res) {
                 if (!res.ok || !res.data || !res.data.ok) {
-                    alert(
+                    showSaleDoneFeedback(
                         (res.data && (res.data.erro || res.data.error)) ||
-                            'Não foi possível salvar o cliente.'
+                            'Não foi possível salvar o cadastro do cliente. Confira no cadastro depois.',
+                        'warn',
+                        { placementTop: true, title: 'Cadastro do cliente' }
                     );
                     return;
                 }
                 patchClienteInSearchResults(res.data.cliente);
                 syncEntregaEnderecoFromCliente(State.getState());
                 entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
-                closeEntregaSalvarClienteModal();
-                if (continuar) continuar();
             })
             .catch(function () {
-                alert('Erro de rede ao salvar o cliente.');
-            })
-            .finally(function () {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = prev || 'Salvar no cadastro do cliente';
-                }
+                showSaleDoneFeedback(
+                    'Erro de rede ao salvar o cadastro. Confira no cadastro depois.',
+                    'warn',
+                    { placementTop: true, title: 'Cadastro do cliente' }
+                );
             });
     }
 
@@ -3243,21 +3265,13 @@
             }
             commitEntregaCamposEndereco();
             State.setEntregaPatch({ enderecoPassoConcluido: true });
-            if (entregaTaxaDevePularAuto(state)) {
-                aplicarEntregaTaxaGratisAuto();
-            }
-            syncEntregaDetalhesModalUi();
-            scrollEntregaWizardIntoView();
+            if (tentarModalSalvarClienteAposEndereco()) return;
+            continuarAposEnderecoEntrega();
             return;
         }
         var validation = canAdvance(state, computed);
         if (validation) {
             alert(validation);
-            return;
-        }
-        if (clienteEntregaDadosAlterados(state) && clienteAgroPkFromCliente(state.cliente)) {
-            entregaPendingAfterSaveCliente = tryProsseguirEntregaStep;
-            openEntregaSalvarClienteModal();
             return;
         }
         tryProsseguirEntregaStep();
