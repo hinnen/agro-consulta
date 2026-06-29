@@ -967,7 +967,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.78** · **produção v4.77** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.78** · **produção v4.78** (deploy merge **29/06**)
+
+### FECHADO + DEPLOY LOJA — fix endereço entrega grudado **v4.78** (29/06)
+
+**Renan:** *«suba»* + senha **99738595**.
+
+**Loja (`producao`):** merge **`teste`** → **`producao`** · commit **`91dbc09`** · merge **`6791b80`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · trocar cliente na entrega F3 → endereço do cadastro (não gruda o da venda anterior).
 
 ### INCIDENTE LOJA — endereço entrega grudado em todos os clientes (29/06)
 
@@ -976,7 +984,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Todo cliente na entrega F3 mostrava o mesmo endereço do teste (Av. Adhemar…) |
 | **Causa** | Endereço da venda anterior ficava no estado da sessão; ao trocar cliente não limpava |
 | **Fix v4.78** | Troca de cliente repõe endereço do cadastro; F3 entrega sincroniza; voltar a Produtos zera |
-| **Agora na loja** | **Ctrl+F5** no Chrome (limpa sessão) até subir **v4.78** |
+| **Agora na loja** | Após deploy **v4.78** · **Ctrl+F5** se ainda aparecer endereço antigo |
 
 ### FECHADO + DEPLOY LOJA — merge teste → producao **v4.77** (29/06)
 
