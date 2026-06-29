@@ -4234,7 +4234,7 @@
         if (modo === 'nao') return 'Sem frete';
         if (modo === 'depois') return 'A definir depois';
         if (modo === 'sim') {
-            return formatMoney(Number((state.pagamento && state.pagamento.frete) || 0));
+            return formatMoney(State.toNumber((state.pagamento && state.pagamento.frete) || 0));
         }
         return '—';
     }
@@ -4417,7 +4417,7 @@
         var m = String(e.taxaEntregaModo || '');
         if (m === 'nao' || m === 'sim' || m === 'depois') return m;
         if (e.taxaEntregaRespondida) {
-            var f = Number((state.pagamento && state.pagamento.frete) || 0);
+            var f = State.toNumber((state.pagamento && state.pagamento.frete) || 0);
             if (f > 0.009) return 'sim';
             return 'nao';
         }
@@ -4436,7 +4436,7 @@
             if (!draft) State.setEntregaField('taxaEntregaRespondida', true);
         } else if (modo === 'sim') {
             var st = State.getState();
-            var f = Number((st.pagamento && st.pagamento.frete) || 0);
+            var f = State.toNumber((st.pagamento && st.pagamento.frete) || 0);
             if (f <= 0.009) State.setPagamentoField('frete', 10);
             State.setEntregaField('taxaEntregaModo', 'sim');
             if (!draft) State.setEntregaField('taxaEntregaRespondida', true);
@@ -4449,12 +4449,18 @@
         if (!el) return;
         var st = State.getState();
         if (entregaTaxaModoEfetivo(st) !== 'sim') return;
-        State.setPagamentoField('frete', el.value);
+        var raw = String(el.value || '').trim();
+        if (!raw) {
+            var cur = State.toNumber(st.pagamento && st.pagamento.frete);
+            if (cur <= 0.009) State.setPagamentoField('frete', 10);
+            return;
+        }
+        State.setPagamentoField('frete', State.toNumber(raw));
     }
 
     function renderEntregaTaxaCard(state) {
         var modo = entregaTaxaModoEfetivo(state);
-        var frete = Number((state.pagamento && state.pagamento.frete) || 0);
+        var frete = State.toNumber((state.pagamento && state.pagamento.frete) || 0);
         var wrap = document.getElementById('pdv-entrega-taxa-valor-wrap');
         var inpVal = document.getElementById('pdv-entrega-taxa-valor');
         if (!modo && entregaWizardPainelAtual(state) === 'detalhes') {
