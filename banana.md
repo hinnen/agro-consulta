@@ -987,6 +987,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-010** | **P2** | Vendas | **Consulta de vendas** (`/vendas/`): buscador e **filtros completos** (período, cliente, forma, status, texto…) | 📋 Pendente | 29/06 |
 | **FL-011** | **P3** | Cashback | Revisar tela de **cashback** — melhorar usabilidade | 📋 Pendente | 29/06 |
 | **FL-012** | **P2** | Entrada NF | **Lixeira** para **desvincular produto da nota** — alinhar escopo com **Queila** antes de codar | 📋 Pendente · ❓ Queila | 29/06 |
+| **FL-013** | **P2** | Etiquetas / impressão | Código de barras em **PNG** (tipografia atual dificulta bip **1D e 2D**) | 📋 Pendente | 29/06 |
+| **FL-014** | **P3** | PDV | Projetar forma **mais prática** de alterar **quantidade** no carrinho | 📋 Pendente | 29/06 |
+| **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1004,10 +1007,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-010 | `vendas-lista-filtros` | `vendas_lista` view + template — busca texto + filtros avançados |
 | FL-011 | `cashback-ux` | Tela cashback — mapear rota/template atual; UX + textos |
 | FL-012 | `entrada-nf-desvincular-lixeira` | `entrada_nota.html` — API já tem `*_desvincular_de`; falta UI lixeira + fluxo com Queila |
+| FL-013 | `etiquetas-barcode-png` | Impressão etiquetas: trocar render (SVG/fonte?) por **PNG** raster — leitura scanner 1D/2D |
+| FL-014 | `pdv-qty-ux` | Design qty no carrinho — `pdv_wizard.js` +/- e campo; menos cliques/teclado |
+| FL-015 | `pdv-etiqueta-granel-scan` | `consulta_produtos.js` / `pdv_wizard.js` + `produtos_etiquetas*` — regra granel vs código loja |
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
 
 **Notas FL-007:** Renan (29/06) — **priorizar `/vendas/`** como piloto do ajuste de layout (Agro Display Scale §11); usar como referência antes das demais telas.
+
+**Notas FL-015:** poucos testes na loja (29/06). Conferir: código impresso na etiqueta granel vs parser PDV (`eh_granel`, prefixo GM, peso embutido). Pedir 2–3 códigos que falharam + print da etiqueta.
+
+**Notas FL-013:** hipótese — barras em SVG/fonte na folha saem finas/baixo contraste para leitor; gerar PNG (ou aumentar quiet zone / altura) na impressão de preço.
 
 **Notas FL-012:** backend parcial em `entrada_nota` / overlay (`c_prod_nf_desvincular_de`, `ean_embalagem_nf_desvincular_de`). **Pendente:** conversa com **Queila** — quando usar lixeira, nota em qual etapa, confirmação.
 
