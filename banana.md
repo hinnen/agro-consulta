@@ -971,7 +971,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
-**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
+**Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade. **P0** para a loja · **P1** grave · **P1,5** importante · **P2** melhoria · **P3** depois.
 
 | # | P | Módulo | Pedido | Status | Desde |
 | - | - | ------ | ------ | ------ | ----- |
@@ -990,6 +990,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-013** | **P2** | Etiquetas / impressão | Código de barras em **PNG** (tipografia atual dificulta bip **1D e 2D**) | 📋 Pendente | 29/06 |
 | **FL-014** | **P3** | PDV | Projetar forma **mais prática** de alterar **quantidade** no carrinho | 📋 Pendente | 29/06 |
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
+| **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** não zera / confunde fechamento) | 📋 Pendente | 29/06 |
+| **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | 📋 Pendente | 29/06 |
+| **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
+| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
+| **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1010,6 +1015,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-013 | `etiquetas-barcode-png` | Impressão etiquetas: trocar render (SVG/fonte?) por **PNG** raster — leitura scanner 1D/2D |
 | FL-014 | `pdv-qty-ux` | Design qty no carrinho — `pdv_wizard.js` +/- e campo; menos cliques/teclado |
 | FL-015 | `pdv-etiqueta-granel-scan` | `consulta_produtos.js` / `pdv_wizard.js` + `produtos_etiquetas*` — regra granel vs código loja |
+| FL-016 | `caixa-reset-contagem` | Fechamento/abertura — contagem dia anterior; `caixa_util` / painel fechar |
+| FL-017 | `caixa-devolucao-duplicada` | Devolução: estorno venda + movimento saída em duplicidade — `devolucao_*` views |
+| FL-018 | `vendas-detalhe-frete` | `/vendas/` detalhe/lista total sem frete; caixa relatório OK — alinhar `VendaAgro.frete` |
+| FL-019 | `fiado-recibo-pagamento` | Fiado: impressão/PDF recibo ao registrar pagamento parcial |
+| FL-020 | `cupom-frete-separado` | `venda_cupom_80mm` + NFC-e — frete não linha de produto / não base tributável cupom |
+
+**Notas FL-016 / FL-017 (caixa — 29/06):** dois **P1** operacionais. FL-017: conferir se devolução gera movimento caixa **e** reverte venda sem idempotência. Pedir nº venda + print fechamento se repetir.
+
+**Notas FL-018:** divergência **tela vendas** vs **relatório caixa** — bug de exibição/cálculo no detalhe, não necessariamente no caixa.
+
+**Notas FL-020:** frete hoje pode entrar no total do cupom/NFC-e; Renan quer **fora** do cupom fiscal e do cupom de venda (cobrança à parte ou só entrega).
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
 
