@@ -3332,8 +3332,7 @@
             return;
         }
         if (fase === 'troco') {
-            var btnTrocoOk = document.getElementById('pdv-ef3-ok');
-            if (btnTrocoOk) btnTrocoOk.click();
+            confirmarEntregaTrocoModal();
             return;
         }
         if (fase === 'endereco') {
@@ -3996,14 +3995,14 @@
     function atualizarEntregaWizardVisibilidade(state) {
         state = state || State.getState();
         var needsWizard = entregaWizardPrecisaExibir(state);
-        if (dom.entregaWizard) showElement(dom.entregaWizard, needsWizard, 'flex');
         var modo = entregaModoEfetivo(state);
         var fase = entregaFaseAtual(state);
+        if (dom.entregaWizard) showElement(dom.entregaWizard, needsWizard, 'flex');
         if (dom.entregaMain) {
-            showElement(dom.entregaMain, modo === 'entrega' && fase === 'endereco', 'flex');
+            showElement(dom.entregaMain, !needsWizard && modo === 'entrega' && fase === 'endereco', 'flex');
         }
         if (dom.entregaResumo) {
-            showElement(dom.entregaResumo, modo === 'entrega' && fase === 'done', 'flex');
+            showElement(dom.entregaResumo, !needsWizard && modo === 'entrega' && fase === 'done', 'flex');
         }
         var partidaBar = document.getElementById('pdv-entrega-partida-bar');
         if (partidaBar) {
@@ -4089,7 +4088,7 @@
                 header: 'bg-slate-800 text-white',
                 etapa: 'Pagamento na entrega',
                 titulo: 'Troco para quanto?',
-                sub: 'Total com produtos e frete. Pergunte se precisa de troco.'
+                sub: 'Pergunte ao cliente se precisa de troco.'
             }
         };
         var t = themes[painel] || themes.pagamento_local;
@@ -4140,17 +4139,33 @@
         scrollEntregaWizardIntoView();
     }
 
+    function confirmarEntregaTrocoModal() {
+        var inp = document.getElementById('pdv-ef3-troco-input');
+        var val = inp ? String(inp.value || '').trim() : '';
+        if (!val) {
+            alert('Informe o valor para troco (use 0 ou 0,00 se não precisar).');
+            return false;
+        }
+        entregaWizardAguardandoTroco = false;
+        State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'dinheiro', troco: val });
+        State.setEntregaField('maquininha', 'nao');
+        if (dom.entregaTroco) dom.entregaTroco.value = val;
+        syncEntregaDetalhesModalUi();
+        return true;
+    }
+
     function syncEntregaDetalhesModalUi() {
         var st = State.getState();
         if (!entregaWizardPrecisaExibir(st)) {
-            entregaWizardAguardandoTroco = false;
             atualizarEntregaWizardVisibilidade(st);
             if (entregaFaseAtual(st) === 'done') {
+                entregaWizardAguardandoTroco = false;
                 aposConcluirFluxoPagamentoEntrega();
             }
             return;
         }
         var painel = entregaFaseAtual(st);
+        if (entregaWizardAguardandoTroco) painel = 'troco';
         var map = {
             pagamento_local: document.getElementById('pdv-ed-pagamento-local-panel'),
             detalhes: document.getElementById('pdv-ed-detalhes-panel'),
@@ -9197,26 +9212,7 @@
         }
         var btnEf3Ok = document.getElementById('pdv-ef3-ok');
         if (btnEf3Ok) {
-            btnEf3Ok.addEventListener('click', function () {
-                var inp = document.getElementById('pdv-ef3-troco-input');
-                var val = inp ? String(inp.value || '').trim() : '';
-                if (!val) {
-                    alert('Informe o valor para troco (use 0 ou 0,00 se não precisar).');
-                    return;
-                }
-                entregaWizardAguardandoTroco = false;
-                State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'dinheiro', troco: val });
-                State.setEntregaField('maquininha', 'nao');
-                if (dom.entregaTroco) dom.entregaTroco.value = val;
-                syncEntregaDetalhesModalUi();
-            });
-        }
-        var btnEf3Can = document.getElementById('pdv-ef3-cancelar');
-        if (btnEf3Can) {
-            btnEf3Can.addEventListener('click', function () {
-                entregaWizardAguardandoTroco = false;
-                syncEntregaDetalhesModalUi();
-            });
+            btnEf3Ok.addEventListener('click', confirmarEntregaTrocoModal);
         }
         var inpEf3Troco = document.getElementById('pdv-ef3-troco-input');
         if (inpEf3Troco && btnEf3Ok) {

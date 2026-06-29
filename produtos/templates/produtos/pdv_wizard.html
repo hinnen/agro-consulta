@@ -921,7 +921,7 @@
     width: min(94vw, 34rem);
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="troco"] {
-    width: min(94vw, 38rem);
+    width: min(94vw, 30rem);
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="pagamento_local"],
   .pdv-ed-wizard-panel[data-pdv-ed-painel="meio"] {
@@ -940,7 +940,27 @@
     flex-direction: column;
   }
   #pdv-ed-troco-panel:not(.hidden) {
-    display: block;
+    display: flex;
+    flex-direction: column;
+  }
+  .pdv-ed-troco-panel {
+    gap: 0.65rem;
+    padding: 0.85rem 1rem 0.95rem;
+  }
+  .pdv-ed-troco-total-card {
+    border-radius: 0.8rem;
+    border: 2px solid #6ee7b7;
+    background: #ecfdf5;
+    padding: 0.55rem 0.75rem;
+    text-align: center;
+  }
+  .pdv-ed-troco-total-valor {
+    margin: 0.15rem 0 0;
+    font-size: clamp(1.25rem, 0.55vw + 1rem, 1.75rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #064e3b;
+    line-height: 1.1;
   }
   .pdv-ed-detalhes-panel {
     gap: 0.65rem;

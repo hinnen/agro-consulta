@@ -42,24 +42,17 @@
         <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-3 py-3 text-left text-sm font-black uppercase tracking-wide text-slate-900 shadow-sm hover:bg-slate-100 sm:min-h-[3.25rem] sm:text-base">Dinheiro</button>
         <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-3 py-3 text-left text-sm font-black uppercase tracking-wide text-indigo-950 shadow-sm hover:bg-indigo-100 sm:min-h-[3.25rem] sm:text-base">Cartão</button>
       </div>
-      <div id="pdv-ed-troco-panel" class="hidden p-3.5 sm:p-4">
-        <div class="grid gap-3 sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] sm:items-stretch">
-          <div class="flex flex-col justify-center rounded-xl border-2 border-emerald-300 bg-emerald-50 px-3 py-2.5 text-center">
-            <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800">Total na entrega</p>
-            <p id="pdv-ed-troco-total" class="mt-0.5 text-[clamp(1.2rem,0.5vw+1rem,1.65rem)] font-black tabular-nums text-emerald-950">R$ 0,00</p>
-            <p class="mt-0.5 text-[10px] font-semibold leading-snug text-emerald-900/80">Pergunte se precisa de troco.</p>
-          </div>
-          <div class="flex flex-col justify-center gap-2">
-            <label class="block">
-              <span class="mb-1 block text-[10px] font-black uppercase text-slate-600">Valor em dinheiro (troco)</span>
-              <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-base font-bold" placeholder="Ex.: 100,00 ou 0" inputmode="decimal" autocomplete="off">
-            </label>
-            <div class="flex gap-2">
-              <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-xl border-2 border-slate-200 py-2.5 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
-              <button type="button" id="pdv-ef3-ok" class="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-black uppercase text-white shadow-md hover:bg-emerald-700">Confirmar troco</button>
-            </div>
-          </div>
+      <div id="pdv-ed-troco-panel" class="pdv-ed-troco-panel hidden">
+        <div class="pdv-ed-troco-total-card">
+          <p class="pdv-ed-section-label">Total na entrega</p>
+          <p id="pdv-ed-troco-total" class="pdv-ed-troco-total-valor">R$ 0,00</p>
         </div>
+        <div class="pdv-ed-field">
+          <label id="pdv-ed-label-troco" class="pdv-ed-field-label" for="pdv-ef3-troco-input">Cliente paga com (R$)</label>
+          <input type="text" id="pdv-ef3-troco-input" class="pdv-input pdv-ed-field-input" placeholder="Ex.: 50,00 ou 0" inputmode="decimal" autocomplete="off" aria-labelledby="pdv-ed-label-troco">
+        </div>
+        <p class="pdv-ed-detalhes-hint">Confirme com <strong>F7</strong> · voltar com <strong>F1</strong>.</p>
+        <button type="button" id="pdv-ef3-ok" class="hidden" tabindex="-1" aria-hidden="true">Confirmar troco</button>
       </div>
     </div>
   </div>
