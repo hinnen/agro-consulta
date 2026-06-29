@@ -100,6 +100,128 @@
         apiUrl = String(url || '').trim();
     }
 
+    function fmtQtdLabel(q) {
+        var n = toNum(q, 0);
+        if (Math.abs(n - Math.round(n)) < 0.0001) return String(Math.round(n));
+        return String(n.toFixed(3)).replace(/\.?0+$/, '').replace('.', ',');
+    }
+
+    function fmtBrl(v) {
+        var n = toNum(v, 0);
+        return 'R$ ' + n.toFixed(2).replace('.', ',');
+    }
+
+    /**
+     * Textos do selo no carrinho (fase 1 FL-003) — só exibição; preço já vem de calcTotalLinha.
+     */
+    function resumoIndicadorPromo(promo, qtd, precoPadrao) {
+        if (!promo) return null;
+        qtd = toNum(qtd, 0);
+        precoPadrao = toNum(precoPadrao, 0);
+        if (qtd <= 0) return null;
+        var lim = toNum(promo.qtd_x);
+        var py = toNum(promo.preco_y);
+        var nome = String(promo.nome || '').trim();
+
+        if (promo.tipo === 'valor_direto') {
+            var pp = toNum(promo.preco_produto_promo, 0) || py;
+            return {
+                state: 'ativo',
+                badges: [
+                    {
+                        text: 'PROMO',
+                        title: nome || (pp > 0 ? 'Preço promocional ' + fmtBrl(pp) : 'Preço promocional'),
+                    },
+                ],
+            };
+        }
+
+        if (promo.tipo === 'leve_pague') {
+            if (lim <= 0 || py <= 0) return null;
+            var grupos = Math.floor(qtd / lim);
+            var resto = qtd - grupos * lim;
+            var unPromo = grupos * lim;
+            var tituloBase =
+                (nome ? nome + ' — ' : '') +
+                'Leve ' +
+                fmtQtdLabel(lim) +
+                ' por ' +
+                fmtBrl(py) +
+                ' cada';
+            if (grupos <= 0) {
+                var falta = lim - qtd;
+                return {
+                    state: 'pendente',
+                    badges: [
+                        {
+                            text: 'Faltam ' + fmtQtdLabel(falta),
+                            title: tituloBase,
+                        },
+                    ],
+                };
+            }
+            if (resto <= 0) {
+                var txt =
+                    grupos === 1
+                        ? 'PROMO ' + fmtQtdLabel(lim) + '×'
+                        : 'PROMO ' + fmtQtdLabel(unPromo) + '×';
+                var titulo =
+                    grupos === 1
+                        ? tituloBase
+                        : tituloBase + ' (' + fmtQtdLabel(grupos) + ' grupos)';
+                return {
+                    state: 'ativo',
+                    badges: [{ text: txt, title: titulo }],
+                };
+            }
+            return {
+                state: 'misto',
+                badges: [
+                    {
+                        text: fmtQtdLabel(unPromo) + ' promo',
+                        title: tituloBase + ' — ' + fmtQtdLabel(unPromo) + ' un. com desconto',
+                    },
+                    {
+                        text: '+' + fmtQtdLabel(resto) + ' normal',
+                        title:
+                            fmtQtdLabel(resto) +
+                            ' un. ao preço de tabela (' +
+                            fmtBrl(precoPadrao) +
+                            ')',
+                    },
+                ],
+            };
+        }
+
+        if (promo.tipo === 'acima_unidades') {
+            if (lim <= 0 || py <= 0) return null;
+            var tituloAcima =
+                (nome ? nome + ' — ' : '') +
+                'Acima de ' +
+                fmtQtdLabel(lim) +
+                ' un.: ' +
+                fmtBrl(py) +
+                '/un';
+            if (qtd <= lim) {
+                return {
+                    state: 'pendente',
+                    badges: [
+                        {
+                            text: '>' + fmtQtdLabel(lim) + ' un',
+                            title: tituloAcima,
+                        },
+                    ],
+                };
+            }
+            return {
+                state: 'ativo',
+                badges: [{ text: 'PROMO', title: tituloAcima }],
+            };
+        }
+
+        return null;
+    }
+
     function carregar(opts) {
         opts = opts || {};
         if (opts.empresa) setEmpresa(opts.empresa);
@@ -135,6 +257,7 @@
         aplicarNoItem: aplicarNoItem,
         recalcCarrinho: recalcCarrinho,
         criterioAtendido: criterioAtendido,
+        resumoIndicadorPromo: resumoIndicadorPromo,
         estaCarregado: function () {
             return carregado;
         },

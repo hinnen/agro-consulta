@@ -54,11 +54,58 @@
   }
   .pdv-cart-row-tools {
     display: grid;
-    grid-template-columns: 7rem auto auto auto;
+    grid-template-columns: 7rem minmax(0, auto) auto auto auto;
     align-items: center;
     justify-content: end;
     gap: 0.45rem;
     min-width: 0;
+  }
+  .pdv-cart-promo-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    align-items: stretch;
+    min-width: 0;
+    max-width: 5.75rem;
+  }
+  .pdv-cart-promo-badge {
+    display: block;
+    padding: 0.14rem 0.35rem;
+    border-radius: 0.45rem;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-align: center;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pdv-cart-promo--pendente .pdv-cart-promo-badge {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+  .pdv-cart-promo--ativo .pdv-cart-promo-badge {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+  }
+  .pdv-cart-promo--misto .pdv-cart-promo-badge:first-child {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+  }
+  .pdv-cart-promo--misto .pdv-cart-promo-badge:last-child {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+  }
+  .pdv-cart-promo--empty {
+    visibility: hidden;
+    pointer-events: none;
+    min-height: 2.65rem;
   }
   .pdv-cart-gm {
     display: inline-flex;
@@ -167,14 +214,23 @@
   }
   .pdv-cart-remove {
     flex-shrink: 0;
-    padding: 0.15rem 0.25rem;
-    font-size: 9px;
-    font-weight: 900;
-    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.65rem;
+    min-height: 2.65rem;
+    padding: 0;
+    border-radius: 0.75rem;
+    border: 2px solid #fecaca;
+    background: #fff1f2;
     color: #b91c1c;
-    text-decoration: underline;
-    text-decoration-color: #fca5a5;
   }
+  .pdv-cart-remove svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    pointer-events: none;
+  }
+  .pdv-cart-remove:active { background: #fee2e2; }
   #pdv-product-autocomplete {
     display: flex;
     flex-direction: column;
@@ -2058,10 +2114,14 @@
     .pdv-cart-row > span:first-child { width: 2.75rem; height: 2.75rem; }
     .pdv-cart-row-tools {
       grid-column: 1 / -1;
-      grid-template-columns: 6.25rem auto auto auto;
+      grid-template-columns: 6.25rem minmax(0, auto) auto auto auto;
       justify-content: end;
       row-gap: 0.35rem;
     }
+    .pdv-cart-promo-wrap { max-width: 5rem; }
+    .pdv-cart-promo-badge { font-size: 8px; }
+    .pdv-cart-remove { min-width: 2.35rem; min-height: 2.35rem; }
+    .pdv-cart-remove svg { width: 1rem; height: 1rem; }
     .pdv-cart-qty-wrap button { min-width: 2.35rem; min-height: 2.35rem; font-size: 1.1rem; }
     .pdv-cart-qty-input { width: 2.85rem; min-height: 2.35rem; font-size: .85rem; }
     .pdv-cart-price-box { height: 2.75rem; }

@@ -967,7 +967,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.08** · **produção v5.08** (promo leve X pague Y — resto preço normal · deploy loja **29/06**)
+**Versão app (`VERSION`):** **teste v5.08** · **produção v5.08** — **WIP teste:** FL-003 fase 1 selo promo PDV
+
+### WIP — FL-003 fase 1: selo promo no carrinho PDV (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Onde** | Linha do carrinho — entre **GM** e **qtd** (área indicada no print) |
+| **Selo verde** | Critério atingido — ex. **PROMO 4×** |
+| **Selo amarelo** | Ainda falta — ex. **Faltam 1** |
+| **Dois selos** | Passou do critério — ex. **4 promo** + **+1 normal** (5 un. leve 4) |
+| **Remover** | Texto virou **lixeira** (ícone) para ganhar espaço |
+| **Só visual** | Preço já calculado antes; **não** mexe em venda/caixa/fiscal |
+| **Teste** | Ctrl+F5 PDV · GM1787 · qty 3/4/5/8/9 |
+
+**FL-003 — fases restantes (depois):**
+
+| Fase | Escopo | Status |
+| ---- | ------ | ------ |
+| **1** | Selo visual no carrinho PDV (wizard) | 🔄 teste |
+| **2** | Desconto promo no **DRE/relatórios** como «desconto clientes» | 📋 pendente |
+| **3** | Linha de desconto promo na **impressão** da venda (80 mm / PDF) | 📋 pendente |
 
 ### Promo «Leve X pague Y» — resto ao preço normal **v5.07+** (29/06) ✅ loja
 
@@ -993,7 +1013,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | - | ------ | ------ | ------ | ----- |
 | **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
 | **FL-002** | **P3** | Promoções | Revisar **usabilidade** da tela de promoção e **limpar textos inúteis** | 📋 Pendente | 29/06 |
-| **FL-003** | **P2** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
+| **FL-003** | **P2** | Promoções / PDV / DRE | **Fase 1** selo promo no carrinho PDV · **Fase 2** DRE «desconto clientes» · **Fase 3** linha na impressão da venda | 🔄 Fase 1 teste · 2–3 pendente | 29/06 |
 | **FL-004** | **P3** | RH | **Batida de ponto** dos funcionários (registro entrada/saída) | 📋 Pendente | 29/06 |
 | **FL-005** | **P2** | Entrega / impressão | Na impressão (separação/entrega): **valor em R$ do troco a levar** na ida — **conferir antes** (hoje só «troco: sim/não») | 📋 Pendente · 🔍 conferir | 29/06 |
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
@@ -1033,7 +1053,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | -- | --- | --------------------- |
 | FL-001 | `preco-tabela-forma-grupo` | Cadastro tabelas preço × forma ou × grupo — fora do `precos_por_forma` atual |
 | FL-002 | `promo-ux-copy` | `promocoes` form/wizard — UX + textos «?» / labels / ajuda |
-| FL-003 | `pdv-promo-badge-dre-cupom` | (1) badge/feedback PDV ao atingir regra promo · (2) classificar desconto promo em relatório/DRE «desconto clientes» · (3) cupom 80mm/PDF venda |
+| FL-003 | `pdv-promo-badge-dre-cupom` | **Fase 1 ✅ teste:** selo carrinho `pdv_wizard` + `pdv_promocoes.js` · **Fase 2 📋:** DRE/relatório «desconto clientes» · **Fase 3 📋:** cupom 80mm/PDF venda |
 | FL-004 | `rh-batida-ponto` | Módulo novo em `rh/` — hoje só folha/vales/ficha; definir: tablet/celular, PIN, export folha, integração fechamento |
 | FL-005 | `entrega-print-troco-r$` | `wizardPrintHtmlSeparacao` — hoje `troco: sim/não`; falta **R$ a levar** (troco calculado = paga com − total) |
 | FL-006 | `pdv-entregas-painel-link` | Fluxo PDV → `entregas_painel.html` + polish visual painel |
@@ -1093,7 +1113,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Notas FL-004:** projeto **novo** — RH atual cobre folha, vales e ficha; **não** tem ponto. Antes de codar: Renan define se é só registro interno, se entra no fechamento da folha e quem bate (PIN, lista na loja, celular).
 
-**Notas FL-003:** prioridade **P2** (29/06 Renan). Hoje promo já altera preço no item; falta **feedback visível no balcão**, trilha contábil/gerencial explícita e linha na impressão — alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda.
+**Notas FL-003:** **P2**. **Fase 1 (29/06):** selo na linha do carrinho (entre GM e qtd) — verde «PROMO 4×», amarelo «Faltam N», misto «4 promo» + «+1 normal» quando passa do bloco leve X; lixeira no lugar de «Remover». Só exibição — preço já vem da regra leve X. **Fase 2:** alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda. **Fase 3:** cupom/impressão 80 mm.
 
 ### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
 
