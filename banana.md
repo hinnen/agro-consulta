@@ -967,7 +967,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.21** · **produção v5.19** — fix FL-017 devolução caixa (aguarda validação staging)
+**Versão app (`VERSION`):** **teste v5.22** · **produção v5.19** — fix FL-017 devolução caixa (painel + relatório)
+
+### FIX — relatório caixa saldo devolução **FL-017** **v5.22** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | 3× R$ 1,50 vendidas e devolvidas no dia → relatório **Vendas R$ 0** + **Devoluções −R$ 4,50** → saldo **−R$ 4,50** (deveria **R$ 0**) |
+| **Causa** | Relatório **omitia** vendas devolvidas na seção Vendas **e** somava Devoluções — desconto em dobro no saldo |
+| **Fix** | Vendas no relatório = **bruto do dia** (inclui depois devolvidas); Devoluções abatem → saldo **0** |
+| **BI card VENDAS** | **R$ 0 · excl. 3 dev.** continua certo — é **líquido** do dia, não o relatório de movimentos |
+| **Teste** | Ctrl+F5 · Relatório caixa hoje → **Vendas +R$ 4,50** · **Devoluções −R$ 4,50** · **Saldo R$ 0** |
 
 ### FIX — devolução não duplica saldo do turno **FL-017** **v5.21** (29/06)
 

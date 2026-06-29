@@ -157,9 +157,9 @@ def montar_relatorio_caixa(
                 )
             )
 
-    # Vendas (não devolvidas)
+    # Vendas no período (bruto por data da venda; devoluções abatem na seção «Devoluções»)
     vendas_qs = (
-        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim, devolvida_em__isnull=True)
+        VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim)
         .select_related("sessao_caixa")
         .order_by("criado_em")
     )
