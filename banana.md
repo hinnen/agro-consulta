@@ -983,6 +983,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
 | **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** das telas (Agro Display Scale) e corrigir as necessárias | 📋 Pendente | 29/06 |
 | **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove (só limpando carrinho inteiro) | 📋 Pendente | 29/06 |
+| **FL-009** | **P2** | Etiquetas | Na tela de **impressão de etiquetas**: ao adicionar item, **não fechar** o autocomplete (manter busca aberta para bipar/digitar o próximo) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -996,6 +997,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-006 | `pdv-entregas-painel-link` | Fluxo PDV → `entregas_painel.html` + polish visual painel |
 | FL-007 | `layout-scale-audit` | Auditoria §11 telas críticas (PDV, caixa, entrega, CP…) |
 | FL-008 | `pdv-carrinho-item-travado` | Bug: linha carrinho sem editar qty/preço/remover — reproduzir + `pdv_wizard.js` cart handlers |
+| FL-009 | `etiquetas-autocomplete-aberto` | `produtos_etiquetas.js` / core — após add na fila, manter painel de busca + foco no campo |
 
 **Notas FL-001:** hoje o PDV já aplica preço por forma (`precos_por_forma` / promoções). Escopo novo = cadastro de **tabelas** (vários preços por produto × forma ou × grupo cliente) — projeto grande; definir regras com Renan antes de codar.
 
