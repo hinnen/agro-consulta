@@ -967,7 +967,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.78** · **produção v4.78** (deploy merge **29/06**)
+**Versão app (`VERSION`):** **teste v4.80** · **produção v4.78** (fix promoções pendente loja)
+
+### FIX — promoção «Salvar» quebra com classList (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Etapa 2 · adicionar produtos · **Salvar promoção** → erro `DOMTokenList` / token com espaços |
+| **Causa** | `showMsg` em `promocoes_form_script.html` passava 3 classes Tailwind numa string só para `classList.add()` |
+| **Fix v4.80** | Cada classe como argumento separado (igual `promocoes_form.js`) |
+| **Teste** | Nova promoção → buscar produto → Add → **Salvar promoção** → mensagem verde + redirect |
+| **Loja** | Só após Renan validar no Render teste + pedir produção (frase + senha) |
 
 ### FECHADO + DEPLOY LOJA — fix endereço entrega grudado **v4.78** (29/06)
 
