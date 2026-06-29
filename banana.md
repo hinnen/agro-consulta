@@ -1007,6 +1007,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **BI card VENDAS** | **R$ 0 · excl. 3 dev.** continua certo — é **líquido** do dia, não o relatório de movimentos |
 | **Teste** | Ctrl+F5 · Relatório caixa hoje → **Vendas +R$ 4,50** · **Devoluções −R$ 4,50** · **Saldo R$ 0** |
 
+### PERF — painel caixa menu abre mais rápido **v5.24 teste** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Breve demora ao clicar **CAIXA** no PDV (menu do turno) |
+| **Causa** | Menu carregava consultas do **Saldo** (vendas órfãs, tabela completa, planos saída) + cálculo do turno **2×** |
+| **Fix** | Menu: só resumo (esperado dinheiro + qtd vendas) · órfãs/movimentos só em **Saldo caixa** · agregação **1 passagem** |
+| **Ainda pesa** | Tailwind CDN + fontes Google na 1ª abertura (padrão MPA) — não mudou neste patch |
+
 ### FIX — devolução não duplica saldo do turno **FL-017** **v5.21** (29/06)
 
 | Item | Detalhe |

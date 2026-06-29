@@ -220,18 +220,22 @@ def _movimentos_retirada_devolucao_duplicados_turno(sessao, movimentos) -> set[i
     return {mpk for mpk, vp in candidatos if vp in mesma_sessao}
 
 
-def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
-    """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
-    totais: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    totais["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
+def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
+    """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma."""
+    esperado: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    reforco_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    esperado["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
 
-    vendas = getattr(sessao, "vendas", None)
-    if vendas is not None:
-        for v in vendas.all():
+    vendas_rel = getattr(sessao, "vendas", None)
+    if vendas_rel is not None:
+        for v in vendas_rel.all():
             if getattr(v, "devolvida_em", None):
                 continue
             for fn, val in pagamentos_por_forma_venda(v).items():
-                totais[fn] += val
+                vendas_por[fn] += val
+                esperado[fn] += val
 
     movimentos = getattr(sessao, "movimentos", None)
     if movimentos is not None:
@@ -241,35 +245,31 @@ def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
             val = _dec(m.valor)
             if m.tipo == "reforco":
-                totais[fn] += val
+                reforco_por[fn] += val
+                esperado[fn] += val
             elif m.tipo == "retirada":
-                if getattr(m, "pk", None) in retiradas_dev_dup:
-                    continue
-                totais[fn] -= val
+                retirada_por[fn] += val
+                if getattr(m, "pk", None) not in retiradas_dev_dup:
+                    esperado[fn] -= val
 
-    return {k: v.quantize(Decimal("0.01")) for k, v in totais.items() if v != 0 or k in FORMAS_PAGAMENTO_CAIXA}
+    q = lambda d: {k: v.quantize(Decimal("0.01")) for k, v in d.items()}
+    esperado_out = {
+        k: v.quantize(Decimal("0.01"))
+        for k, v in esperado.items()
+        if v != 0 or k in FORMAS_PAGAMENTO_CAIXA
+    }
+    return esperado_out, q(vendas_por), q(reforco_por), q(retirada_por)
+
+
+def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
+    """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
+    esperado, _, _, _ = _agregar_resumo_turno_sessao(sessao)
+    return esperado
 
 
 def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
     """Lista ordenada para tela: forma, esperado, vendas, reforços, retiradas."""
-    esperado = resumo_esperado_por_forma(sessao)
-    vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    reforco_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-
-    for v in sessao.vendas.all():
-        if getattr(v, "devolvida_em", None):
-            continue
-        for fn, val in pagamentos_por_forma_venda(v).items():
-            vendas_por[fn] += val
-
-    for m in sessao.movimentos.all():
-        fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
-        if m.tipo == "reforco":
-            reforco_por[fn] += _dec(m.valor)
-        else:
-            retirada_por[fn] += _dec(m.valor)
-
+    esperado, vendas_por, reforco_por, retirada_por = _agregar_resumo_turno_sessao(sessao)
     formas = set(FORMAS_PAGAMENTO_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
     linhas: list[dict[str, Any]] = []
     abertura = _dec(sessao.valor_abertura)
