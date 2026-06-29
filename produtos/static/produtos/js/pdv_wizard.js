@@ -4012,7 +4012,7 @@
         }
         var partidaBar = document.getElementById('pdv-entrega-partida-bar');
         if (partidaBar) {
-            showElement(partidaBar, modo === 'entrega' && fase !== 'done');
+            showElement(partidaBar, modo === 'entrega');
         }
         var entregaShell = document.querySelector('.pdv-step-entrega-shell');
         if (entregaShell) {
