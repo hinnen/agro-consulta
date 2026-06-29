@@ -976,7 +976,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Taxa fora do form de endereço; popup após endereço; dinheiro/cartão depois da taxa; troco mostra total |
 | **Sequência** | F3 → pagamento local → endereço → taxa+horário → meio → troco (total) → enviar/ir pagamento |
 | **Futuro** | `entregaTaxaDevePularAuto()` — frete grátis por endereço omite popup taxa |
-| **Versão** | **v4.55** (após v4.54 tela cinza) |
+| **Versão** | **v4.55** → **v4.56** — Voltar 1 passo no fluxo entrega; campo frete R$ 10,00 no popup taxa |
 
 ### PDV entrega fluxo — fix (29/06 madrugada)
 

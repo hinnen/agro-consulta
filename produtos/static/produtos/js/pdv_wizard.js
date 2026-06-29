@@ -2107,7 +2107,7 @@
             if (state.currentStep === 'entrega') {
                 dom.btnPrev.innerHTML =
                     'Voltar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 bg-slate-100 px-1 font-mono text-[8px] text-slate-600">F1</kbd>';
-                dom.btnPrev.title = 'Etapa anterior · F1';
+                dom.btnPrev.title = 'Volta um passo (tela ou pergunta anterior) · F1';
             } else {
                 dom.btnPrev.textContent = 'Voltar';
                 dom.btnPrev.title = 'Etapa anterior · Alt+←';
@@ -4027,7 +4027,14 @@
         });
         var confirmWrap = document.getElementById('pdv-ed-confirmar-wrap');
         if (confirmWrap) confirmWrap.classList.toggle('hidden', painel !== 'detalhes');
-        if (painel === 'detalhes') renderEntregaTaxaCard(st);
+        if (painel === 'detalhes') {
+            var stDet = State.getState();
+            if (!String((stDet.entrega && stDet.entrega.taxaEntregaModo) || '').trim()) {
+                commitEntregaTaxaModo('sim', { draft: true });
+            } else {
+                renderEntregaTaxaCard(st);
+            }
+        }
         if (painel === 'troco') renderEntregaTrocoPainelUi();
         if (painel === 'done') {
             entregaWizardAguardandoTroco = false;
@@ -4080,21 +4087,24 @@
         return '';
     }
 
-    function commitEntregaTaxaModo(modo) {
+    function commitEntregaTaxaModo(modo, opts) {
+        opts = opts || {};
+        var draft = !!opts.draft;
         if (modo === 'nao') {
             State.setPagamentoField('frete', 0);
             State.setEntregaField('taxaEntregaModo', 'nao');
-            State.setEntregaField('taxaEntregaRespondida', true);
+            if (!draft) State.setEntregaField('taxaEntregaRespondida', true);
         } else if (modo === 'depois') {
             State.setEntregaField('taxaEntregaModo', 'depois');
-            State.setEntregaField('taxaEntregaRespondida', true);
+            if (!draft) State.setEntregaField('taxaEntregaRespondida', true);
         } else if (modo === 'sim') {
             var st = State.getState();
             var f = Number((st.pagamento && st.pagamento.frete) || 0);
             if (f <= 0.009) State.setPagamentoField('frete', 10);
             State.setEntregaField('taxaEntregaModo', 'sim');
-            State.setEntregaField('taxaEntregaRespondida', true);
+            if (!draft) State.setEntregaField('taxaEntregaRespondida', true);
         }
+        renderEntregaTaxaCard(State.getState());
     }
 
     function commitEntregaTaxaValorInput() {
@@ -4110,6 +4120,9 @@
         var frete = Number((state.pagamento && state.pagamento.frete) || 0);
         var wrap = document.getElementById('pdv-entrega-taxa-valor-wrap');
         var inpVal = document.getElementById('pdv-entrega-taxa-valor');
+        if (!modo && entregaWizardPainelAtual(state) === 'detalhes') {
+            modo = 'sim';
+        }
         document.querySelectorAll('input[name="pdv-entrega-taxa-modo"]').forEach(function (r) {
             r.checked = modo !== '' && r.value === modo;
         });
@@ -4118,6 +4131,92 @@
             var display = frete > 0.009 ? String(frete.toFixed(2)).replace('.', ',') : '10,00';
             setInputValue(inpVal, display);
         }
+    }
+
+    function voltarUmPassoEntrega() {
+        var state = State.getState();
+        if (state.currentStep !== 'entrega') return false;
+        var fase = entregaFaseAtual(state);
+        var e = state.entrega || {};
+        var lp = String(e.localPagamento || '').trim();
+        var meio = String(e.meioNaEntrega || '').trim();
+        if (fase === 'troco') {
+            entregaWizardAguardandoTroco = false;
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return true;
+        }
+        if (fase === 'meio') {
+            entregaWizardAguardandoTroco = false;
+            State.setEntregaPatch({
+                meioNaEntrega: '',
+                troco: '',
+                taxaEntregaRespondida: false,
+                detalhesEntregaRespondidos: false
+            });
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return true;
+        }
+        if (fase === 'detalhes') {
+            State.setEntregaPatch({
+                taxaEntregaRespondida: false,
+                taxaEntregaModo: '',
+                detalhesEntregaRespondidos: false,
+                enderecoPassoConcluido: false
+            });
+            State.setPagamentoField('frete', 0);
+            syncEntregaDetalhesModalUi();
+            return true;
+        }
+        if (fase === 'endereco') {
+            entregaWizardAguardandoTroco = false;
+            State.setEntregaPatch({
+                localPagamento: '',
+                meioNaEntrega: '',
+                troco: '',
+                taxaEntregaRespondida: false,
+                taxaEntregaModo: '',
+                detalhesEntregaRespondidos: false,
+                enderecoPassoConcluido: false
+            });
+            State.setPagamentoField('frete', 0);
+            syncEntregaDetalhesModalUi();
+            scrollEntregaWizardIntoView();
+            return true;
+        }
+        if (fase === 'done') {
+            if (lp === 'loja') {
+                State.setEntregaPatch({
+                    taxaEntregaRespondida: false,
+                    detalhesEntregaRespondidos: false
+                });
+                syncEntregaDetalhesModalUi();
+                scrollEntregaWizardIntoView();
+                return true;
+            }
+            if (meio === 'dinheiro') {
+                State.setEntregaPatch({ meioNaEntrega: '', troco: '' });
+                entregaWizardAguardandoTroco = true;
+                if (dom.entregaTroco) dom.entregaTroco.value = '';
+                syncEntregaDetalhesModalUi();
+                scrollEntregaWizardIntoView();
+                return true;
+            }
+            if (meio === 'cartao') {
+                State.setEntregaPatch({ meioNaEntrega: '', troco: '' });
+                State.setEntregaField('maquininha', '');
+                syncEntregaDetalhesModalUi();
+                scrollEntregaWizardIntoView();
+                return true;
+            }
+        }
+        if (fase === 'pagamento_local') {
+            resetEntregaModoAoVoltarProdutos();
+            State.setCurrentStep('produtos');
+            return true;
+        }
+        return false;
     }
 
     function renderEntrega(state) {
@@ -7650,6 +7749,9 @@
 
         dom.btnPrev.addEventListener('click', function () {
             var state = State.getState();
+            if (state.currentStep === 'entrega' && voltarUmPassoEntrega()) {
+                return;
+            }
             var computed = State.getComputed();
             var target = prevStep(state, computed);
             if (state.currentStep === 'entrega' && target === 'produtos') {
@@ -8686,7 +8788,7 @@
         document.querySelectorAll('input[name="pdv-entrega-taxa-modo"]').forEach(function (radio) {
             radio.addEventListener('change', function () {
                 if (!radio.checked) return;
-                commitEntregaTaxaModo(radio.value);
+                commitEntregaTaxaModo(radio.value, { draft: true });
             });
         });
         var inpTaxaValor = document.getElementById('pdv-entrega-taxa-valor');
@@ -8914,11 +9016,10 @@
                 !event.altKey &&
                 !event.ctrlKey &&
                 !event.metaKey &&
-                !modalEntregaImpOpen &&
-                !isAnyEntregaFluxoModalOpen()
+                !modalEntregaImpOpen
             ) {
                 event.preventDefault();
-                if (dom.btnPrev && !dom.btnPrev.disabled) dom.btnPrev.click();
+                voltarUmPassoEntrega();
                 return;
             }
             if (
