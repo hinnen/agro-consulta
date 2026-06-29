@@ -912,9 +912,9 @@
     pointer-events: auto;
     display: block;
     width: min(94vw, 28rem);
-    height: fit-content;
+    height: auto;
     max-height: calc(100dvh - var(--pdv-footer-clearance) - 1.25rem);
-    overflow: auto;
+    overflow: visible;
     flex: none;
   }
   .pdv-ed-wizard-panel[data-pdv-ed-painel="detalhes"] {
@@ -931,9 +931,13 @@
     display: block;
     height: auto;
   }
-  #pdv-ed-body > .hidden,
-  #pdv-ed-body > [hidden] {
-    display: none !important;
+  #pdv-ed-pagamento-local-panel:not(.hidden),
+  #pdv-ed-meio-panel:not(.hidden) {
+    display: grid;
+  }
+  #pdv-ed-detalhes-panel:not(.hidden),
+  #pdv-ed-troco-panel:not(.hidden) {
+    display: block;
   }
   .pdv-modal-panel-50 {
     width: min(92vw, calc(85dvh * 16 / 9));

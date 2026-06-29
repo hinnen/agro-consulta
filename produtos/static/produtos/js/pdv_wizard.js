@@ -4142,7 +4142,15 @@
 
     function syncEntregaDetalhesModalUi() {
         var st = State.getState();
-        var painel = entregaWizardPainelAtual(st);
+        if (!entregaWizardPrecisaExibir(st)) {
+            entregaWizardAguardandoTroco = false;
+            atualizarEntregaWizardVisibilidade(st);
+            if (entregaFaseAtual(st) === 'done') {
+                aposConcluirFluxoPagamentoEntrega();
+            }
+            return;
+        }
+        var painel = entregaFaseAtual(st);
         var map = {
             pagamento_local: document.getElementById('pdv-ed-pagamento-local-panel'),
             detalhes: document.getElementById('pdv-ed-detalhes-panel'),
@@ -4163,12 +4171,6 @@
             }
         }
         if (painel === 'troco') renderEntregaTrocoPainelUi();
-        if (painel === 'done') {
-            entregaWizardAguardandoTroco = false;
-            atualizarEntregaWizardVisibilidade(st);
-            aposConcluirFluxoPagamentoEntrega();
-            return;
-        }
         aplicarEntregaWizardHeader(painel);
         atualizarEntregaWizardVisibilidade(st);
     }
