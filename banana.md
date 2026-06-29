@@ -967,16 +967,91 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.07** · **produção v5.07** (promo leve X pague Y — resto preço normal · deploy **29/06**)
+**Versão app (`VERSION`):** **teste v5.19** · **produção v5.19** — promo mix PDV + selos FL-003 fase 1
 
-### Promo «Leve X pague Y» — resto ao preço normal **v5.07** (29/06) ✅ loja
+### DEPLOY LOJA — promo mix + selos carrinho **v5.19** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — staging lento · *pode enviar produção* + senha **99738595** |
+| **Risco** | Baixo — só **PDV wizard** (JS/CSS) + fix catálogo delta · **sem** migração banco |
+| **Pacote** | `teste` → `producao` merge **`ef02250`** (v5.08 → v5.19) |
+| **O quê** | Promo mix (preço correto 3+2) · selos MIX · agrupa linhas · fix import catálogo |
+| **Loja** | **Ctrl+F5** no Chrome após deploy Render · vendas em andamento: OK continuar após refresh |
+| **Revert** | `git revert` merge ou redeploy commit anterior **`origin/producao` pré-merge** |
+
+### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `python manage.py runserver` · busca não acha produto |
+| **Causa** | Import errado em `mesclar_catalogo_pdv_cache` → delta HTTP 500 · cache vazio |
+| **Fix** | `integracoes.texto.normalizar` + fallback catálogo no wizard |
+| **Local** | `.env` com Mongo (`VENDA_ERP_MONGO_*`) · reiniciar runserver · Ctrl+F5 PDV |
+
+### FIX — promo mix 3+2 + indicador visual ligação **v5.15–5.16** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Mix 3 un. produto A + 2 un. produto B → preço/selo errado (ex. R$ 13,00 em vez de **R$ 12,90**) |
+| **Causa** | Slots promocionais na ordem FIFO do carrinho (3× promo na 1ª linha) |
+| **Fix** | Aloca slots promocionais priorizando **maior preço de tabela** (melhor desconto ao cliente) |
+| **Visual** | Linhas da mesma promo mix: **borda colorida** + pill **MIX** no nome + selo **MIX / N de X** |
+| **Arquivos** | `pdv_promocoes.js` · `pdv_wizard.js` · `pdv_wizard.html` |
+| **Teste** | Ctrl+F5 · GM1769 ×3 + GM1771 ×2 (promo leve 4) → total **R$ 12,90** · mesma cor nas 2 linhas |
+
+### UX — selo mix menos confuso **v5.18** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | «MIX 3 de 4» + «MIX 1 de 4» parecia **duas promos incompletas** (ex. 5+1 un.) |
+| **Fix** | Selo mix ativo: **MIX 4 un.** (bloco fechado) + **N aqui** (quanto veio **desta linha**) |
+| **Pendente mix** | **Faltam N · 3/4** — mostra progresso no carrinho |
+| **Exemplo 5+1** | Linha A: **MIX 4 un.** / **3 aqui** + **+2 normal** · Linha B: **MIX 4 un.** / **1 aqui** |
+| **Layout selo** | Coluna promo **largura/altura fixa** — GM e qtd alinhados mesmo com 1 ou 2 selos |
+| **Cor mix** | Borda + gradiente **esquerda e direita** (mesma cor = mesma promo no carrinho) |
+| **Ordem carrinho** | Critério atingido → linhas da **mesma promo ativa** **juntam** automaticamente |
+| **Selo mix camadas** | **1ª linha do bloco:** `MIX 4 un.` + `N aqui` · **demais:** só `N aqui` (+ normal se houver) |
+
+### FIX — promo mix (mesma promoção, produtos diferentes) **v5.10+** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | 2+2 saches da promo «teste» → cada linha «Faltam 2» · total errado |
+| **Era** | Contava qtd **por produto**, não por promoção |
+| **Fix** | Soma unidades de **todos os produtos da mesma promo** (id) · leve X e acima de X |
+| **Exemplo** | GM1769 ×2 + GM1771 ×2 → **R$ 10,00** · selo **2 promo** em cada linha |
+| **Teste** | Ctrl+F5 · promo «teste» · mix 4 un. |
+
+### WIP — FL-003 fase 1: selo promo no carrinho PDV (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Onde** | Linha do carrinho — entre **GM** e **qtd** (área indicada no print) |
+| **Selo verde** | Critério atingido — ex. **PROMO 4×** |
+| **Selo amarelo** | Duas linhas: **PROMO** (cima) + **Faltam N** (baixo) · N = mix no carrinho |
+| **Mix ativo** | Borda colorida + **MIX** no nome · **1ª linha:** `MIX 4 un.` + `N aqui` · **demais:** só `N aqui` |
+| **Dois selos** | Passou do critério — ex. **4 promo** + **+1 normal** (5 un. leve 4) |
+| **Remover** | Texto virou **lixeira** (ícone) para ganhar espaço |
+| **Só visual** | Preço já calculado antes; **não** mexe em venda/caixa/fiscal |
+| **Teste** | Ctrl+F5 PDV · GM1787 · qty 3/4/5/8/9 |
+
+**FL-003 — fases restantes (depois):**
+
+| Fase | Escopo | Status |
+| ---- | ------ | ------ |
+| **1** | Selo visual no carrinho PDV (wizard) | 🔄 teste **v5.09** |
+| **2** | Desconto promo no **DRE/relatórios** como «desconto clientes» | 📋 pendente |
+| **3** | Linha de desconto promo na **impressão** da venda (80 mm / PDF) | 📋 pendente |
+
+### Promo «Leve X pague Y» — resto ao preço normal **v5.07+** (29/06) ✅ loja
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido Renan** | Leve 4 @ R$ 2,50 → 5º sache preço normal (12,90 não 12,50) |
 | **Era** | qty ≥ X → **todas** as unidades a R$ Y |
 | **Fix** | Grupos completos de X a R$ Y · resto ao preço tabela · 4→10,00 · 5→12,90 |
-| **Deploy** | `teste`→`producao` **29/06** (senha OK) · commits `f9a00ef` + checkpoint `fe3e9a6` |
+| **Deploy** | `teste`→`producao` **29/06** (senha OK) · commits `f9a00ef` + checkpoint `fe3e9a6` · reforço mix **v5.19** |
 | **Conferir loja** | Ctrl+F5 PDV · GM1787 · qty 5 → total **R$ 12,90** |
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
@@ -993,7 +1068,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | - | ------ | ------ | ------ | ----- |
 | **FL-001** | **P3** | Preços / PDV | Tabelas de preço personalizáveis por **forma de pagamento** ou **grupo de cliente** | 📋 Pendente | 29/06 |
 | **FL-002** | **P3** | Promoções | Revisar **usabilidade** da tela de promoção e **limpar textos inúteis** | 📋 Pendente | 29/06 |
-| **FL-003** | **P2** | Promoções / PDV / DRE | No PDV: **indicativo visual** quando o carrinho cumpre critério de promoção · desconto no **DRE/relatórios** como **desconto clientes** · mesma linha na **impressão da venda** | 📋 Pendente | 29/06 |
+| **FL-003** | **P2** | Promoções / PDV / DRE | **Fase 1** selo promo no carrinho PDV · **Fase 2** DRE «desconto clientes» · **Fase 3** linha na impressão da venda | 🔄 Fase 1 teste · 2–3 pendente | 29/06 |
 | **FL-004** | **P3** | RH | **Batida de ponto** dos funcionários (registro entrada/saída) | 📋 Pendente | 29/06 |
 | **FL-005** | **P2** | Entrega / impressão | Na impressão (separação/entrega): **valor em R$ do troco a levar** na ida — **conferir antes** (hoje só «troco: sim/não») | 📋 Pendente · 🔍 conferir | 29/06 |
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisão visual** da tela `/entregas/` | 📋 Pendente | 29/06 |
@@ -1026,6 +1101,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 📋 Pendente | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
+| **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
+| **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1033,7 +1110,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | -- | --- | --------------------- |
 | FL-001 | `preco-tabela-forma-grupo` | Cadastro tabelas preço × forma ou × grupo — fora do `precos_por_forma` atual |
 | FL-002 | `promo-ux-copy` | `promocoes` form/wizard — UX + textos «?» / labels / ajuda |
-| FL-003 | `pdv-promo-badge-dre-cupom` | (1) badge/feedback PDV ao atingir regra promo · (2) classificar desconto promo em relatório/DRE «desconto clientes» · (3) cupom 80mm/PDF venda |
+| FL-003 | `pdv-promo-badge-dre-cupom` | **Fase 1 ✅ teste:** selo carrinho `pdv_wizard` + `pdv_promocoes.js` · **Fase 2 📋:** DRE/relatório «desconto clientes» · **Fase 3 📋:** cupom 80mm/PDF venda |
 | FL-004 | `rh-batida-ponto` | Módulo novo em `rh/` — hoje só folha/vales/ficha; definir: tablet/celular, PIN, export folha, integração fechamento |
 | FL-005 | `entrega-print-troco-r$` | `wizardPrintHtmlSeparacao` — hoje `troco: sim/não`; falta **R$ a levar** (troco calculado = paga com − total) |
 | FL-006 | `pdv-entregas-painel-link` | Fluxo PDV → `entregas_painel.html` + polish visual painel |
@@ -1066,6 +1143,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-033 | `bi-vendas-dia-nth-weekday` | Dashboard: comparar **N-ésimo** dia da semana no mês vs mês anterior |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
+| FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
+| FL-037 | `pdv-mix-selo-rowspan` | Selo mix único central entre linhas — experimental (opção 3) |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
@@ -1093,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Notas FL-004:** projeto **novo** — RH atual cobre folha, vales e ficha; **não** tem ponto. Antes de codar: Renan define se é só registro interno, se entra no fechamento da folha e quem bate (PIN, lista na loja, celular).
 
-**Notas FL-003:** prioridade **P2** (29/06 Renan). Hoje promo já altera preço no item; falta **feedback visível no balcão**, trilha contábil/gerencial explícita e linha na impressão — alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda.
+**Notas FL-003:** **P2**. **Fase 1 (29/06):** selo na linha do carrinho (entre GM e qtd) — verde «PROMO 4×», amarelo «Faltam N», misto «4 promo» + «+1 normal» quando passa do bloco leve X; lixeira no lugar de «Remover». Só exibição — preço já vem da regra leve X. **Fase 2:** alinhar com Renan se «desconto clientes» = plano DRE existente ou campo novo na venda. **Fase 3:** cupom/impressão 80 mm.
 
 ### FECHADO + DEPLOY LOJA — hotfix promo «Continuar» **v4.90** (29/06)
 

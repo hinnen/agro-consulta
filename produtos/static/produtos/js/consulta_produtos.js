@@ -43,20 +43,26 @@
         var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
             ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
             : '';
-        carrinho.forEach(function (item) {
-            if (!item || item.preco_manual) return;
-            if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
-                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
-            } else {
-                aplicarPromocaoCarrinhoItem(item);
-            }
-        });
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarCarrinho) {
+            window.AgroPrecosFormaPagamento.aplicarCarrinho(carrinho, forma);
+        } else if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(carrinho, forma);
+        } else {
+            carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        }
         if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
     }
 
     function recalcularPromocoesCarrinho() {
         if (!carrinho.length) return;
-        carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(carrinho, forma);
+        } else {
+            carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        }
     }
 
 
@@ -1461,7 +1467,6 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
-        aplicarPromocaoCarrinhoItem(item);
     } else {
         const linha = {
             id: idNorm,
@@ -1474,9 +1479,9 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         };
         if (ppf && typeof ppf === 'object') linha.precos_por_forma = Object.assign({}, ppf);
         if (aud) linha.auditoria_codigo_bip = aud;
-        aplicarPromocaoCarrinhoItem(linha);
         carrinho.push(linha);
     }
+    recalcularPromocoesCarrinho();
 
     atualizarCarrinho();
     tocarSom('add');
@@ -1533,7 +1538,7 @@ function alterarQtdItem(index, delta) {
         carrinho.splice(index, 1);
         tocarSom('erro');
     } else {
-        aplicarPromocaoCarrinhoItem(item);
+        recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
     if (item && item.qtd >= 1) tocarSom('add');
@@ -1547,7 +1552,7 @@ function definirQtdItem(index, val) {
         tocarSom('erro');
     } else {
         carrinho[index].qtd = n;
-        aplicarPromocaoCarrinhoItem(carrinho[index]);
+        recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
 }

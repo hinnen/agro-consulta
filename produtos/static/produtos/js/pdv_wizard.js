@@ -737,6 +737,34 @@
             .catch(function () {});
     }
 
+    function fetchWizardCatalogFallback() {
+        var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (res) {
+                return res.text().then(function (text) {
+                    if (!res.ok) {
+                        var hint = (text || '').trim().slice(0, 200);
+                        throw new Error(
+                            'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
+                        );
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (eJson2) {
+                        throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
+                    }
+                });
+            })
+            .then(function (data) {
+                aplicarWizardCatalogRows(Array.isArray(data.produtos) ? data.produtos : [], false);
+                salvarWizardCatalogSharedCache({
+                    produtos: wizardProductCatalog,
+                    catalog_version: data.catalog_version || '',
+                    catalog_updated_at: data.catalog_updated_at || '',
+                });
+            });
+    }
+
     function loadWizardCatalog() {
         if (catalogReady) return Promise.resolve();
         if (catalogLoadPromise) return catalogLoadPromise;
@@ -782,34 +810,10 @@
                     salvarWizardCatalogSharedCache(d);
                     return;
                 }
-                var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
-                return fetch(url, { credentials: 'same-origin' })
-                    .then(function (res) {
-                        return res.text().then(function (text) {
-                            if (!res.ok) {
-                                var hint = (text || '').trim().slice(0, 200);
-                                throw new Error(
-                                    'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
-                                );
-                            }
-                            try {
-                                return JSON.parse(text);
-                            } catch (eJson2) {
-                                throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
-                            }
-                        });
-                    })
-                    .then(function (data) {
-                        aplicarWizardCatalogRows(
-                            Array.isArray(data.produtos) ? data.produtos : [],
-                            false
-                        );
-                        salvarWizardCatalogSharedCache({
-                            produtos: wizardProductCatalog,
-                            catalog_version: data.catalog_version || '',
-                            catalog_updated_at: data.catalog_updated_at || '',
-                        });
-                    });
+                return fetchWizardCatalogFallback();
+            })
+            .catch(function () {
+                return fetchWizardCatalogFallback();
             })
             .finally(function () {
                 catalogLoadPromise = null;
@@ -2311,6 +2315,83 @@
         return null;
     }
 
+    function cartRowMixClass(item) {
+        if (!item || item.preco_manual) return '';
+        var cor = item.promo_mix_cor;
+        if (cor == null || cor === '') return '';
+        var cls = ' pdv-cart-row--mix pdv-cart-row--mix-' + String(cor);
+        if (item.promo_mix_pendente) cls += ' pdv-cart-row--mix-pendente';
+        return cls;
+    }
+
+    function renderCartMixNameTag(item) {
+        if (!item || item.preco_manual || item.promo_mix_cor == null) return '';
+        var titulo = 'Mesma promo mix — linhas com a mesma cor formam o bloco juntas';
+        return (
+            '<span class="pdv-cart-mix-tag" title="' +
+            escapeHtml(titulo) +
+            '">MIX</span>'
+        );
+    }
+
+    function renderCartPromoBadges(item, itens) {
+        var empty = '<span class="pdv-cart-promo-wrap pdv-cart-promo--empty" aria-hidden="true"></span>';
+        if (!item || item.preco_manual) return empty;
+        var promo = item.promocao;
+        if (typeof window.AgroPdvPromocoes === 'undefined') return empty;
+        if (!promo) promo = window.AgroPdvPromocoes.getPromo(item.id);
+        if (!promo) return empty;
+        var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
+        if (!isFinite(padrao)) padrao = 0;
+        var ctx =
+            window.AgroPdvPromocoes.poolContextoFromCarrinho &&
+            window.AgroPdvPromocoes.poolContextoFromCarrinho(item, itens);
+        if (!ctx) ctx = {};
+        if (
+            window.AgroPdvPromocoes.mixBlocoContextoCarrinho &&
+            itens &&
+            itens.length
+        ) {
+            var mixBloco = window.AgroPdvPromocoes.mixBlocoContextoCarrinho(item, itens);
+            if (mixBloco) {
+                ctx.mixContinuacao = mixBloco.mixContinuacao;
+                ctx.mixCabecalho = mixBloco.mixCabecalho;
+            }
+        }
+        var resumo = window.AgroPdvPromocoes.resumoIndicadorPromo(promo, item.qtd, padrao, ctx);
+        if (!resumo || !resumo.badges || !resumo.badges.length) return empty;
+        var html =
+            '<span class="pdv-cart-promo-wrap pdv-cart-promo--' +
+            escapeHtml(resumo.state || 'ativo') +
+            '">';
+        resumo.badges.forEach(function (badge) {
+            if (badge.stack) {
+                html +=
+                    '<span class="pdv-cart-promo-badge pdv-cart-promo-badge--stack" title="' +
+                    escapeHtml(badge.title || badge.lineBottom || '') +
+                    '">' +
+                    '<span class="pdv-cart-promo-line pdv-cart-promo-line-top">' +
+                    escapeHtml(badge.lineTop || 'PROMO') +
+                    '</span>' +
+                    '<span class="pdv-cart-promo-line pdv-cart-promo-line-sub">' +
+                    escapeHtml(badge.lineBottom || '') +
+                    '</span>' +
+                    '</span>';
+                return;
+            }
+            html +=
+                '<span class="pdv-cart-promo-badge' +
+                (badge.mixLinha ? ' pdv-cart-promo-badge--mix-linha' : '') +
+                '" title="' +
+                escapeHtml(badge.title || badge.text || '') +
+                '">' +
+                escapeHtml(badge.text || '') +
+                '</span>';
+        });
+        html += '</span>';
+        return html;
+    }
+
     function renderQuickClient(state) {
         if (dom.quickClientName) dom.quickClientName.textContent = currentClientName(state);
         if (dom.quickClientEditStep1) {
@@ -2361,7 +2442,9 @@
                     : formatPriceEdit(lineSubtotal(item));
                 return (
                     '' +
-                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5">' +
+                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5' +
+                    cartRowMixClass(item) +
+                    '">' +
                     '  <span class="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +
                     '" tabindex="0" role="button" title="Ampliar foto (Enter)">' +
@@ -2371,6 +2454,7 @@
                     '  </span>' +
                     '  <div class="pdv-cart-line overflow-hidden">' +
                     '    <span class="pdv-cart-nome">' +
+                    renderCartMixNameTag(item) +
                     escapeHtml(item.nome) +
                     '</span>' +
                     '  </div>' +
@@ -2378,6 +2462,7 @@
                     '    <span class="pdv-cart-gm" title="Código GM">' +
                     escapeHtml(cartCodigoGm(item)) +
                     '</span>' +
+                    renderCartPromoBadges(item, state.itens) +
                     '    <div class="pdv-cart-qty-wrap">' +
                     '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +
@@ -2403,7 +2488,9 @@
                     '    </div>' +
                     '    <button type="button" class="pdv-cart-remove" data-remove-item="' +
                     escapeHtml(itemId) +
-                    '">Remover</button>' +
+                    '" aria-label="Remover item" title="Remover">' +
+                    '      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>' +
+                    '    </button>' +
                     '  </div>' +
                     '</div>'
                 );

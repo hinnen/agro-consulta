@@ -1148,10 +1148,11 @@ def mesclar_prods_busca_pdv(
 def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
     """Mescla catálogo local do PDV (``api_todos_produtos_local``) com Postgres."""
     from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
-    from produtos.mongo_index_codigos import normalizar
 
     if not agro_pdv_merge_catalogo_postgres():
         return itens
+
+    from integracoes.texto import normalizar
 
     por_id = {str(x.get("id") or ""): x for x in itens if x.get("id") is not None}
     for row in listar_todos_rows_ativos():
