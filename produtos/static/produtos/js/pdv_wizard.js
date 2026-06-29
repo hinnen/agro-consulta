@@ -4184,9 +4184,9 @@
     function entregaResumoLabelTaxa(state) {
         var modo = entregaTaxaModoEfetivo(state);
         if (modo === 'nao') return 'Sem frete';
-        if (modo === 'depois') return 'Frete a definir depois';
+        if (modo === 'depois') return 'A definir depois';
         if (modo === 'sim') {
-            return 'Frete ' + formatMoney(Number((state.pagamento && state.pagamento.frete) || 0));
+            return formatMoney(Number((state.pagamento && state.pagamento.frete) || 0));
         }
         return '—';
     }
@@ -4223,20 +4223,26 @@
                 lp === 'entrega' ? 'Pagamento na entrega' : lp === 'loja' ? 'Pagamento na loja' : '—';
         }
         if (elMeio) {
+            var meioRow = elMeio.closest('.pdv-entrega-review-row');
             if (lp === 'entrega' && meio) {
                 elMeio.textContent =
-                    meio === 'dinheiro' ? 'Forma: dinheiro' : meio === 'cartao' ? 'Forma: cartão (maquininha)' : '';
+                    meio === 'dinheiro' ? 'Dinheiro' : meio === 'cartao' ? 'Cartão (maquininha)' : '—';
                 elMeio.classList.remove('hidden');
+                if (meioRow) meioRow.classList.remove('hidden');
             } else {
                 elMeio.classList.add('hidden');
+                if (meioRow) meioRow.classList.add('hidden');
             }
         }
         if (elTroco) {
+            var trocoRow = elTroco.closest('.pdv-entrega-review-row');
             if (lp === 'entrega' && meio === 'dinheiro' && String(e.troco || '').trim()) {
-                elTroco.textContent = 'Troco para: R$ ' + String(e.troco).trim();
+                elTroco.textContent = 'R$ ' + String(e.troco).trim();
                 elTroco.classList.remove('hidden');
+                if (trocoRow) trocoRow.classList.remove('hidden');
             } else {
                 elTroco.classList.add('hidden');
+                if (trocoRow) trocoRow.classList.add('hidden');
             }
         }
         var elNome = document.getElementById('pdv-resumo-cliente-nome');
@@ -4247,6 +4253,7 @@
         if (elTel) elTel.textContent = tel || 'Telefone não informado';
         if (elLinha) elLinha.textContent = String(linha || e.endereco || '').trim() || 'Endereço incompleto';
         if (elExtra) {
+            var extraRow = elExtra.closest('.pdv-entrega-review-row');
             var extras = [];
             if (String(e.plusCode || '').trim()) extras.push('Plus Code: ' + e.plusCode);
             if (String(e.complemento || '').trim()) extras.push('Compl.: ' + e.complemento);
@@ -4254,8 +4261,10 @@
             if (extras.length) {
                 elExtra.textContent = extras.join(' · ');
                 elExtra.classList.remove('hidden');
+                if (extraRow) extraRow.classList.remove('hidden');
             } else {
                 elExtra.classList.add('hidden');
+                if (extraRow) extraRow.classList.add('hidden');
             }
         }
         var elTaxa = document.getElementById('pdv-resumo-taxa');
@@ -4264,9 +4273,11 @@
         if (elHor) elHor.textContent = entregaResumoHorarioTexto(e.horario);
         var totalWrap = document.getElementById('pdv-resumo-total-wrap');
         var elTotal = document.getElementById('pdv-resumo-total');
+        var aside = document.getElementById('pdv-resumo-aside');
         if (totalWrap && elTotal) {
             var showTotal = lp === 'entrega';
             totalWrap.classList.toggle('hidden', !showTotal);
+            if (aside) aside.classList.toggle('hidden', !showTotal);
             if (showTotal) elTotal.textContent = formatMoney(Number(computed.total || 0));
         }
         var resumoVendaObs = document.getElementById('pdv-resumo-venda-observacao');
