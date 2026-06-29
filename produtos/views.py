@@ -98,6 +98,7 @@ from .caixa_util import (
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
     resumo_esperado_por_forma,
+    _agregar_resumo_turno_sessao,
     obter_sessao_caixa_aberta_request,
     adotar_sessao_caixa_unica_aberta,
     resolver_sessao_caixa_para_venda,
@@ -8994,65 +8995,86 @@ def caixa_painel(request):
 
     from rh.utils import resolver_empresa_por_nome_fantasia
 
+    painel_raw = (request.GET.get("painel") or "menu").strip().lower()
+    paineis_ok = {"menu", "saldo", "reforco", "retirada", "todos"}
+    painel = painel_raw if painel_raw in paineis_ok else "menu"
+
     aberto = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(request)
     empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
-    emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
     ctx = {
         "sessao_aberta": aberto,
         "caixa_rotulo": rotulo_caixa_browser(request, aberto) if aberto else "Caixa fechado",
         "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
-        "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
+        "planos_json": "[]",
         "empresa_padrao": empresa_padrao,
-        "empresa_padrao_id": emp.pk if emp else "",
+        "empresa_padrao_id": "",
         "qtd_caixas_abertos": SessaoCaixa.objects.filter(fechado_em__isnull=True).count(),
         "caixa_gerido_operador": (request.session.get("pdv_caixa_gerido_operador") or "").strip(),
+        "linhas_resumo_caixa": [],
+        "esperado_dinheiro_sessao": "0.00",
+        "qtd_vendas_sessao": 0,
+        "total_vendas_sessao": Decimal("0"),
+        "vendas_orfas": [],
+        "qtd_vendas_orfas": 0,
+        "total_vendas_orfas": Decimal("0"),
+        "movimentos_caixa": [],
     }
+    if painel in ("retirada", "reforco"):
+        emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
+        ctx["planos_json"] = json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False)
+        ctx["empresa_padrao_id"] = emp.pk if emp else ""
     if aberto:
         aberto = (
             SessaoCaixa.objects.prefetch_related("vendas", "movimentos")
             .filter(pk=aberto.pk, fechado_em__isnull=True)
             .first()
         ) or aberto
-        vendas = VendaAgro.objects.filter(sessao_caixa=aberto)
-        ctx["qtd_vendas_sessao"] = vendas.count()
-        s = vendas.aggregate(soma=Sum("total"))["soma"]
-        ctx["total_vendas_sessao"] = (
-            s.quantize(Decimal("0.01")) if s is not None else Decimal("0")
-        )
-        linhas = linhas_resumo_caixa(aberto)
-        ctx["linhas_resumo_caixa"] = [
-            {
-                "forma": L["forma"],
-                "esperado": str(L["esperado"]),
-                "vendas": str(L["vendas"]),
-                "reforcos": str(L["reforcos"]),
-                "retiradas": str(L["retiradas"]),
-                "abertura_dinheiro": str(L["abertura_dinheiro"]),
-            }
-            for L in linhas
-        ]
-        esp_din = Decimal("0")
-        for L in linhas:
-            if L["forma"] == "Dinheiro":
-                esp_din = L["esperado"]
-                break
-        ctx["esperado_dinheiro_sessao"] = str(esp_din.quantize(Decimal("0.01")))
-        ctx["movimentos_caixa"] = list(
-            aberto.movimentos.select_related("usuario").all()[:25]
-        )
-        dia_ref = timezone.localdate(aberto.aberto_em)
-        orfas_qs = VendaAgro.objects.filter(
-            sessao_caixa__isnull=True, criado_em__date=dia_ref
-        ).order_by("-criado_em")
-        ctx["vendas_orfas"] = orfas_qs[:50]
-        ctx["qtd_vendas_orfas"] = orfas_qs.count()
-        agg_orf = orfas_qs.aggregate(s=Sum("total"))["s"]
-        ctx["total_vendas_orfas"] = (
-            agg_orf.quantize(Decimal("0.01")) if agg_orf is not None else Decimal("0")
-        )
-    painel_raw = (request.GET.get("painel") or "menu").strip().lower()
-    paineis_ok = {"menu", "saldo", "reforco", "retirada", "todos"}
-    painel = painel_raw if painel_raw in paineis_ok else "menu"
+        qtd_v = 0
+        tot_v = Decimal("0")
+        for v in aberto.vendas.all():
+            if getattr(v, "devolvida_em", None):
+                continue
+            qtd_v += 1
+            tot_v += _dec(v.total)
+        ctx["qtd_vendas_sessao"] = qtd_v
+        ctx["total_vendas_sessao"] = tot_v.quantize(Decimal("0.01"))
+
+        if painel == "saldo":
+            linhas = linhas_resumo_caixa(aberto)
+            ctx["linhas_resumo_caixa"] = [
+                {
+                    "forma": L["forma"],
+                    "esperado": str(L["esperado"]),
+                    "vendas": str(L["vendas"]),
+                    "reforcos": str(L["reforcos"]),
+                    "retiradas": str(L["retiradas"]),
+                    "abertura_dinheiro": str(L["abertura_dinheiro"]),
+                }
+                for L in linhas
+            ]
+            ctx["movimentos_caixa"] = list(
+                aberto.movimentos.select_related("usuario").all()[:25]
+            )
+            dia_ref = timezone.localdate(aberto.aberto_em)
+            orfas_qs = VendaAgro.objects.filter(
+                sessao_caixa__isnull=True, criado_em__date=dia_ref
+            ).order_by("-criado_em")
+            ctx["vendas_orfas"] = list(orfas_qs[:50])
+            ctx["qtd_vendas_orfas"] = orfas_qs.count()
+            agg_orf = orfas_qs.aggregate(s=Sum("total"))["s"]
+            ctx["total_vendas_orfas"] = (
+                agg_orf.quantize(Decimal("0.01")) if agg_orf is not None else Decimal("0")
+            )
+            for L in linhas:
+                if L["forma"] == "Dinheiro":
+                    ctx["esperado_dinheiro_sessao"] = str(
+                        _dec(L["esperado"]).quantize(Decimal("0.01"))
+                    )
+                    break
+        else:
+            esperado, _, _, _ = _agregar_resumo_turno_sessao(aberto)
+            esp_din = esperado.get("Dinheiro", Decimal("0"))
+            ctx["esperado_dinheiro_sessao"] = str(esp_din.quantize(Decimal("0.01")))
     if painel in ("saldo", "reforco") and not aberto:
         painel = "menu"
     if painel == "todos":

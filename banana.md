@@ -967,7 +967,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.22** · **produção v5.22** — fix FL-017 devolução caixa **loja**
+**Versão app (`VERSION`):** **teste v5.24** · **produção v5.24** — FL-017 + perf menu caixa **loja**
+
+### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ✅
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — teste OK · *pode subir* + senha **99738595** |
+| **Risco** | **Baixo** — `caixa_util.py` + `views.py` (só `caixa_painel`) · **sem** migração |
+| **Pacote** | Cherry-pick teste **`11d8634`** → loja (não merge inteiro `teste`) |
+| **O quê** | Menu CAIXA abre mais rápido · agregação turno 1 passagem · órfãs só em Saldo |
+| **Loja** | Ctrl+F5 · badge **v5.24** · PDV → **CAIXA** deve abrir mais leve |
+| **Revert** | redeploy **`0a0fd52`** (produção v5.22) |
 
 ### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
 
