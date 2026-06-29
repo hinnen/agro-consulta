@@ -975,7 +975,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Após **Entregar F3**, repetia «Retirada ou entrega?» e «Taxa/horário/troco» antes do pagamento |
 | **Fix** | F3 → direto **Onde será o pagamento?**; taxa+horário no form de endereço; troco só no fluxo dinheiro |
-| **Teste** | Push `teste` v4.52 — validar no Render staging (Ctrl+F5) |
+| **Teste** | `427655b` · push `teste` **v4.52** — validar no Render staging (Ctrl+F5) |
 
 ### AGENDA AMANHÃ — itens **8–11** §4.15 (Renan **29/06 noite**)
 
