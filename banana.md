@@ -967,7 +967,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v4.47** · **produção v4.47** (deploy gráfico **29/06**)
+**Versão app (`VERSION`):** **teste v4.49** · **produção v4.49** (deploy merge **29/06**)
+
+### FECHADO + DEPLOY LOJA — merge max planilha/PDV **v4.49** (29/06)
+
+**Renan:** *«manda»* + senha **99738595** · cherry-pick **`f0c6f29`** → **`98e4685`** · **push OK**.
+
+**Pós-deploy loja:** Ctrl+F5 · **Mês anterior (mai)** · **21–22/05** ~R$ 2.451 / R$ 2.870 (não R$ 53 teste).
 
 ### FECHADO + DEPLOY LOJA — gráfico planilha **v4.47** (29/06)
 
@@ -975,7 +981,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Pós-deploy loja:** Ctrl+F5 · **Mês anterior (mai)** → barras mês cheio · jun+ só PDV.
 
-**Nota Renan 29/06 — média vs barras 21–22/mai:** **média base R$ 2.882** no tooltip **está correta** (abr+mar+fev planilha, fórmula 3 meses). Barras **21–22** ficaram **R$ 53** porque venda **teste PDV** substituía planilha (R$ 2.451 / R$ 2.870) — **fix teste:** merge **max(PDV, planilha)** · pendente loja se Renan pedir.
+**Nota Renan 29/06 — média vs barras 21–22/mai:** **média base R$ 2.882** OK · barras 21–22 eram R$ 53 (venda teste PDV) — **fix v4.49** merge **max(PDV, planilha)** · **✅ loja 29/06**.
 
 ### WIP → TESTE — meta C planilha + 3 meses (**29/06**)
 
