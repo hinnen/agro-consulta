@@ -7,6 +7,8 @@
     cfg.apiSalvar = cfg.apiSalvar || '/api/promocoes/salvar/';
     cfg.apiBuscar = cfg.apiBuscar || '/api/promocoes/buscar-produto/';
     var LIMITE_EXIBIR = 12;
+    var AUTO_BUSCA_MS = 320;
+    var SCAN_DEBOUNCE_MS = 90;
 
     var elData = document.getElementById('promo-initial-data');
     var state = { produtos: [] };
@@ -55,6 +57,24 @@
     var buscando = false;
     var selIdx = -1;
     var etapaAtual = 1;
+    var autoBuscaTimer = null;
+    var scanTimer = null;
+
+    function ehCodigoBarras(q) {
+        var t = String(q || '').trim();
+        return /^\d{8,14}$/.test(t);
+    }
+
+    function limparTimersBusca() {
+        if (autoBuscaTimer) {
+            clearTimeout(autoBuscaTimer);
+            autoBuscaTimer = null;
+        }
+        if (scanTimer) {
+            clearTimeout(scanTimer);
+            scanTimer = null;
+        }
+    }
 
     function fmtMoney(n) {
         return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -373,12 +393,29 @@
         renderResultadosBusca();
     }
 
+    function tentarAutoAdicionarBusca(q, items) {
+        var disp = (items || []).filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        });
+        if (disp.length === 1) {
+            incluirProduto(disp[0]);
+            return true;
+        }
+        if (ehCodigoBarras(q) && disp.length > 1) {
+            setStatus('Vários itens para «' + q + '» — escolha na lista.');
+        }
+        return false;
+    }
+
     function buscarProdutos(opts) {
         opts = opts || {};
         var q = dom.busca ? dom.busca.value.trim() : '';
-        if (q.length < 2) {
-            setStatus('Digite ao menos <strong>2 caracteres</strong>.');
-            if (!opts.silent) showMsg('Digite ao menos 2 caracteres.', false);
+        var minLen = ehCodigoBarras(q) ? 8 : 2;
+        if (q.length < minLen) {
+            if (!opts.silent) {
+                setStatus('Digite ao menos <strong>2 letras</strong> do nome ou bip o código de barras.');
+                showMsg('Digite ao menos 2 letras do nome ou bip o código de barras.', false);
+            }
             return Promise.resolve([]);
         }
         if (buscando) return Promise.resolve(sugestoesVisiveis.slice());
@@ -386,11 +423,11 @@
         buscando = true;
         ultimaBusca = q;
         selIdx = -1;
-        setStatus('Buscando…');
-        if (dom.resultados) {
+        if (!opts.autocomplete) setStatus('Buscando…');
+        if (dom.resultados && !opts.autocomplete) {
             dom.resultados.innerHTML = '<p class="px-4 py-10 text-center text-base font-bold text-slate-500">Buscando…</p>';
         }
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        if (window.gmLoadingBar && !opts.autocomplete) window.gmLoadingBar.show();
 
         return fetch(cfg.apiBuscar + '?q=' + encodeURIComponent(q), {
             credentials: 'same-origin',
@@ -419,6 +456,12 @@
                 selIdx = sugestoesVisiveis.length ? 0 : -1;
                 renderListaProdutos();
 
+                if (opts.autoAddBarcode || ehCodigoBarras(q)) {
+                    if (tentarAutoAdicionarBusca(q, items)) {
+                        return sugestoesVisiveis;
+                    }
+                }
+
                 if (!items.length) {
                     setStatus('Nenhum produto para «' + q + '».');
                 } else if (items.length === 1 && !produtoJaNaLista(items[0].produto_externo_id)) {
@@ -436,12 +479,12 @@
                 totalEncontrados = 0;
                 renderListaProdutos();
                 setStatus('Erro na busca.');
-                showMsg(err && err.message ? err.message : 'Falha ao buscar.', false);
+                if (!opts.silent) showMsg(err && err.message ? err.message : 'Falha ao buscar.', false);
                 return [];
             })
             .finally(function () {
                 buscando = false;
-                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                if (window.gmLoadingBar && !opts.autocomplete) window.gmLoadingBar.hide();
             });
     }
 
@@ -463,6 +506,7 @@
             preco_padrao: Number(p.preco_padrao || 0),
             preco_promocional: tipoAtual() === 'valor_direto' ? Number(p.preco_padrao || 0) : null,
         });
+        limparTimersBusca();
         renderListaProdutos();
         showMsg('Adicionado: ' + (p.codigo || pid), true);
         setStatus('Adicionado <strong>' + (p.codigo || pid) + '</strong>. Próximo item…');
@@ -493,10 +537,35 @@
             showMsg('Use ↑↓ e Enter, ou clique na linha.', false);
             return;
         }
-        buscarProdutos().then(function (items) {
+        buscarProdutos({ autoAddBarcode: ehCodigoBarras(q) }).then(function (items) {
             var disp = items.filter(function (p) { return !produtoJaNaLista(p.produto_externo_id); });
             if (disp.length === 1) incluirProduto(disp[0]);
         });
+    }
+
+    function agendarBuscaInput() {
+        if (etapaAtual !== 2 || !dom.busca) return;
+        var q = dom.busca.value.trim();
+        limparTimersBusca();
+        if (ehCodigoBarras(q) && q.length >= 8) {
+            scanTimer = setTimeout(function () {
+                buscarProdutos({ autoAddBarcode: true, silent: true });
+            }, SCAN_DEBOUNCE_MS);
+            return;
+        }
+        if (q.length < 2) {
+            ultimaBusca = '';
+            sugestoesCache = [];
+            sugestoesVisiveis = [];
+            totalEncontrados = 0;
+            selIdx = -1;
+            setStatus('Nome: autocomplete · Barras: bipa direto na promoção.');
+            renderResultadosBusca();
+            return;
+        }
+        autoBuscaTimer = setTimeout(function () {
+            buscarProdutos({ silent: true, autocomplete: true });
+        }, AUTO_BUSCA_MS);
     }
 
     function moverSelecao(delta) {
@@ -596,10 +665,17 @@
         bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
 
         dom.busca.setAttribute('autocomplete', 'off');
+        dom.busca.addEventListener('input', agendarBuscaInput);
         dom.busca.addEventListener('keydown', function (e) {
             if (etapaAtual !== 2) return;
             if (e.key === 'Enter') {
                 e.preventDefault();
+                limparTimersBusca();
+                var q = dom.busca ? dom.busca.value.trim() : '';
+                if (ehCodigoBarras(q)) {
+                    buscarProdutos({ autoAddBarcode: true });
+                    return;
+                }
                 confirmarBuscaOuAdicionar();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -608,6 +684,7 @@
                 e.preventDefault();
                 moverSelecao(-1);
             } else if (e.key === 'Escape') {
+                limparTimersBusca();
                 dom.busca.value = '';
                 ultimaBusca = '';
                 sugestoesVisiveis = [];
