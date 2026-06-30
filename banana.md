@@ -1236,7 +1236,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
 | **Modal** | Altura **fixa** (ref. aba Histórico) — troca de aba **não redimensiona** · scroll só no miolo — **v5.35** |
 | **Resumo** | Top produtos grade alinhada (só número nas colunas) · bordas **2px** · fonte maior — **v5.38** |
-| **Fiado** | Aba **laranja/vermelha pulsando** + valor se tiver saldo · vencido = vermelho · botão **Lançamentos do cliente · baixa** → `/fiado/?from=pdv&cliente=PK` |
+| **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
