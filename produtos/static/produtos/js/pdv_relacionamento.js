@@ -96,36 +96,42 @@
             base +
             ' border-emerald-500 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" aria-label="Adicionar 1 unidade ao carrinho agora" data-gm="' +
             esc(codigo) +
-            '"><span aria-hidden="true">+</span> 1 un.</button>'
+            '"><span aria-hidden="true">🛒</span> +1 un.</button>'
         );
     }
 
-    function histCompraMeta(p) {
+    function histCompraMeta(p, inline) {
         if (!p) return '';
         var parts = [];
         if (p.qtd_total != null && p.qtd_total !== '') {
             parts.push(
-                'Já comprou <span class="font-black text-slate-700">' +
+                'Já comprou <span class="font-black text-slate-600">' +
                     esc(String(p.qtd_total)) +
-                    ' un.</span> no total'
+                    ' un.</span>'
             );
         }
         if (p.vezes != null && p.vezes !== '') {
-            parts.push('<span class="font-black text-slate-700">' + esc(String(p.vezes)) + '×</span> na loja');
+            parts.push('<span class="font-black text-slate-600">' + esc(String(p.vezes)) + '×</span> na loja');
         }
         if (!parts.length) return '';
+        var text = parts.join(' · ');
+        if (inline) {
+            return (
+                '<span class="shrink-0 text-[10px] font-bold text-slate-500 sm:text-[11px]">· ' + text + '</span>'
+            );
+        }
         return (
             '<p class="mt-0.5 text-[10px] font-bold leading-snug text-slate-500 sm:text-[11px]">' +
-            parts.join(' · ') +
+            text +
             '</p>'
         );
     }
 
     function btnCartCol(codigo, large) {
         return (
-            '<div class="rel-add-gm-col flex shrink-0 flex-col items-stretch justify-center gap-0.5 border-l border-slate-200 pl-3">' +
+            '<div class="rel-add-gm-col flex shrink-0 items-center border-l border-slate-200 pl-2 sm:pl-3">' +
             btnCart(codigo, large) +
-            '<span class="text-center text-[9px] font-black uppercase tracking-wide text-slate-400">no balcão</span></div>'
+            '</div>'
         );
     }
 
@@ -215,9 +221,6 @@
     function renderResumo(d, extra) {
         var m = d.metricas || {};
         var alertas = [];
-        if ((d.financeiro_fiado && d.financeiro_fiado.total_aberto) > 0) {
-            alertas.push('Fiado em aberto: ' + money(d.financeiro_fiado.total_aberto));
-        }
         (d.financeiro_fiado.titulos_abertos || []).forEach(function (t) {
             if (t.vencido) alertas.push('Título vencido: ' + esc(t.documento));
         });
@@ -255,12 +258,12 @@
                 '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos <span class="font-bold normal-case text-slate-500">— histórico do cliente</span></p><ul class="space-y-2">';
             top.slice(0, 5).forEach(function (p) {
                 html +=
-                    '<li class="flex items-stretch gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:gap-3">' +
-                    '<div class="min-w-0 flex-1">' +
-                    '<p class="text-sm font-black leading-snug text-slate-900">' +
+                    '<li class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-2">' +
+                    '<div class="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">' +
+                    '<span class="text-sm font-black leading-snug text-slate-900">' +
                     esc(p.descricao) +
-                    '</p>' +
-                    histCompraMeta(p) +
+                    '</span>' +
+                    histCompraMeta(p, true) +
                     '</div>' +
                     btnCartCol(p.codigo, false) +
                     '</li>';
