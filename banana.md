@@ -1141,9 +1141,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.44** · **loja deploy v5.44 em andamento** (30/06 · Renan *pode subir* + senha)
+**Versão app (`VERSION`):** **teste v5.46** · **loja v5.44** (30/06)
 
-### DEPLOY LOJA — Relacionamento F8 **v5.44** (30/06) 🚀
+### FL-042 — Histórico ERP no F8 **v5.46** (30/06) · **teste**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Escopo** | Import **1×** Mongo `DtoVenda` → Postgres **tabelas separadas** · merge só no **F8** |
+| **Corte** | ERP **≤ 26/05/2026** · SisVale F8 **≥ 27/05/2026** · testes PDV antes 27/05 **ignorados** |
+| **Migration** | **`0047`** `RelacionamentoHistoricoImportLoteAgro` + venda/item histórico |
+| **Comandos** | `relacionamento_import_historico_erp --dry-run` · import real · `relacionamento_reverter_historico_erp --lote X` ou `--tudo` |
+| **`.env`** | `AGRO_REL_HISTORICO_ERP=true` (false = F8 sem merge, dados ficam) |
+| **Segurança** | **Não** mexe `VendaAgro`, fiado, cashback, vale, caixa, estoque |
+| **Produto sumiu** | Snapshot nome/código · **+1** só se GM ativo no cadastro · senão «Indisp.» |
+| **Pendente teste** | Após deploy: **dry-run** no Shell Render teste → Renan ok → import real |
+
+---
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1338,7 +1351,62 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Pendência P3** | **FL-039** pets na ficha `/clientes/` · **FL-040** tabela Pet normalizada (opção B) |
 | **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-#### Checklist teste — **v5.44** (Renan · copiar)
+#### FL-042 — histórico ERP no F8 (Renan · 30/06)
+
+**Hoje:** F8 só vê vendas **SisVale** (`VendaAgro`). Vendas só no ERP **não entram**.
+
+**Decisão segurança (Renan):** **import único** → **Postgres somente leitura** → **sem vínculo vivo com Mongo**. F8 **nunca** consulta Mongo em tempo real.
+
+| Opção | Segurança SisVale | Prós | Contras |
+| ----- | ----------------- | ---- | ------- |
+| **A — Mongo 1× (recomendado)** | Alta, se gravar em **tabela histórica separada** | Completo (`DtoVenda` + itens); `ClienteID` casa com `externo_id`; sem planilha manual | Carga Mongo na hora do import; precisa **data corte** + dedup vs PDV |
+| **B — Excel** | Alta (Renan revisa antes) | Controle humano; testa no staging com arquivo; zero carga Mongo | Trabalho manual; export ERP pode vir incompleto |
+| **C — Mongo sempre ligado no F8** | **Evitar** | — | Lentidão, dependência Mongo, risco duplicar venda ERP+PDV, quebra se espelho mudar |
+
+**Recomendado:** **A + B** — comando **1×** lê Mongo (`DtoVenda` / `DtoVendaProduto`), grava Postgres, **encerra**. Excel só para **conferência**, correção ou o que o Mongo não casar.
+
+**Regras para não quebrar loja:**
+1. **Não** gravar histórico como venda “de balcão” — tabela própria (ex. `ClienteVendaHistoricoErpAgro`) **ou** `VendaAgro` com flag `origem=historico_erp` **excluída** de caixa, estoque, NFC-e e lista `/vendas/`.
+2. **Data corte** = dia anterior ao PDV SisVale valer (ex. vendas Mongo **até** essa data; depois só `VendaAgro`).
+3. **Dedup:** mesmo `venda_id` ERP + cliente já no PDV → não somar duas vezes.
+4. **Dry-run** primeiro (relatório: quantas vendas, clientes sem match, duplicatas) → Renan ok → import real.
+5. F8 só faz **merge Postgres** (histórico importado + `VendaAgro`).
+
+**Antes de codar:** dry-run no **teste** → Renan ok → import loja.
+
+**Data corte PDV (Renan · 30/06 — confirmado):** **27/05/2026** = início **permanente** no SisVale. Antes disso pode existir **vendinha de teste** no PDV — **não conta** no F8 como venda SisVale.
+
+| Fonte | Período no F8 | Nota |
+| ----- | ------------- | ---- |
+| **Mongo ERP (import 1×)** | data venda **≤ 26/05/2026** | Histórico antigo |
+| **`VendaAgro` SisVale** | **≥ 27/05/2026** | Produção real; ignora testes anteriores |
+| **Teste PDV antes 27/05** | **Fora** do relacionamento | Fica na `/vendas/` se existir, mas F8 não soma |
+
+**Produtos que não existem mais no SisVale** (cadastro excluído, código mudou, GM diferente):
+
+- Na importação grava **foto do item na época**: código ERP, código GM (se tinha), **descrição**, qtd, valor — **sem depender** do cadastro atual.
+- **Visitas, ticket, total, histórico de vendas** → entram **normais** (é venda passada, não precisa produto vivo).
+- **Top produtos / ciclo ração** → agrupa pela **descrição + código gravado no histórico** (texto da época).
+- Botão **+1 no carrinho** (só itens SisVale atuais hoje):
+  - achou produto **ativo** no catálogo → **+1** funciona;
+  - **não achou** (excluído / código mudou) → mostra o nome **como estava**, **sem +1** ou com aviso *«indisponível no cadastro»* — operador busca similar manualmente.
+- **Não** recria produto, **não** altera estoque, **não** quebra a tela.
+
+Dry-run do import também lista **quantos itens** ficaram sem match no catálogo atual (só informativo).
+
+**Garantias Renan (fiado / cashback / vale):**
+- Import **não grava** em `VendaAgro`, **não abre** título fiado, **não mexe** `saldo_cashback` nem `saldo_vale_credito` do cliente.
+- Fiado/cashback/vale no F8 continuam lendo **saldo real** (Postgres + regras atuais) — histórico ERP é **só leitura decorativa** (visitas, ticket, top produtos, lista antiga).
+- Se no ERP antigo a venda era fiado, no F8 pode **aparecer como informação** («comprou fiado em 2024») — **não altera** saldo em aberto de hoje.
+
+**Reversível (se der merda):**
+1. Tabela **separada** (não misturar com venda de balcão).
+2. Cada import com **`lote_id`** (ex. `erp-hist-20260630`).
+3. Comando **`reverter`** = apagar só aquele lote (ou apagar tudo do histórico).
+4. Flag **`.env`** liga/desliga merge no F8 **sem** apagar dados (`AGRO_REL_HISTORICO_ERP=false` → F8 volta ao comportamento de hoje).
+5. Ordem: **teste** dry-run → import teste → validar F8 → **só então** loja (com frase + senha se produção).
+
+---
 
 | # | O quê | Passou? |
 | - | ----- | ------- |
@@ -1571,6 +1639,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
+| **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1617,6 +1686,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | FL-039 | `cliente-ficha-pets-relacionamento` | Exibir/editar `relacionamento_extras_json` na ficha `/clientes/` |
 | FL-040 | `cliente-pet-tabela-normalizada` | Modelo `ClientePetAgro` (+ lembretes) — migrar do JSON quando priorizar |
 | FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
+| FL-042 | `relacionamento-import-erp-1x` | Mongo DtoVenda 1× → Postgres histórico · merge F8 · **sem** leitura Mongo no PDV · Excel = audit |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 

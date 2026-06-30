@@ -136,6 +136,11 @@ AGRO_DASHBOARD_VENDAS_FONTE = (
     config("AGRO_DASHBOARD_VENDAS_FONTE", default="pdv") or "pdv"
 ).strip().lower()
 
+# F8 Relacionamento — histórico ERP importado (FL-042). false = F8 só VendaAgro (≥ pdv_desde).
+AGRO_REL_HISTORICO_ERP = config("AGRO_REL_HISTORICO_ERP", default=True, cast=bool)
+AGRO_REL_ERP_ATE = (config("AGRO_REL_ERP_ATE", default="2026-05-26") or "2026-05-26").strip()
+AGRO_REL_PDV_DESDE = (config("AGRO_REL_PDV_DESDE", default="2026-05-27") or "2026-05-27").strip()
+
 # Application definition
 
 INSTALLED_APPS = [

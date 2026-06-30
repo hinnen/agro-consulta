@@ -12,7 +12,21 @@ from django.db.models import Avg, Count, Q, Sum
 from django.utils import timezone
 
 from produtos.fiado_credito_util import resumo_credito_fiado_cliente
-from produtos.models import ClienteAgro, FiadoTituloAgro, ItemVendaAgro, VendaAgro
+from produtos.models import (
+    ClienteAgro,
+    FiadoTituloAgro,
+    ItemVendaAgro,
+    RelacionamentoItemHistoricoErpAgro,
+    RelacionamentoVendaHistoricoErpAgro,
+    VendaAgro,
+)
+from produtos.relacionamento_historico_erp_util import (
+    codigos_gm_ativos_no_catalogo,
+    normalizar_codigo_gm_rel,
+    rel_historico_erp_habilitado,
+    rel_pdv_sisvale_desde,
+    resumo_historico_erp_cliente,
+)
 
 _REL_EXTRAS_VAZIO: dict[str, Any] = {"pets": [], "lembretes": [], "anotacoes": ""}
 _MAX_PETS = 20
@@ -124,11 +138,21 @@ def _vendas_cliente_qs(cli: ClienteAgro):
     q |= Q(cliente_id_erp=f"local:{cli.pk}")
     if not q:
         return VendaAgro.objects.none()
-    return (
+    qs = (
         VendaAgro.objects.filter(q)
         .filter(devolvida_em__isnull=True)
         .order_by("-criado_em")
     )
+    pdv_desde = rel_pdv_sisvale_desde()
+    if pdv_desde:
+        qs = qs.filter(criado_em__date__gte=pdv_desde)
+    return qs
+
+
+def _vendas_historico_erp_qs(cli: ClienteAgro):
+    if not rel_historico_erp_habilitado():
+        return RelacionamentoVendaHistoricoErpAgro.objects.none()
+    return RelacionamentoVendaHistoricoErpAgro.objects.filter(cliente_agro=cli).order_by("-data_venda")
 
 
 def _dias_desde(dt) -> int | None:
@@ -158,50 +182,129 @@ def _estimativa_dias_pacote(descricao: str, qtd: Decimal) -> int:
     return int(base * mult)
 
 
-def _top_produtos(venda_ids: list[int], limit: int = 12) -> list[dict[str, Any]]:
-    if not venda_ids:
-        return []
-    agg = (
-        ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
-        .values("codigo", "descricao")
-        .annotate(
-            vezes=Count("id"),
-            qtd_total=Sum("quantidade"),
-            ultimo_valor=Avg("valor_unitario"),
+def _top_produtos(venda_ids: list[int], hist_venda_pks: list[int] | None = None, limit: int = 12) -> list[dict[str, Any]]:
+    acc: dict[str, dict[str, Any]] = {}
+    hist_venda_pks = hist_venda_pks or []
+
+    def ingest(codigo: str, descricao: str, qtd: float, preco: float, vezes: int = 1) -> None:
+        cod = (codigo or "").strip()
+        desc = (descricao or "").strip()
+        chave = (cod or desc[:80]).lower()
+        if not chave:
+            return
+        row = acc.get(chave)
+        if not row:
+            row = {
+                "codigo": cod,
+                "descricao": desc,
+                "vezes": 0,
+                "qtd_total": 0.0,
+                "preco_sum": 0.0,
+                "preco_n": 0,
+            }
+            acc[chave] = row
+        row["vezes"] += int(vezes or 1)
+        row["qtd_total"] += float(qtd or 0)
+        if preco:
+            row["preco_sum"] += float(preco)
+            row["preco_n"] += 1
+        if cod and not row.get("codigo"):
+            row["codigo"] = cod
+        if desc and (not row.get("descricao") or len(desc) > len(row.get("descricao") or "")):
+            row["descricao"] = desc
+
+    if venda_ids:
+        agg = (
+            ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
+            .values("codigo", "descricao")
+            .annotate(
+                vezes=Count("id"),
+                qtd_total=Sum("quantidade"),
+                ultimo_valor=Avg("valor_unitario"),
+            )
         )
-        .order_by("-vezes", "-qtd_total")[:limit]
-    )
+        for row in agg:
+            ingest(
+                (row.get("codigo") or "").strip(),
+                (row.get("descricao") or "").strip(),
+                float(row.get("qtd_total") or 0),
+                float(row.get("ultimo_valor") or 0),
+                int(row.get("vezes") or 0),
+            )
+
+    if hist_venda_pks:
+        for row in (
+            RelacionamentoItemHistoricoErpAgro.objects.filter(venda_id__in=hist_venda_pks)
+            .values("codigo_gm", "descricao")
+            .annotate(
+                vezes=Count("id"),
+                qtd_total=Sum("quantidade"),
+                ultimo_valor=Avg("valor_unitario"),
+            )
+        ):
+            ingest(
+                (row.get("codigo_gm") or "").strip(),
+                (row.get("descricao") or "").strip(),
+                float(row.get("qtd_total") or 0),
+                float(row.get("ultimo_valor") or 0),
+                int(row.get("vezes") or 0),
+            )
+
+    if not acc:
+        return []
+
+    ranked = sorted(acc.values(), key=lambda x: (-x["vezes"], -x["qtd_total"]))[:limit]
+    codigos = [(r.get("codigo") or "").strip() for r in ranked]
+    ativos = codigos_gm_ativos_no_catalogo([c for c in codigos if c])
     out = []
-    for row in agg:
+    for row in ranked:
         codigo = (row.get("codigo") or "").strip()
-        desc = (row.get("descricao") or "").strip()
+        preco = float(row["preco_sum"] / row["preco_n"]) if row.get("preco_n") else 0.0
+        cod_norm = normalizar_codigo_gm_rel(codigo)
         out.append(
             {
                 "codigo": codigo,
-                "descricao": desc,
+                "descricao": row.get("descricao") or "",
                 "vezes": int(row.get("vezes") or 0),
                 "qtd_total": float(row.get("qtd_total") or 0),
-                "preco_medio": float(row.get("ultimo_valor") or 0),
+                "preco_medio": preco,
+                "catalogo_disponivel": bool(cod_norm and cod_norm in ativos),
             }
         )
     return out
 
 
-def _ciclo_racao(venda_ids: list[int]) -> list[dict[str, Any]]:
-    if not venda_ids:
+def _ciclo_racao(venda_ids: list[int], hist_venda_pks: list[int] | None = None) -> list[dict[str, Any]]:
+    hist_venda_pks = hist_venda_pks or []
+    if not venda_ids and not hist_venda_pks:
         return []
-    itens = (
-        ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
-        .select_related("venda")
-        .order_by("-venda__criado_em")
-    )
+
     por_chave: dict[str, list[tuple]] = defaultdict(list)
-    for it in itens:
-        desc = (it.descricao or "").strip()
-        if not _RACAO_RE.search(desc):
-            continue
-        chave = (it.codigo or desc[:80]).strip().lower()
-        por_chave[chave].append((it.venda.criado_em, it.quantidade, desc, it.codigo))
+
+    if venda_ids:
+        itens = (
+            ItemVendaAgro.objects.filter(venda_id__in=venda_ids)
+            .select_related("venda")
+            .order_by("-venda__criado_em")
+        )
+        for it in itens:
+            desc = (it.descricao or "").strip()
+            if not _RACAO_RE.search(desc):
+                continue
+            chave = (it.codigo or desc[:80]).strip().lower()
+            por_chave[chave].append((it.venda.criado_em, it.quantidade, desc, it.codigo))
+
+    if hist_venda_pks:
+        for it in (
+            RelacionamentoItemHistoricoErpAgro.objects.filter(venda_id__in=hist_venda_pks)
+            .select_related("venda")
+            .order_by("-venda__data_venda")
+        ):
+            desc = (it.descricao or "").strip()
+            if not _RACAO_RE.search(desc):
+                continue
+            chave = (it.codigo_gm or desc[:80]).strip().lower()
+            por_chave[chave].append((it.venda.data_venda, it.quantidade, desc, it.codigo_gm))
 
     out = []
     hoje = timezone.localdate()
@@ -336,49 +439,108 @@ def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]
         return {"ok": False, "erro": "Cliente não encontrado."}
 
     vendas_qs = _vendas_cliente_qs(cli)
-    venda_ids = list(vendas_qs.values_list("pk", flat=True)[:120])
+    hist_qs = _vendas_historico_erp_qs(cli)
+    venda_ids = list(vendas_qs.values_list("pk", flat=True)[:500])
+    hist_venda_pks = list(hist_qs.values_list("pk", flat=True)[:500])
     vendas_recentes = list(vendas_qs.prefetch_related("itens")[:12])
+    hist_recentes = list(hist_qs.prefetch_related("itens")[:12])
 
-    totais = vendas_qs.aggregate(n=Count("id"), soma=Sum("total"))
-    n_vendas = int(totais.get("n") or 0)
-    soma = _dec(totais.get("soma"))
+    totais_pdv = vendas_qs.aggregate(n=Count("id"), soma=Sum("total"))
+    totais_hist = hist_qs.aggregate(n=Count("id"), soma=Sum("total"))
+    n_vendas = int(totais_pdv.get("n") or 0) + int(totais_hist.get("n") or 0)
+    soma = _dec(totais_pdv.get("soma")) + _dec(totais_hist.get("soma"))
     ticket = float((soma / n_vendas).quantize(Decimal("0.01"))) if n_vendas else 0.0
 
-    ultima = vendas_qs.first()
-    dias_ultima = _dias_desde(ultima.criado_em) if ultima else None
+    ultima_pdv = vendas_qs.first()
+    ultima_hist = hist_qs.first()
+    ultima_dt = None
+    if ultima_pdv and ultima_hist:
+        ultima_dt = max(ultima_pdv.criado_em, ultima_hist.data_venda)
+    elif ultima_pdv:
+        ultima_dt = ultima_pdv.criado_em
+    elif ultima_hist:
+        ultima_dt = ultima_hist.data_venda
+    dias_ultima = _dias_desde(ultima_dt) if ultima_dt else None
 
-    datas = list(vendas_qs.values_list("criado_em", flat=True)[:24])
+    datas: list = []
+    for dt in vendas_qs.values_list("criado_em", flat=True)[:24]:
+        datas.append(dt)
+    for dt in hist_qs.values_list("data_venda", flat=True)[:24]:
+        datas.append(dt)
+    datas.sort(reverse=True)
     freq_dias = None
     if len(datas) >= 2:
         gaps = []
-        for i in range(len(datas) - 1):
-            d1 = datas[i].date()
-            d2 = datas[i + 1].date()
+        for i in range(min(len(datas) - 1, 23)):
+            d1 = datas[i].date() if hasattr(datas[i], "date") else datas[i]
+            d2 = datas[i + 1].date() if hasattr(datas[i + 1], "date") else datas[i + 1]
             gaps.append(abs((d1 - d2).days))
         if gaps:
             freq_dias = int(sum(gaps) / len(gaps))
 
-    top = _top_produtos(venda_ids)
+    top = _top_produtos(venda_ids, hist_venda_pks)
     historico_vendas = []
+
+    merged_vendas: list[tuple] = []
     for v in vendas_recentes:
-        linhas = [
-            {
-                "codigo": (it.codigo or "").strip(),
-                "descricao": (it.descricao or "").strip(),
-                "qtd": float(it.quantidade or 0),
-                "total": float(it.valor_total or 0),
-            }
-            for it in v.itens.all()[:20]
-        ]
-        historico_vendas.append(
-            {
-                "id": v.pk,
-                "data": timezone.localtime(v.criado_em).strftime("%d/%m/%Y %H:%M"),
-                "total": float(v.total or 0),
-                "forma": (v.forma_pagamento or "").strip(),
-                "itens": linhas,
-            }
-        )
+        merged_vendas.append((v.criado_em, "pdv", v))
+    for v in hist_recentes:
+        merged_vendas.append((v.data_venda, "erp", v))
+    merged_vendas.sort(key=lambda x: x[0], reverse=True)
+
+    for _dt, origem, v in merged_vendas[:12]:
+        if origem == "pdv":
+            codigos_it = [(it.codigo or "").strip() for it in v.itens.all()[:20]]
+            ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+            linhas = [
+                {
+                    "codigo": (it.codigo or "").strip(),
+                    "descricao": (it.descricao or "").strip(),
+                    "qtd": float(it.quantidade or 0),
+                    "total": float(it.valor_total or 0),
+                    "catalogo_disponivel": bool(
+                        normalizar_codigo_gm_rel(it.codigo or "") in ativos_it
+                    ),
+                }
+                for it in v.itens.all()[:20]
+            ]
+            historico_vendas.append(
+                {
+                    "id": v.pk,
+                    "origem": "pdv",
+                    "data": timezone.localtime(v.criado_em).strftime("%d/%m/%Y %H:%M"),
+                    "total": float(v.total or 0),
+                    "forma": (v.forma_pagamento or "").strip(),
+                    "itens": linhas,
+                }
+            )
+        else:
+            codigos_it = [(it.codigo_gm or "").strip() for it in v.itens.all()[:20]]
+            ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+            linhas = []
+            for it in v.itens.all()[:20]:
+                cod = (it.codigo_gm or "").strip()
+                linhas.append(
+                    {
+                        "codigo": cod,
+                        "descricao": (it.descricao or "").strip(),
+                        "qtd": float(it.quantidade or 0),
+                        "total": float(it.valor_total or 0),
+                        "catalogo_disponivel": bool(
+                            cod and normalizar_codigo_gm_rel(cod) in ativos_it
+                        ),
+                    }
+                )
+            historico_vendas.append(
+                {
+                    "id": f"erp-{v.pk}",
+                    "origem": "erp",
+                    "data": timezone.localtime(v.data_venda).strftime("%d/%m/%Y %H:%M"),
+                    "total": float(v.total or 0),
+                    "forma": (v.forma_pagamento or "").strip(),
+                    "itens": linhas,
+                }
+            )
 
     wa = (cli.whatsapp or "").strip()
     wa_digits = re.sub(r"\D", "", wa)
@@ -407,7 +569,8 @@ def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]
             "top_produtos": top,
             "vendas": historico_vendas,
         },
-        "ciclo_racao": _ciclo_racao(venda_ids),
+        "historico_erp": resumo_historico_erp_cliente(cli),
+        "ciclo_racao": _ciclo_racao(venda_ids, hist_venda_pks),
         "cross_sell": _cross_sell(top, venda_ids),
         "financeiro_fiado": _fiado_resumo(cli),
         "fidelidade": {

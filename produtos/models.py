@@ -1537,3 +1537,86 @@ class DashboardVendaDiaHistoricoAgro(models.Model):
 
     def __str__(self):
         return f"{self.data:%d/%m/%Y} · R$ {self.total}"
+
+
+class RelacionamentoHistoricoImportLoteAgro(models.Model):
+    """Lote do import único de vendas ERP para o F8 (somente leitura)."""
+
+    lote_id = models.CharField("ID do lote", max_length=64, unique=True, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    erp_ate = models.DateField("ERP até (inclusivo)")
+    pdv_desde = models.DateField("PDV SisVale desde")
+    dry_run = models.BooleanField(default=False)
+    stats_json = models.JSONField(default=dict, blank=True)
+    observacao = models.CharField(max_length=300, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Lote import histórico ERP (F8)"
+        verbose_name_plural = "Lotes import histórico ERP (F8)"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.lote_id} · ERP ≤ {self.erp_ate:%d/%m/%Y}"
+
+
+class RelacionamentoVendaHistoricoErpAgro(models.Model):
+    """Cabeçalho de venda ERP importada — não entra em caixa, fiado nem estoque."""
+
+    lote = models.ForeignKey(
+        RelacionamentoHistoricoImportLoteAgro,
+        on_delete=models.CASCADE,
+        related_name="vendas",
+    )
+    cliente_agro = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.CASCADE,
+        related_name="vendas_historico_erp",
+        db_index=True,
+    )
+    venda_id_erp = models.CharField(max_length=64, db_index=True)
+    cliente_id_erp = models.CharField(max_length=64, blank=True, default="")
+    cliente_nome_snapshot = models.CharField(max_length=300, blank=True, default="")
+    data_venda = models.DateTimeField(db_index=True)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    forma_pagamento = models.CharField(max_length=120, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Venda histórico ERP (F8)"
+        verbose_name_plural = "Vendas histórico ERP (F8)"
+        ordering = ["-data_venda"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lote", "venda_id_erp"],
+                name="rel_hist_erp_venda_lote_uid",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["cliente_agro", "-data_venda"], name="rel_hist_erp_cli_dt_idx"),
+        ]
+
+    def __str__(self):
+        return f"ERP {self.venda_id_erp} · {self.data_venda:%d/%m/%Y}"
+
+
+class RelacionamentoItemHistoricoErpAgro(models.Model):
+    """Item de venda ERP importada — snapshot do produto na época."""
+
+    venda = models.ForeignKey(
+        RelacionamentoVendaHistoricoErpAgro,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    produto_id_erp = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    codigo_gm = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    descricao = models.CharField(max_length=300, blank=True, default="")
+    quantidade = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    valor_unitario = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "Item histórico ERP (F8)"
+        verbose_name_plural = "Itens histórico ERP (F8)"
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.descricao[:40]} × {self.quantidade}"

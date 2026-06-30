@@ -163,8 +163,19 @@
         inp.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    function btnCartHtml(codigo, large, added) {
+    function btnCartHtml(codigo, large, added, disponivel) {
         if (!codigo) return '';
+        if (disponivel === false) {
+            var baseOff =
+                large
+                    ? 'shrink-0 rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-400'
+                    : 'shrink-0 rounded-lg border-2 border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-400';
+            return (
+                '<span class="' +
+                baseOff +
+                '" title="Produto não está no cadastro atual">Indisp.</span>'
+            );
+        }
         var base =
             large
                 ? 'rel-add-gm shrink-0 rounded-xl border-2 px-3 py-1.5 text-xs font-black'
@@ -214,10 +225,10 @@
         );
     }
 
-    function btnCartCol(codigo, large) {
+    function btnCartCol(codigo, large, disponivel) {
         return (
             '<div class="rel-add-gm-col flex shrink-0 items-center border-l border-slate-200 pl-2 sm:pl-3">' +
-            btnCart(codigo, large) +
+            btnCart(codigo, large, disponivel) +
             '</div>'
         );
     }
@@ -245,7 +256,7 @@
             topProdutoValCol(vezes) +
             topProdutoValCol(total) +
             '<div class="rel-top-prod-col rel-top-prod-col--btn">' +
-            btnCart(p.codigo, largeBtn) +
+            btnCart(p.codigo, largeBtn, p.catalogo_disponivel !== false) +
             '</div></li>'
         );
     }
@@ -268,9 +279,9 @@
         return html;
     }
 
-    function btnCart(codigo, large) {
+    function btnCart(codigo, large, disponivel) {
         var key = String(codigo || '').trim();
-        return btnCartHtml(key, large, !!relCartAdded[key]);
+        return btnCartHtml(key, large, !!relCartAdded[key], disponivel);
     }
 
     function markCartBtnDone(btn) {
@@ -466,7 +477,7 @@
                     '<div class="min-w-0 flex-1 text-sm font-bold text-slate-600">' +
                     histCompraMeta(p) +
                     '</div>' +
-                    btnCartCol(p.codigo, true) +
+                    btnCartCol(p.codigo, true, p.catalogo_disponivel !== false) +
                     '</div></article>';
             });
             html += '</div>';
@@ -476,16 +487,21 @@
         html +=
             '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Últimas vendas</h3>';
         if (!vendas.length) {
-            html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Nenhuma venda recente no PDV.</p>';
+            html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Nenhuma venda no histórico deste cliente.</p>';
         } else {
             html += '<div class="space-y-3">';
             vendas.forEach(function (v) {
+                var origemBadge =
+                    v.origem === 'erp'
+                        ? '<span class="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">ERP</span>'
+                        : '<span class="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-800">SisVale</span>';
                 html +=
                     '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm">' +
                     '<summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
                     '<span class="text-lg font-black text-slate-900 sm:text-xl">' +
                     money(v.total) +
                     '</span>' +
+                    origemBadge +
                     formaBadge(v.forma) +
                     '<span class="text-sm font-bold text-slate-500 sm:ml-auto">' +
                     esc(v.data) +
@@ -503,7 +519,7 @@
                         '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
                         money(it.total) +
                         '</td><td class="py-2.5 pl-2 text-right">' +
-                        btnCart(it.codigo, false) +
+                        btnCart(it.codigo, false, it.catalogo_disponivel !== false) +
                         '</td></tr>';
                 });
                 html += '</tbody></table></div></details>';
