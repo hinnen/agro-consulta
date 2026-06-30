@@ -1,5 +1,5 @@
 /**
- * PDV — Relacionamento com cliente (rascunho F5).
+ * PDV — Relacionamento com cliente (rascunho · atalho F8).
  * Dados reais via API; pets/lembretes/anotações em localStorage até validar escopo.
  */
 (function () {
@@ -25,7 +25,7 @@
     var bootstrap = {};
     var apiData = null;
     var clientePk = null;
-    var activeTab = 'resumo';
+    var activeTab = 'historico';
 
     function money(v) {
         var n = Number(v);
@@ -75,12 +75,27 @@
         inp.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    function btnGm(codigo) {
+    function btnGm(codigo, large) {
         if (!codigo) return '';
+        var cls = large
+            ? 'rel-add-gm shrink-0 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 py-1.5 text-xs font-black uppercase text-emerald-900 hover:bg-emerald-100'
+            : 'rel-add-gm ml-2 rounded-lg border border-emerald-400 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100';
         return (
-            '<button type="button" class="rel-add-gm ml-2 rounded-lg border border-emerald-400 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100" data-gm="' +
+            '<button type="button" class="' +
+            cls +
+            '" data-gm="' +
             esc(codigo) +
             '">+ GM</button>'
+        );
+    }
+
+    function formaBadge(forma) {
+        var f = (forma || '').trim();
+        if (!f) return '';
+        return (
+            '<span class="shrink-0 rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-black uppercase text-slate-700">' +
+            esc(f) +
+            '</span>'
         );
     }
 
@@ -145,47 +160,94 @@
     function renderHistorico(d) {
         var vendas = (d.historico_rapido && d.historico_rapido.vendas) || [];
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
-        var html = '<div class="space-y-4 text-sm">';
-        html += '<p class="text-[10px] font-black uppercase text-slate-600">Últimos itens mais comprados</p>';
-        if (!top.length) html += '<p class="text-xs text-slate-500">Sem histórico PDV para este cliente.</p>';
-        top.forEach(function (p) {
-            html +=
-                '<div class="rounded-lg border border-slate-200 px-2 py-2"><div class="font-black text-slate-900">' +
-                esc(p.descricao) +
-                '</div><div class="mt-1 flex flex-wrap gap-2 text-[10px] font-bold text-slate-600"><span>' +
-                esc(p.codigo || '—') +
-                '</span><span>× ' +
-                p.vezes +
-                ' compras</span><span>Qtd total ' +
-                p.qtd_total +
-                '</span>' +
-                btnGm(p.codigo) +
-                '</div></div>';
-        });
-        html += '<p class="text-[10px] font-black uppercase text-slate-600">Últimas vendas</p>';
-        if (!vendas.length) html += '<p class="text-xs text-slate-500">Nenhuma venda recente.</p>';
-        vendas.forEach(function (v) {
-            html +=
-                '<details class="rounded-lg border border-slate-200 bg-white"><summary class="cursor-pointer px-3 py-2 font-black text-slate-800">' +
-                esc(v.data) +
-                ' · ' +
-                money(v.total) +
-                ' · ' +
-                esc(v.forma || '') +
-                '</summary><ul class="border-t border-slate-100 px-3 py-2 text-xs">';
-            (v.itens || []).forEach(function (it) {
+        var m = d.metricas || {};
+        var html =
+            '<div class="pdv-rel-historico space-y-6">' +
+            '<div class="grid gap-3 sm:grid-cols-3">' +
+            '<div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-emerald-800">Visitas PDV</p><p class="text-2xl font-black text-emerald-950">' +
+            (m.total_vendas || 0) +
+            '</p></div>' +
+            '<div class="rounded-2xl border-2 border-sky-200 bg-sky-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-sky-800">Total comprado</p><p class="text-2xl font-black text-sky-950">' +
+            money(m.total_comprado) +
+            '</p></div>' +
+            '<div class="rounded-2xl border-2 border-violet-200 bg-violet-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-violet-800">Ticket médio</p><p class="text-2xl font-black text-violet-950">' +
+            money(m.ticket_medio) +
+            '</p></div></div>';
+
+        html +=
+            '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Itens mais comprados</h3>';
+        if (!top.length) {
+            html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Sem histórico PDV para este cliente.</p>';
+        } else {
+            html += '<div class="grid gap-3 lg:grid-cols-2">';
+            top.forEach(function (p, i) {
                 html +=
-                    '<li class="flex flex-wrap items-center gap-1 py-0.5"><span class="flex-1">' +
-                    esc(it.descricao) +
-                    ' × ' +
-                    it.qtd +
+                    '<article class="flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">' +
+                    '<div class="flex items-start gap-3">' +
+                    '<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white">' +
+                    (i + 1) +
                     '</span>' +
-                    btnGm(it.codigo) +
-                    '</li>';
+                    '<div class="min-w-0 flex-1">' +
+                    '<p class="text-base font-black leading-snug text-slate-900 sm:text-lg">' +
+                    esc(p.descricao) +
+                    '</p>' +
+                    '<p class="mt-1 text-sm font-bold text-slate-600">Cód. <span class="font-mono text-slate-800">' +
+                    esc(p.codigo || '—') +
+                    '</span></p></div></div>' +
+                    '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">' +
+                    '<div class="flex flex-wrap gap-3 text-sm font-black text-slate-700">' +
+                    '<span>' +
+                    p.vezes +
+                    '× comprado</span><span>Qtd ' +
+                    p.qtd_total +
+                    '</span></div>' +
+                    btnGm(p.codigo, true) +
+                    '</div></article>';
             });
-            html += '</ul></details>';
-        });
-        html += '</div>';
+            html += '</div>';
+        }
+        html += '</section>';
+
+        html +=
+            '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Últimas vendas</h3>';
+        if (!vendas.length) {
+            html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Nenhuma venda recente no PDV.</p>';
+        } else {
+            html += '<div class="space-y-3">';
+            vendas.forEach(function (v, idx) {
+                var openAttr = idx === 0 ? ' open' : '';
+                html +=
+                    '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm"' +
+                    openAttr +
+                    '><summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
+                    '<span class="text-lg font-black text-slate-900 sm:text-xl">' +
+                    money(v.total) +
+                    '</span>' +
+                    formaBadge(v.forma) +
+                    '<span class="text-sm font-bold text-slate-500 sm:ml-auto">' +
+                    esc(v.data) +
+                    '</span>' +
+                    '<span class="w-full text-[11px] font-black uppercase text-emerald-700 group-open:hidden sm:w-auto sm:text-xs">Toque para ver itens ▾</span></summary>' +
+                    '<div class="border-t-2 border-slate-100 bg-slate-50/80 px-3 py-3 sm:px-5 sm:py-4">' +
+                    '<table class="w-full border-collapse text-left text-sm sm:text-base"><thead><tr class="text-[11px] font-black uppercase text-slate-500 sm:text-xs">' +
+                    '<th class="pb-2 pr-2">Produto</th><th class="pb-2 px-2 text-center">Qtd</th><th class="pb-2 px-2 text-right">Total</th><th class="pb-2 pl-2 text-right"></th></tr></thead><tbody>';
+                (v.itens || []).forEach(function (it) {
+                    html +=
+                        '<tr class="border-t border-slate-200/80"><td class="py-2.5 pr-2 font-bold text-slate-900">' +
+                        esc(it.descricao) +
+                        '</td><td class="px-2 py-2.5 text-center font-black text-slate-800">' +
+                        it.qtd +
+                        '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
+                        money(it.total) +
+                        '</td><td class="py-2.5 pl-2 text-right">' +
+                        btnGm(it.codigo, true) +
+                        '</td></tr>';
+                });
+                html += '</tbody></table></div></details>';
+            });
+            html += '</div>';
+        }
+        html += '</section></div>';
         return html;
     }
 
@@ -488,10 +550,12 @@
         if (!dom.tabs) return;
         dom.tabs.innerHTML = TABS.map(function (t) {
             var on = t.id === activeTab;
+            var hist = t.id === 'historico';
             return (
-                '<button type="button" class="rel-tab shrink-0 rounded-xl border-2 px-2.5 py-2 text-[10px] font-black uppercase ' +
+                '<button type="button" class="rel-tab shrink-0 rounded-xl border-2 px-3 py-2.5 font-black uppercase ' +
+                (hist ? ' text-xs sm:text-sm ' : ' text-[10px] ') +
                 (on
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    ? 'border-emerald-600 bg-emerald-600 text-white shadow-md'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50') +
                 '" data-tab="' +
                 esc(t.id) +
@@ -547,7 +611,7 @@
             return;
         }
         clientePk = cli.cliente_agro_pk;
-        activeTab = 'resumo';
+        activeTab = 'historico';
         if (dom.title) dom.title.textContent = cli.nome || 'Cliente';
         if (dom.modal) {
             dom.modal.classList.remove('hidden');

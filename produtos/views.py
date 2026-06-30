@@ -8562,7 +8562,7 @@ def api_pdv_cliente_credito_fiado(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_pdv_relacionamento_cliente(request):
-    """Painel rascunho F5 — relacionamento / histórico do cliente no PDV."""
+    """Painel rascunho F8 — relacionamento / histórico do cliente no PDV."""
     from produtos.relacionamento_cliente_util import montar_painel_relacionamento_cliente
 
     raw = request.GET.get("cliente_agro_pk")

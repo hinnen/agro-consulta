@@ -257,7 +257,7 @@ def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]
 
     vendas_qs = _vendas_cliente_qs(cli)
     venda_ids = list(vendas_qs.values_list("pk", flat=True)[:120])
-    vendas_recentes = list(vendas_qs.prefetch_related("itens")[:8])
+    vendas_recentes = list(vendas_qs.prefetch_related("itens")[:12])
 
     totais = vendas_qs.aggregate(n=Count("id"), soma=Sum("total"))
     n_vendas = int(totais.get("n") or 0)

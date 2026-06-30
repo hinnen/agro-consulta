@@ -968,13 +968,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.24** · **produção v5.24** — FL-017 + perf menu caixa **loja**
+**Versão app (`VERSION`):** **teste v5.26** · **produção LIVE v5.22** (`0a0fd52`) — deploy **v5.24 falhou** build Render 29/06 · tip `producao` = `eb9fcc9` (não entrou)
 
 ### Listagem loja — WhatsApp (copiar)
 
 **Anterior:** **17/06/2026** · produção **12–16/jun** (PDV, Caixa, Entrada NF, Etiquetas, Cadastro — lista guardada pelo Renan).
 
-**Esta lista:** produção **17/06 – 29/06/2026** · badge loja **v5.24** · gerada **29/06**.
+**Esta lista:** produção **17/06 – 29/06/2026** · badge loja **v5.22 live** (v5.24 menu caixa **não subiu**) · gerada **29/06**.
 
 **Formato:** **lista completa** (PDV + caixa + NF + gestão + financeiro + BI + compras) — **não** usar versão «só balcão».
 
@@ -1012,7 +1012,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 • Nova tela de **histórico de retiradas/saídas**: filtros por data, plano e quem levou (padrão = hoje).  
 • Após registrar saída: aviso verde **«Retirada concluída»** e campos limpos.  
 • **Correção importante:** devolução no mesmo dia **não descontava em dobro** no fechamento nem no relatório.  
-• Menu **CAIXA** abre mais rápido (detalhes pesados só na tela **Saldo**).
+• Menu **CAIXA** mais rápido (detalhes pesados só na tela **Saldo**) — **📋 fila** · próximo deploy loja (ainda **não** na v5.22 live).
 
 **🧾 Entrada de Nota Fiscal**  
 • **Rascunhos** da nota salvos no sistema Agro (mais estável).  
@@ -1057,24 +1057,32 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 
 ---
 
-### WIP — Relacionamento PDV (F5 rascunho) **30/06**
+### WIP — Relacionamento PDV (F8 rascunho) **30/06**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Modal F5 com abas — testar ferramenta a ferramenta antes de caprichar layout |
+| **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
+| **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
+| **Aba principal** | **Histórico** — modal maior · cards top produtos · vendas em tabela · abre na aba Histórico |
+| **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
+| **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
 | **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
 | **Abas** | Resumo · Histórico · Ciclo ração · Cross-sell · Fiado · Cashback · Métricas · Pets · Saúde · Anotações · Contato |
 | **Dados reais** | Vendas PDV + itens · fiado · cashback/vale |
 | **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
-| **Teste** | Render teste · PDV · cliente cadastrado · **F5** ou **Relac.** |
+| **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ✅
+### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ❌ build falhou
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — teste OK · *pode subir* + senha **99738595** |
 | **Pacote** | Cherry-pick teste **`11d8634`** → loja **`eb9fcc9`** |
-| **Revert loja** | redeploy **`0a0fd52`** (v5.22) |
+| **Render** | **29/06 ~20:54** — *Exited with status 1 while building* · **live continua `0a0fd52` v5.22** |
+| **Causa** | Arquivo **`VERSION`** no commit gravado em **UTF-16 (BOM)** → `scripts/record_deploy.py` → `read_app_version()` UTF-8 → **UnicodeDecodeError** (1º passo do build) |
+| **Correção** | Recommit **`VERSION`** UTF-8 (`5.24\n`) + redeploy (código **`11d8634`** OK) · opcional: `read_app_version` tolerante a UTF-16 |
+| **Renan 30/06** | **📋 Fila** — **não** redeploy isolado agora · sobe **junto com o próximo pacote** loja (fix `VERSION` no cherry-pick final) |
+| **Revert loja** | já está em **`0a0fd52`** (v5.22) — botão Rollback no Render é redundante |
 
 ### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
 
@@ -1220,6 +1228,13 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
+**Pacotes prontos — aguardando próximo deploy loja (Renan 30/06):**
+
+| Pacote | O quê | Observação |
+| ------ | ----- | ---------- |
+| **v5.24 perf caixa** | Menu caixa lazy (`11d8634`) | Build **`eb9fcc9` falhou** — incluir **`VERSION` UTF-8** no cherry-pick do próximo pacote |
+| **Relacionamento PDV** | Modal **F8** / Hist. (`relacionamento_cliente_util` + JS) | Só leitura · **fila loja** · validar com cliente real |
+
 **Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
 
 **Escala P (Renan):** **Px,y** = entre **Px** e **P(x+1)** — mais urgente que o de baixo, menos que o de cima. Decimal **menor** = mais perto do **P** inteiro de cima (ex. **P1,1** antes de **P1,5**). Inteiros: **P0** para a loja · **P1** grave · **P2** melhoria · **P3** depois.
@@ -1263,7 +1278,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
 | **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
-| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F5 modal rascunho** teste | 29/06 16:20 |
+| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |

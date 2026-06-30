@@ -9503,7 +9503,7 @@
                     if (dom.quickClientChange) dom.quickClientChange.click();
                     return;
                 }
-                if (event.code === 'F5' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                if (event.code === 'F8' && !event.altKey && !event.ctrlKey && !event.metaKey) {
                     event.preventDefault();
                     if (dom.clientPurchaseHistory) dom.clientPurchaseHistory.click();
                     return;

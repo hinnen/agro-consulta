@@ -2609,14 +2609,14 @@
   </div>
 </div>
 
-<div id="pdv-relacionamento-modal" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-relacionamento-titulo">
-  <div class="flex max-h-[min(92dvh,52rem)] w-full max-w-[min(56rem,98vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation();">
-    <header class="shrink-0 border-b-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3 sm:px-5">
-      <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho (F5)</p>
-      <h2 id="pdv-relacionamento-titulo" class="truncate text-lg font-black text-slate-900">Cliente</h2>
+<div id="pdv-relacionamento-modal" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/65 p-1.5 backdrop-blur-sm sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-relacionamento-titulo">
+  <div class="pdv-relacionamento-shell flex max-h-[min(96dvh,58rem)] w-full max-w-[min(72rem,99vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="shrink-0 border-b-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3 sm:px-6 sm:py-4">
+      <p class="text-[11px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho · <kbd class="rounded border border-emerald-300 bg-white px-1.5 font-mono text-[10px]">F8</kbd></p>
+      <h2 id="pdv-relacionamento-titulo" class="truncate text-xl font-black text-slate-900 sm:text-2xl">Cliente</h2>
     </header>
-    <div id="pdv-relacionamento-tabs" class="flex shrink-0 gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 py-2 sm:px-3"></div>
-    <div class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
+    <div id="pdv-relacionamento-tabs" class="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4"></div>
+    <div class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
       <p id="pdv-relacionamento-loading" class="hidden text-sm font-bold text-slate-600">Carregando histórico…</p>
       <div id="pdv-relacionamento-panel"></div>
     </div>
@@ -2703,7 +2703,7 @@
       itens: [
         'Campo amarelo: busque por nome, GM, EAN ou código; F2 foca na busca; setas ↑↓ escolhem e Enter confirma.',
         'Ao lado você vê cliente atual; F4 ou “Trocar” para buscar outro cliente sem sair dos produtos.',
-        'Histórico de compras no cliente usa F5.',
+        'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
       ],
