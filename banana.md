@@ -1141,7 +1141,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.44** · **produção branch `eb9fcc9` v5.24** · **Render loja — conferir badge** (build v5.24 falhou 29/06; live pode ainda ser **v5.22**)
+**Versão app (`VERSION`):** **teste v5.44** · **loja live v5.22.1** (Renan 30/06) · **pacote v5.44 pronto** · branch `producao` git `eb9fcc9` (v5.24 build falhou)
 
 ### 📦 PACOTE LOJA — **v5.44** · PRONTO · aguardando Renan (**30/06**)
 
