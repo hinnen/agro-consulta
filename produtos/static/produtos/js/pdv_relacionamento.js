@@ -352,6 +352,24 @@
         return { total: total, vencido: vencido };
     }
 
+    function resumoTabAlertMeta(d) {
+        var m = (d && d.metricas) || {};
+        if (m.ultima_visita_dias != null && m.ultima_visita_dias > 60) {
+            return { extra: String(m.ultima_visita_dias) + 'd', title: 'Cliente sumido há ' + m.ultima_visita_dias + ' dias' };
+        }
+        return null;
+    }
+
+    function cicloTabAlertMeta(d) {
+        var rows = (d && d.ciclo_racao) || [];
+        var n = 0;
+        rows.forEach(function (c) {
+            if (c.status === 'atrasado') n += 1;
+        });
+        if (n <= 0) return null;
+        return { extra: String(n), title: n + ' recompra(s) atrasada(s)' };
+    }
+
     function fiadoGestaoClienteUrl(pk) {
         var base = (bootstrap.urls && bootstrap.urls.fiadoGestao) || '/fiado/';
         var join = base.indexOf('?') >= 0 ? '&' : '?';
@@ -437,6 +455,7 @@
                     if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar ciclo');
                     apiData.ciclo_racao = data.ciclo_racao || [];
                     secaoCarregada.ciclo_racao = true;
+                    renderTabs();
                     if (activeTab === 'ciclo_racao' || activeTab === 'resumo') renderTabContent();
                 })
                 .catch(function (err) {
@@ -547,25 +566,9 @@
     }
 
     function renderResumo(d, extra) {
-        var m = d.metricas || {};
-        var alertas = [];
-        if (m.ultima_visita_dias != null && m.ultima_visita_dias > 60) {
-            alertas.push('Cliente sumido há ' + m.ultima_visita_dias + ' dias');
-        }
-        var ciclo = d.ciclo_racao || [];
-        ciclo.forEach(function (c) {
-            if (c.status === 'atrasado') alertas.push('Recompra atrasada: ' + esc(c.descricao).slice(0, 40));
-        });
         var html =
             '<div class="space-y-3 text-sm">' +
             '<p class="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-950">Pets, saúde e anotações salvos no cadastro — qualquer caixa da loja vê. Demais abas em evolução.</p>';
-        if (alertas.length) {
-            html += '<div class="rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2"><p class="text-[10px] font-black uppercase text-red-800">Alertas</p><ul class="mt-1 list-disc pl-4 text-xs font-bold text-red-950">';
-            alertas.forEach(function (a) {
-                html += '<li>' + a + '</li>';
-            });
-            html += '</ul></div>';
-        }
         html += renderResumoCards(d, extra);
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         html += topProdutoListHtml(top, false);
@@ -1057,33 +1060,52 @@
 
     function renderTabs() {
         if (!dom.tabs) return;
-        var fmeta = fiadoTabAlertMeta(apiData);
         dom.tabs.innerHTML = TABS.map(function (t) {
             var on = t.id === activeTab;
-            var alertFiado = t.id === 'fiado' && fmeta;
+            var fmeta = t.id === 'fiado' ? fiadoTabAlertMeta(apiData) : null;
+            var rmeta = t.id === 'resumo' ? resumoTabAlertMeta(apiData) : null;
+            var cmeta = t.id === 'ciclo_racao' ? cicloTabAlertMeta(apiData) : null;
+            var alertFiado = !!fmeta;
+            var alertOrange = !!(rmeta || cmeta);
             var cls = 'rel-tab rounded-lg border-2 px-0.5 py-1 font-black uppercase leading-tight ';
             if (on) {
-                cls += alertFiado
-                    ? 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on border-orange-600 bg-orange-600 text-white shadow-md'
-                    : 'border-emerald-600 bg-emerald-600 text-white shadow-md';
+                if (alertFiado) {
+                    cls += fmeta.vencido
+                        ? 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on rel-tab--fiado-vencido border-red-600 bg-red-600 text-white shadow-md'
+                        : 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on border-orange-600 bg-orange-600 text-white shadow-md';
+                } else if (alertOrange) {
+                    cls += 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on border-orange-600 bg-orange-600 text-white shadow-md';
+                } else {
+                    cls += 'border-emerald-600 bg-emerald-600 text-white shadow-md';
+                }
             } else if (alertFiado) {
                 cls += fmeta.vencido
                     ? 'rel-tab--fiado-alerta rel-tab--fiado-vencido border-red-500 bg-red-50 text-red-950 hover:bg-red-100'
                     : 'rel-tab--fiado-alerta border-orange-400 bg-orange-50 text-orange-950 hover:bg-orange-100';
+            } else if (alertOrange) {
+                cls += 'rel-tab--fiado-alerta border-orange-400 bg-orange-50 text-orange-950 hover:bg-orange-100';
             } else {
                 cls += 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50';
             }
-            var extra =
-                alertFiado
-                    ? '<span class="rel-tab-extra tabular-nums">' + esc(moneyCompact(fmeta.total)) + '</span>'
-                    : '';
+            var tabTitle = t.label;
+            var extra = '';
+            if (alertFiado) {
+                tabTitle = fmeta.vencido ? 'Fiado · vencido' : 'Fiado · em aberto';
+                extra = '<span class="rel-tab-extra tabular-nums">' + esc(moneyCompact(fmeta.total)) + '</span>';
+            } else if (rmeta) {
+                tabTitle = rmeta.title || tabTitle;
+                extra = '<span class="rel-tab-extra tabular-nums">' + esc(rmeta.extra) + '</span>';
+            } else if (cmeta) {
+                tabTitle = cmeta.title || tabTitle;
+                extra = '<span class="rel-tab-extra tabular-nums">' + esc(cmeta.extra) + '</span>';
+            }
             return (
                 '<button type="button" class="' +
                 cls +
                 '" data-tab="' +
                 esc(t.id) +
                 '" title="' +
-                esc(t.label) +
+                esc(tabTitle) +
                 '">' +
                 '<span class="rel-tab-label">' +
                 esc(tabDisplayLabel(t)) +

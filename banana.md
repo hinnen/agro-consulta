@@ -1161,6 +1161,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Histórico** | Página **12** vendas · botão **Carregar mais** · `GET ?secao=historico&historico_offset=` |
 | **Lazy** | **Ciclo ração** e **Cross-sell** só ao abrir a aba (`?secao=ciclo_racao` / `cross_sell`) |
 | **Ciclo alertas Resumo** | Prefetch ciclo **em background** após abrir (não bloqueia) |
+| **Alertas aba (Renan · 30/06)** | Caixa vermelha saiu do **Resumo** · **Resumo** (>60d sumido) e **Ciclo** (nº atrasados) no título da aba — estilo Fiado |
 | **Top produtos** | Amostra **150** vendas (antes 500) — suficiente para ranking |
 | **Arquivos** | `relacionamento_cliente_util.py` · `views.py` · `pdv_relacionamento.js` |
 | **Deploy** | **teste v5.48** · commit `bdea194` · push 30/06 |
