@@ -1141,7 +1141,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.53** (fix perf F8 · local) · **deploy teste v5.52** · **loja v5.44** (30/06)
+**Versão app (`VERSION`):** **teste v5.53** (`4c269a0` push) · **loja v5.44** (30/06)
 
 ### 🔴 Staging travado — perf F8 histórico **v5.53** (30/06)
 
@@ -1152,7 +1152,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | **v5.51** `codigos_gm_ativos_no_catalogo` (Mongo fallback) chamado **por venda** em `_serialize_venda_historico_*` · F8 inicial = 12 vendas → **12+ roundtrips Mongo** · pior após import **erp-hist-teste-3** (4309 vendas / 7501 itens) |
 | **Fix v5.53** | Batch único em `_historico_vendas_paginado` (todos codigos da página) · serializers aceitam `ativos_it` opcional · `max_time_ms=8000` no find `DtoProduto` |
 | **Arquivos** | `relacionamento_cliente_util.py` · `relacionamento_historico_erp_util.py` |
-| **Próximo** | Commit + push **`teste`** → aguardar deploy → Ctrl+F5 PDV → F8 cliente com histórico ERP |
+| **Deploy** | Push **`teste`** `4c269a0` · aguardar Render ~2–5 min → Ctrl+F5 PDV → F8 cliente com histórico ERP |
 
 ### 🧭 Dois trilhos — **não misturar** (Renan · 30/06)
 
