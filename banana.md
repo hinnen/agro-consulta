@@ -1203,7 +1203,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix v5.50** | `str(ObjectId)` em scalars + probe amostra ≤ corte ERP + `item_mongo_amostra` |
 | **Deploy teste v5.48** | F8 perf (carga inicial + histórico paginado) + fix join chaves |
 | **Reverter v2** | `relacionamento_reverter_historico_erp --lote erp-hist-teste-2` |
-| **Reimport v3** | Após Live **v5.50** → `--lote erp-hist-teste-3` · probe deve mostrar `itens_mongo > 0` |
+| **Probe v5.50 OK (Renan · 30/06)** | `itens_mongo` 1/4/1 · `VendaID_tipo: str` · amostra ≤26/05 |
+| **Import v3 OK (Renan · 30/06)** | Lote **`erp-hist-teste-3`** · **4309** vendas · **7501** itens · **0** vendas sem linha · **4988** itens sem GM ativo (+1 «Indisp.») |
+| **Validar** | F8 cliente com histórico ERP · aba Histórico · badge ERP · +1 só se GM ativo |
+| **Indisp. fix v5.51** | `codigos_gm_ativos_no_catalogo` → overlay + **Produto PG** + **Mongo** ativo (GM4856 etc.) · **sem** reimport |
+| **Indisp. (Renan · 30/06)** | Regra antiga: só overlay `codigo_nfe` → muitos «Indisp.» com nome igual no SisVale |
 
 ### FL-042 — Histórico ERP no F8 **v5.46+** · **teste**
 

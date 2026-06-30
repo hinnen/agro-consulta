@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from produtos.models import (
     ClienteAgro,
+    Produto,
     ProdutoGestaoOverlayAgro,
     RelacionamentoHistoricoImportLoteAgro,
     RelacionamentoItemHistoricoErpAgro,
@@ -607,19 +608,66 @@ def normalizar_codigo_gm_rel(raw: str) -> str:
 
 
 def codigos_gm_ativos_no_catalogo(codigos: list[str]) -> set[str]:
-    """Códigos GM que existem no overlay Agro (cadastro ativo para +1 no PDV)."""
+    """Códigos GM vendáveis no PDV: overlay + Produto PG + Mongo DtoProduto ativo."""
     norms = {_norm_codigo_gm(c) for c in codigos if str(c or "").strip()}
     norms = {n for n in norms if n}
     if not norms:
         return set()
+
+    found: set[str] = set()
     q = Q()
     for c in norms:
         q |= Q(codigo_nfe__iexact=c)
-    found: set[str] = set()
     for raw in ProdutoGestaoOverlayAgro.objects.filter(q).values_list("codigo_nfe", flat=True):
         n = _norm_codigo_gm(raw)
         if n:
             found.add(n)
+
+    missing = norms - found
+    if missing:
+        try:
+            q_pg = Q()
+            for c in missing:
+                q_pg |= Q(codigo_nfe__iexact=c)
+            for raw in Produto.objects.filter(q_pg, cadastro_inativo=False).values_list(
+                "codigo_nfe", flat=True
+            ):
+                n = _norm_codigo_gm(raw)
+                if n in missing:
+                    found.add(n)
+        except Exception as exc:
+            logger.warning("codigos_gm_ativos produto pg: %s", exc)
+        missing = norms - found
+
+    if missing:
+        try:
+            from produtos.views import obter_conexao_mongo
+
+            _client, db = obter_conexao_mongo()
+            if db is not None:
+                ors: list[dict] = []
+                for c in missing:
+                    ors.append({"CodigoNFe": c})
+                    ors.append({"Codigo": c})
+                    if c.upper().startswith("GM"):
+                        tail = c[2:].lstrip("0") or c[2:]
+                        if tail.isdigit():
+                            ors.append({"Codigo": int(tail)})
+                            ors.append({"Codigo": tail})
+                            ors.append({"CodigoNFe": tail})
+                if ors:
+                    proj = {"CodigoNFe": 1, "Codigo": 1, "CodigoInterno": 1, "index_codigos": 1}
+                    for doc in db["DtoProduto"].find(
+                        {"$and": [{"CadastroInativo": {"$ne": True}}, {"$or": ors}]},
+                        proj,
+                    ).limit(max(50, len(missing) * 4)):
+                        gm = _codigo_gm_de_produto_mongo(doc)
+                        n = _norm_codigo_gm(gm)
+                        if n in missing:
+                            found.add(n)
+        except Exception as exc:
+            logger.warning("codigos_gm_ativos mongo: %s", exc)
+
     return found
 
 
