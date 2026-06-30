@@ -264,6 +264,65 @@
         );
     }
 
+    function resumoMetricCard(label, valueHtml, valueClass) {
+        return (
+            '<div class="rel-resumo-card">' +
+            '<p class="rel-resumo-card-label">' +
+            esc(label) +
+            '</p>' +
+            '<div class="rel-resumo-card-val' +
+            (valueClass ? ' ' + valueClass : '') +
+            '">' +
+            valueHtml +
+            '</div></div>'
+        );
+    }
+
+    function petsResumoNomes(extra) {
+        var pets = (extra && extra.pets) || [];
+        if (!pets.length) return '—';
+        var nomes = pets
+            .map(function (p) {
+                return String((p && p.nome) || '').trim();
+            })
+            .filter(Boolean);
+        return nomes.length ? esc(nomes.join(', ')) : '—';
+    }
+
+    function renderResumoCards(d, extra) {
+        var m = d.metricas || {};
+        var fid = d.fidelidade || {};
+        var c = d.cliente || {};
+        var waUrl = (c.whatsapp_url || '').trim();
+        var waBtn =
+            waUrl
+                ? '<a class="rel-resumo-wa inline-flex min-h-[2rem] w-full items-center justify-center rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1 text-[11px] font-black uppercase text-emerald-900 no-underline hover:bg-emerald-100" href="' +
+                  esc(waUrl) +
+                  '" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">💬</span> Conversar</a>'
+                : '<span class="text-sm font-bold text-slate-400">Sem número</span>';
+        return (
+            '<div class="rel-resumo-cards">' +
+            resumoMetricCard('Visitas', String(m.total_vendas || 0), 'rel-resumo-card-val--dark') +
+            resumoMetricCard('Ticket médio', money(m.ticket_medio), 'rel-resumo-card-val--dark') +
+            resumoMetricCard('Cashback', money(fid.cashback), 'rel-resumo-card-val--cash') +
+            resumoMetricCard('Vale crédito', money(fid.vale_credito), 'rel-resumo-card-val--vale') +
+            resumoMetricCard('Total comprado', money(m.total_comprado), 'rel-resumo-card-val--dark') +
+            resumoMetricCard(
+                'Freq. entre visitas',
+                m.frequencia_media_dias != null ? m.frequencia_media_dias + ' dias' : '—',
+                'rel-resumo-card-val--dark'
+            ) +
+            resumoMetricCard(
+                'Última visita',
+                m.ultima_visita_dias != null ? 'há ' + m.ultima_visita_dias + ' dias' : '—',
+                'rel-resumo-card-val--dark'
+            ) +
+            resumoMetricCard('Pets', petsResumoNomes(extra), 'rel-resumo-card-val--pets') +
+            resumoMetricCard('WhatsApp', waBtn, 'rel-resumo-card-val--wa') +
+            '</div>'
+        );
+    }
+
     function renderResumo(d, extra) {
         var m = d.metricas || {};
         var alertas = [];
@@ -284,17 +343,7 @@
             });
             html += '</ul></div>';
         }
-        html +=
-            '<div class="grid grid-cols-3 gap-2">' +
-            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Visitas</p><p class="text-base font-black sm:text-lg">' +
-            (m.total_vendas || 0) +
-            '</p></div>' +
-            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Ticket médio</p><p class="truncate text-base font-black sm:text-lg">' +
-            money(m.ticket_medio) +
-            '</p></div>' +
-            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Cashback</p><p class="truncate text-base font-black text-emerald-700 sm:text-lg">' +
-            money(d.fidelidade && d.fidelidade.cashback) +
-            '</p></div></div>';
+        html += renderResumoCards(d, extra);
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         html += topProdutoListHtml(top, false);
         html += '</div>';
@@ -600,7 +649,9 @@
         if (!apiData || !dom.panel) return;
         var extra = loadLocalExtra(clientePk);
         var map = {
-            resumo: renderResumo,
+            resumo: function () {
+                return renderResumo(apiData, extra);
+            },
             historico: renderHistorico,
             ciclo_racao: renderCiclo,
             cross_sell: renderCross,
@@ -629,6 +680,14 @@
                 e.preventDefault();
                 e.stopPropagation();
                 addProductToCartFromRel(btn);
+            });
+        });
+        dom.panel.querySelectorAll('.rel-resumo-wa').forEach(function (a) {
+            a.addEventListener('click', function (e) {
+                if (typeof window.agroAbrirUrlExterna === 'function') {
+                    e.preventDefault();
+                    window.agroAbrirUrlExterna(a.getAttribute('href') || '');
+                }
             });
         });
         var petAdd = dom.panel.querySelector('#rel-pet-add');

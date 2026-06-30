@@ -1235,7 +1235,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
 | **Modal** | Altura **fixa** (ref. aba Histórico) — troca de aba **não redimensiona** · scroll só no miolo — **v5.35** |
-| **Resumo** | Top produtos grade alinhada (só número nas colunas) · bordas **2px** · fonte maior — **v5.38** |
+| **Resumo** | **9 cards** 3×3: Visitas · Ticket · Cashback · Vale · Total comprado · Freq. · Última visita · Pets · WhatsApp — **v5.40** |
 | **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
