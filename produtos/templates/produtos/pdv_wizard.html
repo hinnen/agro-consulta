@@ -2244,6 +2244,24 @@
     #pdv-step1-side #pdv-step1-advance { padding-top: .55rem !important; padding-bottom: .55rem !important; }
     #pdv-step1-side #pdv-step1-payment { padding-top: .45rem !important; padding-bottom: .45rem !important; }
   }
+  .pdv-relacionamento-shell {
+    display: flex;
+    flex-direction: column;
+    width: min(80rem, 99.5vw);
+    height: min(88dvh, 52rem);
+    min-height: min(88dvh, 52rem);
+    max-height: min(88dvh, 52rem);
+    overflow: hidden;
+  }
+  .pdv-relacionamento-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #pdv-relacionamento-panel {
+    min-height: 100%;
+  }
   .pdv-rel-tabs {
     display: grid;
     grid-template-columns: repeat(11, minmax(0, 1fr));
@@ -2665,13 +2683,13 @@
 </div>
 
 <div id="pdv-relacionamento-modal" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/65 p-1.5 backdrop-blur-sm sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-relacionamento-titulo">
-  <div class="pdv-relacionamento-shell flex max-h-[min(96dvh,58rem)] w-full max-w-[min(80rem,99.5vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" onclick="event.stopPropagation();">
+  <div class="pdv-relacionamento-shell rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" onclick="event.stopPropagation();">
     <header class="shrink-0 border-b-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3 sm:px-6 sm:py-4">
       <p class="text-[11px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho · <kbd class="rounded border border-emerald-300 bg-white px-1.5 font-mono text-[10px]">F8</kbd></p>
       <h2 id="pdv-relacionamento-titulo" class="truncate text-xl font-black text-slate-900 sm:text-2xl">Cliente</h2>
     </header>
     <div id="pdv-relacionamento-tabs" class="pdv-rel-tabs shrink-0 border-b border-slate-200 bg-slate-50 px-2 py-2 sm:px-3"></div>
-    <div class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-5 sm:py-4">
+    <div class="pdv-relacionamento-scroll relative px-3 py-3 sm:px-5 sm:py-4">
       <p id="pdv-relacionamento-loading" class="hidden text-sm font-bold text-slate-600">Carregando histórico…</p>
       <div id="pdv-relacionamento-panel"></div>
     </div>
