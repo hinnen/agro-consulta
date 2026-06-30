@@ -1394,6 +1394,10 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 
 Dry-run do import também lista **quantos itens** ficaram sem match no catálogo atual (só informativo).
 
+**Consumidor não identificado:** vendas em nome **CONSUMIDOR NÃO IDENTIFICADO** (ou similar) → **não importa** (contador `vendas_consumidor`). Se importar, também não quebra.
+
+**Pré-import (teste/loja):** se dry-run mostrar muitas «sem cliente Agro», rodar **`sincronizar_clientes_agro`** antes.
+
 **Garantias Renan (fiado / cashback / vale):**
 - Import **não grava** em `VendaAgro`, **não abre** título fiado, **não mexe** `saldo_cashback` nem `saldo_vale_credito` do cliente.
 - Fiado/cashback/vale no F8 continuam lendo **saldo real** (Postgres + regras atuais) — histórico ERP é **só leitura decorativa** (visitas, ticket, top produtos, lista antiga).

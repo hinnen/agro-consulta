@@ -71,12 +71,16 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"{prefix}Lote {st.get('lote_id')} · ERP ≤ {st.get('erp_ate')} · "
                 f"PDV ≥ {st.get('pdv_desde')}\n"
+                f"  Clientes Agro ativos: {st.get('clientes_agro_ativos')} "
+                f"(com externo_id: {st.get('clientes_agro_com_externo_id')})\n"
+                f"  Pessoas Mongo indexadas: {st.get('pessoas_mongo_index')}\n"
                 f"  Cabeçalhos lidos: {st.get('cabecalhos_lidos')}\n"
                 f"  No corte: {st.get('vendas_no_corte')}\n"
+                f"  Consumidor não identificado (ignoradas): {st.get('vendas_consumidor')}\n"
                 f"  Importáveis: {st.get('vendas_importadas')}\n"
                 f"  Sem cliente Agro: {st.get('vendas_sem_cliente')}\n"
                 f"  Duplicadas (já importadas): {st.get('vendas_duplicadas')}\n"
-                f"  Clientes: {st.get('clientes_com_venda')}\n"
+                f"  Clientes com venda: {st.get('clientes_com_venda')}\n"
                 f"  Itens importados: {st.get('itens_importados', '—')}\n"
                 f"  Itens sem catálogo ativo (amostra): {st.get('itens_sem_codigo_catalogo', '—')}"
             )

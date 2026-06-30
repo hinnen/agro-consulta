@@ -21,9 +21,12 @@ from produtos.models import (
     RelacionamentoVendaHistoricoErpAgro,
 )
 from produtos.mongo_vendas_util import (
+    _nome_cliente_dto_venda,
+    _nome_cliente_excluir_top_ranking,
     _valor_cabecalho_venda,
     _valor_linha_item,
 )
+from produtos.mongo_vendas_util import _filtro_venda_ativa_mongo
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +102,114 @@ def _norm_codigo_gm(raw: str) -> str:
     return s
 
 
+def _id_keys(raw) -> list[str]:
+    from produtos.views import _dto_venda_join_str_keys
+
+    return _dto_venda_join_str_keys(raw)
+
+
+_REL_HIST_VENDA_PROJ = {
+    "Id": 1,
+    "_id": 1,
+    "Data": 1,
+    "DataFaturamento": 1,
+    "NumeroVenda": 1,
+    "Numero": 1,
+    "CodigoVenda": 1,
+    "Codigo": 1,
+    "ValorTotal": 1,
+    "ValorLiquido": 1,
+    "ValorFinal": 1,
+    "Total": 1,
+    "Valor": 1,
+    "ClienteID": 1,
+    "ClienteId": 1,
+    "PessoaID": 1,
+    "IdCliente": 1,
+    "ClienteFornecedorID": 1,
+    "ClienteNome": 1,
+    "NomeCliente": 1,
+    "cliente": 1,
+    "Cliente": 1,
+    "RazaoSocial": 1,
+    "NomeFantasia": 1,
+    "PessoaNome": 1,
+    "FormaPagamento": 1,
+    "NomeFormaPagamento": 1,
+    "Pagamento": 1,
+}
+
+
+def _fetch_vendas_cabecalhos_intervalo(
+    db,
+    desde: datetime,
+    ate: datetime,
+    *,
+    mongo_max_time_ms: int | None = 120_000,
+) -> list[dict]:
+    """DtoVenda no intervalo — projeção completa (cliente + total) para import F8."""
+    from produtos.views import _mongo_expr_dto_venda_data_intervalo
+
+    filtro = _filtro_venda_ativa_mongo()
+    proj = _REL_HIST_VENDA_PROJ
+    vendas: list[dict] = []
+    try:
+        cur = db["DtoVenda"].find(
+            {"$and": [{"Data": {"$gte": desde, "$lte": ate}}, filtro]},
+            proj,
+        )
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        vendas = list(cur)
+    except Exception as exc:
+        logger.warning("rel_hist_erp DtoVenda find: %s", exc)
+        vendas = []
+    if vendas:
+        return vendas
+    try:
+        pipeline = [
+            {
+                "$match": {
+                    "$and": [
+                        filtro,
+                        {"$expr": _mongo_expr_dto_venda_data_intervalo(desde, ate)},
+                    ]
+                }
+            },
+            {"$project": proj},
+        ]
+        agg_kw: dict[str, Any] = {"allowDiskUse": True}
+        if mongo_max_time_ms is not None:
+            agg_kw["maxTimeMS"] = int(mongo_max_time_ms)
+        vendas = list(db["DtoVenda"].aggregate(pipeline, **agg_kw))
+    except Exception as exc:
+        logger.warning("rel_hist_erp DtoVenda aggregate: %s", exc)
+    return vendas
+
+
+def _eh_consumidor_nao_identificado(nome: str) -> bool:
+    return _nome_cliente_excluir_top_ranking(nome)
+
+
 def _cliente_id_mongo(doc: dict) -> str:
-    for k in ("ClienteID", "PessoaID", "Cliente", "IdCliente", "ClienteId"):
+    for k in (
+        "ClienteID",
+        "PessoaID",
+        "ClienteId",
+        "IdCliente",
+        "ClienteFornecedorID",
+    ):
         v = doc.get(k)
         if v is None:
             continue
         s = str(v).strip()
-        if s and s != "None":
+        if s and s not in ("None", "null", "0"):
+            return s
+    # «Cliente» numérico (ID) — não confundir com nome string
+    v = doc.get("Cliente")
+    if v is not None and not isinstance(v, str):
+        s = str(v).strip()
+        if s and s not in ("None", "null", "0"):
             return s
     return ""
 
@@ -127,14 +231,6 @@ def _forma_venda_mongo(doc: dict) -> str:
     return ""
 
 
-def _cliente_nome_mongo(doc: dict) -> str:
-    for k in ("ClienteNome", "NomeCliente", "NomePessoa", "RazaoSocial"):
-        v = doc.get(k)
-        if v:
-            return str(v).strip()[:300]
-    return ""
-
-
 def _item_descricao(item: dict) -> str:
     for k in (
         "Descricao",
@@ -148,6 +244,101 @@ def _item_descricao(item: dict) -> str:
         if v:
             return str(v).strip()[:300]
     return ""
+
+
+def _build_mongo_pessoa_index(db, client_m) -> dict[str, dict[str, str]]:
+    """DtoPessoa: chaves de ID → nome + CPF (ponte ClienteID da venda → ClienteAgro)."""
+    from produtos.views import (
+        _colecoes_pessoa_disponiveis,
+        _documento_pessoa,
+        _nome_exibicao_pessoa,
+        _projecao_pessoa,
+    )
+
+    index: dict[str, dict[str, str]] = {}
+    if db is None:
+        return index
+    proj = _projecao_pessoa()
+    for coll in _colecoes_pessoa_disponiveis(db, client_m):
+        try:
+            cursor = db[coll].find({}, proj)
+        except Exception as exc:
+            logger.warning("rel_hist_erp pessoa %s: %s", coll, exc)
+            continue
+        for doc in cursor:
+            nome = _nome_exibicao_pessoa(doc)
+            cpf = _norm_cpf(_documento_pessoa(doc))
+            if not nome and not cpf:
+                continue
+            entry = {"nome": nome, "cpf": cpf}
+            for raw in (doc.get("Id"), doc.get("_id"), doc.get("PessoaID")):
+                for k in _id_keys(raw):
+                    index[k] = entry
+        if index:
+            break
+    return index
+
+
+def _build_mapas_cliente() -> tuple[dict[str, ClienteAgro], dict[str, ClienteAgro], dict[str, ClienteAgro], dict[str, int]]:
+    por_ext: dict[str, ClienteAgro] = {}
+    por_cpf: dict[str, ClienteAgro] = {}
+    por_nome: dict[str, ClienteAgro] = {}
+    meta = {"ativos": 0, "com_externo_id": 0}
+    for cli in ClienteAgro.objects.filter(ativo=True).only("pk", "externo_id", "cpf", "nome"):
+        meta["ativos"] += 1
+        ext = str(cli.externo_id or "").strip()
+        if ext:
+            meta["com_externo_id"] += 1
+            for k in _id_keys(ext):
+                if k not in por_ext:
+                    por_ext[k] = cli
+        cpf = _norm_cpf(cli.cpf)
+        if len(cpf) >= 11 and cpf not in por_cpf:
+            por_cpf[cpf] = cli
+        nome = (cli.nome or "").strip().upper()
+        if nome and nome not in por_nome:
+            por_nome[nome] = cli
+    return por_ext, por_cpf, por_nome, meta
+
+
+def _match_cliente(
+    cliente_id_erp: str,
+    nome_snapshot: str,
+    por_ext: dict[str, ClienteAgro],
+    por_cpf: dict[str, ClienteAgro],
+    por_nome: dict[str, ClienteAgro],
+    pessoa_idx: dict[str, dict[str, str]] | None = None,
+) -> ClienteAgro | None:
+    cid = str(cliente_id_erp or "").strip()
+    for k in _id_keys(cid) if cid else []:
+        if k in por_ext:
+            return por_ext[k]
+
+    nome = (nome_snapshot or "").strip().upper()
+    if nome and nome in por_nome:
+        return por_nome[nome]
+
+    cpf = _norm_cpf(cid)
+    if len(cpf) >= 11 and cpf in por_cpf:
+        return por_cpf[cpf]
+
+    if pessoa_idx and cid:
+        pessoa = None
+        for k in _id_keys(cid):
+            pessoa = pessoa_idx.get(k)
+            if pessoa:
+                break
+        if pessoa:
+            for k in _id_keys(cid):
+                if k in por_ext:
+                    return por_ext[k]
+            pnome = (pessoa.get("nome") or "").strip().upper()
+            if pnome and pnome in por_nome:
+                return por_nome[pnome]
+            pcpf = pessoa.get("cpf") or ""
+            if len(pcpf) >= 11 and pcpf in por_cpf:
+                return por_cpf[pcpf]
+    return None
 
 
 def _codigo_gm_de_produto_mongo(doc: dict | None) -> str:
@@ -177,42 +368,6 @@ def _codigo_gm_de_produto_mongo(doc: dict | None) -> str:
         if c:
             return c[:64]
     return ""
-
-
-def _build_mapas_cliente() -> tuple[dict[str, ClienteAgro], dict[str, ClienteAgro], dict[str, ClienteAgro]]:
-    por_ext: dict[str, ClienteAgro] = {}
-    por_cpf: dict[str, ClienteAgro] = {}
-    por_nome: dict[str, ClienteAgro] = {}
-    for cli in ClienteAgro.objects.filter(ativo=True).only("pk", "externo_id", "cpf", "nome"):
-        ext = str(cli.externo_id or "").strip()
-        if ext and ext not in por_ext:
-            por_ext[ext] = cli
-        cpf = _norm_cpf(cli.cpf)
-        if len(cpf) >= 11 and cpf not in por_cpf:
-            por_cpf[cpf] = cli
-        nome = (cli.nome or "").strip().upper()
-        if nome and nome not in por_nome:
-            por_nome[nome] = cli
-    return por_ext, por_cpf, por_nome
-
-
-def _match_cliente(
-    cliente_id_erp: str,
-    nome_snapshot: str,
-    por_ext: dict[str, ClienteAgro],
-    por_cpf: dict[str, ClienteAgro],
-    por_nome: dict[str, ClienteAgro],
-) -> ClienteAgro | None:
-    cid = str(cliente_id_erp or "").strip()
-    if cid and cid in por_ext:
-        return por_ext[cid]
-    nome = (nome_snapshot or "").strip().upper()
-    if nome and nome in por_nome:
-        return por_nome[nome]
-    cpf = _norm_cpf(cid)
-    if len(cpf) >= 11 and cpf in por_cpf:
-        return por_cpf[cpf]
-    return None
 
 
 def _venda_id_erp(doc: dict) -> str:
@@ -318,7 +473,6 @@ def importar_historico_erp_mongo(
     chunk_meses: int = 1,
 ) -> dict[str, Any]:
     from produtos.views import (
-        _dto_venda_fetch_cabecalhos_intervalo,
         _dto_venda_resolve_data_cabecalho,
         _dto_venda_venda_produto_in_lists,
         obter_conexao_mongo,
@@ -337,6 +491,7 @@ def importar_historico_erp_mongo(
         "desde": desde.isoformat(),
         "cabecalhos_lidos": 0,
         "vendas_no_corte": 0,
+        "vendas_consumidor": 0,
         "vendas_sem_cliente": 0,
         "vendas_duplicadas": 0,
         "vendas_fora_corte": 0,
@@ -344,6 +499,9 @@ def importar_historico_erp_mongo(
         "itens_importados": 0,
         "itens_sem_codigo_catalogo": 0,
         "clientes_com_venda": 0,
+        "clientes_agro_ativos": 0,
+        "clientes_agro_com_externo_id": 0,
+        "pessoas_mongo_index": 0,
     }
 
     if not dry_run and RelacionamentoHistoricoImportLoteAgro.objects.filter(lote_id=lote_id).exists():
@@ -353,7 +511,11 @@ def importar_historico_erp_mongo(
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível."}
 
-    por_ext, por_cpf, por_nome = _build_mapas_cliente()
+    por_ext, por_cpf, por_nome, cli_meta = _build_mapas_cliente()
+    stats["clientes_agro_ativos"] = cli_meta.get("ativos", 0)
+    stats["clientes_agro_com_externo_id"] = cli_meta.get("com_externo_id", 0)
+    pessoa_idx = _build_mongo_pessoa_index(db, client)
+    stats["pessoas_mongo_index"] = len(pessoa_idx)
     ja_importados = venda_ids_erp_ja_importados()
 
     dt_ate_fim = datetime.combine(ate, datetime.max.time())
@@ -366,7 +528,7 @@ def importar_historico_erp_mongo(
         fim_chunk = datetime.combine(fim_d, datetime.min.time()) - timedelta(seconds=1)
         if fim_chunk > dt_ate_fim:
             fim_chunk = dt_ate_fim
-        headers = _dto_venda_fetch_cabecalhos_intervalo(db, cursor, fim_chunk, mongo_max_time_ms=120_000)
+        headers = _fetch_vendas_cabecalhos_intervalo(db, cursor, fim_chunk, mongo_max_time_ms=120_000)
         stats["cabecalhos_lidos"] += len(headers)
         for doc in headers:
             dt = _dto_venda_resolve_data_cabecalho(doc)
@@ -386,9 +548,14 @@ def importar_historico_erp_mongo(
             if vid in ja_importados:
                 stats["vendas_duplicadas"] += 1
                 continue
+            nome_snap = _nome_cliente_dto_venda(doc)
+            if _eh_consumidor_nao_identificado(nome_snap):
+                stats["vendas_consumidor"] += 1
+                continue
             cid = _cliente_id_mongo(doc)
-            nome_snap = _cliente_nome_mongo(doc)
-            cli = _match_cliente(cid, nome_snap, por_ext, por_cpf, por_nome)
+            cli = _match_cliente(
+                cid, nome_snap, por_ext, por_cpf, por_nome, pessoa_idx=pessoa_idx
+            )
             if cli is None:
                 stats["vendas_sem_cliente"] += 1
                 continue
