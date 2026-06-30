@@ -27,6 +27,11 @@ urlpatterns = [
         name='api_pdv_relacionamento_cliente',
     ),
     path(
+        'api/pdv/relacionamento-cliente/extras/',
+        views.api_pdv_relacionamento_cliente_extras,
+        name='api_pdv_relacionamento_cliente_extras',
+    ),
+    path(
         'api/pdv/entregas-pendentes/',
         views.api_pdv_entregas_pendentes,
         name='api_pdv_entregas_pendentes',

@@ -1,6 +1,6 @@
 /**
- * PDV — Relacionamento com cliente (rascunho · atalho F8).
- * Dados reais via API; pets/lembretes/anotações em localStorage até validar escopo.
+ * PDV — Relacionamento com cliente (atalho F8).
+ * Vendas/métricas via API; pets/saúde/anotações no Postgres (ClienteAgro).
  */
 (function () {
     'use strict';
@@ -25,6 +25,7 @@
     var bootstrap = {};
     var apiData = null;
     var clientePk = null;
+    var clienteExtra = { pets: [], lembretes: [], anotacoes: '' };
     var activeTab = 'resumo';
     var relCartAdded = {};
 
@@ -43,19 +44,105 @@
             .replace(/"/g, '&quot;');
     }
 
-    function loadLocalExtra(pk) {
+    function csrfToken() {
+        return bootstrap.csrfToken || '';
+    }
+
+    function defaultExtra() {
+        return { pets: [], lembretes: [], anotacoes: '' };
+    }
+
+    function extraFromApi(data) {
+        var e = (data && data.extras) || {};
+        return {
+            pets: Array.isArray(e.pets) ? e.pets.slice() : [],
+            lembretes: Array.isArray(e.lembretes) ? e.lembretes.slice() : [],
+            anotacoes: typeof e.anotacoes === 'string' ? e.anotacoes : '',
+        };
+    }
+
+    function extrasTemDados(extra) {
+        if (!extra) return false;
+        if ((extra.pets && extra.pets.length) || (extra.lembretes && extra.lembretes.length)) return true;
+        return !!(extra.anotacoes && String(extra.anotacoes).trim());
+    }
+
+    function loadLegacyLocalExtra(pk) {
         try {
             var raw = localStorage.getItem(STORAGE_PREFIX + pk);
-            return raw ? JSON.parse(raw) : { pets: [], lembretes: [], anotacoes: '' };
+            return raw ? JSON.parse(raw) : defaultExtra();
         } catch (e) {
-            return { pets: [], lembretes: [], anotacoes: '' };
+            return defaultExtra();
         }
     }
 
-    function saveLocalExtra(pk, data) {
+    function clearLegacyLocalExtra(pk) {
         try {
-            localStorage.setItem(STORAGE_PREFIX + pk, JSON.stringify(data));
+            localStorage.removeItem(STORAGE_PREFIX + pk);
         } catch (e) {}
+    }
+
+    function saveExtraUrl() {
+        return (
+            (bootstrap.urls && bootstrap.urls.apiPdvRelacionamentoClienteExtras) ||
+            '/api/pdv/relacionamento-cliente/extras/'
+        );
+    }
+
+    function saveExtraToServer(extra) {
+        return fetch(saveExtraUrl(), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRFToken': csrfToken(),
+            },
+            body: JSON.stringify({
+                cliente_agro_pk: clientePk,
+                pets: extra.pets || [],
+                lembretes: extra.lembretes || [],
+                anotacoes: extra.anotacoes || '',
+            }),
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao salvar');
+                return extraFromApi({ extras: data.extras });
+            });
+    }
+
+    function tryMigrateLocalExtras(pk, serverExtra) {
+        var local = loadLegacyLocalExtra(pk);
+        if (!extrasTemDados(local)) return Promise.resolve(serverExtra);
+        if (extrasTemDados(serverExtra)) {
+            clearLegacyLocalExtra(pk);
+            return Promise.resolve(serverExtra);
+        }
+        return saveExtraToServer(local)
+            .then(function (saved) {
+                clearLegacyLocalExtra(pk);
+                return saved;
+            })
+            .catch(function () {
+                return serverExtra;
+            });
+    }
+
+    function persistExtra(extra, onOk) {
+        return saveExtraToServer(extra)
+            .then(function (saved) {
+                clienteExtra = saved;
+                if (apiData) apiData.extras = saved;
+                if (onOk) onOk(saved);
+                return saved;
+            })
+            .catch(function (err) {
+                alert(err.message || 'Não foi possível salvar no cadastro.');
+                throw err;
+            });
     }
 
     function getClienteFromPdv() {
@@ -335,7 +422,7 @@
         });
         var html =
             '<div class="space-y-3 text-sm">' +
-            '<p class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-950">Rascunho — teste ferramenta a ferramenta. Pets/saúde/anotações ficam neste navegador (localStorage).</p>';
+            '<p class="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-950">Pets, saúde e anotações salvos no cadastro — qualquer caixa da loja vê. Demais abas em evolução.</p>';
         if (alertas.length) {
             html += '<div class="rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2"><p class="text-[10px] font-black uppercase text-red-800">Alertas</p><ul class="mt-1 list-disc pl-4 text-xs font-bold text-red-950">';
             alertas.forEach(function (a) {
@@ -548,7 +635,7 @@
     function renderPets(extra) {
         var pets = extra.pets || [];
         var html =
-            '<div class="space-y-3 text-sm"><p class="text-xs text-slate-600">Cadastro rápido (teste) — salvo neste PC.</p>' +
+            '<div class="space-y-3 text-sm"><p class="text-xs font-bold text-slate-600">Salvo no cadastro do cliente — qualquer caixa vê.</p>' +
             '<div id="rel-pets-list" class="space-y-2">';
         pets.forEach(function (p, i) {
             html +=
@@ -576,7 +663,7 @@
     function renderSaude(extra) {
         var rows = extra.lembretes || [];
         var html =
-            '<div class="space-y-3 text-sm"><p class="text-xs text-slate-600">Lembretes de vacina, carrapaticida, vermífugo (teste local).</p><div id="rel-saude-list" class="space-y-2">';
+            '<div class="space-y-3 text-sm"><p class="text-xs font-bold text-slate-600">Lembretes salvos no cadastro do cliente.</p><div id="rel-saude-list" class="space-y-2">';
         rows.forEach(function (r, i) {
             html +=
                 '<div class="rounded-lg border px-2 py-2 text-xs font-bold ' +
@@ -602,7 +689,7 @@
 
     function renderAnotacoes(extra) {
         return (
-            '<div class="space-y-2 text-sm"><p class="text-xs text-slate-600">Preferências do balcão (salvo neste PC).</p>' +
+            '<div class="space-y-2 text-sm"><p class="text-xs font-bold text-slate-600">Preferências do balcão — salvas no cadastro do cliente.</p>' +
             '<textarea id="rel-anotacoes-ta" rows="8" class="w-full rounded-xl border-2 border-slate-300 px-3 py-2 text-sm font-semibold">' +
             esc(extra.anotacoes || '') +
             '</textarea>' +
@@ -635,7 +722,7 @@
 
     function renderTabContent() {
         if (!apiData || !dom.panel) return;
-        var extra = loadLocalExtra(clientePk);
+        var extra = clienteExtra;
         var map = {
             resumo: function () {
                 return renderResumo(apiData, extra);
@@ -683,23 +770,40 @@
             petAdd.addEventListener('click', function () {
                 var nome = (dom.panel.querySelector('#rel-pet-nome') || {}).value || '';
                 if (!nome.trim()) return;
-                extra.pets = extra.pets || [];
-                extra.pets.push({
+                var next = {
+                    pets: (extra.pets || []).slice(),
+                    lembretes: (extra.lembretes || []).slice(),
+                    anotacoes: extra.anotacoes || '',
+                };
+                next.pets.push({
                     nome: nome.trim(),
                     raca: ((dom.panel.querySelector('#rel-pet-raca') || {}).value || '').trim(),
                     porte: ((dom.panel.querySelector('#rel-pet-porte') || {}).value || '').trim(),
                     idade: ((dom.panel.querySelector('#rel-pet-idade') || {}).value || '').trim(),
                 });
-                saveLocalExtra(clientePk, extra);
-                renderTabContent();
+                petAdd.disabled = true;
+                persistExtra(next, function () {
+                    renderTabContent();
+                }).finally(function () {
+                    petAdd.disabled = false;
+                });
             });
         }
         dom.panel.querySelectorAll('.rel-pet-del').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var i = parseInt(btn.getAttribute('data-i'), 10);
-                extra.pets.splice(i, 1);
-                saveLocalExtra(clientePk, extra);
-                renderTabContent();
+                var next = {
+                    pets: (extra.pets || []).slice(),
+                    lembretes: (extra.lembretes || []).slice(),
+                    anotacoes: extra.anotacoes || '',
+                };
+                next.pets.splice(i, 1);
+                btn.disabled = true;
+                persistExtra(next, function () {
+                    renderTabContent();
+                }).finally(function () {
+                    btn.disabled = false;
+                });
             });
         });
         var saudeAdd = dom.panel.querySelector('#rel-saude-add');
@@ -707,35 +811,58 @@
             saudeAdd.addEventListener('click', function () {
                 var data = (dom.panel.querySelector('#rel-saude-data') || {}).value || '';
                 if (!data) return;
-                extra.lembretes = extra.lembretes || [];
-                var hoje = new Date().toISOString().slice(0, 10);
-                extra.lembretes.push({
+                var next = {
+                    pets: (extra.pets || []).slice(),
+                    lembretes: (extra.lembretes || []).slice(),
+                    anotacoes: extra.anotacoes || '',
+                };
+                next.lembretes.push({
                     tipo: (dom.panel.querySelector('#rel-saude-tipo') || {}).value || 'Outro',
                     produto: ((dom.panel.querySelector('#rel-saude-prod') || {}).value || '').trim(),
                     data: data,
-                    vencido: data < hoje,
                 });
-                saveLocalExtra(clientePk, extra);
-                renderTabContent();
+                saudeAdd.disabled = true;
+                persistExtra(next, function () {
+                    renderTabContent();
+                }).finally(function () {
+                    saudeAdd.disabled = false;
+                });
             });
         }
         dom.panel.querySelectorAll('.rel-saude-del').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var i = parseInt(btn.getAttribute('data-i'), 10);
-                extra.lembretes.splice(i, 1);
-                saveLocalExtra(clientePk, extra);
-                renderTabContent();
+                var next = {
+                    pets: (extra.pets || []).slice(),
+                    lembretes: (extra.lembretes || []).slice(),
+                    anotacoes: extra.anotacoes || '',
+                };
+                next.lembretes.splice(i, 1);
+                btn.disabled = true;
+                persistExtra(next, function () {
+                    renderTabContent();
+                }).finally(function () {
+                    btn.disabled = false;
+                });
             });
         });
         var anSave = dom.panel.querySelector('#rel-anotacoes-save');
         if (anSave) {
             anSave.addEventListener('click', function () {
-                extra.anotacoes = (dom.panel.querySelector('#rel-anotacoes-ta') || {}).value || '';
-                saveLocalExtra(clientePk, extra);
-                anSave.textContent = 'Salvo ✓';
-                setTimeout(function () {
-                    anSave.textContent = 'Salvar anotação';
-                }, 1200);
+                var next = {
+                    pets: (extra.pets || []).slice(),
+                    lembretes: (extra.lembretes || []).slice(),
+                    anotacoes: (dom.panel.querySelector('#rel-anotacoes-ta') || {}).value || '',
+                };
+                anSave.disabled = true;
+                persistExtra(next, function () {
+                    anSave.textContent = 'Salvo ✓';
+                    setTimeout(function () {
+                        anSave.textContent = 'Salvar anotação';
+                    }, 1200);
+                }).finally(function () {
+                    anSave.disabled = false;
+                });
             });
         }
     }
@@ -804,6 +931,12 @@
             .then(function (data) {
                 if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar');
                 apiData = data;
+                clienteExtra = extraFromApi(data);
+                return tryMigrateLocalExtras(pk, clienteExtra);
+            })
+            .then(function (extras) {
+                clienteExtra = extras;
+                if (apiData) apiData.extras = extras;
                 setLoading(false);
                 renderTabs();
                 renderTabContent();
@@ -827,6 +960,7 @@
         clientePk = cli.cliente_agro_pk;
         activeTab = 'resumo';
         relCartAdded = {};
+        clienteExtra = defaultExtra();
         if (dom.title) dom.title.textContent = cli.nome || 'Cliente';
         if (dom.modal) {
             dom.modal.classList.remove('hidden');

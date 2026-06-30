@@ -14,6 +14,86 @@ from django.utils import timezone
 from produtos.fiado_credito_util import resumo_credito_fiado_cliente
 from produtos.models import ClienteAgro, FiadoTituloAgro, ItemVendaAgro, VendaAgro
 
+_REL_EXTRAS_VAZIO: dict[str, Any] = {"pets": [], "lembretes": [], "anotacoes": ""}
+_MAX_PETS = 20
+_MAX_LEMBRETES = 50
+_MAX_ANOTACOES = 8000
+
+
+def _clip_str(val: Any, max_len: int) -> str:
+    return str(val or "").strip()[:max_len]
+
+
+def _parse_data_iso(val: Any) -> date | None:
+    s = _clip_str(val, 10)
+    if not s or len(s) < 10:
+        return None
+    try:
+        return date.fromisoformat(s[:10])
+    except ValueError:
+        return None
+
+
+def normalizar_relacionamento_extras(raw: Any) -> dict[str, Any]:
+    """Sanitiza pets/lembretes/anotações para gravar ou devolver ao PDV."""
+    base = dict(_REL_EXTRAS_VAZIO)
+    if not isinstance(raw, dict):
+        return base
+    hoje = timezone.localdate()
+
+    pets_out: list[dict[str, str]] = []
+    for p in raw.get("pets") or []:
+        if not isinstance(p, dict):
+            continue
+        nome = _clip_str(p.get("nome"), 80)
+        if not nome:
+            continue
+        pets_out.append(
+            {
+                "nome": nome,
+                "raca": _clip_str(p.get("raca"), 80),
+                "porte": _clip_str(p.get("porte"), 20),
+                "idade": _clip_str(p.get("idade"), 40),
+            }
+        )
+        if len(pets_out) >= _MAX_PETS:
+            break
+
+    lemb_out: list[dict[str, Any]] = []
+    for r in raw.get("lembretes") or []:
+        if not isinstance(r, dict):
+            continue
+        dt = _parse_data_iso(r.get("data"))
+        if not dt:
+            continue
+        lemb_out.append(
+            {
+                "tipo": _clip_str(r.get("tipo"), 40) or "Outro",
+                "produto": _clip_str(r.get("produto"), 120),
+                "data": dt.isoformat(),
+                "vencido": dt < hoje,
+            }
+        )
+        if len(lemb_out) >= _MAX_LEMBRETES:
+            break
+
+    base["pets"] = pets_out
+    base["lembretes"] = lemb_out
+    base["anotacoes"] = _clip_str(raw.get("anotacoes"), _MAX_ANOTACOES)
+    return base
+
+
+def ler_relacionamento_extras_cliente(cli: ClienteAgro) -> dict[str, Any]:
+    raw = getattr(cli, "relacionamento_extras_json", None)
+    return normalizar_relacionamento_extras(raw if isinstance(raw, dict) else {})
+
+
+def salvar_relacionamento_extras_cliente(cli: ClienteAgro, payload: Any) -> dict[str, Any]:
+    data = normalizar_relacionamento_extras(payload)
+    cli.relacionamento_extras_json = data
+    cli.save(update_fields=["relacionamento_extras_json", "atualizado_em"])
+    return data
+
 _RACAO_RE = re.compile(r"ra[çc][ãa]o|racao|racão|sache|sach[eê]|pet\s*food", re.I)
 _KG_RE = re.compile(r"(\d+)\s*kg", re.I)
 
@@ -334,4 +414,5 @@ def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]
             "cashback": float(cli.saldo_cashback or 0),
             "vale_credito": float(cli.saldo_vale_credito or 0),
         },
+        "extras": ler_relacionamento_extras_cliente(cli),
     }
