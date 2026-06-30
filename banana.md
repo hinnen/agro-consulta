@@ -968,7 +968,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.26** · **produção LIVE v5.22** (`0a0fd52`) — deploy **v5.24 falhou** build Render 29/06 · tip `producao` = `eb9fcc9` (não entrou)
+**Versão app (`VERSION`):** **teste v5.27** · **produção LIVE v5.22** (`0a0fd52`) — deploy **v5.24 falhou** build Render 29/06 · tip `producao` = `eb9fcc9` (não entrou)
 
 ### Listagem loja — WhatsApp (copiar)
 
