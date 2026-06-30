@@ -1139,7 +1139,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.36** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.37** · **produção LIVE v5.22** (`0a0fd52`)
 
 ### Listagem loja — WhatsApp (copiar)
 
