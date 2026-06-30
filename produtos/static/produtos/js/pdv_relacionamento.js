@@ -135,14 +135,12 @@
         );
     }
 
-    function topProdutoStatCol(label, valor) {
+    function topProdutoValCol(valor) {
         return (
             '<div class="rel-top-prod-col rel-top-prod-col--stat">' +
-            '<span class="rel-top-prod-stat">' +
-            esc(label) +
-            ': <strong class="rel-top-prod-stat-num">' +
+            '<span class="rel-top-prod-val">' +
             esc(valor) +
-            '</strong></span></div>'
+            '</span></div>'
         );
     }
 
@@ -157,8 +155,8 @@
             '">' +
             esc(p.descricao) +
             '</span></div>' +
-            topProdutoStatCol('Vezes comprada', vezes) +
-            topProdutoStatCol('Total comprado', total) +
+            topProdutoValCol(vezes) +
+            topProdutoValCol(total) +
             '<div class="rel-top-prod-col rel-top-prod-col--btn">' +
             btnCart(p.codigo, largeBtn) +
             '</div></li>'
@@ -169,9 +167,9 @@
         if (!produtos || !produtos.length) return '';
         var html =
             '<div class="rel-top-prod-wrap">' +
-            '<p class="mb-2 text-[10px] font-black uppercase text-slate-600">Top produtos <span class="font-bold normal-case text-slate-500">— histórico do cliente</span></p>' +
+            '<p class="rel-top-prod-titulo">Top produtos <span class="rel-top-prod-titulo-sub">— histórico do cliente</span></p>' +
             '<ul class="rel-top-prod-list">' +
-            '<li class="rel-top-prod-head" aria-hidden="true">' +
+            '<li class="rel-top-prod-head">' +
             '<div class="rel-top-prod-col rel-top-prod-col--nome">Produto</div>' +
             '<div class="rel-top-prod-col rel-top-prod-col--stat">Vezes comprada</div>' +
             '<div class="rel-top-prod-col rel-top-prod-col--stat">Total comprado</div>' +
