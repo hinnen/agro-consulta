@@ -174,6 +174,24 @@
         markCartBtnDone(btn);
     }
 
+    function fiadoTabAlertMeta(d) {
+        var f = (d && d.financeiro_fiado) || {};
+        var total = Number(f.total_aberto) || 0;
+        if (total <= 0) return null;
+        var tit = f.titulos_abertos || [];
+        var vencido = false;
+        tit.forEach(function (t) {
+            if (t.vencido) vencido = true;
+        });
+        return { total: total, vencido: vencido };
+    }
+
+    function fiadoGestaoClienteUrl(pk) {
+        var base = (bootstrap.urls && bootstrap.urls.fiadoGestao) || '/fiado/';
+        var join = base.indexOf('?') >= 0 ? '&' : '?';
+        return base + join + 'from=pdv&cliente=' + encodeURIComponent(String(pk));
+    }
+
     function formaBadge(forma) {
         var f = (forma || '').trim();
         if (!f) return '';
@@ -211,7 +229,7 @@
             html += '</ul></div>';
         }
         html +=
-            '<div class="grid grid-cols-4 gap-2">' +
+            '<div class="grid grid-cols-3 gap-2">' +
             '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Visitas</p><p class="text-base font-black sm:text-lg">' +
             (m.total_vendas || 0) +
             '</p></div>' +
@@ -220,9 +238,6 @@
             '</p></div>' +
             '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Cashback</p><p class="truncate text-base font-black text-emerald-700 sm:text-lg">' +
             money(d.fidelidade && d.fidelidade.cashback) +
-            '</p></div>' +
-            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Fiado aberto</p><p class="truncate text-base font-black text-orange-700 sm:text-lg">' +
-            money(d.financeiro_fiado && d.financeiro_fiado.total_aberto) +
             '</p></div></div>';
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         if (top.length) {
@@ -387,8 +402,15 @@
 
     function renderFiado(d) {
         var f = d.financeiro_fiado || {};
+        var pk = clientePk || (d.cliente && d.cliente.pk);
+        var gestaoUrl = pk ? fiadoGestaoClienteUrl(pk) : ((bootstrap.urls && bootstrap.urls.fiadoGestao) || '/fiado/') + '?from=pdv';
         var html =
-            '<div class="space-y-3 text-sm"><div class="rounded-xl border-2 border-orange-200 bg-orange-50 p-3"><p class="text-[10px] font-black uppercase">Total em aberto</p><p class="text-xl font-black text-orange-950">' +
+            '<div class="space-y-3 text-sm">' +
+            '<a href="' +
+            esc(gestaoUrl) +
+            '" class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-600 px-4 py-3 text-center text-xs font-black uppercase tracking-wide text-white no-underline shadow-md hover:bg-orange-700">' +
+            '<span aria-hidden="true">💳</span> Lançamentos do cliente · baixa</a>' +
+            '<div class="rounded-xl border-2 border-orange-200 bg-orange-50 p-3"><p class="text-[10px] font-black uppercase">Total em aberto</p><p class="text-xl font-black text-orange-950">' +
             money(f.total_aberto) +
             '</p><p class="text-xs font-bold text-slate-700">Limite local: ' +
             money(f.limite_local) +
@@ -633,17 +655,41 @@
 
     function renderTabs() {
         if (!dom.tabs) return;
+        var fmeta = fiadoTabAlertMeta(apiData);
         dom.tabs.innerHTML = TABS.map(function (t) {
             var on = t.id === activeTab;
+            var alertFiado = t.id === 'fiado' && fmeta;
+            var cls =
+                'rel-tab shrink-0 rounded-xl border-2 px-2.5 py-2 text-[10px] font-black uppercase sm:text-[11px] ';
+            if (on) {
+                cls += alertFiado
+                    ? 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on border-orange-600 bg-orange-600 text-white shadow-md'
+                    : 'border-emerald-600 bg-emerald-600 text-white shadow-md';
+            } else if (alertFiado) {
+                cls += fmeta.vencido
+                    ? 'rel-tab--fiado-alerta rel-tab--fiado-vencido border-red-500 bg-red-50 text-red-950 hover:bg-red-100'
+                    : 'rel-tab--fiado-alerta border-orange-400 bg-orange-50 text-orange-950 hover:bg-orange-100';
+            } else {
+                cls += 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50';
+            }
+            var badge =
+                alertFiado && !on
+                    ? '<span class="rel-tab-fiado-badge ml-1 inline-block rounded-md bg-red-600 px-1.5 py-0.5 text-[9px] font-black text-white tabular-nums">' +
+                      esc(money(fmeta.total)) +
+                      '</span>'
+                    : alertFiado && on
+                      ? '<span class="rel-tab-fiado-badge rel-tab-fiado-badge--on ml-1 inline-block rounded-md bg-white/25 px-1.5 py-0.5 text-[9px] font-black tabular-nums">' +
+                        esc(money(fmeta.total)) +
+                        '</span>'
+                      : '';
             return (
-                '<button type="button" class="rel-tab shrink-0 rounded-xl border-2 px-2.5 py-2 text-[10px] font-black uppercase sm:text-[11px] ' +
-                (on
-                    ? 'border-emerald-600 bg-emerald-600 text-white shadow-md'
-                    : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50') +
+                '<button type="button" class="' +
+                cls +
                 '" data-tab="' +
                 esc(t.id) +
                 '">' +
                 esc(t.label) +
+                badge +
                 '</button>'
             );
         }).join('');
@@ -675,6 +721,7 @@
                 if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar');
                 apiData = data;
                 setLoading(false);
+                renderTabs();
                 renderTabContent();
             })
             .catch(function (err) {

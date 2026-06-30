@@ -1139,7 +1139,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.31** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.32** · **produção LIVE v5.22** (`0a0fd52`)
 
 ### Listagem loja — WhatsApp (copiar)
 
@@ -1235,7 +1235,8 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
 | **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **uma linha** (sem quebra · scroll fino se monitor estreito) |
-| **Resumo** | Cards **Visitas / Ticket / Cashback / Fiado** em **linha** (4 colunas) — **v5.30** |
+| **Resumo** | Cards **Visitas / Ticket / Cashback** (3 colunas) — **sem** fiado · fiado só na aba | **v5.32** |
+| **Fiado** | Aba **laranja/vermelha pulsando** + valor se tiver saldo · vencido = vermelho · botão **Lançamentos do cliente · baixa** → `/fiado/?from=pdv&cliente=PK` |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
@@ -1245,15 +1246,13 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
 | **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-#### Checklist teste — **v5.31** (Renan · copiar)
-
-**Site:** Render **teste** · **Ctrl+F5** · badge **v5.31**
+#### Checklist teste — **v5.32** (Renan · copiar)
 
 | # | O quê | Passou? |
 | - | ----- | ------- |
-| 1 | **Resumo** → top produtos: texto **«Já comprou X un.»** (histórico) **separado** do botão | ☐ |
-| 2 | Botão **+ 1 un.** · legenda **no balcão** · no carrinho entra **só 1 unidade** | ☐ |
-| 3 | Abas numa linha · cards resumo em linha | ☐ |
+| 1 | **Resumo** sem card fiado (só 3 cards) | ☐ |
+| 2 | Cliente com fiado → aba **FIADO** laranja/vermelha + valor | ☐ |
+| 3 | Aba Fiado → botão **Lançamentos do cliente** abre gestão com modal do cliente | ☐ |
 
 **Não testar ainda:** **FL-038 contingência deploy** — só documentação; **sem código**.
 
