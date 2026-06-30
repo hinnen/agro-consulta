@@ -1139,7 +1139,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.29** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.30** · **produção LIVE v5.22** (`0a0fd52`)
 
 ### Listagem loja — WhatsApp (copiar)
 
@@ -1234,7 +1234,8 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | ---- | ------- |
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
-| **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **sem scroll lateral** (quebra linha) |
+| **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **uma linha** (sem quebra · scroll fino se monitor estreito) |
+| **Resumo** | Cards **Visitas / Ticket / Cashback / Fiado** em **linha** (4 colunas) — **v5.30** |
 | **Carrinho** | Botão **🛒 → Carrinho** · adiciona **sem fechar** modal · vira **✓ No carrinho** · `AgroPdvAddProductByCode` |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
@@ -1244,21 +1245,17 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
 | **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-#### Checklist teste — **v5.29** (Renan · copiar)
+#### Checklist teste — **v5.30** (Renan · copiar)
 
-**Site:** Render **teste** (branch `teste`) · **Ctrl+F5** · badge **v5.29** (canto BI ou PDV).
+**Site:** Render **teste** · **Ctrl+F5** · badge **v5.30**
 
 | # | O quê | Passou? |
 | - | ----- | ------- |
-| 1 | Abrir **PDV** (`/pdv/checkout/`) | ☐ |
-| 2 | Escolher **cliente** com nome cadastrado (staging tem pouco histórico — serve abrir modal vazio ou com 1–2 vendas) | ☐ |
-| 3 | **F8** ou botão **Hist.** abre modal **Relacionamento** | ☐ |
-| 4 | Aba **Histórico**: vendas **fechadas** (clique expande) · **sem barra lateral** nas abas | ☐ |
-| 5 | Aba **Resumo**: top produtos mostra coluna **Qtd** | ☐ |
-| 6 | Em produto sugerido: **🛒 → Carrinho** adiciona **sem fechar** o modal · vira **✓ No carrinho** | ☐ |
-| 7 | **F5** = atualizar página (**não** abre Hist.) | ☐ |
-| 8 | **Finalizar venda** normal ainda funciona (smoke R$ 0,01 se quiser) | ☐ |
-| 9 | *(Opcional)* Menu **Caixa** abre mais rápido (**v5.24** perf — já no teste) | ☐ |
+| 1 | Abrir **PDV** · cliente cadastrado · **F8** / **Hist.** | ☐ |
+| 2 | **Abas** todas na **mesma linha** (CONTATO não cai para baixo) | ☐ |
+| 3 | Aba **Resumo**: 4 cards **em linha** (Visitas · Ticket · Cashback · Fiado) | ☐ |
+| 4 | **🛒 → Carrinho** sem fechar modal · **✓ No carrinho** | ☐ |
+| 5 | Aba **Histórico**: vendas retraídas · **F5** = refresh (não abre Hist.) | ☐ |
 
 **Não testar ainda:** **FL-038 contingência deploy** — só documentação; **sem código**.
 

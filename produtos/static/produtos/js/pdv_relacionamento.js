@@ -182,17 +182,17 @@
             html += '</ul></div>';
         }
         html +=
-            '<div class="grid gap-2 sm:grid-cols-2">' +
-            '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-[10px] font-black uppercase text-slate-500">Visitas</p><p class="text-lg font-black">' +
+            '<div class="grid grid-cols-4 gap-2">' +
+            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Visitas</p><p class="text-base font-black sm:text-lg">' +
             (m.total_vendas || 0) +
             '</p></div>' +
-            '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-[10px] font-black uppercase text-slate-500">Ticket médio</p><p class="text-lg font-black">' +
+            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Ticket médio</p><p class="truncate text-base font-black sm:text-lg">' +
             money(m.ticket_medio) +
             '</p></div>' +
-            '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-[10px] font-black uppercase text-slate-500">Cashback</p><p class="text-lg font-black text-emerald-700">' +
+            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Cashback</p><p class="truncate text-base font-black text-emerald-700 sm:text-lg">' +
             money(d.fidelidade && d.fidelidade.cashback) +
             '</p></div>' +
-            '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><p class="text-[10px] font-black uppercase text-slate-500">Fiado aberto</p><p class="text-lg font-black text-orange-700">' +
+            '<div class="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-2.5"><p class="truncate text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">Fiado aberto</p><p class="truncate text-base font-black text-orange-700 sm:text-lg">' +
             money(d.financeiro_fiado && d.financeiro_fiado.total_aberto) +
             '</p></div></div>';
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
