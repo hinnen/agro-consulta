@@ -141,6 +141,98 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 - **Assistente:** push `**teste` livre** (Renan testa no site teste). Merge/push `**producao` só** quando Renan autorizar.
 - Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
+### 3.2 Pausa antes do deploy loja (Renan 30/06)
+
+**Hoje não existe** trava automática no SisVale antes de subir pacote na **loja**. O Render reinicia o serviço (~1–3 min build + alguns segundos de troca); quem estiver **no meio** de finalizar venda pode ver erro de rede — em geral **Ctrl+F5** e tentar de novo.
+
+| O quê | Situação |
+| ----- | -------- |
+| **Modo manutenção no código** | **Não tem** (pendência futura — ver fila **FL-038** abaixo) |
+| **Página «Sistema em Manutenção»** | HTML legado em `produtos/templates/produtos/MANUTENÇÃO, BASTA RENOMEAR.txt` — **hack manual**, não usado no fluxo normal |
+| **`AGRO_STAGING_READONLY`** | Só **teste** · bloqueia Mongo · **não** trava PDV da loja |
+| **Idempotência venda** | Duplo clique / retry no **Finalizar** tende a **não duplicar** venda (já no sistema) |
+| **Gunicorn loja** | `--timeout 180` — requisição em andamento pode terminar antes do kill |
+
+**Rotina recomendada (operacional — até existir trava no sistema):**
+
+1. Escolher **janela calma** (evitar meio-dia cheio e fechamento de caixa se possível).
+2. **Aviso no Zap da loja:** *«Atualização em ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.»*
+3. No Render **SistVale**: deploy **manual** (ou confirmar auto-deploy) e **acompanhar** até «Live».
+4. **Ctrl+F5** nos PDVs abertos · venda teste rápida (R$ 0,01) se quiser conferir.
+
+**Pendência produto (fila):** **FL-038** — ver **§3.2.1** (como programar).
+
+#### 3.2.1 FL-038 — como funcionaria programado (rascunho técnico)
+
+**Ideia:** uma **chave no Render** (variável de ambiente), ligada **só na loja**, **só enquanto sobe atualização**. Não mexe em preço, catálogo nem estoque — só impede **gravar venda nova** no pior minuto do restart.
+
+**Variável (proposta):**
+
+| Variável | Valor | Onde |
+| -------- | ----- | ---- |
+| `AGRO_PDV_PAUSA_DEPLOY` | `true` / `false` | Render **SistVale** · **só produção** (teste ignora ou usa para ensaiar) |
+| `AGRO_PDV_PAUSA_MENSAGEM` | texto opcional | Banner no PDV (*«Atualização — aguarde 2 min»*) |
+
+**Três camadas (complementares):**
+
+| Camada | O quê faz | Operador vê |
+| ------ | --------- | ----------- |
+| **1 — Banner (tela)** | PDV lê flag no **bootstrap** (`pdv_wizard.html` / JSON do servidor) · faixa **laranja fixa** no topo | Aviso antes de ir para pagamento |
+| **2 — Botão Finalizar (JS)** | Se pausa ativa: **Confirmar / F9** desabilitado + tooltip | Não deixa nem clicar |
+| **3 — API (servidor)** | Rotas que **gravam venda** respondem **503** com JSON claro | Protege se alguém tiver PDV aberto **antes** de ligar a pausa |
+
+**Rotas bloqueadas (só POST que «fecha» venda):**
+
+| Rota | Motivo |
+| ---- | ------ |
+| `POST /api/enviar-pedido-erp/` | Confirmação normal do wizard (coração do PDV) |
+| `POST /api/pdv/mp-point/finalizar/` | Fechamento venda Mercado Pago maquininha |
+| `POST /api/pdv/entrega-pendente/<id>/finalizar/` | Fechar entrega pendente após venda |
+
+**O que continua liberado (balcão não para):**
+
+- Buscar produto, montar carrinho, trocar cliente, orçamento (F6), relacionamento (F8)
+- Consultar vendas, caixa, lançamentos, BI
+- **Rascunho** checkout (`api/pdv/checkout-draft/`) — carrinho não se perde
+
+**Retry / «já tinha clicado Finalizar» (idempotência):**
+
+O PDV já manda **`client_request_id`** / **`Idempotency-Key`** ao confirmar (`pdv_wizard.js` → middleware `AgroIdempotencyMiddleware`).
+
+| Situação | Comportamento proposto |
+| -------- | ---------------------- |
+| Operador **ainda não** clicou Finalizar | Bloqueado (camadas 2 + 3) |
+| Clicou **antes** da pausa e servidor **já respondeu OK** | Idempotência devolve **mesma resposta** — não duplica venda |
+| Clicou **no meio** do restart e deu erro | **Mesma tecla** (retry com **mesma** chave) → API **deixa passar** mesmo com pausa ligada, para **concluir** a venda em andamento |
+| Chave **nova** (outra venda) com pausa ligada | **503** — *«Sistema em atualização — aguarde»* |
+
+Implementação da exceção retry: no bloqueio da API, se existir **Idempotency-Key** com registro em cache (ou lock em processamento), **não** bloquear — deixar o middleware/view terminar.
+
+**Fluxo Renan no Render (manual — v1):**
+
+```
+1. Render SistVale → Environment → AGRO_PDV_PAUSA_DEPLOY = true → Save
+   (serviço reinicia ~30s — PDV já mostra banner e trava Finalizar)
+
+2. Aviso Zap (reforço): «Não finalize venda — atualizando»
+
+3. Deploy (merge producao / manual deploy) → aguardar «Live»
+
+4. Ctrl+F5 nos PDVs · venda teste opcional
+
+5. AGRO_PDV_PAUSA_DEPLOY = false → Save → balcão normal
+```
+
+**O que a pausa NÃO cobre (v1):**
+
+- **Caixa** (fechar turno, sangria) — outro fluxo; deploy no meio é raro problema
+- **Legado** `/consulta/` — incluir mesma flag no JS legado se ainda usarem
+- **Página inteira offline** — isso seria outro modo (`AGRO_MANUTENCAO_SITE` + tela cheia); **não** é o FL-038
+
+**Evolução futura (opcional):** botão admin «Pausa deploy 5 min» (grava flag no Postgres + TTL) — hoje v1 só **env Render** (simples, explícito).
+
+**Estimativa implementação:** 1 patch — `settings` + helper + checagem nas 3 views + bootstrap PDV + JS desabilitar F9 · testar no staging com flag ligada.
+
 ### 3.1 Versão do sistema (contador único — 2026-06-22)
 
 **Regra Renan (resumo — 23/06/2026):** cada entrega de **código** no **teste** sobe **+0,01** no badge (`2.03` → `2.04` → `2.05` …). A **loja** fica parada no último pacote que você subiu (hoje **v2.03**) até pedir produção — aí a loja **pula** para o mesmo número do pacote (ex. teste já em **v2.05** → sobe pacote → loja vira **v2.05**). Não é **+0,1** (dez centésimos); é **+0,01** (um centésimo). Só `banana.md` / docs **não** contam (`SKIP_VERSION_BUMP=1`).
@@ -1063,7 +1155,8 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | ---- | ------- |
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
-| **Aba principal** | **Histórico** — modal maior · cards top produtos · vendas em tabela · abre na aba Histórico |
+| **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **sem scroll lateral** (quebra linha) |
+| **Carrinho** | Botão **🛒 → Carrinho** · adiciona **sem fechar** modal · vira **✓ No carrinho** · `AgroPdvAddProductByCode` |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
 | **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
@@ -1282,6 +1375,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
+| **FL-038** | **P2** | Deploy / PDV | **Pausa antes de atualizar loja** — flag env: banner + não aceitar **nova** finalização de venda (janela deploy) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1324,6 +1418,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
 | FL-037 | `pdv-mix-selo-rowspan` | Selo mix único central entre linhas — experimental (opção 3) |
+| FL-038 | `deploy-pdv-pausa` | Env `AGRO_PDV_PAUSA_DEPLOY` — banner PDV + bloqueia finalizar venda nova durante deploy loja |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 

@@ -26,6 +26,7 @@
     var apiData = null;
     var clientePk = null;
     var activeTab = 'historico';
+    var relCartAdded = {};
 
     function money(v) {
         var n = Number(v);
@@ -75,18 +76,73 @@
         inp.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    function btnGm(codigo, large) {
+    function btnCartHtml(codigo, large, added) {
         if (!codigo) return '';
-        var cls = large
-            ? 'rel-add-gm shrink-0 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 py-1.5 text-xs font-black uppercase text-emerald-900 hover:bg-emerald-100'
-            : 'rel-add-gm ml-2 rounded-lg border border-emerald-400 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100';
+        var base =
+            large
+                ? 'rel-add-gm shrink-0 rounded-xl border-2 px-3 py-1.5 text-xs font-black'
+                : 'rel-add-gm shrink-0 rounded-lg border-2 px-2.5 py-1 text-[10px] font-black';
+        if (added) {
+            return (
+                '<button type="button" class="' +
+                base +
+                ' rel-add-gm--done" disabled aria-label="Já no carrinho" data-gm="' +
+                esc(codigo) +
+                '"><span aria-hidden="true">✓</span> No carrinho</button>'
+            );
+        }
         return (
             '<button type="button" class="' +
-            cls +
-            '" data-gm="' +
+            base +
+            ' border-emerald-500 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" aria-label="Adicionar ao carrinho" data-gm="' +
             esc(codigo) +
-            '">+ GM</button>'
+            '"><span aria-hidden="true">🛒</span><span class="mx-0.5" aria-hidden="true">→</span> Carrinho</button>'
         );
+    }
+
+    function btnCart(codigo, large) {
+        var key = String(codigo || '').trim();
+        return btnCartHtml(key, large, !!relCartAdded[key]);
+    }
+
+    function markCartBtnDone(btn) {
+        if (!btn) return;
+        var gm = btn.getAttribute('data-gm') || '';
+        relCartAdded[gm] = true;
+        btn.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100', 'rel-add-gm--busy');
+        btn.classList.add('rel-add-gm--done');
+        btn.disabled = true;
+        btn.setAttribute('aria-label', 'Já no carrinho');
+        btn.innerHTML = '<span aria-hidden="true">✓</span> No carrinho';
+    }
+
+    function addProductToCartFromRel(btn) {
+        var gm = (btn.getAttribute('data-gm') || '').trim();
+        if (!gm || btn.classList.contains('rel-add-gm--done')) return;
+        btn.classList.add('rel-add-gm--busy');
+        btn.disabled = true;
+        var prevHtml = btn.innerHTML;
+        btn.innerHTML = '<span aria-hidden="true">…</span>';
+
+        function done(ok) {
+            if (ok) {
+                markCartBtnDone(btn);
+                return;
+            }
+            btn.classList.remove('rel-add-gm--busy');
+            btn.disabled = false;
+            btn.innerHTML = prevHtml;
+            fillBuscaGm(gm);
+        }
+
+        if (typeof window.AgroPdvAddProductByCode === 'function') {
+            Promise.resolve(window.AgroPdvAddProductByCode(gm)).then(done).catch(function () {
+                done(false);
+            });
+            return;
+        }
+        fillBuscaGm(gm);
+        markCartBtnDone(btn);
     }
 
     function formaBadge(forma) {
@@ -141,14 +197,17 @@
             '</p></div></div>';
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         if (top.length) {
-            html += '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos</p><ul class="space-y-1">';
+            html += '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos</p><ul class="space-y-2">';
             top.slice(0, 5).forEach(function (p) {
                 html +=
-                    '<li class="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-slate-100 bg-white px-2 py-1.5 text-xs font-bold">' +
-                    '<span class="min-w-0 flex-1 truncate">' +
+                    '<li class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold sm:flex-nowrap">' +
+                    '<span class="min-w-0 flex-1 text-sm font-black text-slate-900">' +
                     esc(p.descricao) +
                     '</span>' +
-                    btnGm(p.codigo) +
+                    '<span class="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">Qtd ' +
+                    (p.qtd_total != null ? p.qtd_total : '—') +
+                    '</span>' +
+                    btnCart(p.codigo, false) +
                     '</li>';
             });
             html += '</ul>';
@@ -201,7 +260,7 @@
                     '× comprado</span><span>Qtd ' +
                     p.qtd_total +
                     '</span></div>' +
-                    btnGm(p.codigo, true) +
+                    btnCart(p.codigo, true) +
                     '</div></article>';
             });
             html += '</div>';
@@ -214,12 +273,10 @@
             html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Nenhuma venda recente no PDV.</p>';
         } else {
             html += '<div class="space-y-3">';
-            vendas.forEach(function (v, idx) {
-                var openAttr = idx === 0 ? ' open' : '';
+            vendas.forEach(function (v) {
                 html +=
-                    '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm"' +
-                    openAttr +
-                    '><summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
+                    '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm">' +
+                    '<summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
                     '<span class="text-lg font-black text-slate-900 sm:text-xl">' +
                     money(v.total) +
                     '</span>' +
@@ -240,7 +297,7 @@
                         '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
                         money(it.total) +
                         '</td><td class="py-2.5 pl-2 text-right">' +
-                        btnGm(it.codigo, true) +
+                        btnCart(it.codigo, true) +
                         '</td></tr>';
                 });
                 html += '</tbody></table></div></details>';
@@ -275,7 +332,7 @@
                 r.ultima_qtd +
                 (r.media_intervalo_dias ? ' · Intervalo médio ~' + r.media_intervalo_dias + 'd' : '') +
                 (r.estimativa_dias_pacote ? ' · Pacote ~' + r.estimativa_dias_pacote + 'd' : '') +
-                btnGm(r.codigo) +
+                btnCart(r.codigo) +
                 '</div></div>';
         });
         html += '</div>';
@@ -294,7 +351,7 @@
                 esc(r.descricao) +
                 '</div><div class="text-[10px] font-bold text-sky-900">' +
                 esc(r.motivo) +
-                btnGm(r.codigo) +
+                btnCart(r.codigo) +
                 '</div></li>';
         });
         html += '</ul>';
@@ -479,9 +536,10 @@
 
     function bindPanelActions(extra) {
         dom.panel.querySelectorAll('.rel-add-gm').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                fillBuscaGm(btn.getAttribute('data-gm'));
-                closeModal();
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                addProductToCartFromRel(btn);
             });
         });
         var petAdd = dom.panel.querySelector('#rel-pet-add');
@@ -550,10 +608,8 @@
         if (!dom.tabs) return;
         dom.tabs.innerHTML = TABS.map(function (t) {
             var on = t.id === activeTab;
-            var hist = t.id === 'historico';
             return (
-                '<button type="button" class="rel-tab shrink-0 rounded-xl border-2 px-3 py-2.5 font-black uppercase ' +
-                (hist ? ' text-xs sm:text-sm ' : ' text-[10px] ') +
+                '<button type="button" class="rel-tab shrink-0 rounded-xl border-2 px-2.5 py-2 text-[10px] font-black uppercase sm:text-[11px] ' +
                 (on
                     ? 'border-emerald-600 bg-emerald-600 text-white shadow-md'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50') +
@@ -612,6 +668,7 @@
         }
         clientePk = cli.cliente_agro_pk;
         activeTab = 'historico';
+        relCartAdded = {};
         if (dom.title) dom.title.textContent = cli.nome || 'Cliente';
         if (dom.modal) {
             dom.modal.classList.remove('hidden');

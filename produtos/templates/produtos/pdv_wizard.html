@@ -2244,6 +2244,20 @@
     #pdv-step1-side #pdv-step1-advance { padding-top: .55rem !important; padding-bottom: .55rem !important; }
     #pdv-step1-side #pdv-step1-payment { padding-top: .45rem !important; padding-bottom: .45rem !important; }
   }
+  .pdv-rel-tabs { overflow-x: hidden; }
+  .pdv-rel-tabs .rel-tab { flex: 0 1 auto; max-width: 100%; }
+  .pdv-rel-historico { overflow-x: hidden; max-width: 100%; }
+  .pdv-rel-historico table { table-layout: fixed; width: 100%; }
+  .pdv-rel-historico td:first-child { word-break: break-word; }
+  .rel-add-gm {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
+    white-space: nowrap; transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .rel-add-gm--busy { opacity: 0.65; pointer-events: none; }
+  .rel-add-gm--done {
+    border-color: #059669 !important; background: #ecfdf5 !important; color: #047857 !important;
+    cursor: default;
+  }
 </style>
 {% endblock %}
 
@@ -2615,8 +2629,8 @@
       <p class="text-[11px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho · <kbd class="rounded border border-emerald-300 bg-white px-1.5 font-mono text-[10px]">F8</kbd></p>
       <h2 id="pdv-relacionamento-titulo" class="truncate text-xl font-black text-slate-900 sm:text-2xl">Cliente</h2>
     </header>
-    <div id="pdv-relacionamento-tabs" class="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4"></div>
-    <div class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
+    <div id="pdv-relacionamento-tabs" class="pdv-rel-tabs flex shrink-0 flex-wrap gap-1.5 border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4"></div>
+    <div class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-5 sm:py-4">
       <p id="pdv-relacionamento-loading" class="hidden text-sm font-bold text-slate-600">Carregando histórico…</p>
       <div id="pdv-relacionamento-panel"></div>
     </div>

@@ -9729,6 +9729,17 @@
 
     loadWizardClientesCache(false);
 
+    window.AgroPdvAddProductByCode = function (code) {
+        var c = String(code || '').trim();
+        if (!c) return Promise.resolve(false);
+        return Promise.resolve(
+            tryAddProductFromSearch(
+                {},
+                { query: c, forceServer: true, okMsg: '' }
+            )
+        );
+    };
+
     var currentState = State.getState();
     if (!hydratedFromConsulta && (!currentState.clienteMode || currentState.clienteMode === 'unset')) {
         openStartModal();
