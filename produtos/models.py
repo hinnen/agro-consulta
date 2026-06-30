@@ -186,6 +186,12 @@ class ClienteAgro(models.Model):
         default=0,
         help_text="Quando maior que zero, substitui o limite vindo do ERP/Mongo para este cliente.",
     )
+    relacionamento_extras_json = models.JSONField(
+        "Relacionamento (pets, saúde, anotações)",
+        default=dict,
+        blank=True,
+        help_text="Pets, lembretes de saúde e anotações do F8 — fonte Agro (Postgres).",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 

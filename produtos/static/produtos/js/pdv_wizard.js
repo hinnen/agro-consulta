@@ -8771,6 +8771,10 @@
 
         if (dom.clientPurchaseHistory) {
             dom.clientPurchaseHistory.addEventListener('click', function () {
+                if (window.AgroPdvRelacionamento && typeof window.AgroPdvRelacionamento.open === 'function') {
+                    window.AgroPdvRelacionamento.open();
+                    return;
+                }
                 var state = State.getState();
                 var url = urls.vendasLista || '/vendas/';
                 if (state.cliente && state.cliente.nome) {
@@ -9499,7 +9503,7 @@
                     if (dom.quickClientChange) dom.quickClientChange.click();
                     return;
                 }
-                if (event.code === 'F5' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                if (event.code === 'F8' && !event.altKey && !event.ctrlKey && !event.metaKey) {
                     event.preventDefault();
                     if (dom.clientPurchaseHistory) dom.clientPurchaseHistory.click();
                     return;
@@ -9724,6 +9728,17 @@
         });
 
     loadWizardClientesCache(false);
+
+    window.AgroPdvAddProductByCode = function (code) {
+        var c = String(code || '').trim();
+        if (!c) return Promise.resolve(false);
+        return Promise.resolve(
+            tryAddProductFromSearch(
+                {},
+                { query: c, forceServer: true, okMsg: '' }
+            )
+        );
+    };
 
     var currentState = State.getState();
     if (!hydratedFromConsulta && (!currentState.clienteMode || currentState.clienteMode === 'unset')) {

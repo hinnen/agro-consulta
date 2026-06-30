@@ -97,6 +97,8 @@ def pdv_home(request):
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
                 "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
+                "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
+                "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
                 "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
                 "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
                     "/0/", "/__pk__/"

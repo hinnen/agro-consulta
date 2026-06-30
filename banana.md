@@ -53,6 +53,7 @@
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
+| **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
 | **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
 
 
@@ -140,7 +141,180 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 - **Assistente:** push `**teste` livre** (Renan testa no site teste). Merge/push `**producao` só** quando Renan autorizar.
 - Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
-### 3.1 Versão do sistema (contador único — 2026-06-22)
+### 3.2 Pausa antes do deploy loja (Renan 30/06)
+
+**Hoje não existe** trava automática no SisVale antes de subir pacote na **loja**. O Render reinicia o serviço (~1–3 min build + alguns segundos de troca); quem estiver **no meio** de finalizar venda pode ver erro de rede — em geral **Ctrl+F5** e tentar de novo.
+
+| O quê | Situação |
+| ----- | -------- |
+| **Modo manutenção no código** | **Não tem** (pendência futura — ver fila **FL-038** abaixo) |
+| **Página «Sistema em Manutenção»** | HTML legado em `produtos/templates/produtos/MANUTENÇÃO, BASTA RENOMEAR.txt` — **hack manual**, não usado no fluxo normal |
+| **`AGRO_STAGING_READONLY`** | Só **teste** · bloqueia Mongo · **não** trava PDV da loja |
+| **Idempotência venda** | Duplo clique / retry no **Finalizar** tende a **não duplicar** venda (já no sistema) |
+| **Gunicorn loja** | `--timeout 180` — requisição em andamento pode terminar antes do kill |
+
+**Rotina recomendada (operacional — até existir trava no sistema):**
+
+1. Escolher **janela calma** (evitar meio-dia cheio e fechamento de caixa se possível).
+2. **Aviso no Zap da loja:** *«Atualização em ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.»*
+3. No Render **SistVale**: deploy **manual** (ou confirmar auto-deploy) e **acompanhar** até «Live».
+4. **Ctrl+F5** nos PDVs abertos · venda teste rápida (R$ 0,01) se quiser conferir.
+
+**Pendência produto (fila):** **FL-038** — **§3.2.0** (leigo) · **§3.2.1+** (técnico).
+
+#### 3.2.0 FL-038 — em poucas palavras (leigo)
+
+**O que é:** uns **2 minutos** antes de atualizar o sistema na **loja**, o SisVale entra num modo *«estou atualizando — segura a mão no botão que grava dinheiro»*.
+
+**O que a loja vê:** faixa **laranja** no topo (PDV, caixa, financeiro — conforme fase). Botões tipo **Finalizar venda**, **reforço/retirada**, **devolução**, **baixar fiado**, **baixar conta** ficam **desligados** por uns instantes.
+
+**O que pode fazer normal:** buscar produto, montar carrinho, olhar listas, filtros, BI, histórico — **nada se perde** no rascunho.
+
+**Se alguém já tinha clicado «confirmar»:** se o pedido **já entrou**, termina sozinho. Se deu erro por causa da atualização, **clicar de novo no mesmo botão** (mesma operação) **não duplica** venda — o sistema reconhece o retry.
+
+**Se clicar «confirmar» depois que a faixa apareceu** (operação **nova**): aparece aviso — **espera ~2 min** e tenta de novo.
+
+**Quem liga e desliga:** no deploy automático (Renan manda *pode subir produção* + senha), o assistente **liga** a contingência → sobe a versão no Render → espera ficar **Live** → **desliga**. Se o deploy **falhar**, desliga do mesmo jeito — **a loja não fica travada**.
+
+**Aviso Zap (opcional):** *«Atualizando o sistema ~2 min — não finalize venda nem baixa agora. Quem já confirmou, aguarde.»*
+
+**Por fases (não tudo no dia 1):** primeiro **finalizar venda** · depois **caixa, devolução e fiado** · por último **contas a pagar** (baixa e lançamento novo), quando estiver redondo contra duplicata.
+
+**Hoje (sem FL-038 código):** só aviso no Zap + escolher horário calmo — ver rotina acima · **Renan 30/06:** neste deploy **v5.44** usa **só rotina manual**; implementar FL-038 (fases A+B) em deploy futuro.
+
+**Renan 30/06 — fila offline:** ideia de vender no PC e subir depois → **FL-041 P3** (projeto grande). **Curto prazo:** FL-038 manual + idempotência venda já existente.
+
+#### 3.2.1 FL-038 — como funcionaria programado (rascunho técnico)
+
+**Ideia:** trava **só o PDV** (Finalizar venda) por alguns minutos enquanto sobe pacote na **loja**. Não mexe preço, catálogo, estoque nem **Contas a pagar**.
+
+**Importante — env no Render não serve para ligar/desligar rápido:** mudar `AGRO_PDV_PAUSA_DEPLOY` no painel **dispara outro restart** do serviço. Seriam **dois** reinícios (pausa + deploy). **Decisão v2:** flag de pausa em **Postgres** (leitura a cada request) · ligar/desligar por **HTTP** sem redeploy extra.
+
+| Mecanismo | Papel |
+| --------- | ----- |
+| **`AgroDeployPausaPdv`** (Postgres) ou linha única em tabela de config | `ativo` + `desde` + `motivo` — todos os workers Gunicorn veem na hora |
+| **`GET /api/cron/pdv-pausa-deploy/?token=…&on=1`** | Liga pausa (mesmo token dos crons / token deploy) |
+| **`…&on=0`** | Desliga pausa |
+| **`AGRO_PDV_PAUSA_MENSAGEM`** (env, opcional) | Texto fixo do banner |
+
+**Três camadas (complementares):**
+
+| Camada | O quê faz | Operador vê |
+| ------ | --------- | ----------- |
+| **1 — Banner** | Bootstrap PDV lê flag no servidor | Faixa laranja no topo |
+| **2 — JS** | **F9 / Confirmar** desabilitado se pausa | Não clica Finalizar |
+| **3 — API** | POSTs de **fechar venda PDV** → **503** JSON claro | Protege PDV aberto antes da pausa |
+
+**Rotas bloqueadas (v1 — só PDV):**
+
+| Rota | Motivo |
+| ---- | ------ |
+| `POST /api/enviar-pedido-erp/` | Finalizar venda wizard |
+| `POST /api/pdv/mp-point/finalizar/` | MP Point |
+| `POST /api/pdv/entrega-pendente/<id>/finalizar/` | Entrega pendente |
+
+**O que continua liberado:**
+
+- Montar carrinho, busca, F6 orçamento, F8 relacionamento, **caixa**, **BI**
+- **Contas a pagar** — listar, filtrar, **baixa**, editar título (**fora** do FL-038 v1)
+- Rascunho checkout — carrinho não se perde
+
+#### 3.2.2 E se ligar a pausa com alguém no meio da operação?
+
+**Finalizando venda no PDV**
+
+| Momento | O que acontece |
+| ------- | -------------- |
+| **Ainda montando** carrinho / pagamento | Pausa só trava **Finalizar** — pode continuar montando |
+| **Clicou Finalizar** e request **já entrou** no servidor | Termina **normalmente** (checagem é na **entrada** do POST) |
+| **Clicou Finalizar** e deu erro no **restart** do deploy | **Mesmo** Finalizar de novo — **idempotência** (`client_request_id`) **não duplica** venda; com pausa ligada, retry com **mesma chave** **passa** mesmo bloqueado |
+| **Clicou Finalizar** **depois** da pausa (venda **nova**) | **503** — aguardar fim do deploy |
+| PDV aberto **sem F5** | Banner pode demorar ~30s até próximo bootstrap; **API** já bloqueia Finalizar |
+
+**Baixa / lançamento em Contas a pagar**
+
+| | |
+|---|---|
+| **v1 FL-038** | **Não bloqueia CP** — baixa segue |
+| **Risco real** | Só o **restart** do Render (como hoje), não a flag PDV |
+| **Se no futuro** quiser travar CP também | FL-038 **v2** — rotas `api/lancamentos/baixa*` (decidir com Renan) |
+
+**Caixa (fechar turno, sangria):** igual CP — **fora** do v1; risco só restart.
+
+#### 3.2.3 Automação no deploy loja (decisão Renan 30/06)
+
+**Sim — quando Renan mandar *«pode subir produção»* + senha `99738595` na mesma mensagem**, o assistente **pode** rodar a sequência (após FL-038 implementado + token configurado):
+
+```
+1. HTTP loja → pausa ON   (/api/cron/pdv-pausa-deploy/?token=…&on=1)
+2. ~5–10 s                  (propaga Postgres; opcional Zap «atualizando ~2 min»)
+3. cherry-pick / push       branch producao (pacote combinado)
+4. aguardar Render          «Live» (MCP/API Render)
+5. HTTP loja → pausa OFF    (…&on=0)
+6. CHECKPOINT banana        pacote · commits · Ctrl+F5
+```
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Script alvo** | `scripts/deploy_producao_com_pausa.ps1` (ou `.sh` no Render — hoje assistente roda da máquina Renan) |
+| **Token** | Reutilizar `ALERTA_VENDAS_CRON_TOKEN` ou env dedicado `AGRO_DEPLOY_PAUSE_TOKEN` |
+| **Pré-requisito** | FL-038 **código** já na loja (primeiro deploy **sem** pausa automática, ou pausa manual só Zap) |
+| **Falha no meio** | Se deploy falhar: **despausa** (`on=0`) mesmo assim — loja não fica travada |
+| **Renan manual** | Continua valendo Zap + janela calma; automação **substitui** ir no Render ligar env |
+
+**Retry / idempotência (venda):** ver tabela em §3.2.1 — chave **nova** bloqueada; **mesma** chave (retry) libera.
+
+**O que a pausa NÃO cobre (v1):** CP · caixa · site inteiro offline · legado `/consulta/` (incluir depois se precisar).
+
+**Estimativa:** 1 patch FL-038 (Postgres + cron ON/OFF + 3 rotas PDV + banner + F9) + 1 script deploy automático · testar no staging.
+
+**Fluxo manual legado (só env — descartado para toggle):** ~~Render env true/false~~ — gera restart duplo; manter env só para **mensagem** opcional.
+
+#### 3.2.4 Contingência ampla — Renan 30/06 (venda · caixa · fiado · lançamentos)
+
+**Pergunta Renan:** não seria melhor **contingência** cobrindo também reforço, retirada, devolução, baixa fiado e lançamentos (baixa + novo)?
+
+**Opinião assistente — sim no conceito, em fases no código:**
+
+| Prós | Contras |
+| ---- | ------- |
+| Protege **todo movimento de dinheiro** no minuto do restart | Janela de deploy **congela mais gente** (financeiro no meio da tarde) |
+| Uma regra mental: *«atualizando — não grave nada crítico»* | **Lançamentos** hoje têm idempotência **menos uniforme** que o PDV — retry cego pode **duplicar baixa** se não auditar antes |
+| Alinha com automação *pode subir* + senha | Patch **maior** (mais rotas + banners em caixa/CP) |
+
+**Recomendação:** um único modo **`contingencia_deploy`** no Postgres (não só «pausa PDV»), com **escopos** ligados juntos no deploy automático:
+
+| Escopo | O que trava (POST que grava) | Telas (banner laranja) |
+| ------ | ---------------------------- | ---------------------- |
+| **`pdv`** | Finalizar venda · MP Point · entrega pendente | Wizard PDV |
+| **`caixa`** | `api/caixa/movimento/` (reforço + retirada) · fechar caixa (se POST dedicado) | Painel caixa |
+| **`devolucao`** | `api/venda/…/devolver/` | Consulta venda / fluxo devolução |
+| **`fiado`** | `api/fiado/baixa*` (3 rotas) | PDV fiado / caixa fiado |
+| **`lancamentos`** | `api/lancamentos/baixa/` · `baixa-parcial/` · `criar-manual-lote/` · `saida-caixa/` (avaliar lista final no código) | Contas a pagar / novo manual |
+
+**Ordem de implementação sugerida:**
+
+| Fase | Escopos | Por quê |
+| ---- | ------- | ------- |
+| **A** | `pdv` | Maior volume balcão · idempotência **já forte** · menor risco |
+| **B** | `caixa` + `devolucao` + `fiado` | Mesmo «balcão/caixa» · poucos POSTs · Renan sente diferença na loja |
+| **C** | `lancamentos` | Só depois de **auditar idempotência** (ou chave por baixa) nas APIs financeiras |
+
+**No deploy automático** (*pode subir* + senha): ligar **todos os escopos A+B** (e **C** quando fase C estiver pronta) num único `on=1` · desligar tudo no `on=0`.
+
+**Quem já estava gravando quando liga contingência:**
+
+| Módulo | Comportamento alvo (igual PDV) |
+| ------ | ------------------------------ |
+| Venda PDV | Request **dentro** → termina · **retry mesma chave** → passa · **nova** operação → 503 |
+| Caixa / fiado / devolução | Mesma regra **se** tiver idempotência; senão só bloqueia **novo** POST (retry = operador espera despausa — aceitável 2 min) |
+| Lançamentos baixa/novo | **Fase C** — priorizar **não duplicar** título quitado |
+
+**O que continua liberado sempre:** consultar listas, filtros, relatórios, montar carrinho, rascunhos, BI — **só trava o «confirmar/gravar»**.
+
+**Renomear fila:** FL-038 = **Contingência deploy** (nome amigável Zap: *«Sistema em atualização — aguarde 2 min para finalizar venda ou baixa»*).
+
+**Decisão pendente Renan:** fase **B** entra junto com **A** no primeiro pacote, ou **A** sozinha na loja e **B** no deploy seguinte?
 
 **Regra Renan (resumo — 23/06/2026):** cada entrega de **código** no **teste** sobe **+0,01** no badge (`2.03` → `2.04` → `2.05` …). A **loja** fica parada no último pacote que você subiu (hoje **v2.03**) até pedir produção — aí a loja **pula** para o mesmo número do pacote (ex. teste já em **v2.05** → sobe pacote → loja vira **v2.05**). Não é **+0,1** (dez centésimos); é **+0,01** (um centésimo). Só `banana.md` / docs **não** contam (`SKIP_VERSION_BUMP=1`).
 
@@ -967,18 +1141,231 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.24** · **produção v5.24** — FL-017 + perf menu caixa **loja**
+**Versão app (`VERSION`):** **teste v5.44** · **loja deploy v5.44 em andamento** (30/06 · Renan *pode subir* + senha)
 
-### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ✅
+### DEPLOY LOJA — Relacionamento F8 **v5.44** (30/06) 🚀
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode subir* + senha **99738595** · loja estava **v5.22.1** |
+| **Pacote** | Merge **`teste` → `producao`** · Relacionamento F8 + pets Postgres + menu caixa v5.24 + fiado link |
+| **VERSION** | **5.44** UTF-8 (corrigido merge — evita build UTF-16) |
+| **Migration** | **`0046`** `relacionamento_extras_json` |
+| **Contingência** | Manual §3.2 (Zap + pausa ~2 min) — sem FL-038 código |
+| **Loja** | Ctrl+F5 · badge **v5.44** · F8 + pet + venda R$ 1 |
+| **Revert** | redeploy commit **`producao` anterior ao merge** |
+
+### 📦 PACOTE LOJA — **v5.44** · **SUBIU** 30/06
+
+**Decisões Renan (30/06):**
+
+| Tema | Decisão |
+| ---- | ------- |
+| **Deploy seguro** | **FL-038** — neste deploy usa **rotina manual** §3.2 (Zap + janela calma + parar de finalizar venda ~2 min) · código FL-038 **depois** (P2) |
+| **Fila offline** | **Não agora** — registrado **FL-041** (P3, projeto grande) |
+| **Pets** | **Opção A** JSON Postgres (**v5.44**) · **FL-040** tabela Pet (P3) |
+
+**Contingência neste deploy (sem código FL-038):**
+
+1. Escolher **janela calma** (evitar pico e fechamento de caixa).
+2. **Zap loja:** *«Atualizando o sistema ~2 min — **não finalize venda** agora. Quem já clicou Finalizar, aguarde. Depois: Ctrl+F5 no PDV.»*
+3. Renan avisa operadores: **parar de vender** ~2 min.
+4. Assistente: merge + push **`producao`** → acompanhar Render até **Live**.
+5. **Ctrl+F5** em todos os PDVs · badge **v5.44** · venda teste R$ 0,01 (opcional).
+6. Conferir **migration** `0046` rodou (Render deploy log).
+
+**Script:** `scripts/preparar_deploy_loja_v544.ps1` — valida `VERSION` UTF-8 e diff · push só com `-ExecutarPush` após autorização.
+
+---
+
+#### O que entra na loja (resumo operador)
+
+**🛒 PDV — Relacionamento com cliente (F8 / botão Hist.)**
+
+| Novidade | Detalhe |
+| -------- | ------- |
+| **Atalho F8** | Modal do cliente selecionado (não consumidor final) |
+| **Aba Resumo** | 9 indicadores **numa linha** (visitas, ticket, cashback, vale, total, freq., última visita, pets, WhatsApp) |
+| **Top produtos** | Tabela + botão **+1 un.** no balcão (não fecha o modal) |
+| **Fiado** | Só na aba **Fiado** (laranja/vermelho + valor) · botão **Lançamentos** abre gestão fiado do cliente |
+| **Histórico** | Itens mais comprados + últimas vendas (sem cards duplicados do Resumo) |
+| **Pets / saúde / anotações** | Salvos no **cadastro Postgres** — **qualquer caixa** vê (não fica só no PC) |
+| **Risco** | **Baixo** — consulta + cadastro auxiliar · **não muda** preço, estoque nem finalizar venda |
+
+**💵 Caixa**
+
+| Item | Nota |
+| ---- | ---- |
+| **Menu CAIXA mais rápido** | Se a loja **já** estiver na v5.24 (`eb9fcc9`), **não repete** · se Render ainda v5.22, entra neste pacote |
+
+**🗄️ Banco (Postgres)**
+
+| Migration | O quê |
+| --------- | ----- |
+| **`0046`** | Campo `relacionamento_extras_json` em **Cliente Agro** (pets, lembretes, anotações) |
+
+**❌ Fora deste pacote**
+
+| Item | Motivo |
+| ---- | ------ |
+| **FL-038 código** | Só documentação — deploy usa Zap + pausa manual |
+| **FL-039 / FL-040** | Ficha `/clientes/` e tabela Pet — P3 |
+| **FL-041** | Fila vendas offline — P3 |
+| **Demais FL-00x** | Não testados neste ciclo |
+
+---
+
+#### Checklist pós-deploy loja (Renan)
+
+| # | O quê |
+| - | ----- |
+| 1 | Badge **v5.44** (Ctrl+F5) |
+| 2 | PDV · cliente cadastrado · **F8** → Resumo + abas |
+| 3 | Pet no F8 → outro PC vê o mesmo pet |
+| 4 | Cliente com fiado → aba Fiado + lançamentos |
+| 5 | Menu **CAIXA** abre rápido |
+| 6 | Venda normal R$ 1 (sanidade) |
+
+**Revert:** redeploy commit anterior em `producao` (anotar hash pós-merge).
+
+---
+
+**Anterior:** **17/06/2026** · produção **12–16/jun** (PDV, Caixa, Entrada NF, Etiquetas, Cadastro — lista guardada pelo Renan).
+
+**Esta lista:** produção **17/06 – 29/06/2026** · badge loja **v5.22 live** (v5.24 menu caixa **não subiu**) · gerada **29/06**.
+
+**Formato:** **lista completa** (PDV + caixa + NF + gestão + financeiro + BI + compras) — **não** usar versão «só balcão».
+
+**Cadência Renan (29/06):** copiar e enviar no **WhatsApp da loja** **a cada 2 dias**, a partir de **29/06/2026**.
+
+| Próximos envios |
+| --------------- |
+| **29/06** (início) · **01/07** · **03/07** · **05/07** · **07/07** · … |
+
+Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produção**, atualizar data de corte + bullets + badge `VERSION`.
+
+**Dica pós-deploy:** **Ctrl+F5** no Chrome após atualização.
+
+---
+
+🚀 **Atualizações do Sistema — GM Agro** 🚀  
+📅 **Produção: 17 a 29 de junho**
+
+**🛒 PDV (Vendas)**  
+• Autocomplete de produtos renovado: fundo azul, lista maior, **Carregar mais** e **Enter** adiciona sem fechar a busca.  
+• Busca de **clientes** mais rápida (lista guardada no navegador).  
+• **Finalizar venda** mais rápido: cupom fiscal sai em segundo plano; não trava se o ERP estiver lento ou fora.  
+• PDV **continua vendendo** mesmo com Mongo/ERP fora (produtos vêm do sistema Agro).  
+• Etiquetas **GM com hífen**: bip não apaga item do carrinho nem confunde códigos parecidos.  
+• Modal de **CPF na NFC-e** maior e mais legível.  
+• **Entrega (F3):** telas e popups maiores; fluxo reorganizado (endereço → taxa → pagamento → troco).  
+• **Conferir entrega** mostra frete e total certos.  
+• Ao **trocar cliente** na entrega, endereço não «gruda» mais da venda anterior.  
+• **Selos de promo** no carrinho: verde quando atingiu a promo; amarelo quando **faltam unidades**.  
+• Promo **«leve X pague Y»**: unidades extras voltam ao **preço normal** (ex.: 5º item fora da promo).  
+• **Promo mix** (vários produtos): total calculado certo; linhas da mesma promo juntas, com borda colorida e selo **MIX**.  
+• **Remover** item virou ícone de lixeira (mais espaço na linha).
+
+**💵 Caixa (Fechamento)**  
+• Nova tela de **histórico de retiradas/saídas**: filtros por data, plano e quem levou (padrão = hoje).  
+• Após registrar saída: aviso verde **«Retirada concluída»** e campos limpos.  
+• **Correção importante:** devolução no mesmo dia **não descontava em dobro** no fechamento nem no relatório.  
+• Menu **CAIXA** mais rápido (detalhes pesados só na tela **Saldo**) — **📋 fila** · próximo deploy loja (ainda **não** na v5.22 live).
+
+**🧾 Entrada de Nota Fiscal**  
+• **Rascunhos** da nota salvos no sistema Agro (mais estável).  
+• **Reabrir** nota finalizada: estorna título no financeiro corretamente.  
+• Estoque: aviso se ainda não aplicou; reabrir limpa etapa de **lote/validade**.  
+• **Auditoria financeiro** da NF (botão na lista de notas).
+
+**🏷️ Etiquetas de Preço**  
+• Código interno faixa **230** impresso como **CODE128** (leitura mais confiável no balcão).
+
+**📦 Cadastro / Gestão de Produtos**  
+• Busca na lista por **código GM** e **código de barras**.  
+• **Gestão** mais rápida e estável (menos dependência do ERP).  
+• Estoque operacional no **Agro** — venda baixa saldo mesmo com Mongo fora.
+
+**🎁 Promoções (cadastro)**  
+• **Salvar promoção** corrigido (não dava mais erro na etapa 2).  
+• Botão **Excluir** na lista (remove duplicatas).  
+• Etapa de produtos: **bip direto**, busca por GM ou nome; lista **continua aberta** após adicionar.  
+• Botão **Continuar — escolher produtos** corrigido.
+
+**💰 Lançamentos / Contas a pagar**  
+• Contas a pagar e receber no **sistema Agro** — mais rápido e estável.  
+• Filtros da lista carregam **mais rápido**.  
+• **Backup** em ZIP (só em aberto) e Excel completo (admin).  
+• **Nova saída** em tela cheia: empréstimo entrada + pagamento; quitar por item.  
+• **Totais corrigidos** — sincronização alinhou valores com o backup conferido.
+
+**📊 Tela inicial (BI)**  
+• Cards de **contas a pagar/receber** alinhados ao financeiro Agro.  
+• **Gráfico de gastos** por plano de conta (botão laranja no card Contas a Pagar).  
+• **Meta de vendas** do mês: histórico da planilha (set/25–mai/26) + vendas PDV atuais — comparação mais realista.  
+• Card de **validade** corrigido (produtos com data próxima aparecem certo).
+
+**🛍️ Compras**  
+• Sugestão de compra usa **vendas do Agro** (mais rápido).  
+• **Folha Compras** por categoria/unidade inclui dados da gestão.  
+• Card **«últimas compras»** na busca (NF Agro + ERP).
+
+**📦 Transferências e validade**  
+• Telas de **transferência** e **relatório de validade** usam estoque Agro (ajustes + vendas).
+
+---
+
+### WIP — Relacionamento PDV (F8 rascunho) **30/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
+| **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
+| **Aba inicial** | **Resumo** (padrão ao abrir) — **v5.41** |
+| **Modal** | Altura **fixa** (ref. aba Histórico) — troca de aba **não redimensiona** · scroll só no miolo — **v5.35** |
+| **Resumo** | **9 cards em linha** (1×9): Visitas · Ticket · Cashback · Vale · Total · Freq. · Últ. visita · Pets · WhatsApp — **v5.43** |
+| **Histórico** | Sem cards Visitas/Ticket/Total (só no Resumo) — **v5.42** |
+| **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
+| **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
+| **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
+| **Deploy loja** | **📦 Pacote v5.44 pronto** — aguardando autorização Renan (§ CHECKPOINT pacote loja) |
+| **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
+| **Abas** | Resumo · Histórico · Ciclo ração · Cross-sell · Fiado · Cashback · Métricas · Pets · Saúde · Anotações · Contato |
+| **Dados reais** | Vendas PDV + itens · fiado · cashback/vale — fonte **Postgres Agro** |
+| **Extras cliente** | Pets · saúde · anotações → **`ClienteAgro.relacionamento_extras_json` (Postgres)** · **v5.44** · qualquer caixa vê |
+| **API extras** | `GET` painel traz `extras` · `POST /api/pdv/relacionamento-cliente/extras/` grava |
+| **Regra assistente** | Relacionamento **cliente/pets/anotações** = falar só **Postgres** — não misturar com ERP/Mongo nesse contexto |
+| **Pendência P3** | **FL-039** pets na ficha `/clientes/` · **FL-040** tabela Pet normalizada (opção B) |
+| **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
+
+#### Checklist teste — **v5.44** (Renan · copiar)
+
+| # | O quê | Passou? |
+| - | ----- | ------- |
+| 0 | **F8** abre na aba **Resumo** (não Histórico) | ☐ |
+| 0a | **Resumo:** 9 cards **numa linha só** (como abas) | ☐ |
+| 0b | Aba **Histórico** sem cards Visitas / Total / Ticket (só itens + vendas) | ☐ |
+| 4 | Cadastrar **pet** no F8 → fechar → abrir em **outro PC** (ou outro Chrome) → pet aparece | ☐ |
+| 5 | **Saúde** e **anotações** também persistem no cadastro | ☐ |
+| 1 | **Resumo** sem card fiado (só 3 cards) | ☐ |
+| 2 | Cliente com fiado → aba **FIADO** laranja/vermelha + valor | ☐ |
+| 3 | Aba Fiado → botão **Lançamentos do cliente** abre gestão com modal do cliente | ☐ |
+
+**Não testar ainda:** **FL-038 contingência deploy** — só documentação; **sem código**.
+
+**Depois de OK:** Renan validou layout **v5.43** — para **loja**: pedir *«pode subir para produção»* + senha **99738595** no mesmo chat · assistente monta cherry-pick (Relacionamento + **v5.24** caixa, corrigir `VERSION` UTF-8 do build que falhou).
+
+### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ❌ build falhou
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — teste OK · *pode subir* + senha **99738595** |
-| **Risco** | **Baixo** — `caixa_util.py` + `views.py` (só `caixa_painel`) · **sem** migração |
-| **Pacote** | Cherry-pick teste **`11d8634`** → loja (não merge inteiro `teste`) |
-| **O quê** | Menu CAIXA abre mais rápido · agregação turno 1 passagem · órfãs só em Saldo |
-| **Loja** | Ctrl+F5 · badge **v5.24** · PDV → **CAIXA** deve abrir mais leve |
-| **Revert** | redeploy **`0a0fd52`** (produção v5.22) |
+| **Pacote** | Cherry-pick teste **`11d8634`** → loja **`eb9fcc9`** |
+| **Render** | **29/06 ~20:54** — *Exited with status 1 while building* · **live continua `0a0fd52` v5.22** |
+| **Causa** | Arquivo **`VERSION`** no commit gravado em **UTF-16 (BOM)** → `scripts/record_deploy.py` → `read_app_version()` UTF-8 → **UnicodeDecodeError** (1º passo do build) |
+| **Correção** | Recommit **`VERSION`** UTF-8 (`5.24\n`) + redeploy (código **`11d8634`** OK) · opcional: `read_app_version` tolerante a UTF-16 |
+| **Renan 30/06** | **📋 Fila** — **não** redeploy isolado agora · sobe **junto com o próximo pacote** loja (fix `VERSION` no cherry-pick final) |
+| **Revert loja** | já está em **`0a0fd52`** (v5.22) — botão Rollback no Render é redundante |
 
 ### DEPLOY LOJA — devolução caixa **FL-017** **v5.22** (29/06) ✅
 
@@ -986,10 +1373,56 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *pode enviar produção* + senha **99738595** · *com muito cuidado* |
 | **Risco** | **Baixo** — só `caixa_util.py` + `caixa_relatorio_util.py` · **sem** migração · **sem** PDV |
-| **Pacote** | Cherry-pick código teste **`a936f97`** + **`bed21ee`** (não merge inteiro `teste`) |
+| **Pacote** | Cherry-pick código teste **`a936f97`** + **`bed21ee`** → commit loja **`0a0fd52`** (não merge inteiro `teste`) |
 | **O quê** | Fechamento: devolução no mesmo turno não desconta 2× · Relatório: vendas bruto + devoluções → saldo certo |
-| **Loja** | Ctrl+F5 após Render · conferir badge **v5.22** · devolução teste: falta fictícia (ex. 3× R$ 70) **não** deve voltar |
-| **Revert** | redeploy commit **`a44422c`** (produção v5.19 pré-fix) |
+| **Loja** | Ctrl+F5 após Render · badge **v5.22** · falta fictícia (ex. 3× R$ 70 = R$ 210) **não** deve voltar |
+| **Revert** | redeploy **`a44422c`** (produção v5.19 pré-fix) |
+
+### ✅ FL-017 — validação Renan **teste v5.22** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relatório caixa** | **✅** — Vendas + Devoluções batem · saldo coerente (print: entradas R$ 26 − saídas R$ 6 = **R$ 20**) |
+| **Fechamento turno** | **✅ teste** — esperado deixa de «inventar falta» em dobro na devolução |
+| **Frete no relatório** | Renan viu linha de frete que antes não aparecia — efeito colateral do relatório voltar a fechar certo (não era foco do fix) |
+| **Loja — relato operador** | 3 devoluções **R$ 70** → fechamento mostrava **falta ~R$ 210** (70×3, desconto em dobro) — **fix v5.22 na loja** |
+| **Próximo** | Conferir loja pós-deploy (Ctrl+F5 · badge v5.22) |
+
+### ⚠️ FL-017 — confusão teste vs loja (29/06 — histórico)
+
+| Onde | Versão | Fix devolução caixa |
+| ---- | ------ | ------------------- |
+| **Render teste** | **v5.22** | **✅** |
+| **Render SistVale** | **v5.22** | **✅ deploy `0a0fd52`** |
+
+### FIX — relatório caixa saldo devolução **FL-017** **v5.22** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | 3× R$ 1,50 vendidas e devolvidas no dia → relatório **Vendas R$ 0** + **Devoluções −R$ 4,50** → saldo **−R$ 4,50** (deveria **R$ 0**) |
+| **Causa** | Relatório **omitia** vendas devolvidas na seção Vendas **e** somava Devoluções — desconto em dobro no saldo |
+| **Fix** | Vendas no relatório = **bruto do dia** (inclui depois devolvidas); Devoluções abatem → saldo **0** |
+| **BI card VENDAS** | **R$ 0 · excl. 3 dev.** continua certo — é **líquido** do dia, não o relatório de movimentos |
+| **Teste** | Ctrl+F5 · Relatório caixa hoje → **Vendas +R$ 4,50** · **Devoluções −R$ 4,50** · **Saldo R$ 0** |
+
+### PERF — painel caixa menu abre mais rápido **v5.24 teste** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Breve demora ao clicar **CAIXA** no PDV (menu do turno) |
+| **Causa** | Menu carregava consultas do **Saldo** (vendas órfãs, tabela completa, planos saída) + cálculo do turno **2×** |
+| **Fix** | Menu: só resumo (esperado dinheiro + qtd vendas) · órfãs/movimentos só em **Saldo caixa** · agregação **1 passagem** |
+| **Ainda pesa** | Tailwind CDN + fontes Google na 1ª abertura (padrão MPA) — não mudou neste patch |
+
+### FIX — devolução não duplica saldo do turno **FL-017** **v5.21** (29/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Devolução no **mesmo turno**: venda some da lista **e** retirada desconta de novo → saldo cai **2×** |
+| **Causa** | `resumo_esperado_por_forma` excluía venda `devolvida_em` **e** subtraía retirada «Devolução venda #…» |
+| **Fix** | Retirada de devolução **só ignora** no esperado se a venda era **deste turno**; outro turno continua só pela retirada (igual relatório caixa) |
+| **Arquivos** | `caixa_util.py` · `caixa_relatorio_util.py` (helper compartilhado) |
+| **Teste staging** | Abrir caixa · vender Dinheiro · devolver · **Esperado** deve cair **1×** (não 2×) · Ctrl+F5 painel caixa |
 
 ### DEPLOY LOJA — promo mix + selos carrinho **v5.19** (29/06) ✅
 
@@ -997,10 +1430,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — staging lento · *pode enviar produção* + senha **99738595** |
 | **Risco** | Baixo — só **PDV wizard** (JS/CSS) + fix catálogo delta · **sem** migração banco |
-| **Pacote** | `teste` → `producao` merge **`ef02250`** (v5.08 → v5.19) |
+| **Pacote** | `teste` → `producao` merge **`a44422c`** (v5.08 → v5.19) |
 | **O quê** | Promo mix (preço correto 3+2) · selos MIX · agrupa linhas · fix import catálogo |
 | **Loja** | **Ctrl+F5** no Chrome após deploy Render · vendas em andamento: OK continuar após refresh |
-| **Revert** | `git revert` merge ou redeploy commit anterior **`origin/producao` pré-merge** |
+| **Revert** | redeploy commit **`8ea8ac9`** (produção pré-merge) |
 
 ### FIX — busca PDV vazia no `runserver` local **v5.13** (29/06)
 
@@ -1073,10 +1506,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido Renan** | Leve 4 @ R$ 2,50 → 5º sache preço normal (12,90 não 12,50) |
 | **Era** | qty ≥ X → **todas** as unidades a R$ Y |
 | **Fix** | Grupos completos de X a R$ Y · resto ao preço tabela · 4→10,00 · 5→12,90 |
-| **Deploy** | `teste`→`producao` **29/06** (senha OK) · commits `f9a00ef` + checkpoint `fe3e9a6` · reforço mix **v5.19** |
+| **Deploy** | `teste`→`producao` **29/06** · merge `fe3e9a6` · checkpoint loja `8ea8ac9` |
 | **Conferir loja** | Ctrl+F5 PDV · GM1787 · qty 5 → total **R$ 12,90** |
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
+
+**Pacotes prontos — aguardando deploy loja (Renan 30/06):**
+
+| Pacote | O quê | Observação |
+| ------ | ----- | ---------- |
+| **v5.44 Relacionamento F8** | Modal F8 + pets PG + fiado link | **✅ teste** · **📦 pronto** · ver CHECKPOINT «PACOTE LOJA v5.44» |
+| ~~v5.24 perf caixa~~ | Menu caixa lazy | **Branch `producao` já tem `eb9fcc9`** — conferir se Render live |
+
+**Decisão deploy (30/06):** Renan — **FL-038 manual** neste deploy · demais atualizações testadas sobem no **v5.44**.
 
 **Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
 
@@ -1121,10 +1563,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
 | **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
-| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 📋 Pendente | 29/06 16:20 |
+| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
+| **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico · **este deploy = manual §3.2** | 📋 Código pendente | 30/06 |
+| **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
+| **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
+| **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1167,6 +1613,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
 | FL-037 | `pdv-mix-selo-rowspan` | Selo mix único central entre linhas — experimental (opção 3) |
+| FL-038 | `deploy-contingencia` | Postgres escopos · cron ON/OFF · middleware POSTs por módulo (pdv, caixa, fiado, devolucao, lancamentos) · §3.2.4 |
+| FL-039 | `cliente-ficha-pets-relacionamento` | Exibir/editar `relacionamento_extras_json` na ficha `/clientes/` |
+| FL-040 | `cliente-pet-tabela-normalizada` | Modelo `ClientePetAgro` (+ lembretes) — migrar do JSON quando priorizar |
+| FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 

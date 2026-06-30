@@ -218,15 +218,67 @@
 
   function titulosQueryParams(cli) {
     const qs = new URLSearchParams({ situacao: 'abertos', limit: '500' });
+    if (cli.pk) {
+      qs.set('cliente_agro_pk', String(cli.pk));
+      return qs.toString();
+    }
     const nome = String(cli.nome || '').trim();
     if (nome) {
       qs.set('cliente_nome', nome);
-    } else if (cli.pk) {
-      qs.set('cliente_agro_pk', String(cli.pk));
     } else {
       if (cli.codigo) qs.set('cliente_codigo', cli.codigo);
     }
     return qs.toString();
+  }
+
+  function clientePkMatch(a, b) {
+    if (a == null || b == null || a === '' || b === '') return false;
+    return Number(a) === Number(b);
+  }
+
+  function scrollParaClientePk(pk) {
+    if (!pk || !el.tbody) return;
+    const row = el.tbody.querySelector('.fiado-cli-row[data-pk="' + String(pk) + '"]');
+    if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  async function abrirClientePrePk() {
+    const pk = CFG.clientePrePk;
+    if (!pk) return;
+    const naLista = clientesCache.find(function (x) {
+      return clientePkMatch(x.cliente_agro_pk, pk);
+    });
+    if (naLista) {
+      abrirModalCliente(clienteFromRow(naLista));
+      scrollParaClientePk(pk);
+      return;
+    }
+    try {
+      const credUrl =
+        (urls.clienteCredito || '/api/fiado/cliente-credito/') +
+        '?cliente_agro_pk=' +
+        encodeURIComponent(String(pk));
+      const cred = await fetchJson(credUrl);
+      const titUrl =
+        urls.titulos +
+        '?' +
+        new URLSearchParams({
+          cliente_agro_pk: String(pk),
+          situacao: 'abertos',
+          limit: '500',
+        }).toString();
+      const tit = await fetchJson(titUrl);
+      const lista = tit.titulos || [];
+      abrirModalCliente({
+        pk: Number(pk),
+        nome: cred.cliente_nome || '',
+        codigo: cred.cliente_id || '',
+        saldo: saldoTitulos(lista) || cred.usado || 0,
+        titulos: lista.length,
+      });
+    } catch (e) {
+      console.warn('[fiado] abrir cliente pre pk', e);
+    }
   }
 
   function saldoTitulos(list) {
@@ -346,11 +398,13 @@
       atualizarEmptyBanner(res);
       if (clienteModal && el.modalCliente && el.modalCliente.open) {
         const atual = (cli.clientes || []).find(function (c) {
-          if (clienteModal.pk && c.cliente_agro_pk === clienteModal.pk) return true;
+          if (clienteModal.pk && clientePkMatch(c.cliente_agro_pk, clienteModal.pk)) return true;
           return c.cliente_nome === clienteModal.nome && String(c.cliente_codigo || '') === String(clienteModal.codigo || '');
         });
         if (atual) {
           clienteModal = clienteFromRow(atual);
+          await carregarTitulosCliente(clienteModal);
+        } else if (clienteModal.pk) {
           await carregarTitulosCliente(clienteModal);
         } else {
           el.modalCliente.close();
@@ -769,9 +823,6 @@
   });
 
   recarregar().then(function () {
-    if (CFG.clientePrePk) {
-      const c = clientesCache.find(function (x) { return x.cliente_agro_pk === CFG.clientePrePk; });
-      if (c) abrirModalCliente(clienteFromRow(c));
-    }
+    return abrirClientePrePk();
   });
 })();

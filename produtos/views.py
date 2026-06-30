@@ -8472,6 +8472,8 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
+            "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
+            "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
             "fiadoGestao": reverse("fiado_gestao"),
             "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
             "pdvRootUrl": pdv_root_url,
@@ -8557,6 +8559,48 @@ def api_pdv_cliente_credito_fiado(request):
             cred["limite_padrao"] = False
 
     return JsonResponse(cred)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_relacionamento_cliente(request):
+    """Painel rascunho F8 — relacionamento / histórico do cliente no PDV."""
+    from produtos.relacionamento_cliente_util import montar_painel_relacionamento_cliente
+
+    raw = request.GET.get("cliente_agro_pk")
+    if not raw:
+        return JsonResponse({"ok": False, "erro": "Informe cliente_agro_pk."}, status=400)
+    try:
+        pk = int(raw)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "cliente_agro_pk inválido."}, status=400)
+    payload = montar_painel_relacionamento_cliente(pk)
+    status = 200 if payload.get("ok") else 404
+    return JsonResponse(payload, status=status)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_relacionamento_cliente_extras(request):
+    """Grava pets, lembretes de saúde e anotações do F8 no ClienteAgro (Postgres)."""
+    import json
+
+    from produtos.relacionamento_cliente_util import salvar_relacionamento_extras_cliente
+
+    try:
+        body = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    raw_pk = body.get("cliente_agro_pk")
+    try:
+        pk = int(raw_pk)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "cliente_agro_pk inválido."}, status=400)
+    cli = ClienteAgro.objects.filter(pk=pk, ativo=True).first()
+    if not cli:
+        return JsonResponse({"ok": False, "erro": "Cliente não encontrado."}, status=404)
+    extras = salvar_relacionamento_extras_cliente(cli, body)
+    return JsonResponse({"ok": True, "extras": extras})
 
 
 @login_required(login_url="/admin/login/")
