@@ -22,6 +22,11 @@ urlpatterns = [
         name='api_pdv_cliente_credito_fiado',
     ),
     path(
+        'api/pdv/relacionamento-cliente/',
+        views.api_pdv_relacionamento_cliente,
+        name='api_pdv_relacionamento_cliente',
+    ),
+    path(
         'api/pdv/entregas-pendentes/',
         views.api_pdv_entregas_pendentes,
         name='api_pdv_entregas_pendentes',

@@ -8771,6 +8771,10 @@
 
         if (dom.clientPurchaseHistory) {
             dom.clientPurchaseHistory.addEventListener('click', function () {
+                if (window.AgroPdvRelacionamento && typeof window.AgroPdvRelacionamento.open === 'function') {
+                    window.AgroPdvRelacionamento.open();
+                    return;
+                }
                 var state = State.getState();
                 var url = urls.vendasLista || '/vendas/';
                 if (state.cliente && state.cliente.nome) {

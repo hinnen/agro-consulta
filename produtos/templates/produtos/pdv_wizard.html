@@ -2609,6 +2609,23 @@
   </div>
 </div>
 
+<div id="pdv-relacionamento-modal" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-relacionamento-titulo">
+  <div class="flex max-h-[min(92dvh,52rem)] w-full max-w-[min(56rem,98vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="shrink-0 border-b-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-4 py-3 sm:px-5">
+      <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800">Relacionamento · rascunho (F5)</p>
+      <h2 id="pdv-relacionamento-titulo" class="truncate text-lg font-black text-slate-900">Cliente</h2>
+    </header>
+    <div id="pdv-relacionamento-tabs" class="flex shrink-0 gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 py-2 sm:px-3"></div>
+    <div class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
+      <p id="pdv-relacionamento-loading" class="hidden text-sm font-bold text-slate-600">Carregando histórico…</p>
+      <div id="pdv-relacionamento-panel"></div>
+    </div>
+    <footer class="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3">
+      <button type="button" id="pdv-relacionamento-fechar" class="w-full min-h-[48px] rounded-xl bg-slate-900 text-xs font-black uppercase text-white hover:bg-slate-800">Fechar · Esc</button>
+    </footer>
+  </div>
+</div>
+
 <div id="alerta-lembrete" class="fixed bottom-4 right-4 z-[126] hidden max-w-[min(24rem,92vw)] rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
   <div class="flex items-start gap-3">
     <div class="text-2xl" aria-hidden="true">⏰</div>
@@ -2786,6 +2803,7 @@
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/precos_forma_pagamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% include "produtos/_screensaver_pin.html" %}
 {% endblock %}

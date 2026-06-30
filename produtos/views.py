@@ -8560,6 +8560,24 @@ def api_pdv_cliente_credito_fiado(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_relacionamento_cliente(request):
+    """Painel rascunho F5 — relacionamento / histórico do cliente no PDV."""
+    from produtos.relacionamento_cliente_util import montar_painel_relacionamento_cliente
+
+    raw = request.GET.get("cliente_agro_pk")
+    if not raw:
+        return JsonResponse({"ok": False, "erro": "Informe cliente_agro_pk."}, status=400)
+    try:
+        pk = int(raw)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "cliente_agro_pk inválido."}, status=400)
+    payload = montar_painel_relacionamento_cliente(pk)
+    status = 200 if payload.get("ok") else 404
+    return JsonResponse(payload, status=status)
+
+
+@login_required(login_url="/admin/login/")
 def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = _vendas_qs_periodo(di, df)

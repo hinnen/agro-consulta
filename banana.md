@@ -53,6 +53,7 @@
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
+| **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
 | **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
 
 
@@ -969,6 +970,104 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v5.24** · **produção v5.24** — FL-017 + perf menu caixa **loja**
 
+### Listagem loja — WhatsApp (copiar)
+
+**Anterior:** **17/06/2026** · produção **12–16/jun** (PDV, Caixa, Entrada NF, Etiquetas, Cadastro — lista guardada pelo Renan).
+
+**Esta lista:** produção **17/06 – 29/06/2026** · badge loja **v5.24** · gerada **29/06**.
+
+**Formato:** **lista completa** (PDV + caixa + NF + gestão + financeiro + BI + compras) — **não** usar versão «só balcão».
+
+**Cadência Renan (29/06):** copiar e enviar no **WhatsApp da loja** **a cada 2 dias**, a partir de **29/06/2026**.
+
+| Próximos envios |
+| --------------- |
+| **29/06** (início) · **01/07** · **03/07** · **05/07** · **07/07** · … |
+
+Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produção**, atualizar data de corte + bullets + badge `VERSION`.
+
+**Dica pós-deploy:** **Ctrl+F5** no Chrome após atualização.
+
+---
+
+🚀 **Atualizações do Sistema — GM Agro** 🚀  
+📅 **Produção: 17 a 29 de junho**
+
+**🛒 PDV (Vendas)**  
+• Autocomplete de produtos renovado: fundo azul, lista maior, **Carregar mais** e **Enter** adiciona sem fechar a busca.  
+• Busca de **clientes** mais rápida (lista guardada no navegador).  
+• **Finalizar venda** mais rápido: cupom fiscal sai em segundo plano; não trava se o ERP estiver lento ou fora.  
+• PDV **continua vendendo** mesmo com Mongo/ERP fora (produtos vêm do sistema Agro).  
+• Etiquetas **GM com hífen**: bip não apaga item do carrinho nem confunde códigos parecidos.  
+• Modal de **CPF na NFC-e** maior e mais legível.  
+• **Entrega (F3):** telas e popups maiores; fluxo reorganizado (endereço → taxa → pagamento → troco).  
+• **Conferir entrega** mostra frete e total certos.  
+• Ao **trocar cliente** na entrega, endereço não «gruda» mais da venda anterior.  
+• **Selos de promo** no carrinho: verde quando atingiu a promo; amarelo quando **faltam unidades**.  
+• Promo **«leve X pague Y»**: unidades extras voltam ao **preço normal** (ex.: 5º item fora da promo).  
+• **Promo mix** (vários produtos): total calculado certo; linhas da mesma promo juntas, com borda colorida e selo **MIX**.  
+• **Remover** item virou ícone de lixeira (mais espaço na linha).
+
+**💵 Caixa (Fechamento)**  
+• Nova tela de **histórico de retiradas/saídas**: filtros por data, plano e quem levou (padrão = hoje).  
+• Após registrar saída: aviso verde **«Retirada concluída»** e campos limpos.  
+• **Correção importante:** devolução no mesmo dia **não descontava em dobro** no fechamento nem no relatório.  
+• Menu **CAIXA** abre mais rápido (detalhes pesados só na tela **Saldo**).
+
+**🧾 Entrada de Nota Fiscal**  
+• **Rascunhos** da nota salvos no sistema Agro (mais estável).  
+• **Reabrir** nota finalizada: estorna título no financeiro corretamente.  
+• Estoque: aviso se ainda não aplicou; reabrir limpa etapa de **lote/validade**.  
+• **Auditoria financeiro** da NF (botão na lista de notas).
+
+**🏷️ Etiquetas de Preço**  
+• Código interno faixa **230** impresso como **CODE128** (leitura mais confiável no balcão).
+
+**📦 Cadastro / Gestão de Produtos**  
+• Busca na lista por **código GM** e **código de barras**.  
+• **Gestão** mais rápida e estável (menos dependência do ERP).  
+• Estoque operacional no **Agro** — venda baixa saldo mesmo com Mongo fora.
+
+**🎁 Promoções (cadastro)**  
+• **Salvar promoção** corrigido (não dava mais erro na etapa 2).  
+• Botão **Excluir** na lista (remove duplicatas).  
+• Etapa de produtos: **bip direto**, busca por GM ou nome; lista **continua aberta** após adicionar.  
+• Botão **Continuar — escolher produtos** corrigido.
+
+**💰 Lançamentos / Contas a pagar**  
+• Contas a pagar e receber no **sistema Agro** — mais rápido e estável.  
+• Filtros da lista carregam **mais rápido**.  
+• **Backup** em ZIP (só em aberto) e Excel completo (admin).  
+• **Nova saída** em tela cheia: empréstimo entrada + pagamento; quitar por item.  
+• **Totais corrigidos** — sincronização alinhou valores com o backup conferido.
+
+**📊 Tela inicial (BI)**  
+• Cards de **contas a pagar/receber** alinhados ao financeiro Agro.  
+• **Gráfico de gastos** por plano de conta (botão laranja no card Contas a Pagar).  
+• **Meta de vendas** do mês: histórico da planilha (set/25–mai/26) + vendas PDV atuais — comparação mais realista.  
+• Card de **validade** corrigido (produtos com data próxima aparecem certo).
+
+**🛍️ Compras**  
+• Sugestão de compra usa **vendas do Agro** (mais rápido).  
+• **Folha Compras** por categoria/unidade inclui dados da gestão.  
+• Card **«últimas compras»** na busca (NF Agro + ERP).
+
+**📦 Transferências e validade**  
+• Telas de **transferência** e **relatório de validade** usam estoque Agro (ajustes + vendas).
+
+---
+
+### WIP — Relacionamento PDV (F5 rascunho) **30/06**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Modal F5 com abas — testar ferramenta a ferramenta antes de caprichar layout |
+| **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
+| **Abas** | Resumo · Histórico · Ciclo ração · Cross-sell · Fiado · Cashback · Métricas · Pets · Saúde · Anotações · Contato |
+| **Dados reais** | Vendas PDV + itens · fiado · cashback/vale |
+| **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
+| **Teste** | Render teste · PDV · cliente cadastrado · **F5** ou **Relac.** |
+
 ### DEPLOY LOJA — perf menu caixa **v5.24** (29/06) ✅
 
 | Item | Detalhe |
@@ -1164,7 +1263,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
 | **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
-| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 📋 Pendente | 29/06 16:20 |
+| **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F5 modal rascunho** teste | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
