@@ -589,7 +589,9 @@
         var forceServer = !!opts.forceServer || (!explicitPick && looksLikeSkuCode(queryHint));
 
         function finishOk(msg) {
-            resetProductSearchUi(msg || opts.okMsg || 'Item adicionado à venda.');
+            if (!opts.skipSearchUiReset) {
+                resetProductSearchUi(msg || opts.okMsg || 'Item adicionado à venda.');
+            }
             return true;
         }
 
@@ -623,7 +625,7 @@
             );
         }
 
-        if (dom.productSearchFeedback) {
+        if (!opts.skipSearchUiReset && dom.productSearchFeedback) {
             dom.productSearchFeedback.textContent = 'Conferindo código no servidor…';
         }
 
@@ -9732,12 +9734,16 @@
     window.AgroPdvAddProductByCode = function (code) {
         var c = String(code || '').trim();
         if (!c) return Promise.resolve(false);
-        return Promise.resolve(
-            tryAddProductFromSearch(
-                {},
-                { query: c, forceServer: true, okMsg: '' }
-            )
-        );
+        var relOpts = { query: c, explicitPick: true, forceServer: false, okMsg: '', skipSearchUiReset: true };
+        var picked = pickProductForQuery(wizardProductCatalog, c);
+        if (picked) {
+            var localResult = tryAddProductFromSearch(picked, relOpts);
+            return Promise.resolve(localResult).then(function (ok) {
+                if (ok) return ok;
+                return tryAddProductFromSearch({}, { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true });
+            });
+        }
+        return tryAddProductFromSearch({}, { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true });
     };
 
     var currentState = State.getState();

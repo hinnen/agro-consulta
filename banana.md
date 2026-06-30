@@ -1326,7 +1326,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Resumo** | **9 cards em linha** (1×9): Visitas · Ticket · Cashback · Vale · Total · Freq. · Últ. visita · Pets · WhatsApp — **v5.43** |
 | **Histórico** | Sem cards Visitas/Ticket/Total (só no Resumo) — **v5.42** |
 | **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
-| **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
+| **Carrinho** | Botão **+ 1 un.** — cache local primeiro (sem ida ao servidor) · **v5.45 teste** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📦 Pacote v5.44 pronto** — aguardando autorização Renan (§ CHECKPOINT pacote loja) |
 | **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
