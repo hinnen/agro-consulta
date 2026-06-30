@@ -221,7 +221,7 @@
     function renderResumo(d, extra) {
         var m = d.metricas || {};
         var alertas = [];
-        (d.financeiro_fiado.titulos_abertos || []).forEach(function (t) {
+        ((d.financeiro_fiado && d.financeiro_fiado.titulos_abertos) || []).forEach(function (t) {
             if (t.vencido) alertas.push('Título vencido: ' + esc(t.documento));
         });
         if (m.ultima_visita_dias != null && m.ultima_visita_dias > 60) {
