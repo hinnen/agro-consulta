@@ -1141,9 +1141,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.46** · **loja v5.44** (30/06)
+**Versão app (`VERSION`):** **teste v5.47** · **loja v5.44** (30/06)
 
-### FL-042 — Histórico ERP no F8 **v5.46** (30/06) · **teste**
+### FL-042 fix **v5.47** — dry-run deu 0 importáveis (Renan · 30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Leitura Mongo **sem** ClienteID/nome (projeção slim) → 6236 «sem cliente Agro» |
+| **Fix** | Projeção completa + match ID variantes + ponte DtoPessoa + nome na venda |
+| **Consumidor** | **CONSUMIDOR NÃO IDENTIFICADO** → **ignorado** (contador `vendas_consumidor`) |
+| **Pré-import** | Se «sem cliente Agro» alto → **`sincronizar_clientes_agro`** no teste |
+| **Próximo** | Deploy v5.47 → **dry-run de novo** no Shell teste |
+
+### FL-042 — Histórico ERP no F8 **v5.46+** · **teste**
 
 | Item | Detalhe |
 | ---- | ------- |
