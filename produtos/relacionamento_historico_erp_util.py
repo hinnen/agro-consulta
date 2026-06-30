@@ -360,19 +360,30 @@ def _venda_ids_para_query_import(vendas_headers: list) -> tuple[list, list]:
             seen_s.add(k)
             scalars.append(x)
 
+    # ObjectId no cabeçalho → VendaID string na linha (Mongo não iguala tipo)
+    for oid in list(oids):
+        add_scalar(str(oid))
+
     for doc in vendas_headers:
-        for hk in _EXTRA_HEADER_JOIN_KEYS:
-            for jk in _dto_venda_join_str_keys(doc.get(hk)):
+        for hk in _EXTRA_HEADER_JOIN_KEYS + ("Codigo", "CodigoVenda", "NumeroVenda", "Numero"):
+            raw = doc.get(hk)
+            if raw is None:
+                continue
+            for jk in _dto_venda_join_str_keys(raw):
                 add_scalar(jk)
-                if len(jk) == 24:
-                    try:
-                        oid = ObjectId(jk)
-                        so = str(oid)
-                        if so not in seen_o:
-                            seen_o.add(so)
-                            oids.append(oid)
-                    except Exception:
-                        pass
+            if isinstance(raw, int):
+                add_scalar(raw)
+            elif isinstance(raw, str) and raw.isdigit():
+                try:
+                    add_scalar(int(raw))
+                except (TypeError, ValueError):
+                    pass
+            if isinstance(raw, ObjectId):
+                so = str(raw)
+                if so not in seen_o:
+                    seen_o.add(so)
+                    oids.append(raw)
+                add_scalar(so)
     return oids, scalars
 
 
@@ -890,14 +901,15 @@ def importar_historico_erp_mongo(
     return {"ok": True, "stats": stats, "lote_id": lote_id}
 
 
-def probe_itens_venda_mongo(*, limite: int = 3) -> dict[str, Any]:
-    """Diagnóstico rápido: DtoVendaProduto vs linhas embutidas no cabeçalho."""
+def probe_itens_venda_mongo(*, limite: int = 3, ate: date | None = None) -> dict[str, Any]:
+    """Diagnóstico: DtoVendaProduto vs cabeçalho (amostra no corte ERP, não só vendas novas)."""
     from produtos.views import obter_conexao_mongo
 
+    ate = ate or rel_erp_historico_ate()
     client, db = obter_conexao_mongo()
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível."}
-    out: dict[str, Any] = {"ok": True, "amostras": []}
+    out: dict[str, Any] = {"ok": True, "amostras": [], "erp_ate": ate.isoformat()}
     try:
         out["dto_venda_total"] = int(db["DtoVenda"].estimated_document_count())
         out["dto_venda_produto_total"] = int(db["DtoVendaProduto"].estimated_document_count())
@@ -905,8 +917,27 @@ def probe_itens_venda_mongo(*, limite: int = 3) -> dict[str, Any]:
         out["contagem_erro"] = str(exc)
     cols = sorted(n for n in db.list_collection_names() if "venda" in n.lower() or "pedido" in n.lower())
     out["colecoes_venda_pedido"] = cols[:30]
+
     try:
-        cur = db["DtoVenda"].find({}, _REL_HIST_VENDA_PROJ).sort("Data", -1).limit(max(1, int(limite)))
+        one_item = db["DtoVendaProduto"].find_one({}, {"VendaID": 1, "VendaId": 1, "ProdutoID": 1})
+        if one_item:
+            vid = one_item.get("VendaID") or one_item.get("VendaId")
+            out["item_mongo_amostra"] = {
+                "VendaID": repr(vid),
+                "VendaID_tipo": type(vid).__name__,
+                "keys": sorted(str(k) for k in one_item.keys())[:16],
+            }
+    except Exception as exc:
+        out["item_mongo_amostra"] = {"erro": str(exc)}
+
+    dt_ate = datetime.combine(ate, datetime.max.time())
+    try:
+        cur = (
+            db["DtoVenda"]
+            .find({"Data": {"$lte": dt_ate}}, _REL_HIST_VENDA_PROJ)
+            .sort("Data", -1)
+            .limit(max(1, int(limite)))
+        )
         docs = list(cur)
     except Exception as exc:
         return {"ok": False, "erro": f"DtoVenda sample: {exc}"}
@@ -926,10 +957,14 @@ def probe_itens_venda_mongo(*, limite: int = 3) -> dict[str, Any]:
                 n_mongo = -1
                 sample_item_keys = [f"erro: {exc}"]
         emb = _itens_embedded_cabecalho(doc)
+        dt = doc.get("Data")
         out["amostras"].append(
             {
                 "venda_id": _venda_id_erp(doc),
+                "data": dt.isoformat()[:19] if isinstance(dt, datetime) else str(dt)[:19],
                 "join_keys": join_keys[:8],
+                "query_scalars_n": len(scalars),
+                "query_oids_n": len(oids),
                 "cabecalho_keys": sorted(str(k) for k in doc.keys())[:40],
                 "itens_mongo": n_mongo,
                 "itens_embedded": len(emb),

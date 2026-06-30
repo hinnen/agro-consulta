@@ -1198,10 +1198,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Reverter** | `python manage.py relacionamento_reverter_historico_erp --lote erp-hist-teste-1` |
 | **Revert OK (Renan · 30/06)** | Shell teste: **4309** vendas removidas · lote **erp-hist-teste-1** apagado |
 | **Import v2 (erp-hist-teste-2)** | Ainda **0 itens** · **4309 vendas sem linha** — Mongo `DtoVendaProduto` não casou |
-| **Fix v5.49** | FK ampliado (`VendaId`, `PedidoID`…) · projeção **Produtos/Itens** embutidos · fallback cabeçalho · probe |
+| **Fix v5.49** | FK ampliado + embutidos — ainda 0 (probe: **14068** linhas Mongo, **0** match) |
+| **Causa v5.50** | `_id` ObjectId no cabeçalho → query só ObjectId; `VendaID` na linha = **string** (tipo BSON) |
+| **Fix v5.50** | `str(ObjectId)` em scalars + probe amostra ≤ corte ERP + `item_mongo_amostra` |
 | **Deploy teste v5.48** | F8 perf (carga inicial + histórico paginado) + fix join chaves |
 | **Reverter v2** | `relacionamento_reverter_historico_erp --lote erp-hist-teste-2` |
-| **Reimport v3** | Após Live **v5.49** → `--lote erp-hist-teste-3` · probe: `relacionamento_probe_itens_erp` |
+| **Reimport v3** | Após Live **v5.50** → `--lote erp-hist-teste-3` · probe deve mostrar `itens_mongo > 0` |
 
 ### FL-042 — Histórico ERP no F8 **v5.46+** · **teste**
 
