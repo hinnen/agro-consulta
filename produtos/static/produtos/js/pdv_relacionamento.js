@@ -94,9 +94,38 @@
         return (
             '<button type="button" class="' +
             base +
-            ' border-emerald-500 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" aria-label="Adicionar ao carrinho" data-gm="' +
+            ' border-emerald-500 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" aria-label="Adicionar 1 unidade ao carrinho agora" data-gm="' +
             esc(codigo) +
-            '"><span aria-hidden="true">🛒</span><span class="mx-0.5" aria-hidden="true">→</span> Carrinho</button>'
+            '"><span aria-hidden="true">+</span> 1 un.</button>'
+        );
+    }
+
+    function histCompraMeta(p) {
+        if (!p) return '';
+        var parts = [];
+        if (p.qtd_total != null && p.qtd_total !== '') {
+            parts.push(
+                'Já comprou <span class="font-black text-slate-700">' +
+                    esc(String(p.qtd_total)) +
+                    ' un.</span> no total'
+            );
+        }
+        if (p.vezes != null && p.vezes !== '') {
+            parts.push('<span class="font-black text-slate-700">' + esc(String(p.vezes)) + '×</span> na loja');
+        }
+        if (!parts.length) return '';
+        return (
+            '<p class="mt-0.5 text-[10px] font-bold leading-snug text-slate-500 sm:text-[11px]">' +
+            parts.join(' · ') +
+            '</p>'
+        );
+    }
+
+    function btnCartCol(codigo, large) {
+        return (
+            '<div class="rel-add-gm-col flex shrink-0 flex-col items-stretch justify-center gap-0.5 border-l border-slate-200 pl-3">' +
+            btnCart(codigo, large) +
+            '<span class="text-center text-[9px] font-black uppercase tracking-wide text-slate-400">no balcão</span></div>'
         );
     }
 
@@ -197,17 +226,18 @@
             '</p></div></div>';
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         if (top.length) {
-            html += '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos</p><ul class="space-y-2">';
+            html +=
+                '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos <span class="font-bold normal-case text-slate-500">— histórico do cliente</span></p><ul class="space-y-2">';
             top.slice(0, 5).forEach(function (p) {
                 html +=
-                    '<li class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold sm:flex-nowrap">' +
-                    '<span class="min-w-0 flex-1 text-sm font-black text-slate-900">' +
+                    '<li class="flex items-stretch gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:gap-3">' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<p class="text-sm font-black leading-snug text-slate-900">' +
                     esc(p.descricao) +
-                    '</span>' +
-                    '<span class="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">Qtd ' +
-                    (p.qtd_total != null ? p.qtd_total : '—') +
-                    '</span>' +
-                    btnCart(p.codigo, false) +
+                    '</p>' +
+                    histCompraMeta(p) +
+                    '</div>' +
+                    btnCartCol(p.codigo, false) +
                     '</li>';
             });
             html += '</ul>';
@@ -254,13 +284,10 @@
                     esc(p.codigo || '—') +
                     '</span></p></div></div>' +
                     '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">' +
-                    '<div class="flex flex-wrap gap-3 text-sm font-black text-slate-700">' +
-                    '<span>' +
-                    p.vezes +
-                    '× comprado</span><span>Qtd ' +
-                    p.qtd_total +
-                    '</span></div>' +
-                    btnCart(p.codigo, true) +
+                    '<div class="min-w-0 flex-1 text-sm font-bold text-slate-600">' +
+                    histCompraMeta(p) +
+                    '</div>' +
+                    btnCartCol(p.codigo, true) +
                     '</div></article>';
             });
             html += '</div>';
@@ -287,7 +314,7 @@
                     '<span class="w-full text-[11px] font-black uppercase text-emerald-700 group-open:hidden sm:w-auto sm:text-xs">Toque para ver itens ▾</span></summary>' +
                     '<div class="border-t-2 border-slate-100 bg-slate-50/80 px-3 py-3 sm:px-5 sm:py-4">' +
                     '<table class="w-full border-collapse text-left text-sm sm:text-base"><thead><tr class="text-[11px] font-black uppercase text-slate-500 sm:text-xs">' +
-                    '<th class="pb-2 pr-2">Produto</th><th class="pb-2 px-2 text-center">Qtd</th><th class="pb-2 px-2 text-right">Total</th><th class="pb-2 pl-2 text-right"></th></tr></thead><tbody>';
+                    '<th class="pb-2 pr-2">Produto</th><th class="pb-2 px-2 text-center">Qtd venda</th><th class="pb-2 px-2 text-right">Total</th><th class="pb-2 pl-2 text-right">Balcão</th></tr></thead><tbody>';
                 (v.itens || []).forEach(function (it) {
                     html +=
                         '<tr class="border-t border-slate-200/80"><td class="py-2.5 pr-2 font-bold text-slate-900">' +
@@ -297,7 +324,7 @@
                         '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
                         money(it.total) +
                         '</td><td class="py-2.5 pl-2 text-right">' +
-                        btnCart(it.codigo, true) +
+                        btnCart(it.codigo, false) +
                         '</td></tr>';
                 });
                 html += '</tbody></table></div></details>';

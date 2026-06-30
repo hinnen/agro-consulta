@@ -1139,7 +1139,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.30** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.31** · **produção LIVE v5.22** (`0a0fd52`)
 
 ### Listagem loja — WhatsApp (copiar)
 
@@ -1236,7 +1236,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
 | **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **uma linha** (sem quebra · scroll fino se monitor estreito) |
 | **Resumo** | Cards **Visitas / Ticket / Cashback / Fiado** em **linha** (4 colunas) — **v5.30** |
-| **Carrinho** | Botão **🛒 → Carrinho** · adiciona **sem fechar** modal · vira **✓ No carrinho** · `AgroPdvAddProductByCode` |
+| **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📋 Fila** — próximo pacote junto com v5.24 caixa · validação rica só na loja (staging sem histórico) |
 | **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
@@ -1245,17 +1245,15 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
 | **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-#### Checklist teste — **v5.30** (Renan · copiar)
+#### Checklist teste — **v5.31** (Renan · copiar)
 
-**Site:** Render **teste** · **Ctrl+F5** · badge **v5.30**
+**Site:** Render **teste** · **Ctrl+F5** · badge **v5.31**
 
 | # | O quê | Passou? |
 | - | ----- | ------- |
-| 1 | Abrir **PDV** · cliente cadastrado · **F8** / **Hist.** | ☐ |
-| 2 | **Abas** todas na **mesma linha** (CONTATO não cai para baixo) | ☐ |
-| 3 | Aba **Resumo**: 4 cards **em linha** (Visitas · Ticket · Cashback · Fiado) | ☐ |
-| 4 | **🛒 → Carrinho** sem fechar modal · **✓ No carrinho** | ☐ |
-| 5 | Aba **Histórico**: vendas retraídas · **F5** = refresh (não abre Hist.) | ☐ |
+| 1 | **Resumo** → top produtos: texto **«Já comprou X un.»** (histórico) **separado** do botão | ☐ |
+| 2 | Botão **+ 1 un.** · legenda **no balcão** · no carrinho entra **só 1 unidade** | ☐ |
+| 3 | Abas numa linha · cards resumo em linha | ☐ |
 
 **Não testar ainda:** **FL-038 contingência deploy** — só documentação; **sem código**.
 
