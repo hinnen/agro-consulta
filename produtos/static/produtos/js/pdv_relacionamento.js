@@ -135,6 +135,54 @@
         );
     }
 
+    function topProdutoStatCol(label, valor) {
+        return (
+            '<div class="rel-top-prod-col rel-top-prod-col--stat">' +
+            '<span class="rel-top-prod-stat">' +
+            esc(label) +
+            ': <strong class="rel-top-prod-stat-num">' +
+            esc(valor) +
+            '</strong></span></div>'
+        );
+    }
+
+    function topProdutoRowHtml(p, largeBtn) {
+        var vezes = p.vezes != null && p.vezes !== '' ? String(p.vezes) : '—';
+        var total = p.qtd_total != null && p.qtd_total !== '' ? String(p.qtd_total) : '—';
+        return (
+            '<li class="rel-top-prod-row">' +
+            '<div class="rel-top-prod-col rel-top-prod-col--nome">' +
+            '<span class="rel-top-prod-nome" title="' +
+            esc(p.descricao) +
+            '">' +
+            esc(p.descricao) +
+            '</span></div>' +
+            topProdutoStatCol('Vezes comprada', vezes) +
+            topProdutoStatCol('Total comprado', total) +
+            '<div class="rel-top-prod-col rel-top-prod-col--btn">' +
+            btnCart(p.codigo, largeBtn) +
+            '</div></li>'
+        );
+    }
+
+    function topProdutoListHtml(produtos, largeBtn) {
+        if (!produtos || !produtos.length) return '';
+        var html =
+            '<div class="rel-top-prod-wrap">' +
+            '<p class="mb-2 text-[10px] font-black uppercase text-slate-600">Top produtos <span class="font-bold normal-case text-slate-500">— histórico do cliente</span></p>' +
+            '<ul class="rel-top-prod-list">' +
+            '<li class="rel-top-prod-head" aria-hidden="true">' +
+            '<div class="rel-top-prod-col rel-top-prod-col--nome">Produto</div>' +
+            '<div class="rel-top-prod-col rel-top-prod-col--stat">Vezes comprada</div>' +
+            '<div class="rel-top-prod-col rel-top-prod-col--stat">Total comprado</div>' +
+            '<div class="rel-top-prod-col rel-top-prod-col--btn">Balcão</div></li>';
+        produtos.slice(0, 5).forEach(function (p) {
+            html += topProdutoRowHtml(p, largeBtn);
+        });
+        html += '</ul></div>';
+        return html;
+    }
+
     function btnCart(codigo, large) {
         var key = String(codigo || '').trim();
         return btnCartHtml(key, large, !!relCartAdded[key]);
@@ -253,23 +301,7 @@
             money(d.fidelidade && d.fidelidade.cashback) +
             '</p></div></div>';
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
-        if (top.length) {
-            html +=
-                '<p class="text-[10px] font-black uppercase text-slate-600">Top produtos <span class="font-bold normal-case text-slate-500">— histórico do cliente</span></p><ul class="space-y-2">';
-            top.slice(0, 5).forEach(function (p) {
-                html +=
-                    '<li class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-2">' +
-                    '<div class="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">' +
-                    '<span class="text-sm font-black leading-snug text-slate-900">' +
-                    esc(p.descricao) +
-                    '</span>' +
-                    histCompraMeta(p, true) +
-                    '</div>' +
-                    btnCartCol(p.codigo, false) +
-                    '</li>';
-            });
-            html += '</ul>';
-        }
+        html += topProdutoListHtml(top, false);
         html += '</div>';
         return html;
     }
