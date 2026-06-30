@@ -137,7 +137,38 @@ _REL_HIST_VENDA_PROJ = {
     "FormaPagamento": 1,
     "NomeFormaPagamento": 1,
     "Pagamento": 1,
+    "ID": 1,
+    "PedidoID": 1,
+    "pedido_id": 1,
+    # Linhas embutidas no espelho API (quando não há DtoVendaProduto separado)
+    "Produtos": 1,
+    "Itens": 1,
+    "Items": 1,
+    "Linhas": 1,
+    "PedidoItens": 1,
+    "VendaProdutos": 1,
 }
+
+_EMBEDDED_ITEM_KEYS: tuple[str, ...] = (
+    "Produtos",
+    "Itens",
+    "Items",
+    "Linhas",
+    "PedidoItens",
+    "VendaProdutos",
+)
+
+_VENDA_FK_MONGO: tuple[str, ...] = (
+    "VendaID",
+    "VendaId",
+    "vendaID",
+    "IdVenda",
+    "PedidoID",
+    "PedidoId",
+    "Venda",
+)
+
+_EXTRA_HEADER_JOIN_KEYS: tuple[str, ...] = ("ID", "PedidoID", "pedido_id")
 
 
 def _fetch_vendas_cabecalhos_intervalo(
@@ -239,11 +270,110 @@ def _item_descricao(item: dict) -> str:
         "Produto",
         "Nome",
         "DescricaoProduto",
+        "nome",
+        "name",
     ):
         v = item.get(k)
-        if v:
+        if v and not isinstance(v, dict):
             return str(v).strip()[:300]
     return ""
+
+
+def _produto_id_item(raw: dict) -> str:
+    for k in (
+        "ProdutoID",
+        "produtoID",
+        "ProdutoId",
+        "IdProduto",
+        "ProductID",
+        "productId",
+        "Codigo",
+        "codigo",
+        "Id",
+        "ID",
+    ):
+        v = raw.get(k)
+        if v is not None and not isinstance(v, dict):
+            s = str(v).strip()
+            if s and s not in ("None", "0"):
+                return s
+    prod = raw.get("Produto")
+    if isinstance(prod, dict):
+        return _produto_id_item(prod)
+    return ""
+
+
+def _normalizar_item_embedded(raw: dict) -> dict:
+    """Linha embutida no cabeçalho DtoVenda → formato compatível com DtoVendaProduto."""
+    pid = _produto_id_item(raw)
+    qtd = raw.get("Quantidade") or raw.get("quantidade") or raw.get("Qtd") or raw.get("qtd") or 0
+    out = dict(raw)
+    if pid:
+        out["ProdutoID"] = pid
+    out["Quantidade"] = qtd
+    if not _item_descricao(out):
+        prod = raw.get("Produto")
+        if isinstance(prod, dict):
+            dsc = _item_descricao(prod)
+            if dsc:
+                out["Descricao"] = dsc
+    return out
+
+
+def _itens_embedded_cabecalho(doc: dict) -> list[dict]:
+    out: list[dict] = []
+    for k in _EMBEDDED_ITEM_KEYS:
+        val = doc.get(k)
+        if not isinstance(val, list):
+            continue
+        for it in val:
+            if isinstance(it, dict):
+                norm = _normalizar_item_embedded(it)
+                if _produto_id_item(norm) or _item_descricao(norm):
+                    out.append(norm)
+    return out
+
+
+def _build_query_itens_venda(venda_ids_obj: list, venda_ids_scalar: list) -> dict | None:
+    ors: list[dict] = []
+    for fld in _VENDA_FK_MONGO:
+        if venda_ids_obj:
+            ors.append({fld: {"$in": venda_ids_obj}})
+        if venda_ids_scalar:
+            ors.append({fld: {"$in": venda_ids_scalar}})
+    return {"$or": ors} if ors else None
+
+
+def _venda_ids_para_query_import(vendas_headers: list) -> tuple[list, list]:
+    from produtos.views import _dto_venda_join_str_keys, _dto_venda_venda_produto_in_lists
+    from bson import ObjectId
+
+    oids, scalars = _dto_venda_venda_produto_in_lists(vendas_headers)
+    seen_o: set[str] = {str(x) for x in oids}
+    seen_s: set[str] = set()
+    for s in scalars:
+        seen_s.add(f"s:{s}" if isinstance(s, str) else f"o:{type(s).__name__}:{s!r}")
+
+    def add_scalar(x) -> None:
+        k = f"s:{x}" if isinstance(x, str) else f"o:{type(x).__name__}:{x!r}"
+        if k not in seen_s:
+            seen_s.add(k)
+            scalars.append(x)
+
+    for doc in vendas_headers:
+        for hk in _EXTRA_HEADER_JOIN_KEYS:
+            for jk in _dto_venda_join_str_keys(doc.get(hk)):
+                add_scalar(jk)
+                if len(jk) == 24:
+                    try:
+                        oid = ObjectId(jk)
+                        so = str(oid)
+                        if so not in seen_o:
+                            seen_o.add(so)
+                            oids.append(oid)
+                    except Exception:
+                        pass
+    return oids, scalars
 
 
 def _build_mongo_pessoa_index(db, client_m) -> dict[str, dict[str, str]]:
@@ -381,7 +511,7 @@ def _venda_join_keys_header(doc: dict) -> list[str]:
 
     out: list[str] = []
     seen: set[str] = set()
-    for hk in _HEADER_KEYS_VENDA_JOIN:
+    for hk in _HEADER_KEYS_VENDA_JOIN + _EXTRA_HEADER_JOIN_KEYS:
         for k in _dto_venda_join_str_keys(doc.get(hk)):
             if k not in seen:
                 seen.add(k)
@@ -530,8 +660,11 @@ def importar_historico_erp_mongo(
         "vendas_fora_corte": 0,
         "vendas_importadas": 0,
         "itens_importados": 0,
+        "itens_mongo_linhas": 0,
+        "itens_embedded": 0,
         "vendas_sem_itens": 0,
         "itens_sem_codigo_catalogo": 0,
+        "dto_venda_produto_total": 0,
         "clientes_com_venda": 0,
         "clientes_agro_ativos": 0,
         "clientes_agro_com_externo_id": 0,
@@ -544,6 +677,11 @@ def importar_historico_erp_mongo(
     client, db = obter_conexao_mongo()
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível."}
+
+    try:
+        stats["dto_venda_produto_total"] = int(db["DtoVendaProduto"].estimated_document_count())
+    except Exception:
+        stats["dto_venda_produto_total"] = -1
 
     por_ext, por_cpf, por_nome, cli_meta = _build_mapas_cliente()
     stats["clientes_agro_ativos"] = cli_meta.get("ativos", 0)
@@ -618,15 +756,11 @@ def importar_historico_erp_mongo(
         # amostra itens para estimar órfãos (primeiras 200 vendas)
         amostra = vendas_buffer[:200]
         if amostra:
-            venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists([x["doc"] for x in amostra])
-            vendas_or: list[dict] = []
-            if venda_ids_obj:
-                vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
-            if venda_ids_scalar:
-                vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
-            if vendas_or:
+            venda_ids_obj, venda_ids_scalar = _venda_ids_para_query_import([x["doc"] for x in amostra])
+            query_itens = _build_query_itens_venda(venda_ids_obj, venda_ids_scalar)
+            if query_itens:
                 try:
-                    for item in db["DtoVendaProduto"].find({"$or": vendas_or}).limit(5000):
+                    for item in db["DtoVendaProduto"].find(query_itens).limit(5000):
                         pid = str(item.get("ProdutoID") or "").strip()
                         if pid:
                             produto_ids.add(pid)
@@ -654,20 +788,23 @@ def importar_historico_erp_mongo(
     batch_size = 150
     for i in range(0, len(vendas_buffer), batch_size):
         chunk = vendas_buffer[i : i + batch_size]
-        venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists([x["doc"] for x in chunk])
-        vendas_or: list[dict] = []
-        if venda_ids_obj:
-            vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
-        if venda_ids_scalar:
-            vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
+        venda_ids_obj, venda_ids_scalar = _venda_ids_para_query_import([x["doc"] for x in chunk])
+        query_itens = _build_query_itens_venda(venda_ids_obj, venda_ids_scalar)
         itens_por_venda: dict[str, list[dict]] = defaultdict(list)
         produto_ids: set[str] = set()
-        if vendas_or:
+        if query_itens:
             try:
                 from produtos.views import _dto_venda_join_str_keys
 
-                for item in db["DtoVendaProduto"].find({"$or": vendas_or}):
-                    vid_raw = item.get("VendaID")
+                for item in db["DtoVendaProduto"].find(query_itens):
+                    stats["itens_mongo_linhas"] += 1
+                    vid_raw = (
+                        item.get("VendaID")
+                        or item.get("VendaId")
+                        or item.get("IdVenda")
+                        or item.get("PedidoID")
+                        or item.get("Venda")
+                    )
                     keys = _dto_venda_join_str_keys(vid_raw)
                     if not keys:
                         continue
@@ -678,6 +815,12 @@ def importar_historico_erp_mongo(
                         itens_por_venda[k].append(item)
             except Exception as exc:
                 logger.warning("rel_hist_erp itens batch: %s", exc)
+
+        for row in chunk:
+            for it in _itens_embedded_cabecalho(row["doc"]):
+                pid = _produto_id_item(it)
+                if pid:
+                    produto_ids.add(pid)
 
         overlay_codigos = _overlay_codigo_por_produto_id(produto_ids)
         prod_map = _fetch_produtos_mongo(db, produto_ids)
@@ -690,6 +833,11 @@ def importar_historico_erp_mongo(
             for row in chunk:
                 vid = row["venda_id_erp"]
                 itens_raw = _itens_raw_venda(itens_por_venda, row.get("join_keys") or [vid])
+                if not itens_raw:
+                    emb = _itens_embedded_cabecalho(row["doc"])
+                    if emb:
+                        itens_raw = emb
+                        stats["itens_embedded"] += len(emb)
                 total = row["total"]
                 if total is None or total == 0:
                     soma = Decimal("0")
@@ -740,6 +888,56 @@ def importar_historico_erp_mongo(
     lote.stats_json = stats
     lote.save(update_fields=["stats_json"])
     return {"ok": True, "stats": stats, "lote_id": lote_id}
+
+
+def probe_itens_venda_mongo(*, limite: int = 3) -> dict[str, Any]:
+    """Diagnóstico rápido: DtoVendaProduto vs linhas embutidas no cabeçalho."""
+    from produtos.views import obter_conexao_mongo
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível."}
+    out: dict[str, Any] = {"ok": True, "amostras": []}
+    try:
+        out["dto_venda_total"] = int(db["DtoVenda"].estimated_document_count())
+        out["dto_venda_produto_total"] = int(db["DtoVendaProduto"].estimated_document_count())
+    except Exception as exc:
+        out["contagem_erro"] = str(exc)
+    cols = sorted(n for n in db.list_collection_names() if "venda" in n.lower() or "pedido" in n.lower())
+    out["colecoes_venda_pedido"] = cols[:30]
+    try:
+        cur = db["DtoVenda"].find({}, _REL_HIST_VENDA_PROJ).sort("Data", -1).limit(max(1, int(limite)))
+        docs = list(cur)
+    except Exception as exc:
+        return {"ok": False, "erro": f"DtoVenda sample: {exc}"}
+    for doc in docs:
+        join_keys = _venda_join_keys_header(doc)
+        oids, scalars = _venda_ids_para_query_import([doc])
+        q = _build_query_itens_venda(oids, scalars)
+        n_mongo = 0
+        sample_item_keys: list[str] = []
+        if q:
+            try:
+                one = db["DtoVendaProduto"].find_one(q)
+                if one:
+                    sample_item_keys = sorted(str(k) for k in one.keys())[:24]
+                n_mongo = db["DtoVendaProduto"].count_documents(q)
+            except Exception as exc:
+                n_mongo = -1
+                sample_item_keys = [f"erro: {exc}"]
+        emb = _itens_embedded_cabecalho(doc)
+        out["amostras"].append(
+            {
+                "venda_id": _venda_id_erp(doc),
+                "join_keys": join_keys[:8],
+                "cabecalho_keys": sorted(str(k) for k in doc.keys())[:40],
+                "itens_mongo": n_mongo,
+                "itens_embedded": len(emb),
+                "embedded_keys": [k for k in _EMBEDDED_ITEM_KEYS if isinstance(doc.get(k), list) and doc.get(k)],
+                "item_mongo_keys": sample_item_keys,
+            }
+        )
+    return out
 
 
 def reverter_historico_erp(*, lote_id: str = "", tudo: bool = False) -> dict[str, Any]:

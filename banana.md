@@ -1141,9 +1141,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.47** · **loja v5.44** (30/06)
+**Versão app (`VERSION`):** **teste v5.48** · **loja v5.44** (30/06)
 
-### F8 Relacionamento — perf abertura (Renan · 30/06) · **WIP teste**
+### 🧭 Dois trilhos — **não misturar** (Renan · 30/06)
+
+| Trilho | O quê | Onde testar | Próximo passo |
+| ------ | ----- | ----------- | ------------- |
+| **A — F8 rápido** | Modal abre sem travar · histórico 12 + Carregar mais · ciclo/cross lazy | PDV teste · Ctrl+F5 · badge **v5.48** · F8 | Renan valida abertura rápida |
+| **B — Import ERP (FL-042)** | Mongo vendas ≤26/05 → Postgres · merge no F8 | Shell Render teste | Live **v5.48** → `relacionamento_import_historico_erp --lote erp-hist-teste-2` · **Itens importados > 0** |
+
+**Feito:** lote `erp-hist-teste-1` **revertido** (4309 cabeçalhos vazios). **Commit teste:** `bdea194` **v5.48** (trilho A + fix join trilho B).
+
+### F8 Relacionamento — perf abertura · **teste v5.48**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1154,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ciclo alertas Resumo** | Prefetch ciclo **em background** após abrir (não bloqueia) |
 | **Top produtos** | Amostra **150** vendas (antes 500) — suficiente para ranking |
 | **Arquivos** | `relacionamento_cliente_util.py` · `views.py` · `pdv_relacionamento.js` |
-| **Deploy** | Junto pacote **v5.45+1** quando Renan pedir · **sem commit** nesta sessão |
+| **Deploy** | **teste v5.48** · commit `bdea194` · push 30/06 |
 
 ### Pendências fila — **FL-043** · **FL-044** (Renan · 30/06)
 
@@ -1188,8 +1197,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `_venda_join_keys_header` + `_itens_raw_venda` (todas chaves H2) · `make_aware` em `data_venda` · contador `vendas_sem_itens` |
 | **Reverter** | `python manage.py relacionamento_reverter_historico_erp --lote erp-hist-teste-1` |
 | **Revert OK (Renan · 30/06)** | Shell teste: **4309** vendas removidas · lote **erp-hist-teste-1** apagado |
-| **Deploy teste v5.48** | F8 perf (carga inicial + histórico paginado) + fix join import itens |
-| **Reimport** | Após Live v5.48 → `--lote erp-hist-teste-2` |
+| **Import v2 (erp-hist-teste-2)** | Ainda **0 itens** · **4309 vendas sem linha** — Mongo `DtoVendaProduto` não casou |
+| **Fix v5.49** | FK ampliado (`VendaId`, `PedidoID`…) · projeção **Produtos/Itens** embutidos · fallback cabeçalho · probe |
+| **Deploy teste v5.48** | F8 perf (carga inicial + histórico paginado) + fix join chaves |
+| **Reverter v2** | `relacionamento_reverter_historico_erp --lote erp-hist-teste-2` |
+| **Reimport v3** | Após Live **v5.49** → `--lote erp-hist-teste-3` · probe: `relacionamento_probe_itens_erp` |
 
 ### FL-042 — Histórico ERP no F8 **v5.46+** · **teste**
 

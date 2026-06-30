@@ -81,8 +81,11 @@ class Command(BaseCommand):
                 f"  Sem cliente Agro: {st.get('vendas_sem_cliente')}\n"
                 f"  Duplicadas (já importadas): {st.get('vendas_duplicadas')}\n"
                 f"  Clientes com venda: {st.get('clientes_com_venda')}\n"
+                f"  DtoVendaProduto (total Mongo): {st.get('dto_venda_produto_total', '—')}\n"
+                f"  Linhas Mongo lidas: {st.get('itens_mongo_linhas', '—')}\n"
+                f"  Itens embutidos (cabecalho): {st.get('itens_embedded', '—')}\n"
                 f"  Itens importados: {st.get('itens_importados', '—')}\n"
-                f"  Vendas sem linha Mongo: {st.get('vendas_sem_itens', '—')}\n"
+                f"  Vendas sem linha: {st.get('vendas_sem_itens', '—')}\n"
                 f"  Itens sem catálogo ativo (amostra): {st.get('itens_sem_codigo_catalogo', '—')}"
             )
         )
