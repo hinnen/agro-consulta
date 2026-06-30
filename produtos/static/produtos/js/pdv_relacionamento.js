@@ -10,14 +10,14 @@
     var TABS = [
         { id: 'resumo', label: 'Resumo' },
         { id: 'historico', label: 'Histórico' },
-        { id: 'ciclo_racao', label: 'Ciclo ração' },
-        { id: 'cross_sell', label: 'Cross-sell' },
+        { id: 'ciclo_racao', label: 'Ciclo ração', labelTab: 'Ciclo' },
+        { id: 'cross_sell', label: 'Cross-sell', labelTab: 'Cross' },
         { id: 'fiado', label: 'Fiado' },
-        { id: 'fidelidade', label: 'Cashback' },
+        { id: 'fidelidade', label: 'Cashback', labelTab: 'Cash' },
         { id: 'metricas', label: 'Métricas' },
         { id: 'pets', label: 'Pets' },
         { id: 'saude', label: 'Saúde' },
-        { id: 'anotacoes', label: 'Anotações' },
+        { id: 'anotacoes', label: 'Anotações', labelTab: 'Anot.' },
         { id: 'contato', label: 'Contato' },
     ];
 
@@ -172,6 +172,16 @@
         }
         fillBuscaGm(gm);
         markCartBtnDone(btn);
+    }
+
+    function moneyCompact(v) {
+        var n = Number(v);
+        if (!isFinite(n)) n = 0;
+        return n.toFixed(2).replace('.', ',');
+    }
+
+    function tabDisplayLabel(t) {
+        return (t && (t.labelTab || t.label)) || '';
     }
 
     function fiadoTabAlertMeta(d) {
@@ -659,8 +669,7 @@
         dom.tabs.innerHTML = TABS.map(function (t) {
             var on = t.id === activeTab;
             var alertFiado = t.id === 'fiado' && fmeta;
-            var cls =
-                'rel-tab shrink-0 rounded-xl border-2 px-2.5 py-2 text-[10px] font-black uppercase sm:text-[11px] ';
+            var cls = 'rel-tab rounded-lg border-2 px-0.5 py-1 font-black uppercase leading-tight ';
             if (on) {
                 cls += alertFiado
                     ? 'rel-tab--fiado-alerta rel-tab--fiado-alerta-on border-orange-600 bg-orange-600 text-white shadow-md'
@@ -672,24 +681,22 @@
             } else {
                 cls += 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50';
             }
-            var badge =
-                alertFiado && !on
-                    ? '<span class="rel-tab-fiado-badge ml-1 inline-block rounded-md bg-red-600 px-1.5 py-0.5 text-[9px] font-black text-white tabular-nums">' +
-                      esc(money(fmeta.total)) +
-                      '</span>'
-                    : alertFiado && on
-                      ? '<span class="rel-tab-fiado-badge rel-tab-fiado-badge--on ml-1 inline-block rounded-md bg-white/25 px-1.5 py-0.5 text-[9px] font-black tabular-nums">' +
-                        esc(money(fmeta.total)) +
-                        '</span>'
-                      : '';
+            var extra =
+                alertFiado
+                    ? '<span class="rel-tab-extra tabular-nums">' + esc(moneyCompact(fmeta.total)) + '</span>'
+                    : '';
             return (
                 '<button type="button" class="' +
                 cls +
                 '" data-tab="' +
                 esc(t.id) +
-                '">' +
+                '" title="' +
                 esc(t.label) +
-                badge +
+                '">' +
+                '<span class="rel-tab-label">' +
+                esc(tabDisplayLabel(t)) +
+                '</span>' +
+                extra +
                 '</button>'
             );
         }).join('');

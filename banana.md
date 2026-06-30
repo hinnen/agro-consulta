@@ -1234,7 +1234,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | ---- | ------- |
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
-| **Aba principal** | **Histórico** — vendas **retraídas** · top produtos com **Qtd** · abas **uma linha** (sem quebra · scroll fino se monitor estreito) |
+| **Aba principal** | **Histórico** — abas **11 colunas iguais** · **sem scroll** · **sem 2ª linha** · rótulos curtos + tooltip · fiado pulsa com valor embaixo — **v5.33** |
 | **Resumo** | Cards **Visitas / Ticket / Cashback** (3 colunas) — **sem** fiado · fiado só na aba | **v5.32** |
 | **Fiado** | Aba **laranja/vermelha pulsando** + valor se tiver saldo · vencido = vermelho · botão **Lançamentos do cliente · baixa** → `/fiado/?from=pdv&cliente=PK` |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
