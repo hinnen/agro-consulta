@@ -1235,7 +1235,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Pedido Renan** | Modal com abas — testar na **loja** com cliente cheio de compras; demais abas aos poucos |
 | **Atalho** | **F8** ou botão **Hist.** (F5 voltou a ser refresh do navegador) |
 | **Modal** | Altura **fixa** (ref. aba Histórico) — troca de aba **não redimensiona** · scroll só no miolo — **v5.35** |
-| **Resumo** | Top produtos **grade**: Produto | Vezes comprada | Total comprado | 🛒 +1 — colunas fixas com divisória — **v5.36** |
+| **Resumo** | **Zero fiado** — sem card, sem alerta vencido, sem total em aberto · **só aba Fiado** · top produtos grade — **v5.37** |
 | **Fiado** | Aba **laranja/vermelha pulsando** + valor se tiver saldo · vencido = vermelho · botão **Lançamentos do cliente · baixa** → `/fiado/?from=pdv&cliente=PK` |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
