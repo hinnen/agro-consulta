@@ -8565,7 +8565,11 @@ def api_pdv_cliente_credito_fiado(request):
 @require_GET
 def api_pdv_relacionamento_cliente(request):
     """Painel rascunho F8 — relacionamento / histórico do cliente no PDV."""
-    from produtos.relacionamento_cliente_util import montar_painel_relacionamento_cliente
+    from produtos.relacionamento_cliente_util import (
+        HISTORICO_PAGE_SIZE,
+        montar_painel_relacionamento_cliente,
+        montar_secao_relacionamento_cliente,
+    )
 
     raw = request.GET.get("cliente_agro_pk")
     if not raw:
@@ -8574,7 +8578,44 @@ def api_pdv_relacionamento_cliente(request):
         pk = int(raw)
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "erro": "cliente_agro_pk inválido."}, status=400)
-    payload = montar_painel_relacionamento_cliente(pk)
+
+    secao = (request.GET.get("secao") or "").strip().lower()
+    if secao:
+        try:
+            hist_offset = max(0, int(request.GET.get("historico_offset") or 0))
+        except (TypeError, ValueError):
+            hist_offset = 0
+        try:
+            hist_limit = int(request.GET.get("historico_limit") or HISTORICO_PAGE_SIZE)
+        except (TypeError, ValueError):
+            hist_limit = HISTORICO_PAGE_SIZE
+        hist_limit = max(1, min(hist_limit, 50))
+        payload = montar_secao_relacionamento_cliente(
+            pk,
+            secao,
+            historico_offset=hist_offset,
+            historico_limit=hist_limit,
+        )
+    else:
+        try:
+            hist_offset = max(0, int(request.GET.get("historico_offset") or 0))
+        except (TypeError, ValueError):
+            hist_offset = 0
+        try:
+            hist_limit = int(request.GET.get("historico_limit") or HISTORICO_PAGE_SIZE)
+        except (TypeError, ValueError):
+            hist_limit = HISTORICO_PAGE_SIZE
+        hist_limit = max(1, min(hist_limit, 50))
+        incluir_ciclo = request.GET.get("incluir_ciclo") in ("1", "true", "yes")
+        incluir_cross = request.GET.get("incluir_cross") in ("1", "true", "yes")
+        payload = montar_painel_relacionamento_cliente(
+            pk,
+            incluir_ciclo=incluir_ciclo,
+            incluir_cross=incluir_cross,
+            historico_offset=hist_offset,
+            historico_limit=hist_limit,
+        )
+
     status = 200 if payload.get("ok") else 404
     return JsonResponse(payload, status=status)
 

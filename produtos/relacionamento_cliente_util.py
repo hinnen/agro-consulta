@@ -32,6 +32,8 @@ _REL_EXTRAS_VAZIO: dict[str, Any] = {"pets": [], "lembretes": [], "anotacoes": "
 _MAX_PETS = 20
 _MAX_LEMBRETES = 50
 _MAX_ANOTACOES = 8000
+HISTORICO_PAGE_SIZE = 12
+_TOP_VENDAS_IDS_LIMIT = 150
 
 
 def _clip_str(val: Any, max_len: int) -> str:
@@ -343,6 +345,131 @@ def _ciclo_racao(venda_ids: list[int], hist_venda_pks: list[int] | None = None) 
     return out[:8]
 
 
+def _serialize_venda_historico_pdv(v: VendaAgro) -> dict[str, Any]:
+    codigos_it = [(it.codigo or "").strip() for it in v.itens.all()[:20]]
+    ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+    linhas = [
+        {
+            "codigo": (it.codigo or "").strip(),
+            "descricao": (it.descricao or "").strip(),
+            "qtd": float(it.quantidade or 0),
+            "total": float(it.valor_total or 0),
+            "catalogo_disponivel": bool(normalizar_codigo_gm_rel(it.codigo or "") in ativos_it),
+        }
+        for it in v.itens.all()[:20]
+    ]
+    return {
+        "id": v.pk,
+        "origem": "pdv",
+        "data": timezone.localtime(v.criado_em).strftime("%d/%m/%Y %H:%M"),
+        "total": float(v.total or 0),
+        "forma": (v.forma_pagamento or "").strip(),
+        "itens": linhas,
+    }
+
+
+def _serialize_venda_historico_erp(v: RelacionamentoVendaHistoricoErpAgro) -> dict[str, Any]:
+    codigos_it = [(it.codigo_gm or "").strip() for it in v.itens.all()[:20]]
+    ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+    linhas = []
+    for it in v.itens.all()[:20]:
+        cod = (it.codigo_gm or "").strip()
+        linhas.append(
+            {
+                "codigo": cod,
+                "descricao": (it.descricao or "").strip(),
+                "qtd": float(it.quantidade or 0),
+                "total": float(it.valor_total or 0),
+                "catalogo_disponivel": bool(cod and normalizar_codigo_gm_rel(cod) in ativos_it),
+            }
+        )
+    return {
+        "id": f"erp-{v.pk}",
+        "origem": "erp",
+        "data": timezone.localtime(v.data_venda).strftime("%d/%m/%Y %H:%M"),
+        "total": float(v.total or 0),
+        "forma": (v.forma_pagamento or "").strip(),
+        "itens": linhas,
+    }
+
+
+def _merged_historico_refs(
+    vendas_qs,
+    hist_qs,
+    offset: int = 0,
+    limit: int = HISTORICO_PAGE_SIZE,
+) -> list[tuple[str, int]]:
+    """Merge ordenado PDV + ERP histórico (só pk) — paginação sem carregar itens."""
+    pdv_iter = vendas_qs.values_list("pk", "criado_em").iterator(chunk_size=200)
+    erp_iter = hist_qs.values_list("pk", "data_venda").iterator(chunk_size=200)
+    pdv_peek = next(pdv_iter, None)
+    erp_peek = next(erp_iter, None)
+    skipped = 0
+    refs: list[tuple[str, int]] = []
+
+    while (pdv_peek or erp_peek) and len(refs) < limit:
+        take_pdv = False
+        if pdv_peek and erp_peek:
+            take_pdv = pdv_peek[1] >= erp_peek[1]
+        elif pdv_peek:
+            take_pdv = True
+
+        if take_pdv:
+            ref = ("pdv", int(pdv_peek[0]))
+            pdv_peek = next(pdv_iter, None)
+        else:
+            ref = ("erp", int(erp_peek[0]))
+            erp_peek = next(erp_iter, None)
+
+        if skipped < offset:
+            skipped += 1
+            continue
+        refs.append(ref)
+
+    return refs
+
+
+def _historico_vendas_paginado(
+    cli: ClienteAgro,
+    offset: int = 0,
+    limit: int = HISTORICO_PAGE_SIZE,
+) -> dict[str, Any]:
+    vendas_qs = _vendas_cliente_qs(cli)
+    hist_qs = _vendas_historico_erp_qs(cli)
+    total = int(vendas_qs.count()) + int(hist_qs.count())
+    refs = _merged_historico_refs(vendas_qs, hist_qs, offset=offset, limit=limit)
+
+    pdv_pks = [pk for origem, pk in refs if origem == "pdv"]
+    erp_pks = [pk for origem, pk in refs if origem == "erp"]
+    pdv_map = {
+        v.pk: v
+        for v in VendaAgro.objects.filter(pk__in=pdv_pks).prefetch_related("itens")
+    }
+    erp_map = {
+        v.pk: v
+        for v in RelacionamentoVendaHistoricoErpAgro.objects.filter(pk__in=erp_pks).prefetch_related("itens")
+    }
+
+    vendas_out: list[dict[str, Any]] = []
+    for origem, pk in refs:
+        if origem == "pdv":
+            v = pdv_map.get(pk)
+            if v:
+                vendas_out.append(_serialize_venda_historico_pdv(v))
+        else:
+            v = erp_map.get(pk)
+            if v:
+                vendas_out.append(_serialize_venda_historico_erp(v))
+
+    return {
+        "vendas": vendas_out,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "has_more": (offset + len(vendas_out)) < total,
+    }
+
+
 def _cross_sell(top_produtos: list[dict], venda_ids: list[int]) -> list[dict[str, Any]]:
     if not top_produtos or not venda_ids:
         return []
@@ -433,17 +560,24 @@ def _fiado_resumo(cli: ClienteAgro) -> dict[str, Any]:
     }
 
 
-def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]:
-    cli = ClienteAgro.objects.filter(pk=cliente_agro_pk, ativo=True).first()
-    if not cli:
-        return {"ok": False, "erro": "Cliente não encontrado."}
+def _cliente_relacionamento_base(cli: ClienteAgro) -> dict[str, Any]:
+    wa = (cli.whatsapp or "").strip()
+    wa_digits = re.sub(r"\D", "", wa)
+    wa_url = f"https://wa.me/55{wa_digits}" if len(wa_digits) >= 10 else ""
+    return {
+        "pk": cli.pk,
+        "nome": cli.nome,
+        "whatsapp": wa,
+        "whatsapp_url": wa_url,
+        "endereco": (cli.endereco or "").strip(),
+        "saldo_cashback": float(cli.saldo_cashback or 0),
+        "saldo_vale_credito": float(cli.saldo_vale_credito or 0),
+    }
 
+
+def _metricas_relacionamento_cliente(cli: ClienteAgro) -> dict[str, Any]:
     vendas_qs = _vendas_cliente_qs(cli)
     hist_qs = _vendas_historico_erp_qs(cli)
-    venda_ids = list(vendas_qs.values_list("pk", flat=True)[:500])
-    hist_venda_pks = list(hist_qs.values_list("pk", flat=True)[:500])
-    vendas_recentes = list(vendas_qs.prefetch_related("itens")[:12])
-    hist_recentes = list(hist_qs.prefetch_related("itens")[:12])
 
     totais_pdv = vendas_qs.aggregate(n=Count("id"), soma=Sum("total"))
     totais_hist = hist_qs.aggregate(n=Count("id"), soma=Sum("total"))
@@ -478,100 +612,85 @@ def montar_painel_relacionamento_cliente(cliente_agro_pk: int) -> dict[str, Any]
         if gaps:
             freq_dias = int(sum(gaps) / len(gaps))
 
+    return {
+        "total_vendas": n_vendas,
+        "ticket_medio": ticket,
+        "frequencia_media_dias": freq_dias,
+        "ultima_visita_dias": dias_ultima,
+        "total_comprado": float(soma),
+    }
+
+
+def _venda_ids_amostra(cli: ClienteAgro) -> tuple[list[int], list[int]]:
+    vendas_qs = _vendas_cliente_qs(cli)
+    hist_qs = _vendas_historico_erp_qs(cli)
+    lim = _TOP_VENDAS_IDS_LIMIT
+    return (
+        list(vendas_qs.values_list("pk", flat=True)[:lim]),
+        list(hist_qs.values_list("pk", flat=True)[:lim]),
+    )
+
+
+def montar_secao_relacionamento_cliente(
+    cliente_agro_pk: int,
+    secao: str,
+    *,
+    historico_offset: int = 0,
+    historico_limit: int = HISTORICO_PAGE_SIZE,
+) -> dict[str, Any]:
+    cli = ClienteAgro.objects.filter(pk=cliente_agro_pk, ativo=True).first()
+    if not cli:
+        return {"ok": False, "erro": "Cliente não encontrado."}
+
+    secao = (secao or "").strip().lower()
+    if secao == "historico":
+        hist = _historico_vendas_paginado(cli, offset=historico_offset, limit=historico_limit)
+        return {"ok": True, "historico_rapido": hist}
+
+    venda_ids, hist_venda_pks = _venda_ids_amostra(cli)
+    if secao == "ciclo_racao":
+        return {"ok": True, "ciclo_racao": _ciclo_racao(venda_ids, hist_venda_pks)}
+    if secao == "cross_sell":
+        top = _top_produtos(venda_ids, hist_venda_pks)
+        return {"ok": True, "cross_sell": _cross_sell(top, venda_ids)}
+
+    return {"ok": False, "erro": "Seção inválida."}
+
+
+def montar_painel_relacionamento_cliente(
+    cliente_agro_pk: int,
+    *,
+    incluir_ciclo: bool = False,
+    incluir_cross: bool = False,
+    historico_offset: int = 0,
+    historico_limit: int = HISTORICO_PAGE_SIZE,
+) -> dict[str, Any]:
+    cli = ClienteAgro.objects.filter(pk=cliente_agro_pk, ativo=True).first()
+    if not cli:
+        return {"ok": False, "erro": "Cliente não encontrado."}
+
+    venda_ids, hist_venda_pks = _venda_ids_amostra(cli)
     top = _top_produtos(venda_ids, hist_venda_pks)
-    historico_vendas = []
-
-    merged_vendas: list[tuple] = []
-    for v in vendas_recentes:
-        merged_vendas.append((v.criado_em, "pdv", v))
-    for v in hist_recentes:
-        merged_vendas.append((v.data_venda, "erp", v))
-    merged_vendas.sort(key=lambda x: x[0], reverse=True)
-
-    for _dt, origem, v in merged_vendas[:12]:
-        if origem == "pdv":
-            codigos_it = [(it.codigo or "").strip() for it in v.itens.all()[:20]]
-            ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
-            linhas = [
-                {
-                    "codigo": (it.codigo or "").strip(),
-                    "descricao": (it.descricao or "").strip(),
-                    "qtd": float(it.quantidade or 0),
-                    "total": float(it.valor_total or 0),
-                    "catalogo_disponivel": bool(
-                        normalizar_codigo_gm_rel(it.codigo or "") in ativos_it
-                    ),
-                }
-                for it in v.itens.all()[:20]
-            ]
-            historico_vendas.append(
-                {
-                    "id": v.pk,
-                    "origem": "pdv",
-                    "data": timezone.localtime(v.criado_em).strftime("%d/%m/%Y %H:%M"),
-                    "total": float(v.total or 0),
-                    "forma": (v.forma_pagamento or "").strip(),
-                    "itens": linhas,
-                }
-            )
-        else:
-            codigos_it = [(it.codigo_gm or "").strip() for it in v.itens.all()[:20]]
-            ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
-            linhas = []
-            for it in v.itens.all()[:20]:
-                cod = (it.codigo_gm or "").strip()
-                linhas.append(
-                    {
-                        "codigo": cod,
-                        "descricao": (it.descricao or "").strip(),
-                        "qtd": float(it.quantidade or 0),
-                        "total": float(it.valor_total or 0),
-                        "catalogo_disponivel": bool(
-                            cod and normalizar_codigo_gm_rel(cod) in ativos_it
-                        ),
-                    }
-                )
-            historico_vendas.append(
-                {
-                    "id": f"erp-{v.pk}",
-                    "origem": "erp",
-                    "data": timezone.localtime(v.data_venda).strftime("%d/%m/%Y %H:%M"),
-                    "total": float(v.total or 0),
-                    "forma": (v.forma_pagamento or "").strip(),
-                    "itens": linhas,
-                }
-            )
-
-    wa = (cli.whatsapp or "").strip()
-    wa_digits = re.sub(r"\D", "", wa)
-    wa_url = f"https://wa.me/55{wa_digits}" if len(wa_digits) >= 10 else ""
+    historico = _historico_vendas_paginado(cli, offset=historico_offset, limit=historico_limit)
 
     return {
         "ok": True,
         "rascunho": True,
-        "cliente": {
-            "pk": cli.pk,
-            "nome": cli.nome,
-            "whatsapp": wa,
-            "whatsapp_url": wa_url,
-            "endereco": (cli.endereco or "").strip(),
-            "saldo_cashback": float(cli.saldo_cashback or 0),
-            "saldo_vale_credito": float(cli.saldo_vale_credito or 0),
-        },
-        "metricas": {
-            "total_vendas": n_vendas,
-            "ticket_medio": ticket,
-            "frequencia_media_dias": freq_dias,
-            "ultima_visita_dias": dias_ultima,
-            "total_comprado": float(soma),
-        },
+        "cliente": _cliente_relacionamento_base(cli),
+        "metricas": _metricas_relacionamento_cliente(cli),
         "historico_rapido": {
             "top_produtos": top,
-            "vendas": historico_vendas,
+            "vendas": historico["vendas"],
+            "total": historico["total"],
+            "offset": historico["offset"],
+            "limit": historico["limit"],
+            "has_more": historico["has_more"],
         },
         "historico_erp": resumo_historico_erp_cliente(cli),
-        "ciclo_racao": _ciclo_racao(venda_ids, hist_venda_pks),
-        "cross_sell": _cross_sell(top, venda_ids),
+        "ciclo_racao": _ciclo_racao(venda_ids, hist_venda_pks) if incluir_ciclo else [],
+        "cross_sell": (
+            _cross_sell(top, venda_ids) if incluir_cross else []
+        ),
         "financeiro_fiado": _fiado_resumo(cli),
         "fidelidade": {
             "cashback": float(cli.saldo_cashback or 0),

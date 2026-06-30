@@ -28,6 +28,12 @@
     var clienteExtra = { pets: [], lembretes: [], anotacoes: '' };
     var activeTab = 'resumo';
     var relCartAdded = {};
+    var historicoOffset = 0;
+    var historicoHasMore = false;
+    var historicoLoadingMore = false;
+    var secaoCarregada = { ciclo_racao: false, cross_sell: false };
+    var secaoLoading = { ciclo_racao: false, cross_sell: false };
+    var HISTORICO_PAGE = 12;
 
     function money(v) {
         var n = Number(v);
@@ -387,6 +393,125 @@
         return nomes.length ? esc(nomes.join(', ')) : '—';
     }
 
+    function relacionamentoApiUrl(extraParams) {
+        var url = (bootstrap.urls && bootstrap.urls.apiPdvRelacionamentoCliente) || '/api/pdv/relacionamento-cliente/';
+        var qs = 'cliente_agro_pk=' + encodeURIComponent(String(clientePk));
+        if (extraParams) {
+            qs += '&' + extraParams;
+        }
+        return url + '?' + qs;
+    }
+
+    function fetchRelacionamentoJson(extraParams) {
+        return fetch(relacionamentoApiUrl(extraParams), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        }).then(function (r) {
+            return r.json();
+        });
+    }
+
+    function appendHistoricoVendas(data) {
+        if (!apiData || !data || !data.historico_rapido) return;
+        var hr = data.historico_rapido;
+        if (!apiData.historico_rapido) apiData.historico_rapido = {};
+        var prev = (apiData.historico_rapido.vendas || []).slice();
+        var novas = hr.vendas || [];
+        apiData.historico_rapido.vendas = prev.concat(novas);
+        if (hr.has_more != null) apiData.historico_rapido.has_more = hr.has_more;
+        if (hr.total != null) apiData.historico_rapido.total = hr.total;
+    }
+
+    function syncHistoricoMetaFromApi() {
+        var hr = (apiData && apiData.historico_rapido) || {};
+        historicoOffset = (hr.vendas && hr.vendas.length) || 0;
+        historicoHasMore = !!hr.has_more;
+    }
+
+    function ensureSecaoCarregada(tabId) {
+        if (!clientePk || !apiData) return Promise.resolve();
+        if (tabId === 'ciclo_racao' && !secaoCarregada.ciclo_racao && !secaoLoading.ciclo_racao) {
+            secaoLoading.ciclo_racao = true;
+            return fetchRelacionamentoJson('secao=ciclo_racao')
+                .then(function (data) {
+                    if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar ciclo');
+                    apiData.ciclo_racao = data.ciclo_racao || [];
+                    secaoCarregada.ciclo_racao = true;
+                    if (activeTab === 'ciclo_racao' || activeTab === 'resumo') renderTabContent();
+                })
+                .catch(function (err) {
+                    if (activeTab === 'ciclo_racao' && dom.panel) {
+                        dom.panel.innerHTML =
+                            '<p class="text-sm font-bold text-red-700">' + esc(err.message || 'Erro') + '</p>';
+                    }
+                })
+                .finally(function () {
+                    secaoLoading.ciclo_racao = false;
+                });
+        }
+        if (tabId === 'cross_sell' && !secaoCarregada.cross_sell && !secaoLoading.cross_sell) {
+            secaoLoading.cross_sell = true;
+            return fetchRelacionamentoJson('secao=cross_sell')
+                .then(function (data) {
+                    if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar cross-sell');
+                    apiData.cross_sell = data.cross_sell || [];
+                    secaoCarregada.cross_sell = true;
+                    if (activeTab === 'cross_sell') renderTabContent();
+                })
+                .catch(function (err) {
+                    if (activeTab === 'cross_sell' && dom.panel) {
+                        dom.panel.innerHTML =
+                            '<p class="text-sm font-bold text-red-700">' + esc(err.message || 'Erro') + '</p>';
+                    }
+                })
+                .finally(function () {
+                    secaoLoading.cross_sell = false;
+                });
+        }
+        return Promise.resolve();
+    }
+
+    function prefetchCicloParaResumo() {
+        if (secaoCarregada.ciclo_racao || secaoLoading.ciclo_racao) return;
+        ensureSecaoCarregada('ciclo_racao');
+    }
+
+    function renderVendaHistoricoBlock(v) {
+        var origemBadge =
+            v.origem === 'erp'
+                ? '<span class="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">ERP</span>'
+                : '<span class="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-800">SisVale</span>';
+        var html =
+            '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm">' +
+            '<summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
+            '<span class="text-lg font-black text-slate-900 sm:text-xl">' +
+            money(v.total) +
+            '</span>' +
+            origemBadge +
+            formaBadge(v.forma) +
+            '<span class="text-sm font-bold text-slate-500 sm:ml-auto">' +
+            esc(v.data) +
+            '</span>' +
+            '<span class="w-full text-[11px] font-black uppercase text-emerald-700 group-open:hidden sm:w-auto sm:text-xs">Toque para ver itens ▾</span></summary>' +
+            '<div class="border-t-2 border-slate-100 bg-slate-50/80 px-3 py-3 sm:px-5 sm:py-4">' +
+            '<table class="w-full border-collapse text-left text-sm sm:text-base"><thead><tr class="text-[11px] font-black uppercase text-slate-500 sm:text-xs">' +
+            '<th class="pb-2 pr-2">Produto</th><th class="pb-2 px-2 text-center">Qtd venda</th><th class="pb-2 px-2 text-right">Total</th><th class="pb-2 pl-2 text-right">Balcão</th></tr></thead><tbody>';
+        (v.itens || []).forEach(function (it) {
+            html +=
+                '<tr class="border-t border-slate-200/80"><td class="py-2.5 pr-2 font-bold text-slate-900">' +
+                esc(it.descricao) +
+                '</td><td class="px-2 py-2.5 text-center font-black text-slate-800">' +
+                it.qtd +
+                '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
+                money(it.total) +
+                '</td><td class="py-2.5 pl-2 text-right">' +
+                btnCart(it.codigo, false, it.catalogo_disponivel !== false) +
+                '</td></tr>';
+        });
+        html += '</tbody></table></div></details>';
+        return html;
+    }
+
     function renderResumoCards(d, extra) {
         var m = d.metricas || {};
         var fid = d.fidelidade || {};
@@ -489,48 +614,29 @@
         if (!vendas.length) {
             html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Nenhuma venda no histórico deste cliente.</p>';
         } else {
-            html += '<div class="space-y-3">';
+            html += '<div id="rel-historico-vendas" class="space-y-3">';
             vendas.forEach(function (v) {
-                var origemBadge =
-                    v.origem === 'erp'
-                        ? '<span class="rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">ERP</span>'
-                        : '<span class="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-800">SisVale</span>';
-                html +=
-                    '<details class="group rounded-2xl border-2 border-slate-200 bg-white shadow-sm">' +
-                    '<summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">' +
-                    '<span class="text-lg font-black text-slate-900 sm:text-xl">' +
-                    money(v.total) +
-                    '</span>' +
-                    origemBadge +
-                    formaBadge(v.forma) +
-                    '<span class="text-sm font-bold text-slate-500 sm:ml-auto">' +
-                    esc(v.data) +
-                    '</span>' +
-                    '<span class="w-full text-[11px] font-black uppercase text-emerald-700 group-open:hidden sm:w-auto sm:text-xs">Toque para ver itens ▾</span></summary>' +
-                    '<div class="border-t-2 border-slate-100 bg-slate-50/80 px-3 py-3 sm:px-5 sm:py-4">' +
-                    '<table class="w-full border-collapse text-left text-sm sm:text-base"><thead><tr class="text-[11px] font-black uppercase text-slate-500 sm:text-xs">' +
-                    '<th class="pb-2 pr-2">Produto</th><th class="pb-2 px-2 text-center">Qtd venda</th><th class="pb-2 px-2 text-right">Total</th><th class="pb-2 pl-2 text-right">Balcão</th></tr></thead><tbody>';
-                (v.itens || []).forEach(function (it) {
-                    html +=
-                        '<tr class="border-t border-slate-200/80"><td class="py-2.5 pr-2 font-bold text-slate-900">' +
-                        esc(it.descricao) +
-                        '</td><td class="px-2 py-2.5 text-center font-black text-slate-800">' +
-                        it.qtd +
-                        '</td><td class="px-2 py-2.5 text-right font-black text-emerald-800">' +
-                        money(it.total) +
-                        '</td><td class="py-2.5 pl-2 text-right">' +
-                        btnCart(it.codigo, false, it.catalogo_disponivel !== false) +
-                        '</td></tr>';
-                });
-                html += '</tbody></table></div></details>';
+                html += renderVendaHistoricoBlock(v);
             });
             html += '</div>';
+            if (historicoHasMore) {
+                html +=
+                    '<div id="rel-historico-mais-wrap" class="pt-2 text-center">' +
+                    '<button type="button" id="rel-historico-mais" class="min-h-[44px] rounded-xl border-2 border-emerald-500 bg-emerald-50 px-6 py-2.5 text-sm font-black uppercase text-emerald-900 hover:bg-emerald-100 disabled:opacity-60"' +
+                    (historicoLoadingMore ? ' disabled' : '') +
+                    '>' +
+                    (historicoLoadingMore ? 'Carregando…' : 'Carregar mais vendas') +
+                    '</button></div>';
+            }
         }
         html += '</section></div>';
         return html;
     }
 
     function renderCiclo(d) {
+        if (secaoLoading.ciclo_racao) {
+            return '<p class="text-sm font-bold text-slate-600">Carregando ciclo de ração…</p>';
+        }
         var rows = d.ciclo_racao || [];
         if (!rows.length) {
             return '<p class="text-sm text-slate-600">Nenhum produto tipo ração/sachê no histórico PDV. Estimativa aparece quando houver compras com «ração» no nome.</p>';
@@ -562,6 +668,9 @@
     }
 
     function renderCross(d) {
+        if (secaoLoading.cross_sell) {
+            return '<p class="text-sm font-bold text-slate-600">Carregando sugestões…</p>';
+        }
         var rows = d.cross_sell || [];
         if (!rows.length) {
             return '<p class="text-sm text-slate-600">Sem sugestões automáticas ainda (depende do histórico de compras na loja).</p>';
@@ -761,8 +870,67 @@
             contato: renderContato,
         };
         var fn = map[activeTab] || renderResumo;
+        if (activeTab === 'ciclo_racao' || activeTab === 'cross_sell') {
+            ensureSecaoCarregada(activeTab);
+        }
         dom.panel.innerHTML = fn(apiData);
         bindPanelActions(extra);
+    }
+
+    function carregarMaisHistorico() {
+        if (!clientePk || historicoLoadingMore || !historicoHasMore) return;
+        historicoLoadingMore = true;
+        var btn = dom.panel && dom.panel.querySelector('#rel-historico-mais');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Carregando…';
+        }
+        var params =
+            'secao=historico&historico_offset=' +
+            encodeURIComponent(String(historicoOffset)) +
+            '&historico_limit=' +
+            encodeURIComponent(String(HISTORICO_PAGE));
+        fetchRelacionamentoJson(params)
+            .then(function (data) {
+                if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar');
+                appendHistoricoVendas(data);
+                syncHistoricoMetaFromApi();
+                var list = dom.panel && dom.panel.querySelector('#rel-historico-vendas');
+                if (list && data.historico_rapido && data.historico_rapido.vendas) {
+                    data.historico_rapido.vendas.forEach(function (v) {
+                        list.insertAdjacentHTML('beforeend', renderVendaHistoricoBlock(v));
+                    });
+                    list.querySelectorAll('.rel-add-gm').forEach(function (el) {
+                        if (el.dataset && el.dataset.relBound) return;
+                        el.dataset.relBound = '1';
+                        el.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            addProductToCartFromRel(el);
+                        });
+                    });
+                }
+                var oldWrap = dom.panel && dom.panel.querySelector('#rel-historico-mais-wrap');
+                if (oldWrap) oldWrap.remove();
+                if (historicoHasMore && dom.panel) {
+                    var anchor = dom.panel.querySelector('#rel-historico-vendas');
+                    if (anchor) {
+                        anchor.insertAdjacentHTML(
+                            'afterend',
+                            '<div id="rel-historico-mais-wrap" class="pt-2 text-center">' +
+                                '<button type="button" id="rel-historico-mais" class="min-h-[44px] rounded-xl border-2 border-emerald-500 bg-emerald-50 px-6 py-2.5 text-sm font-black uppercase text-emerald-900 hover:bg-emerald-100">Carregar mais vendas</button></div>'
+                        );
+                        var nb = dom.panel.querySelector('#rel-historico-mais');
+                        if (nb) nb.addEventListener('click', carregarMaisHistorico);
+                    }
+                }
+            })
+            .catch(function (err) {
+                alert(err.message || 'Não foi possível carregar mais vendas.');
+            })
+            .finally(function () {
+                historicoLoadingMore = false;
+            });
     }
 
     function bindPanelActions(extra) {
@@ -773,6 +941,10 @@
                 addProductToCartFromRel(btn);
             });
         });
+        var histMais = dom.panel.querySelector('#rel-historico-mais');
+        if (histMais) {
+            histMais.addEventListener('click', carregarMaisHistorico);
+        }
         dom.panel.querySelectorAll('.rel-resumo-wa').forEach(function (a) {
             a.addEventListener('click', function (e) {
                 if (typeof window.agroAbrirUrlExterna === 'function') {
@@ -925,6 +1097,9 @@
                 activeTab = btn.getAttribute('data-tab') || 'resumo';
                 renderTabs();
                 renderTabContent();
+                if (activeTab === 'ciclo_racao' || activeTab === 'cross_sell') {
+                    ensureSecaoCarregada(activeTab);
+                }
             });
         });
     }
@@ -935,15 +1110,14 @@
     }
 
     function fetchData(pk) {
-        var url = (bootstrap.urls && bootstrap.urls.apiPdvRelacionamentoCliente) || '/api/pdv/relacionamento-cliente/';
         setLoading(true);
-        return fetch(url + '?cliente_agro_pk=' + encodeURIComponent(String(pk)), {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-        })
-            .then(function (r) {
-                return r.json();
-            })
+        historicoOffset = 0;
+        historicoHasMore = false;
+        historicoLoadingMore = false;
+        secaoCarregada = { ciclo_racao: false, cross_sell: false };
+        secaoLoading = { ciclo_racao: false, cross_sell: false };
+        var params = 'historico_limit=' + encodeURIComponent(String(HISTORICO_PAGE));
+        return fetchRelacionamentoJson(params)
             .then(function (data) {
                 if (!data || !data.ok) throw new Error((data && data.erro) || 'Falha ao carregar');
                 apiData = data;
@@ -953,9 +1127,11 @@
             .then(function (extras) {
                 clienteExtra = extras;
                 if (apiData) apiData.extras = extras;
+                syncHistoricoMetaFromApi();
                 setLoading(false);
                 renderTabs();
                 renderTabContent();
+                prefetchCicloParaResumo();
             })
             .catch(function (err) {
                 setLoading(false);
@@ -976,6 +1152,11 @@
         clientePk = cli.cliente_agro_pk;
         activeTab = 'resumo';
         relCartAdded = {};
+        historicoOffset = 0;
+        historicoHasMore = false;
+        historicoLoadingMore = false;
+        secaoCarregada = { ciclo_racao: false, cross_sell: false };
+        secaoLoading = { ciclo_racao: false, cross_sell: false };
         clienteExtra = defaultExtra();
         if (dom.title) dom.title.textContent = cli.nome || 'Cliente';
         if (dom.modal) {

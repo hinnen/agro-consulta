@@ -82,6 +82,7 @@ class Command(BaseCommand):
                 f"  Duplicadas (já importadas): {st.get('vendas_duplicadas')}\n"
                 f"  Clientes com venda: {st.get('clientes_com_venda')}\n"
                 f"  Itens importados: {st.get('itens_importados', '—')}\n"
+                f"  Vendas sem linha Mongo: {st.get('vendas_sem_itens', '—')}\n"
                 f"  Itens sem catálogo ativo (amostra): {st.get('itens_sem_codigo_catalogo', '—')}"
             )
         )

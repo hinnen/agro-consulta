@@ -371,13 +371,46 @@ def _codigo_gm_de_produto_mongo(doc: dict | None) -> str:
 
 
 def _venda_id_erp(doc: dict) -> str:
+    keys = _venda_join_keys_header(doc)
+    return keys[0][:64] if keys else ""
+
+
+def _venda_join_keys_header(doc: dict) -> list[str]:
+    """Todas as chaves do cabeçalho para casar com ``DtoVendaProduto.VendaID`` (H2)."""
     from produtos.views import _HEADER_KEYS_VENDA_JOIN, _dto_venda_join_str_keys
 
+    out: list[str] = []
+    seen: set[str] = set()
     for hk in _HEADER_KEYS_VENDA_JOIN:
-        keys = _dto_venda_join_str_keys(doc.get(hk))
-        if keys:
-            return keys[0][:64]
-    return ""
+        for k in _dto_venda_join_str_keys(doc.get(hk)):
+            if k not in seen:
+                seen.add(k)
+                out.append(k)
+    return out
+
+
+def _aware_data_venda(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if timezone.is_naive(dt):
+        return timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
+
+
+def _itens_raw_venda(itens_por_venda: dict[str, list[dict]], join_keys: list[str]) -> list[dict]:
+    """Linhas Mongo da venda — tenta todas as chaves do cabeçalho (Id vs NumeroVenda)."""
+    if not join_keys:
+        return []
+    out: list[dict] = []
+    seen: set[str] = set()
+    for jk in join_keys:
+        for it in itens_por_venda.get(jk, []):
+            uid = str(it.get("_id") or id(it))
+            if uid in seen:
+                continue
+            seen.add(uid)
+            out.append(it)
+    return out
 
 
 def _fetch_produtos_mongo(db, produto_ids: set[str]) -> dict[str, dict]:
@@ -497,6 +530,7 @@ def importar_historico_erp_mongo(
         "vendas_fora_corte": 0,
         "vendas_importadas": 0,
         "itens_importados": 0,
+        "vendas_sem_itens": 0,
         "itens_sem_codigo_catalogo": 0,
         "clientes_com_venda": 0,
         "clientes_agro_ativos": 0,
@@ -564,10 +598,11 @@ def importar_historico_erp_mongo(
                 {
                     "doc": doc,
                     "venda_id_erp": vid,
+                    "join_keys": _venda_join_keys_header(doc),
                     "cliente": cli,
                     "cliente_id_erp": cid,
                     "cliente_nome_snapshot": nome_snap or cli.nome,
-                    "data_venda": dt,
+                    "data_venda": _aware_data_venda(dt),
                     "total": total,
                     "forma": _forma_venda_mongo(doc),
                 }
@@ -654,7 +689,7 @@ def importar_historico_erp_mongo(
         with transaction.atomic():
             for row in chunk:
                 vid = row["venda_id_erp"]
-                itens_raw = itens_por_venda.get(vid, [])
+                itens_raw = _itens_raw_venda(itens_por_venda, row.get("join_keys") or [vid])
                 total = row["total"]
                 if total is None or total == 0:
                     soma = Decimal("0")
@@ -699,6 +734,8 @@ def importar_historico_erp_mongo(
                 if bulk_itens:
                     RelacionamentoItemHistoricoErpAgro.objects.bulk_create(bulk_itens)
                     stats["itens_importados"] += len(bulk_itens)
+                else:
+                    stats["vendas_sem_itens"] += 1
 
     lote.stats_json = stats
     lote.save(update_fields=["stats_json"])

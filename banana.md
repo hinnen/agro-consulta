@@ -1143,6 +1143,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v5.47** · **loja v5.44** (30/06)
 
+### F8 Relacionamento — perf abertura (Renan · 30/06) · **WIP teste**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | F8 ficava em «Carregando histórico…» — API montava tudo de uma vez (`cross_sell` scan 8000 itens, ciclo, 500 vendas + merge 12 ERP) |
+| **Fix** | Carga inicial **leve**: resumo + fiado (badge) + top produtos + **12 vendas** + pets/extras |
+| **Histórico** | Página **12** vendas · botão **Carregar mais** · `GET ?secao=historico&historico_offset=` |
+| **Lazy** | **Ciclo ração** e **Cross-sell** só ao abrir a aba (`?secao=ciclo_racao` / `cross_sell`) |
+| **Ciclo alertas Resumo** | Prefetch ciclo **em background** após abrir (não bloqueia) |
+| **Top produtos** | Amostra **150** vendas (antes 500) — suficiente para ranking |
+| **Arquivos** | `relacionamento_cliente_util.py` · `views.py` · `pdv_relacionamento.js` |
+| **Deploy** | Junto pacote **v5.45+1** quando Renan pedir · **sem commit** nesta sessão |
+
+### Pendências fila — **FL-043** · **FL-044** (Renan · 30/06)
+
+| ID | P | Pedido |
+| -- | - | ------ |
+| **FL-043** | **P2,8** | Botão desconto na baixa do fiado |
+| **FL-044** | **P2,9** | Desconto automático funcionário (% pré-definida) — provável junto **FL-001** (preço × forma ou grupo cliente) |
+
 ### FL-042 fix **v5.47** — dry-run deu 0 importáveis (Renan · 30/06)
 
 | Item | Detalhe |
@@ -1151,7 +1171,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Projeção completa + match ID variantes + ponte DtoPessoa + nome na venda |
 | **Consumidor** | **CONSUMIDOR NÃO IDENTIFICADO** → **ignorado** (contador `vendas_consumidor`) |
 | **Pré-import** | Se «sem cliente Agro» alto → **`sincronizar_clientes_agro`** no teste |
-| **Próximo** | Deploy v5.47 → **dry-run de novo** no Shell teste |
+| **Próximo** | Import real teste → validar F8 |
+
+**Dry-run v5.47 OK (Renan · 30/06):** **4309** importáveis · **1264** consumidor ignorado · **663** sem cliente Agro · **876** clientes · 6236 no corte.
+
+**Sync clientes teste:** **1473 criados** · **394** tel duplicado (ok).
+
+**Import teste:** `python manage.py relacionamento_import_historico_erp --lote erp-hist-teste-1`
+
+**Import real v1 (Renan · 30/06) — bug 0 itens:**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | **4309** vendas gravadas · **0** itens · warnings `naive datetime` |
+| **Causa** | Join cabeçalho→`DtoVendaProduto`: lookup usava só 1ª chave (`Id`/`_id`); linhas Mongo usam `NumeroVenda`/outra variante |
+| **Fix** | `_venda_join_keys_header` + `_itens_raw_venda` (todas chaves H2) · `make_aware` em `data_venda` · contador `vendas_sem_itens` |
+| **Reverter** | `python manage.py relacionamento_reverter_historico_erp --lote erp-hist-teste-1` |
+| **Revert OK (Renan · 30/06)** | Shell teste: **4309** vendas removidas · lote **erp-hist-teste-1** apagado |
+| **Deploy teste v5.48** | F8 perf (carga inicial + histórico paginado) + fix join import itens |
+| **Reimport** | Após Live v5.48 → `--lote erp-hist-teste-2` |
 
 ### FL-042 — Histórico ERP no F8 **v5.46+** · **teste**
 
@@ -1350,9 +1388,10 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Histórico** | Sem cards Visitas/Ticket/Total (só no Resumo) — **v5.42** |
 | **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
 | **Carrinho** | Botão **+ 1 un.** — cache local primeiro (sem ida ao servidor) · **v5.45 teste** |
+| **Perf F8** | Abertura rápida · histórico **12 + Carregar mais** · ciclo/cross **lazy** · **WIP teste 30/06** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
 | **Deploy loja** | **📦 Pacote v5.44 pronto** — aguardando autorização Renan (§ CHECKPOINT pacote loja) |
-| **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
+| **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` · lazy `?secao=ciclo_racao|cross_sell|historico` |
 | **Abas** | Resumo · Histórico · Ciclo ração · Cross-sell · Fiado · Cashback · Métricas · Pets · Saúde · Anotações · Contato |
 | **Dados reais** | Vendas PDV + itens · fiado · cashback/vale — fonte **Postgres Agro** |
 | **Extras cliente** | Pets · saúde · anotações → **`ClienteAgro.relacionamento_extras_json` (Postgres)** · **v5.44** · qualquer caixa vê |
@@ -1604,7 +1643,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 
 **Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
 
-**Escala P (Renan):** **Px,y** = entre **Px** e **P(x+1)** — mais urgente que o de baixo, menos que o de cima. Decimal **menor** = mais perto do **P** inteiro de cima (ex. **P1,1** antes de **P1,5**). Inteiros: **P0** para a loja · **P1** grave · **P2** melhoria · **P3** depois.
+**Escala P (Renan):** **Px,y** = entre **Px** e **P(x+1)** — mais urgente que o de baixo, menos que o de cima. Decimal **menor** = mais perto do **P** inteiro de cima (ex. **P1,1** antes de **P1,5**). Inteiros: **P0** para a loja · **P1** grave · **P2** melhoria · **P3** depois. **Conflito** de sub-prioridade (ex. já existe **P2,9**): **não** rebaixar para **P2** — usar decimal mais fino (**P2,91**, **P2,92**…).
 
 **Conferência (29/06):** itens **P1,x** já na fila batem com a regra (entre **P1** e **P2**): **FL-021** · **FL-022** = **P1,1** · **FL-019** · **FL-020** = **P1,5**. Nenhum precisou mudar de faixa. Ordem sugerida ao atacar: P1 → P1,1 → P1,5 → P2.
 
@@ -1644,7 +1683,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
-| **FL-033** | **P2,9** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
+| **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
@@ -1654,6 +1693,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
+| **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
+| **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1701,6 +1742,10 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-040 | `cliente-pet-tabela-normalizada` | Modelo `ClientePetAgro` (+ lembretes) — migrar do JSON quando priorizar |
 | FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
 | FL-042 | `relacionamento-import-erp-1x` | Mongo DtoVenda 1× → Postgres histórico · merge F8 · **sem** leitura Mongo no PDV · Excel = audit |
+| FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
+| FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
+
+**Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
