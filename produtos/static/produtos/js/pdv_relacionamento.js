@@ -353,19 +353,7 @@
     function renderHistorico(d) {
         var vendas = (d.historico_rapido && d.historico_rapido.vendas) || [];
         var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
-        var m = d.metricas || {};
-        var html =
-            '<div class="pdv-rel-historico space-y-6">' +
-            '<div class="grid gap-3 sm:grid-cols-3">' +
-            '<div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-emerald-800">Visitas PDV</p><p class="text-2xl font-black text-emerald-950">' +
-            (m.total_vendas || 0) +
-            '</p></div>' +
-            '<div class="rounded-2xl border-2 border-sky-200 bg-sky-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-sky-800">Total comprado</p><p class="text-2xl font-black text-sky-950">' +
-            money(m.total_comprado) +
-            '</p></div>' +
-            '<div class="rounded-2xl border-2 border-violet-200 bg-violet-50 px-4 py-3"><p class="text-[11px] font-black uppercase text-violet-800">Ticket médio</p><p class="text-2xl font-black text-violet-950">' +
-            money(m.ticket_medio) +
-            '</p></div></div>';
+        var html = '<div class="pdv-rel-historico space-y-6">';
 
         html +=
             '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Itens mais comprados</h3>';

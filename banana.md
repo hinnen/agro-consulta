@@ -1139,7 +1139,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.41** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.42** · **produção LIVE v5.22** (`0a0fd52`)
 
 ### Listagem loja — WhatsApp (copiar)
 
@@ -1237,6 +1237,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Aba inicial** | **Resumo** (padrão ao abrir) — **v5.41** |
 | **Modal** | Altura **fixa** (ref. aba Histórico) — troca de aba **não redimensiona** · scroll só no miolo — **v5.35** |
 | **Resumo** | **9 cards** 3×3: Visitas · Ticket · Cashback · Vale · Total comprado · Freq. · Última visita · Pets · WhatsApp — **v5.40** |
+| **Histórico** | Sem cards Visitas/Ticket/Total (só no Resumo) — **v5.42** |
 | **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
@@ -1247,10 +1248,12 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Rascunho local** | Pets · lembretes saúde · anotações → `localStorage` (só este PC) |
 | **Teste** | Render teste · PDV · cliente cadastrado · **F8** ou **Hist.** |
 
-#### Checklist teste — **v5.32** (Renan · copiar)
+#### Checklist teste — **v5.42** (Renan · copiar)
 
 | # | O quê | Passou? |
 | - | ----- | ------- |
+| 0 | **F8** abre na aba **Resumo** (não Histórico) | ☐ |
+| 0b | Aba **Histórico** sem cards Visitas / Total / Ticket (só itens + vendas) | ☐ |
 | 1 | **Resumo** sem card fiado (só 3 cards) | ☐ |
 | 2 | Cliente com fiado → aba **FIADO** laranja/vermelha + valor | ☐ |
 | 3 | Aba Fiado → botão **Lançamentos do cliente** abre gestão com modal do cliente | ☐ |
