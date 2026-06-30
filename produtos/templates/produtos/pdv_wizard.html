@@ -2301,53 +2301,69 @@
   .rel-add-gm-col .rel-add-gm { min-width: 4.5rem; }
   .rel-resumo-cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0.35rem;
+    overflow: hidden;
   }
   .rel-resumo-card {
     min-width: 0;
-    min-height: 4.25rem;
+    min-height: 3.75rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     border: 2px solid #cbd5e1;
     border-radius: 0.75rem;
     background: #f8fafc;
-    padding: 0.45rem 0.55rem;
+    padding: 0.35rem 0.4rem;
   }
   .rel-resumo-card-label {
     margin: 0;
-    font-size: 0.625rem;
+    font-size: clamp(0.5rem, 0.55vw + 0.28rem, 0.625rem);
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     color: #64748b;
-    line-height: 1.2;
+    line-height: 1.15;
+    text-align: center;
   }
   .rel-resumo-card-val {
-    margin-top: 0.25rem;
-    font-size: 0.9375rem;
+    margin-top: 0.2rem;
+    font-size: clamp(0.75rem, 0.85vw + 0.35rem, 0.9375rem);
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.15;
     color: #0f172a;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
+    white-space: nowrap;
   }
   .rel-resumo-card-val--cash { color: #047857; }
   .rel-resumo-card-val--vale { color: #6d28d9; }
   .rel-resumo-card-val--pets {
-    font-size: 0.8125rem;
+    font-size: clamp(0.6875rem, 0.75vw + 0.3rem, 0.8125rem);
     font-weight: 700;
     white-space: nowrap;
-    text-overflow: ellipsis;
   }
-  .rel-resumo-card-val--wa { margin-top: 0.15rem; }
-  @media (min-width: 640px) {
-    .rel-resumo-cards { gap: 0.5rem; }
-    .rel-resumo-card { min-height: 4.5rem; padding: 0.5rem 0.65rem; }
-    .rel-resumo-card-label { font-size: 0.6875rem; }
-    .rel-resumo-card-val { font-size: 1rem; }
+  .rel-resumo-card-val--wa { margin-top: 0.1rem; }
+  .rel-resumo-wa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 1.65rem;
+    width: 100%;
+    padding: 0.15rem 0.25rem;
+    border-radius: 0.5rem;
+    border: 2px solid #10b981;
+    background: #ecfdf5;
+    font-size: clamp(0.5rem, 0.5vw + 0.25rem, 0.625rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #064e3b;
+    text-decoration: none;
+    white-space: nowrap;
   }
+  .rel-resumo-wa:hover { background: #d1fae5; }
   .rel-top-prod-titulo {
     margin: 0 0 0.5rem;
     font-size: 0.8125rem;

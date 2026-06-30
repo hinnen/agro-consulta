@@ -296,24 +296,24 @@
         var waUrl = (c.whatsapp_url || '').trim();
         var waBtn =
             waUrl
-                ? '<a class="rel-resumo-wa inline-flex min-h-[2rem] w-full items-center justify-center rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1 text-[11px] font-black uppercase text-emerald-900 no-underline hover:bg-emerald-100" href="' +
+                ? '<a class="rel-resumo-wa" href="' +
                   esc(waUrl) +
                   '" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">💬</span> Conversar</a>'
-                : '<span class="text-sm font-bold text-slate-400">Sem número</span>';
+                : '<span class="text-xs font-bold text-slate-400">Sem nº</span>';
         return (
             '<div class="rel-resumo-cards">' +
             resumoMetricCard('Visitas', String(m.total_vendas || 0), 'rel-resumo-card-val--dark') +
-            resumoMetricCard('Ticket médio', money(m.ticket_medio), 'rel-resumo-card-val--dark') +
+            resumoMetricCard('Ticket méd.', money(m.ticket_medio), 'rel-resumo-card-val--dark') +
             resumoMetricCard('Cashback', money(fid.cashback), 'rel-resumo-card-val--cash') +
-            resumoMetricCard('Vale crédito', money(fid.vale_credito), 'rel-resumo-card-val--vale') +
-            resumoMetricCard('Total comprado', money(m.total_comprado), 'rel-resumo-card-val--dark') +
+            resumoMetricCard('Vale créd.', money(fid.vale_credito), 'rel-resumo-card-val--vale') +
+            resumoMetricCard('Total compr.', money(m.total_comprado), 'rel-resumo-card-val--dark') +
             resumoMetricCard(
-                'Freq. entre visitas',
+                'Freq. visitas',
                 m.frequencia_media_dias != null ? m.frequencia_media_dias + ' dias' : '—',
                 'rel-resumo-card-val--dark'
             ) +
             resumoMetricCard(
-                'Última visita',
+                'Últ. visita',
                 m.ultima_visita_dias != null ? 'há ' + m.ultima_visita_dias + ' dias' : '—',
                 'rel-resumo-card-val--dark'
             ) +
