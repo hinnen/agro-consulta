@@ -25,7 +25,7 @@
     var bootstrap = {};
     var apiData = null;
     var clientePk = null;
-    var activeTab = 'historico';
+    var activeTab = 'resumo';
     var relCartAdded = {};
 
     function money(v) {
@@ -837,7 +837,7 @@
             return;
         }
         clientePk = cli.cliente_agro_pk;
-        activeTab = 'historico';
+        activeTab = 'resumo';
         relCartAdded = {};
         if (dom.title) dom.title.textContent = cli.nome || 'Cliente';
         if (dom.modal) {
