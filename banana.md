@@ -180,7 +180,9 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 **Por fases (não tudo no dia 1):** primeiro **finalizar venda** · depois **caixa, devolução e fiado** · por último **contas a pagar** (baixa e lançamento novo), quando estiver redondo contra duplicata.
 
-**Hoje (sem FL-038):** só aviso no Zap + escolher horário calmo — ver rotina acima.
+**Hoje (sem FL-038 código):** só aviso no Zap + escolher horário calmo — ver rotina acima · **Renan 30/06:** neste deploy **v5.44** usa **só rotina manual**; implementar FL-038 (fases A+B) em deploy futuro.
+
+**Renan 30/06 — fila offline:** ideia de vender no PC e subir depois → **FL-041 P3** (projeto grande). **Curto prazo:** FL-038 manual + idempotência venda já existente.
 
 #### 3.2.1 FL-038 — como funcionaria programado (rascunho técnico)
 
@@ -1139,9 +1141,84 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.44** · **produção LIVE v5.22** (`0a0fd52`)
+**Versão app (`VERSION`):** **teste v5.44** · **produção branch `eb9fcc9` v5.24** · **Render loja — conferir badge** (build v5.24 falhou 29/06; live pode ainda ser **v5.22**)
 
-### Listagem loja — WhatsApp (copiar)
+### 📦 PACOTE LOJA — **v5.44** · PRONTO · aguardando Renan (**30/06**)
+
+**Status:** merge **`teste` → `producao`** preparado · **NÃO subiu** — falta *«pode subir para produção»* + senha **99738595** na mesma mensagem.
+
+**Decisões Renan (30/06):**
+
+| Tema | Decisão |
+| ---- | ------- |
+| **Deploy seguro** | **FL-038** — neste deploy usa **rotina manual** §3.2 (Zap + janela calma + parar de finalizar venda ~2 min) · código FL-038 **depois** (P2) |
+| **Fila offline** | **Não agora** — registrado **FL-041** (P3, projeto grande) |
+| **Pets** | **Opção A** JSON Postgres (**v5.44**) · **FL-040** tabela Pet (P3) |
+
+**Contingência neste deploy (sem código FL-038):**
+
+1. Escolher **janela calma** (evitar pico e fechamento de caixa).
+2. **Zap loja:** *«Atualizando o sistema ~2 min — **não finalize venda** agora. Quem já clicou Finalizar, aguarde. Depois: Ctrl+F5 no PDV.»*
+3. Renan avisa operadores: **parar de vender** ~2 min.
+4. Assistente: merge + push **`producao`** → acompanhar Render até **Live**.
+5. **Ctrl+F5** em todos os PDVs · badge **v5.44** · venda teste R$ 0,01 (opcional).
+6. Conferir **migration** `0046` rodou (Render deploy log).
+
+**Script:** `scripts/preparar_deploy_loja_v544.ps1` — valida `VERSION` UTF-8 e diff · push só com `-ExecutarPush` após autorização.
+
+---
+
+#### O que entra na loja (resumo operador)
+
+**🛒 PDV — Relacionamento com cliente (F8 / botão Hist.)**
+
+| Novidade | Detalhe |
+| -------- | ------- |
+| **Atalho F8** | Modal do cliente selecionado (não consumidor final) |
+| **Aba Resumo** | 9 indicadores **numa linha** (visitas, ticket, cashback, vale, total, freq., última visita, pets, WhatsApp) |
+| **Top produtos** | Tabela + botão **+1 un.** no balcão (não fecha o modal) |
+| **Fiado** | Só na aba **Fiado** (laranja/vermelho + valor) · botão **Lançamentos** abre gestão fiado do cliente |
+| **Histórico** | Itens mais comprados + últimas vendas (sem cards duplicados do Resumo) |
+| **Pets / saúde / anotações** | Salvos no **cadastro Postgres** — **qualquer caixa** vê (não fica só no PC) |
+| **Risco** | **Baixo** — consulta + cadastro auxiliar · **não muda** preço, estoque nem finalizar venda |
+
+**💵 Caixa**
+
+| Item | Nota |
+| ---- | ---- |
+| **Menu CAIXA mais rápido** | Se a loja **já** estiver na v5.24 (`eb9fcc9`), **não repete** · se Render ainda v5.22, entra neste pacote |
+
+**🗄️ Banco (Postgres)**
+
+| Migration | O quê |
+| --------- | ----- |
+| **`0046`** | Campo `relacionamento_extras_json` em **Cliente Agro** (pets, lembretes, anotações) |
+
+**❌ Fora deste pacote**
+
+| Item | Motivo |
+| ---- | ------ |
+| **FL-038 código** | Só documentação — deploy usa Zap + pausa manual |
+| **FL-039 / FL-040** | Ficha `/clientes/` e tabela Pet — P3 |
+| **FL-041** | Fila vendas offline — P3 |
+| **Demais FL-00x** | Não testados neste ciclo |
+
+---
+
+#### Checklist pós-deploy loja (Renan)
+
+| # | O quê |
+| - | ----- |
+| 1 | Badge **v5.44** (Ctrl+F5) |
+| 2 | PDV · cliente cadastrado · **F8** → Resumo + abas |
+| 3 | Pet no F8 → outro PC vê o mesmo pet |
+| 4 | Cliente com fiado → aba Fiado + lançamentos |
+| 5 | Menu **CAIXA** abre rápido |
+| 6 | Venda normal R$ 1 (sanidade) |
+
+**Revert:** redeploy commit anterior em `producao` (anotar hash pós-merge).
+
+---
 
 **Anterior:** **17/06/2026** · produção **12–16/jun** (PDV, Caixa, Entrada NF, Etiquetas, Cadastro — lista guardada pelo Renan).
 
@@ -1241,7 +1318,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **Fiado** | Botão **Lançamentos** → `/fiado/?from=pdv&cliente=PK` abre **modal do cliente** (fallback API se não estiver na lista) — **v5.39** |
 | **Carrinho** | Botão **+ 1 un.** (sempre **1 unidade** no balcão) · histórico **«Já comprou X un.»** separado · legenda **no balcão** — **v5.31** |
 | **Risco loja** | **Baixo** — só consulta · não mexe venda/preço/estoque · modal lento OK |
-| **Deploy loja** | **📋 Fila** — Renan **OK UX v5.43** (30/06) · falta **autorização produção** (frase + senha) · pacote junto **v5.24** caixa |
+| **Deploy loja** | **📦 Pacote v5.44 pronto** — aguardando autorização Renan (§ CHECKPOINT pacote loja) |
 | **API** | `GET /api/pdv/relacionamento-cliente/?cliente_agro_pk=` |
 | **Abas** | Resumo · Histórico · Ciclo ração · Cross-sell · Fiado · Cashback · Métricas · Pets · Saúde · Anotações · Contato |
 | **Dados reais** | Vendas PDV + itens · fiado · cashback/vale — fonte **Postgres Agro** |
@@ -1424,12 +1501,14 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
-**Pacotes prontos — aguardando próximo deploy loja (Renan 30/06):**
+**Pacotes prontos — aguardando deploy loja (Renan 30/06):**
 
 | Pacote | O quê | Observação |
 | ------ | ----- | ---------- |
-| **v5.24 perf caixa** | Menu caixa lazy (`11d8634`) | Build **`eb9fcc9` falhou** — incluir **`VERSION` UTF-8** no cherry-pick do próximo pacote |
-| **Relacionamento PDV** | Modal **F8** / Hist. (`relacionamento_cliente_util` + JS) | Só leitura · **fila loja** · validar com cliente real |
+| **v5.44 Relacionamento F8** | Modal F8 + pets PG + fiado link | **✅ teste** · **📦 pronto** · ver CHECKPOINT «PACOTE LOJA v5.44» |
+| ~~v5.24 perf caixa~~ | Menu caixa lazy | **Branch `producao` já tem `eb9fcc9`** — conferir se Render live |
+
+**Decisão deploy (30/06):** Renan — **FL-038 manual** neste deploy · demais atualizações testadas sobem no **v5.44**.
 
 **Como usar:** manda item a item no chat (`@banana` + prioridade + tela). Assistente registra aqui. **Não** vira código até você pedir ou subir de prioridade.
 
@@ -1478,9 +1557,10 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
-| **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico | 📋 Pendente | 30/06 |
+| **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico · **este deploy = manual §3.2** | 📋 Código pendente | 30/06 |
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
+| **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
 
@@ -1526,6 +1606,7 @@ Entre deploys pode **reenviar a mesma**; quando subir pacote novo na **produçã
 | FL-038 | `deploy-contingencia` | Postgres escopos · cron ON/OFF · middleware POSTs por módulo (pdv, caixa, fiado, devolucao, lancamentos) · §3.2.4 |
 | FL-039 | `cliente-ficha-pets-relacionamento` | Exibir/editar `relacionamento_extras_json` na ficha `/clientes/` |
 | FL-040 | `cliente-pet-tabela-normalizada` | Modelo `ClientePetAgro` (+ lembretes) — migrar do JSON quando priorizar |
+| FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
