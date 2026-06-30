@@ -660,6 +660,7 @@ def codigos_gm_ativos_no_catalogo(codigos: list[str]) -> set[str]:
                     for doc in db["DtoProduto"].find(
                         {"$and": [{"CadastroInativo": {"$ne": True}}, {"$or": ors}]},
                         proj,
+                        max_time_ms=8000,
                     ).limit(max(50, len(missing) * 4)):
                         gm = _codigo_gm_de_produto_mongo(doc)
                         n = _norm_codigo_gm(gm)

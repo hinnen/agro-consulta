@@ -345,9 +345,13 @@ def _ciclo_racao(venda_ids: list[int], hist_venda_pks: list[int] | None = None) 
     return out[:8]
 
 
-def _serialize_venda_historico_pdv(v: VendaAgro) -> dict[str, Any]:
-    codigos_it = [(it.codigo or "").strip() for it in v.itens.all()[:20]]
-    ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+def _serialize_venda_historico_pdv(
+    v: VendaAgro,
+    ativos_it: set[str] | None = None,
+) -> dict[str, Any]:
+    if ativos_it is None:
+        codigos_it = [(it.codigo or "").strip() for it in v.itens.all()[:20]]
+        ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
     linhas = [
         {
             "codigo": (it.codigo or "").strip(),
@@ -368,9 +372,13 @@ def _serialize_venda_historico_pdv(v: VendaAgro) -> dict[str, Any]:
     }
 
 
-def _serialize_venda_historico_erp(v: RelacionamentoVendaHistoricoErpAgro) -> dict[str, Any]:
-    codigos_it = [(it.codigo_gm or "").strip() for it in v.itens.all()[:20]]
-    ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
+def _serialize_venda_historico_erp(
+    v: RelacionamentoVendaHistoricoErpAgro,
+    ativos_it: set[str] | None = None,
+) -> dict[str, Any]:
+    if ativos_it is None:
+        codigos_it = [(it.codigo_gm or "").strip() for it in v.itens.all()[:20]]
+        ativos_it = codigos_gm_ativos_no_catalogo([c for c in codigos_it if c])
     linhas = []
     for it in v.itens.all()[:20]:
         cod = (it.codigo_gm or "").strip()
@@ -450,16 +458,23 @@ def _historico_vendas_paginado(
         for v in RelacionamentoVendaHistoricoErpAgro.objects.filter(pk__in=erp_pks).prefetch_related("itens")
     }
 
+    codigos_batch: list[str] = []
+    for v in pdv_map.values():
+        codigos_batch.extend((it.codigo or "").strip() for it in v.itens.all()[:20])
+    for v in erp_map.values():
+        codigos_batch.extend((it.codigo_gm or "").strip() for it in v.itens.all()[:20])
+    ativos_batch = codigos_gm_ativos_no_catalogo([c for c in codigos_batch if c])
+
     vendas_out: list[dict[str, Any]] = []
     for origem, pk in refs:
         if origem == "pdv":
             v = pdv_map.get(pk)
             if v:
-                vendas_out.append(_serialize_venda_historico_pdv(v))
+                vendas_out.append(_serialize_venda_historico_pdv(v, ativos_it=ativos_batch))
         else:
             v = erp_map.get(pk)
             if v:
-                vendas_out.append(_serialize_venda_historico_erp(v))
+                vendas_out.append(_serialize_venda_historico_erp(v, ativos_it=ativos_batch))
 
     return {
         "vendas": vendas_out,
