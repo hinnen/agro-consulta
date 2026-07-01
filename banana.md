@@ -1148,6 +1148,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.00** · **loja v5.65**
 
+### 🐛 RH folha → CP desatualizado (01/07 — diagnóstico + fix local)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Fechamento RH mostra vales/descontos certos; CP (Lançamentos) não muda ao clicar «Criar ou atualizar» / «Igualar ao que está na folha» |
+| **Causa** | Loja já **lê CP no Postgres**; sync da folha RH só gravava no **Mongo** (cópia PG ficava velha) |
+| **Fix (código local)** | Após sync RH, espelha o título Mongo → `TituloFinanceiroAgro` (`espelhar_titulo_mongo_id_para_postgres` + hook em `salario_financeiro_mongo`) |
+| **Pendente** | Commit + push **`teste`** → Renan: passo 1 Salvar e recalcular → passo 2 Igualar → **Ctrl+F5** no CP |
+| **Dinheiro/Caixa 1** | Vales do **caixa** puxam forma/banco da baixa parcial — não é bug; padrão «ADICIONAR CONTA» vale só na **criação** do título |
+
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
 
 | Item | Detalhe |
@@ -1228,6 +1238,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Renan** | Tirar botão **Orç. salvos** da barra do PDV por enquanto |
 | **Onde** | `pdv_wizard.html` · `partials/pdv/topbar.html` (MPA consulta) |
 | **Mantido** | **Orçamento F6** (histórico/modal) · sidebar/card orçamentos |
+
+### 🧪 PDV — Salvar orçamento + histórico por cliente (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Tirar **Entregas** lateral (fica só no topo) · botão **Salvar orçamento** |
+| **Salvar** | Grava carrinho + cliente em `historicoOrcamentos` (localStorage) |
+| **F6 / Ver mais** | Lista só orçamentos **do cliente atual** (incl. consumidor final) |
+| **Reabrir** | Hidrata wizard · código `GMORC…` para busca |
 | **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
 | **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |

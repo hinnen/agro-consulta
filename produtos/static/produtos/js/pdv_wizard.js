@@ -198,8 +198,7 @@
         step1Advance: document.getElementById('pdv-step1-advance'),
         step1Payment: document.getElementById('pdv-step1-payment'),
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
-        step1EntregasBtn: document.getElementById('pdv-step1-entregas-btn'),
-        step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
+        step1SalvarOrcamentoBtn: document.getElementById('pdv-step1-salvar-orcamento-btn'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
@@ -2585,16 +2584,130 @@
         }
     }
 
+    function pdvCodigoBarrasOrcamento(orcId) {
+        return 'GMORC' + String(orcId);
+    }
+
+    function readHistoricoOrcamentos() {
+        try {
+            var historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
+            return Array.isArray(historico) ? historico : [];
+        } catch (errH) {
+            return [];
+        }
+    }
+
+    function writeHistoricoOrcamentos(historico) {
+        try {
+            localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+        } catch (errW) {}
+    }
+
+    function budgetClienteKeyFromState(state) {
+        if (!state) return 'consumidor_final';
+        if (state.clienteMode === 'consumidor_final') return 'consumidor_final';
+        var c = state.cliente;
+        if (!c) return 'consumidor_final';
+        var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk).trim() : '';
+        if (pk) return 'pk:' + pk;
+        var id = String(c.id || '').trim();
+        if (id) return 'id:' + id;
+        var tel = String(c.telefone || '').replace(/\D/g, '');
+        var nome = String(c.nome || '').trim().toLowerCase();
+        return 'tmp:' + nome + ':' + tel;
+    }
+
+    function entryClienteKey(entry) {
+        if (!entry || typeof entry !== 'object') return 'consumidor_final';
+        if (entry.cliente_key) return String(entry.cliente_key);
+        if (entry.cliente_mode === 'consumidor_final') return 'consumidor_final';
+        var ex = entry.cliente_extra;
+        if (ex && ex.cliente_agro_pk != null) return 'pk:' + String(ex.cliente_agro_pk).trim();
+        var nome = String(entry.cliente || '').trim();
+        if (/consumidor\s+n[aã]o\s+identificado/i.test(nome)) return 'consumidor_final';
+        var tel = ex && ex.telefone ? String(ex.telefone).replace(/\D/g, '') : '';
+        return 'tmp:' + nome.toLowerCase() + ':' + tel;
+    }
+
+    function filterHistoricoPorCliente(historico, clienteKey) {
+        historico = Array.isArray(historico) ? historico : [];
+        var key = String(clienteKey || 'consumidor_final');
+        return historico.filter(function (item) {
+            return entryClienteKey(item) === key;
+        });
+    }
+
+    function salvarOrcamentoWizard() {
+        var state = State.getState();
+        if (state.clienteMode === 'unset') {
+            alert('Defina o cliente ou consumidor final antes de salvar o orçamento.');
+            return;
+        }
+        if (!state.itens || !state.itens.length) {
+            alert('Adicione itens ao carrinho antes de salvar o orçamento.');
+            return;
+        }
+        var computed = State.getComputed();
+        var historico = readHistoricoOrcamentos();
+        var idOrc = Date.now();
+        var clienteNome =
+            state.cliente && state.cliente.nome
+                ? String(state.cliente.nome).trim()
+                : state.clienteMode === 'consumidor_final'
+                  ? 'Consumidor não identificado'
+                  : 'Cliente';
+        var key = budgetClienteKeyFromState(state);
+        var operadorSalvo = '';
+        try {
+            operadorSalvo = (localStorage.getItem('gm_sspin_operador') || '').trim();
+        } catch (eOp) {}
+        var usuarioSalvo = '';
+        try {
+            usuarioSalvo =
+                bootstrap && bootstrap.usuarioSalvamento
+                    ? String(bootstrap.usuarioSalvamento).trim()
+                    : '';
+        } catch (eUs) {}
+        if (!usuarioSalvo) usuarioSalvo = operadorSalvo;
+        var novo = {
+            id: idOrc,
+            orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
+            data: new Date().toLocaleString('pt-BR'),
+            cliente: clienteNome,
+            cliente_key: key,
+            cliente_mode: state.clienteMode || 'cliente',
+            total: formatMoney(computed.subtotal != null ? computed.subtotal : computed.total || 0),
+            itens: state.itens.map(function (item) {
+                return JSON.parse(JSON.stringify(item));
+            }),
+            forma_pagamento: state.pagamento && state.pagamento.forma ? state.pagamento.forma : '',
+            entrega: !!(state.entrega && state.entrega.ativa),
+            usuario: usuarioSalvo || undefined,
+            cliente_extra: state.cliente ? JSON.parse(JSON.stringify(state.cliente)) : null,
+        };
+        historico.unshift(novo);
+        var perKey = {};
+        historico = historico.filter(function (item) {
+            var k = entryClienteKey(item);
+            perKey[k] = (perKey[k] || 0) + 1;
+            if (perKey[k] > 30) return false;
+            return true;
+        });
+        if (historico.length > 300) historico.length = 300;
+        writeHistoricoOrcamentos(historico);
+        renderRecentBudgetsSnippet();
+        showSaleDoneFeedback('Orçamento salvo para ' + clienteNome + '.', 'success', {
+            title: 'Orçamento salvo',
+            placementTop: true,
+        });
+    }
+
     function renderRecentBudgetsSnippet() {
         var el = document.getElementById('pdv-step1-budget-snippet');
         if (!el) return;
-        var historico = [];
-        try {
-            historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
-            if (!Array.isArray(historico)) historico = [];
-        } catch (errH) {
-            historico = [];
-        }
+        var state = State.getState();
+        var key = budgetClienteKeyFromState(state);
+        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
         var slice = historico.slice(0, 3);
         if (!slice.length) {
             el.innerHTML =
@@ -2608,9 +2721,9 @@
                     return (
                         '<li class="border-b border-slate-200/60 pb-2 last:border-0">' +
                         '<div class="break-words font-bold text-slate-700" title="' +
-                        escapeHtml(item.cliente || '') +
+                        escapeHtml(item.data || '') +
                         '">' +
-                        escapeHtml(item.cliente || '—') +
+                        escapeHtml(item.data || '—') +
                         '</div>' +
                         '<div class="mt-0.5 text-right font-mono text-[9px] text-slate-500">' +
                         escapeHtml(item.total || '—') +
@@ -2625,27 +2738,11 @@
     function applyEntregasPendentesButton() {
         var n = entregasPendentesCache.total || 0;
         var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
-        var discreteSide =
-            'mt-0 w-full rounded-xl border-2 border-sky-300 bg-gradient-to-r from-sky-50 to-cyan-50 px-2.5 py-2.5 text-[10px] font-black uppercase tracking-wide text-sky-950 shadow-sm transition hover:from-sky-100 hover:to-cyan-100';
-        var alertSide =
-            'mt-0 w-full rounded-xl border-2 border-sky-500 bg-gradient-to-r from-sky-600 to-cyan-600 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-sky-600/30 ring-2 ring-sky-300/50 transition hover:from-sky-700 hover:to-cyan-700';
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--entregas-pendente relative';
 
-        if (dom.step1EntregasBtn) {
-            dom.step1EntregasBtn.hidden = !apiOk;
-            dom.step1EntregasBtn.className = n > 0 ? alertSide : discreteSide;
-        }
-        if (dom.step1EntregasCount) {
-            if (n > 0) {
-                dom.step1EntregasCount.textContent = String(n);
-                dom.step1EntregasCount.classList.remove('hidden');
-            } else {
-                dom.step1EntregasCount.classList.add('hidden');
-            }
-        }
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.hidden = !apiOk;
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
@@ -5091,24 +5188,48 @@
     }
 
     function openBudgetHistory() {
-        var historico = [];
-        try {
-            historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
-            if (!Array.isArray(historico)) historico = [];
-        } catch (err) {}
-        dom.budgetHistoryList.innerHTML = historico.length ? historico.map(function (item) {
-            var itens = Array.isArray(item.itens) ? item.itens.length : 0;
-            return '' +
-                '<div class="mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">' +
-                '  <div class="flex flex-wrap items-start justify-between gap-3">' +
-                '    <div>' +
-                '      <div class="text-sm font-black text-slate-900">' + escapeHtml(item.cliente || 'Cliente não informado') + '</div>' +
-                '      <div class="mt-1 text-[11px] font-bold text-slate-500">' + escapeHtml(item.data || '') + ' • ' + escapeHtml(item.total || 'R$ 0,00') + ' • ' + itens + ' item(ns)</div>' +
-                '    </div>' +
-                '    <button type="button" class="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-black uppercase text-white" data-budget-index="' + historico.indexOf(item) + '">Reabrir</button>' +
-                '  </div>' +
-                '</div>';
-        }).join('') : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">Nenhum orçamento salvo neste aparelho.</div>';
+        var state = State.getState();
+        var key = budgetClienteKeyFromState(state);
+        var clienteNome =
+            state.cliente && state.cliente.nome
+                ? String(state.cliente.nome).trim()
+                : state.clienteMode === 'consumidor_final'
+                  ? 'Consumidor não identificado'
+                  : 'Cliente';
+        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
+        dom.budgetHistoryList.innerHTML = historico.length
+            ? historico
+                  .map(function (item) {
+                      var itens = Array.isArray(item.itens) ? item.itens.length : 0;
+                      return (
+                          '' +
+                          '<div class="mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">' +
+                          '  <div class="flex flex-wrap items-start justify-between gap-3">' +
+                          '    <div>' +
+                          '      <div class="text-sm font-black text-slate-900">' +
+                          escapeHtml(item.data || '') +
+                          '</div>' +
+                          '      <div class="mt-1 text-[11px] font-bold text-slate-500">' +
+                          escapeHtml(item.total || 'R$ 0,00') +
+                          ' • ' +
+                          itens +
+                          ' item(ns)' +
+                          (item.orc_barcode
+                              ? ' • <span class="font-mono">' + escapeHtml(String(item.orc_barcode)) + '</span>'
+                              : '') +
+                          '</div>' +
+                          '    </div>' +
+                          '    <button type="button" class="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-black uppercase text-white" data-budget-id="' +
+                          escapeHtml(String(item.id)) +
+                          '">Reabrir</button>' +
+                          '  </div>' +
+                          '</div>'
+                      );
+                  })
+                  .join('')
+            : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">Nenhum orçamento salvo para ' +
+              escapeHtml(clienteNome) +
+              '.</div>';
         dom.budgetHistoryModal.classList.remove('hidden');
         dom.budgetHistoryModal.classList.add('flex');
     }
@@ -8743,8 +8864,8 @@
 
         if (dom.openBudgetHistory) dom.openBudgetHistory.addEventListener('click', openBudgetHistory);
         if (dom.step1BudgetVerMais) dom.step1BudgetVerMais.addEventListener('click', openBudgetHistory);
-        if (dom.step1EntregasBtn) {
-            dom.step1EntregasBtn.addEventListener('click', openEntregasPendentesModal);
+        if (dom.step1SalvarOrcamentoBtn) {
+            dom.step1SalvarOrcamentoBtn.addEventListener('click', salvarOrcamentoWizard);
         }
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
@@ -8785,15 +8906,15 @@
             if (event.target === dom.budgetHistoryModal) closeBudgetHistory();
         });
         dom.budgetHistoryList.addEventListener('click', function (event) {
-            var btn = event.target.closest('[data-budget-index]');
+            var btn = event.target.closest('[data-budget-id]');
             if (!btn) return;
-            var index = parseInt(btn.getAttribute('data-budget-index') || '-1', 10);
-            var historico = [];
-            try {
-                historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
-            } catch (err) {}
-            if (historico[index]) {
-                State.hydrateFromBudget(historico[index]);
+            var budgetId = btn.getAttribute('data-budget-id');
+            var historico = readHistoricoOrcamentos();
+            var entry = historico.find(function (item) {
+                return String(item.id) === String(budgetId);
+            });
+            if (entry) {
+                State.hydrateFromBudget(entry);
                 State.setCurrentStep('produtos');
                 closeBudgetHistory();
             }
