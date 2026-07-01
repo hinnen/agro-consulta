@@ -148,6 +148,56 @@ def restaurar_valor_pago_controle_fechamento(f: FechamentoFolhaSimplificado) -> 
     _atualizar_controle_fechamento_apos_pagamentos(f, atualizar_status=False)
 
 
+@transaction.atomic
+def cancelar_pagamento_salario(
+    pagamento: PagamentoSalarioFuncionario | int,
+    *,
+    motivo: str = "",
+    sincronizar_cp: bool = True,
+) -> dict[str, Any]:
+    """Cancela pagamento de salário (não-vale) e realinha folha + título CP."""
+    if isinstance(pagamento, int):
+        p = PagamentoSalarioFuncionario.objects.select_related(
+            "fechamento", "fechamento__funcionario", "funcionario"
+        ).get(pk=pagamento)
+    else:
+        p = pagamento
+    if p.cancelado:
+        return {"ok": True, "skipped": True, "motivo": "ja_cancelado"}
+
+    motivo_limpo = (motivo or "Cancelamento manual").strip()
+    if len(motivo_limpo) < 3:
+        return {"ok": False, "erro": "Informe motivo com pelo menos 3 caracteres."}
+
+    p.cancelado = True
+    p.cancelado_em = timezone.now()
+    p.motivo_cancelamento = motivo_limpo[:400]
+    p.save(update_fields=["cancelado", "cancelado_em", "motivo_cancelamento", "atualizado_em"])
+
+    fech = p.fechamento
+    if fech is None:
+        fech = (
+            FechamentoFolhaSimplificado.objects.filter(
+                funcionario=p.funcionario,
+                competencia__year=p.data.year,
+                competencia__month=p.data.month,
+            )
+            .order_by("-competencia")
+            .first()
+        )
+
+    sync = None
+    if fech:
+        _atualizar_controle_fechamento_apos_pagamentos(fech)
+        recalcular_fechamento(fech)
+        if sincronizar_cp and (fech.mongo_lancamento_salario_id or "").strip():
+            from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
+
+            sync = sincronizar_valores_titulo_salario_mongo(fech)
+
+    return {"ok": True, "pagamento_id": p.pk, "fechamento_id": fech.pk if fech else None, "sync": sync}
+
+
 def processar_baixa_cp_titulo_salario(
     *,
     mongo_id: str,
