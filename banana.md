@@ -1172,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
 | **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
 | **FL-048 fix** | Botao PDV na Gestao abria **Chrome normal** · fix **`75bce98`** teste **v5.85** · sinal entre apps |
-| **PDV UX 30/06** | **Sair** removido · **Início** → foca app **Gestão** · **`a63bb21`** teste **v5.83** |
+| **PDV UX 30/06** | **Sair** removido · **Início** → Gestão · **Voltar ao PDV** removido do **Caixa** (6 telas) + oculto no painel overlay |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 

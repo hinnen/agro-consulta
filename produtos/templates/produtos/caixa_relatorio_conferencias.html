@@ -32,7 +32,6 @@
       <div class="flex flex-wrap gap-1.5 shrink-0">
         <a href="{% url 'caixa_relatorio' %}?{{ request.GET.urlencode }}" class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700">Movimentos</a>
         <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700">Painel</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border-2 border-emerald-200 bg-white text-[10px] font-black uppercase text-emerald-800 shrink-0" %}
       </div>
     </div>
   </header>
