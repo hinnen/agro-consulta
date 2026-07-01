@@ -1153,6 +1153,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Renan · *manda pra teste* |
+| **Git teste** | **`2a3ef12`** · push **`teste`** · **v6.16** |
 | **Pacote** | Orçamentos **Postgres** (`0048` + API) · F7/F3 lado a lado · sync multi-PC |
 | **Validar** | Ctrl+F5 · salvar orçamento · outro PC mesmo cliente · bip GMORC · Salvar orçamento visível no zoom normal |
 
