@@ -1146,17 +1146,30 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.29** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.30** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+
+### 📦 Pacote loja — caixa scroll + F7/F3 (aguardando loja fechar · 01/07)
+
+| Incluir | O quê | Risco |
+| ------- | ----- | ----- |
+| **✅ SIM** | Caixa overlay scroll — `caixa_viewport_shell.html` + `.caixa-panel-scroll` nas subtelas | Baixo · só layout iframe PDV |
+| **✅ SIM** | F7/F3 lado a lado — `step_produtos.html` + CSS `pdv_wizard.html` | Baixo · botões visíveis no zoom |
+| **✅ SIM** (opcional) | Card orçamentos 3 clicáveis + «Salvar orçamento» lateral — **só localStorage** (JS/HTML do commit `0094190` / templates) | Baixo se **não** levar PG |
+| **❌ NÃO** | Migration **`0048`** · modelo `OrcamentoPdvAgro` · API `/api/pdv/orcamentos/` · bootstrap `apiPdvOrcamentos` | Renan: orçamento **não bloqueia** subida |
+| **⚠️ separado** | Fix entrega **venda_id** pós-venda (coluna Pagamento «Pago») — **Postgres Agro**, **zero API ERP** | Cherry isolado se quiser |
+| **Loja hoje** | **v5.76** · cherry **pacote a pacote** — **não** merge `teste` inteiro |
+
+**Validar na loja após subir:** PDV → Caixa → Saldo (rolar movimentos) · F7/F3 sem rolar lateral · venda normal (fiado/cartão) · **Ctrl+F5**
 
 ### ✅ Auditoria Render teste — pontas soltas (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Crítico** | PDV principal (`/pdv/` · `pdv/views.py`) **sem** `apiPdvOrcamentos` / `usuarioSalvamento` no bootstrap → orçamento PG **não gravava** no wizard (só localStorage) |
-| **Fix PDV** | Bootstrap completo + `@ensure_csrf_cookie` · JS: GMORC não busca produto · F6 sync PG antes do modal · alerta se POST falhar |
-| **Fix entregas** | `fiado_aguarda_envio_erp()` (faltava `()`) · `venda_id` no registrar entrega pós-venda · fallback server `pedido_entrega_pendente_id` |
-| **Caixa scroll** | OK — overlay + `.caixa-panel-scroll` nas subtelas auditadas |
-| **Git teste** | commit auditoria · **v6.29** |
+| **Crítico (só teste/orç PG)** | PDV `/pdv/` sem `apiPdvOrcamentos` no bootstrap → corrigido **v6.29** · **não levar na loja** se ficar só localStorage |
+| **Fix PDV teste** | GMORC · F6 sync · alerta se POST falhar |
+| **Fix entregas (mal nomeado antes)** | **Não é ERP.** Bug `()` num método **legado** + entrega pós-venda sem **número da venda Agro** → coluna Pagamento errada. Rótulos «ERP pendente» **removidos** da tela entregas |
+| **Caixa scroll** | OK |
+| **Git teste** | **`0b7fa2c`** · **v6.29** |
 
 ### ✅ Deploy loja **v5.76** — fix baixa parcial CP Salários (01/07)
 
