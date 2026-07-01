@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
 | **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
 | **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · script **`scripts/criar_atalhos_sistvale.ps1`** (ver abaixo) |
-| **PDV UX 30/06** | **Sair** removido · **Início** → foca app **Gestão** (espelho do botão PDV) |
+| **PDV UX 30/06** | **Sair** removido · **Início** → foca app **Gestão** · **`a63bb21`** teste **v5.83** |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 
@@ -1174,7 +1174,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Loja** | Acrescente: `-BaseUrl "https://DOMINIO-DA-LOJA"` |
 | **Teste** | Sem `-BaseUrl` → usa staging `agro-consulta-staging.onrender.com` |
 | **Resultado** | 2 ícones na **Área de trabalho**: **SisVale PDV** + **SisVale Gestão** |
-| **Erro comum** | Script bloqueado → use **`-ExecutionPolicy Bypass`** (passo 3) · Chrome não instalado → instalar Chrome |
+| **Erro comum** | Script bloqueado → **`-ExecutionPolicy Bypass`** · caracteres especiais no `.ps1` antigo quebrava (corrigido **v5.83**) |
 
 
 ### 🧪 PIN — quando pede (Renan · teste)
