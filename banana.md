@@ -1,4 +1,4 @@
-# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
@@ -50,7 +50,7 @@
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
 | **Branch dia a dia**         | `**teste`** (= staging Render; ver §3) · `**producao**` = loja · merge só quando Renan pedir                                                                         |
 | **Tela inicial**             | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
-| **Regra de ouro**            | Operador usa **saldo do Agro**; dados do dia em **Postgres**; Mongo = espelho legado **ainda em algumas telas** (§4.15) |
+| **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
 | **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
@@ -588,18 +588,13 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
-- **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
-- **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
-- **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** no confirmar · grava nome do operador do PIN.
-- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) · filtro jun/2026 + plano **Adiantamento…** + **Todos** = correto · **Render teste** PG **≠** loja — sem vales de jun/2026 no staging → **0 registros** é esperado · conferir na **produção** (ou lançar 1 vale teste no RH staging).
-- **PIN único (01/07):** online + **1234** só para **1ª vez** (cadastro no servidor) · **produção** quando Renan subir (teste sem operadores cadastrados).
+- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
 
 ### 4.12 RH
 
 - `/rh/` — folha, vales, ficha.
 - Ajuda longa em `rh/templates/rh/includes/rh_help_agents.html` (espelho AGENTS.md §9).
-- Vale com financeiro = baixa parcial no título de salário do mês.
-- **Caixa / ficha (vale integrado):** cria competência se faltar, **reabre** folha fechada e **gera título** automaticamente (vencimento = último dia do mês · conta placeholder · forma em branco) — operador não precisa abrir folha manualmente todo mês.
+- Vale com financeiro = baixa parcial no título de salário do mês (precisa folha fechada com título).
 - Cancelar vale: motivo mín. 3 chars; recalcula folhas abertas.
 
 ### 4.13 Electron (desktop) — opcional; Renan não usa
@@ -1147,224 +1142,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.36** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.37** · **loja v5.98** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
 
-### 📋 Pendente enviar para **produção** (01/07 — só teste hoje)
-
-**Loja:** badge **v5.76** · **teste:** **v6.35** · **~40 commits** à frente — **não** fazer merge inteiro; cherry **pacote a pacote** + frase + senha **`99738595`**.
-
-| Prioridade | Pacote | O quê | Cherry / commits teste | Migration? | Nota Renan |
-| ---------- | ------ | ----- | ---------------------- | ---------- | ---------- |
-| **1** | **PDV + caixa** | Scroll overlay caixa · **F7/F3** lado a lado · card orçamento 3 linhas + «Salvar» (**localStorage**) | **`0094190`** + trechos **`2a3ef12`** / **`a3655db`** / **`39bcbe0`** / overlay **`1222be1`** · **`c1f9970`** | **Não** levar **`0048`** | Orçamento **PG/multi-PC fora** · validar: Caixa→Saldo rola · F7/F3 visíveis |
-| **2** | **Retiradas caixa** | Excel ↓ · colunas **`-`** (sem ÔÇö) · operador histórico | **`55c55bc`** → **`53528e9`** → **`6b1ff34`** → **`e7829b6`** | Não | Banana § «Retiradas hífen + Excel» · alvo **v5.67+** |
-| **3** | **RH (resto)** | Ficha limpa · **Abrir folha** na ficha · cancelar pagamento duplicado (admin) · recalcular **Valor pago** · **vale no caixa abre folha + título** | **`8103e01`** · **`e3db755`** · **`0c1d261`** · **`d44bfbe`** · **`818ab7c`** | Conferir **`rh.0005`** se ainda não na loja | **v5.76** já subiu só **CP parcial sync** (`7593664`) |
-| **4** | **Entregas** (opcional) | Coluna Pagamento «Pago» pós-venda · sem rótulos ERP | **`0b7fa2c`** + **`ef94aef`** | Não | Separado do pacote PDV |
-| **—** | **Só teste** | Orçamentos **Postgres** (`0048` + API) · auditoria GMORC bootstrap | **`2a3ef12`** completo · **`0b7fa2c`** (parte orç) | **`0048`** | Renan: **não bloqueia** loja |
-| **—** | **Só teste** | PIN descanso · 2 janelas · overlay 95% FL-048 | **`135e785`** · **`0dbd799`** · **`9896a90`** … | — | Fora dos pacotes 1–2 |
-
-**Já na loja (não repetir):** Entrada NF busca leve **`f1453c3`** · vales RH em retiradas (jun/2026 OK) · hotfix migrate **`a138625`** · pagamento salário base **`61e19c2`** · fechamento UX · **v5.76** CP parcial.
-
-**Próximo passo sugerido (loja fechada):** pacote **1** (PDV+caixa) → validar → pacote **2** (retiradas) se quiser Excel.
-
-### ✅ RH — vale no caixa abre folha + título automático (01/07 · **só teste** · pacote 3)
+### ✅ Deploy loja **v5.77–v5.98** — pacotes 1–4 cherry (01/07 noite)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commit** | **`818ab7c`** |
-| **O quê** | Saída caixa **Adiantamento (Vale)** e vale na ficha: **cria/reabre** competência · **gera título** se faltar |
-| **Validar** | Queila jul/2026: caixa → plano Adiantamento → vale **sem** abrir folha manual no RH antes |
+| **Autorização** | Renan — *pode mandar tudo para produção* (loja fechada); **sem** merge `teste` inteiro |
+| **Rollback** | Tag **`producao-rollback-v5.76-20260701`** @ **`7593664`** (HEAD anterior) |
+| **Git produção** | **`8328bae`** @ `producao` · features **`594c1cd`** |
+| **Pacote 1** | Caixa overlay 2 apps, PDV lateral F7/F3 (**sem** migração **0048** orçamentos PG) |
+| **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
+| **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
+| **Pacote 4** | Entregas pós-venda `venda_id` + fiado; painel sem rótulos ERP |
+| **Excluído teste** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** |
+| **Migrate** | **Sem** 0048; `makemigrations --check` ainda aponta drift **base/estoque** (pré-existente — não gerado neste deploy) |
+| **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
+**Validar ao voltar (checklist curto):** Ctrl+F5 · **Caixa** overlay Menu/scroll · **PDV** F7/F3 lateral · **Retiradas** Excel + lista jun/2026 · **RH** ficha + fechamento Igualar CP · **Entregas** pós-venda fiado · orçamentos PG **não** subiram (comportamento legado).
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan — não abrir folha manualmente todo mês antes do vale |
-| **O quê** | Saída caixa **Adiantamento (Vale)** e vale na ficha com financeiro: **cria** competência · **reabre** Fechado/Pago · **gera título** se faltar |
-| **Título auto** | Vencimento = último dia do mês (ou o já salvo na folha) · conta **ADICIONAR BANCO** (placeholder) · forma em branco |
-| **Bloqueio** | Só se **salário R$ 0** na ficha (sem faixa vigente) |
-| **Arquivos** | `rh/services/fechamento.py` · `rh/services/salario_financeiro_mongo.py` · `rh/views.py` (Abrir folha mês) |
-| **Validar** | Queila jul/2026: caixa → plano Adiantamento → vale sem passar pelo RH antes |
-
-### Renan — desvinculação: o que é o quê (01/07)
-
-**Dois cortes diferentes** (não confundir):
-
-| Corte | Significado | Loja hoje |
-| ----- | ----------- | --------- |
-| **1 — API ERP** | SisVale **não manda** baixa/lançamento/cadastro pro sistema antigo (WL) | **✅ Feito** |
-| **2 — Parar de ler Mongo** | Cada tela passa a usar **Postgres Agro** em vez da coleção espelho (`DtoProduto`, `DtoLancamento`…) | **~85 %** · checklist §4.15 |
-
-**Mongo ≠ ERP.** Mongo era o **armário espelho** (cópia do que o ERP mandava). Cortar a API **não apaga** esse armário — o código ainda abre algumas gavetas até migrar tudo pro Postgres.
-
-**Conferir na loja (1 clique):** abrir **`/api/agro/fonte-status/`** — ver `financeiro_postgres`, `catalogo_postgres`, `gestao_somente_postgres`, `financeiro_erp_sync` (deve ser **false**).
-
-#### Já **não depende** de Mongo no dia a dia (loja com flags atuais)
-
-PDV venda · caixa · fiado · clientes · NFC-e · vendas · catálogo/preço PDV · CP/CR (lista, pagar, nova saída, editar) · Compras métricas · Entrada NF passo 7 · saldo operacional (ledger).
-
-#### Ainda **lê ou grava** Mongo (operacional — o que falta migrar)
-
-| Onde | Para quê |
-| ---- | -------- |
-| **RH folha → Salários CP** | Título do mês ainda nasce/atualiza em **`DtoLancamento`** (com espelho PG) — v5.76 CP parcial |
-| **Lançamentos · calendário fluxo** | Grade mensal ainda agrega **Mongo** |
-| **Lançamentos · log «?» de um título** | Auditoria campo a campo no **Mongo** |
-| **BI `/`** (modo híbrido) | Cruza **`DtoVenda`** antigo pra não contar venda duas vezes |
-| **Transferências / validade** | Sync profundo ainda no espelho |
-| **Relacionamento cliente · histórico ERP** | Leitura **`DtoVenda`** |
-| **Cron saúde estoque** | Ping leve no Mongo (não é venda) |
-| **Comandos import/backup** | Só admin/shell — não é balcão |
-
-**Pacote caixa + F7/F3:** **não mexe** em nada disso.
-
-#### Dessas pendências Mongo — **o que afeta o PDV?** (01/07)
-
-| Item da lista | Afeta PDV? |
-| ------------- | ---------- |
-| RH folha → Salários CP | **Não** — só RH / contas a pagar |
-| Lançamentos calendário / log | **Não** |
-| BI `/` | **Não** — outra tela |
-| Transferências / validade | **Não** no fluxo venda (busca · carrinho · pagar · cupom) |
-| Histórico relacionamento **F8** | **Quase não** — vendas **antigas** já **importadas pro Postgres**; PDV **não** abre Mongo ao vivo no F8 |
-| Cron saúde estoque | **Não** no balcão (só monitoramento) |
-
-**Fluxo normal PDV na loja (hoje):** busca produto · preço · estoque · cliente · fiado · confirmar venda · NFC-e → **Postgres Agro** (`AGRO_PDV_VENDA_SEM_MONGO_ERP` ligado · catálogo `agro_pg`). **Mongo cair não trava venda.**
-
-**Único resquício legado (invisível pro operador):** após confirmar, pode rodar thread antiga «envio ERP» em segundo plano — **não bloqueia** cupom; **não** é leitura Mongo na tela. Nome de rota/API antigo.
-
-
-| ------- | ----- | ----- |
-| **✅ SIM** | Caixa overlay scroll — `caixa_viewport_shell.html` + `.caixa-panel-scroll` nas subtelas | Baixo · só layout iframe PDV |
-| **✅ SIM** | F7/F3 lado a lado — `step_produtos.html` + CSS `pdv_wizard.html` | Baixo · botões visíveis no zoom |
-| **✅ SIM** (opcional) | Card orçamentos 3 clicáveis + «Salvar orçamento» lateral — **só localStorage** (JS/HTML do commit `0094190` / templates) | Baixo se **não** levar PG |
-| **❌ NÃO** | Migration **`0048`** · modelo `OrcamentoPdvAgro` · API `/api/pdv/orcamentos/` · bootstrap `apiPdvOrcamentos` | Renan: orçamento **não bloqueia** subida |
-| **⚠️ separado** | Fix entrega **venda_id** pós-venda (coluna Pagamento «Pago») — **Postgres Agro**, **zero API ERP** | Cherry isolado se quiser |
-| **Loja hoje** | **v5.76** · cherry **pacote a pacote** — **não** merge `teste` inteiro |
-
-**Validar na loja após subir:** PDV → Caixa → Saldo (rolar movimentos) · F7/F3 sem rolar lateral · venda normal (fiado/cartão) · **Ctrl+F5**
-
-### ✅ Auditoria Render teste — pontas soltas (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Crítico (só teste/orç PG)** | PDV `/pdv/` sem `apiPdvOrcamentos` no bootstrap → corrigido **v6.29** · **não levar na loja** se ficar só localStorage |
-| **Fix PDV teste** | GMORC · F6 sync · alerta se POST falhar |
-| **Fix entregas (mal nomeado antes)** | **Não é ERP.** Bug `()` num método **legado** + entrega pós-venda sem **número da venda Agro** → coluna Pagamento errada. Rótulos «ERP pendente» **removidos** da tela entregas |
-| **Caixa scroll** | OK |
-| **Git teste** | **`0b7fa2c`** · **v6.29** |
-
-### ✅ Deploy loja **v5.76** — fix baixa parcial CP Salários (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Autorização** | Renan · produção + senha **`99738595`** · cherry **isolado** **`d656175`** → **`7593664`** |
-| **Pacote** | Só fix sync folha RH (pagamentos por **fechamento**, não data no mês) + hook Mongo parcial |
-| **Fora** | Ficha layout · botão abrir folha · PDV/orçamentos · etc. |
-| **Validar** | CP Salários parcial (data fora do mês da folha) · Pago persiste · card RH **Valor pago** |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
-
-### 🧹 RH — limpar pagamentos Salários duplicados (tentativas CP parcial)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Várias linhas «Pagamento salário (CP parcial)» na folha · log CP com vários «Agro parc. R$ 72,75» + R$ 1 · Pago inflado |
-| **Causa** | Bug v5.75: cada tentativa gravou `PagamentoSalarioFuncionario` no RH; sync antigo não mantinha CP mas **registros RH ficaram** |
-| **Correto (ex. Zuleide jun/26)** | **1× R$ 72,75** pagamento salário + vales R$ 585 → **Pago CP = R$ 657,75** |
-| **Loja hoje (v5.76)** | **Admin Django** → *Pagamentos de salário* → filtrar funcionário + jun/2026 → marcar duplicatas → ação **«Cancelar selecionados e sincronizar CP»** (só **teste** até cherry admin) |
-| **Loja agora (shell Render)** | **Um comando por vez** abaixo — no `python manage.py shell`, **Enter sozinho** só fecha blocos `for`/`if` (não cole vários passos juntos) |
-| **Log CP** | Linhas «Agro parc.» antigas podem ficar no **Log** (histórico); **Pago/Saldo** vêm do sync — conferir número, não contar linhas do log |
-
-**Render — Zuleide jun/26 (v5.76) — passo a passo**
-
-Abrir: `cd ~/project/src` → `python manage.py shell`
-
-**Passo A — imports (1× por sessão)**
-```python
-from django.utils import timezone
-from rh.models import FechamentoFolhaSimplificado, PagamentoSalarioFuncionario
-from rh.services.fechamento import recalcular_fechamento
-from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
-```
-
-**Passo B — achar folha**
-```python
-fech = FechamentoFolhaSimplificado.objects.filter(funcionario__nome_cache__icontains="Zuleide", competencia__year=2026, competencia__month=6).first()
-fech.pk
-```
-
-**Passo C — conferir pagamentos (esperado: 4 linhas, todos cancelado=False)**
-```python
-list(PagamentoSalarioFuncionario.objects.filter(fechamento=fech, tipo_origem="CP_PARCIAL").order_by("pk").values_list("pk", "valor", "cancelado"))
-```
-
-**Passo D — cancelar duplicatas (ficar só pk **6** = R$ 72,75)**
-```python
-PagamentoSalarioFuncionario.objects.filter(pk__in=[3, 4, 5]).update(cancelado=True, cancelado_em=timezone.now(), motivo_cancelamento="Tentativa duplicada bug CP parcial jun/26")
-```
-
-**Passo E — conferir de novo (só pk 6 com cancelado=False)**
-```python
-list(PagamentoSalarioFuncionario.objects.filter(fechamento=fech, tipo_origem="CP_PARCIAL").values_list("pk", "valor", "cancelado"))
-```
-
-**Passo F — recalcular folha**
-```python
-recalcular_fechamento(fech)
-```
-
-**Passo G — sync CP**
-```python
-sincronizar_valores_titulo_salario_mongo(fech)
-```
-
-**Passo H — Ctrl+F5** no CP · Pago ≈ **R$ 657,75** (585 vales + 72,75)
-
-**Se card RH = R$ 219,25 e CP Pago = R$ 804,25** (cancelou ok mas sync manteve total antigo):
-
-**Passo I — card RH (valor pago controle)**
-```python
-from rh.services.pagamento_salario import restaurar_valor_pago_controle_fechamento
-restaurar_valor_pago_controle_fechamento(fech)
-fech.refresh_from_db()
-fech.valor_pago
-```
-Esperado: `Decimal('72.75')`
-
-**Passo J — CP (forçar Pago correto no Mongo)**
-```python
-from rh.services.fechamento import total_vales_mes
-from rh.services.pagamento_salario import total_pagamentos_salario_fechamento
-from rh.services.salario_financeiro_mongo import bruto_titulo_salario, _aplicar_totais_no_documento_mongo
-from produtos.views import obter_conexao_mongo
-bruto = bruto_titulo_salario(fech)
-vp = total_vales_mes(fech.funcionario, 2026, 6) + total_pagamentos_salario_fechamento(fech)
-_, db = obter_conexao_mongo()
-_aplicar_totais_no_documento_mongo(db, fech.mongo_lancamento_salario_id.strip(), saida=float(bruto), valor_pago=float(vp), data_vencimento=fech.data_vencimento_pagamento)
-```
-Esperado: `{'ok': True}` · CP Pago **657,75**
-
-**Passo K — Ctrl+F5** CP + folha RH
-
-*Fix código teste v6.27+: `recalcular_fechamento` atualiza `valor_pago`; sync não preserva Mongo inflado.*
-
-**✅ Validado loja (Renan · 01/07)** — Zuleide jun/26 após passos D–K: RH **Valor pago R$ 72,75** · CP **Pago R$ 657,75** · Saldo **R$ 1.195,25**
-
-### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Renan — parcial R$ 1 Zuleide jun/26 · alerta OK · Pago CP e card RH não sobem · log «sync folha RH» |
-| **Causa** | Sync somava `PagamentoSalario` só pela **data no mês da competência**; baixa com data **01/07** em folha **06/2026** → sync **revertia** ValorPago para só vales |
-| **Fix** | `total_pagamentos_salario_fechamento` (FK fechamento) · itens folha · hook RH também no caminho Mongo parcial |
-| **Validar** | CP parcial Salários com data fora do mês da folha · card **Valor pago** RH · Pago CP persistem após F5 |
-
-### 🧪 RH ficha — layout limpo padrão fechamento (01/07 · teste)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan — mesmo padrão da tela de fechamento; textos longos só no **?** |
-| **O quê** | `funcionario_ficha.html` refeita · cartões + **?** · seções 1–3 com ajuda no canto · atalhos compactos |
-| **Ajuda** | `ficha_cards_legenda` · `ficha_conferencia` · `ficha_fechamentos` em `rh_help_agents.html` |
-| **Loja** | Pendente cherry com pacote quando Renan autorizar |
 
 ### 🐛 RH ficha — botão «Abrir folha» sumia (01/07 · teste)
 
@@ -1380,317 +1176,56 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | Renan · produção + senha **`99738595`** · cherry **`54aaa32`** · **`a10faa1`** · **`b825230`** → **`a43189a`** |
-| **Pacote** | Lista todos status · tela limpa (**?**) · **Reabrir** mantém Pago · perf detalhe |
-| **Fora** | PDV orçamentos · caixa overlay · etc. |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
-
-### ✅ Loja v5.72 — validação RH pagamento salário (Renan · 01/07)
-
-| # | Teste | Resultado |
-|---|--------|-----------|
-| **1** | Igualar → CP | **OK** · **Reabrir** zerava Pago card/lista (CP ok) → **fix teste** |
-| **2** | Parcial CP → Igualar não apaga | **OK** |
-| **3** | Caixa Salários | **OK** (R$ 0,75 Renan) |
-
-| Fix teste | Detalhe |
-| --------- | ------- |
-| **Reabrir** | Restaura **valor pago** dos pagamentos RH; zera só se era **Marcar pago** manual |
-| **Perf leve** | Detalhe folha não recalcula tudo a cada F5 |
-| **P3** | Lentidão Igualar/lista (Mongo formas + sync) — fila se persistir |
-
-### 🧪 Deploy teste — orçamentos PG + F7/F3 lateral (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan · *manda pra teste* |
-| **Git teste** | **`2a3ef12`** · push **`teste`** · **v6.16** |
-| **Pacote** | Orçamentos **Postgres** (`0048` + API) · F7/F3 lado a lado · sync multi-PC |
-| **Validar** | Ctrl+F5 · salvar orçamento · outro PC mesmo cliente · bip GMORC · Salvar orçamento visível no zoom normal |
-
-### 🧪 RH fechamento — tela limpa + ajuda no «?» (01/07 · só teste)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan · padrão UX loja — sem textos longos na tela |
-| **O quê** | `fechamento_detalhe.html` · blocos Legenda/caixas azuis removidos · **?** compacto no canto de cada seção |
-| **Ajuda** | Textos (passos 1–3, competência fechada, exclusão bloqueada) em `rh_help_agents.html` |
-| **Produção** | **Não subir** sem frase + senha |
-
-### ✅ Loja v5.72 — teste RH pagamento salário (Renan · 01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan · *banana manda para teste* |
-| **Git teste** | **`0094190`** (feat) · **`7f67b36`** (checkpoint) · push **`teste`** |
-| **Pacote** | (1) Caixa overlay: scroll 9 subtelas (`caixa_viewport_shell.html` + `.caixa-panel-scroll`) · (2) PDV card orçamentos: 3 recentes clicáveis · Ver mais só antigos |
-| **Validar** | Ctrl+F5 · PDV → Caixa → Saldo (rolar movimentos) · card orçamento 3 linhas + clique reabre |
-
-### 🐛 Caixa overlay PDV — scroll subtelas (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Iframe PDV (~95%): **Saldo caixa** cortava «Movimentos manuais recentes» sem rolagem |
-| **Causa** | `body` com `100dvh` > altura do iframe + `overflow-hidden` |
-| **Fix** | Overlay usa `height:100%` · `.caixa-panel-scroll` em menu, saldo, todos, reforço, retirada, relatório, conferências, abrir, fechar, saída |
+| **Autorização** | Renan · produção + senha **`99738595`** · cherry **isolado** **`54aaa32`** · **`a10faa1`** · **`b825230`** (**sem** PDV/orçamentos/caixa overlay) |
+| **Pacote** | Lista fechamentos **todos status** · tela fechamento **limpa** (ajuda no **?**) · **Reabrir** mantém valor pago · detalhe sem recalc a cada F5 |
+| **Validado loja** | Igualar CP · parcial CP · caixa Salários · Reabrir (bug Pago sumindo) |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** RH fechamento |
 
 ### ✅ Deploy loja **v5.71–v5.72** — hotfix migrate RH 0005 (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Problema** | Deploy **`61e19c2`** (v5.70) falhou no **migrate** — `rh.0005` dependia de `base.0010` (só existia no teste, drift makemigrations) |
-| **Fix** | Dependência → **`base.0009`** · **`9738f0e`** teste · **`a138625`** produção |
+| **Problema** | Deploy **`61e19c2`** (v5.70) falhou no **migrate** — `rh.0005` apontava `base.0010` inexistente na loja |
+| **Fix** | Dependência → **`base.0009`** · **`a138625`** produção |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
-
-### 🧪 PDV — lateral F7/F3 lado a lado (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Com zoom/escala, **Salvar orçamento** sumia na rolagem lateral |
-| **Fix** | **Pagamento F7** e **Entrega F3** em **2 colunas** no dock do subtotal — ganha altura para orçamentos + salvar |
-| **Arquivos** | `partials/pdv/step_produtos.html` · `pdv_wizard.html` (CSS) |
-
-### 🧪 PDV — orçamentos no Postgres (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Orçamentos salvos **no PG** — mesmo cliente em **qualquer PC** (não só localStorage) |
-| **Modelo** | `OrcamentoPdvAgro` · migration **`0048`** · código **GMORC** + `cliente_key` |
-| **API** | `GET/POST /api/pdv/orcamentos/` · `GET /api/pdv/orcamentos/<id>/` |
-| **Front** | `pdv_wizard.js` sync ao trocar cliente · salvar POST · reabrir/GMORC busca no servidor · espelho `consulta_produtos.js` |
-| **Validar** | Salvar orçamento PC A · trocar PC B · mesmo cliente → card + Ver mais · bip GMORC |
-| **Produção (Renan · 01/07)** | **Sem preocupação** com orçamento na subida — histórico só-local / multi-PC **não bloqueia** pacote loja |
-
-### 🧪 PDV — card orçamentos (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Card lateral: **3 mais recentes** · data **DD/MM/YY** à esquerda · valor à direita · separador tracejado · **clique na linha reabre** |
-| **Ver mais / F6** | Só orçamentos **além dos 3** (mais antigos); botão oculto se ≤3 · modal «Orçamentos anteriores» |
-| **Arquivos** | `pdv_wizard.js` · `partials/pdv/step_produtos.html` · `pdv_wizard.html` (modal) |
-| **Validar** | Salvar 4+ orçamentos mesmo cliente · card clicável · Ver mais só o 4º em diante · F6 com ≤3 = aviso no modal |
 
 ### ✅ Deploy loja **v5.70** — RH pagamento salário CP + caixa (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | Renan · banana manda produção + senha **`99738595`** · cherry **isolado** **`5434de0`** → **`61e19c2`** (**sem** PDV/outros do teste) |
+| **Autorização** | Renan · *banana manda produção* + senha **`99738595`** · cherry **isolado** **`5434de0`** (**sem** PDV/outros do teste) |
+| **Git produção** | Cherry-pick **`5434de0`** → **`producao`** |
 | **O quê** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
-| **Migrate** | **`0005_pagamento_salario_funcionario`** |
+| **Migrate** | **`0005_pagamento_salario_funcionario`** — Render roda no deploy |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · baixa CP → «Igualar» **não apaga** · caixa plano **Salários** |
 
-### ✅ Loja v5.72 — teste RH pagamento salário (Renan · 01/07)
+### ✅ Deploy loja **v5.67–v5.68** — RH folha espelha CP Postgres (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Teste 3 (caixa)** | Saída caixa plano **Salários** · **Renan Hinnen** · **R$ 0,75** · jun/2026 |
-| **RH** | Item «Pagamento salário (Caixa)» · **Pago parcial** · controle **R$ 0,75** |
-| **CP** | Baixa refletida — **OK** |
-| **Pendente teste** | Testes 1–2 (Igualar + parcial CP) · filtro lista fechamentos (**só teste**) |
+| **Autorização** | Renan · cherry-pick isolado + senha **`99738595`** |
+| **Git produção** | **`77bbd14`** — cherry-pick **`ce775c2`** (2 arquivos: espelho Mongo→PG após sync folha) |
+| **O quê** | «Igualar ao que está na folha» / «Criar ou atualizar» passa a refletir vales e descontos no CP |
+| **Risco** | **Baixo** — só 1 linha PG do título sincronizado; não apaga outros lançamentos |
+| **Pós-deploy** | Render ~2–5 min · Geraldo jun/2026: passo 1 Salvar e recalcular → passo 2 Igualar → **Ctrl+F5** CP |
 
-### 🧪 RH fechamentos — filtro status padrão «todos» (01/07 · só teste)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Lista abria filtrada **Aberto** — **Pago parcial** (ex. Renan após caixa) sumia |
-| **Causa** | Link «Listar» do card «Fechamentos abertos» ia com `?status=ABERTO` |
-| **Fix** | Aba **Fechamentos** / «Ver todos» = **todos os status** · «Só abertos» opcional · opção **Pago parcial** no select |
-| **Produção** | **Não subir** sem frase + senha Renan |
-
-### 🐛 RH folha → CP desatualizado (01/07 — fix v5.67–68 loja)
+### ✅ Deploy loja **v5.66** — hotfix retiradas Adiantamento (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Fechamento RH mostra vales/descontos certos; CP (Lançamentos) não muda ao clicar «Criar ou atualizar» / «Igualar ao que está na folha» |
-| **Causa** | Loja já **lê CP no Postgres**; sync da folha RH só gravava no **Mongo** (cópia PG ficava velha) |
-| **Fix** | Espelho Mongo→PG após sync folha (**v5.67–68**) + pagamento salário integrado (**v5.70**) |
-| **Dinheiro/Caixa 1** | Vales do **caixa** puxam forma/banco da baixa parcial — não é bug; padrão «ADICIONAR CONTA» vale só na **criação** do título |
+| **Problema** | `/caixa/retiradas/` jun/2026 + plano **Adiantamento** → **500** (v5.65) |
+| **Causa** | Cherry-pick vales perdeu `_op_exib` no merge — só quebrava ao listar **ValeFuncionario** |
+| **Fix** | Helpers inline em `caixa_retiradas_util.py` · **`1c46fc7`** cherry-pick **`producao`** |
+| **Validar** | Ctrl+F5 · mesmo filtro · lista vales jun/2026 |
 
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan · *enviar para produção* + senha **`99738595`** · cherry-pick isolado (**sem** merge `teste`) |
-| **Git produção** | **`de825f3`** (vales `2207fd6`) · **`f1453c3`** (NF `db18bd7`) · push **`producao`** |
-| **Pacote** | (1) `/caixa/retiradas/` — vales adiantamento + filtro plano · (2) `/entrada-nota/` passo 2 — busca leve Postgres |
-| **Fora do pacote** | PIN, layout 2 janelas, overlay PDV, Excel retiradas |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · NF passo 2 + retiradas jun/2026 filtro Adiantamento |
-| **Regra produção** | Assistente **não** push `producao` sem frase + senha **`99738595`** na mesma msg (hotfix v5.66 foi exceção errada — Renan OK deixar) |
-| **Retiradas loja v5.66** | Vales jun/2026 OK · colunas **ÔÇö** = travessão UTF-8 quebrado → fix **`-`** ASCII · **Excel nunca esteve na loja** (só teste) |
-
-### 📦 Pacote loja **pendente autorização** — Retiradas hífen + Excel (01/07)
-
-**Status:** montado · **aguardando** Renan (*pode subir para produção* + senha **`99738595`** na mesma msg) · **não push** até lá.
-
-| # | Commit teste | O quê | Arquivos principais |
-| - | ------------ | ----- | ------------------- |
-| **1** | **`55c55bc`** | Excel ↓ retiradas — modal filtros/colunas + API | `caixa_retiradas_export_util.py` · `caixa_retiradas_export.js` · `caixa_retiradas_historico.html` · `urls.py` · `views.py` |
-| **2** | **`53528e9`** | Fix modal Excel (script `CRH_EXPORT` antes do JS) | `caixa_retiradas_historico.html` · `caixa_retiradas_export.js` |
-| **3** | **`6b1ff34`** | Operador sem `admin@agro.com` (+ helpers em `caixa_util`) | `caixa_util.py` · `caixa_retiradas_util.py` · `views.py` · comando `normalizar_operador_retiradas_historico` |
-| **4** | **`e7829b6`** | Colunas vazias **`-`** (sem ÔÇö) — **por último** | `caixa_retiradas_util.py` · template · `export_util.py` |
-
-**Ordem cherry-pick:** `55c55bc` → `53528e9` → `6b1ff34` → `e7829b6` · conflitos esperados: `VERSION` / `banana.md` / `caixa_retiradas_util.py` (resolver mantendo vales v5.66 + pacote acima).
-
-**Versão loja alvo:** **v5.67+** (4 cherry-picks).
-
-**Fora deste pacote (continua só teste):** PIN · 2 janelas FL-046/047 · overlay PDV FL-048 · NF busca e vales **já na loja** (v5.65–66).
-
-**Validar após deploy loja:**
-
-| # | Tela | Ação |
-| - | ---- | ---- |
-| 1 | Retiradas · jun/2026 · **Adiantamento** | Forma = **`-`** (não ÔÇö) · vales listam |
-| 2 | Retiradas · jun/2026 · **Todos** | Depósito: Quem = **`-`** · demais com nome |
-| 3 | Retiradas | Botão **Excel ↓** · modal abre · baixa planilha |
-| 4 | BI | Badge **v5.67+** · Ctrl+F5 |
-
-**Opcional pós-deploy (shell loja, 1×):** `python manage.py normalizar_operador_retiradas_historico` — corrige `admin@agro.com` no histórico antigo.
-
-### 🔴 Prioridade Renan (30/06) — Entrada NF busca etapa 2 **antes** de vales loja
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Ordem** | **✅ loja v5.65** — NF + vales subidos · teste continua à frente (PIN, layout…) |
-| **Por que ainda Mongo?** | Desvinculação **não** = «zero Mongo». Catálogo **já Postgres** (`agro_pg`); **Entrada NF reutilizava `/api/buscar/` do PDV** — complemento Mongo + estoque/médias/pedidos transferência **a cada tecla**. Loja: `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=false` (merge PG+Mongo no PDV). Rascunho NF **PG** ≠ busca produto. |
-| **Fix teste** | **`db18bd7`** · **`2207fd6`** — **✅ loja cherry-pick 01/07** |
-| **Git** | teste **`db18bd7`** · loja **`f1453c3`** · Renan validou staging OK |
-| **Validar** | Staging `/entrada-nota/` passo 2 · digitar nome/código · rede: `?entrada_nfe=1` sem `col_e` Mongo |
-
-### ✅ Renan validou sidebar + botões PDV BI (30/06)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **FL-047** | Ícones na barra recolhida **OK** |
-| **FL-046** | 3 botões PDV no dashboard focam janela PDV **OK** |
-
-### 🧪 Deploy teste — painel balcão + modo app (30/06)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
-| **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
-| **FL-048 fix** | Botao PDV na Gestao abria **Chrome normal** · fix **`75bce98`** teste **v5.85** · sinal entre apps |
-| **PDV UX 30/06** | **Sair** removido · **Início** → Gestão · **Voltar ao PDV** removido do **Caixa** (6 telas) + oculto no painel overlay |
-
-### 🧪 Caixa overlay + Gestão sem botão PDV (30/06)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Gestão (2 apps .lnk)** | Sidebar **PDV** oculta · BI topo/launchpad **PDV** ocultos · **F1** não abre PDV · FAB laranja oculto |
-| **Fix BI topo PDV** | `isGestaoContext()` — BI no iframe (`agro_inapp_embed`) também esconde botão PDV do topo |
-
-### 🧪 PDV — «Orç. salvos» oculto (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Renan** | Tirar botão **Orç. salvos** da barra do PDV por enquanto |
-| **Onde** | `pdv_wizard.html` · `partials/pdv/topbar.html` (MPA consulta) |
-| **Mantido** | **Orçamento F6** (histórico/modal) · sidebar/card orçamentos |
-
-### 🧪 PDV — Salvar orçamento + histórico por cliente (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Renan** | Tirar **Entregas** lateral (fica só no topo) · botão **Salvar orçamento** |
-| **Salvar** | Grava carrinho + cliente em `historicoOrcamentos` (localStorage) |
-| **F6 / Ver mais** | **3 recentes** no card (clique reabre) · **Ver mais/F6** = só orçamentos **mais antigos** (4º em diante) · filtro **cliente atual** |
-| **Reabrir** | Hidrata wizard · código `GMORC…` para busca |
-| **Topo PDV** | Removido botão **Orçamento F6** redundante — histórico só em **Ver mais** (lateral) + tecla **F6** |
-| **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
-| **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
-| **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
-| **Validar** | Ctrl+F5 nos 2 atalhos · PDV → Caixa → Reforço/conferências · barra única · sem FAB PDV |
-| **Git teste** | **`c1f9970`** · v5.96 |
-| **Fix Menu preso** | **`1222be1`** · v6.00 — URL viva do iframe + limpa ao Fechar |
-
-### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
-
-| Passo | O quê |
-| ----- | ----- |
-| **1** | Tecla **Windows** → digite **PowerShell** → Enter |
-| **2** | `cd "C:\Users\RenanHinnen\OneDrive\Documentos\GitHub\agro-consulta"` |
-| **3** | `powershell -ExecutionPolicy Bypass -File .\scripts\criar_atalhos_sistvale.ps1` |
-| **Loja** | Acrescente: `-BaseUrl "https://DOMINIO-DA-LOJA"` |
-| **Teste** | Sem `-BaseUrl` → usa staging `agro-consulta-staging.onrender.com` |
-| **Resultado** | 2 ícones na **Área de trabalho**: **SisVale PDV** + **SisVale Gestão** |
-| **Erro comum** | Script bloqueado → **`-ExecutionPolicy Bypass`** · caracteres especiais no `.ps1` antigo quebrava (corrigido **v5.83**) |
-
-
-### 🧪 PIN — quando pede (Renan · teste)
-
-| Onde | Comportamento |
-| ---- | ------------- |
-| **Home BI `/`, caixa, RH, gestão** | **Não** pede PIN ao abrir — essas telas **não** têm modo descanso |
-| **PDV / consulta / compras…** | PIN só após **~3 min parado** (descanso) ou botão **PIN** na barra |
-| **Lançamentos** | PIN na **1ª entrada** do módulo na **aba** (`sessionStorage`); **F5 na mesma aba não repete** — aba anônima ou «Sair usuário» |
-| **Nova saída / retirada** | PIN só ao **confirmar** a saída (modal), não ao listar histórico |
-| **Render teste** | Código **v5.79** no Git · badge **v5.79** no BI confirma deploy · **sem operadores** no PG teste → PIN válido só após **1234** cadastrar ou RH |
-
-### 🧪 Deploy teste **v5.77** — fix sidebar + FAB + links PDV (30/06)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Feedback Renan** | (1) rail recolhido só faixa colorida · (2) FAB abre PDV **dentro** da gestão · (3) «Consultar vendas» vira 2ª gestão |
-| **Fix 1** | CSS rail **48px**: tabs-bar = largura do rail · botões **40px** centralizados · ícones visíveis |
-| **Fix 2** | `focusPdv` + `postMessage agro-focus-pdv` · FAB e F1 no iframe BI → **foca janela PDV** externa |
-| **Fix 3** | Clique em link gestão no host PDV → `navigateGestao` (ex. `/vendas/` na janela gestão) |
-| **Git** | **`9eb3bf1`** + **`1ceb387`** push **`teste`** (VERSION **5.77**) |
-| **Validar** | Ctrl+F5 · 2 janelas Chrome · sidebar recolhida · FAB laranja · «Consultar vendas» no PDV |
-
-### 🧪 Deploy teste **v5.74** — 2 janelas + sidebar ícones (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Git** | **`0dbd799`** push **`teste`** (hook VERSION **5.74**) |
-| **FL-046** | `agro_dual_window.js` · PDV/gestão janelas nomeadas · tabManager · PDV não abre 2º balcão |
-| **FL-047** | Sidebar **48px** ícones · **›** expande · abas clicáveis sem hover |
-| **Validar** | Ctrl+F5 · abrir **Gestão** (`/` ou BI) + **PDV** (`/pdv/`) em 2 janelas · script atalhos opcional |
-| **Atalhos** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://agro-consulta-staging…` |
-
-### 📋 UX loja — PDV vs gestão em **2 janelas Chrome** (Renan · 01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Idosos abrem **outro Chrome** em vez de aba · PDV + lançamentos misturados |
-| **Ideia Renan** | **2 atalhos** Windows (ícones distintos) · PDV numa janela · resto noutra · botão PDV traz gestão à frente |
-| **Caminho** | Chrome **`--app=URL`** (2 atalhos) + botões PDV `window.open(..., 'SistValeGestao')` · **sem Electron** |
-| **Electron** | Descartado loja — lento (Renan reconfirmou 01/07) |
-| **Status** | 🧪 **teste v5.77** · FL-046 + FL-047 fixes · aguarda validação Renan |
-| **Atalhos Windows** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://…` |
-| **Regra** | **1 janela PDV + 1 gestão** — botões **nunca** abrem 2º PDV · só **trazem à frente** (`window.open` nome fixo) |
-| **Gestão** | Links «PDV» → foca janela PDV · **Decisão 30/06:** botões do PDV → **painel ~95%** + FECHAR/F1 · BI/menu → janela Gestão · atalhos `agro_app_role=pdv\|gestao` |
-
-### 📋 UX gestão — **sidebar abas com ícones** (Renan · 01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Hoje** | Rail **20px** · abas **invisíveis** até **passar o mouse** |
-| **Pedido** | Recolhida **~48px** (print vermelho) · **só ícone** de cada guia aberta · **clique** troca guia |
-| **Expandir** | Botão **seta** → largura atual (~130–156px) · lê nome · **×** fecha · **+** abre |
-| **Manter** | Abas/iframes (NF + gestão produto ao mesmo tempo) · touch = expandido |
-| **Código** | `_agro_open_external.html` · `agro_dual_window.js` · **FL-047** · **teste v5.72** |
-
-
-### ✅ PIN único — modo descanso + sessão PDV (**teste** · 01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Antes** | Descanso gravava PIN **só neste PC** |
-| **Agora** | PIN **sempre no servidor** · 2 PCs iguais |
-| **1ª vez** | **1234** → modal cadastro → PIN definitivo online |
-| **1234 no dia a dia** | **Não entra** — só abre cadastro |
-| **PIN bootstrap 1234** | Código pronto em **teste** · validar na **produção** (staging sem operadores) |
-| **Retiradas vales** | Código **2207fd6** · filtro OK · **dados só na loja** — teste vazio |
-| **Deploy loja (só vales)** | **Cherry-pick `2207fd6`** em `producao` — **não** merge `teste` inteiro (traz layout FL-046/048, PIN, overlay) · conflito só `VERSION`/`banana` · **1 arquivo** lógica: `caixa_retiradas_util.py` · **PIN: não subir** · Renan: **depois do fechamento** + frase + senha |
-
-### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Commit feature** | `55c55bc` |
-| **Fix modal** | `53528e9` — `CRH_EXPORT` antes do JS |
-| **Fix operador** | `6b1ff34` — sem `admin@agro.com` em saídas novas |
-| **Validar** | Ctrl+F5 `/caixa/retiradas/` → **Excel ↓** abre modal |
+| **Git** | **`de825f3`** (vales) · **`f1453c3`** (NF) · push **`producao`** |
+| **Pacote** | NF passo 2 + vales RH no histórico retiradas |
+| **Incidente** | Filtro Adiantamento 500 — corrigido **v5.66** |
 
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
@@ -1700,15 +1235,7 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 | **Git** | Merge **`teste`→`producao`** **`545aad3`** · fiado **`6875a3a`** + auditoria **`47c20e0`** |
 | **Pacote** | Fiado: gestão/F8 lista títulos por **nome** (igual grade) · comando `fiado_auditar_cadastros_duplicados` |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · Queila: abrir gestão pelo PDV = **todos** títulos · total = lateral **R$ 435,66** |
-| **Validação Renan 01/07** | Queila pelo PDV: **22 títulos · R$ 435,66** ✓ (643/647/666 no fim da lista) |
-| **Shell 30/06** | Renan: **só teste** (provável) — FL-042/sync **não** na loja |
-| **Demais clientes** | Auditoria shell loja **01/07** — ver tabela abaixo |
-| **Auditoria loja 01/07** | 64 com saldo · **56 OK** · **8 afetados** (PDV **antigo**) · ocultos **14 tít. · R$ 1.232,05** · v5.62 corrige visão |
-| **Checklist 8 afetados** | **8/8 ✓** (01/07 Renan) |
-| **Rogerio PDV** | **3 cadastros distintos** — fiado **só** «Rogerio lops Lençol ( Maps Ok )» **2 · R$ 58** · **não unificar** |
-| **Busca PDV** | Renan **01/07:** **sem** coluna fiado — busca é só **cliente da venda** (fiado = lateral/gestão depois de escolher) |
-| **Pendência dados** | Limpeza títulos import (Erlindo etc.) — **não** fundir homônimos · **FL-045** cadastro fiado |
-| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` · `--limite 0` só se passar de 40 linhas |
+| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` |
 
 ### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
 
@@ -1736,10 +1263,6 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 | **Causa** | Cadastros duplicados mesmo nome · filtro só `cliente_agro_id` no atalho PDV |
 | **Fix** | `_q_titulos_cliente_gestao` + F8 `_fiado_resumo` + `fiado_gestao.js` por **nome** |
 | **Queila** | «(não usar mais)» **R$ 410** + «Hinnen a» **R$ 25,60** = **R$ 435,66** |
-| **Renan 01/07** | Fiado «errado» **desde ~30/06** — associa à **tentativa import**; **não** foi só v5.61 |
-| **Causa provável loja** | Deploy **v5.53 (30/06)** trouxe **F8 + aba Fiado** filtrando só `cliente_agro` · cadastros duplicados **já existiam** (sync/planilha fiado) — import **piorou visibilidade**, não apagou título |
-| **FL-042 vendas ERP na loja** | **Não rodou** (`erp-hist-teste-3` só teste) · **não grava** `FiadoTituloAgro` |
-| **Se rodou shell loja 30/06** | `sincronizar_clientes_agro` ou import fiado planilha → **pode** ter criado 2º cadastro Queila — **confirmar** |
 | **Auditoria loja** | `python manage.py fiado_auditar_cadastros_duplicados` · `--json` |
 
 ### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
@@ -1770,7 +1293,7 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 | **Git** | `teste` → **`producao`** fast-forward **`8ff62ca`→`3467ea0`** · push **`producao`** |
 | **Pacote** | F8 perf (histórico paginado · lazy ciclo/cross) · **FL-042** (migration **0047** + comandos import/revert/probe) · alertas aba Resumo/Ciclo **v5.52** · Indisp. catálogo PG/Mongo **v5.51** · fix perf batch Mongo **v5.53** |
 | **Pós-deploy loja** | Aguardar Render ~2–5 min · **Ctrl+F5** PDV · conferir badge **v5.53** · migration **0047** (Render costuma rodar sozinha) |
-| **Import ERP na loja** | **Adiado** (Renan **01/07**) — **FL-042** na fila **P2** · shell loja quando quiser · **não** grava fiado |
+| **Import ERP na loja** | **Não** veio no deploy — dados histórico ERP só no **teste** (`erp-hist-teste-3`). Loja: import manual no shell **só** quando Renan decidir (mesmo fluxo FL-042) |
 
 ### 🟢 Staging perf F8 — resolvido **v5.53** (30/06)
 
@@ -1806,12 +1329,11 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 | **Arquivos** | `relacionamento_cliente_util.py` · `views.py` · `pdv_relacionamento.js` |
 | **Deploy** | **teste v5.48** · commit `bdea194` · push 30/06 |
 
-### Pendências fila — **FL-043** · **FL-044** · **FL-045** (Renan · 30/06–01/07)
+### Pendências fila — **FL-043** · **FL-044** (Renan · 30/06)
 
 | ID | P | Pedido |
 | -- | - | ------ |
 | **FL-043** | **P2,8** | Botão desconto na baixa do fiado |
-| **FL-045** | **P2,81** | Telefone sempre · toggle cliente fiado → CPF + limite obrigatórios |
 | **FL-044** | **P2,9** | Desconto automático funcionário (% pré-definida) — provável junto **FL-001** (preço × forma ou grupo cliente) |
 
 ### FL-042 fix **v5.47** — dry-run deu 0 importáveis (Renan · 30/06)
@@ -2352,12 +1874,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
-| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** + **painel balcão** (~95%) p/ consultas do PDV | 🧪 teste overlay | 30/06 |
-| **FL-047** | **P2** | UX gestão | Sidebar **48px** ícones · **›** expande | **✅ Renan** ícones OK | 30/06 |
-| **FL-048** | **P2** | Atalhos app | **2 ícones barra** · gestão **nunca** abre guia Chrome solta | 🧪 teste `agro_app_role` | 30/06 |
-| **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — import 1× loja · corte ERP **≤26/05** · SisVale **≥27/05** · **só F8** | 📋 **Adiar loja** · teste ok · Renan **01/07** | 30/06 |
+| **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
-| **FL-045** | **P2,81** | Clientes / PDV / Fiado | **Telefone sempre** na loja · toggle **«cliente fiado»** — se ativo: **CPF obrigatório** + **limite fiado** definido | 📋 Pendente | 01/07 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
@@ -2407,12 +1925,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
 | FL-042 | `relacionamento-import-erp-1x` | Mongo DtoVenda 1× → Postgres histórico · merge F8 · **sem** leitura Mongo no PDV · Excel = audit |
 | FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
-| FL-045 | `cliente-fiado-toggle-cpf-limite` | Flag **cliente fiado** no cadastro/PDV · se ativo: **CPF obrigatório** + **limite fiado** · operação: **telefone sempre** |
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
 
 **Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
-
-**Notas FL-045 (01/07):** Renan pós-auditoria fiado — **não** coluna fiado na busca PDV (busca = cliente da venda). **Operação:** intensificar **telefone** no cadastro. **Produto:** marcar quem **pode fiado**; ativo → **CPF + limite** obrigatórios antes de vender a prazo. **P2,81** ( **P2,8** já é **FL-043** ).
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
