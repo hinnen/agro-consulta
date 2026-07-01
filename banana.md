@@ -598,7 +598,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/rh/` — folha, vales, ficha.
 - Ajuda longa em `rh/templates/rh/includes/rh_help_agents.html` (espelho AGENTS.md §9).
-- Vale com financeiro = baixa parcial no título de salário do mês (precisa folha fechada com título).
+- Vale com financeiro = baixa parcial no título de salário do mês.
+- **Caixa / ficha (vale integrado):** cria competência se faltar, **reabre** folha fechada e **gera título** automaticamente (vencimento = último dia do mês · conta placeholder · forma em branco) — operador não precisa abrir folha manualmente todo mês.
 - Cancelar vale: motivo mín. 3 chars; recalcula folhas abertas.
 
 ### 4.13 Electron (desktop) — opcional; Renan não usa
@@ -1146,7 +1147,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.32** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.35** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+
+### ✅ RH — vale no caixa abre folha + título automático (01/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — não abrir folha manualmente todo mês antes do vale |
+| **O quê** | Saída caixa **Adiantamento (Vale)** e vale na ficha com financeiro: **cria** competência · **reabre** Fechado/Pago · **gera título** se faltar |
+| **Título auto** | Vencimento = último dia do mês (ou o já salvo na folha) · conta **ADICIONAR BANCO** (placeholder) · forma em branco |
+| **Bloqueio** | Só se **salário R$ 0** na ficha (sem faixa vigente) |
+| **Arquivos** | `rh/services/fechamento.py` · `rh/services/salario_financeiro_mongo.py` · `rh/views.py` (Abrir folha mês) |
+| **Validar** | Queila jul/2026: caixa → plano Adiantamento → vale sem passar pelo RH antes |
 
 ### Renan — desvinculação: o que é o quê (01/07)
 

@@ -19,13 +19,20 @@ from produtos.mongo_financeiro_util import (
     COL_DTO_LANCAMENTO,
     baixar_lancamento_parcial_mongo,
     inserir_lancamentos_manual_lote,
+    _banco_placeholder_para_select,
     _dt_naive_meia_noite_erp,
 )
 from produtos.views import obter_conexao_mongo
 
 from rh.constants import REF_TIPO_RH_SALARIO_PARCIAL
 from rh.models import FechamentoFolhaSimplificado, Funcionario, ValeFuncionario
-from rh.services.fechamento import primeiro_dia_mes, recalcular_fechamento, total_vales_mes
+from rh.services.fechamento import (
+    garantir_fechamento_operacional,
+    primeiro_dia_mes,
+    recalcular_fechamento,
+    total_vales_mes,
+    ultimo_dia_mes,
+)
 from rh.services.vale_manual_financeiro import _split_id_nome
 from rh.utils import resolver_empresa_por_nome_fantasia, resolver_perfil_rh_para_vale
 
@@ -263,6 +270,66 @@ def _fechamento_para_data_funcionario(funcionario: Funcionario, d: date) -> Fech
     )
 
 
+def garantir_titulo_salario_fechamento(
+    fech: FechamentoFolhaSimplificado,
+    *,
+    usuario,
+) -> dict[str, Any]:
+    """
+    Garante título único de salário no CP para a competência.
+    Usa vencimento já salvo na folha ou último dia do mês; conta placeholder + forma em branco.
+    """
+    mid = (fech.mongo_lancamento_salario_id or "").strip()
+    if mid:
+        return {"ok": True, "id": mid, "criado": False}
+
+    recalcular_fechamento(fech)
+    fech.refresh_from_db()
+    if bruto_titulo_salario(fech) <= 0:
+        return {
+            "ok": False,
+            "erro": (
+                f"Salário R$ 0 na competência {fech.competencia:%m/%Y} — "
+                "cadastre faixa salarial na ficha do funcionário antes do vale."
+            ),
+        }
+
+    dv = fech.data_vencimento_pagamento or ultimo_dia_mes(fech.competencia)
+    ph = _banco_placeholder_para_select()
+    bid = str(ph.get("id") or "").strip()
+    bn = str(ph.get("nome") or "").strip() or "ADICIONAR BANCO"
+    banco_value = f"{bid}|||{bn}"
+    forma_value = "|||"
+
+    r = criar_ou_atualizar_titulo_salario_mongo(
+        fech,
+        usuario=usuario,
+        data_vencimento=dv,
+        forma_value=forma_value,
+        banco_value=banco_value,
+    )
+    fech.refresh_from_db()
+    return r
+
+
+def preparar_fechamento_operacao_caixa(
+    funcionario: Funcionario,
+    data: date,
+    *,
+    usuario,
+) -> tuple[FechamentoFolhaSimplificado | None, str | None]:
+    """
+    Folha aberta na competência + título de salário (cria/reabre/auto-gera).
+    Retorna (fechamento, None) ou (None, mensagem de erro).
+    """
+    fech = garantir_fechamento_operacional(funcionario, data)
+    r = garantir_titulo_salario_fechamento(fech, usuario=usuario)
+    if not r.get("ok"):
+        return None, (r.get("erro") or "Não foi possível preparar o título de salário.")[:500]
+    fech.refresh_from_db()
+    return fech, None
+
+
 def registrar_vale_como_baixa_parcial_salario(
     *,
     funcionario: Funcionario,
@@ -278,21 +345,14 @@ def registrar_vale_como_baixa_parcial_salario(
     Registra vale no RH e aplica baixa parcial no título de salário do mês (Mongo).
     tipo_origem: ValeFuncionario.TipoOrigem.MANUAL ou CAIXAS.
     """
-    from rh.services.fechamento import garantir_fechamento_aberto, recalcular_todos_abertos_funcionario
+    from rh.services.fechamento import recalcular_todos_abertos_funcionario
 
-    garantir_fechamento_aberto(funcionario, data)
-    fech = _fechamento_para_data_funcionario(funcionario, data)
-    if not fech:
-        return {"ok": False, "erro": "Fechamento do mês não encontrado."}
+    fech, err = preparar_fechamento_operacao_caixa(funcionario, data, usuario=usuario)
+    if err:
+        return {"ok": False, "erro": err}
     mid = (fech.mongo_lancamento_salario_id or "").strip()
     if not mid:
-        return {
-            "ok": False,
-            "erro": (
-                "Gere antes o título de salário no fechamento da competência "
-                f"({fech.competencia:%m/%Y}) com data de vencimento — os vales entram como pagamento parcial desse título."
-            ),
-        }
+        return {"ok": False, "erro": "Título de salário não encontrado após preparar a folha."}
 
     recalcular_fechamento(fech)
     fech.refresh_from_db()
@@ -368,22 +428,14 @@ def registrar_pagamento_salario_com_baixa_titulo(
     """Pagamento de salário (não vale): baixa parcial/total no título + registro RH."""
     from rh.constants import REF_TIPO_RH_PAGAMENTO_SALARIO_PARCIAL
     from rh.models import PagamentoSalarioFuncionario
-    from rh.services.fechamento import garantir_fechamento_aberto
     from rh.services.pagamento_salario import registrar_pagamento_salario_rh
 
-    garantir_fechamento_aberto(funcionario, data)
-    fech = _fechamento_para_data_funcionario(funcionario, data)
-    if not fech:
-        return {"ok": False, "erro": "Fechamento do mês não encontrado."}
+    fech, err = preparar_fechamento_operacao_caixa(funcionario, data, usuario=usuario)
+    if err:
+        return {"ok": False, "erro": err}
     mid = (fech.mongo_lancamento_salario_id or "").strip()
     if not mid:
-        return {
-            "ok": False,
-            "erro": (
-                "Gere antes o título de salário no fechamento da competência "
-                f"({fech.competencia:%m/%Y}) com data de vencimento."
-            ),
-        }
+        return {"ok": False, "erro": "Título de salário não encontrado após preparar a folha."}
 
     recalcular_fechamento(fech)
     fech.refresh_from_db()
@@ -481,17 +533,11 @@ def tentar_caixa_adiant_vale_como_baixa_parcial(
     if not funcionario:
         return None
 
-    fech = _fechamento_para_data_funcionario(funcionario, data_competencia)
-    if not fech or not (fech.mongo_lancamento_salario_id or "").strip():
-        return {
-            "ok": False,
-            "erro": (
-                "Para vale no caixa: gere o título de salário (com vencimento) no fechamento RH "
-                f"do mês {data_competencia:%m/%Y} para {funcionario.nome_exibicao}. "
-                "Os vales passam a ser baixa parcial desse título, sem nova despesa de adiantamento."
-            ),
-            "ids": [],
-        }
+    fech, err = preparar_fechamento_operacao_caixa(
+        funcionario, data_competencia, usuario=usuario
+    )
+    if err:
+        return {"ok": False, "erro": err, "ids": []}
 
     forma_v = f"{(forma_id or '').strip()}|||{(forma_nome or '').strip()}"
     banco_v = f"{(banco_id or '').strip()}|||{(banco_nome or '').strip()}"
