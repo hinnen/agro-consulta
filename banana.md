@@ -1173,6 +1173,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Dependência → **`base.0009`** · **`9738f0e`** teste · **`a138625`** produção |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
 
+### 🧪 PDV — lateral F7/F3 lado a lado (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Com zoom/escala, **Salvar orçamento** sumia na rolagem lateral |
+| **Fix** | **Pagamento F7** e **Entrega F3** em **2 colunas** no dock do subtotal — ganha altura para orçamentos + salvar |
+| **Arquivos** | `partials/pdv/step_produtos.html` · `pdv_wizard.html` (CSS) |
+
+### 🧪 PDV — orçamentos no Postgres (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Orçamentos salvos **no PG** — mesmo cliente em **qualquer PC** (não só localStorage) |
+| **Modelo** | `OrcamentoPdvAgro` · migration **`0048`** · código **GMORC** + `cliente_key` |
+| **API** | `GET/POST /api/pdv/orcamentos/` · `GET /api/pdv/orcamentos/<id>/` |
+| **Front** | `pdv_wizard.js` sync ao trocar cliente · salvar POST · reabrir/GMORC busca no servidor · espelho `consulta_produtos.js` |
+| **Validar** | Salvar orçamento PC A · trocar PC B · mesmo cliente → card + Ver mais · bip GMORC |
+
 ### 🧪 PDV — card orçamentos (01/07)
 
 | Item | Detalhe |
@@ -1190,6 +1208,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
 | **Migrate** | **`0005_pagamento_salario_funcionario`** |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · baixa CP → «Igualar» **não apaga** · caixa plano **Salários** |
+
+### ✅ Loja v5.72 — teste RH pagamento salário (Renan · 01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Teste 3 (caixa)** | Saída caixa plano **Salários** · **Renan Hinnen** · **R$ 0,75** · jun/2026 |
+| **RH** | Item «Pagamento salário (Caixa)» · **Pago parcial** · controle **R$ 0,75** |
+| **CP** | Baixa refletida — **OK** |
+| **Pendente teste** | Testes 1–2 (Igualar + parcial CP) · filtro lista fechamentos (**só teste**) |
+
+### 🧪 RH fechamentos — filtro status padrão «todos» (01/07 · só teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Lista abria filtrada **Aberto** — **Pago parcial** (ex. Renan após caixa) sumia |
+| **Causa** | Link «Listar» do card «Fechamentos abertos» ia com `?status=ABERTO` |
+| **Fix** | Aba **Fechamentos** / «Ver todos» = **todos os status** · «Só abertos» opcional · opção **Pago parcial** no select |
+| **Produção** | **Não subir** sem frase + senha Renan |
 
 ### 🐛 RH folha → CP desatualizado (01/07 — fix v5.67–68 loja)
 
