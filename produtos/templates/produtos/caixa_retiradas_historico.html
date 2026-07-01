@@ -227,9 +227,11 @@
   </div>
 
   <script src="{% static 'produtos/js/agro_date_picker.js' %}"></script>
-  <script src="{% static 'produtos/js/caixa_retiradas_export.js' %}"></script>
   <script>
   window.CRH_EXPORT = { urlExport: "{% url 'api_caixa_retiradas_export_xlsx' %}" };
+  </script>
+  <script src="{% static 'produtos/js/caixa_retiradas_export.js' %}"></script>
+  <script>
   (function () {
     var API_QUEM = "{% url 'api_rh_caixa_quem_leva' %}";
     var selQuem = document.getElementById('id-quem');
