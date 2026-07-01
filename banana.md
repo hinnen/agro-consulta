@@ -1142,9 +1142,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.06** · **loja v5.67** *(RH folha → CP · 01/07)*
+**Versão app (`VERSION`):** **teste v6.06** · **loja v5.68** *(RH folha → CP · 01/07)*
 
-### ✅ Deploy loja **v5.67** — RH folha espelha CP Postgres (01/07)
+### ✅ Deploy loja **v5.67–v5.68** — RH folha espelha CP Postgres (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
