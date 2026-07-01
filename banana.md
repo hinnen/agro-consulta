@@ -1141,7 +1141,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.55** (`b0df2a7` push) · **loja v5.53** (`3467ea0` · 30/06)
+**Versão app (`VERSION`):** **teste v5.56** · **loja v5.56** (`59ef94d` push **`producao`** · 30/06 · Renan + senha)
+
+### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *manda* + senha **`99738595`** |
+| **Git** | `teste` → **`producao`** fast-forward **`3467ea0`→`59ef94d`** · push **`producao`** |
+| **Pacote** | Fix **Indisp.** — catálogo Postgres (interno/barras/variações) alinhado ao PDV · fix core **`b0df2a7`** |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDV · badge **v5.56** · F8 Queila → **+1** nos itens que eram Indisp. |
 
 ### 🟠 F8 «Indisp.» na loja — fix catálogo Postgres **v5.55** (30/06)
 
@@ -1151,7 +1160,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Checagem **v5.51** só `codigo_nfe` + Mongo · na loja catálogo = **Postgres** (`codigo_interno`, barras, variações) — vendas antigas gravam **código interno**, não GM |
 | **Fix v5.55** | `codigos_gm_ativos_no_catalogo` alinhado ao PDV: overlay (nfe+barras) · **Produto** (nfe+interno+barras) · **ProdutoMarcaVariacaoAgro** · Mongo `index_codigos`/barras |
 | **Arquivo** | `relacionamento_historico_erp_util.py` |
-| **Próximo** | Push **`teste`** → validar F8 loja Queila → produção se OK |
+| **Deploy teste** | OK **`b0df2a7`** |
+| **Deploy loja** | **`59ef94d`** **v5.56** |
 
 ### ✅ Deploy loja **v5.53** (30/06)
 
