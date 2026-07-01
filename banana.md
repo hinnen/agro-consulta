@@ -1148,7 +1148,38 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.30** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
 
-### 📦 Pacote loja — caixa scroll + F7/F3 (aguardando loja fechar · 01/07)
+### Renan — desvinculação: o que é o quê (01/07)
+
+**Dois cortes diferentes** (não confundir):
+
+| Corte | Significado | Loja hoje |
+| ----- | ----------- | --------- |
+| **1 — API ERP** | SisVale **não manda** baixa/lançamento/cadastro pro sistema antigo (WL) | **✅ Feito** |
+| **2 — Parar de ler Mongo** | Cada tela passa a usar **Postgres Agro** em vez da coleção espelho (`DtoProduto`, `DtoLancamento`…) | **~85 %** · checklist §4.15 |
+
+**Mongo ≠ ERP.** Mongo era o **armário espelho** (cópia do que o ERP mandava). Cortar a API **não apaga** esse armário — o código ainda abre algumas gavetas até migrar tudo pro Postgres.
+
+**Conferir na loja (1 clique):** abrir **`/api/agro/fonte-status/`** — ver `financeiro_postgres`, `catalogo_postgres`, `gestao_somente_postgres`, `financeiro_erp_sync` (deve ser **false**).
+
+#### Já **não depende** de Mongo no dia a dia (loja com flags atuais)
+
+PDV venda · caixa · fiado · clientes · NFC-e · vendas · catálogo/preço PDV · CP/CR (lista, pagar, nova saída, editar) · Compras métricas · Entrada NF passo 7 · saldo operacional (ledger).
+
+#### Ainda **lê ou grava** Mongo (operacional — o que falta migrar)
+
+| Onde | Para quê |
+| ---- | -------- |
+| **RH folha → Salários CP** | Título do mês ainda nasce/atualiza em **`DtoLancamento`** (com espelho PG) — v5.76 CP parcial |
+| **Lançamentos · calendário fluxo** | Grade mensal ainda agrega **Mongo** |
+| **Lançamentos · log «?» de um título** | Auditoria campo a campo no **Mongo** |
+| **BI `/`** (modo híbrido) | Cruza **`DtoVenda`** antigo pra não contar venda duas vezes |
+| **Transferências / validade** | Sync profundo ainda no espelho |
+| **Relacionamento cliente · histórico ERP** | Leitura **`DtoVenda`** |
+| **Cron saúde estoque** | Ping leve no Mongo (não é venda) |
+| **Comandos import/backup** | Só admin/shell — não é balcão |
+
+**Pacote caixa + F7/F3:** **não mexe** em nada disso.
+
 
 | Incluir | O quê | Risco |
 | ------- | ----- | ----- |
