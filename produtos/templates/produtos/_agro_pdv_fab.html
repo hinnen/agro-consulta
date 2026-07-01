@@ -346,6 +346,9 @@
 
   function shouldHide() {
     if (pathIsPdv()) return true;
+    try {
+      if (new URLSearchParams(window.location.search || "").get("agro_pdv_overlay") === "1") return true;
+    } catch (_) {}
     if (pathIsContabilidade()) return true;
     if (document.body && document.body.classList.contains("gg-grafico-page")) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;

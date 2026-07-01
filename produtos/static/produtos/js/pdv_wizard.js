@@ -1745,7 +1745,7 @@
         }
     }
 
-    /** Abre gestão na outra janela (modo 2 apps) ou aba interna (iframe). */
+    /** Abre consulta no painel do balcão ou na janela gestão (conforme origem). */
     function navegarAgroInApp(href) {
         var url = String(href || '').trim();
         if (!url) return;
@@ -1757,11 +1757,13 @@
             return;
         }
         try {
-            if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
+            if (window.AgroDualWindow && typeof window.AgroDualWindow.openPdvPanel === 'function') {
                 if (window.AgroDualWindow.isPdvHost && window.AgroDualWindow.isPdvHost()) {
-                    window.AgroDualWindow.navigateGestao(url);
+                    window.AgroDualWindow.openPdvPanel(url);
                     return;
                 }
+            }
+            if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
                 if (window.AgroDualWindow.inEmbed && window.AgroDualWindow.inEmbed()) {
                     window.AgroDualWindow.navigateGestao(url);
                     return;

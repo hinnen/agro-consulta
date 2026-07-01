@@ -1,5 +1,9 @@
 # Atalhos Windows — SisVale PDV + Gestão (Chrome modo app)
 # Uso: .\scripts\criar_atalhos_sistvale.ps1 -BaseUrl "https://SEU-SITE.onrender.com"
+#
+# Ícones separados na barra de tarefas:
+#   1) Fixe cada atalho .lnk na barra (botão direito → Fixar)
+#   2) Ou no Chrome: menu ⋮ → «Instalar SisVale…» em cada janela (manifest por role)
 
 param(
     [Parameter(Mandatory = $true)]
@@ -26,8 +30,8 @@ if (-not (Test-Path $ChromePath)) {
     exit 1
 }
 
-$pdvUrl = "$BaseUrl/pdv/?agro_dual=1"
-$gestaoUrl = "$BaseUrl/dashboard/gerencial/?agro_dual=1"
+$pdvUrl = "$BaseUrl/pdv/?agro_dual=1&agro_app_role=pdv"
+$gestaoUrl = "$BaseUrl/dashboard/gerencial/?agro_dual=1&agro_app_role=gestao"
 
 function New-ChromeAppShortcut($Name, $Url, $IconHint) {
     $lnk = Join-Path $Desktop "$Name.lnk"
@@ -42,8 +46,10 @@ function New-ChromeAppShortcut($Name, $Url, $IconHint) {
     Write-Host "OK: $lnk"
 }
 
-New-ChromeAppShortcut "SisVale PDV" $pdvUrl "Balcão"
-New-ChromeAppShortcut "SisVale Gestão" $gestaoUrl "Gestão e abas"
+New-ChromeAppShortcut "SisVale PDV" $pdvUrl "Balcão (não abrir gestão neste atalho)"
+New-ChromeAppShortcut "SisVale Gestão" $gestaoUrl "Gestão e abas (não abrir PDV neste atalho)"
 
 Write-Host ""
-Write-Host "Abra os dois atalhos na área de trabalho. PDV e Gestão ficam em janelas separadas."
+Write-Host "Abra os DOIS atalhos na area de trabalho (nao use aba normal do Chrome para operar)."
+Write-Host "Fixe cada icone na barra de tarefas para ficarem separados."
+Write-Host "Gestao: links internos ficam nesta janela (SistValeGestao). PDV: consultas abrem em painel FECHAR."

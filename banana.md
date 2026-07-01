@@ -591,7 +591,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
 - **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
 - **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** no confirmar · grava nome do operador do PIN.
-- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário).
+- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) · filtro jun/2026 + plano **Adiantamento…** + **Todos** = correto · **Render teste** PG **≠** loja — sem vales de jun/2026 no staging → **0 registros** é esperado · conferir na **produção** (ou lançar 1 vale teste no RH staging).
 - **PIN único (01/07):** online + **1234** só para **1ª vez** (cadastro no servidor) · **produção** quando Renan subir (teste sem operadores cadastrados).
 
 ### 4.12 RH
@@ -1146,7 +1146,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.79** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.79+** · **loja v5.62** (`545aad3` · 01/07)
+
+### ✅ Renan validou sidebar + botões PDV BI (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **FL-047** | Ícones na barra recolhida **OK** |
+| **FL-046** | 3 botões PDV no dashboard focam janela PDV **OK** |
+
+### 🧪 Deploy teste — painel balcão + modo app (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
+| **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
+| **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · fixar 2 `.lnk` na barra · gestão não abre guia solta |
+| **Código** | `agro_pdv_overlay.js` · aguarda push + validação Renan |
 
 ### 🧪 PIN — quando pede (Renan · teste)
 
@@ -1158,6 +1174,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Nova saída / retirada** | PIN só ao **confirmar** a saída (modal), não ao listar histórico |
 | **Render teste** | Código **v5.79** no Git · badge **v5.79** no BI confirma deploy · **sem operadores** no PG teste → PIN válido só após **1234** cadastrar ou RH |
 
+### 🧪 Deploy teste **v5.77** — fix sidebar + FAB + links PDV (30/06)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1189,7 +1206,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Status** | 🧪 **teste v5.77** · FL-046 + FL-047 fixes · aguarda validação Renan |
 | **Atalhos Windows** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://…` |
 | **Regra** | **1 janela PDV + 1 gestão** — botões **nunca** abrem 2º PDV · só **trazem à frente** (`window.open` nome fixo) |
-| **Gestão** | Links «PDV» viram **«Ir ao balcão»** → foca janela PDV · não navega `_self` para checkout |
+| **Gestão** | Links «PDV» → foca janela PDV · **Decisão 30/06:** botões do PDV → **painel ~95%** + FECHAR/F1 · BI/menu → janela Gestão · atalhos `agro_app_role=pdv\|gestao` |
 
 ### 📋 UX gestão — **sidebar abas com ícones** (Renan · 01/07)
 
@@ -1211,7 +1228,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **1ª vez** | **1234** → modal cadastro → PIN definitivo online |
 | **1234 no dia a dia** | **Não entra** — só abre cadastro |
 | **PIN bootstrap 1234** | Código pronto em **teste** · validar na **produção** (staging sem operadores) |
-| **Retiradas vales** | Histórico puxa vales do RH · filtro «Adiantamento…» |
+| **Retiradas vales** | Código **2207fd6+** · filtro OK · **dados só na loja** — teste vazio |
 
 ### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
 
@@ -1882,8 +1899,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
-| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | 🧪 teste **v5.77** fix FAB+links | 30/06 |
-| **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | 🧪 teste **v5.77** fix ícones | 30/06 |
+| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** + **painel balcão** (~95%) p/ consultas do PDV | 🧪 teste overlay | 30/06 |
+| **FL-047** | **P2** | UX gestão | Sidebar **48px** ícones · **›** expande | **✅ Renan** ícones OK | 30/06 |
+| **FL-048** | **P2** | Atalhos app | **2 ícones barra** · gestão **nunca** abre guia Chrome solta | 🧪 teste `agro_app_role` | 30/06 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — import 1× loja · corte ERP **≤26/05** · SisVale **≥27/05** · **só F8** | 📋 **Adiar loja** · teste ok · Renan **01/07** | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-045** | **P2,81** | Clientes / PDV / Fiado | **Telefone sempre** na loja · toggle **«cliente fiado»** — se ativo: **CPF obrigatório** + **limite fiado** definido | 📋 Pendente | 01/07 |
