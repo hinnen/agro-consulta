@@ -1146,7 +1146,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.96** · **loja v5.65** (`f1453c3` push **`producao`** · 01/07)
+**Versão app (`VERSION`):** **teste v6.00** · **loja v5.65**
 
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
 
