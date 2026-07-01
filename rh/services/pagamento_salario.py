@@ -108,21 +108,31 @@ def registrar_pagamento_salario_rh(
     return p
 
 
-def _atualizar_controle_fechamento_apos_pagamentos(f: FechamentoFolhaSimplificado) -> None:
+def _atualizar_controle_fechamento_apos_pagamentos(
+    f: FechamentoFolhaSimplificado,
+    *,
+    atualizar_status: bool = True,
+) -> None:
     comp = f.competencia
     pagos = total_pagamentos_salario_mes(f.funcionario, comp.year, comp.month)
     f.valor_pago = pagos
     update = ["valor_pago", "atualizado_em"]
-    if pagos <= Decimal("0"):
-        pass
-    elif pagos + Decimal("0.02") >= f.valor_liquido_previsto:
-        if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
+    if atualizar_status:
+        if pagos <= Decimal("0"):
+            pass
+        elif pagos + Decimal("0.02") >= f.valor_liquido_previsto:
+            if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
+                f.status = FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
+                update.append("status")
+        elif pagos > Decimal("0") and f.status == FechamentoFolhaSimplificado.Status.ABERTO:
             f.status = FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
             update.append("status")
-    elif pagos > Decimal("0") and f.status == FechamentoFolhaSimplificado.Status.ABERTO:
-        f.status = FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
-        update.append("status")
     f.save(update_fields=update)
+
+
+def restaurar_valor_pago_controle_fechamento(f: FechamentoFolhaSimplificado) -> None:
+    """Recalcula valor pago (controle) a partir dos pagamentos de salário registrados no RH."""
+    _atualizar_controle_fechamento_apos_pagamentos(f, atualizar_status=False)
 
 
 def processar_baixa_cp_titulo_salario(

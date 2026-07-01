@@ -1146,7 +1146,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.16** · **loja v5.72**
+**Versão app (`VERSION`):** **teste v6.16+** · **loja v5.72**
+
+### ✅ Loja v5.72 — validação RH pagamento salário (Renan · 01/07)
+
+| # | Teste | Resultado |
+|---|--------|-----------|
+| **1** | Igualar → CP | **OK** · **Reabrir** zerava Pago card/lista (CP ok) → **fix teste** |
+| **2** | Parcial CP → Igualar não apaga | **OK** |
+| **3** | Caixa Salários | **OK** (R$ 0,75 Renan) |
+
+| Fix teste | Detalhe |
+| --------- | ------- |
+| **Reabrir** | Restaura **valor pago** dos pagamentos RH; zera só se era **Marcar pago** manual |
+| **Perf leve** | Detalhe folha não recalcula tudo a cada F5 |
+| **P3** | Lentidão Igualar/lista (Mongo formas + sync) — fila se persistir |
 
 ### 🧪 Deploy teste — orçamentos PG + F7/F3 lateral (01/07)
 

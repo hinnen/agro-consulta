@@ -176,7 +176,7 @@
               <form method="post" action="{% url 'rh_fechamento_marcar_pago' fechamento.pk %}" onsubmit="return confirm('Marcar como pago (valor = líquido previsto)?');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase hover:bg-emerald-700 shadow-md">Marcar pago</button></form>
               {% endif %}
               {% if fechamento.status != 'ABERTO' %}
-              <form method="post" action="{% url 'rh_fechamento_reabrir' fechamento.pk %}" onsubmit="return confirm('Reabrir esta competência? Volta para Aberto; se estava como pago, o valor pago de controle zera.');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-400 bg-white text-slate-900 text-sm font-black uppercase hover:bg-slate-50">Reabrir folha</button></form>
+              <form method="post" action="{% url 'rh_fechamento_reabrir' fechamento.pk %}" onsubmit="return confirm('Reabrir esta competência? Volta para Aberto para editar a folha.');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-400 bg-white text-slate-900 text-sm font-black uppercase hover:bg-slate-50">Reabrir folha</button></form>
               {% endif %}
             </div>
             {% if not fechamento_exclusao_bloqueio %}

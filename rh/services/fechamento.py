@@ -220,21 +220,22 @@ def recalcular_todos_abertos_funcionario(funcionario: Funcionario):
 
 def reabrir_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimplificado:
     """Volta status para Aberto (ex.: fechamento ou «pago» por engano). Recalcula a folha."""
+    from rh.services.pagamento_salario import restaurar_valor_pago_controle_fechamento
+
     if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
         recalcular_fechamento(f)
         return f
-    needs_zero_pago = f.status in (
-        FechamentoFolhaSimplificado.Status.PAGO,
-        FechamentoFolhaSimplificado.Status.PAGO_PARCIAL,
-    )
+    era_pago_manual = f.status == FechamentoFolhaSimplificado.Status.PAGO
     f.status = FechamentoFolhaSimplificado.Status.ABERTO
     f.fechado_em = None
     update_fields = ["status", "fechado_em", "atualizado_em"]
-    if needs_zero_pago:
+    if era_pago_manual:
         f.valor_pago = Decimal("0")
         update_fields.append("valor_pago")
     f.save(update_fields=update_fields)
     recalcular_fechamento(f)
+    if not era_pago_manual:
+        restaurar_valor_pago_controle_fechamento(f)
     return f
 
 
