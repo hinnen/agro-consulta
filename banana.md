@@ -1160,6 +1160,34 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Regra produção** | Assistente **não** push `producao` sem frase + senha **`99738595`** na mesma msg (hotfix v5.66 foi exceção errada — Renan OK deixar) |
 | **Retiradas loja v5.66** | Vales jun/2026 OK · colunas **ÔÇö** = travessão UTF-8 quebrado → fix **`-`** ASCII · **Excel nunca esteve na loja** (só teste) |
 
+### 📦 Pacote loja **pendente autorização** — Retiradas hífen + Excel (01/07)
+
+**Status:** montado · **aguardando** Renan (*pode subir para produção* + senha **`99738595`** na mesma msg) · **não push** até lá.
+
+| # | Commit teste | O quê | Arquivos principais |
+| - | ------------ | ----- | ------------------- |
+| **1** | **`55c55bc`** | Excel ↓ retiradas — modal filtros/colunas + API | `caixa_retiradas_export_util.py` · `caixa_retiradas_export.js` · `caixa_retiradas_historico.html` · `urls.py` · `views.py` |
+| **2** | **`53528e9`** | Fix modal Excel (script `CRH_EXPORT` antes do JS) | `caixa_retiradas_historico.html` · `caixa_retiradas_export.js` |
+| **3** | **`6b1ff34`** | Operador sem `admin@agro.com` (+ helpers em `caixa_util`) | `caixa_util.py` · `caixa_retiradas_util.py` · `views.py` · comando `normalizar_operador_retiradas_historico` |
+| **4** | **`e7829b6`** | Colunas vazias **`-`** (sem ÔÇö) — **por último** | `caixa_retiradas_util.py` · template · `export_util.py` |
+
+**Ordem cherry-pick:** `55c55bc` → `53528e9` → `6b1ff34` → `e7829b6` · conflitos esperados: `VERSION` / `banana.md` / `caixa_retiradas_util.py` (resolver mantendo vales v5.66 + pacote acima).
+
+**Versão loja alvo:** **v5.67+** (4 cherry-picks).
+
+**Fora deste pacote (continua só teste):** PIN · 2 janelas FL-046/047 · overlay PDV FL-048 · NF busca e vales **já na loja** (v5.65–66).
+
+**Validar após deploy loja:**
+
+| # | Tela | Ação |
+| - | ---- | ---- |
+| 1 | Retiradas · jun/2026 · **Adiantamento** | Forma = **`-`** (não ÔÇö) · vales listam |
+| 2 | Retiradas · jun/2026 · **Todos** | Depósito: Quem = **`-`** · demais com nome |
+| 3 | Retiradas | Botão **Excel ↓** · modal abre · baixa planilha |
+| 4 | BI | Badge **v5.67+** · Ctrl+F5 |
+
+**Opcional pós-deploy (shell loja, 1×):** `python manage.py normalizar_operador_retiradas_historico` — corrige `admin@agro.com` no histórico antigo.
+
 ### 🔴 Prioridade Renan (30/06) — Entrada NF busca etapa 2 **antes** de vales loja
 
 | Item | Detalhe |
