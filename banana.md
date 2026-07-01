@@ -1141,14 +1141,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.62** · **loja v5.62** (merge **`teste`→`producao`** · 01/07 · Renan + senha)
+**Versão app (`VERSION`):** **teste v5.62** · **loja v5.62** (`545aad3` push **`producao`** · 01/07)
 
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan · *manda direto produção* + senha **`99738595`** · teste sem fiado (zerado — não dava para validar) |
-| **Git** | Merge **`teste`→`producao`** após v5.61 cherry-pick · pacote fiado **`6875a3a`** + auditoria **`47c20e0`** |
+| **Git** | Merge **`teste`→`producao`** **`545aad3`** · fiado **`6875a3a`** + auditoria **`47c20e0`** |
 | **Pacote** | Fiado: gestão/F8 lista títulos por **nome** (igual grade) · comando `fiado_auditar_cadastros_duplicados` |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · Queila: abrir gestão pelo PDV = **todos** títulos · total = lateral **R$ 435,66** |
 | **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` |
