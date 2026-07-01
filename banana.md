@@ -1146,16 +1146,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.07+** · **loja v5.69** *(espelho RH v5.67–68)*
+**Versão app (`VERSION`):** **teste v6.07** · **loja v5.70** *(RH pagamento salário · 01/07)*
 
-### 🔄 WIP teste — RH ↔ CP pagamento salário integrado (01/07)
+### ✅ Deploy loja **v5.70** — RH pagamento salário CP + caixa (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Escopo** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
-| **Fluxo CP** | Pagar/Parcial no título folha → registra pagamento RH → «Igualar» não apaga |
-| **Fluxo caixa** | Plano Salários → baixa título + RH + saída turno (sem vale) |
-| **Pendente** | Push teste → validar → cherry **produção** (frase + senha) |
+| **Autorização** | Renan · banana manda produção + senha **`99738595`** · cherry **isolado** **`5434de0`** → **`61e19c2`** (**sem** PDV/outros do teste) |
+| **O quê** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
+| **Migrate** | **`0005_pagamento_salario_funcionario`** |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · baixa CP → «Igualar» **não apaga** · caixa plano **Salários** |
 
 ### 🐛 RH folha → CP desatualizado (01/07 — fix v5.67–68 loja)
 
@@ -1163,8 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Fechamento RH mostra vales/descontos certos; CP (Lançamentos) não muda ao clicar «Criar ou atualizar» / «Igualar ao que está na folha» |
 | **Causa** | Loja já **lê CP no Postgres**; sync da folha RH só gravava no **Mongo** (cópia PG ficava velha) |
-| **Fix (código local)** | Após sync RH, espelha o título Mongo → `TituloFinanceiroAgro` (`espelhar_titulo_mongo_id_para_postgres` + hook em `salario_financeiro_mongo`) |
-| **Pendente** | Commit + push **`teste`** → Renan: passo 1 Salvar e recalcular → passo 2 Igualar → **Ctrl+F5** no CP |
+| **Fix** | Espelho Mongo→PG após sync folha (**v5.67–68**) + pagamento salário integrado (**v5.70**) |
 | **Dinheiro/Caixa 1** | Vales do **caixa** puxam forma/banco da baixa parcial — não é bug; padrão «ADICIONAR CONTA» vale só na **criação** do título |
 
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
