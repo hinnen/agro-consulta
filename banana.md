@@ -1142,22 +1142,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.19** — **loja v5.97** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
+**Versão app (`VERSION`):** **teste v6.37** · **loja v5.98** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
 
-### ✅ Deploy loja **v5.77–v5.96** — pacotes 1–4 cherry (01/07 noite)
+### ✅ Deploy loja **v5.77–v5.98** — pacotes 1–4 cherry (01/07 noite)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar tudo para produção* (loja fechada); **sem** merge `teste` inteiro |
 | **Rollback** | Tag **`producao-rollback-v5.76-20260701`** @ **`7593664`** (HEAD anterior) |
-| **Git produção** | **`594c1cd`** @ `producao` (19 commits cherry após rollback) |
+| **Git produção** | **`8328bae`** @ `producao` · features **`594c1cd`** |
 | **Pacote 1** | Caixa overlay 2 apps, PDV lateral F7/F3 (**sem** migração **0048** orçamentos PG) |
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
 | **Pacote 4** | Entregas pós-venda `venda_id` + fiado; painel sem rótulos ERP |
 | **Excluído teste** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** |
 | **Migrate** | **Sem** 0048; `makemigrations --check` ainda aponta drift **base/estoque** (pré-existente — não gerado neste deploy) |
-| **Render** | Push `producao` OK — aguardar ~2–5 min |
+| **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
 **Validar ao voltar (checklist curto):** Ctrl+F5 · **Caixa** overlay Menu/scroll · **PDV** F7/F3 lateral · **Retiradas** Excel + lista jun/2026 · **RH** ficha + fechamento Igualar CP · **Entregas** pós-venda fiado · orçamentos PG **não** subiram (comportamento legado).
 
