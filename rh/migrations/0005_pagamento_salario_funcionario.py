@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0010_pagamento_salario_funcionario'),
+        ('base', '0009_limpar_plano_pedido_erp_sisvale'),
         ('rh', '0004_rename_rh_funciona_empresa_nomec_idx_rh_funciona_empresa_c3d5b0_idx_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
