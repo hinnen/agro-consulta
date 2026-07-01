@@ -1146,7 +1146,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.16+** · **loja v5.72**
+**Versão app (`VERSION`):** **teste v6.17** · **loja v5.75** *(RH folha UX · 01/07)*
+
+### ✅ Deploy loja **v5.73–v5.75** — RH folha UX + reabrir (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · produção + senha **`99738595`** · cherry **`54aaa32`** · **`a10faa1`** · **`b825230`** → **`a43189a`** |
+| **Pacote** | Lista todos status · tela limpa (**?**) · **Reabrir** mantém Pago · perf detalhe |
+| **Fora** | PDV orçamentos · caixa overlay · etc. |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
 
 ### ✅ Loja v5.72 — validação RH pagamento salário (Renan · 01/07)
 
