@@ -1146,7 +1146,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.07** · **loja v5.70** *(RH pagamento salário · 01/07)*
+**Versão app (`VERSION`):** **teste v6.10** · **loja v5.72** *(hotfix migrate RH · 01/07)*
+
+### ✅ Deploy loja **v5.71–v5.72** — hotfix migrate RH 0005 (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Deploy **`61e19c2`** (v5.70) falhou no **migrate** — `rh.0005` dependia de `base.0010` (só existia no teste, drift makemigrations) |
+| **Fix** | Dependência → **`base.0009`** · **`9738f0e`** teste · **`a138625`** produção |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
+
+### 🧪 PDV — card orçamentos (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Card lateral: **3 mais recentes** · data **DD/MM/YY** à esquerda · valor à direita · separador tracejado · **clique na linha reabre** |
+| **Ver mais / F6** | Só orçamentos **além dos 3** (mais antigos); botão oculto se ≤3 · modal «Orçamentos anteriores» |
+| **Arquivos** | `pdv_wizard.js` · `partials/pdv/step_produtos.html` · `pdv_wizard.html` (modal) |
+| **Validar** | Salvar 4+ orçamentos mesmo cliente · card clicável · Ver mais só o 4º em diante · F6 com ≤3 = aviso no modal |
 
 ### ✅ Deploy loja **v5.70** — RH pagamento salário CP + caixa (01/07)
 
@@ -1253,7 +1270,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Renan** | Tirar **Entregas** lateral (fica só no topo) · botão **Salvar orçamento** |
 | **Salvar** | Grava carrinho + cliente em `historicoOrcamentos` (localStorage) |
-| **F6 / Ver mais** | Lista só orçamentos **do cliente atual** (incl. consumidor final) |
+| **F6 / Ver mais** | **3 recentes** no card (clique reabre) · **Ver mais/F6** = só orçamentos **mais antigos** (4º em diante) · filtro **cliente atual** |
 | **Reabrir** | Hidrata wizard · código `GMORC…` para busca |
 | **Topo PDV** | Removido botão **Orçamento F6** redundante — histórico só em **Ver mais** (lateral) + tecla **F6** |
 | **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
