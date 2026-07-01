@@ -1142,7 +1142,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.37** · **loja v5.98** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
+**Versão app (`VERSION`):** **teste v6.38** · **loja v5.99** *(pacotes 1–4 cherry — 01/07 noite)*
 
 ### ✅ Deploy loja **v5.77–v5.98** — pacotes 1–4 cherry (01/07 noite)
 
@@ -1150,7 +1150,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar tudo para produção* (loja fechada); **sem** merge `teste` inteiro |
 | **Rollback** | Tag **`producao-rollback-v5.76-20260701`** @ **`7593664`** (HEAD anterior) |
-| **Git produção** | **`8328bae`** @ `producao` · features **`594c1cd`** |
+| **Git produção** | **`81c485c`** @ `producao` · features **`594c1cd`** |
 | **Pacote 1** | Caixa overlay 2 apps, PDV lateral F7/F3 (**sem** migração **0048** orçamentos PG) |
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
@@ -1160,6 +1160,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
 **Validar ao voltar (checklist curto):** Ctrl+F5 · **Caixa** overlay Menu/scroll · **PDV** F7/F3 lateral · **Retiradas** Excel + lista jun/2026 · **RH** ficha + fechamento Igualar CP · **Entregas** pós-venda fiado · orçamentos PG **não** subiram (comportamento legado).
+
+**Rollback (se der problema):** `git checkout producao-rollback-v5.76-20260701` → push `producao` (ou redeploy tag no Render).
+
+### Só no **teste** (loja **v5.98** não tem)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Orçamentos PG** | Migration **`0048`** · API `/api/pdv/orcamentos/` · sync multi-PC · GMORC bootstrap |
+| **UX experimental** | PIN descanso · 2 janelas Chrome · overlay PDV 95% (FL-048) |
+
+### Renan — desvinculação Mongo (resumo)
+
+**API ERP cortada** ✅ · **~85 %** operação já Postgres · Mongo restante = RH salário CP, calendário Lançamentos, BI híbrido, etc. — **não trava PDV** (ver §4.15).
 
 
 ### 🐛 RH ficha — botão «Abrir folha» sumia (01/07 · teste)
