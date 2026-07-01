@@ -126,6 +126,20 @@ def marcar_entrega_pendente_fechada(
     return ent
 
 
+def tentar_vincular_entrega_pendente_apos_venda(data: dict | None, venda_id: int | None) -> None:
+    """Encerra entrega «aguarda PDV» quando a venda foi confirmada (fallback server-side)."""
+    if not venda_id or not isinstance(data, dict):
+        return
+    raw = data.get("pedido_entrega_pendente_id") or data.get("pedido_entrega_id")
+    if raw is None or str(raw).strip() == "":
+        return
+    try:
+        eid = int(raw)
+    except (TypeError, ValueError):
+        return
+    marcar_entrega_pendente_fechada(eid, venda_agro_id=int(venda_id))
+
+
 def cancelar_entrega_pendente_pdv(entrega_id: int, *, motivo: str = "") -> PedidoEntrega | None:
     ent = PedidoEntrega.objects.filter(pk=entrega_id, aguarda_pagamento_pdv=True).first()
     if not ent:

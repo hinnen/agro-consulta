@@ -429,6 +429,7 @@
 
     function pareceCodigoGmWizard(q) {
         var s = String(q || '').trim().replace(/\s/g, '');
+        if (/^GMORC\d{10,20}$/i.test(s)) return false;
         return /^GM[\dA-Za-z-]{3,}$/i.test(s);
     }
 
@@ -2888,15 +2889,26 @@
             body: JSON.stringify({ entry: novo }),
         })
             .then(function (r) {
-                return r.json();
+                return r.json().then(function (data) {
+                    return { okHttp: r.ok, data: data };
+                });
             })
-            .then(function (data) {
-                if (data && data.ok && data.item) mergeOrcamentoIntoHistorico(data.item);
+            .then(function (res) {
+                if (res && res.data && res.data.ok && res.data.item) {
+                    mergeOrcamentoIntoHistorico(res.data.item);
+                    renderRecentBudgetsSnippet();
+                    doneFeedback();
+                    return;
+                }
                 renderRecentBudgetsSnippet();
-                doneFeedback();
+                alert(
+                    (res && res.data && res.data.erro) ||
+                        'Orçamento salvo só neste navegador — servidor não confirmou. Tente de novo.'
+                );
             })
             .catch(function () {
-                doneFeedback();
+                renderRecentBudgetsSnippet();
+                alert('Falha de rede ao gravar orçamento no servidor. Ficou só neste navegador.');
             })
             .finally(function () {
                 if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
@@ -5414,9 +5426,11 @@
                 : state.clienteMode === 'consumidor_final'
                   ? 'Consumidor não identificado'
                   : 'Cliente';
-        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
-        var older = historico.slice(PDV_BUDGET_CARD_VISIBLE);
-        dom.budgetHistoryList.innerHTML = older.length
+
+        function paintModal() {
+            var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
+            var older = historico.slice(PDV_BUDGET_CARD_VISIBLE);
+            dom.budgetHistoryList.innerHTML = older.length
             ? older
                   .map(function (item) {
                       var itens = Array.isArray(item.itens) ? item.itens.length : 0;
@@ -5457,8 +5471,13 @@
                     ' mais recentes estão no card ao lado — clique na linha para reabrir.'
                   : 'Nenhum orçamento salvo para ' + escapeHtml(clienteNome) + '.') +
               '</div>';
-        dom.budgetHistoryModal.classList.remove('hidden');
-        dom.budgetHistoryModal.classList.add('flex');
+            dom.budgetHistoryModal.classList.remove('hidden');
+            dom.budgetHistoryModal.classList.add('flex');
+        }
+
+        syncHistoricoOrcamentosCliente(key, { silent: true }).finally(function () {
+            paintModal();
+        });
     }
 
     function closeBudgetHistory() {
@@ -6153,6 +6172,7 @@
 
     function runProductSearch(term, mode) {
         var query = String(term || '').trim();
+        if (reopenBudgetFromBarcode(query)) return;
         if (!query) {
             renderProductResults([]);
             dom.productSearchMeta.textContent = 'Aguardando busca';
@@ -6588,6 +6608,9 @@
         if (cx.id != null && String(cx.id).trim() !== '') {
             payload.sessao_caixa_id = parseInt(cx.id, 10) || cx.id;
         }
+        if (state.entrega && state.entrega.pedidoEntregaPendenteId) {
+            payload.pedido_entrega_pendente_id = state.entrega.pedidoEntregaPendenteId;
+        }
         return injetarOperadorNoPayload(payload);
     }
 
@@ -6633,6 +6656,9 @@
         };
         if (extras.orc_local_id != null && String(extras.orc_local_id).trim() !== '') {
             out.orc_local_id = parseInt(extras.orc_local_id, 10);
+        }
+        if (extras.venda_id != null && String(extras.venda_id).trim() !== '') {
+            out.venda_id = parseInt(extras.venda_id, 10);
         }
         return out;
     }
@@ -7314,7 +7340,7 @@
                     });
                 }
                 if (state.entrega.ativa) {
-                    var entPayload = buildEntregaPayload(state, computed);
+                    var entPayload = buildEntregaPayload(state, computed, { venda_id: vendaId });
                     if (erpPendente) {
                         jsonPost(urls.apiEntregaRegistrar, entPayload).catch(function () {});
                         finalizeConfirmedSale(withPrint, printWin, {
@@ -7456,7 +7482,10 @@
                     });
                 }
                 if (!st.entrega.ativa) return { entrega: null, erp: finRes.data };
-                return jsonPost(urls.apiEntregaRegistrar, buildEntregaPayload(st, comp)).then(function (entRes) {
+                return jsonPost(
+                    urls.apiEntregaRegistrar,
+                    buildEntregaPayload(st, comp, { venda_id: vendaId })
+                ).then(function (entRes) {
                     if (!entRes.ok || !entRes.data.ok) {
                         throw new Error(
                             (entRes.data && (entRes.data.erro || entRes.data.mensagem)) ||

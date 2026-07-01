@@ -39,7 +39,7 @@ def serializar_pagamento_entrega(ent: PedidoEntrega) -> dict:
             return base
         base["pago"] = True
         base["label"] = "Pago"
-        if v.fiado_aguarda_envio_erp:
+        if v.fiado_aguarda_envio_erp():
             base.update(
                 {
                     "erp_label": "ERP pendente",

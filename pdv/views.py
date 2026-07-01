@@ -2,6 +2,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.templatetags.static import static
 from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
 from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
@@ -51,6 +52,7 @@ def _safe_float_ptbr(val, default=0.0):
         return default
 
 
+@ensure_csrf_cookie
 def pdv_home(request):
     caixa_aberto = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
     pdv_reabrir_from_consulta = None
@@ -58,6 +60,11 @@ def pdv_home(request):
         chk = request.session.get("pdv_checkout")
         if chk and chk.get("itens"):
             pdv_reabrir_from_consulta = chk
+    u_pdv = ""
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        u_pdv = (request.user.get_full_name() or "").strip() or (
+            request.user.get_username() if hasattr(request.user, "get_username") else ""
+        )
     origens_maps = [
         {
             "id": "centro",
@@ -76,6 +83,7 @@ def pdv_home(request):
         "caixa_aberto": caixa_aberto,
         "pdv_bootstrap": {
             "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+            "usuarioSalvamento": u_pdv,
             "clientePadraoNome": "CONSUMIDOR NÃO IDENTIFICADO...",
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
             "origensMaps": origens_maps,
@@ -99,6 +107,7 @@ def pdv_home(request):
                 "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
                 "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
                 "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
+                "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),
                 "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
                 "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
                     "/0/", "/__pk__/"

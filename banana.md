@@ -1146,7 +1146,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.22** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.29** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+
+### ✅ Auditoria Render teste — pontas soltas (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Crítico** | PDV principal (`/pdv/` · `pdv/views.py`) **sem** `apiPdvOrcamentos` / `usuarioSalvamento` no bootstrap → orçamento PG **não gravava** no wizard (só localStorage) |
+| **Fix PDV** | Bootstrap completo + `@ensure_csrf_cookie` · JS: GMORC não busca produto · F6 sync PG antes do modal · alerta se POST falhar |
+| **Fix entregas** | `fiado_aguarda_envio_erp()` (faltava `()`) · `venda_id` no registrar entrega pós-venda · fallback server `pedido_entrega_pendente_id` |
+| **Caixa scroll** | OK — overlay + `.caixa-panel-scroll` nas subtelas auditadas |
+| **Git teste** | commit auditoria · **v6.29** |
 
 ### ✅ Deploy loja **v5.76** — fix baixa parcial CP Salários (01/07)
 
@@ -1355,6 +1365,7 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 | **API** | `GET/POST /api/pdv/orcamentos/` · `GET /api/pdv/orcamentos/<id>/` |
 | **Front** | `pdv_wizard.js` sync ao trocar cliente · salvar POST · reabrir/GMORC busca no servidor · espelho `consulta_produtos.js` |
 | **Validar** | Salvar orçamento PC A · trocar PC B · mesmo cliente → card + Ver mais · bip GMORC |
+| **Produção (Renan · 01/07)** | **Sem preocupação** com orçamento na subida — histórico só-local / multi-PC **não bloqueia** pacote loja |
 
 ### 🧪 PDV — card orçamentos (01/07)
 
