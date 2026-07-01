@@ -1142,17 +1142,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.62** · **loja v5.62** (`545aad3` push **`producao`** · 01/07)
+**Versão app (`VERSION`):** **teste v5.64** · **loja v5.62** (`545aad3` · 01/07)
 
-### WIP — Retiradas export Excel → **teste v5.64** (01/07)
+### ✅ Retiradas export Excel — **teste v5.64** (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tela** | `/caixa/retiradas/` — **Excel ↓** + modal (filtros + colunas, padrão cadastro ERP) |
-| **Filtros** | Tela · personalizar · atalhos período / +plano / +quem / **completo** |
-| **Colunas fixas** | Data · hora · operador (PIN) · forma de pagamento |
-| **API** | `GET api/caixa/retiradas/export-xlsx/` |
-| **Deploy** | Push **`teste`** v5.64 · aguardar Render |
+| **Commit** | `55c55bc` · push **`teste`** |
+| **Tela** | `/caixa/retiradas/` — **Excel ↓** + modal |
+| **Validar** | Render teste · Ctrl+F5 · baixar planilha com filtros da tela |
 
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
