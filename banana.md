@@ -1141,7 +1141,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.55** (`b0df2a7` push) · **loja v5.53** (`3467ea0` · 30/06)
+**Versão app (`VERSION`):** **teste v5.61** · **loja v5.61** (deploy perf busca · 01/07)
+
+### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · correção lentidão produção + senha **`99738595`** |
+| **Git** | Cherry-pick **`bb5f1b6`** em **`producao`** — **só** perf busca · **sem** fiado v5.58 nem outros commits do teste |
+| **Pacote** | Cache local PDV (não chama servidor se cache basta) · GM debounce 200 ms · busca wizard pula Mongo se Postgres achou · promo PDV cache 90 s |
+| **Arquivos** | `pdv_wizard.js` · `motor_busca_unificado_util.py` · `views.py` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** SisVale · não abrir BI+caixa+PDV juntos |
+| **Nota** | Teste OK Renan · ajuda **busca**/fila · **abertura** tela cinza pode continuar intermitente → avaliar **2 workers** Render |
+
+### 🔴 INCIDENTE loja — tela cinza / fila **01/07** (histórico)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cinza ao abrir · caixa/vendas/fiado lentos · **1 worker** + várias guias |
+| **Causa** | Fila Gunicorn (não crash) · logs tudo 200 |
+| **Operação** | Fechar guias extras · Restart Render se travar |
+
+### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *manda* + senha **`99738595`** |
+| **Git** | `teste` → **`producao`** fast-forward **`3467ea0`→`59ef94d`** · push **`producao`** |
+| **Pacote** | Fix **Indisp.** — catálogo Postgres (interno/barras/variações) alinhado ao PDV · fix core **`b0df2a7`** |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDV · badge **v5.56** · F8 Queila → **+1** nos itens que eram Indisp. |
 
 ### 🟠 F8 «Indisp.» na loja — fix catálogo Postgres **v5.55** (30/06)
 

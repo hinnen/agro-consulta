@@ -483,10 +483,21 @@
         if (!localList.length || !ql) return false;
         var prefixNoCache = countCatalogSkuPrefix(ql);
         if (prefixNoCache <= 0 || prefixNoCache !== localList.length) return false;
-        if (localList.length !== 1) return false;
         return localList.every(function (p) {
-            return !!resolveProdutoId(p) && productMatchesQueryExact(p, ql);
+            return !!resolveProdutoId(p) && productMatchesSkuPrefix(p, ql);
         });
+    }
+
+    function localTextCacheSufficient(localList) {
+        return catalogReady && (localList || []).length >= AUTOCOMPLETE_PAGE_SIZE;
+    }
+
+    function finishLocalProductSearch(localList, message) {
+        productSearchAwaitingServer = false;
+        productSearchMayHaveMore = localList.length > AUTOCOMPLETE_PAGE_SIZE;
+        renderProductResults(localList);
+        dom.productSearchFeedback.textContent =
+            message || 'Cache local (' + wizardProductCatalog.length + ' produtos).';
     }
 
     function productQueryAlnum(q) {
@@ -5816,11 +5827,11 @@
                     return null;
                 }
                 if (skuCode && localList.length && localSkuCacheSufficient(localList, qlSku)) {
-                    productSearchAwaitingServer = false;
-                    productSearchMayHaveMore = localList.length > AUTOCOMPLETE_PAGE_SIZE;
-                    renderProductResults(localList);
-                    dom.productSearchFeedback.textContent =
-                        'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                    finishLocalProductSearch(localList);
+                    return null;
+                }
+                if (mode === 'manual' && !skuCode && localTextCacheSufficient(localList)) {
+                    finishLocalProductSearch(localList);
                     return null;
                 }
                 if (localList.length >= AUTOCOMPLETE_PAGE_SIZE) {
@@ -8462,7 +8473,7 @@
             if (pareceCodigoGmWizard(trimmed)) {
                 barcodeTimer = setTimeout(function () {
                     runProductSearch(trimmed, 'barcode');
-                }, 80);
+                }, 200);
                 return;
             }
             searchTimer = setTimeout(function () {

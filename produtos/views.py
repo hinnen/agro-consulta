@@ -16740,6 +16740,7 @@ def api_buscar_produtos(request):
                             limit=80,
                             include_inactive=False,
                             wizard_catalog=False,
+                            skip_mongo_complemento=wizard_mode,
                         )
                 else:
                     from produtos.motor_busca_unificado_util import buscar_documentos_unificado
@@ -16751,6 +16752,7 @@ def api_buscar_produtos(request):
                         limit=80,
                         include_inactive=False,
                         wizard_catalog=False,
+                        skip_mongo_complemento=wizard_mode,
                     )
         else:
             preco_por_id = {}
@@ -17019,9 +17021,16 @@ def api_buscar_produtos(request):
 
         if wizard_mode and not compras:
             try:
+                from django.core.cache import cache
+                from django.utils import timezone
+
                 from .promocoes_util import aplicar_promocao_em_produto_dict, buscar_promocoes_pdv_ativas
 
-                _promo_map = buscar_promocoes_pdv_ativas(empresa="centro", tela="pdv")
+                _promo_ck = f"pdv_promo_map:centro:pdv:{timezone.localdate().isoformat()}"
+                _promo_map = cache.get(_promo_ck)
+                if _promo_map is None:
+                    _promo_map = buscar_promocoes_pdv_ativas(empresa="centro", tela="pdv")
+                    cache.set(_promo_ck, _promo_map, 90)
                 if _promo_map:
                     res = [
                         aplicar_promocao_em_produto_dict(r, _promo_map, quantidade=1)
