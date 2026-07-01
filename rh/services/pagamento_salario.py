@@ -242,8 +242,9 @@ def valor_pago_titulo_salario(
     *,
     db=None,
     mongo_id: str | None = None,
+    respeitar_mongo_maior: bool = False,
 ) -> Decimal:
-    """Vales + pagamentos salário; preserva Pago legado no Mongo se maior (migração)."""
+    """Vales + pagamentos salário ativos no fechamento."""
     comp = fechamento.competencia
     fn = fechamento.funcionario
     from rh.services.fechamento import total_vales_mes
@@ -253,6 +254,9 @@ def valor_pago_titulo_salario(
     vp = money_two_decimals(tv + ps)
     if vp > bruto:
         vp = bruto
+
+    if not respeitar_mongo_maior:
+        return vp
 
     mid = (mongo_id or fechamento.mongo_lancamento_salario_id or "").strip()
     if db is not None and mid:
