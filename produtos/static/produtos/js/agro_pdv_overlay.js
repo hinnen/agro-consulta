@@ -31,6 +31,41 @@
     return u.href;
   }
 
+  /** URL real do documento no iframe (src do elemento fica desatualizado após cliques internos). */
+  function frameDocumentHref(frame) {
+    if (!frame) return '';
+    try {
+      var live = String(frame.contentWindow.location.href || '');
+      if (live && live.indexOf('about:') !== 0) return live.split('#')[0];
+    } catch (_) {}
+    return String(frame.getAttribute('src') || frame.src || '').split('#')[0];
+  }
+
+  function normalizePageUrl(href) {
+    try {
+      var u = new URL(href, window.location.origin);
+      var path = u.pathname.replace(/\/+$/, '') || '/';
+      return u.origin + path + u.search;
+    } catch (_) {
+      return String(href || '');
+    }
+  }
+
+  function navigateFrame(frame, rawHref, options) {
+    if (!frame) return;
+    options = options || {};
+    var target = overlayUrl(rawHref);
+    var current = frameDocumentHref(frame);
+    var same = normalizePageUrl(current) === normalizePageUrl(target);
+    if (same && !options.force) {
+      try {
+        frame.contentWindow.location.reload();
+        return;
+      } catch (_) {}
+    }
+    frame.setAttribute('src', target);
+  }
+
   function ensureStyles() {
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
@@ -94,7 +129,8 @@
       menuBtn.addEventListener('click', function (e) {
         e.preventDefault();
         var href = menuBtn.getAttribute('data-href') || menuBtn.href;
-        if (href && href !== '#') open(href, 'Caixa');
+        if (!href || href === '#') return;
+        open(href, 'Caixa', { force: true });
       });
     }
     return root;
@@ -126,12 +162,13 @@
     applyMeta({ title: title || 'Consulta no balcão', subtitle: '', showMenu: false });
   }
 
-  function open(rawUrl, title) {
+  function open(rawUrl, title, options) {
+    options = options || {};
     var href = overlayUrl(rawUrl);
     var root = ensureRoot();
     var frame = root.querySelector('#agro-pdv-overlay-frame');
     resetMeta(title || titleFromUrl(href));
-    if (frame && frame.getAttribute('src') !== href) frame.setAttribute('src', href);
+    navigateFrame(frame, href, options);
     root.removeAttribute('hidden');
     document.documentElement.classList.add('agro-pdv-overlay-open');
     openFlag = true;
@@ -143,6 +180,13 @@
   function close() {
     var root = document.getElementById(ROOT_ID);
     if (!root) return;
+    var frame = root.querySelector('#agro-pdv-overlay-frame');
+    if (frame) {
+      try {
+        frame.contentWindow.location.replace('about:blank');
+      } catch (_) {}
+      frame.removeAttribute('src');
+    }
     root.setAttribute('hidden', '');
     document.documentElement.classList.remove('agro-pdv-overlay-open');
     openFlag = false;
