@@ -1142,9 +1142,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.17** · **loja v5.73** *(RH folha UX · 01/07)*
+**Versão app (`VERSION`):** **teste v6.17** · **loja v5.74** *(RH folha UX · 01/07)*
 
-### ✅ Deploy loja **v5.73** — RH folha UX + reabrir (01/07)
+### ✅ Deploy loja **v5.73–v5.74** — RH folha UX + reabrir (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
