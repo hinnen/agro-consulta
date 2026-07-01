@@ -1146,9 +1146,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.00** · **loja v5.65**
+**Versão app (`VERSION`):** **teste v6.07+** · **loja v5.69** *(espelho RH v5.67–68)*
 
-### 🐛 RH folha → CP desatualizado (01/07 — diagnóstico + fix local)
+### 🔄 WIP teste — RH ↔ CP pagamento salário integrado (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Escopo** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
+| **Fluxo CP** | Pagar/Parcial no título folha → registra pagamento RH → «Igualar» não apaga |
+| **Fluxo caixa** | Plano Salários → baixa título + RH + saída turno (sem vale) |
+| **Pendente** | Push teste → validar → cherry **produção** (frase + senha) |
+
+### 🐛 RH folha → CP desatualizado (01/07 — fix v5.67–68 loja)
 
 | Item | Detalhe |
 | ---- | ------- |

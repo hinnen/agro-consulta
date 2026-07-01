@@ -11,6 +11,7 @@ SAIDA_CAIXA_PLANOS = [
         "somente_caixa": True,
     },
     {"id": "adiant_vale", "label": "Adiantamento de Salário (Vale)", "plano": "2.1.1.1.1 — Adiantamento de Salário ( Vale )"},
+    {"id": "salario_folha", "label": "Salários (pagamento folha)", "plano": "2.1.1.1.2 — Salários"},
     {"id": "alimentacao", "label": "Alimentação", "plano": "2.1.1.5 — Alimentação"},
     {"id": "brindes", "label": "Brindes e ações festivas", "plano": "2.3.4 — Brindes e ações festivas"},
     {"id": "comb_strada", "label": "Combustível Strada", "plano": "2.1.7.1 — Combustivel Strada"},

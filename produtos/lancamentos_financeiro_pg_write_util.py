@@ -39,6 +39,29 @@ logger = logging.getLogger(__name__)
 _TOL = Decimal("0.02")
 
 
+def _notificar_baixa_rh_titulo_salario_pg(
+    *,
+    mongo_id: str,
+    valor_baixa: Decimal,
+    data: date | None,
+    tipo_origem: str,
+    referencia_externa_id: str,
+) -> None:
+    try:
+        from rh.services.pagamento_salario import processar_baixa_cp_titulo_salario
+
+        d = data or timezone.localdate()
+        processar_baixa_cp_titulo_salario(
+            mongo_id=mongo_id,
+            valor_baixa=valor_baixa,
+            data=d,
+            tipo_origem=tipo_origem,
+            referencia_externa_id=referencia_externa_id,
+        )
+    except Exception:
+        logger.exception("RH: hook baixa CP título salário (PG) mongo_id=%s", mongo_id)
+
+
 def financeiro_grava_postgres(despesa: bool) -> bool:
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
@@ -213,6 +236,15 @@ def baixar_lancamentos_pg(
         _touch_titulo(t, mod=mod, now=now)
         t.save()
         res_ok.append(t.mongo_id)
+        from rh.models import PagamentoSalarioFuncionario
+
+        _notificar_baixa_rh_titulo_salario_pg(
+            mongo_id=t.mongo_id,
+            valor_baixa=rest,
+            data=dp,
+            tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_TOTAL,
+            referencia_externa_id=f"{t.mongo_id}:total:{secrets.token_hex(8)}",
+        )
         _criar_proximo_recorrente_pg(t, usuario_label=usuario_label)
 
     return {"ok": len(res_err) == 0, "atualizados": res_ok, "erros": res_err}
@@ -302,6 +334,16 @@ def baixar_lancamento_parcial_pg(
 
     if quitado_final:
         _criar_proximo_recorrente_pg(t, usuario_label=usuario_label)
+
+    from rh.models import PagamentoSalarioFuncionario
+
+    _notificar_baixa_rh_titulo_salario_pg(
+        mongo_id=lid,
+        valor_baixa=soma_par,
+        data=dp,
+        tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_PARCIAL,
+        referencia_externa_id=f"{lid}:parc:{secrets.token_hex(8)}",
+    )
 
     return {"ok": True, "id": lid, "quitado": quitado_final}
 
