@@ -98,6 +98,7 @@ from .caixa_util import (
     normalizar_pagamentos_devolucao,
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
+    operador_label_de_pin,
     resumo_esperado_por_forma,
     _agregar_resumo_turno_sessao,
     obter_sessao_caixa_aberta_request,
@@ -15056,7 +15057,15 @@ def api_lancamentos_saida_caixa(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario, _ = _lancamentos_operador_label(request, payload, obrigatorio=False)
+    pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
+    ok_pin, usuario, err_pin = operador_label_de_pin(pin)
+    if not ok_pin:
+        return JsonResponse(
+            {"ok": False, "erro": err_pin or "Digite seu PIN (cadastro RH) para registrar a saída."},
+            status=403,
+        )
+    request.session["pdv_operador_nome"] = usuario[:120]
+    request.session.modified = True
 
     if plano_id_req:
         partes = []

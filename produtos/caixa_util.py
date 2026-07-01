@@ -604,6 +604,20 @@ def normalizar_rotulo_operador_exibicao(raw: str) -> str:
     return s
 
 
+def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
+    """
+    Valida PIN (PerfilUsuario.senha_rapida) e devolve rótulo do operador.
+    Retorno: (ok, label, erro_usuario).
+    """
+    ok, err = validar_pin_operador(pin)
+    if not ok:
+        return False, "", err or "PIN incorreto."
+    rot = rotulo_operador_pin(pin)
+    if not rot:
+        return False, "", "PIN não vinculado a um operador."
+    return True, rot[:150], ""
+
+
 def usuario_django_de_pin(pin: str):
     from base.models import PerfilUsuario
 
