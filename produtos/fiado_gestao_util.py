@@ -652,6 +652,8 @@ def _q_titulos_cliente_gestao(
     """Filtro para títulos do cliente na gestão (popup / baixa), sem repetir por código ERP."""
     nome = (cliente_nome or "").strip()
     cod = (cliente_codigo or "").strip()
+    if not nome and cliente_agro_pk:
+        nome = nome_para_consulta_fiado("", cliente_agro_pk=cliente_agro_pk)
     if nome:
         from produtos.fiado_import_util import _norm_nome_fiado_match
 

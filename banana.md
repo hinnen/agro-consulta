@@ -1141,7 +1141,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.56** · **loja v5.56** (`59ef94d` push **`producao`** · 30/06 · Renan + senha)
+**Versão app (`VERSION`):** **teste v5.57** (fix fiado nome · local) · **loja v5.56** (`59ef94d` · 30/06)
+
+### 🟠 Fiado — só 3 títulos pelo PDV/F8 **v5.58** (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Queila · popup vencido **R$ 376** · busca fiado **22 títulos R$ 435** · abrir gestão pelo PDV/F8 só **3 títulos R$ 25,60** |
+| **Causa** | Grade fiado agrupa por **nome**; PDV/F8 filtravam só `cliente_agro_id` (cadastro duplicado — títulos antigos em outro registro) |
+| **Fix** | `_q_titulos_cliente_gestao`: com pk resolve **nome** e filtra igual à grade · F8 `_fiado_resumo` mesmo critério · `fiado_gestao.js` prioriza `cliente_nome` |
+| **Arquivos** | `fiado_gestao_util.py` · `relacionamento_cliente_util.py` · `fiado_gestao.js` |
+| **Próximo** | Push **`teste`** → Ctrl+F5 → Queila: popup → Abrir gestão = **22 títulos** · F8 aba Fiado total **R$ 435** |
 
 ### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
 
