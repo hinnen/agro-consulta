@@ -136,12 +136,20 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
         ordem += 1
     from rh.models import PagamentoSalarioFuncionario
 
+    from django.db.models import Q
+
     for p in (
         PagamentoSalarioFuncionario.objects.filter(
-            funcionario=f.funcionario,
-            data__year=y,
-            data__month=m,
             cancelado=False,
+        )
+        .filter(
+            Q(fechamento=f)
+            | Q(
+                fechamento__isnull=True,
+                funcionario=f.funcionario,
+                data__year=y,
+                data__month=m,
+            )
         )
         .order_by("data", "id")
     ):
