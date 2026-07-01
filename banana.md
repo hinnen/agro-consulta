@@ -1159,6 +1159,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix 1** | CSS rail **48px**: tabs-bar = largura do rail · botões **40px** centralizados · ícones visíveis |
 | **Fix 2** | `focusPdv` + `postMessage agro-focus-pdv` · FAB e F1 no iframe BI → **foca janela PDV** externa |
 | **Fix 3** | Clique em link gestão no host PDV → `navigateGestao` (ex. `/vendas/` na janela gestão) |
+| **Git** | **`9eb3bf1`** push **`teste`** (VERSION **5.76**) |
 | **Validar** | Ctrl+F5 · 2 janelas Chrome · sidebar recolhida · FAB laranja · «Consultar vendas» no PDV |
 
 ### 🧪 Deploy teste **v5.74** — 2 janelas + sidebar ícones (01/07)
