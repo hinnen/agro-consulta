@@ -1146,9 +1146,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.13** · **loja v5.72** *(hotfix migrate RH · 01/07)*
+**Versão app (`VERSION`):** **teste v6.14+** · **loja v5.72**
 
-### 🧪 Deploy teste **v6.12–v6.13** — caixa scroll overlay + card orçamentos (01/07)
+### 🧪 RH fechamento — tela limpa + ajuda no «?» (01/07 · só teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan · padrão UX loja — sem textos longos na tela |
+| **O quê** | `fechamento_detalhe.html` · blocos Legenda/caixas azuis removidos · **?** compacto no canto de cada seção |
+| **Ajuda** | Textos (passos 1–3, competência fechada, exclusão bloqueada) em `rh_help_agents.html` |
+| **Produção** | **Não subir** sem frase + senha |
+
+### ✅ Loja v5.72 — teste RH pagamento salário (Renan · 01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
