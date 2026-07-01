@@ -17,6 +17,7 @@ from produtos.models import (
     ClienteAgro,
     Produto,
     ProdutoGestaoOverlayAgro,
+    ProdutoMarcaVariacaoAgro,
     RelacionamentoHistoricoImportLoteAgro,
     RelacionamentoItemHistoricoErpAgro,
     RelacionamentoVendaHistoricoErpAgro,
@@ -607,65 +608,163 @@ def normalizar_codigo_gm_rel(raw: str) -> str:
     return _norm_codigo_gm(raw)
 
 
+def _aliases_codigo_rel(codigo: str) -> set[str]:
+    """Termos equivalentes ao PDV (GM, interno, barras, dígitos)."""
+    s = str(codigo or "").strip()
+    if not s:
+        return set()
+    out: set[str] = {s}
+    n = _norm_codigo_gm(s)
+    if n:
+        out.add(n)
+    if s.isdigit():
+        out.add(s.lstrip("0") or "0")
+    if n.upper().startswith("GM"):
+        tail = n[2:].lstrip("0") or n[2:]
+        if tail:
+            out.add(tail)
+            if tail.isdigit():
+                try:
+                    out.add(str(int(tail)))
+                except ValueError:
+                    pass
+    digits = re.sub(r"\D", "", s)
+    if len(digits) >= 8:
+        out.add(digits)
+    return {x for x in out if str(x).strip()}
+
+
+def _mapa_alias_para_norms(codigos: list[str]) -> dict[str, set[str]]:
+    out: dict[str, set[str]] = defaultdict(set)
+    for raw in codigos:
+        norm = _norm_codigo_gm(raw)
+        if not norm:
+            continue
+        for alias in _aliases_codigo_rel(raw):
+            out[alias.lower()].add(norm)
+    return out
+
+
+def _norms_encontrados_por_valores(alias_map: dict[str, set[str]], *valores: str) -> set[str]:
+    found: set[str] = set()
+    for val in valores:
+        v = str(val or "").strip()
+        if not v:
+            continue
+        for alias in _aliases_codigo_rel(v):
+            found.update(alias_map.get(alias.lower(), set()))
+    return found
+
+
+def _q_codigo_catalogo_rel(alias_map: dict[str, set[str]], *campos: str) -> Q:
+    q = Q()
+    aliases = list(alias_map.keys())
+    if not aliases:
+        return q
+    for campo in campos:
+        for alias in aliases:
+            q |= Q(**{f"{campo}__iexact": alias})
+    return q
+
+
 def codigos_gm_ativos_no_catalogo(codigos: list[str]) -> set[str]:
-    """Códigos GM vendáveis no PDV: overlay + Produto PG + Mongo DtoProduto ativo."""
+    """Códigos vendáveis no PDV: overlay + Produto PG (nfe/interno/barras) + variações + Mongo ativo."""
     norms = {_norm_codigo_gm(c) for c in codigos if str(c or "").strip()}
     norms = {n for n in norms if n}
     if not norms:
         return set()
 
+    alias_map = _mapa_alias_para_norms(codigos)
     found: set[str] = set()
-    q = Q()
-    for c in norms:
-        q |= Q(codigo_nfe__iexact=c)
-    for raw in ProdutoGestaoOverlayAgro.objects.filter(q).values_list("codigo_nfe", flat=True):
-        n = _norm_codigo_gm(raw)
-        if n:
-            found.add(n)
+
+    q_ov = _q_codigo_catalogo_rel(alias_map, "codigo_nfe", "codigo_barras")
+    if q_ov:
+        for raw in ProdutoGestaoOverlayAgro.objects.filter(q_ov).values_list(
+            "codigo_nfe", "codigo_barras"
+        ):
+            found.update(_norms_encontrados_por_valores(alias_map, *(raw or ())))
 
     missing = norms - found
     if missing:
         try:
-            q_pg = Q()
-            for c in missing:
-                q_pg |= Q(codigo_nfe__iexact=c)
-            for raw in Produto.objects.filter(q_pg, cadastro_inativo=False).values_list(
-                "codigo_nfe", flat=True
-            ):
-                n = _norm_codigo_gm(raw)
-                if n in missing:
-                    found.add(n)
+            # Rebuild alias map only for missing norms (menos OR no PG)
+            partial: dict[str, set[str]] = defaultdict(set)
+            for alias, ns in alias_map.items():
+                if ns & missing:
+                    partial[alias].update(ns & missing)
+            q_pg = _q_codigo_catalogo_rel(
+                partial, "codigo_nfe", "codigo_interno", "codigo_barras"
+            )
+            if q_pg:
+                for row in Produto.objects.filter(q_pg, cadastro_inativo=False, ativo=True).values_list(
+                    "codigo_nfe", "codigo_interno", "codigo_barras"
+                ):
+                    found.update(_norms_encontrados_por_valores(partial, *(row or ())))
+            q_var = _q_codigo_catalogo_rel(
+                partial, "codigo_interno", "codigo_barras", "codigo_fornecedor"
+            )
+            if q_var:
+                for row in ProdutoMarcaVariacaoAgro.objects.filter(q_var).values_list(
+                    "codigo_interno", "codigo_barras", "codigo_fornecedor"
+                ):
+                    found.update(_norms_encontrados_por_valores(partial, *(row or ())))
         except Exception as exc:
             logger.warning("codigos_gm_ativos produto pg: %s", exc)
         missing = norms - found
 
     if missing:
         try:
+            from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
             from produtos.views import obter_conexao_mongo
 
             _client, db = obter_conexao_mongo()
             if db is not None:
+                partial: dict[str, set[str]] = defaultdict(set)
+                for alias, ns in alias_map.items():
+                    if ns & missing:
+                        partial[alias].update(ns & missing)
+                aliases_ix = [a for a in partial.keys() if a]
                 ors: list[dict] = []
-                for c in missing:
-                    ors.append({"CodigoNFe": c})
-                    ors.append({"Codigo": c})
-                    if c.upper().startswith("GM"):
-                        tail = c[2:].lstrip("0") or c[2:]
-                        if tail.isdigit():
-                            ors.append({"Codigo": int(tail)})
-                            ors.append({"Codigo": tail})
-                            ors.append({"CodigoNFe": tail})
+                for alias in aliases_ix:
+                    ors.append({"CodigoNFe": alias})
+                    ors.append({"Codigo": alias})
+                    if alias.isdigit():
+                        try:
+                            ors.append({"Codigo": int(alias)})
+                        except ValueError:
+                            pass
+                    if len(alias) >= 8 and alias.isdigit():
+                        ors.append({"CodigoBarras": alias})
+                        ors.append({"EAN_NFe": alias})
+                if aliases_ix:
+                    ors.append({INDEX_CODIGOS_CAMPO: {"$in": aliases_ix[:120]}})
                 if ors:
-                    proj = {"CodigoNFe": 1, "Codigo": 1, "CodigoInterno": 1, "index_codigos": 1}
+                    proj = {
+                        "CodigoNFe": 1,
+                        "Codigo": 1,
+                        "CodigoInterno": 1,
+                        "CodigoBarras": 1,
+                        "index_codigos": 1,
+                    }
                     for doc in db["DtoProduto"].find(
                         {"$and": [{"CadastroInativo": {"$ne": True}}, {"$or": ors}]},
                         proj,
                         max_time_ms=8000,
                     ).limit(max(50, len(missing) * 4)):
+                        vals = [
+                            doc.get("CodigoNFe"),
+                            doc.get("Codigo"),
+                            doc.get("CodigoInterno"),
+                            doc.get("CodigoBarras"),
+                        ]
+                        ix = doc.get("index_codigos") or doc.get("IndexCodigos")
+                        if isinstance(ix, list):
+                            vals.extend(ix)
                         gm = _codigo_gm_de_produto_mongo(doc)
-                        n = _norm_codigo_gm(gm)
-                        if n in missing:
-                            found.add(n)
+                        if gm:
+                            vals.append(gm)
+                        hit = _norms_encontrados_por_valores(partial, *(str(v) for v in vals if v))
+                        found.update(hit)
         except Exception as exc:
             logger.warning("codigos_gm_ativos mongo: %s", exc)
 
