@@ -1219,12 +1219,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Gestão (2 apps .lnk)** | Sidebar **PDV** oculta · BI topo/launchpad **PDV** ocultos · **F1** não abre PDV · FAB laranja oculto |
+| **Fix BI topo PDV** | `isGestaoContext()` — BI no iframe (`agro_inapp_embed`) também esconde botão PDV do topo |
 | **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
 | **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
 | **Validar** | Ctrl+F5 nos 2 atalhos · PDV → Caixa → Reforço/conferências · barra única · sem FAB PDV |
 | **Git teste** | **`c1f9970`** · v5.96 |
-| **Fix Menu preso** | **`agro_pdv_overlay.js`** — compara URL **viva** do iframe (não só `src`); limpa iframe ao Fechar; Menu força navegação ao `/caixa/` |
+| **Fix Menu preso** | **`1222be1`** · v6.00 — URL viva do iframe + limpa ao Fechar |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 

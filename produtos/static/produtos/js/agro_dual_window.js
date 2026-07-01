@@ -333,6 +333,23 @@
     return dualFlagOn() && !isPdvPath() && !inEmbed();
   }
 
+  /** Gestão (atalho ou shell) — inclui BI dentro do iframe com agro_inapp_embed. */
+  function isGestaoContext() {
+    if (isPdvHost()) return false;
+    if (readAppRole() === 'gestao') return true;
+    if (window.name === GESTAO_NAME) return true;
+    try {
+      if (window.top !== window.self && window.top.name === GESTAO_NAME) return true;
+    } catch (_) {}
+    if (isGestaoHost()) return true;
+    try {
+      if (inEmbed() && new URLSearchParams(window.location.search || '').get('agro_inapp_embed') === '1') {
+        return readAppRole() !== 'pdv';
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function shouldRoutePdvLinkToGestao(pathname) {
     var p = pathnameNorm(pathname);
     if (isPdvPath(p)) return false;
@@ -572,6 +589,7 @@
     appShortcutMode: appShortcutMode,
     isPdvHost: isPdvHost,
     isGestaoHost: isGestaoHost,
+    isGestaoContext: isGestaoContext,
     isPdvPath: isPdvPath,
     inEmbed: inEmbed,
     isStandaloneApp: isStandaloneApp,

@@ -347,6 +347,9 @@
   function shouldHide() {
     if (pathIsPdv()) return true;
     try {
+      if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoContext === "function" && window.AgroDualWindow.isGestaoContext()) {
+        return true;
+      }
       if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
         return true;
       }
@@ -521,6 +524,9 @@
   document.addEventListener("keydown", function (e) {
     if (e.defaultPrevented) return;
     if (e.code !== "F1" && e.key !== "F1") return;
+    if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoContext === "function" && window.AgroDualWindow.isGestaoContext()) {
+      return;
+    }
     if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
       return;
     }
