@@ -10,21 +10,18 @@
   var FLAG_KEY = 'agro_dual_window_v1';
   var FOCUS_KEY = 'agro_dual_focus_v1';
 
-  function pathnameNorm() {
+  function pathnameNorm(p) {
+    if (p) {
+      return String(p).toLowerCase().replace(/\/+$/, '') || '/';
+    }
     return String(window.location.pathname || '')
       .toLowerCase()
       .replace(/\/+$/, '') || '/';
   }
 
   function isPdvPath(p) {
-    p = p || pathnameNorm();
+    p = pathnameNorm(p);
     return p === '/pdv' || p.indexOf('/pdv/') === 0 || p === '/consulta' || p.indexOf('/consulta/') === 0;
-  }
-
-  function isGestaoPath(p) {
-    p = p || pathnameNorm();
-    if (isPdvPath(p)) return false;
-    return p === '/' || p.indexOf('/dashboard') === 0 || p.indexOf('/atalhos') === 0;
   }
 
   function inEmbed() {
@@ -37,8 +34,7 @@
     }
   }
 
-  function enabled() {
-    if (inEmbed()) return false;
+  function dualFlagOn() {
     if (window.agroShell && typeof window.agroShell.openExternal === 'function') return false;
     try {
       if (localStorage.getItem(FLAG_KEY) === '0') return false;
@@ -50,6 +46,11 @@
       }
     } catch (_) {}
     return true;
+  }
+
+  function enabled() {
+    if (inEmbed()) return false;
+    return dualFlagOn();
   }
 
   function absUrl(rel) {
@@ -66,6 +67,16 @@
 
   function gestaoUrl(sub) {
     return absUrl(sub || '/dashboard/gerencial/');
+  }
+
+  function postToTop(payload) {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage(payload, window.location.origin);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   function openNamed(name, url) {
@@ -129,6 +140,10 @@
 
   function navigateGestao(href) {
     var url = absUrl(href || gestaoUrl());
+    if (inEmbed()) {
+      postToTop({ type: 'agro-open-inapp-tab', href: url });
+      return;
+    }
     if (isGestaoHost()) {
       if (typeof window.__agroInAppAddTab === 'function') {
         window.__agroInAppAddTab(url);
@@ -154,20 +169,45 @@
     pulseGestaoNav(url);
   }
 
+  /** FAB / F1 / links dentro de iframe da gestão → janela PDV externa. */
+  function focusPdv(url) {
+    var href = url ? absUrl(url) : pdvUrl();
+    if (inEmbed()) {
+      if (postToTop({ type: 'agro-focus-pdv', href: href })) return;
+    }
+    if (dualFlagOn()) {
+      openPdv(href);
+      return;
+    }
+    if (typeof window.__agroInAppAddTab === 'function') {
+      window.__agroInAppAddTab(href);
+      return;
+    }
+    window.location.href = href;
+  }
+
   function isPdvHost() {
     if (window.name === PDV_NAME) return true;
-    return enabled() && isPdvPath();
+    return dualFlagOn() && isPdvPath() && !inEmbed();
   }
 
   function isGestaoHost() {
     if (window.name === GESTAO_NAME) return true;
-    return enabled() && !isPdvPath();
+    return dualFlagOn() && !isPdvPath() && !inEmbed();
+  }
+
+  function shouldRoutePdvLinkToGestao(pathname) {
+    var p = pathnameNorm(pathname);
+    if (isPdvPath(p)) return false;
+    if (p === '/healthz') return false;
+    if (p.indexOf('/admin') === 0) return false;
+    return true;
   }
 
   function assignWindowName() {
-    if (!enabled() || inEmbed()) return;
+    if (!dualFlagOn() || inEmbed()) return;
     if (isPdvPath()) window.name = PDV_NAME;
-    else if (!isPdvPath()) window.name = GESTAO_NAME;
+    else window.name = GESTAO_NAME;
   }
 
   function onStorageFocus(ev) {
@@ -189,18 +229,22 @@
     window.tabManager.addTab = function (_titulo, url, _icone) {
       var u = String(url || '').trim();
       if (!u) return;
+      u = absUrl(u);
+      var p = '';
       try {
-        u = absUrl(u);
+        p = new URL(u).pathname;
       } catch (_) {
+        p = '';
+      }
+      if (inEmbed()) {
+        if (isPdvPath(p)) {
+          focusPdv(u);
+        } else {
+          postToTop({ type: 'agro-open-inapp-tab', href: u });
+        }
         return;
       }
-      if (enabled()) {
-        var p = '';
-        try {
-          p = new URL(u).pathname.toLowerCase().replace(/\/+$/, '') || '/';
-        } catch (_) {
-          p = '';
-        }
+      if (dualFlagOn()) {
         if (isPdvPath(p)) {
           openPdv(u);
         } else {
@@ -216,20 +260,48 @@
     };
   }
 
+  function installPdvLinkRouter() {
+    document.addEventListener(
+      'click',
+      function (e) {
+        if (!isPdvHost()) return;
+        var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+        if (!a) return;
+        if (a.id === 'agro-pdv-fab') return;
+        var tgt = (a.getAttribute('target') || '').toLowerCase();
+        if (tgt === '_blank' || tgt === '_top') return;
+        if (a.hasAttribute('download')) return;
+        try {
+          var u = new URL(a.href, window.location.origin);
+          if (u.origin !== location.origin) return;
+          if (!shouldRoutePdvLinkToGestao(u.pathname)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          navigateGestao(u.href);
+        } catch (_) {}
+      },
+      true
+    );
+  }
+
   assignWindowName();
   installTabManager();
+  installPdvLinkRouter();
   window.addEventListener('storage', onStorageFocus);
 
   window.AgroDualWindow = {
     PDV_NAME: PDV_NAME,
     GESTAO_NAME: GESTAO_NAME,
     enabled: enabled,
+    dualFlagOn: dualFlagOn,
     isPdvHost: isPdvHost,
     isGestaoHost: isGestaoHost,
     isPdvPath: isPdvPath,
+    inEmbed: inEmbed,
     openPdv: openPdv,
     openGestao: openGestao,
     navigateGestao: navigateGestao,
+    focusPdv: focusPdv,
     pdvUrl: pdvUrl,
     gestaoUrl: gestaoUrl,
   };
