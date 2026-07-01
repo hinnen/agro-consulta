@@ -9246,6 +9246,66 @@ def caixa_retiradas_historico(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_caixa_retiradas_export_xlsx(request):
+    """Exporta histórico de retiradas/saídas para Excel — filtros e colunas opcionais."""
+    from produtos.caixa_retiradas_export_util import (
+        montar_xlsx_retiradas,
+        normalizar_colunas_export,
+    )
+    from produtos.caixa_retiradas_util import listar_retiradas_historico
+
+    hoje = timezone.localdate()
+    data_de = _lancamentos_parse_date_param(request.GET.get("de"))
+    data_ate = _lancamentos_parse_date_param(request.GET.get("ate"))
+    if data_de is None and data_ate is None:
+        data_de = data_ate = hoje
+    elif data_de is None:
+        data_de = data_ate
+    elif data_ate is None:
+        data_ate = data_de
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+
+    plano_filtro = (request.GET.get("plano") or "").strip()
+    quem_filtro = (request.GET.get("quem") or "").strip()
+    if request.GET.get("completo") in ("1", "true", "yes"):
+        plano_filtro = ""
+        quem_filtro = ""
+
+    colunas = normalizar_colunas_export(request.GET.get("cols"))
+    resultado = listar_retiradas_historico(
+        data_de=data_de,
+        data_ate=data_ate,
+        plano=plano_filtro,
+        quem=quem_filtro,
+        exportar=True,
+    )
+    linhas = resultado["linhas"]
+    truncado = resultado["qtd"] >= 5000
+    blob = montar_xlsx_retiradas(
+        linhas,
+        colunas=colunas,
+        data_de=data_de,
+        data_ate=data_ate,
+        plano_filtro=plano_filtro,
+        quem_filtro=quem_filtro,
+        total=resultado["total"],
+        truncado=truncado,
+    )
+    sufixo = f"{data_de.strftime('%Y%m%d')}_{data_ate.strftime('%Y%m%d')}"
+    nome = f"Retiradas_Saidas_{sufixo}.xlsx"
+    resp = HttpResponse(
+        blob,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    if truncado:
+        resp["X-Agro-Export-Truncado"] = "1"
+    return resp
+
+
+@login_required(login_url="/admin/login/")
 def caixa_relatorio(request):
     from produtos.caixa_relatorio_util import montar_relatorio_caixa
 

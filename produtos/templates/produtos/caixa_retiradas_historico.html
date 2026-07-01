@@ -35,6 +35,13 @@
     }
     .crh-table { font-size: 0.9375rem; }
     .crh-table th { font-size: 0.6875rem; }
+    .crh-export-modal-panel {
+      width: min(96vw, 52rem);
+      max-height: min(92dvh, 44rem);
+    }
+    .crh-export-modal-panel .crh-export-scroll {
+      max-height: min(28dvh, 14rem);
+    }
   </style>
   {% include "produtos/includes/caixa_viewport_shell.html" %}
   {% include "produtos/includes/caixa_embed_mode.html" %}
@@ -91,6 +98,7 @@
         </select>
       </div>
       <button type="submit" class="crh-touch px-4 rounded-lg bg-slate-900 text-white text-xs font-black uppercase">Filtrar</button>
+      <button type="button" id="crh-btn-export-xlsx" class="crh-touch px-4 rounded-lg bg-emerald-600 text-white text-xs font-black uppercase border-2 border-emerald-800 hover:bg-emerald-700" title="Exportar para Excel">Excel ↓</button>
       <a href="{% url 'caixa_retiradas_historico' %}" class="crh-touch inline-flex items-center px-3 rounded-lg border border-slate-200 text-xs font-black uppercase text-slate-600">Hoje</a>
     </form>
 
@@ -136,12 +144,106 @@
     </div>
   </main>
 
+  <div id="crh-export-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
+  <div id="crh-export-modal" class="crh-export-modal-panel fixed left-1/2 top-1/2 z-[190] hidden -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-orange-500 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="crh-export-titulo">
+    <div class="px-5 py-4 border-b border-orange-100 bg-orange-50/90 shrink-0">
+      <h2 id="crh-export-titulo" class="text-lg font-black uppercase text-slate-900">Exportar retiradas — Excel</h2>
+      <p class="text-sm text-slate-600 mt-1">Filtre o período e o escopo, escolha as colunas. <strong>Data</strong>, <strong>hora</strong>, <strong>operador (PIN)</strong> e <strong>forma de pagamento</strong> entram sempre.</p>
+    </div>
+    <div class="p-5 flex flex-col gap-4 overflow-y-auto min-h-0 flex-1">
+      <fieldset class="space-y-2 shrink-0">
+        <legend class="text-xs font-black uppercase text-slate-500">Filtros do arquivo</legend>
+        <div class="flex flex-wrap gap-3 text-sm font-semibold text-slate-800">
+          <label class="flex items-center gap-2 min-h-[40px]">
+            <input type="radio" name="crh-export-fonte" id="crh-export-fonte-tela" value="tela" class="w-5 h-5" checked>
+            <span>Usar filtros da tela</span>
+          </label>
+          <label class="flex items-center gap-2 min-h-[40px]">
+            <input type="radio" name="crh-export-fonte" id="crh-export-fonte-custom" value="custom" class="w-5 h-5">
+            <span>Personalizar</span>
+          </label>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-1">
+          <button type="button" id="crh-export-preset-periodo" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50">Só período</button>
+          <button type="button" id="crh-export-preset-plano" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50">+ plano da tela</button>
+          <button type="button" id="crh-export-preset-quem" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50">+ quem da tela</button>
+          <button type="button" id="crh-export-preset-completo" class="px-3 py-1.5 rounded-lg border border-orange-300 bg-orange-50 text-[10px] font-black uppercase text-orange-900 hover:bg-orange-100">Completo (período)</button>
+        </div>
+        <div id="crh-export-painel-custom" class="hidden mt-3 space-y-3 rounded-xl border-2 border-slate-100 bg-slate-50/80 p-3" aria-hidden="true">
+          <div class="flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block" for="crh-export-de">De</label>
+              <input type="date" id="crh-export-de" value="{{ data_de|date:'Y-m-d' }}" class="agro-date-picker crh-touch mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold min-w-[10rem]">
+            </div>
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block" for="crh-export-ate">Até</label>
+              <input type="date" id="crh-export-ate" value="{{ data_ate|date:'Y-m-d' }}" class="agro-date-picker crh-touch mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold min-w-[10rem]">
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <div class="flex-1 min-w-[12rem]">
+              <label class="text-[10px] font-black uppercase text-slate-500 block" for="crh-export-plano">Plano de contas</label>
+              <select id="crh-export-plano" class="crh-touch mt-0.5 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold">
+                <option value="">Todos</option>
+                {% for p in planos_opts %}
+                {% if p.plano %}
+                <option value="{{ p.plano }}">{{ p.label }}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="flex-1 min-w-[12rem]">
+              <label class="text-[10px] font-black uppercase text-slate-500 block" for="crh-export-quem">Quem levou</label>
+              <select id="crh-export-quem" class="crh-touch mt-0.5 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold">
+                <option value="">Todos</option>
+                {% for nome in quem_opts %}
+                <option value="{{ nome }}">{{ nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <input type="checkbox" id="crh-export-completo" class="w-5 h-5">
+            <span>Exportação <strong>completa</strong> no período (ignora plano e quem)</span>
+          </label>
+        </div>
+        <p id="crh-export-status" class="text-xs font-semibold text-orange-800 mt-2"></p>
+      </fieldset>
+      <fieldset class="space-y-2 shrink-0">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <legend class="text-xs font-black uppercase text-slate-500">Colunas na planilha</legend>
+          <div class="flex gap-2">
+            <button type="button" id="crh-export-cols-min" class="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase text-slate-500">Resumo</button>
+            <button type="button" id="crh-export-cols-all" class="px-2 py-1 rounded-lg border border-slate-200 text-[10px] font-black uppercase text-slate-500">Todas</button>
+          </div>
+        </div>
+        <div id="crh-export-colunas" class="crh-export-scroll overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm font-semibold text-slate-800 rounded-xl border-2 border-slate-200 p-2"></div>
+      </fieldset>
+    </div>
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
+      <button type="button" id="crh-export-baixar" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm border-2 border-emerald-800 hover:bg-emerald-700">Baixar Excel</button>
+      <button type="button" id="crh-export-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto">Cancelar</button>
+    </div>
+  </div>
+
   <script src="{% static 'produtos/js/agro_date_picker.js' %}"></script>
+  <script src="{% static 'produtos/js/caixa_retiradas_export.js' %}"></script>
   <script>
+  window.CRH_EXPORT = { urlExport: "{% url 'api_caixa_retiradas_export_xlsx' %}" };
   (function () {
     var API_QUEM = "{% url 'api_rh_caixa_quem_leva' %}";
     var selQuem = document.getElementById('id-quem');
+    var selQuemExp = document.getElementById('crh-export-quem');
     var quemAtual = "{{ quem_filtro|escapejs }}";
+
+    function appendQuemOption(sel, nome, selected) {
+      if (!sel || !nome) return;
+      var opt = document.createElement('option');
+      opt.value = nome;
+      opt.textContent = nome;
+      if (selected) opt.selected = true;
+      sel.appendChild(opt);
+    }
 
     if (window.AgroDatePicker) {
       window.AgroDatePicker.bind(document.getElementById('crh-filtros'), {
@@ -162,11 +264,9 @@
           var nome = (it.label || it.nome || '').trim();
           if (!nome || vistos[nome.toLowerCase()]) return;
           vistos[nome.toLowerCase()] = true;
-          var opt = document.createElement('option');
-          opt.value = nome;
-          opt.textContent = nome;
-          if (quemAtual && quemAtual.toLowerCase() === nome.toLowerCase()) opt.selected = true;
-          selQuem.appendChild(opt);
+          var sel = quemAtual && quemAtual.toLowerCase() === nome.toLowerCase();
+          appendQuemOption(selQuem, nome, sel);
+          appendQuemOption(selQuemExp, nome, false);
         });
       })
       .catch(function () {});

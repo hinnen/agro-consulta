@@ -315,6 +315,11 @@ urlpatterns = [
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),
     path('caixa/fechar/', views.caixa_fechar, name='caixa_fechar'),
     path('caixa/retiradas/', views.caixa_retiradas_historico, name='caixa_retiradas_historico'),
+    path(
+        'api/caixa/retiradas/export-xlsx/',
+        views.api_caixa_retiradas_export_xlsx,
+        name='api_caixa_retiradas_export_xlsx',
+    ),
     path('caixa/relatorio/', views.caixa_relatorio, name='caixa_relatorio'),
     path(
         'caixa/relatorio-conferencias/',
