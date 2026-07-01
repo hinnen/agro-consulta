@@ -15,7 +15,19 @@
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 {# Tipografia/UI já incluídas em base.html (#_agro_consulta_ui duplicaria scripts e pode quebrar init das abas) #}
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search || "");
+    if (q.get("agro_inapp_embed") === "1" || localStorage.getItem("agro_app_role_v1") === "gestao") {
+      document.documentElement.setAttribute("data-agro-hide-pdv", "1");
+    }
+  } catch (_) {}
+})();
+</script>
 <style>
+    html[data-agro-hide-pdv="1"] #dash-btn-pdv-top,
+    html[data-agro-hide-pdv="1"] #launchpad-orb-pdv { display: none !important; }
     /* AGENTS.md: emerald / orange / slate + Capri para BI */
     :root {
         --capri: #00bfff;
@@ -1145,7 +1157,7 @@ document.addEventListener("keydown", function (e) {
         return;
     }
     if (e.key === "F1") {
-        if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
+        if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoContext === "function" && window.AgroDualWindow.isGestaoContext()) {
             return;
         }
         e.preventDefault();
@@ -1167,8 +1179,15 @@ document.addEventListener("keydown", function (e) {
     lucide.createIcons();
 
     (function hideGestaoPdvShortcuts() {
-        if (!window.AgroDualWindow || typeof window.AgroDualWindow.isGestaoHost !== "function") return;
-        if (!window.AgroDualWindow.isGestaoHost()) return;
+        function shouldHide() {
+            var dw = window.AgroDualWindow;
+            if (dw && typeof dw.isGestaoContext === "function" && dw.isGestaoContext()) return true;
+            try {
+                return document.documentElement.getAttribute("data-agro-hide-pdv") === "1";
+            } catch (_) {}
+            return false;
+        }
+        if (!shouldHide()) return;
         ["dash-btn-pdv-top", "launchpad-orb-pdv"].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.hidden = true;
