@@ -1158,6 +1158,36 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validar** | CP Salários parcial (data fora do mês da folha) · Pago persiste · card RH **Valor pago** |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
 
+### 🧹 RH — limpar pagamentos Salários duplicados (tentativas CP parcial)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Várias linhas «Pagamento salário (CP parcial)» na folha · log CP com vários «Agro parc. R$ 72,75» + R$ 1 · Pago inflado |
+| **Causa** | Bug v5.75: cada tentativa gravou `PagamentoSalarioFuncionario` no RH; sync antigo não mantinha CP mas **registros RH ficaram** |
+| **Correto (ex. Zuleide jun/26)** | **1× R$ 72,75** pagamento salário + vales R$ 585 → **Pago CP = R$ 657,75** |
+| **Loja hoje (v5.76)** | **Admin Django** → *Pagamentos de salário* → filtrar funcionário + jun/2026 → marcar duplicatas → ação **«Cancelar selecionados e sincronizar CP»** (só **teste** até cherry admin) |
+| **Loja agora (shell Render)** | Ver bloco abaixo · cancelar todos CP parcial exceto **1** de R$ 72,75 |
+| **Log CP** | Linhas «Agro parc.» antigas podem ficar no **Log** (histórico); **Pago/Saldo** vêm do sync — conferir número, não contar linhas do log |
+
+**Shell (produção v5.76 — Zuleide jun/2026):**
+```python
+from rh.models import FechamentoFolhaSimplificado, PagamentoSalarioFuncionario
+from rh.services.pagamento_salario import cancelar_pagamento_salario
+
+fech = FechamentoFolhaSimplificado.objects.filter(
+    funcionario__nome_cache__icontains="Zuleide", competencia__year=2026, competencia__month=6,
+).first()
+pags = list(PagamentoSalarioFuncionario.objects.filter(
+    fechamento=fech, cancelado=False, tipo_origem="CP_PARCIAL",
+).order_by("criado_em"))
+# Conferir lista; deixar UM de valor 72.75 (ex.: o último após o fix):
+manter_pk = pags[-1].pk  # ajuste se preferir outro
+for p in pags:
+    if p.pk == manter_pk:
+        continue
+    cancelar_pagamento_salario(p, motivo="Tentativa duplicada bug CP parcial jun/26")
+```
+
 ### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
 
 | Item | Detalhe |
