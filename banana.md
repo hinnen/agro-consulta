@@ -1146,7 +1146,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.10** · **loja v5.72** *(hotfix migrate RH · 01/07)*
+**Versão app (`VERSION`):** **teste v6.11** · **loja v5.72** *(hotfix migrate RH · 01/07)*
+
+### 🧪 Deploy teste — caixa scroll overlay + card orçamentos (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan · *banana manda para teste* |
+| **Pacote** | (1) Caixa overlay: scroll 9 subtelas (`caixa_viewport_shell.html` + `.caixa-panel-scroll`) · (2) PDV card orçamentos: 3 recentes clicáveis · Ver mais só antigos |
+| **Validar** | Ctrl+F5 · PDV → Caixa → Saldo (rolar movimentos) · card orçamento 3 linhas + clique reabre |
+
+### 🐛 Caixa overlay PDV — scroll subtelas (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Iframe PDV (~95%): **Saldo caixa** cortava «Movimentos manuais recentes» sem rolagem |
+| **Causa** | `body` com `100dvh` > altura do iframe + `overflow-hidden` |
+| **Fix** | Overlay usa `height:100%` · `.caixa-panel-scroll` em menu, saldo, todos, reforço, retirada, relatório, conferências, abrir, fechar, saída |
 
 ### ✅ Deploy loja **v5.71–v5.72** — hotfix migrate RH 0005 (01/07)
 

@@ -24,6 +24,7 @@
     .caixa-ponto-card.is-selected { box-shadow: 0 12px 32px rgba(16, 185, 129, 0.18); }
     .caixa-ponto-panel[hidden] { display: none !important; }
   </style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
   {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
@@ -90,7 +91,7 @@
       </div>
     </section>
 
-    <div class="min-h-0 flex flex-col gap-3 overflow-y-auto overscroll-contain">
+    <div class="caixa-panel-scroll flex flex-col gap-3">
       {% if sugestao_fechamento %}
       <section class="shrink-0 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm caixa-ponto-panel" data-ponto-panel="gaveta teste">
         <p class="text-[10px] font-black uppercase text-sky-800">Sugestão do último fechamento</p>
