@@ -99,6 +99,18 @@ def _aplicar_totais_no_documento_mongo(
     else:
         patch["DataPagamento"] = doc.get("DataPagamento")
     col.update_one({"_id": oid}, {"$set": patch})
+    try:
+        from produtos.lancamentos_financeiro_agro_util import espelhar_titulo_mongo_id_para_postgres
+
+        esp = espelhar_titulo_mongo_id_para_postgres(db, str(mongo_id))
+        if not esp.get("ok"):
+            logger.warning(
+                "RH folha: Mongo atualizado mas falhou espelho Postgres (%s): %s",
+                mongo_id,
+                esp.get("erro"),
+            )
+    except Exception:
+        logger.exception("RH folha: falha ao espelhar título %s no Postgres", mongo_id)
     return {"ok": True}
 
 
