@@ -40,6 +40,7 @@ from rh.models import (
 from produtos.views import obter_conexao_mongo
 from rh.services.fechamento import (
     garantir_fechamento_aberto,
+    garantir_fechamento_operacional,
     money_two_decimals,
     motivo_bloqueio_exclusao_fechamento,
     primeiro_dia_mes,
@@ -269,7 +270,7 @@ def rh_funcionario_garantir_fechamento_mes_atual(request, pk: int):
     """Cria ou reabre folha do mês corrente sem depender de lançar vale antes."""
     f = get_object_or_404(Funcionario, pk=pk)
     hoje = timezone.localdate()
-    fech = garantir_fechamento_aberto(f, hoje)
+    fech = garantir_fechamento_operacional(f, hoje)
     messages.success(
         request,
         f"Folha {fech.competencia:%m/%Y} pronta. Lá você define o vencimento no financeiro (passo 2), se quiser.",

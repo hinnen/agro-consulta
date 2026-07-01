@@ -215,6 +215,19 @@ def garantir_fechamento_aberto(funcionario: Funcionario, competencia: date) -> F
     return f
 
 
+def garantir_fechamento_operacional(
+    funcionario: Funcionario,
+    competencia: date,
+    *,
+    reabrir_se_encerrado: bool = True,
+) -> FechamentoFolhaSimplificado:
+    """Cria a competência se faltar; opcionalmente reabre folha Fechado/Pago para vales e caixa."""
+    f = garantir_fechamento_aberto(funcionario, competencia)
+    if reabrir_se_encerrado and f.status != FechamentoFolhaSimplificado.Status.ABERTO:
+        f = reabrir_fechamento(f)
+    return f
+
+
 def recalcular_todos_abertos_funcionario(funcionario: Funcionario):
     from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
 
