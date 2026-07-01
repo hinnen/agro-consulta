@@ -588,6 +588,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
+- **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
 
 ### 4.12 RH
 
@@ -1143,6 +1144,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v5.62** · **loja v5.62** (`545aad3` push **`producao`** · 01/07)
 
+### WIP — Retiradas export Excel → **teste v5.64** (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tela** | `/caixa/retiradas/` — **Excel ↓** + modal (filtros + colunas, padrão cadastro ERP) |
+| **Filtros** | Tela · personalizar · atalhos período / +plano / +quem / **completo** |
+| **Colunas fixas** | Data · hora · operador (PIN) · forma de pagamento |
+| **API** | `GET api/caixa/retiradas/export-xlsx/` |
+| **Deploy** | Push **`teste`** v5.64 · aguardar Render |
+
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
 | Item | Detalhe |
@@ -1151,7 +1162,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Git** | Merge **`teste`→`producao`** **`545aad3`** · fiado **`6875a3a`** + auditoria **`47c20e0`** |
 | **Pacote** | Fiado: gestão/F8 lista títulos por **nome** (igual grade) · comando `fiado_auditar_cadastros_duplicados` |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · Queila: abrir gestão pelo PDV = **todos** títulos · total = lateral **R$ 435,66** |
-| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` |
+| **Validação Renan 01/07** | Queila pelo PDV: **22 títulos · R$ 435,66** ✓ (643/647/666 no fim da lista) |
+| **Shell 30/06** | Renan: **só teste** (provável) — FL-042/sync **não** na loja |
+| **Demais clientes** | Fix **geral** (mesmo código) · conferir com auditoria shell |
+| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` · `--limite 0` |
 
 ### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
 
@@ -1179,6 +1193,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Cadastros duplicados mesmo nome · filtro só `cliente_agro_id` no atalho PDV |
 | **Fix** | `_q_titulos_cliente_gestao` + F8 `_fiado_resumo` + `fiado_gestao.js` por **nome** |
 | **Queila** | «(não usar mais)» **R$ 410** + «Hinnen a» **R$ 25,60** = **R$ 435,66** |
+| **Renan 01/07** | Fiado «errado» **desde ~30/06** — associa à **tentativa import**; **não** foi só v5.61 |
+| **Causa provável loja** | Deploy **v5.53 (30/06)** trouxe **F8 + aba Fiado** filtrando só `cliente_agro` · cadastros duplicados **já existiam** (sync/planilha fiado) — import **piorou visibilidade**, não apagou título |
+| **FL-042 vendas ERP na loja** | **Não rodou** (`erp-hist-teste-3` só teste) · **não grava** `FiadoTituloAgro` |
+| **Se rodou shell loja 30/06** | `sincronizar_clientes_agro` ou import fiado planilha → **pode** ter criado 2º cadastro Queila — **confirmar** |
 | **Auditoria loja** | `python manage.py fiado_auditar_cadastros_duplicados` · `--json` |
 
 ### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)

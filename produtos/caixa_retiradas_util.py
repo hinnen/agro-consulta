@@ -37,10 +37,13 @@ def listar_retiradas_historico(
     plano: str = "",
     quem: str = "",
     limite: int = 300,
+    exportar: bool = False,
 ) -> dict[str, Any]:
     plano_f = (plano or "").strip()
     quem_f = (quem or "").strip().lower()
-    limite = max(1, min(int(limite or 300), 500))
+    cap = 10000 if exportar else 500
+    default_lim = 5000 if exportar else 300
+    limite = max(1, min(int(limite or default_lim), cap))
 
     linhas: list[dict[str, Any]] = []
     ids_mov_vistos: set[int] = set()
@@ -77,9 +80,15 @@ def listar_retiradas_historico(
                 "plano": (t.plano_conta or "").strip() or "—",
                 "quem": nome_quem or "—",
                 "forma": (t.forma_pagamento or "").strip() or "—",
+                "banco": (t.banco or "").strip() or "—",
                 "descricao": (t.descricao or "").strip(),
+                "observacoes": (t.observacoes or "").strip(),
                 "operador": (t.usuario_lancou or t.criado_por or "").strip(),
+                "operador_pin": (
+                    (t.usuario_lancou or t.criado_por or t.modificado_por or "").strip()
+                ),
                 "sessao_id": snap.get("sessao_caixa_id"),
+                "mongo_id": (t.mongo_id or "").strip(),
             }
         )
 
@@ -118,12 +127,19 @@ def listar_retiradas_historico(
                 "plano": obs.split(" · ")[0][:120] if obs else "Depósito / caixa",
                 "quem": "—",
                 "forma": (m.forma_pagamento or "").strip() or "—",
+                "banco": "—",
                 "descricao": obs or "Retirada no turno",
+                "observacoes": "",
                 "operador": (
                     (m.usuario.get_full_name() or m.usuario.username if m.usuario else "")
                     or ""
                 ).strip(),
+                "operador_pin": (
+                    (m.usuario.get_full_name() or m.usuario.username if m.usuario else "")
+                    or ""
+                ).strip(),
                 "sessao_id": m.sessao_caixa_id,
+                "mongo_id": "",
             }
         )
 
