@@ -1220,6 +1220,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Gestão (2 apps .lnk)** | Sidebar **PDV** oculta · BI topo/launchpad **PDV** ocultos · **F1** não abre PDV · FAB laranja oculto |
 | **Fix BI topo PDV** | `isGestaoContext()` — BI no iframe (`agro_inapp_embed`) também esconde botão PDV do topo |
+
+### 🧪 PDV — «Orç. salvos» oculto (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Renan** | Tirar botão **Orç. salvos** da barra do PDV por enquanto |
+| **Onde** | `pdv_wizard.html` · `partials/pdv/topbar.html` (MPA consulta) |
+| **Mantido** | **Orçamento F6** (histórico/modal) · sidebar/card orçamentos |
 | **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
 | **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
