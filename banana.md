@@ -1146,7 +1146,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.95** · **loja v5.65** (`f1453c3` push **`producao`** · 01/07)
+**Versão app (`VERSION`):** **teste v5.96** · **loja v5.65** (`f1453c3` push **`producao`** · 01/07)
 
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
 
@@ -1195,7 +1195,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
 | **Validar** | Ctrl+F5 nos 2 atalhos · PDV → Caixa → Reforço/conferências · barra única · sem FAB PDV |
-| **Git teste** | **`c1f9970`** + **`aef615a`** · v5.95 |
+| **Git teste** | **`c1f9970`** · v5.96 |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 
