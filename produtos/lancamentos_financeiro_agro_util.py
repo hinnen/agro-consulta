@@ -97,6 +97,49 @@ def _campos_update() -> list[str]:
     return [f.name for f in TituloFinanceiroAgro._meta.fields if f.name not in skip]
 
 
+def espelhar_titulo_mongo_id_para_postgres(db, mongo_id: str) -> dict[str, Any]:
+    """
+    Atualiza (ou cria) uma linha ``TituloFinanceiroAgro`` a partir do Mongo.
+    Usado quando o financeiro da loja já lê Postgres mas algum fluxo ainda grava no Mongo (ex.: folha RH).
+    """
+    from bson import ObjectId
+
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    if not agro_financeiro_usa_postgres():
+        return {"ok": True, "skipped": True, "motivo": "financeiro_legacy"}
+
+    mid = str(mongo_id or "").strip()
+    if not mid or db is None:
+        return {"ok": False, "erro": "mongo_id ou Mongo inválido."}
+
+    try:
+        oid = ObjectId(mid)
+    except Exception:
+        return {"ok": False, "erro": "ID Mongo inválido."}
+
+    doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Título não encontrado no Mongo."}
+
+    titulo = titulo_financeiro_agro_from_mongo_doc(doc)
+    if titulo is None:
+        return {"ok": False, "erro": "Documento Mongo inválido."}
+
+    existente = TituloFinanceiroAgro.objects.filter(mongo_id=mid).first()
+    update_fields = _campos_update()
+    if existente:
+        titulo.pk = existente.pk
+        titulo.importado_em = existente.importado_em
+        for field in update_fields:
+            setattr(existente, field, getattr(titulo, field))
+        existente.save(update_fields=update_fields)
+        return {"ok": True, "acao": "atualizar", "id": mid}
+
+    titulo.save()
+    return {"ok": True, "acao": "criar", "id": mid}
+
+
 def importar_titulos_financeiro_mongo_para_postgres(
     db,
     *,
