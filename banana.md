@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
 | **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
 | **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · fixar 2 `.lnk` na barra · gestão não abre guia solta |
-| **Código** | `agro_pdv_overlay.js` · aguarda push + validação Renan |
+| **Código** | `agro_pdv_overlay.js` · **`9896a90`** teste **v5.81** |
 
 ### 🧪 PIN — quando pede (Renan · teste)
 
