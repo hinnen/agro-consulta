@@ -1146,7 +1146,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.87** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.89** · **loja v5.65** (`f1453c3` push **`producao`** · 01/07)
+
+### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *enviar para produção* + senha **`99738595`** · cherry-pick isolado (**sem** merge `teste`) |
+| **Git produção** | **`de825f3`** (vales `2207fd6`) · **`f1453c3`** (NF `db18bd7`) · push **`producao`** |
+| **Pacote** | (1) `/caixa/retiradas/` — vales adiantamento + filtro plano · (2) `/entrada-nota/` passo 2 — busca leve Postgres |
+| **Fora do pacote** | PIN, layout 2 janelas, overlay PDV, Excel retiradas |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · NF passo 2 + retiradas jun/2026 filtro Adiantamento |
 
 ### 🔴 Prioridade Renan (30/06) — Entrada NF busca etapa 2 **antes** de vales loja
 
