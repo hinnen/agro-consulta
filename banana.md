@@ -1146,7 +1146,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.31** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.32** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
 
 ### Renan — desvinculação: o que é o quê (01/07)
 
@@ -1180,8 +1180,8 @@ PDV venda · caixa · fiado · clientes · NFC-e · vendas · catálogo/preço P
 
 **Pacote caixa + F7/F3:** **não mexe** em nada disso.
 
+### 📦 Pacote loja — caixa scroll + F7/F3 (aguardando loja fechar · 01/07)
 
-| Incluir | O quê | Risco |
 | ------- | ----- | ----- |
 | **✅ SIM** | Caixa overlay scroll — `caixa_viewport_shell.html` + `.caixa-panel-scroll` nas subtelas | Baixo · só layout iframe PDV |
 | **✅ SIM** | F7/F3 lado a lado — `step_produtos.html` + CSS `pdv_wizard.html` | Baixo · botões visíveis no zoom |
