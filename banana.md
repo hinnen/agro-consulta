@@ -1242,6 +1242,8 @@ Esperado: `{'ok': True}` · CP Pago **657,75**
 
 *Fix código teste v6.27+: `recalcular_fechamento` atualiza `valor_pago`; sync não preserva Mongo inflado.*
 
+**✅ Validado loja (Renan · 01/07)** — Zuleide jun/26 após passos D–K: RH **Valor pago R$ 72,75** · CP **Pago R$ 657,75** · Saldo **R$ 1.195,25**
+
 ### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
 
 | Item | Detalhe |
