@@ -604,6 +604,7 @@ def normalizar_rotulo_operador_exibicao(raw: str) -> str:
     return s
 
 
+
 def cadastrar_pin_operador_primeira_vez(
     perfil_id: str | int,
     novo_pin: str,

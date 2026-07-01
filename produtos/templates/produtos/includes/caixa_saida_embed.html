@@ -383,7 +383,23 @@
       alert('Escolha forma de pagamento e conta/banco.');
       return;
     }
+    var pin = '';
+    try {
+      if (typeof window.agroCaixaPedirPin !== 'function') {
+        alert('PIN indisponível nesta tela. Abra Retirada pelo painel do caixa.');
+        return;
+      }
+      pin = await window.agroCaixaPedirPin({
+        titulo: 'PIN do operador',
+        texto: 'Digite seu PIN (cadastro em RH → Operadores) para registrar quem fez a saída.'
+      });
+    } catch (_) {
+      return;
+    }
+    pin = String(pin || '').trim();
+    if (!pin) return;
     var body = {
+      pin: pin,
       valor: valor,
       plano_id: planoId,
       motivo: motivo || undefined,
