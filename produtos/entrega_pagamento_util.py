@@ -32,48 +32,13 @@ def serializar_pagamento_entrega(ent: PedidoEntrega) -> dict:
                 {
                     "pago": False,
                     "label": "Devolvida",
-                    "erp_label": "",
                     "classe": "bg-rose-50 text-rose-800",
                 }
             )
             return base
         base["pago"] = True
-        base["label"] = "Pago"
-        if v.fiado_aguarda_envio_erp():
-            base.update(
-                {
-                    "erp_label": "ERP pendente",
-                    "classe": "bg-amber-100 text-amber-950",
-                }
-            )
-        elif v.enviado_erp or v.erp_sync_efetivo == VendaAgro.ErpSyncStatus.ACEITO:
-            base.update(
-                {
-                    "erp_label": "ERP enviado",
-                    "classe": "bg-emerald-100 text-emerald-900",
-                }
-            )
-        elif v.erp_sync_efetivo == VendaAgro.ErpSyncStatus.RECUSADO_ERP:
-            base.update(
-                {
-                    "erp_label": "ERP recusou",
-                    "classe": "bg-orange-100 text-orange-950",
-                }
-            )
-        elif v.erp_sync_efetivo == VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO:
-            base.update(
-                {
-                    "erp_label": "Falha ERP",
-                    "classe": "bg-amber-100 text-amber-950",
-                }
-            )
-        else:
-            base.update(
-                {
-                    "erp_label": "PDV",
-                    "classe": "bg-emerald-100 text-emerald-900",
-                }
-            )
+        base["label"] = "Pago · Fiado" if v.tem_fiado() else "Pago"
+        base["classe"] = "bg-emerald-100 text-emerald-900"
         return base
 
     fp = (ent.forma_pagamento or "").strip()
