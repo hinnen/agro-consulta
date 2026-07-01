@@ -591,7 +591,11 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
 - **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
 - **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** (`PerfilUsuario`) no confirmar · grava nome do operador do PIN · não usa mais login Django/admin. Modal PIN no painel caixa.
-- **PIN único loja (01/07):** **uma fonte** — `PerfilUsuario.senha_rapida` (RH → Operadores). Modo descanso / entrada Lançamentos / PDV chip **não** usam mais `gm_sspin_pins` local nem PIN 1234 por PC · validam `api_login_mobile` · sessão `pdv_operador_nome` · chip só espelha nome (cache leve). Cadastro/alteração de PIN **só** no RH.
+- **PIN único loja (01/07):** **uma fonte online** — `PerfilUsuario.senha_rapida` (Postgres). Mesmo PIN em **todos os PCs**.
+- **Uso diário:** operador digita o **PIN definitivo** (modo descanso, Lançamentos, PDV, caixa…).
+- **1ª vez (autoatendimento):** digita **1234** → abre cadastro → escolhe nome → define PIN (≠ 1234) → **salva no servidor** (não no PC). Depois usa só o PIN definitivo.
+- **1234:** só abre o cadastro inicial; **não desbloqueia** o sistema no dia a dia.
+- **RH → Operadores:** gestor pode cadastrar ou **trocar** PIN a qualquer momento (sem precisar do 1234).
 
 ### 4.12 RH
 
@@ -1145,7 +1149,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.68** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.72** · **loja v5.62** (`545aad3` · 01/07)
+
+### 🧪 Deploy teste **v5.72** — 2 janelas + sidebar ícones (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **FL-046** | `agro_dual_window.js` · PDV/gestão janelas nomeadas · tabManager · PDV não abre 2º balcão |
+| **FL-047** | Sidebar **48px** ícones · **›** expande · abas clicáveis sem hover |
+| **Validar** | Ctrl+F5 · abrir **Gestão** (`/` ou BI) + **PDV** (`/pdv/`) em 2 janelas · script atalhos opcional |
+| **Atalhos** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://agro-consulta-staging…` |
 
 ### 📋 UX loja — PDV vs gestão em **2 janelas Chrome** (Renan · 01/07)
 
@@ -1155,19 +1168,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ideia Renan** | **2 atalhos** Windows (ícones distintos) · PDV numa janela · resto noutra · botão PDV traz gestão à frente |
 | **Caminho** | Chrome **`--app=URL`** (2 atalhos) + botões PDV `window.open(..., 'SistValeGestao')` · **sem Electron** |
 | **Electron** | Descartado loja — lento (Renan reconfirmou 01/07) |
-| **Status** | 📋 Planejamento · **FL-046** candidato |
+| **Status** | 🧪 **teste v5.72** · FL-046 + FL-047 |
+| **Atalhos Windows** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://…` |
 | **Regra** | **1 janela PDV + 1 gestão** — botões **nunca** abrem 2º PDV · só **trazem à frente** (`window.open` nome fixo) |
 | **Gestão** | Links «PDV» viram **«Ir ao balcão»** → foca janela PDV · não navega `_self` para checkout |
+
+### 📋 UX gestão — **sidebar abas com ícones** (Renan · 01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Hoje** | Rail **20px** · abas **invisíveis** até **passar o mouse** |
+| **Pedido** | Recolhida **~48px** (print vermelho) · **só ícone** de cada guia aberta · **clique** troca guia |
+| **Expandir** | Botão **seta** → largura atual (~130–156px) · lê nome · **×** fecha · **+** abre |
+| **Manter** | Abas/iframes (NF + gestão produto ao mesmo tempo) · touch = expandido |
+| **Código** | `_agro_open_external.html` · `agro_dual_window.js` · **FL-047** · **teste v5.72** |
 
 
 ### ✅ PIN único — modo descanso + sessão PDV (**teste** · 01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Problema** | Dois «bancos»: PIN no **navegador** (`gm_sspin_pins`) vs **RH** (`PerfilUsuario`) — PIN diferente no descanso vs caixa; não batia entre os 2 PCs |
-| **Fix** | `_screensaver_pin.html` valida sempre no servidor · remove setup local 1234 · `api_pdv_registrar_operador` GET sessão / POST só limpa ou grava com PIN |
-| **Já era RH** | Saída retirada · caixa · estoque · empréstimo · PDV forma «outro» |
-| **Validar** | Ctrl+F5 PDV + Lançamentos · mesmo PIN Geraldinho nos 2 PCs · RH → Operadores se ainda «Padrão 1234» |
+| **Antes** | Descanso gravava PIN **só neste PC** |
+| **Agora** | PIN **sempre no servidor** · 2 PCs iguais |
+| **1ª vez** | **1234** → modal cadastro → PIN definitivo online |
+| **1234 no dia a dia** | **Não entra** — só abre cadastro |
+| **Gestor** | RH → Operadores (cadastro/troca sem 1234) |
 
 ### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
 
@@ -1838,6 +1863,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
+| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | 🧪 teste **v5.72** | 01/07 |
+| **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | 🧪 teste **v5.72** | 01/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — import 1× loja · corte ERP **≤26/05** · SisVale **≥27/05** · **só F8** | 📋 **Adiar loja** · teste ok · Renan **01/07** | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-045** | **P2,81** | Clientes / PDV / Fiado | **Telefone sempre** na loja · toggle **«cliente fiado»** — se ativo: **CPF obrigatório** + **limite fiado** definido | 📋 Pendente | 01/07 |

@@ -604,6 +604,55 @@ def normalizar_rotulo_operador_exibicao(raw: str) -> str:
     return s
 
 
+def cadastrar_pin_operador_primeira_vez(
+    perfil_id: str | int,
+    novo_pin: str,
+    *,
+    bootstrap: str = "",
+) -> tuple[bool, str, str]:
+    """
+    Cadastro inicial de PIN (bootstrap 1234). Grava em PerfilUsuario no servidor.
+    Retorno: (ok, rotulo_operador, erro_usuario).
+    """
+    from base.models import PerfilUsuario
+
+    if (bootstrap or "").strip() != "1234":
+        return False, "", "Código inválido."
+    pin_novo = (novo_pin or "").strip()
+    if not pin_novo.isdigit() or len(pin_novo) != 4:
+        return False, "", "O PIN deve ter exatamente 4 dígitos."
+    if pin_novo == "1234":
+        return False, "", "Escolha um PIN diferente de 1234."
+    try:
+        pid = int(perfil_id)
+    except (TypeError, ValueError):
+        return False, "", "Operador inválido."
+    if pid <= 0:
+        return False, "", "Operador inválido."
+
+    perfil = PerfilUsuario.objects.filter(pk=pid).select_related("user").first()
+    if not perfil:
+        return False, "", "Operador não encontrado."
+
+    pin_atual = (getattr(perfil, "senha_rapida", None) or "").strip()
+    if pin_atual and pin_atual != "1234":
+        return False, "", "Este operador já tem PIN. Peça ao RH para alterar."
+
+    if PerfilUsuario.objects.filter(senha_rapida=pin_novo).exclude(pk=perfil.pk).exists():
+        return False, "", "Este PIN já está em uso. Escolha outro."
+
+    perfil.senha_rapida = pin_novo
+    perfil.save(update_fields=["senha_rapida"])
+
+    rot = rotulo_operador_pin(pin_novo)
+    if not rot:
+        u = perfil.user
+        rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    if not rot:
+        return False, "", "PIN salvo, mas sem nome no cadastro."
+    return True, rot[:150], ""
+
+
 def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
     """
     Valida PIN (PerfilUsuario.senha_rapida) e devolve rótulo do operador.

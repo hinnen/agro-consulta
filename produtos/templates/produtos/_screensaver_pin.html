@@ -4,7 +4,7 @@
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
       <h2 id="sspin-title" class="mt-1 text-lg font-black text-white">Modo descanso</h2>
-      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">PIN do cadastro RH (mesmo em todos os PCs)</p>
+      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">Digite seu PIN · 1ª vez? use <span class="text-amber-300">1234</span> para cadastrar</p>
     </div>
 
     <div id="sspin-panel-pin" class="p-5 space-y-4">
@@ -28,15 +28,35 @@
         <button type="button" data-d="ok" class="sspin-key py-3.5 rounded-xl bg-emerald-600 border border-emerald-500 font-black text-sm uppercase text-white hover:bg-emerald-500 active:scale-95">OK</button>
       </div>
     </div>
+
+    <div id="sspin-panel-setup" class="hidden p-5 space-y-4 max-h-[min(70vh,520px)] overflow-y-auto">
+      <p class="text-xs text-slate-300 font-semibold text-center leading-snug">Primeira vez — escolha seu nome e defina um <span class="text-emerald-400 font-black">PIN definitivo</span> (4 dígitos, não 1234). Salva no servidor e vale em <span class="text-emerald-400 font-black">todos os computadores</span>.</p>
+      <div>
+        <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Quem está usando?</p>
+        <div id="sspin-names" class="grid grid-cols-2 gap-2"></div>
+      </div>
+      <div class="space-y-2">
+        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new1">Novo PIN</label>
+        <input type="password" id="sspin-new1" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
+        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new2">Confirmar PIN</label>
+        <input type="password" id="sspin-new2" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
+      </div>
+      <p id="sspin-setup-msg" class="text-center text-sm font-bold text-red-400 min-h-[1.25rem]"></p>
+      <button type="button" id="sspin-btn-save" class="w-full py-3 rounded-xl bg-emerald-600 font-black uppercase text-sm text-white hover:bg-emerald-500">Salvar e entrar</button>
+      <button type="button" id="sspin-btn-back" class="w-full py-2 text-xs font-bold uppercase text-slate-500 hover:text-slate-300">Voltar ao PIN</button>
+    </div>
   </div>
   <p class="mt-4 text-[10px] text-slate-500 font-bold uppercase tracking-wide">Toque ou mova o mouse para adiar o descanso</p>
 </div>
 <script>
 (function () {
+  var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
   var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
   var API_VALIDAR_PIN = "{% url 'api_login_mobile' %}";
   var API_OPERADOR = "{% url 'api_pdv_registrar_operador' %}";
+  var API_LISTAR_USU = "{% url 'api_listar_usuarios' %}";
+  var API_CAD_PIN = "{% url 'api_cadastrar_pin_bootstrap' %}";
   var root = document.getElementById('sspin-root');
   if (!root) return;
 
@@ -59,12 +79,22 @@
 
   var input = document.getElementById('sspin-input');
   var msg = document.getElementById('sspin-msg');
+  var panelPin = document.getElementById('sspin-panel-pin');
+  var panelSetup = document.getElementById('sspin-panel-setup');
   var titleEl = document.getElementById('sspin-title');
   var subEl = document.getElementById('sspin-sub');
+  var namesBox = document.getElementById('sspin-names');
+  var new1 = document.getElementById('sspin-new1');
+  var new2 = document.getElementById('sspin-new2');
+  var setupMsg = document.getElementById('sspin-setup-msg');
+  var btnSave = document.getElementById('sspin-btn-save');
+  var btnBack = document.getElementById('sspin-btn-back');
   var numpadEl = document.getElementById('sspin-numpad');
   var idleTimer = null;
   var locked = false;
   var validando = false;
+  var selectedPerfilId = '';
+  var selectedNome = '';
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -98,6 +128,8 @@
   function sairUsuarioEVoltarPedidoPin() {
     setOperador('');
     limparOperadorServidor();
+    selectedPerfilId = '';
+    selectedNome = '';
     clearMsg();
     showPinPanel();
   }
@@ -127,6 +159,7 @@
 
   function clearMsg() {
     if (msg) msg.textContent = '';
+    if (setupMsg) setupMsg.textContent = '';
   }
 
   function focarCampoPin() {
@@ -147,18 +180,77 @@
   }
 
   function showPinPanel() {
+    if (panelPin) panelPin.classList.remove('hidden');
+    if (panelSetup) panelSetup.classList.add('hidden');
     if (lancamentosMode && !lancamentosDesbloqueado()) {
       if (titleEl) titleEl.textContent = 'Lançamentos';
-      if (subEl) subEl.textContent = 'PIN do cadastro RH (mesmo em todos os PCs)';
     } else {
       if (titleEl) titleEl.textContent = 'Modo descanso';
-      if (subEl) subEl.textContent = 'PIN do cadastro RH (mesmo em todos os PCs)';
     }
+    if (subEl) subEl.innerHTML = 'Digite seu PIN · 1ª vez? use <span class="text-amber-300">1234</span> para cadastrar';
     clearMsg();
     if (input) {
       input.value = '';
       agendarFocoPin();
     }
+  }
+
+  function renderNameButtons(usuarios) {
+    if (!namesBox) return;
+    namesBox.innerHTML = '';
+    var lista = (usuarios || []).filter(function (u) { return u && !u.pin_personalizado; });
+    if (!lista.length) {
+      namesBox.innerHTML = '<p class="col-span-2 text-xs text-slate-400 font-semibold text-center py-2">Todos já têm PIN. Peça ao RH para alterar.</p>';
+      return;
+    }
+    lista.forEach(function (u) {
+      var nome = (u.nome_curto || u.nome || '').trim();
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = nome;
+      b.className = 'py-2.5 px-2 rounded-xl border-2 text-xs font-black uppercase transition-colors border-slate-600 bg-slate-800 text-slate-200 hover:border-emerald-500/60';
+      b.addEventListener('click', function () {
+        selectedPerfilId = String(u.id);
+        selectedNome = nome;
+        namesBox.querySelectorAll('button').forEach(function (x) {
+          x.classList.remove('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
+          x.classList.add('border-slate-600', 'bg-slate-800', 'text-slate-200');
+        });
+        b.classList.remove('border-slate-600', 'bg-slate-800', 'text-slate-200');
+        b.classList.add('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
+      });
+      namesBox.appendChild(b);
+    });
+  }
+
+  function showSetupPanel() {
+    if (input) input.blur();
+    if (panelPin) panelPin.classList.add('hidden');
+    if (panelSetup) panelSetup.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = 'Cadastrar PIN';
+    if (subEl) subEl.textContent = 'PIN definitivo — vale em todos os PCs';
+    selectedPerfilId = '';
+    selectedNome = '';
+    clearMsg();
+    if (new1) new1.value = '';
+    if (new2) new2.value = '';
+    if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-slate-400 font-semibold text-center py-2">Carregando…</p>';
+    fetch(API_LISTAR_USU, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok) renderNameButtons(data.usuarios || []);
+        else if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro ao carregar operadores.</p>';
+      })
+      .catch(function () {
+        if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro de rede.</p>';
+      });
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (new1 && locked) {
+          try { new1.focus({ preventScroll: true }); } catch (e) { try { new1.focus(); } catch (e2) {} }
+        }
+      });
+    });
   }
 
   function openLock() {
@@ -200,6 +292,11 @@
       if (msg) msg.textContent = 'Informe ao menos 4 dígitos.';
       return;
     }
+    if (pin === BOOTSTRAP_PIN) {
+      if (input) input.value = '';
+      showSetupPanel();
+      return;
+    }
     validando = true;
     if (msg) msg.textContent = 'Validando…';
     var fd = new FormData();
@@ -218,7 +315,7 @@
         if (res.ok && res.data && res.data.ok) {
           var op = (res.data.operador || '').trim();
           if (!op) {
-            if (msg) msg.textContent = 'PIN ok, mas sem nome no cadastro — confira RH → Operadores.';
+            if (msg) msg.textContent = 'PIN ok, mas sem nome no cadastro — confira RH.';
             return;
           }
           setOperador(op);
@@ -227,7 +324,7 @@
           return;
         }
         if (msg) {
-          msg.textContent = (res.data && res.data.erro) || 'PIN incorreto. Cadastre em RH → Operadores.';
+          msg.textContent = (res.data && res.data.erro) || 'PIN incorreto. 1ª vez? digite 1234 para cadastrar.';
         }
         if (input) input.select();
       })
@@ -235,6 +332,71 @@
         validando = false;
         if (msg) msg.textContent = 'Erro de rede. Tente de novo.';
       });
+  }
+
+  function trySaveSetup() {
+    if (validando) return;
+    clearMsg();
+    if (!selectedPerfilId) {
+      if (setupMsg) setupMsg.textContent = 'Selecione seu nome na lista.';
+      return;
+    }
+    var a = (new1 && new1.value) ? String(new1.value).replace(/\D/g, '') : '';
+    var b = (new2 && new2.value) ? String(new2.value).replace(/\D/g, '') : '';
+    if (a.length < 4) {
+      if (setupMsg) setupMsg.textContent = 'O PIN deve ter no mínimo 4 dígitos.';
+      return;
+    }
+    if (a !== b) {
+      if (setupMsg) setupMsg.textContent = 'A confirmação não confere.';
+      return;
+    }
+    if (a === BOOTSTRAP_PIN) {
+      if (setupMsg) setupMsg.textContent = 'Escolha um PIN diferente de 1234.';
+      return;
+    }
+    validando = true;
+    if (setupMsg) setupMsg.textContent = 'Salvando…';
+    var form = new FormData();
+    form.append('bootstrap', BOOTSTRAP_PIN);
+    form.append('perfil_id', selectedPerfilId);
+    form.append('novo_pin', a);
+    fetch(API_CAD_PIN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrf() },
+      body: form
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (res) {
+        validando = false;
+        if (res.ok && res.data && res.data.ok) {
+          var op = (res.data.operador || selectedNome || '').trim();
+          setOperador(op);
+          closeLock();
+          return;
+        }
+        if (setupMsg) setupMsg.textContent = (res.data && res.data.erro) || 'Não foi possível salvar o PIN.';
+      })
+      .catch(function () {
+        validando = false;
+        if (setupMsg) setupMsg.textContent = 'Erro de rede. Tente de novo.';
+      });
+  }
+
+  if (btnBack) {
+    btnBack.addEventListener('click', function () {
+      clearMsg();
+      showPinPanel();
+    });
+  }
+  if (btnSave) btnSave.addEventListener('click', trySaveSetup);
+  if (new2) {
+    new2.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') trySaveSetup();
+    });
   }
 
   if (numpadEl) numpadEl.addEventListener('click', function (e) {
