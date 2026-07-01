@@ -41,6 +41,19 @@ def total_pagamentos_salario_mes(funcionario, ano: int, mes: int) -> Decimal:
     return money_two_decimals(q["t"])
 
 
+def total_pagamentos_salario_fechamento(fechamento: FechamentoFolhaSimplificado) -> Decimal:
+    """Soma pagamentos de salário vinculados à competência (FK fechamento), não só data no mês."""
+    q = PagamentoSalarioFuncionario.objects.filter(
+        fechamento=fechamento,
+        cancelado=False,
+    ).aggregate(t=Sum("valor"))
+    total = money_two_decimals(q["t"])
+    if total > Decimal("0"):
+        return total
+    comp = fechamento.competencia
+    return total_pagamentos_salario_mes(fechamento.funcionario, comp.year, comp.month)
+
+
 def fechamento_por_titulo_mongo_id(mongo_id: str) -> FechamentoFolhaSimplificado | None:
     mid = (mongo_id or "").strip()
     if not mid:
@@ -114,7 +127,7 @@ def _atualizar_controle_fechamento_apos_pagamentos(
     atualizar_status: bool = True,
 ) -> None:
     comp = f.competencia
-    pagos = total_pagamentos_salario_mes(f.funcionario, comp.year, comp.month)
+    pagos = total_pagamentos_salario_fechamento(f)
     f.valor_pago = pagos
     update = ["valor_pago", "atualizado_em"]
     if atualizar_status:
@@ -186,7 +199,7 @@ def valor_pago_titulo_salario(
     from rh.services.fechamento import total_vales_mes
 
     tv = total_vales_mes(fn, comp.year, comp.month)
-    ps = total_pagamentos_salario_mes(fn, comp.year, comp.month)
+    ps = total_pagamentos_salario_fechamento(fechamento)
     vp = money_two_decimals(tv + ps)
     if vp > bruto:
         vp = bruto

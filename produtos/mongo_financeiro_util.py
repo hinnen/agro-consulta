@@ -3393,6 +3393,25 @@ def baixar_lancamento_parcial_mongo(
         doc_at = col.find_one({"_id": oid})
         if doc_at:
             criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_at, usuario_label=usuario_label)
+
+    if despesa and soma_par > 0:
+        try:
+            import secrets
+
+            from rh.models import PagamentoSalarioFuncionario
+            from rh.services.pagamento_salario import processar_baixa_cp_titulo_salario
+
+            dp = data_movimento.date() if hasattr(data_movimento, "date") else timezone.localdate()
+            processar_baixa_cp_titulo_salario(
+                mongo_id=str(oid),
+                valor_baixa=soma_par,
+                data=dp,
+                tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_PARCIAL,
+                referencia_externa_id=f"{oid}:parc:{secrets.token_hex(8)}",
+            )
+        except Exception:
+            logger.exception("RH: hook baixa parcial Mongo título salário mongo_id=%s", oid)
+
     return {"ok": True, "id": str(oid), "erro": None, "quitado": bool(quitado_final)}
 
 
