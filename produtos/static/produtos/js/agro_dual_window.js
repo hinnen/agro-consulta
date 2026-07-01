@@ -1,6 +1,6 @@
 /**
  * SisVale — duas janelas Chrome (PDV + gestão), uma instância cada.
- * Modo atalho (--app): localStorage + BroadcastChannel (window.open nao liga apps).
+ * Links do PDV → overlay balcão (AgroPdvOverlay). Gestão → janela nomeada.
  */
 (function () {
   'use strict';
@@ -8,19 +8,8 @@
   var PDV_NAME = 'SistValePDV';
   var GESTAO_NAME = 'SistValeGestao';
   var FLAG_KEY = 'agro_dual_window_v1';
-  var FOCUS_PDV_KEY = 'agro_dual_focus_pdv_v1';
-  var FOCUS_GESTAO_KEY = 'agro_dual_focus_gestao_v1';
-  var HEARTBEAT_PDV_KEY = 'agro_dual_heartbeat_pdv_v1';
-  var HEARTBEAT_GESTAO_KEY = 'agro_dual_heartbeat_gestao_v1';
+  var FOCUS_KEY = 'agro_dual_focus_v1';
   var APP_ROLE_KEY = 'agro_app_role_v1';
-  var BC_NAME = 'agro_dual_window_v1';
-
-  var broadcast = null;
-  try {
-    broadcast = new BroadcastChannel(BC_NAME);
-  } catch (_) {
-    broadcast = null;
-  }
 
   function pathnameNorm(p) {
     if (p) {
@@ -54,8 +43,9 @@
   function inPdvOverlayFrame() {
     try {
       return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
-    } catch (_) {}
-    return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   function dualFlagOn() {
@@ -127,42 +117,6 @@
     return window.navigator.standalone === true;
   }
 
-  /** Atalho .lnk Chrome --app= (nao compartilha window.name entre janelas). */
-  function appShortcutMode() {
-    var r = readAppRole();
-    return r === 'pdv' || r === 'gestao' || isStandaloneApp();
-  }
-
-  function emitBroadcast(msg) {
-    try {
-      if (broadcast) broadcast.postMessage(msg);
-    } catch (_) {}
-  }
-
-  function pulsePdvFocus(href) {
-    var payload = { url: href || pdvUrl(), ts: Date.now() };
-    try {
-      localStorage.setItem(FOCUS_PDV_KEY, JSON.stringify(payload));
-    } catch (_) {}
-    emitBroadcast({ type: 'focus-pdv', url: payload.url, ts: payload.ts });
-  }
-
-  function pulseGestaoFocus(href) {
-    var payload = { url: href || gestaoUrl(), ts: Date.now(), role: GESTAO_NAME };
-    try {
-      localStorage.setItem(FOCUS_GESTAO_KEY, JSON.stringify(payload));
-    } catch (_) {}
-    emitBroadcast({ type: 'focus-gestao', url: payload.url, ts: payload.ts });
-  }
-
-  function peerRecentlyAlive(key) {
-    try {
-      var t = parseInt(localStorage.getItem(key), 10);
-      return Number.isFinite(t) && Date.now() - t < 10000;
-    } catch (_) {}
-    return false;
-  }
-
   function openNamed(name, url) {
     var href = url ? String(url) : '';
     var w = null;
@@ -187,61 +141,36 @@
     return w;
   }
 
+  function pulseGestaoNav(url) {
+    try {
+      localStorage.setItem(
+        FOCUS_KEY,
+        JSON.stringify({ role: GESTAO_NAME, url: url, ts: Date.now() })
+      );
+    } catch (_) {}
+  }
+
   function openPdv(url) {
     var href = url ? absUrl(url) : pdvUrl();
-    if (isPdvHost()) {
-      try {
-        window.focus();
-      } catch (_) {}
-      return null;
-    }
-    pulsePdvFocus(href);
-    if (appShortcutMode()) {
-      window.setTimeout(function () {
-        if (!peerRecentlyAlive(HEARTBEAT_PDV_KEY)) {
-          try {
-            window.alert(
-              'PDV nao encontrado. Abra o atalho «SisVale PDV» na area de trabalho (deixe os dois abertos).'
-            );
-          } catch (_) {}
-        }
-      }, 450);
-      return null;
-    }
     var w = openNamed(PDV_NAME, href);
     if (!w || w.closed) {
-      try {
-        window.alert(
-          'Nao foi possivel trazer o PDV. Use o atalho «SisVale PDV» ou permita pop-ups.'
-        );
-      } catch (_) {}
+      if (!isPdvHost()) {
+        try {
+          window.alert(
+            'Não foi possível trazer o PDV. Use o atalho «SisVale PDV» na área de trabalho ou permita pop-ups.'
+          );
+        } catch (_) {}
+      } else {
+        window.location.href = href;
+      }
     }
     return w;
   }
 
   function openGestao(url) {
     var href = url ? absUrl(url) : gestaoUrl();
-    if (isGestaoHost()) {
-      try {
-        window.focus();
-      } catch (_) {}
-      return null;
-    }
-    pulseGestaoFocus(href);
-    if (appShortcutMode()) {
-      window.setTimeout(function () {
-        if (!peerRecentlyAlive(HEARTBEAT_GESTAO_KEY)) {
-          try {
-            window.alert(
-              'Gestao nao encontrada. Abra o atalho «SisVale Gestao» na area de trabalho.'
-            );
-          } catch (_) {}
-        }
-      }, 450);
-      return null;
-    }
     var w = openNamed(GESTAO_NAME, href);
-    if ((!w || w.closed) && !isPdvHost()) {
+    if ((!w || w.closed) && !isGestaoHost()) {
       window.location.href = href;
     }
     return w;
@@ -261,10 +190,6 @@
       window.location.href = url;
       return;
     }
-    if (appShortcutMode() && readAppRole() === 'pdv') {
-      pulseGestaoFocus(url);
-      return;
-    }
     var w = null;
     try {
       w = window.open('', GESTAO_NAME);
@@ -278,7 +203,8 @@
         return;
       } catch (_) {}
     }
-    openGestao(url);
+    openGestao(gestaoUrl());
+    pulseGestaoNav(url);
   }
 
   function openPdvPanel(href, title) {
@@ -299,26 +225,15 @@
     if (inEmbed()) {
       if (postToTop({ type: 'agro-focus-pdv', href: href })) return;
     }
-    openPdv(href);
-  }
-
-  function focusGestao(url) {
-    var href = url ? absUrl(url) : gestaoUrl();
-    if (inEmbed()) {
-      if (postToTop({ type: 'agro-focus-gestao', href: href })) return;
-    }
-    if (isGestaoHost()) {
-      if (typeof window.__agroInAppAddTab === 'function') {
-        window.__agroInAppAddTab(href);
-      } else {
-        window.location.href = href;
-      }
-      try {
-        window.focus();
-      } catch (_) {}
+    if (dualFlagOn()) {
+      openPdv(href);
       return;
     }
-    openGestao(href);
+    if (typeof window.__agroInAppAddTab === 'function') {
+      window.__agroInAppAddTab(href);
+      return;
+    }
+    window.location.href = href;
   }
 
   function isPdvHost() {
@@ -355,80 +270,42 @@
     else window.name = GESTAO_NAME;
   }
 
-  function applyPdvFocus(data) {
-    if (!data) return;
-    if (Date.now() - Number(data.ts || 0) > 12000) return;
-    if (readAppRole() !== 'pdv' && !isPdvHost()) return;
+  function onStorageFocus(ev) {
+    if (!ev || ev.key !== FOCUS_KEY || !ev.newValue || !isGestaoHost()) return;
     try {
-      window.focus();
-    } catch (_) {}
-    if (data.url) {
-      var want = absUrl(data.url).replace(/#.*$/, '');
-      var cur = location.href.replace(/#.*$/, '');
-      if (cur !== want) window.location.href = data.url;
-    }
-  }
-
-  function applyGestaoFocus(data) {
-    if (!data) return;
-    if (Date.now() - Number(data.ts || 0) > 12000) return;
-    if (readAppRole() !== 'gestao' && !isGestaoHost()) return;
-    try {
-      window.focus();
-    } catch (_) {}
-    if (data.url) {
+      var d = JSON.parse(ev.newValue);
+      if (!d || d.role !== GESTAO_NAME || !d.url) return;
+      if (Date.now() - Number(d.ts || 0) > 15000) return;
       if (typeof window.__agroInAppAddTab === 'function') {
-        window.__agroInAppAddTab(data.url);
+        window.__agroInAppAddTab(d.url);
       } else {
-        var want = absUrl(data.url).replace(/#.*$/, '');
-        var cur = location.href.replace(/#.*$/, '');
-        if (cur !== want) window.location.href = data.url;
+        window.location.href = d.url;
       }
-    }
-  }
-
-  function installCrossAppFocusListeners() {
-    window.addEventListener('storage', function (ev) {
-      if (!ev) return;
-      if (ev.key === FOCUS_PDV_KEY && ev.newValue) {
-        try {
-          applyPdvFocus(JSON.parse(ev.newValue));
-        } catch (_) {}
-      }
-      if (ev.key === FOCUS_GESTAO_KEY && ev.newValue) {
-        try {
-          applyGestaoFocus(JSON.parse(ev.newValue));
-        } catch (_) {}
-      }
-    });
-    if (broadcast) {
-      broadcast.onmessage = function (ev) {
-        var d = (ev && ev.data) || {};
-        if (d.type === 'focus-pdv') applyPdvFocus({ url: d.url, ts: d.ts || Date.now() });
-        if (d.type === 'focus-gestao') applyGestaoFocus({ url: d.url, ts: d.ts || Date.now() });
-      };
-    }
-  }
-
-  function installHeartbeat() {
-    window.setInterval(function () {
-      try {
-        if (readAppRole() === 'pdv' || isPdvHost()) {
-          localStorage.setItem(HEARTBEAT_PDV_KEY, String(Date.now()));
-        }
-        if (readAppRole() === 'gestao' || isGestaoHost()) {
-          localStorage.setItem(HEARTBEAT_GESTAO_KEY, String(Date.now()));
-        }
-      } catch (_) {}
-    }, 2500);
+    } catch (_) {}
   }
 
   function installGestaoAppGuard() {
     if (!isGestaoHost() && readAppRole() !== 'gestao') return;
+    var nativeOpen = window.open;
+    window.open = function (url, name, features) {
+      var n = name;
+      if (!n || n === '_blank') {
+        try {
+          var p = url ? new URL(String(url), location.origin).pathname : '';
+          if (!url || location.origin === new URL(String(url), location.origin).origin) {
+            if (!isPdvPath(p)) n = GESTAO_NAME;
+          }
+        } catch (_) {
+          n = GESTAO_NAME;
+        }
+      }
+      return nativeOpen.call(window, url, n, features);
+    };
+
     document.addEventListener(
       'click',
       function (e) {
-        if (!isGestaoHost() && readAppRole() !== 'gestao') return;
+        if (!isGestaoHost()) return;
         var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
         if (!a) return;
         var tgt = (a.getAttribute('target') || '').toLowerCase();
@@ -436,15 +313,16 @@
         try {
           var u = new URL(a.href, window.location.origin);
           if (u.origin !== location.origin) return;
-          e.preventDefault();
           if (isPdvPath(u.pathname)) {
-            focusPdv(u.href);
+            e.preventDefault();
+            openPdv(u.href);
             return;
           }
+          e.preventDefault();
           if (typeof window.__agroInAppAddTab === 'function') {
             window.__agroInAppAddTab(u.href);
           } else {
-            pulseGestaoFocus(u.href);
+            openNamed(GESTAO_NAME, u.href);
           }
         } catch (_) {}
       },
@@ -476,20 +354,12 @@
         openPdvPanel(u, _titulo);
         return;
       }
-      if (isPdvPath(p)) {
-        focusPdv(u);
-        return;
-      }
-      if (isGestaoHost() || readAppRole() === 'gestao') {
-        if (typeof window.__agroInAppAddTab === 'function') {
-          window.__agroInAppAddTab(u);
+      if (dualFlagOn()) {
+        if (isPdvPath(p)) {
+          openPdv(u);
         } else {
           navigateGestao(u);
         }
-        return;
-      }
-      if (dualFlagOn()) {
-        navigateGestao(u);
         return;
       }
       if (typeof window.__agroInAppAddTab === 'function') {
@@ -521,8 +391,6 @@
           e.stopPropagation();
           if (shouldOpenInPdvOverlay(u.pathname)) {
             openPdvPanel(u.href, (a.textContent || '').trim());
-          } else if (isGestaoShellPath(u.pathname)) {
-            focusGestao(u.href);
           } else {
             navigateGestao(u.href);
           }
@@ -557,19 +425,17 @@
 
   readAppRole();
   assignWindowName();
-  installCrossAppFocusListeners();
-  installHeartbeat();
   installTabManager();
   installPdvLinkRouter();
   installPdvOverlayBridge();
   installGestaoAppGuard();
+  window.addEventListener('storage', onStorageFocus);
 
   window.AgroDualWindow = {
     PDV_NAME: PDV_NAME,
     GESTAO_NAME: GESTAO_NAME,
     enabled: enabled,
     dualFlagOn: dualFlagOn,
-    appShortcutMode: appShortcutMode,
     isPdvHost: isPdvHost,
     isGestaoHost: isGestaoHost,
     isPdvPath: isPdvPath,
@@ -580,7 +446,6 @@
     navigateGestao: navigateGestao,
     openPdvPanel: openPdvPanel,
     focusPdv: focusPdv,
-    focusGestao: focusGestao,
     pdvUrl: pdvUrl,
     gestaoUrl: gestaoUrl,
   };

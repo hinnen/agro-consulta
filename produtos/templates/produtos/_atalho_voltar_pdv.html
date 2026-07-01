@@ -1,14 +1,63 @@
-{# Tecla única F1 → PDV Wizard (/pdv/) — não dispara em INPUT/TEXTAREA/SELECT/contentEditable. #}
+{# Tecla F1 e link «Voltar ao PDV». No painel do balcão (overlay), FECHAR em vez de navegar. #}
 <script>
 (function () {
+  function inPdvOverlay() {
+    try {
+      return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function closePdvOverlay() {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage({ type: 'agro-pdv-overlay-close' }, window.location.origin);
+        return;
+      }
+    } catch (_) {}
+    if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.close === 'function') {
+      window.AgroPdvOverlay.close();
+    }
+  }
+
+  document.addEventListener(
+    'click',
+    function (e) {
+      if (!inPdvOverlay()) return;
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (!a) return;
+      try {
+        var u = new URL(a.href, window.location.origin);
+        var p = (u.pathname || '').replace(/\/+$/, '') || '/';
+        if (p === '/pdv' || p.indexOf('/pdv/') === 0 || p === '/consulta' || p.indexOf('/consulta/') === 0) {
+          e.preventDefault();
+          closePdvOverlay();
+        }
+      } catch (_) {}
+    },
+    true
+  );
+
   document.addEventListener('keydown', function (e) {
     if (e.defaultPrevented) return;
     if (e.code !== 'F1' && e.key !== 'F1') return;
+    if (inPdvOverlay()) {
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      e.preventDefault();
+      closePdvOverlay();
+      return;
+    }
     var p = window.location.pathname || '';
     if (p === '/pdv/' || p === '/pdv') return;
-    var t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    var t2 = e.target;
+    if (t2 && (t2.tagName === 'INPUT' || t2.tagName === 'TEXTAREA' || t2.tagName === 'SELECT' || t2.isContentEditable)) return;
     e.preventDefault();
+    if (window.AgroDualWindow && typeof window.AgroDualWindow.focusPdv === 'function') {
+      window.AgroDualWindow.focusPdv();
+      return;
+    }
     window.location.href = '/pdv/';
   });
 })();
