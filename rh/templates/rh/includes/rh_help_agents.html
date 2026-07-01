@@ -103,23 +103,53 @@
 </details>
 {% endif %}
 
+{% if rh_help == "ficha_cards_legenda" %}
+<details class="rh-help-agents relative shrink-0">
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 [&::-webkit-details-marker]:hidden" title="Cartões da ficha" aria-label="Ajuda cartões">?</summary>
+  <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-lg">
+    <p class="text-[10px] font-black uppercase text-slate-600 mb-1.5">Cartões do mês atual</p>
+    <div class="space-y-2 font-semibold leading-snug">
+      <p><strong>Salário base</strong> vigente hoje · <strong>Vales no mês</strong> = adiantamentos do calendário corrente · <strong>Líquido previsto</strong> = salário − vales.</p>
+      <p>Para fechar mês e gerar título no financeiro, use <strong>Folha MM/AAAA</strong> nos atalhos ou a seção <strong>3 · Fechamentos</strong>.</p>
+    </div>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_conferencia" %}
+<details class="rh-help-agents relative shrink-0">
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm font-black text-slate-600 [&::-webkit-details-marker]:hidden" title="Conferência de vínculo" aria-label="Ajuda vínculo">?</summary>
+  <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 shadow-lg">
+    <div class="space-y-2 font-semibold leading-snug">
+      <p>Vínculo entre perfil RH e <strong>ClienteAgro</strong> (pessoa base no ERP).</p>
+      <p><a href="{% url 'admin:produtos_clienteagro_change' funcionario.cliente_agro_id %}" class="text-emerald-800 font-bold underline" target="_blank" rel="noopener">Admin · ClienteAgro</a> · <a href="{% url 'rh_conferencia_tecnica' %}" class="text-emerald-800 font-bold underline">Conferência técnica</a></p>
+    </div>
+  </div>
+</details>
+{% endif %}
+
 {% if rh_help == "ficha_onde_cadastrar" %}
 <details class="rh-help-agents relative shrink-0">
-  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-emerald-50 text-sm font-black text-emerald-800 hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" title="Onde cadastrar" aria-label="Ajuda cadastro">?</summary>
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-emerald-50 text-sm font-black text-emerald-800 hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" title="Atalhos da ficha" aria-label="Ajuda atalhos">?</summary>
   <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-lg">
-    <p class="text-[10px] font-black uppercase text-emerald-900 mb-1.5">Salário e vales</p>
+    <p class="text-[10px] font-black uppercase text-emerald-900 mb-1.5">Atalhos</p>
     <div class="space-y-2 font-semibold leading-snug">
-      <p>Formulários nas <strong>faixas numeradas</strong> abaixo dos cartões — toque na faixa para expandir.</p>
+      <p><strong>Salário</strong> e <strong>Vales</strong> abrem as faixas numeradas abaixo.</p>
+      <p><strong>Abrir folha MM/AAAA</strong> cria ou abre o fechamento do <strong>mês de hoje</strong> (calendário).</p>
+      <p>Também nasce competência ao lançar <strong>vale</strong> na data do mês desejado.</p>
     </div>
   </div>
 </details>
 {% endif %}
 
 {% if rh_help == "ficha_salario_linha" %}
-<details class="rh-help-agents relative shrink-0 mb-3">
-  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm font-black text-slate-600 [&::-webkit-details-marker]:hidden" title="Histórico salarial" aria-label="Ajuda histórico">?</summary>
+<details class="rh-help-agents relative shrink-0">
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 [&::-webkit-details-marker]:hidden" title="Histórico salarial" aria-label="Ajuda salário">?</summary>
   <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,20rem)] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 shadow-lg">
-    <p class="font-semibold leading-snug">Nova faixa encerra a vigência anterior na data informada; histórico anterior permanece.</p>
+    <div class="space-y-2 font-semibold leading-snug">
+      <p>Nova faixa <strong>encerra</strong> a vigência anterior na data informada; histórico anterior permanece.</p>
+      <p>Salário R$ 0 no fechamento: confira se a vigência cobre o <strong>último dia</strong> da competência.</p>
+    </div>
   </div>
 </details>
 {% endif %}
@@ -132,7 +162,23 @@
     <div class="space-y-2 font-semibold leading-snug">
       <p>Com <strong>financeiro</strong>: precisa título de salário no fechamento; vale = pagamento parcial no Mongo.</p>
       <p>Sem financeiro: vale só no RH.</p>
-      <p><strong>Cancelar vale</strong> na ficha exige motivo; recalcula folha e alinha Pago do título.</p>
+      <p><strong>Cancelar vale</strong> exige motivo; recalcula folha e alinha Pago do título.</p>
+      <p><a href="{% url 'rh_fechamentos_lista' %}" class="text-emerald-800 font-bold underline">Fechamentos</a> · <a href="{% url 'caixa_saida' %}" class="text-emerald-800 font-bold underline">Saída caixa</a> · <a href="{% url 'lancamentos_financeiros' %}" class="text-emerald-800 font-bold underline">Lançamentos</a></p>
+      {% if vale_listas_vazias %}
+      <p class="bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 text-amber-950">Formas/bancos vazios no Mongo — cadastre em Lançamentos ou lance vale só no RH.</p>
+      {% endif %}
+    </div>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_fechamentos" %}
+<details class="rh-help-agents relative shrink-0">
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 [&::-webkit-details-marker]:hidden" title="Fechamentos mensais" aria-label="Ajuda fechamentos">?</summary>
+  <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 shadow-lg">
+    <div class="space-y-2 font-semibold leading-snug">
+      <p>Competência mensal da folha. <strong>Vencimento no financeiro</strong> é definido no passo 2 do fechamento.</p>
+      <p><strong>Abrir folha MM/AAAA</strong> (atalhos ou abaixo) usa o mês corrente. Mês passado: toque na linha ou lance vale na data.</p>
     </div>
   </div>
 </details>
@@ -140,7 +186,7 @@
 
 {% if rh_help == "ficha_fechamentos_vazio" %}
 <details class="rh-help-agents relative shrink-0">
-  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 [&::-webkit-details-marker]:hidden" title="Fechamentos vazios" aria-label="Ajuda fechamentos">?</summary>
+  <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 [&::-webkit-details-marker]:hidden" title="Fechamentos" aria-label="Ajuda fechamentos">?</summary>
   <div class="absolute right-0 top-full z-30 mt-1 w-[min(100vw-2rem,22rem)] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 shadow-lg">
     <div class="space-y-2 font-semibold leading-snug">
       <p>Competência costuma nascer ao lançar <strong>vale</strong> ou pelo botão <strong>Abrir folha do mês atual</strong>.</p>
