@@ -1142,7 +1142,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.92** · **loja v5.66** *(hotfix retiradas · 01/07)*
+**Versão app (`VERSION`):** **teste v6.06** · **loja v5.67** *(RH folha → CP · 01/07)*
+
+### ✅ Deploy loja **v5.67** — RH folha espelha CP Postgres (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · cherry-pick isolado + senha **`99738595`** |
+| **Git produção** | **`77bbd14`** — cherry-pick **`ce775c2`** (2 arquivos: espelho Mongo→PG após sync folha) |
+| **O quê** | «Igualar ao que está na folha» / «Criar ou atualizar» passa a refletir vales e descontos no CP |
+| **Risco** | **Baixo** — só 1 linha PG do título sincronizado; não apaga outros lançamentos |
+| **Pós-deploy** | Render ~2–5 min · Geraldo jun/2026: passo 1 Salvar e recalcular → passo 2 Igualar → **Ctrl+F5** CP |
 
 ### ✅ Deploy loja **v5.66** — hotfix retiradas Adiantamento (01/07)
 
