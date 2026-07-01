@@ -231,6 +231,8 @@ def rh_funcionario_ficha(request, pk: int):
     historico = f.historicos_salario.all()[:50]
     vales = f.vales.all()[:200]
     fechamentos = f.fechamentos.all()[:24]
+    comp_atual = primeiro_dia_mes(hoje)
+    folha_mes_atual = f.fechamentos.filter(competencia=comp_atual).first()
     sal_form = HistoricoSalarialForm()
     formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
     _, db_m = obter_conexao_mongo()
@@ -250,6 +252,7 @@ def rh_funcionario_ficha(request, pk: int):
             "historico_salario": historico,
             "vales": vales,
             "fechamentos": fechamentos,
+            "folha_mes_atual": folha_mes_atual,
             "sal_form": sal_form,
             "vale_form": vale_form,
             "vale_mongo_disponivel": db_m is not None,

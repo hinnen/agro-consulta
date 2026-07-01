@@ -1146,7 +1146,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.17** · **loja v5.75** *(RH folha UX · 01/07)*
+**Versão app (`VERSION`):** **teste v6.19** · **loja v5.75** *(RH ficha abrir folha · 01/07)*
+
+### 🐛 RH ficha — botão «Abrir folha» sumia (01/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan (Geraldo) — instrução «Caminho principal» sem botão; **vale no mês** funcionou |
+| **Causa** | Botão só no `{% empty %}` da lista — some quando já há fechamentos antigos |
+| **Fix** | **Atalhos** + rodapé da seção **3** sempre visíveis · se mês corrente já existe → **Ir para folha MM/AAAA** |
+| **Arquivos** | `funcionario_ficha.html` · `rh/views.py` · `rh_help_agents.html` |
+| **Operação** | Mês novo = **Abrir folha** (atalho ou §3) · mês passado = link na lista ou vale/caixa na data |
 
 ### ✅ Deploy loja **v5.73–v5.75** — RH folha UX + reabrir (01/07)
 
