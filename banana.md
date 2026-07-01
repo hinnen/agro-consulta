@@ -1247,6 +1247,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Salvar** | Grava carrinho + cliente em `historicoOrcamentos` (localStorage) |
 | **F6 / Ver mais** | Lista só orçamentos **do cliente atual** (incl. consumidor final) |
 | **Reabrir** | Hidrata wizard · código `GMORC…` para busca |
+| **Topo PDV** | Removido botão **Orçamento F6** redundante — histórico só em **Ver mais** (lateral) + tecla **F6** |
 | **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
 | **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
