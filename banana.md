@@ -1141,7 +1141,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.55** (fix Indisp. PG · local) · **loja v5.53** (`3467ea0` · 30/06)
+**Versão app (`VERSION`):** **teste v5.55** (`b0df2a7` push) · **loja v5.53** (`3467ea0` · 30/06)
 
 ### 🟠 F8 «Indisp.» na loja — fix catálogo Postgres **v5.55** (30/06)
 
