@@ -2620,6 +2620,38 @@
         });
     }
 
+    var PDV_BUDGET_CARD_VISIBLE = 3;
+
+    function formatBudgetCardDate(dataStr) {
+        if (!dataStr) return '—';
+        var raw = String(dataStr).trim();
+        var parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+            var dd = String(parsed.getDate()).padStart(2, '0');
+            var mm = String(parsed.getMonth() + 1).padStart(2, '0');
+            var yy = String(parsed.getFullYear()).slice(-2);
+            return dd + '/' + mm + '/' + yy;
+        }
+        var m = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (m) {
+            var y = m[3].length === 4 ? m[3].slice(-2) : m[3];
+            return String(m[1]).padStart(2, '0') + '/' + String(m[2]).padStart(2, '0') + '/' + y;
+        }
+        return raw.slice(0, 8) || '—';
+    }
+
+    function reopenBudgetById(budgetId) {
+        if (budgetId == null || budgetId === '') return false;
+        var historico = readHistoricoOrcamentos();
+        var entry = historico.find(function (item) {
+            return String(item.id) === String(budgetId);
+        });
+        if (!entry) return false;
+        State.hydrateFromBudget(entry);
+        State.setCurrentStep('produtos');
+        return true;
+    }
+
     function salvarOrcamentoWizard() {
         var state = State.getState();
         if (state.clienteMode === 'unset') {
@@ -2691,31 +2723,48 @@
         var state = State.getState();
         var key = budgetClienteKeyFromState(state);
         var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
-        var slice = historico.slice(0, 3);
+        var slice = historico.slice(0, PDV_BUDGET_CARD_VISIBLE);
+        if (dom.step1BudgetVerMais) {
+            if (historico.length > PDV_BUDGET_CARD_VISIBLE) {
+                dom.step1BudgetVerMais.hidden = false;
+                dom.step1BudgetVerMais.disabled = false;
+            } else {
+                dom.step1BudgetVerMais.hidden = true;
+                dom.step1BudgetVerMais.disabled = true;
+            }
+        }
         if (!slice.length) {
             el.innerHTML =
                 '<p class="py-0.5 text-center text-[10px] font-semibold text-slate-400">Nenhum ainda</p>';
             return;
         }
         el.innerHTML =
-            '<ul class="space-y-2 text-left text-[10px] leading-snug">' +
+            '<div role="list" class="text-left text-[11px] leading-snug">' +
             slice
-                .map(function (item) {
+                .map(function (item, idx) {
+                    var sep =
+                        idx < slice.length - 1
+                            ? ' border-b border-dashed border-slate-300'
+                            : '';
                     return (
-                        '<li class="border-b border-slate-200/60 pb-2 last:border-0">' +
-                        '<div class="break-words font-bold text-slate-700" title="' +
+                        '<button type="button" role="listitem" data-budget-id="' +
+                        escapeHtml(String(item.id)) +
+                        '" class="flex w-full items-center justify-between gap-2 px-1 py-1.5 text-left transition hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400' +
+                        sep +
+                        '" title="Reabrir orçamento · ' +
                         escapeHtml(item.data || '') +
                         '">' +
-                        escapeHtml(item.data || '—') +
-                        '</div>' +
-                        '<div class="mt-0.5 text-right font-mono text-[9px] text-slate-500">' +
+                        '<span class="shrink-0 font-bold tabular-nums text-slate-700">' +
+                        escapeHtml(formatBudgetCardDate(item.data)) +
+                        '</span>' +
+                        '<span class="min-w-0 truncate text-right font-mono font-black tabular-nums text-slate-800">' +
                         escapeHtml(item.total || '—') +
-                        '</div>' +
-                        '</li>'
+                        '</span>' +
+                        '</button>'
                     );
                 })
                 .join('') +
-            '</ul>';
+            '</div>';
     }
 
     function applyEntregasPendentesButton() {
@@ -5180,8 +5229,9 @@
                   ? 'Consumidor não identificado'
                   : 'Cliente';
         var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
-        dom.budgetHistoryList.innerHTML = historico.length
-            ? historico
+        var older = historico.slice(PDV_BUDGET_CARD_VISIBLE);
+        dom.budgetHistoryList.innerHTML = older.length
+            ? older
                   .map(function (item) {
                       var itens = Array.isArray(item.itens) ? item.itens.length : 0;
                       return (
@@ -5190,8 +5240,10 @@
                           '  <div class="flex flex-wrap items-start justify-between gap-3">' +
                           '    <div>' +
                           '      <div class="text-sm font-black text-slate-900">' +
-                          escapeHtml(item.data || '') +
-                          '</div>' +
+                          escapeHtml(formatBudgetCardDate(item.data)) +
+                          ' <span class="text-[11px] font-semibold text-slate-500">' +
+                          escapeHtml(item.data && String(item.data).indexOf(',') > -1 ? String(item.data).split(',')[1].trim() : '') +
+                          '</span></div>' +
                           '      <div class="mt-1 text-[11px] font-bold text-slate-500">' +
                           escapeHtml(item.total || 'R$ 0,00') +
                           ' • ' +
@@ -5210,9 +5262,15 @@
                       );
                   })
                   .join('')
-            : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">Nenhum orçamento salvo para ' +
-              escapeHtml(clienteNome) +
-              '.</div>';
+            : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">' +
+              (historico.length
+                  ? 'Não há orçamentos mais antigos para ' +
+                    escapeHtml(clienteNome) +
+                    '. Os ' +
+                    PDV_BUDGET_CARD_VISIBLE +
+                    ' mais recentes estão no card ao lado — clique na linha para reabrir.'
+                  : 'Nenhum orçamento salvo para ' + escapeHtml(clienteNome) + '.') +
+              '</div>';
         dom.budgetHistoryModal.classList.remove('hidden');
         dom.budgetHistoryModal.classList.add('flex');
     }
@@ -8891,17 +8949,18 @@
         dom.budgetHistoryList.addEventListener('click', function (event) {
             var btn = event.target.closest('[data-budget-id]');
             if (!btn) return;
-            var budgetId = btn.getAttribute('data-budget-id');
-            var historico = readHistoricoOrcamentos();
-            var entry = historico.find(function (item) {
-                return String(item.id) === String(budgetId);
-            });
-            if (entry) {
-                State.hydrateFromBudget(entry);
-                State.setCurrentStep('produtos');
+            if (reopenBudgetById(btn.getAttribute('data-budget-id'))) {
                 closeBudgetHistory();
             }
         });
+        var step1BudgetSnippet = document.getElementById('pdv-step1-budget-snippet');
+        if (step1BudgetSnippet) {
+            step1BudgetSnippet.addEventListener('click', function (event) {
+                var row = event.target.closest('[data-budget-id]');
+                if (!row) return;
+                reopenBudgetById(row.getAttribute('data-budget-id'));
+            });
+        }
 
         if (dom.clientPurchaseHistory) {
             dom.clientPurchaseHistory.addEventListener('click', function () {

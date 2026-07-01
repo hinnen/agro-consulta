@@ -36,6 +36,7 @@
     .crh-table { font-size: 0.9375rem; }
     .crh-table th { font-size: 0.6875rem; }
   </style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
   {% include "produtos/includes/caixa_embed_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden{% if caixa_embed %} caixa-embed-mode{% endif %}">
@@ -98,7 +99,7 @@
       <p class="text-xl font-black text-orange-700 tabular-nums">R$ {{ total_str }}</p>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="caixa-panel-scroll rounded-xl border border-slate-200 bg-white shadow-sm">
       {% if linhas %}
       <table class="crh-table w-full min-w-[48rem]">
         <thead class="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">

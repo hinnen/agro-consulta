@@ -19,6 +19,7 @@
     .cx-shell { width: 100%; max-width: min(96rem, 100%); margin: 0 auto; }
     details.cx-sess summary::-webkit-details-marker { display: none; }
   </style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
   {% include "produtos/includes/caixa_embed_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden{% if caixa_embed %} caixa-embed-mode{% endif %}">
@@ -112,7 +113,7 @@
     </section>
     {% endif %}
 
-    <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pb-2">
+    <div class="caixa-panel-scroll space-y-2 pb-2">
       {% for s in sessoes %}
       <details class="cx-sess rounded-xl border {% if s.tem_diferenca %}border-amber-400 bg-amber-50/30{% else %}border-slate-200 bg-white{% endif %} shadow-sm overflow-hidden" open>
         <summary class="cursor-pointer list-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 hover:bg-white/60 select-none">
