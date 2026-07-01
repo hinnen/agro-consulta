@@ -1142,15 +1142,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.10** · **loja v5.71** *(RH pagamento salário · 01/07)*
+**Versão app (`VERSION`):** **teste v6.17** · **loja v5.73** *(RH folha UX · 01/07)*
 
-### ✅ Deploy loja **v5.71** — hotfix migrate RH 0005 (01/07)
+### ✅ Deploy loja **v5.73** — RH folha UX + reabrir (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · produção + senha **`99738595`** · cherry **isolado** **`54aaa32`** · **`a10faa1`** · **`b825230`** (**sem** PDV/orçamentos/caixa overlay) |
+| **Pacote** | Lista fechamentos **todos status** · tela fechamento **limpa** (ajuda no **?**) · **Reabrir** mantém valor pago · detalhe sem recalc a cada F5 |
+| **Validado loja** | Igualar CP · parcial CP · caixa Salários · Reabrir (bug Pago sumindo) |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** RH fechamento |
+
+### ✅ Deploy loja **v5.71–v5.72** — hotfix migrate RH 0005 (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Problema** | Deploy **`61e19c2`** (v5.70) falhou no **migrate** — `rh.0005` apontava `base.0010` inexistente na loja |
-| **Fix** | Dependência corrigida → **`base.0009`** · commit **`a138625`** |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · validar RH pagamento salário |
+| **Fix** | Dependência → **`base.0009`** · **`a138625`** produção |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
 
 ### ✅ Deploy loja **v5.70** — RH pagamento salário CP + caixa (01/07)
 
