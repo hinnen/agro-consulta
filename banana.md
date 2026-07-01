@@ -1152,6 +1152,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `_q_titulos_cliente_gestao`: com pk resolve **nome** e filtra igual à grade · F8 `_fiado_resumo` mesmo critério · `fiado_gestao.js` prioriza `cliente_nome` |
 | **Arquivos** | `fiado_gestao_util.py` · `relacionamento_cliente_util.py` · `fiado_gestao.js` |
 | **Deploy teste** | Push **`teste`** `6875a3a` · Ctrl+F5 → Queila: gestão/F8 = **22 títulos** |
+| **ERP / import** | **Não** é histórico vendas F8 (FL-042). É **fiado**: planilha ERP + **sync clientes** (cadastros duplicados) + PDV no cadastro da venda |
+| **Auditoria loja** | `python manage.py fiado_auditar_cadastros_duplicados` · `--json` · quem tinha títulos ocultos no PDV antigo |
 
 ### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
 
