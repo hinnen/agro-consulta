@@ -1757,6 +1757,16 @@
             return;
         }
         try {
+            if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
+                if (window.AgroDualWindow.isPdvHost && window.AgroDualWindow.isPdvHost()) {
+                    window.AgroDualWindow.navigateGestao(url);
+                    return;
+                }
+                if (window.AgroDualWindow.inEmbed && window.AgroDualWindow.inEmbed()) {
+                    window.AgroDualWindow.navigateGestao(url);
+                    return;
+                }
+            }
             if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
                 window.AgroDualWindow.navigateGestao(url);
                 return;
