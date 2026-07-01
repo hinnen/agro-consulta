@@ -218,15 +218,13 @@
 
   function titulosQueryParams(cli) {
     const qs = new URLSearchParams({ situacao: 'abertos', limit: '500' });
-    if (cli.pk) {
-      qs.set('cliente_agro_pk', String(cli.pk));
-      return qs.toString();
-    }
     const nome = String(cli.nome || '').trim();
     if (nome) {
       qs.set('cliente_nome', nome);
-    } else {
-      if (cli.codigo) qs.set('cliente_codigo', cli.codigo);
+    } else if (cli.pk) {
+      qs.set('cliente_agro_pk', String(cli.pk));
+    } else if (cli.codigo) {
+      qs.set('cliente_codigo', cli.codigo);
     }
     return qs.toString();
   }
@@ -259,14 +257,14 @@
         '?cliente_agro_pk=' +
         encodeURIComponent(String(pk));
       const cred = await fetchJson(credUrl);
-      const titUrl =
-        urls.titulos +
-        '?' +
-        new URLSearchParams({
-          cliente_agro_pk: String(pk),
-          situacao: 'abertos',
-          limit: '500',
-        }).toString();
+      const nomeCli = String(cred.cliente_nome || '').trim();
+      const titParams = { situacao: 'abertos', limit: '500' };
+      if (nomeCli) {
+        titParams.cliente_nome = nomeCli;
+      } else {
+        titParams.cliente_agro_pk = String(pk);
+      }
+      const titUrl = urls.titulos + '?' + new URLSearchParams(titParams).toString();
       const tit = await fetchJson(titUrl);
       const lista = tit.titulos || [];
       abrirModalCliente({

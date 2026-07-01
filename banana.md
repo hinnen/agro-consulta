@@ -1141,18 +1141,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.61** · **loja v5.61** (deploy perf busca · 01/07)
+**Versão app (`VERSION`):** **teste v5.62** · **loja v5.62** (merge **`teste`→`producao`** · 01/07 · Renan + senha)
+
+### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *manda direto produção* + senha **`99738595`** · teste sem fiado (zerado — não dava para validar) |
+| **Git** | Merge **`teste`→`producao`** após v5.61 cherry-pick · pacote fiado **`6875a3a`** + auditoria **`47c20e0`** |
+| **Pacote** | Fiado: gestão/F8 lista títulos por **nome** (igual grade) · comando `fiado_auditar_cadastros_duplicados` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · Queila: abrir gestão pelo PDV = **todos** títulos · total = lateral **R$ 435,66** |
+| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` |
 
 ### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | Renan · correção lentidão produção + senha **`99738595`** |
-| **Git** | Cherry-pick **`bb5f1b6`** em **`producao`** — **só** perf busca · **sem** fiado v5.58 nem outros commits do teste |
-| **Pacote** | Cache local PDV (não chama servidor se cache basta) · GM debounce 200 ms · busca wizard pula Mongo se Postgres achou · promo PDV cache 90 s |
+| **Autorização** | Renan · correção lentidão + senha **`99738595`** |
+| **Git** | Cherry-pick **`bb5f1b6`** → **`producao`** **`9fb0385`** · **sem** fiado v5.58 |
+| **Pacote** | Cache local PDV · GM debounce · busca wizard menos Mongo · promo cache 90 s |
 | **Arquivos** | `pdv_wizard.js` · `motor_busca_unificado_util.py` · `views.py` |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** SisVale · não abrir BI+caixa+PDV juntos |
-| **Nota** | Teste OK Renan · ajuda **busca**/fila · **abertura** tela cinza pode continuar intermitente → avaliar **2 workers** Render |
+| **Pós-deploy** | **Ctrl+F5** · **1 guia** · não abrir BI+caixa+PDV juntos |
 
 ### 🔴 INCIDENTE loja — tela cinza / fila **01/07** (histórico)
 
@@ -1160,7 +1169,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Cinza ao abrir · caixa/vendas/fiado lentos · **1 worker** + várias guias |
 | **Causa** | Fila Gunicorn (não crash) · logs tudo 200 |
-| **Operação** | Fechar guias extras · Restart Render se travar |
+| **Operação** | Fechar guias extras · avaliar **2 workers** Render |
+
+### 🟠 Fiado — só 3 títulos pelo PDV/F8 **v5.58→v5.62 loja** (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Queila · lateral **R$ 435,66** · gestão por cadastro **19+3** · PDV/F8 só **3** (R$ 25,60) |
+| **Causa** | Cadastros duplicados mesmo nome · filtro só `cliente_agro_id` no atalho PDV |
+| **Fix** | `_q_titulos_cliente_gestao` + F8 `_fiado_resumo` + `fiado_gestao.js` por **nome** |
+| **Queila** | «(não usar mais)» **R$ 410** + «Hinnen a» **R$ 25,60** = **R$ 435,66** |
+| **Auditoria loja** | `python manage.py fiado_auditar_cadastros_duplicados` · `--json` |
 
 ### ✅ Deploy loja **v5.56** — fix Indisp. F8 (30/06)
 
@@ -1179,7 +1198,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Checagem **v5.51** só `codigo_nfe` + Mongo · na loja catálogo = **Postgres** (`codigo_interno`, barras, variações) — vendas antigas gravam **código interno**, não GM |
 | **Fix v5.55** | `codigos_gm_ativos_no_catalogo` alinhado ao PDV: overlay (nfe+barras) · **Produto** (nfe+interno+barras) · **ProdutoMarcaVariacaoAgro** · Mongo `index_codigos`/barras |
 | **Arquivo** | `relacionamento_historico_erp_util.py` |
-| **Próximo** | Push **`teste`** → validar F8 loja Queila → produção se OK |
+| **Deploy teste** | OK **`b0df2a7`** |
+| **Deploy loja** | **`59ef94d`** **v5.56** |
 
 ### ✅ Deploy loja **v5.53** (30/06)
 

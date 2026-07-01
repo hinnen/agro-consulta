@@ -535,26 +535,34 @@ def _cross_sell(top_produtos: list[dict], venda_ids: list[int]) -> list[dict[str
 
 
 def _fiado_resumo(cli: ClienteAgro) -> dict[str, Any]:
+    from produtos.fiado_gestao_util import _q_titulos_cliente_gestao, nome_para_consulta_fiado
+
     cid = (cli.externo_id or "").strip() or f"agro:{cli.pk}"
     try:
         cred = resumo_credito_fiado_cliente(cid, cliente_agro_pk=cli.pk)
     except Exception:
         cred = {}
-    titulos = (
-        FiadoTituloAgro.objects.filter(cliente_agro=cli)
+    nome_cli = nome_para_consulta_fiado("", cliente_agro_pk=cli.pk)
+    filtros = _q_titulos_cliente_gestao(cliente_nome=nome_cli, cliente_agro_pk=cli.pk)
+    qs = (
+        FiadoTituloAgro.objects.filter(filtros)
         .exclude(
             situacao__in=(
                 FiadoTituloAgro.Situacao.QUITADO,
                 FiadoTituloAgro.Situacao.CANCELADO,
             )
         )
-        .order_by("vencimento")[:12]
+        .order_by("vencimento")
     )
     titulos_out = []
+    total_aberto = Decimal("0")
     hoje = timezone.localdate()
-    for t in titulos:
-        saldo = float(t.saldo_aberto)
+    for t in qs:
+        saldo = _dec(t.saldo_aberto)
         if saldo <= 0:
+            continue
+        total_aberto += saldo
+        if len(titulos_out) >= 12:
             continue
         venc = t.vencimento
         titulos_out.append(
@@ -563,7 +571,7 @@ def _fiado_resumo(cli: ClienteAgro) -> dict[str, Any]:
                 "documento": t.numero_documento or str(t.pk),
                 "vencimento": venc.isoformat() if venc else None,
                 "vencido": bool(venc and venc < hoje),
-                "saldo": saldo,
+                "saldo": float(saldo),
                 "valor_bruto": float(t.valor_bruto or 0),
             }
         )
@@ -571,7 +579,7 @@ def _fiado_resumo(cli: ClienteAgro) -> dict[str, Any]:
         "resumo_erp": cred,
         "limite_local": float(cli.limite_fiado_local or 0),
         "titulos_abertos": titulos_out,
-        "total_aberto": round(sum(x["saldo"] for x in titulos_out), 2),
+        "total_aberto": float(total_aberto.quantize(Decimal("0.01"))),
     }
 
 
