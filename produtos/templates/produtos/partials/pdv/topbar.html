@@ -26,6 +26,7 @@
                     {% if pdv_consulta_only %}
                     <div class="flex flex-nowrap items-center gap-0.5 sm:gap-1 shrink-0">
                     <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Abre o aplicativo Gestão (BI) — igual ao botão PDV traz o balcão">Início</a>
+                    <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-sky-200 bg-sky-50 text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
                     <a href="{% url 'pdv_home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100 shrink-0" title="PDV principal (venda)">PDV</a>
                     </div>
                     {% endif %}
