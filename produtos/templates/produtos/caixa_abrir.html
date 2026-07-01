@@ -24,6 +24,7 @@
     .caixa-ponto-card.is-selected { box-shadow: 0 12px 32px rgba(16, 185, 129, 0.18); }
     .caixa-ponto-panel[hidden] { display: none !important; }
   </style>
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
 {% include "produtos/_gm_loading_bar.html" %}
@@ -39,8 +40,7 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">← Menu</a>
       </div>
     </div>
   </header>

@@ -815,7 +815,7 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-            <button type="button"
+            <button type="button" id="dash-btn-pdv-top"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
                 class="btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
                 <i data-lucide="shopping-cart" class="w-4 h-4 text-[#00BFFF]"></i>
@@ -922,7 +922,7 @@
                 <p>SisVale · Central de módulos</p>
             </div>
             <div class="launchpad-topbar__quick">
-                <button type="button" onclick="dashLaunchpadAbrir('PDV', '{% url 'pdv_home' %}', 'shopping-cart')" class="launch-orb launch-orb--blue" title="PDV (F1)">
+                <button type="button" id="launchpad-orb-pdv" onclick="dashLaunchpadAbrir('PDV', '{% url 'pdv_home' %}', 'shopping-cart')" class="launch-orb launch-orb--blue" title="PDV (F1)">
                     <i data-lucide="shopping-cart"></i>
                     <span>PDV</span>
                     <small>F1</small>
@@ -1132,6 +1132,9 @@ document.addEventListener("keydown", function (e) {
         return;
     }
     if (e.key === "F1") {
+        if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
+            return;
+        }
         e.preventDefault();
         window.tabManager.addTab("PDV", "{% url 'pdv_home' %}", "shopping-cart");
         return;
@@ -1149,6 +1152,15 @@ document.addEventListener("keydown", function (e) {
 });
 
     lucide.createIcons();
+
+    (function hideGestaoPdvShortcuts() {
+        if (!window.AgroDualWindow || typeof window.AgroDualWindow.isGestaoHost !== "function") return;
+        if (!window.AgroDualWindow.isGestaoHost()) return;
+        ["dash-btn-pdv-top", "launchpad-orb-pdv"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.hidden = true;
+        });
+    })();
 
     (function initAgroVersionPopover() {
       var dataEl = document.getElementById("agro-build-data");

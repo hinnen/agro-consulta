@@ -6,13 +6,17 @@
    * Em touchscreen/ponta grossa mantém sempre expandida.
    */
   body.agro-has-inapp-tabbar {
-    /* Faixa lateral recolhida: largura suficiente para ler como “painel”, não só recorte escuro */
-    --agro-sidebar-nib: 20px;
-    --agro-inapp-expanded-inner: clamp(122px, 14vw, 156px);
-    --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
+    --agro-sidebar-icon-rail: 48px;
+    --agro-sidebar-nib: var(--agro-sidebar-icon-rail);
+    --agro-inapp-expanded-inner: clamp(132px, 14vw, 168px);
+    --agro-inapp-side-w: var(--agro-sidebar-icon-rail);
     transition:
       padding 0,
       margin 0;
+  }
+
+  body.agro-has-inapp-tabbar.agro-sidebar-expanded {
+    --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
   }
 
   /** Rail pode animar; painel de iframes sem transição — evita “piscada” quando a sidebar expande/recolhe (preset, hover). */
@@ -28,41 +32,114 @@
     transition: none;
   }
 
-  /** Recolher só onde há hover fino — loja tátil fica sempre aberta para tocar nos botões. */
-  @media (hover: hover) and (pointer: fine) {
+  /** Touch / caneta grossa: barra expandida sempre (nomes legíveis). */
+  @media (hover: none), (pointer: coarse) {
     body.agro-has-inapp-tabbar {
-      --agro-inapp-side-w: var(--agro-sidebar-nib);
+      --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
+    }
+  }
+
+  /** Desktop: faixa ícones fixa; expandir só com botão seta (classe .agro-sidebar-expanded). */
+  @media (hover: hover) and (pointer: fine) {
+    body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) {
+      --agro-inapp-side-w: var(--agro-sidebar-icon-rail);
     }
 
-    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:hover),
-    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:focus-within),
+    body.agro-has-inapp-tabbar.agro-sidebar-expanded,
     body.agro-has-inapp-tabbar:has(#agro-inapp-preset-panel.agro-show),
     body.agro-has-inapp-tabbar:has(#agro-inapp-preset-backdrop.agro-show) {
       --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
     }
 
-    /** Indicador fino — some ao expandir */
-    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:hover) #agro-inapp-sidebar-rail::before,
-    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:focus-within)
-      #agro-inapp-sidebar-rail::before,
+    body.agro-has-inapp-tabbar.agro-sidebar-expanded #agro-inapp-sidebar-rail::before,
     body.agro-has-inapp-tabbar:has(#agro-inapp-preset-panel.agro-show) #agro-inapp-sidebar-rail::before {
       opacity: 0;
     }
+  }
 
-    /**
-     * Recolhido: esconder a coluna de botões (bordas/sombras vazavam para fora do overflow).
-     * Só o fundo do rail + faixa ::before ficam visíveis até hover/foco/preset.
-     */
-    body.agro-has-inapp-tabbar:not(:has(#agro-inapp-sidebar-rail:hover)):not(
-        :has(#agro-inapp-sidebar-rail:focus-within)
-      ):not(:has(#agro-inapp-preset-panel.agro-show)):not(:has(#agro-inapp-preset-backdrop.agro-show))
-      #agro-inapp-tabs-bar {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-      box-shadow: none !important;
-      filter: none !important;
-    }
+  #agro-sidebar-expand-btn {
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 36px;
+    margin-bottom: 6px;
+    padding: 4px;
+    border-radius: 10px;
+    border: 2px solid rgba(148, 163, 184, 0.45);
+    background: rgba(15, 23, 42, 0.55);
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #agro-sidebar-expand-btn:hover {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(249, 115, 22, 0.65);
+  }
+
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) .agro-inapp-tab-label,
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab-close {
+    display: none !important;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-inapp-tabs-bar {
+    width: 100%;
+    max-width: var(--agro-sidebar-icon-rail);
+    padding: 8px 4px;
+    align-items: center;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-inapp-tabs-stack {
+    width: 100%;
+    align-items: center;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-sidebar-expand-btn,
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab,
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap button.agro-inapp-tab {
+    flex: none;
+    width: 40px;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap {
+    flex-direction: column;
+    gap: 0;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab {
+    min-height: 40px;
+    padding: 4px 2px;
+    justify-content: center;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab.agro-inapp-tab-pdv {
+    min-height: 44px;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) .agro-inapp-tab-icon {
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-sidebar-expand-btn {
+    font-size: 18px;
+    min-height: 32px;
+    margin-bottom: 8px;
+  }
+  body.agro-has-inapp-tabbar.agro-sidebar-expanded .agro-inapp-tab-icon {
+    font-size: 1.05rem;
+    margin-bottom: 2px;
+  }
+  .agro-inapp-tab-icon {
+    display: block;
+    pointer-events: none;
+  }
+  .agro-inapp-tab-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -697,6 +774,9 @@
    * Aba comum do Chrome (sem app) fica sem shell — evita duplicar PDV+Dashboard+URL em background.
    */
   function agroInAppShellDisponivel() {
+    if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
+      return window.AgroDualWindow.isGestaoHost && window.AgroDualWindow.isGestaoHost();
+    }
     if (window.agroShell && typeof window.agroShell.openExternal === 'function') return true;
     try {
       if (window.navigator && window.navigator.standalone === true) return true;
@@ -709,6 +789,96 @@
     return false;
   }
   if (!agroInAppShellDisponivel()) return;
+
+  if (window.AgroDualWindow && window.AgroDualWindow.isPdvHost && window.AgroDualWindow.isPdvHost()) return;
+
+  var SIDEBAR_EXPAND_KEY = 'agro_sidebar_expanded_v1';
+
+  function dualWindowMode() {
+    return window.AgroDualWindow && typeof window.AgroDualWindow.enabled === 'function' && window.AgroDualWindow.enabled();
+  }
+
+  /** Dois apps (.lnk): Gestão não mostra guia PDV na sidebar — balcão fica no atalho Windows. */
+  function hideGestaoSidebarPdv() {
+    return (
+      dualWindowMode() &&
+      window.AgroDualWindow &&
+      typeof window.AgroDualWindow.isGestaoHost === 'function' &&
+      window.AgroDualWindow.isGestaoHost()
+    );
+  }
+
+  function tabIconForUrl(absUrlOrPath) {
+    var p = '';
+    try {
+      p =
+        typeof absUrlOrPath === 'string' && absUrlOrPath.indexOf('http') === 0
+          ? new URL(absUrlOrPath).pathname
+          : String(absUrlOrPath || location.pathname || '/');
+    } catch (_) {
+      p = String(absUrlOrPath || '/');
+    }
+    p = p.toLowerCase();
+    if (p.indexOf('/entrada-nota') >= 0) return '📥';
+    if (p.indexOf('/lancamentos') >= 0 || p.indexOf('/financeiro') >= 0) return '📋';
+    if (p.indexOf('/fiado') >= 0) return '💳';
+    if (p.indexOf('/rh') >= 0) return '👥';
+    if (p.indexOf('/caixa') >= 0) return '💰';
+    if (p.indexOf('/compras') >= 0) return '🛍';
+    if (p.indexOf('/produtos') >= 0 || p.indexOf('/gestao') >= 0) return '📦';
+    if (p.indexOf('/entregas') >= 0) return '🚚';
+    if (p.indexOf('/vendas') >= 0) return '💵';
+    if (p.indexOf('/clientes') >= 0) return '👤';
+    if (p.indexOf('/pdv') >= 0) return '🛒';
+    if (p.indexOf('/dashboard') >= 0 || p === '/') return '📊';
+    return '📄';
+  }
+
+  function fillTabButton(btn, icon, label) {
+    if (!btn) return;
+    btn.textContent = '';
+    var ic = document.createElement('span');
+    ic.className = 'agro-inapp-tab-icon';
+    ic.setAttribute('aria-hidden', 'true');
+    ic.textContent = icon || '📄';
+    var lb = document.createElement('span');
+    lb.className = 'agro-inapp-tab-label';
+    lb.textContent = label || '';
+    btn.appendChild(ic);
+    btn.appendChild(lb);
+  }
+
+  function syncSidebarExpandBtn() {
+    var btn = document.getElementById('agro-sidebar-expand-btn');
+    if (!btn) return;
+    var on = document.body.classList.contains('agro-sidebar-expanded');
+    btn.textContent = on ? '‹' : '›';
+    btn.title = on ? 'Recolher barra (só ícones)' : 'Expandir barra (nomes e fechar guias)';
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  function setSidebarExpanded(on, persist) {
+    document.body.classList.toggle('agro-sidebar-expanded', !!on);
+    syncSidebarExpandBtn();
+    if (persist !== false) {
+      try {
+        localStorage.setItem(SIDEBAR_EXPAND_KEY, on ? '1' : '0');
+      } catch (_) {}
+    }
+  }
+
+  function toggleSidebarExpanded() {
+    setSidebarExpanded(!document.body.classList.contains('agro-sidebar-expanded'), true);
+  }
+
+  function goPdvTab() {
+    shell.pinnedTabGlow = null;
+    if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+      window.AgroDualWindow.focusPdv();
+      return;
+    }
+    showWhich('pdv');
+  }
 
   var USER_SLOTS = 3;
   /** Após “Sair” do PDV Wizard: manter guia PDV ativa ao abrir o dashboard (`/`). */
@@ -931,7 +1101,11 @@
     function go() {
       var p = normPathUrl(absResolved).path;
       if (pathLookLikePDV(p)) {
-        showWhich('pdv');
+        if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+          window.AgroDualWindow.focusPdv(absResolved);
+        } else {
+          showWhich('pdv');
+        }
       } else if (pathLookLikeDashboard(p)) {
         showWhich('dash');
       } else {
@@ -973,6 +1147,10 @@
   }
 
   function showWhich(which) {
+    if (which === 'pdv' && dualWindowMode()) {
+      goPdvTab();
+      return;
+    }
     shell.activeWhich = which;
     if (shell.wrapEl)
       shell.wrapEl.style.display = which === 'prim' ? 'block' : 'none';
@@ -1114,7 +1292,14 @@
   function wireIframeTitleSync(slotIx, iframeEl, labelBtn) {
     function pull() {
       var u = shell.userSlots[slotIx] && shell.userSlots[slotIx].url;
-      labelBtn.textContent = resolveTabLabel(iframeEl, u || '');
+      var label = resolveTabLabel(iframeEl, u || '');
+      var icon = tabIconForUrl(u || '');
+      var lb = labelBtn.querySelector('.agro-inapp-tab-label');
+      var ic = labelBtn.querySelector('.agro-inapp-tab-icon');
+      if (lb) lb.textContent = label;
+      else fillTabButton(labelBtn, icon, label);
+      if (ic) ic.textContent = tabIconForUrl(u || '');
+      labelBtn.title = label;
     }
     iframeEl.addEventListener('load', pull);
     setTimeout(pull, 650);
@@ -1122,9 +1307,10 @@
   }
 
   function wirePdvTabLabelSync() {
+    if (!shell.pdvBtn) return;
     function pull() {
-      shell.pdvBtn.textContent = 'PDV';
-      shell.pdvBtn.title = 'Ponto de venda';
+      fillTabButton(shell.pdvBtn, '🛒', 'PDV');
+      shell.pdvBtn.title = dualWindowMode() ? 'Ir ao balcão (outra janela)' : 'Ponto de venda';
     }
     shell.pdvIframe.addEventListener('load', pull);
     setTimeout(pull, 450);
@@ -1178,7 +1364,7 @@
     var restoringDashboard = false;
 
     function pull() {
-      shell.dashBtn.textContent = 'DASHBOARD';
+      fillTabButton(shell.dashBtn, '📊', 'DASHBOARD');
       shell.dashBtn.title = 'Dashboard gerencial';
     }
     shell.dashIframe.addEventListener('load', function () {
@@ -1253,7 +1439,7 @@
     hdr.type = 'button';
     hdr.className = 'agro-inapp-tab';
     hdr.setAttribute('role', 'tab');
-    hdr.textContent = pathSegmentUpper(resolved);
+    fillTabButton(hdr, tabIconForUrl(resolved), pathSegmentUpper(resolved));
     hdr.dataset.which = 'u' + ix;
     hdr.onclick = function () {
       showWhich('u' + ix);
@@ -1322,7 +1508,7 @@
     shell.userSlots[ix] = null;
     shell.userWraps[ix] = null;
     if (shell.activeWhich === 'u' + ix) {
-      showWhich('pdv');
+      showWhich(dualWindowMode() ? 'dash' : 'pdv');
     }
   }
 
@@ -1340,20 +1526,31 @@
     shell.stackEl = document.createElement('div');
     shell.stackEl.id = 'agro-inapp-tabs-stack';
 
+    var expandBtn = document.createElement('button');
+    expandBtn.type = 'button';
+    expandBtn.id = 'agro-sidebar-expand-btn';
+    expandBtn.setAttribute('aria-label', 'Expandir ou recolher barra lateral');
+    expandBtn.title = 'Expandir barra (nomes e fechar guias)';
+    expandBtn.textContent = '›';
+    expandBtn.onclick = function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleSidebarExpanded();
+    };
+
     shell.pdvBtn = document.createElement('button');
     shell.pdvBtn.type = 'button';
     shell.pdvBtn.className = 'agro-inapp-tab agro-inapp-tab-pdv';
-    shell.pdvBtn.textContent = 'PDV';
-    shell.pdvBtn.title = 'Ponto de venda';
+    fillTabButton(shell.pdvBtn, '🛒', 'PDV');
+    shell.pdvBtn.title = dualWindowMode() ? 'Ir ao balcão (outra janela)' : 'Ponto de venda';
     shell.pdvBtn.onclick = function () {
-      shell.pinnedTabGlow = null;
-      showWhich('pdv');
+      goPdvTab();
     };
 
     shell.dashBtn = document.createElement('button');
     shell.dashBtn.type = 'button';
     shell.dashBtn.className = 'agro-inapp-tab';
-    shell.dashBtn.textContent = 'Dashboard';
+    fillTabButton(shell.dashBtn, '📊', 'Dashboard');
     shell.dashBtn.title = 'Dashboard gerencial';
     shell.dashBtn.onclick = function () {
       shell.pinnedTabGlow = null;
@@ -1364,13 +1561,20 @@
     shell.plusBtn.type = 'button';
     shell.plusBtn.className = 'agro-inapp-tab agro-inapp-tab-plus';
     shell.plusBtn.setAttribute('aria-label', 'Adicionar tela à escolha');
-    shell.plusBtn.title = 'Escolher outra área do sistema (máx. 3 além de PDV e Dashboard)';
-    shell.plusBtn.textContent = '+';
+    shell.plusBtn.title = hideGestaoSidebarPdv()
+      ? 'Escolher outra área do sistema (máx. 3 além do Dashboard)'
+      : 'Escolher outra área do sistema (máx. 3 além de PDV e Dashboard)';
+    shell.plusBtn.innerHTML =
+      '<span class="agro-inapp-tab-icon" aria-hidden="true">+</span><span class="agro-inapp-tab-label">+</span>';
     shell.plusBtn.onclick = function () {
+      setSidebarExpanded(true, true);
       showPresetPick();
     };
 
-    shell.stackEl.appendChild(shell.pdvBtn);
+    shell.stackEl.appendChild(expandBtn);
+    if (!hideGestaoSidebarPdv()) {
+      shell.stackEl.appendChild(shell.pdvBtn);
+    }
     shell.stackEl.appendChild(shell.dashBtn);
     shell.stackEl.appendChild(shell.plusBtn);
     shell.bar.appendChild(shell.stackEl);
@@ -1415,6 +1619,17 @@
 
     b.classList.add('agro-has-inapp-tabbar');
 
+    try {
+      if (localStorage.getItem(SIDEBAR_EXPAND_KEY) === '1') {
+        document.body.classList.add('agro-sidebar-expanded');
+      }
+    } catch (_) {}
+    syncSidebarExpandBtn();
+
+    if (dualWindowMode() && shell.pdvPane) {
+      shell.pdvPane.style.display = 'none';
+    }
+
     var pathNow = (location.pathname || '').split('?')[0];
     var pinTab = readAndClearPinSidebarTab();
     try {
@@ -1429,11 +1644,15 @@
 
     /** Se já está em aba fixa (PDV/Dashboard), mostra iframe fixo e esconde cópia duplicada do DOM inicial */
     if (pathLookLikePDV(pathNow)) {
-      shell.wrapEl.style.display = 'none';
-      try {
-        shell.wrapEl.innerHTML = '';
-      } catch (_) {}
-      showWhich('pdv');
+      if (dualWindowMode()) {
+        showWhich('dash');
+      } else {
+        shell.wrapEl.style.display = 'none';
+        try {
+          shell.wrapEl.innerHTML = '';
+        } catch (_) {}
+        showWhich('pdv');
+      }
     } else if (pathLookLikeDashboard(pathNow)) {
       shell.wrapEl.style.display = 'none';
       try {
@@ -1478,9 +1697,41 @@
       try {
         if (!ev || ev.origin !== location.origin) return;
         var d = ev.data || {};
+        if (d.type === 'agro-focus-pdv') {
+          var pdvHref = d.href ? String(d.href) : '';
+          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+            window.AgroDualWindow.focusPdv(pdvHref || undefined);
+          } else if (shell.pdvPane && shell.pdvPane.style.display !== 'none') {
+            showWhich('pdv');
+          } else if (pdvHref) {
+            window.__agroInAppAddTab(pdvHref);
+          }
+          return;
+        }
+        if (d.type === 'agro-focus-gestao') {
+          var gestHref = d.href ? String(d.href) : '';
+          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusGestao) {
+            window.AgroDualWindow.focusGestao(gestHref || undefined);
+          } else if (gestHref) {
+            window.__agroInAppAddTab(gestHref);
+          }
+          return;
+        }
         if (d.type !== 'agro-open-inapp-tab') return;
         var href = d.href ? String(d.href) : '';
         if (!href) return;
+        var p = '';
+        try {
+          p = new URL(href, location.origin).pathname;
+        } catch (_) {
+          p = '';
+        }
+        if (dualWindowMode() && pathLookLikePDV(p)) {
+          if (window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+            window.AgroDualWindow.focusPdv(href);
+          }
+          return;
+        }
         window.__agroInAppAddTab(href);
       } catch (_) {}
     },

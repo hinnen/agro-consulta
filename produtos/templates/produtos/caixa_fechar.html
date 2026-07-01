@@ -1063,6 +1063,7 @@
       overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
   </style>
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
 <body>
 <div class="cf-page">
@@ -1077,7 +1078,7 @@
         </p>
       </div>
       <div class="cf-top-actions">
-        <a href="{% url 'caixa_painel' %}" class="cf-t-btn inline-flex items-center min-h-[48px] px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50">Painel</a>
+        <a href="{% url 'caixa_painel' %}" class="cf-t-btn inline-flex items-center min-h-[48px] px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50">← Menu</a>
         <details class="cf-help cf-help-top shrink-0">
           <summary class="cf-t-btn inline-flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50 select-none" title="Como conferir">
             <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white text-base font-black">?</span>
