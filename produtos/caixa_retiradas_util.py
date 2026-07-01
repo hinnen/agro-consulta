@@ -1,4 +1,4 @@
-"""Histórico de retiradas / saídas do caixa (financeiro + movimento turno + vales RH)."""
+﻿"""Hist├│rico de retiradas / sa├¡das do caixa (financeiro + movimento turno + vales RH)."""
 from __future__ import annotations
 
 import re
@@ -9,6 +9,37 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
+try:
+    from produtos.caixa_util import (
+        normalizar_rotulo_operador_exibicao as _normalizar_rotulo_operador_exibicao,
+        rotulo_usuario_django as _rotulo_usuario_django,
+    )
+except ImportError:  # loja v5.65 ÔÇö cherry-pick perdeu helpers em caixa_util
+
+    def _rotulo_usuario_django(user) -> str:
+        if user is None or not getattr(user, "is_authenticated", False):
+            return ""
+        nome = (user.get_full_name() or user.first_name or "").strip()
+        if nome:
+            return nome[:150]
+        un = (user.get_username() if hasattr(user, "get_username") else "").strip()
+        if un:
+            return un[:150]
+        email = (getattr(user, "email", None) or "").strip()
+        if email and "@" in email:
+            return email.split("@", 1)[0].strip()[:150]
+        pk = getattr(user, "pk", None)
+        return str(pk)[:150] if pk is not None else ""
+
+    def _normalizar_rotulo_operador_exibicao(raw: str) -> str:
+        s = (raw or "").strip()
+        if not s:
+            return ""
+        if "@" in s and not s.startswith("@"):
+            local = s.split("@", 1)[0].strip()
+            return local or s
+        return s
+
 from produtos.models import MovimentoCaixa, TituloFinanceiroAgro
 from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
 from rh.constants import PLANO_ADIANTAMENTO_CANONICO
@@ -16,8 +47,13 @@ from rh.services.importador_vales_caixa import plano_e_adiantamento_salario_vale
 
 _VALE_PLANO_LABEL = next(
     (p["label"] for p in SAIDA_CAIXA_PLANOS if p.get("id") == "adiant_vale"),
-    "Adiantamento de Salário (Vale)",
+    "Adiantamento de Sal├írio (Vale)",
 )
+
+
+def _op_exib(raw: str) -> str:
+    n = _normalizar_rotulo_operador_exibicao(raw)
+    return n or "ÔÇö"
 
 
 def _dec(v) -> Decimal:
@@ -28,7 +64,7 @@ def _dec(v) -> Decimal:
 
 
 def _extrair_quem_descricao(desc: str) -> str:
-    m = re.search(r"Quem:\s*(.+?)(?:\s*·|$)", str(desc or ""), re.I)
+    m = re.search(r"Quem:\s*(.+?)(?:\s*┬À|$)", str(desc or ""), re.I)
     return (m.group(1).strip() if m else "")[:200]
 
 
@@ -87,7 +123,7 @@ def _movimento_e_vale_adiantamento(obs: str) -> bool:
         return False
     if plano_e_adiantamento_salario_vale(obs):
         return True
-    return "adiantamento" in o and ("vale" in o or "salário" in o or "salario" in o)
+    return "adiantamento" in o and ("vale" in o or "sal├írio" in o or "salario" in o)
 
 
 def _chave_dedup(data: date, valor: Decimal, quem: str) -> tuple:
@@ -101,10 +137,13 @@ def listar_retiradas_historico(
     plano: str = "",
     quem: str = "",
     limite: int = 300,
+    exportar: bool = False,
 ) -> dict[str, Any]:
     plano_f = (plano or "").strip()
     quem_f = (quem or "").strip().lower()
-    limite = max(1, min(int(limite or 300), 500))
+    cap = 10000 if exportar else 500
+    default_lim = 5000 if exportar else 300
+    limite = max(1, min(int(limite or default_lim), cap))
 
     linhas: list[dict[str, Any]] = []
     ids_mov_vistos: set[int] = set()
@@ -112,7 +151,7 @@ def listar_retiradas_historico(
 
     qs = TituloFinanceiroAgro.objects.filter(
         despesa=True,
-        descricao__icontains="Saída caixa",
+        descricao__icontains="Sa├¡da caixa",
         data_competencia__gte=data_de,
         data_competencia__lte=data_ate,
     )
@@ -148,12 +187,18 @@ def listar_retiradas_historico(
                 "data": t.data_competencia,
                 "criado_em": t.importado_em or t.atualizado_em,
                 "valor": _dec(t.valor_bruto),
-                "plano": (t.plano_conta or "").strip() or "—",
-                "quem": nome_quem or "—",
-                "forma": (t.forma_pagamento or "").strip() or "—",
+                "plano": (t.plano_conta or "").strip() or "ÔÇö",
+                "quem": nome_quem or "ÔÇö",
+                "forma": (t.forma_pagamento or "").strip() or "ÔÇö",
+                "banco": (t.banco or "").strip() or "ÔÇö",
                 "descricao": (t.descricao or "").strip(),
-                "operador": (t.usuario_lancou or t.criado_por or "").strip(),
+                "observacoes": (t.observacoes or "").strip(),
+                "operador": _op_exib(t.usuario_lancou or t.criado_por or ""),
+                "operador_pin": _op_exib(
+                    t.usuario_lancou or t.criado_por or t.modificado_por or ""
+                ),
                 "sessao_id": snap.get("sessao_caixa_id"),
+                "mongo_id": (t.mongo_id or "").strip(),
             }
         )
 
@@ -179,7 +224,7 @@ def listar_retiradas_historico(
             if ck in chaves_vistos:
                 continue
             chaves_vistos.add(ck)
-            op = rotulo_usuario_django(v.criado_por) if v.criado_por else ""
+            op = _rotulo_usuario_django(v.criado_por) if v.criado_por else ""
             linhas.append(
                 {
                     "id": f"v-{v.pk}",
@@ -188,9 +233,9 @@ def listar_retiradas_historico(
                     "criado_em": v.criado_em,
                     "valor": _dec(v.valor),
                     "plano": _VALE_PLANO_LABEL,
-                    "quem": nome_quem or "—",
-                    "forma": "—",
-                    "banco": "—",
+                    "quem": nome_quem or "ÔÇö",
+                    "forma": "ÔÇö",
+                    "banco": "ÔÇö",
                     "descricao": (v.observacao or "").strip() or "Vale / adiantamento (RH)",
                     "observacoes": "",
                     "operador": _op_exib(op),
@@ -233,6 +278,7 @@ def listar_retiradas_historico(
             for r in linhas
         ):
             continue
+        op_mov = _rotulo_usuario_django(m.usuario) if m.usuario else ""
         linhas.append(
             {
                 "id": f"m-{m.pk}",
@@ -240,15 +286,16 @@ def listar_retiradas_historico(
                 "data": timezone.localdate(m.criado_em),
                 "criado_em": m.criado_em,
                 "valor": _dec(m.valor),
-                "plano": obs.split(" · ")[0][:120] if obs else "Depósito / caixa",
-                "quem": "—",
-                "forma": (m.forma_pagamento or "").strip() or "—",
+                "plano": obs.split(" ┬À ")[0][:120] if obs else "Dep├│sito / caixa",
+                "quem": "ÔÇö",
+                "forma": (m.forma_pagamento or "").strip() or "ÔÇö",
+                "banco": "ÔÇö",
                 "descricao": obs or "Retirada no turno",
-                "operador": (
-                    (m.usuario.get_full_name() or m.usuario.username if m.usuario else "")
-                    or ""
-                ).strip(),
+                "observacoes": "",
+                "operador": _op_exib(op_mov),
+                "operador_pin": _op_exib(op_mov),
                 "sessao_id": m.sessao_caixa_id,
+                "mongo_id": "",
             }
         )
 
@@ -269,7 +316,7 @@ def listar_quem_retiradas_distintas(*, limite: int = 80) -> list[str]:
     nomes: list[str] = []
     vistos: set[str] = set()
     qs = (
-        TituloFinanceiroAgro.objects.filter(despesa=True, descricao__icontains="Saída caixa")
+        TituloFinanceiroAgro.objects.filter(despesa=True, descricao__icontains="Sa├¡da caixa")
         .exclude(cliente="")
         .order_by("-data_competencia")[:500]
     )

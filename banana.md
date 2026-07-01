@@ -1142,17 +1142,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.89** · **loja v5.65** *(push `producao` · 01/07)*
+**Versão app (`VERSION`):** **teste v5.92** · **loja v5.66** *(hotfix retiradas · 01/07)*
+
+### ✅ Deploy loja **v5.66** — hotfix retiradas Adiantamento (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | `/caixa/retiradas/` jun/2026 + plano **Adiantamento** → **500** (v5.65) |
+| **Causa** | Cherry-pick vales perdeu `_op_exib` no merge — só quebrava ao listar **ValeFuncionario** |
+| **Fix** | Helpers inline em `caixa_retiradas_util.py` · **`1c46fc7`** cherry-pick **`producao`** |
+| **Validar** | Ctrl+F5 · mesmo filtro · lista vales jun/2026 |
 
 ### ✅ Deploy loja **v5.65** — NF busca + retiradas vales (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan · *enviar para produção* + senha **`99738595`** · cherry-pick isolado (**sem** merge `teste`) |
-| **Git** | **`2207fd6`** → vales RH · **`db18bd7`** → NF busca `entrada_nfe=1` · push **`producao`** |
-| **Pacote** | (1) `/caixa/retiradas/` — vales adiantamento no histórico + filtro plano label/código · (2) `/entrada-nota/` passo 2 — busca leve Postgres |
-| **Fora do pacote** | PIN, layout 2 janelas, overlay PDV, Excel retiradas |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · validar NF passo 2 + retiradas jun/2026 filtro Adiantamento |
+| **Git** | **`de825f3`** (vales) · **`f1453c3`** (NF) · push **`producao`** |
+| **Pacote** | NF passo 2 + vales RH no histórico retiradas |
+| **Incidente** | Filtro Adiantamento 500 — corrigido **v5.66** |
 
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
