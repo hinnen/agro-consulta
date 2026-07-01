@@ -589,6 +589,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
+- **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
 
 ### 4.12 RH
 
@@ -1142,15 +1143,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.65** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.68** · **loja v5.62** (`545aad3` · 01/07)
 
-### ✅ Retiradas export Excel — **teste v5.64+** (01/07)
+### ✅ Retiradas — operador padronizado **teste v5.68** (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commits** | `55c55bc` feature · `ecf7b32` banana · badge **v5.65** |
-| **Tela** | `/caixa/retiradas/` — **Excel ↓** + modal |
-| **Validar** | Render teste · Ctrl+F5 · baixar planilha com filtros da tela |
+| **Causa** | Saída caixa: fallback `email` → `admin@agro.com` · Devolução: `username` → `admin` |
+| **Fix código** | `6b1ff34` — `rotulo_usuario_django` · lista/Excel normalizam `@` |
+| **Histórico PG** | Shell teste: `python manage.py normalizar_operador_retiradas_historico --dry-run` depois sem `--dry-run` |
+
+### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit feature** | `55c55bc` |
+| **Fix modal** | `53528e9` — `CRH_EXPORT` antes do JS |
+| **Fix operador** | `6b1ff34` — sem `admin@agro.com` em saídas novas |
+| **Validar** | Ctrl+F5 `/caixa/retiradas/` → **Excel ↓** abre modal |
 
 ### ✅ Deploy loja **v5.62** — fix fiado PDV/F8 (01/07)
 
@@ -1162,8 +1172,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · Queila: abrir gestão pelo PDV = **todos** títulos · total = lateral **R$ 435,66** |
 | **Validação Renan 01/07** | Queila pelo PDV: **22 títulos · R$ 435,66** ✓ (643/647/666 no fim da lista) |
 | **Shell 30/06** | Renan: **só teste** (provável) — FL-042/sync **não** na loja |
-| **Demais clientes** | Fix **geral** (mesmo código) · conferir com auditoria shell |
-| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` · `--limite 0` |
+| **Demais clientes** | Auditoria shell loja **01/07** — ver tabela abaixo |
+| **Auditoria loja 01/07** | 64 com saldo · **56 OK** · **8 afetados** (PDV **antigo**) · ocultos **14 tít. · R$ 1.232,05** · v5.62 corrige visão |
+| **Checklist 8 afetados** | **8/8 ✓** (01/07 Renan) |
+| **Rogerio PDV** | **3 cadastros distintos** — fiado **só** «Rogerio lops Lençol ( Maps Ok )» **2 · R$ 58** · **não unificar** |
+| **Busca PDV** | Renan **01/07:** **sem** coluna fiado — busca é só **cliente da venda** (fiado = lateral/gestão depois de escolher) |
+| **Pendência dados** | Limpeza títulos import (Erlindo etc.) — **não** fundir homônimos · **FL-045** cadastro fiado |
+| **Auditoria** | Shell loja: `python manage.py fiado_auditar_cadastros_duplicados` · `--limite 0` só se passar de 40 linhas |
 
 ### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
 
@@ -1225,7 +1240,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Git** | `teste` → **`producao`** fast-forward **`8ff62ca`→`3467ea0`** · push **`producao`** |
 | **Pacote** | F8 perf (histórico paginado · lazy ciclo/cross) · **FL-042** (migration **0047** + comandos import/revert/probe) · alertas aba Resumo/Ciclo **v5.52** · Indisp. catálogo PG/Mongo **v5.51** · fix perf batch Mongo **v5.53** |
 | **Pós-deploy loja** | Aguardar Render ~2–5 min · **Ctrl+F5** PDV · conferir badge **v5.53** · migration **0047** (Render costuma rodar sozinha) |
-| **Import ERP na loja** | **Não** veio no deploy — dados histórico ERP só no **teste** (`erp-hist-teste-3`). Loja: import manual no shell **só** quando Renan decidir (mesmo fluxo FL-042) |
+| **Import ERP na loja** | **Adiado** (Renan **01/07**) — **FL-042** na fila **P2** · shell loja quando quiser · **não** grava fiado |
 
 ### 🟢 Staging perf F8 — resolvido **v5.53** (30/06)
 
@@ -1261,11 +1276,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `relacionamento_cliente_util.py` · `views.py` · `pdv_relacionamento.js` |
 | **Deploy** | **teste v5.48** · commit `bdea194` · push 30/06 |
 
-### Pendências fila — **FL-043** · **FL-044** (Renan · 30/06)
+### Pendências fila — **FL-043** · **FL-044** · **FL-045** (Renan · 30/06–01/07)
 
 | ID | P | Pedido |
 | -- | - | ------ |
 | **FL-043** | **P2,8** | Botão desconto na baixa do fiado |
+| **FL-045** | **P2,81** | Telefone sempre · toggle cliente fiado → CPF + limite obrigatórios |
 | **FL-044** | **P2,9** | Desconto automático funcionário (% pré-definida) — provável junto **FL-001** (preço × forma ou grupo cliente) |
 
 ### FL-042 fix **v5.47** — dry-run deu 0 importáveis (Renan · 30/06)
@@ -1806,8 +1822,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
-| **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
+| **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — import 1× loja · corte ERP **≤26/05** · SisVale **≥27/05** · **só F8** | 📋 **Adiar loja** · teste ok · Renan **01/07** | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
+| **FL-045** | **P2,81** | Clientes / PDV / Fiado | **Telefone sempre** na loja · toggle **«cliente fiado»** — se ativo: **CPF obrigatório** + **limite fiado** definido | 📋 Pendente | 01/07 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
 
 **Notas assistente (código interno — Renan ignora se quiser):**
@@ -1857,9 +1874,12 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-041 | `pdv-fila-vendas-offline` | Projeto grande: fila local + sync + estoque/fiado — **não** substitui FL-038 curto prazo |
 | FL-042 | `relacionamento-import-erp-1x` | Mongo DtoVenda 1× → Postgres histórico · merge F8 · **sem** leitura Mongo no PDV · Excel = audit |
 | FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
+| FL-045 | `cliente-fiado-toggle-cpf-limite` | Flag **cliente fiado** no cadastro/PDV · se ativo: **CPF obrigatório** + **limite fiado** · operação: **telefone sempre** |
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
 
 **Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
+
+**Notas FL-045 (01/07):** Renan pós-auditoria fiado — **não** coluna fiado na busca PDV (busca = cliente da venda). **Operação:** intensificar **telefone** no cadastro. **Produto:** marcar quem **pode fiado**; ativo → **CPF + limite** obrigatórios antes de vender a prazo. **P2,81** ( **P2,8** já é **FL-043** ).
 
 **Notas lote 29/06 16:20:** **FL-025** **P0,9** (quase P1 — sequência código). **FL-028** **P1** fiado baixa em lote. **FL-029** reforça fiado (**P1,1**, junto FL-019 recibo). **FL-030** PINs nomeados — conferir usuários no admin. **FL-031** overlap com **FL-006** entregas. **FL-032** outro **P1,5** PDV (FL-020 = cupom frete).
 
