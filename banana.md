@@ -1148,6 +1148,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v5.79+** · **loja v5.62** (`545aad3` · 01/07)
 
+### 🔴 Prioridade Renan (30/06) — Entrada NF busca etapa 2 **antes** de vales loja
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Ordem** | **1** busca lenta NF passo 2 · **2** cherry-pick vales `2207fd6` na loja (quando Renan pedir + senha) |
+| **Por que ainda Mongo?** | Desvinculação **não** = «zero Mongo». Catálogo **já Postgres** (`agro_pg`); **Entrada NF reutilizava `/api/buscar/` do PDV** — complemento Mongo + estoque/médias/pedidos transferência **a cada tecla**. Loja: `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=false` (merge PG+Mongo no PDV). Rascunho NF **PG** ≠ busca produto. |
+| **Fix teste** | `entrada_nfe=1` na API · NF **não abre Mongo** se `agro_pg`/somente PG · pula estoque/médias/transferência · front remove delay 220 ms + dropdown não fecha a cada tecla |
+| **Validar** | Staging `/entrada-nota/` passo 2 · digitar nome/código · rede: `?entrada_nfe=1` sem `col_e` Mongo |
+
 ### ✅ Renan validou sidebar + botões PDV BI (30/06)
 
 | Item | Detalhe |
@@ -1161,7 +1170,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
 | **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
-| **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · script **`scripts/criar_atalhos_sistvale.ps1`** (ver abaixo) |
+| **FL-048 fix** | Chrome `--app` nao liga janelas por nome · **localStorage + BroadcastChannel** · **`aguarda push`** |
 | **PDV UX 30/06** | **Sair** removido · **Início** → foca app **Gestão** · **`a63bb21`** teste **v5.83** |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
