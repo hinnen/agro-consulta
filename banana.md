@@ -1146,9 +1146,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.21** · **loja v5.75** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.22** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
 
-### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste)
+### ✅ Deploy loja **v5.76** — fix baixa parcial CP Salários (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · produção + senha **`99738595`** · cherry **isolado** **`d656175`** → **`7593664`** |
+| **Pacote** | Só fix sync folha RH (pagamentos por **fechamento**, não data no mês) + hook Mongo parcial |
+| **Fora** | Ficha layout · botão abrir folha · PDV/orçamentos · etc. |
+| **Validar** | CP Salários parcial (data fora do mês da folha) · Pago persiste · card RH **Valor pago** |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** |
+
+### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
 
 | Item | Detalhe |
 | ---- | ------- |
