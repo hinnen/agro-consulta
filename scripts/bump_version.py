@@ -35,9 +35,25 @@ def bump_version_string(current: str) -> str:
     return format_version(major, minor)
 
 
+def _read_version_bytes(raw_bytes: bytes) -> str:
+    if not raw_bytes:
+        return ""
+    if raw_bytes.startswith(b"\xff\xfe") or raw_bytes.startswith(b"\xfe\xff"):
+        try:
+            return raw_bytes.decode("utf-16").strip()
+        except UnicodeDecodeError:
+            pass
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            return raw_bytes.decode(encoding).strip()
+        except UnicodeDecodeError:
+            continue
+    return ""
+
+
 def read_version() -> str:
     try:
-        return VERSION_FILE.read_text(encoding="utf-8").strip() or "1.00"
+        return _read_version_bytes(VERSION_FILE.read_bytes()) or "1.00"
     except OSError:
         return "1.00"
 

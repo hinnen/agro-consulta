@@ -27,12 +27,30 @@ _RUNTIME_STAMP_FILE = Path(
 )
 
 
-def read_app_version() -> str:
+def _read_text_file(path: Path) -> str:
+    """Lê texto; tolera VERSION salvo em UTF-16 no Windows (BOM 0xFF 0xFE)."""
     try:
-        raw = _VERSION_FILE.read_text(encoding="utf-8").strip()
-        return raw or "1.0"
+        raw_bytes = path.read_bytes()
     except OSError:
-        return "1.0"
+        return ""
+    if not raw_bytes:
+        return ""
+    if raw_bytes.startswith(b"\xff\xfe") or raw_bytes.startswith(b"\xfe\xff"):
+        try:
+            return raw_bytes.decode("utf-16").strip()
+        except UnicodeDecodeError:
+            pass
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            return raw_bytes.decode(encoding).strip()
+        except UnicodeDecodeError:
+            continue
+    return ""
+
+
+def read_app_version() -> str:
+    raw = _read_text_file(_VERSION_FILE)
+    return raw or "1.0"
 
 
 def _git_rev(*, short: bool) -> str:
