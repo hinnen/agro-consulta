@@ -1166,34 +1166,55 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Bug v5.75: cada tentativa gravou `PagamentoSalarioFuncionario` no RH; sync antigo não mantinha CP mas **registros RH ficaram** |
 | **Correto (ex. Zuleide jun/26)** | **1× R$ 72,75** pagamento salário + vales R$ 585 → **Pago CP = R$ 657,75** |
 | **Loja hoje (v5.76)** | **Admin Django** → *Pagamentos de salário* → filtrar funcionário + jun/2026 → marcar duplicatas → ação **«Cancelar selecionados e sincronizar CP»** (só **teste** até cherry admin) |
-| **Loja agora (shell Render)** | Ver bloco abaixo · cancelar todos CP parcial exceto **1** de R$ 72,75 |
+| **Loja agora (shell Render)** | **Um comando por vez** abaixo — no `python manage.py shell`, **Enter sozinho** só fecha blocos `for`/`if` (não cole vários passos juntos) |
 | **Log CP** | Linhas «Agro parc.» antigas podem ficar no **Log** (histórico); **Pago/Saldo** vêm do sync — conferir número, não contar linhas do log |
 
-**Shell (produção v5.76 — Zuleide jun/2026):**
+**Render — Zuleide jun/26 (v5.76) — passo a passo**
+
+Abrir: `cd ~/project/src` → `python manage.py shell`
+
+**Passo A — imports (1× por sessão)**
 ```python
 from django.utils import timezone
 from rh.models import FechamentoFolhaSimplificado, PagamentoSalarioFuncionario
 from rh.services.fechamento import recalcular_fechamento
 from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
-
-fech = FechamentoFolhaSimplificado.objects.filter(
-    funcionario__nome_cache__icontains="Zuleide", competencia__year=2026, competencia__month=6,
-).first()
-pags = list(PagamentoSalarioFuncionario.objects.filter(
-    fechamento=fech, cancelado=False, tipo_origem="CP_PARCIAL",
-).order_by("criado_em"))
-print([(p.pk, p.valor, p.criado_em) for p in pags])
-manter_pk = pags[-1].pk
-for p in pags:
-    if p.pk == manter_pk:
-        continue
-    p.cancelado = True
-    p.cancelado_em = timezone.now()
-    p.motivo_cancelamento = "Tentativa duplicada bug CP parcial jun/26"
-    p.save(update_fields=["cancelado", "cancelado_em", "motivo_cancelamento", "atualizado_em"])
-recalcular_fechamento(fech)
-print(sincronizar_valores_titulo_salario_mongo(fech))
 ```
+
+**Passo B — achar folha**
+```python
+fech = FechamentoFolhaSimplificado.objects.filter(funcionario__nome_cache__icontains="Zuleide", competencia__year=2026, competencia__month=6).first()
+fech.pk
+```
+
+**Passo C — conferir pagamentos (esperado: 4 linhas, todos cancelado=False)**
+```python
+list(PagamentoSalarioFuncionario.objects.filter(fechamento=fech, tipo_origem="CP_PARCIAL").order_by("pk").values_list("pk", "valor", "cancelado"))
+```
+
+**Passo D — cancelar duplicatas (ficar só pk **6** = R$ 72,75)**
+```python
+PagamentoSalarioFuncionario.objects.filter(pk__in=[3, 4, 5]).update(cancelado=True, cancelado_em=timezone.now(), motivo_cancelamento="Tentativa duplicada bug CP parcial jun/26")
+```
+
+**Passo E — conferir de novo (só pk 6 com cancelado=False)**
+```python
+list(PagamentoSalarioFuncionario.objects.filter(fechamento=fech, tipo_origem="CP_PARCIAL").values_list("pk", "valor", "cancelado"))
+```
+
+**Passo F — recalcular folha**
+```python
+recalcular_fechamento(fech)
+```
+
+**Passo G — sync CP**
+```python
+sincronizar_valores_titulo_salario_mongo(fech)
+```
+
+**Passo H — Ctrl+F5** no CP · Pago ≈ **R$ 657,75** (585 vales + 72,75)
+
+*Se os pk forem outros no passo C, ajuste a lista do passo D — cancelar todos CP parcial **exceto** o último R$ 72,75.*
 
 ### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
 
