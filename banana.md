@@ -1146,7 +1146,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.20** · **loja v5.75** *(RH ficha layout · 01/07)*
+**Versão app (`VERSION`):** **teste v6.21** · **loja v5.75** *(RH CP parcial Salários · 01/07)*
+
+### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan — parcial R$ 1 Zuleide jun/26 · alerta OK · Pago CP e card RH não sobem · log «sync folha RH» |
+| **Causa** | Sync somava `PagamentoSalario` só pela **data no mês da competência**; baixa com data **01/07** em folha **06/2026** → sync **revertia** ValorPago para só vales |
+| **Fix** | `total_pagamentos_salario_fechamento` (FK fechamento) · itens folha · hook RH também no caminho Mongo parcial |
+| **Validar** | CP parcial Salários com data fora do mês da folha · card **Valor pago** RH · Pago CP persistem após F5 |
 
 ### 🧪 RH ficha — layout limpo padrão fechamento (01/07 · teste)
 
