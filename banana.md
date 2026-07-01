@@ -1162,10 +1162,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Ordem** | **1** busca lenta NF passo 2 · **2** cherry-pick vales `2207fd6` na loja (quando Renan pedir + senha) |
+| **Ordem** | **✅ loja v5.65** — NF + vales subidos · teste continua à frente (PIN, layout…) |
 | **Por que ainda Mongo?** | Desvinculação **não** = «zero Mongo». Catálogo **já Postgres** (`agro_pg`); **Entrada NF reutilizava `/api/buscar/` do PDV** — complemento Mongo + estoque/médias/pedidos transferência **a cada tecla**. Loja: `AGRO_PDV_CATALOGO_SOMENTE_POSTGRES=false` (merge PG+Mongo no PDV). Rascunho NF **PG** ≠ busca produto. |
-| **Fix teste** | `entrada_nfe=1` na API · NF **não abre Mongo** se `agro_pg`/somente PG · pula estoque/médias/transferência · front remove delay 220 ms + dropdown não fecha a cada tecla |
-| **Git** | **`db18bd7`** push **`teste`** · **v5.87** — aguarda deploy Render |
+| **Fix teste** | **`db18bd7`** · **`2207fd6`** — **✅ loja cherry-pick 01/07** |
+| **Git** | teste **`db18bd7`** · loja **`f1453c3`** · Renan validou staging OK |
 | **Validar** | Staging `/entrada-nota/` passo 2 · digitar nome/código · rede: `?entrada_nfe=1` sem `col_e` Mongo |
 
 ### ✅ Renan validou sidebar + botões PDV BI (30/06)
