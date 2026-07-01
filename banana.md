@@ -1180,7 +1180,21 @@ PDV venda · caixa · fiado · clientes · NFC-e · vendas · catálogo/preço P
 
 **Pacote caixa + F7/F3:** **não mexe** em nada disso.
 
-### 📦 Pacote loja — caixa scroll + F7/F3 (aguardando loja fechar · 01/07)
+#### Dessas pendências Mongo — **o que afeta o PDV?** (01/07)
+
+| Item da lista | Afeta PDV? |
+| ------------- | ---------- |
+| RH folha → Salários CP | **Não** — só RH / contas a pagar |
+| Lançamentos calendário / log | **Não** |
+| BI `/` | **Não** — outra tela |
+| Transferências / validade | **Não** no fluxo venda (busca · carrinho · pagar · cupom) |
+| Histórico relacionamento **F8** | **Quase não** — vendas **antigas** já **importadas pro Postgres**; PDV **não** abre Mongo ao vivo no F8 |
+| Cron saúde estoque | **Não** no balcão (só monitoramento) |
+
+**Fluxo normal PDV na loja (hoje):** busca produto · preço · estoque · cliente · fiado · confirmar venda · NFC-e → **Postgres Agro** (`AGRO_PDV_VENDA_SEM_MONGO_ERP` ligado · catálogo `agro_pg`). **Mongo cair não trava venda.**
+
+**Único resquício legado (invisível pro operador):** após confirmar, pode rodar thread antiga «envio ERP» em segundo plano — **não bloqueia** cupom; **não** é leitura Mongo na tela. Nome de rota/API antigo.
+
 
 | ------- | ----- | ----- |
 | **✅ SIM** | Caixa overlay scroll — `caixa_viewport_shell.html` + `.caixa-panel-scroll` nas subtelas | Baixo · só layout iframe PDV |
