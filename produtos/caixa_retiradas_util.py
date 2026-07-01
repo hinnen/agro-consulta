@@ -9,7 +9,37 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
-from produtos.caixa_util import normalizar_rotulo_operador_exibicao, rotulo_usuario_django
+try:
+    from produtos.caixa_util import (
+        normalizar_rotulo_operador_exibicao as _normalizar_rotulo_operador_exibicao,
+        rotulo_usuario_django as _rotulo_usuario_django,
+    )
+except ImportError:  # loja v5.65 — cherry-pick perdeu helpers em caixa_util
+
+    def _rotulo_usuario_django(user) -> str:
+        if user is None or not getattr(user, "is_authenticated", False):
+            return ""
+        nome = (user.get_full_name() or user.first_name or "").strip()
+        if nome:
+            return nome[:150]
+        un = (user.get_username() if hasattr(user, "get_username") else "").strip()
+        if un:
+            return un[:150]
+        email = (getattr(user, "email", None) or "").strip()
+        if email and "@" in email:
+            return email.split("@", 1)[0].strip()[:150]
+        pk = getattr(user, "pk", None)
+        return str(pk)[:150] if pk is not None else ""
+
+    def _normalizar_rotulo_operador_exibicao(raw: str) -> str:
+        s = (raw or "").strip()
+        if not s:
+            return ""
+        if "@" in s and not s.startswith("@"):
+            local = s.split("@", 1)[0].strip()
+            return local or s
+        return s
+
 from produtos.models import MovimentoCaixa, TituloFinanceiroAgro
 from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
 from rh.constants import PLANO_ADIANTAMENTO_CANONICO
@@ -22,7 +52,7 @@ _VALE_PLANO_LABEL = next(
 
 
 def _op_exib(raw: str) -> str:
-    n = normalizar_rotulo_operador_exibicao(raw)
+    n = _normalizar_rotulo_operador_exibicao(raw)
     return n or "—"
 
 
@@ -194,7 +224,7 @@ def listar_retiradas_historico(
             if ck in chaves_vistos:
                 continue
             chaves_vistos.add(ck)
-            op = rotulo_usuario_django(v.criado_por) if v.criado_por else ""
+            op = _rotulo_usuario_django(v.criado_por) if v.criado_por else ""
             linhas.append(
                 {
                     "id": f"v-{v.pk}",
@@ -248,7 +278,7 @@ def listar_retiradas_historico(
             for r in linhas
         ):
             continue
-        op_mov = rotulo_usuario_django(m.usuario) if m.usuario else ""
+        op_mov = _rotulo_usuario_django(m.usuario) if m.usuario else ""
         linhas.append(
             {
                 "id": f"m-{m.pk}",

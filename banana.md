@@ -1157,6 +1157,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pacote** | (1) `/caixa/retiradas/` — vales adiantamento + filtro plano · (2) `/entrada-nota/` passo 2 — busca leve Postgres |
 | **Fora do pacote** | PIN, layout 2 janelas, overlay PDV, Excel retiradas |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · NF passo 2 + retiradas jun/2026 filtro Adiantamento |
+| **Incidente 01/07** | Filtro **Adiantamento** → **500** · cherry-pick perdeu `_op_exib`/import · hotfix inline helpers **`caixa_retiradas_util.py`** |
 
 ### 🔴 Prioridade Renan (30/06) — Entrada NF busca etapa 2 **antes** de vales loja
 
