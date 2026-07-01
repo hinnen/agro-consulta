@@ -346,17 +346,6 @@
 
   function shouldHide() {
     if (pathIsPdv()) return true;
-    try {
-      if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
-        return true;
-      }
-    } catch (_) {}
-    try {
-      if (window.top !== window.self) return true;
-      var q = new URLSearchParams(window.location.search || "");
-      if (q.get("agro_pdv_overlay") === "1") return true;
-      if (q.get("agro_inapp_embed") === "1") return true;
-    } catch (_) {}
     if (pathIsContabilidade()) return true;
     if (document.body && document.body.classList.contains("gg-grafico-page")) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;
@@ -521,16 +510,9 @@
   document.addEventListener("keydown", function (e) {
     if (e.defaultPrevented) return;
     if (e.code !== "F1" && e.key !== "F1") return;
-    if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoHost === "function" && window.AgroDualWindow.isGestaoHost()) {
-      return;
-    }
     if (pathIsPdv()) return;
     if (inputFocused()) return;
     e.preventDefault();
-    if (window.AgroDualWindow && typeof window.AgroDualWindow.focusPdv === "function") {
-      window.AgroDualWindow.focusPdv(PDV_HREF);
-      return;
-    }
     if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
       window.AgroDualWindow.openPdv(PDV_HREF);
       return;
@@ -539,20 +521,15 @@
   });
 
   fab.addEventListener("click", function (e) {
-    e.preventDefault();
-    if (window.AgroDualWindow && typeof window.AgroDualWindow.focusPdv === "function") {
-      window.AgroDualWindow.focusPdv(PDV_HREF);
-      return;
-    }
     if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
+      e.preventDefault();
       window.AgroDualWindow.openPdv(PDV_HREF);
       return;
     }
     if (window.tabManager && typeof window.tabManager.addTab === "function") {
+      e.preventDefault();
       window.tabManager.addTab("PDV", PDV_HREF, "shopping-cart");
-      return;
     }
-    window.location.href = PDV_HREF;
   });
 
   refreshVisibility();

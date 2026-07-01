@@ -1745,7 +1745,7 @@
         }
     }
 
-    /** Abre em aba do SisVale (shell lateral) quando o PDV está em iframe; senão navega na mesma janela. */
+    /** Abre gestão na outra janela (modo 2 apps) ou aba interna (iframe). */
     function navegarAgroInApp(href) {
         var url = String(href || '').trim();
         if (!url) return;
@@ -1756,6 +1756,12 @@
         } catch (eAbs) {
             return;
         }
+        try {
+            if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
+                window.AgroDualWindow.navigateGestao(url);
+                return;
+            }
+        } catch (eDw) {}
         try {
             if (window.top && window.top !== window) {
                 window.top.postMessage({ type: 'agro-open-inapp-tab', href: url }, window.location.origin);

@@ -82,50 +82,20 @@
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab-close {
     display: none !important;
   }
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-inapp-tabs-bar {
-    width: 100%;
-    max-width: var(--agro-sidebar-icon-rail);
-    padding: 8px 4px;
-    align-items: center;
-  }
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-inapp-tabs-stack {
-    width: 100%;
-    align-items: center;
-  }
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-sidebar-expand-btn,
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab,
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap {
-    width: 40px;
-    min-width: 40px;
-    max-width: 40px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-  }
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap button.agro-inapp-tab {
-    flex: none;
-    width: 40px;
-  }
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap {
     flex-direction: column;
     gap: 0;
   }
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab {
-    min-height: 40px;
-    padding: 4px 2px;
-    justify-content: center;
+    min-height: 44px;
+    padding: 6px 4px;
   }
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab.agro-inapp-tab-pdv {
-    min-height: 44px;
+    min-height: 48px;
   }
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) .agro-inapp-tab-icon {
-    font-size: 1.45rem;
+    font-size: 1.35rem;
     line-height: 1;
-  }
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-sidebar-expand-btn {
-    font-size: 18px;
-    min-height: 32px;
-    margin-bottom: 8px;
   }
   body.agro-has-inapp-tabbar.agro-sidebar-expanded .agro-inapp-tab-icon {
     font-size: 1.05rem;
@@ -873,8 +843,8 @@
 
   function goPdvTab() {
     shell.pinnedTabGlow = null;
-    if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
-      window.AgroDualWindow.focusPdv();
+    if (dualWindowMode() && window.AgroDualWindow.openPdv) {
+      window.AgroDualWindow.openPdv();
       return;
     }
     showWhich('pdv');
@@ -1101,8 +1071,8 @@
     function go() {
       var p = normPathUrl(absResolved).path;
       if (pathLookLikePDV(p)) {
-        if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
-          window.AgroDualWindow.focusPdv(absResolved);
+        if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.openPdv) {
+          window.AgroDualWindow.openPdv(absResolved);
         } else {
           showWhich('pdv');
         }
@@ -1307,7 +1277,6 @@
   }
 
   function wirePdvTabLabelSync() {
-    if (!shell.pdvBtn) return;
     function pull() {
       fillTabButton(shell.pdvBtn, '🛒', 'PDV');
       shell.pdvBtn.title = dualWindowMode() ? 'Ir ao balcão (outra janela)' : 'Ponto de venda';
@@ -1697,41 +1666,9 @@
       try {
         if (!ev || ev.origin !== location.origin) return;
         var d = ev.data || {};
-        if (d.type === 'agro-focus-pdv') {
-          var pdvHref = d.href ? String(d.href) : '';
-          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
-            window.AgroDualWindow.focusPdv(pdvHref || undefined);
-          } else if (shell.pdvPane && shell.pdvPane.style.display !== 'none') {
-            showWhich('pdv');
-          } else if (pdvHref) {
-            window.__agroInAppAddTab(pdvHref);
-          }
-          return;
-        }
-        if (d.type === 'agro-focus-gestao') {
-          var gestHref = d.href ? String(d.href) : '';
-          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusGestao) {
-            window.AgroDualWindow.focusGestao(gestHref || undefined);
-          } else if (gestHref) {
-            window.__agroInAppAddTab(gestHref);
-          }
-          return;
-        }
         if (d.type !== 'agro-open-inapp-tab') return;
         var href = d.href ? String(d.href) : '';
         if (!href) return;
-        var p = '';
-        try {
-          p = new URL(href, location.origin).pathname;
-        } catch (_) {
-          p = '';
-        }
-        if (dualWindowMode() && pathLookLikePDV(p)) {
-          if (window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
-            window.AgroDualWindow.focusPdv(href);
-          }
-          return;
-        }
         window.__agroInAppAddTab(href);
       } catch (_) {}
     },
