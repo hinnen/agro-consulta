@@ -1141,9 +1141,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.53** (`4c269a0` push) · **loja v5.44** (30/06)
+**Versão app (`VERSION`):** **teste v5.53** · **loja v5.53** (`3467ea0` push **`producao`** · 30/06 · Renan frase + senha)
 
-### 🔴 Staging travado — perf F8 histórico **v5.53** (30/06)
+### ✅ Deploy loja **v5.53** (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *manda produção* + senha **`99738595`** |
+| **Git** | `teste` → **`producao`** fast-forward **`8ff62ca`→`3467ea0`** · push **`producao`** |
+| **Pacote** | F8 perf (histórico paginado · lazy ciclo/cross) · **FL-042** (migration **0047** + comandos import/revert/probe) · alertas aba Resumo/Ciclo **v5.52** · Indisp. catálogo PG/Mongo **v5.51** · fix perf batch Mongo **v5.53** |
+| **Pós-deploy loja** | Aguardar Render ~2–5 min · **Ctrl+F5** PDV · conferir badge **v5.53** · migration **0047** (Render costuma rodar sozinha) |
+| **Import ERP na loja** | **Não** veio no deploy — dados histórico ERP só no **teste** (`erp-hist-teste-3`). Loja: import manual no shell **só** quando Renan decidir (mesmo fluxo FL-042) |
+
+### 🟢 Staging perf F8 — resolvido **v5.53** (30/06)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1152,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | **v5.51** `codigos_gm_ativos_no_catalogo` (Mongo fallback) chamado **por venda** em `_serialize_venda_historico_*` · F8 inicial = 12 vendas → **12+ roundtrips Mongo** · pior após import **erp-hist-teste-3** (4309 vendas / 7501 itens) |
 | **Fix v5.53** | Batch único em `_historico_vendas_paginado` (todos codigos da página) · serializers aceitam `ativos_it` opcional · `max_time_ms=8000` no find `DtoProduto` |
 | **Arquivos** | `relacionamento_cliente_util.py` · `relacionamento_historico_erp_util.py` |
-| **Deploy** | Push **`teste`** `4c269a0` · aguardar Render ~2–5 min → Ctrl+F5 PDV → F8 cliente com histórico ERP |
+| **Deploy teste** | OK **v5.53** · Renan validou F8 rápido |
 
 ### 🧭 Dois trilhos — **não misturar** (Renan · 30/06)
 
