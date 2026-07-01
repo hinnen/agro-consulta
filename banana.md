@@ -1141,17 +1141,39 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.61** (perf busca PDV) · **loja v5.56** (`59ef94d` · 30/06)
+**Versão app (`VERSION`):** **teste v5.61** · **loja v5.61** (`9fb0385` · 01/07)
+
+### ✅ Deploy loja **v5.61** — perf busca PDV (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · correção lentidão + senha **`99738595`** |
+| **Git** | Cherry-pick **`bb5f1b6`** → **`producao`** **`9fb0385`** · **sem** fiado v5.58 |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · **1 guia** · badge **v5.61** |
+
+### 🔴 INCIDENTE loja — tela cinza / não abre **01/07 ~09h**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Produção **não abre** (tela cinza) · abrir PDV/caixa/vendas/fiado **muito lento** · PDV **ok depois** que carrega |
+| **Renan** | Piorou **ontem→hoje** · **não era assim** antes · pai com **várias guias** abertas |
+| **Logs 09:03** | Tudo **200** — servidor **vivo** mas **engarrafado** · **6×** `/caixa/` no mesmo segundo · busca PDV **~4 s/tecla** (fila) · fiado Queila 10 KB |
+| **Causa** | **1 worker** Gunicorn — muitas guias + telas pesadas (caixa 94 KB, PDV 300 KB, BI 236 KB) **na fila** · cinza = página HTML esperando worker livre |
+| **Deploy Render** | **v5.61** subindo agora (cherry-pick perf busca) |
+| **AGORA (loja)** | Aguardar Render **Live** · **Ctrl+F5** · **1 guia** |
+| **Depois** | Render: **2 workers** se abertura continuar intermitente |
 
 ### 🟠 Loja lenta — busca PDV em fila **01/07**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Logs web 08:51–08:56 · `/api/buscar/?wizard=1` ~8–20 s entre teclas · tudo 200 |
-| **Causa** | **1 worker** Gunicorn + várias telas pesadas (caixa, CP, BI) · **cada tecla** ia ao servidor mesmo com cache local |
-| **Fix (código, teste)** | PDV: não chama servidor se cache local basta (texto ≥5 ou GM com variantes no cache) · GM debounce 200 ms · busca wizard pula Mongo se Postgres já achou · promo PDV cache 90 s |
+| **Renan 01/07** | **Não era assim até ontem** — piorou de ontem p/ hoje · **abrir** PDV / menu caixa / consultar vendas / fiado = **muito lento** · **depois** que o PDV abre, busca parece **normal** |
+| **Causa (logs)** | **1 worker** Gunicorn + várias telas pesadas ao mesmo tempo · cada tecla ia ao servidor mesmo com cache local |
+| **Fix teste/loja v5.61** | Cache local busca · menos Mongo · promo cache — **busca** e fila worker |
 | **Arquivos** | `pdv_wizard.js` · `motor_busca_unificado_util.py` · `views.py` |
-| **Ainda** | Subir **2º worker** no Render se continuar fila com muitos PDVs abertos |
+| **Renan** | Teste OK · loja deploy **01/07** |
+| **Se abertura continuar lenta** | Ver deploy/mudança **30/06–01/07** · métricas Render (memória web + Postgres) · **2º worker** · qual URL trava no F12 ao abrir PDV/caixa/fiado |
 
 ### 🟠 Fiado — só 3 títulos pelo PDV/F8 **v5.58** (01/07)
 
