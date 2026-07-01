@@ -1146,13 +1146,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.11** · **loja v5.72** *(hotfix migrate RH · 01/07)*
+**Versão app (`VERSION`):** **teste v6.12** · **loja v5.72** *(hotfix migrate RH · 01/07)*
 
-### 🧪 Deploy teste — caixa scroll overlay + card orçamentos (01/07)
+### 🧪 Deploy teste **v6.12** — caixa scroll overlay + card orçamentos (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Renan · *banana manda para teste* |
+| **Git teste** | **`0094190`** · push **`teste`** |
 | **Pacote** | (1) Caixa overlay: scroll 9 subtelas (`caixa_viewport_shell.html` + `.caixa-panel-scroll`) · (2) PDV card orçamentos: 3 recentes clicáveis · Ver mais só antigos |
 | **Validar** | Ctrl+F5 · PDV → Caixa → Saldo (rolar movimentos) · card orçamento 3 linhas + clique reabre |
 
