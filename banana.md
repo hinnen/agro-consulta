@@ -1224,6 +1224,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
 | **Validar** | Ctrl+F5 nos 2 atalhos · PDV → Caixa → Reforço/conferências · barra única · sem FAB PDV |
 | **Git teste** | **`c1f9970`** · v5.96 |
+| **Fix Menu preso** | **`agro_pdv_overlay.js`** — compara URL **viva** do iframe (não só `src`); limpa iframe ao Fechar; Menu força navegação ao `/caixa/` |
 
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 
