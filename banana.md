@@ -1147,7 +1147,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.35** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
+**Versão app (`VERSION`):** **teste v6.36** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
 
 ### 📋 Pendente enviar para **produção** (01/07 — só teste hoje)
 
@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 **Já na loja (não repetir):** Entrada NF busca leve **`f1453c3`** · vales RH em retiradas (jun/2026 OK) · hotfix migrate **`a138625`** · pagamento salário base **`61e19c2`** · fechamento UX · **v5.76** CP parcial.
 
 **Próximo passo sugerido (loja fechada):** pacote **1** (PDV+caixa) → validar → pacote **2** (retiradas) se quiser Excel.
+
+### ✅ RH — vale no caixa abre folha + título automático (01/07 · **só teste** · pacote 3)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit** | **`818ab7c`** |
+| **O quê** | Saída caixa **Adiantamento (Vale)** e vale na ficha: **cria/reabre** competência · **gera título** se faltar |
+| **Validar** | Queila jul/2026: caixa → plano Adiantamento → vale **sem** abrir folha manual no RH antes |
 
 
 | Item | Detalhe |
