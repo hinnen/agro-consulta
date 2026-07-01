@@ -590,12 +590,9 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
 - **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
-- **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** (`PerfilUsuario`) no confirmar · grava nome do operador do PIN · não usa mais login Django/admin. Modal PIN no painel caixa.
-- **PIN único loja (01/07):** **uma fonte online** — `PerfilUsuario.senha_rapida` (Postgres). Mesmo PIN em **todos os PCs**.
-- **Uso diário:** operador digita o **PIN definitivo** (modo descanso, Lançamentos, PDV, caixa…).
-- **1ª vez (autoatendimento):** digita **1234** → abre cadastro → escolhe nome → define PIN (≠ 1234) → **salva no servidor** (não no PC). Depois usa só o PIN definitivo.
-- **1234:** só abre o cadastro inicial; **não desbloqueia** o sistema no dia a dia.
-- **RH → Operadores:** gestor pode cadastrar ou **trocar** PIN a qualquer momento (sem precisar do 1234).
+- **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** no confirmar · grava nome do operador do PIN.
+- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário).
+- **PIN único (01/07):** online + **1234** só para **1ª vez** (cadastro no servidor) · **produção** quando Renan subir (teste sem operadores cadastrados).
 
 ### 4.12 RH
 
@@ -1204,7 +1201,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Agora** | PIN **sempre no servidor** · 2 PCs iguais |
 | **1ª vez** | **1234** → modal cadastro → PIN definitivo online |
 | **1234 no dia a dia** | **Não entra** — só abre cadastro |
-| **Gestor** | RH → Operadores (cadastro/troca sem 1234) |
+| **PIN bootstrap 1234** | Código pronto em **teste** · validar na **produção** (staging sem operadores) |
+| **Retiradas vales** | Histórico puxa vales do RH · filtro «Adiantamento…» |
 
 ### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
 
