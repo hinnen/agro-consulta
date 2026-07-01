@@ -1693,6 +1693,15 @@
           }
           return;
         }
+        if (d.type === 'agro-focus-gestao') {
+          var gestHref = d.href ? String(d.href) : '';
+          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusGestao) {
+            window.AgroDualWindow.focusGestao(gestHref || undefined);
+          } else if (gestHref) {
+            window.__agroInAppAddTab(gestHref);
+          }
+          return;
+        }
         if (d.type !== 'agro-open-inapp-tab') return;
         var href = d.href ? String(d.href) : '';
         if (!href) return;

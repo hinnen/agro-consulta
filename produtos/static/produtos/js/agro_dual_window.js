@@ -236,6 +236,34 @@
     window.location.href = href;
   }
 
+  /** «Início» no PDV → traz janela Gestão (espelho do botão PDV na gestão). */
+  function focusGestao(url) {
+    var href = url ? absUrl(url) : gestaoUrl();
+    if (inEmbed()) {
+      if (postToTop({ type: 'agro-focus-gestao', href: href })) return;
+    }
+    if (isGestaoHost()) {
+      if (typeof window.__agroInAppAddTab === 'function') {
+        window.__agroInAppAddTab(href);
+      } else {
+        window.location.href = href;
+      }
+      return;
+    }
+    var w = openNamed(GESTAO_NAME, href);
+    if (!w || w.closed) {
+      if (!isPdvHost()) {
+        window.location.href = href;
+        return;
+      }
+      try {
+        window.alert(
+          'Não foi possível trazer a Gestão. Use o atalho «SisVale Gestão» na área de trabalho ou permita pop-ups.'
+        );
+      } catch (_) {}
+    }
+  }
+
   function isPdvHost() {
     if (window.name === PDV_NAME) return true;
     if (readAppRole() === 'pdv' && !inEmbed()) return true;
@@ -391,6 +419,8 @@
           e.stopPropagation();
           if (shouldOpenInPdvOverlay(u.pathname)) {
             openPdvPanel(u.href, (a.textContent || '').trim());
+          } else if (isGestaoShellPath(u.pathname)) {
+            focusGestao(u.href);
           } else {
             navigateGestao(u.href);
           }
@@ -446,6 +476,7 @@
     navigateGestao: navigateGestao,
     openPdvPanel: openPdvPanel,
     focusPdv: focusPdv,
+    focusGestao: focusGestao,
     pdvUrl: pdvUrl,
     gestaoUrl: gestaoUrl,
   };

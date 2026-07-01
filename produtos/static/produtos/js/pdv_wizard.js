@@ -180,7 +180,6 @@
         productAutocomplete: document.getElementById('pdv-product-autocomplete'),
         productCartList: document.getElementById('pdv-product-cart-list'),
         quickClientHit: document.getElementById('pdv-quick-client-hit'),
-        voltarHome: document.getElementById('pdv-wizard-voltar-home'),
         productSubtotal: document.getElementById('pdv-product-subtotal'),
         productSubtotalItems: document.getElementById('pdv-product-subtotal-items'),
         productCreditBalance: document.getElementById('pdv-product-credit-balance'),
@@ -9278,17 +9277,6 @@
         if (dom.confirmSalePrint) {
             dom.confirmSalePrint.addEventListener('click', function () {
                 confirmSale(true);
-            });
-        }
-        if (dom.voltarHome) {
-            dom.voltarHome.addEventListener('click', function () {
-                if (typeof window.agroPinSidebarTab === 'function') {
-                    window.agroPinSidebarTab('pdv');
-                } else {
-                    try {
-                        sessionStorage.setItem('agro_pin_sidebar_tab', 'pdv');
-                    } catch (errPin) {}
-                }
             });
         }
 

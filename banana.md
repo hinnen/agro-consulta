@@ -1161,8 +1161,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão UX** | Links/botões do **PDV** → painel **~95%** + **FECHAR/F1** (vendas, fiado, caixa, devolução…) |
 | **Gestão** | BI/menu lateral → janela **Gestão** (abas) |
-| **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · fixar 2 `.lnk` na barra · gestão não abre guia solta |
-| **Código** | `agro_pdv_overlay.js` · **`9896a90`** teste **v5.81** |
+| **FL-048** | Atalhos `agro_app_role=pdv\|gestao` · script **`scripts/criar_atalhos_sistvale.ps1`** (ver abaixo) |
+| **PDV UX 30/06** | **Sair** removido · **Início** → foca app **Gestão** (espelho do botão PDV) |
+
+### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
+
+| Passo | O quê |
+| ----- | ----- |
+| **1** | Tecla **Windows** → digite **PowerShell** → Enter |
+| **2** | `cd "C:\Users\RenanHinnen\OneDrive\Documentos\GitHub\agro-consulta"` |
+| **3** | `powershell -ExecutionPolicy Bypass -File .\scripts\criar_atalhos_sistvale.ps1` |
+| **Loja** | Acrescente: `-BaseUrl "https://DOMINIO-DA-LOJA"` |
+| **Teste** | Sem `-BaseUrl` → usa staging `agro-consulta-staging.onrender.com` |
+| **Resultado** | 2 ícones na **Área de trabalho**: **SisVale PDV** + **SisVale Gestão** |
+| **Erro comum** | Script bloqueado → use **`-ExecutionPolicy Bypass`** (passo 3) · Chrome não instalado → instalar Chrome |
+
 
 ### 🧪 PIN — quando pede (Renan · teste)
 
@@ -1228,7 +1241,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **1ª vez** | **1234** → modal cadastro → PIN definitivo online |
 | **1234 no dia a dia** | **Não entra** — só abre cadastro |
 | **PIN bootstrap 1234** | Código pronto em **teste** · validar na **produção** (staging sem operadores) |
-| **Retiradas vales** | Código **2207fd6+** · filtro OK · **dados só na loja** — teste vazio |
+| **Retiradas vales** | Código **2207fd6** · filtro OK · **dados só na loja** — teste vazio |
+| **Deploy loja (só vales)** | **Cherry-pick `2207fd6`** em `producao` — **não** merge `teste` inteiro (traz layout FL-046/048, PIN, overlay) · conflito só `VERSION`/`banana` · **1 arquivo** lógica: `caixa_retiradas_util.py` · **PIN: não subir** · Renan: **depois do fechamento** + frase + senha |
 
 ### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
 
