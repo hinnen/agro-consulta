@@ -576,6 +576,34 @@ def rotulo_operador_pin(pin: str) -> str:
     return (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
 
 
+def rotulo_usuario_django(user) -> str:
+    """Nome curto do login Django — nunca prioriza e-mail (evita admin@agro.com na tela)."""
+    if user is None or not getattr(user, "is_authenticated", False):
+        return ""
+    nome = (user.get_full_name() or user.first_name or "").strip()
+    if nome:
+        return nome[:150]
+    un = (user.get_username() if hasattr(user, "get_username") else "").strip()
+    if un:
+        return un[:150]
+    email = (getattr(user, "email", None) or "").strip()
+    if email and "@" in email:
+        return email.split("@", 1)[0].strip()[:150]
+    pk = getattr(user, "pk", None)
+    return str(pk)[:150] if pk is not None else ""
+
+
+def normalizar_rotulo_operador_exibicao(raw: str) -> str:
+    """Exibição/export — e-mail vira parte local (admin@agro.com → admin)."""
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    if "@" in s and not s.startswith("@"):
+        local = s.split("@", 1)[0].strip()
+        return local or s
+    return s
+
+
 def usuario_django_de_pin(pin: str):
     from base.models import PerfilUsuario
 

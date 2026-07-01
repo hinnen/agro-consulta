@@ -66,6 +66,7 @@ from .caixa_util import (
     sessao_caixa_e_do_browser,
     id_sessao_caixa_browser,
     rotulo_usuario_registro_venda,
+    rotulo_usuario_django,
     ultimo_fechamento_sugestao_abertura,
     obter_caixa_pai_aberto,
     obter_caixa_gaveta_aberto,
@@ -9915,13 +9916,7 @@ def api_venda_agro_devolver(request, pk):
     if err_pag:
         return JsonResponse({"ok": False, "erro": err_pag}, status=400)
 
-    user_label = ""
-    if request.user.is_authenticated:
-        user_label = (
-            (request.user.get_full_name() or "").strip()
-            or request.user.get_username()
-            or str(request.user.pk)
-        )
+    user_label = rotulo_usuario_django(request.user) if request.user.is_authenticated else ""
 
     avisos: list[str] = []
     movimento_ids: list[int] = []
@@ -10863,9 +10858,8 @@ def _lancamentos_operador_label(
             status=403,
         )
     if request.user.is_authenticated:
-        return (
-            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
-        )[:120], None
+        lbl = rotulo_usuario_django(request.user)
+        return (lbl or "Agro")[:120], None
     return "Agro", None
 
 

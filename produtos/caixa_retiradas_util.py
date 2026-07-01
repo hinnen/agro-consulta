@@ -9,7 +9,13 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
+from produtos.caixa_util import normalizar_rotulo_operador_exibicao, rotulo_usuario_django
 from produtos.models import MovimentoCaixa, TituloFinanceiroAgro
+
+
+def _op_exib(raw: str) -> str:
+    n = normalizar_rotulo_operador_exibicao(raw)
+    return n or "—"
 
 
 def _dec(v) -> Decimal:
@@ -83,9 +89,9 @@ def listar_retiradas_historico(
                 "banco": (t.banco or "").strip() or "—",
                 "descricao": (t.descricao or "").strip(),
                 "observacoes": (t.observacoes or "").strip(),
-                "operador": (t.usuario_lancou or t.criado_por or "").strip(),
-                "operador_pin": (
-                    (t.usuario_lancou or t.criado_por or t.modificado_por or "").strip()
+                "operador": _op_exib(t.usuario_lancou or t.criado_por or ""),
+                "operador_pin": _op_exib(
+                    t.usuario_lancou or t.criado_por or t.modificado_por or ""
                 ),
                 "sessao_id": snap.get("sessao_caixa_id"),
                 "mongo_id": (t.mongo_id or "").strip(),
@@ -117,6 +123,7 @@ def listar_retiradas_historico(
             for r in linhas
         ):
             continue
+        op_mov = rotulo_usuario_django(m.usuario) if m.usuario else ""
         linhas.append(
             {
                 "id": f"m-{m.pk}",
@@ -130,14 +137,8 @@ def listar_retiradas_historico(
                 "banco": "—",
                 "descricao": obs or "Retirada no turno",
                 "observacoes": "",
-                "operador": (
-                    (m.usuario.get_full_name() or m.usuario.username if m.usuario else "")
-                    or ""
-                ).strip(),
-                "operador_pin": (
-                    (m.usuario.get_full_name() or m.usuario.username if m.usuario else "")
-                    or ""
-                ).strip(),
+                "operador": _op_exib(op_mov),
+                "operador_pin": _op_exib(op_mov),
                 "sessao_id": m.sessao_caixa_id,
                 "mongo_id": "",
             }
