@@ -1146,7 +1146,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.19** · **loja v5.75** *(RH ficha abrir folha · 01/07)*
+**Versão app (`VERSION`):** **teste v6.20** · **loja v5.75** *(RH ficha layout · 01/07)*
+
+### 🧪 RH ficha — layout limpo padrão fechamento (01/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — mesmo padrão da tela de fechamento; textos longos só no **?** |
+| **O quê** | `funcionario_ficha.html` refeita · cartões + **?** · seções 1–3 com ajuda no canto · atalhos compactos |
+| **Ajuda** | `ficha_cards_legenda` · `ficha_conferencia` · `ficha_fechamentos` em `rh_help_agents.html` |
+| **Loja** | Pendente cherry com pacote quando Renan autorizar |
 
 ### 🐛 RH ficha — botão «Abrir folha» sumia (01/07 · teste)
 
