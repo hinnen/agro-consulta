@@ -6,7 +6,11 @@
 
   var CFG = window.CRH_EXPORT || {};
   var btnExp = document.getElementById('crh-btn-export-xlsx');
-  if (!btnExp || !CFG.urlExport) return;
+  if (!btnExp) return;
+  if (!CFG.urlExport) {
+    console.warn('CRH_EXPORT.urlExport ausente — export Excel desativado.');
+    return;
+  }
 
   var modal = document.getElementById('crh-export-modal');
   var back = document.getElementById('crh-export-back');
