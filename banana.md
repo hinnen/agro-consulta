@@ -1149,7 +1149,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.35** · **loja v5.76** *(RH CP parcial Salários · 01/07)*
 
-### ✅ RH — vale no caixa abre folha + título automático (01/07 · teste)
+### 📋 Pendente enviar para **produção** (01/07 — só teste hoje)
+
+**Loja:** badge **v5.76** · **teste:** **v6.35** · **~40 commits** à frente — **não** fazer merge inteiro; cherry **pacote a pacote** + frase + senha **`99738595`**.
+
+| Prioridade | Pacote | O quê | Cherry / commits teste | Migration? | Nota Renan |
+| ---------- | ------ | ----- | ---------------------- | ---------- | ---------- |
+| **1** | **PDV + caixa** | Scroll overlay caixa · **F7/F3** lado a lado · card orçamento 3 linhas + «Salvar» (**localStorage**) | **`0094190`** + trechos **`2a3ef12`** / **`a3655db`** / **`39bcbe0`** / overlay **`1222be1`** · **`c1f9970`** | **Não** levar **`0048`** | Orçamento **PG/multi-PC fora** · validar: Caixa→Saldo rola · F7/F3 visíveis |
+| **2** | **Retiradas caixa** | Excel ↓ · colunas **`-`** (sem ÔÇö) · operador histórico | **`55c55bc`** → **`53528e9`** → **`6b1ff34`** → **`e7829b6`** | Não | Banana § «Retiradas hífen + Excel» · alvo **v5.67+** |
+| **3** | **RH (resto)** | Ficha limpa · **Abrir folha** na ficha · cancelar pagamento duplicado (admin) · recalcular **Valor pago** · **vale no caixa abre folha + título** | **`8103e01`** · **`e3db755`** · **`0c1d261`** · **`d44bfbe`** · **`818ab7c`** | Conferir **`rh.0005`** se ainda não na loja | **v5.76** já subiu só **CP parcial sync** (`7593664`) |
+| **4** | **Entregas** (opcional) | Coluna Pagamento «Pago» pós-venda · sem rótulos ERP | **`0b7fa2c`** + **`ef94aef`** | Não | Separado do pacote PDV |
+| **—** | **Só teste** | Orçamentos **Postgres** (`0048` + API) · auditoria GMORC bootstrap | **`2a3ef12`** completo · **`0b7fa2c`** (parte orç) | **`0048`** | Renan: **não bloqueia** loja |
+| **—** | **Só teste** | PIN descanso · 2 janelas · overlay 95% FL-048 | **`135e785`** · **`0dbd799`** · **`9896a90`** … | — | Fora dos pacotes 1–2 |
+
+**Já na loja (não repetir):** Entrada NF busca leve **`f1453c3`** · vales RH em retiradas (jun/2026 OK) · hotfix migrate **`a138625`** · pagamento salário base **`61e19c2`** · fechamento UX · **v5.76** CP parcial.
+
+**Próximo passo sugerido (loja fechada):** pacote **1** (PDV+caixa) → validar → pacote **2** (retiradas) se quiser Excel.
+
 
 | Item | Detalhe |
 | ---- | ------- |
