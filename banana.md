@@ -1142,7 +1142,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.19** — **loja v5.96** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
+**Versão app (`VERSION`):** **teste v6.19** — **loja v5.97** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
 
 ### ✅ Deploy loja **v5.77–v5.96** — pacotes 1–4 cherry (01/07 noite)
 
