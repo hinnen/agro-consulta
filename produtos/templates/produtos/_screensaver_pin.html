@@ -4,7 +4,7 @@
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
       <h2 id="sspin-title" class="mt-1 text-lg font-black text-white">Modo descanso</h2>
-      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">Digite seu PIN para continuar</p>
+      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">PIN do cadastro RH (mesmo em todos os PCs)</p>
     </div>
 
     <div id="sspin-panel-pin" class="p-5 space-y-4">
@@ -28,51 +28,29 @@
         <button type="button" data-d="ok" class="sspin-key py-3.5 rounded-xl bg-emerald-600 border border-emerald-500 font-black text-sm uppercase text-white hover:bg-emerald-500 active:scale-95">OK</button>
       </div>
     </div>
-
-    <div id="sspin-panel-setup" class="hidden p-5 space-y-4 max-h-[min(70vh,520px)] overflow-y-auto">
-      <p class="text-xs text-slate-300 font-semibold text-center leading-snug">PIN padrão (1234) — escolha seu nome e defina um <span class="text-emerald-400 font-black">PIN definitivo</span> (mín. 4 dígitos, não pode ser 1234).</p>
-      <div>
-        <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Quem está usando?</p>
-        <div id="sspin-names" class="grid grid-cols-2 gap-2"></div>
-      </div>
-      <div class="space-y-2">
-        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new1">Novo PIN</label>
-        <input type="password" id="sspin-new1" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
-        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new2">Confirmar PIN</label>
-        <input type="password" id="sspin-new2" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
-      </div>
-      <p id="sspin-setup-msg" class="text-center text-sm font-bold text-red-400 min-h-[1.25rem]"></p>
-      <button type="button" id="sspin-btn-save" class="w-full py-3 rounded-xl bg-emerald-600 font-black uppercase text-sm text-white hover:bg-emerald-500">Salvar e entrar</button>
-      <button type="button" id="sspin-btn-back" class="w-full py-2 text-xs font-bold uppercase text-slate-500 hover:text-slate-300">Voltar ao PIN</button>
-    </div>
   </div>
   <p class="mt-4 text-[10px] text-slate-500 font-bold uppercase tracking-wide">Toque ou mova o mouse para adiar o descanso</p>
 </div>
 <script>
 (function () {
-  var NAMES = ['Renan', 'Zuleide', 'Geraldo', 'Geraldinho', 'Isabela', 'Queila', 'Vitor', 'Nathan', 'Estanislau'];
-  var DEFAULT_PIN = '1234';
-  var LS_PINS = 'gm_sspin_pins';
   var LS_OPERADOR = 'gm_sspin_operador';
   var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
+  var API_VALIDAR_PIN = "{% url 'api_login_mobile' %}";
+  var API_OPERADOR = "{% url 'api_pdv_registrar_operador' %}";
   var root = document.getElementById('sspin-root');
   if (!root) return;
 
-  /** O blur do modo descanso aplica em filhos de `body`; se o PIN ficar dentro de `main`, o próprio modal fica borrado. */
+  try { localStorage.removeItem('gm_sspin_pins'); } catch (eDrop) {}
+
   if (root.parentElement !== document.body) {
-    try {
-      document.body.appendChild(root);
-    } catch (eReparent) {}
+    try { document.body.appendChild(root); } catch (eReparent) {}
   }
 
   var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
-  if (entryOnly) {
-    idleMin = 0;
-  } else if (!Number.isFinite(idleMin) || idleMin < 0.5) {
-    idleMin = 3;
-  }
+  if (entryOnly) idleMin = 0;
+  else if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
   var IDLE_MS = idleMin > 0 ? Math.round(idleMin * 60 * 1000) : 0;
   var idleHintEl = root.querySelector('p.mt-4');
   if (root.getAttribute('data-sspin-hide-idle-hint') === '1' && idleHintEl) {
@@ -81,78 +59,45 @@
 
   var input = document.getElementById('sspin-input');
   var msg = document.getElementById('sspin-msg');
-  var panelPin = document.getElementById('sspin-panel-pin');
-  var panelSetup = document.getElementById('sspin-panel-setup');
   var titleEl = document.getElementById('sspin-title');
   var subEl = document.getElementById('sspin-sub');
-  var namesBox = document.getElementById('sspin-names');
-  var new1 = document.getElementById('sspin-new1');
-  var new2 = document.getElementById('sspin-new2');
-  var setupMsg = document.getElementById('sspin-setup-msg');
-  var btnSave = document.getElementById('sspin-btn-save');
-  var btnBack = document.getElementById('sspin-btn-back');
   var numpadEl = document.getElementById('sspin-numpad');
-
   var idleTimer = null;
   var locked = false;
-  var selectedName = '';
+  var validando = false;
+
+  function csrf() {
+    var c = document.cookie.match(/csrftoken=([^;]+)/);
+    return c ? c[1] : '';
+  }
 
   function lancamentosDesbloqueado() {
     if (!lancamentosMode) return false;
-    try {
-      return sessionStorage.getItem(LS_LANC_DESBLOQ) === '1';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function loadPins() {
-    try {
-      var o = JSON.parse(localStorage.getItem(LS_PINS) || '{}');
-      return o && typeof o === 'object' ? o : {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function savePins(p) {
-    try {
-      localStorage.setItem(LS_PINS, JSON.stringify(p));
-    } catch (e) {}
-  }
-
-  function syncOperadorServidor(nome) {
-    nome = (nome || '').trim();
-    if (!nome) return;
-    try {
-      var c = document.cookie.match(/csrftoken=([^;]+)/);
-      fetch('{% url "api_pdv_registrar_operador" %}', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': c ? c[1] : '' },
-        body: JSON.stringify({ operador: nome })
-      }).catch(function () {});
-    } catch (eSync) {}
+    try { return sessionStorage.getItem(LS_LANC_DESBLOQ) === '1'; } catch (e) { return false; }
   }
 
   function setOperador(nome) {
+    nome = (nome || '').trim();
     try {
-      localStorage.setItem(LS_OPERADOR, nome);
+      if (nome) localStorage.setItem(LS_OPERADOR, nome);
+      else localStorage.removeItem(LS_OPERADOR);
     } catch (e) {}
-    syncOperadorServidor(nome);
     window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: nome } }));
     refreshOperadorChip();
   }
 
-  /** Remove operador gravado no aparelho e volta à tela só de PIN (troca de turno). */
+  function limparOperadorServidor() {
+    return fetch(API_OPERADOR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ operador: '' })
+    }).catch(function () {});
+  }
+
   function sairUsuarioEVoltarPedidoPin() {
-    try {
-      localStorage.removeItem(LS_OPERADOR);
-    } catch (e) {}
-    syncOperadorServidor('');
-    selectedName = '';
-    window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: '' } }));
-    refreshOperadorChip();
+    setOperador('');
+    limparOperadorServidor();
     clearMsg();
     showPinPanel();
   }
@@ -161,9 +106,7 @@
     var chip = document.getElementById('gm-sspin-operador-chip');
     if (!chip) return;
     var n = '';
-    try {
-      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
-    } catch (e) {}
+    try { n = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (e) {}
     if (n) {
       chip.textContent = n;
       chip.classList.remove('hidden');
@@ -184,18 +127,11 @@
 
   function clearMsg() {
     if (msg) msg.textContent = '';
-    if (setupMsg) setupMsg.textContent = '';
   }
 
   function focarCampoPin() {
     if (!input || !locked) return;
-    try {
-      input.focus({ preventScroll: true });
-    } catch (e) {
-      try {
-        input.focus();
-      } catch (e2) {}
-    }
+    try { input.focus({ preventScroll: true }); } catch (e) { try { input.focus(); } catch (e2) {} }
   }
 
   function agendarFocoPin() {
@@ -207,20 +143,16 @@
       tentativas += 1;
       if (tentativas < 6) setTimeout(tentar, tentativas === 1 ? 30 : 80);
     }
-    requestAnimationFrame(function () {
-      requestAnimationFrame(tentar);
-    });
+    requestAnimationFrame(function () { requestAnimationFrame(tentar); });
   }
 
   function showPinPanel() {
-    if (panelPin) panelPin.classList.remove('hidden');
-    if (panelSetup) panelSetup.classList.add('hidden');
     if (lancamentosMode && !lancamentosDesbloqueado()) {
       if (titleEl) titleEl.textContent = 'Lançamentos';
-      if (subEl) subEl.textContent = 'Digite seu PIN para acessar Lançamentos';
+      if (subEl) subEl.textContent = 'PIN do cadastro RH (mesmo em todos os PCs)';
     } else {
       if (titleEl) titleEl.textContent = 'Modo descanso';
-      if (subEl) subEl.textContent = 'Digite seu PIN para continuar';
+      if (subEl) subEl.textContent = 'PIN do cadastro RH (mesmo em todos os PCs)';
     }
     clearMsg();
     if (input) {
@@ -229,58 +161,8 @@
     }
   }
 
-  function showSetupPanel() {
-    if (input) input.blur();
-    if (panelPin) panelPin.classList.add('hidden');
-    if (panelSetup) panelSetup.classList.remove('hidden');
-    if (titleEl) titleEl.textContent = 'Identificação';
-    if (subEl) subEl.textContent = 'Defina seu PIN definitivo';
-    selectedName = '';
-    clearMsg();
-    if (new1) new1.value = '';
-    if (new2) new2.value = '';
-    renderNameButtons();
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        if (new1 && locked) {
-          try {
-            new1.focus({ preventScroll: true });
-          } catch (e) {
-            try {
-              new1.focus();
-            } catch (e2) {}
-          }
-        }
-      });
-    });
-  }
-
-  function renderNameButtons() {
-    if (!namesBox) return;
-    namesBox.innerHTML = '';
-    NAMES.forEach(function (nome) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = nome;
-      b.className = 'py-2.5 px-2 rounded-xl border-2 text-xs font-black uppercase transition-colors border-slate-600 bg-slate-800 text-slate-200 hover:border-emerald-500/60';
-      b.addEventListener('click', function () {
-        selectedName = nome;
-        namesBox.querySelectorAll('button').forEach(function (x) {
-          x.classList.remove('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
-          x.classList.add('border-slate-600', 'bg-slate-800', 'text-slate-200');
-        });
-        b.classList.remove('border-slate-600', 'bg-slate-800', 'text-slate-200');
-        b.classList.add('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
-      });
-      namesBox.appendChild(b);
-    });
-  }
-
   function openLock() {
-    if (idleTimer) {
-      clearTimeout(idleTimer);
-      idleTimer = null;
-    }
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     try {
       var ae = document.activeElement;
       if (ae && typeof ae.blur === 'function') ae.blur();
@@ -296,15 +178,10 @@
     locked = false;
     root.classList.add('opacity-0', 'pointer-events-none');
     root.setAttribute('aria-hidden', 'true');
-    showPinPanel();
     document.body.classList.remove('sspin-locked');
     if (lancamentosMode) {
-      try {
-        sessionStorage.setItem(LS_LANC_DESBLOQ, '1');
-      } catch (eLanc) {}
-      try {
-        window.dispatchEvent(new CustomEvent('gm-lancamentos-desbloqueado'));
-      } catch (eEv) {}
+      try { sessionStorage.setItem(LS_LANC_DESBLOQ, '1'); } catch (eLanc) {}
+      try { window.dispatchEvent(new CustomEvent('gm-lancamentos-desbloqueado')); } catch (eEv) {}
     }
     bumpIdle();
   }
@@ -312,83 +189,52 @@
   function bumpIdle() {
     if (entryOnly || IDLE_MS <= 0) return;
     if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(function () {
-      openLock();
-    }, IDLE_MS);
-  }
-
-  function findOperadorByPin(pin) {
-    var pins = loadPins();
-    for (var i = 0; i < NAMES.length; i++) {
-      var n = NAMES[i];
-      if (pins[n] === pin) return n;
-    }
-    return null;
+    idleTimer = setTimeout(function () { openLock(); }, IDLE_MS);
   }
 
   function tryPin() {
+    if (validando) return;
     clearMsg();
     var pin = (input && input.value) ? String(input.value).replace(/\D/g, '') : '';
     if (pin.length < 4) {
       if (msg) msg.textContent = 'Informe ao menos 4 dígitos.';
       return;
     }
-    if (pin === DEFAULT_PIN) {
-      if (input) input.value = '';
-      showSetupPanel();
-      return;
-    }
-    var op = findOperadorByPin(pin);
-    if (op) {
-      setOperador(op);
-      if (input) input.value = '';
-      closeLock();
-      return;
-    }
-    if (msg) msg.textContent = 'PIN incorreto.';
-    if (input) input.select();
-  }
-
-  function trySaveSetup() {
-    clearMsg();
-    if (!selectedName) {
-      if (setupMsg) setupMsg.textContent = 'Selecione seu nome na lista.';
-      return;
-    }
-    var a = (new1 && new1.value) ? String(new1.value).replace(/\D/g, '') : '';
-    var b = (new2 && new2.value) ? String(new2.value).replace(/\D/g, '') : '';
-    if (a.length < 4) {
-      if (setupMsg) setupMsg.textContent = 'O PIN deve ter no mínimo 4 dígitos.';
-      return;
-    }
-    if (a !== b) {
-      if (setupMsg) setupMsg.textContent = 'A confirmação não confere.';
-      return;
-    }
-    if (a === DEFAULT_PIN) {
-      if (setupMsg) setupMsg.textContent = 'Escolha um PIN diferente de 1234.';
-      return;
-    }
-    var pins = loadPins();
-    for (var nk in pins) {
-      if (!Object.prototype.hasOwnProperty.call(pins, nk)) continue;
-      if (nk === selectedName) continue;
-      if (String(pins[nk]) === a) {
-        if (setupMsg) setupMsg.textContent = 'Este PIN já está em uso por ' + nk + '. Escolha outro.';
-        return;
-      }
-    }
-    pins[selectedName] = a;
-    savePins(pins);
-    setOperador(selectedName);
-    closeLock();
-  }
-
-  if (btnBack) {
-    btnBack.addEventListener('click', function () {
-      clearMsg();
-      showPinPanel();
-    });
+    validando = true;
+    if (msg) msg.textContent = 'Validando…';
+    var fd = new FormData();
+    fd.append('pin', pin);
+    fetch(API_VALIDAR_PIN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrf() },
+      body: fd
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (res) {
+        validando = false;
+        if (res.ok && res.data && res.data.ok) {
+          var op = (res.data.operador || '').trim();
+          if (!op) {
+            if (msg) msg.textContent = 'PIN ok, mas sem nome no cadastro — confira RH → Operadores.';
+            return;
+          }
+          setOperador(op);
+          if (input) input.value = '';
+          closeLock();
+          return;
+        }
+        if (msg) {
+          msg.textContent = (res.data && res.data.erro) || 'PIN incorreto. Cadastre em RH → Operadores.';
+        }
+        if (input) input.select();
+      })
+      .catch(function () {
+        validando = false;
+        if (msg) msg.textContent = 'Erro de rede. Tente de novo.';
+      });
   }
 
   if (numpadEl) numpadEl.addEventListener('click', function (e) {
@@ -396,53 +242,28 @@
     if (!t) return;
     var d = t.getAttribute('data-d');
     if (!input || !locked) return;
-    if (d === 'clear') {
-      input.value = '';
-      return;
-    }
-    if (d === 'ok') {
-      tryPin();
-      return;
-    }
-    if (d && /^\d$/.test(d)) {
-      if (input.value.length < 12) input.value += d;
-    }
+    if (d === 'clear') { input.value = ''; return; }
+    if (d === 'ok') { tryPin(); return; }
+    if (d && /^\d$/.test(d) && input.value.length < 12) input.value += d;
   });
 
   if (input) {
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        tryPin();
-      }
-    });
-  }
-
-  if (btnSave) btnSave.addEventListener('click', trySaveSetup);
-  if (new2) {
-    new2.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') trySaveSetup();
+      if (e.key === 'Enter') { e.preventDefault(); tryPin(); }
     });
   }
 
   var wakeEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel', 'click'];
   wakeEvents.forEach(function (ev) {
-    document.addEventListener(ev, function () {
-      if (!locked) bumpIdle();
-    }, { passive: true });
+    document.addEventListener(ev, function () { if (!locked) bumpIdle(); }, { passive: true });
   });
 
   document.addEventListener('keydown', function (e) {
     if (!locked) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-    }
+    if (e.key === 'Escape') e.preventDefault();
   });
 
   var style = document.createElement('style');
-  /* Só forçar pointer-events no overlay quando realmente bloqueado. Uma regra global
-     #sspin-root { pointer-events: auto !important } anula o pointer-events-none do Tailwind
-     e deixa a camada invisível (z-10000) comendo todos os cliques do PDV. */
   style.textContent =
     'body.sspin-locked { overflow: hidden !important; } ' +
     'body.sspin-locked > *:not(#sspin-root) { filter: blur(6px); user-select: none; } ' +
@@ -450,20 +271,21 @@
     '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { filter: none !important; } }';
   document.head.appendChild(style);
 
+  function carregarOperadorSessao() {
+    fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok && data.operador) setOperador(String(data.operador).trim());
+        else refreshOperadorChip();
+      })
+      .catch(function () { refreshOperadorChip(); });
+  }
+
   function initSspin() {
     if (!lancamentosMode) {
-      try {
-        sessionStorage.removeItem(LS_LANC_DESBLOQ);
-      } catch (eClr) {}
+      try { sessionStorage.removeItem(LS_LANC_DESBLOQ); } catch (eClr) {}
     }
-    refreshOperadorChip();
-    var n = '';
-    try {
-      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
-    } catch (eInit) {
-      n = '';
-    }
-    if (n) syncOperadorServidor(n);
+    carregarOperadorSessao();
     if (lancamentosMode) {
       try {
         if (sessionStorage.getItem(LS_LANC_DESBLOQ) === '1') bumpIdle();
@@ -472,24 +294,22 @@
       bumpIdle();
     }
   }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSspin);
   } else {
     initSspin();
   }
 
-  /** PDV/outras telas: limpa operador local e abre a tela de PIN imediatamente (troca de turno). */
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
     openLock();
   };
 
-  /** Abre PIN sem limpar operador (entrada Lançamentos / descanso). */
   window.gmSspinAbrirEntrada = function () {
     openLock();
   };
 
-  /** Exige PIN na hora e executa callback ao validar sem trocar o operador ativo. */
   window.gmSspinProtegerAcao = function (onSuccess) {
     if (typeof onSuccess !== 'function') return;
     var callbackExecutado = false;

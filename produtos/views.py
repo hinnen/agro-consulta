@@ -19463,21 +19463,41 @@ def api_login_mobile(request):
 
 
 @login_required(login_url="/admin/login/")
-@require_POST
+@require_http_methods(["GET", "POST"])
 def api_pdv_registrar_operador(request):
-    """Grava na sessão o operador do PDV (modo descanso / chip na topbar)."""
+    """Sessão do operador PDV: GET lê; POST limpa ou grava após validar PIN no RH."""
+    if request.method == "GET":
+        op = str(request.session.get("pdv_operador_nome") or "").strip()
+        return JsonResponse({"ok": True, "operador": op})
+
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         data = {}
-    op = str(data.get("operador") or data.get("operador_pdv") or "").strip()
-    if not op:
+    pin = str(data.get("pin") or "").strip()
+    op_req = str(data.get("operador") or data.get("operador_pdv") or "").strip()
+
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+        request.session["pdv_operador_nome"] = label[:120]
+        request.session["mobile_auth"] = True
+        request.session.modified = True
+        return JsonResponse({"ok": True, "operador": label[:120]})
+
+    if not op_req:
         request.session.pop("pdv_operador_nome", None)
         request.session.modified = True
         return JsonResponse({"ok": True, "operador": ""})
-    request.session["pdv_operador_nome"] = op[:120]
-    request.session.modified = True
-    return JsonResponse({"ok": True, "operador": op[:120]})
+
+    return JsonResponse(
+        {
+            "ok": False,
+            "erro": "Para identificar o operador, informe o PIN (cadastro RH).",
+        },
+        status=403,
+    )
 
 
 @require_POST
