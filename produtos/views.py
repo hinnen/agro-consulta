@@ -133,6 +133,7 @@ from .entrega_pdv_pendente_util import (
     marcar_entrega_pendente_fechada,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
+    tentar_vincular_entrega_pendente_apos_venda,
 )
 from .models import (
     ClienteAgro,
@@ -21515,6 +21516,7 @@ def api_enviar_pedido_erp(request):
             )
             vid = venda_local.pk if venda_local else None
             if vid:
+                tentar_vincular_entrega_pendente_apos_venda(data, vid)
                 _disparar_envio_erp_venda_background(vid, data)
             return _resposta_venda(
                 data,
@@ -21539,6 +21541,8 @@ def api_enviar_pedido_erp(request):
             erp_sync_status=out["erp_sync"],
         )
         vid = venda_local.pk if venda_local else None
+        if vid:
+            tentar_vincular_entrega_pendente_apos_venda(data, vid)
         msg_erro_ui = out["msg_erro_ui"]
 
         if out["ok"] and out["recusa_erp"]:
@@ -24235,8 +24239,24 @@ def api_entrega_registrar(request):
         pdv_state = {}
     sessao_cx = resolver_sessao_caixa_entrega_pdv(request, body)
 
+    venda_link = None
+    venda_raw = body.get("venda_id")
+    if venda_raw is None:
+        venda_raw = body.get("venda_agro_id")
+    if venda_raw is not None and str(venda_raw).strip() != "":
+        try:
+            venda_link = VendaAgro.objects.filter(pk=int(venda_raw)).first()
+        except (TypeError, ValueError):
+            venda_link = None
+
     extra_pdv = {}
-    if aguarda_pdv:
+    if venda_link:
+        extra_pdv = {
+            "aguarda_pagamento_pdv": False,
+            "pdv_wizard_state": {},
+            "venda_agro": venda_link,
+        }
+    elif aguarda_pdv:
         extra_pdv = {
             "aguarda_pagamento_pdv": True,
             "pdv_wizard_state": pdv_state if isinstance(pdv_state, dict) else {},
