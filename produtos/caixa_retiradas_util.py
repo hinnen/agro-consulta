@@ -45,6 +45,9 @@ from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
 from rh.constants import PLANO_ADIANTAMENTO_CANONICO
 from rh.services.importador_vales_caixa import plano_e_adiantamento_salario_vale
 
+# ASCII — evita mojibake (ÔÇö) em colunas vazias na loja
+_SEM_VALOR = "-"
+
 _VALE_PLANO_LABEL = next(
     (p["label"] for p in SAIDA_CAIXA_PLANOS if p.get("id") == "adiant_vale"),
     "Adiantamento de Salário (Vale)",
@@ -53,7 +56,7 @@ _VALE_PLANO_LABEL = next(
 
 def _op_exib(raw: str) -> str:
     n = _normalizar_rotulo_operador_exibicao(raw)
-    return n or "—"
+    return n or _SEM_VALOR
 
 
 def _dec(v) -> Decimal:
@@ -187,10 +190,10 @@ def listar_retiradas_historico(
                 "data": t.data_competencia,
                 "criado_em": t.importado_em or t.atualizado_em,
                 "valor": _dec(t.valor_bruto),
-                "plano": (t.plano_conta or "").strip() or "—",
-                "quem": nome_quem or "—",
-                "forma": (t.forma_pagamento or "").strip() or "—",
-                "banco": (t.banco or "").strip() or "—",
+                "plano": (t.plano_conta or "").strip() or _SEM_VALOR,
+                "quem": nome_quem or _SEM_VALOR,
+                "forma": (t.forma_pagamento or "").strip() or _SEM_VALOR,
+                "banco": (t.banco or "").strip() or _SEM_VALOR,
                 "descricao": (t.descricao or "").strip(),
                 "observacoes": (t.observacoes or "").strip(),
                 "operador": _op_exib(t.usuario_lancou or t.criado_por or ""),
@@ -233,9 +236,9 @@ def listar_retiradas_historico(
                     "criado_em": v.criado_em,
                     "valor": _dec(v.valor),
                     "plano": _VALE_PLANO_LABEL,
-                    "quem": nome_quem or "—",
-                    "forma": "—",
-                    "banco": "—",
+                    "quem": nome_quem or _SEM_VALOR,
+                    "forma": _SEM_VALOR,
+                    "banco": _SEM_VALOR,
                     "descricao": (v.observacao or "").strip() or "Vale / adiantamento (RH)",
                     "observacoes": "",
                     "operador": _op_exib(op),
@@ -287,9 +290,9 @@ def listar_retiradas_historico(
                 "criado_em": m.criado_em,
                 "valor": _dec(m.valor),
                 "plano": obs.split(" · ")[0][:120] if obs else "Depósito / caixa",
-                "quem": "—",
-                "forma": (m.forma_pagamento or "").strip() or "—",
-                "banco": "—",
+                "quem": _SEM_VALOR,
+                "forma": (m.forma_pagamento or "").strip() or _SEM_VALOR,
+                "banco": _SEM_VALOR,
                 "descricao": obs or "Retirada no turno",
                 "observacoes": "",
                 "operador": _op_exib(op_mov),

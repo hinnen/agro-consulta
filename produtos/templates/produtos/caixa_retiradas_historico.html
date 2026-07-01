@@ -44,6 +44,7 @@
     }
   </style>
   {% include "produtos/includes/caixa_embed_mode.html" %}
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden{% if caixa_embed %} caixa-embed-mode{% endif %}">
   <header class="border-b border-slate-200 bg-white shadow-sm shrink-0{% if caixa_embed %} hidden{% endif %}">
@@ -56,7 +57,7 @@
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="{% url 'caixa_painel' %}" class="crh-touch inline-flex items-center px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black uppercase text-slate-700">Painel</a>
+        <a href="{% url 'caixa_painel' %}" class="crh-touch inline-flex items-center px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black uppercase text-slate-700">← Menu</a>
       </div>
     </div>
   </header>
@@ -129,7 +130,7 @@
             <td class="px-3 py-2 font-bold text-slate-800 max-w-[12rem] truncate" title="{{ row.quem }}">{{ row.quem }}</td>
             <td class="px-3 py-2 text-slate-600">{{ row.forma }}</td>
             <td class="px-3 py-2 text-right font-black tabular-nums text-orange-700">R$ {{ row.valor_str }}</td>
-            <td class="px-3 py-2 text-xs text-slate-500 max-w-[10rem] truncate" title="{{ row.operador }}">{{ row.operador|default:"—" }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500 max-w-[10rem] truncate" title="{{ row.operador }}">{{ row.operador|default:"-" }}</td>
           </tr>
           {% endfor %}
         </tbody>

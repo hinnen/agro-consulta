@@ -70,16 +70,16 @@ def _fmt_hora(ts) -> str:
 
 
 def linha_export_planilha(row: dict[str, Any]) -> dict[str, Any]:
-    op = (row.get("operador_pin") or row.get("operador") or "").strip() or "—"
+    op = (row.get("operador_pin") or row.get("operador") or "").strip() or "-"
     return {
         "data": _fmt_data(row.get("data")),
         "hora": _fmt_hora(row.get("criado_em")),
         "operador_pin": op,
-        "forma": (row.get("forma") or "").strip() or "—",
-        "plano": (row.get("plano") or "").strip() or "—",
-        "quem": (row.get("quem") or "").strip() or "—",
+        "forma": (row.get("forma") or "").strip() or "-",
+        "plano": (row.get("plano") or "").strip() or "-",
+        "quem": (row.get("quem") or "").strip() or "-",
         "valor": float(row.get("valor") or 0),
-        "banco": (row.get("banco") or "").strip() or "—",
+        "banco": (row.get("banco") or "").strip() or "-",
         "descricao": (row.get("descricao") or "").strip(),
         "observacoes": (row.get("observacoes") or "").strip(),
         "sessao_id": row.get("sessao_id") or "",
