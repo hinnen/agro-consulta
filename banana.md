@@ -1171,8 +1171,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Shell (produção v5.76 — Zuleide jun/2026):**
 ```python
+from django.utils import timezone
 from rh.models import FechamentoFolhaSimplificado, PagamentoSalarioFuncionario
-from rh.services.pagamento_salario import cancelar_pagamento_salario
+from rh.services.fechamento import recalcular_fechamento
+from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
 
 fech = FechamentoFolhaSimplificado.objects.filter(
     funcionario__nome_cache__icontains="Zuleide", competencia__year=2026, competencia__month=6,
@@ -1180,12 +1182,17 @@ fech = FechamentoFolhaSimplificado.objects.filter(
 pags = list(PagamentoSalarioFuncionario.objects.filter(
     fechamento=fech, cancelado=False, tipo_origem="CP_PARCIAL",
 ).order_by("criado_em"))
-# Conferir lista; deixar UM de valor 72.75 (ex.: o último após o fix):
-manter_pk = pags[-1].pk  # ajuste se preferir outro
+print([(p.pk, p.valor, p.criado_em) for p in pags])
+manter_pk = pags[-1].pk
 for p in pags:
     if p.pk == manter_pk:
         continue
-    cancelar_pagamento_salario(p, motivo="Tentativa duplicada bug CP parcial jun/26")
+    p.cancelado = True
+    p.cancelado_em = timezone.now()
+    p.motivo_cancelamento = "Tentativa duplicada bug CP parcial jun/26"
+    p.save(update_fields=["cancelado", "cancelado_em", "motivo_cancelamento", "atualizado_em"])
+recalcular_fechamento(fech)
+print(sincronizar_valores_titulo_salario_mongo(fech))
 ```
 
 ### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
