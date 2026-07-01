@@ -513,10 +513,19 @@
     if (pathIsPdv()) return;
     if (inputFocused()) return;
     e.preventDefault();
+    if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
+      window.AgroDualWindow.openPdv(PDV_HREF);
+      return;
+    }
     window.location.href = PDV_HREF;
   });
 
   fab.addEventListener("click", function (e) {
+    if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
+      e.preventDefault();
+      window.AgroDualWindow.openPdv(PDV_HREF);
+      return;
+    }
     if (window.tabManager && typeof window.tabManager.addTab === "function") {
       e.preventDefault();
       window.tabManager.addTab("PDV", PDV_HREF, "shopping-cart");
