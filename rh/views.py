@@ -431,9 +431,6 @@ def rh_fechamento_detalhe(request, pk: int):
         FechamentoFolhaSimplificado.objects.select_related("funcionario", "funcionario__cliente_agro"),
         pk=pk,
     )
-    if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
-        recalcular_fechamento(f)
-        f.refresh_from_db()
     f = (
         FechamentoFolhaSimplificado.objects.select_related(
             "funcionario",

@@ -92,7 +92,8 @@
     <p class="text-[10px] font-black uppercase text-slate-600 mb-1.5">Passo 3 — encerrar</p>
     <div class="space-y-2 font-semibold leading-snug">
       <p><strong>Fechar</strong> e <strong>Marcar pago</strong> = controle interno RH; não substituem pagamento no banco nem baixa no ERP.</p>
-      <p><strong>Reabrir</strong> volta para Aberto (zera valor pago de controle se estava Pago).</p>
+      <p><strong>Reabrir</strong> volta para Aberto para editar; pagamentos reais (caixa/CP) <strong>permanecem</strong> no card e no CP.</p>
+      <p><strong>Marcar pago</strong> (controle manual) ao reabrir zera o valor pago de controle.</p>
       <p><strong>Excluir competência</strong> só sem título de salário no financeiro.</p>
       {% if fechamento_exclusao_bloqueio %}
       <p class="text-xs bg-red-50 border border-red-200 text-red-900 rounded-lg px-2 py-1.5">{{ fechamento_exclusao_bloqueio }}</p>
