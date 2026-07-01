@@ -1738,6 +1738,20 @@ function salvarHistoricoLocal(extra) {
         orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
         data: new Date().toLocaleString('pt-BR'),
         cliente: nomeClientePdv(),
+        cliente_key: (function () {
+            var capk = pdvClienteAgroPkSelecionado();
+            if (capk != null) return 'pk:' + String(capk).trim();
+            var nome = String(nomeClientePdv() || '').trim();
+            if (/consumidor\s+n[aã]o\s+identificado/i.test(nome)) return 'consumidor_final';
+            var tel =
+                clienteSelecionado && clienteSelecionado.telefone
+                    ? String(clienteSelecionado.telefone).replace(/\D/g, '')
+                    : '';
+            return 'tmp:' + nome.toLowerCase() + ':' + tel;
+        })(),
+        cliente_mode: /consumidor\s+n[aã]o\s+identificado/i.test(String(nomeClientePdv() || ''))
+            ? 'consumidor_final'
+            : 'cliente',
         total: document.getElementById('total-geral').innerText,
         itens: JSON.parse(JSON.stringify(carrinho)),
         forma_pagamento: fpEl && fpEl.value ? fpEl.value : '',
