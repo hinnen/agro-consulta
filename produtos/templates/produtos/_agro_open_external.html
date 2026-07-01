@@ -798,6 +798,16 @@
     return window.AgroDualWindow && typeof window.AgroDualWindow.enabled === 'function' && window.AgroDualWindow.enabled();
   }
 
+  /** Dois apps (.lnk): Gestão não mostra guia PDV na sidebar — balcão fica no atalho Windows. */
+  function hideGestaoSidebarPdv() {
+    return (
+      dualWindowMode() &&
+      window.AgroDualWindow &&
+      typeof window.AgroDualWindow.isGestaoHost === 'function' &&
+      window.AgroDualWindow.isGestaoHost()
+    );
+  }
+
   function tabIconForUrl(absUrlOrPath) {
     var p = '';
     try {
@@ -1297,6 +1307,7 @@
   }
 
   function wirePdvTabLabelSync() {
+    if (!shell.pdvBtn) return;
     function pull() {
       fillTabButton(shell.pdvBtn, '🛒', 'PDV');
       shell.pdvBtn.title = dualWindowMode() ? 'Ir ao balcão (outra janela)' : 'Ponto de venda';
@@ -1550,7 +1561,9 @@
     shell.plusBtn.type = 'button';
     shell.plusBtn.className = 'agro-inapp-tab agro-inapp-tab-plus';
     shell.plusBtn.setAttribute('aria-label', 'Adicionar tela à escolha');
-    shell.plusBtn.title = 'Escolher outra área do sistema (máx. 3 além de PDV e Dashboard)';
+    shell.plusBtn.title = hideGestaoSidebarPdv()
+      ? 'Escolher outra área do sistema (máx. 3 além do Dashboard)'
+      : 'Escolher outra área do sistema (máx. 3 além de PDV e Dashboard)';
     shell.plusBtn.innerHTML =
       '<span class="agro-inapp-tab-icon" aria-hidden="true">+</span><span class="agro-inapp-tab-label">+</span>';
     shell.plusBtn.onclick = function () {
@@ -1559,7 +1572,9 @@
     };
 
     shell.stackEl.appendChild(expandBtn);
-    shell.stackEl.appendChild(shell.pdvBtn);
+    if (!hideGestaoSidebarPdv()) {
+      shell.stackEl.appendChild(shell.pdvBtn);
+    }
     shell.stackEl.appendChild(shell.dashBtn);
     shell.stackEl.appendChild(shell.plusBtn);
     shell.bar.appendChild(shell.stackEl);

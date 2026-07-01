@@ -1186,6 +1186,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **FL-048 fix** | Botao PDV na Gestao abria **Chrome normal** · fix **`75bce98`** teste **v5.85** · sinal entre apps |
 | **PDV UX 30/06** | **Sair** removido · **Início** → Gestão · **Voltar ao PDV** removido do **Caixa** (6 telas) + oculto no painel overlay |
 
+### 🧪 Caixa overlay + Gestão sem botão PDV (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Gestão (2 apps .lnk)** | Sidebar **PDV** oculta · BI topo/launchpad **PDV** ocultos · **F1** não abre PDV · FAB laranja oculto |
+| **Caixa subtelas** | Botão voltar padronizado **← Menu** (era Painel / ← Caixa) |
+| **Barra overlay PDV** | GM + título/sessão + **← Menu** + **Fechar** na faixa de cima; cabeçalho interno do caixa some no overlay |
+| **Links caixa** | Navegação interna preserva `agro_pdv_overlay=1` |
+| **Validar** | Ctrl+F5 nos 2 atalhos · PDV → Caixa → Reforço/conferências · barra única · sem FAB PDV |
+
 ### 📌 Atalhos Windows — como criar (Renan · uma vez no PC)
 
 | Passo | O quê |
