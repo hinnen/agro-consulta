@@ -364,7 +364,21 @@ def api_listar_usuarios(request):
                 nome = str(p)
             pin_raw = (getattr(p, "senha_rapida", None) or "").strip()
             pin_personalizado = bool(pin_raw) and pin_raw != "1234"
-            lista.append({"id": p.id, "nome": nome, "pin_personalizado": pin_personalizado})
+            nome_curto = ""
+            if hasattr(p, "user") and p.user:
+                from produtos.caixa_util import rotulo_usuario_django
+
+                nome_curto = rotulo_usuario_django(p.user)
+            if not nome_curto:
+                nome_curto = nome
+            lista.append(
+                {
+                    "id": p.id,
+                    "nome": nome,
+                    "nome_curto": nome_curto,
+                    "pin_personalizado": pin_personalizado,
+                }
+            )
         
         # Ordena a lista em ordem alfabética para facilitar
         lista.sort(key=lambda x: x['nome'])
@@ -421,6 +435,30 @@ def api_definir_pin_rh(request):
         return JsonResponse({'ok': True, 'mensagem': 'PIN atualizado com sucesso.'})
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_cadastrar_pin_bootstrap(request):
+    """1ª vez: operador digita 1234 no descanso, escolhe nome e grava PIN no servidor."""
+    from produtos.caixa_util import cadastrar_pin_operador_primeira_vez
+
+    bootstrap = str(request.POST.get("bootstrap") or request.POST.get("codigo") or "").strip()
+    perfil_id = request.POST.get("perfil_id", "").strip()
+    novo_pin = request.POST.get("novo_pin", "").strip()
+
+    ok, operador, err = cadastrar_pin_operador_primeira_vez(
+        perfil_id, novo_pin, bootstrap=bootstrap
+    )
+    if not ok:
+        status = 403 if "inválid" in err.lower() or "já tem" in err.lower() else 400
+        return JsonResponse({"ok": False, "erro": err}, status=status)
+
+    request.session["mobile_auth"] = True
+    request.session["pdv_operador_nome"] = operador[:120]
+    request.session.modified = True
+    return JsonResponse({"ok": True, "operador": operador, "mensagem": "PIN cadastrado com sucesso."})
+
 
 @require_POST
 @csrf_protect

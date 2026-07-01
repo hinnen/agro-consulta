@@ -25,6 +25,7 @@ urlpatterns = [
     path('estoque/api_atualizar_pin/', estoque_views.api_atualizar_pin, name='api_atualizar_pin'),
     path('estoque/api_listar_usuarios/', estoque_views.api_listar_usuarios, name='api_listar_usuarios'),
     path('estoque/api_definir_pin_rh/', estoque_views.api_definir_pin_rh, name='api_definir_pin_rh'),
+    path('estoque/api_cadastrar_pin_bootstrap/', estoque_views.api_cadastrar_pin_bootstrap, name='api_cadastrar_pin_bootstrap'),
     path('estoque/api_atualizar_medias/', estoque_views.api_atualizar_medias, name='api_atualizar_medias'),
     path('estoque/api_registrar_impressao/', estoque_views.api_registrar_impressao, name='api_registrar_impressao'),
     path(

@@ -588,8 +588,12 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
-- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensual · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
-- **PIN único loja (01/07):** **uma fonte online** — `PerfilUsuario.senha_rapida` (Postgres). Modo descanso / entrada Lançamentos / PDV chip validam no servidor (`api_login_mobile`) · sessão `pdv_operador_nome` · **não** usa `gm_sspin_pins` local.
+- **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
+- **PIN único loja (01/07):** **uma fonte online** — `PerfilUsuario.senha_rapida` (Postgres). Mesmo PIN em **todos os PCs**.
+- **Uso diário:** operador digita o **PIN definitivo** (modo descanso, Lançamentos, PDV, caixa…).
+- **1ª vez (autoatendimento):** digita **1234** → abre cadastro → escolhe nome → define PIN (≠ 1234) → **salva no servidor** (não no PC). Depois usa só o PIN definitivo.
+- **1234:** só abre o cadastro inicial; **não desbloqueia** o sistema no dia a dia.
+- **RH → Operadores:** gestor pode cadastrar ou **trocar** PIN a qualquer momento (sem precisar do 1234).
 
 ### 4.12 RH
 
@@ -1143,7 +1147,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.40** · **loja v6.03** *(pacotes 1–4 + dual-window 01/07; docs checkpoint)*
+**Versão app (`VERSION`):** **teste v6.40** · **loja v6.04** *(PIN descanso 01/07)*
+
+### ✅ Deploy loja **v6.04** — PIN descanso + cadastro 1234 online (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *Pin manda tambem* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v6.03-20260701`** @ **`e4232e8`** |
+| **Git produção (pré)** | **`e4232e8`** · loja **v6.03** |
+| **Cherry-picks** | **`872bf96`** (PIN único servidor) + **`135e785`** (1234 cadastro inicial online) |
+| **O quê** | Modo descanso Lançamentos (~3 min idle) · PIN **sempre no servidor** · **1234** abre cadastro 1ª vez · RH Operadores continua gestão |
+| **Arquivos** | `_screensaver_pin.html` · `caixa_util.py` · `estoque/views.py` · `config/urls.py` · `rh_operadores_pins.html` |
+| **Migrate** | Nenhuma · drift **base/estoque** pré-existente |
+| **Dependência** | **`872bf96`** necessário antes de **`135e785`** (refator PIN descanso) |
+
+**Validar loja:** Ctrl+F5 · badge **v6.04** · Lançamentos idle ~3 min → screensaver PIN · operador sem PIN: **1234** → cadastro → PIN definitivo · RH → Operadores pins OK · 2 PCs mesmo PIN.
+
+**Rollback (se der problema):** `git checkout producao-rollback-v6.03-20260701` → push `producao`.
 
 ### ✅ Deploy loja **v6.00** — 2 janelas Chrome PDV/Gestão (01/07)
 
@@ -1170,7 +1191,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
 | **Pacote 4** | Entregas pós-venda `venda_id` + fiado; painel sem rótulos ERP |
-| **Excluído teste (pacotes 1–4)** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** *(subiu no pacote **v6.00**)* |
+| **Excluído teste (pacotes 1–4)** | **0048** orçamentos PG, PIN **135e785** *(subiu **v6.04**)*, dual window **0dbd799**, overlay **9896a90** *(subiu no pacote **v6.00**)* |
 | **Migrate** | **Sem** 0048; `makemigrations --check` ainda aponta drift **base/estoque** (pré-existente — não gerado neste deploy) |
 | **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
@@ -1889,6 +1910,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
+| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
+| **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
