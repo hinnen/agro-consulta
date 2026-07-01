@@ -1146,9 +1146,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.77** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.79** · **loja v5.62** (`545aad3` · 01/07)
 
-### 🧪 Deploy teste **v5.77** — fix sidebar + FAB + links PDV (30/06)
+### 🧪 PIN — quando pede (Renan · teste)
+
+| Onde | Comportamento |
+| ---- | ------------- |
+| **Home BI `/`, caixa, RH, gestão** | **Não** pede PIN ao abrir — essas telas **não** têm modo descanso |
+| **PDV / consulta / compras…** | PIN só após **~3 min parado** (descanso) ou botão **PIN** na barra |
+| **Lançamentos** | PIN na **1ª entrada** do módulo na **aba** (`sessionStorage`); **F5 na mesma aba não repete** — aba anônima ou «Sair usuário» |
+| **Nova saída / retirada** | PIN só ao **confirmar** a saída (modal), não ao listar histórico |
+| **Render teste** | Código **v5.79** no Git · badge **v5.79** no BI confirma deploy · **sem operadores** no PG teste → PIN válido só após **1234** cadastrar ou RH |
+
 
 | Item | Detalhe |
 | ---- | ------- |
