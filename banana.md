@@ -1149,9 +1149,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.76** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.77** · **loja v5.62** (`545aad3` · 01/07)
 
-### 🧪 Deploy teste **v5.76** — fix sidebar + FAB + links PDV (30/06)
+### 🧪 Deploy teste **v5.77** — fix sidebar + FAB + links PDV (30/06)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1159,7 +1159,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix 1** | CSS rail **48px**: tabs-bar = largura do rail · botões **40px** centralizados · ícones visíveis |
 | **Fix 2** | `focusPdv` + `postMessage agro-focus-pdv` · FAB e F1 no iframe BI → **foca janela PDV** externa |
 | **Fix 3** | Clique em link gestão no host PDV → `navigateGestao` (ex. `/vendas/` na janela gestão) |
-| **Git** | **`9eb3bf1`** push **`teste`** (VERSION **5.76**) |
+| **Git** | **`9eb3bf1`** + **`1ceb387`** push **`teste`** (VERSION **5.77**) |
 | **Validar** | Ctrl+F5 · 2 janelas Chrome · sidebar recolhida · FAB laranja · «Consultar vendas» no PDV |
 
 ### 🧪 Deploy teste **v5.74** — 2 janelas + sidebar ícones (01/07)
@@ -1180,7 +1180,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ideia Renan** | **2 atalhos** Windows (ícones distintos) · PDV numa janela · resto noutra · botão PDV traz gestão à frente |
 | **Caminho** | Chrome **`--app=URL`** (2 atalhos) + botões PDV `window.open(..., 'SistValeGestao')` · **sem Electron** |
 | **Electron** | Descartado loja — lento (Renan reconfirmou 01/07) |
-| **Status** | 🧪 **teste v5.76** · FL-046 + FL-047 fixes · aguarda validação Renan |
+| **Status** | 🧪 **teste v5.77** · FL-046 + FL-047 fixes · aguarda validação Renan |
 | **Atalhos Windows** | `scripts/criar_atalhos_sistvale.ps1 -BaseUrl https://…` |
 | **Regra** | **1 janela PDV + 1 gestão** — botões **nunca** abrem 2º PDV · só **trazem à frente** (`window.open` nome fixo) |
 | **Gestão** | Links «PDV» viram **«Ir ao balcão»** → foca janela PDV · não navega `_self` para checkout |
@@ -1875,8 +1875,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-039** | **P3** | Clientes | **Pets/saúde/anotações** na **ficha** `/clientes/` (hoje só no F8) | 📋 Pendente | 30/06 |
 | **FL-040** | **P3** | Clientes / PDV | **Tabela Pet** normalizada no Postgres (opção B — evoluir do JSON) | 📋 Pendente | 30/06 |
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
-| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | 🧪 teste **v5.76** fix FAB+links | 30/06 |
-| **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | 🧪 teste **v5.76** fix ícones | 30/06 |
+| **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | 🧪 teste **v5.77** fix FAB+links | 30/06 |
+| **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | 🧪 teste **v5.77** fix ícones | 30/06 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — import 1× loja · corte ERP **≤26/05** · SisVale **≥27/05** · **só F8** | 📋 **Adiar loja** · teste ok · Renan **01/07** | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-045** | **P2,81** | Clientes / PDV / Fiado | **Telefone sempre** na loja · toggle **«cliente fiado»** — se ativo: **CPF obrigatório** + **limite fiado** definido | 📋 Pendente | 01/07 |
