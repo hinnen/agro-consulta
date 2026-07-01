@@ -8338,12 +8338,13 @@
     return Array.isArray(apiProdutos) ? apiProdutos.slice(0, 80) : [];
   }
 
-  /** Só o HTTP da Consulta / PDV: lista de produtos do Mongo + overlay (servidor). */
+  /** Catálogo via /api/buscar/ — Postgres (entrada_nfe=1) sem estoque/médias Mongo. */
   async function entradaNfeFetchProdutosMotorConsultaApi(termoBruto) {
     const t = String(termoBruto || '').trim();
     if (t.length < 2) return [];
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
+    u.searchParams.set('entrada_nfe', '1');
     const r = await fetch(u.toString(), { credentials: 'same-origin' });
     if (!r.ok) return [];
     const j = await r.json().catch(() => ({}));
@@ -8369,9 +8370,6 @@
       !hadLocal &&
       ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
         (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
-    if (!hadLocal) {
-      await new Promise((r) => { setTimeout(r, 220); });
-    }
     if (sid !== _entradaNfeBuscaSeq) return null;
     let apiList = [];
     try {
@@ -8665,10 +8663,13 @@
         barTimer = setTimeout(() => entradaNfeLinhaCompactaExecutarBusca(tr), 70);
         return;
       }
-      entradaNfeLinhaCompactaFecharDd(tr);
+      if (raw.length < 2) {
+        entradaNfeLinhaCompactaFecharDd(tr);
+        sugHl = -1;
+        lastArr = [];
+        return;
+      }
       sugHl = -1;
-      lastArr = [];
-      if (raw.length < 2) return;
       sugTimer = setTimeout(preencherSugestoes, 200);
     });
 

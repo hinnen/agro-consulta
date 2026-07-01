@@ -16731,6 +16731,8 @@ def api_buscar_produtos(request):
         "yes",
     )
     wizard_mode = (request.GET.get("wizard") or "").strip().lower() in ("1", "true", "yes")
+    entrada_nfe_mode = (request.GET.get("entrada_nfe") or "").strip().lower() in ("1", "true", "yes")
+    busca_lite = wizard_mode or entrada_nfe_mode
     wizard_catalog = wizard_mode and (request.GET.get("wizard_catalog") or "").strip().lower() in (
         "1",
         "true",
@@ -16746,7 +16748,11 @@ def api_buscar_produtos(request):
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
-    client, db = obter_conexao_mongo()
+    skip_mongo_complemento = busca_lite or (entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg))
+    if entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg):
+        client, db = None, None
+    else:
+        client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
@@ -16803,7 +16809,7 @@ def api_buscar_produtos(request):
                             limit=80,
                             include_inactive=False,
                             wizard_catalog=False,
-                            skip_mongo_complemento=wizard_mode,
+                            skip_mongo_complemento=skip_mongo_complemento,
                         )
                 else:
                     from produtos.motor_busca_unificado_util import buscar_documentos_unificado
@@ -16815,7 +16821,7 @@ def api_buscar_produtos(request):
                         limit=80,
                         include_inactive=False,
                         wizard_catalog=False,
-                        skip_mongo_complemento=wizard_mode,
+                        skip_mongo_complemento=skip_mongo_complemento,
                     )
         else:
             preco_por_id = {}
@@ -16853,7 +16859,7 @@ def api_buscar_produtos(request):
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
-        if not wizard_mode and db is not None:
+        if not busca_lite and db is not None:
             try:
                 medias_map = _obter_mapa_medias_venda_cache(db)
             except Exception:
@@ -16861,7 +16867,7 @@ def api_buscar_produtos(request):
 
         estoque_map = {}
         try:
-            if p_ids and db is not None:
+            if p_ids and db is not None and not entrada_nfe_mode:
                 _emax = 2000
                 if len(p_ids) > _emax:
                     for _ej in range(0, len(p_ids), _emax):
@@ -16898,17 +16904,18 @@ def api_buscar_produtos(request):
             logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
 
         pedido_sep_map: dict[str, float] = {}
-        try:
-            if p_ids:
-                _chunk_pt = 400
-                for _i in range(0, len(p_ids), _chunk_pt):
-                    _slice = p_ids[_i : _i + _chunk_pt]
-                    for ped in PedidoTransferencia.objects.filter(
-                        produto_externo_id__in=_slice, status="IMPRESSO"
-                    ).only("produto_externo_id", "quantidade"):
-                        pedido_sep_map[str(ped.produto_externo_id)] = float(ped.quantidade)
-        except Exception:
-            logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
+        if not entrada_nfe_mode:
+            try:
+                if p_ids:
+                    _chunk_pt = 400
+                    for _i in range(0, len(p_ids), _chunk_pt):
+                        _slice = p_ids[_i : _i + _chunk_pt]
+                        for ped in PedidoTransferencia.objects.filter(
+                            produto_externo_id__in=_slice, status="IMPRESSO"
+                        ).only("produto_externo_id", "quantidade"):
+                            pedido_sep_map[str(ped.produto_externo_id)] = float(ped.quantidade)
+            except Exception:
+                logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
 
         ultimas_compras_map: dict[str, list] = {}
         if compras and prods and not (wizard_catalog and len(prods) > 400):
