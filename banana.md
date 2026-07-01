@@ -1146,7 +1146,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.14+** · **loja v5.72**
+**Versão app (`VERSION`):** **teste v6.16** · **loja v5.72**
+
+### 🧪 Deploy teste — orçamentos PG + F7/F3 lateral (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan · *manda pra teste* |
+| **Pacote** | Orçamentos **Postgres** (`0048` + API) · F7/F3 lado a lado · sync multi-PC |
+| **Validar** | Ctrl+F5 · salvar orçamento · outro PC mesmo cliente · bip GMORC · Salvar orçamento visível no zoom normal |
 
 ### 🧪 RH fechamento — tela limpa + ajuda no «?» (01/07 · só teste)
 

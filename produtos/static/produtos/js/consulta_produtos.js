@@ -1766,6 +1766,14 @@ function salvarHistoricoLocal(extra) {
     if (historico.length > 20) historico.pop();
     localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
     renderizarHistoricoResumido();
+    postOrcamentoPdvServidor(novo).then(function (data) {
+        if (data && data.ok && data.item) {
+            var h2 = historico.filter(function (x) { return String(x.id) !== String(data.item.id); });
+            h2.unshift(data.item);
+            localStorage.setItem('historicoOrcamentos', JSON.stringify(h2));
+            renderizarHistoricoResumido();
+        }
+    });
 }
 
 function registrarPedidoEntregaServidor(orcId, extra) {
@@ -2287,40 +2295,50 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     try {
         historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
     } catch (e) {
-        return false;
+        historico = [];
     }
+    const aplicar = (h) => {
+        if (!Array.isArray(h.itens) || !h.itens.length) {
+            mostrarBannerScanner('Orçamento salvo está vazio — não substitui o carrinho.');
+            tocarSom('erro');
+            return false;
+        }
+        if (carrinho.length > 0 && !confirm('Substituir o carrinho pelo orçamento salvo (cód. ' + oid + ')?')) {
+            return false;
+        }
+        carrinho = JSON.parse(JSON.stringify(h.itens));
+        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+            ? CLIENTE_PADRAO_PDV
+            : h.cliente;
+        clienteSelecionado =
+            h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+        const fpRec = document.getElementById('forma-pagamento-pdv');
+        if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
+            fpRec.value = h.forma_pagamento || '';
+        }
+        const chkRec = document.getElementById('pdv-orcamento-entrega');
+        if (chkRec) chkRec.checked = !!h.entrega;
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
+        mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
+        tocarSom('add');
+        focarBuscaProduto();
+        return true;
+    };
     const h = historico.find((x) => Number(x.id) === Number(oid));
-    if (!h) {
-        mostrarBannerScanner('Orçamento não encontrado para este código.');
-        tocarSom('erro');
-        return false;
-    }
-    if (!Array.isArray(h.itens) || !h.itens.length) {
-        mostrarBannerScanner('Orçamento salvo está vazio — não substitui o carrinho.');
-        tocarSom('erro');
-        return false;
-    }
-    if (carrinho.length > 0 && !confirm('Substituir o carrinho pelo orçamento salvo (cód. ' + oid + ')?')) {
-        return false;
-    }
-    carrinho = JSON.parse(JSON.stringify(h.itens));
-    document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
-        ? CLIENTE_PADRAO_PDV
-        : h.cliente;
-    clienteSelecionado =
-        h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
-    const fpRec = document.getElementById('forma-pagamento-pdv');
-    if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
-        fpRec.value = h.forma_pagamento || '';
-    }
-    const chkRec = document.getElementById('pdv-orcamento-entrega');
-    if (chkRec) chkRec.checked = !!h.entrega;
-    if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
-    else atualizarCarrinho();
-    mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
-    tocarSom('add');
-    focarBuscaProduto();
-    return true;
+    if (h) return aplicar(h);
+    fetchOrcamentoPdvServidor(oid).then(function (remote) {
+        if (!remote) {
+            mostrarBannerScanner('Orçamento não encontrado para este código.');
+            tocarSom('erro');
+            return;
+        }
+        historico = historico.filter((x) => Number(x.id) !== Number(remote.id));
+        historico.unshift(remote);
+        localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+        aplicar(remote);
+    });
+    return false;
 }
 
 function gmCsrfTokenParaFetch() {
@@ -2328,6 +2346,47 @@ function gmCsrfTokenParaFetch() {
     if (m && m.getAttribute('content')) return m.getAttribute('content');
     var c = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
     return c ? decodeURIComponent(c[1]) : (AGRO_PDV_BOOTSTRAP.csrfToken || '');
+}
+
+function apiPdvOrcamentosUrlConsulta() {
+    try {
+        return AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.urls && AGRO_PDV_BOOTSTRAP.urls.apiPdvOrcamentos
+            ? AGRO_PDV_BOOTSTRAP.urls.apiPdvOrcamentos
+            : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function apiPdvOrcamentoDetalheUrlConsulta(orcId) {
+    var base = apiPdvOrcamentosUrlConsulta();
+    if (!base) return '';
+    return base.replace(/\/?$/, '/') + encodeURIComponent(String(orcId)) + '/';
+}
+
+function fetchOrcamentoPdvServidor(orcId) {
+    var url = apiPdvOrcamentoDetalheUrlConsulta(orcId);
+    if (!url) return Promise.resolve(null);
+    return fetch(url, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { return data && data.ok && data.item ? data.item : null; })
+        .catch(function () { return null; });
+}
+
+function postOrcamentoPdvServidor(entry) {
+    var url = apiPdvOrcamentosUrlConsulta();
+    if (!url) return Promise.resolve(null);
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': gmCsrfTokenParaFetch(),
+        },
+        body: JSON.stringify({ entry: entry }),
+    })
+        .then(function (r) { return r.json(); })
+        .catch(function () { return null; });
 }
 
 function posicionarSetaBalaoEstoque() {
