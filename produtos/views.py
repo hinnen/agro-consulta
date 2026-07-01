@@ -15067,6 +15067,61 @@ def api_lancamentos_saida_caixa(request):
             status=400,
         )
 
+    # Pagamento salário (não vale): baixa no título único + registro RH.
+    if plano_id_req == "salario_folha":
+        from rh.services.pagamento_salario import tentar_caixa_pagamento_salario
+
+        alt = tentar_caixa_pagamento_salario(
+            db=db,
+            data_competencia=dc,
+            empresa_nome=empresa_nome,
+            pessoa_nome=pessoa_nome,
+            pessoa_id=pessoa_id_final,
+            valor=valor,
+            forma_nome=forma_nome,
+            forma_id=str(payload.get("forma_id") or "").strip() or None,
+            banco_nome=banco_nome,
+            banco_id=str(payload.get("banco_id") or "").strip() or None,
+            usuario=request.user,
+            observacao_desc=desc_linha,
+        )
+        if alt is not None:
+            st = 200 if alt.get("ok") else 400
+            out = {
+                "ok": bool(alt.get("ok")),
+                "lote": alt.get("lote"),
+                "ids": alt.get("ids") or [],
+                "erros": alt.get("erros") or [],
+                "pagamento_salario": True,
+            }
+            if not alt.get("ok"):
+                out["erro"] = alt.get("erro") or "Não foi possível registrar o pagamento de salário."
+            if out.get("ids"):
+                _anexar_retirada_turno_caixa_saida(
+                    request,
+                    out,
+                    valor=valor,
+                    forma_nome=forma_nome,
+                    plano_id_req=plano_id_req,
+                    plan_map=plan_map,
+                    plano=plano,
+                    motivo=motivo,
+                    desc_linha=desc_linha,
+                )
+            return JsonResponse(out, status=st)
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Salário no caixa: use a pessoa cadastrada no perfil RH e gere o título de salário "
+                    "com vencimento no fechamento da competência."
+                ),
+                "ids": [],
+                "erros": [],
+            },
+            status=400,
+        )
+
     linhas = [
         {
             "plano_conta": plano,

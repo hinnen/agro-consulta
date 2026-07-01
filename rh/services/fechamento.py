@@ -134,6 +134,34 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
             ordem=ordem,
         )
         ordem += 1
+    from rh.models import PagamentoSalarioFuncionario
+
+    for p in (
+        PagamentoSalarioFuncionario.objects.filter(
+            funcionario=f.funcionario,
+            data__year=y,
+            data__month=m,
+            cancelado=False,
+        )
+        .order_by("data", "id")
+    ):
+        ItemFechamentoFolha.objects.create(
+            fechamento=f,
+            tipo=ItemFechamentoFolha.Tipo.PAGAMENTO_SALARIO,
+            descricao=(
+                f"Pagamento salário ({p.get_tipo_origem_display()}) — {p.data:%d/%m/%Y}"
+                + (
+                    f" — {p.observacao[:60]}…"
+                    if len(p.observacao) > 60
+                    else (f" — {p.observacao}" if p.observacao else "")
+                )
+            ),
+            valor=p.valor,
+            referencia_tipo="PagamentoSalarioFuncionario",
+            referencia_id=str(p.pk),
+            ordem=ordem,
+        )
+        ordem += 1
     if f.outros_proventos and f.outros_proventos != Decimal("0"):
         ItemFechamentoFolha.objects.create(
             fechamento=f,

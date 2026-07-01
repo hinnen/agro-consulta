@@ -1142,7 +1142,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.06** · **loja v5.68** *(RH folha → CP · 01/07)*
+**Versão app (`VERSION`):** **teste v6.07** · **loja v5.70** *(RH pagamento salário · 01/07)*
+
+### ✅ Deploy loja **v5.70** — RH pagamento salário CP + caixa (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan · *banana manda produção* + senha **`99738595`** · cherry **isolado** **`5434de0`** (**sem** PDV/outros do teste) |
+| **Git produção** | Cherry-pick **`5434de0`** → **`producao`** |
+| **O quê** | `PagamentoSalarioFuncionario` · Pago sync = **vales + pagamentos** · baixa CP → RH · caixa **Salários (pagamento folha)** |
+| **Migrate** | **`0005_pagamento_salario_funcionario`** — Render roda no deploy |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · baixa CP → «Igualar» **não apaga** · caixa plano **Salários** |
 
 ### ✅ Deploy loja **v5.67–v5.68** — RH folha espelha CP Postgres (01/07)
 
