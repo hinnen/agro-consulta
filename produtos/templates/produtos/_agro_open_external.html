@@ -873,8 +873,8 @@
 
   function goPdvTab() {
     shell.pinnedTabGlow = null;
-    if (dualWindowMode() && window.AgroDualWindow.openPdv) {
-      window.AgroDualWindow.openPdv();
+    if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+      window.AgroDualWindow.focusPdv();
       return;
     }
     showWhich('pdv');
@@ -1101,8 +1101,8 @@
     function go() {
       var p = normPathUrl(absResolved).path;
       if (pathLookLikePDV(p)) {
-        if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.openPdv) {
-          window.AgroDualWindow.openPdv(absResolved);
+        if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+          window.AgroDualWindow.focusPdv(absResolved);
         } else {
           showWhich('pdv');
         }
@@ -1698,8 +1698,8 @@
         var d = ev.data || {};
         if (d.type === 'agro-focus-pdv') {
           var pdvHref = d.href ? String(d.href) : '';
-          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.openPdv) {
-            window.AgroDualWindow.openPdv(pdvHref || undefined);
+          if (dualWindowMode() && window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+            window.AgroDualWindow.focusPdv(pdvHref || undefined);
           } else if (shell.pdvPane && shell.pdvPane.style.display !== 'none') {
             showWhich('pdv');
           } else if (pdvHref) {
@@ -1726,8 +1726,8 @@
           p = '';
         }
         if (dualWindowMode() && pathLookLikePDV(p)) {
-          if (window.AgroDualWindow && window.AgroDualWindow.openPdv) {
-            window.AgroDualWindow.openPdv(href);
+          if (window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
+            window.AgroDualWindow.focusPdv(href);
           }
           return;
         }

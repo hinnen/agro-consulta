@@ -1062,8 +1062,21 @@ function dashLaunchpadAbrir(titulo, url, icone) {
     function openInShellTab(href) {
         try {
             if (window.parent !== window) {
+                var path = "";
+                try {
+                    path = new URL(href, window.location.origin).pathname;
+                } catch (_) {
+                    path = "";
+                }
+                var isPdv =
+                    window.AgroDualWindow &&
+                    window.AgroDualWindow.isPdvPath &&
+                    window.AgroDualWindow.isPdvPath(path);
                 window.parent.postMessage(
-                    { type: "agro-open-inapp-tab", href: href },
+                    {
+                        type: isPdv ? "agro-focus-pdv" : "agro-open-inapp-tab",
+                        href: href,
+                    },
                     window.location.origin
                 );
                 return true;
