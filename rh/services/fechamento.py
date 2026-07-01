@@ -187,6 +187,10 @@ def recalcular_fechamento(f: FechamentoFolhaSimplificado) -> FechamentoFolhaSimp
             valor=f.outros_descontos,
             ordem=ordem,
         )
+    from rh.services.pagamento_salario import total_pagamentos_salario_fechamento
+
+    f.valor_pago = total_pagamentos_salario_fechamento(f)
+    f.save(update_fields=["valor_pago", "atualizado_em"])
     return f
 
 

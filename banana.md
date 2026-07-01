@@ -1214,7 +1214,33 @@ sincronizar_valores_titulo_salario_mongo(fech)
 
 **Passo H — Ctrl+F5** no CP · Pago ≈ **R$ 657,75** (585 vales + 72,75)
 
-*Se os pk forem outros no passo C, ajuste a lista do passo D — cancelar todos CP parcial **exceto** o último R$ 72,75.*
+**Se card RH = R$ 219,25 e CP Pago = R$ 804,25** (cancelou ok mas sync manteve total antigo):
+
+**Passo I — card RH (valor pago controle)**
+```python
+from rh.services.pagamento_salario import restaurar_valor_pago_controle_fechamento
+restaurar_valor_pago_controle_fechamento(fech)
+fech.refresh_from_db()
+fech.valor_pago
+```
+Esperado: `Decimal('72.75')`
+
+**Passo J — CP (forçar Pago correto no Mongo)**
+```python
+from rh.services.fechamento import total_vales_mes
+from rh.services.pagamento_salario import total_pagamentos_salario_fechamento
+from rh.services.salario_financeiro_mongo import bruto_titulo_salario, _aplicar_totais_no_documento_mongo
+from produtos.views import obter_conexao_mongo
+bruto = bruto_titulo_salario(fech)
+vp = total_vales_mes(fech.funcionario, 2026, 6) + total_pagamentos_salario_fechamento(fech)
+_, db = obter_conexao_mongo()
+_aplicar_totais_no_documento_mongo(db, fech.mongo_lancamento_salario_id.strip(), saida=float(bruto), valor_pago=float(vp), data_vencimento=fech.data_vencimento_pagamento)
+```
+Esperado: `{'ok': True}` · CP Pago **657,75**
+
+**Passo K — Ctrl+F5** CP + folha RH
+
+*Fix código teste v6.27+: `recalcular_fechamento` atualiza `valor_pago`; sync não preserva Mongo inflado.*
 
 ### 🐛 RH — baixa parcial CP plano Salários não grava (01/07 · teste + loja)
 
