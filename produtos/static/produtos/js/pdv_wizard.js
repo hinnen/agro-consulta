@@ -2549,7 +2549,13 @@
             }
         }
         updateSearchAwaitingPulse();
-        renderRecentBudgetsSnippet();
+        var budgetKeyNow = budgetClienteKeyFromState(state);
+        if (state.clienteMode !== 'unset' && budgetKeyNow !== lastBudgetSyncKey) {
+            lastBudgetSyncKey = budgetKeyNow;
+            syncHistoricoOrcamentosCliente(budgetKeyNow);
+        } else {
+            renderRecentBudgetsSnippet();
+        }
         var cidKeyNow = clienteFiadoQueryKey(state);
         if (
             clientePodeFiado(state) &&
@@ -2571,6 +2577,34 @@
         return 'GMORC' + String(orcId);
     }
 
+    function pdvCsrfTokenOrcamentos() {
+        try {
+            if (bootstrap && bootstrap.csrfToken) return bootstrap.csrfToken;
+        } catch (eCs) {}
+        var m = document.querySelector('meta[name=csrfmiddlewaretoken]');
+        if (m && m.getAttribute('content')) return m.getAttribute('content');
+        return '';
+    }
+
+    function apiPdvOrcamentosUrl() {
+        try {
+            return bootstrap && bootstrap.urls && bootstrap.urls.apiPdvOrcamentos
+                ? bootstrap.urls.apiPdvOrcamentos
+                : '';
+        } catch (eUrl) {
+            return '';
+        }
+    }
+
+    function apiPdvOrcamentoDetalheUrl(orcId) {
+        var base = apiPdvOrcamentosUrl();
+        if (!base) return '';
+        return base.replace(/\/?$/, '/') + encodeURIComponent(String(orcId)) + '/';
+    }
+
+    var lastBudgetSyncKey = '';
+    var _orcamentoSyncSeq = 0;
+
     function readHistoricoOrcamentos() {
         try {
             var historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
@@ -2584,6 +2618,78 @@
         try {
             localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
         } catch (errW) {}
+    }
+
+    function mergeOrcamentoIntoHistorico(entry) {
+        if (!entry || entry.id == null) return;
+        var historico = readHistoricoOrcamentos();
+        historico = historico.filter(function (item) {
+            return String(item.id) !== String(entry.id);
+        });
+        historico.unshift(entry);
+        var perKey = {};
+        historico = historico.filter(function (item) {
+            var k = entryClienteKey(item);
+            perKey[k] = (perKey[k] || 0) + 1;
+            if (perKey[k] > 30) return false;
+            return true;
+        });
+        if (historico.length > 300) historico.length = 300;
+        writeHistoricoOrcamentos(historico);
+    }
+
+    function syncHistoricoOrcamentosCliente(clienteKey, opts) {
+        opts = opts || {};
+        var url = apiPdvOrcamentosUrl();
+        if (!url) {
+            if (!opts.silent) renderRecentBudgetsSnippet();
+            return Promise.resolve();
+        }
+        var key = String(clienteKey || 'consumidor_final');
+        var seq = ++_orcamentoSyncSeq;
+        return fetch(url + '?cliente_key=' + encodeURIComponent(key), { credentials: 'same-origin' })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (seq !== _orcamentoSyncSeq || !data || !data.ok || !Array.isArray(data.items)) return;
+                var map = {};
+                readHistoricoOrcamentos().forEach(function (item) {
+                    map[String(item.id)] = item;
+                });
+                data.items.forEach(function (item) {
+                    map[String(item.id)] = item;
+                });
+                var merged = Object.keys(map)
+                    .map(function (k) {
+                        return map[k];
+                    })
+                    .sort(function (a, b) {
+                        return Number(b.id) - Number(a.id);
+                    });
+                if (merged.length > 300) merged.length = 300;
+                writeHistoricoOrcamentos(merged);
+            })
+            .catch(function () {})
+            .finally(function () {
+                if (!opts.silent) renderRecentBudgetsSnippet();
+            });
+    }
+
+    function fetchOrcamentoFromServer(orcId) {
+        var url = apiPdvOrcamentoDetalheUrl(orcId);
+        if (!url) return Promise.resolve(null);
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (data && data.ok && data.item) return data.item;
+                return null;
+            })
+            .catch(function () {
+                return null;
+            });
     }
 
     function budgetClienteKeyFromState(state) {
@@ -2640,15 +2746,47 @@
         return raw.slice(0, 8) || '—';
     }
 
-    function reopenBudgetById(budgetId) {
-        if (budgetId == null || budgetId === '') return false;
+    function reopenBudgetById(budgetId, onDone) {
+        if (budgetId == null || budgetId === '') {
+            if (onDone) onDone(false);
+            return false;
+        }
         var historico = readHistoricoOrcamentos();
         var entry = historico.find(function (item) {
             return String(item.id) === String(budgetId);
         });
-        if (!entry) return false;
-        State.hydrateFromBudget(entry);
-        State.setCurrentStep('produtos');
+        if (entry) {
+            State.hydrateFromBudget(entry);
+            State.setCurrentStep('produtos');
+            if (onDone) onDone(true);
+            return true;
+        }
+        fetchOrcamentoFromServer(budgetId).then(function (remote) {
+            if (!remote) {
+                alert('Orçamento não encontrado.');
+                if (onDone) onDone(false);
+                return;
+            }
+            mergeOrcamentoIntoHistorico(remote);
+            State.hydrateFromBudget(remote);
+            State.setCurrentStep('produtos');
+            renderRecentBudgetsSnippet();
+            if (onDone) onDone(true);
+        });
+        return false;
+    }
+
+    function reopenBudgetFromBarcode(raw) {
+        var m = String(raw || '')
+            .replace(/\s/g, '')
+            .toUpperCase()
+            .match(/^GMORC(\d{10,20})$/);
+        if (!m) return false;
+        var oid = parseInt(m[1], 10);
+        if (!Number.isFinite(oid)) return false;
+        reopenBudgetById(oid, function (ok) {
+            if (ok && dom.productSearch) dom.productSearch.value = '';
+        });
         return true;
     }
 
@@ -2711,10 +2849,41 @@
         if (historico.length > 300) historico.length = 300;
         writeHistoricoOrcamentos(historico);
         renderRecentBudgetsSnippet();
-        showSaleDoneFeedback('Orçamento salvo para ' + clienteNome + '.', 'success', {
-            title: 'Orçamento salvo',
-            placementTop: true,
-        });
+        var doneFeedback = function () {
+            showSaleDoneFeedback('Orçamento salvo para ' + clienteNome + '.', 'success', {
+                title: 'Orçamento salvo',
+                placementTop: true,
+            });
+        };
+        var urlSave = apiPdvOrcamentosUrl();
+        if (!urlSave) {
+            doneFeedback();
+            return;
+        }
+        if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = true;
+        fetch(urlSave, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': pdvCsrfTokenOrcamentos(),
+            },
+            body: JSON.stringify({ entry: novo }),
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (data && data.ok && data.item) mergeOrcamentoIntoHistorico(data.item);
+                renderRecentBudgetsSnippet();
+                doneFeedback();
+            })
+            .catch(function () {
+                doneFeedback();
+            })
+            .finally(function () {
+                if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
+            });
     }
 
     function renderRecentBudgetsSnippet() {
@@ -8611,6 +8780,7 @@
                     runProductSearch(qEnter, 'barcode');
                     return;
                 }
+                if (reopenBudgetFromBarcode(qEnter)) return;
                 if (qEnter) {
                     runProductSearch(qEnter, 'manual');
                 }
@@ -8633,6 +8803,7 @@
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
+            if (reopenBudgetFromBarcode(trimmed)) return;
             if (pareceLeituraCodigoWizard(trimmed) && (delta < 45 || trimmed.length >= 8)) {
                 marcarWizardScannerAtivo(1500);
             }
@@ -8949,9 +9120,9 @@
         dom.budgetHistoryList.addEventListener('click', function (event) {
             var btn = event.target.closest('[data-budget-id]');
             if (!btn) return;
-            if (reopenBudgetById(btn.getAttribute('data-budget-id'))) {
-                closeBudgetHistory();
-            }
+            reopenBudgetById(btn.getAttribute('data-budget-id'), function (ok) {
+                if (ok) closeBudgetHistory();
+            });
         });
         var step1BudgetSnippet = document.getElementById('pdv-step1-budget-snippet');
         if (step1BudgetSnippet) {
