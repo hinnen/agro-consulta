@@ -1142,13 +1142,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.64** · **loja v5.62** (`545aad3` · 01/07)
+**Versão app (`VERSION`):** **teste v5.65** · **loja v5.62** (`545aad3` · 01/07)
 
-### ✅ Retiradas export Excel — **teste v5.64** (01/07)
+### ✅ Retiradas export Excel — **teste v5.64+** (01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commit** | `55c55bc` · push **`teste`** |
+| **Commits** | `55c55bc` feature · `ecf7b32` banana · badge **v5.65** |
 | **Tela** | `/caixa/retiradas/` — **Excel ↓** + modal |
 | **Validar** | Render teste · Ctrl+F5 · baixar planilha com filtros da tela |
 
