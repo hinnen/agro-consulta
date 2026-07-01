@@ -590,7 +590,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — Excel (30/06):** botão **Excel ↓** no histórico · modal (filtros da tela ou personalizar · atalhos só período / +plano / +quem / completo · colunas marcáveis) · API `api/caixa/retiradas/export-xlsx/` · colunas fixas: data, hora, operador (PIN), forma.
 - **Retiradas — operador (01/07):** saída caixa gravava **e-mail** do login (`admin@agro.com`); devolução usava **username** (`admin`). Fix: `rotulo_usuario_django` · exibição normaliza `@` · comando `normalizar_operador_retiradas_historico` para histórico PG.
-- **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** (`PerfilUsuario`) no confirmar · grava nome do operador do PIN · não usa mais login Django/admin. Modal PIN no painel caixa. Geraldinho etc. antes: sessão PDV (modo descanso) ou login — **não** era PIN do cadastro RH.
+- **Retiradas — PIN obrigatório (01/07):** saída exige **PIN do RH** (`PerfilUsuario`) no confirmar · grava nome do operador do PIN · não usa mais login Django/admin. Modal PIN no painel caixa.
+- **PIN único loja (01/07):** **uma fonte** — `PerfilUsuario.senha_rapida` (RH → Operadores). Modo descanso / entrada Lançamentos / PDV chip **não** usam mais `gm_sspin_pins` local nem PIN 1234 por PC · validam `api_login_mobile` · sessão `pdv_operador_nome` · chip só espelha nome (cache leve). Cadastro/alteração de PIN **só** no RH.
 
 ### 4.12 RH
 
@@ -1146,13 +1147,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v5.68** · **loja v5.62** (`545aad3` · 01/07)
 
-### ✅ Retiradas — operador padronizado **teste v5.68** (01/07)
+### 📋 UX loja — PDV vs gestão em **2 janelas Chrome** (Renan · 01/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Causa** | Saída caixa: fallback `email` → `admin@agro.com` · Devolução: `username` → `admin` |
-| **Fix código** | `6b1ff34` — `rotulo_usuario_django` · lista/Excel normalizam `@` |
-| **Histórico PG** | Shell teste: `python manage.py normalizar_operador_retiradas_historico --dry-run` depois sem `--dry-run` |
+| **Problema** | Idosos abrem **outro Chrome** em vez de aba · PDV + lançamentos misturados |
+| **Ideia Renan** | **2 atalhos** Windows (ícones distintos) · PDV numa janela · resto noutra · botão PDV traz gestão à frente |
+| **Caminho** | Chrome **`--app=URL`** (2 atalhos) + botões PDV `window.open(..., 'SistValeGestao')` · **sem Electron** |
+| **Electron** | Descartado loja — lento (Renan reconfirmou 01/07) |
+| **Status** | 📋 Planejamento · **FL-046** candidato |
+| **Regra** | **1 janela PDV + 1 gestão** — botões **nunca** abrem 2º PDV · só **trazem à frente** (`window.open` nome fixo) |
+| **Gestão** | Links «PDV» viram **«Ir ao balcão»** → foca janela PDV · não navega `_self` para checkout |
+
+
+### ✅ PIN único — modo descanso + sessão PDV (**teste** · 01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Dois «bancos»: PIN no **navegador** (`gm_sspin_pins`) vs **RH** (`PerfilUsuario`) — PIN diferente no descanso vs caixa; não batia entre os 2 PCs |
+| **Fix** | `_screensaver_pin.html` valida sempre no servidor · remove setup local 1234 · `api_pdv_registrar_operador` GET sessão / POST só limpa ou grava com PIN |
+| **Já era RH** | Saída retirada · caixa · estoque · empréstimo · PDV forma «outro» |
+| **Validar** | Ctrl+F5 PDV + Lançamentos · mesmo PIN Geraldinho nos 2 PCs · RH → Operadores se ainda «Padrão 1234» |
 
 ### ✅ Retiradas export Excel — **teste v5.67+** (01/07)
 
