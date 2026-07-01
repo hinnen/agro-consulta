@@ -152,6 +152,7 @@ def buscar_documentos_unificado(
     limit: int = 80,
     include_inactive: bool = False,
     wizard_catalog: bool = False,
+    skip_mongo_complemento: bool = False,
 ) -> list[dict]:
     """
     Busca produtos (documentos estilo Mongo) com pipeline único.
@@ -200,7 +201,8 @@ def buscar_documentos_unificado(
             logger.warning("motor_busca_unificado: buscar Postgres falhou", exc_info=True)
 
     mongo_docs: list[dict] = []
-    if db is not None and client is not None and not somente_pg:
+    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
+    if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
             from produtos.views import motor_busca_consulta_documentos
 

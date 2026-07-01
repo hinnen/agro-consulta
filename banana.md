@@ -1141,7 +1141,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v5.58** (`6875a3a` push) · **loja v5.56** (`59ef94d` · 30/06)
+**Versão app (`VERSION`):** **teste v5.61** (perf busca PDV) · **loja v5.56** (`59ef94d` · 30/06)
+
+### 🟠 Loja lenta — busca PDV em fila **01/07**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Logs web 08:51–08:56 · `/api/buscar/?wizard=1` ~8–20 s entre teclas · tudo 200 |
+| **Causa** | **1 worker** Gunicorn + várias telas pesadas (caixa, CP, BI) · **cada tecla** ia ao servidor mesmo com cache local |
+| **Fix (código, teste)** | PDV: não chama servidor se cache local basta (texto ≥5 ou GM com variantes no cache) · GM debounce 200 ms · busca wizard pula Mongo se Postgres já achou · promo PDV cache 90 s |
+| **Arquivos** | `pdv_wizard.js` · `motor_busca_unificado_util.py` · `views.py` |
+| **Ainda** | Subir **2º worker** no Render se continuar fila com muitos PDVs abertos |
 
 ### 🟠 Fiado — só 3 títulos pelo PDV/F8 **v5.58** (01/07)
 
