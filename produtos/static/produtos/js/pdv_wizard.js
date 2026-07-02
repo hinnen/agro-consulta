@@ -373,7 +373,7 @@
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
-    var WIZARD_FOCUS_DELTA_MIN_MS = 8000;
+    var WIZARD_FOCUS_DELTA_MIN_MS = 5 * 60 * 1000;
     var wizardCatalogBootAt = 0;
     var wizardCatalogLastFocusDeltaAt = 0;
     var wizardCatalogFocusDeltaBusy = false;

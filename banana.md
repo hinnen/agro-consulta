@@ -1142,9 +1142,50 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.61+** · **loja v6.14**
+**Versão app (`VERSION`):** **teste v6.65** (WIP perf) · **loja v6.15**
 
-**WIP teste:** PDV splash 1ª carga · cache offline (catálogo, clientes 4h, promo 2h, entregas 90s, PIN sessão modo descanso) · wizard delta no foco (igual consulta).
+**WIP teste:** pacote **perf PC fraco** — splash 0,75s · F11 Config (FX PDV/Gestão) · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min · sync catálogo foco 5 min · overlay já esvazia ao fechar.
+
+### WIP teste — perf CPU/RAM (02/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Splash catálogo** | `MIN_VISIBLE_MS` 30s debug → **750 ms** |
+| **Config F11** | Modal · **Menos animações** separado PDV / Gestão (`agro_perf_fx.js`) · também no Menu **F10** (Gestão) |
+| **Gestão 2 apps** | Sem iframe PDV oculto · Dashboard **só carrega ao abrir** guia |
+| **Abas livres** | **5 min** pausa animações · **20 min** descarrega iframe (volta ao clicar — não recarrega ao trocar aba) |
+| **BI** | Pausa gráficos/pulsos quando guia Dashboard não está ativa |
+| **PDV sync foco** | Delta catálogo ao trocar janela: **8s → 5 min** (busca local intacta) |
+| **Overlay Caixa/Fiado** | Já limpava iframe ao fechar (`agro_pdv_overlay.js`) |
+| **Teste Renan (PC forte)** | Só PDV ~0,2–2,8% · só Gestão ~3,5–7% · ambos ~4–10% CPU idle |
+
+**WIP teste (antigo):** PDV splash 1ª carga · cache offline · wizard delta no foco.
+
+### Decisão operação — Entregas × PDV (01/07, Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fluxo loja** | PDV entrega → entregador leva e cobra → volta → **retoma no PDV** e fecha venda com pagamento real |
+| **Tela `/entregas/`** | Uso **raro** (ex. **terça** — rota sítio); status do meio (**separando**, **em rota**…) **não usados** por enquanto — só **pendente** e **entregue** |
+| **Comportamento** | Ao **fechar venda** de entrega pendente no PDV → painel marca **entregue** + `hora_entrega` + vínculo **Venda #** (lista `/entregas/` some da fila aberta) |
+| **Não auto-entregue** | Pagamento **na loja** antes da rota (venda fecha sem «aguarda PDV») — produto ainda pode estar a caminho |
+| **Código** | `marcar_entrega_pendente_fechada` em `entrega_pdv_pendente_util.py` |
+
+### ✅ Deploy loja **v6.15** — fix botão **Pagar** clique morto (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — produção direto + **`99738595`** |
+| **O quê** | Cherry **`399f2f2`** → **`b8edc38`** — só `pdv_wizard.js` + `pdv_wizard.html` |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.15** · finalizar venda → nova venda → clicar **Pagar** (sem só F7) |
+
+### 🐛 PDV wizard — botão **Pagar** clique morto · **✅ loja v6.15**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Toast pós-venda invisível bloqueava cliques no canto inferior direito |
+| **Fix** | `pointer-events-none` ao esconder toast · limpar ao clicar Pagar |
 
 ### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
 
