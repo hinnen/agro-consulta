@@ -1159,6 +1159,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Overlay JS completo · `navigateGestao` **nunca** `pulseGestaoFocus` para Caixa/Vendas/Fiado no PDV |
 | **Validar loja** | Ctrl+Shift+R badge **v6.11** · Caixa → **popup laranja ~95%** (igual teste) |
 
+**Se amanhã ainda falhar (checklist):**
+
+| # | Conferir |
+| - | -------- |
+| 1 | Badge **v6.11** no PDV (senão deploy/cache HTML) |
+| 2 | F12 → Network → `agro_pdv_overlay.js?v=` **commit** (não `v=1`) |
+| 3 | F12 → Console — erro vermelho ao clicar Caixa? |
+| 4 | Ctrl+Shift+R **no app PDV** (não só F5) |
+| 5 | Paridade **prod=teste** nos 3 JS overlay — **OK pós-v6.11** (`agro_dual_window`, `agro_pdv_overlay`, `pdv_wizard`) |
+
+**Riscos restantes (baixa):** cache agressivo Chrome · app Gestão aberto ao lado redirecionando foco (v6.11 bloqueia `pulseGestaoFocus` no PDV para Caixa/Vendas/Fiado).
+
 ### ⚠️ Deploy loja **v6.10** — incompleto (02/07)
 
 | Item | Detalhe |
