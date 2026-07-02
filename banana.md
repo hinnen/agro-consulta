@@ -1155,7 +1155,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
 | **Pacote 4** | Entregas pós-venda `venda_id` + fiado; painel sem rótulos ERP |
-| **Excluído teste** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** |
+| **Excluído teste (01/07 pacotes 1-4)** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** *(subiu no pacote v6.00)* |
 | **Migrate** | **Sem** 0048; `makemigrations --check` ainda aponta drift **base/estoque** (pré-existente — não gerado neste deploy) |
 | **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
