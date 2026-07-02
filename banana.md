@@ -1147,11 +1147,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.43** · **loja v6.05** *(pacote perf + PDV/Gestão 02/07)*
+**Versão app (`VERSION`):** **teste v6.45** · **loja v6.07** *(PDV botões subtotal 02/07)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### ✅ Deploy loja **v6.05** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
+### ✅ Deploy loja **v6.07** — PDV botões Pagar + ícone entrega (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *manda* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v6.06-20260702`** @ **`d6c271f`** |
+| **Git** | **`teste` `0d5c094`** · cherry **`producao`** |
+| **O quê** | Subtotal PDV: **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · sem quebra de linha em qualquer zoom |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.07** · card Subtotal canto direito — botões em uma linha |
+
+### ✅ Deploy loja **v6.05–v6.06** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
