@@ -1142,9 +1142,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.49** · **loja v6.09**
+**Versão app (`VERSION`):** **teste v6.51** · **loja v6.09** *(fix v6.10 pendente — cache JS + isGestaoHost)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
+
+### 🐛 PDV topbar — ainda quebrado pós-v6.09 (02/07 madrugada · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Clique em Caixa/Vendas/Fiado no PDV não abre overlay · `/caixa/` em nova guia abre mas cards do menu não navegam |
+| **Causa extra** | Scripts `agro_dual_window.js` / `agro_pdv_overlay.js` com **`?v=1` fixo** (browser servia JS antigo) · `isGestaoHost()` ainda tratava qualquer URL não-PDV como gestão → shell lateral engolia `/caixa/` |
+| **Fix teste v6.51** | `agro_asset_v` no context (commit Render) · `isGestaoHost` só com papel gestão explícito · roteador PDV + `openPdvPanel` reforçados · fallbacks antes de `pulseGestaoFocus` silencioso |
+| **Validar teste** | Ctrl+Shift+R no PDV · DevTools → `agro_dual_window.js?v=<commit>` (não `v=1`) · topbar → overlay · `/caixa/` guia separada → cards navegam |
 
 ### ✅ Deploy loja **v6.09** — PDV topbar overlay (fix isPdvHost) (02/07)
 
@@ -1199,15 +1208,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy** | **✅ loja v6.05** |
 | **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
 
-### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **✅ v6.09 loja**
+### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **fix teste v6.51 · loja ainda v6.09**
 
-**Sintoma pós-v6.08:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
+**Sintoma pós-v6.08/v6.09:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
 
-**Causa:** `readAppRole` gravava `window.name = SistValePDV` em **qualquer** URL quando o `localStorage` dizia PDV (apps Chrome compartilham storage). A aba `/caixa/` virava «host PDV» → roteador interceptava links com `preventDefault` + `pulseGestaoFocus` (sem UI).
+**Causa:** (1) `readAppRole` / `window.name` PDV em URL errada · (2) **`agro_asset_v` ausente** → cache `?v=1` · (3) `isGestaoHost()` amplo (`dualFlagOn && !isPdvPath`) montava shell em `/caixa/`.
 
-**Correção:** `agro_dual_window.js` — `isPdvHost` só em `/pdv/` ou `/consulta/`; `window.name` só nessas rotas ou no shell gestão; `openPdvPanel` com fallback `location.assign`; nova guia caixa volta a navegar normal.
-
-**Validar:** Ctrl+F5 no PDV → Caixa/Vendas/Fiado abrem overlay · em `/caixa/` aberto em guia separada os cards do menu navegam.
+**Correção v6.51:** `context_processors.agro_asset_v` · `agro_dual_window.js` — `isGestaoHost` estrito · `openPdvPanel`/`navigateGestao`/roteador com fallbacks · `isPdvHost` + `isPdvPath` no router.
 
 ### 🔧 Perf multi-tela — **✅ v6.05**
 
