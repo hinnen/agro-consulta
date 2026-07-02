@@ -1142,15 +1142,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.55** · **loja v6.11**
+**Versão app (`VERSION`):** **teste v6.61** · **loja v6.14**
 
-**Nota versões:** número do **teste** sobe a **cada commit** (hook `bump_version.py` + docs/banana). **Loja** sobe só no **cherry-pick isolado** que você autoriza — por isso teste fica «maior»; **não** significa dezenas de pacotes pendentes na loja.
+### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
 
-### ✅ **FL-048** — backup Postgres + recuperação zero (30/06)
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode subir* + **`99738595`** |
+| **O quê** | Cherry **`c875945`** · **`021a96e`** · **`ff1f0d9`** · **`d178536`** |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.14** · Admin → Backup → ZIP → `kit/render-env-atual.env` |
 
-**Loja v6.13** · **teste v6.61+**
+### ✅ **FL-048** — backup Postgres + recuperação zero
 
-**Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
 **Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com:
 - `GUIA-BACKUP-PAINEL.txt` (espelho do painel)
