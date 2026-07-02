@@ -1142,15 +1142,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.47** · **loja v6.07** *(deploy v6.08 em andamento)*
+**Versão app (`VERSION`):** **teste v6.47** · **loja v6.08**
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### 🚀 Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
+### ✅ Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar para produção ambos* + senha **`99738595`** |
+| **Commit** | **`6461974`** (cherry-pick **`f012d42`** de teste) |
 | **Rollback** | Tag **`producao-rollback-v6.07-20260702`** @ **`aa9f66e`** |
 | **O quê** | **PDV:** Caixa / Consultar vendas / Fiado abrem overlay de novo · **Perf:** busca Entrada NF etapa 2 + Cadastro ERP (motor lite, cache 45 s) |
 | **Migrate** | Nenhuma |
