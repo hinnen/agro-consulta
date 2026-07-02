@@ -1155,6 +1155,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### ✅ **FL-048** — backup Postgres + recuperação zero
 
+**Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
 **Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com:
 - `GUIA-BACKUP-PAINEL.txt` (espelho do painel)
