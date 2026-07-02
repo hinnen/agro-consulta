@@ -1142,7 +1142,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.39** · **loja v6.01** *(pacotes 1–4 + dual-window 01/07)*
+**Versão app (`VERSION`):** **teste v6.40** · **loja v6.03** *(pacotes 1–4 + dual-window 01/07)*
 
 ### ✅ Deploy loja **v6.00** — 2 janelas Chrome PDV/Gestão (01/07)
 
