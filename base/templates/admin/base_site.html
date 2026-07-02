@@ -4,12 +4,11 @@
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block branding %}
-<div id="branding">
-  <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
-  {% if user.is_superuser %}
-  <p style="margin:0;padding:6px 16px 10px;">
-    <a href="{% url 'pg_backup_painel' %}" style="font-weight:700;color:#ea580c;">⬇⬆ Backup Postgres Agro</a>
-  </p>
-  {% endif %}
-</div>
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% endblock %}
+
+{% block nav-global %}
+{% if user.is_superuser %}
+<a href="{% url 'pg_backup_painel' %}" style="font-weight:700;color:#ea580c;padding:8px 12px;">Backup Postgres Agro</a>
+{% endif %}
 {% endblock %}

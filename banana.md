@@ -1152,7 +1152,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **URL** | `/interno/pg-backup/` · link **Admin Django** (só superuser) |
+| **URL** | `/interno/pg-backup/` · **Admin** → bloco **«Operações SisVale»** (topo da lista) + link no cabeçalho |
 | **ZIP** | `manifest.json` + `resumo.xlsx` (legível) + `data/<categoria>.jsonl` |
 | **Seleção** | Checkbox por categoria · marcar todas = backup **completo** (1 arquivo) |
 | **Restore** | Ativo (mesmo código teste/loja) · frase `RESTAURAR BACKUP PG` + **senha admin Django** |
