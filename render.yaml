@@ -38,3 +38,13 @@ services:
 
   # Ping /healthz do staging — mesma rotina no final de estoque_mongo_ping (evita serviço cron extra).
   # Se o Blueprint não sincronizar sozinho, confira no painel Render que o cron existe e branch teste.
+
+  # Backup Postgres noturno (produção): anexe o Environment Group da LOJA.
+  # Habilitar: AGRO_PG_BACKUP_NIGHTLY_ENABLED=true + AGRO_PG_BACKUP_UPLOAD_MODE (webhook ou s3).
+  - type: cron
+    name: agro-pg-backup-nightly
+    branch: producao
+    runtime: python
+    schedule: "0 7 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py pg_backup_nightly

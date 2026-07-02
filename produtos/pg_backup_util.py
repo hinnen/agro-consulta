@@ -187,6 +187,7 @@ def build_backup_zip(
     slugs: list[str] | None,
     *,
     username: str = "",
+    include_kit: bool = True,
 ) -> tuple[bytes, str, dict[str, Any]]:
     selected_slugs = _normalize_slugs(slugs)
     if not selected_slugs:
@@ -232,7 +233,8 @@ def build_backup_zip(
             "resumo.xlsx",
             _build_excel_resumo(manifest=manifest, categories=categories, export_stats=export_stats),
         )
-        append_kit_to_zipfile(zf)
+        if include_kit:
+            append_kit_to_zipfile(zf)
 
     stamp = timezone.now().strftime("%Y%m%d-%H%M%S")
     scope = "completo" if len(selected_slugs) == len(PG_BACKUP_ALL_SLUGS) else "parcial"

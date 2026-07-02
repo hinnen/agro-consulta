@@ -8437,6 +8437,30 @@ def api_cron_estoque_mongo_ping(request):
         return JsonResponse({"ok": False, "mongo": False, "erro": str(e)[:500]}, status=503)
 
 
+@require_GET
+def api_cron_pg_backup_nightly(request):
+    """
+    Backup Postgres noturno (completo + kit + por categoria).
+    Mesmo token que ``ALERTA_VENDAS_CRON_TOKEN``. Só roda com ``AGRO_PG_BACKUP_NIGHTLY_ENABLED=true``.
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "token"}, status=403)
+    sem_upload = str(request.GET.get("sem_upload") or "").strip().lower() in ("1", "true", "yes")
+    sem_categorias = str(request.GET.get("sem_categorias") or "").strip().lower() in ("1", "true", "yes")
+    from produtos.pg_backup_nightly import executar_pg_backup_nightly, nightly_backup_permitido
+
+    ok, motivo = nightly_backup_permitido()
+    if not ok:
+        return JsonResponse({"ok": False, "erro": motivo}, status=403)
+    result = executar_pg_backup_nightly(
+        username="api-cron",
+        upload=not sem_upload,
+        incluir_por_categoria=not sem_categorias,
+    )
+    status = 200 if result.get("ok") else 500
+    return JsonResponse(result, status=status)
+
+
 def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
     pdv_root_url = reverse(rota_nome)
     pdv_dedicado = rota_nome == "pdv_home"

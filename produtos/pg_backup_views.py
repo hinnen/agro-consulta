@@ -9,6 +9,8 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
+from django.conf import settings
+
 from produtos.pg_backup_registry import PG_BACKUP_ALL_SLUGS, RESTORE_CONFIRM_PHRASE
 from produtos.pg_backup_render_checklist import (
     CHECKLIST_REV,
@@ -18,6 +20,7 @@ from produtos.pg_backup_render_checklist import (
     ROLLBACK_NOITE_STEPS,
 )
 from produtos.pg_backup_disaster_kit import build_disaster_kit_zip
+from produtos.pg_backup_upload import upload_status_resumo
 from produtos.pg_backup_util import build_backup_zip, listar_categorias_stats, restore_backup_zip
 
 
@@ -46,6 +49,8 @@ def pg_backup_painel(request):
         "disaster_steps": DISASTER_RECOVERY_STEPS,
         "rollback_steps": ROLLBACK_NOITE_STEPS,
         "checklist_notas": NOTAS_CURTAS,
+        "nightly_enabled": getattr(settings, "AGRO_PG_BACKUP_NIGHTLY_ENABLED", False),
+        "upload_status": upload_status_resumo(),
         "flash_ok": "",
         "flash_erro": "",
         "restore_result": None,

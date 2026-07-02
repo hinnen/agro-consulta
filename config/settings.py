@@ -518,6 +518,21 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
+# Backup Postgres noturno (FL-048) — só produção; ver pg_backup_nightly.py
+AGRO_PG_BACKUP_NIGHTLY_ENABLED = config("AGRO_PG_BACKUP_NIGHTLY_ENABLED", default=False, cast=bool)
+AGRO_PG_BACKUP_NIGHTLY_ALLOW_STAGING = config(
+    "AGRO_PG_BACKUP_NIGHTLY_ALLOW_STAGING", default=False, cast=bool
+)
+# Upload: none | webhook | s3 (Backblaze B2, AWS S3, etc.)
+AGRO_PG_BACKUP_UPLOAD_MODE = config("AGRO_PG_BACKUP_UPLOAD_MODE", default="").strip().lower()
+AGRO_PG_BACKUP_WEBHOOK_URL = config("AGRO_PG_BACKUP_WEBHOOK_URL", default="").strip()
+AGRO_PG_BACKUP_WEBHOOK_TOKEN = config("AGRO_PG_BACKUP_WEBHOOK_TOKEN", default="").strip()
+AGRO_PG_BACKUP_S3_ENDPOINT = config("AGRO_PG_BACKUP_S3_ENDPOINT", default="").strip()
+AGRO_PG_BACKUP_S3_BUCKET = config("AGRO_PG_BACKUP_S3_BUCKET", default="").strip()
+AGRO_PG_BACKUP_S3_ACCESS_KEY = config("AGRO_PG_BACKUP_S3_ACCESS_KEY", default="").strip()
+AGRO_PG_BACKUP_S3_SECRET_KEY = config("AGRO_PG_BACKUP_S3_SECRET_KEY", default="").strip()
+AGRO_PG_BACKUP_S3_REGION = config("AGRO_PG_BACKUP_S3_REGION", default="us-east-1").strip()
+AGRO_PG_BACKUP_S3_PREFIX = config("AGRO_PG_BACKUP_S3_PREFIX", default="sistvale/pg-backup").strip()
 # Se True, só envia perto da hora cheia (00..tol minutos). Se False, envia 1x por hora em qualquer minuto.
 ALERTA_VENDAS_HORA_CHEIA_ESTRITO = config('ALERTA_VENDAS_HORA_CHEIA_ESTRITO', default=False, cast=bool)
 # Quando estrito=True, tolerância de atraso do scheduler em minutos (0..15).

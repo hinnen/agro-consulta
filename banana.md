@@ -1147,9 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.60** · **loja v6.13**
+**Versão app (`VERSION`):** **teste v6.61** · **loja v6.14** (deploy em curso)
 
-### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
+### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode subir* + **`99738595`** |
+| **O quê** | Cherry **`c875945`** · **`021a96e`** · **`ff1f0d9`** · **`d178536`** — kit recuperação · `render-env-atual.env` no ZIP · guia offline · cron noturno |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.14** · Admin → Backup → baixar ZIP → conferir pasta `kit/render-env-atual.env` |
 
 ### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
 
@@ -1165,12 +1172,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *se não tiver risco de quebrar PDV pode enviar produção* + **`99738595`** |
-| **O quê** | Cherry isolado: migração **`0048`** + modelo `OrcamentoPdvAgro` + API `/api/pdv/orcamentos/` + bootstrap PDV (`apiPdvOrcamentos`, CSRF, `usuarioSalvamento`) · sync multi-PC · **sem** layout F7/F3 lateral do teste |
+| **O quê** | Cherry isolado: migração **`0048`** + modelo `OrcamentoPdvAgro` + API `/api/pdv/orcamentos/` + bootstrap PDV |
 | **Migrate** | **`0048_orcamento_pdv_agro`** |
-| **Risco** | Baixo — tabela nova; se API falhar, PDV mantém `localStorage` |
-| **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · outro PC mesmo cliente · bip GMORC · Caixa/topbar overlay OK |
+| **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · bip GMORC |
 
-### ✅ **FL-048** — backup Postgres + recuperação zero (em deploy v6.14)
+### ✅ **FL-048** — backup Postgres + recuperação zero
 
 **Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
@@ -1178,12 +1184,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Fora do ZIP:** código Git · dados *dentro* do Mongo ERP.
 
-**Parcial / restore parcial:** checkbox por categoria — inalterado.
-
 **Backup noturno:** cron 04h · `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` + webhook/S3 no Render.
 
-**Desastre:** novo Render → deploy `producao` → colar `kit/render-env-atual.env` (trocar `DATABASE_URL`) → migrate → superuser → Restore ZIP.
-
+**Fonte:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py` · `pg_backup_nightly.py` · `pg_backup_upload.py` · `pg_backup_env_export.py`
 
 **✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
 
