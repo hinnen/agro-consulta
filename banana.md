@@ -1142,9 +1142,50 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.66** (WIP perf) · **loja v6.15**
+**Versão app (`VERSION`):** **teste v6.68** · **loja v6.16**
 
-**WIP teste:** pacote **perf PC fraco** — splash 0,75s · F11 Config (FX PDV/Gestão) · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min · sync catálogo foco 5 min · overlay já esvazia ao fechar.
+**📋 Pendente produção (após fechar loja — Renan 02/07):** fix **RH vale→CP duplicado** (código local) · **não** incluído no v6.16
+
+**WIP teste:** pacote **perf PC fraco** (não foi pra loja) · fix carrinho **já em produção v6.16** · **fix FL-048** «Baixar ZIP» — **v6.68 teste**
+
+### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | «Kit recuperação zero» OK · «Baixar ZIP selecionado» recarrega a tela sem arquivo |
+| **Causa** | `resumo.xlsx` — campo `categorias` (lista) no manifest; openpyxl não aceita lista na célula |
+| **Fix** | `_excel_scalar()` em `pg_backup_util.py` · mensagem de erro legível na view |
+| **Kit zero** | Conteúdo conferido OK (guias + `render-env-atual.env` + scripts) |
+
+### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Vale caixa + **Pagamento salário CP parcial** iguais (ex. Queila 30/06 R$ 100) → CP **Pago R$ 100 acima** |
+| **Loja** | Renan **gambiarra OK** — Queila paga · **não reabrir** |
+| **Causa** | Bug v5.70: hook da baixa parcial criava pagamento RH em todo vale/caixa folha |
+| **Fix (código local, sem push)** | Hook só baixa direta Lançamentos · sync força Postgres · Igualar com aviso verde |
+| **Arquivos** | `mongo_financeiro_util.py` · `lancamentos_financeiro_pg_write_util.py` · `salario_financeiro_mongo.py` · `rh/views.py` · `fechamento_detalhe.html` |
+| **📋 PRODUÇÃO** | **Após fechar loja** — cherry junto com demais pendentes · **não subir agora** |
+
+### ✅ Deploy loja **v6.16** — carrinho PDV itens travados (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — cherry **só** fix carrinho · senha OK |
+| **Commit** | `add4ce6` em `producao` |
+| **O quê** | Lista busca sumia de verdade · toque no carrinho fecha busca · clique na linha por índice |
+| **Validado** | Renan — GM6082 + GM6083 voltaram a funcionar (teste/local) |
+| **Fora** | Pacote perf · RH vale CP · entregas topbar→subtotal |
+
+### 🐛 PDV wizard — carrinho itens travados (02/07 · Renan) — **✅ loja v6.16**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Alguns produtos no carrinho não respondem a +/−, preço nem remover; outros na mesma venda OK; só **LIMPAR** tira |
+| **Exemplos** | GM6082 (dobradiça) · GM6083 (facão) |
+| **Causa** | Lista da **busca** não sumia (`#pdv-product-autocomplete` — `.hidden` perdia para `display:flex`) |
+| **Fix** | `pdv_wizard.html` + `pdv_wizard.js` |
 
 ### WIP teste — perf CPU/RAM (02/07 · Renan)
 
@@ -1166,10 +1207,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Fluxo loja** | PDV entrega → entregador leva e cobra → volta → **retoma no PDV** e fecha venda com pagamento real |
-| **Tela `/entregas/`** | Uso **raro** (ex. **terça** — rota sítio); status do meio (**separando**, **em rota**…) **não usados** por enquanto — só **pendente** e **entregue** |
-| **Comportamento** | Ao **fechar venda** de entrega pendente no PDV → painel marca **entregue** + `hora_entrega` + vínculo **Venda #** (lista `/entregas/` some da fila aberta) |
-| **Não auto-entregue** | Pagamento **na loja** antes da rota (venda fecha sem «aguarda PDV») — produto ainda pode estar a caminho |
-| **Código** | `marcar_entrega_pendente_fechada` em `entrega_pdv_pendente_util.py` |
+| **Tela `/entregas/`** | Uso **raro** (ex. **terça** — rota sítio); status do meio **não usados** — só **pendente** e **entregue** |
+| **Botão PDV** | Só **«Entregas pendentes»** embaixo (card Subtotal) — **removido** da barra de cima · abre modal cobrança na volta |
+| **Pagamento na entrega** | Fechar venda no PDV → **entregue** em `/entregas/` + some da fila «Entregas pendentes» |
+| **Pagamento na loja** | Venda fecha na hora → **não** entra na fila PDV · **não** bloqueia fechar caixa · fica **pendente** em `/entregas/` até **fechar o caixa** → aí vira **entregue** |
+| **Código** | `marcar_entrega_pendente_fechada` · `finalizar_entregas_pagas_pendentes_ao_fechar_caixa` · hook em `caixa_fechar` |
 
 ### ✅ Deploy loja **v6.15** — fix botão **Pagar** clique morto (02/07)
 
