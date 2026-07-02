@@ -4,6 +4,9 @@
     var root = null;
     var hideTimer = null;
     var visible = false;
+    var shownAt = 0;
+    /** Tempo mínimo visível — evita “piscar” quando a rede responde rápido. */
+    var MIN_VISIBLE_MS = 750;
 
     function el() {
         return root || (root = document.getElementById('agro-pdv-catalog-boot'));
@@ -15,12 +18,15 @@
             var node = el();
             if (!node) return;
             visible = true;
+            shownAt = Date.now();
             node.classList.remove('hidden');
             node.setAttribute('aria-hidden', 'false');
             document.body.classList.add('agro-pdv-boot-lock');
         },
         hide: function (delayMs) {
-            var ms = delayMs == null ? 0 : Math.max(0, Number(delayMs) || 0);
+            var extra = delayMs == null ? 0 : Math.max(0, Number(delayMs) || 0);
+            var elapsed = shownAt ? Date.now() - shownAt : MIN_VISIBLE_MS;
+            var ms = Math.max(extra, Math.max(0, MIN_VISIBLE_MS - elapsed));
             clearTimeout(hideTimer);
             hideTimer = setTimeout(function () {
                 var node = el();
