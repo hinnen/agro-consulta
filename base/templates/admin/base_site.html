@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="branding">
+  <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+  {% if user.is_superuser %}
+  <p style="margin:0;padding:6px 16px 10px;">
+    <a href="{% url 'pg_backup_painel' %}" style="font-weight:700;color:#ea580c;">⬇⬆ Backup Postgres Agro</a>
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

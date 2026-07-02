@@ -1147,7 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.58** · **loja v6.12**
+**Versão app (`VERSION`):** **teste v6.60** · **loja v6.13**
+
+### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *teste demora / manda produção* + **`99738595`** |
+| **O quê** | Cherry **`454c3ad`** + **`c1a049b`** — painel `/interno/pg-backup/` · ZIP+Excel+restore · card **Operações SisVale** no Admin |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 · Admin → **Operações SisVale** → Backup Postgres · baixar ZIP · (restore só com senha admin) |
 
 ### 🚀 Deploy loja **v6.12** — orçamentos Postgres (03/07)
 
@@ -1158,6 +1167,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Migrate** | **`0048_orcamento_pdv_agro`** |
 | **Risco** | Baixo — tabela nova; se API falhar, PDV mantém `localStorage` |
 | **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · outro PC mesmo cliente · bip GMORC · Caixa/topbar overlay OK |
+
+### ✅ **FL-048** — painel backup Postgres Agro (03/07 · Renan)
+
+**Status:** **✅ loja v6.13** + teste v6.60 — painel + download ZIP + Excel + restore.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **URL** | `/interno/pg-backup/` · **Admin** → bloco **«Operações SisVale»** (topo da lista) + link no cabeçalho |
+| **ZIP** | `manifest.json` + `resumo.xlsx` (legível) + `data/<categoria>.jsonl` |
+| **Seleção** | Checkbox por categoria · marcar todas = backup **completo** (1 arquivo) |
+| **Restore** | Ativo (mesmo código teste/loja) · frase `RESTAURAR BACKUP PG` + **senha admin Django** |
+| **Fluxo Renan** | Baixar na **loja** → subir no **teste** → validar |
+| **Arquivos** | `pg_backup_registry.py` · `pg_backup_util.py` · `pg_backup_views.py` · `pg_backup_painel.html` |
+
+**⚠️ Renan:** trocar **senha fraca do admin Django** antes de usar restore na loja.
+
+**Validar teste:** Admin → Backup Postgres → marcar 1 categoria pequena → baixar → restaurar no teste.
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
@@ -2061,6 +2087,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
+| **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | ✅ loja **v6.13** | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
@@ -2113,6 +2140,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-042 | `relacionamento-import-erp-1x` | Mongo DtoVenda 1× → Postgres histórico · merge F8 · **sem** leitura Mongo no PDV · Excel = audit |
 | FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
+| FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
 
 **Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
 
