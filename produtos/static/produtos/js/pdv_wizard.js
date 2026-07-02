@@ -320,6 +320,7 @@
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
+    var ENTREGAS_PENDENTES_LS_KEY = 'agro_pdv_entregas_pendentes_v1';
     var wizardClientesCache = [];
     var wizardClientesCacheReady = false;
     var wizardClientesCacheLoading = false;
@@ -3081,11 +3082,35 @@
     function refreshEntregasPendentesUi(silent) {
         var url = urls.apiPdvEntregasPendentes;
         if (!url) return Promise.resolve();
+        if (window.AgroPdvOfflineCache) {
+            var cached = window.AgroPdvOfflineCache.readPayload(ENTREGAS_PENDENTES_LS_KEY);
+            if (cached && Array.isArray(cached.itens)) {
+                entregasPendentesCache.total = cached.total || 0;
+                entregasPendentesCache.itens = cached.itens;
+                applyEntregasPendentesButton();
+                if (
+                    !silent &&
+                    dom.entregasPendentesModal &&
+                    dom.entregasPendentesModal.open
+                ) {
+                    renderEntregasPendentesList();
+                }
+                if (!window.AgroPdvOfflineCache.isStale(ENTREGAS_PENDENTES_LS_KEY, window.AgroPdvOfflineCache.TTL.ENTREGAS_MS)) {
+                    return Promise.resolve();
+                }
+            }
+        }
         return jsonGet(url)
             .then(function (res) {
                 if (!res.ok || !res.data || !res.data.ok) return;
                 entregasPendentesCache.total = res.data.total || 0;
                 entregasPendentesCache.itens = res.data.itens || [];
+                if (window.AgroPdvOfflineCache) {
+                    window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
+                        total: entregasPendentesCache.total,
+                        itens: entregasPendentesCache.itens,
+                    });
+                }
                 applyEntregasPendentesButton();
                 if (
                     !silent &&
@@ -6368,6 +6393,14 @@
             return Promise.resolve(wizardClientesCache.length);
         }
         hydrateWizardClientesFromStorage();
+        if (
+            wizardClientesCacheReady &&
+            !force &&
+            window.AgroPdvOfflineCache &&
+            !window.AgroPdvOfflineCache.isStale(PDV_CLIENTES_LS_KEY, window.AgroPdvOfflineCache.TTL.CLIENTES_MS)
+        ) {
+            return Promise.resolve(wizardClientesCache.length);
+        }
         if (!urls.apiListCustomers) return Promise.resolve(wizardClientesCache.length);
         wizardClientesCacheLoading = true;
         return fetch(urls.apiListCustomers, { credentials: 'same-origin' })
@@ -10127,15 +10160,19 @@
         if (nome) State.setPagamentoField('operadorPdv', nome);
     });
 
-    refreshEntregasPendentesUi(true);
-    if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
-    entregasPendentesPollTimer = setInterval(function () {
-        refreshEntregasPendentesUi(true);
-    }, 45000);
-
-    if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
-        window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
-        window.AgroPdvPromocoes.carregar({ empresa: 'centro' });
+    function carregarDadosSecundariosPdv() {
+        if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
+            window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
+            window.AgroPdvPromocoes.carregar({ empresa: 'centro' });
+        }
+        loadWizardClientesCache(false);
+        setTimeout(function () {
+            refreshEntregasPendentesUi(true);
+            if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
+            entregasPendentesPollTimer = setInterval(function () {
+                refreshEntregasPendentesUi(true);
+            }, 45000);
+        }, 1200);
     }
 
     loadWizardCatalog()
@@ -10154,9 +10191,10 @@
             try {
                 sessionStorage.removeItem(CATALOG_STORAGE_KEY);
             } catch (errRm) {}
+        })
+        .finally(function () {
+            carregarDadosSecundariosPdv();
         });
-
-    loadWizardClientesCache(false);
 
     window.AgroPdvAddProductByCode = function (code) {
         var c = String(code || '').trim();

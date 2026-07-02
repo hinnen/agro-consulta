@@ -1144,7 +1144,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.61+** · **loja v6.14**
 
-**WIP teste:** PDV splash «CARREGANDO…» na 1ª carga do catálogo (sem cache) · `/consulta/` + wizard PDV.
+**WIP teste:** PDV splash 1ª carga · cache offline (catálogo, clientes 4h, promo 2h, entregas 90s, PIN sessão modo descanso).
 
 ### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
 
