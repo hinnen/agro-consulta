@@ -778,9 +778,24 @@
             });
     }
 
+    function pdvCatalogBootShow() {
+        if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.show();
+        else if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
+        else if (window.gmLoadingBar) window.gmLoadingBar.show();
+    }
+
+    function pdvCatalogBootHide() {
+        if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.hide(200);
+        else if (window.gmLoader) window.gmLoader.hide(180);
+        else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+
     function loadWizardCatalog() {
         if (catalogReady) return Promise.resolve();
-        if (catalogLoadPromise) return catalogLoadPromise;
+        if (catalogLoadPromise) {
+            pdvCatalogBootShow();
+            return catalogLoadPromise;
+        }
 
         try {
             var raw = sessionStorage.getItem(CATALOG_STORAGE_KEY);
@@ -804,6 +819,7 @@
         }
 
         var urlDelta = new URL('/api/todos-produtos/delta/', window.location.origin);
+        pdvCatalogBootShow();
         catalogLoadPromise = fetch(urlDelta.toString(), { credentials: 'same-origin' })
             .then(function (res) {
                 return res.text().then(function (text) {
@@ -831,6 +847,7 @@
             .finally(function () {
                 catalogLoadPromise = null;
                 updateSearchAwaitingPulse();
+                pdvCatalogBootHide();
             });
         return catalogLoadPromise;
     }

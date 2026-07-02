@@ -4915,6 +4915,18 @@ function fetchCatalogoPdvLocalCompleto() {
         .catch(function () { return null; });
 }
 
+function pdvCatalogBootShow() {
+    if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.show();
+    else if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
+    else if (window.gmLoadingBar) window.gmLoadingBar.show();
+}
+
+function pdvCatalogBootHide() {
+    if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.hide(180);
+    else if (window.gmLoader) window.gmLoader.hide(180);
+    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+}
+
 function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
     opts = opts || {};
     const silent = !!opts.silent;
@@ -4922,10 +4934,7 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
         function finish() {
             resolve();
         }
-        if (!jahAquecido) {
-            if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
-            else if (window.gmLoadingBar) window.gmLoadingBar.show();
-        }
+        if (!jahAquecido) pdvCatalogBootShow();
         const cached = lerCacheCatalogoPdv();
         const since = cached && cached.catalog_version ? cached.catalog_version : '';
         const u = new URL('/api/todos-produtos/delta/', window.location.origin);
@@ -4937,8 +4946,7 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     if (!jahAquecido && cached && cached.produtos) {
                         aplicarBasePdv(cached.produtos, `Base local pronta com ${cached.produtos.length} itens`);
                     }
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
@@ -4954,16 +4962,14 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     };
                     salvarCacheCatalogoPdv(novo);
                     if (!silent) mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
                 if (d && Array.isArray(d.produtos)) {
                     aplicarBasePdv(d.produtos, silent ? '' : `Base local pronta com ${d.produtos.length} itens`);
                     salvarCacheCatalogoPdv(d);
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
@@ -4976,8 +4982,7 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     } else if (!jahAquecido && !silent) {
                         mostrarStatusBusca('Catálogo indisponível — tente F5 ou aguarde o ERP.', 'orange');
                     }
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                 });
                 return;
@@ -4993,8 +4998,7 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     } else if (!jahAquecido) {
                         mostrarStatusBusca('Falha de rede; catálogo indisponível.', 'orange');
                     }
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                 });
             });
