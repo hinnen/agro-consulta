@@ -1171,6 +1171,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Riscos restantes (baixa):** cache agressivo Chrome · app Gestão aberto ao lado redirecionando foco (v6.11 bloqueia `pulseGestaoFocus` no PDV para Caixa/Vendas/Fiado).
 
+**Renan 02/07 madrugada:** *«parece que estão bom»* — validação definitiva na **abertura da loja** (Caixa/Vendas/Fiado → popup laranja · badge **v6.11**).
+
 ### ⚠️ Deploy loja **v6.10** — incompleto (02/07)
 
 | Item | Detalhe |
