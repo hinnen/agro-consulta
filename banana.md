@@ -1142,20 +1142,34 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.37** · **loja v5.98** *(pacotes 1–4 cherry — 01/07 noite, loja fechada)*
+**Versão app (`VERSION`):** **teste v6.40** · **loja v6.03** *(pacotes 1–4 + dual-window 01/07; docs checkpoint)*
 
-### ✅ Deploy loja **v5.77–v5.98** — pacotes 1–4 cherry (01/07 noite)
+### ✅ Deploy loja **v6.00** — 2 janelas Chrome PDV/Gestão (01/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode enviar para produção* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v5.99-20260701`** @ **`81c485c`** |
+| **Git produção** | **`fe97096`** · features **`bda42ca`** |
+| **Cherry-picks** | **`0dbd799`** → **`0f77603`** (6 commits) · **`c1f9970`** já estava **`771ad00`** |
+| **O quê** | PDV e Gestão em **2 atalhos Chrome** · Gestão **sem** guia PDV na sidebar · **sem** PDV F1 no topo do BI · overlay consultas ~95% · Início no PDV foca janela Gestão |
+| **Excluído** | **0048** orçamentos PG · PIN descanso **`135e785`** |
+| **Migrate** | Nenhuma · drift **base/estoque** pré-existente (igual pacotes 1–4) |
+
+**Validar loja:** Ctrl+F5 · atalho **Gestão** (`agro_app_role=gestao`) → BI/caixa **sem** botão PDV · atalho **PDV** → balcão dedicado · `scripts/criar_atalhos_sistvale.ps1` se faltar `.lnk`.
+
+### ✅ Deploy loja **v5.77–v5.99** — pacotes 1–4 cherry (01/07 noite)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar tudo para produção* (loja fechada); **sem** merge `teste` inteiro |
 | **Rollback** | Tag **`producao-rollback-v5.76-20260701`** @ **`7593664`** (HEAD anterior) |
-| **Git produção** | **`8328bae`** @ `producao` · features **`594c1cd`** |
+| **Git produção** | **`81c485c`** @ `producao` · features **`594c1cd`** |
 | **Pacote 1** | Caixa overlay 2 apps, PDV lateral F7/F3 (**sem** migração **0048** orçamentos PG) |
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
 | **Pacote 4** | Entregas pós-venda `venda_id` + fiado; painel sem rótulos ERP |
-| **Excluído teste (01/07 pacotes 1-4)** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** *(subiu no pacote v6.00)* |
+| **Excluído teste (pacotes 1–4)** | **0048** orçamentos PG, PIN **135e785**, dual window **0dbd799**, overlay **9896a90** *(subiu no pacote **v6.00**)* |
 | **Migrate** | **Sem** 0048; `makemigrations --check` ainda aponta drift **base/estoque** (pré-existente — não gerado neste deploy) |
 | **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
