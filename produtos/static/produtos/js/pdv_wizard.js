@@ -373,6 +373,11 @@
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
+    var WIZARD_FOCUS_DELTA_MIN_MS = 8000;
+    var wizardCatalogBootAt = 0;
+    var wizardCatalogLastFocusDeltaAt = 0;
+    var wizardCatalogFocusDeltaBusy = false;
+    var wizardStoragePatchTimer = null;
     var prevStepCache = '';
     var entregasPendentesPollTimer = null;
     var entregasPendentesCache = { total: 0, itens: [] };
@@ -751,6 +756,81 @@
             .catch(function () {});
     }
 
+    function aplicarWizardPatchesProdutos(patches) {
+        var rows = Array.isArray(patches) ? patches : [];
+        if (!rows.length || !wizardProductCatalog.length) return false;
+        var map = {};
+        wizardProductCatalog.forEach(function (p) {
+            map[String(p.id)] = p;
+        });
+        var touched = false;
+        rows.forEach(function (patch) {
+            if (!patch || patch.id == null) return;
+            var pid = String(patch.id);
+            var prev = map[pid];
+            if (prev) {
+                map[pid] = normalizeWizardCatalogProduct(Object.assign({}, prev, patch));
+                touched = true;
+            }
+        });
+        if (!touched) return false;
+        wizardProductCatalog = normalizeWizardCatalogList(
+            Object.keys(map).map(function (k) {
+                return map[k];
+            })
+        );
+        catalogReady = wizardProductCatalog.length > 0;
+        return true;
+    }
+
+    function agroWizardAplicarFilaPatchLocal(clearQueue) {
+        if (clearQueue === undefined) clearQueue = true;
+        if (!wizardProductCatalog.length) return false;
+        var items = [];
+        try {
+            var raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+            if (raw) {
+                var q = JSON.parse(raw);
+                if (q && Array.isArray(q.items)) items = q.items;
+            }
+        } catch (_) {}
+        if (!items.length) return false;
+        var patches = items
+            .map(function (it) {
+                return it && it.patch ? it.patch : it;
+            })
+            .filter(function (p) {
+                return p && p.id != null;
+            });
+        if (!patches.length) return false;
+        var ok = aplicarWizardPatchesProdutos(patches);
+        if (ok && clearQueue) {
+            try {
+                localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+            } catch (_) {}
+        }
+        return ok;
+    }
+
+    function agroWizardCatalogoRefreshNoFoco() {
+        if (document.hidden || !wizardProductCatalog.length) return;
+        if (wizardCatalogBootAt && Date.now() - wizardCatalogBootAt < 2500) return;
+
+        agroWizardAplicarFilaPatchLocal(true);
+
+        var now = Date.now();
+        if (now - wizardCatalogLastFocusDeltaAt < WIZARD_FOCUS_DELTA_MIN_MS) return;
+        if (wizardCatalogFocusDeltaBusy) return;
+        wizardCatalogFocusDeltaBusy = true;
+        wizardCatalogLastFocusDeltaAt = now;
+        var shared = lerWizardCatalogSharedCache();
+        syncWizardCatalogDelta(shared && shared.catalog_version ? shared.catalog_version : '', true).finally(
+            function () {
+                wizardCatalogFocusDeltaBusy = false;
+            }
+        );
+    }
+
     function fetchWizardCatalogFallback() {
         var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
         return fetch(url, { credentials: 'same-origin' })
@@ -793,6 +873,7 @@
 
     function loadWizardCatalog() {
         if (catalogReady) return Promise.resolve();
+        if (!wizardCatalogBootAt) wizardCatalogBootAt = Date.now();
         if (catalogLoadPromise) {
             pdvCatalogBootShow();
             return catalogLoadPromise;
@@ -10174,6 +10255,29 @@
             }, 45000);
         }, 1200);
     }
+
+    window.addEventListener('storage', function (ev) {
+        if (ev.key !== PDV_PATCH_QUEUE_KEY && ev.key !== PDV_SHARED_CATALOG_LS_KEY) return;
+        if (!wizardProductCatalog.length) return;
+        clearTimeout(wizardStoragePatchTimer);
+        wizardStoragePatchTimer = setTimeout(function () {
+            if (agroWizardAplicarFilaPatchLocal(true)) return;
+            if (ev.key !== PDV_SHARED_CATALOG_LS_KEY) return;
+            try {
+                var cached = lerWizardCatalogSharedCache();
+                if (!cached || !cached.produtos.length) return;
+                aplicarWizardCatalogRows(cached.produtos, true);
+            } catch (_) {}
+        }, 40);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) agroWizardCatalogoRefreshNoFoco();
+    });
+    window.addEventListener('focus', agroWizardCatalogoRefreshNoFoco);
+    window.addEventListener('pageshow', function (ev) {
+        if (ev.persisted) agroWizardCatalogoRefreshNoFoco();
+    });
 
     loadWizardCatalog()
         .then(function () {
