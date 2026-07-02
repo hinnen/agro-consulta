@@ -10,8 +10,11 @@ Splash de primeira carga do catálogo PDV — window.AgroPdvCatalogSplash.show()
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #383838;
+    background: rgba(248, 250, 252, 0.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     padding: 1.5rem;
+    pointer-events: auto;
   }
   .agro-pdv-boot.hidden {
     display: none !important;
@@ -26,6 +29,12 @@ Splash de primeira carga do catálogo PDV — window.AgroPdvCatalogSplash.show()
     gap: 1.75rem;
     max-width: 28rem;
     text-align: center;
+    padding: 1.75rem 2rem 2rem;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+      0 0 0 1px rgba(15, 23, 42, 0.08),
+      0 20px 50px rgba(15, 23, 42, 0.12);
   }
   .agro-pdv-boot__anim {
     position: relative;
@@ -114,7 +123,7 @@ Splash de primeira carga do catálogo PDV — window.AgroPdvCatalogSplash.show()
     font-size: clamp(1.35rem, 4vw, 1.85rem);
     font-weight: 900;
     letter-spacing: 0.06em;
-    color: #fff;
+    color: #0f172a;
     text-transform: uppercase;
     line-height: 1.2;
   }
@@ -122,7 +131,7 @@ Splash de primeira carga do catálogo PDV — window.AgroPdvCatalogSplash.show()
     margin: -0.75rem 0 0;
     font-size: clamp(0.85rem, 2.5vw, 1rem);
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.88);
+    color: #475569;
     line-height: 1.35;
   }
 </style>
