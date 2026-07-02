@@ -1146,6 +1146,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
+### 🔧 PDV subtotal — botões Pagar / Entrega sem quebra de linha (02/07 · WIP teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Botões **Pagamento** / **Entrega** (F7/F3) quebravam palavra no card subtotal — qualquer zoom |
+| **Fix** | **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · layout horizontal `nowrap` |
+| **Arquivos** | `step_produtos.html` · `pdv_wizard.html` (CSS) |
+| **Deploy** | Pendente push `teste` |
+
 ### ✅ Deploy loja **v6.05–v6.06** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
 
 | Item | Detalhe |

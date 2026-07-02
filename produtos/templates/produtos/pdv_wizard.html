@@ -522,12 +522,36 @@
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 28%);
   }
   #pdv-step1-subtotal-dock .pdv-step1-side-actions .pdv-step1-side-action-btn {
-    min-height: clamp(2.75rem, 8vh, 3.25rem);
-    flex-direction: column;
-    gap: 0.15rem;
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
-    text-align: center;
+    min-height: clamp(2.5rem, 7vh, 3rem);
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.45rem;
+    font-size: clamp(0.68rem, 0.45vw + 0.58rem, 0.78rem);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-label {
+    flex-shrink: 0;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-kbd {
+    flex-shrink: 0;
+    margin: 0;
+    display: inline-block;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-icon {
+    display: inline-flex;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  #pdv-step1-subtotal-dock .pdv-step1-side-action-icon svg {
+    width: 100%;
+    height: 100%;
   }
   #pdv-step1-side .pdv-step1-side-card { min-width: 0; }
   #pdv-step1-side .pdv-side-money { white-space: nowrap; }
