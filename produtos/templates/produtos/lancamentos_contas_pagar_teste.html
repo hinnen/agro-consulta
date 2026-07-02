@@ -2531,7 +2531,11 @@
     }
     const fromBootstrap = tentarHidratarBootstrapServidor();
     const fromCache = !fromBootstrap && tentarHidratarListaCache();
-    carregar(false, (fromBootstrap || fromCache) ? { staleRefresh: true } : {});
+    if (fromBootstrap || fromCache) {
+      setTimeout(function () { carregar(false, { staleRefresh: true }); }, 700);
+    } else {
+      carregar(false);
+    }
   }
 
     window.agroNovaSaidaOnSuccess = function (info) {

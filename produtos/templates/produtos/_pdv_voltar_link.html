@@ -1,6 +1,6 @@
-{# Link «Voltar ao PDV» — oculto no painel do balcao (use FECHAR/F1 do overlay). #}
-{% if request.GET.agro_pdv_overlay != '1' %}
-<a href="{% url 'pdv_home' %}" data-prefetch class="{% firstof link_class 'inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0' %}">
+{# Link «Voltar ao PDV» — oculto no painel do balcão (overlay) e no app Gestão (agro_app_role=gestao). #}
+{% if request.GET.agro_pdv_overlay != '1' and request.GET.agro_app_role != 'gestao' %}
+<a href="{% url 'pdv_home' %}" data-prefetch data-agro-pdv-voltar class="agro-pdv-voltar-link {% firstof link_class 'inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0' %}">
   <span>Voltar ao PDV</span>
   <kbd class="pointer-events-none rounded-md border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] font-black text-slate-700 tabular-nums" title="Fora de campos de texto, tecla F1 abre o PDV">F1</kbd>
 </a>

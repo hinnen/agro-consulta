@@ -1,6 +1,17 @@
 {# Tecla F1 e link «Voltar ao PDV». No painel do balcão (overlay), FECHAR em vez de navegar. #}
 <script>
 (function () {
+  function inGestaoContext() {
+    try {
+      if (window.AgroDualWindow && typeof window.AgroDualWindow.isGestaoContext === 'function') {
+        return window.AgroDualWindow.isGestaoContext();
+      }
+      return document.documentElement.getAttribute('data-agro-hide-pdv') === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
   function inPdvOverlay() {
     try {
       return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
@@ -42,6 +53,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.defaultPrevented) return;
     if (e.code !== 'F1' && e.key !== 'F1') return;
+    if (inGestaoContext()) return;
     if (inPdvOverlay()) {
       var t = e.target;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;

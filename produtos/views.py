@@ -851,7 +851,14 @@ def _enriquecer_doc_mongo_nome_postgres(doc: dict, pid: str) -> dict:
 @require_GET
 def api_produtos_gestao_facetas(request):
     """Marcas, categorias, subcategorias e fornecedores distintos (Mongo) para filtros da gestão."""
+    from django.core.cache import cache
+
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
+
+    _fac_cache_key = "agro_gestao_facetas_v1"
+    hit = cache.get(_fac_cache_key)
+    if hit is not None:
+        return JsonResponse({"ok": True, **hit})
 
     if agro_gestao_usa_postgres():
         from produtos import catalogo_agro as cat_agro
@@ -861,7 +868,9 @@ def api_produtos_gestao_facetas(request):
         except Exception as e:
             logger.warning("api_produtos_gestao_facetas (agro_pg): %s", e, exc_info=True)
             return JsonResponse({"ok": False, "erro": str(e)}, status=500)
-        return JsonResponse({"ok": True, "fonte": "agro_pg", **fac})
+        payload = {"fonte": "agro_pg", **fac}
+        cache.set(_fac_cache_key, payload, 900)
+        return JsonResponse({"ok": True, **payload})
 
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
@@ -902,15 +911,15 @@ def api_produtos_gestao_facetas(request):
     except Exception as e:
         logger.warning("api_produtos_gestao_facetas: %s", e, exc_info=True)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
-    return JsonResponse(
-        {
-            "ok": True,
-            "marcas": marcas,
-            "categorias": categorias,
-            "subcategorias": subcategorias,
-            "fornecedores": fornecedores,
-        }
-    )
+    payload = {
+        "fonte": "mongo",
+        "marcas": marcas,
+        "categorias": categorias,
+        "subcategorias": subcategorias,
+        "fornecedores": fornecedores,
+    }
+    cache.set(_fac_cache_key, payload, 900)
+    return JsonResponse({"ok": True, **payload})
 
 
 @login_required(login_url="/admin/login/")
@@ -10720,7 +10729,7 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
                 page=1,
                 page_size=50,
                 ordenacao="vencimento_asc",
-                skip_totais=False,
+                skip_totais=True,
             )
         except Exception:
             logger.exception("lancamentos_cp_bootstrap_payload postgres")
@@ -10767,7 +10776,7 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
             page=1,
             page_size=50,
             ordenacao="vencimento_asc",
-            skip_totais=False,
+            skip_totais=True,
         )
     except Exception:
         logger.exception("lancamentos_cp_bootstrap_payload")
@@ -11295,8 +11304,10 @@ def api_entrada_nota_salvar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_rascunhos(request):
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
     _, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not agro_entrada_nota_rascunho_postgres():
         return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
     try:
         lim = min(int(request.GET.get("limit") or 25), 80)

@@ -165,6 +165,16 @@
   function open(rawUrl, title, options) {
     options = options || {};
     var href = overlayUrl(rawUrl);
+    try {
+      var p = new URL(href, window.location.origin).pathname.toLowerCase();
+      if (p === '/' || p.indexOf('/dashboard') === 0 || p.indexOf('/atalhos') === 0) {
+        if (window.AgroDualWindow && typeof window.AgroDualWindow.focusGestao === 'function') {
+          window.AgroDualWindow.focusGestao(href);
+        }
+        return;
+      }
+    } catch (_) {}
+    options.force = true;
     var root = ensureRoot();
     var frame = root.querySelector('#agro-pdv-overlay-frame');
     resetMeta(title || titleFromUrl(href));
@@ -221,7 +231,11 @@
           return;
         }
         if (d.type === 'agro-open-inapp-tab' && d.href && openFlag) {
-          open(d.href, d.title || titleFromUrl(d.href));
+          try {
+            var p = new URL(d.href, location.origin).pathname.toLowerCase();
+            if (p === '/' || p.indexOf('/dashboard') === 0 || p.indexOf('/atalhos') === 0) return;
+          } catch (_) {}
+          open(d.href, d.title || titleFromUrl(d.href), { force: true });
         }
       } catch (_) {}
     },

@@ -110,6 +110,13 @@
       role = String(q.get('agro_app_role') || '').toLowerCase();
       if (role === 'pdv' || role === 'gestao') {
         localStorage.setItem(APP_ROLE_KEY, role);
+      } else if (inPdvOverlayFrame() || (inEmbed() && q.get('agro_pdv_overlay') === '1')) {
+        // Consultas no overlay do balcão — sempre extensão do PDV (não herdar gestão do localStorage).
+        role = 'pdv';
+      } else if (isPdvPath()) {
+        role = 'pdv';
+      } else if (isGestaoShellPath()) {
+        role = 'gestao';
       } else {
         role = String(localStorage.getItem(APP_ROLE_KEY) || '').toLowerCase();
       }
@@ -287,8 +294,18 @@
       postToTop({ type: 'agro-open-inapp-tab', href: url, title: title || '' });
       return;
     }
-    if (isPdvHost() && window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function') {
-      window.AgroPdvOverlay.open(url, title);
+    var path = '';
+    try {
+      path = pathnameNorm(new URL(url, window.location.origin).pathname);
+    } catch (_) {
+      path = '';
+    }
+    if (
+      window.AgroPdvOverlay &&
+      typeof window.AgroPdvOverlay.open === 'function' &&
+      (isPdvHost() || readAppRole() === 'pdv' || shouldOpenInPdvOverlay(path))
+    ) {
+      window.AgroPdvOverlay.open(url, title, { force: true });
       return;
     }
     navigateGestao(url);
@@ -336,6 +353,7 @@
   /** Gestão (atalho ou shell) — inclui BI dentro do iframe com agro_inapp_embed. */
   function isGestaoContext() {
     if (isPdvHost()) return false;
+    if (inPdvOverlayFrame()) return false;
     if (readAppRole() === 'gestao') return true;
     if (window.name === GESTAO_NAME) return true;
     try {
@@ -389,6 +407,8 @@
   function applyGestaoFocus(data) {
     if (!data) return;
     if (Date.now() - Number(data.ts || 0) > 12000) return;
+    // Janela PDV / balcão nunca deve receber foco Gestão (evita BI no overlay ou redirect).
+    if (isPdvHost() || readAppRole() === 'pdv') return;
     if (readAppRole() !== 'gestao' && !isGestaoHost()) return;
     try {
       window.focus();
@@ -558,9 +578,18 @@
           if (!isPdvHost() || inEmbed()) return;
           var d = ev.data || {};
           if (d.type === 'agro-open-inapp-tab' && d.href) {
+            var msgPath = '';
+            try {
+              msgPath = pathnameNorm(new URL(d.href, location.origin).pathname);
+            } catch (_) {
+              msgPath = '';
+            }
             if (window.AgroPdvOverlay && window.AgroPdvOverlay.isOpen && window.AgroPdvOverlay.isOpen()) {
-              window.AgroPdvOverlay.open(d.href, d.title || '');
-            } else if (shouldOpenInPdvOverlay(new URL(d.href, location.origin).pathname)) {
+              // Não trocar overlay de caixa/consulta pelo BI (mensagem vinda da janela Gestão).
+              if (shouldOpenInPdvOverlay(msgPath)) {
+                window.AgroPdvOverlay.open(d.href, d.title || '', { force: true });
+              }
+            } else if (shouldOpenInPdvOverlay(msgPath)) {
               openPdvPanel(d.href, d.title || '');
             } else {
               navigateGestao(d.href);
