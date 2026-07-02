@@ -70,6 +70,8 @@
     width: 6.35rem;
     min-height: 4.15rem;
     box-sizing: border-box;
+    overflow: hidden;
+    pointer-events: none;
   }
   .pdv-cart-promo-badge {
     display: block;
@@ -94,8 +96,8 @@
     min-height: 2.65rem;
     padding: 0.18rem 0.32rem;
     white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .pdv-cart-promo-line {
     display: block;
@@ -149,8 +151,13 @@
   }
   .pdv-cart-promo--empty {
     visibility: hidden;
-    pointer-events: none;
     min-height: 4.15rem;
+  }
+  .pdv-cart-qty-wrap,
+  .pdv-cart-price-wrap,
+  .pdv-cart-remove {
+    position: relative;
+    z-index: 2;
   }
   .pdv-cart-row--mix {
     border-left-width: 4px !important;
@@ -347,6 +354,13 @@
     border: 2px solid #0ea5e9 !important;
     background: #bfdbfe !important;
     box-shadow: 0 20px 52px rgba(14, 116, 144, 0.28) !important;
+  }
+  #pdv-product-autocomplete.hidden {
+    display: none !important;
+    pointer-events: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: 0 !important;
   }
   #pdv-product-autocomplete .pdv-ac-scroll {
     flex: 0 1 auto;
