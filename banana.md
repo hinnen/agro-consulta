@@ -1142,18 +1142,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.43** · **loja v6.06** *(pacote perf + PDV/Gestão 02/07)*
+**Versão app (`VERSION`):** **teste v6.45** · **loja v6.07** *(PDV botões subtotal 02/07)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### 🔧 PDV subtotal — botões Pagar / Entrega sem quebra de linha (02/07 · WIP teste)
+### ✅ Deploy loja **v6.07** — PDV botões Pagar + ícone entrega (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Botões **Pagamento** / **Entrega** (F7/F3) quebravam palavra no card subtotal — qualquer zoom |
-| **Fix** | **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · layout horizontal `nowrap` |
-| **Arquivos** | `step_produtos.html` · `pdv_wizard.html` (CSS) |
-| **Deploy** | Pendente push `teste` |
+| **Autorização** | Renan — *manda* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v6.06-20260702`** @ **`d6c271f`** |
+| **Git** | **`teste` `0d5c094`** · **`producao` `aa9f66e`** |
+| **O quê** | Subtotal PDV: **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · sem quebra de linha |
+| **Validar loja** | Ctrl+F5 badge **v6.07** · botões subtotal em uma linha |
 
 ### ✅ Deploy loja **v6.05–v6.06** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
 
