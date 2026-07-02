@@ -1142,9 +1142,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.51** · **loja v6.09** *(fix v6.10 pendente — cache JS + isGestaoHost)*
+**Versão app (`VERSION`):** **teste v6.52** · **loja v6.09** *(fix popup 95% → **v6.10** pendente loja)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
+
+### 🐛 PDV Caixa abre shell Gestão em vez de popup 95% (02/07 madrugada · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma loja v6.09** | Caixa **abre**, mas tela cheia com **barra lateral** (app Gestão) — **não** popup laranja ~95% como antes |
+| **Teste v6.52** | Popup laranja OK (print Renan) |
+| **Causa** | Loja sem **`agro_asset_v`** → JS `agro_dual_window`/`agro_pdv_overlay` servidos com **`?v=1`** (cache antigo) · `openPdvPanel` estreito + fallback manda para janela Gestão (`pulseGestaoFocus`) |
+| **Fix teste** | Commits **`f5c42fb`** + **`5e7550d`** — bust cache por commit Render · `openPdvPanel`/`navigateGestao` reforçados |
+| **Subir loja** | Cherry-pick → **v6.10** · validar DevTools `agro_dual_window.js?v=<commit>` (não `v=1`) · Ctrl+Shift+R · Caixa → popup laranja |
 
 ### 🐛 PDV topbar — ainda quebrado pós-v6.09 (02/07 madrugada · Renan)
 
