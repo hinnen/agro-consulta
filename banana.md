@@ -1142,7 +1142,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.65** (WIP perf) · **loja v6.15**
+**Versão app (`VERSION`):** **teste v6.66** (WIP perf) · **loja v6.15**
 
 **WIP teste:** pacote **perf PC fraco** — splash 0,75s · F11 Config (FX PDV/Gestão) · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min · sync catálogo foco 5 min · overlay já esvazia ao fechar.
 
