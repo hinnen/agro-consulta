@@ -17,7 +17,7 @@
 
 **Assistente:** **sempre ler o `banana.md` inteiro** com **Read** (sem `limit`) **antes** de qualquer tarefa — **1ª ação do chat**; reler inteiro se o chat ficou longo ou houve resumo de contexto. Registrar alterações no `banana.md` quando necessário **sem pedir**. Não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` quando pertinente (ver CHECKPOINT). Detalhe na rule Cursor **§0**.
 
-**Comunicação com o Renan:** **sempre em português (BR).** Respostas **curtas e em linguagem de loja** — só o que for **estritamente importante** para decidir ou operar. **Evitar** nomes de arquivo, flag, API e detalhe de código **salvo se ele pedir** ou for indispensável numa instrução (ex.: uma linha no `.env`).
+**Comunicação com o Renan:** **sempre em português (BR).** **Modo econômico permanente** — respostas curtas; só o essencial (ação, decisão, risco). Detalhe só se pedir *«explica melhor»*. Evitar arquivo/flag/API salvo se indispensável.
 
 **Produção (regra dura — 2026-06-22, senha 2026-06-24):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem as duas coisas abaixo na mesma mensagem do Renan:**
 
@@ -1157,11 +1157,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Seleção** | Checkbox por categoria · marcar todas = backup **completo** (1 arquivo) |
 | **Restore** | Ativo (mesmo código teste/loja) · frase `RESTAURAR BACKUP PG` + **senha admin Django** |
 | **Fluxo Renan** | Baixar na **loja** → subir no **teste** → validar |
-| **Arquivos** | `pg_backup_registry.py` · `pg_backup_util.py` · `pg_backup_views.py` · `pg_backup_painel.html` |
+| **Arquivos** | `pg_backup_registry.py` · `pg_backup_util.py` · `pg_backup_render_checklist.py` · painel |
 
-**⚠️ Renan:** trocar **senha fraca do admin Django** antes de usar restore na loja.
+**Dois Postgres:** idênticos **no instante do restore**; depois cada banco segue separado.
 
-**Validar teste:** Admin → Backup Postgres → marcar 1 categoria pequena → baixar → restaurar no teste.
+**Rollback noite (dados):** backup antes de mexer → restore na loja fechada = Postgres como antes (código/deploy não volta sozinho).
+
+**Checklist Render:** na tela backup + fonte `pg_backup_render_checklist.py` (atualizar ao mudar env loja).
+
+**✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
+
+| Quem | Admin Django | Backup Postgres |
+| ---- | ------------ | --------------- |
+| **Superuser** (você) | Sim | Baixar + restaurar (com senha) |
+| **Usuário loja** (staff, sem superuser) | Só o que o perfil permitir | **Não** aparece |
+
+**Validar:** login superuser → Admin → **Operações SisVale** · login usuário loja → **sem** bloco backup.
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 

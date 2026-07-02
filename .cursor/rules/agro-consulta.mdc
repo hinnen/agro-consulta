@@ -42,9 +42,14 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
 - **Monitores / escala:** calibração global **Agro Display Scale** (§11) — layout em `rem`/`clamp`; não zoom do Chrome por tela.
 
+## Comunicação com Renan (permanente — 2026-07-03)
+
+- **Modo econômico sempre** — respostas **curtas**; só o essencial (ação, decisão, risco).
+- **Detalhes** só quando ele pedir (*«explica melhor»*, *«não entendi X»*).
+- Português (BR); linguagem de loja; evitar arquivo/API/flag salvo se indispensável (ver `banana.md`).
+
 ## Como trabalhar
 
-- Respostas curtas (modo econômico) quando o usuário pedir.
 - **Antes de editar:** uma linha com o plano.
 - **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
 - Preferir **um patch coeso** por entrega.

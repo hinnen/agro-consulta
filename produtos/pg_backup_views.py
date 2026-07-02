@@ -10,6 +10,13 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from produtos.pg_backup_registry import PG_BACKUP_ALL_SLUGS, RESTORE_CONFIRM_PHRASE
+from produtos.pg_backup_render_checklist import (
+    CHECKLIST_REV,
+    DISASTER_RECOVERY_STEPS,
+    NOTAS_CURTAS,
+    RENDER_ENV_ROWS,
+    ROLLBACK_NOITE_STEPS,
+)
 from produtos.pg_backup_util import build_backup_zip, listar_categorias_stats, restore_backup_zip
 
 
@@ -33,6 +40,11 @@ def pg_backup_painel(request):
         "categories": listar_categorias_stats(),
         "all_slugs": PG_BACKUP_ALL_SLUGS,
         "restore_confirm_phrase": RESTORE_CONFIRM_PHRASE,
+        "checklist_rev": CHECKLIST_REV,
+        "render_env_rows": RENDER_ENV_ROWS,
+        "disaster_steps": DISASTER_RECOVERY_STEPS,
+        "rollback_steps": ROLLBACK_NOITE_STEPS,
+        "checklist_notas": NOTAS_CURTAS,
         "flash_ok": "",
         "flash_erro": "",
         "restore_result": None,
