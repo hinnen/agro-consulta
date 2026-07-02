@@ -1053,4 +1053,30 @@
 
     if (window.lucide) window.lucide.createIcons();
   })();
+
+  (function agroDashChartPause() {
+    var charts = function () {
+      return [window.__dashMainChart, window.__dashStoreChart, window.__dashGastoChart].filter(Boolean);
+    };
+    window.agroDashPauseCharts = function () {
+      document.documentElement.classList.add('agro-dash-charts-paused');
+      charts().forEach(function (c) {
+        try {
+          if (typeof c.updateOptions === 'function') {
+            c.updateOptions({ chart: { animations: { enabled: false } } }, false, false);
+          }
+        } catch (_) {}
+      });
+    };
+    window.agroDashResumeCharts = function () {
+      document.documentElement.classList.remove('agro-dash-charts-paused');
+      charts().forEach(function (c) {
+        try {
+          if (typeof c.updateOptions === 'function') {
+            c.updateOptions({ chart: { animations: { enabled: true } } }, false, false);
+          }
+        } catch (_) {}
+      });
+    };
+  })();
 </script>

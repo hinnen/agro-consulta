@@ -270,6 +270,9 @@
     background: linear-gradient(160deg, rgba(251, 191, 36, 0.4), rgba(249, 115, 22, 0.5));
     color: #fffbeb;
   }
+  button.agro-inapp-tab.agro-inapp-tab-resting {
+    opacity: 0.72;
+  }
   button.agro-inapp-tab.agro-inapp-tab-plus {
     min-height: 44px;
     font-size: 22px;
@@ -881,6 +884,96 @@
   }
 
   var USER_SLOTS = 3;
+  /** Repouso abas livres: leve = pausa animações · médio = descarrega iframe (só após muito tempo parado) */
+  var TAB_ECONOMY_LIGHT_MS = 5 * 60 * 1000;
+  var TAB_ECONOMY_SLEEP_MS = 20 * 60 * 1000;
+  var tabEconomyTickStarted = false;
+
+  function postTabEconomy(iframeEl, mode) {
+    if (!iframeEl) return;
+    try {
+      iframeEl.contentWindow.postMessage({ type: 'agro-tab-economy', mode: mode }, location.origin);
+    } catch (_) {}
+  }
+
+  function pauseDashboardPane() {
+    if (shell.dashIframe) postTabEconomy(shell.dashIframe, 'pause');
+  }
+
+  function resumeDashboardPane() {
+    if (shell.dashIframe) postTabEconomy(shell.dashIframe, 'resume');
+  }
+
+  function touchUserSlot(ix) {
+    var S = shell.userSlots[ix];
+    if (!S) return;
+    S.lastActiveAt = Date.now();
+  }
+
+  function wakeUserSlot(ix) {
+    var S = shell.userSlots[ix];
+    if (!S || !S.iframe) return;
+    if (S.economyState === 'sleep') {
+      var url = S.sleepUrl || S.url;
+      S.economyState = null;
+      S.iframe.src = withEmbedParam(url || '/');
+      if (S.mainBtn) S.mainBtn.classList.remove('agro-inapp-tab-resting');
+    } else if (S.economyState === 'pause') {
+      S.economyState = null;
+      postTabEconomy(S.iframe, 'resume');
+      if (S.mainBtn) S.mainBtn.classList.remove('agro-inapp-tab-resting');
+    }
+    touchUserSlot(ix);
+  }
+
+  function pauseUserSlot(ix) {
+    var S = shell.userSlots[ix];
+    if (!S || !S.iframe || S.economyState === 'sleep' || S.economyState === 'pause') return;
+    S.economyState = 'pause';
+    postTabEconomy(S.iframe, 'pause');
+    if (S.mainBtn) S.mainBtn.classList.add('agro-inapp-tab-resting');
+  }
+
+  function sleepUserSlot(ix) {
+    var S = shell.userSlots[ix];
+    if (!S || !S.iframe || S.economyState === 'sleep') return;
+    S.economyState = 'sleep';
+    S.sleepUrl = S.url;
+    try {
+      S.iframe.contentWindow.location.replace('about:blank');
+    } catch (_) {}
+    S.iframe.removeAttribute('src');
+    if (S.mainBtn) S.mainBtn.classList.add('agro-inapp-tab-resting');
+  }
+
+  function tickUserSlotEconomy() {
+    if (!shell || !shell.userSlots) return;
+    var now = Date.now();
+    var active = shell.activeWhich;
+    for (var u = 0; u < USER_SLOTS; u++) {
+      var S = shell.userSlots[u];
+      if (!S || !S.iframe) continue;
+      if (active === 'u' + u) {
+        if (S.economyState) wakeUserSlot(u);
+        else touchUserSlot(u);
+        continue;
+      }
+      var last = Number(S.lastActiveAt || 0);
+      if (!last) {
+        touchUserSlot(u);
+        continue;
+      }
+      var idle = now - last;
+      if (idle >= TAB_ECONOMY_SLEEP_MS) sleepUserSlot(u);
+      else if (idle >= TAB_ECONOMY_LIGHT_MS) pauseUserSlot(u);
+    }
+  }
+
+  function ensureTabEconomyTick() {
+    if (tabEconomyTickStarted) return;
+    tabEconomyTickStarted = true;
+    window.setInterval(tickUserSlotEconomy, 30000);
+  }
   /** Após “Sair” do PDV Wizard: manter guia PDV ativa ao abrir o dashboard (`/`). */
   var PIN_SIDEBAR_TAB_KEY = 'agro_pin_sidebar_tab';
 
@@ -1147,15 +1240,28 @@
   }
 
   function showWhich(which) {
+    var prev = shell.activeWhich;
     if (which === 'pdv' && dualWindowMode()) {
       goPdvTab();
       return;
+    }
+    if (prev === 'dash' && which !== 'dash') pauseDashboardPane();
+    if (which === 'dash') {
+      ensureDashboardHome();
+      resumeDashboardPane();
+    }
+    if (typeof prev === 'string' && prev.indexOf('u') === 0 && which !== prev) {
+      var prevIx = parseInt(prev.slice(1), 10);
+      if (Number.isFinite(prevIx)) touchUserSlot(prevIx);
+    }
+    if (typeof which === 'string' && which.indexOf('u') === 0) {
+      var nextIx = parseInt(which.slice(1), 10);
+      if (Number.isFinite(nextIx)) wakeUserSlot(nextIx);
     }
     shell.activeWhich = which;
     if (shell.wrapEl)
       shell.wrapEl.style.display = which === 'prim' ? 'block' : 'none';
 
-    if (which === 'dash') ensureDashboardHome();
     shell.pdvPane && shell.pdvPane.classList.toggle('agro-inapp-pane-active', which === 'pdv');
     shell.dashPane && shell.dashPane.classList.toggle('agro-inapp-pane-active', which === 'dash');
 
@@ -1307,6 +1413,7 @@
   }
 
   function wirePdvTabLabelSync() {
+    if (!shell.pdvBtn || !shell.pdvIframe) return;
     function pull() {
       fillTabButton(shell.pdvBtn, '🛒', 'PDV');
       shell.pdvBtn.title = dualWindowMode() ? 'Ir ao balcão (outra janela)' : 'Ponto de venda';
@@ -1430,7 +1537,7 @@
     /** remove slot antiga mesmo índice se existia */
     if (shell.userSlots[ix]) destroyUserSlot(ix);
 
-    shell.userSlots[ix] = { url: resolved };
+    shell.userSlots[ix] = { url: resolved, lastActiveAt: Date.now(), economyState: null };
 
     var wrap = document.createElement('span');
     wrap.className = 'agro-inapp-user-tab-wrap';
@@ -1586,24 +1693,30 @@
     shell.paneEl = document.createElement('div');
     shell.paneEl.id = 'agro-inapp-pane-stack';
 
-    shell.pdvPane = document.createElement('div');
-    shell.pdvPane.className = 'agro-inapp-pane';
-    shell.pdvIframe = document.createElement('iframe');
-    shell.pdvIframe.className = 'agro-inapp-iframe';
-    shell.pdvIframe.src = withEmbedParam(pdvHref());
-    shell.pdvIframe.loading = 'eager';
-    shell.pdvPane.appendChild(shell.pdvIframe);
+    var skipPdvPane = hideGestaoSidebarPdv();
+    if (!skipPdvPane) {
+      shell.pdvPane = document.createElement('div');
+      shell.pdvPane.className = 'agro-inapp-pane';
+      shell.pdvIframe = document.createElement('iframe');
+      shell.pdvIframe.className = 'agro-inapp-iframe';
+      shell.pdvIframe.src = withEmbedParam(pdvHref());
+      shell.pdvIframe.loading = 'eager';
+      shell.pdvPane.appendChild(shell.pdvIframe);
+      shell.paneEl.appendChild(shell.pdvPane);
+    } else {
+      shell.pdvPane = null;
+      shell.pdvIframe = null;
+    }
+
     shell.dashPane = document.createElement('div');
     shell.dashPane.className = 'agro-inapp-pane';
     shell.dashIframe = document.createElement('iframe');
     shell.dashIframe.className = 'agro-inapp-iframe';
-    shell.dashIframe.src = withEmbedParam(dashboardHref());
-    shell.dashIframe.loading = 'eager';
+    shell.dashIframe.loading = 'lazy';
     shell.dashPane.appendChild(shell.dashIframe);
 
-    shell.paneEl.appendChild(shell.pdvPane);
     shell.paneEl.appendChild(shell.dashPane);
-    wirePdvTabLabelSync();
+    if (!skipPdvPane) wirePdvTabLabelSync();
     wireDashboardTabLabelSync();
 
     b.insertBefore(shell.rail, b.firstChild);
@@ -1625,9 +1738,7 @@
     } catch (_) {}
     syncSidebarExpandBtn();
 
-    if (dualWindowMode() && shell.pdvPane) {
-      shell.pdvPane.style.display = 'none';
-    }
+    ensureTabEconomyTick();
 
     var pathNow = (location.pathname || '').split('?')[0];
     var pinTab = readAndClearPinSidebarTab();

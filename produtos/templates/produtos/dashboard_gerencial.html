@@ -268,6 +268,15 @@
         fill: #64748b;
         font-weight: 700;
     }
+    html.agro-dash-charts-paused .btn-main-pulsing-capri,
+    html.agro-dash-charts-paused .btn-main-pulsing-emerald,
+    html.agro-dash-charts-paused .kpi-validade-pulse,
+    html.agro-dash-charts-paused .kpi-validade-cta-blink,
+    html.agro-dash-charts-paused .sync-alert-pulse,
+    html.agro-dash-charts-paused .pulse-capri-strong,
+    html.agro-dash-charts-paused .pulse-emerald-strong {
+        animation-play-state: paused !important;
+    }
     /* Topo operacional — PDV / Orçamento pulsantes */
     @keyframes pulse-capri-strong {
         0% {
@@ -994,6 +1003,7 @@
                 <button type="button" onclick="dashLaunchpadAbrir('RH', '{% url 'rh_painel' %}', 'user-check')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="user-check"></i><span>Recursos Humanos</span></span><span class="launch-key">H</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Relatórios', '{% url 'relatorios_hub' %}', 'file-bar-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-bar-chart"></i><span>Relatórios gerais</span></span><span class="launch-key">T</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Contabilidade', '{% url 'contabilidade_painel' %}', 'calculator')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="calculator"></i><span>Contabilidade</span></span><span class="launch-key">U</span></button>
+                <button type="button" onclick="if(window.agroPerfConfig)window.agroPerfConfig.open('gestao')" class="launch-btn group border-2 border-slate-600 bg-slate-900/40"><span class="inline-flex items-center gap-3"><i data-lucide="settings"></i><span>Configuração</span></span><span class="launch-key">F11</span></button>
             </div>
         </div>
     </div>

@@ -5,7 +5,7 @@
     var hideTimer = null;
     var visible = false;
     var shownAt = 0;
-    /** Tempo mínimo visível — evita “piscar” quando a rede responde rápido. */
+    /** Tempo mínimo visível — evita “piscar” sem segurar o operador. */
     var MIN_VISIBLE_MS = 750;
 
     function el() {
