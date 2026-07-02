@@ -2250,6 +2250,20 @@
         }
     }
 
+    function irParaPagamentoFromProdutos() {
+        if (typeof hideSaleDoneToast === 'function') hideSaleDoneToast();
+        var state = State.getState();
+        if (!state.itens.length) {
+            alert('Adicione ao menos 1 item antes de ir para pagamento.');
+            return;
+        }
+        if (state.clienteMode === 'unset') {
+            alert('Defina o cliente ou consumidor final antes de ir para pagamento.');
+            return;
+        }
+        State.setCurrentStep('pagamento');
+    }
+
     function renderSummary(state, computed) {
         if (!dom.summaryClient) return;
         dom.summaryClient.textContent = currentClientName(state);
@@ -6847,18 +6861,24 @@
         var dismissEl = host.querySelector('[data-pdv-toast-dismiss]');
         if (dismissEl) {
             dismissEl.addEventListener('click', function () {
-                host.classList.add('opacity-0', 'translate-y-3');
-                host.classList.remove('opacity-100', 'translate-y-0');
+                hideSaleDoneToast();
             });
         }
-        host.classList.remove('opacity-0', 'translate-y-3');
+        host.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
         var ms = opts.durationMs || (tone === 'warn' ? 14000 : 5200);
         showSaleDoneFeedback._timer = setTimeout(function () {
-            host.classList.add('opacity-0', 'translate-y-3');
+            host.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
             host.classList.remove('opacity-100', 'translate-y-0');
         }, ms);
+    }
+
+    function hideSaleDoneToast() {
+        var host = document.getElementById('pdv-sale-toast');
+        if (!host) return;
+        host.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+        host.classList.remove('opacity-100', 'translate-y-0');
     }
 
     function nfceAtivoNoPdv() {
@@ -9106,19 +9126,7 @@
         }
 
         if (dom.step1Payment) {
-            dom.step1Payment.addEventListener('click', function () {
-                var state = State.getState();
-                var computed = State.getComputed();
-                if (!state.itens.length) {
-                    alert('Adicione ao menos 1 item antes de ir para pagamento.');
-                    return;
-                }
-                if (state.clienteMode === 'unset') {
-                    alert('Defina o cliente ou consumidor final antes de ir para pagamento.');
-                    return;
-                }
-                State.setCurrentStep('pagamento');
-            });
+            dom.step1Payment.addEventListener('click', irParaPagamentoFromProdutos);
         }
 
         if (dom.openBudgetHistory) dom.openBudgetHistory.addEventListener('click', openBudgetHistory);
