@@ -1147,7 +1147,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.47** · **loja v6.07** *(deploy v6.08 em andamento)*
+**Versão app (`VERSION`):** **teste v6.58** · **loja v6.12**
+
+### 🚀 Deploy loja **v6.12** — orçamentos Postgres (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *se não tiver risco de quebrar PDV pode enviar produção* + **`99738595`** |
+| **O quê** | Cherry isolado: migração **`0048`** + modelo `OrcamentoPdvAgro` + API `/api/pdv/orcamentos/` + bootstrap PDV (`apiPdvOrcamentos`, CSRF, `usuarioSalvamento`) · sync multi-PC · **sem** layout F7/F3 lateral do teste |
+| **Migrate** | **`0048_orcamento_pdv_agro`** |
+| **Risco** | Baixo — tabela nova; se API falhar, PDV mantém `localStorage` |
+| **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · outro PC mesmo cliente · bip GMORC · Caixa/topbar overlay OK |
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 

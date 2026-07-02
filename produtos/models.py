@@ -1620,3 +1620,38 @@ class RelacionamentoItemHistoricoErpAgro(models.Model):
 
     def __str__(self):
         return f"{self.descricao[:40]} × {self.quantidade}"
+
+
+class OrcamentoPdvAgro(models.Model):
+    """Orçamento salvo no PDV — espelho do histórico local (GMORC…) por cliente."""
+
+    orc_local_id = models.BigIntegerField(unique=True, db_index=True)
+    cliente_agro = models.ForeignKey(
+        ClienteAgro,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_pdv",
+        verbose_name="Cliente (cadastro PDV)",
+    )
+    cliente_nome = models.CharField(max_length=300, blank=True, default="")
+    cliente_key = models.CharField(max_length=120, db_index=True)
+    cliente_mode = models.CharField(max_length=32, blank=True, default="cliente")
+    payload_json = models.JSONField(default=dict)
+    total_texto = models.CharField(max_length=48, blank=True, default="")
+    entrega = models.BooleanField(default=False)
+    forma_pagamento = models.CharField(max_length=40, blank=True, default="")
+    usuario_registro = models.CharField(max_length=120, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Orçamento PDV"
+        verbose_name_plural = "Orçamentos PDV"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["cliente_key", "-criado_em"], name="orc_pdv_cli_key_dt_idx"),
+        ]
+
+    def __str__(self):
+        return f"GMORC{self.orc_local_id} · {self.cliente_nome[:40]}"

@@ -26,7 +26,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
 from django.templatetags.static import static
@@ -142,6 +142,7 @@ from .models import (
     NfceDocumentoAgro,
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
+    OrcamentoPdvAgro,
     EstoqueLote,
     Produto,
     ProdutoGestaoOverlayAgro,
@@ -8485,6 +8486,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
             "apiPdvRelacionamentoCliente": reverse("api_pdv_relacionamento_cliente"),
             "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
+            "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),
             "fiadoGestao": reverse("fiado_gestao"),
             "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
             "pdvRootUrl": pdv_root_url,
@@ -21962,6 +21964,142 @@ def api_pdv_limpar_checkout_draft(request):
     request.session.pop("pdv_checkout", None)
     request.session.modified = True
     return JsonResponse({"ok": True})
+
+
+def _orcamento_pdv_entry_from_model(obj: OrcamentoPdvAgro) -> dict:
+    payload = obj.payload_json if isinstance(obj.payload_json, dict) else {}
+    entry = dict(payload)
+    entry.setdefault("id", obj.orc_local_id)
+    entry.setdefault("orc_barcode", f"GMORC{obj.orc_local_id}")
+    entry.setdefault("cliente", obj.cliente_nome)
+    entry.setdefault("cliente_key", obj.cliente_key)
+    entry.setdefault("cliente_mode", obj.cliente_mode)
+    entry.setdefault("total", obj.total_texto)
+    entry.setdefault("entrega", obj.entrega)
+    entry.setdefault("forma_pagamento", obj.forma_pagamento)
+    if obj.usuario_registro and not entry.get("usuario"):
+        entry["usuario"] = obj.usuario_registro
+    if obj.criado_em and not entry.get("data"):
+        entry["data"] = obj.criado_em.strftime("%d/%m/%Y, %H:%M:%S")
+    return entry
+
+
+def _orcamento_pdv_cliente_agro_id(entry: dict) -> int | None:
+    ex = entry.get("cliente_extra")
+    if isinstance(ex, dict):
+        pk = ex.get("cliente_agro_pk")
+        if pk is not None and str(pk).strip() != "":
+            try:
+                return int(pk)
+            except (TypeError, ValueError):
+                pass
+    raw = entry.get("cliente_agro_id")
+    if raw is not None and str(raw).strip() != "":
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            pass
+    key = str(entry.get("cliente_key") or "")
+    if key.startswith("pk:"):
+        try:
+            return int(key[3:])
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _orcamento_pdv_trim_cliente(cliente_key: str, *, keep: int = 30) -> None:
+    key = str(cliente_key or "consumidor_final").strip() or "consumidor_final"
+    excess = list(
+        OrcamentoPdvAgro.objects.filter(cliente_key=key)
+        .order_by("-criado_em")
+        .values_list("pk", flat=True)[keep:]
+    )
+    if excess:
+        OrcamentoPdvAgro.objects.filter(pk__in=excess).delete()
+
+
+@login_required(login_url="/admin/login/")
+def api_pdv_orcamentos(request):
+    """GET: lista por cliente_key · POST: grava orçamento (payload completo do PDV)."""
+    if request.method == "GET":
+        key = str(request.GET.get("cliente_key") or "").strip()
+        if not key:
+            return JsonResponse({"ok": False, "erro": "cliente_key obrigatório"}, status=400)
+        limite = min(max(int(request.GET.get("limite") or 30), 1), 60)
+        qs = OrcamentoPdvAgro.objects.filter(cliente_key=key).order_by("-criado_em")[:limite]
+        items = [_orcamento_pdv_entry_from_model(o) for o in qs]
+        return JsonResponse({"ok": True, "items": items})
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["GET", "POST"])
+
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    entry = body.get("entry") if isinstance(body.get("entry"), dict) else body
+    if not isinstance(entry, dict):
+        return JsonResponse({"ok": False, "erro": "entry inválido"}, status=400)
+    try:
+        orc_id = int(entry.get("id") or entry.get("orc_local_id") or 0)
+    except (TypeError, ValueError):
+        orc_id = 0
+    if orc_id <= 0:
+        return JsonResponse({"ok": False, "erro": "id do orçamento inválido"}, status=400)
+    itens = entry.get("itens")
+    if not isinstance(itens, list) or not itens:
+        return JsonResponse({"ok": False, "erro": "orçamento sem itens"}, status=400)
+
+    cliente_key = str(entry.get("cliente_key") or "consumidor_final").strip() or "consumidor_final"
+    cliente_nome = str(entry.get("cliente") or "").strip()[:300]
+    cliente_mode = str(entry.get("cliente_mode") or "cliente").strip()[:32] or "cliente"
+    total_texto = str(entry.get("total") or "").strip()[:48]
+    forma = str(entry.get("forma_pagamento") or "").strip()[:40]
+    usuario = str(entry.get("usuario") or "").strip()[:120]
+    u_req = ""
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        u_req = (request.user.get_full_name() or "").strip() or (
+            request.user.get_username() if hasattr(request.user, "get_username") else ""
+        )
+    if not usuario:
+        usuario = u_req
+
+    cli_agro = None
+    capk = _orcamento_pdv_cliente_agro_id(entry)
+    if capk:
+        cli_agro = ClienteAgro.objects.filter(pk=capk).first()
+
+    payload = dict(entry)
+    payload["id"] = orc_id
+    payload.setdefault("orc_barcode", f"GMORC{orc_id}")
+    payload["cliente_key"] = cliente_key
+
+    obj, _created = OrcamentoPdvAgro.objects.update_or_create(
+        orc_local_id=orc_id,
+        defaults={
+            "cliente_agro": cli_agro,
+            "cliente_nome": cliente_nome,
+            "cliente_key": cliente_key,
+            "cliente_mode": cliente_mode,
+            "payload_json": payload,
+            "total_texto": total_texto,
+            "entrega": bool(entry.get("entrega")),
+            "forma_pagamento": forma,
+            "usuario_registro": usuario,
+        },
+    )
+    _orcamento_pdv_trim_cliente(cliente_key)
+    return JsonResponse({"ok": True, "item": _orcamento_pdv_entry_from_model(obj)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_orcamento_detalhe(request, orc_local_id: int):
+    obj = OrcamentoPdvAgro.objects.filter(orc_local_id=orc_local_id).first()
+    if not obj:
+        return JsonResponse({"ok": False, "erro": "Orçamento não encontrado"}, status=404)
+    return JsonResponse({"ok": True, "item": _orcamento_pdv_entry_from_model(obj)})
 
 
 def _media_diaria_vendas_por_produto(db, dias=30):

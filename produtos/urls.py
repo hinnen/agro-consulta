@@ -686,6 +686,8 @@ urlpatterns = [
     path('api/pdv/geocode-plus/', views.api_pdv_geocode_plus, name='api_pdv_geocode_plus'),
     path('api/pdv/checkout-draft/', views.api_pdv_salvar_checkout_draft, name='api_pdv_salvar_checkout_draft'),
     path('api/pdv/checkout-draft/clear/', views.api_pdv_limpar_checkout_draft, name='api_pdv_limpar_checkout_draft'),
+    path('api/pdv/orcamentos/', views.api_pdv_orcamentos, name='api_pdv_orcamentos'),
+    path('api/pdv/orcamentos/<int:orc_local_id>/', views.api_pdv_orcamento_detalhe, name='api_pdv_orcamento_detalhe'),
     path(
         'api/pdv/mp-point/criar/',
         views_mp_point.api_pdv_mp_point_criar,
