@@ -1193,14 +1193,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy** | **✅ loja v6.05** |
 | **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
 
-### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **✅ v6.08**
+### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **fix v6.49 teste**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Botões do topo (**Caixa**, **Consultar vendas**, **Fiado**) não abrem painel laranja — clique sem efeito |
-| **Causa** | `readAppRole` podia gravar **gestão** no app PDV (localStorage compartilhado) · fallback `navigateGestao` no modo atalho só fazia `pulseGestaoFocus` (sem UI) · Fiado já tinha `preventDefault` sem overlay |
-| **Fix** | `agro_dual_window.js`: path `/pdv/` força role PDV · `isPdvHost` por path (sem depender só de `dualFlag`) · `openPdvPanel` fallback `location.assign` · `navigateGestao` abre overlay em consultas · `pdv_wizard.js`: clique explícito Caixa/Vendas via `navegarAgroInApp` · `_agro_consulta_ui.html`: não esconder F1 no balcão só por `localStorage` gestão |
-| **Validar** | Ctrl+F5 no PDV · Caixa / Vendas / Fiado → overlay laranja · Gestão aberta ao lado não quebra |
+**Sintoma pós-v6.08:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
+
+**Causa:** `readAppRole` gravava `window.name = SistValePDV` em **qualquer** URL quando o `localStorage` dizia PDV (apps Chrome compartilham storage). A aba `/caixa/` virava «host PDV» → roteador interceptava links com `preventDefault` + `pulseGestaoFocus` (sem UI).
+
+**Correção:** `agro_dual_window.js` — `isPdvHost` só em `/pdv/` ou `/consulta/`; `window.name` só nessas rotas ou no shell gestão; `openPdvPanel` com fallback `location.assign`; nova guia caixa volta a navegar normal.
+
+**Validar:** Ctrl+F5 no PDV → Caixa/Vendas/Fiado abrem overlay · em `/caixa/` aberto em guia separada os cards do menu navegam.
 
 ### 🔧 Perf multi-tela — **✅ v6.05**
 

@@ -127,8 +127,6 @@
         localStorage.setItem(APP_ROLE_KEY, role);
       }
     } catch (_) {}
-    if (role === 'pdv') window.name = PDV_NAME;
-    else if (role === 'gestao') window.name = GESTAO_NAME;
     return role;
   }
 
@@ -262,8 +260,21 @@
 
   function navigateGestao(href) {
     var url = absUrl(href || gestaoUrl());
+    var navPath = '';
+    try {
+      navPath = pathnameNorm(new URL(url, window.location.origin).pathname);
+    } catch (_) {
+      navPath = '';
+    }
     if (inEmbed()) {
       postToTop({ type: 'agro-open-inapp-tab', href: url });
+      return;
+    }
+    if (
+      (isPdvHost() || isPdvPath() || readAppRole() === 'pdv') &&
+      shouldOpenInPdvOverlay(navPath)
+    ) {
+      openPdvPanel(url);
       return;
     }
     if (isGestaoHost()) {
@@ -283,6 +294,10 @@
       }
       if (shouldOpenInPdvOverlay(navPath)) {
         openPdvPanel(url);
+        return;
+      }
+      if (isPdvHost()) {
+        window.location.assign(url);
         return;
       }
       pulseGestaoFocus(url);
@@ -316,13 +331,14 @@
     } catch (_) {
       path = '';
     }
-    var onPdvBalcao =
-      isPdvHost() || isPdvPath() || readAppRole() === 'pdv' || shouldOpenInPdvOverlay(path);
-    if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function' && onPdvBalcao) {
-      window.AgroPdvOverlay.open(url, title, { force: true });
-      return;
-    }
+    var onPdvBalcao = isPdvHost();
     if (onPdvBalcao && shouldOpenInPdvOverlay(path)) {
+      if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function') {
+        try {
+          window.AgroPdvOverlay.open(url, title, { force: true });
+          return;
+        } catch (_) {}
+      }
       window.location.assign(url);
       return;
     }
@@ -358,10 +374,9 @@
 
   function isPdvHost() {
     if (inPdvOverlayFrame()) return false;
-    if (window.name === PDV_NAME) return true;
-    if (isPdvPath() && window.top === window.self) return true;
-    if (readAppRole() === 'pdv' && !inEmbed()) return true;
-    return dualFlagOn() && isPdvPath() && !inEmbed();
+    if (inEmbed()) return false;
+    if (!isPdvPath()) return false;
+    return window.top === window.self;
   }
 
   function isGestaoHost() {
@@ -405,9 +420,13 @@
   function assignWindowName() {
     if (!dualFlagOn() || inEmbed()) return;
     readAppRole();
-    if (window.name === PDV_NAME || window.name === GESTAO_NAME) return;
-    if (isPdvPath()) window.name = PDV_NAME;
-    else window.name = GESTAO_NAME;
+    if (isPdvPath()) {
+      window.name = PDV_NAME;
+      return;
+    }
+    if (isGestaoShellPath()) {
+      window.name = GESTAO_NAME;
+    }
   }
 
   function applyPdvFocus(data) {
@@ -561,7 +580,7 @@
     document.addEventListener(
       'click',
       function (e) {
-        if (!isPdvHost() && !isPdvPath()) return;
+        if (!isPdvHost()) return;
         if (inPdvOverlayFrame()) return;
         var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
         if (!a) return;
