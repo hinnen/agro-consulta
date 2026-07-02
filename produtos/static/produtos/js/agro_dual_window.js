@@ -260,8 +260,21 @@
 
   function navigateGestao(href) {
     var url = absUrl(href || gestaoUrl());
+    var navPath = '';
+    try {
+      navPath = pathnameNorm(new URL(url, window.location.origin).pathname);
+    } catch (_) {
+      navPath = '';
+    }
     if (inEmbed()) {
       postToTop({ type: 'agro-open-inapp-tab', href: url });
+      return;
+    }
+    if (
+      (isPdvHost() || isPdvPath() || readAppRole() === 'pdv') &&
+      shouldOpenInPdvOverlay(navPath)
+    ) {
+      openPdvPanel(url);
       return;
     }
     if (isGestaoHost()) {
@@ -283,11 +296,7 @@
         openPdvPanel(url);
         return;
       }
-      if (!peerRecentlyAlive(HEARTBEAT_GESTAO_KEY)) {
-        openPdvPanel(url);
-        return;
-      }
-      pulseGestaoFocus(url);
+      openPdvPanel(url);
       return;
     }
     var w = null;
