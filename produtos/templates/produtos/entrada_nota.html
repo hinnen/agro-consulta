@@ -8345,6 +8345,7 @@
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
     u.searchParams.set('entrada_nfe', '1');
+    u.searchParams.set('limit', '48');
     const r = await fetch(u.toString(), { credentials: 'same-origin' });
     if (!r.ok) return [];
     const j = await r.json().catch(() => ({}));

@@ -768,7 +768,7 @@
   function urlBuscaCadastro(qRaw) {
     var params = new URLSearchParams();
     params.set('q', String(qRaw || '').trim());
-    params.set('limit', '80');
+    params.set('limit', '64');
     if (ativosEl && ativosEl.checked) {
       params.set('ativo', '1');
     } else if (ativosEl) {
@@ -1098,7 +1098,6 @@
     var urlBusca = urlBuscaCadastro(qRaw);
     var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
-    fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
     return pLista
       .then(function (x) {
         if (gen !== carregarGen) return;
@@ -1227,7 +1226,6 @@
             setLoading(false);
           });
       }, 0);
-      if (locaisPdv.length) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
       return;
     }
 
@@ -1291,7 +1289,7 @@
       return;
     }
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = forcar ? 0 : (temCache ? 100 : 320);
+    var ms = forcar ? 0 : (temCache ? 80 : 240);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {

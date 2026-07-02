@@ -204,7 +204,10 @@ def buscar_documentos_unificado(
     _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
-            from produtos.views import motor_busca_consulta_documentos
+            from produtos.views import (
+                _CADASTRO_LISTA_MONGO_PROJ,
+                motor_busca_consulta_documentos,
+            )
 
             mongo_docs = motor_busca_consulta_documentos(
                 termo,
@@ -212,7 +215,10 @@ def buscar_documentos_unificado(
                 client,
                 limit=lim,
                 include_inactive=include_inactive,
-                projection=None,
+                projection=_CADASTRO_LISTA_MONGO_PROJ if skip_mongo_complemento else None,
+                regex_stage2_cap=80 if skip_mongo_complemento else None,
+                regex_stage3_cap=80 if skip_mongo_complemento else None,
+                regex_stage3b_cap=0 if skip_mongo_complemento else None,
             )
         except Exception:
             logger.warning("motor_busca_unificado: buscar Mongo falhou", exc_info=True)

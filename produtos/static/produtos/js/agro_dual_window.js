@@ -107,18 +107,24 @@
     var role = '';
     try {
       var q = new URLSearchParams(window.location.search || '');
-      role = String(q.get('agro_app_role') || '').toLowerCase();
-      if (role === 'pdv' || role === 'gestao') {
-        localStorage.setItem(APP_ROLE_KEY, role);
-      } else if (inPdvOverlayFrame() || (inEmbed() && q.get('agro_pdv_overlay') === '1')) {
+      if (inPdvOverlayFrame() || (inEmbed() && q.get('agro_pdv_overlay') === '1')) {
         // Consultas no overlay do balcão — sempre extensão do PDV (não herdar gestão do localStorage).
         role = 'pdv';
       } else if (isPdvPath()) {
+        // Balcão (/pdv/, /consulta/) vence agro_app_role=gestao no localStorage compartilhado.
         role = 'pdv';
-      } else if (isGestaoShellPath()) {
-        role = 'gestao';
       } else {
-        role = String(localStorage.getItem(APP_ROLE_KEY) || '').toLowerCase();
+        role = String(q.get('agro_app_role') || '').toLowerCase();
+        if (role === 'pdv' || role === 'gestao') {
+          localStorage.setItem(APP_ROLE_KEY, role);
+        } else if (isGestaoShellPath()) {
+          role = 'gestao';
+        } else {
+          role = String(localStorage.getItem(APP_ROLE_KEY) || '').toLowerCase();
+        }
+      }
+      if (role === 'pdv' || role === 'gestao') {
+        localStorage.setItem(APP_ROLE_KEY, role);
       }
     } catch (_) {}
     if (role === 'pdv') window.name = PDV_NAME;
@@ -269,6 +275,16 @@
       return;
     }
     if (appShortcutMode() && readAppRole() === 'pdv') {
+      var navPath = '';
+      try {
+        navPath = pathnameNorm(new URL(url, window.location.origin).pathname);
+      } catch (_) {
+        navPath = '';
+      }
+      if (shouldOpenInPdvOverlay(navPath)) {
+        openPdvPanel(url);
+        return;
+      }
       pulseGestaoFocus(url);
       return;
     }
@@ -300,12 +316,14 @@
     } catch (_) {
       path = '';
     }
-    if (
-      window.AgroPdvOverlay &&
-      typeof window.AgroPdvOverlay.open === 'function' &&
-      (isPdvHost() || readAppRole() === 'pdv' || shouldOpenInPdvOverlay(path))
-    ) {
+    var onPdvBalcao =
+      isPdvHost() || isPdvPath() || readAppRole() === 'pdv' || shouldOpenInPdvOverlay(path);
+    if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function' && onPdvBalcao) {
       window.AgroPdvOverlay.open(url, title, { force: true });
+      return;
+    }
+    if (onPdvBalcao && shouldOpenInPdvOverlay(path)) {
+      window.location.assign(url);
       return;
     }
     navigateGestao(url);
@@ -339,7 +357,9 @@
   }
 
   function isPdvHost() {
+    if (inPdvOverlayFrame()) return false;
     if (window.name === PDV_NAME) return true;
+    if (isPdvPath() && window.top === window.self) return true;
     if (readAppRole() === 'pdv' && !inEmbed()) return true;
     return dualFlagOn() && isPdvPath() && !inEmbed();
   }
@@ -509,7 +529,7 @@
         }
         return;
       }
-      if (isPdvHost() && shouldOpenInPdvOverlay(p)) {
+      if ((isPdvHost() || isPdvPath()) && shouldOpenInPdvOverlay(p)) {
         openPdvPanel(u, _titulo);
         return;
       }
@@ -541,7 +561,7 @@
     document.addEventListener(
       'click',
       function (e) {
-        if (!isPdvHost()) return;
+        if (!isPdvHost() && !isPdvPath()) return;
         if (inPdvOverlayFrame()) return;
         var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
         if (!a) return;

@@ -186,6 +186,7 @@
         productCashbackBalance: document.getElementById('pdv-product-cashback-balance'),
         productFiadoBalance: document.getElementById('pdv-product-fiado-balance'),
         fiadoGestaoOpen: document.getElementById('pdv-fiado-gestao-open'),
+        topbarCaixaLink: document.getElementById('pdv-topbar-caixa-link'),
         topbarFiadoLink: document.getElementById('pdv-topbar-fiado-link'),
         fiadoVencidosModal: document.getElementById('pdv-fiado-vencidos-modal'),
         fiadoVencidosCliente: document.getElementById('pdv-fiado-vencidos-cliente'),
@@ -1755,21 +1756,24 @@
         } catch (eAbs) {
             return;
         }
+        var dw = window.AgroDualWindow;
+        var onPdv =
+            dw &&
+            ((typeof dw.isPdvHost === 'function' && dw.isPdvHost()) ||
+                (typeof dw.isPdvPath === 'function' && dw.isPdvPath()));
         try {
-            if (window.AgroDualWindow && typeof window.AgroDualWindow.openPdvPanel === 'function') {
-                if (window.AgroDualWindow.isPdvHost && window.AgroDualWindow.isPdvHost()) {
-                    window.AgroDualWindow.openPdvPanel(url);
+            if (dw && typeof dw.openPdvPanel === 'function' && onPdv) {
+                dw.openPdvPanel(url);
+                return;
+            }
+            if (dw && typeof dw.navigateGestao === 'function') {
+                if (dw.inEmbed && dw.inEmbed()) {
+                    dw.navigateGestao(url);
                     return;
                 }
             }
-            if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
-                if (window.AgroDualWindow.inEmbed && window.AgroDualWindow.inEmbed()) {
-                    window.AgroDualWindow.navigateGestao(url);
-                    return;
-                }
-            }
-            if (window.AgroDualWindow && window.AgroDualWindow.enabled && window.AgroDualWindow.enabled()) {
-                window.AgroDualWindow.navigateGestao(url);
+            if (dw && dw.enabled && dw.enabled()) {
+                dw.navigateGestao(url);
                 return;
             }
         } catch (eDw) {}
@@ -9137,6 +9141,18 @@
                 openFiadoGestao();
             });
         }
+        if (dom.topbarCaixaLink) {
+            dom.topbarCaixaLink.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                navegarAgroInApp(dom.topbarCaixaLink.href);
+            });
+        }
+        document.querySelectorAll('#pdv-topbar-compact a[href*="vendas"]').forEach(function (link) {
+            link.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                navegarAgroInApp(link.href);
+            });
+        });
         if (dom.fiadoVencidosGestao) {
             dom.fiadoVencidosGestao.addEventListener('click', function (ev) {
                 ev.preventDefault();

@@ -8,10 +8,17 @@
     if (role === "gestao" || role === "pdv") {
       try { localStorage.setItem("agro_app_role_v1", role); } catch (_) {}
     }
+    var path = (location.pathname || "").toLowerCase().replace(/\/+$/, "") || "/";
+    var onPdvBalcao =
+      path === "/pdv" ||
+      path.indexOf("/pdv/") === 0 ||
+      path === "/consulta" ||
+      path.indexOf("/consulta/") === 0;
     if (
-      q.get("agro_inapp_embed") === "1" ||
-      role === "gestao" ||
-      localStorage.getItem("agro_app_role_v1") === "gestao"
+      !onPdvBalcao &&
+      (q.get("agro_inapp_embed") === "1" ||
+        role === "gestao" ||
+        localStorage.getItem("agro_app_role_v1") === "gestao")
     ) {
       document.documentElement.setAttribute("data-agro-hide-pdv", "1");
     }
