@@ -1142,19 +1142,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.43** · **loja v6.05** *(pacote perf + PDV/Gestão 02/07)*
+**Versão app (`VERSION`):** **teste v6.43** · **loja v6.06** *(pacote perf + PDV/Gestão 02/07)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### ✅ Deploy loja **v6.05** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
+### ✅ Deploy loja **v6.05–v6.06** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode subir tudo para produção* + senha **`99738595`** |
 | **Rollback** | Tag **`producao-rollback-v6.04-20260702`** @ **`84541c2`** |
+| **Git** | **`teste` `7b48e21`** · **`producao` `ea5f972`** + docs **`d6c271f`** · badge loja **`6.06`** |
 | **O quê** | **Perf:** facetas gestão cache 15 min + adiado no load · CP bootstrap sem totais · staleRefresh +700 ms · cap scan PG · entrada NF rascunhos sem 503 Mongo · **UX:** «Voltar PDV F1» some em Gestão · **Bug:** overlay Caixa no PDV não abre BI · **Ops:** scripts atalhos Chrome Win (`criar_atalhos` + `remover_apps`) |
 | **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+F5 badge **v6.05** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
+| **Validar loja** | Ctrl+F5 badge **v6.06** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
 
 ### 🐛 PDV overlay Caixa abre BI Gestão (01/07 · Renan) — **✅ v6.05**
 
