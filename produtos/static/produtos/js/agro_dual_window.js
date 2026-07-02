@@ -260,21 +260,8 @@
 
   function navigateGestao(href) {
     var url = absUrl(href || gestaoUrl());
-    var navPath = '';
-    try {
-      navPath = pathnameNorm(new URL(url, window.location.origin).pathname);
-    } catch (_) {
-      navPath = '';
-    }
     if (inEmbed()) {
       postToTop({ type: 'agro-open-inapp-tab', href: url });
-      return;
-    }
-    if (
-      (isPdvHost() || isPdvPath() || readAppRole() === 'pdv') &&
-      shouldOpenInPdvOverlay(navPath)
-    ) {
-      openPdvPanel(url);
       return;
     }
     if (isGestaoHost()) {
@@ -296,8 +283,8 @@
         openPdvPanel(url);
         return;
       }
-      if (isPdvHost()) {
-        window.location.assign(url);
+      if (!peerRecentlyAlive(HEARTBEAT_GESTAO_KEY)) {
+        openPdvPanel(url);
         return;
       }
       pulseGestaoFocus(url);
@@ -331,14 +318,15 @@
     } catch (_) {
       path = '';
     }
-    var onPdvBalcao = isPdvHost();
+    var onPdvBalcao =
+      isPdvHost() || isPdvPath() || readAppRole() === 'pdv' || shouldOpenInPdvOverlay(path);
+    if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function' && onPdvBalcao) {
+      try {
+        window.AgroPdvOverlay.open(url, title, { force: true });
+        return;
+      } catch (_) {}
+    }
     if (onPdvBalcao && shouldOpenInPdvOverlay(path)) {
-      if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function') {
-        try {
-          window.AgroPdvOverlay.open(url, title, { force: true });
-          return;
-        } catch (_) {}
-      }
       window.location.assign(url);
       return;
     }
@@ -374,9 +362,10 @@
 
   function isPdvHost() {
     if (inPdvOverlayFrame()) return false;
-    if (inEmbed()) return false;
-    if (!isPdvPath()) return false;
-    return window.top === window.self;
+    if (window.name === PDV_NAME) return true;
+    if (readAppRole() === 'pdv' && !inEmbed()) return true;
+    if (isPdvPath() && !inEmbed() && window.top === window.self) return true;
+    return false;
   }
 
   function isGestaoHost() {
@@ -580,7 +569,7 @@
     document.addEventListener(
       'click',
       function (e) {
-        if (!isPdvHost()) return;
+        if (!isPdvHost() && !isPdvPath()) return;
         if (inPdvOverlayFrame()) return;
         var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
         if (!a) return;
