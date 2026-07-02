@@ -2,12 +2,12 @@
 
 **Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
-**Este é o anexo obrigatório para tarefas da loja GM.** O `AGENTS.md` é enciclopédia (referência profunda); o Cursor carrega regra em `.cursor/rules/agro-consulta.mdc` (**§0 = ler este arquivo inteiro com Read antes de qualquer coisa**).
+**Este é o anexo de contexto da loja GM.** Leitura guiada: **`banana-roteiro.md`** (fluxograma — ler **antes** deste arquivo). O `AGENTS.md` é enciclopédia; regra Cursor em `.cursor/rules/agro-consulta.mdc` (**§0 = roteiro + trechos necessários**, não o banana inteiro salvo exceções no roteiro §5).
 
 
 | Você quer…                            | Faça                                                  |
 | ------------------------------------- | ----------------------------------------------------- |
-| **Loja GM Agro** (PDV, caixa, CP…)    | Anexe **`@banana`** + descreva a tarefa               |
+| **Loja GM Agro** (PDV, caixa, CP…)    | Descreva a tarefa (roteiro auto) ou **`@banana-roteiro`** |
 | **FOOD** (delivery em branco)         | Anexe **`@FOOD`** + `FOOD.md`                         |
 | Visão produto SisVale / multi-cliente | `SISTVALE.md`                                         |
 | Detalhe fino de UX / RH / Lançamentos | Some `@AGENTS.md` (§5–11, §9, §10)                    |
@@ -15,9 +15,7 @@
 | Decisão permanente no changelog       | *"atualize o AGENTS"* (raro; só quando você pedir)    |
 
 
-**Assistente:** **sempre ler o `banana.md` inteiro** com **Read** (sem `limit`) **antes** de qualquer tarefa — **1ª ação do chat**; reler inteiro se o chat ficou longo ou houve resumo de contexto. Registrar alterações no `banana.md` quando necessário **sem pedir**. Não perguntar ao Renan se deve atualizar o `AGENTS.md`. WIP, roadmap e checkpoint vão no `banana.md` quando pertinente (ver CHECKPOINT). Detalhe na rule Cursor **§0**.
-
-**Comunicação com o Renan:** **sempre em português (BR).** **Modo econômico permanente** — respostas curtas; só o essencial (ação, decisão, risco). Detalhe só se pedir *«explica melhor»*. Evitar arquivo/flag/API salvo se indispensável.
+**Assistente:** **1ª ação** = ler **`banana-roteiro.md` inteiro** e seguir o fluxograma (trechos do `banana.md`, não o arquivo todo — ver roteiro §5). Registrar alterações no `banana.md` quando necessário **sem pedir**. WIP e checkpoint no CHECKPOINT. Modo econômico: rule `.cursor/rules/modo-economico.mdc`.
 
 **Produção (regra dura — 2026-06-22, senha 2026-06-24):** **Nunca** `git push origin producao`, merge `teste`→`producao`, cherry-pick na loja ou deploy Render de produção **sem as duas coisas abaixo na mesma mensagem do Renan:**
 
@@ -1086,7 +1084,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## 6. Como trabalhar com o assistente (Renan ↔ Cursor)
 
-1. **Anexar contexto:** só `@banana` na maioria dos chats. `@AGENTS.md` é opcional (UX §11, RH §9, Lançamentos §10, tarefa muito ampla).
+1. **Anexar contexto:** na maioria dos chats só descrever a tarefa (roteiro carrega sozinho). `@banana-roteiro` se quiser forçar. `@AGENTS.md` opcional (UX §11, RH §9, Lançamentos §10).
 2. **Dois arquivos, papéis diferentes:** banana = memória viva (WIP, pendências, checkpoint). AGENTS = manual estável (não duplicar aqui).
 3. **Registro de alterações:** **sempre** atualizar `banana.md` ao entregar mudança no sistema (fix, feature, deploy) — CHECKPOINT + § do módulo; commits e versão para rollback/contexto. Ver regra no topo (*Registro no banana*). Renan pode pedir *"atualize a banana"* também. AGENTS §7 **só** se Renan pedir.
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
@@ -1094,7 +1092,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 6. **Entrega:** um patch coeso por tarefa.
 7. **Commits / teste:** push `**teste` automático** quando entregar fix (Renan valida no Render teste). Bump de `VERSION` (hook ou `python scripts/bump_version.py`). **Produção:** só quando Renan pedir (item 8).
 8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explícita **+ senha** (topo do banana). **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
-9. **Modo econômico:** Renan pode pedir respostas curtas.
+9. **Modo econômico:** permanente — rule `modo-economico.mdc`; detalhe só se Renan pedir.
 10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
 11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
 
@@ -1111,7 +1109,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` | Regra estoque                                                                        |
 | `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`  | Sessão clientes (histórico)                                                          |
 | `docs/GUIA_ABAS_NAVEGADOR_AGRO.md`      | Abas navegador                                                                       |
+| `banana-roteiro.md`                     | Fluxograma — o que ler no banana por tarefa (ler **antes** do banana)                |
 | `.cursor/rules/agro-consulta.mdc`       | Regra Cursor resumida (auto-carregada)                                               |
+| `.cursor/rules/modo-economico.mdc`      | Respostas curtas — permanente                                                        |
 
 
 ---
@@ -1142,7 +1142,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.61** · **loja v6.14**
+**Versão app (`VERSION`):** **teste v6.61+** · **loja v6.14**
+
+**WIP teste:** PDV splash «CARREGANDO…» na 1ª carga do catálogo (sem cache) · `/consulta/` + wizard PDV.
 
 ### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
 

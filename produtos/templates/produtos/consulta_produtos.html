@@ -468,6 +468,7 @@
 {% block pdv_section_class %}flex flex-col flex-1 min-h-0 overflow-hidden p-0 m-0 max-w-none{% endblock %}
 {% block pdv_content %}
 {% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/includes/pdv_catalog_boot_splash.html" %}
 {% if pdv_reabrir_data %}
 {{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
 {% endif %}

@@ -2513,6 +2513,7 @@
 
 {% block pdv_content %}
 {% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/includes/pdv_catalog_boot_splash.html" %}
 {{ pdv_bootstrap|json_script:"agro-pdv-wizard-bootstrap" }}
 {% if pdv_reabrir_from_consulta %}
 {{ pdv_reabrir_from_consulta|json_script:"pdv-wizard-reabrir-draft" }}

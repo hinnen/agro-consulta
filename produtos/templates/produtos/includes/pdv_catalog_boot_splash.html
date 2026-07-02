@@ -1,0 +1,146 @@
+{% load static %}
+{% comment %}
+Splash de primeira carga do catálogo PDV — window.AgroPdvCatalogSplash.show() / .hide(ms)
+{% endcomment %}
+<style>
+  .agro-pdv-boot {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #383838;
+    padding: 1.5rem;
+  }
+  .agro-pdv-boot.hidden {
+    display: none !important;
+  }
+  body.agro-pdv-boot-lock {
+    overflow: hidden !important;
+  }
+  .agro-pdv-boot__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
+    max-width: 28rem;
+    text-align: center;
+  }
+  .agro-pdv-boot__anim {
+    position: relative;
+    width: 10.5rem;
+    height: 10.5rem;
+    border-radius: 0.65rem;
+    background: #0a0a0a;
+    overflow: hidden;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 16px 48px rgba(0, 0, 0, 0.55);
+  }
+  .agro-pdv-boot__shelves {
+    position: absolute;
+    inset: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 1;
+  }
+  .agro-pdv-boot__row {
+    height: 0.55rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #1f2937 0%, #374151 40%, #1f2937 80%);
+    background-size: 200% 100%;
+    animation: agro-pdv-boot-shimmer 1.35s ease-in-out infinite;
+  }
+  .agro-pdv-boot__row:nth-child(2) { animation-delay: 0.12s; opacity: 0.92; }
+  .agro-pdv-boot__row:nth-child(3) { animation-delay: 0.24s; opacity: 0.84; }
+  .agro-pdv-boot__row:nth-child(4) { animation-delay: 0.36s; opacity: 0.76; }
+  .agro-pdv-boot__row:nth-child(5) { animation-delay: 0.48s; opacity: 0.68; }
+  @keyframes agro-pdv-boot-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .agro-pdv-boot__scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #34d399, #fbbf24, #34d399, transparent);
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.75);
+    animation: agro-pdv-boot-scan 1.8s ease-in-out infinite;
+    z-index: 2;
+  }
+  @keyframes agro-pdv-boot-scan {
+    0% { top: 12%; opacity: 0.35; }
+    45% { opacity: 1; }
+    100% { top: 88%; opacity: 0.35; }
+  }
+  .agro-pdv-boot__ring {
+    position: absolute;
+    inset: 1.35rem;
+    border: 2px solid rgba(16, 185, 129, 0.25);
+    border-radius: 50%;
+    animation: agro-pdv-boot-spin 2.4s linear infinite;
+    z-index: 0;
+  }
+  .agro-pdv-boot__ring::before,
+  .agro-pdv-boot__ring::after {
+    content: "";
+    position: absolute;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.9);
+  }
+  .agro-pdv-boot__ring::before {
+    top: -0.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .agro-pdv-boot__ring::after {
+    bottom: -0.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
+  }
+  @keyframes agro-pdv-boot-spin {
+    to { transform: rotate(360deg); }
+  }
+  .agro-pdv-boot__title {
+    margin: 0;
+    font-size: clamp(1.35rem, 4vw, 1.85rem);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    color: #fff;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .agro-pdv-boot__sub {
+    margin: -0.75rem 0 0;
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.35;
+  }
+</style>
+<div id="agro-pdv-catalog-boot" class="agro-pdv-boot hidden" role="dialog" aria-modal="true" aria-labelledby="agro-pdv-boot-title" aria-hidden="true">
+  <div class="agro-pdv-boot__inner">
+    <div class="agro-pdv-boot__anim" aria-hidden="true">
+      <div class="agro-pdv-boot__ring"></div>
+      <div class="agro-pdv-boot__shelves">
+        <div class="agro-pdv-boot__row"></div>
+        <div class="agro-pdv-boot__row"></div>
+        <div class="agro-pdv-boot__row"></div>
+        <div class="agro-pdv-boot__row"></div>
+        <div class="agro-pdv-boot__row"></div>
+      </div>
+      <div class="agro-pdv-boot__scan"></div>
+    </div>
+    <p id="agro-pdv-boot-title" class="agro-pdv-boot__title">CARREGANDO ... AGUARDE</p>
+    <p class="agro-pdv-boot__sub">isso só ocorre na primeira abertura do sistema</p>
+  </div>
+</div>
+<script src="{% static 'produtos/js/pdv_catalog_boot_splash.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
