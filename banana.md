@@ -1151,6 +1151,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
 
+### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
+
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *teste demora / manda produção* + **`99738595`** |
@@ -1168,24 +1170,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Risco** | Baixo — tabela nova; se API falhar, PDV mantém `localStorage` |
 | **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · outro PC mesmo cliente · bip GMORC · Caixa/topbar overlay OK |
 
-### ✅ **FL-048** — painel backup Postgres Agro (03/07 · Renan)
+### ✅ **FL-048** — backup Postgres + recuperação zero (em deploy v6.14)
 
-**Status:** **✅ loja v6.13** + teste v6.60 — painel + download ZIP + Excel + restore.
+**Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **URL** | `/interno/pg-backup/` · **Admin** → bloco **«Operações SisVale»** (topo da lista) + link no cabeçalho |
-| **ZIP** | `manifest.json` + `resumo.xlsx` (legível) + `data/<categoria>.jsonl` |
-| **Seleção** | Checkbox por categoria · marcar todas = backup **completo** (1 arquivo) |
-| **Restore** | Ativo (mesmo código teste/loja) · frase `RESTAURAR BACKUP PG` + **senha admin Django** |
-| **Fluxo Renan** | Baixar na **loja** → subir no **teste** → validar |
-| **Arquivos** | `pg_backup_registry.py` · `pg_backup_util.py` · `pg_backup_render_checklist.py` · painel |
+**Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com guias + `render-env-atual.env` (secrets reais).
 
-**Dois Postgres:** idênticos **no instante do restore**; depois cada banco segue separado.
+**Fora do ZIP:** código Git · dados *dentro* do Mongo ERP.
 
-**Rollback noite (dados):** backup antes de mexer → restore na loja fechada = Postgres como antes (código/deploy não volta sozinho).
+**Parcial / restore parcial:** checkbox por categoria — inalterado.
 
-**Checklist Render:** na tela backup + fonte `pg_backup_render_checklist.py` (atualizar ao mudar env loja).
+**Backup noturno:** cron 04h · `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` + webhook/S3 no Render.
+
+**Desastre:** novo Render → deploy `producao` → colar `kit/render-env-atual.env` (trocar `DATABASE_URL`) → migrate → superuser → Restore ZIP.
+
 
 **✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
 

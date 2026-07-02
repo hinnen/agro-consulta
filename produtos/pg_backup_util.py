@@ -27,6 +27,7 @@ from produtos.pg_backup_registry import (
     PG_BACKUP_FORMAT,
     PgBackupCategory,
 )
+from produtos.pg_backup_disaster_kit import append_kit_to_zipfile
 
 _EXCEL_PREVIEW_MAX_ROWS = 150
 _EXCEL_FULL_MAX_ROWS = 2500
@@ -231,6 +232,7 @@ def build_backup_zip(
             "resumo.xlsx",
             _build_excel_resumo(manifest=manifest, categories=categories, export_stats=export_stats),
         )
+        append_kit_to_zipfile(zf)
 
     stamp = timezone.now().strftime("%Y%m%d-%H%M%S")
     scope = "completo" if len(selected_slugs) == len(PG_BACKUP_ALL_SLUGS) else "parcial"

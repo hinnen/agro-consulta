@@ -17,6 +17,7 @@ from produtos.pg_backup_render_checklist import (
     RENDER_ENV_ROWS,
     ROLLBACK_NOITE_STEPS,
 )
+from produtos.pg_backup_disaster_kit import build_disaster_kit_zip
 from produtos.pg_backup_util import build_backup_zip, listar_categorias_stats, restore_backup_zip
 
 
@@ -64,6 +65,12 @@ def pg_backup_painel(request):
                 ctx["flash_erro"] = str(exc)
                 return render(request, "produtos/pg_backup_painel.html", ctx)
 
+            resp = HttpResponse(blob, content_type="application/zip")
+            resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return resp
+
+        if action == "kit":
+            blob, filename = build_disaster_kit_zip()
             resp = HttpResponse(blob, content_type="application/zip")
             resp["Content-Disposition"] = f'attachment; filename="{filename}"'
             return resp
