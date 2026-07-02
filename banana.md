@@ -1147,9 +1147,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.45** · **loja v6.07** *(PDV botões subtotal 02/07)*
+**Versão app (`VERSION`):** **teste v6.47** · **loja v6.07** *(deploy v6.08 em andamento)*
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
+
+### 🚀 Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode mandar para produção ambos* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v6.07-20260702`** @ **`aa9f66e`** |
+| **O quê** | **PDV:** Caixa / Consultar vendas / Fiado abrem overlay de novo · **Perf:** busca Entrada NF etapa 2 + Cadastro ERP (motor lite, cache 45 s) |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.08** · PDV topbar → overlay laranja · Entrada NF etapa 2 + Cadastro busca mais rápida |
 
 ### ✅ Deploy loja **v6.07** — PDV botões Pagar + ícone entrega (02/07)
 
@@ -1183,6 +1193,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy** | **✅ loja v6.05** |
 | **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
 
+### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **✅ v6.08**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Botões do topo (**Caixa**, **Consultar vendas**, **Fiado**) não abrem painel laranja — clique sem efeito |
+| **Causa** | `readAppRole` podia gravar **gestão** no app PDV (localStorage compartilhado) · fallback `navigateGestao` no modo atalho só fazia `pulseGestaoFocus` (sem UI) · Fiado já tinha `preventDefault` sem overlay |
+| **Fix** | `agro_dual_window.js`: path `/pdv/` força role PDV · `isPdvHost` por path (sem depender só de `dualFlag`) · `openPdvPanel` fallback `location.assign` · `navigateGestao` abre overlay em consultas · `pdv_wizard.js`: clique explícito Caixa/Vendas via `navegarAgroInApp` · `_agro_consulta_ui.html`: não esconder F1 no balcão só por `localStorage` gestão |
+| **Validar** | Ctrl+F5 no PDV · Caixa / Vendas / Fiado → overlay laranja · Gestão aberta ao lado não quebra |
+
 ### 🔧 Perf multi-tela — **✅ v6.05**
 
 | Tela | API / view principal | Fix **v6.05** |
@@ -1203,7 +1222,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | `api/entrada-nota/rascunhos/` | **&lt; 2 s** (sem 503 Mongo) |
 | `/api/buscar/?q=…&entrada_nfe=1` | **&lt; 1 s** busca 2+ chars |
 
-**Arquivos:** `views.py` · `lancamentos_financeiro_pg_util.py` · `produtos_gestao.html` · `lancamentos_contas_pagar_teste.html`
+### 🔧 Perf busca produtos — Entrada NF etapa 2 + Cadastro ERP (02/07 · Renan) — **✅ v6.08**
+
+| Tela | O quê | Fix |
+| ---- | ----- | --- |
+| **Entrada NF · produtos** | `/api/buscar/?entrada_nfe=1` ainda pesado (Mongo inteiro + ajustes estoque) | Motor **lite** (projeção slim, regex cap 80, sem ajustes PIN) · `limit=48` no front |
+| **Cadastro ERP · busca** | Lista demora ao digitar | Cache 45 s por termo · limite 64 · debounce 240 ms · sem badge ERP pendentes durante busca |
+
+**Arquivos:** `views.py` · `motor_busca_unificado_util.py` · `entrada_nota.html` · `cadastro_erp_panel.js`
+
+**Validar:** Ctrl+F5 · Entrada NF etapa 2 — buscar «ração» / GM · Cadastro — mesma busca · DevTools &lt; ~1 s na API
 
 ### 🔧 Fix — «Voltar ao PDV F1» some em Gestão — **✅ v6.05**
 

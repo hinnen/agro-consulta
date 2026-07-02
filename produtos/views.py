@@ -16779,6 +16779,28 @@ def motor_busca_consulta_documentos(
     return _merge_produtos_overlay_codigo_consulta(q, prods, db, client_m)
 
 
+def _buscar_mongo_lite_consulta(
+    q: str,
+    db,
+    client_m,
+    *,
+    limit: int = 64,
+) -> list[dict]:
+    """Entrada NF / buscas sem estoque — projeção slim + caps de regex (menos I/O Mongo)."""
+    lim = max(1, min(int(limit or 64), 120))
+    return motor_busca_consulta_documentos(
+        q,
+        db,
+        client_m,
+        limit=lim,
+        include_inactive=False,
+        projection=_CADASTRO_LISTA_MONGO_PROJ,
+        regex_stage2_cap=80,
+        regex_stage3_cap=80,
+        regex_stage3b_cap=0,
+    )
+
+
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
@@ -16797,6 +16819,11 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
+    try:
+        lim_busca_req = int(request.GET.get("limit") or (48 if entrada_nfe_mode else 80))
+    except (TypeError, ValueError):
+        lim_busca_req = 48 if entrada_nfe_mode else 80
+    lim_busca_req = max(1, min(lim_busca_req, 160))
     from produtos.agro_fonte_config import (
         agro_catalogo_usa_postgres,
         agro_pdv_catalogo_somente_postgres,
@@ -16858,29 +16885,39 @@ def api_buscar_produtos(request):
                         preco_por_id[pid_b] = preco_etiqueta
                         prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
                     else:
+                        if busca_lite and db is not None:
+                            prods = _buscar_mongo_lite_consulta(
+                                q, db, client, limit=lim_busca_req
+                            )
+                        else:
+                            from produtos.motor_busca_unificado_util import buscar_documentos_unificado
+
+                            prods = buscar_documentos_unificado(
+                                q,
+                                db,
+                                client,
+                                limit=lim_busca_req,
+                                include_inactive=False,
+                                wizard_catalog=False,
+                                skip_mongo_complemento=skip_mongo_complemento,
+                            )
+                else:
+                    if busca_lite and db is not None:
+                        prods = _buscar_mongo_lite_consulta(
+                            q, db, client, limit=lim_busca_req
+                        )
+                    else:
                         from produtos.motor_busca_unificado_util import buscar_documentos_unificado
 
                         prods = buscar_documentos_unificado(
                             q,
                             db,
                             client,
-                            limit=80,
+                            limit=lim_busca_req,
                             include_inactive=False,
                             wizard_catalog=False,
                             skip_mongo_complemento=skip_mongo_complemento,
                         )
-                else:
-                    from produtos.motor_busca_unificado_util import buscar_documentos_unificado
-
-                    prods = buscar_documentos_unificado(
-                        q,
-                        db,
-                        client,
-                        limit=80,
-                        include_inactive=False,
-                        wizard_catalog=False,
-                        skip_mongo_complemento=skip_mongo_complemento,
-                    )
         else:
             preco_por_id = {}
             if db is None:
@@ -16947,19 +16984,20 @@ def api_buscar_produtos(request):
             logger.warning("api_buscar_produtos: estoque indisponível — retornando saldo 0", exc_info=True)
 
         ajustes_map = {}
-        try:
-            if p_ids:
-                # SQLite (e outros) limitam variáveis por query; catálogo wizard pode ter ~25k ids.
-                _chunk = 400
-                for _i in range(0, len(p_ids), _chunk):
-                    _slice = p_ids[_i : _i + _chunk]
-                    _ajqs = AjusteRapidoEstoque.objects.filter(
-                        produto_externo_id__in=_slice
-                    ).only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
-                    for aj in _ajqs:
-                        ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
-        except Exception:
-            logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
+        if not busca_lite:
+            try:
+                if p_ids:
+                    # SQLite (e outros) limitam variáveis por query; catálogo wizard pode ter ~25k ids.
+                    _chunk = 400
+                    for _i in range(0, len(p_ids), _chunk):
+                        _slice = p_ids[_i : _i + _chunk]
+                        _ajqs = AjusteRapidoEstoque.objects.filter(
+                            produto_externo_id__in=_slice
+                        ).only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
+                        for aj in _ajqs:
+                            ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+            except Exception:
+                logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
 
         pedido_sep_map: dict[str, float] = {}
         if not entrada_nfe_mode:
@@ -18769,20 +18807,33 @@ def api_produtos_cadastro(request):
     if agro_catalogo_usa_postgres():
         try:
             if q_raw:
+                from django.core.cache import cache
+
+                _cad_pg_key = (
+                    f"cadastro_busca_pg_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
+                    f"{q_raw.lower()[:100]}"
+                )
+                _cad_pg_hit = cache.get(_cad_pg_key)
+                if _cad_pg_hit is not None:
+                    return JsonResponse(_cad_pg_hit)
+
                 rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
                 _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
-                return JsonResponse(
-                    {
-                        "ok": True,
-                        "modo": "busca",
-                        "fonte": "agro_pg",
-                        "q": q_raw,
-                        "produtos": rows,
-                        "total_retornado": len(rows),
-                        "sort": sort_key,
-                        "dir": "desc" if sort_direction < 0 else "asc",
-                    }
-                )
+                _cad_pg_payload = {
+                    "ok": True,
+                    "modo": "busca",
+                    "fonte": "agro_pg",
+                    "q": q_raw,
+                    "produtos": rows,
+                    "total_retornado": len(rows),
+                    "sort": sort_key,
+                    "dir": "desc" if sort_direction < 0 else "asc",
+                }
+                try:
+                    cache.set(_cad_pg_key, _cad_pg_payload, 45)
+                except Exception:
+                    pass
+                return JsonResponse(_cad_pg_payload)
             rows, has_more = cat_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
@@ -18813,6 +18864,16 @@ def api_produtos_cadastro(request):
 
     try:
         if q_raw:
+            from django.core.cache import cache
+
+            _cad_cache_key = (
+                f"cadastro_busca_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
+                f"{q_raw.lower()[:100]}"
+            )
+            _cad_hit = cache.get(_cad_cache_key)
+            if _cad_hit is not None:
+                return JsonResponse(_cad_hit)
+
             prods: list = []
             bal_cad = _parse_etiqueta_balanca_ean13_br(q_raw)
             if bal_cad:
@@ -18853,17 +18914,20 @@ def api_produtos_cadastro(request):
             for _r in rows:
                 _aplicar_produto_gestao_overlay_em_dict(_r, _ovs.get(str(_r.get("id") or "")))
             _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "modo": "busca",
-                    "q": q_raw,
-                    "produtos": rows,
-                    "total_retornado": len(rows),
-                    "sort": sort_key,
-                    "dir": "desc" if sort_direction < 0 else "asc",
-                }
-            )
+            _cad_payload = {
+                "ok": True,
+                "modo": "busca",
+                "q": q_raw,
+                "produtos": rows,
+                "total_retornado": len(rows),
+                "sort": sort_key,
+                "dir": "desc" if sort_direction < 0 else "asc",
+            }
+            try:
+                cache.set(_cad_cache_key, _cad_payload, 45)
+            except Exception:
+                pass
+            return JsonResponse(_cad_payload)
 
         filtro = {} if inativos else {"CadastroInativo": {"$ne": True}}
         skip = (pagina - 1) * por_pagina
