@@ -19,6 +19,51 @@ _CAP_LINHAS = 25_000
 _SEM_PLANO_MARKER = "__SEM_PLANO__"
 
 
+def _cap_linhas_consulta_pg(
+    *,
+    mongo_id: str | None,
+    vencimento_de: date | None,
+    vencimento_ate: date | None,
+    competencia_de: date | None,
+    competencia_ate: date | None,
+    pagamento_de: date | None,
+    pagamento_ate: date | None,
+    texto: str | None,
+) -> int:
+    """Limita scan em memória — janela de 1 dia (ex. «hoje») não precisa carregar milhares de títulos."""
+    if (mongo_id or "").strip():
+        return 4
+    if vencimento_de and vencimento_ate and vencimento_de == vencimento_ate:
+        return 800
+    if vencimento_de or vencimento_ate:
+        return 4000
+    if competencia_de or competencia_ate or pagamento_de or pagamento_ate:
+        return 6000
+    if (texto or "").strip():
+        return 8000
+    return _CAP_LINHAS
+
+
+def _ordenacao_pg_campo(ordenacao: str) -> str | None:
+    ord_ = (ordenacao or "vencimento_asc").strip().lower()
+    mapping = {
+        "vencimento_asc": "data_vencimento",
+        "vencimento_desc": "-data_vencimento",
+        "fluxo_desc": "-data_fluxo",
+        "cliente_asc": "cliente",
+        "cliente_desc": "-cliente",
+        "forma_asc": "forma_pagamento",
+        "forma_desc": "-forma_pagamento",
+        "plano_asc": "plano_conta",
+        "plano_desc": "-plano_conta",
+        "bruto_asc": "valor_bruto",
+        "bruto_desc": "-valor_bruto",
+        "saldo_asc": "valor_restante",
+        "saldo_desc": "-valor_restante",
+    }
+    return mapping.get(ord_)
+
+
 def _dec2(v: object) -> Decimal:
     try:
         return Decimal(str(v or 0)).quantize(Decimal("0.01"))
@@ -363,14 +408,28 @@ def titulos_financeiro_buscar_pagina_pg(
         excluir_planos_nomes=excluir_planos_nomes,
         mongo_id=mongo_id,
     )
-    rows = list(qs[: _CAP_LINHAS + 1])
-    if len(rows) > _CAP_LINHAS:
+    cap_linhas = _cap_linhas_consulta_pg(
+        mongo_id=mongo_id,
+        vencimento_de=vencimento_de,
+        vencimento_ate=vencimento_ate,
+        competencia_de=competencia_de,
+        competencia_ate=competencia_ate,
+        pagamento_de=pagamento_de,
+        pagamento_ate=pagamento_ate,
+        texto=texto,
+    )
+    ord_pg = _ordenacao_pg_campo(ordenacao)
+    if ord_pg:
+        qs = qs.order_by(ord_pg, "-pk" if ord_pg.startswith("-") else "pk")
+    rows = list(qs[: cap_linhas + 1])
+    if len(rows) > cap_linhas:
         logger.warning(
-            "titulos_financeiro_buscar_pagina_pg: truncado em %s linhas (despesa=%s)",
-            _CAP_LINHAS,
+            "titulos_financeiro_buscar_pagina_pg: truncado em %s linhas (despesa=%s cap=%s)",
+            cap_linhas,
             despesa,
+            cap_linhas,
         )
-        rows = rows[:_CAP_LINHAS]
+        rows = rows[:cap_linhas]
 
     if mongo_id and rows:
         deduped = rows

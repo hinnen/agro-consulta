@@ -549,7 +549,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**).
 
-**Lentidão pós-entrada NF (investigação aberta):** medir qual URL trava no browser; suspeitos: `api_produtos_gestao_facetas`, pool Mongo.
+**Lentidão pós-entrada NF (investigação aberta):** medir qual URL trava no browser; suspeitos: `api_produtos_gestao_facetas`, pool Mongo. **01/07 loja v6.04 — relato «quase todas telas»:** ver CHECKPOINT «Perf multi-tela»; loja já `agro_pg`+`ledger`+CP PG — foco em fila Gunicorn (1 worker), facetas no load, CP PG scan 25k, bootstrap+API dupla Lançamentos.
 
 ### 4.7 Entrada de nota fiscal
 
@@ -1147,7 +1147,62 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.40** · **loja v6.04** *(PIN descanso 01/07)*
+**Versão app (`VERSION`):** **teste v6.43** · **loja v6.05** *(pacote perf + PDV/Gestão 02/07)*
+
+**Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
+
+### ✅ Deploy loja **v6.05** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode subir tudo para produção* + senha **`99738595`** |
+| **Rollback** | Tag **`producao-rollback-v6.04-20260702`** @ **`84541c2`** |
+| **O quê** | **Perf:** facetas gestão cache 15 min + adiado no load · CP bootstrap sem totais · staleRefresh +700 ms · cap scan PG · entrada NF rascunhos sem 503 Mongo · **UX:** «Voltar PDV F1» some em Gestão · **Bug:** overlay Caixa no PDV não abre BI · **Ops:** scripts atalhos Chrome Win (`criar_atalhos` + `remover_apps`) |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.05** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
+
+### 🐛 PDV overlay Caixa abre BI Gestão (01/07 · Renan) — **✅ v6.05**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | App **SisVale PDV** · botão **Caixa** abre overlay laranja mas iframe mostra **Gestão Estratégica (BI)** · persiste ao fechar/reabrir · só **Ctrl+F5** corrige |
+| **Causa** | Dois apps Chrome compartilham `localStorage agro_app_role_v1` · janela Gestão manda `agro-open-inapp-tab` / foco BI · overlay aceitava `/dashboard/` no iframe |
+| **Fix** | `agro_dual_window.js` + `agro_pdv_overlay.js` (ver deploy **v6.05**) |
+| **Deploy** | **✅ loja v6.05** |
+| **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
+
+### 🔧 Perf multi-tela — **✅ v6.05**
+
+| Tela | API / view principal | Fix **v6.05** |
+| ---- | -------------------- | ------------- |
+| **Gestão** | `api_produtos_gestao_facetas` | Cache 15 min · facetas só ao abrir «Filtros avançados» |
+| **Lançamentos CP** | bootstrap + `/api/lancamentos/` | Bootstrap `skip_totais` · staleRefresh +700 ms · cap scan PG |
+| **Entrada NF** | `api/entrada-nota/rascunhos/` | Sem 503 Mongo quando rascunho PG |
+
+**Medir amanhã (Win10 loja, DevTools → Network, Ctrl+F5):**
+
+| URL | Esperado pós-fix (ordem de grandeza) |
+| --- | ------------------------------------ |
+| `api_produtos_gestao_lista?pagina=1` | **&lt; 1,5 s** (PG+ledger) |
+| `api_produtos_gestao_facetas` | **0 ms** no load (adiado); **&lt; 2 s** 1ª vez ao abrir filtros (cache 15 min) |
+| `api/produtos/cadastro/?pagina=1` | **&lt; 2 s** |
+| `lancamentos/contas-pagar/` (document) | Lista visível **&lt; 1 s** (bootstrap); API sync **+0,7 s** |
+| `/api/lancamentos/?tipo=pagar&…venc_de=HOJE` | **&lt; 1,5 s** PG |
+| `api/entrada-nota/rascunhos/` | **&lt; 2 s** (sem 503 Mongo) |
+| `/api/buscar/?q=…&entrada_nfe=1` | **&lt; 1 s** busca 2+ chars |
+
+**Arquivos:** `views.py` · `lancamentos_financeiro_pg_util.py` · `produtos_gestao.html` · `lancamentos_contas_pagar_teste.html`
+
+### 🔧 Fix — «Voltar ao PDV F1» some em Gestão — **✅ v6.05**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | App **SisVale Gestão** (`agro_app_role=gestao`) ainda mostrava botão **VOLTAR AO PDV F1** no topo (ex.: Cadastro Produtos) — v6.00 só escondia no BI |
+| **Causa** | `_pdv_voltar_link.html` / F1 global não checavam papel Gestão; só `dashboard_gerencial.html` usava `data-agro-hide-pdv` |
+| **Fix** | `_agro_consulta_ui.html` — script + CSS global `data-agro-hide-pdv` quando `agro_app_role=gestao` ou `agro_inapp_embed` · `_pdv_voltar_link.html` — classe `agro-pdv-voltar-link` + skip server-side gestão · `_atalho_voltar_pdv.html` — F1 ignorado em gestão · `mobile_ajuste.html` — mesma classe |
+| **Arquivos** | `_agro_consulta_ui.html`, `_pdv_voltar_link.html`, `_atalho_voltar_pdv.html`, `mobile_ajuste.html` |
+| **Deploy** | **✅ loja v6.05** |
+| **Validar** | Ctrl+F5 no atalho **Gestão** → Cadastro ERP, Compras, Lançamentos, RH — **sem** link F1 no topo · atalho **PDV** mantém F1 onde existia |
 
 ### ✅ Deploy loja **v6.04** — PIN descanso + cadastro 1234 online (01/07)
 
@@ -1179,6 +1234,49 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Migrate** | Nenhuma · drift **base/estoque** pré-existente (igual pacotes 1–4) |
 
 **Validar loja:** Ctrl+F5 · atalho **Gestão** (`agro_app_role=gestao`) → BI/caixa **sem** botão PDV · atalho **PDV** → balcão dedicado · `scripts/criar_atalhos_sistvale.ps1` se faltar `.lnk`.
+
+**Atalhos na barra Windows (Renan 01/07):** apps Chrome (`chrome_proxy`).
+
+| Estado Renan (Win11 dev) | Detalhe |
+| --- | --- |
+| **Apps instalados** | PDV **`mcbdcdbnbbfijbkpclihamnpahafeigl`** · Gestão/BI **`beilkmpkajkdhaejggnppapepjkgajjp`** (Chrome gravou label **SisVale Inteligência de Negócio**) |
+| **Barra OK** | Script detecta `*PDV*` / `*Intelig*` · atalhos **SisVale PDV** + **SisVale Gestao** na barra |
+| **Remocao forcada** | `remover_apps_chrome_sistvale.ps1 -FecharChrome` · registro Windows Apps OK |
+| **Fantasma `chrome://apps`** | Icone **SistVale** antigo pode ficar ate **fechar Chrome por completo** ou reiniciar PC — **pode ignorar** se **Instalar pagina como app** ja apareceu |
+
+### 📋 Pendente loja — **Win10 amanhã (02/07)** — 2 apps PDV + Gestão na barra
+
+**Objetivo:** em **cada PC Win10 da loja** (balcão, caixa, gestão…), mesmo setup do Renan: **2 janelas separadas** na barra — **sem** icone globo do Chrome · **sem** app antigo **SistVale** misturando abas.
+
+**Antes:** Ctrl+F5 no site · badge loja **v6.04+** · Chrome atualizado.
+
+**Por PC (repetir):**
+
+| # | O quê |
+| --- | --- |
+| 1 | Abrir PowerShell na pasta do repo **ou** copiar `scripts\criar_atalhos_sistvale.ps1` + `scripts\remover_apps_chrome_sistvale.ps1` para o PC |
+| 2 | **Se existir app SistVale antigo** (menu so «Abrir no app…»): `powershell -ExecutionPolicy Bypass -File .\scripts\remover_apps_chrome_sistvale.ps1 -FecharChrome` · fechar Chrome · ignorar fantasma em `chrome://apps` se **Instalar pagina como app** ja voltou |
+| 3 | Abrir 2 janelas para instalar: `powershell -ExecutionPolicy Bypass -File .\scripts\criar_atalhos_sistvale.ps1 -BaseUrl "https://sistvale.com.br" -AbrirParaInstalar` |
+| 4 | **Janela PDV** (`/pdv/`): menu ⋮ → **Instalar pagina como app** → nome **SisVale PDV** |
+| 5 | **Janela Gestão** (BI): menu ⋮ → **Instalar pagina como app** → nome **SisVale Gestao** *(Chrome pode gravar «Inteligência de Negócio» — OK)* |
+| 6 | Fixar barra: `powershell -ExecutionPolicy Bypass -File .\scripts\criar_atalhos_sistvale.ps1 -BaseUrl "https://sistvale.com.br" -FixarBarra -Desktop -LimparBarra` |
+| 7 | **Win10:** se `-FixarBarra` nao aparecer na barra, arrastar `.lnk` da **Area de trabalho** ou **Iniciar → SisVale** para a barra · botao direito → **Fixar na barra de tarefas** |
+| 8 | Desfixar pins velhos: **SistVale**, **Consulta**, **Inteligencia** duplicada, icone **globo** (`chrome.exe`) |
+
+**Validar no PC:**
+
+| Atalho | Esperado |
+| --- | --- |
+| **SisVale PDV** | Abre **só balcão** · janela propria · sem aba Chrome generica |
+| **SisVale Gestao** | Abre **BI/caixa** · **sem** botao PDV na lateral · **sem** «Voltar PDV F1» no topo do BI |
+
+**Notas:**
+
+- **App-id e por maquina** — nao copiar IDs do PC do Renan; o script detecta sozinho apos instalar.
+- **Perfil Chrome:** script usa perfil **Default** (Chrome normal da loja). Se a loja usar outro perfil, avisar antes.
+- Scripts no repo: `scripts/criar_atalhos_sistvale.ps1` · `scripts/remover_apps_chrome_sistvale.ps1`
+
+**Comando rapido refazer barra:** `criar_atalhos_sistvale.ps1 -BaseUrl https://sistvale.com.br -FixarBarra -Desktop -LimparBarra`
 
 ### ✅ Deploy loja **v5.77–v5.99** — pacotes 1–4 cherry (01/07 noite)
 

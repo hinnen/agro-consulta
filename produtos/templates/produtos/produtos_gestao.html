@@ -555,9 +555,12 @@
     });
   }
 
+  var facetasCarregadas = false;
   function fillFacetSelects() {
+    if (facetasCarregadas) return;
+    facetasCarregadas = true;
     fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
-      if (!j.ok) return;
+      if (!j.ok) { facetasCarregadas = false; return; }
       function fill(sel, arr, allLabel) {
         var cur = sel.value;
         sel.innerHTML = '<option value="">' + allLabel + '</option>';
@@ -572,7 +575,7 @@
       fill(fMarca, j.marcas, 'Todas');
       fill(fCat, j.categorias, 'Todas');
       fill(fForn, j.fornecedores, 'Todos');
-    });
+    }).catch(function () { facetasCarregadas = false; });
   }
 
   function abrirDrawer(p) {
@@ -773,7 +776,13 @@
   });
   gmConsumirFilaPatchPdv();
 
-  fillFacetSelects();
+  var gmAdvDetails = document.querySelector('.gm-adv');
+  if (gmAdvDetails) {
+    gmAdvDetails.addEventListener('toggle', function () {
+      if (gmAdvDetails.open) fillFacetSelects();
+    });
+  }
+
   carregar();
 })();
   </script>
