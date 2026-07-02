@@ -7,6 +7,41 @@
     var carregado = false;
     var empresa = 'centro';
     var apiUrl = '';
+    var PROMO_LS_PREFIX = 'agro_pdv_promocoes_cache_v1_';
+
+    function promoCacheKey() {
+        return PROMO_LS_PREFIX + String(empresa || 'centro');
+    }
+
+    function aplicarMapaPromo(obj) {
+        mapa = obj && typeof obj === 'object' ? obj : {};
+        carregado = true;
+        return mapa;
+    }
+
+    function fetchPromoRede(cacheKey) {
+        if (!apiUrl) {
+            carregado = true;
+            return Promise.resolve(mapa);
+        }
+        var url =
+            apiUrl + (apiUrl.indexOf('?') >= 0 ? '&' : '?') + 'empresa=' + encodeURIComponent(empresa) + '&tela=pdv';
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (d) {
+                aplicarMapaPromo((d && d.promocoes) || {});
+                if (global.AgroPdvOfflineCache && global.AgroPdvOfflineCache.writePayload) {
+                    global.AgroPdvOfflineCache.writePayload(cacheKey, { promocoes: mapa, empresa: empresa });
+                }
+                return mapa;
+            })
+            .catch(function () {
+                if (!carregado) aplicarMapaPromo({});
+                return mapa;
+            });
+    }
 
     function toNum(v, fb) {
         var n = parseFloat(v);
@@ -653,25 +688,17 @@
         opts = opts || {};
         if (opts.empresa) setEmpresa(opts.empresa);
         if (opts.apiUrl) setApiUrl(opts.apiUrl);
-        if (!apiUrl) {
-            carregado = true;
+        var cacheKey = promoCacheKey();
+        var cache = global.AgroPdvOfflineCache && global.AgroPdvOfflineCache.readPayload(cacheKey);
+        if (!opts.force && cache && cache.promocoes) {
+            aplicarMapaPromo(cache.promocoes);
+            if (!global.AgroPdvOfflineCache.isStale(cacheKey, global.AgroPdvOfflineCache.TTL.PROMOCOES_MS)) {
+                return Promise.resolve(mapa);
+            }
+            fetchPromoRede(cacheKey);
             return Promise.resolve(mapa);
         }
-        var url = apiUrl + (apiUrl.indexOf('?') >= 0 ? '&' : '?') + 'empresa=' + encodeURIComponent(empresa) + '&tela=pdv';
-        return fetch(url, { credentials: 'same-origin' })
-            .then(function (r) {
-                return r.json();
-            })
-            .then(function (d) {
-                mapa = (d && d.promocoes) || {};
-                carregado = true;
-                return mapa;
-            })
-            .catch(function () {
-                mapa = {};
-                carregado = true;
-                return mapa;
-            });
+        return fetchPromoRede(cacheKey);
     }
 
     global.AgroPdvPromocoes = {

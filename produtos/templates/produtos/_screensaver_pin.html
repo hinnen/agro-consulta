@@ -53,6 +53,8 @@
   var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
   var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
+  var SS_PIN_SESSION = 'gm_sspin_pin_session_v1';
+  var LS_OPERADORES_SETUP = 'agro_pdv_operadores_setup_v1';
   var API_VALIDAR_PIN = "{% url 'api_login_mobile' %}";
   var API_OPERADOR = "{% url 'api_pdv_registrar_operador' %}";
   var API_LISTAR_USU = "{% url 'api_listar_usuarios' %}";
@@ -95,6 +97,34 @@
   var validando = false;
   var selectedPerfilId = '';
   var selectedNome = '';
+
+  function hashPin(pin) {
+    var s = String(pin || '');
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return String(h >>> 0);
+  }
+
+  function readPinSession(pin) {
+    try {
+      var raw = sessionStorage.getItem(SS_PIN_SESSION);
+      if (!raw) return '';
+      var d = JSON.parse(raw);
+      if (!d || Date.now() > Number(d.expires || 0)) return '';
+      if (d.hash !== hashPin(pin)) return '';
+      return (d.operador || '').trim();
+    } catch (e) { return ''; }
+  }
+
+  function savePinSession(pin, operador) {
+    try {
+      sessionStorage.setItem(SS_PIN_SESSION, JSON.stringify({
+        hash: hashPin(pin),
+        operador: (operador || '').trim(),
+        expires: Date.now() + (8 * 60 * 60 * 1000)
+      }));
+    } catch (e) {}
+  }
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -235,11 +265,33 @@
     if (new1) new1.value = '';
     if (new2) new2.value = '';
     if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-slate-400 font-semibold text-center py-2">Carregando…</p>';
+    var cacheOk = false;
+    if (window.AgroPdvOfflineCache) {
+      var cached = window.AgroPdvOfflineCache.readPayload(LS_OPERADORES_SETUP);
+      if (cached && cached.usuarios) {
+        renderNameButtons(cached.usuarios);
+        cacheOk = !window.AgroPdvOfflineCache.isStale(LS_OPERADORES_SETUP, window.AgroPdvOfflineCache.TTL.OPERADORES_MS);
+      }
+    }
+    if (cacheOk) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (new1 && locked) {
+            try { new1.focus({ preventScroll: true }); } catch (e) { try { new1.focus(); } catch (e2) {} }
+          }
+        });
+      });
+      return;
+    }
     fetch(API_LISTAR_USU, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (data && data.ok) renderNameButtons(data.usuarios || []);
-        else if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro ao carregar operadores.</p>';
+        if (data && data.ok) {
+          renderNameButtons(data.usuarios || []);
+          if (window.AgroPdvOfflineCache) {
+            window.AgroPdvOfflineCache.writePayload(LS_OPERADORES_SETUP, { usuarios: data.usuarios || [] });
+          }
+        } else if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro ao carregar operadores.</p>';
       })
       .catch(function () {
         if (namesBox) namesBox.innerHTML = '<p class="col-span-2 text-xs text-red-400 font-semibold text-center py-2">Erro de rede.</p>';
@@ -297,6 +349,13 @@
       showSetupPanel();
       return;
     }
+    var operadorCache = readPinSession(pin);
+    if (operadorCache) {
+      setOperador(operadorCache);
+      if (input) input.value = '';
+      closeLock();
+      return;
+    }
     validando = true;
     if (msg) msg.textContent = 'Validando…';
     var fd = new FormData();
@@ -319,6 +378,7 @@
             return;
           }
           setOperador(op);
+          savePinSession(pin, op);
           if (input) input.value = '';
           closeLock();
           return;

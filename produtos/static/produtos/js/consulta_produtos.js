@@ -3860,9 +3860,31 @@ function filtrarClientesLocais(q) {
 
 const PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
 
+function hidratarClientesPdvDoCache() {
+    try {
+        const raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (!Array.isArray(d.clientes) || !d.clientes.length) return false;
+        cacheClientesPDV = d.clientes;
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function clientesPdvCacheFresco() {
+    return (
+        window.AgroPdvOfflineCache &&
+        !window.AgroPdvOfflineCache.isStale(PDV_CLIENTES_LS_KEY, window.AgroPdvOfflineCache.TTL.CLIENTES_MS)
+    );
+}
+
 function carregarCacheClientes(opts) {
     const force = opts && opts.force;
+    const silent = opts && opts.silent;
     const msgEl = document.getElementById('cliente-api-msg');
+    const hidratou = hidratarClientesPdvDoCache();
     if (window.AGRO_MANUAL_SYNC_ONLY && !force) {
         try {
             const raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
@@ -3888,7 +3910,15 @@ function carregarCacheClientes(opts) {
         }
         return;
     }
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    if (hidratou && !force && clientesPdvCacheFresco()) {
+        if (msgEl && cacheClientesPDV.length) {
+            msgEl.classList.add('hidden');
+            msgEl.textContent = '';
+        }
+        return;
+    }
+    const silentBg = !!(hidratou && !force);
+    if (!force && !silentBg && window.gmLoadingBar) window.gmLoadingBar.show();
     fetch(AGRO_PDV_URLS.apiListCustomers)
         .then(r => r.json())
         .then(d => {
@@ -3921,10 +3951,8 @@ function carregarCacheClientes(opts) {
                 msgEl.classList.remove('hidden');
             }
         })
-        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+        .finally(() => { if (!silentBg && window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
-
-if (inputCliente && clienteResults) {
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
     clienteSelecionado = null;
