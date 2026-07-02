@@ -654,6 +654,11 @@ urlpatterns = [
     path('api/cron/enviar-alerta-vendas-dia/', views.api_cron_enviar_alerta_vendas_dia, name='api_cron_enviar_alerta_vendas_dia'),
     path('api/cron/estoque-mongo-ping/', views.api_cron_estoque_mongo_ping, name='api_cron_estoque_mongo_ping'),
     path(
+        'api/cron/pg-backup-nightly/',
+        views.api_cron_pg_backup_nightly,
+        name='api_cron_pg_backup_nightly',
+    ),
+    path(
         'api/cron/importar-catalogo-mongo/',
         views.api_cron_importar_catalogo_mongo,
         name='api_cron_importar_catalogo_mongo',

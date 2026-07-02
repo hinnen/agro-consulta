@@ -45,6 +45,40 @@
   <h1>Backup Postgres Agro</h1>
   <p class="sub">ZIP portável (JSONL + Excel). Dois Postgres = cada um segue seu rumo após restore.</p>
 
+  <div class="card">
+    <details class="checklist" open>
+      <summary>Guia rápido — o que é cada coisa</summary>
+      <div class="small" style="margin-top:0.6rem;">
+        <p><strong>Rotina (download no PC — passos 1 a 3)</strong></p>
+        <ol>
+          <li><strong>Backup completo</strong> — marque todas as categorias → «Baixar ZIP». Contém <code>data/*.jsonl</code>, <code>manifest.json</code>, <code>resumo.xlsx</code> e pasta <code>kit/</code> (instruções + <em>modelo</em> env vazio).</li>
+          <li><strong>Kit recuperação zero</strong> — botão separado. Só instruções + modelo env — <strong>sem dados</strong> Postgres.</li>
+          <li><strong>Export .env do Render</strong> — painel Environment → copiar para arquivo no PC. <strong>Não entra em nenhum ZIP</strong> (Mongo, NFC-e, Mercado Pago, SECRET_KEY…).</li>
+        </ol>
+        <p><strong>O que NÃO vem no ZIP de dados</strong></p>
+        <ul>
+          <li>Secrets reais do Render (.env preenchido)</li>
+          <li>Mongo ERP (catálogo espelho, financeiro legado)</li>
+          <li>Código do sistema (Git/deploy)</li>
+        </ul>
+        <p><strong>Backup parcial por categoria</strong></p>
+        <p>Desmarque o que não quer → «Baixar ZIP». Gera <code>sistvale-pg-backup-parcial-…</code> só com as categorias marcadas (+ pasta <code>kit/</code>).</p>
+        <p><strong>Restore (outro fluxo — não é download)</strong></p>
+        <ul>
+          <li><strong>Desastre (servidor novo):</strong> novo Render + Postgres vazio + deploy código + env preenchido + migrate + superuser → depois <strong>Restore ZIP completo</strong>.</li>
+          <li><strong>Rollback de noite (dados):</strong> loja fechada → Restore ZIP de ontem (completo ou parcial).</li>
+          <li><strong>Restore parcial por categoria:</strong> marque só a categoria desejada, envie ZIP que <em>contenha</em> essa categoria (completo ou parcial) → só ela é apagada e recarregada. Código novo pode ficar — cherry-pick antigo não é necessário para dados.</li>
+          <li><strong>Código ruim:</strong> deploy versão antiga (git/banana) — restore <em>não</em> troca código.</li>
+        </ul>
+        {% if nightly_enabled %}
+        <p><strong>Backup automático (madrugada)</strong> — ativo neste servidor. Upload: modo <code>{{ upload_status.mode }}</code>{% if upload_status.configured %} (configurado){% else %} — configure <code>AGRO_PG_BACKUP_UPLOAD_MODE</code> no Render{% endif %}.</p>
+        {% else %}
+        <p class="small"><strong>Backup automático:</strong> desligado aqui. Na loja: <code>AGRO_PG_BACKUP_NIGHTLY_ENABLED=true</code> + webhook ou S3 no Render.</p>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+
   <div class="card warn">
     <details class="checklist" open>
       <summary>Checklist Render e disaster recovery (rev. {{ checklist_rev }})</summary>

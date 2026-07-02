@@ -120,8 +120,13 @@ ROLLBACK_NOITE_STEPS: tuple[DisasterStep, ...] = (
 )
 
 NOTAS_CURTAS: tuple[str, ...] = (
-    "Backup = só Postgres Agro. Mongo e .env não entram no ZIP.",
-    "Dois bancos: após restore cada um segue seu rumo.",
+    "Backup ZIP = só dados Postgres Agro (JSONL + Excel resumo + manifest).",
+    "Dentro do ZIP completo/parcial: pasta kit/ com instruções e modelo env VAZIO — não traz secrets do Render.",
+    "Kit zero (botão separado) = só instruções + modelo env — sem dados.",
+    "Fora de qualquer ZIP: export .env do Render, Mongo, certificado NFC-e, tokens MP.",
+    "Rotina download (1–3) ≠ restore — restore só em desastre ou rollback de dados.",
+    "Restore parcial: marque categorias + envie ZIP completo ou parcial — só as marcadas são substituídas.",
     "Rollback de código: git/deploy separado do restore.",
+    "Backup noturno (cron): AGRO_PG_BACKUP_NIGHTLY_ENABLED + upload webhook ou S3-compatível.",
     "Conferência: GET /api/agro/fonte-status/",
 )

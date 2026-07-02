@@ -1156,11 +1156,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **2** | **Kit recuperação zero** — botão na tela · pasta `kit/` dentro do backup |
 | **3** | **Export .env** do Render (Mongo, NFC, MP, SECRET_KEY…) — **fora do ZIP** |
 
+**ZIP dados inclui:** `manifest.json` · `resumo.xlsx` · `data/<categoria>.jsonl` · pasta `kit/` (instruções + **modelo** env vazio).
+
+**ZIP dados NÃO inclui:** secrets reais Render · Mongo · código Git.
+
+**Kit zero (botão):** só instruções + modelo env — sem dados.
+
+**Backup parcial:** marcar categorias → ZIP parcial (mesma estrutura, só categorias escolhidas).
+
+**Restore parcial:** marcar categorias na tela + ZIP que as contenha → só essas são substituídas.
+
+**Backup noturno (cron Render):** `python manage.py pg_backup_nightly` · madrugada · completo + kit + 1 ZIP por categoria · upload se `AGRO_PG_BACKUP_UPLOAD_MODE=webhook` ou `s3` (OneDrive/GDrive: webhook n8n/Power Automate — OAuth direto não implementado).
+
+**Env loja (quando ativar):** `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` · `AGRO_PG_BACKUP_UPLOAD_MODE` · webhook URL/token ou S3 (Backblaze B2 etc.).
+
 **Desastre (sumiu tudo):** novo Render · Postgres vazio · deploy `producao` (versão = `version_app` no manifest) · env preenchido · migrate · superuser · **Restore ZIP dados**.
 
 **Rollback noite:** restore = só **dados** · código ruim = **deploy versão antiga** (git/banana).
 
-**Fonte checklist:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py`
+**Fonte checklist:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py` · `pg_backup_nightly.py` · `pg_backup_upload.py`
 
 **✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
 
