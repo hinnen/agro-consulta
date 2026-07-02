@@ -48,9 +48,19 @@ def agro_display_scale_ui(request):
 
 def agro_app_build(request):
     try:
+        from django.conf import settings
+
         from config.app_build_util import get_app_build_info
 
-        return {"agro_build": get_app_build_info()}
+        build = get_app_build_info()
+        asset_v = (getattr(settings, "AGRO_PDV_ASSETS_V", "") or "").strip()
+        if not asset_v:
+            asset_v = (
+                str(build.get("commit") or "").strip()
+                or str(build.get("version") or "").strip()
+                or "1"
+            )
+        return {"agro_build": build, "agro_asset_v": asset_v}
     except Exception:
         logger.exception("agro_app_build: falha ao ler versão")
         return {
@@ -63,6 +73,7 @@ def agro_app_build(request):
                 "branch": "",
                 "built_at": "",
                 "version_commits": [],
-            }
+            },
+            "agro_asset_v": "1",
         }
 
