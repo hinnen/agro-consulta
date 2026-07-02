@@ -97,6 +97,17 @@ def _serialize_queryset_jsonl(qs) -> Iterator[bytes]:
             yield (json.dumps(inner[0], ensure_ascii=False) + "\n").encode("utf-8")
 
 
+def _excel_scalar(value: Any) -> Any:
+    """openpyxl só aceita escalares — listas/dicts viram texto."""
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(x) for x in value)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False)
+    return value
+
+
 def _flat_row_from_instance(obj: Model, max_fields: int = 24) -> dict[str, Any]:
     row: dict[str, Any] = {"_modelo": obj._meta.label, "_pk": obj.pk}
     for i, field in enumerate(obj._meta.fields):
@@ -133,7 +144,7 @@ def _build_excel_resumo(
         "categorias",
         "total_registros",
     ):
-        ws0.append([key, manifest.get(key, "")])
+        ws0.append([key, _excel_scalar(manifest.get(key, ""))])
     for cell in ws0[1]:
         cell.font = Font(bold=True)
 

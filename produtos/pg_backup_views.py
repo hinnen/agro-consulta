@@ -69,6 +69,9 @@ def pg_backup_painel(request):
             except ValueError as exc:
                 ctx["flash_erro"] = str(exc)
                 return render(request, "produtos/pg_backup_painel.html", ctx)
+            except Exception as exc:
+                ctx["flash_erro"] = f"Falha ao gerar ZIP: {exc}"
+                return render(request, "produtos/pg_backup_painel.html", ctx)
 
             resp = HttpResponse(blob, content_type="application/zip")
             resp["Content-Disposition"] = f'attachment; filename="{filename}"'
