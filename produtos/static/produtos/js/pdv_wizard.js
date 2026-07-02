@@ -1757,10 +1757,7 @@
             return;
         }
         var dw = window.AgroDualWindow;
-        var onPdv =
-            dw &&
-            ((typeof dw.isPdvHost === 'function' && dw.isPdvHost()) ||
-                (typeof dw.isPdvPath === 'function' && dw.isPdvPath()));
+        var onPdv = dw && typeof dw.isPdvHost === 'function' && dw.isPdvHost();
         try {
             if (dw && typeof dw.openPdvPanel === 'function' && onPdv) {
                 dw.openPdvPanel(url);
