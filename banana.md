@@ -1150,7 +1150,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Splash catálogo** | `MIN_VISIBLE_MS` 30s debug → **750 ms** |
+| **Splash catálogo** | Só **teste** (arquivo **não existe** em `producao` v6.15) · debug 30s → atraso **400 ms** (se cache rápido **não aparece**) · mín. visível **200 ms** |
 | **Config F11** | Modal · **Menos animações** separado PDV / Gestão (`agro_perf_fx.js`) · também no Menu **F10** (Gestão) |
 | **Gestão 2 apps** | Sem iframe PDV oculto · Dashboard **só carrega ao abrir** guia |
 | **Abas livres** | **5 min** pausa animações · **20 min** descarrega iframe (volta ao clicar — não recarrega ao trocar aba) |

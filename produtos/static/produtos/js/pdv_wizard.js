@@ -866,7 +866,7 @@
     }
 
     function pdvCatalogBootHide() {
-        if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.hide(200);
+        if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.hide(0);
         else if (window.gmLoader) window.gmLoader.hide(180);
         else if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
