@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from financeiro.views import dashboard_financeiro_completo
 
-from . import promocoes_views, views, views_mp_point, views_nfce
+from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
 from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
@@ -163,6 +163,11 @@ urlpatterns = [
         'interno/teste-busca/',
         views.interno_teste_busca_view,
         name='interno_teste_busca',
+    ),
+    path(
+        'interno/pg-backup/',
+        pg_backup_views.pg_backup_painel,
+        name='pg_backup_painel',
     ),
     path(
         'lancamentos/dre/',
