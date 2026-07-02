@@ -34,13 +34,48 @@
     .field { margin: 0.6rem 0; }
     .field label { display: block; font-weight: 600; margin-bottom: 0.25rem; font-size: 0.88rem; }
     .small { font-size: 0.8rem; color: #64748b; }
+    details.checklist { margin-top: 0.75rem; }
+    details.checklist summary { cursor: pointer; font-weight: 700; color: #0f172a; }
+    .tag { font-size: 0.72rem; background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; }
     pre { background: #0f172a; color: #e2e8f0; padding: 0.75rem; border-radius: 8px; overflow: auto; font-size: 0.78rem; }
   </style>
 </head>
 <body>
   <p><a class="btn-link" href="{% url 'admin:index' %}">← Voltar ao Admin</a></p>
   <h1>Backup Postgres Agro</h1>
-  <p class="sub">ZIP portável (JSONL + Excel). Baixar da loja e restaurar no teste — ou disaster recovery em outro servidor.</p>
+  <p class="sub">ZIP portável (JSONL + Excel). Dois Postgres = cada um segue seu rumo após restore.</p>
+
+  <div class="card warn">
+    <details class="checklist" open>
+      <summary>Checklist Render e disaster recovery (rev. {{ checklist_rev }})</summary>
+      <p class="small" style="margin:0.5rem 0;">Fonte no código: <code>pg_backup_render_checklist.py</code> — atualizar ao mudar env da loja.</p>
+      <p><strong>PG explodiu / servidor novo</strong></p>
+      <ol class="small">
+        {% for s in disaster_steps %}<li>{{ s.texto }}</li>{% endfor %}
+      </ol>
+      <p><strong>Deu ruim de noite (rollback dados)</strong></p>
+      <ol class="small">
+        {% for s in rollback_steps %}<li>{{ s.texto }}</li>{% endfor %}
+      </ol>
+      <ul class="small">{% for n in checklist_notas %}<li>{{ n }}</li>{% endfor %}</ul>
+      <table style="margin-top:0.75rem;">
+        <thead>
+          <tr><th>Variável</th><th>Loja</th><th>Teste</th><th>Novo servidor</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in render_env_rows %}
+          <tr>
+            <td><code>{{ row.key }}</code></td>
+            <td class="small">{{ row.loja }}</td>
+            <td class="small">{{ row.teste }}</td>
+            <td class="small">{{ row.novo_servidor }}</td>
+            <td>{% if row.no_backup_pg %}<span class="tag">fora do ZIP</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
 
   {% if flash_ok %}<div class="card ok">{{ flash_ok }}</div>{% endif %}
   {% if flash_erro %}<div class="card err">{{ flash_erro }}</div>{% endif %}
