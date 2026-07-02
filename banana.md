@@ -1142,9 +1142,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.47** · **loja v6.08**
+**Versão app (`VERSION`):** **teste v6.49** · **loja v6.09**
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
+
+### ✅ Deploy loja **v6.09** — PDV topbar overlay (fix isPdvHost) (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode mandar* + senha **`99738595`** (sem reteste) |
+| **Commit** | **`1591b63`** (cherry-pick **`bfd4de5`** de teste) |
+| **Rollback** | Tag **`producao-rollback-v6.08-20260702`** @ **`6461974`** |
+| **O quê** | **PDV:** Caixa / Vendas / Fiado abrem overlay · submenus `/caixa/` em guia separada voltam a clicar |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.09** · topbar PDV → overlay laranja · cards do caixa navegam |
 
 ### ✅ Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
 
@@ -1188,7 +1199,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy** | **✅ loja v6.05** |
 | **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
 
-### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **fix v6.49 teste**
+### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **✅ v6.09 loja**
 
 **Sintoma pós-v6.08:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
 
