@@ -43,32 +43,32 @@
 <body>
   <p><a class="btn-link" href="{% url 'admin:index' %}">← Voltar ao Admin</a></p>
   <h1>Backup Postgres Agro</h1>
-  <p class="sub">ZIP portável (JSONL + Excel). Dois Postgres = cada um segue seu rumo após restore.</p>
+  <p class="sub">ZIP portável (JSONL + Excel + kit com env real e guias). <strong>Confidencial</strong> — contém senhas.</p>
+
+  <div class="card warn">
+    <p style="margin:0;"><strong>Rotina:</strong> marque todas → «Baixar ZIP» → guarde no PC/nuvem. <strong>Um ZIP basta</strong> — sem precisar do site depois. Pasta <code>kit/</code> traz guias + <code>render-env-atual.env</code> (Environment real do Render).</p>
+  </div>
 
   <div class="card">
     <details class="checklist" open>
       <summary>Guia rápido — o que é cada coisa</summary>
       <div class="small" style="margin-top:0.6rem;">
-        <p><strong>Rotina (download no PC — passos 1 a 3)</strong></p>
+        <p><strong>Rotina (só download)</strong></p>
         <ol>
-          <li><strong>Backup completo</strong> — marque todas as categorias → «Baixar ZIP». Contém <code>data/*.jsonl</code>, <code>manifest.json</code>, <code>resumo.xlsx</code> e pasta <code>kit/</code> (instruções + <em>modelo</em> env vazio).</li>
-          <li><strong>Kit recuperação zero</strong> — botão separado. Só instruções + modelo env — <strong>sem dados</strong> Postgres.</li>
-          <li><strong>Export .env do Render</strong> — painel Environment → copiar para arquivo no PC. <strong>Não entra em nenhum ZIP</strong> (Mongo, NFC-e, Mercado Pago, SECRET_KEY…).</li>
+          <li><strong>Backup completo</strong> — marque todas → «Baixar ZIP». Dados + pasta <code>kit/</code> (guias + <code>render-env-atual.env</code> com secrets reais).</li>
+          <li><strong>Backup parcial</strong> — desmarque categorias → ZIP menor (+ <code>kit/</code> igual).</li>
+          <li>Guarde cópias seguras. <strong>Não precisa</strong> exportar .env manual do Render — já vem no ZIP.</li>
         </ol>
-        <p><strong>O que NÃO vem no ZIP de dados</strong></p>
+        <p><strong>O que ainda não vem no ZIP</strong></p>
         <ul>
-          <li>Secrets reais do Render (.env preenchido)</li>
-          <li>Mongo ERP (catálogo espelho, financeiro legado)</li>
-          <li>Código do sistema (Git/deploy)</li>
+          <li>Código Git (deploy branch <code>producao</code>)</li>
+          <li>Dados <em>dentro</em> do Mongo ERP (credenciais Mongo vêm no .env)</li>
         </ul>
-        <p><strong>Backup parcial por categoria</strong></p>
-        <p>Desmarque o que não quer → «Baixar ZIP». Gera <code>sistvale-pg-backup-parcial-…</code> só com as categorias marcadas (+ pasta <code>kit/</code>).</p>
-        <p><strong>Restore (outro fluxo — não é download)</strong></p>
+        <p><strong>Restore (precisa de servidor funcionando)</strong></p>
         <ul>
-          <li><strong>Desastre (servidor novo):</strong> novo Render + Postgres vazio + deploy código + env preenchido + migrate + superuser → depois <strong>Restore ZIP completo</strong>.</li>
-          <li><strong>Rollback de noite (dados):</strong> loja fechada → Restore ZIP de ontem (completo ou parcial).</li>
-          <li><strong>Restore parcial por categoria:</strong> marque só a categoria desejada, envie ZIP que <em>contenha</em> essa categoria (completo ou parcial) → só ela é apagada e recarregada. Código novo pode ficar — cherry-pick antigo não é necessário para dados.</li>
-          <li><strong>Código ruim:</strong> deploy versão antiga (git/banana) — restore <em>não</em> troca código.</li>
+          <li><strong>Desastre:</strong> novo Render → deploy → colar <code>kit/render-env-atual.env</code> (trocar <code>DATABASE_URL</code>) → migrate → superuser → Restore ZIP.</li>
+          <li><strong>Rollback dados:</strong> loja fechada → Restore ZIP de ontem.</li>
+          <li><strong>Parcial por categoria:</strong> marque só a categoria → só ela é substituída.</li>
         </ul>
         {% if nightly_enabled %}
         <p><strong>Backup automático (madrugada)</strong> — ativo neste servidor. Upload: modo <code>{{ upload_status.mode }}</code>{% if upload_status.configured %} (configurado){% else %} — configure <code>AGRO_PG_BACKUP_UPLOAD_MODE</code> no Render{% endif %}.</p>
@@ -103,7 +103,7 @@
             <td class="small">{{ row.loja }}</td>
             <td class="small">{{ row.teste }}</td>
             <td class="small">{{ row.novo_servidor }}</td>
-            <td>{% if row.no_backup_pg %}<span class="tag">fora do ZIP</span>{% endif %}</td>
+            <td><span class="tag">no kit/</span></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -115,9 +115,8 @@
   {% if flash_erro %}<div class="card err">{{ flash_erro }}</div>{% endif %}
 
   <div class="card ok">
-    <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Recuperação do zero (desastre)</h2>
-    <p class="small" style="margin:0 0 0.75rem;">Guarde <strong>dois</strong> ZIPs no PC/nuvem: <strong>kit</strong> (instruções + modelo env) e <strong>backup completo</strong> (dados). O kit também vem dentro da pasta <code>kit/</code> do backup de dados.</p>
-    <p class="small" style="margin:0 0 0.75rem;"><strong>Também salve fora do Render:</strong> export Environment do painel Render (.env) — Mongo, NFC, Mercado Pago, SECRET_KEY.</p>
+    <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Kit sem dados (opcional)</h2>
+    <p class="small" style="margin:0 0 0.75rem;">Só guias + env — sem Postgres. O kit <strong>já vem</strong> na pasta <code>kit/</code> do backup completo.</p>
     <div class="actions" style="margin-top:0;">
       <button type="submit" name="action" value="kit" class="secondary" form="pg-backup-form">⬇ Baixar kit recuperação zero</button>
     </div>
@@ -128,7 +127,7 @@
 
     <div class="card">
       <p style="margin-top:0;"><strong>Selecione as categorias</strong> — marque todas para backup completo (1 ZIP).</p>
-      <p class="small">Inclui pasta <code>kit/</code> com passo a passo. Guarde cópia fora do Render.</p>
+      <p class="small">Inclui pasta <code>kit/</code> (guias + <code>render-env-atual.env</code>). Guarde em local seguro.</p>
       <p class="actions" style="margin-top:0.5rem;">
         <button type="button" class="secondary" id="btn-marcar-todas">Marcar todas</button>
         <button type="button" class="secondary" id="btn-desmarcar">Desmarcar</button>

@@ -226,6 +226,14 @@ def build_backup_zip(
             "total_registros": total_records,
             "sha256_payload": "",  # filled below
         }
+        if include_kit:
+            from produtos.pg_backup_disaster_kit import disaster_kit_file_map
+
+            manifest["kit"] = {
+                "pasta": "kit/",
+                "render_env_export": True,
+                "arquivos": sorted(disaster_kit_file_map().keys()),
+            }
         manifest["sha256_payload"] = sha.hexdigest()
         manifest_bytes = json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8")
         zf.writestr("manifest.json", manifest_bytes)

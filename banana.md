@@ -1147,7 +1147,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.61** · **loja v6.14** (deploy em curso)
+**Versão app (`VERSION`):** **teste v6.61** · **loja v6.14**
 
 ### 🚀 Deploy loja **v6.14** — FL-048 kit + env no ZIP + backup noturno (30/06)
 
@@ -1180,11 +1180,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
-**Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com guias + `render-env-atual.env` (secrets reais).
+**Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com:
+- `GUIA-BACKUP-PAINEL.txt` (espelho do painel)
+- `render-env-atual.env` — Environment real (senhas, Mongo, NFC, MP…)
+- `LEIA-ME-RECUPERACAO-ZERO.txt` · scripts
 
 **Fora do ZIP:** código Git · dados *dentro* do Mongo ERP.
 
+**Parcial / restore parcial:** checkbox por categoria — inalterado.
+
 **Backup noturno:** cron 04h · `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` + webhook/S3 no Render.
+
+**Desastre:** novo Render → deploy `producao` → colar `kit/render-env-atual.env` (trocar `DATABASE_URL`) → migrate → superuser → Restore ZIP.
 
 **Fonte:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py` · `pg_backup_nightly.py` · `pg_backup_upload.py` · `pg_backup_env_export.py`
 
