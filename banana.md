@@ -1146,24 +1146,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Nota versões:** número do **teste** sobe a **cada commit** (hook `bump_version.py` + docs/banana). **Loja** sobe só no **cherry-pick isolado** que você autoriza — por isso teste fica «maior»; **não** significa dezenas de pacotes pendentes na loja.
 
-### 🧪 **FL-048** — painel backup Postgres Agro (03/07 · Renan)
+### ✅ **FL-048** — backup Postgres + recuperação zero (03/07)
 
-**Status:** **✅ código no teste** — painel + download ZIP + Excel + restore.
+**Loja v6.13** · **teste v6.61+**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **URL** | `/interno/pg-backup/` · **Admin** → bloco **«Operações SisVale»** (topo da lista) + link no cabeçalho |
-| **ZIP** | `manifest.json` + `resumo.xlsx` (legível) + `data/<categoria>.jsonl` |
-| **Seleção** | Checkbox por categoria · marcar todas = backup **completo** (1 arquivo) |
-| **Restore** | Ativo (mesmo código teste/loja) · frase `RESTAURAR BACKUP PG` + **senha admin Django** |
-| **Fluxo Renan** | Baixar na **loja** → subir no **teste** → validar |
-| **Arquivos** | `pg_backup_registry.py` · `pg_backup_util.py` · `pg_backup_render_checklist.py` · painel |
+| Guardar no PC (rotina) | O quê |
+| ---------------------- | ----- |
+| **1** | **Backup completo** (todas categorias) — dados Postgres |
+| **2** | **Kit recuperação zero** — botão na tela · pasta `kit/` dentro do backup |
+| **3** | **Export .env** do Render (Mongo, NFC, MP, SECRET_KEY…) — **fora do ZIP** |
 
-**Dois Postgres:** idênticos **no instante do restore**; depois cada banco segue separado.
+**Desastre (sumiu tudo):** novo Render · Postgres vazio · deploy `producao` (versão = `version_app` no manifest) · env preenchido · migrate · superuser · **Restore ZIP dados**.
 
-**Rollback noite (dados):** backup antes de mexer → restore na loja fechada = Postgres como antes (código/deploy não volta sozinho).
+**Rollback noite:** restore = só **dados** · código ruim = **deploy versão antiga** (git/banana).
 
-**Checklist Render:** na tela backup + fonte `pg_backup_render_checklist.py` (atualizar ao mudar env loja).
+**Fonte checklist:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py`
 
 **✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
 

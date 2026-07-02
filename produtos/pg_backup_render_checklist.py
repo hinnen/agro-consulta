@@ -106,17 +106,17 @@ RENDER_ENV_ROWS: tuple[RenderEnvRow, ...] = (
 )
 
 DISASTER_RECOVERY_STEPS: tuple[DisasterStep, ...] = (
-    DisasterStep(1, "Loja fechada · backup geral (todas categorias) · guardar ZIP fora do Render"),
-    DisasterStep(2, "Novo Render (ou outro host): deploy branch producao · migrate vazio"),
-    DisasterStep(3, "Environment: tabela abaixo (loja = referência)"),
-    DisasterStep(4, "Admin → Restore ZIP · todas categorias · senha superuser"),
-    DisasterStep(5, "Ctrl+F5 · fonte-status · venda R$ 0,01 · CP amostra"),
+    DisasterStep(1, "Guardar no PC: ZIP dados (todas categorias) + kit recuperação + export .env do Render"),
+    DisasterStep(2, "Novo Render/host · Postgres vazio · deploy branch producao (versão = manifest version_app)"),
+    DisasterStep(3, "Environment: render-env-modelo.env preenchido (Mongo, NFC, MP, SECRET_KEY…)"),
+    DisasterStep(4, "migrate · createsuperuser · Admin → Restore ZIP dados"),
+    DisasterStep(5, "fonte-status · venda teste · CP amostra"),
 )
 
 ROLLBACK_NOITE_STEPS: tuple[DisasterStep, ...] = (
     DisasterStep(1, "Antes de mudança: backup geral na loja"),
-    DisasterStep(2, "Deu ruim: Restore mesmo ZIP (loja fechada, sem vendas no meio)"),
-    DisasterStep(3, "Postgres volta ao instante do backup — código/deploy não reverte sozinho"),
+    DisasterStep(2, "Deu ruim nos DADOS: Restore ZIP (loja fechada)"),
+    DisasterStep(3, "Deu ruim no CÓDIGO: deploy versão antiga (git producao / tag banana) — restore não troca código"),
 )
 
 NOTAS_CURTAS: tuple[str, ...] = (

@@ -80,12 +80,21 @@
   {% if flash_ok %}<div class="card ok">{{ flash_ok }}</div>{% endif %}
   {% if flash_erro %}<div class="card err">{{ flash_erro }}</div>{% endif %}
 
+  <div class="card ok">
+    <h2 style="margin:0 0 0.5rem;font-size:1.05rem;">Recuperação do zero (desastre)</h2>
+    <p class="small" style="margin:0 0 0.75rem;">Guarde <strong>dois</strong> ZIPs no PC/nuvem: <strong>kit</strong> (instruções + modelo env) e <strong>backup completo</strong> (dados). O kit também vem dentro da pasta <code>kit/</code> do backup de dados.</p>
+    <p class="small" style="margin:0 0 0.75rem;"><strong>Também salve fora do Render:</strong> export Environment do painel Render (.env) — Mongo, NFC, Mercado Pago, SECRET_KEY.</p>
+    <div class="actions" style="margin-top:0;">
+      <button type="submit" name="action" value="kit" class="secondary" form="pg-backup-form">⬇ Baixar kit recuperação zero</button>
+    </div>
+  </div>
+
   <form method="post" enctype="multipart/form-data" id="pg-backup-form">
     {% csrf_token %}
 
     <div class="card">
       <p style="margin-top:0;"><strong>Selecione as categorias</strong> — marque todas para backup completo (1 ZIP).</p>
-      <p class="small">Dentro do ZIP: <code>manifest.json</code> · <code>resumo.xlsx</code> (legível) · <code>data/*.jsonl</code> (dados completos).</p>
+      <p class="small">Inclui pasta <code>kit/</code> com passo a passo. Guarde cópia fora do Render.</p>
       <p class="actions" style="margin-top:0.5rem;">
         <button type="button" class="secondary" id="btn-marcar-todas">Marcar todas</button>
         <button type="button" class="secondary" id="btn-desmarcar">Desmarcar</button>
