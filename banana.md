@@ -1157,6 +1157,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *pode subir tudo para produção* + senha **`99738595`** |
 | **Rollback** | Tag **`producao-rollback-v6.04-20260702`** @ **`84541c2`** |
+| **Git** | **`teste` `7b48e21`** · **`producao` `ea5f972`** · **VERSION loja `6.05`** |
 | **O quê** | **Perf:** facetas gestão cache 15 min + adiado no load · CP bootstrap sem totais · staleRefresh +700 ms · cap scan PG · entrada NF rascunhos sem 503 Mongo · **UX:** «Voltar PDV F1» some em Gestão · **Bug:** overlay Caixa no PDV não abre BI · **Ops:** scripts atalhos Chrome Win (`criar_atalhos` + `remover_apps`) |
 | **Migrate** | Nenhuma |
 | **Validar loja** | Ctrl+F5 badge **v6.05** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
