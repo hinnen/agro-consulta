@@ -1,4 +1,4 @@
-"""Kit recuperação zero — ZIP de instruções + modelo env (FL-048)."""
+"""Kit recuperação zero — ZIP de instruções + env real do servidor (FL-048)."""
 from __future__ import annotations
 
 import io
@@ -7,6 +7,12 @@ import zipfile
 from typing import Any
 
 from config.app_build_util import read_app_version
+from produtos.pg_backup_env_export import (
+    collect_environment_snapshot,
+    format_render_env_file,
+    format_render_env_json,
+)
+from produtos.pg_backup_guia_text import build_guia_painel_text
 from produtos.pg_backup_render_checklist import (
     CHECKLIST_REV,
     DISASTER_RECOVERY_STEPS,
@@ -15,38 +21,12 @@ from produtos.pg_backup_render_checklist import (
     ROLLBACK_NOITE_STEPS,
 )
 
-# Preencher no Render e guardar cópia no PC (fora do ZIP de dados).
-SECRETS_GUARDAR_NO_PC: tuple[str, ...] = (
-    "Export completo Environment do Render (painel → copiar/colar em arquivo .env)",
-    "VENDA_ERP_MONGO_URL e VENDA_ERP_MONGO_DB",
-    "DATABASE_URL (só referência — no desastre cria Postgres NOVO)",
-    "SECRET_KEY Django",
-    "NFC_E_CERT_BASE64 ou arquivo .pfx + senha",
-    "MP_POINT_ACCESS_TOKEN e MP_POINT_TERMINAL_ID",
-    "Domínio / ALLOWED_HOSTS / AGRO_CANONICAL_ORIGIN",
-    "ALERTA_VENDAS_CRON_TOKEN (crons)",
-    "Acesso GitHub repositório hinnen/agro-consulta",
+# Ainda fora do ZIP — não são Postgres nem env do Render.
+FORA_DO_ZIP: tuple[str, ...] = (
+    "Código-fonte Git (branch producao — GitHub hinnen/agro-consulta)",
+    "Dados dentro do Mongo ERP (catálogo espelho, financeiro legado) — credenciais vêm no .env",
+    "Certificado .pfx em disco local (se não usou NFC_E_CERT_BASE64 no Render)",
 )
-
-
-def _render_env_template() -> str:
-    lines = [
-        "# Modelo — preencha e cole no Environment do NOVO serviço Render (produção).",
-        f"# Checklist rev. {CHECKLIST_REV} · branch deploy: producao",
-        "# NÃO commite este arquivo preenchido no Git.",
-        "",
-    ]
-    for row in RENDER_ENV_ROWS:
-        key = row.key.split()[0].split("/")[0].split("+")[0].strip()
-        if "*" in key:
-            lines.append(f"# {row.key}")
-            lines.append(f"# {row.novo_servidor}")
-            lines.append("")
-            continue
-        lines.append(f"# Loja ref: {row.loja}")
-        lines.append(f"{key}=")
-        lines.append("")
-    return "\n".join(lines)
 
 
 def _leia_me_zero() -> str:
@@ -54,47 +34,31 @@ def _leia_me_zero() -> str:
     steps = "\n".join(f"  {s.ordem}. {s.texto}" for s in DISASTER_RECOVERY_STEPS)
     rollback = "\n".join(f"  - {s.texto}" for s in ROLLBACK_NOITE_STEPS)
     notas = "\n".join(f"  - {n}" for n in NOTAS_CURTAS)
-    secrets = "\n".join(f"  - {s}" for s in SECRETS_GUARDAR_NO_PC)
-    env_table = "\n".join(
-        f"  {r.key}\n    loja: {r.loja}\n    novo: {r.novo_servidor}\n"
-        for r in RENDER_ENV_ROWS
-    )
+    fora = "\n".join(f"  - {s}" for s in FORA_DO_ZIP)
     return f"""SisVale — RECUPERAÇÃO DO ZERO
 ================================
-Versão SisVale no momento do kit: v{ver}
+Versão SisVale: v{ver}
 Checklist rev.: {CHECKLIST_REV}
 
-CENÁRIO: sumiu Render, sumiu PC, perdeu tudo — só tem este ZIP + backup de DADOS.
+CENÁRIO: sumiu Render, sumiu PC — só tem o ZIP de backup.
 
-VOCÊ PRECISA DE 2 ARQUIVOS (guarde os dois no PC / nuvem):
-  1) sistvale-pg-backup-completo-XXXX.zip  (dados Postgres — botão «Baixar ZIP» todas categorias)
-  2) sistvale-kit-recuperacao-zero-XXXX.zip  (este kit — instruções e modelo env)
+UM ZIP COMPLETO BASTA
+  - Dados Postgres (data/*.jsonl)
+  - Pasta kit/ com guias + render-env-atual.env (senhas reais do servidor)
 
-O QUE O BACKUP DE DADOS NÃO TRAZ (você precisa ter salvo antes):
-{secrets}
+ABRA PRIMEIRO (pasta kit/)
+  - GUIA-BACKUP-PAINEL.txt — espelho do painel /interno/pg-backup/
+  - render-env-atual.env — cole no Environment do novo Render (troque DATABASE_URL)
+  - LEIA-ME-RECUPERACAO-ZERO.txt — este arquivo
+
+AINDA FORA DO ZIP
+{fora}
 
 PASSO A PASSO — SERVIDOR NOVO
 {steps}
 
-ROLLBACK SÓ DADOS (loja fechada, código novo deu ruim)
+ROLLBACK SÓ DADOS (loja fechada)
 {rollback}
-
-VARIÁVEIS RENDER (referência)
-{env_table}
-
-DEPLOY CÓDIGO (obrigatório — restore não troca código)
-  1. GitHub → branch producao (ou tag rollback no banana.md)
-  2. Render → New Web Service → mesmo repo · branch producao
-  3. Novo Postgres → copiar DATABASE_URL para Environment
-  4. Colar demais env do arquivo render-env-modelo.env (preenchido)
-  5. Deploy Live → python manage.py migrate (automático no Render)
-  6. Criar superuser: python manage.py createsuperuser (Shell Render)
-  7. Admin → /interno/pg-backup/ → Restaurar ZIP de DADOS (todas categorias)
-  8. Conferir /api/agro/fonte-status/ · venda teste · CP amostra
-
-MANIFEST DO BACKUP DE DADOS
-  Campo version_app no manifest.json = versão SisVale na hora do backup.
-  Ideal: deploy no servidor novo a MESMA versão (ou cherry-pick pacote do banana).
 
 NOTAS
 {notas}
@@ -103,42 +67,42 @@ NOTAS
 
 def _ps1_recuperacao() -> str:
     return r"""# SisVale — auxiliar recuperação (PowerShell)
-# Não recria servidor sozinho — siga LEIA-ME-RECUPERACAO-ZERO.txt
 
 Write-Host "=== SisVale recuperação zero ===" -ForegroundColor Cyan
-Write-Host "1. Tenha o ZIP de DADOS (backup completo Postgres)"
-Write-Host "2. Tenha o .env preenchido (export antigo do Render)"
-Write-Host "3. Crie serviço Render + Postgres novo"
-Write-Host "4. Deploy branch producao"
-Write-Host "5. Admin -> Restaurar ZIP de dados"
+Write-Host "1. Abra o ZIP de backup completo"
+Write-Host "2. kit/render-env-atual.env -> Environment do novo Render (troque DATABASE_URL)"
+Write-Host "3. kit/GUIA-BACKUP-PAINEL.txt -> passo a passo completo"
+Write-Host "4. Deploy branch producao -> migrate -> superuser -> Restore ZIP dados"
 Write-Host ""
 Write-Host "Repo: https://github.com/hinnen/agro-consulta"
-Write-Host "Doc: docs/DEPLOY-AMBIENTES.md"
 """
 
 
 def disaster_kit_file_map() -> dict[str, bytes]:
-    """Arquivos do kit (também embutidos no ZIP de backup completo)."""
+    """Arquivos do kit (embutidos em todo ZIP de backup)."""
+    env_snap = collect_environment_snapshot()
     checklist_json = {
         "checklist_rev": CHECKLIST_REV,
         "version_app": read_app_version(),
         "disaster_steps": [s.texto for s in DISASTER_RECOVERY_STEPS],
         "rollback_steps": [s.texto for s in ROLLBACK_NOITE_STEPS],
-        "secrets_guardar_no_pc": list(SECRETS_GUARDAR_NO_PC),
+        "fora_do_zip": list(FORA_DO_ZIP),
         "render_env": [
             {
                 "key": r.key,
                 "loja": r.loja,
                 "teste": r.teste,
                 "novo_servidor": r.novo_servidor,
-                "no_backup_pg": r.no_backup_pg,
             }
             for r in RENDER_ENV_ROWS
         ],
+        "environment_snapshot_keys": sorted(env_snap.keys()),
     }
     return {
+        "GUIA-BACKUP-PAINEL.txt": build_guia_painel_text().encode("utf-8"),
         "LEIA-ME-RECUPERACAO-ZERO.txt": _leia_me_zero().encode("utf-8"),
-        "render-env-modelo.env": _render_env_template().encode("utf-8"),
+        "render-env-atual.env": format_render_env_file(env_snap).encode("utf-8"),
+        "render-env-atual.json": format_render_env_json(env_snap).encode("utf-8"),
         "render-env-checklist.json": json.dumps(checklist_json, ensure_ascii=False, indent=2).encode(
             "utf-8"
         ),

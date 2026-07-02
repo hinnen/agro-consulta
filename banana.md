@@ -1146,31 +1146,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Nota versões:** número do **teste** sobe a **cada commit** (hook `bump_version.py` + docs/banana). **Loja** sobe só no **cherry-pick isolado** que você autoriza — por isso teste fica «maior»; **não** significa dezenas de pacotes pendentes na loja.
 
-### ✅ **FL-048** — backup Postgres + recuperação zero (03/07)
+### ✅ **FL-048** — backup Postgres + recuperação zero (30/06)
 
 **Loja v6.13** · **teste v6.61+**
 
-| Guardar no PC (rotina) | O quê |
-| ---------------------- | ----- |
-| **1** | **Backup completo** (todas categorias) — dados Postgres |
-| **2** | **Kit recuperação zero** — botão na tela · pasta `kit/` dentro do backup |
-| **3** | **Export .env** do Render (Mongo, NFC, MP, SECRET_KEY…) — **fora do ZIP** |
+**Rotina:** marcar todas → «Baixar ZIP» → guardar no PC/nuvem. **Um ZIP basta** — sem site depois.
 
-**ZIP dados inclui:** `manifest.json` · `resumo.xlsx` · `data/<categoria>.jsonl` · pasta `kit/` (instruções + **modelo** env vazio).
+**Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com:
+- `GUIA-BACKUP-PAINEL.txt` (espelho do painel)
+- `render-env-atual.env` — **Environment real** do servidor (senhas, Mongo, NFC, MP…)
+- `LEIA-ME-RECUPERACAO-ZERO.txt` · scripts
 
-**ZIP dados NÃO inclui:** secrets reais Render · Mongo · código Git.
+**Fora do ZIP:** código Git · dados *dentro* do Mongo ERP (credenciais vêm no .env).
 
-**Kit zero (botão):** só instruções + modelo env — sem dados.
+**Parcial / restore parcial:** inalterado — checkbox por categoria.
 
-**Backup parcial:** marcar categorias → ZIP parcial (mesma estrutura, só categorias escolhidas).
+**Backup noturno:** cron 04h · webhook/S3 · ver `pg_backup_nightly.py`.
 
-**Restore parcial:** marcar categorias na tela + ZIP que as contenha → só essas são substituídas.
-
-**Backup noturno (cron Render):** `python manage.py pg_backup_nightly` · madrugada · completo + kit + 1 ZIP por categoria · upload se `AGRO_PG_BACKUP_UPLOAD_MODE=webhook` ou `s3` (OneDrive/GDrive: webhook n8n/Power Automate — OAuth direto não implementado).
-
-**Env loja (quando ativar):** `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` · `AGRO_PG_BACKUP_UPLOAD_MODE` · webhook URL/token ou S3 (Backblaze B2 etc.).
-
-**Desastre (sumiu tudo):** novo Render · Postgres vazio · deploy `producao` (versão = `version_app` no manifest) · env preenchido · migrate · superuser · **Restore ZIP dados**.
+**Desastre:** novo Render → deploy `producao` → colar `kit/render-env-atual.env` (trocar `DATABASE_URL`) → migrate → superuser → Restore ZIP.
 
 **Rollback noite:** restore = só **dados** · código ruim = **deploy versão antiga** (git/banana).
 
