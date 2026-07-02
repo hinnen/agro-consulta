@@ -1142,29 +1142,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.53** · **loja v6.10**
+**Versão app (`VERSION`):** **teste v6.55** · **loja v6.11**
 
-**Nota versões:** número do **teste** sobe a **cada commit** (hook `bump_version.py` + docs/banana). **Loja** sobe só no **cherry-pick isolado** que você autoriza — por isso teste fica «maior» (ex. 6.53 vs 6.10); **não** significa que a loja está atrás em 43 pacotes.
+**Nota versões:** número do **teste** sobe a **cada commit** (hook `bump_version.py` + docs/banana). **Loja** sobe só no **cherry-pick isolado** que você autoriza — por isso teste fica «maior»; **não** significa dezenas de pacotes pendentes na loja.
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### ✅ Deploy loja **v6.10** — popup 95% Caixa + cache JS (02/07)
+### ✅ Deploy loja **v6.11** — popup Caixa (overlay JS quebrado) (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | Renan — *pode mandar sim* + senha **`99738595`** |
-| **Commit** | **`8670f40`** (cherry-pick **`f5c42fb`** + **`5e7550d`** de teste) |
-| **Rollback** | Tag **`producao-rollback-v6.09-20260702`** @ **`1591b63`** |
-| **O quê** | **`agro_asset_v`** no template (JS com commit Render, não `?v=1`) · `openPdvPanel`/`navigateGestao` reforçados → Caixa no **popup laranja ~95%** |
-| **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+Shift+R badge **v6.10** · DevTools `agro_dual_window.js?v=<commit>` · Caixa → popup laranja |
+| **Autorização** | Renan — *arruma / pode mandar* (continuação deploy PDV) |
+| **Commit** | **`8947c7f`** (sync **`agro_pdv_overlay.js`** + **`agro_dual_window.js`** de teste) |
+| **Rollback** | Tag **`producao-rollback-v6.10-20260702`** @ **`8670f40`** |
+| **Causa v6.10** | **`agro_pdv_overlay.js` na loja** tinha `options.force = true` **sem** `options` → `ReferenceError` · `openPdvPanel` engolia o erro → Caixa ia para **janela Gestão** (shell lateral) · **teste** já tinha o JS completo desde v6.05 — cherry-pick v6.10 **não copiou** esse arquivo |
+| **Fix** | Overlay JS completo · `navigateGestao` **nunca** `pulseGestaoFocus` para Caixa/Vendas/Fiado no PDV |
+| **Validar loja** | Ctrl+Shift+R badge **v6.11** · Caixa → **popup laranja ~95%** (igual teste) |
 
-### ✅ PDV Caixa popup 95% — **v6.10 loja** (02/07 · Renan)
+### ⚠️ Deploy loja **v6.10** — incompleto (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma v6.09** | Caixa abria no **shell Gestão** (barra lateral), não popup |
-| **Fix** | Ver deploy **v6.10** acima |
+| **Commit** | **`8670f40`** |
+| **Problema** | **`agro_pdv_overlay.js` não foi copiado** — JS quebrado na loja · substituído por **v6.11** |
+
+### ✅ PDV Caixa popup 95% — **v6.11 loja** (02/07 · Renan)
 
 ### 🐛 PDV topbar — ainda quebrado pós-v6.09 (02/07 madrugada · Renan)
 
