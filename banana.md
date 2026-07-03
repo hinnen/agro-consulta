@@ -441,14 +441,17 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **Dinheiro**, fiado, vale, cashback, etc. | **Só se o operador escolher** cupom fiscal |
 | Operador escolhe **«Venda comum»** (popup de impressão) | **Não** — só cupom não fiscal |
 | Venda **sem impressão** + forma manual | **Não** (salvo modo `auto`) |
-| Venda **sem impressão** + PIX/cartão | **Sim**, automático |
+| Venda **sem impressão** + PIX/cartão | **Sim**, automático (background) |
+| Venda **com impressão (F9)** + cupom fiscal | **Sim**, **síncrono** — modal CPF → aguarda SEFAZ → imprime |
+| Venda **sem impressão (Enter)** + PIX/cartão | **Sim**, background (sem modal se sem CPF no cliente) |
 | **Falha na SEFAZ** | Venda **grava igual**; reemitir em **Consultar vendas** |
 
 #### Popups no PDV (wizard `/pdv/checkout/`)
 
 | Passo | PIX / cartão | Dinheiro e demais |
 | ----- | ------------ | ----------------- |
-| Confirmar **com impressão** | Sem popup «NFC ou Venda» — vai direto ao fiscal | Popup **Cupom fiscal** ou **Venda comum** |
+| Confirmar **com impressão (F9)** | Modal CPF (se sem CPF no cliente) → emissão **síncrona** → imprime fiscal | Popup **Cupom fiscal** ou **Venda comum** → idem se fiscal |
+| Confirmar **sem impressão (Enter)** | Sem modal — sem ID automático em PIX/cartão | NFC-e só se operador pediu / forma auto |
 | Cliente **sem CPF** válido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
 | Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
 
@@ -1142,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.75** · **loja v6.75**
+**Versão app (`VERSION`):** **teste v6.77** · **loja v6.75**
 
 **WIP teste:** —
+
+### NFC-e — CPF com impressão + sync SEFAZ (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Background emitia sem CPF antes do modal; F9 imprimia antes da SEFAZ autorizar |
+| **Decisão** | **Enter** = NFC-e background (rápido) · **F9** = modal CPF + `nfce_sincrona` + imprime só se autorizou |
+| **Arquivos** | `pdv_wizard.js` · `views_nfce.py` |
+| **Teste Renan** | Ctrl+F5 PDV → PIX F9 sem CPF → modal → CPF ou sem ID → cupom sai na hora · Enter continua rápido |
 
 ### ✅ Deploy loja **v6.75** (03/07 madrugada — Renan senha OK)
 

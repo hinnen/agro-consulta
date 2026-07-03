@@ -6744,6 +6744,10 @@
         }
         if (nfceOpts.semIdentificacao) payload.nfce_sem_identificacao = true;
         if (nfceUsuarioQuerEmitir(state)) payload.nfce_emitir = true;
+        if (nfceDeveSerSincrona(state)) {
+            payload.nfce_sincrona = true;
+            if (nfceOpts.semIdentificacao || nfceOpts.cpf) payload.nfce_escolha_explicita = true;
+        }
         var comp = computed || State.getComputed();
         if (comp && comp.desconto > 0.009) {
             payload.desconto_geral = comp.desconto;
@@ -7225,6 +7229,16 @@
         return nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state);
     }
 
+    function nfceVendaComImpressaoFiscal(state) {
+        state = state || State.getState();
+        var pag = state.pagamento || {};
+        return !!pag.imprimirCupom && String(pag.cupomImpressao || '') === 'nfce';
+    }
+
+    function nfceDeveSerSincrona(state) {
+        return nfceUsuarioQuerEmitir(state) && nfceVendaComImpressaoFiscal(state);
+    }
+
     function resolverNfceAntesConfirmar(withPrint) {
         if (!nfceUsuarioQuerEmitir()) {
             State.setPagamentoField('nfceOpts', {});
@@ -7238,7 +7252,7 @@
             confirmSaleProsseguir(withPrint);
             return;
         }
-        if (nfceFluxoAutomatico(state)) {
+        if (!withPrint && nfceFluxoAutomatico(state)) {
             State.setPagamentoField('nfceOpts', { cpf: '', semIdentificacao: true });
             confirmSaleProsseguir(withPrint);
             return;
@@ -7343,11 +7357,17 @@
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
         var cupomImpressao = opts.cupomImpressao || '';
+        var imprimir = !!withPrint;
         if (opts.nfceErro && cupomImpressao === 'nfce') {
-            cupomImpressao = 'venda';
+            imprimir = false;
+            if (printWin && !printWin.closed) {
+                try {
+                    printWin.close();
+                } catch (errC) {}
+            }
         }
-        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
-            return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+        imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
+            return aguardarPosImpressao(imprimir ? 900 : 0).then(function () {
                 return printFail;
             });
         }).then(function (printFail) {
