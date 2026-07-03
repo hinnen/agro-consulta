@@ -1147,7 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.70** · **loja v6.23**
+**Versão app (`VERSION`):** **teste v6.71** · **loja v6.28**
+
+### ✅ Deploy loja **v6.28** — descanso PIN + RH ficha + caixa overlay (03/07 madrugada)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — modo descanso · ficha RH · topbar sem Orç. salvos · caixa relatório/scroll · senha OK |
+| **Commits** | `37d38dc` ficha RH · `8e9ac6d` topbar · `10ebb9d` caixa overlay · `a5252fb` descanso PIN |
+| **Fora** | Saída caixa PIN obrigatório (só teste — ver explicação Renan) |
+| **Conferir** | Idle ~3 min → PIN legível · `/rh/` ficha · caixa no overlay PDV rola · relatório «← Menu» |
 
 ### ✅ Deploy loja **v6.22** — FL-048 ZIP + entregas fechar caixa (03/07)
 
