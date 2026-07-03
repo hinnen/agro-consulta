@@ -1147,7 +1147,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.71** · **loja v6.28**
+**Versão app (`VERSION`):** **teste v6.72** · **loja v6.30**
+
+### ✅ Deploy loja **v6.30** — saída caixa exige PIN RH (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan · retirada/saída grava operador pelo PIN · senha OK |
+| **Commit** | `9d6e847` |
+| **Conferir** | Caixa → saída/retirada → ao confirmar pede PIN · nome do operador no lançamento |
 
 ### ✅ Deploy loja **v6.28** — descanso PIN + RH ficha + caixa overlay (03/07 madrugada)
 
