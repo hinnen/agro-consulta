@@ -8236,6 +8236,28 @@
   let _entradaNfeCatLocal = null;
   let _entradaNfeCatLocalInited = false;
   let _entradaNfeBuscaSeq = 0;
+  let _entradaNfeBuscaAbort = null;
+
+  function entradaNfeAbortarBuscaApiPendente() {
+    if (_entradaNfeBuscaAbort) {
+      try {
+        _entradaNfeBuscaAbort.abort();
+      } catch (_) {}
+      _entradaNfeBuscaAbort = null;
+    }
+  }
+
+  function entradaNfeLocalSuficiente(locOrd, termoNorm, modo) {
+    if (!locOrd || !locOrd.length) return false;
+    if (modo === 'scanner') return locOrd.length >= 1;
+    if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm) && locOrd.length >= 1) {
+      return true;
+    }
+    if (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm) && locOrd.length >= 1) {
+      return true;
+    }
+    return locOrd.length >= 8;
+  }
 
   function entradaNfeRemoverSufixoQuantidadeBusca(texto) {
     return String(texto || '').trim().replace(/(?:\*|x)\d+$/i, '').trim();
@@ -8339,14 +8361,16 @@
   }
 
   /** Catálogo via /api/buscar/ — Postgres (entrada_nfe=1) sem estoque/médias Mongo. */
-  async function entradaNfeFetchProdutosMotorConsultaApi(termoBruto) {
+  async function entradaNfeFetchProdutosMotorConsultaApi(termoBruto, signal) {
     const t = String(termoBruto || '').trim();
     if (t.length < 2) return [];
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
     u.searchParams.set('entrada_nfe', '1');
     u.searchParams.set('limit', '48');
-    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const opts = { credentials: 'same-origin' };
+    if (signal) opts.signal = signal;
+    const r = await fetch(u.toString(), opts);
     if (!r.ok) return [];
     const j = await r.json().catch(() => ({}));
     if (j && j.erro) return [];
@@ -8357,6 +8381,7 @@
     const tBruto = entradaNfeSanitizeTermoBuscaPdvBruto(entradaNfeRemoverSufixoQuantidadeBusca(String(termo || '')));
     if (tBruto.length < 2) return [];
     const sid = ++_entradaNfeBuscaSeq;
+    entradaNfeAbortarBuscaApiPendente();
     const nb = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal : null;
     const fi = typeof filtrarProdutosBuscaInteligente === 'function';
     const termoNorm = nb ? nb(tBruto) : tBruto.toLowerCase().trim();
@@ -8372,15 +8397,25 @@
       ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
         (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
     if (sid !== _entradaNfeBuscaSeq) return null;
+    if (entradaNfeLocalSuficiente(locOrd, termoNorm, modo)) {
+      if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
+        return ordenarSugestoesPdv(locOrd, termoNorm).slice(0, 80);
+      }
+      return locOrd.slice(0, 80);
+    }
+    _entradaNfeBuscaAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const apiSignal = _entradaNfeBuscaAbort ? _entradaNfeBuscaAbort.signal : undefined;
     let apiList = [];
     try {
       if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.show();
-      apiList = await entradaNfeFetchProdutosMotorConsultaApi(tBruto);
+      apiList = await entradaNfeFetchProdutosMotorConsultaApi(tBruto, apiSignal);
       if (sid !== _entradaNfeBuscaSeq) return null;
-    } catch (_) {
+    } catch (err) {
+      if (err && err.name === 'AbortError') return null;
       apiList = [];
     } finally {
       if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.hide();
+      if (sid === _entradaNfeBuscaSeq) _entradaNfeBuscaAbort = null;
     }
     if (sid !== _entradaNfeBuscaSeq) return null;
     if (!fi || !nb) {
@@ -8671,7 +8706,7 @@
         return;
       }
       sugHl = -1;
-      sugTimer = setTimeout(preencherSugestoes, 200);
+      sugTimer = setTimeout(preencherSugestoes, 420);
     });
 
     busca.addEventListener('blur', () => {
@@ -8941,7 +8976,7 @@
     clearTimeout(prodModalTimer);
     const t = inp.value.trim();
     if (t.length < 2) return;
-    const ms = /^\d{8,}$/.test(t) ? 45 : 180;
+    const ms = /^\d{8,}$/.test(t) ? 70 : 400;
     prodModalTimer = setTimeout(() => buscarProdutosModal(t), ms);
   }
   document.getElementById('modal-prod-q').addEventListener('input', entradaNfeModalAgendarBuscaProd);

@@ -1142,9 +1142,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.72** · **loja v6.31**
+**Versão app (`VERSION`):** **teste v6.75** · **loja v6.31**
 
-**WIP teste:** fix contagem fechar caixa zera no novo turno · fiado busca mostra cliente sem saldo
+**WIP teste:** fix contagem fechar caixa · fiado busca · **busca rápida entrada NF + cadastro** (abort/debounce/PG)
+
+### ⚡ Busca produtos — entrada NF + cadastro (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Digitar «milho»/GM/EAN na etapa produtos: 4–14 s por tecla; requests empilhadas |
+| **Fix** | Servidor: `catalogo_agro.buscar` sem scan `.iterator()` · match exato antes do `icontains` · GM/barras só com tamanho mínimo · sem fallback Mongo em `agro_pg` · cache 45 s entrada NF. Cliente: abort · debounce 400 ms · cache PDV local. **Cadastro:** GM só com 5+ chars · barras 8+ · debounce código 420 ms · sem 2ª busca PDV |
+| **Status** | **teste** — validar Rede Chrome na entrada NF |
 
 ### 🐛 Fechar caixa — contagem do dia anterior (03/07)
 
@@ -1278,7 +1286,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - `render-env-atual.env` — **Environment real** do servidor (senhas, Mongo, NFC, MP…)
 - `LEIA-ME-RECUPERACAO-ZERO.txt` · scripts
 
-**resumo.xlsx (Renan 03/07):** **não** é a lista completa de produtos — é **amostra legível** para conferência rápida. **Backup/restauração real** = `data/catalogo.jsonl` (todos os registros Postgres). Aba **Contagens** mostra o total por modelo; se Excel tiver menos linhas, o resto está só no JSONL. **~3 mil produtos no Mongo** ≠ necessariamente linhas em `produtos.Produto` (Postgres) — conferir aba Contagens. Planilha completa de cadastro: **Cadastro ERP → Excel ↓** (outro fluxo).
+**resumo.xlsx (Renan 03/07):** **não** é a lista completa — é **amostra legível** para conferência rápida. **Backup/restauração real** = `data/catalogo.jsonl` (tudo do **Postgres**). Aba **Contagens** = total por tabela; se o Excel tiver menos linhas, o resto está só no JSONL. Planilha só de cadastro: **Cadastro ERP → Excel ↓**.
 
 **Excel v6.69+:** uma aba por tabela (ex. `catalogo_Produto` com código, nome, preço…) — não mistura overlay/promoção na mesma folha.
 

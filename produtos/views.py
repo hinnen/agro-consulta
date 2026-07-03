@@ -16887,6 +16887,15 @@ def api_buscar_produtos(request):
     if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
 
+    entrada_nfe_cache_key: str | None = None
+    if entrada_nfe_mode and q:
+        from django.core.cache import cache
+
+        entrada_nfe_cache_key = f"entrada_nfe_busca_v1:{q.lower()[:80]}:{lim_busca_req}"
+        _enf_hit = cache.get(entrada_nfe_cache_key)
+        if _enf_hit is not None:
+            return JsonResponse(_enf_hit)
+
     try:
         balanca_auditoria_q: str | None = None
         preco_por_id: dict[str, float] = {}
@@ -17291,6 +17300,13 @@ def api_buscar_produtos(request):
             payload["motor"] = "v2"
         elif use_motor_unificado:
             payload["motor"] = "unificado"
+        if entrada_nfe_cache_key:
+            try:
+                from django.core.cache import cache
+
+                cache.set(entrada_nfe_cache_key, payload, 45)
+            except Exception:
+                pass
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
