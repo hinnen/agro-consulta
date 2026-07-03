@@ -1142,11 +1142,38 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.68** · **loja v6.16**
+**Versão app (`VERSION`):** **teste v6.69** · **loja v6.20**
 
-**📋 Pendente produção (após fechar loja — Renan 02/07):** fix **RH vale→CP duplicado** (código local) · **não** incluído no v6.16
+**WIP teste:** fix modo descanso PIN blur ilegível · fix FL-048 ZIP **no teste v6.69** · ~~entregas botão subtotal~~ **cancelado** · perf+RH **já na loja v6.20** · WIP local: carrinho PDV + entregas ao fechar caixa
 
-**WIP teste:** pacote **perf PC fraco** (não foi pra loja) · fix carrinho **já em produção v6.16** · **fix FL-048** «Baixar ZIP» — **v6.68 teste**
+### 🐛 Modo descanso — tela borrada ilegível (03/07 · loja)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após ~3 min sem mexer: overlay escuro + tudo borrado; popup PIN ilegível (Chrome/GPU) |
+| **Causa** | `backdrop-blur` + `filter: blur` nos irmãos do body — bug de composição no Chrome |
+| **Fix** | `_screensaver_pin.html` — fundo sólido 94 %, sem blur no fundo; `#sspin-root` isolado no `body` |
+| **Status** | Fix local · subir **teste** para validar idle ~3 min |
+
+### ✅ Deploy loja **v6.20** — perf PC fraco + RH vale CP (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — loja fechou · perf + fix RH vale · senha OK |
+| **Commits** | `c9c1ece`…`6741ed2` em `producao` (7 commits cherry do `teste`) |
+| **Perf** | Splash catálogo · cache offline · sync foco 5 min · F11 animações · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min |
+| **RH** | Vale caixa **não** duplica pagamento CP parcial na folha (`e557857` / `6741ed2`) |
+| **Mantido** | Carrinho v6.16 |
+| **Fora** | FL-048 ZIP (só teste) · WIP local carrinho/entregas caixa |
+| **Amanhã** | Ctrl+F5 PDV + Gestão · F11 se quiser menos animação · conferir folha RH em uso novo |
+
+### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan) — **✅ loja v6.20**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Vale caixa + pagamento CP parcial iguais → CP **Pago** inflado |
+| **Fix** | Hook só baixa direta em Lançamentos · sync Postgres · aviso verde no fechamento |
+| **Status** | **Na loja** — não reabrir folhas já gambiarradas |
 
 ### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
 
@@ -1157,17 +1184,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `_excel_scalar()` em `pg_backup_util.py` · mensagem de erro legível na view |
 | **Kit zero** | Conteúdo conferido OK (guias + `render-env-atual.env` + scripts) |
 
-### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Vale caixa + **Pagamento salário CP parcial** iguais (ex. Queila 30/06 R$ 100) → CP **Pago R$ 100 acima** |
-| **Loja** | Renan **gambiarra OK** — Queila paga · **não reabrir** |
-| **Causa** | Bug v5.70: hook da baixa parcial criava pagamento RH em todo vale/caixa folha |
-| **Fix (código local, sem push)** | Hook só baixa direta Lançamentos · sync força Postgres · Igualar com aviso verde |
-| **Arquivos** | `mongo_financeiro_util.py` · `lancamentos_financeiro_pg_write_util.py` · `salario_financeiro_mongo.py` · `rh/views.py` · `fechamento_detalhe.html` |
-| **📋 PRODUÇÃO** | **Após fechar loja** — cherry junto com demais pendentes · **não subir agora** |
-
 ### ✅ Deploy loja **v6.16** — carrinho PDV itens travados (02/07)
 
 | Item | Detalhe |
@@ -1175,7 +1191,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Renan — cherry **só** fix carrinho · senha OK |
 | **Commit** | `add4ce6` em `producao` |
 | **O quê** | Lista busca sumia de verdade · toque no carrinho fecha busca · clique na linha por índice |
-| **Validado** | Renan — GM6082 + GM6083 voltaram a funcionar (teste/local) |
+| **Validado** | Renan — **loja v6.16 OK** (GM6082 + GM6083) |
 | **Fora** | Pacote perf · RH vale CP · entregas topbar→subtotal |
 
 ### 🐛 PDV wizard — carrinho itens travados (02/07 · Renan) — **✅ loja v6.16**
@@ -1186,12 +1202,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Exemplos** | GM6082 (dobradiça) · GM6083 (facão) |
 | **Causa** | Lista da **busca** não sumia (`#pdv-product-autocomplete` — `.hidden` perdia para `display:flex`) |
 | **Fix** | `pdv_wizard.html` + `pdv_wizard.js` |
+| **Status** | **Fechado** — loja confirmada Renan |
 
-### WIP teste — perf CPU/RAM (02/07 · Renan)
+### WIP teste — perf CPU/RAM (02/07 · Renan) — **✅ loja v6.20**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Splash catálogo** | Só **teste** (arquivo **não existe** em `producao` v6.15) · debug 30s → atraso **400 ms** (se cache rápido **não aparece**) · mín. visível **200 ms** |
+| **Splash catálogo** | Atraso **400 ms** (cache rápido **não aparece**) · mín. visível **200 ms** |
 | **Config F11** | Modal · **Menos animações** separado PDV / Gestão (`agro_perf_fx.js`) · também no Menu **F10** (Gestão) |
 | **Gestão 2 apps** | Sem iframe PDV oculto · Dashboard **só carrega ao abrir** guia |
 | **Abas livres** | **5 min** pausa animações · **20 min** descarrega iframe (volta ao clicar — não recarrega ao trocar aba) |
