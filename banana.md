@@ -1264,6 +1264,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 - `render-env-atual.env` — **Environment real** do servidor (senhas, Mongo, NFC, MP…)
 - `LEIA-ME-RECUPERACAO-ZERO.txt` · scripts
 
+**resumo.xlsx (Renan 03/07):** **não** é a lista completa de produtos — é **amostra legível** para conferência rápida. **Backup/restauração real** = `data/catalogo.jsonl` (todos os registros Postgres). Aba **Contagens** mostra o total por modelo; se Excel tiver menos linhas, o resto está só no JSONL. **~3 mil produtos no Mongo** ≠ necessariamente linhas em `produtos.Produto` (Postgres) — conferir aba Contagens. Planilha completa de cadastro: **Cadastro ERP → Excel ↓** (outro fluxo).
+
+**Excel v6.69+:** uma aba por tabela (ex. `catalogo_Produto` com código, nome, preço…) — não mistura overlay/promoção na mesma folha.
+
 **Fora do ZIP:** código Git · dados *dentro* do Mongo ERP (credenciais vêm no .env).
 
 **Parcial / restore parcial:** inalterado — checkbox por categoria.
