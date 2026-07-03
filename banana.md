@@ -1147,7 +1147,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.70** · **loja v6.22**
+**Versão app (`VERSION`):** **teste v6.70** · **loja v6.23**
 
 ### ✅ Deploy loja **v6.22** — FL-048 ZIP + entregas fechar caixa (03/07)
 
