@@ -62,6 +62,8 @@ def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
         return cpf, False
     if sem_id:
         return "", True
+    if data.get("nfce_sincrona") or data.get("nfce_escolha_explicita"):
+        return "", False
     if nfce_emissao_automatica() or nfce_venda_tem_forma_pagamento_auto(data):
         return "", True
     return "", False
@@ -191,7 +193,10 @@ def tentar_emitir_nfce_pos_venda(venda: VendaAgro | None, data: dict) -> dict | 
     _marcar_nfce_solicitada(venda)
     from django.conf import settings
 
-    if getattr(settings, "AGRO_PDV_NFCE_ASSINCRONA", True):
+    sincrona = bool(data.get("nfce_sincrona"))
+    assincrona = getattr(settings, "AGRO_PDV_NFCE_ASSINCRONA", True)
+
+    if not sincrona and assincrona:
         cfg = nfce_config_resumo()
         tp_amb = int(cfg.get("tp_amb") or 2)
         _disparar_nfce_pos_venda_background(venda.pk, data)
