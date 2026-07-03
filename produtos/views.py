@@ -128,6 +128,7 @@ from .venda_erp_envio_util import (
 )
 from .entrega_pdv_pendente_util import (
     cancelar_entrega_pendente_pdv,
+    finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
     listar_entregas_bloqueando_fechamento_caixa,
     listar_entregas_pendentes_pdv,
     marcar_entrega_pendente_fechada,
@@ -9755,6 +9756,7 @@ def caixa_fechar(request):
             if cont_din is not None:
                 sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
             sessao.save()
+            finalizar_entregas_pagas_pendentes_ao_fechar_caixa([sessao.pk])
             _limpar_sessao_browser(request, sessao.pk)
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
@@ -9807,6 +9809,7 @@ def caixa_fechar(request):
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
             n += 1
+        finalizar_entregas_pagas_pendentes_ao_fechar_caixa([s.pk for s in sessoes_operacional])
         _limpar_rascunho_conferencia(request)
         messages.success(request, f"{n} caixa operacional fechado(s) de uma vez.")
         return redirect("caixa_painel")
@@ -24513,6 +24516,10 @@ def api_entrega_registrar(request):
             "pdv_wizard_state": {},
             "venda_agro": venda_link,
         }
+        if sessao_cx:
+            extra_pdv["sessao_caixa"] = sessao_cx
+        elif venda_link.sessao_caixa_id:
+            extra_pdv["sessao_caixa_id"] = venda_link.sessao_caixa_id
     elif aguarda_pdv:
         extra_pdv = {
             "aguarda_pagamento_pdv": True,
