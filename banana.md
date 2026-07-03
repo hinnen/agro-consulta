@@ -1142,9 +1142,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.75** · **loja v6.31**
+**Versão app (`VERSION`):** **teste v6.75** · **loja v6.75**
 
-**WIP teste:** fix contagem fechar caixa · fiado busca · **busca rápida entrada NF + cadastro** (abort/debounce/PG)
+**WIP teste:** —
+
+### ✅ Deploy loja **v6.75** (03/07 madrugada — Renan senha OK)
+
+| Pacote | Commits / nota |
+| ------ | -------------- |
+| **Busca rápida** | `908ff07` — entrada NF + cadastro |
+| **Caixa contagem** | `21491cd` — zera rascunho ao mudar turno |
+| **Fiado busca** | `21491cd` — cliente sem saldo na busca |
+| **Roteiro Cursor** | `banana-roteiro.md` + modo econômico |
+| **Merge** | `d26e913` `teste` → `producao` |
 
 ### ⚡ Busca produtos — entrada NF + cadastro (03/07)
 
@@ -1152,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Digitar «milho»/GM/EAN na etapa produtos: 4–14 s por tecla; requests empilhadas |
 | **Fix** | Servidor: `catalogo_agro.buscar` sem scan `.iterator()` · match exato antes do `icontains` · GM/barras só com tamanho mínimo · sem fallback Mongo em `agro_pg` · cache 45 s entrada NF. Cliente: abort · debounce 400 ms · cache PDV local. **Cadastro:** GM só com 5+ chars · barras 8+ · debounce código 420 ms · sem 2ª busca PDV |
-| **Status** | **teste** — validar Rede Chrome na entrada NF |
+| **Status** | **✅ loja v6.75** |
 
 ### 🐛 Fechar caixa — contagem do dia anterior (03/07)
 
@@ -1160,7 +1170,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Contagem por forma ficava salva até o fechamento do dia seguinte |
 | **Fix** | Rascunho amarrado ao turno (sessão) · limpa localStorage ao mudar turno/fechar |
-| **Status** | **teste** — validar abrir fechar no dia novo |
+| **Status** | **✅ loja v6.75** |
 
 ### 🐛 Fiado — busca só com saldo (03/07)
 
@@ -1168,7 +1178,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Pedido** | Renan — na busca, ver cliente mesmo sem pendência |
 | **Fix** | `apenas_saldo=0` quando digita busca · cadastro ClienteAgro entra na lista |
-| **Status** | **teste** |
+| **Status** | **✅ loja v6.75** |
 
 ### 🐛 Modo descanso — tela borrada ilegível (03/07 · loja)
 
