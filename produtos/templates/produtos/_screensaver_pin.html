@@ -1,5 +1,5 @@
 {# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
-<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-md text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
+<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
@@ -64,9 +64,11 @@
 
   try { localStorage.removeItem('gm_sspin_pins'); } catch (eDrop) {}
 
-  if (root.parentElement !== document.body) {
+  function garantirSspinNoBody() {
+    if (!document.body || root.parentElement === document.body) return;
     try { document.body.appendChild(root); } catch (eReparent) {}
   }
+  garantirSspinNoBody();
 
   var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
@@ -307,6 +309,7 @@
 
   function openLock() {
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    garantirSspinNoBody();
     try {
       var ae = document.activeElement;
       if (ae && typeof ae.blur === 'function') ae.blur();
@@ -488,9 +491,10 @@
   var style = document.createElement('style');
   style.textContent =
     'body.sspin-locked { overflow: hidden !important; } ' +
-    'body.sspin-locked > *:not(#sspin-root) { filter: blur(6px); user-select: none; } ' +
-    'body.sspin-locked #sspin-root { pointer-events: auto !important; filter: none !important; } ' +
-    '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { filter: none !important; } }';
+    'body.sspin-locked > *:not(#sspin-root) { user-select: none; pointer-events: none; } ' +
+    'body.sspin-locked #sspin-root { pointer-events: auto !important; filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; isolation: isolate; } ' +
+    'body.sspin-locked #sspin-root > * { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: translateZ(0); } ' +
+    '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { pointer-events: auto !important; } }';
   document.head.appendChild(style);
 
   function carregarOperadorSessao() {
