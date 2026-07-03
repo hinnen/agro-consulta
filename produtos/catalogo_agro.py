@@ -1,6 +1,7 @@
 """Catálogo PostgreSQL (``Produto``) — ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
+import re
 import secrets
 from decimal import Decimal
 
@@ -174,9 +175,11 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     from produtos.cadastro_busca_codigo_util import (
         overlay_pids_por_codigo,
         parece_codigo_cadastro,
+        q_codigo_exato_cadastro,
         q_icontains_cadastro,
-        termo_eh_codigo_gm,
+        q_nome_tokens_cadastro,
         termo_bate_codigos_produto,
+        termo_eh_codigo_gm,
     )
 
     termo = (q or "").strip()
@@ -196,77 +199,41 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
                 lim,
             )
-        if len(found) < lim:
+        q_ex = q_codigo_exato_cadastro(termo)
+        if q_ex is not None and len(found) < lim:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(q_ex).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        digits_only = re.sub(r"\D", "", termo)
+        busca_pesada_icontains = not (
+            (digits_only.isdigit() and len(digits_only) >= 8) or termo_eh_codigo_gm(termo)
+        )
+        if busca_pesada_icontains and len(found) < lim:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
                 qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
                 lim,
             )
-        if len(found) < lim:
-            for p in qs.iterator(chunk_size=400):
-                if termo_bate_codigos_produto(
-                    termo,
-                    codigo_interno=p.codigo_interno,
-                    codigo_nfe=p.codigo_nfe,
-                    codigo_barras=p.codigo_barras,
-                    extras=(p.produto_externo_id, p.erp_produto_id),
-                ):
-                    _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
-                    if len(found) >= lim:
-                        break
     else:
-        q_tok = _q_tokens_todos_cadastro(termo)
-        if q_tok is not None:
+        q_nome = q_nome_tokens_cadastro(termo)
+        if q_nome is not None:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
-                qs.filter(q_tok).order_by("nome", "pk")[:lim],
+                qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        if len(found) < lim:
+        if len(found) < min(8, lim):
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
                 qs.filter(q_icontains_cadastro(termo)).order_by("nome", "pk")[:lim],
                 lim,
             )
-
-    partes_txt = [p.strip().lower() for p in termo.split() if len(p.strip()) >= 2]
-    if partes_txt and len(found) < lim:
-        from produtos.catalogo_nome_util import produto_fantasma_catalogo, queryset_produtos_nome_corrupto
-
-        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
-            if p.pk in seen_pk:
-                continue
-            if not produto_fantasma_catalogo(p):
-                continue
-            row = produto_agro_para_row(p)
-            bt = str(row.get("busca_texto") or row.get("nome") or "").lower()
-            if bt and all(pl in bt for pl in partes_txt):
-                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
-                if len(found) >= lim:
-                    break
-
-    if parece_codigo_cadastro(termo) and len(found) < lim:
-        from produtos.catalogo_nome_util import produto_fantasma_catalogo, queryset_produtos_nome_corrupto
-
-        for p in queryset_produtos_nome_corrupto(qs).iterator(chunk_size=160):
-            if p.pk in seen_pk:
-                continue
-            if not produto_fantasma_catalogo(p):
-                continue
-            row = produto_agro_para_row(p)
-            if termo_bate_codigos_produto(
-                termo,
-                codigo_interno=row.get("codigo"),
-                codigo_nfe=row.get("codigo_nfe"),
-                codigo_barras=row.get("codigo_barras"),
-                extras=(row.get("id"),),
-            ):
-                _cadastro_pg_append_unicos(found, seen_pk, [p], lim)
-                if len(found) >= lim:
-                    break
 
     if found:
         if termo_eh_codigo_gm(termo):
@@ -285,29 +252,32 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             return _rows_de_produtos(found[:lim])
 
     if parece_codigo_cadastro(termo):
-        try:
-            from produtos.views import obter_conexao_mongo
+        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
-            client, db = obter_conexao_mongo()
-            if db is not None and client is not None:
-                from produtos.cadastro_busca_codigo_util import cadastro_mongo_busca_por_codigo
+        if not agro_catalogo_usa_postgres():
+            try:
+                from produtos.views import obter_conexao_mongo
 
-                docs = cadastro_mongo_busca_por_codigo(
-                    db,
-                    client,
-                    termo,
-                    limit=lim,
-                    include_inactive=inativos,
-                    projection={"Id": 1, "_id": 1},
-                )
-                ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
-                ext_ids = [x for x in ext_ids if x]
-                if ext_ids:
-                    chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
-                    if chunk:
-                        return _rows_de_produtos(chunk)
-        except Exception:
-            pass
+                client, db = obter_conexao_mongo()
+                if db is not None and client is not None:
+                    from produtos.cadastro_busca_codigo_util import cadastro_mongo_busca_por_codigo
+
+                    docs = cadastro_mongo_busca_por_codigo(
+                        db,
+                        client,
+                        termo,
+                        limit=lim,
+                        include_inactive=inativos,
+                        projection={"Id": 1, "_id": 1},
+                    )
+                    ext_ids = [str(d.get("Id") or d.get("_id") or "").strip() for d in docs]
+                    ext_ids = [x for x in ext_ids if x]
+                    if ext_ids:
+                        chunk = list(qs.filter(produto_externo_id__in=ext_ids).order_by("nome", "pk")[:lim])
+                        if chunk:
+                            return _rows_de_produtos(chunk)
+            except Exception:
+                pass
 
     return []
 

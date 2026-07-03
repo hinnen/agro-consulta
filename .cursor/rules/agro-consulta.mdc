@@ -5,25 +5,27 @@ alwaysApply: true
 
 # Agro Consulta — regras do projeto
 
-## 0. Obrigatório — antes de qualquer coisa (Renan, 2026-06-24)
+## 0. Obrigatório — antes de qualquer coisa (Renan, 2026-07-03)
 
-**Primeira ação em todo chat** (antes de responder, editar, shell, grep ou plano):
+**Primeira ação em todo chat** (antes de responder, editar, shell ou plano):
 
-1. **Ler `banana.md` inteiro** com a ferramenta **Read** — arquivo na raiz, **sem** `limit` / `offset` (não basta CHECKPOINT, grep ou resumo do Cursor).
-2. Se o chat já estiver longo, houve resumo de contexto ou mudou de assunto → **ler de novo** o `banana.md` inteiro antes de continuar.
-3. `@banana` no chat **ajuda**, mas **não substitui** o Read completo.
+1. **Ler `banana-roteiro.md` inteiro** (fluxograma de leitura).
+2. **Seguir o roteiro** — ler em `banana.md` só o que ele mandar (topo L1–41, §0, módulo §4.x, CHECKPOINT por grep).
+3. **Banana inteiro** só nos casos do roteiro §5 (produção complexa, desvinculação, retomada longa, ou escada §4 degrau D).
+4. Chat longo / mudou de assunto → repetir passos 1–2; banana inteiro só se o roteiro pedir.
+5. `@banana` / `@banana-roteiro` no chat **ajudam**, mas **não substituem** o Read do roteiro.
 
-**Proibido:** começar tarefa só com memória do chat, só com esta rule ou só com trecho do CHECKPOINT.
+**Proibido:** começar tarefa só com memória do chat ou só com esta rule.
 
 **Depois de ler:** registrar no `banana.md` quando couber (CHECKPOINT, § do módulo) — **sem perguntar** ao Renan.
 
 ## Fonte completa
 
-**Chat (Renan):** anexar **`@banana`** (`banana.md` na raiz). **Referência profunda:** **`AGENTS.md`**. **Não perguntar** se deve atualizar o AGENTS; WIP → banana; AGENTS §7 só se o usuário pedir.
+**Chat (Renan):** retomada → **`@banana-roteiro`**; referência profunda → **`AGENTS.md`**. **Não perguntar** se deve atualizar o AGENTS; WIP → `banana.md`; AGENTS §7 só se o usuário pedir.
 
 ## Memória viva — `banana.md` (automático)
 
-- **Todo chat:** `Read` no `banana.md` **completo** — ver §0 acima.
+- **Todo chat:** `Read` no `banana-roteiro.md` + trechos do `banana.md` conforme §0 — ver roteiro.
 - **Atualizar sem consultar Renan** quando a sessão trouxer algo **persistente** — decisão de produto, roadmap, pendência nova/fechada, WIP relevante, ordem de migração, bug recorrente diagnosticado, entrega commitada em módulo grande.
 - **Onde gravar:** CHECKPOINT (WIP, pendências, instruções) e seção de módulo afetada (ex. §4.15); não inflar — tabelas curtas.
 - **Não perguntar** *"atualizo a banana?"* — fazer no fim da tarefa ou ao fechar tópico importante.
@@ -42,14 +44,10 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
 - **Monitores / escala:** calibração global **Agro Display Scale** (§11) — layout em `rem`/`clamp`; não zoom do Chrome por tela.
 
-## Comunicação com Renan (permanente — 2026-07-03)
-
-- **Modo econômico sempre** — respostas **curtas**; só o essencial (ação, decisão, risco).
-- **Detalhes** só quando ele pedir (*«explica melhor»*, *«não entendi X»*).
-- Português (BR); linguagem de loja; evitar arquivo/API/flag salvo se indispensável (ver `banana.md`).
-
 ## Como trabalhar
 
+- Respostas curtas (modo econômico — `.cursor/rules/modo-economico.mdc`).
+- **Ditado (voz):** mensagem estranha ou ambígua → **perguntar** o que Renan quis dizer antes de agir.
 - **Antes de editar:** uma linha com o plano.
 - **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
 - Preferir **um patch coeso** por entrega.

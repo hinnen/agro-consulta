@@ -835,6 +835,54 @@ def listar_clientes_fiado(
         g.pop("tem_parcial", None)
         g.pop("tem_vencido", None)
         out.append(g)
+    if qtxt and not apenas_com_saldo:
+        keys_existentes = {
+            _chave_grupo_fiado_cliente(
+                cliente_agro_id=g.get("cliente_agro_pk"),
+                cliente_nome=g.get("cliente_nome") or "",
+                cliente_codigo=g.get("cliente_codigo") or "",
+            )
+            for g in out
+        }
+        lim_padrao_busca = fiado_limite_padrao()
+        extra_cli = (
+            ClienteAgro.objects.filter(ativo=True)
+            .filter(
+                Q(nome__icontains=qtxt)
+                | Q(externo_id__icontains=qtxt)
+                | Q(cpf__icontains=qtxt)
+                | Q(whatsapp__icontains=qtxt)
+            )
+            .order_by("nome")[:40]
+        )
+        for c in extra_cli:
+            cod = (c.externo_id or "").strip()
+            key = _chave_grupo_fiado_cliente(
+                cliente_agro_id=c.pk, cliente_nome=c.nome or "", cliente_codigo=cod
+            )
+            if key in keys_existentes:
+                continue
+            lim_local = Decimal(str(c.limite_fiado_local or 0))
+            limite = lim_local if lim_local > 0 else lim_padrao_busca
+            out.append(
+                {
+                    "cliente_agro_pk": c.pk,
+                    "cliente_nome": c.nome,
+                    "cliente_codigo": cod,
+                    "saldo_aberto": 0.0,
+                    "valor_bruto": 0.0,
+                    "valor_pago": 0.0,
+                    "titulos_abertos": 0,
+                    "situacao_resumo": "zerado",
+                    "situacao_label": "Sem saldo",
+                    "limite": float(limite),
+                    "disponivel": float(limite),
+                    "vencimento_mais_antigo": "",
+                    "vencimento_mais_antigo_texto": "—",
+                    "limite_fiado_local": float(c.limite_fiado_local or 0),
+                }
+            )
+            keys_existentes.add(key)
     out.sort(key=lambda x: (-x["saldo_aberto"], x["cliente_nome"]))
     return out
 

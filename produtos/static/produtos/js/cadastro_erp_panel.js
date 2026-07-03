@@ -900,22 +900,25 @@
   }
 
   var buscaCodigoDebounceTimer = null;
-  var BUSCA_CODIGO_DEBOUNCE_MS = 120;
+  var BUSCA_CODIGO_DEBOUNCE_MS = 420;
 
   function pareceCodigoBusca(q) {
     q = String(q || '').trim();
     var lim = q.replace(/\W/g, '');
     if (!lim) return false;
-    if (/^\d+$/.test(lim) && lim.length >= 4) return true;
-    if (/^gm/i.test(lim) && lim.length >= 2) return true;
+    if (/^\d+$/.test(lim)) return lim.length >= 8;
+    if (/^gm/i.test(lim)) return lim.length >= 5;
     var temL = /[a-z]/i.test(lim);
     var temN = /\d/.test(lim);
-    return temL && temN && lim.length >= 3 && q.indexOf(' ') === -1;
+    return temL && temN && lim.length >= 4 && q.indexOf(' ') === -1;
   }
 
   function buscaProntaParaCatalogo(q) {
     q = String(q || '').trim();
     if (!q) return false;
+    var lim = q.replace(/\W/g, '');
+    if (/^gm/i.test(lim) && lim.length < 5) return false;
+    if (/^\d+$/.test(lim) && lim.length < 8) return false;
     if (pareceCodigoBusca(q)) return true;
     return q.length >= 2;
   }
@@ -1072,6 +1075,7 @@
         }
         var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
         if (apiRows.length) return apiRows;
+        if (x.j && x.j.fonte === 'agro_pg') return [];
         return fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw), {
           credentials: 'same-origin',
           signal: sig,
@@ -1105,7 +1109,7 @@
           throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
         }
         var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
-        if (!apiRows.length) {
+        if (!apiRows.length && !(x.j && x.j.fonte === 'agro_pg')) {
           return fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw), {
             credentials: 'same-origin',
             signal: sig,
@@ -1151,7 +1155,7 @@
     var qBusca = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
 
     if (qBusca && !buscaProntaParaCatalogo(qBusca)) {
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (GM… / 4+ dígitos).';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
@@ -1225,7 +1229,7 @@
           .finally(function () {
             setLoading(false);
           });
-      }, 0);
+      }, hadLocal ? 220 : 0);
       return;
     }
 
@@ -1270,16 +1274,17 @@
       carregarGen++;
       setLoading(false);
       mostrarErro('');
-      if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (GM… / 4+ dígitos).';
+      if (metaEl) metaEl.textContent = 'Mín. 2 letras, GM com 5+ caracteres ou barras 8+ dígitos.';
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
       return;
     }
     mostrarErro('');
-    if (metaEl) metaEl.textContent = 'Buscando…';
     if (pareceCodigoBusca(q)) {
-      var msCod = forcar ? 0 : BUSCA_CODIGO_DEBOUNCE_MS;
+      if (metaEl) metaEl.textContent = 'Buscando…';
+      var limCod = q.replace(/\W/g, '');
+      var msCod = forcar ? 0 : (/^\d{8,}$/.test(limCod) ? 100 : BUSCA_CODIGO_DEBOUNCE_MS);
       buscaCodigoDebounceTimer = setTimeout(function () {
         var q2 = (buscaEl.value || '').trim();
         if (!q2 || !pareceCodigoBusca(q2)) return;
@@ -1288,8 +1293,9 @@
       }, msCod);
       return;
     }
+    if (metaEl) metaEl.textContent = 'Buscando…';
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = forcar ? 0 : (temCache ? 80 : 240);
+    var ms = forcar ? 0 : (temCache ? 120 : 380);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {

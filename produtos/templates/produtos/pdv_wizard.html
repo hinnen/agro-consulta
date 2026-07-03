@@ -70,8 +70,6 @@
     width: 6.35rem;
     min-height: 4.15rem;
     box-sizing: border-box;
-    overflow: hidden;
-    pointer-events: none;
   }
   .pdv-cart-promo-badge {
     display: block;
@@ -96,8 +94,8 @@
     min-height: 2.65rem;
     padding: 0.18rem 0.32rem;
     white-space: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
   }
   .pdv-cart-promo-line {
     display: block;
@@ -151,13 +149,8 @@
   }
   .pdv-cart-promo--empty {
     visibility: hidden;
+    pointer-events: none;
     min-height: 4.15rem;
-  }
-  .pdv-cart-qty-wrap,
-  .pdv-cart-price-wrap,
-  .pdv-cart-remove {
-    position: relative;
-    z-index: 2;
   }
   .pdv-cart-row--mix {
     border-left-width: 4px !important;
@@ -354,13 +347,6 @@
     border: 2px solid #0ea5e9 !important;
     background: #bfdbfe !important;
     box-shadow: 0 20px 52px rgba(14, 116, 144, 0.28) !important;
-  }
-  #pdv-product-autocomplete.hidden {
-    display: none !important;
-    pointer-events: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    max-height: 0 !important;
   }
   #pdv-product-autocomplete .pdv-ac-scroll {
     flex: 0 1 auto;
@@ -2572,7 +2558,6 @@
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
-              <button type="button" id="pdv-open-budget-history" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
               <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
             </div>
           </div>
@@ -2716,8 +2701,8 @@
   <div class="flex max-h-[min(86vh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
     <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
       <div>
-        <h3 class="text-lg font-black text-slate-900">Orçamentos salvos / histórico</h3>
-        <p class="text-[11px] font-semibold text-slate-500">Local neste aparelho. Você pode reabrir a venda no wizard.</p>
+        <h3 class="text-lg font-black text-slate-900">Orçamentos anteriores</h3>
+        <p class="text-[11px] font-semibold text-slate-500">Além dos 3 mais recentes no card lateral. Mesmo cliente deste aparelho — reabra ou use o código GMORC na busca.</p>
       </div>
       <button type="button" id="pdv-budget-history-close" class="pdv-action-btn border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button>
     </div>

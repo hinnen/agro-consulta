@@ -587,11 +587,6 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
-- **PIN único loja (01/07):** **uma fonte online** — `PerfilUsuario.senha_rapida` (Postgres). Mesmo PIN em **todos os PCs**.
-- **Uso diário:** operador digita o **PIN definitivo** (modo descanso, Lançamentos, PDV, caixa…).
-- **1ª vez (autoatendimento):** digita **1234** → abre cadastro → escolhe nome → define PIN (≠ 1234) → **salva no servidor** (não no PC). Depois usa só o PIN definitivo.
-- **1234:** só abre o cadastro inicial; **não desbloqueia** o sistema no dia a dia.
-- **RH → Operadores:** gestor pode cadastrar ou **trocar** PIN a qualquer momento (sem precisar do 1234).
 
 ### 4.12 RH
 
@@ -1147,35 +1142,70 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.72** · **loja v6.30**
+**Versão app (`VERSION`):** **teste v6.75** · **loja v6.75**
 
-### ✅ Deploy loja **v6.30** — saída caixa exige PIN RH (03/07)
+**WIP teste:** —
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan · retirada/saída grava operador pelo PIN · senha OK |
-| **Commit** | `9d6e847` |
-| **Conferir** | Caixa → saída/retirada → ao confirmar pede PIN · nome do operador no lançamento |
+### ✅ Deploy loja **v6.75** (03/07 madrugada — Renan senha OK)
 
-### ✅ Deploy loja **v6.28** — descanso PIN + RH ficha + caixa overlay (03/07 madrugada)
+| Pacote | Commits / nota |
+| ------ | -------------- |
+| **Busca rápida** | `908ff07` — entrada NF + cadastro (abort, debounce, PG) |
+| **Caixa contagem** | `21491cd` — zera rascunho ao mudar turno |
+| **Fiado busca** | `21491cd` — cliente sem saldo na busca |
+| **Roteiro Cursor** | `banana-roteiro.md` + rules modo econômico |
+| **Merge** | `teste` → `producao` (pacote acumulado desde v6.31) |
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Pedido** | Renan — modo descanso · ficha RH · topbar sem Orç. salvos · caixa relatório/scroll · senha OK |
-| **Commits** | `37d38dc` ficha RH · `8e9ac6d` topbar · `10ebb9d` caixa overlay · `a5252fb` descanso PIN |
-| **Fora** | Saída caixa PIN obrigatório (só teste — ver explicação Renan) |
-| **Conferir** | Idle ~3 min → PIN legível · `/rh/` ficha · caixa no overlay PDV rola · relatório «← Menu» |
-
-### ✅ Deploy loja **v6.22** — FL-048 ZIP + entregas fechar caixa (03/07)
+### ⚡ Busca produtos — entrada NF + cadastro (03/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido** | Renan — FL-048 backup ZIP + entregas ao fechar caixa · senha OK |
-| **Commits** | `f79f58b` FL-048 ZIP · `8c30c9a` entregas PDV/caixa |
-| **Fora** | Carrinho PDV — **já estava** na loja v6.16 |
-| **Conferir** | `/interno/pg-backup/` Baixar ZIP · entrega paga no PDV → painel **entregue** ao fechar caixa |
+| **Sintoma** | Digitar «milho»/GM/EAN na etapa produtos: 4–14 s por tecla; requests empilhadas |
+| **Fix** | Servidor: `catalogo_agro.buscar` sem scan `.iterator()` · match exato antes do `icontains` · GM/barras só com tamanho mínimo · sem fallback Mongo em `agro_pg` · cache 45 s entrada NF. Cliente: abort · debounce 400 ms · cache PDV local. **Cadastro:** GM só com 5+ chars · barras 8+ · debounce código 420 ms · sem 2ª busca PDV |
+| **Status** | **✅ loja v6.75** |
 
-**WIP teste:** perf v6.20 já na loja · pdv_wizard local (orcamentos) em stash
+### 🐛 Fechar caixa — contagem do dia anterior (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Contagem por forma ficava salva até o fechamento do dia seguinte |
+| **Fix** | Rascunho amarrado ao turno (sessão) · limpa localStorage ao mudar turno/fechar |
+| **Status** | **✅ loja v6.75** |
+
+### 🐛 Fiado — busca só com saldo (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — na busca, ver cliente mesmo sem pendência |
+| **Fix** | `apenas_saldo=0` quando digita busca · cadastro ClienteAgro entra na lista |
+| **Status** | **✅ loja v6.75** |
+
+### 🐛 Modo descanso — tela borrada ilegível (03/07 · loja)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após ~3 min sem mexer: overlay escuro + tudo borrado; popup PIN ilegível (Chrome/GPU) |
+| **Causa** | `backdrop-blur` + `filter: blur` nos irmãos do body — bug de composição no Chrome |
+| **Fix** | `_screensaver_pin.html` — fundo sólido 94 %, sem blur no fundo; `#sspin-root` isolado no `body` |
+| **Status** | **✅ loja v6.28** |
+
+### ✅ Deploy loja **v6.20** — perf PC fraco + RH vale CP (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — loja fechou · perf + fix RH vale · senha OK |
+| **Commits** | `c9c1ece`…`6741ed2` em `producao` (7 commits cherry do `teste`) |
+| **Perf** | Splash catálogo · cache offline · sync foco 5 min · F11 animações · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min |
+| **RH** | Vale caixa **não** duplica pagamento CP parcial na folha (`e557857` / `6741ed2`) |
+| **Mantido** | Carrinho v6.16 |
+
+### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan) — **✅ loja v6.20**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Vale caixa + pagamento CP parcial iguais → CP **Pago** inflado |
+| **Fix** | Hook só baixa direta em Lançamentos · sync Postgres · aviso verde no fechamento |
+| **Status** | **Na loja** — não reabrir folhas já gambiarradas |
 
 ### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
 
@@ -1184,19 +1214,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | «Kit recuperação zero» OK · «Baixar ZIP selecionado» recarrega a tela sem arquivo |
 | **Causa** | `resumo.xlsx` — campo `categorias` (lista) no manifest; openpyxl não aceita lista na célula |
 | **Fix** | `_excel_scalar()` em `pg_backup_util.py` · mensagem de erro legível na view |
-| **Status** | **✅ loja v6.22** |
 | **Kit zero** | Conteúdo conferido OK (guias + `render-env-atual.env` + scripts) |
-
-### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Vale caixa + **Pagamento salário CP parcial** iguais (ex. Queila 30/06 R$ 100) → CP **Pago R$ 100 acima** |
-| **Loja** | Renan **gambiarra OK** — Queila paga · **não reabrir** |
-| **Causa** | Bug v5.70: hook da baixa parcial criava pagamento RH em todo vale/caixa folha |
-| **Fix (código local, sem push)** | Hook só baixa direta Lançamentos · sync força Postgres · Igualar com aviso verde |
-| **Arquivos** | `mongo_financeiro_util.py` · `lancamentos_financeiro_pg_write_util.py` · `salario_financeiro_mongo.py` · `rh/views.py` · `fechamento_detalhe.html` |
-| **📋 PRODUÇÃO** | **Após fechar loja** — cherry junto com demais pendentes · **não subir agora** |
 
 ### ✅ Deploy loja **v6.16** — carrinho PDV itens travados (02/07)
 
@@ -1205,7 +1223,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Renan — cherry **só** fix carrinho · senha OK |
 | **Commit** | `add4ce6` em `producao` |
 | **O quê** | Lista busca sumia de verdade · toque no carrinho fecha busca · clique na linha por índice |
-| **Validado** | Renan — GM6082 + GM6083 voltaram a funcionar (teste/local) |
+| **Validado** | Renan — **loja v6.16 OK** (GM6082 + GM6083) |
 | **Fora** | Pacote perf · RH vale CP · entregas topbar→subtotal |
 
 ### 🐛 PDV wizard — carrinho itens travados (02/07 · Renan) — **✅ loja v6.16**
@@ -1216,12 +1234,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Exemplos** | GM6082 (dobradiça) · GM6083 (facão) |
 | **Causa** | Lista da **busca** não sumia (`#pdv-product-autocomplete` — `.hidden` perdia para `display:flex`) |
 | **Fix** | `pdv_wizard.html` + `pdv_wizard.js` |
+| **Status** | **Fechado** — loja confirmada Renan |
 
-### WIP teste — perf CPU/RAM (02/07 · Renan)
+### WIP teste — perf CPU/RAM (02/07 · Renan) — **✅ loja v6.20**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Splash catálogo** | Só **teste** (arquivo **não existe** em `producao` v6.15) · debug 30s → atraso **400 ms** (se cache rápido **não aparece**) · mín. visível **200 ms** |
+| **Splash catálogo** | Atraso **400 ms** (cache rápido **não aparece**) · mín. visível **200 ms** |
 | **Config F11** | Modal · **Menos animações** separado PDV / Gestão (`agro_perf_fx.js`) · também no Menu **F10** (Gestão) |
 | **Gestão 2 apps** | Sem iframe PDV oculto · Dashboard **só carrega ao abrir** guia |
 | **Abas livres** | **5 min** pausa animações · **20 min** descarrega iframe (volta ao clicar — não recarrega ao trocar aba) |
@@ -1264,27 +1283,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode subir* + **`99738595`** |
-| **O quê** | Cherry **`c875945`** · **`021a96e`** · **`ff1f0d9`** · **`d178536`** — kit recuperação · `render-env-atual.env` no ZIP · guia offline · cron noturno |
+| **O quê** | Cherry **`c875945`** · **`021a96e`** · **`ff1f0d9`** · **`d178536`** |
 | **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+F5 badge **v6.14** · Admin → Backup → baixar ZIP → conferir pasta `kit/render-env-atual.env` |
-
-### 🚀 Deploy loja **v6.13** — backup Postgres Agro FL-048 (03/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Autorização** | Renan — *teste demora / manda produção* + **`99738595`** |
-| **O quê** | Cherry **`454c3ad`** + **`c1a049b`** — painel `/interno/pg-backup/` · ZIP+Excel+restore · card **Operações SisVale** no Admin |
-| **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+F5 · Admin → **Operações SisVale** → Backup Postgres · baixar ZIP · (restore só com senha admin) |
-
-### 🚀 Deploy loja **v6.12** — orçamentos Postgres (03/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Autorização** | Renan — *se não tiver risco de quebrar PDV pode enviar produção* + **`99738595`** |
-| **O quê** | Cherry isolado: migração **`0048`** + modelo `OrcamentoPdvAgro` + API `/api/pdv/orcamentos/` + bootstrap PDV |
-| **Migrate** | **`0048_orcamento_pdv_agro`** |
-| **Validar loja** | Ctrl+F5 badge **v6.12** · salvar orçamento · bip GMORC |
+| **Validar loja** | Ctrl+F5 badge **v6.14** · Admin → Backup → ZIP → `kit/render-env-atual.env` |
 
 ### ✅ **FL-048** — backup Postgres + recuperação zero
 
@@ -1292,18 +1293,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Dentro do ZIP:** `data/*.jsonl` · `manifest.json` · `resumo.xlsx` · pasta `kit/` com:
 - `GUIA-BACKUP-PAINEL.txt` (espelho do painel)
-- `render-env-atual.env` — Environment real (senhas, Mongo, NFC, MP…)
+- `render-env-atual.env` — **Environment real** do servidor (senhas, Mongo, NFC, MP…)
 - `LEIA-ME-RECUPERACAO-ZERO.txt` · scripts
 
-**Fora do ZIP:** código Git · dados *dentro* do Mongo ERP.
+**resumo.xlsx (Renan 03/07):** **não** é a lista completa — é **amostra legível** para conferência rápida. **Backup/restauração real** = `data/catalogo.jsonl` (tudo do **Postgres**). Aba **Contagens** = total por tabela; se o Excel tiver menos linhas, o resto está só no JSONL. Planilha só de cadastro: **Cadastro ERP → Excel ↓**.
 
-**Parcial / restore parcial:** checkbox por categoria — inalterado.
+**Excel v6.69+:** uma aba por tabela (ex. `catalogo_Produto` com código, nome, preço…) — não mistura overlay/promoção na mesma folha.
 
-**Backup noturno:** cron 04h · `AGRO_PG_BACKUP_NIGHTLY_ENABLED=true` + webhook/S3 no Render.
+**Fora do ZIP:** código Git · dados *dentro* do Mongo ERP (credenciais vêm no .env).
+
+**Parcial / restore parcial:** inalterado — checkbox por categoria.
+
+**Backup noturno:** cron 04h · webhook/S3 · ver `pg_backup_nightly.py`.
 
 **Desastre:** novo Render → deploy `producao` → colar `kit/render-env-atual.env` (trocar `DATABASE_URL`) → migrate → superuser → Restore ZIP.
 
-**Fonte:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py` · `pg_backup_nightly.py` · `pg_backup_upload.py` · `pg_backup_env_export.py`
+**Rollback noite:** restore = só **dados** · código ruim = **deploy versão antiga** (git/banana).
+
+**Fonte checklist:** `pg_backup_render_checklist.py` · `pg_backup_disaster_kit.py` · `pg_backup_nightly.py` · `pg_backup_upload.py`
 
 **✅ Renan (03/07):** senha do **admin superuser** trocada · usuário **novo para loja** criado **sem** superuser (não vê backup/restore).
 
@@ -1316,11 +1323,66 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Pendente operação loja (02/07):** replicar **2 apps Chrome PDV + Gestão na barra** em **todos os PCs Win10** — roteiro em **§ Atalhos Win10** abaixo.
 
-### 🚀 Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
+### ✅ Deploy loja **v6.11** — popup Caixa (overlay JS quebrado) (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *arruma / pode mandar* (continuação deploy PDV) |
+| **Commit** | **`8947c7f`** (sync **`agro_pdv_overlay.js`** + **`agro_dual_window.js`** de teste) |
+| **Rollback** | Tag **`producao-rollback-v6.10-20260702`** @ **`8670f40`** |
+| **Causa v6.10** | **`agro_pdv_overlay.js` na loja** tinha `options.force = true` **sem** `options` → `ReferenceError` · `openPdvPanel` engolia o erro → Caixa ia para **janela Gestão** (shell lateral) · **teste** já tinha o JS completo desde v6.05 — cherry-pick v6.10 **não copiou** esse arquivo |
+| **Fix** | Overlay JS completo · `navigateGestao` **nunca** `pulseGestaoFocus` para Caixa/Vendas/Fiado no PDV |
+| **Validar loja** | Ctrl+Shift+R badge **v6.11** · Caixa → **popup laranja ~95%** (igual teste) |
+
+**Se amanhã ainda falhar (checklist):**
+
+| # | Conferir |
+| - | -------- |
+| 1 | Badge **v6.11** no PDV (senão deploy/cache HTML) |
+| 2 | F12 → Network → `agro_pdv_overlay.js?v=` **commit** (não `v=1`) |
+| 3 | F12 → Console — erro vermelho ao clicar Caixa? |
+| 4 | Ctrl+Shift+R **no app PDV** (não só F5) |
+| 5 | Paridade **prod=teste** nos 3 JS overlay — **OK pós-v6.11** (`agro_dual_window`, `agro_pdv_overlay`, `pdv_wizard`) |
+
+**Riscos restantes (baixa):** cache agressivo Chrome · app Gestão aberto ao lado redirecionando foco (v6.11 bloqueia `pulseGestaoFocus` no PDV para Caixa/Vendas/Fiado).
+
+**Renan 02/07 madrugada:** *«parece que estão bom»* — validação definitiva na **abertura da loja** (Caixa/Vendas/Fiado → popup laranja · badge **v6.11**).
+
+### ⚠️ Deploy loja **v6.10** — incompleto (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit** | **`8670f40`** |
+| **Problema** | **`agro_pdv_overlay.js` não foi copiado** — JS quebrado na loja · substituído por **v6.11** |
+
+### ✅ PDV Caixa popup 95% — **v6.11 loja** (02/07 · Renan)
+
+### 🐛 PDV topbar — ainda quebrado pós-v6.09 (02/07 madrugada · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Clique em Caixa/Vendas/Fiado no PDV não abre overlay · `/caixa/` em nova guia abre mas cards do menu não navegam |
+| **Causa extra** | Scripts `agro_dual_window.js` / `agro_pdv_overlay.js` com **`?v=1` fixo** (browser servia JS antigo) · `isGestaoHost()` ainda tratava qualquer URL não-PDV como gestão → shell lateral engolia `/caixa/` |
+| **Fix teste v6.51** | `agro_asset_v` no context (commit Render) · `isGestaoHost` só com papel gestão explícito · roteador PDV + `openPdvPanel` reforçados · fallbacks antes de `pulseGestaoFocus` silencioso |
+| **Validar teste** | Ctrl+Shift+R no PDV · DevTools → `agro_dual_window.js?v=<commit>` (não `v=1`) · topbar → overlay · `/caixa/` guia separada → cards navegam |
+
+### ✅ Deploy loja **v6.09** — PDV topbar overlay (fix isPdvHost) (02/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | Renan — *pode mandar* + senha **`99738595`** (sem reteste) |
+| **Commit** | **`1591b63`** (cherry-pick **`bfd4de5`** de teste) |
+| **Rollback** | Tag **`producao-rollback-v6.08-20260702`** @ **`6461974`** |
+| **O quê** | **PDV:** Caixa / Vendas / Fiado abrem overlay · submenus `/caixa/` em guia separada voltam a clicar |
+| **Migrate** | Nenhuma |
+| **Validar loja** | Ctrl+F5 badge **v6.09** · topbar PDV → overlay laranja · cards do caixa navegam |
+
+### ✅ Deploy loja **v6.08** — PDV topbar overlay + busca cadastro/NF (02/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar para produção ambos* + senha **`99738595`** |
+| **Commit** | **`6461974`** (cherry-pick **`f012d42`** de teste) |
 | **Rollback** | Tag **`producao-rollback-v6.07-20260702`** @ **`aa9f66e`** |
 | **O quê** | **PDV:** Caixa / Consultar vendas / Fiado abrem overlay de novo · **Perf:** busca Entrada NF etapa 2 + Cadastro ERP (motor lite, cache 45 s) |
 | **Migrate** | Nenhuma |
@@ -1332,10 +1394,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *manda* + senha **`99738595`** |
 | **Rollback** | Tag **`producao-rollback-v6.06-20260702`** @ **`d6c271f`** |
-| **Git** | **`teste` `0d5c094`** · cherry **`producao`** |
-| **O quê** | Subtotal PDV: **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · sem quebra de linha em qualquer zoom |
-| **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+F5 badge **v6.07** · card Subtotal canto direito — botões em uma linha |
+| **Git** | **`teste` `0d5c094`** · **`producao` `aa9f66e`** |
+| **O quê** | Subtotal PDV: **Pagar** + F7 · **Entrega** = ícone caminhão + F3 · sem quebra de linha |
+| **Validar loja** | Ctrl+F5 badge **v6.07** · botões subtotal em uma linha |
 
 ### ✅ Deploy loja **v6.05–v6.06** — perf telas + Voltar PDV + overlay Caixa + scripts Win (02/07)
 
@@ -1343,10 +1404,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *pode subir tudo para produção* + senha **`99738595`** |
 | **Rollback** | Tag **`producao-rollback-v6.04-20260702`** @ **`84541c2`** |
-| **Git** | **`teste` `7b48e21`** · **`producao` `ea5f972`** · **VERSION loja `6.05`** |
+| **Git** | **`teste` `7b48e21`** · **`producao` `ea5f972`** + docs **`d6c271f`** · badge loja **`6.06`** |
 | **O quê** | **Perf:** facetas gestão cache 15 min + adiado no load · CP bootstrap sem totais · staleRefresh +700 ms · cap scan PG · entrada NF rascunhos sem 503 Mongo · **UX:** «Voltar PDV F1» some em Gestão · **Bug:** overlay Caixa no PDV não abre BI · **Ops:** scripts atalhos Chrome Win (`criar_atalhos` + `remover_apps`) |
 | **Migrate** | Nenhuma |
-| **Validar loja** | Ctrl+F5 badge **v6.05** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
+| **Validar loja** | Ctrl+F5 badge **v6.06** · **PDV** Caixa → menu caixa (não BI) · **Gestão** sem F1 · gestão/cadastro/lançamentos/entrada NF mais rápidos |
 
 ### 🐛 PDV overlay Caixa abre BI Gestão (01/07 · Renan) — **✅ v6.05**
 
@@ -1358,15 +1419,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Deploy** | **✅ loja v6.05** |
 | **Validar** | Ctrl+F5 no **PDV** · Caixa fechado → overlay **menu caixa** (não BI) · fechar/reabrir 3× OK · com **Gestão** aberta ao lado, Caixa continua certo |
 
-### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **fix v6.49 teste**
+### 🐛 PDV topbar — Caixa / Vendas / Fiado não abrem overlay (02/07 · Renan) — **fix teste v6.51 · loja ainda v6.09**
 
-**Sintoma pós-v6.08:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
+**Sintoma pós-v6.08/v6.09:** clique normal não abre overlay; abrir em nova guia carrega `/caixa/` mas submenus também não respondem.
 
-**Causa:** `readAppRole` gravava `window.name = SistValePDV` em **qualquer** URL quando o `localStorage` dizia PDV (apps Chrome compartilham storage). A aba `/caixa/` virava «host PDV» → roteador interceptava links com `preventDefault` + `pulseGestaoFocus` (sem UI).
+**Causa:** (1) `readAppRole` / `window.name` PDV em URL errada · (2) **`agro_asset_v` ausente** → cache `?v=1` · (3) `isGestaoHost()` amplo (`dualFlagOn && !isPdvPath`) montava shell em `/caixa/`.
 
-**Correção:** `agro_dual_window.js` — `isPdvHost` só em `/pdv/` ou `/consulta/`; `window.name` só nessas rotas ou no shell gestão; `openPdvPanel` com fallback `location.assign`; nova guia caixa volta a navegar normal.
-
-**Validar:** Ctrl+F5 no PDV → Caixa/Vendas/Fiado abrem overlay · em `/caixa/` aberto em guia separada os cards do menu navegam.
+**Correção v6.51:** `context_processors.agro_asset_v` · `agro_dual_window.js` — `isGestaoHost` estrito · `openPdvPanel`/`navigateGestao`/roteador com fallbacks · `isPdvHost` + `isPdvPath` no router.
 
 ### 🔧 Perf multi-tela — **✅ v6.05**
 
@@ -1416,16 +1475,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *Pin manda tambem* + senha **`99738595`** |
 | **Rollback** | Tag **`producao-rollback-v6.03-20260701`** @ **`e4232e8`** |
-| **Git produção (pré)** | **`e4232e8`** · loja **v6.03** |
+| **Git produção (pré/post)** | **`e4232e8`** → **`84541c2`** |
 | **Cherry-picks** | **`872bf96`** (PIN único servidor) + **`135e785`** (1234 cadastro inicial online) |
 | **O quê** | Modo descanso Lançamentos (~3 min idle) · PIN **sempre no servidor** · **1234** abre cadastro 1ª vez · RH Operadores continua gestão |
-| **Arquivos** | `_screensaver_pin.html` · `caixa_util.py` · `estoque/views.py` · `config/urls.py` · `rh_operadores_pins.html` |
 | **Migrate** | Nenhuma · drift **base/estoque** pré-existente |
-| **Dependência** | **`872bf96`** necessário antes de **`135e785`** (refator PIN descanso) |
+| **Dependência** | **`872bf96`** necessário antes de **`135e785`** |
 
 **Validar loja:** Ctrl+F5 · badge **v6.04** · Lançamentos idle ~3 min → screensaver PIN · operador sem PIN: **1234** → cadastro → PIN definitivo · RH → Operadores pins OK · 2 PCs mesmo PIN.
-
-**Rollback (se der problema):** `git checkout producao-rollback-v6.03-20260701` → push `producao`.
 
 ### ✅ Deploy loja **v6.00** — 2 janelas Chrome PDV/Gestão (01/07)
 
@@ -1436,7 +1492,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Git produção** | **`fe97096`** · features **`bda42ca`** |
 | **Cherry-picks** | **`0dbd799`** → **`0f77603`** (6 commits) · **`c1f9970`** já estava **`771ad00`** |
 | **O quê** | PDV e Gestão em **2 atalhos Chrome** · Gestão **sem** guia PDV na sidebar · **sem** PDV F1 no topo do BI · overlay consultas ~95% · Início no PDV foca janela Gestão |
-| **Excluído** | **0048** orçamentos PG · PIN descanso **`135e785`** *(subiu depois no pacote **v6.04**)* |
+| **Excluído** | **0048** orçamentos PG · PIN descanso **`135e785`** *(subiu no pacote **v6.04**)* |
 | **Migrate** | Nenhuma · drift **base/estoque** pré-existente (igual pacotes 1–4) |
 
 **Validar loja:** Ctrl+F5 · atalho **Gestão** (`agro_app_role=gestao`) → BI/caixa **sem** botão PDV · atalho **PDV** → balcão dedicado · `scripts/criar_atalhos_sistvale.ps1` se faltar `.lnk`.
@@ -1490,7 +1546,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Autorização** | Renan — *pode mandar tudo para produção* (loja fechada); **sem** merge `teste` inteiro |
 | **Rollback** | Tag **`producao-rollback-v5.76-20260701`** @ **`7593664`** (HEAD anterior) |
-| **Git produção** | **`81c485c`** @ `producao` · features **`594c1cd`** |
+| **Git produção** | **`81c485c`** @ `producao` · features **`594c1cd`** · rollback anterior **`7593664`** |
 | **Pacote 1** | Caixa overlay 2 apps, PDV lateral F7/F3 (**sem** migração **0048** orçamentos PG) |
 | **Pacote 2** | Retiradas Excel + operador + hífen ASCII |
 | **Pacote 3** | RH ficha limpa, cancelar pagamento duplicado, sync CP, vale caixa→folha (**`ce775c2`** skip vazio — já na loja) |
@@ -1500,6 +1556,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Render** | Push `producao` OK · badge **v5.98** após Ctrl+F5 |
 
 **Validar ao voltar (checklist curto):** Ctrl+F5 · **Caixa** overlay Menu/scroll · **PDV** F7/F3 lateral · **Retiradas** Excel + lista jun/2026 · **RH** ficha + fechamento Igualar CP · **Entregas** pós-venda fiado · orçamentos PG **não** subiram (comportamento legado).
+
+**Rollback (se der problema):** `git checkout producao-rollback-v5.76-20260701` → push `producao` (ou redeploy tag no Render).
+
+### Só no **teste** (loja **v6.04** não tem)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Orçamentos PG** | Migration **`0048`** · API `/api/pdv/orcamentos/` · sync multi-PC · GMORC bootstrap |
+
+### Renan — desvinculação Mongo (resumo)
+
+**API ERP cortada** ✅ · **~85 %** operação já Postgres · Mongo restante = RH salário CP, calendário Lançamentos, BI híbrido, etc. — **não trava PDV** (ver §4.15).
 
 
 ### 🐛 RH ficha — botão «Abrir folha» sumia (01/07 · teste)
@@ -2216,7 +2284,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-041** | **P3** | PDV | **Fila vendas offline** — processar no PC e sync depois (Renan descartou curto prazo) | 📋 Pendente | 30/06 |
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
-| **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | ✅ loja **v6.13** | 03/07 |
+| **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | 🧪 **teste** 03/07 | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |

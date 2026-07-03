@@ -1,0 +1,112 @@
+# BANANA ROTEIRO — ler isto **antes** do `banana.md`
+
+**Substitui** a leitura integral do banana na maioria dos chats. O `banana.md` completo (~4500 linhas) fica como arquivo de detalhe e histórico.
+
+**Renan:** anexe `@banana-roteiro` (ou só descreva a tarefa — a rule Cursor já puxa este arquivo).
+
+---
+
+## 1. Todo chat — ordem fixa
+
+```
+1. Ler ESTE arquivo inteiro (banana-roteiro.md)
+2. Ler banana.md linhas 1–41 (regras duras: produção, teste, registro)
+3. Ler banana.md §0 TL;DR (seção «## 0.»)
+4. CHECKPOINT: grep no banana.md pela palavra-chave do módulo (tabela §3)
+   → ler só os blocos ### que baterem + a linha de versão (teste/loja)
+5. Seguir fluxograma §2 conforme a tarefa
+6. Se §2 não cobrir → escada §4
+```
+
+**Não** ler o banana inteiro salvo §5.
+
+---
+
+## 2. Fluxograma por tarefa
+
+Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contexto suficiente.
+
+### 2.1 Qual módulo / tela?
+
+| Se a tarefa é sobre… | Ler em `banana.md` | Extra |
+| -------------------- | ------------------ | ----- |
+| **PDV** — `/consulta/`, `/pdv/checkout/`, carrinho, F8, promo, overlay topbar | `### 4.2` | CHECKPOINT: `PDV`, `F8`, `wizard`, `overlay` |
+| **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` |
+| **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` · `AGENTS.md` §7 gestão se perf |
+| **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
+| **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
+| **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
+| **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
+| **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
+| **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |
+| **Caixa** — abrir, fechar, sangria, gaveta | `### 4.11` | CHECKPOINT: `caixa`, `Caixa` |
+| **RH** — folha, vale, ficha | `### 4.12` | `AGENTS.md` §9 · CHECKPOINT: `RH`, `folha` |
+| **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
+| **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
+
+### 2.2 Tipo de mudança (somar ao ramo acima)
+
+| Se for… | Ler também |
+| ------- | ---------- |
+| **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
+| **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
+| **Deploy teste** (push `teste`) | Topo L33–35 · CHECKPOINT versão teste |
+| **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |
+| **Desvinculação Mongo / corte ERP** | `### 4.15` + `### Checklist — corte total` · escada §5 (ler muito) |
+| **Variável `.env`** | `## 5` |
+| **Dúvida «como usar o Cursor»** | `## 6` |
+
+### 2.3 Árvore rápida (texto)
+
+```
+Tarefa
+ ├─ Deploy produção? → topo L22-31 + §3.2 + CHECKPOINT deploy → §5 se conflito
+ ├─ Módulo conhecido? → tabela §2.1 → (+ §2.2 se visual/deploy)
+ ├─ Só pergunta / explicar? → §0 + CHECKPOINT grep → fim
+ └─ Não sei o módulo → §4 inteiro (### 4.1–4.14) + CHECKPOINT → ainda falta? → §5
+```
+
+---
+
+## 3. Palavras-chave CHECKPOINT (grep)
+
+Usar **Grep** em `banana.md`, seção `## CHECKPOINT`, com 1–3 termos:
+
+`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome`
+
+Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
+
+---
+
+## 4. Escada se faltou contexto
+
+| Degrau | Quando | Ler |
+| ------ | ------ | --- |
+| **A** | Roteiro + §2 não bastou | `## 4` completo (mapa módulos, ~L390–611) |
+| **B** | WIP financeiro / desvinculação ativa | Blocos `### WIP` / `### PRÓXIMO` entre L771–1030 |
+| **C** | Histórico de incidente citado pelo Renan | Grep CHECKPOINT pelo número da versão ou FL-xxx |
+| **D** | Ainda ambíguo | `banana.md` **inteiro** (§5) |
+
+---
+
+## 5. Quando ler `banana.md` INTEIRO
+
+- Renan pediu *«lê o banana inteiro»* ou *«contexto completo»*
+- Deploy **produção** com cherry-pick de vários pacotes
+- Desvinculação Mongo / migração Postgres em andamento
+- Retomar trabalho após **semanas** ou chat muito resumido pelo Cursor
+- Degrau **D** da escada §4
+
+---
+
+## 6. Manutenção (assistente)
+
+| Evento | Atualizar |
+| ------ | --------- |
+| Novo módulo grande no §4 | Linha na tabela §2.1 |
+| Nova palavra CHECKPOINT recorrente | §3 |
+| Mudança na regra de leitura | Este arquivo + `.cursor/rules/agro-consulta.mdc` §0 |
+| WIP / deploy / decisão | `banana.md` CHECKPOINT (como hoje) |
+
+*Não* duplicar WIP aqui — só o **mapa de leitura**.

@@ -42,6 +42,14 @@ ROTINA — SÓ BAIXAR E GUARDAR
   2. Um ZIP basta: dados Postgres + pasta kit/ com tudo abaixo.
   3. Guarde cópias no PC e nuvem (OneDrive etc.). ZIP contém SENHAS.
 
+O QUE VEM DENTRO DO ZIP (dados)
+  - data/*.jsonl — BACKUP COMPLETO (restauração usa isto)
+  - manifest.json — metadados
+  - resumo.xlsx — AMOSTRA legível (não é a fonte do restore)
+    · Aba Contagens = totais reais por tabela
+    · Abas catalogo_Produto etc. = até 3500 linhas/tabela (resto só no JSONL)
+  - pasta kit/ — guias + render-env-atual.env (senhas)
+
 O QUE VEM DENTRO DO ZIP (pasta kit/)
   - GUIA-BACKUP-PAINEL.txt (este arquivo)
   - LEIA-ME-RECUPERACAO-ZERO.txt

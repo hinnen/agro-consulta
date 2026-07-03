@@ -29,9 +29,36 @@ from produtos.pg_backup_registry import (
 )
 from produtos.pg_backup_disaster_kit import append_kit_to_zipfile
 
-_EXCEL_PREVIEW_MAX_ROWS = 150
-_EXCEL_FULL_MAX_ROWS = 2500
+_EXCEL_PREVIEW_MAX_ROWS = 400
+_EXCEL_FULL_MAX_ROWS = 3500
 _JSONL_CHUNK = 500
+
+# Colunas legíveis no resumo.xlsx (backup completo continua no JSONL).
+_EXCEL_READABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "produtos.Produto": (
+        "codigo_interno",
+        "nome",
+        "codigo_barras",
+        "codigo_nfe",
+        "categoria",
+        "marca",
+        "fornecedor_texto",
+        "unidade",
+        "preco_venda",
+        "custo",
+        "cadastro_inativo",
+        "ativo",
+    ),
+    "produtos.ClienteAgro": ("nome", "whatsapp", "cpf", "cidade", "bairro", "ativo"),
+    "produtos.TituloFinanceiroAgro": (
+        "descricao",
+        "valor_bruto",
+        "valor_pago",
+        "data_vencimento",
+        "quitado",
+        "plano_conta",
+    ),
+}
 
 
 def _utc_now_iso() -> str:
@@ -125,6 +152,28 @@ def _flat_row_from_instance(obj: Model, max_fields: int = 24) -> dict[str, Any]:
     return row
 
 
+def _excel_sheet_name(category_slug: str, model_label: str) -> str:
+    short = model_label.split(".")[-1]
+    name = f"{category_slug}_{short}"
+    return name[:31]
+
+
+def _excel_row_dict(obj: Model, label: str) -> dict[str, Any]:
+    cols = _EXCEL_READABLE_COLUMNS.get(label)
+    if cols:
+        row: dict[str, Any] = {}
+        for col in cols:
+            row[col] = _excel_scalar(getattr(obj, col, ""))
+        return row
+    return _flat_row_from_instance(obj)
+
+
+def _excel_row_limit(total: int) -> int:
+    if total <= _EXCEL_FULL_MAX_ROWS:
+        return total
+    return _EXCEL_PREVIEW_MAX_ROWS
+
+
 def _build_excel_resumo(
     *,
     manifest: dict[str, Any],
@@ -135,6 +184,12 @@ def _build_excel_resumo(
     ws0 = wb.active
     ws0.title = "Manifesto"
     ws0.append(["Campo", "Valor"])
+    ws0.append(
+        [
+            "nota_excel",
+            "resumo.xlsx = amostra legível. Backup/restauração completo = data/*.jsonl no ZIP.",
+        ]
+    )
     for key in (
         "format",
         "version_app",
@@ -149,36 +204,50 @@ def _build_excel_resumo(
         cell.font = Font(bold=True)
 
     ws1 = wb.create_sheet("Contagens")
-    ws1.append(["Categoria", "Modelo", "Registros exportados"])
+    ws1.append(["Categoria", "Modelo", "Registros no backup (JSONL)", "Máx. linhas no Excel"])
     for cell in ws1[1]:
         cell.font = Font(bold=True)
     for cat in categories:
         for m in export_stats.get(cat.slug, {}).get("models", []):
-            ws1.append([cat.label, m["label"], m["count"]])
+            cnt = m["count"]
+            lim = _excel_row_limit(cnt) if cnt >= 0 else 0
+            ws1.append([cat.label, m["label"], cnt, lim if cnt > lim else cnt])
 
     for cat in categories:
-        safe = cat.slug[:28]
-        ws = wb.create_sheet(safe)
-        headers_written = False
-        row_num = 0
+        jsonl_path = f"data/{cat.slug}.jsonl"
         for label in cat.models:
             model = _get_model(label)
-            qs = model.objects.all().order_by("pk")
-            limit = _EXCEL_FULL_MAX_ROWS if model.objects.count() <= _EXCEL_FULL_MAX_ROWS else _EXCEL_PREVIEW_MAX_ROWS
-            for obj in qs.iterator(chunk_size=200):
+            total = model.objects.count()
+            if total <= 0:
+                continue
+            limit = _excel_row_limit(total)
+            ws = wb.create_sheet(_excel_sheet_name(cat.slug, label))
+            ws.append(
+                [
+                    "Aviso",
+                    f"Total no backup: {total} registros em {jsonl_path}",
+                    f"Esta aba: até {limit} linhas (leitura humana)",
+                ]
+            )
+            headers: list[str] | None = None
+            row_num = 0
+            for obj in model.objects.all().order_by("pk").iterator(chunk_size=200):
                 if row_num >= limit:
-                    ws.append(["…", f"(mais linhas só no JSONL — modelo {label})"])
+                    ws.append(
+                        [
+                            "…",
+                            f"+ {total - limit} linha(s) só no JSONL ({jsonl_path})",
+                        ]
+                    )
                     break
-                flat = _flat_row_from_instance(obj)
-                if not headers_written:
-                    ws.append(list(flat.keys()))
-                    headers_written = True
-                    for cell in ws[1]:
+                flat = _excel_row_dict(obj, label)
+                if headers is None:
+                    headers = list(flat.keys())
+                    ws.append(headers)
+                    for cell in ws[2]:
                         cell.font = Font(bold=True)
-                ws.append([flat.get(k, "") for k in flat.keys()])
+                ws.append([flat.get(k, "") for k in headers])
                 row_num += 1
-        if not headers_written:
-            ws.append(["(vazio)", ""])
 
     for sheet in wb.worksheets:
         for col in sheet.columns:

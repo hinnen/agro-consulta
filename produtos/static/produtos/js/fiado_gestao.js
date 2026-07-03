@@ -148,6 +148,7 @@
     if (s === 'vencido') return 'text-red-700 bg-red-50';
     if (s === 'parcial') return 'text-amber-800 bg-amber-50';
     if (s === 'quitado') return 'text-slate-600 bg-slate-100';
+    if (s === 'zerado') return 'text-slate-600 bg-slate-100';
     if (s === 'cancelado') return 'text-slate-500 bg-slate-50';
     return 'text-emerald-800 bg-emerald-50';
   }
@@ -386,7 +387,7 @@
 
   async function recarregar() {
     const q = el.busca ? el.busca.value.trim() : '';
-    const qs = new URLSearchParams({ q: q, apenas_saldo: '1' });
+    const qs = new URLSearchParams({ q: q, apenas_saldo: q ? '0' : '1' });
     try {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       const cli = await fetchJson(urls.clientes + '?' + qs.toString());

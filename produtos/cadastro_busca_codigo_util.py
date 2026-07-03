@@ -27,10 +27,10 @@ def parece_codigo_cadastro(termo: str) -> bool:
     lim = _RE_NAO_ALNUM.sub("", t)
     if not lim:
         return False
-    if lim.isdigit() and len(lim) >= 4:
-        return True
-    if re.match(r"^gm", lim, re.I) and len(lim) >= 2:
-        return True
+    if lim.isdigit():
+        return len(lim) >= 8
+    if re.match(r"^gm", lim, re.I):
+        return len(lim) >= 5
     tem_l = bool(re.search(r"[a-zA-Z]", lim))
     tem_n = bool(re.search(r"\d", lim))
     return tem_l and tem_n and len(lim) >= 3 and " " not in t
@@ -106,6 +106,44 @@ def termo_bate_codigos_produto(
     return any(termo_bate_valor_codigo(termo, c) for c in campos if c)
 
 
+def q_nome_tokens_cadastro(termo: str) -> Q | None:
+    """Busca textual leve (nome/marca por token) — evita OR em 8 colunas."""
+    parts = [p.strip() for p in (termo or "").split() if len(p.strip()) >= 2]
+    if not parts:
+        return None
+    q_obj = Q()
+    for pl in parts:
+        q_obj &= Q(nome__icontains=pl) | Q(marca__icontains=pl)
+    return q_obj
+
+
+def q_codigo_exato_cadastro(termo: str) -> Q | None:
+    """Match indexável (barras, GM, ids) — sem varrer o catálogo inteiro."""
+    termo = (termo or "").strip()
+    if not termo:
+        return None
+    q_obj: Q | None = None
+    digits = _RE_NAO_ALNUM.sub("", termo)
+
+    def _or(q_new: Q) -> None:
+        nonlocal q_obj
+        q_obj = q_new if q_obj is None else (q_obj | q_new)
+
+    if digits and len(digits) >= 4:
+        _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=termo.strip()))
+        if not termo_eh_codigo_gm(termo):
+            _or(Q(codigo_interno__iexact=digits) | Q(codigo_nfe__iexact=digits))
+    for v in variantes_gm_literal(termo):
+        _or(Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v))
+    if termo_eh_codigo_gm(termo):
+        esc = termo.strip()
+        _or(Q(codigo_interno__iexact=esc) | Q(codigo_nfe__iexact=esc))
+    tl = somente_alnum(termo).lower()
+    if tl and len(tl) >= 3:
+        _or(Q(produto_externo_id__iexact=termo) | Q(erp_produto_id__iexact=termo))
+    return q_obj
+
+
 def q_icontains_cadastro(termo: str) -> Q:
     termo = (termo or "").strip()
     digits = _RE_NAO_ALNUM.sub("", termo)
@@ -134,12 +172,31 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     termo = (termo or "").strip()
     if not termo:
         return []
-    q_obj = Q(codigo_nfe__icontains=termo) | Q(codigo_barras__icontains=termo)
-    for v in variantes_gm_literal(termo):
-        q_obj |= Q(codigo_nfe__iexact=v)
+    al = somente_alnum(termo).lower()
+    if termo_eh_codigo_gm(termo) and len(al) < 5:
+        return []
     digits = _RE_NAO_ALNUM.sub("", termo)
-    if digits and len(digits) >= 4 and not termo_eh_codigo_gm(termo):
-        q_obj |= Q(codigo_barras__icontains=digits) | Q(codigo_barras=digits)
+    if digits.isdigit() and len(digits) < 8:
+        return []
+
+    q_obj: Q | None = None
+
+    def _or(q_new: Q) -> None:
+        nonlocal q_obj
+        q_obj = q_new if q_obj is None else (q_obj | q_new)
+
+    if termo_eh_codigo_gm(termo):
+        for v in variantes_gm_literal(termo):
+            _or(Q(codigo_nfe__iexact=v) | Q(codigo_barras__iexact=v))
+    elif digits.isdigit() and len(digits) >= 8:
+        _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
+    else:
+        _or(Q(codigo_nfe__icontains=termo) | Q(codigo_barras__icontains=termo))
+        if digits and len(digits) >= 4:
+            _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits))
+
+    if q_obj is None:
+        return []
     out: list[str] = []
     seen: set[str] = set()
     for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only("produto_externo_id", "codigo_nfe", "codigo_barras")[: max(limit * 3, 120)]:
