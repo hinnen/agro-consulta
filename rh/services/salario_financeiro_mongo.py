@@ -108,6 +108,7 @@ def _aplicar_totais_no_documento_mongo(
     col.update_one({"_id": oid}, {"$set": patch})
     try:
         from produtos.lancamentos_financeiro_agro_util import espelhar_titulo_mongo_id_para_postgres
+        from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
 
         esp = espelhar_titulo_mongo_id_para_postgres(db, str(mongo_id))
         if not esp.get("ok"):
@@ -115,6 +116,18 @@ def _aplicar_totais_no_documento_mongo(
                 "RH folha: Mongo atualizado mas falhou espelho Postgres (%s): %s",
                 mongo_id,
                 esp.get("erro"),
+            )
+        pg = alinhar_titulo_pg_apos_sync_folha_rh(
+            str(mongo_id),
+            valor_bruto=saida,
+            valor_pago=valor_pago,
+            data_vencimento=data_vencimento,
+        )
+        if not pg.get("ok") and not pg.get("skipped"):
+            logger.warning(
+                "RH folha: Mongo ok mas falhou alinhar Postgres (%s): %s",
+                mongo_id,
+                pg.get("erro"),
             )
     except Exception:
         logger.exception("RH folha: falha ao espelhar título %s no Postgres", mongo_id)
@@ -384,6 +397,7 @@ def registrar_vale_como_baixa_parcial_salario(
         data_movimento=data_mov,
         parcelas=parc,
         usuario_label=usuario_label,
+        notificar_rh_baixa_cp=False,
     )
     if not r.get("ok"):
         return {"ok": False, "erro": (r.get("erro") or "Falha na baixa parcial.")[:500]}
@@ -470,6 +484,7 @@ def registrar_pagamento_salario_com_baixa_titulo(
         data_movimento=data_mov,
         parcelas=parc,
         usuario_label=usuario_label,
+        notificar_rh_baixa_cp=False,
     )
     if not r.get("ok"):
         return {"ok": False, "erro": (r.get("erro") or "Falha na baixa parcial.")[:500]}
