@@ -3204,6 +3204,7 @@ def baixar_lancamento_parcial_mongo(
     data_movimento: datetime,
     parcelas: list[dict[str, Any]],
     usuario_label: str,
+    notificar_rh_baixa_cp: bool = True,
 ) -> dict[str, Any]:
     """
     Uma ou mais parcelas no mesmo título (várias formas/contas). Soma em ValorPago (a pagar)
@@ -3394,7 +3395,7 @@ def baixar_lancamento_parcial_mongo(
         if doc_at:
             criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_at, usuario_label=usuario_label)
 
-    if despesa and soma_par > 0:
+    if despesa and soma_par > 0 and notificar_rh_baixa_cp:
         try:
             import secrets
 

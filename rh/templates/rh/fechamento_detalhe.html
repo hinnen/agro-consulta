@@ -32,6 +32,9 @@
   <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
     <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-3 space-y-3 pb-10">
       {% if messages %}{% for m in messages %}<p class="text-sm font-bold {% if m.tags == 'error' %}text-red-700{% else %}text-emerald-800{% endif %} rounded-xl border px-3 py-2 {% if m.tags == 'error' %}border-red-200 bg-red-50{% else %}border-emerald-200 bg-emerald-50{% endif %}">{{ m }}</p>{% endfor %}{% endif %}
+      {% if request.GET.rh_sync == 'ok' %}
+      <p class="text-sm font-black text-emerald-900 rounded-xl border-2 border-emerald-400 bg-emerald-100 px-3 py-2">Conta a pagar alinhada. Abra Lançamentos e dê Ctrl+F5 no título da folha.</p>
+      {% endif %}
 
       {% if salario_base_zero %}
       <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">

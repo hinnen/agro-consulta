@@ -127,6 +127,51 @@ def _sync_valores_pos_baixa(t: TituloFinanceiroAgro, *, quitado: bool) -> None:
     t.quitado = quitado
 
 
+def alinhar_titulo_pg_apos_sync_folha_rh(
+    mongo_id: str,
+    *,
+    valor_bruto: Decimal | float,
+    valor_pago: Decimal | float,
+    data_vencimento: date | None = None,
+) -> dict[str, Any]:
+    """
+    Força bruto/pago/restante no Postgres após sync folha RH.
+    Complementa espelhar Mongo→PG (baixas parciais no CP podem deixar PG inflado).
+    """
+    if not financeiro_grava_postgres(True):
+        return {"ok": True, "skipped": True, "motivo": "financeiro_legacy"}
+
+    mid = str(mongo_id or "").strip()
+    if not mid:
+        return {"ok": False, "erro": "mongo_id vazio."}
+
+    t = TituloFinanceiroAgro.objects.filter(mongo_id=mid, despesa=True).first()
+    if t is None:
+        return {"ok": False, "erro": "Título não encontrado no Postgres."}
+
+    bruto = _dec2(valor_bruto)
+    pago = _dec2(valor_pago)
+    if pago > bruto:
+        pago = bruto
+    rest = bruto - pago
+    quitado = rest <= _TOL
+    if quitado:
+        rest = Decimal("0")
+        pago = bruto
+
+    now = timezone.now()
+    mod = "Agro — sync folha RH"
+    t.valor_bruto = bruto
+    t.valor_pago = pago
+    t.valor_restante = rest
+    t.quitado = quitado
+    if data_vencimento:
+        t.data_vencimento = data_vencimento
+    _touch_titulo(t, mod=mod, now=now)
+    t.save()
+    return {"ok": True, "id": mid, "valor_pago": float(pago)}
+
+
 def _criar_proximo_recorrente_pg(t: TituloFinanceiroAgro, *, usuario_label: str) -> str | None:
     if not t.agro_recorrente or not _titulo_quitado(t):
         return None
@@ -257,6 +302,7 @@ def baixar_lancamento_parcial_pg(
     data_movimento: datetime,
     parcelas: list[dict[str, Any]],
     usuario_label: str,
+    notificar_rh_baixa_cp: bool = True,
 ) -> dict[str, Any]:
     raw = [p for p in (parcelas or []) if isinstance(p, dict)]
     if not raw or len(raw) > 24:
@@ -335,15 +381,16 @@ def baixar_lancamento_parcial_pg(
     if quitado_final:
         _criar_proximo_recorrente_pg(t, usuario_label=usuario_label)
 
-    from rh.models import PagamentoSalarioFuncionario
+    if notificar_rh_baixa_cp:
+        from rh.models import PagamentoSalarioFuncionario
 
-    _notificar_baixa_rh_titulo_salario_pg(
-        mongo_id=lid,
-        valor_baixa=soma_par,
-        data=dp,
-        tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_PARCIAL,
-        referencia_externa_id=f"{lid}:parc:{secrets.token_hex(8)}",
-    )
+        _notificar_baixa_rh_titulo_salario_pg(
+            mongo_id=lid,
+            valor_baixa=soma_par,
+            data=dp,
+            tipo_origem=PagamentoSalarioFuncionario.TipoOrigem.CP_PARCIAL,
+            referencia_externa_id=f"{lid}:parc:{secrets.token_hex(8)}",
+        )
 
     return {"ok": True, "id": lid, "quitado": quitado_final}
 

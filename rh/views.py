@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -505,12 +506,16 @@ def rh_fechamento_salvar(request, pk: int):
 def rh_fechamento_titulo_financeiro(request, pk: int):
     f = get_object_or_404(FechamentoFolhaSimplificado, pk=pk)
     formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
+    acao = (request.POST.get("titulo_acao") or "").strip()
+    post = request.POST.copy()
+    if acao == "sync_valores" and not (post.get("data_vencimento") or "").strip():
+        dv = f.data_vencimento_pagamento or ultimo_dia_mes(f.competencia)
+        post["data_vencimento"] = dv.isoformat()
     form = FechamentoTituloFinanceiroForm(
-        request.POST,
+        post,
         formas_choices=formas_c,
         bancos_choices=bancos_c,
     )
-    acao = (request.POST.get("titulo_acao") or "").strip()
     if not form.is_valid():
         for _field, errs in form.errors.items():
             for err in errs:
@@ -529,9 +534,12 @@ def rh_fechamento_titulo_financeiro(request, pk: int):
         f.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
         sr = sincronizar_valores_titulo_salario_mongo(f)
         if sr.get("ok"):
-            messages.success(request, "Valores do título sincronizados com a folha.")
-        else:
-            messages.error(request, sr.get("erro") or "Falha ao sincronizar.")
+            messages.success(
+                request,
+                "Conta a pagar alinhada com a folha. Confira em Lançamentos (Ctrl+F5).",
+            )
+            return redirect(f"{reverse('rh_fechamento_detalhe', kwargs={'pk': f.pk})}?rh_sync=ok")
+        messages.error(request, sr.get("erro") or "Falha ao sincronizar.")
         return redirect("rh_fechamento_detalhe", pk=f.pk)
 
     if acao != "publicar":
