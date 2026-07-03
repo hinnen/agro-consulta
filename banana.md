@@ -1147,9 +1147,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.70** · **loja v6.21**
+**Versão app (`VERSION`):** **teste v6.70** · **loja v6.22**
 
-**WIP teste:** fix FL-048 ZIP **no teste** · perf+RH **loja v6.20** · entregas fechar caixa **loja v6.21**
+### ✅ Deploy loja **v6.22** — FL-048 ZIP + entregas fechar caixa (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — FL-048 backup ZIP + entregas ao fechar caixa · senha OK |
+| **Commits** | `f79f58b` FL-048 ZIP · `8c30c9a` entregas PDV/caixa |
+| **Fora** | Carrinho PDV — **já estava** na loja v6.16 |
+| **Conferir** | `/interno/pg-backup/` Baixar ZIP · entrega paga no PDV → painel **entregue** ao fechar caixa |
+
+**WIP teste:** perf v6.20 já na loja · pdv_wizard local (orcamentos) em stash
 
 ### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
 
@@ -1158,6 +1167,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | «Kit recuperação zero» OK · «Baixar ZIP selecionado» recarrega a tela sem arquivo |
 | **Causa** | `resumo.xlsx` — campo `categorias` (lista) no manifest; openpyxl não aceita lista na célula |
 | **Fix** | `_excel_scalar()` em `pg_backup_util.py` · mensagem de erro legível na view |
+| **Status** | **✅ loja v6.22** |
 | **Kit zero** | Conteúdo conferido OK (guias + `render-env-atual.env` + scripts) |
 
 ### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan)
