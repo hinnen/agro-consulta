@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from django.db.models import Q
+from django.utils import timezone
 
 from produtos.models import PedidoEntrega, SessaoCaixa
 
@@ -118,7 +119,16 @@ def marcar_entrega_pendente_fechada(
         return None
     ent.aguarda_pagamento_pdv = False
     ent.pdv_wizard_state = {}
-    update_fields = ["aguarda_pagamento_pdv", "pdv_wizard_state", "atualizado_em"]
+    ent.status = PedidoEntrega.Status.ENTREGUE
+    if not ent.hora_entrega:
+        ent.hora_entrega = timezone.now()
+    update_fields = [
+        "aguarda_pagamento_pdv",
+        "pdv_wizard_state",
+        "status",
+        "hora_entrega",
+        "atualizado_em",
+    ]
     if venda_agro_id:
         ent.venda_agro_id = int(venda_agro_id)
         update_fields.append("venda_agro_id")
@@ -138,6 +148,31 @@ def tentar_vincular_entrega_pendente_apos_venda(data: dict | None, venda_id: int
     except (TypeError, ValueError):
         return
     marcar_entrega_pendente_fechada(eid, venda_agro_id=int(venda_id))
+
+
+def finalizar_entregas_pagas_pendentes_ao_fechar_caixa(sessao_ids: list[int]) -> int:
+    """Entregas pagas na loja (venda fechada) permanecem pendentes até o fechamento do caixa."""
+    ids = [int(x) for x in sessao_ids if x is not None]
+    if not ids:
+        return 0
+    agora = timezone.now()
+    qs = (
+        PedidoEntrega.objects.filter(
+            status=PedidoEntrega.Status.PENDENTE,
+            aguarda_pagamento_pdv=False,
+            venda_agro_id__isnull=False,
+        )
+        .filter(Q(sessao_caixa_id__in=ids) | Q(venda_agro__sessao_caixa_id__in=ids))
+        .only("pk", "status", "hora_entrega")
+    )
+    n = 0
+    for ent in qs.iterator():
+        ent.status = PedidoEntrega.Status.ENTREGUE
+        if not ent.hora_entrega:
+            ent.hora_entrega = agora
+        ent.save(update_fields=["status", "hora_entrega", "atualizado_em"])
+        n += 1
+    return n
 
 
 def cancelar_entrega_pendente_pdv(entrega_id: int, *, motivo: str = "") -> PedidoEntrega | None:
