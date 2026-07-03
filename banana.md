@@ -1145,9 +1145,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.77** · **loja v6.75**
+**Versão app (`VERSION`):** **teste v6.77** · **loja v6.77**
 
 **WIP teste:** —
+
+### 📋 Fila — **FL-049** CPF cliente no PDV + doc fiscal (03/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Prioridade** | **P1,5** |
+| **Pedido** | Campo para **cadastrar CPF** do cliente no PDV · gravar no cliente · na **NFC-e** usar o **CPF já cadastrado** (doc fiscal) |
+| **Relacionado** | CHECKPOINT «NFC-e CPF» abaixo · hoje modal F9 cobre cliente **sem** CPF no cadastro |
+
+### ✅ Deploy loja **v6.77** (03/07 — Renan senha OK)
+
+| Pacote | Commits / nota |
+| ------ | -------------- |
+| **NFC-e CPF + sync F9** | `3453968` · merge `8495fb7` |
+| **Status** | Render produção deployando |
 
 ### NFC-e — CPF com impressão + sync SEFAZ (03/07)
 
@@ -1156,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Problema** | Background emitia sem CPF antes do modal; F9 imprimia antes da SEFAZ autorizar |
 | **Decisão** | **Enter** = NFC-e background (rápido) · **F9** = modal CPF + `nfce_sincrona` + imprime só se autorizou |
 | **Arquivos** | `pdv_wizard.js` · `views_nfce.py` |
-| **Teste Renan** | Ctrl+F5 PDV → PIX F9 sem CPF → modal → CPF ou sem ID → cupom sai na hora · Enter continua rápido |
+| **Status** | **✅ loja v6.77** |
 
 ### ✅ Deploy loja **v6.75** (03/07 madrugada — Renan senha OK)
 
@@ -2297,6 +2312,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
 | **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | 🧪 **teste** 03/07 | 03/07 |
+| **FL-049** | **P1,5** | PDV / Clientes / fiscal | **Cadastrar CPF** do cliente no PDV · na **NFC-e** usar o **CPF já salvo** no cliente (doc fiscal) | 📋 Pendente | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
@@ -2350,6 +2366,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
 | FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
+| FL-049 | `pdv-cliente-cpf-cadastro-nfce` | Campo **CPF** no cadastro cliente PDV (F8/modal) · persistir `ClienteAgro` · emissão NFC-e puxa CPF do cliente selecionado (hoje: modal só se cadastro vazio) |
+
+**Notas FL-049 (03/07):** **P1,5** — junto **FL-019** · **FL-020** · **FL-032** na faixa. Objetivo: operador cadastra CPF uma vez no PDV; cupom fiscal usa automaticamente. Conferir se ficha `/clientes/` já tem CPF e espelhar no F8.
 
 **Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
 
