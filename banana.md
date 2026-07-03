@@ -1142,9 +1142,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.69** · **loja v6.20**
+**Versão app (`VERSION`):** **teste v6.72** · **loja v6.31**
 
-**WIP teste:** fix modo descanso PIN blur ilegível · fix FL-048 ZIP **no teste v6.69** · ~~entregas botão subtotal~~ **cancelado** · perf+RH **já na loja v6.20** · WIP local: carrinho PDV + entregas ao fechar caixa
+**WIP teste:** fix contagem fechar caixa zera no novo turno · fiado busca mostra cliente sem saldo
+
+### 🐛 Fechar caixa — contagem do dia anterior (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Contagem por forma ficava salva até o fechamento do dia seguinte |
+| **Fix** | Rascunho amarrado ao turno (sessão) · limpa localStorage ao mudar turno/fechar |
+| **Status** | **teste** — validar abrir fechar no dia novo |
+
+### 🐛 Fiado — busca só com saldo (03/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan — na busca, ver cliente mesmo sem pendência |
+| **Fix** | `apenas_saldo=0` quando digita busca · cadastro ClienteAgro entra na lista |
+| **Status** | **teste** |
 
 ### 🐛 Modo descanso — tela borrada ilegível (03/07 · loja)
 
@@ -1153,7 +1169,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Após ~3 min sem mexer: overlay escuro + tudo borrado; popup PIN ilegível (Chrome/GPU) |
 | **Causa** | `backdrop-blur` + `filter: blur` nos irmãos do body — bug de composição no Chrome |
 | **Fix** | `_screensaver_pin.html` — fundo sólido 94 %, sem blur no fundo; `#sspin-root` isolado no `body` |
-| **Status** | Fix local · subir **teste** para validar idle ~3 min |
+| **Status** | **✅ loja v6.28** |
 
 ### ✅ Deploy loja **v6.20** — perf PC fraco + RH vale CP (03/07)
 
@@ -1164,8 +1180,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Perf** | Splash catálogo · cache offline · sync foco 5 min · F11 animações · Gestão sem iframe PDV · BI lazy · repouso abas 5/20 min |
 | **RH** | Vale caixa **não** duplica pagamento CP parcial na folha (`e557857` / `6741ed2`) |
 | **Mantido** | Carrinho v6.16 |
-| **Fora** | FL-048 ZIP (só teste) · WIP local carrinho/entregas caixa |
-| **Amanhã** | Ctrl+F5 PDV + Gestão · F11 se quiser menos animação · conferir folha RH em uso novo |
 
 ### 🐛 RH folha — vale duplicava pagamento CP (02/07 · Renan) — **✅ loja v6.20**
 

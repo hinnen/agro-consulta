@@ -8999,10 +8999,13 @@ def _turno_sessoes_operacional_key(sessoes) -> str:
 def _sincronizar_turno_conferencia_caixa(req, sessoes_operacional):
     turno_atual = _turno_sessoes_operacional_key(sessoes_operacional)
     turno_salvo = str(req.session.get(CAIXA_CONFERENCIA_TURNO_SESSION_KEY) or "")
-    if turno_salvo and turno_atual and turno_salvo != turno_atual:
+    if turno_atual != turno_salvo:
         _limpar_rascunho_conferencia_caixa(req)
     if turno_atual:
         req.session[CAIXA_CONFERENCIA_TURNO_SESSION_KEY] = turno_atual
+        req.session.modified = True
+    elif CAIXA_CONFERENCIA_TURNO_SESSION_KEY in req.session:
+        del req.session[CAIXA_CONFERENCIA_TURNO_SESSION_KEY]
         req.session.modified = True
 
 
@@ -9862,6 +9865,9 @@ def caixa_fechar(request):
             "pdv_url": reverse("pdv_home"),
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
+            "conferencia_turno_json": json.dumps(
+                _turno_sessoes_operacional_key(sessoes_operacional), ensure_ascii=False
+            ),
             "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
             "fiado_vendas_wizard": fiado_vendas_wizard,
             "fiado_baixas_wizard": fiado_baixas_wizard,

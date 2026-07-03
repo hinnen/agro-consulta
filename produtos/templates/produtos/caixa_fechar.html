@@ -1400,6 +1400,7 @@
 </div>
 <script id="cf-contagem-salva-data" type="application/json">{{ rascunho_json }}</script>
 <script id="cf-cedulas-salva-data" type="application/json">{{ cedulas_json }}</script>
+<script id="cf-turno-data" type="application/json">{{ conferencia_turno_json }}</script>
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -1420,6 +1421,7 @@
           texto: 'Digite seu PIN para confirmar o fechamento.'
         }).then(function (pin) {
           if (pinInp) pinInp.value = pin;
+          if (typeof limparContagemLocalStorage === 'function') limparContagemLocalStorage();
           if (window.gmLoadingBar) window.gmLoadingBar.show();
           form.submit();
         }).catch(function () {});
@@ -1498,6 +1500,32 @@
   var CONTAGEM_LS_KEY = 'agro_caixa_conferencia_contagem_v1';
   var CONTAGEM_LS_KEY_LEGADO = 'agro_caixa_conferencia_rascunho_v1';
   var CEDULAS_LS_KEY = 'agro_caixa_conferencia_cedulas_v1';
+  var TURNO_LS_KEY = 'agro_caixa_conferencia_turno_v1';
+  function turnoAtualPagina() {
+    try {
+      var elTurno = document.getElementById('cf-turno-data');
+      if (!elTurno || !elTurno.textContent) return '';
+      return String(JSON.parse(elTurno.textContent) || '');
+    } catch (eTurno) {
+      return '';
+    }
+  }
+  function limparContagemLocalStorage() {
+    try {
+      localStorage.removeItem(CONTAGEM_LS_KEY);
+      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      localStorage.removeItem(CEDULAS_LS_KEY);
+      localStorage.removeItem(TURNO_LS_KEY);
+    } catch (e) { /* ignore */ }
+  }
+  var turnoPagina = turnoAtualPagina();
+  try {
+    var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+    if (turnoSalvo != null && turnoSalvo !== turnoPagina) {
+      limparContagemLocalStorage();
+    }
+    if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
+  } catch (eTurnoLs) { /* ignore */ }
   var contagemMap = {};
   var cedulasMap = {};
   try {
@@ -1510,6 +1538,8 @@
   } catch (e2) { cedulasMap = {}; }
   function mesclarContagemLocal(map) {
     try {
+      var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+      if (turnoSalvo !== turnoPagina) return;
       var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
@@ -1520,6 +1550,8 @@
   }
   function mesclarCedulasLocal(map) {
     try {
+      var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
+      if (turnoSalvo !== turnoPagina) return;
       var lsRaw = localStorage.getItem(CEDULAS_LS_KEY);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
@@ -1723,19 +1755,17 @@
     try {
       localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
     } catch (e) { /* ignore */ }
   }
   function gravarCedulasLocal(map) {
     try {
       localStorage.setItem(CEDULAS_LS_KEY, JSON.stringify(map || {}));
+      if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
     } catch (e) { /* ignore */ }
   }
   function limparContagemLocal() {
-    try {
-      localStorage.removeItem(CONTAGEM_LS_KEY);
-      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
-      localStorage.removeItem(CEDULAS_LS_KEY);
-    } catch (e) { /* ignore */ }
+    limparContagemLocalStorage();
   }
   var saveTimer = null;
   var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
