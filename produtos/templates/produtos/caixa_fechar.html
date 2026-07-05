@@ -903,6 +903,7 @@
     }
     .cf-fiado-wizard { z-index: 20040; }
     .cf-modal-overlay.hidden { display: none !important; }
+    #cf-popup.cf-modal-overlay { z-index: 20045; }
     .cf-modal-panel {
       width: min(92vw, 80rem); height: min(88dvh, 92vh);
       display: flex; flex-direction: column; border-radius: 1rem;
@@ -914,7 +915,7 @@
       padding: 0;
       align-items: center;
       justify-content: center;
-      z-index: 20030;
+      z-index: 20050;
     }
     .cf-cedulas-modal .cf-modal-panel.cf-cedulas-modal-panel {
       width: 90vw !important;
@@ -1421,7 +1422,6 @@
           texto: 'Digite seu PIN para confirmar o fechamento.'
         }).then(function (pin) {
           if (pinInp) pinInp.value = pin;
-          if (typeof limparContagemLocalStorage === 'function') limparContagemLocalStorage();
           if (window.gmLoadingBar) window.gmLoadingBar.show();
           form.submit();
         }).catch(function () {});
@@ -1501,6 +1501,20 @@
   var CONTAGEM_LS_KEY_LEGADO = 'agro_caixa_conferencia_rascunho_v1';
   var CEDULAS_LS_KEY = 'agro_caixa_conferencia_cedulas_v1';
   var TURNO_LS_KEY = 'agro_caixa_conferencia_turno_v1';
+  function diaCalendarioLocal() {
+    var n = new Date();
+    var m = n.getMonth() + 1;
+    var d = n.getDate();
+    return (
+      n.getFullYear() +
+      '-' +
+      (m < 10 ? '0' : '') +
+      m +
+      '-' +
+      (d < 10 ? '0' : '') +
+      d
+    );
+  }
   function turnoAtualPagina() {
     try {
       var elTurno = document.getElementById('cf-turno-data');
@@ -1510,6 +1524,9 @@
       return '';
     }
   }
+  function chaveTurnoArmazenamento(turnoPk) {
+    return diaCalendarioLocal() + '::' + String(turnoPk || '');
+  }
   function limparContagemLocalStorage() {
     try {
       localStorage.removeItem(CONTAGEM_LS_KEY);
@@ -1518,13 +1535,17 @@
       localStorage.removeItem(TURNO_LS_KEY);
     } catch (e) { /* ignore */ }
   }
-  var turnoPagina = turnoAtualPagina();
+  window.agroCaixaLimparContagemLocalStorage = limparContagemLocalStorage;
+  var turnoPkPagina = turnoAtualPagina();
+  var turnoChave = chaveTurnoArmazenamento(turnoPkPagina);
   try {
     var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-    if (turnoSalvo != null && turnoSalvo !== turnoPagina) {
+    if (turnoSalvo != null && turnoSalvo !== turnoChave) {
       limparContagemLocalStorage();
     }
-    if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
+    if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
+      localStorage.setItem(TURNO_LS_KEY, turnoChave);
+    }
   } catch (eTurnoLs) { /* ignore */ }
   var contagemMap = {};
   var cedulasMap = {};
@@ -1539,24 +1560,26 @@
   function mesclarContagemLocal(map) {
     try {
       var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-      if (turnoSalvo !== turnoPagina) return;
+      if (turnoSalvo !== turnoChave) return;
       var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
       Object.keys(lsMap).forEach(function (fn) {
-        if (map[fn] == null || map[fn] === '') map[fn] = lsMap[fn];
+        var v = lsMap[fn];
+        if (v != null && String(v).trim() !== '') map[fn] = v;
       });
     } catch (e3) { /* ignore */ }
   }
   function mesclarCedulasLocal(map) {
     try {
       var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-      if (turnoSalvo !== turnoPagina) return;
+      if (turnoSalvo !== turnoChave) return;
       var lsRaw = localStorage.getItem(CEDULAS_LS_KEY);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
       Object.keys(lsMap).forEach(function (k) {
-        if (map[k] == null || map[k] === '') map[k] = lsMap[k];
+        var v = lsMap[k];
+        if (v != null && String(v).trim() !== '') map[k] = v;
       });
     } catch (e4) { /* ignore */ }
   }
@@ -1686,6 +1709,20 @@
   var cedulasAbrir = document.getElementById('cf-cedulas-abrir');
   var cedulasFechar = document.getElementById('cf-cedulas-fechar');
   var cedulasFecharX = document.getElementById('cf-cedulas-fechar-x');
+  function syncCaixaModalPause() {
+    var open = !!document.querySelector(
+      '.cf-modal-overlay:not(.hidden), #modal-caixa-pin:not(.hidden)'
+    );
+    try {
+      if (window.gmSspinSetPausado) window.gmSspinSetPausado('caixa-modal', open);
+    } catch (_) {}
+    try {
+      if (window.top !== window.self) {
+        window.top.postMessage({ type: 'agro-caixa-modal-layer', open: open }, location.origin);
+      }
+    } catch (_) {}
+  }
+
   function fecharCedulasModal() {
     if (!cedulasModal) return;
     cedulasModal.classList.add('hidden');
@@ -1695,11 +1732,13 @@
       recalcularCedulas(false);
     }
     agendarSalvarContagem();
+    syncCaixaModalPause();
     if (cedulasAbrir) cedulasAbrir.focus();
   }
   function abrirCedulasModal() {
     if (!cedulasModal) return;
     cedulasModal.classList.remove('hidden');
+    syncCaixaModalPause();
     var first = cedulasModal.querySelector('.cf-cedula-qty');
     window.setTimeout(function () {
       if (first) first.focus();
@@ -1728,7 +1767,7 @@
     contagemServidorVazia = !parsed0 || !Object.keys(parsed0).length;
   } catch (e0) { contagemServidorVazia = true; }
   if (contagemServidorVazia && Object.keys(contagemMap).length) {
-    window.setTimeout(salvarContagem, 700);
+    window.setTimeout(salvarContagemServidor, 700);
   }
   function coletarContagem() {
     var out = {};
@@ -1755,14 +1794,22 @@
     try {
       localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
-      if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
+      if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
+        localStorage.setItem(TURNO_LS_KEY, turnoChave);
+      }
     } catch (e) { /* ignore */ }
   }
   function gravarCedulasLocal(map) {
     try {
       localStorage.setItem(CEDULAS_LS_KEY, JSON.stringify(map || {}));
-      if (turnoPagina) localStorage.setItem(TURNO_LS_KEY, turnoPagina);
+      if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
+        localStorage.setItem(TURNO_LS_KEY, turnoChave);
+      }
     } catch (e) { /* ignore */ }
+  }
+  function persistirContagemLocalAgora() {
+    gravarContagemLocal(coletarContagem());
+    gravarCedulasLocal(coletarCedulas());
   }
   function limparContagemLocal() {
     limparContagemLocalStorage();
@@ -1778,11 +1825,10 @@
     clearTimeout(statusEl._hideT);
     statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, ok ? 2200 : 4500);
   }
-  function salvarContagem() {
+  function salvarContagemServidor() {
     var payload = coletarContagem();
     var cedulasPayload = coletarCedulas();
-    gravarContagemLocal(payload);
-    gravarCedulasLocal(cedulasPayload);
+    persistirContagemLocalAgora();
     var token = csrfToken();
     if (!token) {
       mostrarStatusContagem('Contagem só neste aparelho (sem sessão). Recarregue a página.', false);
@@ -1813,8 +1859,9 @@
     });
   }
   function agendarSalvarContagem() {
+    persistirContagemLocalAgora();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(salvarContagem, 500);
+    saveTimer = setTimeout(salvarContagemServidor, 500);
   }
   document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
     inp.addEventListener('input', agendarSalvarContagem);
@@ -1831,7 +1878,7 @@
           return;
         }
       }
-      limparContagemLocal();
+      persistirContagemLocalAgora();
     });
   });
 
@@ -1851,10 +1898,12 @@
     function abrir(el) {
       if (!el) return;
       el.classList.remove('hidden');
+      syncCaixaModalPause();
     }
     function fechar(el) {
       if (!el) return;
       el.classList.add('hidden');
+      syncCaixaModalPause();
     }
     function todosMarcados(sel) {
       var boxes = document.querySelectorAll(sel);
@@ -1964,10 +2013,8 @@
     };
     iniciar();
   })();
-  window.addEventListener('pagehide', function () {
-    gravarContagemLocal(coletarContagem());
-    gravarCedulasLocal(coletarCedulas());
-  });
+  window.addEventListener('pagehide', persistirContagemLocalAgora);
+  window.addEventListener('beforeunload', persistirContagemLocalAgora);
 
   var popup = document.getElementById('cf-popup');
   var popupFrame = document.getElementById('cf-popup-frame');
@@ -2064,6 +2111,7 @@
     popupFrame.title = titulo || 'Caixa';
     popup.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    syncCaixaModalPause();
   }
   function fecharPopup() {
     if (!popup) return;
@@ -2072,6 +2120,7 @@
     if (popupFrame) popupFrame.src = 'about:blank';
     document.body.classList.remove('overflow-hidden');
     popupRefreshOnClose = false;
+    syncCaixaModalPause();
     if (refresh) agendarAtualizarConferencia();
   }
   document.querySelectorAll('.cf-popup-open').forEach(function (btn) {
@@ -2113,8 +2162,17 @@
       }
     });
   }
+  var pinModalEl = document.getElementById('modal-caixa-pin');
+  if (pinModalEl && window.MutationObserver) {
+    var pinObs = new MutationObserver(syncCaixaModalPause);
+    pinObs.observe(pinModalEl, { attributes: true, attributeFilter: ['class'] });
+  }
+  syncCaixaModalPause();
 })();
 </script>
 </div>
+{% if request.GET.agro_pdv_overlay != '1' %}
+{% include "produtos/_screensaver_pin.html" %}
+{% endif %}
 </body>
 </html>

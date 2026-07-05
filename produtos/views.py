@@ -8975,6 +8975,7 @@ def _entrada_nfe_request_embed(request) -> str:
 CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
 CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY = "caixa_conferencia_cedulas"
 CAIXA_CONFERENCIA_TURNO_SESSION_KEY = "caixa_conferencia_turno"
+CAIXA_LIMPAR_CONTAGEM_LS_SESSION_KEY = "caixa_limpar_contagem_ls"
 
 
 def _limpar_rascunho_conferencia_caixa(req):
@@ -9230,6 +9231,11 @@ def caixa_painel(request):
             ctx["tot_esperado_dinheiro_todos"] = str(tot_din.quantize(Decimal("0.01")))
     ctx["painel"] = painel
     ctx["caixa_embed"] = _caixa_request_embed(request)
+    ctx["limpar_contagem_caixa_ls"] = bool(
+        request.session.pop(CAIXA_LIMPAR_CONTAGEM_LS_SESSION_KEY, False)
+    )
+    if ctx["limpar_contagem_caixa_ls"]:
+        request.session.modified = True
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
@@ -9815,6 +9821,8 @@ def caixa_fechar(request):
             n += 1
         finalizar_entregas_pagas_pendentes_ao_fechar_caixa([s.pk for s in sessoes_operacional])
         _limpar_rascunho_conferencia(request)
+        request.session[CAIXA_LIMPAR_CONTAGEM_LS_SESSION_KEY] = True
+        request.session.modified = True
         messages.success(request, f"{n} caixa operacional fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
