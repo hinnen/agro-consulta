@@ -1147,7 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.85** · **loja v6.77**
 
-**WIP teste:** validar **v6.85** — fix entregas PDV vs fechar caixa (+ v6.81 caixa/FL-049/050)
+**WIP teste:** validar **v6.85** — entregas PDV + descanso não trava modal
+
+### 🐛 PDV — descanso atrás do modal Entregas (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Modal «Pagamento na entrega» aberto · descanso/PIN aparece **atrás** · tela trava |
+| **Causa** | `<dialog>` fica acima do PIN · descanso não pausava com modal PDV aberto |
+| **Fix** | Pausa idle com modal/dialog PDV · fecha modais antes do PIN · mesmo padrão do caixa |
+| **Status** | **🧪 teste v6.85** |
 
 ### 🐛 Entregas PDV vazio mas bloqueia fechar caixa (05/07)
 
