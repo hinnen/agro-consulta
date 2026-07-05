@@ -1155,8 +1155,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Modal «Pagamento na entrega» aberto · descanso/PIN aparece **atrás** · tela trava |
 | **Causa** | `<dialog>` fica acima do PIN · descanso não pausava com modal PDV aberto |
-| **Fix** | Pausa idle com modal/dialog PDV · fecha modais antes do PIN · mesmo padrão do caixa |
-| **Status** | **🧪 teste v6.85** |
+| **Fix** | Pausa idle com modal/dialog PDV · fecha modais antes do PIN · **detecção genérica** (`dialog[open]` + `aria-modal` + entrega wizard + overlay iframe) |
+| **Status** | **🧪 teste v6.86** — validar pagamento, NFC-e, cliente, entrega |
 
 ### 🐛 Entregas PDV vazio mas bloqueia fechar caixa (05/07)
 

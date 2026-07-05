@@ -5712,23 +5712,24 @@
     }
 
     function syncPdvSspinIdlePause() {
-        var any =
-            !!(document.querySelector('dialog[open]')) ||
-            document.body.classList.contains('modal-open') ||
-            (dom.paymentFormaModal && !dom.paymentFormaModal.classList.contains('hidden')) ||
-            (dom.fiadoVencidosModal && !dom.fiadoVencidosModal.classList.contains('hidden')) ||
-            (dom.clienteEditModal && !dom.clienteEditModal.classList.contains('hidden')) ||
-            (dom.budgetHistoryModal && !dom.budgetHistoryModal.classList.contains('hidden')) ||
-            (dom.modalStart && !dom.modalStart.classList.contains('hidden')) ||
-            (dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden')) ||
-            (dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden')) ||
-            isEntregaDetalhesModalOpen();
-        try {
-            document.documentElement.classList.toggle('agro-pdv-wizard-modal-open', any);
-        } catch (eCls) {}
-        if (typeof window.gmSspinSetPausado === 'function') {
-            window.gmSspinSetPausado('pdv-modal', any);
+        if (typeof window.gmSspinRecomputeFromDom === 'function') {
+            window.gmSspinRecomputeFromDom();
         }
+    }
+
+    function fecharOverlayGenerico(el) {
+        if (!el || el.id === 'sspin-root') return;
+        try {
+            if (String(el.tagName || '').toUpperCase() === 'DIALOG' && el.open) {
+                el.close();
+                return;
+            }
+        } catch (eDlg) {}
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+        try {
+            el.setAttribute('aria-hidden', 'true');
+        } catch (eAr) {}
     }
 
     function fecharModaisPdvAntesDescanso() {
@@ -5740,23 +5741,37 @@
         closeBudgetHistory();
         closeEntregaSalvarClienteModal();
         try {
-            var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
-            var mei = document.getElementById('modal-pdv-entrega-impressao');
-            [mdEsc, mei].forEach(function (el) {
-                if (el && !el.classList.contains('hidden')) {
-                    el.classList.add('hidden');
-                    el.classList.remove('flex');
-                }
+            if (dom.quickClientEditOverlay && !dom.quickClientEditOverlay.classList.contains('hidden')) {
+                dom.quickClientEditOverlay.classList.add('hidden');
+                dom.quickClientEditOverlay.classList.remove('flex');
+            }
+        } catch (eQce) {}
+        try {
+            document.querySelectorAll('dialog[open]').forEach(function (dlg) {
+                try {
+                    dlg.close();
+                } catch (eD) {}
             });
-        } catch (eMd) {}
-        if (dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden')) {
-            dom.quickClientModal.classList.add('hidden');
-            dom.quickClientModal.classList.remove('flex');
-        }
-        if (dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden')) {
-            dom.wizardCliRapidoModal.classList.add('hidden');
-            dom.wizardCliRapidoModal.classList.remove('flex');
-        }
+        } catch (eDlgAll) {}
+        try {
+            document.querySelectorAll('[aria-modal="true"]').forEach(fecharOverlayGenerico);
+        } catch (eAm) {}
+        try {
+            var ew = document.getElementById('pdv-entrega-wizard');
+            if (ew) fecharOverlayGenerico(ew);
+        } catch (eEw) {}
+        try {
+            var drawer = document.getElementById('pdv-drawer-carrinho');
+            var backdrop = document.getElementById('pdv-carrinho-backdrop');
+            if (drawer) {
+                drawer.classList.add('translate-x-full');
+                drawer.setAttribute('aria-hidden', 'true');
+            }
+            if (backdrop) {
+                backdrop.classList.add('opacity-0', 'pointer-events-none');
+                backdrop.setAttribute('aria-hidden', 'true');
+            }
+        } catch (eDr) {}
         try {
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';

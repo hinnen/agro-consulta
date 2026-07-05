@@ -111,24 +111,49 @@
     }
   }
 
+  function elemBloqueiaDescanso(el) {
+    if (!el || el.id === 'sspin-root') return false;
+    try {
+      if (el.closest && el.closest('#sspin-root')) return false;
+    } catch (eCl) {}
+    if (el.classList && el.classList.contains('hidden')) return false;
+    if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+    if (String(el.tagName || '').toUpperCase() === 'DIALOG') return !!el.open;
+    if (el.getAttribute && el.getAttribute('aria-modal') === 'true') return true;
+    return false;
+  }
+
+  function hasBlockingUiLayer() {
+    try {
+      if (document.body.classList.contains('modal-open')) return true;
+      if (document.querySelector('dialog[open]')) return true;
+      var modals = document.querySelectorAll('[aria-modal="true"]');
+      for (var i = 0; i < modals.length; i++) {
+        if (elemBloqueiaDescanso(modals[i])) return true;
+      }
+      var ew = document.getElementById('pdv-entrega-wizard');
+      if (ew && !ew.classList.contains('hidden')) return true;
+    } catch (eUi) {}
+    return false;
+  }
+
   function recomputeSspinPauseFromDom() {
     sspinPauseFlags.overlay = document.documentElement.classList.contains('agro-pdv-overlay-open');
-    var pdvModal =
-      document.body.classList.contains('modal-open') ||
-      document.documentElement.classList.contains('agro-pdv-wizard-modal-open');
-    try {
-      document.querySelectorAll('dialog[open]').forEach(function () { pdvModal = true; });
-    } catch (eDlg) {}
-    sspinPauseFlags.pdvModal = pdvModal;
+    sspinPauseFlags.pdvModal = hasBlockingUiLayer();
     applySspinPauseIdle();
   }
 
+  window.gmSspinRecomputeFromDom = recomputeSspinPauseFromDom;
+
   window.gmSspinSetPausado = function (motivo, ativo) {
-    if (motivo === 'pdv-overlay') sspinPauseFlags.overlay = !!ativo;
-    else if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
-    else if (motivo === 'pdv-modal') sspinPauseFlags.pdvModal = !!ativo;
-    else return;
-    applySspinPauseIdle();
+    if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
+    else if (motivo === 'pdv-overlay') {
+      sspinPauseFlags.overlay = !!ativo;
+      applySspinPauseIdle();
+    } else if (motivo === 'pdv-modal') {
+      recomputeSspinPauseFromDom();
+    } else return;
+    if (motivo === 'caixa-modal') applySspinPauseIdle();
   };
 
   function dismissNativeDialogsBeforeLock() {
@@ -145,11 +170,33 @@
   }
 
   function watchPdvOverlayClass() {
-    if (!window.MutationObserver) return;
     recomputeSspinPauseFromDom();
-    var obs = new MutationObserver(recomputeSspinPauseFromDom);
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var t = mutations[i].target;
+        if (!t || t.nodeType !== 1) continue;
+        if (t === document.body || t === document.documentElement) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+        var tag = String(t.tagName || '').toUpperCase();
+        if (
+          tag === 'DIALOG' ||
+          t.id === 'pdv-entrega-wizard' ||
+          (t.getAttribute && t.getAttribute('aria-modal') === 'true')
+        ) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+      }
+    });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    obs.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'aria-hidden'],
+      subtree: true,
+    });
     document.addEventListener('toggle', function (ev) {
       if (ev.target && String(ev.target.tagName || '').toUpperCase() === 'DIALOG') {
         recomputeSspinPauseFromDom();
