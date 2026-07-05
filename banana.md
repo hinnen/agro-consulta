@@ -1147,7 +1147,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.81** · **loja v6.77**
 
-**WIP teste:** validar **v6.81** — FL-049/050 + caixa (cache contagem + overlay descanso)
+**WIP teste:** validar **v6.81+** — FL-049/050 + caixa + **fix entregas PDV vs fechar caixa**
+
+### 🐛 Entregas PDV vazio mas bloqueia fechar caixa (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Fechar caixa lista N entregas «pagamento na entrega» · PDV → Entregas: «Nenhuma pendência» |
+| **Causa** | Fechar caixa vê **todos caixas abertos** · PDV filtrava só o **caixa do navegador** (ex. Caixa #2 vs pendências no #1) |
+| **Fix** | API PDV usa **mesmo critério** do fechamento · lista mostra **qual caixa** · link laranja abre PDV com `?entregas=1` |
+| **Produção** | Mesmo código na loja — pode afetar se houver notebook/teste + gaveta abertos com entrega pendente |
+| **Status** | **🔧 local** — subir teste e validar |
 
 ### 🐛 Caixa fechar — cache contagem sumindo (05/07)
 

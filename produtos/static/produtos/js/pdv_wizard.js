@@ -3120,6 +3120,7 @@
                 var total = escapeHtml(row.total_texto || '—');
                 var forma = escapeHtml(row.forma_pagamento || '');
                 var cod = escapeHtml(row.retomar_codigo || '');
+                var caixaLbl = escapeHtml(row.sessao_caixa_label || '');
                 return (
                     '<article class="mb-2 rounded-xl border-2 border-orange-200 bg-orange-50/40 p-3">' +
                     '<div class="font-black text-slate-900">' +
@@ -3129,6 +3130,11 @@
                     total +
                     (forma ? ' · ' + forma : '') +
                     '</div>' +
+                    (caixaLbl
+                        ? '<div class="mt-0.5 text-[10px] font-bold uppercase text-orange-800">' +
+                          caixaLbl +
+                          '</div>'
+                        : '') +
                     (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
                     '<div class="mt-3 flex flex-wrap gap-2">' +
                     '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase text-white" data-entrega-id="' +
@@ -10410,6 +10416,16 @@
         if (nome) State.setPagamentoField('operadorPdv', nome);
     });
 
+    function maybeOpenEntregasFromQuery() {
+        try {
+            var p = new URLSearchParams(window.location.search || '');
+            if (p.get('entregas') !== '1' && p.get('abrir_entregas') !== '1') return;
+            setTimeout(function () {
+                openEntregasPendentesModal();
+            }, 800);
+        } catch (_) {}
+    }
+
     function carregarDadosSecundariosPdv() {
         if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
             window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
@@ -10417,7 +10433,9 @@
         }
         loadWizardClientesCache(false);
         setTimeout(function () {
-            refreshEntregasPendentesUi(true);
+            refreshEntregasPendentesUi(true).then(function () {
+                maybeOpenEntregasFromQuery();
+            });
             if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
             entregasPendentesPollTimer = setInterval(function () {
                 refreshEntregasPendentesUi(true);

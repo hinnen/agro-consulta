@@ -9870,7 +9870,7 @@ def caixa_fechar(request):
             "sessao_local": _obter_sessao_caixa_aberta(request),
             "entregas_pendentes_fechar": entregas_pendentes_fechar,
             "fechar_bloqueado": fechar_bloqueado,
-            "pdv_url": reverse("pdv_home"),
+            "pdv_url": reverse("pdv_home") + "?entregas=1",
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
             "conferencia_turno_json": json.dumps(
@@ -24632,9 +24632,7 @@ def api_entrega_registrar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_pdv_entregas_pendentes(request):
-    sessao = resolver_sessao_caixa_entrega_pdv(request)
-    sid = sessao.pk if sessao else None
-    itens = listar_entregas_pendentes_pdv(sessao_caixa_id=sid)
+    itens = listar_entregas_pendentes_pdv()
     return JsonResponse(
         {
             "ok": True,
