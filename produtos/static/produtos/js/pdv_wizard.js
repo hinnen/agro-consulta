@@ -148,6 +148,7 @@
         quickClientEditTitle: document.getElementById('pdv-quick-client-edit-title'),
         quickClientEditNome: document.getElementById('pdv-quick-client-edit-nome'),
         quickClientEditWhatsapp: document.getElementById('pdv-quick-client-edit-whatsapp'),
+        quickClientEditCpf: document.getElementById('pdv-quick-client-edit-cpf'),
         quickClientEditLogradouro: document.getElementById('pdv-quick-client-edit-logradouro'),
         quickClientEditNumero: document.getElementById('pdv-quick-client-edit-numero'),
         quickClientEditBairro: document.getElementById('pdv-quick-client-edit-bairro'),
@@ -168,6 +169,7 @@
         wizardCliRapidoPanel: document.querySelector('[data-pdv-wizard-cli-rapido-panel]'),
         wizardCliRapidoNome: document.getElementById('pdv-wizard-cli-rapido-nome'),
         wizardCliRapidoWhatsapp: document.getElementById('pdv-wizard-cli-rapido-whatsapp'),
+        wizardCliRapidoCpf: document.getElementById('pdv-wizard-cli-rapido-cpf'),
         wizardCliRapidoErro: document.getElementById('pdv-wizard-cli-rapido-erro'),
         wizardCliRapidoSalvar: document.getElementById('pdv-wizard-cli-rapido-salvar'),
         wizardCliRapidoCancelar: document.getElementById('pdv-wizard-cli-rapido-cancelar'),
@@ -220,6 +222,7 @@
         entregaClienteNome: document.getElementById('pdv-entrega-cliente-nome'),
         entregaClienteTelefone: document.getElementById('pdv-entrega-cliente-telefone'),
         clienteTelefone: document.getElementById('pdv-cliente-telefone'),
+        clienteCpf: document.getElementById('pdv-cliente-cpf'),
         clienteLogradouro: document.getElementById('pdv-cliente-logradouro'),
         clienteNumero: document.getElementById('pdv-cliente-numero'),
         clienteBairro: document.getElementById('pdv-cliente-bairro'),
@@ -3771,7 +3774,8 @@
             cep: String(c.cep || '').trim(),
             complemento: String(e.complemento || '').trim(),
             plus_code: String(e.plusCode || c.plus_code || '').trim(),
-            referencia_rural: String(e.referencia || c.referencia_rural || '').trim()
+            referencia_rural: String(e.referencia || c.referencia_rural || '').trim(),
+            cpf: clienteCpfEffective(c)
         };
     }
 
@@ -4060,7 +4064,10 @@
     function renderStep2(state) {
         if (dom.step2ClientName) dom.step2ClientName.textContent = currentClientName(state);
         if (dom.step2ClientDoc) {
-            dom.step2ClientDoc.textContent = compactText(state.cliente && state.cliente.documento, 'Sem documento informado');
+            var cpfView = clienteCpfEffective(state.cliente);
+            dom.step2ClientDoc.textContent = cpfView
+                ? pdvFormatCpfInput(cpfView)
+                : 'Sem documento informado';
         }
         if (dom.step2TelView) {
             dom.step2TelView.textContent = compactText(state.cliente && state.cliente.telefone, '—');
@@ -4071,6 +4078,7 @@
             dom.step2EndView.textContent = compactText(endLinha, '—');
         }
         setInputValue(dom.clienteTelefone, state.cliente && state.cliente.telefone);
+        setInputValue(dom.clienteCpf, clienteCpfParaExibir(state.cliente));
         initBairroSelectsOnce();
         var cl = state.cliente || {};
         if (!String(cl.logradouro || '').trim() && !String(cl.bairro || '').trim() && String(cl.endereco || '').trim()) {
@@ -4106,8 +4114,48 @@
 
     function closeClienteEditModal() {
         if (!dom.clienteEditModal) return;
+        if (!persistClienteEditModalSilencioso()) return;
         dom.clienteEditModal.classList.add('hidden');
         dom.clienteEditModal.classList.remove('flex');
+    }
+
+    function persistClienteEditModalSilencioso() {
+        commitClienteEditCampos();
+        var cpfCheck = pdvValidarCpfOpcional(dom.clienteCpf ? dom.clienteCpf.value : '');
+        if (!cpfCheck.ok) {
+            alert(cpfCheck.msg || 'CPF inválido.');
+            if (dom.clienteCpf) dom.clienteCpf.focus();
+            return false;
+        }
+        var state = State.getState();
+        var pk = clienteAgroPkFromCliente(state.cliente);
+        var pattern = urls.apiPdvClienteEditarPattern;
+        if (!pk || !pattern || !state.cliente) return true;
+        var c = state.cliente;
+        var nome = String(c.nome || '').trim();
+        if (nome.length < 2) return true;
+        var waDigits = String(c.telefone || '').replace(/\D/g, '');
+        if (waDigits.length < 10) return true;
+        jsonPost(pattern.replace('__pk__', String(pk)), {
+            nome: nome,
+            whatsapp: String(c.telefone || '').trim(),
+            cpf: cpfCheck.cpf,
+            logradouro: c.logradouro || '',
+            numero: c.numero || '',
+            bairro: c.bairro || '',
+            plus_code: c.plus_code || ''
+        })
+            .then(function (res) {
+                if (res.ok && res.data && res.data.ok && res.data.cliente) {
+                    var st = State.getState();
+                    State.setCliente(
+                        res.data.cliente,
+                        st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente'
+                    );
+                }
+            })
+            .catch(function () {});
+        return true;
     }
 
     function isClienteEditModalOpen() {
@@ -5830,6 +5878,7 @@
         var ids = [
             'pdv-wizard-cli-rapido-nome',
             'pdv-wizard-cli-rapido-whatsapp',
+            'pdv-wizard-cli-rapido-cpf',
             'pdv-wizard-cli-rapido-logradouro',
             'pdv-wizard-cli-rapido-numero',
             'pdv-wizard-cli-rapido-bairro',
@@ -5923,6 +5972,19 @@
             if (dom.wizardCliRapidoWhatsapp) dom.wizardCliRapidoWhatsapp.focus();
             return;
         }
+        var cpfCheck = pdvValidarCpfOpcional(
+            dom.wizardCliRapidoCpf ? dom.wizardCliRapidoCpf.value : ''
+        );
+        if (!cpfCheck.ok) {
+            if (dom.wizardCliRapidoErro) {
+                dom.wizardCliRapidoErro.textContent = cpfCheck.msg || 'CPF inválido.';
+                dom.wizardCliRapidoErro.classList.remove('hidden');
+            } else {
+                alert(cpfCheck.msg || 'CPF inválido.');
+            }
+            if (dom.wizardCliRapidoCpf) dom.wizardCliRapidoCpf.focus();
+            return;
+        }
         function gv(id) {
             var el = document.getElementById(id);
             return el ? String(el.value || '').trim() : '';
@@ -5936,6 +5998,7 @@
         jsonPost(url, {
             nome: nome,
             whatsapp: wa,
+            cpf: cpfCheck.cpf,
             logradouro: gv('pdv-wizard-cli-rapido-logradouro'),
             numero: gv('pdv-wizard-cli-rapido-numero'),
             bairro: gv('pdv-wizard-cli-rapido-bairro'),
@@ -6088,6 +6151,7 @@
         [
             dom.quickClientEditNome,
             dom.quickClientEditWhatsapp,
+            dom.quickClientEditCpf,
             dom.quickClientEditLogradouro,
             dom.quickClientEditNumero,
             dom.quickClientEditBairro,
@@ -6112,6 +6176,9 @@
         if (dom.quickClientEditNome) dom.quickClientEditNome.value = String(cliente.nome || '');
         if (dom.quickClientEditWhatsapp) {
             dom.quickClientEditWhatsapp.value = String(cliente.telefone || '');
+        }
+        if (dom.quickClientEditCpf) {
+            dom.quickClientEditCpf.value = clienteCpfParaExibir(cliente);
         }
         if (dom.quickClientEditLogradouro) {
             dom.quickClientEditLogradouro.value = String(cliente.logradouro || '');
@@ -6243,10 +6310,22 @@
             if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
             return;
         }
+        var cpfCheck = pdvValidarCpfOpcional(
+            dom.quickClientEditCpf ? dom.quickClientEditCpf.value : ''
+        );
+        if (!cpfCheck.ok) {
+            if (dom.quickClientEditErro) {
+                dom.quickClientEditErro.textContent = cpfCheck.msg || 'CPF inválido.';
+                dom.quickClientEditErro.classList.remove('hidden');
+            }
+            if (dom.quickClientEditCpf) dom.quickClientEditCpf.focus();
+            return;
+        }
         var url = pattern.replace('__pk__', String(quickClientEditPk));
         var payload = {
             nome: nome,
             whatsapp: wa,
+            cpf: cpfCheck.cpf,
             logradouro: dom.quickClientEditLogradouro ? dom.quickClientEditLogradouro.value : '',
             numero: dom.quickClientEditNumero ? dom.quickClientEditNumero.value : '',
             bairro: dom.quickClientEditBairro ? dom.quickClientEditBairro.value : '',
@@ -6736,7 +6815,11 @@
         if (cliente.id && !/^erp-doc:/i.test(cliente.id)) {
             payload.cliente_id = cliente.id;
         }
-        if (cliente.documento) payload.cliente_documento = cliente.documento;
+        var cpfCli = clienteCpfEffective(cliente);
+        if (cpfCli) payload.cliente_documento = cpfCli;
+        else if (cliente.documento && cliente.documento !== '—') {
+            payload.cliente_documento = cliente.documento;
+        }
         var nfceOpts = (state.pagamento && state.pagamento.nfceOpts) || {};
         if (nfceOpts.cpf) {
             payload.nfce_cpf = nfceOpts.cpf;
@@ -7123,6 +7206,35 @@
         document.addEventListener('keydown', onKey);
     }
 
+    function pdvFormatCpfInput(raw) {
+        var d = nfceNormalizarCpf(raw);
+        if (d.length <= 3) return d;
+        if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
+        if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+        return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+    }
+
+    function clienteCpfEffective(c) {
+        if (!c) return '';
+        var cpf = nfceNormalizarCpf(c.cpf);
+        if (nfceCpfValido(cpf)) return cpf;
+        var doc = nfceNormalizarCpf(c.documento);
+        if (nfceCpfValido(doc)) return doc;
+        return '';
+    }
+
+    function clienteCpfParaExibir(c) {
+        var eff = clienteCpfEffective(c);
+        return eff ? pdvFormatCpfInput(eff) : '';
+    }
+
+    function pdvValidarCpfOpcional(raw) {
+        var norm = nfceNormalizarCpf(raw);
+        if (!norm) return { ok: true, cpf: '' };
+        if (nfceCpfValido(norm)) return { ok: true, cpf: norm };
+        return { ok: false, msg: 'CPF inválido.' };
+    }
+
     function nfceNormalizarCpf(raw) {
         return String(raw || '').replace(/\D/g, '').slice(0, 11);
     }
@@ -7246,7 +7358,7 @@
             return;
         }
         var state = State.getState();
-        var cpfCad = nfceNormalizarCpf(state.cliente && state.cliente.documento);
+        var cpfCad = clienteCpfEffective(state.cliente);
         if (nfceCpfValido(cpfCad)) {
             State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
             confirmSaleProsseguir(withPrint);
@@ -7262,7 +7374,10 @@
             State.setPagamentoField('nfceOpts', opts);
             if (opts.cpf) {
                 var stCl = State.getState();
-                State.setCliente(Object.assign({}, stCl.cliente || {}, { documento: opts.cpf }));
+                State.setCliente(
+                    Object.assign({}, stCl.cliente || {}, { cpf: opts.cpf, documento: opts.cpf }),
+                    stCl.clienteMode
+                );
             }
             confirmSaleProsseguir(withPrint);
         });
@@ -9387,20 +9502,46 @@
         function commitClienteEditCampos() {
             var state = State.getState();
             if (!state.cliente) return;
+            var cpfCheck = pdvValidarCpfOpcional(dom.clienteCpf ? dom.clienteCpf.value : '');
+            var cpfNorm = cpfCheck.ok ? cpfCheck.cpf : nfceNormalizarCpf(dom.clienteCpf ? dom.clienteCpf.value : '');
             var c = Object.assign({}, state.cliente, {
                 logradouro: dom.clienteLogradouro ? dom.clienteLogradouro.value.trim() : '',
                 numero: dom.clienteNumero ? dom.clienteNumero.value.trim() : '',
                 bairro: dom.clienteBairro ? dom.clienteBairro.value : '',
-                plus_code: dom.clientePluscode ? dom.clientePluscode.value.trim() : ''
+                plus_code: dom.clientePluscode ? dom.clientePluscode.value.trim() : '',
+                cpf: cpfNorm,
+                documento: cpfNorm || (state.cliente.documento === '—' ? '—' : state.cliente.documento || '')
             });
             c.endereco = composeClienteEnderecoLinha(c);
             State.setCliente(c, state.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente');
             syncEntregaEnderecoFromCliente(State.getState());
+            if (dom.step2ClientDoc) {
+                dom.step2ClientDoc.textContent = cpfNorm
+                    ? pdvFormatCpfInput(cpfNorm)
+                    : 'Sem documento informado';
+            }
+        }
+
+        function bindPdvCpfInputMask(el, onInput) {
+            if (!el) return;
+            el.addEventListener('input', function () {
+                var pos = el.selectionStart;
+                var prevLen = el.value.length;
+                el.value = pdvFormatCpfInput(el.value);
+                var delta = el.value.length - prevLen;
+                try {
+                    el.setSelectionRange(Math.max(0, (pos || 0) + delta), Math.max(0, (pos || 0) + delta));
+                } catch (eMask) {}
+                if (onInput) onInput();
+            });
         }
 
         [dom.clienteLogradouro, dom.clienteNumero, dom.clientePluscode].forEach(function (el) {
             if (el) el.addEventListener('input', commitClienteEditCampos);
         });
+        bindPdvCpfInputMask(dom.clienteCpf, commitClienteEditCampos);
+        bindPdvCpfInputMask(dom.quickClientEditCpf);
+        bindPdvCpfInputMask(dom.wizardCliRapidoCpf);
         if (dom.clienteBairro) dom.clienteBairro.addEventListener('change', commitClienteEditCampos);
 
         if (dom.step2OpenClienteEdit) {

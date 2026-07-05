@@ -1147,15 +1147,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.77** · **loja v6.77**
 
-**WIP teste:** —
+**WIP teste:** FL-049 + FL-050 prontos para validar (push pendente)
 
-### 📋 Fila — **FL-049** CPF cliente no PDV + doc fiscal (03/07 · Renan)
+### ✅ FL-050 — `/vendas/` aguardar NFC-e background (04/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Prioridade** | **P1,5** |
-| **Pedido** | Campo para **cadastrar CPF** do cliente no PDV · gravar no cliente · na **NFC-e** usar o **CPF já cadastrado** (doc fiscal) |
-| **Relacionado** | CHECKPOINT «NFC-e CPF» abaixo · hoje modal F9 cobre cliente **sem** CPF no cadastro |
+| **Fix** | `venda_nfce_processando` (~120 s) · botão **Emitindo…** + alerta *aguarde* · POST reemitir **409** se ainda processando · detalhe venda igual |
+| **Status** | **🧪 teste** · **não estava na loja** (v6.77 só tinha fix CPF/F9 no PDV) |
+
+### ✅ FL-049 — CPF cliente no PDV + NFC-e (04/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | Campo **CPF** nos modais PDV (editar · cadastro rápido · entrega) · grava `ClienteAgro` · Enter/F9 usam CPF cadastrado sem modal |
+| **Status** | **🧪 teste** |
+
+### ~~📋 Fila — **FL-050**~~ *(fechado — ver acima)*
+
+### ~~📋 Fila — **FL-049**~~ *(fechado — ver acima)*
 
 ### ✅ Deploy loja **v6.77** (03/07 — Renan senha OK)
 
@@ -2312,7 +2322,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
 | **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | 🧪 **teste** 03/07 | 03/07 |
-| **FL-049** | **P1,5** | PDV / Clientes / fiscal | **Cadastrar CPF** do cliente no PDV · na **NFC-e** usar o **CPF já salvo** no cliente (doc fiscal) | 📋 Pendente | 03/07 |
+| **FL-049** | **P1,5** | PDV / Clientes / fiscal | **Cadastrar CPF** do cliente no PDV · na **NFC-e** usar o **CPF já salvo** no cliente (doc fiscal) | 🧪 **teste** 04/07 | 03/07 |
+| **FL-050** | **P2** | Vendas / fiscal | **`/vendas/`** — após venda, **não forçar** reemissão ao clicar cupom fiscal enquanto NFC-e roda em **background** · avisar *aguarde* · rótulo do botão muda (emitindo → **reimprimir** quando OK) | 🧪 **teste** 04/07 | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
@@ -2367,6 +2378,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
 | FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
 | FL-049 | `pdv-cliente-cpf-cadastro-nfce` | Campo **CPF** no cadastro cliente PDV (F8/modal) · persistir `ClienteAgro` · emissão NFC-e puxa CPF do cliente selecionado (hoje: modal só se cadastro vazio) |
+| FL-050 | `vendas-lista-nfce-background-ux` | `/vendas/` + detalhe: distinguir **processando** (`nfce_solicitada` sem doc / status PROCESSANDO) vs **erro** vs **autorizada** · não abrir modal reemitir no meio · poll ou refresh · rótulos: *Emitindo…* / *Reimprimir cupom fiscal* · `vendas_lista.html` · `nfce_venda_util.painel_nfce_venda` · `views_nfce` |
+
+**Notas FL-050 (03/07):** **P2** — Renan: operador vai direto em Consulta vendas após Enter no PDV; clique trata como reemissão. Causa provável: `venda_nfce_pendente` = true com `nfce_solicitada` e sem `NfceDocumentoAgro` ainda. `views_nfce` já retorna «em processamento» no POST duplicado — falta UX na **lista**.
 
 **Notas FL-049 (03/07):** **P1,5** — junto **FL-019** · **FL-020** · **FL-032** na faixa. Objetivo: operador cadastra CPF uma vez no PDV; cupom fiscal usa automaticamente. Conferir se ficha `/clientes/` já tem CPF e espelhar no F8.
 

@@ -424,6 +424,17 @@ def api_venda_agro_nfce_emitir(request, pk):
     v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
     if v.devolvida_em:
         return JsonResponse({"ok": False, "erro": "Venda devolvida — não é possível emitir NFC-e."}, status=400)
+    from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
+
+    if venda_nfce_processando(v):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Cupom fiscal em processamento — aguarde alguns segundos e atualize a página.",
+                "nfce_painel": painel_nfce_venda(v),
+            },
+            status=409,
+        )
     if not nfce_configurada(warmup=True, tentativas=3):
         return JsonResponse(
             {"ok": False, "erro": _ERRO_NFCE_CFG},

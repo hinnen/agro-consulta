@@ -2635,6 +2635,10 @@
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">WhatsApp / telefone <span class="text-red-600">*</span></span>
             <input id="pdv-quick-client-edit-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input pdv-client-edit-input w-full" placeholder="DDD + número">
           </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-cpf">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">CPF <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+            <input id="pdv-quick-client-edit-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input pdv-client-edit-input w-full" placeholder="000.000.000-00">
+          </label>
           <label class="pdv-client-edit-field pdv-client-edit-f-plus">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
             <input id="pdv-quick-client-edit-pluscode" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Ex.: 8X5R+7M9">
@@ -2724,6 +2728,10 @@
       <label class="block">
         <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
         <input id="pdv-cliente-telefone" type="text" class="pdv-input" placeholder="Telefone / WhatsApp" autocomplete="tel">
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">CPF <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+        <input id="pdv-cliente-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input" placeholder="000.000.000-00">
       </label>
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="block sm:col-span-2">
@@ -2919,6 +2927,10 @@
       <div>
         <label for="pdv-wizard-cli-rapido-whatsapp" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Telefone / WhatsApp <span class="text-red-600">*</span></label>
         <input id="pdv-wizard-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input text-sm" placeholder="DDD + número">
+      </div>
+      <div>
+        <label for="pdv-wizard-cli-rapido-cpf" class="mb-1 block text-[10px] font-black uppercase text-slate-500">CPF <span class="font-normal normal-case text-slate-400">(opcional · cupom fiscal)</span></label>
+        <input id="pdv-wizard-cli-rapido-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input text-sm" placeholder="000.000.000-00">
       </div>
       <details class="rounded-xl border-2 border-slate-200 bg-slate-50/80 px-3 py-2">
         <summary class="cursor-pointer select-none text-[11px] font-black uppercase tracking-wide text-slate-700">Endereço (opcional)</summary>

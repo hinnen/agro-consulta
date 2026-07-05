@@ -24065,6 +24065,9 @@ def api_pdv_cliente_rapido(request):
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
+    if cpf_err:
+        return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
     resumo_end = _pdv_resumo_endereco_cliente_rapido(data)
     endereco_manual = (data.get("endereco") or "").strip()[:500]
     endereco_final = endereco_manual or resumo_end
@@ -24084,6 +24087,9 @@ def api_pdv_cliente_rapido(request):
             referencia_rural=(data.get("referencia_rural") or "").strip()[:300],
             maps_url_manual=(data.get("maps_url_manual") or "").strip()[:600],
         )
+        if cpf_val is not None:
+            c.cpf = cpf_val
+            c.save(update_fields=["cpf"])
     except Exception as e:
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
@@ -24096,6 +24102,23 @@ def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_
     return validar_whatsapp_unico_cliente(
         wa_raw, excluir_pk=excluir_pk, obrigatorio=obrigatorio
     )
+
+
+def _pdv_cpf_field_from_payload(data: dict) -> tuple[str | None, str | None]:
+    """(cpf 11 dígitos ou '' para limpar, erro). ``None`` no cpf = campo omitido."""
+    if "cpf" not in data and "documento" not in data:
+        return None, None
+    from produtos.nfce_sp_emissao_util import cpf_valido
+
+    raw = str(data.get("cpf") or data.get("documento") or "").strip()
+    if not raw:
+        return "", None
+    digits = re.sub(r"\D", "", raw)
+    if not digits:
+        return "", None
+    if not cpf_valido(digits):
+        return None, "CPF inválido."
+    return digits[:11], None
 
 
 def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
@@ -24158,8 +24181,13 @@ def api_pdv_cliente_editar(request, pk):
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
+    if cpf_err:
+        return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
     cli.nome = nome[:200]
     cli.whatsapp = wa_digits
+    if cpf_val is not None:
+        cli.cpf = cpf_val
     _pdv_aplicar_endereco_clienteagro(cli, data)
     cli.editado_local = True
     try:
