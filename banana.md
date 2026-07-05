@@ -1145,9 +1145,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.80** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.81** · **loja v6.77**
 
-**WIP teste:** — · FL-049 + FL-050 aguardando validação Renan
+**WIP teste:** validar **v6.81** — FL-049/050 + caixa (cache contagem + overlay descanso)
 
 ### 🐛 Caixa fechar — cache contagem sumindo (05/07)
 
@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Fechar/abrir navegador ou erro no fechamento → contagem por forma e cédulas **zerada** |
 | **Causa** | Patch turno limpava localStorage **no clique em fechar** (antes de confirmar) |
 | **Fix** | Grava **na hora** no aparelho · limpa só após **fechamento OK** ou **virou o dia** / **mudou turno** |
-| **Status** | **🧪 local** |
+| **Status** | **🧪 teste v6.81** |
 
 ### 🐛 Caixa fechar — tela trava com modal cédulas + descanso (05/07)
 
@@ -1165,7 +1165,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Parado na contagem (overlay cédulas / fiado): cliques e teclado morrem — igual PIN descanso |
 | **Causa** | Modo descanso (~3 min) ativava **por baixo** dos overlays do caixa · ou PDV overlay sem pausar idle |
 | **Fix** | PIN descanso sempre **por cima** · pausa idle com overlay PDV/caixa aberto · cédulas acima do fiado |
-| **Status** | **🧪 local** — validar fechamento + contagem cédulas (PDV overlay e página direta) |
+| **Status** | **🧪 teste v6.81** — validar fechamento + contagem cédulas (PDV overlay e página direta) |
 
 ### ✅ FL-050 — `/vendas/` aguardar NFC-e background (04/07)
 
