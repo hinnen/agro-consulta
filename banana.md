@@ -1157,7 +1157,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Fechar caixa vê **todos caixas abertos** · PDV filtrava só o **caixa do navegador** (ex. Caixa #2 vs pendências no #1) |
 | **Fix** | API PDV usa **mesmo critério** do fechamento · lista mostra **qual caixa** · link laranja abre PDV com `?entregas=1` |
 | **Produção** | Mesmo código na loja — pode afetar se houver notebook/teste + gaveta abertos com entrega pendente |
-| **Status** | **🧪 teste v6.84** — validar botão laranja + lista com caixa |
+| **Status** | **🧪 teste v6.85** — validar botão laranja + lista com caixa |
 
 ### 🐛 Caixa fechar — cache contagem sumindo (05/07)
 

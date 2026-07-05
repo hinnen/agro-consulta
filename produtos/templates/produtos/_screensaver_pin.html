@@ -97,32 +97,64 @@
   var idleTimer = null;
   var locked = false;
   var validando = false;
-  var sspinPauseFlags = { overlay: false, caixaModal: false };
+  var sspinPauseFlags = { overlay: false, caixaModal: false, pdvModal: false };
 
   function sspinPausado() {
-    return !!(sspinPauseFlags.overlay || sspinPauseFlags.caixaModal);
+    return !!(sspinPauseFlags.overlay || sspinPauseFlags.caixaModal || sspinPauseFlags.pdvModal);
   }
 
-  window.gmSspinSetPausado = function (motivo, ativo) {
-    if (motivo === 'pdv-overlay') sspinPauseFlags.overlay = !!ativo;
-    else if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
-    else return;
+  function applySspinPauseIdle() {
     if (sspinPausado()) {
       if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     } else if (!locked) {
       bumpIdle();
     }
+  }
+
+  function recomputeSspinPauseFromDom() {
+    sspinPauseFlags.overlay = document.documentElement.classList.contains('agro-pdv-overlay-open');
+    var pdvModal =
+      document.body.classList.contains('modal-open') ||
+      document.documentElement.classList.contains('agro-pdv-wizard-modal-open');
+    try {
+      document.querySelectorAll('dialog[open]').forEach(function () { pdvModal = true; });
+    } catch (eDlg) {}
+    sspinPauseFlags.pdvModal = pdvModal;
+    applySspinPauseIdle();
+  }
+
+  window.gmSspinSetPausado = function (motivo, ativo) {
+    if (motivo === 'pdv-overlay') sspinPauseFlags.overlay = !!ativo;
+    else if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
+    else if (motivo === 'pdv-modal') sspinPauseFlags.pdvModal = !!ativo;
+    else return;
+    applySspinPauseIdle();
   };
+
+  function dismissNativeDialogsBeforeLock() {
+    try {
+      document.querySelectorAll('dialog[open]').forEach(function (dlg) {
+        try {
+          if (typeof dlg.close === 'function') dlg.close();
+        } catch (eClose) {}
+      });
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('gm-sspin-before-lock'));
+    } catch (eEv) {}
+  }
 
   function watchPdvOverlayClass() {
     if (!window.MutationObserver) return;
-    var sync = function () {
-      var on = document.documentElement.classList.contains('agro-pdv-overlay-open');
-      window.gmSspinSetPausado('pdv-overlay', on);
-    };
-    sync();
-    var obs = new MutationObserver(sync);
+    recomputeSspinPauseFromDom();
+    var obs = new MutationObserver(recomputeSspinPauseFromDom);
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('toggle', function (ev) {
+      if (ev.target && String(ev.target.tagName || '').toUpperCase() === 'DIALOG') {
+        recomputeSspinPauseFromDom();
+      }
+    }, true);
   }
 
   window.addEventListener('message', function (ev) {
@@ -350,6 +382,12 @@
       return;
     }
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    dismissNativeDialogsBeforeLock();
+    recomputeSspinPauseFromDom();
+    if (sspinPausado()) {
+      bumpIdle();
+      return;
+    }
     garantirSspinNoBody();
     try {
       var ae = document.activeElement;

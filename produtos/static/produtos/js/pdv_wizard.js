@@ -3171,6 +3171,7 @@
             } else {
                 dom.entregasPendentesModal.setAttribute('open', 'open');
             }
+            syncPdvSspinIdlePause();
         });
     }
 
@@ -3181,6 +3182,7 @@
         } else {
             dom.entregasPendentesModal.removeAttribute('open');
         }
+        syncPdvSspinIdlePause();
     }
 
     function refreshEntregasPendentesUi(silent) {
@@ -5570,6 +5572,7 @@
             }
         }
         prevStepCache = state.currentStep;
+        syncPdvSspinIdlePause();
     }
 
     function focusProductSearch() {
@@ -5681,6 +5684,7 @@
         try {
             document.body.classList.add('modal-open');
         } catch (eM) {}
+        syncPdvSspinIdlePause();
     }
 
     function isQuickClientModalOpen() {
@@ -5704,6 +5708,60 @@
                 document.body.classList.remove('modal-open');
             }
         } catch (eM2) {}
+        syncPdvSspinIdlePause();
+    }
+
+    function syncPdvSspinIdlePause() {
+        var any =
+            !!(document.querySelector('dialog[open]')) ||
+            document.body.classList.contains('modal-open') ||
+            (dom.paymentFormaModal && !dom.paymentFormaModal.classList.contains('hidden')) ||
+            (dom.fiadoVencidosModal && !dom.fiadoVencidosModal.classList.contains('hidden')) ||
+            (dom.clienteEditModal && !dom.clienteEditModal.classList.contains('hidden')) ||
+            (dom.budgetHistoryModal && !dom.budgetHistoryModal.classList.contains('hidden')) ||
+            (dom.modalStart && !dom.modalStart.classList.contains('hidden')) ||
+            (dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden')) ||
+            (dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden')) ||
+            isEntregaDetalhesModalOpen();
+        try {
+            document.documentElement.classList.toggle('agro-pdv-wizard-modal-open', any);
+        } catch (eCls) {}
+        if (typeof window.gmSspinSetPausado === 'function') {
+            window.gmSspinSetPausado('pdv-modal', any);
+        }
+    }
+
+    function fecharModaisPdvAntesDescanso() {
+        closeEntregasPendentesModal();
+        closePaymentFormaModal();
+        closeStartModal();
+        closeClienteEditModal();
+        closeFiadoVencidosModal();
+        closeBudgetHistory();
+        closeEntregaSalvarClienteModal();
+        try {
+            var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
+            var mei = document.getElementById('modal-pdv-entrega-impressao');
+            [mdEsc, mei].forEach(function (el) {
+                if (el && !el.classList.contains('hidden')) {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+        } catch (eMd) {}
+        if (dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden')) {
+            dom.quickClientModal.classList.add('hidden');
+            dom.quickClientModal.classList.remove('flex');
+        }
+        if (dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden')) {
+            dom.wizardCliRapidoModal.classList.add('hidden');
+            dom.wizardCliRapidoModal.classList.remove('flex');
+        }
+        try {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+        } catch (eBody) {}
+        syncPdvSspinIdlePause();
     }
 
     function isRetiradaEntregaModalOpen() {
@@ -7868,6 +7926,7 @@
         try {
             document.body.style.overflow = 'hidden';
         } catch (err) {}
+        syncPdvSspinIdlePause();
         var first = dom.paymentFormaModal.querySelector('[data-payment-modal-card]');
         if (first) first.focus();
     }
@@ -7879,6 +7938,7 @@
         try {
             document.body.style.overflow = '';
         } catch (err2) {}
+        syncPdvSspinIdlePause();
     }
 
     function commitDiscountField() {
@@ -10415,6 +10475,7 @@
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
         if (nome) State.setPagamentoField('operadorPdv', nome);
     });
+    window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
 
     function maybeOpenEntregasFromQuery() {
         try {
