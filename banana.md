@@ -1145,9 +1145,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.77** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.79** · **loja v6.77**
 
-**WIP teste:** FL-049 + FL-050 prontos para validar (push pendente)
+**WIP teste:** — · FL-049 + FL-050 em **v6.79** aguardando validação Renan
 
 ### ✅ FL-050 — `/vendas/` aguardar NFC-e background (04/07)
 
