@@ -1145,9 +1145,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.81** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.83** · **loja v6.77**
 
-**WIP teste:** validar **v6.81+** — FL-049/050 + caixa + **fix entregas PDV vs fechar caixa**
+**WIP teste:** validar **v6.83** — fix entregas PDV vs fechar caixa (+ v6.81 caixa/FL-049/050)
 
 ### 🐛 Entregas PDV vazio mas bloqueia fechar caixa (05/07)
 
