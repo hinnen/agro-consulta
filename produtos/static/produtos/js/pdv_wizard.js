@@ -321,7 +321,6 @@
         paymentShipping: document.getElementById('pdv-payment-shipping'),
         paymentReceived: document.getElementById('pdv-payment-received'),
         paymentChange: document.getElementById('pdv-payment-change'),
-        paymentNote: document.getElementById('pdv-payment-note'),
         paymentValorForma: document.getElementById('pdv-pay-valor-tranche'),
         paymentValorTotalRef: document.getElementById('pdv-payment-valor-total-ref'),
         paymentValorRestante: document.getElementById('pdv-payment-valor-restante'),
@@ -5300,7 +5299,6 @@
         setInputValueUnlessFocused(dom.paymentShipping, moneyFieldDisplay(state.pagamento.frete));
         setInputValueUnlessFocused(dom.paymentReceived, moneyFieldDisplay(state.pagamento.valorRecebido));
         setInputValue(dom.paymentChange, state.pagamento.trocoCalculado);
-        setInputValue(dom.paymentNote, state.pagamento.observacaoFinal);
         if (dom.paymentValorForma) {
             setInputValueUnlessFocused(dom.paymentValorForma, moneyFieldDisplay(state.pagamento.valorDestaForma));
         }
@@ -9881,7 +9879,6 @@
                     if (el) State.setEntregaField('observacao', el.value);
                 }
             ],
-            [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }],
             [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }]
         ].forEach(function (entry) {
             if (entry[0]) entry[0].addEventListener('input', entry[1]);
