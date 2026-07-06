@@ -23,9 +23,14 @@ from .mercado_pago_point import (
     mp_point_mensagem_erro,
     mp_point_order_indica_pago,
 )
-from .caixa_util import normalizar_forma_pagamento_caixa
+from .caixa_util import (
+    SessaoCaixaObrigatoriaError,
+    exigir_sessao_caixa_para_venda,
+    navegador_pode_mp_point_automatico,
+    normalizar_forma_pagamento_caixa,
+    pagamento_linha_eh_mercado_pago,
+)
 from .models import PdvMercadoPagoPointOrder, VendaAgro
-from .caixa_util import SessaoCaixaObrigatoriaError, exigir_sessao_caixa_para_venda
 from .views import (
     _disparar_envio_erp_venda_background,
     _fluxo_enviar_pedido_erp_interno,
@@ -136,6 +141,31 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
     return None
 
 
+def _mp_point_marcar_metadados_pagamento(erp_data: dict) -> None:
+    """Grava maquinaId/cobrarNoPointMp para split MP no fechar caixa."""
+    pag = erp_data.get("pagamentos")
+    if not isinstance(pag, list):
+        return
+    for i, row in enumerate(pag):
+        if not isinstance(row, dict):
+            continue
+        if pagamento_linha_eh_mercado_pago(row):
+            continue
+        fn = normalizar_forma_pagamento_caixa(
+            str(row.get("formaPagamento") or row.get("forma_pagamento") or row.get("forma") or "")
+        )
+        if fn not in ("PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"):
+            continue
+        r = dict(row)
+        mid = str(r.get("maquinaId") or r.get("maquina_id") or "").strip()
+        if not mid:
+            r["maquinaId"] = "pix_mp_qr" if fn == "PIX" else "mp_balcao"
+        r["cobrarNoPointMp"] = True
+        r["mpBalcaoModo"] = "point"
+        pag[i] = r
+    erp_data["pagamentos"] = pag
+
+
 def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
     """
     Ajusta forma gravada na venda conforme o MP confirmou.
@@ -179,6 +209,8 @@ def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
         erp_data["forma_pagamento"] = label[:80]
         erp_data["formaPagamento"] = erp_data["forma_pagamento"]
 
+    _mp_point_marcar_metadados_pagamento(erp_data)
+
     return {
         "forma_pdv": forma_pdv,
         "forma_mp": forma_mp,
@@ -212,6 +244,19 @@ def _sessao_key(request) -> str:
     return (getattr(request.session, "session_key", None) or "")[:50]
 
 
+def _resposta_mp_point_so_gaveta():
+    return JsonResponse(
+        {
+            "ok": False,
+            "erro": (
+                "Mercado Pago automático só no Caixa Gaveta (computador principal). "
+                "Use Cielo, Sicredi ou Sicoob neste PDV."
+            ),
+        },
+        status=403,
+    )
+
+
 @require_POST
 def api_pdv_mp_point_criar(request):
     if not _mp_point_configurado():
@@ -219,6 +264,8 @@ def api_pdv_mp_point_criar(request):
             {"ok": False, "erro": "Integração Mercado Pago Point desativada ou incompleta (.env)."},
             status=503,
         )
+    if not navegador_pode_mp_point_automatico(request):
+        return _resposta_mp_point_so_gaveta()
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -304,6 +351,8 @@ def api_pdv_mp_point_criar(request):
 def api_pdv_mp_point_status(request):
     if not _mp_point_configurado():
         return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request):
+        return _resposta_mp_point_so_gaveta()
 
     order_id = (request.GET.get("order_id") or "").strip()
     if not order_id:
@@ -355,6 +404,8 @@ def api_pdv_mp_point_status(request):
 def api_pdv_mp_point_finalizar(request):
     if not _mp_point_configurado():
         return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request):
+        return _resposta_mp_point_so_gaveta()
 
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")

@@ -1639,14 +1639,21 @@
         var wrap = document.getElementById('pdv-pay-maquinas-list');
         if (!wrap) return;
         var items = getMaquininhasList(forma);
+        var avisoMp = String(pagamentoUi.mpPointMotivoBloqueio || '').trim();
+        var avisoHtml = avisoMp
+            ? '<p class="mb-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold leading-snug text-amber-950">' +
+              escapeHtml(avisoMp) +
+              '</p>'
+            : '';
         if (!items.length) {
             wrap.innerHTML =
+                avisoHtml +
                 '<p class="p-2 text-center text-sm font-bold text-slate-500">Nenhuma máquina configurada (PDV_WIZARD_MAQUININHAS_' +
                 (forma === 'PIX' ? 'PIX' : 'CARTAO') +
                 ').</p>';
             return;
         }
-        wrap.innerHTML = items
+        wrap.innerHTML = avisoHtml + items
             .map(function (it, idx) {
                 var k = idx < 9 ? String(idx + 1) : '';
                 var cardClass = maquinaRedeClass(it);

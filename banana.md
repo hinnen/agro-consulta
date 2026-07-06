@@ -1147,7 +1147,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
-**WIP teste:** validar **v6.87** — MP Point + máquinas Pix/Cielo
+**WIP teste:** validar **v6.89** — fechar caixa MP separado · MP só Gaveta
+
+### ✅ PDV — MP Point v6.89 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fechar caixa** | Linhas MP separadas: Pix / Débito / Crédito **— Mercado Pago** vs demais maquininhas |
+| **2º PDV** | MP automático **só Caixa Gaveta** (1º aberto); Notebook = Cielo/Sicredi/Sicoob |
+| **Venda** | `pagamentos_json` guarda `maquinaId` + `cobrarNoPointMp` para conferência |
+
+### ✅ PDV — MP Point v6.88 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Garantia MP** | Após pagar, lê forma real da maquininha; se divergir do PDV → alerta + grava forma do MP |
+| **Parcelado MP** | Envia N parcelas para a maquininha (`default_installments`) |
+| **Fechar caixa** | Parcelado soma em **Crédito** (só no fechamento; venda/ERP como antes) |
+| **Painel espera** | Contador · som ok/erro · timeout · fila na maquininha · ajuda aberta |
 
 ### ✅ PDV — MP Point v6.87 (06/07)
 

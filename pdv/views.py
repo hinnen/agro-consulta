@@ -6,6 +6,11 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
 from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
+from produtos.caixa_util import (
+    filtrar_maquininhas_pdv_sem_mp,
+    navegador_pode_mp_point_automatico,
+    ponto_operacao_browser,
+)
 from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
 
@@ -55,6 +60,14 @@ def _safe_float_ptbr(val, default=0.0):
 @ensure_csrf_cookie
 def pdv_home(request):
     caixa_aberto = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
+    mp_point_configurado = bool(
+        getattr(settings, "MP_POINT_ENABLED", False)
+        and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
+        and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+    )
+    mp_point_nav = navegador_pode_mp_point_automatico(request)
+    mp_point_enabled = mp_point_configurado and mp_point_nav
+    ponto_nav = ponto_operacao_browser(request)
     pdv_reabrir_from_consulta = None
     if request.GET.get("reabrir") == "1":
         chk = request.session.get("pdv_checkout")
@@ -148,24 +161,35 @@ def pdv_home(request):
             "caixa": {
                 "aberto": bool(caixa_aberto),
                 "id": caixa_aberto.pk if caixa_aberto else None,
+                "pontoOperacao": ponto_nav,
             },
             "bairrosEntrega": {
                 "urbanos": list(BAIRROS_JACUPI_URBANOS),
                 "rurais": list(BAIRROS_JACUPI_RURAIS),
             },
             "pagamentoUi": {
-                "mpPointEnabled": bool(
-                    getattr(settings, "MP_POINT_ENABLED", False)
-                    and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
-                    and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+                "mpPointEnabled": mp_point_enabled,
+                "mpPointMotivoBloqueio": (
+                    "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
+                    "Neste PDV use Cielo, Sicredi ou Sicoob."
+                    if mp_point_configurado and not mp_point_nav
+                    else ""
                 ),
                 "qrMercadoPagoUrl": settings.PDV_QR_MERCADOPAGO_URL,
                 "qrSicrediUrl": settings.PDV_QR_SICREDI_URL,
                 "chavePixSicob": settings.PDV_CHAVE_PIX_SICOB,
                 "saldoValeCredito": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_VALE_CREDITO, 0.0),
                 "saldoCashback": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_CASHBACK, 0.0),
-                "maquininhasCartao": _maquininhas_cartao_effective(),
-                "maquininhasPix": _maquininhas_pix_effective(),
+                "maquininhasCartao": (
+                    _maquininhas_cartao_effective()
+                    if mp_point_enabled
+                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_cartao_effective())
+                ),
+                "maquininhasPix": (
+                    _maquininhas_pix_effective()
+                    if mp_point_enabled
+                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_pix_effective())
+                ),
             },
             "nfce": nfce_config_resumo(),
         },

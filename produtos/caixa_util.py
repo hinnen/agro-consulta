@@ -22,6 +22,36 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
     "Outro",
 )
 
+# Fechar caixa: MP separado por forma (conferência com extrato Mercado Pago).
+FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
+    "Dinheiro",
+    "Pix — Mercado Pago",
+    "PIX",
+    "Cartão de débito — Mercado Pago",
+    "Cartão de débito",
+    "Cartão de crédito — Mercado Pago",
+    "Cartão de crédito",
+    "Fiado",
+    "Vale crédito",
+    "Cashback",
+    "Outro",
+)
+
+_FORMAS_SPLIT_MP_CONFERENCIA = frozenset(
+    {"PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"}
+)
+
+_PAGAMENTO_JSON_META_KEYS = (
+    "maquinaId",
+    "maquina_id",
+    "maquinaNome",
+    "cobrarNoPointMp",
+    "cobrar_no_point_mp",
+    "mpBalcaoModo",
+    "rede",
+    "maquinaRede",
+)
+
 CEDULAS_DENOMINACOES_CAIXA: tuple[dict[str, str], ...] = (
     {"valor": "200", "label": "R$ 200", "img": "produtos/img/cedulas/nota_200.png", "tipo": "nota"},
     {"valor": "100", "label": "R$ 100", "img": "produtos/img/cedulas/nota_100.png", "tipo": "nota"},
@@ -112,6 +142,31 @@ def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
     return fn
 
 
+def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
+    """Indica cobrança na maquininha Mercado Pago (Point / Pix MP)."""
+    if not isinstance(row, dict):
+        return False
+    if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
+        return True
+    if str(row.get("mpBalcaoModo") or "").strip().lower() == "point":
+        return True
+    mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
+    if mid in ("mp_balcao", "pix_mp_qr") or mid.startswith("mp_") or mid.startswith("pix_mp"):
+        return True
+    rede = str(row.get("rede") or row.get("maquinaRede") or "").strip().lower()
+    return rede == "mp"
+
+
+def linha_conferencia_caixa_de_pagamento(forma: str, *, mercado_pago: bool) -> str:
+    """Rótulo na conferência do fechar caixa (MP vs demais maquininhas)."""
+    base = agrupar_forma_para_fechamento_caixa(forma)
+    if mercado_pago and base in _FORMAS_SPLIT_MP_CONFERENCIA:
+        if base == "PIX":
+            return "Pix — Mercado Pago"
+        return f"{base} — Mercado Pago"
+    return base
+
+
 def _forma_e_valor_pagamento_row(row: dict) -> tuple[str, Decimal] | None:
     """Lê forma e valor de uma linha de pagamentos_json (PDV ou venda salva)."""
     if not isinstance(row, dict):
@@ -152,8 +207,52 @@ def pagamentos_json_de_payload(data: dict | None) -> list[dict]:
         vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
         if vp <= 0:
             continue
-        out.append({"forma": fn, "valor": float(vp)})
+        item: dict[str, Any] = {"forma": fn, "valor": float(vp)}
+        for mk in _PAGAMENTO_JSON_META_KEYS:
+            mv = row.get(mk)
+            if mv not in (None, "", False):
+                item[mk] = mv
+        out.append(item)
     return out
+
+
+def pagamentos_por_linha_conferencia_venda(
+    venda,
+    *,
+    vendas_mp_point: set[int] | None = None,
+) -> dict[str, Decimal]:
+    """Totais por linha de conferência (forma + split Mercado Pago)."""
+    totais: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    pj = getattr(venda, "pagamentos_json", None)
+    vid = getattr(venda, "pk", None)
+    fallback_mp = bool(vendas_mp_point and vid is not None and int(vid) in vendas_mp_point)
+
+    if isinstance(pj, list) and pj:
+        for row in pj:
+            if not isinstance(row, dict):
+                continue
+            parsed = _forma_e_valor_pagamento_row(row)
+            if not parsed:
+                continue
+            fn, vp = parsed
+            eh_mp = pagamento_linha_eh_mercado_pago(row) or (
+                fallback_mp
+                and len(pj) == 1
+                and fn in _FORMAS_SPLIT_MP_CONFERENCIA
+            )
+            linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=eh_mp)
+            totais[linha] += vp
+        if totais:
+            return dict(totais)
+
+    por_forma = pagamentos_por_forma_venda(venda)
+    if fallback_mp and len(por_forma) == 1:
+        fn = next(iter(por_forma))
+        if fn in _FORMAS_SPLIT_MP_CONFERENCIA:
+            return {
+                linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True): por_forma[fn]
+            }
+    return por_forma
 
 
 def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
@@ -239,11 +338,21 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
 
     vendas_rel = getattr(sessao, "vendas", None)
     if vendas_rel is not None:
-        for v in vendas_rel.all():
-            if getattr(v, "devolvida_em", None):
-                continue
-            for fn, val in pagamentos_por_forma_venda(v).items():
-                fn_caixa = agrupar_forma_para_fechamento_caixa(fn)
+        vendas_list = [v for v in vendas_rel.all() if not getattr(v, "devolvida_em", None)]
+        vendas_mp_point: set[int] = set()
+        if vendas_list:
+            from produtos.models import PdvMercadoPagoPointOrder
+
+            vendas_mp_point = set(
+                PdvMercadoPagoPointOrder.objects.filter(
+                    venda_id__in=[v.pk for v in vendas_list],
+                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
+                ).values_list("venda_id", flat=True)
+            )
+        for v in vendas_list:
+            for fn_caixa, val in pagamentos_por_linha_conferencia_venda(
+                v, vendas_mp_point=vendas_mp_point
+            ).items():
                 vendas_por[fn_caixa] += val
                 esperado[fn_caixa] += val
 
@@ -266,7 +375,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     esperado_out = {
         k: v.quantize(Decimal("0.01"))
         for k, v in esperado.items()
-        if v != 0 or k in FORMAS_PAGAMENTO_CAIXA
+        if v != 0 or k in FORMAS_CONFERENCIA_CAIXA
     }
     return esperado_out, q(vendas_por), q(reforco_por), q(retirada_por)
 
@@ -280,10 +389,10 @@ def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
 def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
     """Lista ordenada para tela: forma, esperado, vendas, reforços, retiradas."""
     esperado, vendas_por, reforco_por, retirada_por = _agregar_resumo_turno_sessao(sessao)
-    formas = set(FORMAS_PAGAMENTO_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
+    formas = set(FORMAS_CONFERENCIA_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
     linhas: list[dict[str, Any]] = []
     abertura = _dec(sessao.valor_abertura)
-    for fn in FORMAS_PAGAMENTO_CAIXA:
+    for fn in FORMAS_CONFERENCIA_CAIXA:
         if fn not in formas and fn != "Dinheiro":
             continue
         esp = esperado.get(fn, Decimal("0"))
@@ -304,7 +413,7 @@ def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
                 "abertura_dinheiro": abertura if fn == "Dinheiro" else Decimal("0"),
             }
         )
-    extras = sorted(formas - set(FORMAS_PAGAMENTO_CAIXA))
+    extras = sorted(formas - set(FORMAS_CONFERENCIA_CAIXA))
     for fn in extras:
         linhas.append(
             {
@@ -381,14 +490,14 @@ def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[
 
     out: list[dict[str, Any]] = []
     if todas_formas:
-        for fn in FORMAS_PAGAMENTO_CAIXA:
+        for fn in FORMAS_CONFERENCIA_CAIXA:
             out.append(_row(fn, merged.get(fn)))
-        for fn in sorted(set(merged.keys()) - set(FORMAS_PAGAMENTO_CAIXA)):
+        for fn in sorted(set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)):
             out.append(_row(fn, merged[fn]))
         return out
 
-    ordem = [fn for fn in FORMAS_PAGAMENTO_CAIXA if fn in merged]
-    ordem.extend(sorted(set(merged.keys()) - set(FORMAS_PAGAMENTO_CAIXA)))
+    ordem = [fn for fn in FORMAS_CONFERENCIA_CAIXA if fn in merged]
+    ordem.extend(sorted(set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)))
     for fn in ordem:
         out.append(_row(fn, merged[fn]))
     return out
@@ -862,6 +971,29 @@ def ponto_operacao_browser(request) -> str:
         return normalizar_ponto_caixa(request.session.get(SESSION_PONTO_OPERACAO_KEY))
     except Exception:
         return PONTO_CAIXA_GAVETA
+
+
+def navegador_pode_mp_point_automatico(request) -> bool:
+    """
+    Mercado Pago Point só no computador do Caixa Gaveta (aberto primeiro).
+    Notebook (2º PDV) usa Cielo/Sicredi/Sicoob — evita duas cobranças na mesma maquininha.
+    """
+    ponto = ponto_operacao_browser(request)
+    return ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE)
+
+
+def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
+    """Remove opções MP automático (notebook / 2º computador)."""
+    out: list = []
+    for m in maquininhas or []:
+        if not isinstance(m, dict):
+            continue
+        mid = str(m.get("id") or "").strip().lower()
+        rede = str(m.get("rede") or "").strip().lower()
+        if rede == "mp" or mid.startswith("mp_") or mid.startswith("pix_mp"):
+            continue
+        out.append(m)
+    return out
 
 
 def definir_ponto_operacao_browser(request, ponto: str, sessao_id: int | None = None) -> None:
