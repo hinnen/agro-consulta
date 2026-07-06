@@ -1147,7 +1147,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
-**WIP teste:** validar **v6.92** — fix MP_ORDERS_URL (500 ao confirmar)
+**WIP teste:** validar **v6.93** — MP Point confirmar (MP_ORDERS_URL)
+
+### ✅ PDV — MP Point v6.93 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix 500** | `MP_ORDERS_URL` restaurada + sintaxe corrigida |
 
 ### ✅ PDV — MP Point v6.92 (06/07)
 
