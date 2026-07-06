@@ -1145,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.77** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.86** · **loja v6.86**
 
-**WIP teste:** —
+**WIP teste:** validar **v6.86** — PIN + contagem + modais (entregas/FL-049 só teste)
+
+### ✅ Deploy loja **v6.86** — PIN PDV + contagem caixa (05/07 noite — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | PIN manual/descanso PDV · contagem fechar caixa ao reabrir Chrome · overlay caixa não trava |
+| **Commits** | `8410ebc` · `8df7e18` · `ca78b88` |
+| **Fora** | Entregas PDV · FL-049/050 (só teste) |
+| **Status** | **✅ loja** — validar PIN + contagem |
 
 ### ✅ Deploy loja **v6.77** (03/07 — Renan senha OK)
 
