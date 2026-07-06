@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.97** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.98** · **loja v6.86**
 
-**WIP teste:** validar **v6.97** — toasts PDV/MP + comprovante Render
+**WIP teste:** validar **v6.98** — barra pagamento PDV compacta
+
+### ✅ PDV — layout pagamento v6.98 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Barra inferior** | Voltar + desconto + frete + confirmar (lado a lado) |
+| **Removido** | Observação final + footer duplicado na etapa pagamento |
 
 ### ✅ PDV — MP Point v6.97 (06/07)
 

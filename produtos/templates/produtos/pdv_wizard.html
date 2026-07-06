@@ -1938,9 +1938,67 @@
     border-bottom: 2px solid #e2e8f0;
     background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   }
-  #pdv-step-pagamento-root #pdv-pay-footer {
+  body[data-pdv-step="pagamento"] #pdv-main-footer {
     border-top-color: #6ee7b7;
     background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-footer-pay-tools,
+  #pdv-footer-pay-actions {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-step-hint {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-btn-next {
+    display: none !important;
+  }
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-tools,
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-actions {
+    display: flex;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-label {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  #pdv-footer-pay-tools .pdv-input {
+    width: 5.25rem;
+    min-width: 4.5rem;
+    max-width: 6.5rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    font-size: 0.78rem;
+  }
+  #pdv-confirm-discount {
+    min-height: 1.85rem;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.62rem;
+    line-height: 1.1;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn {
+    min-height: 2.15rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn kbd {
+    font-size: 0.58rem;
+  }
+  @media (min-width: 1280px) {
+    #pdv-footer-pay-tools .pdv-input { width: 6rem; }
+    #pdv-footer-pay-actions .pdv-action-btn { font-size: 0.72rem; padding: 0.45rem 0.75rem; }
   }
   #pdv-step-pagamento-root .pdv-pay-right-panel .pdv-wiz-block-head { position: relative; }
   #pdv-step-pagamento-root .pdv-pay-right-panel details > div {
@@ -2718,13 +2776,26 @@
           {% include "produtos/partials/pdv/step_pagamento.html" %}
         </div>
 
-        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-3 py-2 sm:px-3.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="text-[11px] font-bold text-slate-500" id="pdv-step-hint">Adicione itens para iniciar a venda.</div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" id="pdv-btn-prev" class="pdv-action-btn border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
-              <button type="button" id="pdv-btn-next" class="pdv-action-btn bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
+        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="pdv-btn-prev" class="pdv-action-btn shrink-0 border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
+            <div id="pdv-step-hint" class="min-w-0 flex-1 text-[11px] font-bold text-slate-500">Adicione itens para iniciar a venda.</div>
+            <div id="pdv-footer-pay-tools" class="min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
+              <div class="pdv-footer-pay-field">
+                <span class="pdv-footer-pay-label">Desconto</span>
+                <input id="pdv-payment-discount" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Desconto geral na venda">
+                <button type="button" id="pdv-confirm-discount" class="pdv-action-btn shrink-0 rounded-lg border-2 border-orange-400 bg-orange-50 font-black uppercase text-orange-950 hover:bg-orange-100" title="Aplica o desconto e abre as formas de pagamento">OK</button>
+              </div>
+              <label class="pdv-footer-pay-field">
+                <span class="pdv-footer-pay-label">Frete</span>
+                <input id="pdv-payment-shipping" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Frete da venda">
+              </label>
             </div>
+            <div id="pdv-footer-pay-actions" class="ml-auto shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+              <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn border-2 border-emerald-500 bg-white font-black text-emerald-800 shadow-sm hover:bg-emerald-50">Sem impressão <kbd class="ml-0.5 rounded border border-emerald-300 bg-emerald-50 px-1 font-mono">Enter</kbd></button>
+              <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/20">Com impressão <kbd class="ml-0.5 rounded bg-emerald-500 px-1 font-mono text-white">F9</kbd></button>
+            </div>
+            <button type="button" id="pdv-btn-next" class="pdv-action-btn shrink-0 bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
           </div>
         </footer>
       </div>

@@ -8090,7 +8090,7 @@
                 dlgDin.close();
             } catch (errDin) {}
         }
-        var footer = document.getElementById('pdv-pay-footer');
+        var footer = dom.mainFooter;
         if (footer) {
             try {
                 footer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
