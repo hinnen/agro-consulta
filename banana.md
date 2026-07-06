@@ -1147,7 +1147,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
-**WIP teste:** validar **v6.91** — fix CSRF PDV + MP Point
+**WIP teste:** validar **v6.92** — fix MP_ORDERS_URL (500 ao confirmar)
+
+### ✅ PDV — MP Point v6.92 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix 500** | Constante `MP_ORDERS_URL` restaurada em `mercado_pago_point.py` |
+| **API** | Erro interno no criar → JSON legível (não página HTML) |
 
 ### ✅ PDV — MP Point v6.91 (06/07)
 

@@ -260,6 +260,17 @@ def _resposta_mp_point_so_gaveta():
 
 @require_POST
 def api_pdv_mp_point_criar(request):
+    try:
+        return _api_pdv_mp_point_criar_impl(request)
+    except Exception:
+        logger.exception("MP Point criar: erro interno")
+        return JsonResponse(
+            {"ok": False, "erro": "Erro interno ao enviar cobrança ao Mercado Pago. Tente de novo."},
+            status=500,
+        )
+
+
+def _api_pdv_mp_point_criar_impl(request):
     if not _mp_point_configurado():
         return JsonResponse(
             {"ok": False, "erro": "Integração Mercado Pago Point desativada ou incompleta (.env)."},

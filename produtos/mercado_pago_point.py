@@ -14,7 +14,8 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def mp_point_order_indica_pago(doc: dict) -> bool:
+MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders"
+
     if not isinstance(doc, dict):
         return False
     st = str(doc.get("status") or "").strip().lower()
