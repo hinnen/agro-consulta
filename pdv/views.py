@@ -10,14 +10,14 @@ from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
-    {"id": "mp_balcao", "nome": "Mercado Pago — Balcão", "rede": "mp"},
-    {"id": "sicredi_1", "nome": "Sicredi — Terminal 1", "rede": "sicredi"},
-    {"id": "sicredi_2", "nome": "Sicredi — Terminal 2", "rede": "sicredi"},
+    {"id": "mp_balcao", "nome": "Mercado Pago — Balcão (automático)", "rede": "mp"},
+    {"id": "cielo_1", "nome": "Cielo", "rede": "cielo"},
+    {"id": "sicredi_1", "nome": "Sicredi", "rede": "sicredi"},
 ]
 
 _DEFAULT_MAQUININHAS_PIX_PDV = [
-    {"id": "pix_mp_qr", "nome": "Mercado Pago — QR", "rede": "mp"},
-    {"id": "pix_sicredi_qr", "nome": "Sicredi — QR", "rede": "sicredi"},
+    {"id": "pix_mp_qr", "nome": "Mercado Pago — Pix (automático)", "rede": "mp"},
+    {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo"},
     {"id": "pix_sicoob_chave", "nome": "Sicoob — Chave Pix", "rede": "sicoob"},
 ]
 

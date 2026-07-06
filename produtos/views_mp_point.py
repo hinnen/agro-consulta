@@ -47,8 +47,59 @@ _ERP_PAYLOAD_KEYS = frozenset(
         "forma_pagamento_id",
         "formaPagamentoID",
         "formaPagamentoId",
+        "desconto_geral",
+        "frete",
     }
 )
+
+
+def _pdv_decimal_campo(val) -> Decimal:
+    if val is None:
+        return Decimal("0")
+    s = str(val).strip()
+    if not s:
+        return Decimal("0")
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return Decimal(s)
+    except Exception:
+        return Decimal("0")
+
+
+def _pdv_valor_cobranca_pdv(data: dict, valor_linhas: float) -> Decimal:
+    """Total PDV (itens − desconto geral + frete), alinhado ao computed do wizard."""
+    total = Decimal(str(valor_linhas))
+    total -= max(Decimal("0"), _pdv_decimal_campo(data.get("desconto_geral")))
+    total += max(Decimal("0"), _pdv_decimal_campo(data.get("frete")))
+    total = max(Decimal("0"), total).quantize(Decimal("0.01"))
+    return total
+
+
+def _mp_point_forma_pagamento_texto(data: dict) -> str:
+    pag = data.get("pagamentos")
+    if isinstance(pag, list) and pag and isinstance(pag[0], dict):
+        for key in ("forma", "formaPagamento", "forma_pagamento"):
+            v = str(pag[0].get(key) or "").strip()
+            if v:
+                return v
+    return str(data.get("forma_pagamento") or data.get("formaPagamento") or "").strip()
+
+
+def _mp_point_payment_method_config(data: dict) -> dict | None:
+    """Mapeia forma do PDV para default_type da API Point (quando possível)."""
+    fp = _mp_point_forma_pagamento_texto(data).lower()
+    if not fp:
+        return None
+    if "pix" in fp:
+        return {"default_type": "qr"}
+    if "débito" in fp or "debito" in fp:
+        return {"default_type": "debit_card"}
+    if "crédito" in fp or "credito" in fp:
+        return {"default_type": "credit_card"}
+    return None
 
 
 def _mp_point_configurado() -> bool:
@@ -95,18 +146,22 @@ def api_pdv_mp_point_criar(request):
             payload = {"ok": False, "erro": "Itens inválidos para o ERP."}
         return JsonResponse(payload, status=err_resp.status_code)
 
+    valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
+
     external_reference = f"agro-{uuid.uuid4()}"
     token = settings.MP_POINT_ACCESS_TOKEN.strip()
     terminal_id = settings.MP_POINT_TERMINAL_ID.strip()
     exp = (getattr(settings, "MP_POINT_EXPIRATION", None) or "PT16M").strip()
+    pm_cfg = _mp_point_payment_method_config(erp_payload)
 
     ok_mp, st, body = mp_point_create_order(
         access_token=token,
         terminal_id=terminal_id,
-        amount=float(valor_final),
+        amount=float(valor_cobrar),
         external_reference=external_reference,
         expiration_time=exp,
         description=(str(erp_payload.get("cliente") or "") or None),
+        payment_method_config=pm_cfg,
     )
     if not ok_mp:
         msg = mp_point_mensagem_erro(body)
@@ -123,7 +178,7 @@ def api_pdv_mp_point_criar(request):
     if not order_id:
         return JsonResponse({"ok": False, "erro": "Mercado Pago não retornou o id do pedido."}, status=502)
 
-    dec_valor = Decimal(str(valor_final)).quantize(Decimal("0.01"))
+    dec_valor = valor_cobrar
     PdvMercadoPagoPointOrder.objects.create(
         external_reference=external_reference,
         mp_order_id=order_id,
@@ -263,7 +318,8 @@ def api_pdv_mp_point_finalizar(request):
                 pe = {"erro": "Itens inválidos"}
             return JsonResponse({"ok": False, **pe}, status=err_early.status_code)
 
-        if Decimal(str(vf)).quantize(Decimal("0.01")) != row.valor_cobrado:
+        vf_cobranca = _pdv_valor_cobranca_pdv(erp_data, float(vf))
+        if vf_cobranca != row.valor_cobrado:
             logger.error(
                 "MP Point finalizar: valor ERP %s difere do cobrado %s (order %s)",
                 vf,

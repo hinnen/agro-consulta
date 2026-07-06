@@ -39,9 +39,30 @@
         </div>
       </div>
 
-      <div id="pdv-mp-point-wait-bar" class="hidden shrink-0 mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-400 bg-orange-50 px-2.5 py-2 sm:mx-2.5 sm:rounded-xl" role="status" aria-live="polite">
-        <p class="min-w-0 text-xs font-black text-orange-950 sm:text-sm">Aguardando Point…</p>
-        <button type="button" id="pdv-mp-point-cancel-wait" class="pdv-action-btn shrink-0 rounded-lg border-2 border-orange-800 bg-white px-3 py-2 text-[10px] font-black uppercase text-orange-950 hover:bg-orange-100 sm:text-xs">Cancelar espera</button>
+      <div id="pdv-mp-point-wait-bar" class="hidden" aria-hidden="true"></div>
+
+      <div id="pdv-mp-point-wait-overlay" class="pdv-mp-point-wait-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-mp-point-wait-title" aria-live="polite">
+        <div class="pdv-mp-point-wait-panel">
+          <div class="pdv-mp-point-wait-pulse" aria-hidden="true"></div>
+          <p class="pdv-mp-point-wait-kicker">Mercado Pago — maquininha</p>
+          <h3 id="pdv-mp-point-wait-title" class="pdv-mp-point-wait-title">Aguardando pagamento</h3>
+          <p id="pdv-mp-point-wait-amount" class="pdv-mp-point-wait-amount">R$ 0,00</p>
+          <p id="pdv-mp-point-wait-forma" class="pdv-mp-point-wait-forma"></p>
+          <ol class="pdv-mp-point-wait-steps">
+            <li>Olhe a <strong>maquininha</strong> — o valor deve aparecer sozinho.</li>
+            <li>Cliente paga (cartão ou Pix conforme escolhido no PDV).</li>
+            <li>Esta tela fecha sozinha quando o pagamento confirmar.</li>
+          </ol>
+          <details class="pdv-mp-point-wait-help">
+            <summary>Não apareceu na maquininha?</summary>
+            <ul>
+              <li>Reinicie a maquininha (desliga e liga).</li>
+              <li>Confira se está <strong>vinculada ao caixa</strong> e com internet.</li>
+              <li>Use <strong>Cancelar</strong> abaixo e tente de novo.</li>
+            </ul>
+          </details>
+          <button type="button" id="pdv-mp-point-cancel-wait" class="pdv-mp-point-wait-cancel pdv-action-btn">Cancelar espera</button>
+        </div>
       </div>
 
       <div id="pdv-payment-no-forma-hint" class="shrink-0 mx-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2 py-1.5 text-center sm:mx-2.5 sm:rounded-xl sm:py-2">
@@ -94,7 +115,7 @@
 
         <div id="pdv-flow-pix" class="pdv-payment-flow hidden min-h-0 flex-1 flex-col gap-2">
           <div id="pdv-pix-machine-gate" class="hidden flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sky-400 bg-sky-50/90 p-3 text-center sm:gap-3 sm:rounded-2xl sm:p-4">
-            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina antes do QR Pix</p>
+            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina Pix</p>
             <button type="button" id="pdv-pay-open-maquinas-pix" class="pdv-action-btn rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-5 py-2.5 text-xs text-white shadow-md sm:py-3 sm:text-sm">Selecionar máquina</button>
           </div>
           <div id="pdv-pix-steps-wrap" class="hidden min-h-0 flex-1 flex-col gap-2">
@@ -102,20 +123,23 @@
               <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">1</span>
               <div class="min-w-0 flex-1 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 p-2 shadow-sm sm:rounded-2xl sm:p-3">
                 <div class="flex flex-wrap items-center justify-between gap-1">
-                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">Mercado Pago</p>
+                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">Mercado Pago — Pix automático</p>
                   <button type="button" id="pdv-pay-open-qr-pix" class="rounded-md border-2 border-amber-600/40 bg-white px-2 py-0.5 text-[9px] font-black uppercase text-amber-900 sm:text-[10px]">Ampliar QR</button>
                 </div>
                 <div id="pdv-pix-mp-qr" class="mt-1 flex max-h-[min(18vh,9rem)] min-h-[56px] items-center justify-center overflow-hidden rounded-lg bg-white p-1 text-center text-[10px] font-bold text-slate-500 sm:min-h-[72px]">Carregando…</div>
               </div>
             </div>
-            <div id="pdv-pix-row-sicredi" class="flex flex-wrap gap-1.5 sm:gap-2">
-              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
-              <a id="pdv-pix-sicredi-link" href="#" target="_blank" rel="noopener noreferrer" class="flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-3 text-center text-xs font-black uppercase text-white shadow-md sm:min-h-[3.25rem] sm:rounded-2xl sm:text-sm">Abrir QR Sicredi</a>
+            <div id="pdv-pix-row-cielo" class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-sky-100 p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
+                <p class="text-xs font-black uppercase text-blue-950 sm:text-sm">Cielo — Pix manual</p>
+                <p id="pdv-pix-cielo-hint" class="mt-1 text-[11px] font-bold leading-snug text-slate-700 sm:text-xs">Gere o QR Pix na <strong>maquininha Cielo</strong>. Quando o cliente pagar, confirme a venda aqui no PDV.</p>
+              </div>
             </div>
             <div id="pdv-pix-row-sicoob" class="flex flex-wrap gap-1.5 sm:gap-2">
               <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">3</span>
               <div class="min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-3">
-                <p class="text-[10px] font-black uppercase text-slate-500 sm:text-[11px]">Chave Pix Sicoob</p>
+                <p class="text-[10px] font-black uppercase text-slate-500 sm:text-[11px]">Sicoob — chave Pix manual</p>
                 <p id="pdv-pix-sicob-key" class="mt-0.5 break-all text-xs font-bold text-slate-800 sm:text-sm"></p>
                 <button type="button" id="pdv-pix-copy-key" class="mt-1.5 w-full rounded-lg border-2 border-emerald-200 bg-emerald-50 py-1.5 text-[10px] font-black uppercase text-emerald-900 sm:rounded-xl sm:text-[11px]">Copiar chave</button>
               </div>
@@ -286,23 +310,6 @@
       </div>
       <div id="pdv-pay-maquinas-list" class="max-h-[min(52vh,340px)] overflow-y-auto p-4"></div>
       <p class="border-t border-slate-100 px-4 py-1.5 text-center text-[10px] font-semibold text-slate-400"><kbd class="rounded bg-slate-100 px-1 font-mono">Esc</kbd> fecha</p>
-    </div>
-  </dialog>
-
-  <dialog id="pdv-pay-pop-mp-balcao-modo" class="pdv-pay-flow-pop z-[325] w-[min(96vw,440px)] shadow-2xl">
-    <div class="rounded-3xl bg-white">
-      <div class="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3">
-        <h3 class="text-lg font-black text-amber-950">Mercado Pago — Balcão</h3>
-      </div>
-      <div class="space-y-3 p-4">
-        <button type="button" id="pdv-mp-balcao-btn-point" class="pdv-action-btn w-full min-h-[3rem] rounded-2xl border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 px-4 py-3 text-left text-sm font-black text-amber-950 shadow-md hover:brightness-[1.02] sm:min-h-[3.25rem] sm:text-base">
-          Automático (Point ao fechar)
-        </button>
-        <button type="button" id="pdv-mp-balcao-btn-manual" class="pdv-action-btn w-full min-h-[3rem] rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-left text-sm font-black text-slate-900 shadow-sm hover:bg-slate-50 sm:min-h-[3.25rem] sm:text-base">
-          Manual (digito no terminal)
-        </button>
-        <button type="button" id="pdv-mp-balcao-btn-cancel" class="pdv-action-btn w-full rounded-2xl border-2 border-slate-200 bg-slate-100 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-200">Cancelar</button>
-      </div>
     </div>
   </dialog>
 

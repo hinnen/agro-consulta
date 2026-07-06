@@ -42,6 +42,7 @@ def mp_point_create_order(
     external_reference: str,
     expiration_time: str,
     description: str | None = None,
+    payment_method_config: dict | None = None,
 ) -> tuple[bool, int, dict | list | str]:
     """
     Cria pedido no terminal Point. Retorna (ok, http_status, corpo_json_ou_texto).
@@ -62,8 +63,12 @@ def mp_point_create_order(
     }
     if description:
         body["description"] = description[:200]
-    pm = getattr(settings, "MP_POINT_PAYMENT_METHOD_CONFIG", None)
-    if isinstance(pm, dict) and pm:
+    pm = payment_method_config if isinstance(payment_method_config, dict) and payment_method_config else None
+    if not pm:
+        env_pm = getattr(settings, "MP_POINT_PAYMENT_METHOD_CONFIG", None)
+        if isinstance(env_pm, dict) and env_pm:
+            pm = env_pm
+    if pm:
         body["config"]["payment_method"] = pm
 
     headers = {

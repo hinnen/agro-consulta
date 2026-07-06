@@ -1145,9 +1145,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.86** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.87** · **loja v6.86**
 
-**WIP teste:** validar **v6.86** — entregas PDV + modais (já na loja: PIN + contagem)
+**WIP teste:** validar **v6.87** — MP Point + máquinas Pix/Cielo
+
+### ✅ PDV — MP Point v6.87 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **MP** | Cartão e Pix **só automático** (sem Manual) |
+| **Pix** | MP auto · Cielo manual · Sicoob chave |
+| **Cartão** | MP auto · Cielo · Sicredi manual |
+| **Fix** | Desconto/frete no Point · forma na máquina · painel espera |
+
+### 🔌 MP Point — reativar conta nova (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Lado MP** | Maquininha **ativa** · modo **vincular com o caixa** ✅ · app **pdvagromais** · credencial **Produção** |
+| **Lado Agro** | Render **teste** — `MP_POINT_*` configurado (Renan 06/07) |
+| **Ordem** | Validar v6.87 no teste → depois loja |
+| **Status** | **🧪 teste v6.87** deploy |
 
 ### ✅ Deploy loja **v6.86** — PIN PDV + contagem caixa (05/07 noite — Renan senha OK)
 

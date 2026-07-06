@@ -78,9 +78,6 @@
             return ok;
         });
     }
-    var mpBalcaoPickPending = null;
-    /** Evita refocus na lista de máquinas quando o modo MP Balcão fechou após Automático/Manual (sucesso). */
-    var mpBalcaoModoCloseAfterSuccess = false;
     /** Trava duplo clique / Enter+F9 repetido enquanto a confirmação de venda está em andamento. */
     var isProcessingSale = false;
 
@@ -103,14 +100,27 @@
     var priceInputRestore = { id: null, selStart: null, selEnd: null };
     var priceSkipCommitOnce = false;
 
-    function showMpPointWaitBar() {
-        var bar = document.getElementById('pdv-mp-point-wait-bar');
-        if (bar) bar.classList.remove('hidden');
+    function showMpPointWaitBar(amount, formaLabel) {
+        var overlay = document.getElementById('pdv-mp-point-wait-overlay');
+        var amtEl = document.getElementById('pdv-mp-point-wait-amount');
+        var formaEl = document.getElementById('pdv-mp-point-wait-forma');
+        if (amtEl && amount != null) {
+            var n = State.toNumber(amount);
+            amtEl.textContent = typeof formatMoney === 'function' ? formatMoney(n) : 'R$ ' + n.toFixed(2).replace('.', ',');
+        }
+        if (formaEl) {
+            var fl = String(formaLabel || '').trim();
+            formaEl.textContent = fl ? 'Forma no PDV: ' + fl : '';
+            formaEl.classList.toggle('hidden', !fl);
+        }
+        if (overlay) overlay.classList.remove('hidden');
+        document.body.classList.add('pdv-mp-point-wait-active');
     }
 
     function hideMpPointWaitBar() {
-        var bar = document.getElementById('pdv-mp-point-wait-bar');
-        if (bar) bar.classList.add('hidden');
+        var overlay = document.getElementById('pdv-mp-point-wait-overlay');
+        if (overlay) overlay.classList.add('hidden');
+        document.body.classList.remove('pdv-mp-point-wait-active');
         mpPointWaitControl.reset();
     }
     var bairrosEntrega = bootstrap.bairrosEntrega || { urbanos: [], rurais: [] };
@@ -285,7 +295,6 @@
         valeSaldoView: document.getElementById('pdv-vale-saldo-view'),
         cashbackSaldoView: document.getElementById('pdv-cashback-saldo-view'),
         pixMpQr: document.getElementById('pdv-pix-mp-qr'),
-        pixSicrediLink: document.getElementById('pdv-pix-sicredi-link'),
         cardSicrediLink: document.getElementById('pdv-card-sicredi-link'),
         pixSicobKey: document.getElementById('pdv-pix-sicob-key'),
         pixCopyKey: document.getElementById('pdv-pix-copy-key'),
@@ -1429,6 +1438,8 @@
             return 'pdv-pay-maquina-card-mp';
         if (r === 'sicredi' || id.indexOf('sicredi') === 0 || id.indexOf('pix_sicredi') === 0)
             return 'pdv-pay-maquina-card-sicredi';
+        if (r === 'cielo' || id.indexOf('cielo') === 0)
+            return 'pdv-pay-maquina-card-cielo';
         if (r === 'sicoob' || id.indexOf('sicoob') === 0 || id.indexOf('pix_sicoob') === 0)
             return 'pdv-pay-maquina-card-sicoob';
         return 'pdv-pay-maquina-card-outro';
@@ -1500,14 +1511,14 @@
         dinheiroExtra = dinheiroExtra || {};
         var forma = state.pagamento.forma || '';
         var mid = String(state.pagamento.maquinaId || '').trim();
-        var mpModo = mid === 'mp_balcao' ? String(state.pagamento.mpBalcaoModo || '').trim() : '';
+        var mpModo = isMaquinaMpPointAuto(mid, forma) ? 'point' : '';
         return {
             forma: forma,
             valor: T,
             maquinaId: state.pagamento.maquinaId || '',
             maquinaNome: state.pagamento.maquinaNome || '',
             mpBalcaoModo: mpModo,
-            cobrarNoPointMp: mid === 'mp_balcao' && mpModo === 'point',
+            cobrarNoPointMp: mpModo === 'point',
             creditoParcelas: forma === 'Cartão de crédito parcelado' ? parseInt(state.pagamento.creditoParcelas, 10) || 2 : null,
             fiadoParcelas: forma === 'Fiado' ? parseInt(state.pagamento.fiadoParcelas, 10) || 1 : null,
             fiadoDiasVencimento: forma === 'Fiado' ? parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30 : null,
@@ -1621,13 +1632,33 @@
             .join('');
     }
 
-    function openMaquinasDialog() {
-        mpBalcaoPickPending = null;
-        var dmpClear = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        if (dmpClear) {
-            delete dmpClear.dataset.mpPickId;
-            delete dmpClear.dataset.mpPickNome;
+    function isMaquinaMpPointAuto(maquinaId, forma) {
+        if (!pagamentoUi.mpPointEnabled) return false;
+        var mid = String(maquinaId || '').trim();
+        var f = String(forma || '').trim();
+        if (mid === 'mp_balcao' && f !== 'PIX') return true;
+        if (mid === 'pix_mp_qr' && f === 'PIX') return true;
+        return false;
+    }
+
+    function finishMaquinaSelection(id, nome) {
+        var st = State.getState();
+        var formaM = st.pagamento.forma || '';
+        var patch = { maquinaId: id, maquinaNome: nome, mpBalcaoModo: '' };
+        if (isMaquinaMpPointAuto(id, formaM)) {
+            patch.mpBalcaoModo = 'point';
         }
+        State.setPagamentoPatch(patch);
+        var md = document.getElementById('pdv-pay-pop-maquinas');
+        if (md && typeof md.close === 'function') {
+            try {
+                md.close();
+            } catch (errM) {}
+        }
+        focusFirstFlowFieldForForma(State.getState().pagamento.forma);
+    }
+
+    function openMaquinasDialog() {
         var dlg = document.getElementById('pdv-pay-pop-maquinas');
         var st = State.getState();
         var forma = st.pagamento.forma || '';
@@ -1641,89 +1672,6 @@
             var w = document.getElementById('pdv-pay-maquinas-list');
             if (!w) return;
             var b = w.querySelector('[data-maquina-id]');
-            if (b) b.focus();
-        }, 50);
-    }
-
-    function openMpBalcaoModoDialog(maquinaId, maquinaNome) {
-        var d = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        if (d) {
-            d.dataset.mpPickId = String(maquinaId || '').trim();
-            d.dataset.mpPickNome = String(maquinaNome != null ? maquinaNome : '').trim() || d.dataset.mpPickId;
-        }
-        mpBalcaoPickPending = { id: maquinaId, nome: maquinaNome };
-        showPayFlowDialog(d);
-        setTimeout(function () {
-            var b = document.getElementById('pdv-mp-balcao-btn-point');
-            if (b) b.focus();
-        }, 50);
-    }
-
-    function finishMpBalcaoChoice(modo) {
-        var d2 = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        var id =
-            (d2 && String(d2.dataset.mpPickId || '').trim()) ||
-            (mpBalcaoPickPending && String(mpBalcaoPickPending.id || '').trim()) ||
-            '';
-        var nomePick = mpBalcaoPickPending && mpBalcaoPickPending.nome;
-        var nome =
-            (d2 && String(d2.dataset.mpPickNome || '').trim()) ||
-            (nomePick != null ? String(nomePick).trim() : '') ||
-            id;
-        if (d2) {
-            delete d2.dataset.mpPickId;
-            delete d2.dataset.mpPickNome;
-        }
-        mpBalcaoPickPending = null;
-        if (!id) {
-            if (d2 && typeof d2.close === 'function') {
-                try {
-                    d2.close();
-                } catch (e0) {}
-            }
-            return;
-        }
-        State.setPagamentoPatch({
-            maquinaId: id,
-            maquinaNome: nome || id,
-            mpBalcaoModo: modo === 'point' ? 'point' : 'manual'
-        });
-        mpBalcaoModoCloseAfterSuccess = true;
-        try {
-            if (d2 && typeof d2.close === 'function') {
-                try {
-                    d2.close();
-                } catch (e2) {}
-            }
-        } finally {
-            mpBalcaoModoCloseAfterSuccess = false;
-        }
-        var md = document.getElementById('pdv-pay-pop-maquinas');
-        if (md && typeof md.close === 'function') {
-            try {
-                md.close();
-            } catch (e3) {}
-        }
-        focusFirstFlowFieldForForma(State.getState().pagamento.forma);
-    }
-
-    function cancelMpBalcaoChoice() {
-        var d2pre = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        if (d2pre) {
-            delete d2pre.dataset.mpPickId;
-            delete d2pre.dataset.mpPickNome;
-        }
-        mpBalcaoPickPending = null;
-        var d2 = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        if (d2 && typeof d2.close === 'function') {
-            try {
-                d2.close();
-            } catch (e2) {}
-        }
-        setTimeout(function () {
-            var w = document.getElementById('pdv-pay-maquinas-list');
-            if (!w) return;
-            var b = w.querySelector('[data-maquina-id="mp_balcao"]') || w.querySelector('[data-maquina-id]');
             if (b) b.focus();
         }, 50);
     }
@@ -2107,9 +2055,9 @@
         var arr = state.pagamento.lancamentos || [];
         if (arr.length !== 1) return false;
         var L = arr[0];
-        if (String(L.maquinaId || '').trim() !== 'mp_balcao') return false;
-        var wantsPoint = !!L.cobrarNoPointMp || String(L.mpBalcaoModo || '').trim() === 'point';
-        if (!wantsPoint) return false;
+        var mid = String(L.maquinaId || '').trim();
+        var forma = String(L.forma || state.pagamento.forma || '').trim();
+        if (!isMaquinaMpPointAuto(mid, forma)) return false;
         var total = totalNumberFromComputed(computed);
         var vL = Math.round((State.toNumber(L.valor) + Number.EPSILON) * 100) / 100;
         var vT = Math.round((total + Number.EPSILON) * 100) / 100;
@@ -5355,7 +5303,7 @@
                 pixSteps.classList.toggle('flex', !pg);
             }
             var pixMpRow = document.getElementById('pdv-pix-row-mp');
-            var pixScrRow = document.getElementById('pdv-pix-row-sicredi');
+            var pixCieloRow = document.getElementById('pdv-pix-row-cielo');
             var pixScoRow = document.getElementById('pdv-pix-row-sicoob');
             var rowVisPix = function (el, on) {
                 if (el) el.classList.toggle('hidden', !on);
@@ -5363,21 +5311,21 @@
             if (hasMaquina) {
                 var pMid = String(state.pagamento.maquinaId || '').trim();
                 var narrowMp = pMid === 'pix_mp_qr';
-                var narrowScr = pMid === 'pix_sicredi_qr';
+                var narrowCielo = pMid === 'pix_cielo';
                 var narrowSco = pMid === 'pix_sicoob_chave';
-                var narrow = narrowMp || narrowScr || narrowSco;
+                var narrow = narrowMp || narrowCielo || narrowSco;
                 if (narrow) {
                     rowVisPix(pixMpRow, narrowMp);
-                    rowVisPix(pixScrRow, narrowScr);
+                    rowVisPix(pixCieloRow, narrowCielo);
                     rowVisPix(pixScoRow, narrowSco);
                 } else {
                     rowVisPix(pixMpRow, true);
-                    rowVisPix(pixScrRow, true);
+                    rowVisPix(pixCieloRow, true);
                     rowVisPix(pixScoRow, true);
                 }
             } else {
                 rowVisPix(pixMpRow, true);
-                rowVisPix(pixScrRow, true);
+                rowVisPix(pixCieloRow, true);
                 rowVisPix(pixScoRow, true);
             }
         } else {
@@ -5442,15 +5390,17 @@
             (!requiresMaquina(forma) || hasMaquina);
         if (trBar) trBar.classList.toggle('hidden', !showTranche);
 
-        var mpPixHint =
-            'QR Pix Mercado Pago aparece na maquininha — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
-        fillQrSlot(dom.pixMpQr, pagamentoUi.qrMercadoPagoUrl, mpPixHint);
-        wireSicrediLink(dom.pixSicrediLink, pagamentoUi.qrSicrediUrl);
+        var mpPixAuto =
+            pagamentoUi.mpPointEnabled &&
+            hasMaquina &&
+            String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
+        var mpPixHint = mpPixAuto
+            ? 'Ao confirmar a venda, o Pix será enviado à maquininha Mercado Pago automaticamente.'
+            : 'QR Pix Mercado Pago — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
+        var btnAmplifyPix = document.getElementById('pdv-pay-open-qr-pix');
+        if (btnAmplifyPix) btnAmplifyPix.classList.toggle('hidden', !!mpPixAuto);
+        fillQrSlot(dom.pixMpQr, mpPixAuto ? '' : pagamentoUi.qrMercadoPagoUrl, mpPixHint);
         wireSicrediLink(dom.cardSicrediLink, pagamentoUi.qrSicrediUrl);
-        if (dom.pixSicrediLink) {
-            var uPixScr = String(pagamentoUi.qrSicrediUrl || '').trim();
-            dom.pixSicrediLink.textContent = uPixScr ? 'Abrir QR Sicredi' : 'QR na maquininha Sicredi';
-        }
         if (dom.cardSicrediLink) {
             var uCardScr = String(pagamentoUi.qrSicrediUrl || '').trim();
             dom.cardSicrediLink.textContent = uCardScr ? 'QR Sicredi' : 'QR na maquininha Sicredi';
@@ -5478,9 +5428,8 @@
                           var sub = [];
                           if (L.maquinaNome) sub.push(String(L.maquinaNome).trim());
                           var midL = String(L.maquinaId || '').trim();
-                          var pointAuto = !!L.cobrarNoPointMp || String(L.mpBalcaoModo || '').trim() === 'point';
-                          if (midL === 'mp_balcao') {
-                              sub.push(pointAuto ? 'Point' : 'Manual');
+                          if (isMaquinaMpPointAuto(midL, L.forma)) {
+                              sub.push('Point automático');
                           }
                           if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
                               sub.push(String(L.creditoParcelas).trim() + 'x');
@@ -6914,6 +6863,9 @@
         if (comp && comp.desconto > 0.009) {
             payload.desconto_geral = comp.desconto;
         }
+        if (comp && comp.frete > 0.009) {
+            payload.frete = comp.frete;
+        }
         var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
         if (idem) payload.client_request_id = idem;
         var cx = bootstrap.caixa || {};
@@ -7773,7 +7725,9 @@
             return;
         }
         if (!deveUsarMpPointNoFechar(state, computed)) {
-            alert('O envio automático ao Point só vale para pagamento único no “Mercado Pago — Balcão” cobrindo o total da venda.');
+            alert(
+                'O envio automático ao Point só vale para Mercado Pago (cartão ou Pix) com pagamento único cobrindo o total.'
+            );
             return;
         }
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
@@ -7816,7 +7770,12 @@
                 if (!oid) throw new Error('Resposta sem order_id.');
                 mpPointWaitControl.cancelRequested = false;
                 mpPointWaitControl.orderId = oid;
-                showMpPointWaitBar();
+                var stWait = State.getState();
+                var compWait = State.getComputed();
+                showMpPointWaitBar(
+                    criarRes.data.amount != null ? criarRes.data.amount : totalNumberFromComputed(compWait),
+                    stWait.pagamento && stWait.pagamento.forma
+                );
                 return pollMpPointUntilPaid(oid);
             })
             .then(function (pack) {
@@ -9959,73 +9918,11 @@
                 var nome = btn.getAttribute('data-maquina-nome') || id;
                 var stM = State.getState();
                 var formaM = stM.pagamento.forma || '';
-                if (
-                    id === 'mp_balcao' &&
-                    pagamentoUi.mpPointEnabled &&
-                    formaM !== 'PIX'
-                ) {
-                    openMpBalcaoModoDialog(id, nome);
-                    return;
-                }
-                State.setPagamentoPatch({ maquinaId: id, maquinaNome: nome, mpBalcaoModo: '' });
-                var md = document.getElementById('pdv-pay-pop-maquinas');
-                if (md && typeof md.close === 'function') {
-                    try {
-                        md.close();
-                    } catch (errM) {}
-                }
-                focusFirstFlowFieldForForma(State.getState().pagamento.forma);
+                finishMaquinaSelection(id, nome);
+                return;
             });
         }
 
-        var btnMpBalAuto = document.getElementById('pdv-mp-balcao-btn-point');
-        if (btnMpBalAuto) {
-            btnMpBalAuto.addEventListener(
-                'click',
-                function (ev) {
-                    if (ev && ev.stopPropagation) ev.stopPropagation();
-                    finishMpBalcaoChoice('point');
-                },
-                true
-            );
-        }
-        var btnMpBalMan = document.getElementById('pdv-mp-balcao-btn-manual');
-        if (btnMpBalMan) {
-            btnMpBalMan.addEventListener(
-                'click',
-                function (ev) {
-                    if (ev && ev.stopPropagation) ev.stopPropagation();
-                    finishMpBalcaoChoice('manual');
-                },
-                true
-            );
-        }
-        var btnMpBalCancel = document.getElementById('pdv-mp-balcao-btn-cancel');
-        if (btnMpBalCancel) {
-            btnMpBalCancel.addEventListener(
-                'click',
-                function (ev) {
-                    if (ev && ev.stopPropagation) ev.stopPropagation();
-                    cancelMpBalcaoChoice();
-                },
-                true
-            );
-        }
-        var dlgMpBalModo = document.getElementById('pdv-pay-pop-mp-balcao-modo');
-        if (dlgMpBalModo) {
-            dlgMpBalModo.addEventListener('close', function () {
-                delete dlgMpBalModo.dataset.mpPickId;
-                delete dlgMpBalModo.dataset.mpPickNome;
-                mpBalcaoPickPending = null;
-                if (mpBalcaoModoCloseAfterSuccess) return;
-                setTimeout(function () {
-                    var w = document.getElementById('pdv-pay-maquinas-list');
-                    if (!w) return;
-                    var b = w.querySelector('[data-maquina-id="mp_balcao"]') || w.querySelector('[data-maquina-id]');
-                    if (b) b.focus();
-                }, 50);
-            });
-        }
         var btnMpPointCancelWait = document.getElementById('pdv-mp-point-cancel-wait');
         if (btnMpPointCancelWait) {
             btnMpPointCancelWait.addEventListener('click', function () {

@@ -2159,6 +2159,14 @@
     box-shadow: 0 12px 28px rgba(202, 138, 4, 0.35);
   }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-mp:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo {
+    border-color: #1e40af !important;
+    background: linear-gradient(145deg, #eff6ff 0%, #60a5fa 40%, #1d4ed8 100%) !important;
+    color: #0f172a !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.35);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo:hover { filter: brightness(1.03); }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicredi {
     border-color: #15803d !important;
     background: linear-gradient(145deg, #ecfdf5 0%, #4ade80 35%, #16a34a 100%) !important;
@@ -2181,6 +2189,110 @@
     color: #0f172a !important;
     min-height: 4.25rem;
   }
+  .pdv-mp-point-wait-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 420;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(6px);
+  }
+  .pdv-mp-point-wait-overlay.hidden { display: none !important; }
+  .pdv-mp-point-wait-panel {
+    position: relative;
+    width: min(96vw, 28rem);
+    border-radius: 1.25rem;
+    border: 3px solid #f97316;
+    background: linear-gradient(165deg, #fff7ed 0%, #ffedd5 45%, #fff 100%);
+    padding: 1.25rem 1.25rem 1rem;
+    box-shadow: 0 24px 60px rgba(234, 88, 12, 0.45);
+    text-align: center;
+  }
+  .pdv-mp-point-wait-pulse {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 9999px;
+    background: #ea580c;
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65);
+    animation: pdv-mp-point-pulse 1.4s ease-out infinite;
+  }
+  @keyframes pdv-mp-point-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65); }
+    70% { box-shadow: 0 0 0 14px rgba(234, 88, 12, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+  }
+  .pdv-mp-point-wait-kicker {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9a3412;
+  }
+  .pdv-mp-point-wait-title {
+    margin: 0.35rem 0 0;
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #7c2d12;
+  }
+  .pdv-mp-point-wait-amount {
+    margin: 0.5rem 0 0;
+    font-size: clamp(2rem, 6vw, 2.75rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #c2410c;
+    line-height: 1.1;
+  }
+  .pdv-mp-point-wait-forma {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #334155;
+  }
+  .pdv-mp-point-wait-steps {
+    margin: 1rem 0 0;
+    padding-left: 1.15rem;
+    text-align: left;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.45;
+  }
+  .pdv-mp-point-wait-help {
+    margin-top: 0.75rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  .pdv-mp-point-wait-help summary {
+    cursor: pointer;
+    font-weight: 900;
+    color: #9a3412;
+  }
+  .pdv-mp-point-wait-help ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+  }
+  .pdv-mp-point-wait-cancel {
+    margin-top: 1rem;
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 0.85rem;
+    border: 2px solid #9a3412;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #7c2d12;
+  }
+  .pdv-mp-point-wait-cancel:hover { background: #ffedd5; }
   #pdv-pack-entrega-print { display: none !important; }
   @media print {
     body.print-pdv-entrega-pack > *:not(#pdv-pack-entrega-print) { display: none !important; }
