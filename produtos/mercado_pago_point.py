@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders"
 
+
+def mp_point_order_indica_pago(doc: dict) -> bool:
     if not isinstance(doc, dict):
         return False
     st = str(doc.get("status") or "").strip().lower()
