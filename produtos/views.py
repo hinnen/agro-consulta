@@ -76,6 +76,8 @@ from .caixa_util import (
     rotulo_caixa_browser,
     definir_ponto_operacao_browser,
     limpar_ponto_operacao_browser,
+    limpar_navegador_host_mp_point,
+    marcar_navegador_host_mp_point,
     PONTO_CAIXA_GAVETA,
     PONTO_CAIXA_NOTEBOOK,
     PONTO_CAIXA_TESTE,
@@ -9616,6 +9618,7 @@ def caixa_abrir(request):
                 messages.error(request, err_pin)
                 return redirect("caixa_abrir")
             definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, gaveta.pk)
+            limpar_navegador_host_mp_point(request)
             op = rotulo_operador_pin(pin)
             if op:
                 request.session["pdv_caixa_gerido_operador"] = op[:120]
@@ -9651,6 +9654,8 @@ def caixa_abrir(request):
             ponto_caixa=ponto,
         )
         definir_ponto_operacao_browser(request, ponto, s.pk)
+        if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
+            marcar_navegador_host_mp_point(request)
         if ponto == PONTO_CAIXA_GAVETA:
             _limpar_rascunho_conferencia_caixa(request)
         rotulo = rotulo_ponto_caixa(ponto)

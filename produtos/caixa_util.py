@@ -843,6 +843,7 @@ PONTOS_CAIXA_ABERTURA: tuple[tuple[str, str], ...] = (
 )
 
 SESSION_PONTO_OPERACAO_KEY = "pdv_ponto_operacao"
+SESSION_MP_POINT_HOST_KEY = "pdv_mp_point_host"
 
 
 def normalizar_ponto_caixa(valor: str | None) -> str:
@@ -975,11 +976,25 @@ def ponto_operacao_browser(request) -> str:
 
 def navegador_pode_mp_point_automatico(request) -> bool:
     """
-    Mercado Pago Point só no computador do Caixa Gaveta (aberto primeiro).
-    Notebook (2º PDV) usa Cielo/Sicredi/Sicoob — evita duas cobranças na mesma maquininha.
+    Mercado Pago Point só no PC que abriu o Caixa Gaveta (ou Teste).
+    Notebook e PDV sem abertura de gaveta neste navegador não mandam cobrança ao Point.
     """
+    if request.session.get(SESSION_MP_POINT_HOST_KEY) != "1":
+        return False
     ponto = ponto_operacao_browser(request)
     return ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE)
+
+
+def marcar_navegador_host_mp_point(request) -> None:
+    """Marca este navegador como host da maquininha MP (abertura Gaveta/Teste)."""
+    request.session[SESSION_MP_POINT_HOST_KEY] = "1"
+    request.session.modified = True
+
+
+def limpar_navegador_host_mp_point(request) -> None:
+    if SESSION_MP_POINT_HOST_KEY in request.session:
+        del request.session[SESSION_MP_POINT_HOST_KEY]
+        request.session.modified = True
 
 
 def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
@@ -1007,6 +1022,7 @@ def limpar_ponto_operacao_browser(request) -> None:
     if SESSION_PONTO_OPERACAO_KEY in request.session:
         del request.session[SESSION_PONTO_OPERACAO_KEY]
         request.session.modified = True
+    limpar_navegador_host_mp_point(request)
 
 
 def rotulo_caixa_browser(request, sessao=None) -> str:

@@ -596,6 +596,8 @@ def api_pdv_mp_point_abandon(request):
     """Operador desistiu da espera no Point; não finaliza venda e libera outra forma no PDV."""
     if not _mp_point_configurado():
         return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request):
+        return _resposta_mp_point_so_gaveta()
 
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")

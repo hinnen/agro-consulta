@@ -2096,6 +2096,13 @@
             if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
                 row.creditoParcelas = Math.min(24, Math.max(2, parseInt(L.creditoParcelas, 10) || 2));
             }
+            var midL = String(L.maquinaId || '').trim();
+            if (midL) {
+                row.maquinaId = midL;
+                if (L.maquinaNome) row.maquinaNome = String(L.maquinaNome).slice(0, 120);
+                if (L.mpBalcaoModo) row.mpBalcaoModo = String(L.mpBalcaoModo);
+                if (L.cobrarNoPointMp) row.cobrarNoPointMp = true;
+            }
             out.push(row);
         }
         return out.length ? out : null;
@@ -7848,8 +7855,9 @@
                 if (!finRes.ok || !finRes.data.ok) {
                     throw new Error((finRes.data && (finRes.data.erro || finRes.data.mensagem)) || 'Falha ao registrar venda após o Point.');
                 }
-                if (finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso) {
-                    pdvMpPointBeep('err');
+                var mpPointFormaDivergiu =
+                    !!(finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso);
+                if (mpPointFormaDivergiu) {
                     alert(finRes.data.mp_point_aviso);
                 }
                 var st = State.getState();
@@ -7867,10 +7875,16 @@
                                     'Venda salva, mas falhou ao encerrar pendência da entrega.'
                             );
                         }
-                        return { entrega: finEntRes.data, erp: finRes.data };
+                        return {
+                            entrega: finEntRes.data,
+                            erp: finRes.data,
+                            mpPointFormaDivergiu: mpPointFormaDivergiu
+                        };
                     });
                 }
-                if (!st.entrega.ativa) return { entrega: null, erp: finRes.data };
+                if (!st.entrega.ativa) {
+                    return { entrega: null, erp: finRes.data, mpPointFormaDivergiu: mpPointFormaDivergiu };
+                }
                 return jsonPost(
                     urls.apiEntregaRegistrar,
                     buildEntregaPayload(st, comp, { venda_id: vendaId })
@@ -7881,11 +7895,16 @@
                                 'Venda salva, mas falhou ao registrar entrega.'
                         );
                     }
-                    return { entrega: entRes.data, erp: finRes.data };
+                    return {
+                        entrega: entRes.data,
+                        erp: finRes.data,
+                        mpPointFormaDivergiu: mpPointFormaDivergiu
+                    };
                 });
             })
             .then(function (result) {
                 var erpData = (result && result.erp) || {};
+                var mpPointFormaDivergiu = !!(result && result.mpPointFormaDivergiu);
                 var nfceErro = nfceErroDaResposta(erpData);
                 var nfceOk = nfceSucessoDaResposta(erpData);
                 var vIdMp =
@@ -7903,7 +7922,7 @@
                     });
                 }).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                    pdvMpPointBeep('ok');
+                    pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
                     resetWizardParaNovaVenda();
                     if (nfceErro) {
                         mostrarAvisoNfcePendente(

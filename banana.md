@@ -1147,7 +1147,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
-**WIP teste:** validar **v6.89** — fechar caixa MP separado · MP só Gaveta
+**WIP teste:** validar **v6.90** — MP Point + fechar caixa MP + Gaveta host
+
+### ✅ PDV — MP Point v6.90 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Host MP** | Só navegador que **abriu Gaveta/Teste** manda Point (flag sessão; notebook bloqueado) |
+| **Venda** | `pagamentos` gravam `maquinaId` no ERP/Agro (conferência MP) |
+| **Som** | Um beep só (ok ou erro se forma divergiu) |
 
 ### ✅ PDV — MP Point v6.89 (06/07)
 

@@ -5,10 +5,12 @@ from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
-from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
 from produtos.caixa_util import (
+    PONTO_CAIXA_NOTEBOOK,
+    adotar_sessao_caixa_unica_aberta,
     filtrar_maquininhas_pdv_sem_mp,
     navegador_pode_mp_point_automatico,
+    obter_sessao_caixa_aberta_request,
     ponto_operacao_browser,
 )
 from produtos.agro_fonte_config import agro_staging_readonly
@@ -172,8 +174,14 @@ def pdv_home(request):
                 "mpPointMotivoBloqueio": (
                     "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
                     "Neste PDV use Cielo, Sicredi ou Sicoob."
-                    if mp_point_configurado and not mp_point_nav
-                    else ""
+                    if mp_point_configurado
+                    and not mp_point_nav
+                    and ponto_nav == PONTO_CAIXA_NOTEBOOK
+                    else (
+                        "Abra o Caixa Gaveta neste computador para usar Mercado Pago automático."
+                        if mp_point_configurado and not mp_point_nav
+                        else ""
+                    )
                 ),
                 "qrMercadoPagoUrl": settings.PDV_QR_MERCADOPAGO_URL,
                 "qrSicrediUrl": settings.PDV_QR_SICREDI_URL,
