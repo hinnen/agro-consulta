@@ -111,15 +111,30 @@
     }
   }
 
-  function elemBloqueiaDescanso(el) {
+  function elOverlayVisivel(el) {
     if (!el || el.id === 'sspin-root') return false;
     try {
       if (el.closest && el.closest('#sspin-root')) return false;
     } catch (eCl) {}
     if (el.classList && el.classList.contains('hidden')) return false;
     if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.hidden) return false;
+    try {
+      var st = window.getComputedStyle(el);
+      if (!st || st.display === 'none' || st.visibility === 'hidden') return false;
+      if (parseFloat(st.opacity || '1') < 0.02) return false;
+    } catch (eSt) {}
+    try {
+      var r = el.getBoundingClientRect();
+      if (!r || (r.width < 2 && r.height < 2)) return false;
+    } catch (eR) {}
+    return true;
+  }
+
+  function elemBloqueiaDescanso(el) {
+    if (!el || el.id === 'sspin-root') return false;
     if (String(el.tagName || '').toUpperCase() === 'DIALOG') return !!el.open;
-    if (el.getAttribute && el.getAttribute('aria-modal') === 'true') return true;
+    if (el.getAttribute && el.getAttribute('aria-modal') === 'true') return elOverlayVisivel(el);
     return false;
   }
 
@@ -132,7 +147,7 @@
         if (elemBloqueiaDescanso(modals[i])) return true;
       }
       var ew = document.getElementById('pdv-entrega-wizard');
-      if (ew && !ew.classList.contains('hidden')) return true;
+      if (ew && elOverlayVisivel(ew)) return true;
     } catch (eUi) {}
     return false;
   }
@@ -423,17 +438,25 @@
     });
   }
 
-  function openLock() {
-    if (sspinPausado()) {
+  function openLock(force) {
+    var forcado = !!force;
+    if (!forcado && sspinPausado()) {
       bumpIdle();
       return;
     }
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     dismissNativeDialogsBeforeLock();
-    recomputeSspinPauseFromDom();
-    if (sspinPausado()) {
-      bumpIdle();
-      return;
+    if (forcado) {
+      try { document.body.classList.remove('modal-open'); } catch (eMo) {}
+      sspinPauseFlags.pdvModal = false;
+      sspinPauseFlags.overlay = false;
+      sspinPauseFlags.caixaModal = false;
+    } else {
+      recomputeSspinPauseFromDom();
+      if (sspinPausado()) {
+        bumpIdle();
+        return;
+      }
     }
     garantirSspinNoBody();
     try {
@@ -660,11 +683,11 @@
 
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
-    openLock();
+    openLock(true);
   };
 
   window.gmSspinAbrirEntrada = function () {
-    openLock();
+    openLock(true);
   };
 
   window.gmSspinProtegerAcao = function (onSuccess) {
@@ -678,7 +701,7 @@
       closeLock = originalCloseLock;
       onSuccess();
     };
-    openLock();
+    openLock(true);
   };
 })();
 </script>

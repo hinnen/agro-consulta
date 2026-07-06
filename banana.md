@@ -1145,7 +1145,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.86** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.85** · **loja v6.77**
 
 **WIP teste:** validar **v6.85** — entregas PDV + descanso não trava modal
 

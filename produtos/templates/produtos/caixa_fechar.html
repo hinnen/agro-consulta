@@ -1527,6 +1527,14 @@
   function chaveTurnoArmazenamento(turnoPk) {
     return diaCalendarioLocal() + '::' + String(turnoPk || '');
   }
+  function diaDoTurnoChave(chave) {
+    var s = String(chave || '');
+    var p = s.indexOf('::');
+    return p >= 0 ? s.slice(0, p) : s;
+  }
+  function turnoMesmoDiaCalendario(chaveA, chaveB) {
+    return diaDoTurnoChave(chaveA) === diaCalendarioLocal() && diaDoTurnoChave(chaveB) === diaCalendarioLocal();
+  }
   function limparContagemLocalStorage() {
     try {
       localStorage.removeItem(CONTAGEM_LS_KEY);
@@ -1540,12 +1548,10 @@
   var turnoChave = chaveTurnoArmazenamento(turnoPkPagina);
   try {
     var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-    if (turnoSalvo != null && turnoSalvo !== turnoChave) {
+    if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) {
       limparContagemLocalStorage();
     }
-    if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
-      localStorage.setItem(TURNO_LS_KEY, turnoChave);
-    }
+    localStorage.setItem(TURNO_LS_KEY, turnoChave);
   } catch (eTurnoLs) { /* ignore */ }
   var contagemMap = {};
   var cedulasMap = {};
@@ -1560,7 +1566,7 @@
   function mesclarContagemLocal(map) {
     try {
       var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-      if (turnoSalvo !== turnoChave) return;
+      if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) return;
       var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
@@ -1573,7 +1579,7 @@
   function mesclarCedulasLocal(map) {
     try {
       var turnoSalvo = localStorage.getItem(TURNO_LS_KEY);
-      if (turnoSalvo !== turnoChave) return;
+      if (turnoSalvo != null && !turnoMesmoDiaCalendario(turnoSalvo, turnoChave)) return;
       var lsRaw = localStorage.getItem(CEDULAS_LS_KEY);
       if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
@@ -1794,17 +1800,13 @@
     try {
       localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
-      if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
-        localStorage.setItem(TURNO_LS_KEY, turnoChave);
-      }
+      localStorage.setItem(TURNO_LS_KEY, turnoChave);
     } catch (e) { /* ignore */ }
   }
   function gravarCedulasLocal(map) {
     try {
       localStorage.setItem(CEDULAS_LS_KEY, JSON.stringify(map || {}));
-      if (turnoChave && turnoChave !== diaCalendarioLocal() + '::') {
-        localStorage.setItem(TURNO_LS_KEY, turnoChave);
-      }
+      localStorage.setItem(TURNO_LS_KEY, turnoChave);
     } catch (e) { /* ignore */ }
   }
   function persistirContagemLocalAgora() {
