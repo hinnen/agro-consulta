@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.96** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.97** · **loja v6.86**
 
-**WIP teste:** validar **v6.96** — popup MP emerald, recusa maquininha, parcelas, comprovante
+**WIP teste:** validar **v6.97** — toasts PDV/MP + comprovante Render
+
+### ✅ PDV — MP Point v6.97 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Avisos** | Confirmar venda / MP / caixa → toast PDV (sem alert Chrome) |
+| **Overlay gestão** | Borda/botão emerald (sem laranja) |
+| **Render print** | Sem `MP_POINT_PRINT_ON_TERMINAL` → código usa `seller_ticket` |
 
 ### ✅ PDV — MP Point v6.96 (06/07)
 

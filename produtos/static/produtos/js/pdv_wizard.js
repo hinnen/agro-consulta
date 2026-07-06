@@ -73,7 +73,7 @@
         if (caixaAbertoParaVenda()) return Promise.resolve(true);
         return refreshCaixaBootstrap().then(function (ok) {
             if (!ok) {
-                alert(MSG_CAIXA_FECHADO_VENDA);
+                showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
             }
             return ok;
         });
@@ -133,6 +133,17 @@
                 o.stop(ctx.currentTime + 0.35);
             }
         } catch (eBeep) {}
+    }
+
+    function showPdvAviso(msg, opts) {
+        opts = opts || {};
+        var texto = String(msg || '').replace(/\n+/g, ' ').trim();
+        if (!texto) return;
+        showSaleDoneFeedback(texto, opts.tone || 'warn', {
+            title: opts.title || 'Atenção',
+            placementTop: true,
+            durationMs: opts.durationMs || 12000
+        });
     }
 
     function showMpPointAviso(msg, opts) {
@@ -7706,8 +7717,9 @@
         setConfirmButtonsBusy(true);
         var printWin = pdvReservarJanelaCupomFallback(withPrint);
         if (withPrint && !printWin && typeof window.agroImprimirCupomVenda80mm !== 'function') {
-            alert(
-                'Não foi possível abrir a janela do cupom. Permita pop-ups para este site e use de novo “Confirmar com impressão”.'
+            showPdvAviso(
+                'Não foi possível abrir a janela do cupom. Permita pop-ups para este site e use de novo “Confirmar com impressão”.',
+                { title: 'Impressão' }
             );
         }
         State.setPagamentoField('imprimirCupom', !!withPrint);
@@ -7814,7 +7826,7 @@
                         printWin.close();
                     } catch (errC) {}
                 }
-                alert(err && err.message ? err.message : 'Falha ao confirmar venda.');
+                showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', { tone: 'error' });
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -7827,18 +7839,18 @@
         withPrint = !!withPrint;
         if (isProcessingSale) return;
         if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) {
-            alert('Mercado Pago Point não está configurado no servidor (.env).');
+            showMpPointAviso('Mercado Pago Point não está configurado no servidor.', { tone: 'error' });
             return;
         }
         var state = State.getState();
         var computed = State.getComputed();
         var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
         if (validation) {
-            alert(validation);
+            showPdvAviso(validation);
             return;
         }
         if (!deveUsarMpPointNoFechar(state, computed)) {
-            alert(
+            showMpPointAviso(
                 'O envio automático ao Point só vale para Mercado Pago (cartão ou Pix) com pagamento único cobrindo o total.'
             );
             return;
@@ -7858,8 +7870,9 @@
         setConfirmButtonsBusy(true);
         var printWin = pdvReservarJanelaCupomFallback(withPrint);
         if (withPrint && !printWin && typeof window.agroImprimirCupomVenda80mm !== 'function') {
-            alert(
-                'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.'
+            showPdvAviso(
+                'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.',
+                { title: 'Impressão' }
             );
         }
         State.setPagamentoField('imprimirCupom', withPrint);

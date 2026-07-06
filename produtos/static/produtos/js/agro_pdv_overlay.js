@@ -78,7 +78,7 @@
       ROOT_ID +
       '{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:clamp(6px,1.2vw,14px);box-sizing:border-box}' +
       '.agro-pdv-overlay-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px)}' +
-      '.agro-pdv-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;width:min(98vw,100%);height:min(95vh,100%);max-width:100%;border-radius:1rem;border:3px solid #f97316;background:#f8fafc;box-shadow:0 28px 80px rgba(15,23,42,.35);overflow:hidden}' +
+      '.agro-pdv-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;width:min(98vw,100%);height:min(95vh,100%);max-width:100%;border-radius:1rem;border:3px solid #10b981;background:#f8fafc;box-shadow:0 28px 80px rgba(15,23,42,.35);overflow:hidden}' +
       '.agro-pdv-overlay-head{display:flex;align-items:center;gap:.55rem;flex-shrink:0;padding:.5rem .75rem;border-bottom:2px solid #e2e8f0;background:linear-gradient(180deg,#fff,#f1f5f9);flex-wrap:nowrap}' +
       '.agro-pdv-overlay-brand{flex-shrink:0;width:2.25rem;height:2.25rem;border-radius:.65rem;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 1px 3px rgba(15,23,42,.08)}' +
       '.agro-pdv-overlay-brand .g{color:#059669}.agro-pdv-overlay-brand .m{color:#f97316}' +
@@ -89,8 +89,8 @@
       '#agro-pdv-overlay-menu{flex-shrink:0;min-height:2.65rem;padding:0 .85rem;border-radius:.75rem;border:2px solid #cbd5e1;background:#fff;color:#0f172a;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer;touch-action:manipulation}' +
       '#agro-pdv-overlay-menu:hover{background:#f8fafc;border-color:#94a3b8}' +
       '#agro-pdv-overlay-menu[hidden]{display:none!important}' +
-      '#agro-pdv-overlay-close{flex-shrink:0;min-height:2.65rem;min-width:6.5rem;padding:0 1rem;border-radius:.75rem;border:2px solid #c2410c;background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;touch-action:manipulation}' +
-      '#agro-pdv-overlay-close:hover{background:linear-gradient(135deg,#fdba74,#f97316)}' +
+      '#agro-pdv-overlay-close{flex-shrink:0;min-height:2.65rem;min-width:6.5rem;padding:0 1rem;border-radius:.75rem;border:2px solid #047857;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;touch-action:manipulation}' +
+      '#agro-pdv-overlay-close:hover{background:linear-gradient(135deg,#34d399,#10b981)}' +
       '#agro-pdv-overlay-frame{flex:1;min-height:0;width:100%;border:0;background:#fff}' +
       'html.agro-pdv-overlay-open,html.agro-pdv-overlay-open body{overflow:hidden!important}';
     document.head.appendChild(st);
