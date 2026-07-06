@@ -17,6 +17,26 @@ logger = logging.getLogger(__name__)
 MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders"
 
 
+def mp_point_order_indica_cancelado(doc: dict) -> bool:
+    if not isinstance(doc, dict):
+        return False
+    st = str(doc.get("status") or "").strip().lower()
+    if st in ("canceled", "cancelled"):
+        return True
+    tx = doc.get("transactions") or {}
+    pays = tx.get("payments") or []
+    if isinstance(pays, dict):
+        pays = [pays]
+    if isinstance(pays, list):
+        for p in pays:
+            if not isinstance(p, dict):
+                continue
+            ps = str(p.get("status") or "").strip().lower()
+            if ps in ("canceled", "cancelled"):
+                return True
+    return False
+
+
 def mp_point_order_indica_pago(doc: dict) -> bool:
     if not isinstance(doc, dict):
         return False
@@ -196,11 +216,55 @@ def mp_point_get_order(*, access_token: str, order_id: str) -> tuple[bool, int, 
     return False, r.status_code, data
 
 
+def mp_point_cancel_order(*, access_token: str, order_id: str) -> tuple[bool, int, dict | list | str]:
+    """Cancela pedido Point (quando ainda permitido pela API)."""
+    idem = str(uuid.uuid4())
+    headers = {
+        "Authorization": f"Bearer {access_token.strip()}",
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idem,
+    }
+    try:
+        r = requests.post(
+            f"{MP_ORDERS_URL}/{order_id.strip()}/cancel",
+            headers=headers,
+            timeout=30,
+        )
+    except requests.RequestException:
+        logger.exception("MP Point: falha de rede ao cancelar pedido")
+        return False, 0, "Erro de rede ao cancelar no Mercado Pago."
+
+    try:
+        data = r.json()
+    except Exception:
+        data = {"raw": (r.text or "")[:2000]}
+
+    if r.status_code in (200, 201):
+        return True, r.status_code, data
+    return False, r.status_code, data
+
+
 def mp_point_mensagem_erro(body) -> str:
     if isinstance(body, str):
         return body[:500]
     if not isinstance(body, dict):
         return str(body)[:500]
+    errs = body.get("errors")
+    if isinstance(errs, list) and errs:
+        partes: list[str] = []
+        for e in errs:
+            if not isinstance(e, dict):
+                continue
+            msg = str(e.get("message") or e.get("code") or "").strip()
+            det = e.get("details")
+            if isinstance(det, list) and det:
+                msg = (msg + ": " + str(det[0])) if msg else str(det[0])
+            elif det:
+                msg = (msg + ": " + str(det)) if msg else str(det)
+            if msg:
+                partes.append(msg)
+        if partes:
+            return "; ".join(partes)[:500]
     for key in ("message", "error", "cause"):
         v = body.get(key)
         if v is None:

@@ -1145,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.95** · **loja v6.86**
 
-**WIP teste:** validar **v6.93** — MP Point confirmar (MP_ORDERS_URL)
+**WIP teste:** validar **v6.95** — crédito parcelado MP + popup maquininha + cancel sync
+
+### ✅ PDV — MP Point v6.95 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Parcelado** | `default_installments` como **inteiro** (fix erro MP property_type) |
+| **Popup espera** | Painel maior; passos 1–4; «Travou?» recolhido |
+| **Cancel** | PDV chama API cancel MP; poll detecta cancel na maquininha |
+| **Comprovante** | Maquininha: `MP_POINT_PRINT_ON_TERMINAL` no Render (padrão `no_ticket`) |
 
 ### ✅ PDV — MP Point v6.93 (06/07)
 

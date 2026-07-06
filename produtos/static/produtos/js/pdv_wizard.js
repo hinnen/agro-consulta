@@ -6840,6 +6840,13 @@
                 if (stRes.data.abandoned) {
                     return Promise.reject(userAbortError());
                 }
+                if (stRes.data.canceled) {
+                    return Promise.reject(
+                        new Error(
+                            'Pagamento cancelado na maquininha.\n\nNo PDV: em «Pagamentos lançados», altere ou exclua e tente de novo.'
+                        )
+                    );
+                }
                 if (stRes.data.finalized && stRes.data.venda_id) {
                     return { jaFinalizado: true, venda_id: stRes.data.venda_id };
                 }
@@ -10025,7 +10032,13 @@
                 mpPointWaitControl.cancelRequested = true;
                 var oid = mpPointWaitControl.orderId;
                 if (oid && String(urls.apiPdvMpPointAbandon || '').trim()) {
-                    jsonPost(urls.apiPdvMpPointAbandon, { order_id: oid }).catch(function () {});
+                    jsonPost(urls.apiPdvMpPointAbandon, { order_id: oid })
+                        .then(function (res) {
+                            if (res.ok && res.data && res.data.aviso) {
+                                setMpPointWaitStatus(res.data.aviso);
+                            }
+                        })
+                        .catch(function () {});
                 }
             });
         }

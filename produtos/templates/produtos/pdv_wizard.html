@@ -2203,11 +2203,13 @@
   .pdv-mp-point-wait-overlay.hidden { display: none !important; }
   .pdv-mp-point-wait-panel {
     position: relative;
-    width: min(96vw, 28rem);
-    border-radius: 1.25rem;
+    width: min(96vw, 38rem);
+    max-height: min(92dvh, 44rem);
+    overflow-y: auto;
+    border-radius: 1.35rem;
     border: 3px solid #f97316;
     background: linear-gradient(165deg, #fff7ed 0%, #ffedd5 45%, #fff 100%);
-    padding: 1.25rem 1.25rem 1rem;
+    padding: 1.5rem 1.5rem 1.15rem;
     box-shadow: 0 24px 60px rgba(234, 88, 12, 0.45);
     text-align: center;
   }
@@ -2237,7 +2239,7 @@
   }
   .pdv-mp-point-wait-title {
     margin: 0.35rem 0 0;
-    font-size: 1.35rem;
+    font-size: clamp(1.25rem, 3.5vw, 1.55rem);
     font-weight: 900;
     color: #7c2d12;
   }
@@ -2264,20 +2266,44 @@
     color: #9a3412;
   }
   .pdv-mp-point-wait-steps {
-    margin: 1rem 0 0;
-    padding-left: 1.15rem;
+    margin: 1.1rem 0 0;
+    padding: 0;
+    list-style: none;
     text-align: left;
-    font-size: 0.8rem;
+    font-size: 0.88rem;
     font-weight: 700;
     color: #1e293b;
-    line-height: 1.45;
+    line-height: 1.4;
+  }
+  .pdv-mp-point-wait-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-top: 0.55rem;
+  }
+  .pdv-mp-point-wait-steps li:first-child { margin-top: 0; }
+  .pdv-mp-step-num {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background: #ea580c;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1;
   }
   .pdv-mp-point-wait-help {
-    margin-top: 0.75rem;
+    margin-top: 1rem;
     text-align: left;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #475569;
+    border-top: 1px solid #fed7aa;
+    padding-top: 0.65rem;
   }
   .pdv-mp-point-wait-help summary {
     cursor: pointer;
@@ -2289,9 +2315,9 @@
     padding-left: 1rem;
   }
   .pdv-mp-point-wait-cancel {
-    margin-top: 1rem;
+    margin-top: 1.15rem;
     width: 100%;
-    min-height: 3rem;
+    min-height: 3.15rem;
     border-radius: 0.85rem;
     border: 2px solid #9a3412;
     background: #fff;

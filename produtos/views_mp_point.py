@@ -15,12 +15,14 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from .mercado_pago_point import (
+    mp_point_cancel_order,
     mp_point_classe_forma_caixa,
     mp_point_create_order,
     mp_point_extrair_tipo_pagamento,
     mp_point_forma_pdv_de_tipo_mp,
     mp_point_get_order,
     mp_point_mensagem_erro,
+    mp_point_order_indica_cancelado,
     mp_point_order_indica_pago,
 )
 from .caixa_util import (
@@ -136,7 +138,7 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
         cfg: dict = {"default_type": "credit_card"}
         n = _mp_point_parcelas_pdv(data)
         if n:
-            cfg["default_installments"] = str(n)
+            cfg["default_installments"] = int(n)
         return cfg
     return None
 
@@ -401,11 +403,17 @@ def api_pdv_mp_point_status(request):
     row.mp_last_status = mp_status[:48]
     row.save(update_fields=["mp_last_status", "atualizado_em"])
 
+    canceled = mp_point_order_indica_cancelado(body)
+    if canceled and row.status == PdvMercadoPagoPointOrder.Status.PENDING:
+        row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+        row.save(update_fields=["status", "atualizado_em"])
+
     return JsonResponse(
         {
             "ok": True,
             "mp_status": mp_status,
             "paid": mp_point_order_indica_pago(body),
+            "canceled": canceled,
             "finalized": row.status == PdvMercadoPagoPointOrder.Status.FINALIZED,
             "venda_id": row.venda_id,
         }
@@ -636,6 +644,21 @@ def api_pdv_mp_point_abandon(request):
     if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
         return JsonResponse({"ok": False, "erro": "Não é possível cancelar este pedido."}, status=409)
 
+    aviso_terminal = ""
+    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    ok_mp, st_cancel, body_cancel = mp_point_cancel_order(access_token=token, order_id=order_id)
+    if not ok_mp:
+        low = mp_point_mensagem_erro(body_cancel).lower()
+        if st_cancel == 409 or "terminal" in low or "at_terminal" in low:
+            aviso_terminal = (
+                "O valor pode ainda estar na maquininha — cancele também no terminal."
+            )
+        elif st_cancel not in (0, 404):
+            logger.warning("MP Point abandonar: cancel API HTTP %s — %s", st_cancel, body_cancel)
+
     row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
     row.save(update_fields=["status", "atualizado_em"])
-    return JsonResponse({"ok": True})
+    payload = {"ok": True}
+    if aviso_terminal:
+        payload["aviso"] = aviso_terminal
+    return JsonResponse(payload)
