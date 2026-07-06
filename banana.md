@@ -1145,11 +1145,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.98** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.99** · **loja v6.86**
 
-**WIP teste:** validar **v6.98** — barra pagamento PDV compacta
+**WIP teste:** validar **v6.99** — barra pagamento PDV compacta
 
-### ✅ PDV — layout pagamento v6.98 (06/07)
+### ✅ PDV — layout pagamento v6.98–99 (06/07)
 
 | Item | Detalhe |
 | ---- | ------- |
