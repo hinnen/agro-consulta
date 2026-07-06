@@ -8494,7 +8494,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         nfce_boot = {"ativo": False}
 
     ctx["pdv_bootstrap"] = {
-        "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+        "csrfToken": get_token(request),
         "usuarioSalvamento": u_pdv,
         "nfce": nfce_boot,
         "urls": {

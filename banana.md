@@ -1147,7 +1147,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
-**WIP teste:** validar **v6.90** — MP Point + fechar caixa MP + Gaveta host
+**WIP teste:** validar **v6.91** — fix CSRF PDV + MP Point
+
+### ✅ PDV — MP Point v6.91 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | Token CSRF no PDV (`get_token`) — erro «Unexpected token \<» ao confirmar MP |
+| **Erro legível** | Se servidor falhar, mensagem em português (não JSON quebrado) |
 
 ### ✅ PDV — MP Point v6.90 (06/07)
 

@@ -6765,6 +6765,24 @@
         return bootstrap.csrfToken || '';
     }
 
+    function parseFetchJson(res) {
+        return res.text().then(function (text) {
+            var data = {};
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    var hint =
+                        res.status === 403
+                            ? 'Sessão expirou ou falha de segurança. Recarregue a página (F5) e tente de novo.'
+                            : 'O servidor respondeu com erro (HTTP ' + res.status + '). Tente F5; se persistir, avise o suporte.';
+                    throw new Error(hint);
+                }
+            }
+            return { ok: res.ok, status: res.status, data: data };
+        });
+    }
+
     function jsonPost(url, payload) {
         return fetch(url, {
             method: 'POST',
@@ -6774,22 +6792,14 @@
                 'X-CSRFToken': csrfToken()
             },
             body: JSON.stringify(payload || {})
-        }).then(function (res) {
-            return res.json().then(function (data) {
-                return { ok: res.ok, status: res.status, data: data };
-            });
-        });
+        }).then(parseFetchJson);
     }
 
     function jsonGet(url) {
         return fetch(url, {
             method: 'GET',
             credentials: 'same-origin'
-        }).then(function (res) {
-            return res.json().then(function (data) {
-                return { ok: res.ok, status: res.status, data: data };
-            });
-        });
+        }).then(parseFetchJson);
     }
 
     function pollMpPointUntilPaid(orderId) {

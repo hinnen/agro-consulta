@@ -250,7 +250,8 @@ def _resposta_mp_point_so_gaveta():
             "ok": False,
             "erro": (
                 "Mercado Pago automático só no Caixa Gaveta (computador principal). "
-                "Use Cielo, Sicredi ou Sicoob neste PDV."
+                "Use Cielo, Sicredi ou Sicoob neste PDV. "
+                "Se a gaveta já estava aberta antes da atualização, feche e abra de novo neste PC."
             ),
         },
         status=403,

@@ -2,6 +2,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.templatetags.static import static
 from django.urls import reverse
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
@@ -97,7 +98,7 @@ def pdv_home(request):
     ctx = {
         "caixa_aberto": caixa_aberto,
         "pdv_bootstrap": {
-            "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+            "csrfToken": get_token(request),
             "usuarioSalvamento": u_pdv,
             "clientePadraoNome": "CONSUMIDOR NÃO IDENTIFICADO...",
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
