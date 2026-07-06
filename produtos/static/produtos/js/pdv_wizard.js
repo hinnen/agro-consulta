@@ -135,6 +135,16 @@
         } catch (eBeep) {}
     }
 
+    function showMpPointAviso(msg, opts) {
+        opts = opts || {};
+        var texto = String(msg || '').replace(/\n+/g, ' ').trim();
+        showSaleDoneFeedback(texto, opts.tone || 'warn', {
+            title: opts.title || 'Mercado Pago',
+            placementTop: true,
+            durationMs: opts.durationMs || 16000
+        });
+    }
+
     function setMpPointWaitStatus(text) {
         var el = document.getElementById('pdv-mp-point-wait-status');
         if (el) el.textContent = String(text || '');
@@ -2093,8 +2103,16 @@
                 row.fiadoDiasVencimento = fd;
                 row.fiadoCronograma = buildFiadoCronograma(v, fp, fd);
             }
-            if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
-                row.creditoParcelas = Math.min(24, Math.max(2, parseInt(L.creditoParcelas, 10) || 2));
+            if (L.forma === 'Cartão de crédito parcelado') {
+                row.creditoParcelas = Math.min(
+                    24,
+                    Math.max(
+                        2,
+                        parseInt(L.creditoParcelas, 10) ||
+                            parseInt(state.pagamento.creditoParcelas, 10) ||
+                            2
+                    )
+                );
             }
             var midL = String(L.maquinaId || '').trim();
             if (midL) {
@@ -6841,11 +6859,20 @@
                     return Promise.reject(userAbortError());
                 }
                 if (stRes.data.canceled) {
-                    return Promise.reject(
-                        new Error(
-                            'Pagamento cancelado na maquininha.\n\nNo PDV: em «Pagamentos lançados», altere ou exclua e tente de novo.'
-                        )
-                    );
+                    return Promise.reject({
+                        mpPointUi: true,
+                        message:
+                            'Pagamento cancelado na maquininha. Em «Pagamentos lançados», altere ou exclua e tente de novo.'
+                    });
+                }
+                if (stRes.data.failed) {
+                    var fmsg =
+                        (stRes.data.failed_msg && String(stRes.data.failed_msg).trim()) ||
+                        'Pagamento recusado ou não concluído na maquininha.';
+                    return Promise.reject({
+                        mpPointUi: true,
+                        message: fmsg + ' Em «Pagamentos lançados», altere ou exclua e tente de novo.'
+                    });
                 }
                 if (stRes.data.finalized && stRes.data.venda_id) {
                     return { jaFinalizado: true, venda_id: stRes.data.venda_id };
@@ -7158,13 +7185,15 @@
                 ? 'top-4 left-1/2 -translate-x-1/2'
                 : 'bottom-4 right-4 translate-x-0');
         var palette =
-            tone === 'warn'
+            tone === 'error'
+                ? 'border-rose-400 bg-rose-50 text-rose-950 shadow-rose-200/50'
+                : tone === 'warn'
                 ? 'border-amber-400 bg-amber-50 text-amber-950 shadow-amber-300/60'
                 : tone === 'info'
                   ? 'border-sky-300 bg-sky-50 text-sky-950 shadow-sky-200/50'
                   : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
         var icon =
-            tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
+            tone === 'error' ? '✕' : tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
         var titleHtml = opts.title
             ? '<p class="text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
             : '';
@@ -7175,8 +7204,8 @@
             escapeHtml(msg || 'Venda confirmada.') +
             '</p>';
         var dismissBtn =
-            tone === 'warn'
-                ? '<button type="button" class="mt-2 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide text-amber-900 hover:bg-amber-100" data-pdv-toast-dismiss>Entendi</button>'
+            tone === 'warn' || tone === 'error'
+                ? '<button type="button" class="mt-2 rounded-lg border border-current/30 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
                 : '';
         host.innerHTML =
             '<div class="rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
@@ -7200,7 +7229,7 @@
         host.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
-        var ms = opts.durationMs || (tone === 'warn' ? 14000 : 5200);
+        var ms = opts.durationMs || (tone === 'warn' || tone === 'error' ? 14000 : 5200);
         showSaleDoneFeedback._timer = setTimeout(function () {
             host.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
             host.classList.remove('opacity-100', 'translate-y-0');
@@ -7856,9 +7885,13 @@
                 mpPointWaitControl.orderId = oid;
                 var stWait = State.getState();
                 var compWait = State.getComputed();
+                var arrWait = (stWait.pagamento && stWait.pagamento.lancamentos) || [];
+                var formaWait = arrWait[0]
+                    ? lancamentoFormaErpLabel(arrWait[0])
+                    : String((stWait.pagamento && stWait.pagamento.forma) || '');
                 showMpPointWaitBar(
                     criarRes.data.amount != null ? criarRes.data.amount : totalNumberFromComputed(compWait),
-                    stWait.pagamento && stWait.pagamento.forma
+                    formaWait
                 );
                 return pollMpPointUntilPaid(oid);
             })
@@ -7875,7 +7908,7 @@
                 var mpPointFormaDivergiu =
                     !!(finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso);
                 if (mpPointFormaDivergiu) {
-                    alert(finRes.data.mp_point_aviso);
+                    showMpPointAviso(finRes.data.mp_point_aviso);
                 }
                 var st = State.getState();
                 var comp = State.getComputed();
@@ -7979,10 +8012,18 @@
                 }
                 if (err && err.mpPointUserAbort) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                    showMpPointAviso(MP_POINT_WAIT_ABORT_MSG);
+                } else if (err && err.mpPointUi) {
+                    jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                    pdvMpPointBeep('err');
+                    showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
                 } else {
                     pdvMpPointBeep('err');
+                    showMpPointAviso(
+                        (err && err.message) || 'Falha no fluxo Mercado Pago Point.',
+                        { tone: 'error' }
+                    );
                 }
-                alert(err && err.message ? err.message : 'Falha no fluxo Mercado Pago Point.');
             })
             .finally(function () {
                 hideMpPointWaitBar();

@@ -23,6 +23,7 @@ from .mercado_pago_point import (
     mp_point_get_order,
     mp_point_mensagem_erro,
     mp_point_order_indica_cancelado,
+    mp_point_order_indica_falha,
     mp_point_order_indica_pago,
 )
 from .caixa_util import (
@@ -101,17 +102,35 @@ def _mp_point_forma_pagamento_texto(data: dict) -> str:
 
 def _mp_point_parcelas_pdv(data: dict) -> int | None:
     pag = data.get("pagamentos")
-    if isinstance(pag, list) and pag and isinstance(pag[0], dict):
-        for key in ("creditoParcelas", "credito_parcelas", "parcelas"):
-            v = pag[0].get(key)
-            if v is not None:
-                try:
-                    n = int(v)
-                    return n if n >= 2 else None
-                except (TypeError, ValueError):
-                    pass
+    if isinstance(pag, list):
+        for row in pag:
+            if not isinstance(row, dict):
+                continue
+            for key in ("creditoParcelas", "credito_parcelas", "parcelas"):
+                v = row.get(key)
+                if v is not None:
+                    try:
+                        n = int(v)
+                        if n >= 2:
+                            return n
+                    except (TypeError, ValueError):
+                        pass
+            label = str(
+                row.get("formaPagamento") or row.get("forma_pagamento") or row.get("forma") or ""
+            ).lower()
+            if "parcelado" in label or "crédito" in label or "credito" in label:
+                import re
+
+                m = re.search(r"(\d+)\s*x", label)
+                if m:
+                    try:
+                        n = int(m.group(1))
+                        if n >= 2:
+                            return n
+                    except (TypeError, ValueError):
+                        pass
     fp = _mp_point_forma_pagamento_texto(data).lower()
-    if "parcelado" not in fp:
+    if "parcelado" not in fp and "crédito" not in fp and "credito" not in fp:
         return None
     import re
 
@@ -122,6 +141,8 @@ def _mp_point_parcelas_pdv(data: dict) -> int | None:
             return n if n >= 2 else None
         except (TypeError, ValueError):
             pass
+    if "parcelado" in fp:
+        return 2
     return None
 
 
@@ -139,6 +160,7 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
         n = _mp_point_parcelas_pdv(data)
         if n:
             cfg["default_installments"] = int(n)
+            cfg["installments_cost"] = "seller"
         return cfg
     return None
 
@@ -189,21 +211,42 @@ def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
         and forma_mp
         and mp_point_classe_forma_caixa(forma_pdv) != mp_point_classe_forma_caixa(forma_mp)
     )
+    fp_low = forma_pdv.lower()
+    credito_pdv = "crédito" in fp_low or "credito" in fp_low
+    n_pdv_ct = _mp_point_parcelas_pdv(erp_data) or 1
+    try:
+        n_mp_ct = int(inst_mp) if inst_mp is not None else 1
+    except (TypeError, ValueError):
+        n_mp_ct = 1
+    parcelas_divergiu = bool(credito_pdv and n_pdv_ct >= 2 and n_mp_ct >= 1 and n_pdv_ct != n_mp_ct)
     aviso = ""
     if divergiu:
         aviso = (
             f"Atenção: no PDV estava «{forma_pdv}», mas a maquininha confirmou «{forma_mp}». "
             "A venda foi gravada conforme a maquininha (fechamento de caixa)."
         )
+    elif parcelas_divergiu:
+        aviso = (
+            f"Atenção: no PDV estava {n_pdv_ct}x, mas a maquininha confirmou {n_mp_ct}x. "
+            "A venda foi gravada conforme a maquininha."
+        )
+
+    if divergiu or parcelas_divergiu:
         label = forma_mp
+        if n_mp_ct > 1 or (parcelas_divergiu and n_mp_ct >= 1):
+            if n_mp_ct >= 2:
+                label = f"Cartão de crédito parcelado {n_mp_ct}x"
+                forma_mp = "Cartão de crédito parcelado"
+            elif forma_mp == "Cartão de crédito parcelado" and n_mp_ct == 1:
+                label = "Cartão de crédito"
+                forma_mp = "Cartão de crédito"
         pag = erp_data.get("pagamentos")
         if isinstance(pag, list) and pag and isinstance(pag[0], dict):
             row = dict(pag[0])
-            if forma_mp == "Cartão de crédito parcelado":
-                n = inst_mp or _mp_point_parcelas_pdv(erp_data)
-                if n and int(n) >= 2:
-                    label = f"{forma_mp} {int(n)}x"
-                    row["creditoParcelas"] = int(n)
+            if n_mp_ct >= 2:
+                row["creditoParcelas"] = n_mp_ct
+            elif "creditoParcelas" in row:
+                row["creditoParcelas"] = None
             row["formaPagamento"] = label[:200]
             row["forma_pagamento"] = label[:200]
             pag[0] = row
@@ -216,7 +259,8 @@ def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
     return {
         "forma_pdv": forma_pdv,
         "forma_mp": forma_mp,
-        "divergiu": divergiu,
+        "divergiu": divergiu or parcelas_divergiu,
+        "parcelas_divergiu": parcelas_divergiu,
         "aviso": aviso,
     }
 
@@ -351,12 +395,14 @@ def _api_pdv_mp_point_criar_impl(request):
         mp_last_status=str(body.get("status") or "")[:48],
     )
 
+    parcelas_env = _mp_point_parcelas_pdv(erp_payload)
     return JsonResponse(
         {
             "ok": True,
             "order_id": order_id,
             "external_reference": external_reference,
             "amount": float(dec_valor),
+            "parcelas_enviadas": parcelas_env,
         }
     )
 
@@ -404,7 +450,8 @@ def api_pdv_mp_point_status(request):
     row.save(update_fields=["mp_last_status", "atualizado_em"])
 
     canceled = mp_point_order_indica_cancelado(body)
-    if canceled and row.status == PdvMercadoPagoPointOrder.Status.PENDING:
+    failed, failed_msg = mp_point_order_indica_falha(body)
+    if (canceled or failed) and row.status == PdvMercadoPagoPointOrder.Status.PENDING:
         row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
         row.save(update_fields=["status", "atualizado_em"])
 
@@ -414,6 +461,8 @@ def api_pdv_mp_point_status(request):
             "mp_status": mp_status,
             "paid": mp_point_order_indica_pago(body),
             "canceled": canceled,
+            "failed": failed,
+            "failed_msg": failed_msg[:300] if failed_msg else "",
             "finalized": row.status == PdvMercadoPagoPointOrder.Status.FINALIZED,
             "venda_id": row.venda_id,
         }

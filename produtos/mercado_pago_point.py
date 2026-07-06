@@ -37,6 +37,36 @@ def mp_point_order_indica_cancelado(doc: dict) -> bool:
     return False
 
 
+def mp_point_order_indica_falha(doc: dict) -> tuple[bool, str]:
+    """Pagamento recusado, expirado ou erro no terminal."""
+    if not isinstance(doc, dict):
+        return False, ""
+    _MAP = {
+        "insufficient_amount": "Saldo ou limite insuficiente no cartão.",
+        "card_disabled": "Cartão bloqueado ou desativado.",
+        "amount_limit_exceeded": "Valor acima do limite do cartão.",
+        "invalid_installments": "Número de parcelas não aceito neste cartão.",
+        "processing_error": "Erro ao processar na maquininha.",
+        "rejected_by_issuer": "Pagamento recusado pelo banco.",
+        "high_risk": "Pagamento recusado (risco).",
+        "failed": "Pagamento não concluído na maquininha.",
+        "expired": "Cobrança expirou na maquininha.",
+    }
+    st = str(doc.get("status") or "").strip().lower()
+    detail = str(doc.get("status_detail") or "").strip().lower()
+    if st in ("failed", "expired"):
+        msg = _MAP.get(detail) or _MAP.get(st) or "Pagamento não concluído na maquininha."
+        return True, msg
+    for p in _mp_point_payment_dicts(doc):
+        ps = str(p.get("status") or "").strip().lower()
+        if ps != "failed":
+            continue
+        sd = str(p.get("status_detail") or "").strip().lower()
+        msg = _MAP.get(sd) or _MAP.get(ps) or "Pagamento recusado na maquininha."
+        return True, msg
+    return False, ""
+
+
 def mp_point_order_indica_pago(doc: dict) -> bool:
     if not isinstance(doc, dict):
         return False
@@ -146,7 +176,7 @@ def mp_point_create_order(
     Cria pedido no terminal Point. Retorna (ok, http_status, corpo_json_ou_texto).
     """
     idem = str(uuid.uuid4())
-    print_mode = (getattr(settings, "MP_POINT_PRINT_ON_TERMINAL", None) or "no_ticket").strip()
+    print_mode = (getattr(settings, "MP_POINT_PRINT_ON_TERMINAL", None) or "seller_ticket").strip()
     body: dict = {
         "type": "point",
         "external_reference": external_reference,

@@ -1145,9 +1145,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.95** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.96** · **loja v6.86**
 
-**WIP teste:** validar **v6.95** — crédito parcelado MP + popup maquininha + cancel sync
+**WIP teste:** validar **v6.96** — popup MP emerald, recusa maquininha, parcelas, comprovante
+
+### ✅ PDV — MP Point v6.96 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Popup** | Maior, cores emerald/slate (sem laranja) |
+| **Avisos** | Toast padrão PDV (não alert do navegador) |
+| **Recusa/cancel** | Poll detecta `failed`/`canceled` na maquininha |
+| **Parcelas** | Envio reforçado + aviso se MP confirmar diferente do PDV |
+| **Comprovante** | Padrão `seller_ticket` — **no Render** trocar `MP_POINT_PRINT_ON_TERMINAL` se ainda `no_ticket` |
 
 ### ✅ PDV — MP Point v6.95 (06/07)
 

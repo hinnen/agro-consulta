@@ -2196,74 +2196,75 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.82);
-    backdrop-filter: blur(6px);
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(8px);
   }
   .pdv-mp-point-wait-overlay.hidden { display: none !important; }
   .pdv-mp-point-wait-panel {
     position: relative;
-    width: min(96vw, 38rem);
-    max-height: min(92dvh, 44rem);
+    width: min(96vw, 42rem);
+    max-height: min(92dvh, 46rem);
+    overflow-x: hidden;
     overflow-y: auto;
-    border-radius: 1.35rem;
-    border: 3px solid #f97316;
-    background: linear-gradient(165deg, #fff7ed 0%, #ffedd5 45%, #fff 100%);
-    padding: 1.5rem 1.5rem 1.15rem;
-    box-shadow: 0 24px 60px rgba(234, 88, 12, 0.45);
+    border-radius: 1.4rem;
+    border: 3px solid #10b981;
+    background: linear-gradient(165deg, #ecfdf5 0%, #f8fafc 55%, #fff 100%);
+    padding: 1.65rem 1.65rem 1.25rem;
+    box-shadow: 0 28px 64px rgba(5, 150, 105, 0.28);
     text-align: center;
   }
   .pdv-mp-point-wait-pulse {
     position: absolute;
     top: -0.35rem;
     right: -0.35rem;
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 1.15rem;
+    height: 1.15rem;
     border-radius: 9999px;
-    background: #ea580c;
-    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65);
+    background: #059669;
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55);
     animation: pdv-mp-point-pulse 1.4s ease-out infinite;
   }
   @keyframes pdv-mp-point-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65); }
-    70% { box-shadow: 0 0 0 14px rgba(234, 88, 12, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55); }
+    70% { box-shadow: 0 0 0 14px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
   }
   .pdv-mp-point-wait-kicker {
     margin: 0;
-    font-size: 0.65rem;
+    font-size: 0.68rem;
     font-weight: 900;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #9a3412;
+    color: #047857;
   }
   .pdv-mp-point-wait-title {
-    margin: 0.35rem 0 0;
-    font-size: clamp(1.25rem, 3.5vw, 1.55rem);
+    margin: 0.4rem 0 0;
+    font-size: clamp(1.35rem, 3.8vw, 1.7rem);
     font-weight: 900;
-    color: #7c2d12;
+    color: #0f172a;
   }
   .pdv-mp-point-wait-amount {
-    margin: 0.5rem 0 0;
-    font-size: clamp(2rem, 6vw, 2.75rem);
+    margin: 0.55rem 0 0;
+    font-size: clamp(2.15rem, 6.5vw, 3rem);
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    color: #c2410c;
-    line-height: 1.1;
+    color: #047857;
+    line-height: 1.05;
   }
   .pdv-mp-point-wait-forma {
-    margin: 0.35rem 0 0;
-    font-size: 0.85rem;
+    margin: 0.4rem 0 0;
+    font-size: 0.92rem;
     font-weight: 800;
     color: #334155;
   }
   .pdv-mp-point-wait-status {
-    margin: 0.5rem 0 0;
-    font-size: 0.8rem;
+    margin: 0.55rem 0 0;
+    font-size: 0.78rem;
     font-weight: 900;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #9a3412;
+    color: #047857;
   }
   .pdv-mp-point-wait-steps {
     margin: 1.1rem 0 0;
@@ -2287,12 +2288,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.55rem;
+    height: 1.55rem;
     border-radius: 9999px;
-    background: #ea580c;
+    background: #059669;
     color: #fff;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 900;
     line-height: 1;
   }
@@ -2302,13 +2303,13 @@
     font-size: 0.78rem;
     font-weight: 700;
     color: #475569;
-    border-top: 1px solid #fed7aa;
-    padding-top: 0.65rem;
+    border-top: 1px solid #a7f3d0;
+    padding-top: 0.7rem;
   }
   .pdv-mp-point-wait-help summary {
     cursor: pointer;
     font-weight: 900;
-    color: #9a3412;
+    color: #047857;
   }
   .pdv-mp-point-wait-help ul {
     margin: 0.35rem 0 0;
@@ -2319,14 +2320,14 @@
     width: 100%;
     min-height: 3.15rem;
     border-radius: 0.85rem;
-    border: 2px solid #9a3412;
+    border: 2px solid #475569;
     background: #fff;
     font-size: 0.85rem;
     font-weight: 900;
     text-transform: uppercase;
-    color: #7c2d12;
+    color: #1e293b;
   }
-  .pdv-mp-point-wait-cancel:hover { background: #ffedd5; }
+  .pdv-mp-point-wait-cancel:hover { background: #f1f5f9; }
   #pdv-pack-entrega-print { display: none !important; }
   @media print {
     body.print-pdv-entrega-pack > *:not(#pdv-pack-entrega-print) { display: none !important; }
