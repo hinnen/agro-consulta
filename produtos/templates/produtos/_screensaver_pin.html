@@ -1,5 +1,5 @@
 {# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
-<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
+<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
@@ -97,6 +97,137 @@
   var idleTimer = null;
   var locked = false;
   var validando = false;
+  var sspinPauseFlags = { overlay: false, caixaModal: false, pdvModal: false };
+
+  function sspinPausado() {
+    return !!(sspinPauseFlags.overlay || sspinPauseFlags.caixaModal || sspinPauseFlags.pdvModal);
+  }
+
+  function applySspinPauseIdle() {
+    if (sspinPausado()) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    } else if (!locked) {
+      bumpIdle();
+    }
+  }
+
+  function elOverlayVisivel(el) {
+    if (!el || el.id === 'sspin-root') return false;
+    try {
+      if (el.closest && el.closest('#sspin-root')) return false;
+    } catch (eCl) {}
+    if (el.classList && el.classList.contains('hidden')) return false;
+    if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.hidden) return false;
+    try {
+      var st = window.getComputedStyle(el);
+      if (!st || st.display === 'none' || st.visibility === 'hidden') return false;
+      if (parseFloat(st.opacity || '1') < 0.02) return false;
+    } catch (eSt) {}
+    try {
+      var r = el.getBoundingClientRect();
+      if (!r || (r.width < 2 && r.height < 2)) return false;
+    } catch (eR) {}
+    return true;
+  }
+
+  function elemBloqueiaDescanso(el) {
+    if (!el || el.id === 'sspin-root') return false;
+    if (String(el.tagName || '').toUpperCase() === 'DIALOG') return !!el.open;
+    if (el.getAttribute && el.getAttribute('aria-modal') === 'true') return elOverlayVisivel(el);
+    return false;
+  }
+
+  function hasBlockingUiLayer() {
+    try {
+      if (document.body.classList.contains('modal-open')) return true;
+      if (document.querySelector('dialog[open]')) return true;
+      var modals = document.querySelectorAll('[aria-modal="true"]');
+      for (var i = 0; i < modals.length; i++) {
+        if (elemBloqueiaDescanso(modals[i])) return true;
+      }
+      var ew = document.getElementById('pdv-entrega-wizard');
+      if (ew && elOverlayVisivel(ew)) return true;
+    } catch (eUi) {}
+    return false;
+  }
+
+  function recomputeSspinPauseFromDom() {
+    sspinPauseFlags.overlay = document.documentElement.classList.contains('agro-pdv-overlay-open');
+    sspinPauseFlags.pdvModal = hasBlockingUiLayer();
+    applySspinPauseIdle();
+  }
+
+  window.gmSspinRecomputeFromDom = recomputeSspinPauseFromDom;
+
+  window.gmSspinSetPausado = function (motivo, ativo) {
+    if (motivo === 'caixa-modal') sspinPauseFlags.caixaModal = !!ativo;
+    else if (motivo === 'pdv-overlay') {
+      sspinPauseFlags.overlay = !!ativo;
+      applySspinPauseIdle();
+    } else if (motivo === 'pdv-modal') {
+      recomputeSspinPauseFromDom();
+    } else return;
+    if (motivo === 'caixa-modal') applySspinPauseIdle();
+  };
+
+  function dismissNativeDialogsBeforeLock() {
+    try {
+      document.querySelectorAll('dialog[open]').forEach(function (dlg) {
+        try {
+          if (typeof dlg.close === 'function') dlg.close();
+        } catch (eClose) {}
+      });
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('gm-sspin-before-lock'));
+    } catch (eEv) {}
+  }
+
+  function watchPdvOverlayClass() {
+    recomputeSspinPauseFromDom();
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var t = mutations[i].target;
+        if (!t || t.nodeType !== 1) continue;
+        if (t === document.body || t === document.documentElement) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+        var tag = String(t.tagName || '').toUpperCase();
+        if (
+          tag === 'DIALOG' ||
+          t.id === 'pdv-entrega-wizard' ||
+          (t.getAttribute && t.getAttribute('aria-modal') === 'true')
+        ) {
+          recomputeSspinPauseFromDom();
+          return;
+        }
+      }
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    obs.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'aria-hidden'],
+      subtree: true,
+    });
+    document.addEventListener('toggle', function (ev) {
+      if (ev.target && String(ev.target.tagName || '').toUpperCase() === 'DIALOG') {
+        recomputeSspinPauseFromDom();
+      }
+    }, true);
+  }
+
+  window.addEventListener('message', function (ev) {
+    try {
+      if (!ev || ev.origin !== location.origin) return;
+      var d = ev.data || {};
+      if (d.type === 'agro-caixa-modal-layer') {
+        window.gmSspinSetPausado('caixa-modal', !!d.open);
+      }
+    } catch (_) {}
+  });
   var selectedPerfilId = '';
   var selectedNome = '';
 
@@ -307,8 +438,26 @@
     });
   }
 
-  function openLock() {
+  function openLock(force) {
+    var forcado = !!force;
+    if (!forcado && sspinPausado()) {
+      bumpIdle();
+      return;
+    }
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    dismissNativeDialogsBeforeLock();
+    if (forcado) {
+      try { document.body.classList.remove('modal-open'); } catch (eMo) {}
+      sspinPauseFlags.pdvModal = false;
+      sspinPauseFlags.overlay = false;
+      sspinPauseFlags.caixaModal = false;
+    } else {
+      recomputeSspinPauseFromDom();
+      if (sspinPausado()) {
+        bumpIdle();
+        return;
+      }
+    }
     garantirSspinNoBody();
     try {
       var ae = document.activeElement;
@@ -335,6 +484,7 @@
 
   function bumpIdle() {
     if (entryOnly || IDLE_MS <= 0) return;
+    if (sspinPausado()) return;
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = setTimeout(function () { openLock(); }, IDLE_MS);
   }
@@ -522,18 +672,22 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSspin);
+    document.addEventListener('DOMContentLoaded', function () {
+      watchPdvOverlayClass();
+      initSspin();
+    });
   } else {
+    watchPdvOverlayClass();
     initSspin();
   }
 
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
-    openLock();
+    openLock(true);
   };
 
   window.gmSspinAbrirEntrada = function () {
-    openLock();
+    openLock(true);
   };
 
   window.gmSspinProtegerAcao = function (onSuccess) {
@@ -547,7 +701,7 @@
       closeLock = originalCloseLock;
       onSuccess();
     };
-    openLock();
+    openLock(true);
   };
 })();
 </script>
