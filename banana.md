@@ -1145,9 +1145,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.85** · **loja v6.77**
+**Versão app (`VERSION`):** **teste v6.86** · **loja v6.77**
 
-**WIP teste:** validar **v6.85** — entregas PDV + descanso não trava modal
+**WIP teste:** validar **v6.86** — PIN manual + contagem ao reabrir Chrome + modais/descanso
+
+### 🐛 PDV — botão PIN não abre (05/07 noite)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Descanso automático e botão **PIN** no PDV não mostram tela |
+| **Causa** | Fix de modal bloqueava `openLock` mesmo em abertura **manual** |
+| **Fix** | PIN manual força abertura · overlay só pausa se **visível** |
+| **Status** | **🧪 teste v6.86** |
+
+### 🐛 Caixa — contagem some ao fechar navegador (05/07 noite)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Digitou contagem · fechou Chrome · voltou zerado |
+| **Causa** | Chave do turno exigia match exato de PKs e apagava localStorage |
+| **Fix** | Guarda por **dia** · grava turno ao digitar · só limpa se **mudou o dia** |
+| **Status** | **🧪 teste v6.86** |
 
 ### 🐛 PDV — descanso atrás do modal Entregas (05/07)
 
