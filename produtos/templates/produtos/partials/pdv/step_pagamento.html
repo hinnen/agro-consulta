@@ -48,17 +48,19 @@
           <h3 id="pdv-mp-point-wait-title" class="pdv-mp-point-wait-title">Aguardando pagamento</h3>
           <p id="pdv-mp-point-wait-amount" class="pdv-mp-point-wait-amount">R$ 0,00</p>
           <p id="pdv-mp-point-wait-forma" class="pdv-mp-point-wait-forma"></p>
+          <p id="pdv-mp-point-wait-status" class="pdv-mp-point-wait-status">Enviando…</p>
           <ol class="pdv-mp-point-wait-steps">
             <li>Olhe a <strong>maquininha</strong> — o valor deve aparecer sozinho.</li>
-            <li>Cliente paga (cartão ou Pix conforme escolhido no PDV).</li>
-            <li>Esta tela fecha sozinha quando o pagamento confirmar.</li>
+            <li>Cliente paga na forma escolhida no PDV (veja acima).</li>
+            <li>Esta tela fecha sozinha quando confirmar.</li>
           </ol>
-          <details class="pdv-mp-point-wait-help">
-            <summary>Não apareceu na maquininha?</summary>
+          <details class="pdv-mp-point-wait-help" open>
+            <summary>Travou ou não apareceu?</summary>
             <ul>
-              <li>Reinicie a maquininha (desliga e liga).</li>
-              <li>Confira se está <strong>vinculada ao caixa</strong> e com internet.</li>
-              <li>Use <strong>Cancelar</strong> abaixo e tente de novo.</li>
+              <li><strong>Outra venda na fila:</strong> só uma cobrança por vez na maquininha — aguarde ou cancele na maquininha.</li>
+              <li>Reinicie a maquininha (desliga e liga) se ficar parada.</li>
+              <li>Confira internet e «vinculada ao caixa».</li>
+              <li>Use <strong>Cancelar espera</strong> e tente de novo.</li>
             </ul>
           </details>
           <button type="button" id="pdv-mp-point-cancel-wait" class="pdv-mp-point-wait-cancel pdv-action-btn">Cancelar espera</button>

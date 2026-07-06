@@ -1145,7 +1145,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.87** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v6.88** · **loja v6.86**
 
 **WIP teste:** validar **v6.87** — MP Point + máquinas Pix/Cielo
 

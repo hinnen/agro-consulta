@@ -82,7 +82,9 @@
     var isProcessingSale = false;
 
     var MP_POINT_WAIT_ABORT_MSG =
-        'Espera do Point cancelada.\n\nEm “Pagamentos já lançados”, use Alterar (ex.: Balcão manual) ou Excluir e escolha outra forma.\n\nSe o valor ainda aparecer na maquininha, cancele a operação no próprio terminal Mercado Pago.';
+        'Espera cancelada.\n\nSe o valor ainda estiver na maquininha, cancele a operação no terminal também.\n\nNo PDV: em «Pagamentos lançados», use Alterar ou Excluir e tente de novo.';
+    var MP_POINT_POLL_MAX = 90;
+    var MP_POINT_POLL_MS = 2000;
 
     var mpPointWaitControl = {
         orderId: null,
@@ -100,6 +102,44 @@
     var priceInputRestore = { id: null, selStart: null, selEnd: null };
     var priceSkipCommitOnce = false;
 
+    function pdvMpPointBeep(kind) {
+        try {
+            var Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            var ctx = new Ctx();
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.connect(g);
+            g.connect(ctx.destination);
+            if (kind === 'ok') {
+                o.frequency.value = 880;
+                g.gain.value = 0.12;
+                o.start();
+                o.stop(ctx.currentTime + 0.12);
+                setTimeout(function () {
+                    var o2 = ctx.createOscillator();
+                    var g2 = ctx.createGain();
+                    o2.connect(g2);
+                    g2.connect(ctx.destination);
+                    o2.frequency.value = 1175;
+                    g2.gain.value = 0.1;
+                    o2.start();
+                    o2.stop(ctx.currentTime + 0.14);
+                }, 130);
+            } else {
+                o.frequency.value = 220;
+                g.gain.value = 0.14;
+                o.start();
+                o.stop(ctx.currentTime + 0.35);
+            }
+        } catch (eBeep) {}
+    }
+
+    function setMpPointWaitStatus(text) {
+        var el = document.getElementById('pdv-mp-point-wait-status');
+        if (el) el.textContent = String(text || '');
+    }
+
     function showMpPointWaitBar(amount, formaLabel) {
         var overlay = document.getElementById('pdv-mp-point-wait-overlay');
         var amtEl = document.getElementById('pdv-mp-point-wait-amount');
@@ -115,6 +155,7 @@
         }
         if (overlay) overlay.classList.remove('hidden');
         document.body.classList.add('pdv-mp-point-wait-active');
+        setMpPointWaitStatus('Enviando cobrança à maquininha…');
     }
 
     function hideMpPointWaitBar() {
@@ -2044,6 +2085,9 @@
                 row.fiadoParcelas = fp;
                 row.fiadoDiasVencimento = fd;
                 row.fiadoCronograma = buildFiadoCronograma(v, fp, fd);
+            }
+            if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
+                row.creditoParcelas = Math.min(24, Math.max(2, parseInt(L.creditoParcelas, 10) || 2));
             }
             out.push(row);
         }
@@ -6735,8 +6779,9 @@
     }
 
     function pollMpPointUntilPaid(orderId) {
-        var maxPoll = 200;
+        var maxPoll = MP_POINT_POLL_MAX;
         var statusBase = urls.apiPdvMpPointStatus || '';
+        var startedAt = Date.now();
         function userAbortError() {
             var e = new Error(MP_POINT_WAIT_ABORT_MSG);
             e.mpPointUserAbort = true;
@@ -6746,8 +6791,16 @@
             if (mpPointWaitControl.cancelRequested) {
                 return Promise.reject(userAbortError());
             }
+            var secs = Math.floor((Date.now() - startedAt) / 1000);
+            setMpPointWaitStatus('Aguardando maquininha… ' + secs + 's');
             if (n >= maxPoll) {
-                return Promise.reject(new Error('Tempo esgotado aguardando o pagamento no terminal Mercado Pago.'));
+                return Promise.reject(
+                    new Error(
+                        'A maquininha não respondeu a tempo (~' +
+                            Math.round((maxPoll * MP_POINT_POLL_MS) / 1000) +
+                            ' s). Cancele na maquininha se o valor ainda estiver lá e tente de novo.'
+                    )
+                );
             }
             var sep = statusBase.indexOf('?') >= 0 ? '&' : '?';
             return jsonGet(statusBase + sep + 'order_id=' + encodeURIComponent(orderId)).then(function (stRes) {
@@ -6772,7 +6825,7 @@
                 return new Promise(function (resolve) {
                     setTimeout(function () {
                         resolve(step(n + 1));
-                    }, 2000);
+                    }, MP_POINT_POLL_MS);
                 });
             });
         }
@@ -7788,6 +7841,10 @@
                 if (!finRes.ok || !finRes.data.ok) {
                     throw new Error((finRes.data && (finRes.data.erro || finRes.data.mensagem)) || 'Falha ao registrar venda após o Point.');
                 }
+                if (finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso) {
+                    pdvMpPointBeep('err');
+                    alert(finRes.data.mp_point_aviso);
+                }
                 var st = State.getState();
                 var comp = State.getComputed();
                 var pendenteId =
@@ -7839,6 +7896,7 @@
                     });
                 }).then(function (printFail) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                    pdvMpPointBeep('ok');
                     resetWizardParaNovaVenda();
                     if (nfceErro) {
                         mostrarAvisoNfcePendente(
@@ -7878,6 +7936,8 @@
                 }
                 if (err && err.mpPointUserAbort) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                } else {
+                    pdvMpPointBeep('err');
                 }
                 alert(err && err.message ? err.message : 'Falha no fluxo Mercado Pago Point.');
             })

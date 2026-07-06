@@ -85,6 +85,7 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
         return "PIX"
     base = re.sub(r"\s+\d+x\s*$", "", txt, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Mercado Pago.*$", "", base, flags=re.IGNORECASE).strip()
+    base = re.sub(r"\s*Cielo.*$", "", base, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Sicredi.*$", "", base, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Sicoob.*$", "", base, flags=re.IGNORECASE).strip()
     key = base.lower()
@@ -101,6 +102,14 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
         if canon.lower() == key or key.startswith(canon.lower()):
             return canon
     return base[:80] if base else "Outro"
+
+
+def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
+    """No fechar caixa, parcelado entra no mesmo balde que crédito à vista."""
+    fn = normalizar_forma_pagamento_caixa(forma)
+    if fn == "Cartão de crédito parcelado":
+        return "Cartão de crédito"
+    return fn
 
 
 def _forma_e_valor_pagamento_row(row: dict) -> tuple[str, Decimal] | None:
@@ -234,8 +243,9 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
             if getattr(v, "devolvida_em", None):
                 continue
             for fn, val in pagamentos_por_forma_venda(v).items():
-                vendas_por[fn] += val
-                esperado[fn] += val
+                fn_caixa = agrupar_forma_para_fechamento_caixa(fn)
+                vendas_por[fn_caixa] += val
+                esperado[fn_caixa] += val
 
     movimentos = getattr(sessao, "movimentos", None)
     if movimentos is not None:

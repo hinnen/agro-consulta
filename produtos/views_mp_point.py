@@ -15,11 +15,15 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from .mercado_pago_point import (
+    mp_point_classe_forma_caixa,
     mp_point_create_order,
+    mp_point_extrair_tipo_pagamento,
+    mp_point_forma_pdv_de_tipo_mp,
     mp_point_get_order,
     mp_point_mensagem_erro,
     mp_point_order_indica_pago,
 )
+from .caixa_util import normalizar_forma_pagamento_caixa
 from .models import PdvMercadoPagoPointOrder, VendaAgro
 from .caixa_util import SessaoCaixaObrigatoriaError, exigir_sessao_caixa_para_venda
 from .views import (
@@ -88,6 +92,32 @@ def _mp_point_forma_pagamento_texto(data: dict) -> str:
     return str(data.get("forma_pagamento") or data.get("formaPagamento") or "").strip()
 
 
+def _mp_point_parcelas_pdv(data: dict) -> int | None:
+    pag = data.get("pagamentos")
+    if isinstance(pag, list) and pag and isinstance(pag[0], dict):
+        for key in ("creditoParcelas", "credito_parcelas", "parcelas"):
+            v = pag[0].get(key)
+            if v is not None:
+                try:
+                    n = int(v)
+                    return n if n >= 2 else None
+                except (TypeError, ValueError):
+                    pass
+    fp = _mp_point_forma_pagamento_texto(data).lower()
+    if "parcelado" not in fp:
+        return None
+    import re
+
+    m = re.search(r"(\d+)\s*x", fp)
+    if m:
+        try:
+            n = int(m.group(1))
+            return n if n >= 2 else None
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
 def _mp_point_payment_method_config(data: dict) -> dict | None:
     """Mapeia forma do PDV para default_type da API Point (quando possível)."""
     fp = _mp_point_forma_pagamento_texto(data).lower()
@@ -97,9 +127,73 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
         return {"default_type": "qr"}
     if "débito" in fp or "debito" in fp:
         return {"default_type": "debit_card"}
-    if "crédito" in fp or "credito" in fp:
-        return {"default_type": "credit_card"}
+    if "parcelado" in fp or ("crédito" in fp or "credito" in fp):
+        cfg: dict = {"default_type": "credit_card"}
+        n = _mp_point_parcelas_pdv(data)
+        if n:
+            cfg["default_installments"] = str(n)
+        return cfg
     return None
+
+
+def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
+    """
+    Ajusta forma gravada na venda conforme o MP confirmou.
+    Retorna metadados {forma_pdv, forma_mp, divergiu, aviso}.
+    """
+    forma_pdv = normalizar_forma_pagamento_caixa(_mp_point_forma_pagamento_texto(erp_data))
+    tipo_mp, inst_mp = mp_point_extrair_tipo_pagamento(mp_body)
+    forma_mp = mp_point_forma_pdv_de_tipo_mp(tipo_mp, inst_mp)
+    if not forma_mp:
+        forma_mp = forma_pdv
+    else:
+        forma_mp = normalizar_forma_pagamento_caixa(forma_mp)
+        n_pdv = _mp_point_parcelas_pdv(erp_data)
+        if forma_mp == "Cartão de crédito" and n_pdv and n_pdv >= 2:
+            forma_mp = "Cartão de crédito parcelado"
+
+    divergiu = bool(
+        forma_pdv
+        and forma_mp
+        and mp_point_classe_forma_caixa(forma_pdv) != mp_point_classe_forma_caixa(forma_mp)
+    )
+    aviso = ""
+    if divergiu:
+        aviso = (
+            f"Atenção: no PDV estava «{forma_pdv}», mas a maquininha confirmou «{forma_mp}». "
+            "A venda foi gravada conforme a maquininha (fechamento de caixa)."
+        )
+        label = forma_mp
+        pag = erp_data.get("pagamentos")
+        if isinstance(pag, list) and pag and isinstance(pag[0], dict):
+            row = dict(pag[0])
+            if forma_mp == "Cartão de crédito parcelado":
+                n = inst_mp or _mp_point_parcelas_pdv(erp_data)
+                if n and int(n) >= 2:
+                    label = f"{forma_mp} {int(n)}x"
+                    row["creditoParcelas"] = int(n)
+            row["formaPagamento"] = label[:200]
+            row["forma_pagamento"] = label[:200]
+            pag[0] = row
+            erp_data["pagamentos"] = pag
+        erp_data["forma_pagamento"] = label[:80]
+        erp_data["formaPagamento"] = erp_data["forma_pagamento"]
+
+    return {
+        "forma_pdv": forma_pdv,
+        "forma_mp": forma_mp,
+        "divergiu": divergiu,
+        "aviso": aviso,
+    }
+
+
+def _mp_point_anexar_recon_payload(payload: dict, recon: dict) -> dict:
+    if recon.get("forma_mp"):
+        payload["mp_point_forma_confirmada"] = recon["forma_mp"]
+    if recon.get("divergiu"):
+        payload["mp_point_forma_divergencia"] = True
+        payload["mp_point_aviso"] = recon.get("aviso") or ""
+    return payload
 
 
 def _mp_point_configurado() -> bool:
@@ -165,6 +259,13 @@ def api_pdv_mp_point_criar(request):
     )
     if not ok_mp:
         msg = mp_point_mensagem_erro(body)
+        if st == 409:
+            low = msg.lower()
+            if "queued" in low or "terminal" in low:
+                msg = (
+                    "A maquininha já tem uma cobrança em andamento. "
+                    "Cancele na maquininha ou aguarde o cliente terminar."
+                )
         logger.warning("MP Point criar: HTTP %s — %s", st, msg)
         return JsonResponse(
             {"ok": False, "erro": f"Mercado Pago: {msg}", "http_status": st},
@@ -302,11 +403,13 @@ def api_pdv_mp_point_finalizar(request):
                 status=409,
             )
 
-        erp_data = row.erp_payload
-        if not isinstance(erp_data, dict):
+        erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+        if not erp_data:
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
             row.save(update_fields=["status", "atualizado_em"])
             return JsonResponse({"ok": False, "erro": "Payload local inválido."}, status=500)
+
+        recon = _mp_point_reconciliar_forma_venda(erp_data, body)
 
         err_early, _ln, vf = _pdv_pedido_linhas_e_valor_final(erp_data, client_m=client_m, db=db)
         if err_early is not None:
@@ -371,6 +474,7 @@ def api_pdv_mp_point_finalizar(request):
                 "venda_id": vid,
                 "erp_pendente": True,
             }
+            _mp_point_anexar_recon_payload(payload, recon)
             anexar_nfce_resposta_venda(venda_local, erp_data, payload)
             return JsonResponse(payload)
 
@@ -419,6 +523,7 @@ def api_pdv_mp_point_finalizar(request):
             }
             from produtos.views_nfce import anexar_nfce_resposta_venda
 
+            _mp_point_anexar_recon_payload(payload, recon)
             anexar_nfce_resposta_venda(venda_local, erp_data, payload)
             return JsonResponse(payload)
 

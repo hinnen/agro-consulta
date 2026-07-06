@@ -14,9 +14,6 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders"
-
-
 def mp_point_order_indica_pago(doc: dict) -> bool:
     if not isinstance(doc, dict):
         return False
@@ -32,6 +29,84 @@ def mp_point_order_indica_pago(doc: dict) -> bool:
         if ps in ("processed", "approved", "accredited"):
             return True
     return False
+
+
+def _mp_point_payment_dicts(doc: dict) -> list[dict]:
+    if not isinstance(doc, dict):
+        return []
+    tx = doc.get("transactions") or {}
+    pays = tx.get("payments") or []
+    if isinstance(pays, dict):
+        pays = [pays]
+    if not isinstance(pays, list):
+        return []
+    return [p for p in pays if isinstance(p, dict)]
+
+
+def mp_point_extrair_tipo_pagamento(doc: dict) -> tuple[str | None, int | None]:
+    """
+    Lê o tipo efetivo no pedido MP processado.
+    Retorna (debit_card | credit_card | qr | ..., parcelas ou None).
+    """
+    for p in _mp_point_payment_dicts(doc):
+        ps = str(p.get("status") or "").strip().lower()
+        if ps and ps not in ("processed", "approved", "accredited"):
+            continue
+        pm = p.get("payment_method")
+        if isinstance(pm, dict):
+            tipo = str(pm.get("type") or pm.get("id") or "").strip().lower()
+            if tipo:
+                inst = pm.get("installments")
+                try:
+                    n_inst = int(inst) if inst is not None else None
+                except (TypeError, ValueError):
+                    n_inst = None
+                return tipo, n_inst
+        tipo = str(p.get("payment_method_id") or p.get("type") or "").strip().lower()
+        if tipo:
+            return tipo, None
+    cfg = doc.get("config") or {}
+    pm_cfg = cfg.get("payment_method") if isinstance(cfg, dict) else None
+    if isinstance(pm_cfg, dict):
+        tipo = str(pm_cfg.get("default_type") or "").strip().lower()
+        if tipo:
+            try:
+                n_inst = int(pm_cfg.get("default_installments") or 0) or None
+            except (TypeError, ValueError):
+                n_inst = None
+            return tipo, n_inst
+    return None, None
+
+
+def mp_point_forma_pdv_de_tipo_mp(tipo_mp: str | None, parcelas: int | None = None) -> str:
+    t = str(tipo_mp or "").strip().lower()
+    if not t:
+        return ""
+    if t in ("qr", "qr_code") or "pix" in t:
+        return "PIX"
+    if t == "debit_card" or ("debit" in t and "credit" not in t):
+        return "Cartão de débito"
+    if t == "credit_card" or "credit" in t:
+        try:
+            n = int(parcelas) if parcelas is not None else 1
+        except (TypeError, ValueError):
+            n = 1
+        if n > 1:
+            return "Cartão de crédito parcelado"
+        return "Cartão de crédito"
+    return ""
+
+
+def mp_point_classe_forma_caixa(forma: str) -> str:
+    """Agrupa formas para comparar débito/crédito/pix (ignora parcelado vs à vista)."""
+    f = str(forma or "").strip().lower()
+    if "pix" in f:
+        return "pix"
+    if "débito" in f or "debito" in f:
+        return "debito"
+    if "crédito" in f or "credito" in f:
+        return "credito"
+    return f
 
 
 def mp_point_create_order(
@@ -89,6 +164,8 @@ def mp_point_create_order(
 
     if r.status_code == 201:
         return True, r.status_code, data
+    if r.status_code == 409:
+        return False, r.status_code, data
     return False, r.status_code, data
 
 
