@@ -1159,7 +1159,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Nova venda** | Confirmação no **modal grande** do PDV (`showPdvConfirmacao`) — não `confirm()` nativo |
-| **Frete etapa 3** | Flag `entregaFreteLiberadoPagamento` — só após etapa Entrega (loja) ou retomar pendente; **F7 direto** zera frete · **fix CSS** `#pdv-footer-frete-field.hidden` (regra `display:flex` do rodapé anulava `hidden`) |
+| **Frete etapa 3** | Flag `entregaFreteLiberadoPagamento` — só após etapa Entrega (loja) ou retomar pendente; **F7 direto** zera frete · **fix CSS** `#pdv-footer-frete-field.hidden` · **✅ Renan OK teste 07/07** |
 
 ### ✅ Deploy loja **v7.23** — NFC-e retry 403 SEFAZ (07/07)
 
