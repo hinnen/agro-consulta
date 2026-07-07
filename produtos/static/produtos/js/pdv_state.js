@@ -113,7 +113,9 @@
                 enderecoPassoConcluido: false,
                 localPagamento: '',
                 meioNaEntrega: '',
-                pedidoEntregaPendenteId: null
+                pedidoEntregaPendenteId: null,
+                /** true só após etapa Entrega (loja) ou retomar entrega pendente */
+                entregaFreteLiberadoPagamento: false
             },
             pagamento: {
                 forma: '',
@@ -187,6 +189,9 @@
                 }
                 if (merged.entrega.detalhesEntregaRespondidos === undefined) {
                     merged.entrega.detalhesEntregaRespondidos = !!merged.entrega.taxaEntregaRespondida;
+                }
+                if (merged.entrega.entregaFreteLiberadoPagamento === undefined) {
+                    merged.entrega.entregaFreteLiberadoPagamento = false;
                 }
                 if (merged.currentStep === 'cliente') {
                     merged.currentStep = merged.entrega.ativa ? 'entrega' : 'produtos';
@@ -858,6 +863,7 @@
         if (!Array.isArray(state.pagamento.lancamentos)) state.pagamento.lancamentos = [];
         state.venda = Object.assign({}, def.venda, snap.venda || {});
         state.entrega.pedidoEntregaPendenteId = meta.id != null ? meta.id : null;
+        state.entrega.entregaFreteLiberadoPagamento = true;
         if (state.entrega.ativa) {
             state.entrega.modoRetiradaEntrega = 'entrega';
             state.entrega.localPagamento = 'loja';
