@@ -172,6 +172,7 @@
             durationMs: opts.persistent ? 0 : opts.durationMs || 16000
         };
         if (opts.tone) mpOpts.tone = opts.tone;
+        if (typeof opts.onDismiss === 'function') mpOpts.onDismiss = opts.onDismiss;
         showSaleDoneFeedback(texto, opts.tone || 'warn', mpOpts);
     }
 
@@ -181,7 +182,16 @@
             prominent: true,
             persistent: true,
             keepNewlines: true,
-            tone: mpPointWaitControl.cancelouMaquininha ? 'info' : 'warn'
+            tone: mpPointWaitControl.cancelouMaquininha ? 'info' : 'warn',
+            onDismiss: function () {
+                finishMpTrancheBusy();
+                var inp = document.getElementById('pdv-pay-valor-tranche');
+                if (inp && !inp.disabled) {
+                    try {
+                        inp.focus();
+                    } catch (eFocus) {}
+                }
+            }
         });
     }
 
@@ -7480,6 +7490,7 @@
             host.setAttribute('aria-live', 'polite');
             document.body.appendChild(host);
         }
+        host.removeAttribute('aria-hidden');
         var prominent = !!opts.prominent;
         var persistent = !!opts.persistent || opts.durationMs === 0;
         var placementTop = !!opts.placementTop && !prominent;
@@ -7558,6 +7569,7 @@
         host.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+        showSaleDoneFeedback._onDismiss = typeof opts.onDismiss === 'function' ? opts.onDismiss : null;
         if (!persistent) {
             var ms = opts.durationMs || (tone === 'warn' || tone === 'error' ? 14000 : 5200);
             showSaleDoneFeedback._timer = setTimeout(function () {
@@ -7569,8 +7581,20 @@
     function hideSaleDoneToast() {
         var host = document.getElementById('pdv-sale-toast');
         if (!host) return;
-        host.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
-        host.classList.remove('opacity-100', 'translate-y-0');
+        if (showSaleDoneFeedback._timer) {
+            clearTimeout(showSaleDoneFeedback._timer);
+            showSaleDoneFeedback._timer = null;
+        }
+        var onDismiss = showSaleDoneFeedback._onDismiss;
+        showSaleDoneFeedback._onDismiss = null;
+        host.className = 'hidden';
+        host.setAttribute('aria-hidden', 'true');
+        host.innerHTML = '';
+        if (typeof onDismiss === 'function') {
+            try {
+                onDismiss();
+            } catch (eDismiss) {}
+        }
     }
 
     function nfceAtivoNoPdv() {

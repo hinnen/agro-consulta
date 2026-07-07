@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.09** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.10** · **loja v6.86**
 
-**WIP teste:** validar **v7.09** — popup MP cancel centralizado (sem faixa amarela)
+**WIP teste:** validar **v7.10** — popup MP maior; PDV não trava após «Entendi»
+
+### ✅ PDV — MP Point popup v7.10 (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Popup** | Ainda maior |
+| **Fix** | Overlay sumia só visualmente — travava clique; «Entendi» libera PDV |
 
 ### ✅ PDV — MP Point popup v7.09 (06/07)
 
