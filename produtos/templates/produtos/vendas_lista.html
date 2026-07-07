@@ -511,7 +511,17 @@
             headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
           })
-            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (r) {
+              return r.text().then(function (txt) {
+                var d = {};
+                try {
+                  d = JSON.parse(txt);
+                } catch (e) {
+                  throw new Error('Servidor demorou ou SEFAZ indisponível — aguarde e tente de novo.');
+                }
+                return { ok: r.ok, data: d };
+              });
+            })
             .then(function (res) {
               var msgEl = document.getElementById('modal-nfce-msg');
               msgEl.classList.remove('hidden');
