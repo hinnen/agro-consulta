@@ -1145,11 +1145,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.11** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.12** · **loja v6.86**
 
-**WIP teste:** validar **v7.11** — cancel na maquininha = mesmo popup do cancel PDV
+**WIP teste:** validar **v7.12** — cancel na maquininha = mesmo popup do cancel PDV
 
-### ✅ PDV — MP Point popup v7.11 (07/07)
+### ✅ PDV — MP Point popup v7.11–12 (07/07)
 
 | Item | Detalhe |
 | ---- | ------- |
