@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.05** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.06** · **loja v6.86**
 
-**WIP teste:** validar **v7.05** — painel valor grande + revisão compacta
+**WIP teste:** validar **v7.06** — sem barra verde pagamento + rodapé maior
+
+### ✅ PDV — pagamento UX v7.06 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Topo** | Removida barra verde «Etapa 4 Pagamento» (mais área útil) |
+| **Rodapé** | Desconto/frete e botões Confirmar maiores |
 
 ### ✅ PDV — pagamento UX v7.05 (06/07)
 
