@@ -159,13 +159,46 @@
         });
     }
 
+    function showMpPointInlineAviso(msg, tone) {
+        var el = document.getElementById('pdv-mp-point-inline-aviso');
+        if (!el) return;
+        var texto = String(msg || '').trim();
+        if (!texto) {
+            el.textContent = '';
+            el.classList.add('hidden');
+            el.classList.remove('pdv-mp-point-inline-aviso--ok');
+            return;
+        }
+        el.textContent = texto;
+        el.classList.toggle('pdv-mp-point-inline-aviso--ok', tone === 'ok');
+        el.classList.remove('hidden');
+    }
+
     function showMpPointAviso(msg, opts) {
         opts = opts || {};
-        var texto = String(msg || '').replace(/\n+/g, ' ').trim();
-        showSaleDoneFeedback(texto, opts.tone || 'warn', {
+        var texto = opts.keepNewlines ? String(msg || '').trim() : String(msg || '').replace(/\n+/g, ' ').trim();
+        if (!texto) return;
+        var mpOpts = {
             title: opts.title || 'Mercado Pago',
-            placementTop: true,
-            durationMs: opts.durationMs || 16000
+            placementTop: !opts.prominent,
+            prominent: !!opts.prominent,
+            persistent: !!opts.persistent,
+            keepNewlines: !!opts.keepNewlines,
+            durationMs: opts.persistent ? 0 : opts.durationMs || 16000
+        };
+        if (opts.tone) mpOpts.tone = opts.tone;
+        showSaleDoneFeedback(texto, opts.tone || 'warn', mpOpts);
+    }
+
+    function showMpPointCancelFeedback() {
+        var msg = mpPointWaitAbortMessage();
+        var tone = mpPointWaitControl.cancelouMaquininha ? 'ok' : 'warn';
+        showMpPointInlineAviso(msg, tone);
+        showMpPointAviso(msg, {
+            prominent: true,
+            persistent: true,
+            keepNewlines: true,
+            tone: mpPointWaitControl.cancelouMaquininha ? 'info' : 'warn'
         });
     }
 
@@ -189,6 +222,7 @@
         }
         if (overlay) overlay.classList.remove('hidden');
         document.body.classList.add('pdv-mp-point-wait-active');
+        mpPointWaitControl.cancelouMaquininha = false;
         setMpPointWaitStatus('Enviando cobrança à maquininha…');
     }
 
@@ -1693,6 +1727,7 @@
     function cobrarMpPointNaTranche(st, comp, cur) {
         if (isProcessingMpTranche) return;
         isProcessingMpTranche = true;
+        showMpPointInlineAviso('');
         var trancheInp = document.getElementById('pdv-pay-valor-tranche');
         if (trancheInp) trancheInp.disabled = true;
 
@@ -1753,7 +1788,7 @@
             })
             .catch(function (err) {
                 if (err && err.mpPointUserAbort) {
-                    showMpPointAviso(err.message || mpPointWaitAbortMessage());
+                    showMpPointCancelFeedback();
                 } else if (err && err.mpPointUi) {
                     pdvMpPointBeep('err');
                     showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
@@ -7463,41 +7498,44 @@
             host.setAttribute('aria-live', 'polite');
             document.body.appendChild(host);
         }
-        var placementTop = !!opts.placementTop;
+        var prominent = !!opts.prominent;
+        var persistent = !!opts.persistent || opts.durationMs === 0;
+        var placementTop = !!opts.placementTop && !prominent;
         host.className =
-            'pointer-events-auto fixed z-[9999] w-[min(26rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3 ' +
-            (placementTop
-                ? 'top-4 left-1/2 -translate-x-1/2'
-                : 'bottom-4 right-4 translate-x-0');
+            'pointer-events-auto fixed z-[9999] transition-all duration-300 ease-out opacity-0 ' +
+            (prominent
+                ? 'pdv-sale-toast--prominent'
+                : 'w-[min(26rem,calc(100vw-2rem))] translate-y-3 ' +
+                  (placementTop ? 'top-4 left-1/2 -translate-x-1/2' : 'bottom-4 right-4 translate-x-0'));
         var palette =
             tone === 'error'
-                ? 'border-rose-400 bg-rose-50 text-rose-950 shadow-rose-200/50'
+                ? 'border-rose-500 bg-rose-50 text-rose-950 shadow-rose-300/60'
                 : tone === 'warn'
-                ? 'border-amber-400 bg-amber-50 text-amber-950 shadow-amber-300/60'
+                ? 'border-amber-500 bg-amber-50 text-amber-950 shadow-amber-400/70'
                 : tone === 'info'
-                  ? 'border-sky-300 bg-sky-50 text-sky-950 shadow-sky-200/50'
-                  : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
+                  ? 'border-sky-400 bg-sky-50 text-sky-950 shadow-sky-200/50'
+                  : 'border-emerald-400 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
         var icon =
-            tone === 'error' ? '✕' : tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
+            tone === 'error' ? '✕' : tone === 'warn' ? '⚠' : tone === 'info' ? 'ℹ' : '✓';
         var titleHtml = opts.title
-            ? '<p class="text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
+            ? '<p class="pdv-sale-toast-title text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
             : '';
+        var bodyClass =
+            'pdv-sale-toast-body ' +
+            (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1');
+        if (opts.keepNewlines) bodyClass += ' whitespace-pre-line';
         var bodyHtml =
-            '<p class="' +
-            (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1') +
-            '">' +
-            escapeHtml(msg || 'Venda confirmada.') +
-            '</p>';
+            '<p class="' + bodyClass + '">' + escapeHtml(msg || 'Venda confirmada.') + '</p>';
         var dismissBtn =
-            tone === 'warn' || tone === 'error'
-                ? '<button type="button" class="mt-2 rounded-lg border border-current/30 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
+            tone === 'warn' || tone === 'error' || tone === 'info' || persistent
+                ? '<button type="button" class="mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
                 : '';
         host.innerHTML =
-            '<div class="rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
+            '<div class="pdv-sale-toast-panel rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
             palette +
             '">' +
             '<div class="flex items-start gap-3">' +
-            '<span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
+            '<span class="pdv-sale-toast-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
             icon +
             '</span>' +
             '<div class="min-w-0 flex-1">' +
@@ -7511,14 +7549,24 @@
                 hideSaleDoneToast();
             });
         }
+        if (prominent) {
+            host.addEventListener(
+                'click',
+                function onBackdrop(ev) {
+                    if (ev.target === host) hideSaleDoneToast();
+                },
+                { once: true }
+            );
+        }
         host.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
         host.classList.add('opacity-100', 'translate-y-0');
         if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
-        var ms = opts.durationMs || (tone === 'warn' || tone === 'error' ? 14000 : 5200);
-        showSaleDoneFeedback._timer = setTimeout(function () {
-            host.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
-            host.classList.remove('opacity-100', 'translate-y-0');
-        }, ms);
+        if (!persistent) {
+            var ms = opts.durationMs || (tone === 'warn' || tone === 'error' ? 14000 : 5200);
+            showSaleDoneFeedback._timer = setTimeout(function () {
+                hideSaleDoneToast();
+            }, ms);
+        }
     }
 
     function hideSaleDoneToast() {
@@ -8468,7 +8516,7 @@
                 }
                 if (err && err.mpPointUserAbort) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                    showMpPointAviso(err.message || mpPointWaitAbortMessage());
+                    showMpPointCancelFeedback();
                 } else if (err && err.mpPointUi) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     pdvMpPointBeep('err');

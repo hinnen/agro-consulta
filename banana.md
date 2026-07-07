@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.07** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.08** · **loja v6.86**
 
-**WIP teste:** validar **v7.07** — cancel no PDV também cancela maquininha (header MP `at_terminal`)
+**WIP teste:** validar **v7.08** — aviso MP grande + fixo; crédito à vista 1x na maquininha
+
+### ✅ PDV — MP Point v7.08 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Aviso cancel** | Modal grande + faixa fixa na tela pagamento (não some sozinha) |
+| **Crédito** | Envia `default_installments: 1` — à vista sem pergunta na MP |
+| **Parcelado** | Sem mudança |
 
 ### ✅ PDV — MP Point cancel bidirecional v7.07 (06/07)
 

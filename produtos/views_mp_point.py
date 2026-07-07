@@ -168,13 +168,15 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
         return {"default_type": "qr"}
     if "débito" in fp or "debito" in fp:
         return {"default_type": "debit_card"}
-    if "parcelado" in fp or ("crédito" in fp or "credito" in fp):
+    if "parcelado" in fp:
         cfg: dict = {"default_type": "credit_card"}
-        n = _mp_point_parcelas_pdv(data)
-        if n:
-            cfg["default_installments"] = int(n)
-            cfg["installments_cost"] = "seller"
+        n = _mp_point_parcelas_pdv(data) or 2
+        cfg["default_installments"] = int(n)
+        cfg["installments_cost"] = "seller"
         return cfg
+    if "crédito" in fp or "credito" in fp:
+        # Crédito à vista: 1 parcela evita tela «à vista / parcelado» na maquininha.
+        return {"default_type": "credit_card", "default_installments": 1}
     return None
 
 
