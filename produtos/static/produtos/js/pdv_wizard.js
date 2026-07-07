@@ -159,21 +159,6 @@
         });
     }
 
-    function showMpPointInlineAviso(msg, tone) {
-        var el = document.getElementById('pdv-mp-point-inline-aviso');
-        if (!el) return;
-        var texto = String(msg || '').trim();
-        if (!texto) {
-            el.textContent = '';
-            el.classList.add('hidden');
-            el.classList.remove('pdv-mp-point-inline-aviso--ok');
-            return;
-        }
-        el.textContent = texto;
-        el.classList.toggle('pdv-mp-point-inline-aviso--ok', tone === 'ok');
-        el.classList.remove('hidden');
-    }
-
     function showMpPointAviso(msg, opts) {
         opts = opts || {};
         var texto = opts.keepNewlines ? String(msg || '').trim() : String(msg || '').replace(/\n+/g, ' ').trim();
@@ -192,8 +177,6 @@
 
     function showMpPointCancelFeedback() {
         var msg = mpPointWaitAbortMessage();
-        var tone = mpPointWaitControl.cancelouMaquininha ? 'ok' : 'warn';
-        showMpPointInlineAviso(msg, tone);
         showMpPointAviso(msg, {
             prominent: true,
             persistent: true,
@@ -1727,7 +1710,6 @@
     function cobrarMpPointNaTranche(st, comp, cur) {
         if (isProcessingMpTranche) return;
         isProcessingMpTranche = true;
-        showMpPointInlineAviso('');
         var trancheInp = document.getElementById('pdv-pay-valor-tranche');
         if (trancheInp) trancheInp.disabled = true;
 
@@ -7528,21 +7510,36 @@
             '<p class="' + bodyClass + '">' + escapeHtml(msg || 'Venda confirmada.') + '</p>';
         var dismissBtn =
             tone === 'warn' || tone === 'error' || tone === 'info' || persistent
-                ? '<button type="button" class="mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
+                ? '<button type="button" class="pdv-sale-toast-dismiss mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
                 : '';
-        host.innerHTML =
-            '<div class="pdv-sale-toast-panel rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
-            palette +
-            '">' +
-            '<div class="flex items-start gap-3">' +
-            '<span class="pdv-sale-toast-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
-            icon +
-            '</span>' +
-            '<div class="min-w-0 flex-1">' +
-            titleHtml +
-            bodyHtml +
-            dismissBtn +
-            '</div></div></div>';
+        if (prominent) {
+            host.innerHTML =
+                '<div class="pdv-sale-toast-panel rounded-3xl border-2 shadow-2xl ' +
+                palette +
+                '">' +
+                '<div class="pdv-sale-toast-prominent-inner">' +
+                '<span class="pdv-sale-toast-icon flex shrink-0 items-center justify-center rounded-full bg-white/90 font-black" aria-hidden="true">' +
+                icon +
+                '</span>' +
+                titleHtml +
+                bodyHtml +
+                dismissBtn +
+                '</div></div>';
+        } else {
+            host.innerHTML =
+                '<div class="pdv-sale-toast-panel rounded-2xl border-2 px-4 py-3 shadow-2xl ' +
+                palette +
+                '">' +
+                '<div class="flex items-start gap-3">' +
+                '<span class="pdv-sale-toast-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">' +
+                icon +
+                '</span>' +
+                '<div class="min-w-0 flex-1">' +
+                titleHtml +
+                bodyHtml +
+                dismissBtn +
+                '</div></div></div>';
+        }
         var dismissEl = host.querySelector('[data-pdv-toast-dismiss]');
         if (dismissEl) {
             dismissEl.addEventListener('click', function () {

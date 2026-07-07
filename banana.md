@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.08** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.09** · **loja v6.86**
 
-**WIP teste:** validar **v7.08** — aviso MP grande + fixo; crédito à vista 1x na maquininha
+**WIP teste:** validar **v7.09** — popup MP cancel centralizado (sem faixa amarela)
+
+### ✅ PDV — MP Point popup v7.09 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cancel** | Só modal centralizado; texto e «Entendi» no meio, maior |
+| **Removido** | Faixa amarela atrás do popup |
 
 ### ✅ PDV — MP Point v7.08 (06/07)
 

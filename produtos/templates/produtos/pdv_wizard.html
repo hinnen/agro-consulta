@@ -2605,23 +2605,6 @@
     color: #1e293b;
   }
   .pdv-mp-point-wait-cancel:hover { background: #f1f5f9; }
-  .pdv-mp-point-inline-aviso {
-    border: 3px solid #f59e0b;
-    border-radius: 1rem;
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    padding: 1rem 1.15rem;
-    font-size: clamp(1rem, 0.5vw + 0.95rem, 1.2rem);
-    font-weight: 800;
-    line-height: 1.45;
-    color: #78350f;
-    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.35);
-  }
-  .pdv-mp-point-inline-aviso--ok {
-    border-color: #10b981;
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #065f46;
-    box-shadow: 0 12px 28px rgba(16, 185, 129, 0.28);
-  }
   #pdv-sale-toast.pdv-sale-toast--prominent {
     inset: 0;
     width: 100%;
@@ -2630,37 +2613,56 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.25rem;
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(2px);
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(3px);
     transform: none !important;
     left: 0 !important;
     top: 0 !important;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-panel {
-    width: min(40rem, calc(100vw - 2rem));
+    width: min(44rem, calc(100vw - 2.5rem));
     border-width: 4px;
-    padding: 1.35rem 1.5rem;
-    font-size: clamp(1.05rem, 0.55vw + 1rem, 1.35rem);
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+    padding: 1.75rem 2rem 1.85rem;
+    box-shadow: 0 28px 56px rgba(0, 0, 0, 0.32);
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-prominent-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.65rem;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-icon {
-    width: 3.25rem;
-    height: 3.25rem;
-    font-size: 1.65rem;
+    width: 3.75rem;
+    height: 3.75rem;
+    font-size: 1.85rem;
+    margin-bottom: 0.15rem;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-title {
-    font-size: clamp(1.2rem, 0.6vw + 1.1rem, 1.55rem);
+    font-size: clamp(1.35rem, 0.7vw + 1.2rem, 1.75rem);
+    font-weight: 900;
+    line-height: 1.2;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-body {
-    font-size: clamp(1rem, 0.45vw + 0.95rem, 1.2rem);
-    line-height: 1.5;
+    font-size: clamp(1.08rem, 0.5vw + 1rem, 1.28rem);
+    line-height: 1.55;
     white-space: pre-line;
+    max-width: 36rem;
+    font-weight: 700;
   }
-  #pdv-sale-toast.pdv-sale-toast--prominent [data-pdv-toast-dismiss] {
-    min-height: 3rem;
-    padding: 0.65rem 1.25rem;
-    font-size: 0.95rem;
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.35rem;
+    min-width: 11rem;
+    margin-top: 0.85rem;
+    padding: 0.75rem 1.75rem;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    border-radius: 1rem;
+    border-width: 2px;
   }
   #pdv-pack-entrega-print { display: none !important; }
   @media print {
