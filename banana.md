@@ -1145,7 +1145,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.27** · **loja v7.23**
+**Versão app (`VERSION`):** **teste v7.28** · **loja v7.23**
+
+### 📋 PDV v7.28 (07/07) — Nova venda popup + frete *(só teste)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Nova venda** | Confirmação no **modal grande** do PDV (`showPdvConfirmacao`) — não `confirm()` nativo |
+| **Frete etapa 3** | Flag `entregaFreteLiberadoPagamento` — só após etapa Entrega (loja) ou retomar pendente; **F7 direto** zera frete e esconde campo |
 
 ### ✅ Deploy loja **v7.23** — NFC-e retry 403 SEFAZ (07/07)
 
