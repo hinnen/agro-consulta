@@ -137,7 +137,6 @@ from .entrega_pdv_pendente_util import (
     marcar_entrega_pendente_fechada,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
-    tentar_vincular_entrega_pendente_apos_venda,
 )
 from .models import (
     ClienteAgro,
