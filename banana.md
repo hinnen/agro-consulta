@@ -1145,9 +1145,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.17** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.18** · **loja v7.15**
 
-**WIP teste:** validar **v7.17** — duplo clique «Confirmar venda» + contador Entregas fantasma
+**WIP teste:** validar **v7.18** — entrega pendente «não encontrada» ao confirmar
+
+### 🐛 PDV urgente v7.18 (07/07)
+
+| Bug | Causa | Fix |
+| --- | ----- | --- |
+| «Entrega pendente não encontrada» com venda OK | ERP já encerrava entrega; PDV chamava de novo | Finalizar idempotente (404 = já fechada) |
 
 ### 🐛 PDV urgente v7.17 (07/07)
 

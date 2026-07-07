@@ -24673,6 +24673,26 @@ def api_pdv_entrega_pendente_finalizar(request, pk):
         venda_id = int(venda_id) if venda_id is not None else None
     except (TypeError, ValueError):
         venda_id = None
+    existente = PedidoEntrega.objects.filter(pk=pk).first()
+    if existente and not existente.aguarda_pagamento_pdv:
+        if venda_id and existente.venda_agro_id == venda_id:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "id": existente.pk,
+                    "venda_id": existente.venda_agro_id,
+                    "ja_fechada": True,
+                }
+            )
+        if existente.venda_agro_id:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "id": existente.pk,
+                    "venda_id": existente.venda_agro_id,
+                    "ja_fechada": True,
+                }
+            )
     ent = marcar_entrega_pendente_fechada(pk, venda_agro_id=venda_id)
     if not ent:
         return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)

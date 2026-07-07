@@ -3568,6 +3568,8 @@
                     err && err.message ? err.message : 'Falha ao retomar entrega.',
                     'warn'
                 );
+                invalidateEntregasPendentesCache();
+                return refreshEntregasPendentesUi(true, true);
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -3605,7 +3607,19 @@
     function finalizarEntregaPendenteAposVenda(pendenteId, vendaId) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteFinalizar, pendenteId);
         if (!url) return Promise.resolve({ ok: true, data: { ok: true } });
-        return jsonPost(url, { venda_id: vendaId != null ? vendaId : null });
+        return jsonPost(url, { venda_id: vendaId != null ? vendaId : null }).then(function (res) {
+            if (res.ok && res.data && res.data.ok) return res;
+            var msg = String((res.data && (res.data.erro || res.data.mensagem)) || '').trim();
+            // Servidor já encerrou via pedido_entrega_pendente_id no envio ERP (dupla chamada).
+            if (
+                res.status === 404 ||
+                msg === 'Entrega pendente não encontrada.' ||
+                (res.data && res.data.ja_fechada)
+            ) {
+                return { ok: true, data: { ok: true, ja_fechada: true } };
+            }
+            return res;
+        });
     }
 
     function productAutocompleteHeaderHtml() {
