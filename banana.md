@@ -1145,9 +1145,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.20** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.21** · **loja v7.15**
 
-**WIP teste:** validar **v7.20** — entrega encerra só no PDV ao confirmar
+**WIP teste (separado — não vai na loja ainda):** botão «Nova venda» + tirar frete da etapa 3
+
+### 📦 Cherry loja pendente — pacote **v7.17–v7.21** (Renan validou teste 07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste OK · **aguardando** pedido produção + senha |
+| **Loja hoje** | **v7.15** |
+| **Subir até** | **v7.21** — **não** misturar WIP futuro (nova venda / frete) |
+| **Como** | merge `teste` → `producao` **até** commit `d186601` **ou** cherry dos commits abaixo |
+| **Commits** | `f62dee0` v7.17 · `fb12d5d` v7.18 · `595dfc4` v7.19 · `5d7c113` · `d186601` |
+| **Arquivos** | `pdv_wizard.js` · `views.py` · `entrega_pdv_pendente_util.py` · `VERSION` · `banana.md` |
+| **O quê** | Duplo clique confirmar · badge Entregas · entrega encerra só no PDV · idempotente |
+
+**WIP loja:** Renan pedir *«manda produção 99738595»* só deste pacote
 
 ### 🐛 PDV v7.19 (07/07) — fluxo entrega
 
@@ -1169,7 +1183,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Venda duplicada ao clicar várias vezes em Confirmar | Botão liberava antes de zerar carrinho | Trava até fim do fechamento + zera carrinho na hora |
 | Entregas: badge «1» mas lista vazia | Cache local `total` ≠ lista | Contador = tamanho da lista; refresh forçado ao abrir |
 
-**WIP loja:** subir **v7.17** após validar no teste
+### 📋 PDV planejado (WIP teste — Renan 07/07)
+
+| # | Pedido | Proposta |
+| - | ------ | -------- |
+| 1 | **Nova venda** — zerar carrinho/cliente/pagamento nas 3 etapas | Botão topbar **antes do PIN**: «Nova venda» · confirma se tiver item · reusa `resetWizardParaNovaVenda` · **não** fecha caixa |
+| 2 | **Tirar frete** da etapa 3 | Esconder `#pdv-payment-shipping` no rodapé pagamento · frete só na etapa 2 (entrega) |
 
 ### ✅ Deploy loja **v7.15** — Pix MP sem card duplicado (07/07 — Renan senha OK)
 
