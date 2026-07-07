@@ -1145,7 +1145,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.30** · **loja v7.23**
+**Versão app (`VERSION`):** **teste v7.30** · **loja v7.24**
+
+### ✅ Deploy loja **v7.24** — NFC-e timeout reemitir (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Reemitir não estoura 30s Render · sempre JSON · msg clara se SEFAZ cair |
+| **Commit loja** | `2a0dc35` |
 
 ### 📋 PDV v7.28+ (07/07) — Nova venda popup + frete *(só teste)*
 
