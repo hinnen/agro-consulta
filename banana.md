@@ -1145,7 +1145,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.30** · **loja v7.24**
+**Versão app (`VERSION`):** **teste v7.33** · **loja v7.27**
+
+### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | **Nova venda F12** · modal PDV · frete só após Entrega · F7 sem frete |
+| **Commits loja** | `19477cd` + `e12d497` + `01d87d1` (cherry-pick) |
+| **Status** | **✅ push producao** — aguardar Render Live |
 
 ### ✅ Deploy loja **v7.24** — NFC-e timeout reemitir (07/07)
 
