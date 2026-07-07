@@ -1149,6 +1149,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **WIP loja:** validar **v7.13** na operação — MP Point TEF + cancel bidirecional + popups
 
+**WIP teste:** validar **v7.15** — Pix MP automático sem card duplicado
+
+### ✅ PDV — Pix MP v7.15 (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pix MP auto** | Some card «Mercado Pago — Pix automático» (só botão verde) |
+
 ### ✅ Deploy loja **v7.13** — MP Point PDV pagamento (07/07 — Renan senha OK)
 
 | Item | Detalhe |

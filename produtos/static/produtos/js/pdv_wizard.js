@@ -5616,6 +5616,10 @@
             if (el) el.classList.toggle('hidden', !yes);
         };
         var hasMaquina = !!(state.pagamento.maquinaId && String(state.pagamento.maquinaId).trim());
+        var mpPixAuto =
+            pagamentoUi.mpPointEnabled &&
+            hasMaquina &&
+            String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
         var needMaquinaBar = requiresMaquina(forma);
         var barMaquina = document.getElementById('pdv-pay-maquina-bar');
         var lblMaquina = document.getElementById('pdv-pay-maquina-label');
@@ -5626,7 +5630,7 @@
         }
 
         show('pdv-flow-dinheiro', forma === 'Dinheiro');
-        show('pdv-flow-pix', forma === 'PIX');
+        show('pdv-flow-pix', forma === 'PIX' && !mpPixAuto);
         var cartao =
             forma === 'Cartão de débito' || forma === 'Cartão de crédito' || forma === 'Cartão de crédito parcelado';
         show('pdv-flow-cartao', cartao);
@@ -5731,16 +5735,15 @@
             (!requiresMaquina(forma) || hasMaquina);
         if (trBar) trBar.classList.toggle('hidden', !showTranche);
 
-        var mpPixAuto =
-            pagamentoUi.mpPointEnabled &&
-            hasMaquina &&
-            String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
-        var mpPixHint = mpPixAuto
-            ? 'Use o botão verde «Cobrar na maquininha» ao lado do valor.'
-            : 'QR Pix Mercado Pago — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
+        if (!mpPixAuto) {
+            fillQrSlot(
+                dom.pixMpQr,
+                pagamentoUi.qrMercadoPagoUrl,
+                'QR Pix Mercado Pago — use o display do terminal ou “Ampliar QR” para orientar o cliente.'
+            );
+        }
         var btnAmplifyPix = document.getElementById('pdv-pay-open-qr-pix');
         if (btnAmplifyPix) btnAmplifyPix.classList.toggle('hidden', !!mpPixAuto);
-        fillQrSlot(dom.pixMpQr, mpPixAuto ? '' : pagamentoUi.qrMercadoPagoUrl, mpPixHint);
         wireSicrediLink(dom.cardSicrediLink, pagamentoUi.qrSicrediUrl);
         if (dom.cardSicrediLink) {
             var uCardScr = String(pagamentoUi.qrSicrediUrl || '').trim();
