@@ -1145,9 +1145,37 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.15** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.22** · **loja v7.21**
 
-**WIP loja:** validar **v7.15** — Pix MP sem card duplicado na tela
+**WIP teste (separado — não na loja):** botão «Nova venda» + tirar frete etapa 3
+
+### ✅ Deploy loja **v7.21** — PDV entregas + confirmar venda (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Duplo clique confirmar · badge Entregas · entrega encerra só no PDV · idempotente |
+| **Merge** | `teste` até `d186601` → `producao` |
+| **Status** | **✅ loja** — Render deployando |
+
+### 🐛 PDV v7.19 (07/07) — fluxo entrega
+
+| Decisão | Detalhe |
+| ------- | ------- |
+| **Quem encerra** | PDV, ao confirmar venda/cobrança (`finalizar entrega`) |
+| **Antes (bug)** | Servidor encerrava no ERP **antes** do PDV → erro «não encontrada» |
+
+### 🐛 PDV urgente v7.18 (07/07)
+
+| Bug | Causa | Fix |
+| --- | ----- | --- |
+| «Entrega pendente não encontrada» com venda OK | ERP já encerrava entrega; PDV chamava de novo | Finalizar idempotente (404 = já fechada) |
+
+### 🐛 PDV urgente v7.17 (07/07)
+
+| Bug | Causa | Fix |
+| --- | ----- | --- |
+| Venda duplicada ao clicar várias vezes em Confirmar | Botão liberava antes de zerar carrinho | Trava até fim do fechamento + zera carrinho na hora |
+| Entregas: badge «1» mas lista vazia | Cache local `total` ≠ lista | Contador = tamanho da lista; refresh forçado ao abrir |
 
 ### ✅ Deploy loja **v7.15** — Pix MP sem card duplicado (07/07 — Renan senha OK)
 

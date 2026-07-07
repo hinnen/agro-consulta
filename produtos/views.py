@@ -137,7 +137,6 @@ from .entrega_pdv_pendente_util import (
     marcar_entrega_pendente_fechada,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
-    tentar_vincular_entrega_pendente_apos_venda,
 )
 from .models import (
     ClienteAgro,
@@ -21684,7 +21683,6 @@ def api_enviar_pedido_erp(request):
             )
             vid = venda_local.pk if venda_local else None
             if vid:
-                tentar_vincular_entrega_pendente_apos_venda(data, vid)
                 _disparar_envio_erp_venda_background(vid, data)
             return _resposta_venda(
                 data,
@@ -21710,7 +21708,7 @@ def api_enviar_pedido_erp(request):
         )
         vid = venda_local.pk if venda_local else None
         if vid:
-            tentar_vincular_entrega_pendente_apos_venda(data, vid)
+            pass  # Entrega pendente: encerrada pelo PDV em api_pdv_entrega_pendente_finalizar
         msg_erro_ui = out["msg_erro_ui"]
 
         if out["ok"] and out["recusa_erp"]:
@@ -24673,6 +24671,26 @@ def api_pdv_entrega_pendente_finalizar(request, pk):
         venda_id = int(venda_id) if venda_id is not None else None
     except (TypeError, ValueError):
         venda_id = None
+    existente = PedidoEntrega.objects.filter(pk=pk).first()
+    if existente and not existente.aguarda_pagamento_pdv:
+        if venda_id and existente.venda_agro_id == venda_id:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "id": existente.pk,
+                    "venda_id": existente.venda_agro_id,
+                    "ja_fechada": True,
+                }
+            )
+        if existente.venda_agro_id:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "id": existente.pk,
+                    "venda_id": existente.venda_agro_id,
+                    "ja_fechada": True,
+                }
+            )
     ent = marcar_entrega_pendente_fechada(pk, venda_agro_id=venda_id)
     if not ent:
         return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)
