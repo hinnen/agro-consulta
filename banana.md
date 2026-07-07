@@ -1145,17 +1145,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.13** · **loja v7.13**
+**Versão app (`VERSION`):** **teste v7.15** · **loja v7.15**
 
-**WIP loja:** validar **v7.13** na operação — MP Point TEF + cancel bidirecional + popups
+**WIP loja:** validar **v7.15** — Pix MP sem card duplicado na tela
+
+### ✅ Deploy loja **v7.15** — Pix MP sem card duplicado (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Some card «Mercado Pago — Pix automático» quando cobra na maquininha |
+| **Merge** | `teste` → `producao` |
+| **Status** | **✅ loja** — Render deployando |
+
+### ✅ PDV — Pix MP v7.15 (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pix MP auto** | Some card «Mercado Pago — Pix automático» (só botão verde) |
 
 ### ✅ Deploy loja **v7.13** — MP Point PDV pagamento (07/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Fluxo TEF (cobrar na tranche) · cancel PDV↔maquininha · popups MP · crédito à vista 1x · layout pagamento |
-| **Merge** | `teste` → `producao` |
-| **Status** | **✅ loja** — Render deployando |
+| **Merge** | `teste` → `producao` · `2e920b1` |
+| **Status** | **✅ loja** |
 
 ### ✅ PDV — MP Point popup v7.11–12 (07/07)
 
