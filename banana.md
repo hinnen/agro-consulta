@@ -1145,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.15** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.17** · **loja v7.15**
 
-**WIP loja:** validar **v7.15** — Pix MP sem card duplicado na tela
+**WIP teste:** validar **v7.17** — duplo clique «Confirmar venda» + contador Entregas fantasma
+
+### 🐛 PDV urgente v7.17 (07/07)
+
+| Bug | Causa | Fix |
+| --- | ----- | --- |
+| Venda duplicada ao clicar várias vezes em Confirmar | Botão liberava antes de zerar carrinho | Trava até fim do fechamento + zera carrinho na hora |
+| Entregas: badge «1» mas lista vazia | Cache local `total` ≠ lista | Contador = tamanho da lista; refresh forçado ao abrir |
+
+**WIP loja:** subir **v7.17** após validar no teste
 
 ### ✅ Deploy loja **v7.15** — Pix MP sem card duplicado (07/07 — Renan senha OK)
 

@@ -82,6 +82,23 @@
     var isProcessingSale = false;
     var isProcessingMpTranche = false;
 
+    function releaseSaleProcessingLock() {
+        isProcessingSale = false;
+        setConfirmButtonsBusy(false);
+    }
+
+    function invalidateEntregasPendentesCache() {
+        entregasPendentesCache.total = 0;
+        entregasPendentesCache.itens = [];
+        if (window.AgroPdvOfflineCache && window.AgroPdvOfflineCache.writePayload) {
+            window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
+                total: 0,
+                itens: [],
+            });
+        }
+        applyEntregasPendentesButton();
+    }
+
     var MP_POINT_WAIT_ABORT_MSG =
         'Espera cancelada.\n\nSe o valor ainda estiver na maquininha, cancele a operação no terminal também.\n\nNo PDV: em «Pagamentos lançados», use Alterar ou Excluir e tente de novo.';
     var MP_POINT_POLL_MAX = 90;
@@ -3373,7 +3390,9 @@
     }
 
     function applyEntregasPendentesButton() {
-        var n = entregasPendentesCache.total || 0;
+        var itens = entregasPendentesCache.itens || [];
+        var n = itens.length;
+        entregasPendentesCache.total = n;
         var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
@@ -3453,7 +3472,7 @@
     }
 
     function openEntregasPendentesModal() {
-        refreshEntregasPendentesUi(false).then(function () {
+        refreshEntregasPendentesUi(false, true).then(function () {
             if (!dom.entregasPendentesModal) return;
             renderEntregasPendentesList();
             if (typeof dom.entregasPendentesModal.showModal === 'function') {
@@ -3475,14 +3494,14 @@
         syncPdvSspinIdlePause();
     }
 
-    function refreshEntregasPendentesUi(silent) {
+    function refreshEntregasPendentesUi(silent, forceRefresh) {
         var url = urls.apiPdvEntregasPendentes;
         if (!url) return Promise.resolve();
-        if (window.AgroPdvOfflineCache) {
+        if (!forceRefresh && window.AgroPdvOfflineCache) {
             var cached = window.AgroPdvOfflineCache.readPayload(ENTREGAS_PENDENTES_LS_KEY);
             if (cached && Array.isArray(cached.itens)) {
-                entregasPendentesCache.total = cached.total || 0;
                 entregasPendentesCache.itens = cached.itens;
+                entregasPendentesCache.total = cached.itens.length;
                 applyEntregasPendentesButton();
                 if (
                     !silent &&
@@ -3499,8 +3518,8 @@
         return jsonGet(url)
             .then(function (res) {
                 if (!res.ok || !res.data || !res.data.ok) return;
-                entregasPendentesCache.total = res.data.total || 0;
                 entregasPendentesCache.itens = res.data.itens || [];
+                entregasPendentesCache.total = entregasPendentesCache.itens.length;
                 if (window.AgroPdvOfflineCache) {
                     window.AgroPdvOfflineCache.writePayload(ENTREGAS_PENDENTES_LS_KEY, {
                         total: entregasPendentesCache.total,
@@ -7996,14 +8015,15 @@
                 } catch (errC) {}
             }
         }
-        imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
+        jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+        resetWizardParaNovaVenda();
+        invalidateEntregasPendentesCache();
+        refreshEntregasPendentesUi(true, true);
+        return imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
             return aguardarPosImpressao(imprimir ? 900 : 0).then(function () {
                 return printFail;
             });
         }).then(function (printFail) {
-            jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-            resetWizardParaNovaVenda();
-            refreshEntregasPendentesUi(true);
             if (opts.nfceErro) {
                 mostrarAvisoNfcePendente(opts, saleDoneMessage(opts));
             } else if (printFail) {
@@ -8019,6 +8039,8 @@
                 var kind = opts.erpPendente ? 'info' : 'success';
                 showSaleDoneFeedback(msg, kind);
             }
+        }).finally(function () {
+            releaseSaleProcessingLock();
         });
     }
 
@@ -8093,6 +8115,8 @@
             : '';
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
+        var saleFinalizeStarted = false;
+
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
             .then(function (draftRes) {
                 if (!draftRes.ok || !draftRes.data.ok) throw new Error((draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) || 'Falha ao salvar rascunho.');
@@ -8115,14 +8139,14 @@
                 var nfceErro = nfceErroDaResposta(erpRes.data);
                 var nfceOk = nfceSucessoDaResposta(erpRes.data);
                 if (fiadoAguardaErp) {
-                    finalizeConfirmedSale(withPrint, printWin, {
+                    saleFinalizeStarted = true;
+                    return finalizeConfirmedSale(withPrint, printWin, {
                         fiadoAguardaErp: true,
                         vendaId: vendaId,
                         nfceErro: nfceErro,
                         nfceOk: nfceOk,
                         cupomImpressao: cupomImpressao
                     });
-                    return;
                 }
                 var pendenteId =
                     state.entrega && state.entrega.pedidoEntregaPendenteId
@@ -8136,7 +8160,8 @@
                                     'Venda salva, mas falhou ao encerrar pendência da entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, {
+                        saleFinalizeStarted = true;
+                        return finalizeConfirmedSale(withPrint, printWin, {
                             erpPendente: erpPendente,
                             entregaOk: true,
                             vendaId: vendaId,
@@ -8150,7 +8175,8 @@
                     var entPayload = buildEntregaPayload(state, computed, { venda_id: vendaId });
                     if (erpPendente) {
                         jsonPost(urls.apiEntregaRegistrar, entPayload).catch(function () {});
-                        finalizeConfirmedSale(withPrint, printWin, {
+                        saleFinalizeStarted = true;
+                        return finalizeConfirmedSale(withPrint, printWin, {
                             erpPendente: true,
                             entregaOk: true,
                             vendaId: vendaId,
@@ -8158,7 +8184,6 @@
                             nfceOk: nfceOk,
                             cupomImpressao: cupomImpressao
                         });
-                        return;
                     }
                     return jsonPost(urls.apiEntregaRegistrar, entPayload).then(function (entRes) {
                         if (!entRes.ok || !entRes.data.ok) {
@@ -8167,7 +8192,8 @@
                                     'Venda salva, mas falhou ao registrar entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, {
+                        saleFinalizeStarted = true;
+                        return finalizeConfirmedSale(withPrint, printWin, {
                             entregaOk: true,
                             vendaId: vendaId,
                             nfceErro: nfceErro,
@@ -8176,7 +8202,8 @@
                         });
                     });
                 }
-                finalizeConfirmedSale(withPrint, printWin, {
+                saleFinalizeStarted = true;
+                return finalizeConfirmedSale(withPrint, printWin, {
                     erpPendente: erpPendente,
                     vendaId: vendaId,
                     nfceErro: nfceErro,
@@ -8194,8 +8221,9 @@
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                isProcessingSale = false;
-                setConfirmButtonsBusy(false);
+                if (!saleFinalizeStarted) {
+                    releaseSaleProcessingLock();
+                }
             });
     }
 
@@ -8230,6 +8258,7 @@
 
         var erpPayload = buildErpPayload(state, computed);
         var primaryOrderId = orderIds[0];
+        var saleFinalizeStarted = false;
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
             .then(function (draftRes) {
@@ -8310,6 +8339,11 @@
                 if (nfceErro && cupomImpMp === 'nfce') {
                     cupomImpMp = 'venda';
                 }
+                saleFinalizeStarted = true;
+                jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                resetWizardParaNovaVenda();
+                invalidateEntregasPendentesCache();
+                refreshEntregasPendentesUi(true, true);
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp)
                     .then(function (printFail) {
                         return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
@@ -8317,9 +8351,7 @@
                         });
                     })
                     .then(function (printFail) {
-                        jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                         pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
-                        resetWizardParaNovaVenda();
                         if (nfceErro) {
                             mostrarAvisoNfcePendente({ nfceErro: nfceErro }, 'Venda confirmada.');
                             return;
@@ -8343,6 +8375,9 @@
                                 'success'
                             );
                         }
+                    })
+                    .finally(function () {
+                        releaseSaleProcessingLock();
                     });
             })
             .catch(function (err) {
@@ -8359,8 +8394,9 @@
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                isProcessingSale = false;
-                setConfirmButtonsBusy(false);
+                if (!saleFinalizeStarted) {
+                    releaseSaleProcessingLock();
+                }
             });
     }
 
@@ -8407,6 +8443,8 @@
         State.setPagamentoField('imprimirCupom', withPrint);
         state = State.getState();
         if (window.gmLoadingBar) window.gmLoadingBar.show();
+
+        var saleFinalizeStarted = false;
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
             .then(function (draftRes) {
@@ -8508,14 +8546,17 @@
                 if (nfceErro && cupomImpMp === 'nfce') {
                     cupomImpMp = 'venda';
                 }
+                saleFinalizeStarted = true;
+                jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                resetWizardParaNovaVenda();
+                invalidateEntregasPendentesCache();
+                refreshEntregasPendentesUi(true, true);
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
                     return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
                         return printFail;
                     });
                 }).then(function (printFail) {
-                    jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
-                    resetWizardParaNovaVenda();
                     if (nfceErro) {
                         mostrarAvisoNfcePendente(
                             { nfceErro: nfceErro },
@@ -8544,6 +8585,8 @@
                             'success'
                         );
                     }
+                }).finally(function () {
+                    releaseSaleProcessingLock();
                 });
             })
             .catch(function (err) {
@@ -8573,8 +8616,9 @@
             .finally(function () {
                 hideMpPointWaitBar();
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                isProcessingSale = false;
-                setConfirmButtonsBusy(false);
+                if (!saleFinalizeStarted) {
+                    releaseSaleProcessingLock();
+                }
             });
     }
 
@@ -11149,7 +11193,7 @@
         }
         loadWizardClientesCache(false);
         setTimeout(function () {
-            refreshEntregasPendentesUi(true).then(function () {
+            refreshEntregasPendentesUi(true, true).then(function () {
                 maybeOpenEntregasFromQuery();
             });
             if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
