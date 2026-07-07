@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.04** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.05** · **loja v6.86**
 
-**WIP teste:** validar **v7.04** — botão «Cobrar na maquininha» + revisão com menos números
+**WIP teste:** validar **v7.05** — painel valor grande + revisão compacta
+
+### ✅ PDV — pagamento UX v7.05 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Valor** | Card grande, número centralizado, botão largo, passos em chips |
+| **Revisão** | «Pode confirmar» centralizado; lançamento 2 linhas + botões pequenos |
+| **Renan** | MP ok nas formas; sem mais venda teste (cartão) |
 
 ### ✅ PDV — pagamento UX v7.04 (06/07)
 

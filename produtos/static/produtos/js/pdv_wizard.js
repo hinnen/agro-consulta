@@ -340,6 +340,7 @@
         paymentFormaResumo: document.getElementById('pdv-payment-forma-resumo'),
         payCommitTranche: document.getElementById('pdv-pay-commit-tranche'),
         payCommitTrancheHint: document.getElementById('pdv-pay-commit-tranche-hint'),
+        payStepChips: document.getElementById('pdv-pay-step-chips'),
         paymentFeedback: document.getElementById('pdv-payment-feedback'),
         paymentLancamentosBox: document.getElementById('pdv-payment-lancamentos-box'),
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
@@ -1756,6 +1757,25 @@
                 hideMpPointWaitBar();
                 finishMpTrancheBusy();
             });
+    }
+
+    function renderPayStepChips(mpPoint) {
+        var el = dom.payStepChips || document.getElementById('pdv-pay-step-chips');
+        if (!el) return;
+        var steps = mpPoint
+            ? ['Valor', 'Botão', 'Maquininha', 'Confirmar']
+            : ['Valor', 'Lançar', 'Confirmar'];
+        el.innerHTML = steps
+            .map(function (label, i) {
+                return (
+                    '<span class="pdv-pay-step-chip" role="listitem"><b>' +
+                    (i + 1) +
+                    '</b>' +
+                    escapeHtml(label) +
+                    '</span>'
+                );
+            })
+            .join('');
     }
 
     function commitTrancheFlow(st, comp, cur) {
@@ -5696,26 +5716,13 @@
             dom.paymentRestanteHeroVal.textContent = quitadoPay ? 'Pode confirmar' : formatMoney(restFin);
         }
         if (dom.paymentTotalInline) dom.paymentTotalInline.textContent = formatMoney(total);
-        if (dom.paymentRestanteHeroSub) {
-            var subHero = 'Total da venda ' + formatMoney(total);
-            if (pagoAcum > 0.009 && !quitadoPay) {
-                subHero += ' · Pago ' + formatMoney(pagoAcum);
-            }
-            dom.paymentRestanteHeroSub.textContent = subHero;
-        }
         if (dom.paymentTotaisDetalhe) {
             var showDetalhe = (computed.desconto > 0.009) || (computed.frete > 0.009);
             dom.paymentTotaisDetalhe.classList.toggle('hidden', !showDetalhe);
         }
         if (dom.paymentFormaResumo) {
-            if (forma && !quitadoPay) {
-                dom.paymentFormaResumo.textContent =
-                    'Depois de lançar, o restante aparece à direita.';
-                dom.paymentFormaResumo.classList.remove('hidden');
-            } else {
-                dom.paymentFormaResumo.textContent = '';
-                dom.paymentFormaResumo.classList.add('hidden');
-            }
+            dom.paymentFormaResumo.textContent = '';
+            dom.paymentFormaResumo.classList.add('hidden');
         }
         var midPay = String(state.pagamento.maquinaId || '').trim();
         var mpPointBtn = isMaquinaMpPointAuto(midPay, forma);
@@ -5724,16 +5731,13 @@
             dom.payCommitTranche.disabled = !!isProcessingMpTranche || quitadoPay;
             dom.payCommitTranche.classList.toggle('opacity-40', dom.payCommitTranche.disabled);
         }
+        renderPayStepChips(mpPointBtn && !!forma);
         if (dom.payCommitTrancheHint) {
-            if (mpPointBtn) {
-                dom.payCommitTrancheHint.textContent =
-                    '1) Digite o valor · 2) Toque no botão verde · 3) Cliente paga na maquininha · 4) «Confirmar» no rodapé só fecha a venda.';
-            } else if (forma) {
-                dom.payCommitTrancheHint.textContent =
-                    'Registra este valor na venda. Faça a cobrança na máquina ou forma escolhida.';
-            } else {
-                dom.payCommitTrancheHint.textContent = '';
-            }
+            dom.payCommitTrancheHint.textContent = mpPointBtn
+                ? 'Digite o valor, toque no botão verde e aguarde a maquininha.'
+                : forma
+                  ? 'Digite o valor e toque em lançar pagamento.'
+                  : '';
         }
         if (dom.paymentValorTotalRef) dom.paymentValorTotalRef.textContent = formatMoney(total);
         if (dom.paymentValorRestante) dom.paymentValorRestante.textContent = formatMoney(restFin);
@@ -5763,40 +5767,36 @@
                           }
                           var subTxt = sub.filter(Boolean).join(' · ');
                           var podeEditar = !L.mpPointPago;
+                          var metaLine = subTxt ? 'Pago · ' + subTxt : 'Pago';
                           var liClass =
-                              'rounded-xl border-2 p-2.5 shadow-sm sm:p-3 ' +
-                              (L.mpPointPago
-                                  ? 'pdv-pay-lanc-item--mp-pago border-emerald-300'
-                                  : 'border-emerald-200/80 bg-white');
+                              'pdv-pay-lanc-item ' +
+                              (L.mpPointPago ? 'pdv-pay-lanc-item--mp-pago border-emerald-300' : 'border-emerald-200/80');
+                          var actionsHtml = podeEditar
+                              ? '<span class="pdv-pay-lanc-actions">' +
+                                '<button type="button" class="pdv-pay-lanc-btn pdv-pay-lanc-btn--edit" data-pdv-edit-lanc="' +
+                                idx +
+                                '">Alt.</button>' +
+                                '<button type="button" class="pdv-pay-lanc-btn pdv-pay-lanc-btn--rm" data-pdv-remove-lanc="' +
+                                idx +
+                                '">Exc.</button></span>'
+                              : '';
                           return (
-                              '<li class="' + liClass + '">' +
-                              '<div class="flex flex-wrap items-start justify-between gap-2">' +
-                              '<div class="min-w-0 flex-1">' +
-                              '<div class="flex flex-wrap items-center gap-2">' +
-                              '<p class="text-sm font-black leading-tight text-slate-900 sm:text-base">' +
+                              '<li class="' +
+                              liClass +
+                              '">' +
+                              '<div class="pdv-pay-lanc-row1">' +
+                              '<span class="pdv-pay-lanc-forma">' +
                               escapeHtml(L.forma || '') +
-                              '</p>' +
-                              '<span class="pdv-pay-badge-pago" title="Pagamento lançado">Pago</span>' +
-                              '</div>' +
-                              (subTxt
-                                  ? '<p class="mt-1 text-[11px] font-semibold leading-snug text-slate-600 sm:text-xs">' +
-                                    escapeHtml(subTxt) +
-                                    '</p>'
-                                  : '') +
-                              '</div>' +
-                              '<p class="shrink-0 text-base font-black tabular-nums text-emerald-900 sm:text-lg">' +
+                              '</span>' +
+                              '<span class="pdv-pay-lanc-valor">' +
                               escapeHtml(formatMoney(L.valor)) +
-                              '</p></div>' +
-                              (podeEditar
-                                  ? '<div class="mt-2 flex flex-wrap gap-2">' +
-                                    '<button type="button" class="rounded-lg border-2 border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-800 hover:bg-slate-100 sm:text-xs" data-pdv-edit-lanc="' +
-                                    idx +
-                                    '">Alterar</button>' +
-                                    '<button type="button" class="rounded-lg border-2 border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-rose-900 hover:bg-rose-100 sm:text-xs" data-pdv-remove-lanc="' +
-                                    idx +
-                                    '">Excluir</button></div>'
-                                  : '') +
-                              '</li>'
+                              '</span></div>' +
+                              '<div class="pdv-pay-lanc-row2">' +
+                              '<span class="pdv-pay-lanc-meta">' +
+                              escapeHtml(metaLine) +
+                              '</span>' +
+                              actionsHtml +
+                              '</div></li>'
                           );
                       })
                       .join('')
@@ -5821,6 +5821,7 @@
         }
         if (err) {
             dom.paymentFeedback.textContent = err;
+            dom.paymentFeedback.classList.remove('hidden');
         } else {
             var hintParcel = '';
             var totP = computed.total || 0;
@@ -5835,6 +5836,9 @@
                     'Parcelado na maquininha MP costuma funcionar a partir de R$ 10,00 (vendedor ou cliente).';
             }
             dom.paymentFeedback.textContent = hintParcel;
+            if (dom.paymentFeedback) {
+                dom.paymentFeedback.classList.toggle('hidden', !hintParcel);
+            }
         }
     }
 
