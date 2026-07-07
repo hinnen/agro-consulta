@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.12** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.13** · **loja v7.13**
 
-**WIP teste:** validar **v7.12** — cancel na maquininha = mesmo popup do cancel PDV
+**WIP loja:** validar **v7.13** na operação — MP Point TEF + cancel bidirecional + popups
+
+### ✅ Deploy loja **v7.13** — MP Point PDV pagamento (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Fluxo TEF (cobrar na tranche) · cancel PDV↔maquininha · popups MP · crédito à vista 1x · layout pagamento |
+| **Merge** | `teste` → `producao` · `2e920b1` |
+| **Status** | **✅ loja** — Render deployando |
 
 ### ✅ PDV — MP Point popup v7.11–12 (07/07)
 
