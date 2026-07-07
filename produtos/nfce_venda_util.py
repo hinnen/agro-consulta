@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from produtos.models import NfceDocumentoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada
+from produtos.sefaz_soap_util import sanitizar_erro_sefaz_exibicao
 
 _NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
 
@@ -51,7 +52,7 @@ def venda_nfce_pendente(venda: VendaAgro) -> bool:
 
 def _erro_nfce_venda(venda: VendaAgro, nfce: NfceDocumentoAgro | None) -> str:
     if nfce:
-        msg = (nfce.mensagem_sefaz or "").strip()
+        msg = sanitizar_erro_sefaz_exibicao(nfce.mensagem_sefaz or "")
         if msg:
             return msg
         if nfce.status == NfceDocumentoAgro.Status.REJEITADA:

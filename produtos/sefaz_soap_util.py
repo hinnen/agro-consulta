@@ -61,6 +61,29 @@ def sanitizar_erro_http_sefaz(status_code: int, corpo: str) -> str:
     return f"HTTP {status_code}: {txt[:240]}"
 
 
+def sanitizar_erro_sefaz_exibicao(mensagem: str) -> str:
+    """Texto amigável para tela — cobre erros HTTP, rede e registros antigos com HTML."""
+    raw = (mensagem or "").strip()
+    if not raw:
+        return ""
+    low = raw.lower()
+    m_http = re.match(r"^http\s+(\d{3})\b", low)
+    if m_http:
+        return sanitizar_erro_http_sefaz(int(m_http.group(1)), raw)
+    if sefaz_erro_transiente(low):
+        if "connection refused" in low or "errno 111" in low:
+            return (
+                "SEFAZ SP não aceitou conexão do servidor (recusada). "
+                "Instabilidade ou bloqueio temporário — aguarde e reemita em alguns minutos."
+            )
+        if "timed out" in low or "timeout" in low:
+            return "SEFAZ SP não respondeu a tempo. Aguarde alguns minutos e reemita."
+        return "Falha de comunicação com a SEFAZ SP. Aguarde alguns minutos e reemita."
+    if "<!doctype" in low or "<html" in low:
+        return sanitizar_erro_http_sefaz(403, raw)
+    return raw[:400]
+
+
 def sefaz_erro_transiente(mensagem: str) -> bool:
     """True se a falha parece rede/SEFAZ temporária (vale retry)."""
     e = (mensagem or "").strip().lower()

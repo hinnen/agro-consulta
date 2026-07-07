@@ -31,6 +31,7 @@ from produtos.sefaz_soap_util import (
     SEFAZ_HTTP_RETRY_DELAYS_S,
     SEFAZ_HTTP_TIMEOUT,
     sanitizar_erro_http_sefaz,
+    sanitizar_erro_sefaz_exibicao,
     sefaz_erro_transiente,
     sefaz_http_status_retry,
 )
@@ -538,8 +539,8 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
                     return None, last_err
                 return _parse_retorno_autorizacao(text, xml_nfe_assinado=xml_assinado), None
             except requests.RequestException as exc:
-                last_err = str(exc)[:400]
-                if sefaz_erro_transiente(last_err) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                last_err = sanitizar_erro_sefaz_exibicao(str(exc))
+                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
                     logger.warning(
                         "SEFAZ autorização rede — retry %s/%s: %s",
                         attempt + 1,
@@ -1149,8 +1150,8 @@ def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tu
                     return None, last_err
                 return _parse_retorno_evento(text), None
             except requests.RequestException as exc:
-                last_err = str(exc)[:400]
-                if sefaz_erro_transiente(last_err) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                last_err = sanitizar_erro_sefaz_exibicao(str(exc))
+                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
                     continue
                 return None, last_err
         return None, last_err or "Sem resposta SEFAZ."
