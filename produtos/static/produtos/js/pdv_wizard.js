@@ -344,6 +344,8 @@
         step1SalvarOrcamentoBtn: document.getElementById('pdv-step1-salvar-orcamento-btn'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
+        topbarNovaVendaBtn: document.getElementById('pdv-topbar-nova-venda-btn'),
+        footerFreteField: document.getElementById('pdv-footer-frete-field'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
         entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
         entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
@@ -5582,6 +5584,7 @@
     }
 
     function renderPagamento(state, computed) {
+        syncFooterFreteField(state, computed);
         var forma = state.pagamento.forma || '';
         setSelectValue(dom.paymentMethod, forma, '');
         setInputValueUnlessFocused(dom.paymentDiscount, moneyFieldDisplay(state.pagamento.descontoGeral));
@@ -5984,6 +5987,110 @@
     }
 
     /** Nova venda: zera carrinho/cliente e reabre o pop-up inicial (consumidor / buscar cliente). */
+    function entregaPassouEtapa2Frete(state, computed) {
+        state = state || State.getState();
+        computed = computed || State.getComputed();
+        if (!state || !computed || computed.flow.indexOf('entrega') < 0) return false;
+        if (String(state.entrega.modoRetiradaEntrega || '') === 'retirada') return false;
+        var lp = String((state.entrega && state.entrega.localPagamento) || '').trim();
+        if (lp === 'loja') return true;
+        if (state.entrega.pedidoEntregaPendenteId) return true;
+        if (state.entrega.taxaEntregaRespondida) return true;
+        if (state.entrega.detalhesEntregaRespondidos) return true;
+        return false;
+    }
+
+    function freteEditavelNoPagamento(state, computed) {
+        state = state || State.getState();
+        return state.currentStep === 'pagamento' && entregaPassouEtapa2Frete(state, computed);
+    }
+
+    function syncFooterFreteField(state, computed) {
+        var show = freteEditavelNoPagamento(state, computed);
+        if (dom.footerFreteField) {
+            dom.footerFreteField.classList.toggle('hidden', !show);
+        }
+        if (!show && state.currentStep === 'pagamento') {
+            var f = State.toNumber((state.pagamento && state.pagamento.frete) || 0);
+            if (f > 0.009) State.setPagamentoField('frete', 0);
+        }
+    }
+
+    function vendaTemConteudoParaDescartar(state) {
+        state = state || State.getState();
+        if ((state.itens || []).length) return true;
+        if ((state.pagamento.lancamentos || []).length) return true;
+        if (state.entrega && state.entrega.pedidoEntregaPendenteId) return true;
+        if (state.entrega && state.entrega.ativa && entregaPassouEtapa2Frete(state, State.getComputed())) return true;
+        var desc = State.toNumber((state.pagamento && state.pagamento.descontoGeral) || 0);
+        if (desc > 0.009) return true;
+        return false;
+    }
+
+    function lancamentosComMpPointPago(state) {
+        return (state.pagamento.lancamentos || []).some(function (L) {
+            return L && L.mpPointPago;
+        });
+    }
+
+    function mpPointEsperaAtiva() {
+        var overlay = document.getElementById('pdv-mp-point-wait-overlay');
+        return !!(overlay && !overlay.classList.contains('hidden') && mpPointWaitControl.orderId);
+    }
+
+    function abandonMpPointEmAndamento() {
+        var oid = mpPointWaitControl.orderId;
+        var abandonUrl = String(urls.apiPdvMpPointAbandon || '').trim();
+        hideMpPointWaitBar();
+        finishMpTrancheBusy();
+        mpPointWaitControl.cancelRequested = false;
+        if (!oid || !abandonUrl) return Promise.resolve();
+        return jsonPost(abandonUrl, { order_id: oid }).catch(function () {});
+    }
+
+    function executarNovaVendaLimpar() {
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        return abandonMpPointEmAndamento()
+            .then(function () {
+                return jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+            })
+            .then(function () {
+                hideSaleDoneToast();
+                resetWizardParaNovaVenda();
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function solicitarNovaVenda() {
+        if (isProcessingSale) {
+            showPdvAviso('Aguarde terminar de confirmar a venda.', { tone: 'info' });
+            return;
+        }
+        if (isProcessingMpTranche || mpPointEsperaAtiva()) {
+            var msgMp =
+                'Há cobrança na maquininha em andamento.\n\nDescartar cancela no PDV e tenta cancelar no terminal também.\n\nContinuar?';
+            if (!confirm(msgMp)) return;
+            executarNovaVendaLimpar();
+            return;
+        }
+        var state = State.getState();
+        if (!vendaTemConteudoParaDescartar(state)) {
+            executarNovaVendaLimpar();
+            return;
+        }
+        var msg = 'Descartar esta venda e começar outra?';
+        if (lancamentosComMpPointPago(state)) {
+            msg =
+                'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.\n\nContinuar mesmo assim?';
+        } else if ((state.pagamento.lancamentos || []).length) {
+            msg = 'Há pagamento lançado nesta venda.\n\nDescartar tudo e começar outra?';
+        }
+        if (!confirm(msg)) return;
+        executarNovaVendaLimpar();
+    }
+
     function resetWizardParaNovaVenda() {
         closePaymentFormaModal();
         hideMpPointWaitBar();
@@ -10198,6 +10305,9 @@
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
         }
+        if (dom.topbarNovaVendaBtn) {
+            dom.topbarNovaVendaBtn.addEventListener('click', solicitarNovaVenda);
+        }
         if (dom.fiadoGestaoOpen) {
             dom.fiadoGestaoOpen.addEventListener('click', openFiadoGestao);
         }
@@ -11008,6 +11118,17 @@
             if (event.code === 'F6') {
                 event.preventDefault();
                 openBudgetHistory();
+                return;
+            }
+            if (
+                event.code === 'F12' &&
+                !event.altKey &&
+                !event.ctrlKey &&
+                !event.metaKey &&
+                !startModalOpen
+            ) {
+                event.preventDefault();
+                solicitarNovaVenda();
                 return;
             }
             if (
