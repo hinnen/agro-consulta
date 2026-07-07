@@ -1145,7 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.26** · **loja v7.22**
+**Versão app (`VERSION`):** **teste v7.27** · **loja v7.23**
+
+### ✅ Deploy loja **v7.23** — NFC-e retry 403 SEFAZ (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Retry HTTP **403/5xx** · timeout conexão 12s · mensagem legível (sem HTML) |
+| **Como** | Cherry-pick `a2f252a` **só NFC-e** |
+| **Commit loja** | `db22c40` |
+| **Status** | **✅ loja** — reemitir cupons pendentes |
 
 ### ✅ Deploy loja **v7.22** — NFC-e retry SEFAZ (07/07 — Renan senha OK)
 
