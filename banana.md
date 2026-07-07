@@ -1145,23 +1145,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.21** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.22** · **loja v7.21**
 
-**WIP teste (separado — não vai na loja ainda):** botão «Nova venda» + tirar frete da etapa 3
+**WIP teste (separado — não na loja):** botão «Nova venda» + tirar frete etapa 3
 
-### 📦 Cherry loja pendente — pacote **v7.17–v7.21** (Renan validou teste 07/07)
+### ✅ Deploy loja **v7.21** — PDV entregas + confirmar venda (07/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ teste OK · **aguardando** pedido produção + senha |
-| **Loja hoje** | **v7.15** |
-| **Subir até** | **v7.21** — **não** misturar WIP futuro (nova venda / frete) |
-| **Como** | merge `teste` → `producao` **até** commit `d186601` **ou** cherry dos commits abaixo |
-| **Commits** | `f62dee0` v7.17 · `fb12d5d` v7.18 · `595dfc4` v7.19 · `5d7c113` · `d186601` |
-| **Arquivos** | `pdv_wizard.js` · `views.py` · `entrega_pdv_pendente_util.py` · `VERSION` · `banana.md` |
-| **O quê** | Duplo clique confirmar · badge Entregas · entrega encerra só no PDV · idempotente |
+| **O quê** | Duplo clique · badge Entregas · entrega só no PDV · idempotente |
+| **Merge** | até `d186601` → `producao` `58628ff` |
+| **Status** | **✅ loja** |
 
-**WIP loja:** Renan pedir *«manda produção 99738595»* só deste pacote
+### 📦 Cherry loja — pacote v7.17–v7.21 (fechado 07/07)
 
 ### 🐛 PDV v7.19 (07/07) — fluxo entrega
 
