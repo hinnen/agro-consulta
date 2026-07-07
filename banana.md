@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.02** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.03** · **loja v6.86**
 
-**WIP teste:** validar **v7.02** — MP Point cobra na tranche (Enter); Confirmar só fecha venda
+**WIP teste:** validar **v7.03** — badge Pago + restante grande à direita (pagamento)
+
+### ✅ PDV — pagamento UX v7.03 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Direita** | Card grande «Resta pagar» / «Quitado» + já lançado |
+| **Lista** | Badge verde **Pago** em cada lançamento; MP pago com fundo verde |
 
 ### ✅ PDV — MP Point fluxo TEF v7.02 (06/07)
 

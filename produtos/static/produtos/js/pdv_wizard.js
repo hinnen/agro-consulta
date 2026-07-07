@@ -331,6 +331,10 @@
         paymentTotal: document.getElementById('pdv-payment-total'),
         paymentPaidAccum: document.getElementById('pdv-payment-pago-acum'),
         paymentRemainingTop: document.getElementById('pdv-payment-restante-top'),
+        paymentRestanteHero: document.getElementById('pdv-payment-restante-hero'),
+        paymentRestanteHeroLabel: document.getElementById('pdv-payment-restante-hero-label'),
+        paymentRestanteHeroVal: document.getElementById('pdv-payment-restante-hero-val'),
+        paymentPagoHero: document.getElementById('pdv-payment-pago-hero'),
         paymentFeedback: document.getElementById('pdv-payment-feedback'),
         paymentLancamentosBox: document.getElementById('pdv-payment-lancamentos-box'),
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
@@ -5675,6 +5679,18 @@
         var restFin = saldoRestantePagamento(state, computed);
         if (dom.paymentPaidAccum) dom.paymentPaidAccum.textContent = formatMoney(pagoAcum);
         if (dom.paymentRemainingTop) dom.paymentRemainingTop.textContent = formatMoney(restFin);
+        if (dom.paymentPagoHero) dom.paymentPagoHero.textContent = formatMoney(pagoAcum);
+        var quitadoPay = restFin <= 0.009;
+        if (dom.paymentRestanteHero) {
+            dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--quitado', quitadoPay);
+            dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--pendente', !quitadoPay);
+        }
+        if (dom.paymentRestanteHeroLabel) {
+            dom.paymentRestanteHeroLabel.textContent = quitadoPay ? 'Quitado — pode confirmar' : 'Resta pagar';
+        }
+        if (dom.paymentRestanteHeroVal) {
+            dom.paymentRestanteHeroVal.textContent = quitadoPay ? 'R$ 0,00' : formatMoney(restFin);
+        }
         if (dom.paymentValorTotalRef) dom.paymentValorTotalRef.textContent = formatMoney(total);
         if (dom.paymentValorRestante) dom.paymentValorRestante.textContent = formatMoney(restFin);
 
@@ -5703,13 +5719,21 @@
                           }
                           var subTxt = sub.filter(Boolean).join(' · ');
                           var podeEditar = !L.mpPointPago;
+                          var liClass =
+                              'rounded-xl border-2 p-2.5 shadow-sm sm:p-3 ' +
+                              (L.mpPointPago
+                                  ? 'pdv-pay-lanc-item--mp-pago border-emerald-300'
+                                  : 'border-emerald-200/80 bg-white');
                           return (
-                              '<li class="rounded-xl border-2 border-emerald-200/80 bg-white p-2.5 shadow-sm sm:p-3">' +
+                              '<li class="' + liClass + '">' +
                               '<div class="flex flex-wrap items-start justify-between gap-2">' +
                               '<div class="min-w-0 flex-1">' +
+                              '<div class="flex flex-wrap items-center gap-2">' +
                               '<p class="text-sm font-black leading-tight text-slate-900 sm:text-base">' +
                               escapeHtml(L.forma || '') +
                               '</p>' +
+                              '<span class="pdv-pay-badge-pago" title="Pagamento lançado">Pago</span>' +
+                              '</div>' +
                               (subTxt
                                   ? '<p class="mt-1 text-[11px] font-semibold leading-snug text-slate-600 sm:text-xs">' +
                                     escapeHtml(subTxt) +
