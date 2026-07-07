@@ -541,7 +541,9 @@
               msgEl.textContent = err;
               msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
             })
-            .catch(function () { alert('Falha de rede.'); })
+            .catch(function (err) {
+              alert((err && err.message) || 'Falha de rede ou tempo esgotado — aguarde e tente de novo.');
+            })
             .finally(function () {
               btn.disabled = false;
               if (window.gmLoadingBar) window.gmLoadingBar.hide();
