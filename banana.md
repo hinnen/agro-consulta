@@ -1145,9 +1145,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.19** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.20** · **loja v7.15**
 
-**WIP teste:** validar **v7.19** — entrega encerra só no PDV ao confirmar
+**WIP teste:** validar **v7.20** — entrega encerra só no PDV ao confirmar
 
 ### 🐛 PDV v7.19 (07/07) — fluxo entrega
 
