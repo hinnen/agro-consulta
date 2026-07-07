@@ -167,12 +167,72 @@
 
     function showPdvAviso(msg, opts) {
         opts = opts || {};
-        var texto = String(msg || '').replace(/\n+/g, ' ').trim();
+        var texto = opts.keepNewlines ? String(msg || '').trim() : String(msg || '').replace(/\n+/g, ' ').trim();
         if (!texto) return;
         showSaleDoneFeedback(texto, opts.tone || 'warn', {
             title: opts.title || 'Atenção',
-            placementTop: true,
-            durationMs: opts.durationMs || 12000
+            placementTop: !opts.prominent,
+            prominent: !!opts.prominent,
+            persistent: !!opts.persistent,
+            keepNewlines: !!opts.keepNewlines,
+            durationMs: opts.persistent ? 0 : opts.durationMs || 12000
+        });
+    }
+
+    function showPdvConfirmacao(msg, opts) {
+        opts = opts || {};
+        var texto = String(msg || '').trim();
+        if (!texto) return Promise.resolve(false);
+        return new Promise(function (resolve) {
+            var host = document.getElementById('pdv-sale-toast');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'pdv-sale-toast';
+                host.setAttribute('role', 'dialog');
+                host.setAttribute('aria-modal', 'true');
+                document.body.appendChild(host);
+            }
+            host.removeAttribute('aria-hidden');
+            var tone = opts.tone || 'warn';
+            var palette =
+                tone === 'error'
+                    ? 'border-rose-500 bg-rose-50 text-rose-950 shadow-rose-300/60'
+                    : 'border-amber-500 bg-amber-50 text-amber-950 shadow-amber-400/70';
+            var title = opts.title || 'Confirmar';
+            var confirmLabel = opts.confirmLabel || 'Sim, continuar';
+            var cancelLabel = opts.cancelLabel || 'Cancelar';
+            host.className = 'pointer-events-auto fixed z-[9999] pdv-sale-toast--prominent';
+            host.innerHTML =
+                '<div class="pdv-sale-toast-panel rounded-3xl border-2 shadow-2xl ' +
+                palette +
+                '">' +
+                '<div class="pdv-sale-toast-prominent-inner">' +
+                '<span class="pdv-sale-toast-icon flex shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">?</span>' +
+                '<p class="pdv-sale-toast-title text-base font-black leading-tight">' +
+                escapeHtml(title) +
+                '</p>' +
+                '<p class="pdv-sale-toast-body mt-1 text-sm font-semibold leading-snug whitespace-pre-line">' +
+                escapeHtml(texto) +
+                '</p>' +
+                '<div class="mt-4 flex flex-wrap justify-center gap-3">' +
+                '<button type="button" data-pdv-confirm-cancel class="rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80">' +
+                escapeHtml(cancelLabel) +
+                '</button>' +
+                '<button type="button" data-pdv-confirm-ok class="rounded-xl border-2 border-amber-700 bg-amber-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white hover:bg-amber-700">' +
+                escapeHtml(confirmLabel) +
+                '</button>' +
+                '</div></div></div>';
+            if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+            showSaleDoneFeedback._timer = null;
+            showSaleDoneFeedback._onDismiss = null;
+            var fechar = function (ok) {
+                hideSaleDoneToast();
+                resolve(!!ok);
+            };
+            var btnCancel = host.querySelector('[data-pdv-confirm-cancel]');
+            var btnOk = host.querySelector('[data-pdv-confirm-ok]');
+            if (btnCancel) btnCancel.addEventListener('click', function () { fechar(false); });
+            if (btnOk) btnOk.addEventListener('click', function () { fechar(true); });
         });
     }
 
@@ -2672,7 +2732,23 @@
             alert('Defina o cliente ou consumidor final antes de ir para pagamento.');
             return;
         }
+        marcarVendaBalcaoSemEntrega();
         State.setCurrentStep('pagamento');
+    }
+
+    function marcarVendaBalcaoSemEntrega() {
+        State.setEntregaPatch({
+            ativa: false,
+            modoRetiradaEntrega: 'retirada',
+            localPagamento: '',
+            meioNaEntrega: '',
+            taxaEntregaRespondida: false,
+            taxaEntregaModo: '',
+            detalhesEntregaRespondidos: false,
+            enderecoPassoConcluido: false,
+            entregaFreteLiberadoPagamento: false
+        });
+        State.setPagamentoField('frete', 0);
     }
 
     function renderSummary(state, computed) {
@@ -5989,15 +6065,9 @@
     /** Nova venda: zera carrinho/cliente e reabre o pop-up inicial (consumidor / buscar cliente). */
     function entregaPassouEtapa2Frete(state, computed) {
         state = state || State.getState();
-        computed = computed || State.getComputed();
-        if (!state || !computed || computed.flow.indexOf('entrega') < 0) return false;
-        if (String(state.entrega.modoRetiradaEntrega || '') === 'retirada') return false;
-        var lp = String((state.entrega && state.entrega.localPagamento) || '').trim();
-        if (lp === 'loja') return true;
+        if (!state || !state.entrega) return false;
         if (state.entrega.pedidoEntregaPendenteId) return true;
-        if (state.entrega.taxaEntregaRespondida) return true;
-        if (state.entrega.detalhesEntregaRespondidos) return true;
-        return false;
+        return !!state.entrega.entregaFreteLiberadoPagamento;
     }
 
     function freteEditavelNoPagamento(state, computed) {
@@ -6069,10 +6139,16 @@
             return;
         }
         if (isProcessingMpTranche || mpPointEsperaAtiva()) {
-            var msgMp =
-                'Há cobrança na maquininha em andamento.\n\nDescartar cancela no PDV e tenta cancelar no terminal também.\n\nContinuar?';
-            if (!confirm(msgMp)) return;
-            executarNovaVendaLimpar();
+            showPdvConfirmacao(
+                'Há cobrança na maquininha em andamento.\n\nDescartar cancela no PDV e tenta cancelar no terminal também.',
+                {
+                    title: 'Nova venda',
+                    confirmLabel: 'Sim, descartar',
+                    cancelLabel: 'Voltar'
+                }
+            ).then(function (ok) {
+                if (ok) executarNovaVendaLimpar();
+            });
             return;
         }
         var state = State.getState();
@@ -6081,14 +6157,21 @@
             return;
         }
         var msg = 'Descartar esta venda e começar outra?';
+        var confirmLabel = 'Sim, descartar';
         if (lancamentosComMpPointPago(state)) {
             msg =
-                'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.\n\nContinuar mesmo assim?';
+                'Há pagamento já confirmado na maquininha Mercado Pago.\n\nDescartar só limpa o PDV — o dinheiro já foi cobrado. Se a venda não foi confirmada, confira em Consultar vendas.';
+            confirmLabel = 'Entendi, descartar';
         } else if ((state.pagamento.lancamentos || []).length) {
             msg = 'Há pagamento lançado nesta venda.\n\nDescartar tudo e começar outra?';
         }
-        if (!confirm(msg)) return;
-        executarNovaVendaLimpar();
+        showPdvConfirmacao(msg, {
+            title: 'Nova venda',
+            confirmLabel: confirmLabel,
+            cancelLabel: 'Cancelar'
+        }).then(function (ok) {
+            if (ok) executarNovaVendaLimpar();
+        });
     }
 
     function resetWizardParaNovaVenda() {
@@ -6327,7 +6410,8 @@
                 ativa: false,
                 detalhesEntregaRespondidos: false,
                 localPagamento: '',
-                meioNaEntrega: ''
+                meioNaEntrega: '',
+                entregaFreteLiberadoPagamento: false
             });
             State.setPagamentoField('frete', 0);
             State.setCurrentStep('pagamento');
@@ -9743,6 +9827,7 @@
             if (!opt) return;
             var orcId = Date.now();
             wizardImprimirPacoteEntrega(orcId, opt);
+            State.setEntregaPatch({ entregaFreteLiberadoPagamento: true });
             State.setCurrentStep('pagamento');
         });
     }
@@ -9757,7 +9842,8 @@
             taxaEntregaRespondida: false,
             taxaEntregaModo: '',
             detalhesEntregaRespondidos: false,
-            enderecoPassoConcluido: false
+            enderecoPassoConcluido: false,
+            entregaFreteLiberadoPagamento: false
         });
         State.setPagamentoField('frete', 0);
         State.setEntregaField('maquininha', '');
@@ -9805,6 +9891,9 @@
                 return;
             }
             var target = nextStep(state, computed);
+            if (target === 'pagamento' && state.currentStep === 'produtos') {
+                marcarVendaBalcaoSemEntrega();
+            }
             if (target) State.setCurrentStep(target);
         });
 
