@@ -76,6 +76,8 @@ from .caixa_util import (
     rotulo_caixa_browser,
     definir_ponto_operacao_browser,
     limpar_ponto_operacao_browser,
+    limpar_navegador_host_mp_point,
+    marcar_navegador_host_mp_point,
     PONTO_CAIXA_GAVETA,
     PONTO_CAIXA_NOTEBOOK,
     PONTO_CAIXA_TESTE,
@@ -8492,7 +8494,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         nfce_boot = {"ativo": False}
 
     ctx["pdv_bootstrap"] = {
-        "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+        "csrfToken": get_token(request),
         "usuarioSalvamento": u_pdv,
         "nfce": nfce_boot,
         "urls": {
@@ -9616,6 +9618,7 @@ def caixa_abrir(request):
                 messages.error(request, err_pin)
                 return redirect("caixa_abrir")
             definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, gaveta.pk)
+            limpar_navegador_host_mp_point(request)
             op = rotulo_operador_pin(pin)
             if op:
                 request.session["pdv_caixa_gerido_operador"] = op[:120]
@@ -9651,6 +9654,8 @@ def caixa_abrir(request):
             ponto_caixa=ponto,
         )
         definir_ponto_operacao_browser(request, ponto, s.pk)
+        if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
+            marcar_navegador_host_mp_point(request)
         if ponto == PONTO_CAIXA_GAVETA:
             _limpar_rascunho_conferencia_caixa(request)
         rotulo = rotulo_ponto_caixa(ponto)
@@ -9870,7 +9875,7 @@ def caixa_fechar(request):
             "sessao_local": _obter_sessao_caixa_aberta(request),
             "entregas_pendentes_fechar": entregas_pendentes_fechar,
             "fechar_bloqueado": fechar_bloqueado,
-            "pdv_url": reverse("pdv_home"),
+            "pdv_url": reverse("pdv_home") + "?entregas=1",
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
             "conferencia_turno_json": json.dumps(
@@ -24073,6 +24078,9 @@ def api_pdv_cliente_rapido(request):
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
+    if cpf_err:
+        return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
     resumo_end = _pdv_resumo_endereco_cliente_rapido(data)
     endereco_manual = (data.get("endereco") or "").strip()[:500]
     endereco_final = endereco_manual or resumo_end
@@ -24092,6 +24100,9 @@ def api_pdv_cliente_rapido(request):
             referencia_rural=(data.get("referencia_rural") or "").strip()[:300],
             maps_url_manual=(data.get("maps_url_manual") or "").strip()[:600],
         )
+        if cpf_val is not None:
+            c.cpf = cpf_val
+            c.save(update_fields=["cpf"])
     except Exception as e:
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
@@ -24104,6 +24115,23 @@ def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_
     return validar_whatsapp_unico_cliente(
         wa_raw, excluir_pk=excluir_pk, obrigatorio=obrigatorio
     )
+
+
+def _pdv_cpf_field_from_payload(data: dict) -> tuple[str | None, str | None]:
+    """(cpf 11 dígitos ou '' para limpar, erro). ``None`` no cpf = campo omitido."""
+    if "cpf" not in data and "documento" not in data:
+        return None, None
+    from produtos.nfce_sp_emissao_util import cpf_valido
+
+    raw = str(data.get("cpf") or data.get("documento") or "").strip()
+    if not raw:
+        return "", None
+    digits = re.sub(r"\D", "", raw)
+    if not digits:
+        return "", None
+    if not cpf_valido(digits):
+        return None, "CPF inválido."
+    return digits[:11], None
 
 
 def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
@@ -24166,8 +24194,13 @@ def api_pdv_cliente_editar(request, pk):
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
+    if cpf_err:
+        return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
     cli.nome = nome[:200]
     cli.whatsapp = wa_digits
+    if cpf_val is not None:
+        cli.cpf = cpf_val
     _pdv_aplicar_endereco_clienteagro(cli, data)
     cli.editado_local = True
     try:
@@ -24604,9 +24637,7 @@ def api_entrega_registrar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_pdv_entregas_pendentes(request):
-    sessao = resolver_sessao_caixa_entrega_pdv(request)
-    sid = sessao.pk if sessao else None
-    itens = listar_entregas_pendentes_pdv(sessao_caixa_id=sid)
+    itens = listar_entregas_pendentes_pdv()
     return JsonResponse(
         {
             "ok": True,

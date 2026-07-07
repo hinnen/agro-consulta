@@ -1,13 +1,41 @@
 """Painel NFC-e por venda — consulta / reemissão."""
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
+
+from django.utils import timezone
 
 from produtos.models import NfceDocumentoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada
 
+_NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
+
+
+def venda_nfce_processando(venda: VendaAgro) -> bool:
+    """NFC-e pedida em background e ainda sem documento (evita reemitir no meio)."""
+    if not getattr(venda, "nfce_solicitada", False):
+        return False
+    nfce = getattr(venda, "nfce", None)
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        return False
+    if nfce and nfce.status in (
+        NfceDocumentoAgro.Status.REJEITADA,
+        NfceDocumentoAgro.Status.ERRO,
+        NfceDocumentoAgro.Status.CANCELADA,
+    ):
+        return False
+    if nfce is not None:
+        return False
+    criado = getattr(venda, "criado_em", None)
+    if not criado:
+        return True
+    return timezone.now() - criado < _NFCE_PROCESSANDO_JANELA
+
 
 def venda_nfce_pendente(venda: VendaAgro) -> bool:
+    if venda_nfce_processando(venda):
+        return False
     nfce = getattr(venda, "nfce", None)
     if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
         return False
@@ -54,6 +82,7 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
         "protocolo": "",
         "dest_cpf": "",
         "consumidor_sem_identificacao": False,
+        "processando": False,
         "pode_reemitir": False,
         "pode_cancelar": False,
         "pode_imprimir_fiscal": False,
@@ -87,6 +116,14 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
     if nfce and nfce.status == NfceDocumentoAgro.Status.CANCELADA:
         out["status_label"] = "Cancelada"
         out["erro"] = nfce.mensagem_sefaz or "NFC-e cancelada na SEFAZ."
+        return out
+
+    if venda_nfce_processando(venda):
+        out["processando"] = True
+        out["status_label"] = "Emitindo"
+        out["erro"] = ""
+        out["pode_reemitir"] = False
+        out["pode_imprimir_fiscal"] = False
         return out
 
     if venda_nfce_pendente(venda):

@@ -2,22 +2,30 @@ from django.conf import settings
 from django.shortcuts import render
 from django.templatetags.static import static
 from django.urls import reverse
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
-from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
+from produtos.caixa_util import (
+    PONTO_CAIXA_NOTEBOOK,
+    adotar_sessao_caixa_unica_aberta,
+    filtrar_maquininhas_pdv_sem_mp,
+    navegador_pode_mp_point_automatico,
+    obter_sessao_caixa_aberta_request,
+    ponto_operacao_browser,
+)
 from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
-    {"id": "mp_balcao", "nome": "Mercado Pago — Balcão", "rede": "mp"},
-    {"id": "sicredi_1", "nome": "Sicredi — Terminal 1", "rede": "sicredi"},
-    {"id": "sicredi_2", "nome": "Sicredi — Terminal 2", "rede": "sicredi"},
+    {"id": "mp_balcao", "nome": "Mercado Pago — Balcão (automático)", "rede": "mp"},
+    {"id": "cielo_1", "nome": "Cielo", "rede": "cielo"},
+    {"id": "sicredi_1", "nome": "Sicredi", "rede": "sicredi"},
 ]
 
 _DEFAULT_MAQUININHAS_PIX_PDV = [
-    {"id": "pix_mp_qr", "nome": "Mercado Pago — QR", "rede": "mp"},
-    {"id": "pix_sicredi_qr", "nome": "Sicredi — QR", "rede": "sicredi"},
+    {"id": "pix_mp_qr", "nome": "Mercado Pago — Pix (automático)", "rede": "mp"},
+    {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo"},
     {"id": "pix_sicoob_chave", "nome": "Sicoob — Chave Pix", "rede": "sicoob"},
 ]
 
@@ -55,6 +63,14 @@ def _safe_float_ptbr(val, default=0.0):
 @ensure_csrf_cookie
 def pdv_home(request):
     caixa_aberto = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
+    mp_point_configurado = bool(
+        getattr(settings, "MP_POINT_ENABLED", False)
+        and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
+        and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+    )
+    mp_point_nav = navegador_pode_mp_point_automatico(request)
+    mp_point_enabled = mp_point_configurado and mp_point_nav
+    ponto_nav = ponto_operacao_browser(request)
     pdv_reabrir_from_consulta = None
     if request.GET.get("reabrir") == "1":
         chk = request.session.get("pdv_checkout")
@@ -82,7 +98,7 @@ def pdv_home(request):
     ctx = {
         "caixa_aberto": caixa_aberto,
         "pdv_bootstrap": {
-            "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+            "csrfToken": get_token(request),
             "usuarioSalvamento": u_pdv,
             "clientePadraoNome": "CONSUMIDOR NÃO IDENTIFICADO...",
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
@@ -101,6 +117,7 @@ def pdv_home(request):
                 "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
                 "apiPdvMpPointCriar": reverse("api_pdv_mp_point_criar"),
                 "apiPdvMpPointStatus": reverse("api_pdv_mp_point_status"),
+                "apiPdvMpPointConfirmarTranche": reverse("api_pdv_mp_point_confirmar_tranche"),
                 "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
@@ -148,24 +165,41 @@ def pdv_home(request):
             "caixa": {
                 "aberto": bool(caixa_aberto),
                 "id": caixa_aberto.pk if caixa_aberto else None,
+                "pontoOperacao": ponto_nav,
             },
             "bairrosEntrega": {
                 "urbanos": list(BAIRROS_JACUPI_URBANOS),
                 "rurais": list(BAIRROS_JACUPI_RURAIS),
             },
             "pagamentoUi": {
-                "mpPointEnabled": bool(
-                    getattr(settings, "MP_POINT_ENABLED", False)
-                    and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
-                    and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+                "mpPointEnabled": mp_point_enabled,
+                "mpPointMotivoBloqueio": (
+                    "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
+                    "Neste PDV use Cielo, Sicredi ou Sicoob."
+                    if mp_point_configurado
+                    and not mp_point_nav
+                    and ponto_nav == PONTO_CAIXA_NOTEBOOK
+                    else (
+                        "Abra o Caixa Gaveta neste computador para usar Mercado Pago automático."
+                        if mp_point_configurado and not mp_point_nav
+                        else ""
+                    )
                 ),
                 "qrMercadoPagoUrl": settings.PDV_QR_MERCADOPAGO_URL,
                 "qrSicrediUrl": settings.PDV_QR_SICREDI_URL,
                 "chavePixSicob": settings.PDV_CHAVE_PIX_SICOB,
                 "saldoValeCredito": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_VALE_CREDITO, 0.0),
                 "saldoCashback": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_CASHBACK, 0.0),
-                "maquininhasCartao": _maquininhas_cartao_effective(),
-                "maquininhasPix": _maquininhas_pix_effective(),
+                "maquininhasCartao": (
+                    _maquininhas_cartao_effective()
+                    if mp_point_enabled
+                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_cartao_effective())
+                ),
+                "maquininhasPix": (
+                    _maquininhas_pix_effective()
+                    if mp_point_enabled
+                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_pix_effective())
+                ),
             },
             "nfce": nfce_config_resumo(),
         },

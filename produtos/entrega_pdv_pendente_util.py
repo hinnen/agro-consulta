@@ -21,15 +21,24 @@ def queryset_entregas_bloqueando_fechamento_caixa():
     )
 
 
-def contar_entregas_pendentes_pdv(*, sessao_caixa_id=None) -> int:
-    qs = queryset_entregas_aguardando_pagamento_pdv()
-    if sessao_caixa_id:
-        try:
-            sid = int(sessao_caixa_id)
-            qs = qs.filter(Q(sessao_caixa_id=sid) | Q(sessao_caixa__isnull=True))
-        except (TypeError, ValueError):
-            pass
-    return qs.count()
+def _sessao_caixa_label_entrega(ent: PedidoEntrega) -> str:
+    if ent.sessao_caixa_id:
+        u = ent.sessao_caixa.usuario if ent.sessao_caixa else None
+        label = f"Caixa #{ent.sessao_caixa_id}"
+        if u:
+            label += (
+                " — "
+                + ((u.get_full_name() or "").strip() or u.get_username() or "")
+            )
+        return label
+    return "Sem caixa vinculado"
+
+
+def contar_entregas_pendentes_pdv(*, apenas_caixas_abertos: bool = True) -> int:
+    """Conta pendências visíveis no PDV (mesmo critério do bloqueio ao fechar caixa)."""
+    if apenas_caixas_abertos:
+        return queryset_entregas_bloqueando_fechamento_caixa().count()
+    return queryset_entregas_aguardando_pagamento_pdv().count()
 
 
 def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool = False) -> dict:
@@ -50,42 +59,23 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
     return row
 
 
-def listar_entregas_pendentes_pdv(*, limite: int = 80, sessao_caixa_id=None) -> list[dict]:
-    qs = (
-        queryset_entregas_aguardando_pagamento_pdv()
-        .select_related("sessao_caixa")
-        .order_by("criado_em")
-    )
-    if sessao_caixa_id:
-        try:
-            sid = int(sessao_caixa_id)
-            qs = qs.filter(Q(sessao_caixa_id=sid) | Q(sessao_caixa__isnull=True))
-        except (TypeError, ValueError):
-            pass
-    return [serializar_entrega_pendente_pdv(e) for e in qs[:limite]]
-
-
-def listar_entregas_bloqueando_fechamento_caixa(*, limite: int = 50) -> list[dict]:
-    qs = (
-        queryset_entregas_bloqueando_fechamento_caixa()
-        .select_related("sessao_caixa", "sessao_caixa__usuario")
-        .order_by("criado_em")
-    )
+def listar_entregas_pendentes_pdv(*, limite: int = 80, apenas_caixas_abertos: bool = True) -> list[dict]:
+    """Lista pendências do PDV — alinhado ao bloqueio em /caixa/fechar/ (todos caixas abertos)."""
+    if apenas_caixas_abertos:
+        qs = queryset_entregas_bloqueando_fechamento_caixa()
+    else:
+        qs = queryset_entregas_aguardando_pagamento_pdv()
+    qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by("criado_em")
     out = []
     for ent in qs[:limite]:
         row = serializar_entrega_pendente_pdv(ent)
-        if ent.sessao_caixa_id:
-            u = ent.sessao_caixa.usuario if ent.sessao_caixa else None
-            row["sessao_caixa_label"] = f"Caixa #{ent.sessao_caixa_id}"
-            if u:
-                row["sessao_caixa_label"] += (
-                    " — "
-                    + ((u.get_full_name() or "").strip() or u.get_username() or "")
-                )
-        else:
-            row["sessao_caixa_label"] = "Sem caixa vinculado"
+        row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
         out.append(row)
     return out
+
+
+def listar_entregas_bloqueando_fechamento_caixa(*, limite: int = 50) -> list[dict]:
+    return listar_entregas_pendentes_pdv(limite=limite, apenas_caixas_abertos=True)
 
 
 def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> SessaoCaixa | None:

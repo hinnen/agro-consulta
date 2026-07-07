@@ -19,7 +19,7 @@
       ROOT_ID +
       '{position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;padding:1rem;box-sizing:border-box}' +
       '.agro-perf-config-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.55)}' +
-      '.agro-perf-config-panel{position:relative;z-index:1;width:min(28rem,100%);max-height:min(90vh,100%);overflow:auto;border-radius:1rem;border:3px solid #f97316;background:#fff;box-shadow:0 24px 64px rgba(15,23,42,.28);padding:1.1rem 1.25rem}' +
+      '.agro-perf-config-panel{position:relative;z-index:1;width:min(28rem,100%);max-height:min(90vh,100%);overflow:auto;border-radius:1rem;border:3px solid #10b981;background:#fff;box-shadow:0 24px 64px rgba(15,23,42,.28);padding:1.1rem 1.25rem}' +
       '.agro-perf-config-title{margin:0 0 .35rem;font-size:1.05rem;font-weight:900;text-transform:uppercase;color:#0f172a}' +
       '.agro-perf-config-sub{margin:0 0 1rem;font-size:.78rem;font-weight:600;color:#64748b;line-height:1.35}' +
       '.agro-perf-config-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.85rem 0;border-top:2px solid #f1f5f9}' +
@@ -28,7 +28,7 @@
       '.agro-perf-config-row small{display:block;font-size:.7rem;font-weight:600;color:#64748b;margin-top:.2rem}' +
       '.agro-perf-config-toggle{min-width:3.4rem;min-height:2.4rem;border-radius:.75rem;border:2px solid #cbd5e1;background:#f8fafc;font-size:.72rem;font-weight:900;text-transform:uppercase;cursor:pointer}' +
       '.agro-perf-config-toggle[aria-pressed="true"]{border-color:#059669;background:#ecfdf5;color:#047857}' +
-      '#agro-perf-config-close{margin-top:1rem;width:100%;min-height:2.75rem;border-radius:.75rem;border:2px solid #c2410c;background:linear-gradient(135deg,#fb923c,#ea580c);color:#fff;font-size:.8rem;font-weight:900;text-transform:uppercase;cursor:pointer}';
+      '#agro-perf-config-close{margin-top:1rem;width:100%;min-height:2.75rem;border-radius:.75rem;border:2px solid #047857;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:.8rem;font-weight:900;text-transform:uppercase;cursor:pointer}';
     document.head.appendChild(st);
   }
 

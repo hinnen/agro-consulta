@@ -1145,25 +1145,286 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.86** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.13** · **loja v7.13**
 
-**WIP teste:** validar **v6.86** — PIN + contagem + modais (entregas/FL-049 só teste)
+**WIP loja:** validar **v7.13** na operação — MP Point TEF + cancel bidirecional + popups
+
+### ✅ Deploy loja **v7.13** — MP Point PDV pagamento (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Fluxo TEF (cobrar na tranche) · cancel PDV↔maquininha · popups MP · crédito à vista 1x · layout pagamento |
+| **Merge** | `teste` → `producao` |
+| **Status** | **✅ loja** — Render deployando |
+
+### ✅ PDV — MP Point popup v7.11–12 (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Maquininha** | Cancel/recusa usa o mesmo modal grande do cancel PDV |
+
+### ✅ PDV — MP Point popup v7.10 (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Popup** | Ainda maior |
+| **Fix** | Overlay sumia só visualmente — travava clique; «Entendi» libera PDV |
+
+### ✅ PDV — MP Point popup v7.09 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cancel** | Só modal centralizado; texto e «Entendi» no meio, maior |
+| **Removido** | Faixa amarela atrás do popup |
+
+### ✅ PDV — MP Point v7.08 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Aviso cancel** | Modal grande + faixa fixa na tela pagamento (não some sozinha) |
+| **Crédito** | Envia `default_installments: 1` — à vista sem pergunta na MP |
+| **Parcelado** | Sem mudança |
+
+### ✅ PDV — MP Point cancel bidirecional v7.07 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cancel PDV** | API MP com header `at_terminal` quando valor já está na maquininha |
+| **Botão espera** | Chama cancel na MP antes de abortar o poll |
+| **Renan** | Pediu: cancelar no sistema também cancelar na maquininha |
+
+### ✅ PDV — pagamento UX v7.06 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Topo** | Removida barra verde «Etapa 4 Pagamento» (mais área útil) |
+| **Rodapé** | Desconto/frete e botões Confirmar maiores |
+
+### ✅ PDV — pagamento UX v7.05 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Valor** | Card grande, número centralizado, botão largo, passos em chips |
+| **Revisão** | «Pode confirmar» centralizado; lançamento 2 linhas + botões pequenos |
+| **Renan** | MP ok nas formas; sem mais venda teste (cartão) |
+
+### ✅ PDV — pagamento UX v7.04 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tranche** | Botão verde «Cobrar na maquininha» / «Lançar pagamento» (Enter continua valendo) |
+| **Revisão** | Só «Resta pagar» + total; detalhes só se desconto/frete |
+| **Teste Renan** | Formas corretas na MP; não fechou mais venda (evitar cartão) |
+
+### ✅ PDV — pagamento UX v7.03 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Direita** | Card grande «Resta pagar» / «Quitado» + já lançado |
+| **Lista** | Badge verde **Pago** em cada lançamento; MP pago com fundo verde |
+
+### ✅ PDV — MP Point fluxo TEF v7.02 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tranche** | Enter no valor → envia Point + espera + lança «Pago na maquininha» |
+| **Confirmar** | Só grava venda/cupom (não cobra de novo) |
+| **API** | `confirmar-tranche` + status `PAID` · finalizar aceita `erp_payload` completo |
+| **Lista** | MP pago sem Alterar/Excluir |
+
+### ✅ PDV — layout pagamento v7.01 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Barra inferior** | Campos e botões maiores; borda escura nos inputs |
+| **Pagamento** | Inputs com mais contraste (monitor claro) |
+| **Parcelado MP** | Aviso se total &lt; R$ 10 |
+
+### ✅ PDV — layout pagamento v6.98–99 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Barra inferior** | Voltar + desconto + frete + confirmar (lado a lado) |
+| **Removido** | Observação final + footer duplicado na etapa pagamento |
+
+### ✅ PDV — MP Point v6.97 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Avisos** | Confirmar venda / MP / caixa → toast PDV (sem alert Chrome) |
+| **Overlay gestão** | Borda/botão emerald (sem laranja) |
+| **Render print** | Sem `MP_POINT_PRINT_ON_TERMINAL` → código usa `seller_ticket` |
+
+### ✅ PDV — MP Point v6.96 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Popup** | Maior, cores emerald/slate (sem laranja) |
+| **Avisos** | Toast padrão PDV (não alert do navegador) |
+| **Recusa/cancel** | Poll detecta `failed`/`canceled` na maquininha |
+| **Parcelas** | Envio reforçado + aviso se MP confirmar diferente do PDV |
+| **Comprovante** | Padrão `seller_ticket` — **no Render** trocar `MP_POINT_PRINT_ON_TERMINAL` se ainda `no_ticket` |
+
+### ✅ PDV — MP Point v6.95 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Parcelado** | `default_installments` como **inteiro** (fix erro MP property_type) |
+| **Popup espera** | Painel maior; passos 1–4; «Travou?» recolhido |
+| **Cancel** | PDV chama API cancel MP; poll detecta cancel na maquininha |
+| **Comprovante** | Maquininha: `MP_POINT_PRINT_ON_TERMINAL` no Render (padrão `no_ticket`) |
+
+### ✅ PDV — MP Point v6.93 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix 500** | `MP_ORDERS_URL` restaurada + sintaxe corrigida |
+
+### ✅ PDV — MP Point v6.92 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix 500** | Constante `MP_ORDERS_URL` restaurada em `mercado_pago_point.py` |
+| **API** | Erro interno no criar → JSON legível (não página HTML) |
+
+### ✅ PDV — MP Point v6.91 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | Token CSRF no PDV (`get_token`) — erro «Unexpected token \<» ao confirmar MP |
+| **Erro legível** | Se servidor falhar, mensagem em português (não JSON quebrado) |
+
+### ✅ PDV — MP Point v6.90 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Host MP** | Só navegador que **abriu Gaveta/Teste** manda Point (flag sessão; notebook bloqueado) |
+| **Venda** | `pagamentos` gravam `maquinaId` no ERP/Agro (conferência MP) |
+| **Som** | Um beep só (ok ou erro se forma divergiu) |
+
+### ✅ PDV — MP Point v6.89 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fechar caixa** | Linhas MP separadas: Pix / Débito / Crédito **— Mercado Pago** vs demais maquininhas |
+| **2º PDV** | MP automático **só Caixa Gaveta** (1º aberto); Notebook = Cielo/Sicredi/Sicoob |
+| **Venda** | `pagamentos_json` guarda `maquinaId` + `cobrarNoPointMp` para conferência |
+
+### ✅ PDV — MP Point v6.88 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Garantia MP** | Após pagar, lê forma real da maquininha; se divergir do PDV → alerta + grava forma do MP |
+| **Parcelado MP** | Envia N parcelas para a maquininha (`default_installments`) |
+| **Fechar caixa** | Parcelado soma em **Crédito** (só no fechamento; venda/ERP como antes) |
+| **Painel espera** | Contador · som ok/erro · timeout · fila na maquininha · ajuda aberta |
+
+### ✅ PDV — MP Point v6.87 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **MP** | Cartão e Pix **só automático** (sem Manual) |
+| **Pix** | MP auto · Cielo manual · Sicoob chave |
+| **Cartão** | MP auto · Cielo · Sicredi manual |
+| **Fix** | Desconto/frete no Point · forma na máquina · painel espera |
+
+### 🔌 MP Point — reativar conta nova (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Lado MP** | Maquininha **ativa** · modo **vincular com o caixa** ✅ · app **pdvagromais** · credencial **Produção** |
+| **Lado Agro** | Render **teste** — `MP_POINT_*` configurado (Renan 06/07) |
+| **Ordem** | Validar v6.87 no teste → depois loja |
+| **Status** | **🧪 teste v6.87** deploy |
 
 ### ✅ Deploy loja **v6.86** — PIN PDV + contagem caixa (05/07 noite — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | PIN manual/descanso PDV · contagem fechar caixa ao reabrir Chrome · overlay caixa não trava |
-| **Commits** | `8410ebc` · `8df7e18` · `ca78b88` |
-| **Fora** | Entregas PDV · FL-049/050 (só teste) |
-| **Status** | **✅ loja** — validar PIN + contagem |
+| **Commits loja** | `8410ebc` · `8df7e18` · `ca78b88` · `ae69827` |
+| **Fora da loja** | Entregas PDV · FL-049/050 (só teste) |
+| **Status** | **✅ loja** — validar PIN + contagem na operação |
+
+### 🐛 PDV — botão PIN não abre (05/07 noite)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Descanso automático e botão **PIN** no PDV não mostram tela |
+| **Causa** | Fix de modal bloqueava `openLock` mesmo em abertura **manual** |
+| **Fix** | PIN manual força abertura · overlay só pausa se **visível** |
+| **Status** | **🧪 teste v6.86** |
+
+### 🐛 Caixa — contagem some ao fechar navegador (05/07 noite)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Digitou contagem · fechou Chrome · voltou zerado |
+| **Causa** | Chave do turno exigia match exato de PKs e apagava localStorage |
+| **Fix** | Guarda por **dia** · grava turno ao digitar · só limpa se **mudou o dia** |
+| **Status** | **🧪 teste v6.86** |
+
+### 🐛 PDV — descanso atrás do modal Entregas (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Modal «Pagamento na entrega» aberto · descanso/PIN aparece **atrás** · tela trava |
+| **Causa** | `<dialog>` fica acima do PIN · descanso não pausava com modal PDV aberto |
+| **Fix** | Pausa idle com modal/dialog PDV · fecha modais antes do PIN · **detecção genérica** (`dialog[open]` + `aria-modal` + entrega wizard + overlay iframe) |
+| **Status** | **🧪 teste v6.85** — validar pagamento, NFC-e, cliente, entrega |
+
+### 🐛 Entregas PDV vazio mas bloqueia fechar caixa (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Fechar caixa lista N entregas «pagamento na entrega» · PDV → Entregas: «Nenhuma pendência» |
+| **Causa** | Fechar caixa vê **todos caixas abertos** · PDV filtrava só o **caixa do navegador** (ex. Caixa #2 vs pendências no #1) |
+| **Fix** | API PDV usa **mesmo critério** do fechamento · lista mostra **qual caixa** · link laranja abre PDV com `?entregas=1` |
+| **Produção** | Mesmo código na loja — pode afetar se houver notebook/teste + gaveta abertos com entrega pendente |
+| **Status** | **🧪 teste v6.85** — validar botão laranja + lista com caixa |
+
+### 🐛 Caixa fechar — cache contagem sumindo (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Fechar/abrir navegador ou erro no fechamento → contagem por forma e cédulas **zerada** |
+| **Causa** | Patch turno limpava localStorage **no clique em fechar** (antes de confirmar) |
+| **Fix** | Grava **na hora** no aparelho · limpa só após **fechamento OK** ou **virou o dia** / **mudou turno** |
+| **Status** | **🧪 teste v6.81** |
+
+### 🐛 Caixa fechar — tela trava com modal cédulas + descanso (05/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Parado na contagem (overlay cédulas / fiado): cliques e teclado morrem — igual PIN descanso |
+| **Causa** | Modo descanso (~3 min) ativava **por baixo** dos overlays do caixa · ou PDV overlay sem pausar idle |
+| **Fix** | PIN descanso sempre **por cima** · pausa idle com overlay PDV/caixa aberto · cédulas acima do fiado |
+| **Status** | **🧪 teste v6.81** — validar fechamento + contagem cédulas (PDV overlay e página direta) |
+
+### ✅ FL-050 — `/vendas/` aguardar NFC-e background (04/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | `venda_nfce_processando` (~120 s) · botão **Emitindo…** + alerta *aguarde* · POST reemitir **409** se ainda processando · detalhe venda igual |
+| **Status** | **🧪 teste** · **não estava na loja** (v6.77 só tinha fix CPF/F9 no PDV) |
+
+### ✅ FL-049 — CPF cliente no PDV + NFC-e (04/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fix** | Campo **CPF** nos modais PDV (editar · cadastro rápido · entrega) · grava `ClienteAgro` · Enter/F9 usam CPF cadastrado sem modal |
+| **Status** | **🧪 teste** |
+
+### ~~📋 Fila — **FL-050**~~ *(fechado — ver acima)*
+
+### ~~📋 Fila — **FL-049**~~ *(fechado — ver acima)*
 
 ### ✅ Deploy loja **v6.77** (03/07 — Renan senha OK)
 
 | Pacote | Commits / nota |
 | ------ | -------------- |
-| **NFC-e CPF + sync F9** | `3453968` — modal CPF com impressão · emissão síncrona · Enter mantém background |
-| **Merge** | `teste` → `producao` |
+| **NFC-e CPF + sync F9** | `3453968` · merge `8495fb7` |
+| **Status** | Render produção deployando |
 
 ### NFC-e — CPF com impressão + sync SEFAZ (03/07)
 
@@ -1172,16 +1433,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Problema** | Background emitia sem CPF antes do modal; F9 imprimia antes da SEFAZ autorizar |
 | **Decisão** | **Enter** = NFC-e background (rápido) · **F9** = modal CPF + `nfce_sincrona` + imprime só se autorizou |
 | **Arquivos** | `pdv_wizard.js` · `views_nfce.py` |
-| **Status** | **✅ loja v6.77** (sem teste Renan — autorizado direto) |
+| **Status** | **✅ loja v6.77** |
 
 ### ✅ Deploy loja **v6.75** (03/07 madrugada — Renan senha OK)
 
 | Pacote | Commits / nota |
 | ------ | -------------- |
-| **Busca rápida** | `908ff07` — entrada NF + cadastro (abort, debounce, PG) |
+| **Busca rápida** | `908ff07` — entrada NF + cadastro |
 | **Caixa contagem** | `21491cd` — zera rascunho ao mudar turno |
 | **Fiado busca** | `21491cd` — cliente sem saldo na busca |
-| **Roteiro Cursor** | `banana-roteiro.md` + rules modo econômico |
+| **Roteiro Cursor** | `banana-roteiro.md` + modo econômico |
 | **Merge** | `d26e913` `teste` → `producao` |
 
 ### ⚡ Busca produtos — entrada NF + cadastro (03/07)
@@ -2313,6 +2574,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestão) · atalhos · foco sem 2º PDV | ✅ loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestão | **Sidebar abas:** recolhida **~48px** só ícones · clique troca · seta expande | ✅ loja **v6.00** | 01/07 |
 | **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** — ZIP+Excel+restore · `/interno/pg-backup/` · Admin | 🧪 **teste** 03/07 | 03/07 |
+| **FL-049** | **P1,5** | PDV / Clientes / fiscal | **Cadastrar CPF** do cliente no PDV · na **NFC-e** usar o **CPF já salvo** no cliente (doc fiscal) | 🧪 **teste** 04/07 | 03/07 |
+| **FL-050** | **P2** | Vendas / fiscal | **`/vendas/`** — após venda, **não forçar** reemissão ao clicar cupom fiscal enquanto NFC-e roda em **background** · avisar *aguarde* · rótulo do botão muda (emitindo → **reimprimir** quando OK) | 🧪 **teste** 04/07 | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **Histórico ERP no F8** — **v5.46 teste** · import 1× · corte ERP **≤26/05** · SisVale **≥27/05** | 🧪 Render teste · dry-run → import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | Botão **desconto** na **baixa** do fiado | 📋 Pendente | 30/06 |
 | **FL-044** | **P2,9** | PDV / Preços / RH | **Desconto automático funcionário** — % pré-definida · provável junto com **tabelas de preço × forma de pagamento ou grupo de cliente** (ver **FL-001**) | 📋 Pendente | 30/06 |
@@ -2366,6 +2629,12 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-043 | `fiado-baixa-desconto` | UI + backend baixa fiado — aplicar **desconto** no pagamento (parcial ou total) |
 | FL-044 | `pdv-desconto-funcionario-auto` | % desconto por funcionário/cliente grupo · overlap **FL-001** (tabela preço × forma ou × grupo) |
 | FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
+| FL-049 | `pdv-cliente-cpf-cadastro-nfce` | Campo **CPF** no cadastro cliente PDV (F8/modal) · persistir `ClienteAgro` · emissão NFC-e puxa CPF do cliente selecionado (hoje: modal só se cadastro vazio) |
+| FL-050 | `vendas-lista-nfce-background-ux` | `/vendas/` + detalhe: distinguir **processando** (`nfce_solicitada` sem doc / status PROCESSANDO) vs **erro** vs **autorizada** · não abrir modal reemitir no meio · poll ou refresh · rótulos: *Emitindo…* / *Reimprimir cupom fiscal* · `vendas_lista.html` · `nfce_venda_util.painel_nfce_venda` · `views_nfce` |
+
+**Notas FL-050 (03/07):** **P2** — Renan: operador vai direto em Consulta vendas após Enter no PDV; clique trata como reemissão. Causa provável: `venda_nfce_pendente` = true com `nfce_solicitada` e sem `NfceDocumentoAgro` ainda. `views_nfce` já retorna «em processamento» no POST duplicado — falta UX na **lista**.
+
+**Notas FL-049 (03/07):** **P1,5** — junto **FL-019** · **FL-020** · **FL-032** na faixa. Objetivo: operador cadastra CPF uma vez no PDV; cupom fiscal usa automaticamente. Conferir se ficha `/clientes/` já tem CPF e espelhar no F8.
 
 **Notas FL-043 / FL-044 (30/06):** **P2,8** desconto na baixa fiado · **P2,9** desconto auto funcionário (% cadastro) — Renan acha que depende de **FL-001** (preço por forma/grupo). **FL-033** (BI vendas dia) ficou **P2,91** (liberou **P2,9** para **FL-044**).
 

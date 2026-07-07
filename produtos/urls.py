@@ -709,6 +709,11 @@ urlpatterns = [
         name='api_pdv_mp_point_status',
     ),
     path(
+        'api/pdv/mp-point/confirmar-tranche/',
+        views_mp_point.api_pdv_mp_point_confirmar_tranche,
+        name='api_pdv_mp_point_confirmar_tranche',
+    ),
+    path(
         'api/pdv/mp-point/finalizar/',
         views_mp_point.api_pdv_mp_point_finalizar,
         name='api_pdv_mp_point_finalizar',

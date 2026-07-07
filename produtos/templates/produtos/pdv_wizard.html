@@ -1930,7 +1930,6 @@
     color: #475569 !important;
   }
   .pdv-wiz-topbar-btn--slate:hover { background: #f8fafc !important; }
-  #pdv-step-pagamento-root > .pdv-wiz-step-bar { flex-shrink: 0; }
   #pdv-step-pagamento-root .pdv-pay-left-col.pdv-wiz-panel { border-color: #6ee7b7; }
   #pdv-step-pagamento-root .pdv-pay-right-panel.pdv-wiz-panel { border-color: #6ee7b7; }
   #pdv-step-pagamento-root #pdv-payment-forma-atual-wrap {
@@ -1938,9 +1937,105 @@
     border-bottom: 2px solid #e2e8f0;
     background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   }
-  #pdv-step-pagamento-root #pdv-pay-footer {
-    border-top-color: #6ee7b7;
+  body[data-pdv-step="pagamento"] #pdv-main-footer {
+    border-top: 2px solid #6ee7b7;
     background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.08);
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+  body[data-pdv-step="pagamento"] #pdv-btn-prev {
+    min-height: 3rem;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.82rem;
+    border-width: 2px;
+    border-color: #64748b;
+    color: #0f172a;
+    font-weight: 900;
+  }
+  #pdv-footer-pay-tools,
+  #pdv-footer-pay-actions {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-step-hint {
+    display: none;
+  }
+  body[data-pdv-step="pagamento"] #pdv-btn-next {
+    display: none !important;
+  }
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-tools,
+  body[data-pdv-step="pagamento"] #pdv-footer-pay-actions {
+    display: flex;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-field {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  #pdv-footer-pay-tools .pdv-footer-pay-label {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+  #pdv-footer-pay-tools .pdv-input {
+    width: 7rem;
+    min-width: 6rem;
+    max-width: 8.5rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    border: 2px solid #64748b;
+    background: #fff;
+    color: #0f172a;
+    border-radius: 0.65rem;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-footer-pay-tools .pdv-input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+  }
+  #pdv-confirm-discount {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+    line-height: 1.1;
+    border-width: 2px;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn {
+    min-height: 3.15rem;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.95rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    border-width: 2px;
+  }
+  #pdv-footer-pay-actions .pdv-action-btn kbd {
+    font-size: 0.72rem;
+  }
+  @media (min-width: 1280px) {
+    #pdv-footer-pay-tools .pdv-input { width: 7.5rem; font-size: 1.1rem; }
+    #pdv-footer-pay-tools .pdv-footer-pay-label { font-size: 0.92rem; }
+    #pdv-footer-pay-actions .pdv-action-btn { font-size: 1.02rem; padding: 0.65rem 1.2rem; min-height: 3.35rem; }
+  }
+  #pdv-step-pagamento-root .pdv-input {
+    border: 2px solid #64748b;
+    background: #fff;
+    color: #0f172a;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.07);
+  }
+  #pdv-step-pagamento-root .pdv-input::placeholder {
+    color: #64748b;
+    font-weight: 700;
+    opacity: 1;
+  }
+  #pdv-step-pagamento-root .pdv-input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
   }
   #pdv-step-pagamento-root .pdv-pay-right-panel .pdv-wiz-block-head { position: relative; }
   #pdv-step-pagamento-root .pdv-pay-right-panel details > div {
@@ -1949,6 +2044,188 @@
   }
   #pdv-step-pagamento-root .pdv-pay-right-scroll {
     background: linear-gradient(180deg, rgba(236, 253, 245, 0.65) 0%, #fff 45%);
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero {
+    text-align: center;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-label {
+    font-size: 0.6875rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-val {
+    font-size: clamp(1.85rem, 4.2vw, 2.6rem);
+    font-weight: 900;
+  }
+  #pdv-step-pagamento-root .pdv-pay-hero-sub {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente {
+    border-color: #f97316;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 55%, #fff 100%);
+    box-shadow: 0 2px 10px rgba(234, 88, 12, 0.12);
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente .pdv-pay-hero-label,
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--pendente .pdv-pay-hero-val {
+    color: #c2410c;
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #fff 100%);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.14);
+  }
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado .pdv-pay-hero-label,
+  #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado .pdv-pay-hero-val {
+    color: #047857;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-kicker {
+    font-size: 0.6875rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #b45309;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-falta {
+    margin-top: 0.15rem;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #9a3412;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-input-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  #pdv-step-pagamento-root .pdv-pay-valor-input {
+    min-height: 3.75rem;
+    padding: 0.65rem 1rem !important;
+    font-size: clamp(2rem, 5vw, 2.85rem) !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+    text-align: center;
+    border-width: 3px !important;
+    border-color: #059669 !important;
+    background: #fff !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche {
+    min-height: 3.5rem;
+    letter-spacing: 0.05em;
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 9999px;
+    border: 2px solid #d1fae5;
+    background: #ecfdf5;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #065f46;
+    white-space: nowrap;
+  }
+  #pdv-step-pagamento-root .pdv-pay-step-chip b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 9999px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.625rem;
+    line-height: 1;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-item {
+    border-radius: 0.75rem;
+    border-width: 2px;
+    padding: 0.5rem 0.6rem;
+    background: #fff;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-row1 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-forma {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0f172a;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-valor {
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-row2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-meta {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #64748b;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-actions {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn {
+    border-radius: 0.5rem;
+    border-width: 2px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn--edit {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-btn--rm {
+    border-color: #fecaca;
+    background: #fff1f2;
+    color: #9f1239;
+  }
+  #pdv-step-pagamento-root .pdv-pay-lanc-item--mp-pago {
+    border-color: #34d399 !important;
+    background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
   }
   #pdv-step1-client-bar .pdv-step1-client-action-btn {
     font-family: 'Inter', system-ui, sans-serif !important;
@@ -2159,6 +2436,14 @@
     box-shadow: 0 12px 28px rgba(202, 138, 4, 0.35);
   }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-mp:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo {
+    border-color: #1e40af !important;
+    background: linear-gradient(145deg, #eff6ff 0%, #60a5fa 40%, #1d4ed8 100%) !important;
+    color: #0f172a !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.35);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-cielo:hover { filter: brightness(1.03); }
   #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicredi {
     border-color: #15803d !important;
     background: linear-gradient(145deg, #ecfdf5 0%, #4ade80 35%, #16a34a 100%) !important;
@@ -2180,6 +2465,208 @@
     background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%) !important;
     color: #0f172a !important;
     min-height: 4.25rem;
+  }
+  .pdv-mp-point-wait-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 420;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(8px);
+  }
+  .pdv-mp-point-wait-overlay.hidden { display: none !important; }
+  .pdv-mp-point-wait-panel {
+    position: relative;
+    width: min(96vw, 42rem);
+    max-height: min(92dvh, 46rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 1.4rem;
+    border: 3px solid #10b981;
+    background: linear-gradient(165deg, #ecfdf5 0%, #f8fafc 55%, #fff 100%);
+    padding: 1.65rem 1.65rem 1.25rem;
+    box-shadow: 0 28px 64px rgba(5, 150, 105, 0.28);
+    text-align: center;
+  }
+  .pdv-mp-point-wait-pulse {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 9999px;
+    background: #059669;
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55);
+    animation: pdv-mp-point-pulse 1.4s ease-out infinite;
+  }
+  @keyframes pdv-mp-point-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55); }
+    70% { box-shadow: 0 0 0 14px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+  }
+  .pdv-mp-point-wait-kicker {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-title {
+    margin: 0.4rem 0 0;
+    font-size: clamp(1.35rem, 3.8vw, 1.7rem);
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .pdv-mp-point-wait-amount {
+    margin: 0.55rem 0 0;
+    font-size: clamp(2.15rem, 6.5vw, 3rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+    line-height: 1.05;
+  }
+  .pdv-mp-point-wait-forma {
+    margin: 0.4rem 0 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #334155;
+  }
+  .pdv-mp-point-wait-status {
+    margin: 0.55rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-steps {
+    margin: 1.1rem 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.4;
+  }
+  .pdv-mp-point-wait-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-top: 0.55rem;
+  }
+  .pdv-mp-point-wait-steps li:first-child { margin-top: 0; }
+  .pdv-mp-step-num {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 9999px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .pdv-mp-point-wait-help {
+    margin-top: 1rem;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    border-top: 1px solid #a7f3d0;
+    padding-top: 0.7rem;
+  }
+  .pdv-mp-point-wait-help summary {
+    cursor: pointer;
+    font-weight: 900;
+    color: #047857;
+  }
+  .pdv-mp-point-wait-help ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+  }
+  .pdv-mp-point-wait-cancel {
+    margin-top: 1.15rem;
+    width: 100%;
+    min-height: 3.15rem;
+    border-radius: 0.85rem;
+    border: 2px solid #475569;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #1e293b;
+  }
+  .pdv-mp-point-wait-cancel:hover { background: #f1f5f9; }
+  #pdv-sale-toast.pdv-sale-toast--prominent {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(3px);
+    transform: none !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-panel {
+    width: min(52rem, calc(100vw - 2rem));
+    border-width: 4px;
+    padding: 2.1rem 2.35rem 2.2rem;
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.35);
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-prominent-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-icon {
+    width: 4.25rem;
+    height: 4.25rem;
+    font-size: 2rem;
+    margin-bottom: 0.2rem;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-title {
+    font-size: clamp(1.45rem, 0.75vw + 1.25rem, 1.9rem);
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-body {
+    font-size: clamp(1.12rem, 0.55vw + 1.02rem, 1.38rem);
+    line-height: 1.58;
+    white-space: pre-line;
+    max-width: 40rem;
+    font-weight: 700;
+  }
+  #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.65rem;
+    min-width: 12.5rem;
+    margin-top: 1rem;
+    padding: 0.85rem 2rem;
+    font-size: 1.05rem;
+    letter-spacing: 0.05em;
+    border-radius: 1rem;
+    border-width: 2px;
+  }
+  #pdv-sale-toast.hidden {
+    display: none !important;
+    pointer-events: none !important;
   }
   #pdv-pack-entrega-print { display: none !important; }
   @media print {
@@ -2571,13 +3058,26 @@
           {% include "produtos/partials/pdv/step_pagamento.html" %}
         </div>
 
-        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-3 py-2 sm:px-3.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="text-[11px] font-bold text-slate-500" id="pdv-step-hint">Adicione itens para iniciar a venda.</div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" id="pdv-btn-prev" class="pdv-action-btn border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
-              <button type="button" id="pdv-btn-next" class="pdv-action-btn bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
+        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="pdv-btn-prev" class="pdv-action-btn shrink-0 border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
+            <div id="pdv-step-hint" class="min-w-0 flex-1 text-[11px] font-bold text-slate-500">Adicione itens para iniciar a venda.</div>
+            <div id="pdv-footer-pay-tools" class="min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
+              <div class="pdv-footer-pay-field">
+                <span class="pdv-footer-pay-label">Desconto</span>
+                <input id="pdv-payment-discount" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Desconto geral na venda">
+                <button type="button" id="pdv-confirm-discount" class="pdv-action-btn shrink-0 rounded-lg border-2 border-orange-400 bg-orange-50 font-black uppercase text-orange-950 hover:bg-orange-100" title="Aplica o desconto e abre as formas de pagamento">OK</button>
+              </div>
+              <label class="pdv-footer-pay-field">
+                <span class="pdv-footer-pay-label">Frete</span>
+                <input id="pdv-payment-shipping" type="text" inputmode="decimal" class="pdv-input tabular-nums" placeholder="0,00" autocomplete="off" title="Frete da venda">
+              </label>
             </div>
+            <div id="pdv-footer-pay-actions" class="ml-auto shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+              <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn border-2 border-emerald-500 bg-white font-black text-emerald-800 shadow-sm hover:bg-emerald-50">Sem impressão <kbd class="ml-0.5 rounded border border-emerald-300 bg-emerald-50 px-1 font-mono">Enter</kbd></button>
+              <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn bg-emerald-600 font-black text-white shadow-md shadow-emerald-600/20">Com impressão <kbd class="ml-0.5 rounded bg-emerald-500 px-1 font-mono text-white">F9</kbd></button>
+            </div>
+            <button type="button" id="pdv-btn-next" class="pdv-action-btn shrink-0 bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
           </div>
         </footer>
       </div>
@@ -2634,6 +3134,10 @@
           <label class="pdv-client-edit-field pdv-client-edit-f-wa">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">WhatsApp / telefone <span class="text-red-600">*</span></span>
             <input id="pdv-quick-client-edit-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input pdv-client-edit-input w-full" placeholder="DDD + número">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-cpf">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">CPF <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+            <input id="pdv-quick-client-edit-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input pdv-client-edit-input w-full" placeholder="000.000.000-00">
           </label>
           <label class="pdv-client-edit-field pdv-client-edit-f-plus">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
@@ -2724,6 +3228,10 @@
       <label class="block">
         <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
         <input id="pdv-cliente-telefone" type="text" class="pdv-input" placeholder="Telefone / WhatsApp" autocomplete="tel">
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">CPF <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+        <input id="pdv-cliente-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input" placeholder="000.000.000-00">
       </label>
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="block sm:col-span-2">
@@ -2919,6 +3427,10 @@
       <div>
         <label for="pdv-wizard-cli-rapido-whatsapp" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Telefone / WhatsApp <span class="text-red-600">*</span></label>
         <input id="pdv-wizard-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input text-sm" placeholder="DDD + número">
+      </div>
+      <div>
+        <label for="pdv-wizard-cli-rapido-cpf" class="mb-1 block text-[10px] font-black uppercase text-slate-500">CPF <span class="font-normal normal-case text-slate-400">(opcional · cupom fiscal)</span></label>
+        <input id="pdv-wizard-cli-rapido-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" class="pdv-input text-sm" placeholder="000.000.000-00">
       </div>
       <details class="rounded-xl border-2 border-slate-200 bg-slate-50/80 px-3 py-2">
         <summary class="cursor-pointer select-none text-[11px] font-black uppercase tracking-wide text-slate-700">Endereço (opcional)</summary>

@@ -434,7 +434,7 @@ MP_POINT_ACCESS_TOKEN = (config("MP_POINT_ACCESS_TOKEN", default="") or "").stri
 MP_POINT_TERMINAL_ID = (config("MP_POINT_TERMINAL_ID", default="") or "").strip()
 MP_POINT_EXPIRATION = (config("MP_POINT_EXPIRATION", default="PT16M") or "PT16M").strip()
 MP_POINT_PRINT_ON_TERMINAL = (
-    config("MP_POINT_PRINT_ON_TERMINAL", default="no_ticket") or "no_ticket"
+    config("MP_POINT_PRINT_ON_TERMINAL", default="seller_ticket") or "seller_ticket"
 ).strip()
 PDV_QR_SICREDI_URL = config("PDV_QR_SICREDI_URL", default="").strip()
 PDV_CHAVE_PIX_SICOB = config("PDV_CHAVE_PIX_SICOB", default="").strip()

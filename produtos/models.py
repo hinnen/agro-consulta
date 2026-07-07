@@ -778,6 +778,7 @@ class PdvMercadoPagoPointOrder(models.Model):
 
     class Status(models.TextChoices):
         PENDING = "pending", "Aguardando pagamento"
+        PAID = "paid", "Pago no terminal"
         ABANDONED = "abandoned", "Abandonado pelo operador"
         FINALIZED = "finalized", "Finalizado (ERP)"
         FAILED = "failed", "Falha"

@@ -382,6 +382,19 @@ def pagamentos_json_com_metadados_de_payload(data: dict | None) -> list[dict]:
         vp = float(item.get("valor") or 0)
         src = by_forma_valor.get((fn, vp)) or by_forma_valor.get((fn, round(vp, 2)))
         row = dict(item)
+        if src:
+            for mk in (
+                "maquinaId",
+                "maquina_id",
+                "maquinaNome",
+                "cobrarNoPointMp",
+                "cobrar_no_point_mp",
+                "mpBalcaoModo",
+                "rede",
+                "maquinaRede",
+            ):
+                if mk in src and src[mk] not in (None, "", False):
+                    row[mk] = src[mk]
         if fn == "Fiado" and src:
             np = src.get("fiadoParcelas") or src.get("fiado_parcelas")
             nd = src.get("fiadoDiasVencimento") or src.get("fiado_dias_vencimento")

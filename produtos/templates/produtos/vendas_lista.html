@@ -125,7 +125,9 @@
                 <div class="flex flex-nowrap items-center gap-1.5">
                   <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
                   <button type="button" class="js-venda-imprimir-cupom inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-sky-400 bg-sky-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
-                  {% if nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
+                  {% if nfce_cfg.ativo and v.nfce_painel.processando and not v.devolvida_em %}
+                  <button type="button" class="js-venda-nfce-processando inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-sky-300 bg-sky-100 text-[11px] font-black uppercase text-sky-900 shadow-sm cursor-wait" data-venda-id="{{ v.id }}" title="NFC-e sendo emitida em segundo plano">Emitindo…</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
                   <button type="button" class="js-venda-nfce-reemitir inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-amber-400 bg-amber-500 text-[11px] font-black uppercase text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir NFC</button>
                   {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
                   <button type="button" class="js-venda-imprimir-fiscal inline-flex items-center justify-center min-h-[44px] min-w-[6rem] px-3 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Cupom fiscal</button>
@@ -168,6 +170,8 @@
               <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
                 {% if v.nfce_painel.autorizada %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800" title="NFC-e autorizada">OK</span>
+                {% elif v.nfce_painel.processando %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-sky-100 text-sky-900" title="Emissão em andamento">Emitindo</span>
                 {% elif v.nfce_painel.pendente %}
                 <button type="button" class="js-venda-nfce-erro inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-300 hover:bg-amber-200 cursor-pointer" data-venda-id="{{ v.id }}" title="Ver detalhe do erro">Sem fiscal · erro</button>
                 {% elif v.nfce_painel.solicitada %}
@@ -458,16 +462,20 @@
         function abrir(id, modo) {
           vendaIdAtual = id;
           document.getElementById('modal-nfce-msg').classList.add('hidden');
-          document.getElementById('modal-nfce-titulo').textContent =
-            modo === 'reemitir' ? 'Reemitir NFC-e · venda #' + id : 'Cupom fiscal pendente · #' + id;
-          modal.classList.remove('hidden');
-          modal.classList.add('flex');
           if (window.gmLoadingBar) window.gmLoadingBar.show();
           fetch('/venda/' + id + '/nfce/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (!d.ok || !d.nfce_painel) throw new Error('Não foi possível carregar dados fiscais.');
               var p = d.nfce_painel;
+              if (p.processando) {
+                alert('Cupom fiscal sendo emitido — aguarde alguns segundos e atualize a página (F5).');
+                return;
+              }
+              document.getElementById('modal-nfce-titulo').textContent =
+                modo === 'reemitir' ? 'Reemitir NFC-e · venda #' + id : 'Cupom fiscal pendente · #' + id;
+              modal.classList.remove('hidden');
+              modal.classList.add('flex');
               document.getElementById('modal-nfce-sub').textContent =
                 p.autorizada ? 'NFC-e já autorizada.' : 'A venda foi registrada; só o cupom fiscal ficou pendente.';
               document.getElementById('modal-nfce-erro').textContent = p.erro || 'Sem detalhe registrado.';
@@ -543,6 +551,11 @@
           btn.addEventListener('click', function () {
             var id = btn.getAttribute('data-venda-id');
             if (id) abrir(id, 'erro');
+          });
+        });
+        document.querySelectorAll('.js-venda-nfce-processando').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            alert('Cupom fiscal sendo emitido — aguarde alguns segundos e atualize a página (F5).');
           });
         });
         document.querySelectorAll('.js-venda-nfce-reemitir').forEach(function (btn) {
