@@ -1145,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.26** · **loja v7.21**
+**Versão app (`VERSION`):** **teste v7.26** · **loja v7.22**
 
-### 📋 PDV v7.26 (07/07) — Nova venda + frete
+### ✅ Deploy loja **v7.22** — NFC-e retry SEFAZ (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Retry conexão SEFAZ (1/2/4/8 s) · background não desiste em falha de rede |
+| **Como** | Cherry-pick `1223bb5` **só NFC-e** — **sem** PDV Nova venda/F12 |
+| **Commit loja** | `b94041b` |
+| **Status** | **✅ loja** — reemitir cupons pendentes em `/vendas/` |
+
+### 📋 PDV v7.26 (07/07) — Nova venda + frete *(só teste)*
 
 | Item | Detalhe |
 | ---- | ------- |
