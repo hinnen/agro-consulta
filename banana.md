@@ -1145,9 +1145,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.28** · **loja v7.23**
+**Versão app (`VERSION`):** **teste v7.29** · **loja v7.23**
 
-### 📋 PDV v7.28 (07/07) — Nova venda popup + frete *(só teste)*
+### 📋 PDV v7.28–v7.29 (07/07) — Nova venda popup + frete *(só teste)*
 
 | Item | Detalhe |
 | ---- | ------- |
