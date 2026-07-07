@@ -28,7 +28,37 @@ _SEFAZ_ERRO_TRANSIENTE_NEEDLES = (
     "remotedisconnected",
     "connection reset",
     "broken pipe",
+    "403",
+    "forbidden",
+    "access is denied",
 )
+
+# connect 12s · leitura 60s — evita travar 90s por tentativa no Render
+SEFAZ_HTTP_TIMEOUT: tuple[int, int] = (12, 60)
+SEFAZ_HTTP_RETRY_DELAYS_S: tuple[float, ...] = (0.5, 1.5, 3.0, 5.0)
+
+
+def sefaz_http_status_retry(status_code: int) -> bool:
+    """HTTP da SEFAZ que costuma ser instabilidade temporária."""
+    return status_code in (403, 408, 429, 502, 503, 504) or status_code >= 500
+
+
+def sanitizar_erro_http_sefaz(status_code: int, corpo: str) -> str:
+    """Mensagem legível para operador — sem HTML bruto da SEFAZ/IIS."""
+    if status_code == 403:
+        return (
+            "SEFAZ SP recusou a conexão (403 Forbidden). "
+            "Instabilidade ou bloqueio temporário — aguarde alguns minutos e reemita."
+        )
+    if status_code == 429:
+        return "SEFAZ SP limitou tentativas (429). Aguarde alguns minutos e reemita."
+    if status_code >= 500:
+        return f"SEFAZ SP indisponível (HTTP {status_code}). Aguarde alguns minutos e reemita."
+    txt = re.sub(r"<[^>]+>", " ", corpo or "")
+    txt = re.sub(r"\s+", " ", txt).strip()
+    if not txt:
+        return f"Erro HTTP {status_code} na comunicação com a SEFAZ."
+    return f"HTTP {status_code}: {txt[:240]}"
 
 
 def sefaz_erro_transiente(mensagem: str) -> bool:
