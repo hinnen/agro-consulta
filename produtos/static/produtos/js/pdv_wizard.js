@@ -6079,6 +6079,7 @@
         var show = freteEditavelNoPagamento(state, computed);
         if (dom.footerFreteField) {
             dom.footerFreteField.classList.toggle('hidden', !show);
+            dom.footerFreteField.hidden = !show;
         }
         if (!show && state.currentStep === 'pagamento') {
             var f = State.toNumber((state.pagamento && state.pagamento.frete) || 0);

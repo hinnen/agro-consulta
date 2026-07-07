@@ -1145,7 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.27** · **loja v7.24**
+**Versão app (`VERSION`):** **teste v7.33** · **loja v7.27**
+
+### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **Nova venda F12** · modal confirmação padrão PDV · frete só após etapa Entrega · **F7 direto** sem frete (fix CSS) |
+| **Como** | Cherry-pick `2267c0a` + `9d2dac3` + `34abbbe` — **sem** merge teste inteiro |
+| **Vendas em curso** | Só JS/HTML cliente · quem já tem PDV aberto segue na versão antiga até **Ctrl+F5** · confirmar venda no servidor **inalterado** |
+| **Status** | **✅ loja** — aguardar Render Live · Ctrl+F5 nos PDVs |
 
 ### ✅ Deploy loja **v7.24** — NFC-e timeout reemitir (07/07)
 
