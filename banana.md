@@ -1145,7 +1145,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.25** · **loja v7.21**
+**Versão app (`VERSION`):** **teste v7.26** · **loja v7.21**
+
+### 📋 PDV v7.26 (07/07) — Nova venda + frete
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Nova venda** | Topbar · **F12** · confirma se tiver item/pagamento · cancela MP se cobrando |
+| **Frete etapa 3** | Só se passou etapa 2 (entrega/loja); venda direta não mostra campo |
 
 ### 🐛 NFC-e — SEFAZ conexão recusada (07/07)
 
@@ -1155,8 +1162,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Instabilidade SEFAZ/rede **+** código sem retry em falha de conexão (background parava na 1ª tentativa) |
 | **Fix v7.25** | Retry HTTP SEFAZ (1/2/4/8 s) · background segue em erro de rede |
 | **Operação** | Vendas pendentes (#2842 etc.): **Reemitir NFC-e** em `/vendas/` — não é cadastro/CPF |
-
-**WIP teste (separado — não na loja):** botão «Nova venda» + tirar frete etapa 3
 
 ### ✅ Deploy loja **v7.21** — PDV entregas + confirmar venda (07/07 — Renan senha OK)
 
