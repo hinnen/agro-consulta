@@ -1145,7 +1145,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.24** · **loja v7.21**
+**Versão app (`VERSION`):** **teste v7.25** · **loja v7.21**
 
 ### 🐛 NFC-e — SEFAZ conexão recusada (07/07)
 
@@ -1153,7 +1153,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | 1ª venda OK; demais falham `Connection refused` em `nfce.fazenda.sp.gov.br` |
 | **Causa** | Instabilidade SEFAZ/rede **+** código sem retry em falha de conexão (background parava na 1ª tentativa) |
-| **Fix v7.24** | Retry HTTP SEFAZ (1/2/4/8 s) · background segue em erro de rede |
+| **Fix v7.25** | Retry HTTP SEFAZ (1/2/4/8 s) · background segue em erro de rede |
 | **Operação** | Vendas pendentes (#2842 etc.): **Reemitir NFC-e** em `/vendas/` — não é cadastro/CPF |
 
 **WIP teste (separado — não na loja):** botão «Nova venda» + tirar frete etapa 3
