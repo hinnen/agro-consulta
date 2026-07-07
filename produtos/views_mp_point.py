@@ -81,6 +81,19 @@ def _pdv_decimal_campo(val) -> Decimal:
         return Decimal("0")
 
 
+def _pdv_valor_cobranca_tranche_override(raw: dict) -> Decimal | None:
+    """Valor parcial enviado ao Point na tranche (Enter no PDV), não o total da venda."""
+    if not isinstance(raw, dict):
+        return None
+    v = raw.get("valor_cobranca_tranche")
+    if v is None:
+        return None
+    dec = _pdv_decimal_campo(v).quantize(Decimal("0.01"))
+    if dec <= 0:
+        return None
+    return dec
+
+
 def _pdv_valor_cobranca_pdv(data: dict, valor_linhas: float) -> Decimal:
     """Total PDV (itens − desconto geral + frete), alinhado ao computed do wizard."""
     total = Decimal(str(valor_linhas))
@@ -345,7 +358,11 @@ def _api_pdv_mp_point_criar_impl(request):
             payload = {"ok": False, "erro": "Itens inválidos para o ERP."}
         return JsonResponse(payload, status=err_resp.status_code)
 
-    valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
+    valor_tranche = _pdv_valor_cobranca_tranche_override(raw)
+    if valor_tranche is not None:
+        valor_cobrar = valor_tranche
+    else:
+        valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
 
     external_reference = f"agro-{uuid.uuid4()}"
     token = settings.MP_POINT_ACCESS_TOKEN.strip()
@@ -403,8 +420,93 @@ def _api_pdv_mp_point_criar_impl(request):
             "external_reference": external_reference,
             "amount": float(dec_valor),
             "parcelas_enviadas": parcelas_env,
+            "modo_tranche": valor_tranche is not None,
         }
     )
+
+
+def _mp_point_pagamento_valor_mp(erp_data: dict, valor_esperado: Decimal) -> bool:
+    """Confere se algum pagamento MP no payload bate com o valor cobrado na tranche."""
+    pag = erp_data.get("pagamentos")
+    if not isinstance(pag, list):
+        return False
+    alvo = valor_esperado.quantize(Decimal("0.01"))
+    for row in pag:
+        if not isinstance(row, dict):
+            continue
+        if not pagamento_linha_eh_mercado_pago(row):
+            continue
+        v = _pdv_decimal_campo(row.get("valorPagamento") or row.get("valor") or row.get("valor_pagamento"))
+        if abs(v - alvo) <= Decimal("0.02"):
+            return True
+    return False
+
+
+@require_POST
+def api_pdv_mp_point_confirmar_tranche(request):
+    """Pagamento confirmado no terminal; marca pedido PAID sem gravar venda ainda."""
+    if not _mp_point_configurado():
+        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request):
+        return _resposta_mp_point_so_gaveta()
+
+    try:
+        raw = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    order_id = str(raw.get("order_id") or "").strip()
+    if not order_id:
+        return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
+
+    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    ok_mp, st, body = mp_point_get_order(access_token=token, order_id=order_id)
+    if not ok_mp or not isinstance(body, dict):
+        return JsonResponse(
+            {"ok": False, "erro": mp_point_mensagem_erro(body), "http_status": st},
+            status=502,
+        )
+
+    if not mp_point_order_indica_pago(body):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Pagamento ainda não confirmado no terminal.",
+                "mp_status": body.get("status"),
+            },
+            status=409,
+        )
+
+    with transaction.atomic():
+        try:
+            row = PdvMercadoPagoPointOrder.objects.select_for_update().get(mp_order_id=order_id)
+        except PdvMercadoPagoPointOrder.DoesNotExist:
+            return JsonResponse({"ok": False, "erro": "Pedido local não encontrado."}, status=404)
+
+        sk = _sessao_key(request)
+        if row.django_session_key and sk and row.django_session_key != sk:
+            return JsonResponse({"ok": False, "erro": "Sessão não confere."}, status=403)
+
+        if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED:
+            return JsonResponse({"ok": True, "ja_finalizado": True, "venda_id": row.venda_id})
+        if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+            return JsonResponse({"ok": True, "ja_pago": True, "order_id": order_id})
+        if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
+            return JsonResponse({"ok": False, "erro": "Pedido não está aguardando pagamento."}, status=409)
+
+        erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+        if not erp_data:
+            return JsonResponse({"ok": False, "erro": "Payload local inválido."}, status=500)
+
+        recon = _mp_point_reconciliar_forma_venda(erp_data, body)
+        row.erp_payload = erp_data
+        row.status = PdvMercadoPagoPointOrder.Status.PAID
+        row.mp_last_status = str(body.get("status") or "")[:48]
+        row.save(update_fields=["erp_payload", "status", "mp_last_status", "atualizado_em"])
+
+    payload = {"ok": True, "order_id": order_id, "amount": float(row.valor_cobrado)}
+    _mp_point_anexar_recon_payload(payload, recon)
+    return JsonResponse(payload)
 
 
 @require_GET
@@ -434,6 +536,7 @@ def api_pdv_mp_point_status(request):
                 "abandoned": True,
                 "paid": False,
                 "finalized": False,
+                "paid_tranche": False,
                 "mp_status": "abandoned",
                 "venda_id": None,
             }
@@ -455,11 +558,15 @@ def api_pdv_mp_point_status(request):
         row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
         row.save(update_fields=["status", "atualizado_em"])
 
+    paid_tranche = row.status == PdvMercadoPagoPointOrder.Status.PAID
+    mp_paid = mp_point_order_indica_pago(body) or paid_tranche
+
     return JsonResponse(
         {
             "ok": True,
             "mp_status": mp_status,
-            "paid": mp_point_order_indica_pago(body),
+            "paid": mp_paid,
+            "paid_tranche": paid_tranche,
             "canceled": canceled,
             "failed": failed,
             "failed_msg": failed_msg[:300] if failed_msg else "",
@@ -484,6 +591,10 @@ def api_pdv_mp_point_finalizar(request):
     order_id = str(raw.get("order_id") or "").strip()
     if not order_id:
         return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
+
+    erp_override = raw.get("erp_payload") or raw.get("erp")
+    if not isinstance(erp_override, dict):
+        erp_override = None
 
     client_m, db = obter_conexao_mongo_pdv()
     token = settings.MP_POINT_ACCESS_TOKEN.strip()
@@ -523,13 +634,38 @@ def api_pdv_mp_point_finalizar(request):
                 status=409,
             )
 
-        erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+        modo_tranche = row.status == PdvMercadoPagoPointOrder.Status.PAID
+
+        if erp_override and erp_override.get("itens"):
+            erp_data = _sanear_erp_payload(erp_override)
+        else:
+            erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
         if not erp_data:
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
             row.save(update_fields=["status", "atualizado_em"])
             return JsonResponse({"ok": False, "erro": "Payload local inválido."}, status=500)
 
-        recon = _mp_point_reconciliar_forma_venda(erp_data, body)
+        if modo_tranche:
+            if not _mp_point_pagamento_valor_mp(erp_data, row.valor_cobrado):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": (
+                            "Pagamento MP na venda não bate com o valor cobrado na maquininha "
+                            f"({row.valor_cobrado}). Ajuste os lançamentos ou fale com o gerente."
+                        ),
+                    },
+                    status=409,
+                )
+            recon = {
+                "forma_pdv": "",
+                "forma_mp": "",
+                "divergiu": False,
+                "parcelas_divergiu": False,
+                "aviso": "",
+            }
+        else:
+            recon = _mp_point_reconciliar_forma_venda(erp_data, body)
 
         err_early, _ln, vf = _pdv_pedido_linhas_e_valor_final(erp_data, client_m=client_m, db=db)
         if err_early is not None:
@@ -541,18 +677,22 @@ def api_pdv_mp_point_finalizar(request):
                 pe = {"erro": "Itens inválidos"}
             return JsonResponse({"ok": False, **pe}, status=err_early.status_code)
 
-        vf_cobranca = _pdv_valor_cobranca_pdv(erp_data, float(vf))
-        if vf_cobranca != row.valor_cobrado:
-            logger.error(
-                "MP Point finalizar: valor ERP %s difere do cobrado %s (order %s)",
-                vf,
-                row.valor_cobrado,
-                order_id,
-            )
-            return JsonResponse(
-                {"ok": False, "erro": "Valor do pedido mudou em relação à cobrança; cancele no MP e gere de novo."},
-                status=409,
-            )
+        if not modo_tranche:
+            vf_cobranca = _pdv_valor_cobranca_pdv(erp_data, float(vf))
+            if vf_cobranca != row.valor_cobrado:
+                logger.error(
+                    "MP Point finalizar: valor ERP %s difere do cobrado %s (order %s)",
+                    vf,
+                    row.valor_cobrado,
+                    order_id,
+                )
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Valor do pedido mudou em relação à cobrança; cancele no MP e gere de novo.",
+                    },
+                    status=409,
+                )
 
         try:
             exigir_sessao_caixa_para_venda(request, erp_data)
@@ -587,7 +727,8 @@ def api_pdv_mp_point_finalizar(request):
                 _disparar_envio_erp_venda_background(vid, erp_data)
             row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
             row.venda_id = vid
-            row.save(update_fields=["status", "venda", "atualizado_em"])
+            row.erp_payload = erp_data
+            row.save(update_fields=["status", "venda", "erp_payload", "atualizado_em"])
             payload = {
                 "ok": True,
                 "mensagem": "Venda registrada. Envio ao ERP em segundo plano.",
@@ -635,7 +776,8 @@ def api_pdv_mp_point_finalizar(request):
         if out["ok"]:
             row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
             row.venda_id = vid
-            row.save(update_fields=["status", "venda", "atualizado_em"])
+            row.erp_payload = erp_data
+            row.save(update_fields=["status", "venda", "erp_payload", "atualizado_em"])
             payload = {
                 "ok": True,
                 "mensagem": _json_legivel(out["res"]),
@@ -688,6 +830,14 @@ def api_pdv_mp_point_abandon(request):
 
     if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED:
         return JsonResponse({"ok": False, "erro": "Esta cobrança já virou venda finalizada."}, status=409)
+    if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Pagamento já confirmado na maquininha. Finalize a venda ou fale com o gerente.",
+            },
+            status=409,
+        )
     if row.status == PdvMercadoPagoPointOrder.Status.ABANDONED:
         return JsonResponse({"ok": True, "ja_abandonado": True})
     if row.status != PdvMercadoPagoPointOrder.Status.PENDING:

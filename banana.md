@@ -1145,9 +1145,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.00** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.02** · **loja v6.86**
 
-**WIP teste:** validar **v7.01** — barra pagamento contraste + hint parcelado R$10
+**WIP teste:** validar **v7.02** — MP Point cobra na tranche (Enter); Confirmar só fecha venda
+
+### ✅ PDV — MP Point fluxo TEF v7.02 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tranche** | Enter no valor → envia Point + espera + lança «Pago na maquininha» |
+| **Confirmar** | Só grava venda/cupom (não cobra de novo) |
+| **API** | `confirmar-tranche` + status `PAID` · finalizar aceita `erp_payload` completo |
+| **Lista** | MP pago sem Alterar/Excluir |
 
 ### ✅ PDV — layout pagamento v7.01 (06/07)
 

@@ -80,6 +80,7 @@
     }
     /** Trava duplo clique / Enter+F9 repetido enquanto a confirmação de venda está em andamento. */
     var isProcessingSale = false;
+    var isProcessingMpTranche = false;
 
     var MP_POINT_WAIT_ABORT_MSG =
         'Espera cancelada.\n\nSe o valor ainda estiver na maquininha, cancele a operação no terminal também.\n\nNo PDV: em «Pagamentos lançados», use Alterar ou Excluir e tente de novo.';
@@ -1585,8 +1586,181 @@
             fiadoDiasVencimento: forma === 'Fiado' ? parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30 : null,
             valorRecebido: dinheiroExtra.valorRecebido || '',
             trocoCalculado: dinheiroExtra.trocoCalculado || '',
-            outroDetalhes: forma === 'Outro' ? String(state.pagamento.outroDetalhes || '').trim() : ''
+            outroDetalhes: forma === 'Outro' ? String(state.pagamento.outroDetalhes || '').trim() : '',
+            mpPointOrderId: '',
+            mpPointPago: false
         };
+    }
+
+    function lancamentoSnapParaErpRow(L, state) {
+        state = state || State.getState();
+        var fn = lancamentoFormaErpLabel(L);
+        var v = State.toNumber(L.valor);
+        if (!fn && !(v > 0.0001)) return null;
+        if (!fn) fn = 'Não informado';
+        var row = {
+            formaPagamento: fn.slice(0, 200),
+            valorPagamento: Math.round((v + Number.EPSILON) * 100) / 100,
+            quitar: fn !== 'Fiado'
+        };
+        if (L.forma === 'Cartão de crédito parcelado') {
+            row.creditoParcelas = Math.min(
+                24,
+                Math.max(2, parseInt(L.creditoParcelas, 10) || parseInt(state.pagamento.creditoParcelas, 10) || 2)
+            );
+        }
+        var midL = String(L.maquinaId || '').trim();
+        if (midL) {
+            row.maquinaId = midL;
+            if (L.maquinaNome) row.maquinaNome = String(L.maquinaNome).slice(0, 120);
+            if (L.mpBalcaoModo) row.mpBalcaoModo = String(L.mpBalcaoModo);
+            if (L.cobrarNoPointMp) row.cobrarNoPointMp = true;
+        }
+        return row;
+    }
+
+    function buildErpPayloadParaTrancheMp(state, computed, trancheValor) {
+        var snap = snapshotLancamentoFromState(state, trancheValor);
+        var payload = buildErpPayload(state, computed);
+        var row = lancamentoSnapParaErpRow(snap, state);
+        payload.pagamentos = row ? [row] : [];
+        payload.valor_cobranca_tranche = Math.round((trancheValor + Number.EPSILON) * 100) / 100;
+        return payload;
+    }
+
+    function deveCobrarMpPointNaTranche(state, trancheValor) {
+        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) return false;
+        if (!(trancheValor > 0.009)) return false;
+        var forma = String(state.pagamento.forma || '').trim();
+        var mid = String(state.pagamento.maquinaId || '').trim();
+        return isMaquinaMpPointAuto(mid, forma);
+    }
+
+    function aplicarReconMpPointNoSnap(snap, data) {
+        if (!snap || !data) return snap;
+        var formaMp = String(data.mp_point_forma_confirmada || '').trim();
+        if (formaMp) {
+            snap.forma = formaMp;
+            var low = formaMp.toLowerCase();
+            if (low.indexOf('parcelado') >= 0) {
+                var m = formaMp.match(/(\d+)\s*x/i);
+                if (m) snap.creditoParcelas = parseInt(m[1], 10) || snap.creditoParcelas;
+            }
+        }
+        return snap;
+    }
+
+    function mpPointOrderIdsFromLancamentos(state) {
+        var ids = [];
+        (state.pagamento.lancamentos || []).forEach(function (L) {
+            if (L.mpPointOrderId && L.mpPointPago) ids.push(String(L.mpPointOrderId));
+        });
+        return ids;
+    }
+
+    function vendaPrecisaFinalizarMpPoint(state) {
+        return mpPointOrderIdsFromLancamentos(state).length > 0;
+    }
+
+    function finishMpTrancheBusy() {
+        isProcessingMpTranche = false;
+        var trancheInp = document.getElementById('pdv-pay-valor-tranche');
+        if (trancheInp) trancheInp.disabled = false;
+    }
+
+    function cobrarMpPointNaTranche(st, comp, cur) {
+        if (isProcessingMpTranche) return;
+        isProcessingMpTranche = true;
+        var trancheInp = document.getElementById('pdv-pay-valor-tranche');
+        if (trancheInp) trancheInp.disabled = true;
+
+        ensureCaixaAbertoParaVenda()
+            .then(function (caixaOk) {
+                if (!caixaOk) {
+                    finishMpTrancheBusy();
+                    return;
+                }
+                var payload = buildErpPayloadParaTrancheMp(st, comp, cur);
+                var formaWait = lancamentoFormaErpLabel(snapshotLancamentoFromState(st, cur));
+                return jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(st, comp)).then(function (draftRes) {
+                    if (!draftRes.ok || !draftRes.data.ok) {
+                        throw new Error(
+                            (draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) ||
+                                'Falha ao salvar rascunho.'
+                        );
+                    }
+                    return jsonPost(urls.apiPdvMpPointCriar, payload);
+                }).then(function (criarRes) {
+                    if (!criarRes.ok || !criarRes.data.ok) {
+                        throw new Error((criarRes.data && criarRes.data.erro) || 'Falha ao enviar valor ao terminal MP.');
+                    }
+                    var oid = criarRes.data.order_id;
+                    if (!oid) throw new Error('Resposta sem order_id.');
+                    mpPointWaitControl.cancelRequested = false;
+                    mpPointWaitControl.orderId = oid;
+                    showMpPointWaitBar(
+                        criarRes.data.amount != null ? criarRes.data.amount : cur,
+                        formaWait
+                    );
+                    return pollMpPointUntilPaid(oid);
+                }).then(function (pack) {
+                    var confirmUrl = urls.apiPdvMpPointConfirmarTranche || '';
+                    if (!String(confirmUrl).trim()) throw new Error('API confirmar tranche MP indisponível.');
+                    return jsonPost(confirmUrl, { order_id: pack.order_id }).then(function (confRes) {
+                        return { pack: pack, confRes: confRes };
+                    });
+                }).then(function (result) {
+                    var confRes = result.confRes;
+                    if (!confRes.ok || !confRes.data.ok) {
+                        throw new Error(
+                            (confRes.data && (confRes.data.erro || confRes.data.mensagem)) ||
+                                'Falha ao confirmar pagamento no terminal.'
+                        );
+                    }
+                    var snap = snapshotLancamentoFromState(State.getState(), cur);
+                    snap = aplicarReconMpPointNoSnap(snap, confRes.data);
+                    snap.mpPointOrderId = confRes.data.order_id || mpPointWaitControl.orderId || result.pack.order_id;
+                    snap.mpPointPago = true;
+                    if (confRes.data.mp_point_forma_divergencia && confRes.data.mp_point_aviso) {
+                        showMpPointAviso(confRes.data.mp_point_aviso);
+                    }
+                    State.addPagamentoLancamento(snap);
+                    pdvMpPointBeep('ok');
+                    afterCommitTrancheFlow();
+                });
+            })
+            .catch(function (err) {
+                if (err && err.mpPointUserAbort) {
+                    showMpPointAviso(MP_POINT_WAIT_ABORT_MSG);
+                } else if (err && err.mpPointUi) {
+                    pdvMpPointBeep('err');
+                    showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
+                } else {
+                    pdvMpPointBeep('err');
+                    showMpPointAviso(
+                        (err && err.message) || 'Falha ao cobrar na maquininha Mercado Pago.',
+                        { tone: 'error' }
+                    );
+                }
+            })
+            .finally(function () {
+                hideMpPointWaitBar();
+                finishMpTrancheBusy();
+            });
+    }
+
+    function commitTrancheFlow(st, comp, cur) {
+        var err = erroCommitTranche(st, comp, cur);
+        if (err) {
+            showPdvAviso(err);
+            return;
+        }
+        if (deveCobrarMpPointNaTranche(st, cur)) {
+            cobrarMpPointNaTranche(st, comp, cur);
+            return;
+        }
+        State.addPagamentoLancamento(snapshotLancamentoFromState(st, cur));
+        afterCommitTrancheFlow();
     }
 
     function fillQrSlot(el, url, emptyMsg) {
@@ -5480,7 +5654,7 @@
             hasMaquina &&
             String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
         var mpPixHint = mpPixAuto
-            ? 'Ao confirmar a venda, o Pix será enviado à maquininha Mercado Pago automaticamente.'
+            ? 'Enter no valor envia à maquininha Mercado Pago. «Confirmar» só fecha a venda (não cobra de novo).'
             : 'QR Pix Mercado Pago — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
         var btnAmplifyPix = document.getElementById('pdv-pay-open-qr-pix');
         if (btnAmplifyPix) btnAmplifyPix.classList.toggle('hidden', !!mpPixAuto);
@@ -5513,7 +5687,9 @@
                           var sub = [];
                           if (L.maquinaNome) sub.push(String(L.maquinaNome).trim());
                           var midL = String(L.maquinaId || '').trim();
-                          if (isMaquinaMpPointAuto(midL, L.forma)) {
+                          if (L.mpPointPago) {
+                              sub.unshift('Pago na maquininha');
+                          } else if (isMaquinaMpPointAuto(midL, L.forma)) {
                               sub.push('Point automático');
                           }
                           if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
@@ -5526,6 +5702,7 @@
                               sub.push(String(L.outroDetalhes).trim().slice(0, 80));
                           }
                           var subTxt = sub.filter(Boolean).join(' · ');
+                          var podeEditar = !L.mpPointPago;
                           return (
                               '<li class="rounded-xl border-2 border-emerald-200/80 bg-white p-2.5 shadow-sm sm:p-3">' +
                               '<div class="flex flex-wrap items-start justify-between gap-2">' +
@@ -5542,13 +5719,16 @@
                               '<p class="shrink-0 text-base font-black tabular-nums text-emerald-900 sm:text-lg">' +
                               escapeHtml(formatMoney(L.valor)) +
                               '</p></div>' +
-                              '<div class="mt-2 flex flex-wrap gap-2">' +
-                              '<button type="button" class="rounded-lg border-2 border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-800 hover:bg-slate-100 sm:text-xs" data-pdv-edit-lanc="' +
-                              idx +
-                              '">Alterar</button>' +
-                              '<button type="button" class="rounded-lg border-2 border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-rose-900 hover:bg-rose-100 sm:text-xs" data-pdv-remove-lanc="' +
-                              idx +
-                              '">Excluir</button></div></li>'
+                              (podeEditar
+                                  ? '<div class="mt-2 flex flex-wrap gap-2">' +
+                                    '<button type="button" class="rounded-lg border-2 border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-800 hover:bg-slate-100 sm:text-xs" data-pdv-edit-lanc="' +
+                                    idx +
+                                    '">Alterar</button>' +
+                                    '<button type="button" class="rounded-lg border-2 border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-rose-900 hover:bg-rose-100 sm:text-xs" data-pdv-remove-lanc="' +
+                                    idx +
+                                    '">Excluir</button></div>'
+                                  : '') +
+                              '</li>'
                           );
                       })
                       .join('')
@@ -7719,6 +7899,10 @@
                       Math.random().toString(36).slice(2, 11);
             State.setPagamentoField('clientRequestId', uuid);
         })();
+        if (vendaPrecisaFinalizarMpPoint(state)) {
+            confirmSaleFinalizarMpPointOrders(!!withPrint);
+            return;
+        }
         if (deveUsarMpPointNoFechar(state, computed)) {
             confirmSaleMercadoPagoPoint(!!withPrint);
             return;
@@ -7837,6 +8021,171 @@
                     } catch (errC) {}
                 }
                 showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', { tone: 'error' });
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                isProcessingSale = false;
+                setConfirmButtonsBusy(false);
+            });
+    }
+
+    function confirmSaleFinalizarMpPointOrders(withPrint) {
+        withPrint = !!withPrint;
+        if (isProcessingSale) return;
+        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointFinalizar || '').trim()) {
+            showMpPointAviso('Mercado Pago Point não está configurado no servidor.', { tone: 'error' });
+            return;
+        }
+        var state = State.getState();
+        var computed = State.getComputed();
+        var orderIds = mpPointOrderIdsFromLancamentos(state);
+        if (!orderIds.length) {
+            showMpPointAviso('Pagamento MP não encontrado nos lançamentos.', { tone: 'error' });
+            isProcessingSale = false;
+            setConfirmButtonsBusy(false);
+            return;
+        }
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
+        var printWin = pdvReservarJanelaCupomFallback(withPrint);
+        if (withPrint && !printWin && typeof window.agroImprimirCupomVenda80mm !== 'function') {
+            showPdvAviso(
+                'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.',
+                { title: 'Impressão' }
+            );
+        }
+        State.setPagamentoField('imprimirCupom', withPrint);
+        state = State.getState();
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+
+        var erpPayload = buildErpPayload(state, computed);
+        var primaryOrderId = orderIds[0];
+
+        jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
+            .then(function (draftRes) {
+                if (!draftRes.ok || !draftRes.data.ok) {
+                    throw new Error(
+                        (draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) || 'Falha ao salvar rascunho.'
+                    );
+                }
+                return jsonPost(urls.apiPdvMpPointFinalizar, {
+                    order_id: primaryOrderId,
+                    erp_payload: erpPayload
+                });
+            })
+            .then(function (finRes) {
+                if (!finRes.ok || !finRes.data.ok) {
+                    throw new Error(
+                        (finRes.data && (finRes.data.erro || finRes.data.mensagem)) ||
+                            'Falha ao registrar venda após pagamento na maquininha.'
+                    );
+                }
+                var mpPointFormaDivergiu =
+                    !!(finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso);
+                if (mpPointFormaDivergiu) {
+                    showMpPointAviso(finRes.data.mp_point_aviso);
+                }
+                var st = State.getState();
+                var comp = State.getComputed();
+                var pendenteId =
+                    st.entrega && st.entrega.pedidoEntregaPendenteId
+                        ? st.entrega.pedidoEntregaPendenteId
+                        : null;
+                var vendaId = finRes.data && finRes.data.venda_id;
+                if (pendenteId) {
+                    return finalizarEntregaPendenteAposVenda(pendenteId, vendaId).then(function (finEntRes) {
+                        if (!finEntRes.ok || !finEntRes.data || !finEntRes.data.ok) {
+                            throw new Error(
+                                (finEntRes.data && (finEntRes.data.erro || finEntRes.data.mensagem)) ||
+                                    'Venda salva, mas falhou ao encerrar pendência da entrega.'
+                            );
+                        }
+                        return {
+                            entrega: finEntRes.data,
+                            erp: finRes.data,
+                            mpPointFormaDivergiu: mpPointFormaDivergiu
+                        };
+                    });
+                }
+                if (!st.entrega.ativa) {
+                    return { entrega: null, erp: finRes.data, mpPointFormaDivergiu: mpPointFormaDivergiu };
+                }
+                return jsonPost(
+                    urls.apiEntregaRegistrar,
+                    buildEntregaPayload(st, comp, { venda_id: vendaId })
+                ).then(function (entRes) {
+                    if (!entRes.ok || !entRes.data.ok) {
+                        throw new Error(
+                            (entRes.data && (entRes.data.erro || entRes.data.mensagem)) ||
+                                'Venda salva, mas falhou ao registrar entrega.'
+                        );
+                    }
+                    return {
+                        entrega: entRes.data,
+                        erp: finRes.data,
+                        mpPointFormaDivergiu: mpPointFormaDivergiu
+                    };
+                });
+            })
+            .then(function (result) {
+                var erpData = (result && result.erp) || {};
+                var mpPointFormaDivergiu = !!(result && result.mpPointFormaDivergiu);
+                var nfceErro = nfceErroDaResposta(erpData);
+                var nfceOk = nfceSucessoDaResposta(erpData);
+                var vIdMp = erpData && erpData.venda_id != null ? erpData.venda_id : null;
+                var stMp = State.getState();
+                var cupomImpMp = withPrint
+                    ? String((stMp.pagamento && stMp.pagamento.cupomImpressao) || 'venda')
+                    : '';
+                if (nfceErro && cupomImpMp === 'nfce') {
+                    cupomImpMp = 'venda';
+                }
+                return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp)
+                    .then(function (printFail) {
+                        return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
+                            return printFail;
+                        });
+                    })
+                    .then(function (printFail) {
+                        jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                        pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
+                        resetWizardParaNovaVenda();
+                        if (nfceErro) {
+                            mostrarAvisoNfcePendente({ nfceErro: nfceErro }, 'Venda confirmada.');
+                            return;
+                        }
+                        if (printFail) {
+                            showSaleDoneFeedback(
+                                'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                                'warn',
+                                { placementTop: true }
+                            );
+                        } else if (nfceOk) {
+                            showSaleDoneFeedback(
+                                (result.entrega ? 'Venda e entrega OK. ' : 'Venda confirmada. ') + nfceOk,
+                                'success'
+                            );
+                        } else {
+                            showSaleDoneFeedback(
+                                result.entrega
+                                    ? 'Venda registrada e entrega lançada.'
+                                    : 'Venda registrada com sucesso.',
+                                'success'
+                            );
+                        }
+                    });
+            })
+            .catch(function (err) {
+                if (printWin && !printWin.closed) {
+                    try {
+                        printWin.close();
+                    } catch (errC) {}
+                }
+                pdvMpPointBeep('err');
+                showMpPointAviso(
+                    (err && err.message) || 'Falha ao confirmar venda com pagamento MP.',
+                    { tone: 'error' }
+                );
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -8336,11 +8685,10 @@
         }
         var err = erroCommitTranche(st, comp, cur);
         if (err) {
-            alert(err);
+            showPdvAviso(err);
             return;
         }
-        State.addPagamentoLancamento(snapshotLancamentoFromState(st, cur));
-        afterCommitTrancheFlow();
+        commitTrancheFlow(st, comp, cur);
     }
 
     function handlePaymentReceivedEnter(event) {
@@ -10062,12 +10410,30 @@
                 var rm = event.target.closest('[data-pdv-remove-lanc]');
                 if (rm) {
                     event.preventDefault();
+                    var rmIdx = parseInt(rm.getAttribute('data-pdv-remove-lanc'), 10);
+                    var stRm = State.getState();
+                    var Lrm = (stRm.pagamento.lancamentos || [])[rmIdx];
+                    if (Lrm && Lrm.mpPointPago) {
+                        showPdvAviso(
+                            'Pagamento já confirmado na maquininha. Finalize a venda ou fale com o gerente.'
+                        );
+                        return;
+                    }
                     State.removePagamentoLancamentoAt(rm.getAttribute('data-pdv-remove-lanc'));
                     return;
                 }
                 var ed = event.target.closest('[data-pdv-edit-lanc]');
                 if (ed) {
                     event.preventDefault();
+                    var edIdx = parseInt(ed.getAttribute('data-pdv-edit-lanc'), 10);
+                    var stEd = State.getState();
+                    var Led = (stEd.pagamento.lancamentos || [])[edIdx];
+                    if (Led && Led.mpPointPago) {
+                        showPdvAviso(
+                            'Pagamento já confirmado na maquininha. Finalize a venda ou fale com o gerente.'
+                        );
+                        return;
+                    }
                     State.beginEditPagamentoLancamento(ed.getAttribute('data-pdv-edit-lanc'));
                     var stE = State.getState();
                     focusFirstFlowFieldForForma(stE.pagamento.forma);

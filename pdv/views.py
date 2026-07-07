@@ -117,6 +117,7 @@ def pdv_home(request):
                 "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
                 "apiPdvMpPointCriar": reverse("api_pdv_mp_point_criar"),
                 "apiPdvMpPointStatus": reverse("api_pdv_mp_point_status"),
+                "apiPdvMpPointConfirmarTranche": reverse("api_pdv_mp_point_confirmar_tranche"),
                 "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
