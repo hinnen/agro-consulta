@@ -7188,7 +7188,7 @@
                     return Promise.reject({
                         mpPointUi: true,
                         message:
-                            'Pagamento cancelado na maquininha. Em «Pagamentos lançados», altere ou exclua e tente de novo.'
+                            'Pagamento cancelado na maquininha.\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
                     });
                 }
                 if (stRes.data.failed) {
@@ -7197,7 +7197,7 @@
                         'Pagamento recusado ou não concluído na maquininha.';
                     return Promise.reject({
                         mpPointUi: true,
-                        message: fmsg + ' Em «Pagamentos lançados», altere ou exclua e tente de novo.'
+                        message: fmsg + '\n\nEm «Pagamentos lançados», altere ou exclua e tente de novo.'
                     });
                 }
                 if (stRes.data.finalized && stRes.data.venda_id) {
@@ -8555,7 +8555,10 @@
                 } else if (err && err.mpPointUi) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     pdvMpPointBeep('err');
-                    showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
+                    showMpPointProminentFeedback(
+                        err.message || 'Operação cancelada na maquininha.',
+                        { tone: 'warn' }
+                    );
                 } else {
                     pdvMpPointBeep('err');
                     showMpPointAviso(
