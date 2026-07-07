@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.03** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.04** · **loja v6.86**
 
-**WIP teste:** validar **v7.03** — badge Pago + restante grande à direita (pagamento)
+**WIP teste:** validar **v7.04** — botão «Cobrar na maquininha» + revisão com menos números
+
+### ✅ PDV — pagamento UX v7.04 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tranche** | Botão verde «Cobrar na maquininha» / «Lançar pagamento» (Enter continua valendo) |
+| **Revisão** | Só «Resta pagar» + total; detalhes só se desconto/frete |
+| **Teste Renan** | Formas corretas na MP; não fechou mais venda (evitar cartão) |
 
 ### ✅ PDV — pagamento UX v7.03 (06/07)
 

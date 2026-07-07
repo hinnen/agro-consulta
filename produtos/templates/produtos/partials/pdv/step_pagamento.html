@@ -33,7 +33,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2 px-3 pb-2.5 sm:gap-3 sm:px-3.5 sm:pb-3">
         <div class="min-w-0">
           <p id="pdv-payment-forma-label" class="text-base font-black text-slate-900 sm:text-lg">Nenhuma selecionada</p>
-          <p class="mt-0.5 text-[11px] font-bold text-slate-600 sm:text-xs">Pago: <span id="pdv-payment-pago-acum" class="tabular-nums text-emerald-800">R$ 0,00</span> · Restante: <span id="pdv-payment-restante-top" class="tabular-nums font-black text-orange-700">R$ 0,00</span></p>
+          <p id="pdv-payment-forma-resumo" class="mt-0.5 hidden text-[11px] font-bold text-slate-600 sm:text-xs"></p>
         </div>
         <button type="button" id="pdv-open-payment-forma" class="pdv-action-btn shrink-0 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs text-white shadow-lg shadow-emerald-600/30 sm:rounded-2xl sm:px-5 sm:py-2.5 sm:text-sm">Escolher forma <kbd class="ml-1 hidden rounded bg-white/20 px-1.5 py-0.5 font-mono text-[10px] sm:inline">F3</kbd></button>
         </div>
@@ -86,16 +86,18 @@
           <button type="button" id="pdv-pay-trocar-maquina" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-900">Trocar <kbd class="ml-0.5 rounded bg-white px-1 font-mono text-[9px] text-slate-700">M</kbd></button>
         </div>
 
-        <div id="pdv-pay-valor-tranche-bar" class="hidden shrink-0 border-b border-emerald-100 bg-amber-50/90 px-3 py-2">
-          <label class="block">
-            <span class="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-amber-950">
-              <span>Valor nesta forma</span>
-              <kbd class="rounded border border-amber-400 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd>
-              <span class="font-bold normal-case text-amber-900">restante: <span id="pdv-payment-valor-restante">R$ 0,00</span></span>
-              <span class="font-bold normal-case text-amber-900">total: <span id="pdv-payment-valor-total-ref">R$ 0,00</span></span>
-            </span>
-            <input id="pdv-pay-valor-tranche" type="text" inputmode="decimal" class="pdv-input text-lg font-black tabular-nums" placeholder="Ex.: 10,50" autocomplete="off">
-          </label>
+        <div id="pdv-pay-valor-tranche-bar" class="hidden shrink-0 border-b border-emerald-100 bg-amber-50/90 px-3 py-3 sm:py-3.5">
+          <p class="text-sm font-black text-amber-950 sm:text-base">Quanto vai pagar agora?</p>
+          <p class="mt-0.5 text-[11px] font-bold text-amber-900 sm:text-xs">Falta <span id="pdv-payment-valor-restante" class="tabular-nums font-black">R$ 0,00</span> nesta venda</p>
+          <div class="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <label class="block min-w-0 flex-1">
+              <span class="sr-only">Valor nesta forma</span>
+              <input id="pdv-pay-valor-tranche" type="text" inputmode="decimal" class="pdv-input w-full text-xl font-black tabular-nums sm:text-2xl" placeholder="Ex.: 10,50" autocomplete="off">
+            </label>
+            <button type="button" id="pdv-pay-commit-tranche" class="pdv-pay-commit-tranche pdv-action-btn shrink-0 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-emerald-700/30 sm:min-w-[11.5rem] sm:px-5 sm:text-base">Lançar pagamento</button>
+          </div>
+          <p id="pdv-pay-commit-tranche-hint" class="mt-1.5 text-[10px] font-semibold leading-snug text-amber-950/85 sm:text-[11px]"></p>
+          <span id="pdv-payment-valor-total-ref" class="sr-only" aria-hidden="true">R$ 0,00</span>
         </div>
 
         <div class="pdv-pay-flow-inner flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden overflow-x-hidden p-2 sm:gap-2 sm:p-2.5">
@@ -257,22 +259,22 @@
         <p class="mt-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-800/90">Fechamento</p>
       </div>
       <div class="pdv-pay-right-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5 sm:p-3">
-      <div id="pdv-payment-restante-hero" class="pdv-pay-restante-hero pdv-pay-restante-hero--pendente mb-1 rounded-xl border-2 p-3 text-right sm:mb-2 sm:rounded-2xl sm:p-4">
+      <div id="pdv-payment-restante-hero" class="pdv-pay-restante-hero pdv-pay-restante-hero--pendente mb-1 rounded-xl border-2 p-3 sm:mb-2 sm:rounded-2xl sm:p-4">
         <p id="pdv-payment-restante-hero-label" class="text-[10px] font-black uppercase tracking-[0.14em] text-orange-900/85 sm:text-[11px]">Resta pagar</p>
         <p id="pdv-payment-restante-hero-val" class="mt-0.5 text-3xl font-black tabular-nums leading-none text-orange-700 sm:text-[2.35rem]">R$ 0,00</p>
-        <p class="mt-1.5 text-[11px] font-bold text-slate-600 sm:text-xs">Já lançado: <span id="pdv-payment-pago-hero" class="tabular-nums font-black text-emerald-800">R$ 0,00</span></p>
+        <p id="pdv-payment-restante-hero-sub" class="mt-1.5 text-xs font-bold text-slate-600 sm:text-sm">Total da venda <span id="pdv-payment-total-inline" class="tabular-nums font-black text-slate-800">R$ 0,00</span></p>
       </div>
-      <div class="space-y-1 rounded-xl border-2 border-emerald-200 bg-white p-2.5 sm:rounded-2xl sm:p-3">
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Subtotal</span><span id="pdv-payment-subtotal">R$ 0,00</span></div>
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Desconto</span><span id="pdv-payment-discount-view">R$ 0,00</span></div>
-        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600 sm:text-sm"><span>Frete</span><span id="pdv-payment-shipping-view">R$ 0,00</span></div>
-        <div class="border-t border-emerald-100 pt-2">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-black uppercase tracking-wide text-slate-700 sm:text-sm">Total final</span>
-            <span id="pdv-payment-total" class="text-2xl font-black tracking-tight text-emerald-700 sm:text-3xl">R$ 0,00</span>
-          </div>
+      <details id="pdv-payment-totais-detalhe" class="hidden rounded-xl border border-slate-200 bg-white px-2.5 py-2 sm:rounded-2xl sm:px-3">
+        <summary class="cursor-pointer text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Detalhes do total</summary>
+        <div class="mt-2 space-y-1 border-t border-slate-100 pt-2">
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Subtotal</span><span id="pdv-payment-subtotal">R$ 0,00</span></div>
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Desconto</span><span id="pdv-payment-discount-view">R$ 0,00</span></div>
+          <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-600"><span>Frete</span><span id="pdv-payment-shipping-view">R$ 0,00</span></div>
         </div>
-      </div>
+      </details>
+      <span id="pdv-payment-pago-acum" class="sr-only" aria-hidden="true">R$ 0,00</span>
+      <span id="pdv-payment-restante-top" class="sr-only" aria-hidden="true">R$ 0,00</span>
+      <span id="pdv-payment-total" class="sr-only" aria-hidden="true">R$ 0,00</span>
       <div id="pdv-payment-lancamentos-box" class="hidden rounded-xl border border-emerald-200 bg-white p-2 sm:rounded-2xl sm:p-2.5">
         <p class="text-[10px] font-black uppercase tracking-wide text-emerald-800 sm:text-[11px]">Pagamentos já lançados</p>
         <ul id="pdv-payment-lancamentos-list" class="mt-1.5 space-y-2"></ul>

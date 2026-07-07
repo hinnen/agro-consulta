@@ -2049,11 +2049,21 @@
     border-color: #f97316;
     background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 55%, #fff 100%);
     box-shadow: 0 2px 10px rgba(234, 88, 12, 0.12);
+    text-align: left;
   }
   #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado {
     border-color: #10b981;
     background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #fff 100%);
     box-shadow: 0 2px 10px rgba(16, 185, 129, 0.14);
+    text-align: left;
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche {
+    min-height: 3rem;
+    letter-spacing: 0.04em;
+  }
+  #pdv-step-pagamento-root .pdv-pay-commit-tranche:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
   #pdv-step-pagamento-root .pdv-pay-restante-hero--quitado #pdv-payment-restante-hero-label {
     color: #047857;

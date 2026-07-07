@@ -334,7 +334,12 @@
         paymentRestanteHero: document.getElementById('pdv-payment-restante-hero'),
         paymentRestanteHeroLabel: document.getElementById('pdv-payment-restante-hero-label'),
         paymentRestanteHeroVal: document.getElementById('pdv-payment-restante-hero-val'),
-        paymentPagoHero: document.getElementById('pdv-payment-pago-hero'),
+        paymentRestanteHeroSub: document.getElementById('pdv-payment-restante-hero-sub'),
+        paymentTotalInline: document.getElementById('pdv-payment-total-inline'),
+        paymentTotaisDetalhe: document.getElementById('pdv-payment-totais-detalhe'),
+        paymentFormaResumo: document.getElementById('pdv-payment-forma-resumo'),
+        payCommitTranche: document.getElementById('pdv-pay-commit-tranche'),
+        payCommitTrancheHint: document.getElementById('pdv-pay-commit-tranche-hint'),
         paymentFeedback: document.getElementById('pdv-payment-feedback'),
         paymentLancamentosBox: document.getElementById('pdv-payment-lancamentos-box'),
         paymentLancamentosList: document.getElementById('pdv-payment-lancamentos-list'),
@@ -5658,7 +5663,7 @@
             hasMaquina &&
             String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
         var mpPixHint = mpPixAuto
-            ? 'Enter no valor envia à maquininha Mercado Pago. «Confirmar» só fecha a venda (não cobra de novo).'
+            ? 'Use o botão verde «Cobrar na maquininha» ao lado do valor.'
             : 'QR Pix Mercado Pago — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
         var btnAmplifyPix = document.getElementById('pdv-pay-open-qr-pix');
         if (btnAmplifyPix) btnAmplifyPix.classList.toggle('hidden', !!mpPixAuto);
@@ -5679,17 +5684,56 @@
         var restFin = saldoRestantePagamento(state, computed);
         if (dom.paymentPaidAccum) dom.paymentPaidAccum.textContent = formatMoney(pagoAcum);
         if (dom.paymentRemainingTop) dom.paymentRemainingTop.textContent = formatMoney(restFin);
-        if (dom.paymentPagoHero) dom.paymentPagoHero.textContent = formatMoney(pagoAcum);
         var quitadoPay = restFin <= 0.009;
         if (dom.paymentRestanteHero) {
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--quitado', quitadoPay);
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--pendente', !quitadoPay);
         }
         if (dom.paymentRestanteHeroLabel) {
-            dom.paymentRestanteHeroLabel.textContent = quitadoPay ? 'Quitado — pode confirmar' : 'Resta pagar';
+            dom.paymentRestanteHeroLabel.textContent = quitadoPay ? 'Tudo pago' : 'Resta pagar';
         }
         if (dom.paymentRestanteHeroVal) {
-            dom.paymentRestanteHeroVal.textContent = quitadoPay ? 'R$ 0,00' : formatMoney(restFin);
+            dom.paymentRestanteHeroVal.textContent = quitadoPay ? 'Pode confirmar' : formatMoney(restFin);
+        }
+        if (dom.paymentTotalInline) dom.paymentTotalInline.textContent = formatMoney(total);
+        if (dom.paymentRestanteHeroSub) {
+            var subHero = 'Total da venda ' + formatMoney(total);
+            if (pagoAcum > 0.009 && !quitadoPay) {
+                subHero += ' · Pago ' + formatMoney(pagoAcum);
+            }
+            dom.paymentRestanteHeroSub.textContent = subHero;
+        }
+        if (dom.paymentTotaisDetalhe) {
+            var showDetalhe = (computed.desconto > 0.009) || (computed.frete > 0.009);
+            dom.paymentTotaisDetalhe.classList.toggle('hidden', !showDetalhe);
+        }
+        if (dom.paymentFormaResumo) {
+            if (forma && !quitadoPay) {
+                dom.paymentFormaResumo.textContent =
+                    'Depois de lançar, o restante aparece à direita.';
+                dom.paymentFormaResumo.classList.remove('hidden');
+            } else {
+                dom.paymentFormaResumo.textContent = '';
+                dom.paymentFormaResumo.classList.add('hidden');
+            }
+        }
+        var midPay = String(state.pagamento.maquinaId || '').trim();
+        var mpPointBtn = isMaquinaMpPointAuto(midPay, forma);
+        if (dom.payCommitTranche) {
+            dom.payCommitTranche.textContent = mpPointBtn ? 'Cobrar na maquininha' : 'Lançar pagamento';
+            dom.payCommitTranche.disabled = !!isProcessingMpTranche || quitadoPay;
+            dom.payCommitTranche.classList.toggle('opacity-40', dom.payCommitTranche.disabled);
+        }
+        if (dom.payCommitTrancheHint) {
+            if (mpPointBtn) {
+                dom.payCommitTrancheHint.textContent =
+                    '1) Digite o valor · 2) Toque no botão verde · 3) Cliente paga na maquininha · 4) «Confirmar» no rodapé só fecha a venda.';
+            } else if (forma) {
+                dom.payCommitTrancheHint.textContent =
+                    'Registra este valor na venda. Faça a cobrança na máquina ou forma escolhida.';
+            } else {
+                dom.payCommitTrancheHint.textContent = '';
+            }
         }
         if (dom.paymentValorTotalRef) dom.paymentValorTotalRef.textContent = formatMoney(total);
         if (dom.paymentValorRestante) dom.paymentValorRestante.textContent = formatMoney(restFin);
@@ -8657,6 +8701,8 @@
                 return;
             }
             patch.valorDestaForma = rest > 0 ? String(rest.toFixed(2)).replace('.', ',') : '';
+        } else if (forma !== 'Dinheiro') {
+            patch.valorDestaForma = rest > 0.009 ? String(rest.toFixed(2)).replace('.', ',') : '';
         } else {
             patch.valorDestaForma = '';
         }
@@ -8684,13 +8730,9 @@
         return map[c] || '';
     }
 
-    function handleValorTrancheEnter(event) {
-        if (event.key !== 'Enter') return;
-        var tag = (event.target && event.target.tagName) || '';
-        if (tag === 'TEXTAREA') return;
+    function runCommitTrancheFromInput() {
         var inp = document.getElementById('pdv-pay-valor-tranche');
-        if (!inp || event.target !== inp) return;
-        event.preventDefault();
+        if (!inp) return;
         var st = State.getState();
         if (st.currentStep !== 'pagamento') return;
         var comp = State.getComputed();
@@ -8705,6 +8747,7 @@
             var fmt = String(rest.toFixed(2)).replace('.', ',');
             inp.value = fmt;
             State.setPagamentoField('valorDestaForma', fmt);
+            showPdvAviso('Valor preenchido com o que falta. Toque no botão verde para continuar.');
             return;
         }
         var err = erroCommitTranche(st, comp, cur);
@@ -8713,6 +8756,16 @@
             return;
         }
         commitTrancheFlow(st, comp, cur);
+    }
+
+    function handleValorTrancheEnter(event) {
+        if (event.key !== 'Enter') return;
+        var tag = (event.target && event.target.tagName) || '';
+        if (tag === 'TEXTAREA') return;
+        var inp = document.getElementById('pdv-pay-valor-tranche');
+        if (!inp || event.target !== inp) return;
+        event.preventDefault();
+        runCommitTrancheFromInput();
     }
 
     function handlePaymentReceivedEnter(event) {
@@ -10338,6 +10391,11 @@
 
         if (dom.paymentValorForma) {
             dom.paymentValorForma.addEventListener('keydown', handleValorTrancheEnter);
+        }
+        if (dom.payCommitTranche) {
+            dom.payCommitTranche.addEventListener('click', function () {
+                runCommitTrancheFromInput();
+            });
         }
 
         if (dom.paymentParcelasCredito) {
