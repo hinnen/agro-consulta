@@ -176,22 +176,33 @@
         showSaleDoneFeedback(texto, opts.tone || 'warn', mpOpts);
     }
 
-    function showMpPointCancelFeedback() {
-        var msg = mpPointWaitAbortMessage();
-        showMpPointAviso(msg, {
+    function mpPointUnfreezeAfterAviso() {
+        finishMpTrancheBusy();
+        var inp = document.getElementById('pdv-pay-valor-tranche');
+        if (inp && !inp.disabled) {
+            try {
+                inp.focus();
+            } catch (eFocus) {}
+        }
+    }
+
+    function showMpPointProminentFeedback(msg, opts) {
+        opts = opts || {};
+        var texto = String(msg || '').trim();
+        if (!texto) return;
+        showMpPointAviso(texto, {
             prominent: true,
             persistent: true,
             keepNewlines: true,
-            tone: mpPointWaitControl.cancelouMaquininha ? 'info' : 'warn',
-            onDismiss: function () {
-                finishMpTrancheBusy();
-                var inp = document.getElementById('pdv-pay-valor-tranche');
-                if (inp && !inp.disabled) {
-                    try {
-                        inp.focus();
-                    } catch (eFocus) {}
-                }
-            }
+            tone: opts.tone || 'warn',
+            title: opts.title || 'Mercado Pago',
+            onDismiss: typeof opts.onDismiss === 'function' ? opts.onDismiss : mpPointUnfreezeAfterAviso
+        });
+    }
+
+    function showMpPointCancelFeedback() {
+        showMpPointProminentFeedback(mpPointWaitAbortMessage(), {
+            tone: mpPointWaitControl.cancelouMaquininha ? 'info' : 'warn'
         });
     }
 
@@ -1783,7 +1794,10 @@
                     showMpPointCancelFeedback();
                 } else if (err && err.mpPointUi) {
                     pdvMpPointBeep('err');
-                    showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
+                    showMpPointProminentFeedback(
+                        err.message || 'Operação cancelada na maquininha.',
+                        { tone: 'warn' }
+                    );
                 } else {
                     pdvMpPointBeep('err');
                     showMpPointAviso(
