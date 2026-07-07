@@ -21684,7 +21684,6 @@ def api_enviar_pedido_erp(request):
             )
             vid = venda_local.pk if venda_local else None
             if vid:
-                tentar_vincular_entrega_pendente_apos_venda(data, vid)
                 _disparar_envio_erp_venda_background(vid, data)
             return _resposta_venda(
                 data,
@@ -21710,7 +21709,7 @@ def api_enviar_pedido_erp(request):
         )
         vid = venda_local.pk if venda_local else None
         if vid:
-            tentar_vincular_entrega_pendente_apos_venda(data, vid)
+            pass  # Entrega pendente: encerrada pelo PDV em api_pdv_entrega_pendente_finalizar
         msg_erro_ui = out["msg_erro_ui"]
 
         if out["ok"] and out["recusa_erp"]:

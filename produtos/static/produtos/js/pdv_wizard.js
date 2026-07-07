@@ -3610,7 +3610,7 @@
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null }).then(function (res) {
             if (res.ok && res.data && res.data.ok) return res;
             var msg = String((res.data && (res.data.erro || res.data.mensagem)) || '').trim();
-            // Servidor já encerrou via pedido_entrega_pendente_id no envio ERP (dupla chamada).
+            // Idempotente: retomada dupla ou rede lenta.
             if (
                 res.status === 404 ||
                 msg === 'Entrega pendente não encontrada.' ||

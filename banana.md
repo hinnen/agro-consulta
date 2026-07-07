@@ -1145,9 +1145,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.18** · **loja v7.15**
+**Versão app (`VERSION`):** **teste v7.19** · **loja v7.15**
 
-**WIP teste:** validar **v7.18** — entrega pendente «não encontrada» ao confirmar
+**WIP teste:** validar **v7.19** — entrega encerra só no PDV ao confirmar
+
+### 🐛 PDV v7.19 (07/07) — fluxo entrega
+
+| Decisão | Detalhe |
+| ------- | ------- |
+| **Quem encerra** | PDV, ao confirmar venda/cobrança (`finalizar entrega`) |
+| **Antes (bug)** | Servidor encerrava no ERP **antes** do PDV → erro «não encontrada» |
 
 ### 🐛 PDV urgente v7.18 (07/07)
 
