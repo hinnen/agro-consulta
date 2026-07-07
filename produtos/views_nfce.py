@@ -43,6 +43,7 @@ from produtos.nfce_contabilidade_util import (
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
 from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada, cpf_valido, emitir_nfce_para_venda
 from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
+from produtos.sefaz_soap_util import sefaz_erro_transiente
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,14 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
             if out is None:
                 continue
             erro = str(out.get("erro") or "")
+            if sefaz_erro_transiente(erro):
+                logger.warning(
+                    "NFC-e retry rede venda %s (após %.0fs): %s",
+                    venda_id,
+                    wait_s,
+                    erro[:160],
+                )
+                continue
             if erro != _ERRO_NFCE_CFG and "não configurada" not in erro.lower():
                 return
         close_old_connections()

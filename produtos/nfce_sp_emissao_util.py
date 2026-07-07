@@ -10,6 +10,7 @@ import logging
 import random
 import re
 import tempfile
+import time
 import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -24,7 +25,11 @@ from django.utils import timezone
 from produtos.caixa_util import normalizar_forma_pagamento_caixa, pagamentos_lista_de_venda
 from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro, VendaAgro
 from produtos.nfce_config_util import nfce_cfg, nfce_configurada
-from produtos.sefaz_soap_util import montar_envelope_nfe_dados_msg, normalizar_xml_envio
+from produtos.sefaz_soap_util import (
+    montar_envelope_nfe_dados_msg,
+    normalizar_xml_envio,
+    sefaz_erro_transiente,
+)
 from produtos.sefaz_ssl_util import sefaz_requests_verify
 from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
 from produtos.nfce_fiscal_produto_util import fiscal_por_produto_id
@@ -61,6 +66,7 @@ CUF_SP = "35"
 
 # SEFAZ já registrou esse nNF com outra chave (testes repetidos) — tenta próximo número.
 _NFCE_RETRY_CSTAT_DUPLICIDADE = frozenset({"539", "204"})
+_SEFAZ_HTTP_RETRY_DELAYS_S = (1.0, 2.0, 4.0, 8.0)
 
 # NT 2024.003 — PIX/cartão exigem grupo card (tpIntegra 2 = não integrado ao TEF).
 _TPAG_REQUER_CARD = frozenset({"03", "04", "05", "10", "11", "12", "13", "15", "17", "18", "19", "20", "21", "22"})
@@ -501,21 +507,45 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
     )
     soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL, envi_nfe, "nfeAutorizacaoLote")
     cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+    last_err = ""
     try:
-        r = requests.post(
-            url,
-            data=soap.encode("utf-8"),
-            headers=headers,
-            cert=(cert_file, key_file),
-            verify=sefaz_requests_verify(),
-            timeout=90,
-        )
-        text = r.text or ""
-        if r.status_code >= 400:
-            return None, f"HTTP {r.status_code}: {text[:500]}"
-        return _parse_retorno_autorizacao(text, xml_nfe_assinado=xml_assinado), None
-    except requests.RequestException as exc:
-        return None, str(exc)[:400]
+        for attempt, delay_s in enumerate(_SEFAZ_HTTP_RETRY_DELAYS_S):
+            if attempt > 0:
+                time.sleep(delay_s)
+            try:
+                r = requests.post(
+                    url,
+                    data=soap.encode("utf-8"),
+                    headers=headers,
+                    cert=(cert_file, key_file),
+                    verify=sefaz_requests_verify(),
+                    timeout=90,
+                )
+                text = r.text or ""
+                if r.status_code >= 400:
+                    last_err = f"HTTP {r.status_code}: {text[:500]}"
+                    if r.status_code >= 500 and attempt + 1 < len(_SEFAZ_HTTP_RETRY_DELAYS_S):
+                        logger.warning(
+                            "SEFAZ autorização HTTP %s — retry %s/%s",
+                            r.status_code,
+                            attempt + 1,
+                            len(_SEFAZ_HTTP_RETRY_DELAYS_S),
+                        )
+                        continue
+                    return None, last_err
+                return _parse_retorno_autorizacao(text, xml_nfe_assinado=xml_assinado), None
+            except requests.RequestException as exc:
+                last_err = str(exc)[:400]
+                if sefaz_erro_transiente(last_err) and attempt + 1 < len(_SEFAZ_HTTP_RETRY_DELAYS_S):
+                    logger.warning(
+                        "SEFAZ autorização rede — retry %s/%s: %s",
+                        attempt + 1,
+                        len(_SEFAZ_HTTP_RETRY_DELAYS_S),
+                        last_err[:160],
+                    )
+                    continue
+                return None, last_err
+        return None, last_err or "Sem resposta SEFAZ."
     finally:
         import os
 
@@ -1094,21 +1124,33 @@ def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tu
     )
     soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL_EVENTO, env_evento, "nfeRecepcaoEvento")
     cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+    last_err = ""
     try:
-        r = requests.post(
-            url,
-            data=soap.encode("utf-8"),
-            headers=headers,
-            cert=(cert_file, key_file),
-            verify=sefaz_requests_verify(),
-            timeout=90,
-        )
-        text = r.text or ""
-        if r.status_code >= 400:
-            return None, f"HTTP {r.status_code}: {text[:500]}"
-        return _parse_retorno_evento(text), None
-    except requests.RequestException as exc:
-        return None, str(exc)[:400]
+        for attempt, delay_s in enumerate(_SEFAZ_HTTP_RETRY_DELAYS_S):
+            if attempt > 0:
+                time.sleep(delay_s)
+            try:
+                r = requests.post(
+                    url,
+                    data=soap.encode("utf-8"),
+                    headers=headers,
+                    cert=(cert_file, key_file),
+                    verify=sefaz_requests_verify(),
+                    timeout=90,
+                )
+                text = r.text or ""
+                if r.status_code >= 400:
+                    last_err = f"HTTP {r.status_code}: {text[:500]}"
+                    if r.status_code >= 500 and attempt + 1 < len(_SEFAZ_HTTP_RETRY_DELAYS_S):
+                        continue
+                    return None, last_err
+                return _parse_retorno_evento(text), None
+            except requests.RequestException as exc:
+                last_err = str(exc)[:400]
+                if sefaz_erro_transiente(last_err) and attempt + 1 < len(_SEFAZ_HTTP_RETRY_DELAYS_S):
+                    continue
+                return None, last_err
+        return None, last_err or "Sem resposta SEFAZ."
     finally:
         import os
 

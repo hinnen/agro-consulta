@@ -12,6 +12,32 @@ import re
 NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 NS_SOAP = "http://www.w3.org/2003/05/soap-envelope"
 
+_SEFAZ_ERRO_TRANSIENTE_NEEDLES = (
+    "connection refused",
+    "connectionerror",
+    "connecttimeout",
+    "max retries exceeded",
+    "failed to establish",
+    "timed out",
+    "timeout",
+    "temporarily unavailable",
+    "errno 111",
+    "errno 110",
+    "name or service not known",
+    "httpsconnectionpool",
+    "remotedisconnected",
+    "connection reset",
+    "broken pipe",
+)
+
+
+def sefaz_erro_transiente(mensagem: str) -> bool:
+    """True se a falha parece rede/SEFAZ temporária (vale retry)."""
+    e = (mensagem or "").strip().lower()
+    if not e:
+        return False
+    return any(n in e for n in _SEFAZ_ERRO_TRANSIENTE_NEEDLES)
+
 
 def normalizar_xml_envio(xml: str) -> str:
     """Remove declaração XML e espaços entre tags (rejeição 588)."""
