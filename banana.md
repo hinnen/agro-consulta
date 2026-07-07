@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.06** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.07** · **loja v6.86**
 
-**WIP teste:** validar **v7.06** — sem barra verde pagamento + rodapé maior
+**WIP teste:** validar **v7.07** — cancel no PDV também cancela maquininha (header MP `at_terminal`)
+
+### ✅ PDV — MP Point cancel bidirecional v7.07 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cancel PDV** | API MP com header `at_terminal` quando valor já está na maquininha |
+| **Botão espera** | Chama cancel na MP antes de abortar o poll |
+| **Renan** | Pediu: cancelar no sistema também cancelar na maquininha |
 
 ### ✅ PDV — pagamento UX v7.06 (06/07)
 

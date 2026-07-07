@@ -246,14 +246,20 @@ def mp_point_get_order(*, access_token: str, order_id: str) -> tuple[bool, int, 
     return False, r.status_code, data
 
 
-def mp_point_cancel_order(*, access_token: str, order_id: str) -> tuple[bool, int, dict | list | str]:
-    """Cancela pedido Point (quando ainda permitido pela API)."""
+def _mp_point_cancel_order_post(
+    *,
+    access_token: str,
+    order_id: str,
+    extra_headers: dict[str, str] | None = None,
+) -> tuple[bool, int, dict | list | str]:
     idem = str(uuid.uuid4())
     headers = {
         "Authorization": f"Bearer {access_token.strip()}",
         "Content-Type": "application/json",
         "X-Idempotency-Key": idem,
     }
+    if extra_headers:
+        headers.update(extra_headers)
     try:
         r = requests.post(
             f"{MP_ORDERS_URL}/{order_id.strip()}/cancel",
@@ -272,6 +278,33 @@ def mp_point_cancel_order(*, access_token: str, order_id: str) -> tuple[bool, in
     if r.status_code in (200, 201):
         return True, r.status_code, data
     return False, r.status_code, data
+
+
+def _mp_point_cancel_ja_efetuado(status_code: int, body) -> bool:
+    if status_code != 409:
+        return False
+    low = mp_point_mensagem_erro(body).lower()
+    return "already_canceled" in low or "order_already_canceled" in low
+
+
+def mp_point_cancel_order(*, access_token: str, order_id: str) -> tuple[bool, int, dict | list | str]:
+    """Cancela pedido Point na API (created ou at_terminal com header extra)."""
+    ok, st, body = _mp_point_cancel_order_post(access_token=access_token, order_id=order_id)
+    if ok or _mp_point_cancel_ja_efetuado(st, body):
+        return True, st, body
+
+    low = mp_point_mensagem_erro(body).lower()
+    if st == 409 and ("cannot_cancel_order" in low or "at_terminal" in low):
+        ok2, st2, body2 = _mp_point_cancel_order_post(
+            access_token=access_token,
+            order_id=order_id,
+            extra_headers={"x-allow-cancelable-status": "at_terminal"},
+        )
+        if ok2 or _mp_point_cancel_ja_efetuado(st2, body2):
+            return True, st2, body2
+        return ok2, st2, body2
+
+    return ok, st, body
 
 
 def mp_point_mensagem_erro(body) -> str:

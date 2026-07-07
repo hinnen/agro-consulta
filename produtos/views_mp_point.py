@@ -850,14 +850,14 @@ def api_pdv_mp_point_abandon(request):
         low = mp_point_mensagem_erro(body_cancel).lower()
         if st_cancel == 409 or "terminal" in low or "at_terminal" in low:
             aviso_terminal = (
-                "O valor pode ainda estar na maquininha — cancele também no terminal."
+                "Não foi possível cancelar na maquininha — cancele também no terminal."
             )
         elif st_cancel not in (0, 404):
             logger.warning("MP Point abandonar: cancel API HTTP %s — %s", st_cancel, body_cancel)
 
     row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
     row.save(update_fields=["status", "atualizado_em"])
-    payload = {"ok": True}
+    payload = {"ok": True, "cancelou_maquininha": bool(ok_mp)}
     if aviso_terminal:
         payload["aviso"] = aviso_terminal
     return JsonResponse(payload)

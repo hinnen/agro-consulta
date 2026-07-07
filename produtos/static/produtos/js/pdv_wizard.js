@@ -90,11 +90,23 @@
     var mpPointWaitControl = {
         orderId: null,
         cancelRequested: false,
+        cancelouMaquininha: false,
         reset: function () {
             this.orderId = null;
             this.cancelRequested = false;
+            this.cancelouMaquininha = false;
         }
     };
+
+    function mpPointWaitAbortMessage() {
+        if (mpPointWaitControl.cancelouMaquininha) {
+            return (
+                'Cobrança cancelada no PDV e na maquininha.\n\n' +
+                'Em «Pagamentos lançados», altere ou exclua e tente de novo.'
+            );
+        }
+        return MP_POINT_WAIT_ABORT_MSG;
+    }
     /** Rascunho da quantidade enquanto o operador digita (evita perder foco a cada tecla). */
     var qtyEditDraft = { id: null, raw: '' };
     var qtyInputRestore = { id: null, selStart: null, selEnd: null };
@@ -1741,7 +1753,7 @@
             })
             .catch(function (err) {
                 if (err && err.mpPointUserAbort) {
-                    showMpPointAviso(MP_POINT_WAIT_ABORT_MSG);
+                    showMpPointAviso(err.message || mpPointWaitAbortMessage());
                 } else if (err && err.mpPointUi) {
                     pdvMpPointBeep('err');
                     showMpPointAviso(err.message || 'Operação cancelada na maquininha.');
@@ -7098,7 +7110,7 @@
         var statusBase = urls.apiPdvMpPointStatus || '';
         var startedAt = Date.now();
         function userAbortError() {
-            var e = new Error(MP_POINT_WAIT_ABORT_MSG);
+            var e = new Error(mpPointWaitAbortMessage());
             e.mpPointUserAbort = true;
             return e;
         }
@@ -8456,7 +8468,7 @@
                 }
                 if (err && err.mpPointUserAbort) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                    showMpPointAviso(MP_POINT_WAIT_ABORT_MSG);
+                    showMpPointAviso(err.message || mpPointWaitAbortMessage());
                 } else if (err && err.mpPointUi) {
                     jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
                     pdvMpPointBeep('err');
@@ -10544,17 +10556,35 @@
         var btnMpPointCancelWait = document.getElementById('pdv-mp-point-cancel-wait');
         if (btnMpPointCancelWait) {
             btnMpPointCancelWait.addEventListener('click', function () {
-                mpPointWaitControl.cancelRequested = true;
+                if (mpPointWaitControl.cancelRequested) return;
                 var oid = mpPointWaitControl.orderId;
-                if (oid && String(urls.apiPdvMpPointAbandon || '').trim()) {
-                    jsonPost(urls.apiPdvMpPointAbandon, { order_id: oid })
-                        .then(function (res) {
-                            if (res.ok && res.data && res.data.aviso) {
+                var abandonUrl = String(urls.apiPdvMpPointAbandon || '').trim();
+                if (!oid || !abandonUrl) {
+                    mpPointWaitControl.cancelRequested = true;
+                    return;
+                }
+                btnMpPointCancelWait.disabled = true;
+                setMpPointWaitStatus('Cancelando na maquininha…');
+                jsonPost(abandonUrl, { order_id: oid })
+                    .then(function (res) {
+                        mpPointWaitControl.cancelouMaquininha = !!(res.ok && res.data && res.data.cancelou_maquininha);
+                        mpPointWaitControl.cancelRequested = true;
+                        if (res.ok && res.data) {
+                            if (res.data.cancelou_maquininha) {
+                                setMpPointWaitStatus('Cancelado no PDV e na maquininha.');
+                            } else if (res.data.aviso) {
                                 setMpPointWaitStatus(res.data.aviso);
                             }
-                        })
-                        .catch(function () {});
-                }
+                        }
+                    })
+                    .catch(function () {
+                        mpPointWaitControl.cancelouMaquininha = false;
+                        mpPointWaitControl.cancelRequested = true;
+                        setMpPointWaitStatus('Falha ao cancelar — confira a maquininha.');
+                    })
+                    .finally(function () {
+                        btnMpPointCancelWait.disabled = false;
+                    });
             });
         }
         var btnMaquinaPix = document.getElementById('pdv-pay-open-maquinas-pix');
