@@ -83,8 +83,13 @@ def _nfce_ja_autorizada(venda: VendaAgro) -> bool:
     ).exists()
 
 
-def _emitir_nfce_pos_venda_sync(venda: VendaAgro, data: dict) -> dict | None:
-    """Tenta emitir NFC-e na thread da requisição (sem retry em background)."""
+def _emitir_nfce_pos_venda_sync(
+    venda: VendaAgro,
+    data: dict,
+    *,
+    sefaz_perfil: str = "sync",
+) -> dict | None:
+    """Tenta emitir NFC-e na thread da requisição."""
     cfg = nfce_config_resumo()
     tp_amb = int(cfg.get("tp_amb") or 2)
     if not nfce_configurada(warmup=True, tentativas=3):
@@ -117,6 +122,7 @@ def _emitir_nfce_pos_venda_sync(venda: VendaAgro, data: dict) -> dict | None:
         sem_identificacao=sem_id,
         db=db,
         col_p=col_p,
+        sefaz_perfil=sefaz_perfil,
     )
 
 
@@ -138,7 +144,7 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
             if _nfce_ja_autorizada(venda):
                 logger.info("NFC-e retry: venda %s já autorizada.", venda_id)
                 return
-            out = _emitir_nfce_pos_venda_sync(venda, payload)
+            out = _emitir_nfce_pos_venda_sync(venda, payload, sefaz_perfil="completo")
             if out and out.get("ok"):
                 logger.info("NFC-e retry OK venda %s (após %.0fs)", venda_id, wait_s)
                 return
@@ -171,7 +177,7 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
                 venda_id,
             )
             return
-        out = _emitir_nfce_pos_venda_sync(venda, payload)
+        out = _emitir_nfce_pos_venda_sync(venda, payload, sefaz_perfil="completo")
         if out and not out.get("ok"):
             logger.warning(
                 "NFC-e retry esgotado venda %s — %s",
@@ -457,15 +463,32 @@ def api_venda_agro_nfce_emitir(request, pk):
         )
     v.nfce_solicitada = True
     v.save(update_fields=["nfce_solicitada"])
-    client, db = _mongo_conn()
-    col_p = getattr(client, "col_p", None) if client else None
-    out = emitir_nfce_para_venda(
-        v,
-        cpf_dest=cpf,
-        sem_identificacao=sem_id,
-        db=db,
-        col_p=col_p,
-    )
+    try:
+        client, db = _mongo_conn()
+        col_p = getattr(client, "col_p", None) if client else None
+        out = emitir_nfce_para_venda(
+            v,
+            cpf_dest=cpf,
+            sem_identificacao=sem_id,
+            db=db,
+            col_p=col_p,
+            sefaz_perfil="sync",
+        )
+    except Exception:
+        logger.exception("NFC-e reemitir falhou (venda %s)", v.pk)
+        cfg = nfce_config_resumo()
+        doc = registrar_nfce_erro_venda(
+            v,
+            "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
+            cpf_dest=cpf,
+            sem_identificacao=sem_id,
+            tp_amb=int(cfg.get("tp_amb") or 2),
+        )
+        out = {
+            "ok": False,
+            "erro": "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
+            "documento_id": doc.pk,
+        }
     st = 200 if out.get("ok") else 502
     return JsonResponse(
         {

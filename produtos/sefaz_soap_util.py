@@ -33,8 +33,11 @@ _SEFAZ_ERRO_TRANSIENTE_NEEDLES = (
     "access is denied",
 )
 
-# connect 12s · leitura 60s — evita travar 90s por tentativa no Render
-SEFAZ_HTTP_TIMEOUT: tuple[int, int] = (12, 60)
+# Perfil sync (HTTP do PDV/reemitir): cabe no timeout ~30s do Render.
+SEFAZ_HTTP_TIMEOUT_SYNC: tuple[int, int] = (6, 35)
+SEFAZ_HTTP_RETRY_DELAYS_SYNC: tuple[float, ...] = (0.3, 0.7, 1.5)
+# Perfil completo (thread background): mais tentativas.
+SEFAZ_HTTP_TIMEOUT: tuple[int, int] = (8, 45)
 SEFAZ_HTTP_RETRY_DELAYS_S: tuple[float, ...] = (0.5, 1.5, 3.0, 5.0)
 
 

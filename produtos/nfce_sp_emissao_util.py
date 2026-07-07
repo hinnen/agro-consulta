@@ -29,7 +29,9 @@ from produtos.sefaz_soap_util import (
     montar_envelope_nfe_dados_msg,
     normalizar_xml_envio,
     SEFAZ_HTTP_RETRY_DELAYS_S,
+    SEFAZ_HTTP_RETRY_DELAYS_SYNC,
     SEFAZ_HTTP_TIMEOUT,
+    SEFAZ_HTTP_TIMEOUT_SYNC,
     sanitizar_erro_http_sefaz,
     sanitizar_erro_sefaz_exibicao,
     sefaz_erro_transiente,
@@ -500,7 +502,13 @@ def _anexar_suplementar_qrcode(xml_nfe: str, qr_url: str, tp_amb: int) -> str:
     return xml_nfe[: m.end()] + supl + xml_nfe[m.end() :]
 
 
-def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+def _enviar_autorizacao(
+    xml_assinado: str,
+    cfg: dict[str, Any],
+    *,
+    retry_delays: tuple[float, ...] | None = None,
+    http_timeout: tuple[int, int] | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
     tp_amb = int(cfg["tp_amb"])
     url = URL_AUTORIZACAO.get(tp_amb, URL_AUTORIZACAO[2])
     id_lote = str(int(datetime.now().timestamp()))[-15:]
@@ -511,9 +519,11 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
     )
     soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL, envi_nfe, "nfeAutorizacaoLote")
     cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+    delays = retry_delays if retry_delays is not None else SEFAZ_HTTP_RETRY_DELAYS_SYNC
+    timeout = http_timeout if http_timeout is not None else SEFAZ_HTTP_TIMEOUT_SYNC
     last_err = ""
     try:
-        for attempt, delay_s in enumerate(SEFAZ_HTTP_RETRY_DELAYS_S):
+        for attempt, delay_s in enumerate(delays):
             if attempt > 0:
                 time.sleep(delay_s)
             try:
@@ -523,28 +533,28 @@ def _enviar_autorizacao(xml_assinado: str, cfg: dict[str, Any]) -> tuple[dict[st
                     headers=headers,
                     cert=(cert_file, key_file),
                     verify=sefaz_requests_verify(),
-                    timeout=SEFAZ_HTTP_TIMEOUT,
+                    timeout=timeout,
                 )
                 text = r.text or ""
                 if r.status_code >= 400:
                     last_err = sanitizar_erro_http_sefaz(r.status_code, text)
-                    if sefaz_http_status_retry(r.status_code) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                    if sefaz_http_status_retry(r.status_code) and attempt + 1 < len(delays):
                         logger.warning(
                             "SEFAZ autorização HTTP %s — retry %s/%s",
                             r.status_code,
                             attempt + 1,
-                            len(SEFAZ_HTTP_RETRY_DELAYS_S),
+                            len(delays),
                         )
                         continue
                     return None, last_err
                 return _parse_retorno_autorizacao(text, xml_nfe_assinado=xml_assinado), None
             except requests.RequestException as exc:
                 last_err = sanitizar_erro_sefaz_exibicao(str(exc))
-                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(delays):
                     logger.warning(
                         "SEFAZ autorização rede — retry %s/%s: %s",
                         attempt + 1,
-                        len(SEFAZ_HTTP_RETRY_DELAYS_S),
+                        len(delays),
                         last_err[:160],
                     )
                     continue
@@ -733,9 +743,11 @@ def emitir_nfce_para_venda(
     sem_identificacao: bool = False,
     db=None,
     col_p: str | None = None,
+    sefaz_perfil: str = "sync",
 ) -> dict[str, Any]:
     """
     Emite NFC-e para venda já gravada. Retorna dict com ok, chave, erro, documento_id.
+    sefaz_perfil: ``sync`` (reemitir/PDV, timeout curto) ou ``completo`` (background).
     """
     doc_existente = (
         NfceDocumentoAgro.objects.filter(venda=venda, status=NfceDocumentoAgro.Status.AUTORIZADA)
@@ -814,6 +826,13 @@ def emitir_nfce_para_venda(
         )
         return {"ok": False, "erro": err_fis, "documento_id": doc.pk}
 
+    if sefaz_perfil == "completo":
+        sefaz_delays = SEFAZ_HTTP_RETRY_DELAYS_S
+        sefaz_timeout = SEFAZ_HTTP_TIMEOUT
+    else:
+        sefaz_delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
+        sefaz_timeout = SEFAZ_HTTP_TIMEOUT_SYNC
+
     ret: dict[str, Any] | None = None
     err_http: str | None = None
     serie = 0
@@ -887,7 +906,12 @@ def emitir_nfce_para_venda(
                 consumidor_sem_identificacao=sem_identificacao,
             )
             return {"ok": False, "erro": str(exc)[:400], "documento_id": doc.pk}
-        ret, err_http = _enviar_autorizacao(signed, cfg)
+        ret, err_http = _enviar_autorizacao(
+            signed,
+            cfg,
+            retry_delays=sefaz_delays,
+            http_timeout=sefaz_timeout,
+        )
         if err_http or not ret:
             break
         if ret.get("autorizada"):
@@ -1117,7 +1141,13 @@ def _parse_retorno_evento(soap_text: str) -> dict[str, Any]:
     return out
 
 
-def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+def _enviar_recepcao_evento(
+    xml_evento_assinado: str,
+    cfg: dict[str, Any],
+    *,
+    retry_delays: tuple[float, ...] | None = None,
+    http_timeout: tuple[int, int] | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
     tp_amb = int(cfg["tp_amb"])
     url = URL_RECEPCAO_EVENTO.get(tp_amb, URL_RECEPCAO_EVENTO[2])
     id_lote = str(int(datetime.now().timestamp()))[-15:]
@@ -1128,9 +1158,11 @@ def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tu
     )
     soap, headers = montar_envelope_nfe_dados_msg(NS_WSDL_EVENTO, env_evento, "nfeRecepcaoEvento")
     cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+    delays = retry_delays if retry_delays is not None else SEFAZ_HTTP_RETRY_DELAYS_SYNC
+    timeout = http_timeout if http_timeout is not None else SEFAZ_HTTP_TIMEOUT_SYNC
     last_err = ""
     try:
-        for attempt, delay_s in enumerate(SEFAZ_HTTP_RETRY_DELAYS_S):
+        for attempt, delay_s in enumerate(delays):
             if attempt > 0:
                 time.sleep(delay_s)
             try:
@@ -1140,18 +1172,18 @@ def _enviar_recepcao_evento(xml_evento_assinado: str, cfg: dict[str, Any]) -> tu
                     headers=headers,
                     cert=(cert_file, key_file),
                     verify=sefaz_requests_verify(),
-                    timeout=SEFAZ_HTTP_TIMEOUT,
+                    timeout=timeout,
                 )
                 text = r.text or ""
                 if r.status_code >= 400:
                     last_err = sanitizar_erro_http_sefaz(r.status_code, text)
-                    if sefaz_http_status_retry(r.status_code) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                    if sefaz_http_status_retry(r.status_code) and attempt + 1 < len(delays):
                         continue
                     return None, last_err
                 return _parse_retorno_evento(text), None
             except requests.RequestException as exc:
                 last_err = sanitizar_erro_sefaz_exibicao(str(exc))
-                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(SEFAZ_HTTP_RETRY_DELAYS_S):
+                if sefaz_erro_transiente(str(exc)) and attempt + 1 < len(delays):
                     continue
                 return None, last_err
         return None, last_err or "Sem resposta SEFAZ."
