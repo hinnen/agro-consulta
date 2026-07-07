@@ -1145,9 +1145,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v6.99** · **loja v6.86**
+**Versão app (`VERSION`):** **teste v7.00** · **loja v6.86**
 
-**WIP teste:** validar **v6.99** — barra pagamento PDV compacta
+**WIP teste:** validar **v7.01** — barra pagamento contraste + hint parcelado R$10
+
+### ✅ PDV — layout pagamento v7.01 (06/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Barra inferior** | Campos e botões maiores; borda escura nos inputs |
+| **Pagamento** | Inputs com mais contraste (monitor claro) |
+| **Parcelado MP** | Aviso se total &lt; R$ 10 |
 
 ### ✅ PDV — layout pagamento v6.98–99 (06/07)
 

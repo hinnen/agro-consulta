@@ -5574,7 +5574,19 @@
         if (err) {
             dom.paymentFeedback.textContent = err;
         } else {
-            dom.paymentFeedback.textContent = '';
+            var hintParcel = '';
+            var totP = computed.total || 0;
+            var formaP = String(state.pagamento.forma || '').trim();
+            var temParcelado =
+                formaP === 'Cartão de crédito parcelado' ||
+                (larr || []).some(function (L) {
+                    return String(L.forma || '') === 'Cartão de crédito parcelado';
+                });
+            if (temParcelado && totP + 0.009 < 10) {
+                hintParcel =
+                    'Parcelado na maquininha MP costuma funcionar a partir de R$ 10,00 (vendedor ou cliente).';
+            }
+            dom.paymentFeedback.textContent = hintParcel;
         }
     }
 
