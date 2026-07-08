@@ -1147,18 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.39** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.40** · **loja v7.27**
 
-### ✅ FL-051 — Baixa fiado no PDV (teste **v7.39**)
+### ✅ FL-051 — Baixa fiado no PDV (teste **v7.40**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Fluxo** | `/fiado/` **Baixa** → `/pdv/?fiado_cobranca=1` · só pagamento (formas + maquininha + Point) |
-| **Overlay** | Ao confirmar, **fecha o painel** e volta ao PDV · aviso verde no PDV principal |
-| **Velocidade** | POST sem recalcular resumo geral · 1 evento auditoria (não 1 por parcela) |
-| **Correções** | HTTP 500 (`payload_json`) · FL-028 tolerância centavos na baixa total |
-| **Fora** | NFC-e na quitação = **FL-052** (P1,1) |
-| **Decisão** | Baixa **sempre no PDV** (não híbrido) · modal antigo não usado |
+| **Fluxo overlay** | **Baixa** no painel fiado → **fecha painel** → pagamento no **PDV principal** (não PDV dentro do painel) |
+| **Fluxo página** | `/fiado/` fora do painel → abre `/pdv/` cobrança normal |
+| **Velocidade** | Caixa já aberto não refaz consulta · POST sem resumo pesado |
+| **Fora** | NFC-e na quitação = **FL-052** |
 
 ### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
 
@@ -2680,7 +2678,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
-| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ Teste v7.39 | 07/07 |
+| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ Teste v7.40 | 07/07 |
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |

@@ -420,13 +420,46 @@
 
   function inPdvOverlay() {
     try {
+      if (window.top && window.top !== window) return true;
       return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
     } catch (_) {
       return false;
     }
   }
 
+  function cobrancaParamsFromCtx(ctx) {
+    const modo = ctx.modo || 'cliente';
+    const o = { modo: modo };
+    if (modo === 'titulo' && ctx.tituloId) o.titulo_id = String(ctx.tituloId);
+    if (modo === 'selecionados' && ctx.ids && ctx.ids.length) {
+      o.titulo_ids = ctx.ids.join(',');
+    }
+    if (modo === 'cliente') {
+      if (ctx.pk) o.cliente_agro_pk = String(ctx.pk);
+      if (ctx.nome) o.cliente_nome = ctx.nome;
+      if (ctx.codigo) o.cliente_codigo = ctx.codigo;
+    }
+    return o;
+  }
+
   function redirectToPdvCobranca(ctx) {
+    if (!CFG.caixaAberto) {
+      if (!window.confirm('O caixa não está aberto neste navegador. Abra o caixa no PDV antes de confirmar. Ir mesmo assim?')) {
+        return;
+      }
+    }
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage(
+          {
+            type: 'agro-fiado-cobranca-start',
+            params: cobrancaParamsFromCtx(ctx),
+          },
+          window.location.origin
+        );
+        return;
+      }
+    } catch (_) {}
     const base = (CFG.pdvHome || '/pdv/').split('?')[0];
     const p = new URLSearchParams();
     p.set('fiado_cobranca', '1');
@@ -440,15 +473,6 @@
       if (ctx.pk) p.set('cliente_agro_pk', String(ctx.pk));
       if (ctx.nome) p.set('cliente_nome', ctx.nome);
       if (ctx.codigo) p.set('cliente_codigo', ctx.codigo);
-    }
-    if (inPdvOverlay()) {
-      p.set('agro_pdv_overlay', '1');
-      p.set('agro_inapp_embed', '1');
-    }
-    if (!CFG.caixaAberto) {
-      if (!window.confirm('O caixa não está aberto neste navegador. Abra o caixa no PDV antes de confirmar. Ir mesmo assim?')) {
-        return;
-      }
     }
     window.location.href = base + '?' + p.toString();
   }

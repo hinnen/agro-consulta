@@ -151,7 +151,8 @@
                 tituloIds: [],
                 valorTotal: 0,
                 resumoTexto: '',
-                titulos: []
+                titulos: [],
+                emOverlay: false
             }
         };
     }
@@ -857,10 +858,23 @@
         notify();
     }
 
-    function hydrateFromFiadoCobranca(data) {
+    function hydrateFromFiadoCobranca(data, opts) {
+        opts = opts || {};
         data = data && typeof data === 'object' ? data : {};
         var def = defaultState();
         state = def;
+        var emOverlay = !!opts.emOverlay;
+        if (!emOverlay) {
+            try {
+                emOverlay = !!(window.top && window.top !== window.self);
+                if (!emOverlay) {
+                    emOverlay =
+                        new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
+                }
+            } catch (_) {
+                emOverlay = false;
+            }
+        }
         state.clienteMode = data.cliente ? 'cliente' : 'unset';
         state.cliente = data.cliente ? sanitizeCliente(data.cliente) : null;
         state.fiadoCobranca = {
@@ -870,7 +884,8 @@
             tituloIds: Array.isArray(data.titulo_ids) ? data.titulo_ids.slice() : [],
             valorTotal: toNumber(data.valor_total),
             resumoTexto: String(data.resumo_texto || ''),
-            titulos: Array.isArray(data.titulos) ? data.titulos.slice() : []
+            titulos: Array.isArray(data.titulos) ? data.titulos.slice() : [],
+            emOverlay: emOverlay
         };
         state.itens = [
             {

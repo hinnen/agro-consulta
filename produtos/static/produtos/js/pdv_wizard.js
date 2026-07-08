@@ -609,6 +609,9 @@
 
     function isPdvOverlayEmbed() {
         try {
+            var st = State.getState();
+            if (st && st.fiadoCobranca && st.fiadoCobranca.emOverlay) return true;
+            if (window.top && window.top !== window.self) return true;
             return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
         } catch (_) {
             return false;
@@ -617,12 +620,64 @@
 
     function closePdvOverlayFromEmbed() {
         try {
-            if (window.top && window.top !== window && isPdvOverlayEmbed()) {
+            if (window.top && window.top !== window.self) {
                 window.top.postMessage({ type: 'agro-pdv-overlay-close' }, window.location.origin);
                 return true;
             }
         } catch (_) {}
+        if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.close === 'function') {
+            window.AgroPdvOverlay.close();
+            return true;
+        }
         return false;
+    }
+
+    function cobrancaQueryFromParams(params) {
+        params = params || {};
+        var p = new URLSearchParams();
+        p.set('fiado_cobranca', '1');
+        var modo = String(params.modo || 'cliente');
+        p.set('modo', modo);
+        if (params.titulo_id != null && String(params.titulo_id).trim() !== '') {
+            p.set('titulo_id', String(params.titulo_id));
+        }
+        if (params.titulo_ids != null && String(params.titulo_ids).trim() !== '') {
+            p.set('titulo_ids', String(params.titulo_ids));
+        }
+        if (params.cliente_agro_pk != null && String(params.cliente_agro_pk).trim() !== '') {
+            p.set('cliente_agro_pk', String(params.cliente_agro_pk));
+        }
+        if (params.cliente_nome) p.set('cliente_nome', String(params.cliente_nome));
+        if (params.cliente_codigo) p.set('cliente_codigo', String(params.cliente_codigo));
+        return p;
+    }
+
+    function carregarFiadoCobrancaFromParams(params) {
+        var apiUrl = String(urls.apiFiadoCobrancaPdv || '').trim();
+        if (!apiUrl || typeof State.hydrateFromFiadoCobranca !== 'function') {
+            return Promise.resolve(false);
+        }
+        var qs = cobrancaQueryFromParams(params);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        return fetch(apiUrl + '?' + qs.toString(), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (j) {
+                if (!j.ok) throw new Error(j.erro || 'Não foi possível abrir a cobrança fiado.');
+                State.hydrateFromFiadoCobranca(j, { emOverlay: false });
+                return true;
+            })
+            .catch(function (e) {
+                showPdvAviso(e && e.message ? e.message : 'Falha ao abrir cobrança fiado.', { tone: 'error' });
+                return false;
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
     }
 
     function escapeHtml(value) {
@@ -8345,6 +8400,10 @@
             alert(validation);
             return;
         }
+        if (caixaAbertoParaVenda()) {
+            confirmFiadoCobrancaProsseguir();
+            return;
+        }
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
             confirmFiadoCobrancaProsseguir();
@@ -8405,19 +8464,8 @@
                 ? formatMoney(data.valor_aplicado)
                 : '';
         var msg = 'Fiado quitado' + (valor ? ' — ' + valor : '') + '.';
-        var inOverlay = isPdvOverlayEmbed();
         State.reset(false);
-        if (inOverlay) {
-            try {
-                window.top.postMessage(
-                    { type: 'agro-pdv-overlay-fiado-ok', msg: msg },
-                    window.location.origin
-                );
-            } catch (_) {}
-            closePdvOverlayFromEmbed();
-            return;
-        }
-        showSaleDoneFeedback(msg + ' Volte à gestão fiado para conferir.', 'success', { durationMs: 3200 });
+        showSaleDoneFeedback(msg, 'success', { durationMs: 2800 });
         try {
             history.replaceState({}, '', urls.pdvWizardHome || '/pdv/');
         } catch (_) {}
@@ -11652,7 +11700,21 @@
             ev && ev.detail && ev.detail.msg
                 ? String(ev.detail.msg)
                 : 'Fiado quitado.';
-        showSaleDoneFeedback(msg, 'success', { durationMs: 3200 });
+        showSaleDoneFeedback(msg, 'success', { durationMs: 2800 });
+    });
+
+    window.addEventListener('message', function (ev) {
+        if (!ev || ev.origin !== location.origin) return;
+        var d = ev.data || {};
+        if (d.type !== 'agro-fiado-cobranca-start' || !d.params) return;
+        if (
+            window.AgroPdvOverlay &&
+            typeof window.AgroPdvOverlay.isOpen === 'function' &&
+            window.AgroPdvOverlay.isOpen()
+        ) {
+            window.AgroPdvOverlay.close();
+        }
+        carregarFiadoCobrancaFromParams(d.params);
     });
 
     function maybeOpenEntregasFromQuery() {
@@ -11669,33 +11731,22 @@
         try {
             var p = new URLSearchParams(window.location.search || '');
             if (p.get('fiado_cobranca') !== '1') return Promise.resolve(false);
-            var apiUrl = String(urls.apiFiadoCobrancaPdv || '').trim();
-            if (!apiUrl || typeof State.hydrateFromFiadoCobranca !== 'function') {
-                return Promise.resolve(false);
-            }
-            if (window.gmLoadingBar) window.gmLoadingBar.show();
-            return fetch(apiUrl + '?' + p.toString(), {
-                credentials: 'same-origin',
-                headers: { Accept: 'application/json' }
-            })
-                .then(function (r) {
-                    return r.json();
-                })
-                .then(function (j) {
-                    if (!j.ok) throw new Error(j.erro || 'Não foi possível abrir a cobrança fiado.');
-                    State.hydrateFromFiadoCobranca(j);
+            var params = {
+                modo: p.get('modo') || 'cliente',
+                titulo_id: p.get('titulo_id') || '',
+                titulo_ids: p.get('titulo_ids') || '',
+                cliente_agro_pk: p.get('cliente_agro_pk') || '',
+                cliente_nome: p.get('cliente_nome') || '',
+                cliente_codigo: p.get('cliente_codigo') || ''
+            };
+            return carregarFiadoCobrancaFromParams(params).then(function (ok) {
+                if (ok) {
                     try {
                         history.replaceState({}, '', window.location.pathname);
                     } catch (_) {}
-                    return true;
-                })
-                .catch(function (e) {
-                    showPdvAviso(e && e.message ? e.message : 'Falha ao abrir cobrança fiado.', { tone: 'error' });
-                    return false;
-                })
-                .finally(function () {
-                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                });
+                }
+                return ok;
+            });
         } catch (_) {
             return Promise.resolve(false);
         }
