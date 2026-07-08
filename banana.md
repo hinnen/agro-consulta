@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.49** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.51** · **loja v7.40**
+
+### 🐛 FIX — Compras números zerados no teste (08/07 · Renan · v7.51)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Sugestão «—», vendas 0, custo R$ 0 na busca (ex. milho) |
+| **Causa** | F5 no teste lia só Postgres (poucas vendas); API zerava média/custo do catálogo |
+| **Fix** | F5 híbrido PG+Mongo; busca não apaga valor bom com zero da API |
+| **Barra lateral** | **Não mexido** (Renan: não tocar) |
+| **Validar** | Ctrl+F5 Compras → buscar milho → média/sugestão/custo |
 
 ### 🐛 FIX — barra lateral sumiu (08/07 · Renan · v7.47)
 
