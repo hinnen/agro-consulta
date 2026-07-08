@@ -151,6 +151,8 @@ def pdv_home(request):
                 "entregasPainel": reverse("entregas_painel"),
                 "caixaPainel": reverse("caixa_painel"),
                 "fiadoGestao": reverse("fiado_gestao"),
+                "apiFiadoCobrancaPdv": reverse("api_fiado_cobranca_pdv"),
+                "apiFiadoBaixaPdv": reverse("api_fiado_baixa_pdv"),
                 "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
             },
             "search": {

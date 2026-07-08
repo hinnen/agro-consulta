@@ -422,6 +422,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
 
+**Fiado — baixa (decisão 07/07):** cobrança de título em aberto **não** fica no modal de `/fiado/` — redireciona ao **PDV pagamento** com cliente + valor do título (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
+
 **Armadilha GM no barras (2026-06-18):** se «Código de barras» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, não EAN. No **wizard** (`pdv_wizard.js`), o hífen do GM disparava atalho `**-`** = remover último item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GM…`. Legado `/consulta/`: F4 pós-bip + match alnum (`consulta_produtos.js`).
 
 **Venda gravada em:** `VendaAgro` (Postgres) + tentativa sync ERP conforme config.
@@ -1145,16 +1147,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.33** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.40** · **loja v7.40**
+
+### ✅ Deploy loja **v7.40** — FL-051 baixa fiado no PDV (08/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Baixa fiado no **PDV pagamento** (formas + maquininha + MP Point) · painel fiado **fecha** antes do pagamento no PDV principal |
+| **Como** | Merge `teste` → `producao` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** nos PDVs · testar Baixa no fiado (painel e `/fiado/`) |
+| **Fora** | NFC-e na quitação = **FL-052** |
+
+### ✅ FL-051 — Baixa fiado no PDV
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fluxo overlay** | **Baixa** no painel fiado → **fecha painel** → pagamento no **PDV principal** |
+| **Fluxo página** | `/fiado/` fora do painel → `/pdv/` cobrança normal |
+| **Velocidade** | Caixa já aberto não refaz consulta · POST sem resumo pesado |
 
 ### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Botão **Nova venda F12** · modal confirmação padrão PDV · frete só após etapa Entrega · **F7 direto** sem frete (fix CSS) |
-| **Como** | Cherry-pick `2267c0a` + `9d2dac3` + `34abbbe` — **sem** merge teste inteiro |
-| **Vendas em curso** | Só JS/HTML cliente · quem já tem PDV aberto segue na versão antiga até **Ctrl+F5** · confirmar venda no servidor **inalterado** |
-| **Status** | **✅ loja** — aguardar Render Live · Ctrl+F5 nos PDVs |
+| **Como** | Cherry-pick `2267c0a` + `9d2dac3` + `34abbbe` |
+| **Status** | **✅ loja** |
 
 ### ✅ Deploy loja **v7.24** — NFC-e timeout reemitir (07/07)
 
@@ -1162,7 +1180,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Reemitir não estoura 30s Render · sempre JSON · mensagem clara se SEFAZ cair |
 | **Commit loja** | `2a0dc35` |
-| **Status** | **✅ loja** — aguardar deploy e reemitir |
+| **Status** | **✅ loja** |
 
 ### ✅ Deploy loja **v7.23** — NFC-e retry 403 SEFAZ (07/07)
 
@@ -1171,27 +1189,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Retry HTTP **403/5xx** · timeout conexão 12s · mensagem legível (sem HTML) |
 | **Como** | Cherry-pick `a2f252a` **só NFC-e** |
 | **Commit loja** | `db22c40` |
-| **Status** | **✅ loja** — reemitir cupons pendentes |
+| **Status** | **✅ loja** |
 
 ### ✅ Deploy loja **v7.22** — NFC-e retry SEFAZ (07/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Retry conexão SEFAZ (1/2/4/8 s) · background não desiste em falha de rede |
-| **Como** | Cherry-pick `1223bb5` **só NFC-e** — **sem** PDV Nova venda/F12 (outro chat) |
+| **Como** | Cherry-pick `1223bb5` **só NFC-e** |
 | **Arquivos** | `nfce_sp_emissao_util.py` · `sefaz_soap_util.py` · `views_nfce.py` |
-| **Status** | **✅ loja** — após deploy: reemitir cupons pendentes em `/vendas/` |
+| **Status** | **✅ loja** |
 
 ### 🐛 NFC-e — SEFAZ conexão recusada (07/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | 1ª venda OK; demais falham `Connection refused` em `nfce.fazenda.sp.gov.br` |
-| **Causa** | Instabilidade SEFAZ/rede **+** código sem retry em falha de conexão (background parava na 1ª tentativa) |
+| **Causa** | Instabilidade SEFAZ/rede **+** código sem retry em falha de conexão |
 | **Fix** | Retry HTTP SEFAZ (1/2/4/8 s) · background segue em erro de rede |
-| **Operação** | Vendas pendentes (#2842 etc.): **Reemitir NFC-e** em `/vendas/` — não é cadastro/CPF |
-
-**WIP teste (separado — não na loja):** botão «Nova venda» + tirar frete etapa 3
+| **Operação** | Vendas pendentes: **Reemitir NFC-e** em `/vendas/` |
 
 ### ✅ Deploy loja **v7.21** — PDV entregas + confirmar venda (07/07 — Renan senha OK)
 
@@ -1199,7 +1215,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Duplo clique confirmar · badge Entregas · entrega encerra só no PDV · idempotente |
 | **Merge** | `teste` até `d186601` → `producao` |
-| **Status** | **✅ loja** — Render deployando |
+| **Status** | **✅ loja** |
 
 ### 🐛 PDV v7.19 (07/07) — fluxo entrega
 
@@ -2643,11 +2659,13 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** — está indo para **9000+** em vez da faixa combinada (**~4–5 mil**) | 📋 Pendente · 🔍 conferir | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Ao **adicionar produto novo** na nota: itens já conferidos perdem **código de barras** (etapa 3) e **lote/validade** (etapas 4–5) | 📋 Pendente | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | Etapa **7**: notas via **XML** preenchem forma de pagamento só **«Boleto Bancário»** — corrigir para **«Boleto Bancário CN»** | 📋 Pendente | 29/06 16:20 |
-| **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | 📋 Pendente | 29/06 16:20 |
+| **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | ✅ Tolerância centavos v7.36 | 29/06 16:20 |
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
-| **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
+| **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
+| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ **loja v7.40** | 07/07 |
+| **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
@@ -2717,6 +2735,10 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
 | FL-049 | `pdv-cliente-cpf-cadastro-nfce` | Campo **CPF** no cadastro cliente PDV (F8/modal) · persistir `ClienteAgro` · emissão NFC-e puxa CPF do cliente selecionado (hoje: modal só se cadastro vazio) |
 | FL-050 | `vendas-lista-nfce-background-ux` | `/vendas/` + detalhe: distinguir **processando** (`nfce_solicitada` sem doc / status PROCESSANDO) vs **erro** vs **autorizada** · não abrir modal reemitir no meio · poll ou refresh · rótulos: *Emitindo…* / *Reimprimir cupom fiscal* · `vendas_lista.html` · `nfce_venda_util.painel_nfce_venda` · `views_nfce` |
+| FL-051 | `fiado-baixa-pdv-pagamento` | `/fiado/` Baixa → `/pdv/checkout/` modo cobrança (`titulo_id`/`titulo_ids`) · pagamento completo PDV · confirmar quita `FiadoTituloAgro` + `MovimentoCaixa` · deprecar modal `fiado-modal-baixa` |
+| FL-052 | `fiado-baixa-nfce-quitacao` | Após baixa: NFC-e da **venda original** com `tPag` da forma paga (não crédito loja) · CPF cliente · conferência fiscal antes de auto |
+
+**Notas FL-051 / FL-052 (07/07):** Renan escolheu **sempre PDV** (não híbrido). **FL-051** = **P1** (operacional). **FL-052** = **P1,1** (fiscal na fila, não no 1º pacote). Incluir fix **FL-028** se possível no mesmo pacote pagamento.
 
 **Notas FL-050 (03/07):** **P2** — Renan: operador vai direto em Consulta vendas após Enter no PDV; clique trata como reemissão. Causa provável: `venda_nfce_pendente` = true com `nfce_solicitada` e sem `NfceDocumentoAgro` ainda. `views_nfce` já retorna «em processamento» no POST duplicado — falta UX na **lista**.
 

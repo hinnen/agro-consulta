@@ -143,6 +143,16 @@
             },
             venda: {
                 observacao: ''
+            },
+            fiadoCobranca: {
+                ativo: false,
+                modo: '',
+                tituloId: null,
+                tituloIds: [],
+                valorTotal: 0,
+                resumoTexto: '',
+                titulos: [],
+                emOverlay: false
             }
         };
     }
@@ -178,6 +188,7 @@
                     return row;
                 });
                 merged.entrega = Object.assign({}, def.entrega, (parsed && parsed.entrega) || {});
+                merged.fiadoCobranca = Object.assign({}, def.fiadoCobranca, (parsed && parsed.fiadoCobranca) || {});
                 ['logradouro', 'numero', 'bairro', 'plusCode'].forEach(function (k) {
                     if (merged.entrega[k] === undefined || merged.entrega[k] === null) {
                         merged.entrega[k] = '';
@@ -219,6 +230,20 @@
     }
 
     function getComputed() {
+        if (state.fiadoCobranca && state.fiadoCobranca.ativo) {
+            var vt = Math.max(0, toNumber(state.fiadoCobranca.valorTotal));
+            return {
+                subtotal: vt,
+                desconto: 0,
+                frete: 0,
+                total: vt,
+                itemCount: 0,
+                flow: ['pagamento'],
+                isConsumidorFinal: false,
+                currentStep: state.currentStep,
+                fiadoCobranca: true
+            };
+        }
         var subtotal = 0;
         var itemCount = 0;
         (state.itens || []).forEach(function (item) {
@@ -244,6 +269,7 @@
     }
 
     function resolveFlow() {
+        if (state.fiadoCobranca && state.fiadoCobranca.ativo) return ['pagamento'];
         var flow = ['produtos'];
         if (state.entrega.modoRetiradaEntrega !== 'retirada') flow.push('entrega');
         flow.push('pagamento');
@@ -832,6 +858,54 @@
         notify();
     }
 
+    function hydrateFromFiadoCobranca(data, opts) {
+        opts = opts || {};
+        data = data && typeof data === 'object' ? data : {};
+        var def = defaultState();
+        state = def;
+        var emOverlay = !!opts.emOverlay;
+        if (!emOverlay) {
+            try {
+                emOverlay = !!(window.top && window.top !== window.self);
+                if (!emOverlay) {
+                    emOverlay =
+                        new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
+                }
+            } catch (_) {
+                emOverlay = false;
+            }
+        }
+        state.clienteMode = data.cliente ? 'cliente' : 'unset';
+        state.cliente = data.cliente ? sanitizeCliente(data.cliente) : null;
+        state.fiadoCobranca = {
+            ativo: true,
+            modo: String(data.modo || 'titulo'),
+            tituloId: data.titulo_id != null ? data.titulo_id : null,
+            tituloIds: Array.isArray(data.titulo_ids) ? data.titulo_ids.slice() : [],
+            valorTotal: toNumber(data.valor_total),
+            resumoTexto: String(data.resumo_texto || ''),
+            titulos: Array.isArray(data.titulos) ? data.titulos.slice() : [],
+            emOverlay: emOverlay
+        };
+        state.itens = [
+            {
+                id: 'fiado-cobranca',
+                nome: 'Quitação fiado — ' + (state.fiadoCobranca.resumoTexto || 'cliente'),
+                qtd: 1,
+                preco: state.fiadoCobranca.valorTotal,
+                desconto: 0,
+                unidade: 'serv'
+            }
+        ];
+        state.entrega = Object.assign({}, def.entrega);
+        state.pagamento = Object.assign({}, def.pagamento);
+        state.pagamento.lancamentos = [];
+        state.venda = Object.assign({}, def.venda);
+        state.currentStep = 'pagamento';
+        notify();
+        return true;
+    }
+
     function exportWizardStateSnapshot() {
         var s = getState();
         return {
@@ -914,6 +988,7 @@
         hydrateFromBudget: hydrateFromBudget,
         hydrateFromSessionDraft: hydrateFromSessionDraft,
         hydrateFromEntregaPendente: hydrateFromEntregaPendente,
+        hydrateFromFiadoCobranca: hydrateFromFiadoCobranca,
         exportWizardStateSnapshot: exportWizardStateSnapshot,
         reset: reset,
         toNumber: toNumber,
