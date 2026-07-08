@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.46** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.47** · **loja v7.40**
+
+### 🐛 FIX — barra lateral sumiu (08/07 · Renan · v7.47)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Faixa escura à esquerda (PDV · Dashboard · +) **sumiu no teste**; produção OK |
+| **Causa** | `isPaginaAuxiliarSemShell` no script de limite de abas — `mountShell` no outro IIFE → **ReferenceError** |
+| **Fix** | Helpers em `window.__agroIsPaginaAuxiliarSemShell` / `__agroPathLookLikeFolhaPlanilha` (escopo compartilhado) |
+| **Validar** | Ctrl+F5 na home teste → barra igual print produção |
+| **Produção** | **Não mexido** |
 
 ### 🐛 REVERT — barra lateral BI (08/07 · Renan)
 
