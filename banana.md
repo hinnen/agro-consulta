@@ -1147,9 +1147,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.40** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.40** · **loja v7.40**
 
-### ✅ FL-051 — Baixa fiado no PDV (teste **v7.40**)
+### ✅ Deploy loja **v7.40** — FL-051 baixa fiado no PDV (08/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Baixa fiado no **PDV pagamento** · painel fiado **fecha** antes do pagamento no PDV principal |
+| **Como** | Merge `teste` → `producao` `54564da` |
+| **Status** | **✅ loja** — Render deployando |
+
+### ✅ FL-051 — Baixa fiado no PDV
 
 | Item | Detalhe |
 | ---- | ------- |
