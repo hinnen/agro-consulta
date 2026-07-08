@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.44** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.45** · **loja v7.40**
+
+### 🐛 HOTFIX — barra lateral não monta (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | BI/Compras abrem mas **sem faixa verde** à esquerda (PDV · Dashboard · +) |
+| **Causa** | `mountShell` quebrava na fase de rota e apagava o DOM; boot só no `DOMContentLoaded` |
+| **Fix** | DOM separado da rota; boot com retry + `load`/`pageshow`; gestão no `localStorage` ativa shell |
+| **Arquivo** | `_agro_open_external.html` |
 
 ### 🐛 HOTFIX — Compras métricas zeradas + barra lateral (08/07 · Renan)
 

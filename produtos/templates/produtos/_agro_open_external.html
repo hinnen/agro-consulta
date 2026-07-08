@@ -805,10 +805,12 @@
     try {
       if (window.navigator && window.navigator.standalone === true) return true;
       var mq = window.matchMedia;
-      if (!mq) return false;
-      if (mq('(display-mode: standalone)').matches) return true;
-      if (mq('(display-mode: minimal-ui)').matches) return true;
-      if (mq('(display-mode: window-controls-overlay)').matches) return true;
+      if (mq) {
+        if (mq('(display-mode: standalone)').matches) return true;
+        if (mq('(display-mode: minimal-ui)').matches) return true;
+        if (mq('(display-mode: window-controls-overlay)').matches) return true;
+      }
+      if (window.top === window.self && localStorage.getItem('agro_app_role_v1') === 'gestao') return true;
     } catch (_) {}
     return false;
   }
@@ -1235,6 +1237,7 @@
   }
 
   var shell = {
+    rail: null,
     bar: null,
     stackEl: null,
     paneEl: null,
@@ -1690,22 +1693,57 @@
 
   function mountShellEnsure() {
     if (inAppShellReady()) return;
-    if (shell.rail || shell.bar) tearDownInAppShellPartial();
+    if (!document.body) return;
+    if ((shell.rail || shell.bar) && !inAppShellReady()) tearDownInAppShellPartial();
     try {
       mountShell();
     } catch (errShell) {
       try {
         console.error('[agro-inapp] mountShell falhou', errShell);
       } catch (_) {}
-      tearDownInAppShellPartial();
-      try {
-        mountShell();
-      } catch (errShell2) {
-        try {
-          console.error('[agro-inapp] mountShell retry falhou', errShell2);
-        } catch (_) {}
-      }
+      if (!document.getElementById('agro-inapp-sidebar-rail')) tearDownInAppShellPartial();
     }
+    if (!inAppShellReady() && document.getElementById('agro-inapp-sidebar-rail')) {
+      try {
+        document.body.classList.add('agro-has-inapp-tabbar');
+      } catch (_) {}
+    }
+  }
+
+  function mountShellApplyRoute() {
+    var pathNow = (location.pathname || '').split('?')[0];
+    var pinTab = readAndClearPinSidebarTab();
+    try {
+      var spPin = new URLSearchParams(location.search || '');
+      var qPin = String(spPin.get('pin_tab') || '').toLowerCase();
+      if (qPin === 'pdv' || qPin === 'dash') pinTab = qPin;
+      if (qPin === 'pdv' || qPin === 'dash') {
+        var cleanUrl = location.pathname + location.hash;
+        history.replaceState(null, '', cleanUrl);
+      }
+    } catch (_) {}
+
+    if (pathLookLikePDV(pathNow)) {
+      if (dualWindowMode()) {
+        showWhich('dash');
+      } else {
+        shell.wrapEl.style.display = 'none';
+        try {
+          shell.wrapEl.innerHTML = '';
+        } catch (_) {}
+        showWhich('pdv');
+      }
+    } else if (pathLookLikeDashboard(pathNow)) {
+      shell.wrapEl.style.display = 'none';
+      try {
+        shell.wrapEl.innerHTML = '';
+      } catch (_) {}
+      if (pinTab === 'pdv' || pinTab === 'dash') shell.pinnedTabGlow = pinTab;
+      showWhich('dash');
+    } else {
+      occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
+    }
+    hidePresetPick();
   }
 
   function mountShell() {
@@ -1714,6 +1752,7 @@
     if (inAppShellReady()) return;
     if (shell.rail || shell.bar) tearDownInAppShellPartial();
     var b = document.body;
+    if (!b) return;
     shell.bar = document.createElement('div');
     shell.bar.id = 'agro-inapp-tabs-bar';
 
@@ -1828,42 +1867,13 @@
 
     ensureTabEconomyTick();
 
-    var pathNow = (location.pathname || '').split('?')[0];
-    var pinTab = readAndClearPinSidebarTab();
     try {
-      var spPin = new URLSearchParams(location.search || '');
-      var qPin = String(spPin.get('pin_tab') || '').toLowerCase();
-      if (qPin === 'pdv' || qPin === 'dash') pinTab = qPin;
-      if (qPin === 'pdv' || qPin === 'dash') {
-        var cleanUrl = location.pathname + location.hash;
-        history.replaceState(null, '', cleanUrl);
-      }
-    } catch (_) {}
-
-    /** Se já está em aba fixa (PDV/Dashboard), mostra iframe fixo e esconde cópia duplicada do DOM inicial */
-    if (pathLookLikePDV(pathNow)) {
-      if (dualWindowMode()) {
-        showWhich('dash');
-      } else {
-        shell.wrapEl.style.display = 'none';
-        try {
-          shell.wrapEl.innerHTML = '';
-        } catch (_) {}
-        showWhich('pdv');
-      }
-    } else if (pathLookLikeDashboard(pathNow)) {
-      shell.wrapEl.style.display = 'none';
+      mountShellApplyRoute();
+    } catch (routeErr) {
       try {
-        shell.wrapEl.innerHTML = '';
+        console.error('[agro-inapp] mountShell rota falhou', routeErr);
       } catch (_) {}
-      if (pinTab === 'pdv' || pinTab === 'dash') shell.pinnedTabGlow = pinTab;
-      showWhich('dash');
-    } else {
-      /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
-      occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
     }
-
-    hidePresetPick();
   }
 
   window.__agroInAppAddTab = function (urlStr) {
@@ -1973,8 +1983,30 @@
     true
   );
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountShell, { once: true });
-  else mountShell();
+  function bootInAppShell() {
+    if (!document.body) {
+      window.requestAnimationFrame(bootInAppShell);
+      return;
+    }
+    mountShellEnsure();
+    if (!inAppShellReady()) {
+      window.setTimeout(mountShellEnsure, 60);
+    }
+  }
+
+  window.__agroMountShellEnsure = mountShellEnsure;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootInAppShell, { once: true });
+  } else {
+    bootInAppShell();
+  }
+  window.addEventListener('load', function agroInAppShellLoadRetry() {
+    if (!inAppShellReady()) mountShellEnsure();
+  });
+  window.addEventListener('pageshow', function agroInAppShellPageShow(ev) {
+    if (ev && ev.persisted && agroInAppShellDisponivel()) mountShellEnsure();
+  });
 })();
 </script>
 {% include "produtos/_agro_pdv_fab.html" %}
