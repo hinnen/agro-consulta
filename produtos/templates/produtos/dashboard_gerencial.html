@@ -1108,11 +1108,13 @@ function dashLaunchpadAbrir(titulo, url, icone) {
     }
     function go() {
         if (openInShellTab(url)) return;
-        if (window.tabManager && typeof window.tabManager.addTab === "function") {
-            window.tabManager.addTab(titulo, url, icone);
-        } else {
-            window.location.assign(url);
-        }
+        try {
+            if (window.tabManager && typeof window.tabManager.addTab === "function") {
+                window.tabManager.addTab(titulo, url, icone);
+                return;
+            }
+        } catch (_) {}
+        window.location.assign(url);
     }
     if (typeof window.requestAnimationFrame === "function") {
         window.requestAnimationFrame(function () {

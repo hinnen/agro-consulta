@@ -587,10 +587,12 @@
     return false;
   }
 
-  function isFolhaPlanilhaAuxiliar() {
-    if (window.top !== window.self) return true;
+  /** Folha embed / auxiliar — não registra aba nem monta shell lateral. */
+  function isPaginaAuxiliarSemShell() {
     try {
-      if (new URLSearchParams(location.search || '').get('embed') === '1') return true;
+      var sp = new URLSearchParams(location.search || '');
+      if (sp.get('embed') === '1') return true;
+      if (sp.get('agro_inapp_embed') === '1') return true;
     } catch (_) {}
     return pathLookLikeFolhaPlanilha((location.pathname || '').split('?')[0]);
   }
@@ -721,7 +723,7 @@
   function evaluateAndRegister() {
     var tabId = getTabId();
     var role = detectRole();
-    if (isFolhaPlanilhaAuxiliar()) {
+    if (isPaginaAuxiliarSemShell()) {
       return { ok: true, tabId: tabId, role: role, skipReg: true };
     }
     var reg = readReg();
@@ -742,7 +744,7 @@
 
   function heartbeat(tabId) {
     if (blocked) return;
-    if (isFolhaPlanilhaAuxiliar()) return;
+    if (isPaginaAuxiliarSemShell()) return;
     var role = detectRole();
     var reg = readReg();
     reg = cleanupAndUpsert(reg, tabId, role);
@@ -1530,6 +1532,15 @@
 
   function occupyUserSlotWithUrl(absUrlRaw, forceSlotIx, stripPrimaryDup) {
     mountShellEnsure();
+    if (!inAppShellReady()) {
+      var jump = absUrlRaw || '/';
+      try {
+        window.location.assign(jump);
+      } catch (_) {
+        window.location.href = jump;
+      }
+      return;
+    }
     var resolved = '';
     try {
       resolved = new URL(absUrlRaw || '/', location.href).href;
@@ -1637,15 +1648,54 @@
     }
   }
 
+  function inAppShellReady() {
+    return !!(
+      shell.rail &&
+      shell.rail.parentNode === document.body &&
+      shell.stackEl &&
+      shell.paneEl &&
+      shell.plusBtn &&
+      document.body.classList.contains('agro-has-inapp-tabbar')
+    );
+  }
+
+  function tearDownInAppShellPartial() {
+    try {
+      if (shell.paneEl && shell.paneEl.parentNode) shell.paneEl.parentNode.removeChild(shell.paneEl);
+      if (shell.rail && shell.rail.parentNode) shell.rail.parentNode.removeChild(shell.rail);
+      if (shell.wrapEl && shell.wrapEl.parentNode && shell.wrapEl.id === 'agro-inapp-primary-wrap') {
+        shell.wrapEl.parentNode.removeChild(shell.wrapEl);
+      }
+    } catch (_) {}
+    document.body.classList.remove('agro-has-inapp-tabbar', 'agro-sidebar-expanded');
+    shell.bar = null;
+    shell.stackEl = null;
+    shell.rail = null;
+    shell.paneEl = null;
+    shell.plusBtn = null;
+    shell.wrapEl = null;
+    shell.pdvBtn = null;
+    shell.pdvPane = null;
+    shell.pdvIframe = null;
+    shell.dashBtn = null;
+    shell.dashPane = null;
+    shell.dashIframe = null;
+    shell.userWraps = [];
+    shell.userSlots = [null, null, null];
+    shell.activeWhich = null;
+  }
+
   function mountShellEnsure() {
-    if (shell.bar && document.body.contains(shell.bar)) return;
+    if (inAppShellReady()) return;
+    if (shell.rail || shell.bar) tearDownInAppShellPartial();
     mountShell();
   }
 
   function mountShell() {
-    if (shell.rail && shell.rail.parentNode === document.body) return;
     var pathNow = (location.pathname || '').split('?')[0];
-    if (isFolhaPlanilhaAuxiliar() || pathLookLikeFolhaPlanilha(pathNow)) return;
+    if (isPaginaAuxiliarSemShell() || pathLookLikeFolhaPlanilha(pathNow)) return;
+    if (inAppShellReady()) return;
+    if (shell.rail || shell.bar) tearDownInAppShellPartial();
     var b = document.body;
     shell.bar = document.createElement('div');
     shell.bar.id = 'agro-inapp-tabs-bar';
@@ -1800,9 +1850,21 @@
   }
 
   window.__agroInAppAddTab = function (urlStr) {
-    mountShellEnsure();
     var u = urlStr ? String(urlStr).split('#')[0] : location.href.split('#')[0];
-    occupyUserSlotWithUrl(u, undefined, false);
+    try {
+      mountShellEnsure();
+      if (!inAppShellReady()) {
+        window.location.assign(u);
+        return;
+      }
+      occupyUserSlotWithUrl(u, undefined, false);
+    } catch (_) {
+      try {
+        window.location.assign(u);
+      } catch (e2) {
+        window.location.href = u;
+      }
+    }
   };
 
   window.agroPinSidebarTab = function (tabId) {

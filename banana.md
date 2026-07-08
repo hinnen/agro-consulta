@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.42** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.43** · **loja v7.40**
+
+### 🐛 HOTFIX — barra lateral / navegação (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Sumiu barra lateral; F10/Compras/Produtos não abrem — fica no BI |
+| **Causa** | Patch folha Compras deixou shell lateral meio montado; `__agroInAppAddTab` falhava sem fallback |
+| **Fix** | Remonta shell se incompleto; fallback `location.assign`; folha embed não bloqueia shell do BI |
+| **Arquivos** | `_agro_open_external.html` · `agro_dual_window.js` · `dashboard_gerencial.html` |
 
 ### ✅ Compras — UX + NF Agro + custo (08/07 · Renan)
 
