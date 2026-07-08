@@ -7547,6 +7547,7 @@
         if (fc.tituloId != null) payload.titulo_id = fc.tituloId;
         if (fc.tituloIds && fc.tituloIds.length) payload.titulo_ids = fc.tituloIds.slice();
         if (cliente.cliente_agro_pk != null) payload.cliente_agro_pk = cliente.cliente_agro_pk;
+        payload.cliente_nome = currentClientName(state);
         if (pag && pag.length) payload.pagamentos = pag;
         var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
         if (idem) payload.client_request_id = idem;

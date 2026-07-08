@@ -1147,7 +1147,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.36** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.37** · **loja v7.27**
+
+### ✅ Fix **FL-051** — HTTP 500 ao confirmar baixa fiado (07/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Idempotência consultava campo `payload` — modelo usa `payload_json` |
+| **Fix** | `payload_json__client_request_id` + `cliente_nome` no POST PDV |
 
 ### ✅ **FL-051** — Baixa fiado no PDV (07/07 — teste)
 

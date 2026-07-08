@@ -1244,13 +1244,13 @@ def _fiado_baixa_pdv_idempotente(client_request_id: str) -> dict[str, Any] | Non
     ev = (
         FiadoEventoAgro.objects.filter(
             tipo=FiadoEventoAgro.Tipo.BAIXA,
-            payload__client_request_id=cid,
+            payload_json__client_request_id=cid,
         )
         .order_by("-pk")
         .first()
     )
-    if ev and isinstance(ev.payload, dict):
-        res = ev.payload.get("resultado")
+    if ev and isinstance(ev.payload_json, dict):
+        res = ev.payload_json.get("resultado")
         if isinstance(res, dict):
             return res
     return None
