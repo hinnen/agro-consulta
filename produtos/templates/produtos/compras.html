@@ -1607,14 +1607,7 @@ function aplicarMetricasCompraNaBase(payload) {
   });
   baseProdutos.forEach((p) => {
     const row = map.get(String(p.id));
-    if (!row) {
-      p._c_media_dia = 0;
-      p._c_var_sem = null;
-      p._c_entrada_data = '';
-      p._c_entrada_qtd = 0;
-      p._c_spark = [0, 0, 0, 0];
-      return;
-    }
+    if (!row) return;
     p._c_media_dia = Number(row[1]);
     p._c_var_sem = row[5] === null || row[5] === undefined || row[5] === '' ? null : Number(row[5]);
     p._c_entrada_data = row[6] || '';
@@ -1990,7 +1983,13 @@ function enriquecerProdutoCompraBusca(p) {
           ? loc.media_venda_diaria_30d
           : 0
     ),
-    _c_media_dia: loc._c_media_dia,
+    _c_media_dia: (() => {
+      const fromLoc = Number(loc._c_media_dia != null ? loc._c_media_dia : NaN);
+      const fromApi = Number(mediaApi != null && mediaApi !== '' ? mediaApi : NaN);
+      if (Number.isFinite(fromLoc) && fromLoc > 0) return fromLoc;
+      if (Number.isFinite(fromApi) && fromApi > 0) return fromApi;
+      return Number.isFinite(fromLoc) ? fromLoc : 0;
+    })(),
     _c_var_sem: loc._c_var_sem,
     _c_entrada_data: loc._c_entrada_data,
     _c_entrada_qtd: loc._c_entrada_qtd,

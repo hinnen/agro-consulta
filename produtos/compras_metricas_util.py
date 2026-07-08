@@ -97,6 +97,41 @@ def metricas_vendas_agregadas_por_produto_postgres(dias_media: int) -> tuple[
     return media_tot, w0, w1, spark
 
 
+def medias_diarias_por_pids_postgres(pids: list[str], dias: int = 30) -> dict[str, float]:
+    """Média diária de vendas (ItemVendaAgro) só para os ids pedidos — busca Compras."""
+    from produtos.models import ItemVendaAgro
+
+    variants = [str(x).strip() for x in (pids or []) if str(x).strip()]
+    if not variants:
+        return {}
+    dias = max(7, min(365, int(dias or 30)))
+    now = _naive_local(timezone.now()) or datetime.now()
+    t_m = now - timedelta(days=dias)
+    limite_aware = timezone.make_aware(t_m) if timezone.is_naive(t_m) else t_m
+    tot: dict[str, float] = {}
+    qs = (
+        ItemVendaAgro.objects.filter(
+            venda__devolvida_em__isnull=True,
+            venda__criado_em__gte=limite_aware,
+            produto_id_externo__in=variants[:800],
+        )
+        .only("produto_id_externo", "quantidade")
+    )
+    for item in qs.iterator(chunk_size=1500):
+        pid = str(item.produto_id_externo or "").strip()
+        if not pid:
+            continue
+        try:
+            qtd = float(item.quantidade or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if qtd == 0:
+            continue
+        tot[pid] = tot.get(pid, 0.0) + qtd
+    div = float(dias) if dias else 30.0
+    return {pid: round(tot.get(pid, 0.0) / div, 6) for pid in variants}
+
+
 def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
     """Payload JSON alinhado a ``api_pdv_metricas_produtos`` (v2, 12 colunas por linha)."""
     dias = max(7, min(365, int(dias or 30)))

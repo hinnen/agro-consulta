@@ -17027,6 +17027,18 @@ def api_buscar_produtos(request):
                 medias_map = _obter_mapa_medias_venda_cache(db)
             except Exception:
                 logger.warning("api_buscar_produtos: medias indisponíveis", exc_info=True)
+        if compras and p_ids:
+            try:
+                from produtos.agro_fonte_config import agro_compras_metricas_postgres
+
+                if agro_compras_metricas_postgres():
+                    from produtos.compras_metricas_util import medias_diarias_por_pids_postgres
+
+                    for pid_k, media_v in medias_diarias_por_pids_postgres(p_ids, 30).items():
+                        if media_v > 0 or pid_k not in medias_map:
+                            medias_map[pid_k] = media_v
+            except Exception:
+                logger.warning("api_buscar_produtos: medias PG compras indisponíveis", exc_info=True)
 
         estoque_map = {}
         try:

@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.43** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.44** · **loja v7.40**
+
+### 🐛 HOTFIX — Compras métricas zeradas + barra lateral (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Telas abrem mas sem guias laterais; produtos sem vendas/custo; planilha com média 0 |
+| **Causa métricas** | F5 (`aplicarMetricasCompraNaBase`) **zerava** todo produto fora do payload PG (só ~6 com venda no teste) |
+| **Fix métricas** | F5 só atualiza quem veio na API; busca `?compras=1` puxa média PG por produto |
+| **Fix shell** | `mountShell` com retry; `__agroInAppAddTab` tenta remontar antes de `location.assign` |
+| **Arquivos** | `compras.html` · `compras_metricas_util.py` · `views.py` · `_agro_open_external.html` · `dashboard_gerencial.html` |
 
 ### 🐛 HOTFIX — barra lateral / navegação (08/07 · Renan)
 

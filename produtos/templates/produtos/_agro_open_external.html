@@ -1533,6 +1533,9 @@
   function occupyUserSlotWithUrl(absUrlRaw, forceSlotIx, stripPrimaryDup) {
     mountShellEnsure();
     if (!inAppShellReady()) {
+      mountShellEnsure();
+    }
+    if (!inAppShellReady()) {
       var jump = absUrlRaw || '/';
       try {
         window.location.assign(jump);
@@ -1688,7 +1691,21 @@
   function mountShellEnsure() {
     if (inAppShellReady()) return;
     if (shell.rail || shell.bar) tearDownInAppShellPartial();
-    mountShell();
+    try {
+      mountShell();
+    } catch (errShell) {
+      try {
+        console.error('[agro-inapp] mountShell falhou', errShell);
+      } catch (_) {}
+      tearDownInAppShellPartial();
+      try {
+        mountShell();
+      } catch (errShell2) {
+        try {
+          console.error('[agro-inapp] mountShell retry falhou', errShell2);
+        } catch (_) {}
+      }
+    }
   }
 
   function mountShell() {
@@ -1853,6 +1870,9 @@
     var u = urlStr ? String(urlStr).split('#')[0] : location.href.split('#')[0];
     try {
       mountShellEnsure();
+      if (!inAppShellReady()) {
+        mountShellEnsure();
+      }
       if (!inAppShellReady()) {
         window.location.assign(u);
         return;

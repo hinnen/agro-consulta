@@ -1016,6 +1016,12 @@
     }
     if (typeof window.tabManager.addTab !== "function") {
         window.tabManager.addTab = function (_titulo, url, _icone) {
+            try {
+                if (typeof window.__agroInAppAddTab === "function") {
+                    window.__agroInAppAddTab(url);
+                    return;
+                }
+            } catch (_) {}
             window.location.assign(url);
         };
     }
