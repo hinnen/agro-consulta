@@ -1147,7 +1147,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.37** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.38** · **loja v7.27**
+
+### ✅ FL-051 — fecha overlay após quitar fiado (08/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Comportamento** | Baixa no painel fiado (overlay) → ao confirmar pagamento, **fecha o overlay** e volta ao PDV principal |
 
 ### ✅ Fix **FL-051** — HTTP 500 ao confirmar baixa fiado (07/07)
 

@@ -418,6 +418,14 @@
     }
   }
 
+  function inPdvOverlay() {
+    try {
+      return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
   function redirectToPdvCobranca(ctx) {
     const base = (CFG.pdvHome || '/pdv/').split('?')[0];
     const p = new URLSearchParams();
@@ -432,6 +440,10 @@
       if (ctx.pk) p.set('cliente_agro_pk', String(ctx.pk));
       if (ctx.nome) p.set('cliente_nome', ctx.nome);
       if (ctx.codigo) p.set('cliente_codigo', ctx.codigo);
+    }
+    if (inPdvOverlay()) {
+      p.set('agro_pdv_overlay', '1');
+      p.set('agro_inapp_embed', '1');
     }
     if (!CFG.caixaAberto) {
       if (!window.confirm('O caixa não está aberto neste navegador. Abra o caixa no PDV antes de confirmar. Ir mesmo assim?')) {

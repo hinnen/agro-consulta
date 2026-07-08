@@ -607,6 +607,24 @@
         return !!(st && st.fiadoCobranca && st.fiadoCobranca.ativo);
     }
 
+    function isPdvOverlayEmbed() {
+        try {
+            return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function closePdvOverlayFromEmbed() {
+        try {
+            if (window.top && window.top !== window && isPdvOverlayEmbed()) {
+                window.top.postMessage({ type: 'agro-pdv-overlay-close' }, window.location.origin);
+                return true;
+            }
+        } catch (_) {}
+        return false;
+    }
+
     function escapeHtml(value) {
         var div = document.createElement('div');
         div.textContent = value == null ? '' : String(value);
@@ -8386,11 +8404,17 @@
             data && data.valor_aplicado != null
                 ? formatMoney(data.valor_aplicado)
                 : '';
-        showSaleDoneFeedback(
-            'Fiado quitado' + (valor ? ' — ' + valor : '') + '. Volte à gestão fiado para conferir.',
-            'success'
-        );
+        var msg =
+            'Fiado quitado' + (valor ? ' — ' + valor : '') + '. Volte à gestão fiado para conferir.';
+        var inOverlay = isPdvOverlayEmbed();
+        showSaleDoneFeedback(msg, 'success');
         State.reset(false);
+        if (inOverlay) {
+            setTimeout(function () {
+                closePdvOverlayFromEmbed();
+            }, 900);
+            return;
+        }
         try {
             history.replaceState({}, '', urls.pdvWizardHome || '/pdv/');
         } catch (_) {}
