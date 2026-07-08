@@ -538,14 +538,6 @@
       } catch (_) {
         p = '';
       }
-      function goHref() {
-        try {
-          window.location.assign(u);
-        } catch (_) {
-          window.location.href = u;
-        }
-      }
-      try {
       if (inEmbed()) {
         if (isPdvPath(p)) {
           focusPdv(u);
@@ -578,10 +570,7 @@
         window.__agroInAppAddTab(u);
         return;
       }
-      goHref();
-      } catch (_) {
-        goHref();
-      }
+      window.location.assign(u);
     };
   }
 

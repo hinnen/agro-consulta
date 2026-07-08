@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.45** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.46** · **loja v7.40**
+
+### 🐛 REVERT — barra lateral BI (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Erro** | Hotfixes v7.43–v7.45 no shell quebraram a **faixa de guias** da home |
+| **Ação** | **Revertido** `_agro_open_external.html` + BI + `agro_dual_window.js` ao estado **pré-v7.42** |
+| **Mantido** | Só isenção folha Compras (`embed=1` / planilha) — **não** mexe na home |
+| **Mantido** | Fix métricas Compras (v7.44) — F5 não zera catálogo |
+| **Validar** | Ctrl+F5 na home → faixa verde **PDV · Dashboard · +** à esquerda |
 
 ### 🐛 HOTFIX — barra lateral não monta (08/07 · Renan)
 
