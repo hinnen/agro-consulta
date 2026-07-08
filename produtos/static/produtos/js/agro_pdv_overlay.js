@@ -226,6 +226,17 @@
           close();
           return;
         }
+        if (d.type === 'agro-pdv-overlay-fiado-ok') {
+          close();
+          try {
+            window.dispatchEvent(
+              new CustomEvent('agro-fiado-cobranca-ok', {
+                detail: { msg: String(d.msg || 'Fiado quitado.') },
+              })
+            );
+          } catch (_) {}
+          return;
+        }
         if (d.type === 'agro-pdv-overlay-meta') {
           applyMeta(d);
           return;

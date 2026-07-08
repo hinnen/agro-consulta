@@ -1395,23 +1395,6 @@ def baixar_fiado_via_pdv(
                 titulo.valor_pago = (titulo.valor_pago + parcela).quantize(Decimal("0.01"))
                 _atualizar_situacao_titulo(titulo)
                 titulo.save(update_fields=["valor_pago", "situacao", "atualizado_em"])
-                registrar_evento_fiado(
-                    FiadoEventoAgro.Tipo.BAIXA,
-                    cliente_agro=titulo.cliente_agro,
-                    titulo=titulo,
-                    baixa=baixa,
-                    payload={
-                        "origem": "pdv",
-                        "titulo": titulo_snapshot(titulo),
-                        "baixa": {
-                            "id": baixa.pk,
-                            "valor": float(baixa.valor),
-                            "forma": baixa.forma_pagamento,
-                            "movimento_caixa_id": mov.pk,
-                        },
-                    },
-                    usuario=user_label,
-                )
                 baixas_ids.append(baixa.pk)
                 titulos_afetados_set.add(titulo.pk)
                 saldo_t = (saldo_t - parcela).quantize(Decimal("0.01"))
@@ -1430,8 +1413,21 @@ def baixar_fiado_via_pdv(
         "baixas_ids": baixas_ids,
         "titulos_afetados": len(titulos_afetados_set),
         "movimentos_caixa_ids": movimentos_ids,
-        "resumo": resumo_gestao_fiado(),
     }
+    registrar_evento_fiado(
+        FiadoEventoAgro.Tipo.BAIXA,
+        cliente_agro=titulos[0].cliente_agro,
+        titulo=titulos[0],
+        payload={
+            "origem": "pdv",
+            "modo": (modo or "").strip().lower(),
+            "valor_aplicado": resultado["valor_aplicado"],
+            "baixas_ids": baixas_ids,
+            "titulos_afetados": len(titulos_afetados_set),
+            "movimentos_caixa_ids": movimentos_ids,
+        },
+        usuario=user_label,
+    )
     cid = (client_request_id or "").strip()
     if cid:
         registrar_evento_fiado(

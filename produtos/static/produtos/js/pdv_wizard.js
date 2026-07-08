@@ -8404,17 +8404,20 @@
             data && data.valor_aplicado != null
                 ? formatMoney(data.valor_aplicado)
                 : '';
-        var msg =
-            'Fiado quitado' + (valor ? ' — ' + valor : '') + '. Volte à gestão fiado para conferir.';
+        var msg = 'Fiado quitado' + (valor ? ' — ' + valor : '') + '.';
         var inOverlay = isPdvOverlayEmbed();
-        showSaleDoneFeedback(msg, 'success');
         State.reset(false);
         if (inOverlay) {
-            setTimeout(function () {
-                closePdvOverlayFromEmbed();
-            }, 900);
+            try {
+                window.top.postMessage(
+                    { type: 'agro-pdv-overlay-fiado-ok', msg: msg },
+                    window.location.origin
+                );
+            } catch (_) {}
+            closePdvOverlayFromEmbed();
             return;
         }
+        showSaleDoneFeedback(msg + ' Volte à gestão fiado para conferir.', 'success', { durationMs: 3200 });
         try {
             history.replaceState({}, '', urls.pdvWizardHome || '/pdv/');
         } catch (_) {}
@@ -11643,6 +11646,14 @@
         if (nome) State.setPagamentoField('operadorPdv', nome);
     });
     window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
+
+    window.addEventListener('agro-fiado-cobranca-ok', function (ev) {
+        var msg =
+            ev && ev.detail && ev.detail.msg
+                ? String(ev.detail.msg)
+                : 'Fiado quitado.';
+        showSaleDoneFeedback(msg, 'success', { durationMs: 3200 });
+    });
 
     function maybeOpenEntregasFromQuery() {
         try {
