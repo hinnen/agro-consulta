@@ -580,6 +580,21 @@
     return roleFromPath((window.location && window.location.pathname) || '');
   }
 
+  function pathLookLikeFolhaPlanilha(pathStr) {
+    var p = String(pathStr || '').split('?')[0].toLowerCase();
+    if (p.indexOf('/compras/relatorio-planilha') >= 0) return true;
+    if (p.indexOf('/compras/relatorio-a4') >= 0) return true;
+    return false;
+  }
+
+  function isFolhaPlanilhaAuxiliar() {
+    if (window.top !== window.self) return true;
+    try {
+      if (new URLSearchParams(location.search || '').get('embed') === '1') return true;
+    } catch (_) {}
+    return pathLookLikeFolhaPlanilha((location.pathname || '').split('?')[0]);
+  }
+
   function getTabId() {
     try {
       var cur = sessionStorage.getItem(TAB_KEY);
@@ -706,6 +721,9 @@
   function evaluateAndRegister() {
     var tabId = getTabId();
     var role = detectRole();
+    if (isFolhaPlanilhaAuxiliar()) {
+      return { ok: true, tabId: tabId, role: role, skipReg: true };
+    }
     var reg = readReg();
     reg = cleanupAndUpsert(reg, tabId, role);
     reg = reconcileMultiPdv(reg);
@@ -724,6 +742,7 @@
 
   function heartbeat(tabId) {
     if (blocked) return;
+    if (isFolhaPlanilhaAuxiliar()) return;
     var role = detectRole();
     var reg = readReg();
     reg = cleanupAndUpsert(reg, tabId, role);
@@ -1625,6 +1644,8 @@
 
   function mountShell() {
     if (shell.rail && shell.rail.parentNode === document.body) return;
+    var pathNow = (location.pathname || '').split('?')[0];
+    if (isFolhaPlanilhaAuxiliar() || pathLookLikeFolhaPlanilha(pathNow)) return;
     var b = document.body;
     shell.bar = document.createElement('div');
     shell.bar.id = 'agro-inapp-tabs-bar';

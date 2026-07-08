@@ -527,6 +527,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera.
 
+**Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
+
 **Fantasmas Mongo → Postgres (`agro_pg`, 2026-06-24):**
 
 | O quê | Detalhe |
@@ -570,7 +572,10 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 ### 4.9 Compras
 
 - `/compras/` — sugestão, horizonte em dias, métricas avançadas em `<details>`.
+- **Fontes (Renan 08/07):** média/gráfico/sugestão = **vendas PDV Agro**; última compra/chips/planilha = **só Entrada NF Agro** (ERP cortado). Rótulos na tela alinhados.
+- **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
+- **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
 
 ### 4.10 Lançamentos / financeiro
 
@@ -611,6 +616,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - `_agro_consulta_ui.html` — base visual.
 - `_agro_display_scale.html` + `agro_display_scale.js` — escala global.
 - `_agro_open_external.html` — links externos.
+
+**Popups / modais (decisão 08/07 — Renan):** padrão do produto = **`<div>` + Tailwind + JavaScript puro** (MPA Django). Abrir/fechar = tirar/colocar classe `hidden` (+ `modal-open` no `body` quando precisar). **Não** usar biblioteca de modal (Bootstrap, SweetAlert, etc.). **`<dialog>` nativo:** avaliado — **não** adotar em popup novo por padrão (dezenas de modais já no padrão `div`; operador não ganha nada; CPU/memória imperceptível). **Regra:** popup novo numa tela que já tem modal → **copiar o padrão da tela**; tela zerada / FOOD do zero → pode usar `<dialog>` se padronizar a tela inteira. Canônico também em **`SISTVALE.md`** e **`FOOD.md`**.
 
 ### 4.15 Desvinculação ERP (Mongo espelho → Postgres SisVale)
 
@@ -1147,7 +1154,48 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.40** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.42** · **loja v7.40**
+
+### ✅ Compras — UX + NF Agro + custo (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Tudo sugerido: rótulos NF Agro (sem «ERP»); tela mais legível; custo/lucro corrigidos; subir teste |
+| **Custo** | Se «final» zerado → usa base cadastro ou última Entrada NF |
+| **Lucro** | Só exibe quando há custo confiável — senão «Sem custo cadastrado» |
+| **Textos** | «Comprar», Centro+Vila, «Últimas entradas NF Agro», «Últ. NF» no detalhe |
+| **F5 / métricas** | `compras_metricas_util` preenche última entrada NF Agro (colunas 6–7) |
+| **Arquivos** | `compras.html` · `compras_relatorio_planilha.html` · `compras_metricas_util.py` · `compras_ultimas_compras_util.py` |
+| **Pacote** | Inclui também cadastro ERP marca/cat + folha popup (sessão 08/07) |
+
+### 🐛 Compras — Folha Compras popup (08/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Folha (fornecedor/cat/unidade) às vezes não abria ou abria «bugada» em nova aba |
+| **Causa** | Limite 3 abas SisVale + barra lateral engolindo a página da planilha |
+| **Fix** | Popup com iframe na Compras; `?embed=1`; folha isenta do shell/limite de abas |
+| **Arquivos** | `compras.html` · `compras_relatorio_planilha.html` · `_agro_open_external.html` |
+
+### 🐛 Cadastro ERP — marca/categoria sumindo (08/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Marca, categoria, subcategorias «não salvavam» / sumiam ao reabrir ou em outro PC |
+| **Causa** | Modal mesclava **lista velha** por cima do **detalhe da API**; popup «texto local» confundia |
+| **Fix** | API prevalece na abertura; lista atualiza após salvar; **só Postgres** (overlay + Produto); cache facetas limpa |
+| **Arquivos** | `_modal_editar_produto_cadastro_erp.inc.html` · `cadastro_erp_panel.js` · `views.py` |
+| **Teste** | Cadastro → editar → marca/cat → **Salvar no Agro** → F5 → outro PC — campos persistem |
+
+### 📋 Decisão — popups / modais (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Hoje** | `<div>` + Tailwind + JS (`hidden`) — sem lib de modal |
+| **`<dialog>` nativo** | Avaliado — **não** migrar nem obrigar em popup novo |
+| **Motivo** | Consistência com ~dezenas de modais existentes; zero ganho visível/perf |
+| **Regra assistente** | Novo popup → padrão da tela; tela nova do zero → `<dialog>` opcional |
+| **Docs** | `banana.md` §4.14 · **`SISTVALE.md`** · **`FOOD.md`** |
 
 ### ✅ Deploy loja **v7.40** — FL-051 baixa fiado no PDV (08/07 — Renan senha OK)
 
@@ -2686,7 +2734,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
-| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ Teste v7.40 | 07/07 |
+| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ **loja v7.40** | 07/07 |
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |

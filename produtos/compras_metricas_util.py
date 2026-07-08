@@ -103,6 +103,21 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
     media_tot, w0, w1, spark_map = metricas_vendas_agregadas_por_produto_postgres(dias)
 
     pids = set(media_tot.keys()) | set(w0.keys()) | set(w1.keys()) | set(spark_map.keys())
+    ent_map: dict[str, dict[str, Any]] = {}
+    if pids:
+        try:
+            from produtos.views import obter_conexao_mongo
+
+            _, db = obter_conexao_mongo()
+            if db is not None:
+                from produtos.compras_ultimas_compras_util import ultima_entrada_nf_agro_por_produto_ids
+
+                ent_map = ultima_entrada_nf_agro_por_produto_ids(
+                    db, sorted(pids), None, mongo_max_time_ms=25_000
+                )
+        except Exception as exc:
+            logger.warning("metricas_compras_rows_postgres entrada_nf_agro: %s", exc)
+
     div = float(dias) if dias else 30.0
     rows: list[list[Any]] = []
     for pid in sorted(pids):
@@ -117,6 +132,7 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
         else:
             var_pct = None
         sp = spark_map.get(pid) or [0.0, 0.0, 0.0, 0.0]
+        ent = ent_map.get(pid) or {}
         rows.append(
             [
                 pid,
@@ -125,8 +141,8 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
                 round(s0, 4),
                 round(s1, 4),
                 var_pct,
-                "",
-                0.0,
+                ent.get("data") or "",
+                float(ent.get("qtd") or 0),
                 round(float(sp[0]), 4),
                 round(float(sp[1]), 4),
                 round(float(sp[2]), 4),

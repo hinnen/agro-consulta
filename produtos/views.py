@@ -558,11 +558,13 @@ def _overlay_subcategorias_para_row(row: dict, ov: ProdutoGestaoOverlayAgro | No
     cat = str(row.get("categoria") or "").strip()
     s1 = str(row.get("subcategoria") or "").strip()
     if ov:
-        s2 = str(ov.subcategoria_2 or "").strip()
-        s3 = str(ov.subcategoria_3 or "").strip()
-        s4 = str(ov.subcategoria_4 or "").strip()
+        s2 = str(ov.subcategoria_2 or "").strip() or str(row.get("subcategoria_2") or "").strip()
+        s3 = str(ov.subcategoria_3 or "").strip() or str(row.get("subcategoria_3") or "").strip()
+        s4 = str(ov.subcategoria_4 or "").strip() or str(row.get("subcategoria_4") or "").strip()
     else:
-        s2 = s3 = s4 = ""
+        s2 = str(row.get("subcategoria_2") or "").strip()
+        s3 = str(row.get("subcategoria_3") or "").strip()
+        s4 = str(row.get("subcategoria_4") or "").strip()
     row["subcategoria_2"] = s2
     row["subcategoria_3"] = s3
     row["subcategoria_4"] = s4
@@ -2152,6 +2154,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if isinstance(cur_cat, dict) and cur_cat.get("version"):
             cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete("agro_gestao_facetas_v1")
     except Exception:
         pass
 

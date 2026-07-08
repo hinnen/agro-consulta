@@ -205,10 +205,10 @@
               <span class="text-[10px] opacity-90 group-open:rotate-180 transition-transform shrink-0" aria-hidden="true">▾</span>
             </summary>
             <div class="absolute left-0 top-full mt-1.5 min-w-full w-max max-w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border-2 border-slate-200 bg-white p-2 shadow-xl flex flex-col gap-1.5" role="menu" aria-label="Tipos de folha de compras">
-              <a href="{% url 'compras_relatorio_planilha_fornecedor' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-100 hover:border-violet-400 text-left leading-snug folha-compras-menu-link" title="Lista por fornecedor; A4 ou A6; colunas Contagem e Pedir">Por fornecedor (A4 · A6)</a>
+              <button type="button" data-folha-url="{% url 'compras_relatorio_planilha_fornecedor' %}" data-folha-titulo="Por fornecedor (A4 · A6)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-100 hover:border-violet-400 text-left leading-snug folha-compras-menu-link" title="Lista por fornecedor; A4 ou A6; colunas Contagem e Pedir">Por fornecedor (A4 · A6)</button>
               <button type="button" id="btn-abrir-planilha-ocr" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-amber-400 bg-amber-50 text-amber-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-amber-100 text-left leading-snug" title="Foto da coluna Pedir da planilha oficial">Ler foto da planilha</button>
-              <a href="{% url 'compras_relatorio_planilha_categoria' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-100 text-left leading-snug folha-compras-menu-link" title="Lista por categoria; papel A4 ou A6; colunas Contagem e Pedir">Por categoria (A4 · A6)</a>
-              <a href="{% url 'compras_relatorio_planilha_unidade' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-sky-100 text-left leading-snug folha-compras-menu-link" title="Lista por unidade; papel A4 ou A6; colunas Contagem e Pedir">Por unidade (A4 · A6)</a>
+              <button type="button" data-folha-url="{% url 'compras_relatorio_planilha_categoria' %}" data-folha-titulo="Por categoria (A4 · A6)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-100 text-left leading-snug folha-compras-menu-link" title="Lista por categoria; papel A4 ou A6; colunas Contagem e Pedir">Por categoria (A4 · A6)</button>
+              <button type="button" data-folha-url="{% url 'compras_relatorio_planilha_unidade' %}" data-folha-titulo="Por unidade (A4 · A6)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-sky-100 text-left leading-snug folha-compras-menu-link" title="Lista por unidade; papel A4 ou A6; colunas Contagem e Pedir">Por unidade (A4 · A6)</button>
             </div>
           </details>
         </div>
@@ -269,7 +269,7 @@
             <div class="flex flex-wrap gap-1.5" role="toolbar" aria-label="Filtro por nível de estoque">
               <button type="button" data-compra-filtro="TODOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50" title="Buscar em todo o catálogo — digite pelo menos 2 letras">Todos</button>
               <button type="button" data-compra-filtro="ZERADO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-red-600 text-white border-red-700" title="Saldo total (Centro + Vila) = 0">Zerados</button>
-              <button type="button" data-compra-filtro="LARANJA" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-orange-800 border-slate-200 hover:bg-orange-50" title="Abaixo de média/dia × 7 dias de giro (e estoque &gt; 0)">Crítico · 7d</button>
+              <button type="button" data-compra-filtro="LARANJA" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-orange-800 border-slate-200 hover:bg-orange-50" title="Estoque abaixo da média de 7 dias de venda">Estoque baixo · 7d</button>
               <button type="button" data-compra-filtro="AMARELO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-amber-900 border-slate-200 hover:bg-amber-50" title="Abaixo de média/dia × 15 dias de giro (já acima do crítico 7d)">Atenção · 15d</button>
               <button type="button" data-compra-filtro="RISCO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-700 border-slate-200 hover:bg-slate-50" title="Zerados + crítico + atenção">Em risco</button>
               <button type="button" data-compra-filtro="OCULTOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-violet-800 border-slate-200 hover:bg-violet-50" title="Itens que você ocultou (não comprar agora / produção na loja)">Ocultos</button>
@@ -390,10 +390,10 @@
           <details class="relative">
             <summary class="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-violet-200 bg-violet-50 text-violet-900 font-black text-sm hover:bg-violet-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda do relatório" title="Ajuda">?</summary>
             <div class="absolute right-0 top-full mt-1.5 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-violet-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl z-[220] space-y-2 leading-snug">
-              <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro (Mongo) casa com o nome ou ID.</p>
-              <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem nenhuma linha de compra deste fornecedor no ERP no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
-              <p><strong>Média/semana:</strong> vendas em até 8 semanas (56 dias), com média ajustada quando o histórico de venda no período é mais curto. Quantidades inteiras (meio para cima).</p>
-              <p class="text-violet-800">Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
+              <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro casa com o nome ou ID.</p>
+              <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem entrada NF Agro deste fornecedor no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
+              <p><strong>Média/semana:</strong> vendas no PDV (até 8 semanas / 56 dias). Quantidades inteiras (meio para cima).</p>
+              <p class="text-violet-800">Última compra: <strong>Entrada NF Agro</strong> concluída. Vendas: PDV Agro.</p>
             </div>
           </details>
           <button type="button" id="btn-fechar-modal-relatorio-compra" class="text-slate-400 hover:text-slate-800 font-black text-lg px-2 py-1 rounded-lg hover:bg-slate-100 leading-none" aria-label="Fechar">✕</button>
@@ -409,6 +409,19 @@
         </label>
         <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-3 uppercase text-xs tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[52px]">Imprimir tabela</button>
       </div>
+    </div>
+  </div>
+
+  <div id="modal-folha-planilha-compras" class="fixed inset-0 z-[118] hidden items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-folha-planilha-titulo">
+    <div class="bg-white rounded-2xl shadow-2xl border-2 border-violet-200 w-[min(96vw,26rem)] sm:w-[min(92vw,24rem)] h-[min(92dvh,760px)] max-h-[94dvh] flex flex-col min-h-0 overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-slate-100 bg-violet-50/40">
+        <h2 id="modal-folha-planilha-titulo" class="text-sm sm:text-base font-black uppercase text-slate-800 tracking-tight truncate min-w-0">Folha de compras</h2>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="btn-folha-planilha-nova-aba" class="text-[10px] font-black uppercase text-violet-800 hover:text-violet-950 px-2 py-1.5 rounded-lg border border-violet-200 bg-white min-h-[40px]" title="Abrir em nova aba do navegador">Nova aba</button>
+          <button type="button" id="btn-fechar-modal-folha-planilha" class="text-slate-400 hover:text-slate-800 font-black text-lg px-2 py-1 rounded-lg hover:bg-slate-100 leading-none min-h-[40px] min-w-[40px]" aria-label="Fechar">✕</button>
+        </div>
+      </div>
+      <iframe id="folha-planilha-iframe" class="flex-1 min-h-0 w-full border-0 bg-white" title="Configurar folha de compras para impressão"></iframe>
     </div>
   </div>
 
@@ -1709,16 +1722,63 @@ function initCompraSugestaoCompraUi() {
 }
 
 function custoFinalDoProduto(p) {
-  const v = p.preco_custo_final != null ? p.preco_custo_final : (p.preco_custo_acrescimo != null ? p.preco_custo_acrescimo : p.preco_custo);
+  const rawFinal = p.preco_custo_final != null ? Number(p.preco_custo_final) : null;
+  const rawAcr = p.preco_custo_acrescimo != null ? Number(p.preco_custo_acrescimo) : null;
+  const rawBase = p.preco_custo != null ? Number(p.preco_custo) : null;
+  let v = 0;
+  if (rawFinal != null && !Number.isNaN(rawFinal) && rawFinal > 0) {
+    v = rawFinal;
+  } else if (rawAcr != null && !Number.isNaN(rawAcr) && rawAcr > 0) {
+    v = rawAcr;
+  } else if (rawBase != null && !Number.isNaN(rawBase) && rawBase > 0) {
+    v = rawBase;
+  }
+  if (!(v > 0) && Array.isArray(p.ultimas_compras) && p.ultimas_compras.length) {
+    const uc = p.ultimas_compras[0];
+    const det = uc && uc.detalhe ? uc.detalhe : uc;
+    const u = Number(
+      uc.preco_final != null
+        ? uc.preco_final
+        : det && det.preco_unitario_final != null
+          ? det.preco_unitario_final
+          : 0
+    );
+    if (u > 0) v = u;
+  }
   return Number(v || 0);
+}
+
+function custoFinalConfiavelCompra(p) {
+  const fin = p.preco_custo_final != null ? Number(p.preco_custo_final) : null;
+  const acr = p.preco_custo_acrescimo != null ? Number(p.preco_custo_acrescimo) : null;
+  if ((fin != null && fin > 0) || (acr != null && acr > 0)) return true;
+  if (Number(p.preco_custo || 0) > 0) return true;
+  if (Array.isArray(p.ultimas_compras) && p.ultimas_compras.length) {
+    const uc = p.ultimas_compras[0];
+    if (Number(uc.preco_final || 0) > 0) return true;
+  }
+  return false;
+}
+
+function compraEntradaExibicao(p) {
+  let data = p._c_entrada_data || '';
+  let qtd = Number(p._c_entrada_qtd || 0);
+  if ((!data || !(qtd > 0)) && Array.isArray(p.ultimas_compras) && p.ultimas_compras.length) {
+    const uc = p.ultimas_compras[0];
+    const det = uc && uc.detalhe ? uc.detalhe : {};
+    data = det.data || data || '';
+    const q = det.quantidade != null ? det.quantidade : det.qtd;
+    if (q != null) qtd = Number(q);
+  }
+  return { data, qtd };
 }
 
 function compraLabelOrigemUltimaCompra(orig) {
   const m = {
-    compra: 'Compra (ERP)',
-    pedido_compra: 'Pedido de compra',
-    nota_entrada: 'Nota de entrada',
-    entrada_mercadoria: 'Entrada de mercadoria',
+    compra: 'Compra legado',
+    pedido_compra: 'Pedido de compra legado',
+    nota_entrada: 'Nota de entrada legado',
+    entrada_mercadoria: 'Entrada de mercadoria legado',
     entrada_nf_agro: 'Entrada NF Agro',
   };
   return m[orig] || (orig ? String(orig) : '—');
@@ -1772,7 +1832,7 @@ function compraAbrirDetalheUltimaCompra(idxLinha, iUltima, ev) {
   const nota = document.getElementById('modal-ultima-compra-c-nota');
   if (nota) {
     if (d.preco_ja_com_acrescimo_erp) {
-      nota.textContent = 'O valor unitário já vinha com acréscimos gravados pelo ERP nesta linha; não foi aplicada a proporção do cadastro do produto.';
+      nota.textContent = 'O valor unitário já vinha com acréscimos gravados nesta linha da NF; não foi aplicada a proporção do cadastro do produto.';
       nota.classList.remove('hidden');
     } else {
       nota.textContent = '';
@@ -1793,9 +1853,9 @@ function compraMontarHtmlUltimasComprasResumo(p, idxLinha) {
   const temLocal = compraProdutoTemHistoricoLocal(p.id);
   if (!list.length) {
     if (temLocal) {
-      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[9px] font-semibold text-slate-700 leading-snug">Sem últimas compras listadas no <strong class="text-slate-800">ERP</strong> para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> — veja o bloco <strong class="text-sky-900">«Histórico local (Compras)»</strong> neste painel.</div>`;
+      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[10px] sm:text-[11px] font-semibold text-slate-700 leading-snug">Sem entradas NF Agro listadas para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> — veja <strong class="text-sky-900">«Histórico local (Compras)»</strong> abaixo.</div>`;
     }
-    return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-slate-200 bg-slate-50/60 text-[9px] font-bold text-slate-500 leading-snug">Sem histórico de compra recente no ERP para este produto.</div>`;
+    return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-slate-200 bg-slate-50/60 text-[10px] sm:text-[11px] font-bold text-slate-500 leading-snug">Sem entrada NF Agro recente para este produto.</div>`;
   }
   const chips = list
     .slice(0, 3)
@@ -1809,7 +1869,7 @@ function compraMontarHtmlUltimasComprasResumo(p, idxLinha) {
     })
     .join('');
   return `<div class="px-2 sm:px-3 py-2 border-t border-slate-100 bg-slate-50/60" onclick="event.stopPropagation();">
-    <div class="text-[8px] font-black uppercase text-slate-500 tracking-wide mb-1">Últimas compras (ERP) · fornecedor e unitário c/ acrésc. (toque para detalhes)</div>
+    <div class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide mb-1.5">Últimas entradas NF Agro · toque para detalhes</div>
     <div class="flex flex-wrap gap-1.5">${chips}</div>
   </div>`;
 }
@@ -2014,7 +2074,7 @@ function compraMostrarCabecalhoListaResultados() {
   if (!head) return;
   head.innerHTML =
     '<div class="grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_2.25rem_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_2.25rem_1.75rem] gap-x-2 gap-y-0.5 px-2 sm:px-3 py-2 text-[9px] sm:text-[10px] font-black uppercase text-slate-600 tracking-wide">' +
-    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums" title="Quantidade sugerida conforme a gaveta «Sugestão de compra» (horizonte em dias e se desconta estoque C+V). F5 só atualiza métricas.">Sug.</span><span class="text-right tabular-nums">Saldo</span><span class="text-right">Custo</span><span class="text-center" title="Adicionar sem expandir">+</span><span class="sr-only">Exp.</span></div>';
+    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums" title="Quantidade sugerida para comprar (horizonte em dias nos filtros; desconta estoque Centro+Vila se ligado). F5 só atualiza vendas/média.">Comprar</span><span class="text-right tabular-nums" title="Estoque Centro + Vila">Estoque</span><span class="text-right" title="Custo de compra">Custo</span><span class="text-center" title="Adicionar 1 ao pedido">+</span><span class="sr-only">Detalhe</span></div>';
   head.classList.remove('hidden');
   head.setAttribute('aria-hidden', 'false');
 }
@@ -2063,14 +2123,15 @@ function renderizarListaResultadosCompra(resultados) {
 
     const custoBase = Number(p.preco_custo || 0);
     const custoFin = custoFinalDoProduto(p);
-    const mostrarBase = Math.abs(custoBase - custoFin) > 0.005;
+    const custoOk = custoFinalConfiavelCompra(p);
+    const mostrarBase = custoOk && Math.abs(custoBase - custoFin) > 0.005;
 
     const precoVenda = Number(p.preco_venda || 0).toFixed(2);
-    const lucroReais = (Number(precoVenda) - custoFin).toFixed(2);
-    const lucroPerc = custoFin > 0
+    const lucroReais = custoOk ? (Number(precoVenda) - custoFin).toFixed(2) : null;
+    const lucroPerc = custoOk && custoFin > 0
       ? (((Number(precoVenda) - custoFin) / custoFin) * 100).toFixed(1)
-      : '100.0';
-    const corLucro = (Number(precoVenda) - custoFin) >= 0 ? 'text-emerald-600' : 'text-red-500';
+      : null;
+    const corLucro = custoOk && (Number(precoVenda) - custoFin) >= 0 ? 'text-emerald-600' : 'text-red-500';
 
     const foto = p.imagem && p.imagem !== 'None' && p.imagem !== ''
       ? p.imagem
@@ -2083,8 +2144,9 @@ function renderizarListaResultadosCompra(resultados) {
       : (Number.isFinite(mediaDia) ? mediaDia.toFixed(2) : '0.00');
     const varSem = p._c_var_sem;
     const varCls = classeCorVarSemanalCompra(varSem);
-    const entData = formatarDataEntradaCompra(p._c_entrada_data);
-    const entQ = Number(p._c_entrada_qtd || 0);
+    const entEx = compraEntradaExibicao(p);
+    const entData = formatarDataEntradaCompra(entEx.data);
+    const entQ = Number(entEx.qtd || 0);
     const entQFmt = entQ > 0 ? entQ.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—';
     const spark = Array.isArray(p._c_spark) && p._c_spark.length === 4 ? p._c_spark : [0, 0, 0, 0];
     const sparkValsFmt = spark.map((q) => (Number(q) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }));
@@ -2106,7 +2168,7 @@ function renderizarListaResultadosCompra(resultados) {
       ala === 'ZERADO'
         ? '<span class="text-[10px] font-black uppercase text-white bg-red-600 px-2 py-0.5 rounded-md shadow-sm">Zerado</span>'
         : ala === 'LARANJA'
-          ? '<span class="text-[10px] font-black uppercase text-white bg-orange-600 px-2 py-0.5 rounded-md shadow-sm">Crítico · 7d</span>'
+          ? '<span class="text-[10px] font-black uppercase text-white bg-orange-600 px-2 py-0.5 rounded-md shadow-sm">Estoque baixo · 7 dias</span>'
           : ala === 'AMARELO'
             ? '<span class="text-[10px] font-black uppercase text-amber-950 bg-amber-200 px-2 py-0.5 rounded-md border border-amber-400 shadow-sm">Atenção · 15d</span>'
             : '';
@@ -2126,7 +2188,7 @@ function renderizarListaResultadosCompra(resultados) {
         ? 'text-emerald-900 font-black'
         : 'text-slate-400 font-semibold';
     const sugLegendaEstoque = compraSugestaoDescontarEstoque
-      ? '<span class="text-[11px] sm:text-xs font-bold text-emerald-900/90 leading-snug">Falta após estoque total <strong class="text-emerald-950">C+V</strong></span>'
+      ? '<span class="text-[11px] sm:text-xs font-bold text-emerald-900/90 leading-snug">Falta após estoque <strong class="text-emerald-950">Centro + Vila</strong></span>'
       : '<span class="text-[11px] sm:text-xs font-bold text-amber-950 leading-snug">Volume alvo do período <strong class="tabular-nums">' +
         String(sug.diasS) +
         'd</strong> (sem descontar estoque)</span>';
@@ -2196,11 +2258,11 @@ function renderizarListaResultadosCompra(resultados) {
             <div class="font-black text-sm sm:text-[15px] uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-tight overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</div>
 
             <div class="flex flex-wrap items-center gap-2 mt-2.5">
-              <span class="${ala === 'ZERADO' ? 'text-red-950 bg-red-50 border-red-300' : 'text-emerald-900 bg-emerald-50 border-emerald-200/90'} px-2.5 py-1 rounded-lg border font-black text-xs uppercase tracking-wide">
-                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}${pedQtd > 0 ? ` <span class="text-sky-900 normal-case">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ped.)</span>` : ''}
+              <span class="${ala === 'ZERADO' ? 'text-red-950 bg-red-50 border-red-300' : 'text-emerald-900 bg-emerald-50 border-emerald-200/90'} px-2.5 py-1 rounded-lg border font-black text-xs uppercase tracking-wide" title="Soma do estoque Centro e Vila">
+                Estoque ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}${pedQtd > 0 ? ` <span class="text-sky-900 normal-case">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ped.)</span>` : ''}
               </span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Centro — clique para ajustar">Centro ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Vila — clique para ajustar">Vila ${Number(p.saldo_vila || 0).toFixed(1)}</span>
             </div>
             ${sugCardHtml}
             <div class="flex flex-wrap items-center gap-2 mt-2.5">
@@ -2212,9 +2274,9 @@ function renderizarListaResultadosCompra(resultados) {
               }
             </div>
             <div class="flex flex-wrap items-center gap-2 mt-2 text-xs font-bold leading-snug border-t border-slate-100 pt-2">
-              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de unidades vendidas por dia (período nos filtros · métricas avançadas)">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
-              <span class="inline-flex items-center rounded-lg px-2 py-1 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
-              <span class="text-slate-600 font-semibold text-[11px] sm:text-xs">Entrada: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong></span>
+              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de vendas por dia no PDV (período nos filtros)">Vendas ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+              <span class="inline-flex items-center rounded-lg px-2 py-1 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 dias anteriores">Var. semana <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
+              <span class="text-slate-600 font-semibold text-[11px] sm:text-xs" title="Última entrada NF Agro concluída">Últ. NF: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong> un.</span>
             </div>
           </div>
         </div>
@@ -2242,11 +2304,16 @@ function renderizarListaResultadosCompra(resultados) {
           <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Custo base</div>
           <div class="text-sm font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
 
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Venda</div>
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Preço de venda</div>
           <div class="text-base sm:text-lg font-black text-orange-600 tabular-nums leading-tight">R$ ${precoVenda}</div>
 
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro</div>
-          <div class="text-sm sm:text-base font-black ${corLucro} tabular-nums leading-tight">R$ ${lucroReais} (${lucroPerc}%)</div>
+          ${
+            custoOk
+              ? `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro estimado</div>
+          <div class="text-sm sm:text-base font-black ${corLucro} tabular-nums leading-tight">R$ ${lucroReais} (${lucroPerc}%)</div>`
+              : `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro</div>
+          <div class="text-sm font-bold text-slate-400 leading-tight">Sem custo cadastrado</div>`
+          }
         </div>
       </div>
       ${ultimasComprasHtml}
@@ -2844,7 +2911,7 @@ function compraAtualizarResumoGaveta() {
   const nomes = {
     TODOS: 'Todos',
     ZERADO: 'Zerados',
-    LARANJA: 'Crítico 7d',
+    LARANJA: 'Estoque baixo 7d',
     AMARELO: 'Atenção 15d',
     RISCO: 'Em risco',
     OCULTOS: 'Ocultos',
@@ -2854,8 +2921,8 @@ function compraAtualizarResumoGaveta() {
   const extra = ind ? String(ind.innerText || '').replace(/\s+/g, ' ').trim() : '';
   const dSug = Number(compraDiasSugestaoCompra) || 30;
   const sugTxt = compraSugestaoDescontarEstoque
-    ? `Sug. ${dSug}d · −C+V`
-    : `Sug. ${dSug}d · alvo`;
+    ? `Comprar ${dSug}d · −estoque`
+    : `Comprar ${dSug}d · volume alvo`;
   const base = extra ? `${nome} · ${extra}` : nome;
   el.textContent = `${base} · ${sugTxt}`;
 }
@@ -2912,7 +2979,7 @@ function compraAbrirAjuda(tipo) {
       resumo: 'Os alertas usam a média de vendas por dia do período configurado.',
       itens: [
         'Vermelho: estoque zerado.',
-        'Laranja (Crítico 7d): abaixo de média × 7 dias.',
+        'Laranja (estoque baixo 7d): abaixo da média de vendas de 7 dias.',
         'Amarelo (Atenção 15d): entre média × 7 e média × 15 dias.',
         'Ocultos: itens que você tirou temporariamente dos alertas.',
       ],
@@ -3864,8 +3931,14 @@ document.getElementById('modal-busca-avancada-compra')?.addEventListener('click'
   if (e.target && e.target.id === 'modal-busca-avancada-compra') fecharBuscaAvancadaCompra();
 });
 document.getElementById('btn-abrir-modal-relatorio-compra')?.addEventListener('click', () => abrirModalRelatorioCompra());
-document.getElementById('folha-compras-menu')?.querySelectorAll('.folha-compras-menu-link').forEach((a) => {
-  a.addEventListener('click', () => fecharMenuFolhaCompras());
+document.getElementById('folha-compras-menu')?.querySelectorAll('.folha-compras-menu-link').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = btn.getAttribute('data-folha-url') || '';
+    const tit = btn.getAttribute('data-folha-titulo') || (btn.textContent || '').trim();
+    if (url) abrirModalFolhaPlanilha(url, tit);
+  });
 });
 document.addEventListener('mousedown', (e) => {
   const folha = document.getElementById('folha-compras-menu');
@@ -3970,6 +4043,55 @@ function fecharMenuFolhaCompras() {
   document.getElementById('folha-compras-menu')?.removeAttribute('open');
 }
 
+let folhaPlanilhaUrlNovaAba = '';
+
+function comprasModalFolhaPlanilhaAberta() {
+  const m = document.getElementById('modal-folha-planilha-compras');
+  return !!(m && m.classList.contains('flex'));
+}
+
+function abrirModalFolhaPlanilha(url, titulo) {
+  fecharMenuFolhaCompras();
+  const m = document.getElementById('modal-folha-planilha-compras');
+  const ifr = document.getElementById('folha-planilha-iframe');
+  const tit = document.getElementById('modal-folha-planilha-titulo');
+  if (!m || !ifr || !url) return;
+  const sep = String(url).indexOf('?') >= 0 ? '&' : '?';
+  folhaPlanilhaUrlNovaAba = String(url);
+  if (tit) tit.textContent = titulo || 'Folha de compras';
+  ifr.src = String(url) + sep + 'embed=1';
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+  document.body.classList.add('modal-open');
+}
+
+function fecharModalFolhaPlanilha() {
+  const m = document.getElementById('modal-folha-planilha-compras');
+  const ifr = document.getElementById('folha-planilha-iframe');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+  if (ifr) ifr.src = 'about:blank';
+  folhaPlanilhaUrlNovaAba = '';
+  document.body.classList.remove('modal-open');
+  focoBuscaCompra({ force: true });
+}
+
+document.getElementById('btn-fechar-modal-folha-planilha')?.addEventListener('click', () => fecharModalFolhaPlanilha());
+document.getElementById('modal-folha-planilha-compras')?.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'modal-folha-planilha-compras') fecharModalFolhaPlanilha();
+});
+document.getElementById('btn-folha-planilha-nova-aba')?.addEventListener('click', () => {
+  if (!folhaPlanilhaUrlNovaAba) return;
+  try {
+    const w = window.open(folhaPlanilhaUrlNovaAba, '_blank', 'noopener,noreferrer');
+    if (!w) alert('O navegador bloqueou a nova aba. Permita pop-ups para o SisVale ou use o popup na tela.');
+  } catch (_) {
+    alert('Não foi possível abrir nova aba.');
+  }
+});
+
 function abrirModalRelatorioCompra() {
   fecharMenuFolhaCompras();
   const m = document.getElementById('modal-relatorio-compra-fornecedor');
@@ -4050,6 +4172,11 @@ document.addEventListener('keydown', (e) => {
     }
   }
   if (e.key === 'Escape') {
+    if (comprasModalFolhaPlanilhaAberta()) {
+      e.preventDefault();
+      fecharModalFolhaPlanilha();
+      return;
+    }
     const folha = document.getElementById('folha-compras-menu');
     if (folha && folha.open) {
       e.preventDefault();

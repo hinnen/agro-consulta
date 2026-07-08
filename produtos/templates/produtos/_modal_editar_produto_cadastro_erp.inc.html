@@ -1916,6 +1916,10 @@
         if (typeof window.agroCadastroMergeProdutoCacheLocal === 'function') {
           window.agroCadastroMergeProdutoCacheLocal(j.produto);
         }
+        if (typeof window.agroCadastroMergeLinhaLista === 'function') {
+          window.agroCadastroMergeLinhaLista(j.produto);
+        }
+        loadFacetasDatalists();
       }
     }).catch(function (e) {
       mostrarStatusModalSalvo(e.message || 'Erro ao salvar', 'erro');
@@ -1996,7 +2000,8 @@
   var modalDetAbort = null;
 
   function produtoParaFormCadastro(rowLista, detApi) {
-    var base = Object.assign({}, detApi || {}, rowLista || {});
+    // Detalhe da API (servidor) prevalece sobre a linha da lista — evita «sumir» marca/categoria ao reabrir.
+    var base = Object.assign({}, rowLista || {}, detApi || {});
     if (typeof window.agroAplicarPatchPdvNoProduto === 'function') {
       base = window.agroAplicarPatchPdvNoProduto(base);
     }
@@ -2164,28 +2169,28 @@
   bindCodigoSistemaGmSync();
 
   bindClick('btn-marca-nova', function () {
-    abrirMiniAgro('Nova marca (texto local)', function (v) {
+    abrirMiniAgro('Nova marca', function (v) {
       if (!v) return;
       setVal('edit-marca', v);
       appendDatalistOption('dl-marcas-agro', v);
     });
   });
   bindClick('btn-fornec-nova', function () {
-    abrirMiniAgro('Novo fornecedor (texto local)', function (v) {
+    abrirMiniAgro('Novo fornecedor', function (v) {
       if (!v) return;
       setVal('edit-fornecedor', v);
       appendDatalistOption('dl-forns-agro', v);
     });
   });
   bindClick('btn-categoria-nova', function () {
-    abrirMiniAgro('Nova categoria (texto local)', function (v) {
+    abrirMiniAgro('Nova categoria', function (v) {
       if (!v) return;
       setVal('edit-categoria', v);
       appendDatalistOption('dl-cats-agro', v);
     });
   });
   bindClick('btn-subcategoria-nova', function () {
-    abrirMiniAgro('Nova subcategoria (texto local)', function (v) {
+    abrirMiniAgro('Nova subcategoria', function (v) {
       if (!v) return;
       setVal('edit-subcategoria', v);
       appendDatalistOption('dl-subcats-agro', v);

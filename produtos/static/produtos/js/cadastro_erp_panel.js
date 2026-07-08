@@ -804,10 +804,9 @@
     }
   }
 
-  /** Catálogo local do PDV (mesmo cache da Consulta) — busca instantânea antes do Mongo. */
-  function agroCadastroMergeProdutoCacheLocal(produto) {
-    if (!produto || produto.id == null) return;
-    var patch = {
+  function patchCadastroLinhaProduto(produto) {
+    if (!produto || produto.id == null) return null;
+    return {
       id: String(produto.id),
       nome: produto.nome,
       marca: produto.marca,
@@ -817,11 +816,20 @@
       preco_custo: produto.preco_custo,
       categoria: produto.categoria,
       subcategoria: produto.subcategoria,
+      subcategoria_2: produto.subcategoria_2,
+      subcategoria_3: produto.subcategoria_3,
+      subcategoria_4: produto.subcategoria_4,
       fornecedor: produto.fornecedor,
       unidade: produto.unidade,
       descricao: produto.descricao,
       inativo: !!produto.inativo
     };
+  }
+
+  /** Catálogo local do PDV (mesmo cache da Consulta) — busca instantânea antes do Mongo. */
+  function agroCadastroMergeProdutoCacheLocal(produto) {
+    var patch = patchCadastroLinhaProduto(produto);
+    if (!patch) return;
     cadastroCatalogoPdvCacheArray();
     if (!Array.isArray(_cadastroCatLocal)) return;
     var pid = String(produto.id);
@@ -838,7 +846,21 @@
       }
     }
   }
+
+  /** Atualiza a linha visível na lista após «Salvar no Agro» (evita reabrir com dados velhos). */
+  function agroCadastroMergeLinhaLista(produto) {
+    var patch = patchCadastroLinhaProduto(produto);
+    if (!patch) return;
+    var pid = String(produto.id);
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) === pid) {
+        Object.assign(ultimos[i], patch);
+        return;
+      }
+    }
+  }
   window.agroCadastroMergeProdutoCacheLocal = agroCadastroMergeProdutoCacheLocal;
+  window.agroCadastroMergeLinhaLista = agroCadastroMergeLinhaLista;
 
   function cadastroCatalogoPdvCacheArray() {
     if (_cadastroCatInited) return _cadastroCatLocal || [];
