@@ -422,6 +422,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
 
+**Fiado — baixa (decisão 07/07):** cobrança de título em aberto **não** fica no modal de `/fiado/` — redireciona ao **PDV pagamento** com cliente + valor do título (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
+
 **Armadilha GM no barras (2026-06-18):** se «Código de barras» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, não EAN. No **wizard** (`pdv_wizard.js`), o hífen do GM disparava atalho `**-`** = remover último item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GM…`. Legado `/consulta/`: F4 pós-bip + match alnum (`consulta_produtos.js`).
 
 **Venda gravada em:** `VendaAgro` (Postgres) + tentativa sync ERP conforme config.
@@ -1145,7 +1147,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.33** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.34** · **loja v7.27**
+
+### 📋 Decisão **07/07** — Baixa fiado no PDV (Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Baixa** | **Sempre no PDV** — botão Baixa em `/fiado/` abre **tela de pagamento do wizard** (como ERP antigo); formas + **maquininha** + **Point** iguais à venda normal |
+| **Fiscal** | **NFC-e na baixa** → fila **P1,1** (**FL-052**) — **fora** do 1º pacote |
+| **Hoje** | Modal `/fiado/` com select fixo (sem maquininha) — **substituir** no pacote **FL-051** |
+| **Junto** | Corrigir **FL-028** (baixa total dá erro) no mesmo pacote se couber |
 
 ### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
 
@@ -2666,7 +2677,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
-| **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | 📋 Pendente | 29/06 16:20 |
+| **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
+| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | 📋 Decisão Renan 07/07 | 07/07 |
+| **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
@@ -2736,6 +2749,10 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-048 | `pg-backup-painel-portavel` | Admin → `/interno/pg-backup/` · ZIP manifest+JSONL+**resumo.xlsx** · checkbox · restore+senha admin |
 | FL-049 | `pdv-cliente-cpf-cadastro-nfce` | Campo **CPF** no cadastro cliente PDV (F8/modal) · persistir `ClienteAgro` · emissão NFC-e puxa CPF do cliente selecionado (hoje: modal só se cadastro vazio) |
 | FL-050 | `vendas-lista-nfce-background-ux` | `/vendas/` + detalhe: distinguir **processando** (`nfce_solicitada` sem doc / status PROCESSANDO) vs **erro** vs **autorizada** · não abrir modal reemitir no meio · poll ou refresh · rótulos: *Emitindo…* / *Reimprimir cupom fiscal* · `vendas_lista.html` · `nfce_venda_util.painel_nfce_venda` · `views_nfce` |
+| FL-051 | `fiado-baixa-pdv-pagamento` | `/fiado/` Baixa → `/pdv/checkout/` modo cobrança (`titulo_id`/`titulo_ids`) · pagamento completo PDV · confirmar quita `FiadoTituloAgro` + `MovimentoCaixa` · deprecar modal `fiado-modal-baixa` |
+| FL-052 | `fiado-baixa-nfce-quitacao` | Após baixa: NFC-e da **venda original** com `tPag` da forma paga (não crédito loja) · CPF cliente · conferência fiscal antes de auto |
+
+**Notas FL-051 / FL-052 (07/07):** Renan escolheu **sempre PDV** (não híbrido). **FL-051** = **P1** (operacional). **FL-052** = **P1,1** (fiscal na fila, não no 1º pacote). Incluir fix **FL-028** se possível no mesmo pacote pagamento.
 
 **Notas FL-050 (03/07):** **P2** — Renan: operador vai direto em Consulta vendas após Enter no PDV; clique trata como reemissão. Causa provável: `venda_nfce_pendente` = true com `nfce_solicitada` e sem `NfceDocumentoAgro` ainda. `views_nfce` já retorna «em processamento» no POST duplicado — falta UX na **lista**.
 
