@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.48** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.49** · **loja v7.40**
 
 ### 🐛 FIX — barra lateral sumiu (08/07 · Renan · v7.47)
 
