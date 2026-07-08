@@ -187,6 +187,40 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
     return {"v": 2, "dias": dias, "rows": rows, "fonte": "venda_agro_pg"}
 
 
+def _row_tem_venda_pg(row: list[Any]) -> bool:
+    if not row or len(row) < 3:
+        return False
+    try:
+        return float(row[2] or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def mesclar_metricas_rows_pg_mongo(pg_rows: list[list[Any]], mongo_rows: list[list[Any]]) -> list[list[Any]]:
+    """
+    Catálogo completo (Mongo / DtoVenda) com overlay Postgres quando há venda no Agro.
+    Entrada NF Agro (PG) preservada; vendas zeradas no PG caem no histórico Mongo.
+    """
+    mongo_map = {str(r[0]): r for r in (mongo_rows or []) if r and r[0] is not None}
+    pg_map = {str(r[0]): r for r in (pg_rows or []) if r and r[0] is not None}
+    merged: list[list[Any]] = []
+    for pid, mrow in mongo_map.items():
+        prow = pg_map.get(pid)
+        if prow and _row_tem_venda_pg(prow):
+            row = list(prow)
+            if len(row) >= 8 and len(mrow) >= 8:
+                if not row[6] and mrow[6]:
+                    row[6] = mrow[6]
+                    row[7] = mrow[7]
+            merged.append(row)
+        else:
+            merged.append(mrow)
+    for pid, prow in pg_map.items():
+        if pid not in mongo_map:
+            merged.append(prow)
+    return merged
+
+
 def _aware_bounds(desde: datetime, ate: datetime) -> tuple[datetime, datetime]:
     d0 = timezone.make_aware(desde) if timezone.is_naive(desde) else desde
     d1 = timezone.make_aware(ate) if timezone.is_naive(ate) else ate

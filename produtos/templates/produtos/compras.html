@@ -1608,7 +1608,11 @@ function aplicarMetricasCompraNaBase(payload) {
   baseProdutos.forEach((p) => {
     const row = map.get(String(p.id));
     if (!row) return;
-    p._c_media_dia = Number(row[1]);
+    const novoMedia = Number(row[1]);
+    const totVenda = Number(row[2] || 0);
+    if (totVenda > 0 || !(Number(p._c_media_dia || 0) > 0)) {
+      p._c_media_dia = novoMedia;
+    }
     p._c_var_sem = row[5] === null || row[5] === undefined || row[5] === '' ? null : Number(row[5]);
     p._c_entrada_data = row[6] || '';
     p._c_entrada_qtd = Number(row[7]);
@@ -1929,6 +1933,17 @@ function montarBuscaTextoRapido(p) {
   return normalizarBuscaLocal(partes.join(' '));
 }
 
+/** API com zero não apaga valor bom já carregado no catálogo local. */
+function compraPreferValorPositivo(apiVal, locVal) {
+  const a = Number(apiVal);
+  const l = Number(locVal);
+  if (Number.isFinite(a) && a > 0) return a;
+  if (Number.isFinite(l) && l > 0) return l;
+  if (Number.isFinite(a)) return a;
+  if (Number.isFinite(l)) return l;
+  return 0;
+}
+
 function enriquecerProdutoCompraBusca(p) {
   const id = String(p.id);
   const loc = baseProdutos.find((x) => String(x.id) === id);
@@ -1972,24 +1987,18 @@ function enriquecerProdutoCompraBusca(p) {
     saldo_vila: p.saldo_vila != null ? p.saldo_vila : loc.saldo_vila,
     saldo_erp_centro: p.saldo_erp_centro != null ? p.saldo_erp_centro : loc.saldo_erp_centro,
     saldo_erp_vila: p.saldo_erp_vila != null ? p.saldo_erp_vila : loc.saldo_erp_vila,
-    preco_custo: p.preco_custo != null ? p.preco_custo : loc.preco_custo,
-    preco_custo_final: p.preco_custo_final != null ? p.preco_custo_final : loc.preco_custo_final,
-    preco_custo_acrescimo: p.preco_custo_acrescimo != null ? p.preco_custo_acrescimo : loc.preco_custo_acrescimo,
+    preco_custo: compraPreferValorPositivo(p.preco_custo, loc.preco_custo),
+    preco_custo_final: compraPreferValorPositivo(p.preco_custo_final, loc.preco_custo_final),
+    preco_custo_acrescimo: compraPreferValorPositivo(p.preco_custo_acrescimo, loc.preco_custo_acrescimo),
     imagem: p.imagem || loc.imagem,
-    media_venda_diaria_30d: Number(
-      mediaApi != null && mediaApi !== ''
-        ? mediaApi
-        : loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== ''
-          ? loc.media_venda_diaria_30d
-          : 0
+    media_venda_diaria_30d: compraPreferValorPositivo(
+      mediaApi != null && mediaApi !== '' ? mediaApi : null,
+      loc.media_venda_diaria_30d
     ),
-    _c_media_dia: (() => {
-      const fromLoc = Number(loc._c_media_dia != null ? loc._c_media_dia : NaN);
-      const fromApi = Number(mediaApi != null && mediaApi !== '' ? mediaApi : NaN);
-      if (Number.isFinite(fromLoc) && fromLoc > 0) return fromLoc;
-      if (Number.isFinite(fromApi) && fromApi > 0) return fromApi;
-      return Number.isFinite(fromLoc) ? fromLoc : 0;
-    })(),
+    _c_media_dia: compraPreferValorPositivo(
+      mediaApi != null && mediaApi !== '' ? mediaApi : null,
+      loc._c_media_dia
+    ),
     _c_var_sem: loc._c_var_sem,
     _c_entrada_data: loc._c_entrada_data,
     _c_entrada_qtd: loc._c_entrada_qtd,

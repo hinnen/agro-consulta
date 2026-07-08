@@ -2440,7 +2440,48 @@ def _pdv_metricas_cache_key(dias: int, bucket: int) -> str:
 
 
 def _pdv_metricas_cache_key_pg(dias: int, bucket: int) -> str:
-    return f"pdv_metricas_pg_v1_{dias}_{bucket}"
+    return f"pdv_metricas_pg_hybrid_v2_{dias}_{bucket}"
+
+
+def _pdv_metricas_rows_mongo(db, client, dias: int) -> list:
+    """Linhas v2 (12 cols) para ``api_pdv_metricas_produtos`` — fonte DtoVenda Mongo."""
+    media_tot, w0, w1, spark_map = _metricas_vendas_agregadas_por_produto(db, dias)
+    entradas = _ultima_entrada_mercadoria_por_produto(db)
+    query = {"CadastroInativo": {"$ne": True}}
+    produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
+    p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+    div = float(dias) if dias else 30.0
+    rows = []
+    for pid in p_ids:
+        tot_p = float(media_tot.get(pid, 0.0))
+        media_d = round(tot_p / div, 6) if div else 0.0
+        s0 = float(w0.get(pid, 0.0))
+        s1 = float(w1.get(pid, 0.0))
+        if s1 > 0:
+            var_pct = round((s0 - s1) / s1 * 100.0, 2)
+        elif s0 > 0:
+            var_pct = 100.0
+        else:
+            var_pct = None
+        ent = entradas.get(pid) or {}
+        sp = spark_map.get(pid) or [0.0, 0.0, 0.0, 0.0]
+        rows.append(
+            [
+                pid,
+                media_d,
+                round(tot_p, 4),
+                round(s0, 4),
+                round(s1, 4),
+                var_pct,
+                ent.get("data") or "",
+                float(ent.get("qtd") or 0),
+                round(float(sp[0]), 4),
+                round(float(sp[1]), 4),
+                round(float(sp[2]), 4),
+                round(float(sp[3]), 4),
+            ]
+        )
+    return rows
 
 
 def _pdv_top_vendidos_cache_key(dias: int, limite: int, bucket: int) -> str:
@@ -22959,10 +23000,20 @@ def api_pdv_metricas_produtos(request):
         return JsonResponse(hit)
 
     if use_pg:
-        from produtos.compras_metricas_util import metricas_compras_rows_postgres
+        from produtos.compras_metricas_util import (
+            mesclar_metricas_rows_pg_mongo,
+            metricas_compras_rows_postgres,
+        )
 
         try:
             payload = metricas_compras_rows_postgres(dias)
+            client, db = obter_conexao_mongo()
+            if db is not None:
+                mongo_rows = _pdv_metricas_rows_mongo(db, client, dias)
+                payload["rows"] = mesclar_metricas_rows_pg_mongo(
+                    payload.get("rows") or [], mongo_rows
+                )
+                payload["fonte"] = "venda_agro_pg_mongo_hybrid"
             cache.set(ck, payload, timeout=320)
             return JsonResponse(payload)
         except Exception as e:
@@ -22973,42 +23024,7 @@ def api_pdv_metricas_produtos(request):
     if db is None:
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        media_tot, w0, w1, spark_map = _metricas_vendas_agregadas_por_produto(db, dias)
-        entradas = _ultima_entrada_mercadoria_por_produto(db)
-        query = {"CadastroInativo": {"$ne": True}}
-        produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
-        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
-        div = float(dias) if dias else 30.0
-        rows = []
-        for pid in p_ids:
-            tot_p = float(media_tot.get(pid, 0.0))
-            media_d = round(tot_p / div, 6) if div else 0.0
-            s0 = float(w0.get(pid, 0.0))
-            s1 = float(w1.get(pid, 0.0))
-            if s1 > 0:
-                var_pct = round((s0 - s1) / s1 * 100.0, 2)
-            elif s0 > 0:
-                var_pct = 100.0
-            else:
-                var_pct = None
-            ent = entradas.get(pid) or {}
-            sp = spark_map.get(pid) or [0.0, 0.0, 0.0, 0.0]
-            rows.append(
-                [
-                    pid,
-                    media_d,
-                    round(tot_p, 4),
-                    round(s0, 4),
-                    round(s1, 4),
-                    var_pct,
-                    ent.get("data") or "",
-                    float(ent.get("qtd") or 0),
-                    round(float(sp[0]), 4),
-                    round(float(sp[1]), 4),
-                    round(float(sp[2]), 4),
-                    round(float(sp[3]), 4),
-                ]
-            )
+        rows = _pdv_metricas_rows_mongo(db, client, dias)
         payload = {"v": 2, "dias": dias, "rows": rows}
         cache.set(ck, payload, timeout=320)
         return JsonResponse(payload)
