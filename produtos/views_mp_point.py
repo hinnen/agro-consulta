@@ -61,6 +61,14 @@ _ERP_PAYLOAD_KEYS = frozenset(
         "formaPagamentoId",
         "desconto_geral",
         "frete",
+        "fiado_cobranca",
+        "valor_total",
+        "modo",
+        "titulo_id",
+        "titulo_ids",
+        "cliente_agro_pk",
+        "client_request_id",
+        "observacao",
     }
 )
 
@@ -348,23 +356,34 @@ def _api_pdv_mp_point_criar_impl(request):
         return JsonResponse({"ok": False, "erro": "Payload inválido"}, status=400)
 
     erp_payload = _sanear_erp_payload(raw)
-    if not erp_payload.get("itens"):
-        return JsonResponse({"ok": False, "erro": "Informe os itens da venda."}, status=400)
+    fiado_cobranca = bool(erp_payload.get("fiado_cobranca") or raw.get("fiado_cobranca"))
 
-    client_m, db = obter_conexao_mongo_pdv()
-    err_resp, _linhas, valor_final = _pdv_pedido_linhas_e_valor_final(erp_payload, client_m=client_m, db=db)
-    if err_resp is not None:
-        try:
-            payload = json.loads(err_resp.content.decode("utf-8"))
-        except Exception:
-            payload = {"ok": False, "erro": "Itens inválidos para o ERP."}
-        return JsonResponse(payload, status=err_resp.status_code)
-
-    valor_tranche = _pdv_valor_cobranca_tranche_override(raw)
-    if valor_tranche is not None:
-        valor_cobrar = valor_tranche
+    if fiado_cobranca:
+        valor_tranche = _pdv_valor_cobranca_tranche_override(raw)
+        if valor_tranche is not None:
+            valor_cobrar = valor_tranche
+        else:
+            valor_cobrar = _pdv_decimal_campo(erp_payload.get("valor_total") or raw.get("valor_total"))
+        if valor_cobrar <= 0:
+            return JsonResponse({"ok": False, "erro": "Valor da quitação fiado inválido."}, status=400)
     else:
-        valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
+        if not erp_payload.get("itens"):
+            return JsonResponse({"ok": False, "erro": "Informe os itens da venda."}, status=400)
+
+        client_m, db = obter_conexao_mongo_pdv()
+        err_resp, _linhas, valor_final = _pdv_pedido_linhas_e_valor_final(erp_payload, client_m=client_m, db=db)
+        if err_resp is not None:
+            try:
+                payload = json.loads(err_resp.content.decode("utf-8"))
+            except Exception:
+                payload = {"ok": False, "erro": "Itens inválidos para o ERP."}
+            return JsonResponse(payload, status=err_resp.status_code)
+
+        valor_tranche = _pdv_valor_cobranca_tranche_override(raw)
+        if valor_tranche is not None:
+            valor_cobrar = valor_tranche
+        else:
+            valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
 
     external_reference = f"agro-{uuid.uuid4()}"
     token = settings.MP_POINT_ACCESS_TOKEN.strip()
@@ -646,6 +665,53 @@ def api_pdv_mp_point_finalizar(request):
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
             row.save(update_fields=["status", "atualizado_em"])
             return JsonResponse({"ok": False, "erro": "Payload local inválido."}, status=500)
+
+        fiado_cobranca = bool(erp_data.get("fiado_cobranca"))
+
+        if fiado_cobranca:
+            try:
+                exigir_sessao_caixa_para_venda(request, erp_data)
+            except SessaoCaixaObrigatoriaError as e:
+                row.status = PdvMercadoPagoPointOrder.Status.FAILED
+                row.save(update_fields=["status", "atualizado_em"])
+                return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+            from produtos.fiado_gestao_util import baixar_fiado_via_pdv
+
+            titulo_ids = erp_data.get("titulo_ids")
+            if not isinstance(titulo_ids, list):
+                titulo_ids = []
+            try:
+                titulo_id_raw = erp_data.get("titulo_id")
+                titulo_id = int(titulo_id_raw) if titulo_id_raw is not None else None
+            except (TypeError, ValueError):
+                titulo_id = None
+            try:
+                cliente_pk_raw = erp_data.get("cliente_agro_pk")
+                cliente_pk = int(cliente_pk_raw) if cliente_pk_raw is not None else None
+            except (TypeError, ValueError):
+                cliente_pk = None
+            try:
+                resultado = baixar_fiado_via_pdv(
+                    modo=str(erp_data.get("modo") or "titulo"),
+                    titulo_id=titulo_id,
+                    titulo_ids=titulo_ids or None,
+                    cliente_agro_pk=cliente_pk,
+                    cliente_nome=str(erp_data.get("cliente") or "").strip(),
+                    cliente_codigo="",
+                    valor=None,
+                    pagamentos=erp_data.get("pagamentos") or [],
+                    request=request,
+                    observacao=str(erp_data.get("observacao") or "").strip(),
+                    client_request_id=str(erp_data.get("client_request_id") or "").strip(),
+                    usuario=(request.user.get_username() if getattr(request, "user", None) and request.user.is_authenticated else ""),
+                )
+            except ValueError as exc:
+                row.status = PdvMercadoPagoPointOrder.Status.FAILED
+                row.save(update_fields=["status", "atualizado_em"])
+                return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+            row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
+            row.save(update_fields=["status", "atualizado_em"])
+            return JsonResponse({"ok": True, "fiado_baixa": True, **resultado})
 
         if modo_tranche:
             if not _mp_point_pagamento_valor_mp(erp_data, row.valor_cobrado):

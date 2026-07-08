@@ -1147,7 +1147,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.34** · **loja v7.27**
+**Versão app (`VERSION`):** **teste v7.36** · **loja v7.27**
+
+### ✅ **FL-051** — Baixa fiado no PDV (07/07 — teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fluxo** | `/fiado/` botão **Baixa** → `/pdv/?fiado_cobranca=1` · só etapa **pagamento** (formas + maquininha + MP Point) |
+| **APIs** | `GET api/fiado/cobranca-pdv/` · `POST api/fiado/baixa-pdv/` |
+| **FL-028** | Tolerância centavos na baixa total cliente/selecionados + saldo recalculado na tela |
+| **Fora** | NFC-e na quitação = **FL-052** (P1,1) |
+| **Validar** | Baixa título · selecionados · total cliente · cartão/PIX/dinheiro · caixa aberto |
 
 ### 📋 Decisão **07/07** — Baixa fiado no PDV (Renan)
 
@@ -1155,8 +1165,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Baixa** | **Sempre no PDV** — botão Baixa em `/fiado/` abre **tela de pagamento do wizard** (como ERP antigo); formas + **maquininha** + **Point** iguais à venda normal |
 | **Fiscal** | **NFC-e na baixa** → fila **P1,1** (**FL-052**) — **fora** do 1º pacote |
-| **Hoje** | Modal `/fiado/` com select fixo (sem maquininha) — **substituir** no pacote **FL-051** |
-| **Junto** | Corrigir **FL-028** (baixa total dá erro) no mesmo pacote se couber |
+| **Modal antigo** | `fiado-modal-baixa` mantido no HTML mas **não usado** (redirect direto) |
 
 ### ✅ Deploy loja **v7.27** — PDV Nova venda + frete F7 (07/07 — Renan senha OK)
 
@@ -2673,12 +2682,12 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** — está indo para **9000+** em vez da faixa combinada (**~4–5 mil**) | 📋 Pendente · 🔍 conferir | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Ao **adicionar produto novo** na nota: itens já conferidos perdem **código de barras** (etapa 3) e **lote/validade** (etapas 4–5) | 📋 Pendente | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | Etapa **7**: notas via **XML** preenchem forma de pagamento só **«Boleto Bancário»** — corrigir para **«Boleto Bancário CN»** | 📋 Pendente | 29/06 16:20 |
-| **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | 📋 Pendente | 29/06 16:20 |
+| **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | ✅ Tolerância centavos v7.36 | 29/06 16:20 |
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | 📋 Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
-| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | 📋 Decisão Renan 07/07 | 07/07 |
+| **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ Teste v7.36 | 07/07 |
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |

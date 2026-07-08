@@ -22,6 +22,7 @@ from produtos.fiado_credito_util import resumo_credito_fiado_cliente
 from produtos.fiado_gestao_util import (
     _usuario_de_request,
     baixar_cliente_fiado,
+    baixar_fiado_via_pdv,
     baixar_titulo,
     baixar_titulos_selecionados,
     definir_limite_fiado_cliente,
@@ -29,6 +30,7 @@ from produtos.fiado_gestao_util import (
     export_backup_fiado,
     listar_clientes_fiado,
     listar_titulos,
+    montar_cobranca_pdv_fiado,
     resumo_from_clientes_fiado,
     resumo_gestao_fiado,
     titulo_para_dict,
@@ -394,6 +396,104 @@ def api_fiado_importar_planilha(request):
                 tmp_path.unlink()
         except Exception:
             pass
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_fiado_cobranca_pdv(request):
+    modo = str(request.GET.get("modo") or "titulo").strip().lower()
+    titulo_id = None
+    titulo_ids: list[int] = []
+    cliente_pk = None
+    raw_tid = request.GET.get("titulo_id")
+    if raw_tid is not None and str(raw_tid).strip().isdigit():
+        titulo_id = int(raw_tid)
+    raw_ids = str(request.GET.get("titulo_ids") or "").strip()
+    if raw_ids:
+        for part in raw_ids.replace(";", ",").split(","):
+            part = part.strip()
+            if part.isdigit():
+                titulo_ids.append(int(part))
+    pk_raw = request.GET.get("cliente_agro_pk")
+    if pk_raw is not None and str(pk_raw).strip().isdigit():
+        cliente_pk = int(pk_raw)
+    cliente_nome = str(request.GET.get("cliente_nome") or "").strip()
+    cliente_codigo = str(request.GET.get("cliente_codigo") or "").strip()
+    valor = parse_valor_moeda_br(request.GET.get("valor")) if request.GET.get("valor") else None
+    try:
+        payload = montar_cobranca_pdv_fiado(
+            modo=modo,
+            titulo_id=titulo_id,
+            titulo_ids=titulo_ids or None,
+            cliente_agro_pk=cliente_pk,
+            cliente_nome=cliente_nome,
+            cliente_codigo=cliente_codigo,
+            valor=valor,
+        )
+        return JsonResponse(payload)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_fiado_baixa_pdv(request):
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    modo = str(data.get("modo") or "titulo").strip().lower()
+    titulo_id = None
+    titulo_ids: list[int] = []
+    if data.get("titulo_id") is not None:
+        try:
+            titulo_id = int(data.get("titulo_id"))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "erro": "titulo_id inválido."}, status=400)
+    raw_ids = data.get("titulo_ids")
+    if isinstance(raw_ids, list):
+        titulo_ids = [int(x) for x in raw_ids if x]
+    elif isinstance(raw_ids, str) and raw_ids.strip():
+        for part in raw_ids.replace(";", ",").split(","):
+            part = part.strip()
+            if part.isdigit():
+                titulo_ids.append(int(part))
+    cliente_pk = None
+    if data.get("cliente_agro_pk") is not None and str(data.get("cliente_agro_pk")).strip() != "":
+        try:
+            cliente_pk = int(data.get("cliente_agro_pk"))
+        except (TypeError, ValueError):
+            cliente_pk = None
+    pagamentos = data.get("pagamentos") or data.get("pagamentos_detalhe") or []
+    if not isinstance(pagamentos, list):
+        pagamentos = []
+    obs = str(data.get("observacao") or "").strip()
+    client_request_id = str(data.get("client_request_id") or "").strip()
+    valor = parse_valor_moeda_br(data.get("valor")) if data.get("valor") is not None else None
+    sessao = _sessao_caixa_para_fiado(request)
+    if not sessao:
+        return JsonResponse(
+            {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
+            status=400,
+        )
+    try:
+        r = baixar_fiado_via_pdv(
+            modo=modo,
+            titulo_id=titulo_id,
+            titulo_ids=titulo_ids or None,
+            cliente_agro_pk=cliente_pk,
+            cliente_nome=str(data.get("cliente_nome") or "").strip(),
+            cliente_codigo=str(data.get("cliente_codigo") or "").strip(),
+            valor=valor,
+            pagamentos=pagamentos,
+            request=request,
+            observacao=obs,
+            client_request_id=client_request_id,
+            usuario=_usuario_de_request(request),
+        )
+        return JsonResponse({"ok": True, **r})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
 @login_required(login_url="/admin/login/")

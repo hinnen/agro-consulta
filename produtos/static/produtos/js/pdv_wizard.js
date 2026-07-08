@@ -602,6 +602,11 @@
         return String(template || '').replace('__pk__', String(pk));
     }
 
+    function isFiadoCobrancaAtiva(st) {
+        st = st || State.getState();
+        return !!(st && st.fiadoCobranca && st.fiadoCobranca.ativo);
+    }
+
     function escapeHtml(value) {
         var div = document.createElement('div');
         div.textContent = value == null ? '' : String(value);
@@ -2487,6 +2492,12 @@
     }
 
     function erroValidacaoPagamento(state, computed) {
+        if (isFiadoCobrancaAtiva(state)) {
+            var arrFi = state.pagamento.lancamentos || [];
+            if (arrFi.some(function (L) { return String(L.forma || '') === 'Fiado'; })) {
+                return 'Não use fiado para quitar fiado.';
+            }
+        }
         var forma = String(state.pagamento.forma || '').trim();
         if (forma) return '';
         var arr = state.pagamento.lancamentos || [];
@@ -2515,6 +2526,13 @@
     }
 
     function canAdvance(state, computed) {
+        if (isFiadoCobrancaAtiva(state)) {
+            if (state.currentStep === 'pagamento') {
+                var epFi = erroValidacaoPagamento(state, computed);
+                if (epFi) return epFi;
+            }
+            return '';
+        }
         if (state.currentStep === 'produtos') {
             if (!state.itens.length) return 'Adicione ao menos 1 item antes de continuar.';
             if (state.clienteMode === 'unset') return 'Defina o cliente ou consumidor final antes de continuar.';
@@ -5715,11 +5733,19 @@
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             if (v === 'Fiado') {
                 var bloqFi = validarFiadoPermitido(state);
-                btn.disabled = !!bloqFi;
-                btn.classList.toggle('opacity-40', !!bloqFi);
-                btn.classList.toggle('cursor-not-allowed', !!bloqFi);
-                if (bloqFi) btn.title = bloqFi;
-                else btn.removeAttribute('title');
+                if (isFiadoCobrancaAtiva(state)) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-40', 'cursor-not-allowed');
+                    btn.title = 'Não use fiado para quitar fiado.';
+                } else if (bloqFi) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-40', 'cursor-not-allowed');
+                    btn.title = bloqFi;
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                    btn.removeAttribute('title');
+                }
             }
         });
 
@@ -5878,7 +5904,18 @@
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--pendente', !quitadoPay);
         }
         if (dom.paymentRestanteHeroLabel) {
-            dom.paymentRestanteHeroLabel.textContent = quitadoPay ? 'Tudo pago' : 'Resta pagar';
+            dom.paymentRestanteHeroLabel.textContent = isFiadoCobrancaAtiva(state)
+                ? 'Quitar fiado'
+                : quitadoPay
+                  ? 'Tudo pago'
+                  : 'Resta pagar';
+        }
+        if (dom.paymentRestanteHeroSub) {
+            var fc = state.fiadoCobranca || {};
+            dom.paymentRestanteHeroSub.textContent = fc.ativo
+                ? String(fc.resumoTexto || 'Escolha a forma de pagamento no PDV.')
+                : '';
+            dom.paymentRestanteHeroSub.classList.toggle('hidden', !fc.ativo);
         }
         if (dom.paymentRestanteHeroVal) {
             dom.paymentRestanteHeroVal.textContent = quitadoPay ? 'Pode confirmar' : formatMoney(restFin);
@@ -7493,7 +7530,37 @@
         if (op) State.setPagamentoField('operadorPdv', op);
     }
 
+    function buildFiadoBaixaPayload(state, computed) {
+        var fc = state.fiadoCobranca || {};
+        var cliente = state.cliente || {};
+        var comp = computed || State.getComputed();
+        var pag = pagamentosDetalheParaErp(state);
+        var payload = {
+            fiado_cobranca: true,
+            modo: String(fc.modo || 'titulo'),
+            valor_total: comp.total,
+            cliente: currentClientName(state),
+            itens: payloadItens(state),
+            forma_pagamento: formaPagamentoParaErp(state, comp),
+            observacao: String(state.pagamento.observacaoFinal || state.venda.observacao || '').trim()
+        };
+        if (fc.tituloId != null) payload.titulo_id = fc.tituloId;
+        if (fc.tituloIds && fc.tituloIds.length) payload.titulo_ids = fc.tituloIds.slice();
+        if (cliente.cliente_agro_pk != null) payload.cliente_agro_pk = cliente.cliente_agro_pk;
+        if (pag && pag.length) payload.pagamentos = pag;
+        var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
+        if (idem) payload.client_request_id = idem;
+        var cx = bootstrap.caixa || {};
+        if (cx.id != null && String(cx.id).trim() !== '') {
+            payload.sessao_caixa_id = parseInt(cx.id, 10) || cx.id;
+        }
+        return injetarOperadorNoPayload(payload);
+    }
+
     function buildErpPayload(state, computed) {
+        if (isFiadoCobrancaAtiva(state)) {
+            return buildFiadoBaixaPayload(state, computed);
+        }
         var cliente = state.cliente || {};
         var payload = {
             cliente: currentClientName(state),
@@ -8250,7 +8317,158 @@
         });
     }
 
+    function confirmFiadoCobranca() {
+        if (isProcessingSale) return;
+        var state = State.getState();
+        var computed = State.getComputed();
+        var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
+        if (validation) {
+            alert(validation);
+            return;
+        }
+        ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+            if (!caixaOk) return;
+            confirmFiadoCobrancaProsseguir();
+        });
+    }
+
+    function confirmFiadoCobrancaProsseguir() {
+        if (isProcessingSale) return;
+        var state = State.getState();
+        var computed = State.getComputed();
+        (function setFiadoClientRequestId() {
+            var uuid =
+                typeof crypto !== 'undefined' && crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 11);
+            State.setPagamentoField('clientRequestId', uuid);
+        })();
+        state = State.getState();
+        if (vendaPrecisaFinalizarMpPoint(state)) {
+            confirmFiadoCobrancaFinalizarMpPoint();
+            return;
+        }
+        if (deveUsarMpPointNoFechar(state, computed)) {
+            confirmFiadoCobrancaMercadoPagoPoint();
+            return;
+        }
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        var payload = buildFiadoBaixaPayload(state, computed);
+        var apiUrl = String(urls.apiFiadoBaixaPdv || '').trim();
+        if (!apiUrl) {
+            isProcessingSale = false;
+            setConfirmButtonsBusy(false);
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            showPdvAviso('API de baixa fiado não configurada.', { tone: 'error' });
+            return;
+        }
+        jsonPost(apiUrl, payload)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    throw new Error((res.data && (res.data.erro || res.data.mensagem)) || 'Falha ao quitar fiado.');
+                }
+                finalizeFiadoCobrancaOk(res.data);
+            })
+            .catch(function (err) {
+                showPdvAviso(err && err.message ? err.message : 'Falha ao quitar fiado.', { tone: 'error' });
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                releaseSaleProcessingLock();
+            });
+    }
+
+    function finalizeFiadoCobrancaOk(data) {
+        var valor =
+            data && data.valor_aplicado != null
+                ? formatMoney(data.valor_aplicado)
+                : '';
+        showSaleDoneFeedback(
+            'Fiado quitado' + (valor ? ' — ' + valor : '') + '. Volte à gestão fiado para conferir.',
+            'success'
+        );
+        State.reset(false);
+        try {
+            history.replaceState({}, '', urls.pdvWizardHome || '/pdv/');
+        } catch (_) {}
+    }
+
+    function confirmFiadoCobrancaMercadoPagoPoint() {
+        if (isProcessingSale) return;
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        var state = State.getState();
+        var computed = State.getComputed();
+        var payload = buildFiadoBaixaPayload(state, computed);
+        jsonPost(urls.apiPdvMpPointCriar, payload)
+            .then(function (criarRes) {
+                if (!criarRes.ok || !criarRes.data.ok) {
+                    throw new Error((criarRes.data && criarRes.data.erro) || 'Falha ao enviar ao terminal MP.');
+                }
+                return pollMpPointUntilPaid(criarRes.data.order_id).then(function () {
+                    return jsonPost(urls.apiPdvMpPointFinalizar, {
+                        order_id: criarRes.data.order_id,
+                        erp_payload: buildFiadoBaixaPayload(State.getState(), State.getComputed())
+                    }).then(function (finRes) {
+                        if (!finRes.ok || !finRes.data.ok) {
+                            throw new Error((finRes.data && finRes.data.erro) || 'Falha ao finalizar MP.');
+                        }
+                        finalizeFiadoCobrancaOk(finRes.data);
+                    });
+                });
+            })
+            .catch(function (err) {
+                showPdvAviso(err && err.message ? err.message : 'Falha no Mercado Pago.', { tone: 'error' });
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                releaseSaleProcessingLock();
+            });
+    }
+
+    function confirmFiadoCobrancaFinalizarMpPoint() {
+        if (isProcessingSale) return;
+        var state = State.getState();
+        var computed = State.getComputed();
+        var orderIds = mpPointOrderIdsFromLancamentos(state);
+        if (!orderIds.length) {
+            confirmFiadoCobrancaProsseguir();
+            return;
+        }
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        var erpPayload = buildFiadoBaixaPayload(state, computed);
+        jsonPost(urls.apiPdvMpPointFinalizar, {
+            order_id: orderIds[0],
+            erp_payload: erpPayload
+        })
+            .then(function (finRes) {
+                if (!finRes.ok || !finRes.data.ok) {
+                    throw new Error(
+                        (finRes.data && (finRes.data.erro || finRes.data.mensagem)) ||
+                            'Falha ao quitar fiado após pagamento na maquininha.'
+                    );
+                }
+                finalizeFiadoCobrancaOk(finRes.data);
+            })
+            .catch(function (err) {
+                showPdvAviso(err && err.message ? err.message : 'Falha no Mercado Pago.', { tone: 'error' });
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                releaseSaleProcessingLock();
+            });
+    }
+
     function confirmSale(withPrint) {
+        if (isFiadoCobrancaAtiva()) {
+            confirmFiadoCobranca();
+            return;
+        }
         if (isProcessingSale) return;
         var state = State.getState();
         var computed = State.getComputed();
@@ -11411,6 +11629,42 @@
         } catch (_) {}
     }
 
+    function iniciarFiadoCobrancaFromQuery() {
+        try {
+            var p = new URLSearchParams(window.location.search || '');
+            if (p.get('fiado_cobranca') !== '1') return Promise.resolve(false);
+            var apiUrl = String(urls.apiFiadoCobrancaPdv || '').trim();
+            if (!apiUrl || typeof State.hydrateFromFiadoCobranca !== 'function') {
+                return Promise.resolve(false);
+            }
+            if (window.gmLoadingBar) window.gmLoadingBar.show();
+            return fetch(apiUrl + '?' + p.toString(), {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' }
+            })
+                .then(function (r) {
+                    return r.json();
+                })
+                .then(function (j) {
+                    if (!j.ok) throw new Error(j.erro || 'Não foi possível abrir a cobrança fiado.');
+                    State.hydrateFromFiadoCobranca(j);
+                    try {
+                        history.replaceState({}, '', window.location.pathname);
+                    } catch (_) {}
+                    return true;
+                })
+                .catch(function (e) {
+                    showPdvAviso(e && e.message ? e.message : 'Falha ao abrir cobrança fiado.', { tone: 'error' });
+                    return false;
+                })
+                .finally(function () {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                });
+        } catch (_) {
+            return Promise.resolve(false);
+        }
+    }
+
     function carregarDadosSecundariosPdv() {
         if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
             window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
@@ -11451,6 +11705,8 @@
         if (ev.persisted) agroWizardCatalogoRefreshNoFoco();
     });
 
+    var fiadoCobrancaBootPromise = iniciarFiadoCobrancaFromQuery();
+
     loadWizardCatalog()
         .then(function () {
             if (dom.productSearchFeedback) {
@@ -11469,7 +11725,9 @@
             } catch (errRm) {}
         })
         .finally(function () {
-            carregarDadosSecundariosPdv();
+            fiadoCobrancaBootPromise.finally(function () {
+                carregarDadosSecundariosPdv();
+            });
         });
 
     window.AgroPdvAddProductByCode = function (code) {

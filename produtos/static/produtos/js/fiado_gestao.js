@@ -418,33 +418,31 @@
     }
   }
 
-  function abrirBaixa(ctx) {
-    baixaCtx = ctx;
+  function redirectToPdvCobranca(ctx) {
+    const base = (CFG.pdvHome || '/pdv/').split('?')[0];
+    const p = new URLSearchParams();
+    p.set('fiado_cobranca', '1');
     const modo = ctx.modo || 'cliente';
-    if (el.baixaTitulo) {
-      el.baixaTitulo.textContent = modo === 'titulo' ? 'Baixa do lançamento' : modo === 'selecionados' ? 'Baixa selecionados' : 'Baixa de fiado';
+    p.set('modo', modo);
+    if (modo === 'titulo' && ctx.tituloId) p.set('titulo_id', String(ctx.tituloId));
+    if (modo === 'selecionados' && ctx.ids && ctx.ids.length) {
+      p.set('titulo_ids', ctx.ids.join(','));
     }
-    if (el.baixaResumo) {
-      if (modo === 'titulo') {
-        el.baixaResumo.textContent = (ctx.doc || 'Lançamento') + ' — saldo ' + fmtMoeda(ctx.saldo);
-      } else if (modo === 'selecionados') {
-        el.baixaResumo.textContent = (ctx.nome || '') + ' — ' + (ctx.ids || []).length + ' título(s) · ' + fmtMoeda(ctx.saldo);
-      } else {
-        el.baixaResumo.textContent = (ctx.nome || '') + ' — saldo ' + fmtMoeda(ctx.saldo);
+    if (modo === 'cliente') {
+      if (ctx.pk) p.set('cliente_agro_pk', String(ctx.pk));
+      if (ctx.nome) p.set('cliente_nome', ctx.nome);
+      if (ctx.codigo) p.set('cliente_codigo', ctx.codigo);
+    }
+    if (!CFG.caixaAberto) {
+      if (!window.confirm('O caixa não está aberto neste navegador. Abra o caixa no PDV antes de confirmar. Ir mesmo assim?')) {
+        return;
       }
     }
-    if (el.baixaDica) {
-      if (modo === 'titulo') {
-        el.baixaDica.textContent = 'Informe o valor recebido (parcial ou total). Com caixa aberto, entra como reforço no turno.';
-      } else if (modo === 'selecionados') {
-        el.baixaDica.textContent = 'O valor é aplicado nos títulos selecionados (vencimento mais antigo primeiro). Um único reforço no caixa.';
-      } else {
-        el.baixaDica.textContent = 'O valor quita os títulos mais antigos primeiro. Com caixa aberto, entra como reforço no turno.';
-      }
-    }
-    if (el.baixaValor) el.baixaValor.value = Number(ctx.saldo || 0).toFixed(2).replace('.', ',');
-    if (el.baixaObs) el.baixaObs.value = '';
-    if (el.modalBaixa && el.modalBaixa.showModal) el.modalBaixa.showModal();
+    window.location.href = base + '?' + p.toString();
+  }
+
+  function abrirBaixa(ctx) {
+    redirectToPdvCobranca(ctx);
   }
 
   async function confirmarBaixa(ev) {
@@ -670,15 +668,20 @@
     });
   }
 
-  if (el.btnBaixaTotalCli && clienteModal !== undefined) {
+  if (el.btnBaixaTotalCli) {
     el.btnBaixaTotalCli.addEventListener('click', function () {
       if (!clienteModal) return;
-      abrirBaixa({
+      let saldo = 0;
+      titulosCache.forEach(function (t) {
+        if (Number(t.saldo_aberto) > 0) saldo += Number(t.saldo_aberto) || 0;
+      });
+      if (saldo <= 0 && clienteModal.saldo) saldo = Number(clienteModal.saldo) || 0;
+      redirectToPdvCobranca({
         modo: 'cliente',
         pk: clienteModal.pk,
         nome: clienteModal.nome,
         codigo: clienteModal.codigo,
-        saldo: clienteModal.saldo,
+        saldo: saldo,
       });
     });
   }
