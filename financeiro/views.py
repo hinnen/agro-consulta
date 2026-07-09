@@ -13,11 +13,7 @@ from base.models import Empresa
 
 from financeiro.models import GraficoGastosAtalhoAgro
 from financeiro.services.indicadores_gerencial_pg import get_indicadores_gerencial_pg
-from produtos.mongo_financeiro_util import (
-    grafico_gastos_planos_despesa_mongo,
-    grafico_gastos_serie_mongo,
-)
-from produtos.views import _dashboard_periodo_from_request, obter_conexao_mongo
+from produtos.views import _dashboard_periodo_from_request
 
 
 @login_required(login_url="/admin/login/")
@@ -98,38 +94,26 @@ def _grafico_gastos_parse_date(raw: str | None) -> date | None:
 
 @login_required(login_url="/admin/login/")
 def grafico_gastos_view(request):
-    _, mongo_db = obter_conexao_mongo()
+    from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
+    from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
+
     hoje = date.today()
     padrao_ini = hoje - timedelta(days=90)
     por = "vencimento"
     valor = "saldo"
-    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
-    from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
-
-    if agro_financeiro_usa_postgres():
-        from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
-
-        st_planos = _grafico_gastos_status_para_lista_planos(por, valor)
-        raw = planos_distintos_pg(
-            despesa=True,
-            status=st_planos,
-            vencimento_de=padrao_ini,
-            vencimento_ate=hoje,
-            limit=500,
-        )
-        planos_conta = [
-            {"id": str(p.get("nome") or ""), "nome": str(p.get("nome") or "")}
-            for p in raw
-            if str(p.get("nome") or "").strip() and str(p.get("nome") or "").strip() != "(sem plano)"
-        ]
-    else:
-        planos_conta = grafico_gastos_planos_despesa_mongo(
-            mongo_db,
-            por=por,
-            valor=valor,
-            data_de=padrao_ini,
-            data_ate=hoje,
-        )
+    st_planos = _grafico_gastos_status_para_lista_planos(por, valor)
+    raw = planos_distintos_pg(
+        despesa=True,
+        status=st_planos,
+        vencimento_de=padrao_ini,
+        vencimento_ate=hoje,
+        limit=500,
+    )
+    planos_conta = [
+        {"id": str(p.get("nome") or ""), "nome": str(p.get("nome") or "")}
+        for p in raw
+        if str(p.get("nome") or "").strip() and str(p.get("nome") or "").strip() != "(sem plano)"
+    ]
     return render(
         request,
         "financeiro/grafico_gastos.html",
@@ -215,16 +199,6 @@ def api_dados_grafico_gastos(request):
         if data_ref > hoje:
             data_ref = hoje
 
-    _, mongo_db = obter_conexao_mongo()
-    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
-
-    usa_pg_fin = agro_financeiro_usa_postgres()
-    if not usa_pg_fin and mongo_db is None:
-        return JsonResponse(
-            {"erro": "Financeiro indisponível", "labels": [], "datasets": []},
-            status=503,
-        )
-
     common_kw = dict(
         data_de=data_ini,
         data_ate=data_fim,
@@ -236,36 +210,24 @@ def api_dados_grafico_gastos(request):
         valor=valor,
     )
 
-    if usa_pg_fin:
-        from produtos.lancamentos_financeiro_pg_analytics_util import grafico_gastos_serie_pg
+    from produtos.lancamentos_financeiro_pg_analytics_util import grafico_gastos_serie_pg
 
-        if modo_tempo == "comparar":
-            common = dict(
-                **common_kw,
-                individual=False,
-            )
-            real = grafico_gastos_serie_pg(**common, data_referencia=None)
-            if not real.get("ok"):
-                payload = real
-            else:
-                hist = grafico_gastos_serie_pg(**common, data_referencia=data_ref)
-                if not hist.get("ok"):
-                    payload = hist
-                else:
-                    payload = _grafico_gastos_comparar_payload_from_series(real, hist, data_ref)
-        else:
-            payload = grafico_gastos_serie_pg(
-                individual=individual,
-                data_referencia=data_ref if modo_tempo == "historico" else None,
-                **common_kw,
-            )
-    elif modo_tempo == "comparar":
-        payload = _grafico_gastos_comparar_payload(
-            mongo_db, data_ref=data_ref, **common_kw
+    if modo_tempo == "comparar":
+        common = dict(
+            **common_kw,
+            individual=False,
         )
+        real = grafico_gastos_serie_pg(**common, data_referencia=None)
+        if not real.get("ok"):
+            payload = real
+        else:
+            hist = grafico_gastos_serie_pg(**common, data_referencia=data_ref)
+            if not hist.get("ok"):
+                payload = hist
+            else:
+                payload = _grafico_gastos_comparar_payload_from_series(real, hist, data_ref)
     else:
-        payload = grafico_gastos_serie_mongo(
-            mongo_db,
+        payload = grafico_gastos_serie_pg(
             individual=individual,
             data_referencia=data_ref if modo_tempo == "historico" else None,
             **common_kw,
@@ -300,7 +262,7 @@ def _grafico_gastos_api_json(payload: dict) -> dict:
 
 
 def _grafico_gastos_comparar_payload_from_series(real: dict, hist: dict, data_ref) -> dict:
-    """Monta payload comparar a partir de duas séries já calculadas (Mongo ou PG)."""
+    """Monta payload comparar a partir de duas séries já calculadas."""
     labels = real.get("labels") or []
     bucket_keys = real.get("bucket_keys") or []
     n = len(labels)
@@ -346,40 +308,6 @@ def _grafico_gastos_comparar_payload_from_series(real: dict, hist: dict, data_re
             },
         ],
     }
-
-
-def _grafico_gastos_comparar_payload(
-    mongo_db,
-    *,
-    data_de,
-    data_ate,
-    agrupamento,
-    plano_ids,
-    planos_excluir_nomes,
-    todos_planos,
-    por,
-    valor,
-    data_ref,
-) -> dict:
-    """Duas séries agregadas: tempo real vs como era na data de referência."""
-    common = dict(
-        data_de=data_de,
-        data_ate=data_ate,
-        agrupamento=agrupamento,
-        plano_ids=plano_ids,
-        planos_excluir_nomes=planos_excluir_nomes,
-        todos_planos=todos_planos,
-        individual=False,
-        por=por,
-        valor=valor,
-    )
-    real = grafico_gastos_serie_mongo(mongo_db, **common, data_referencia=None)
-    if not real.get("ok"):
-        return real
-    hist = grafico_gastos_serie_mongo(mongo_db, **common, data_referencia=data_ref)
-    if not hist.get("ok"):
-        return hist
-    return _grafico_gastos_comparar_payload_from_series(real, hist, data_ref)
 
 
 def _grafico_gastos_atalhos_lista() -> list[dict]:

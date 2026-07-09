@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.58** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.60** · **loja v7.40**
+
+### UX — Financeiro gerencial 100 % SisVale (09/07 · v7.60)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Resumo** | `/financeiro/resumo-gerencial/` — saiu **Fonte Mongo/ERP**, **Filtro contas** e textos Postgres/Mongo; só data base + valor |
+| **API** | `/api/financeiro/resumo-operacional` e `gap-equilibrio` — só lançamentos SisVale (`fonte=postgres`) |
+| **Gráfico gastos** | `/financeiro/grafico-gastos/` — agregação só SisVale; ajuda sem Mongo |
+| **Menu** | Links Indicadores/Resumo sem «Postgres» no tooltip |
+| **Validar** | Ctrl+F5 teste → Resumo + Indicadores + Gráfico gastos — **Ctrl+F** não deve achar ERP/Mongo/DtoLancamento |
 
 ### UX — Indicadores só SisVale (09/07 · v7.58)
 

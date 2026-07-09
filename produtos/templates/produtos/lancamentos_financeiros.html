@@ -189,7 +189,7 @@
       <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
         <a href="{% url 'lancamentos_financeiros' %}" data-prefetch class="gm-lanc-nav-link" title="Escolher contas a pagar ou receber">Lançamentos</a>
         <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
-        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo (Postgres)">Indicadores</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo">Indicadores</a>
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
         <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="gm-lanc-nav-link gm-lanc-nav-accent cursor-pointer" title="Novo lançamento de saída (despesa)">Nova saída</button>
         {% if lancamentos_dre_ativo %}

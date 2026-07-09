@@ -38,7 +38,7 @@
       </div>
       <div class="rg-head__actions">
         <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
-        <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo (Postgres)">Indicadores</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo">Indicadores</a>
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
         {% include "produtos/_barra_estoque_global.html" %}
         {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}
@@ -91,35 +91,19 @@
         </button>
       </div>
       <div class="rg-toolbar__row rg-toolbar__row--secondary">
-        <div class="rg-field" style="width:11rem;min-width:9rem">
-          <span class="rg-field__label">Fonte dos dados</span>
-          <select id="f-fonte" title="Mongo = DtoLancamento (ERP). Postgres = Agro.">
-            <option value="mongo"{% if not financeiro_postgres %} selected{% endif %}>Mongo — DtoLancamento (ERP)</option>
-            <option value="postgres"{% if financeiro_postgres %} selected{% endif %}>Postgres — Agro</option>
-          </select>
-        </div>
-        <div class="rg-field" id="wrap-mongo-por" style="width:9.5rem">
-          <span class="rg-field__label">Data base</span>
+        <div class="rg-field" style="width:9.5rem">
+          <span class="rg-field__label">Data dos lançamentos</span>
           <select id="f-por">
             <option value="competencia">Competência</option>
             <option value="vencimento">Vencimento</option>
             <option value="pagamento">Pagamento</option>
           </select>
         </div>
-        <div class="rg-field" id="wrap-mongo-valor" style="width:9rem">
+        <div class="rg-field" style="width:10rem">
           <span class="rg-field__label">Valor</span>
           <select id="f-valor">
-            <option value="bruto">Bruto (título)</option>
-            <option value="realizado">Realizado</option>
-          </select>
-        </div>
-        <div class="rg-field" id="wrap-mongo-contas" style="flex:1;min-width:8rem">
-          <span class="rg-field__label">Filtro contas</span>
-          <select id="f-contas" title="Igual ao DRE simples">
-            <option value="">Padrão (.env)</option>
-            <option value="resultado">Resultado</option>
-            <option value="resultado_erp">Resultado ERP (PDF)</option>
-            <option value="todas">Todas</option>
+            <option value="bruto">Bruto do título</option>
+            <option value="realizado">Já pago / recebido</option>
           </select>
         </div>
       </div>
@@ -127,9 +111,9 @@
     </section>
 
     <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
-    <p id="msg-mongo-info" class="rg-msg rg-msg--info hidden"></p>
+    <p id="msg-info" class="rg-msg rg-msg--info hidden"></p>
     <p id="rg-msg-zero" class="rg-msg rg-msg--zero hidden">
-      Indicadores principais estão zerados neste período e filtros. Confira a fonte de dados, o nome da empresa (Mongo) e as datas — isso é esperado quando não há movimento.
+      Indicadores principais estão zerados neste período. Confira a empresa, as datas e se há lançamentos no SisVale.
     </p>
 
     {# Skeleton carregando #}
@@ -183,10 +167,9 @@
     <div class="rg-modal">
       <h3>Resumo gerencial</h3>
       <ul>
-        <li><strong>Fonte Mongo</strong> usa o <strong>DtoLancamento</strong> (ERP). O nome fantasia da empresa no Agro deve coincidir com o campo Empresa no Mongo.</li>
-        <li><strong>Fonte Postgres</strong> usa <strong>LancamentoFinanceiro</strong> no Agro.</li>
-        <li>Modo <strong>grupo</strong> no Postgres elimina internos com <code style="background:#f1f5f9;padding:0 4px;border-radius:4px;font-size:0.8em">eh_interno_grupo</code>. No Mongo, soma-se cada empresa (sem eliminação automática entre filiais).</li>
-        <li>Tendência “vs período anterior” aparecerá aqui quando a API enviar o campo (layout já reservado nos cards).</li>
+        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber).</li>
+        <li>O <strong>nome fantasia</strong> da empresa deve coincidir com o campo Empresa nos títulos.</li>
+        <li>Modo <strong>grupo</strong> soma as empresas vinculadas (sem eliminação automática entre filiais).</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
       <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>

@@ -78,7 +78,7 @@ def consolidar_empresa_pg(
     if not raw.get("ok"):
         return {
             "fonte": "postgres",
-            "erro": raw.get("erro") or "Falha ao ler Postgres",
+            "erro": raw.get("erro") or "Falha ao ler lançamentos",
             "linhas_dre": [],
         }
 
@@ -94,10 +94,6 @@ def consolidar_empresa_pg(
     core["ajustes_eliminacao"] = {
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
-        "observacao_mongo": (
-            "Dados do Postgres (TituloFinanceiroAgro). "
-            "Mapeamento por nome do plano de contas — igual ao DRE Mongo."
-        ),
     }
     return core
 
@@ -161,8 +157,8 @@ def consolidar_grupo_pg(
     consolidado["ajustes_eliminacao"] = {
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
-        "observacao_mongo": (
-            "Consolidado grupo = soma das linhas DRE PG de cada empresa. "
+        "observacao": (
+            "Consolidado do grupo = soma das empresas. "
             "Sem eliminação automática entre filiais."
         ),
     }

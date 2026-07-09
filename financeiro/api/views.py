@@ -17,18 +17,12 @@ from financeiro.api.serializers import (
 )
 from financeiro.services.consolidacao import ConsolidacaoFinanceiraService
 from financeiro.services.equilibrio import EquilibrioFinanceiroService
-from financeiro.services.resumo_operacional_mongo import (
-    consolidar_empresa_mongo,
-    consolidar_grupo_mongo,
-)
 
 _log_resumo = logging.getLogger("financeiro.resumo_diagnostico")
 
 
 def _resumo_usa_titulos_pg(params: dict) -> bool:
-    """Postgres via ``TituloFinanceiroAgro`` (Lançamentos PG), não ``LancamentoFinanceiro`` legado."""
-    if params.get("fonte") == "mongo":
-        return False
+    """Lançamentos SisVale (TituloFinanceiroAgro)."""
     from produtos.agro_fonte_config import agro_financeiro_usa_postgres
 
     return agro_financeiro_usa_postgres()
@@ -140,21 +134,17 @@ class ResumoOperacionalAPIView(_AuthAPIView):
         params = serializer.validated_data
         diagnostico = _resumo_diagnostico_ativo(request)
 
-        if params.get("fonte") == "mongo":
-            from produtos.views import obter_conexao_mongo
+        if _resumo_usa_titulos_pg(params):
+            from financeiro.services.resumo_operacional_pg import (
+                consolidar_empresa_pg,
+                consolidar_grupo_pg,
+            )
 
-            _, db = obter_conexao_mongo()
-            if db is None:
-                return Response(
-                    {"detail": "Mongo indisponível — necessário para ler DtoLancamento (ERP)."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
-            fc = (params.get("contas") or "").strip()
+            fc = (params.get("contas") or "").strip() or "resultado"
             if params["modo"] == "empresa":
-                data = consolidar_empresa_mongo(
-                    db,
+                data = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -167,8 +157,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                 get_object_or_404(
                     GrupoEmpresarial, pk=params["grupo_id"], ativo=True
                 )
-                data = consolidar_grupo_mongo(
-                    db,
+                pack = consolidar_grupo_pg(
                     grupo_id=params["grupo_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -177,7 +166,13 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     filtro_contas=fc,
                     diagnostico=diagnostico,
                 )
-            if data.get("erro"):
+                if pack.get("erro"):
+                    return Response(
+                        json_safe({"detail": pack["erro"], **pack}),
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = pack["consolidado"]
+            if isinstance(data, dict) and data.get("erro"):
                 return Response(
                     json_safe({"detail": data["erro"], **data}),
                     status=status.HTTP_400_BAD_REQUEST,
@@ -186,74 +181,27 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                 if isinstance(data, dict) and "linhas_dre" in data:
                     data = {k: v for k, v in data.items() if k != "linhas_dre"}
         else:
-            if _resumo_usa_titulos_pg(params):
-                from financeiro.services.resumo_operacional_pg import (
-                    consolidar_empresa_pg,
-                    consolidar_grupo_pg,
+            service = ConsolidacaoFinanceiraService()
+            if params["modo"] == "empresa":
+                data = service.consolidar_empresa(
+                    empresa_id=params["empresa_id"],
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
                 )
-
-                por = params.get("por") or "competencia"
-                valor = params.get("valor") or "bruto"
-                fc = (params.get("contas") or "").strip()
-                if params["modo"] == "empresa":
-                    data = consolidar_empresa_pg(
-                        empresa_id=params["empresa_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                        por=por,
-                        valor=valor,
-                        filtro_contas=fc,
-                        diagnostico=diagnostico,
-                    )
-                else:
-                    get_object_or_404(
-                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                    )
-                    pack = consolidar_grupo_pg(
-                        grupo_id=params["grupo_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                        por=por,
-                        valor=valor,
-                        filtro_contas=fc,
-                        diagnostico=diagnostico,
-                    )
-                    if pack.get("erro"):
-                        return Response(
-                            json_safe({"detail": pack["erro"], **pack}),
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                    data = pack["consolidado"]
-                if isinstance(data, dict) and data.get("erro"):
-                    return Response(
-                        json_safe({"detail": data["erro"], **data}),
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                if not params.get("incluir_linhas"):
-                    if isinstance(data, dict) and "linhas_dre" in data:
-                        data = {k: v for k, v in data.items() if k != "linhas_dre"}
             else:
-                service = ConsolidacaoFinanceiraService()
-                if params["modo"] == "empresa":
-                    data = service.consolidar_empresa(
-                        empresa_id=params["empresa_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                    )
-                else:
-                    get_object_or_404(
-                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                    )
-                    data = service.consolidar_grupo(
-                        grupo_id=params["grupo_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                    )
-                if not params.get("incluir_linhas"):
-                    if isinstance(data, dict) and "linhas_dre" in data:
-                        data = {k: v for k, v in data.items() if k != "linhas_dre"}
+                get_object_or_404(
+                    GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                )
+                data = service.consolidar_grupo(
+                    grupo_id=params["grupo_id"],
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                )
+            if not params.get("incluir_linhas"):
+                if isinstance(data, dict) and "linhas_dre" in data:
+                    data = {k: v for k, v in data.items() if k != "linhas_dre"}
 
-        if diagnostico and params.get("fonte") == "mongo":
+        if diagnostico:
             _log_resumo.info(
                 "[FINANCEIRO_RESUMO_DIAG] resumo_operacional_api_payload=%s",
                 json_safe(data) if isinstance(data, dict) else data,
@@ -270,21 +218,17 @@ class GapEquilibrioAPIView(_AuthAPIView):
 
         equilibrio_service = EquilibrioFinanceiroService()
 
-        if params.get("fonte") == "mongo":
-            from produtos.views import obter_conexao_mongo
+        if _resumo_usa_titulos_pg(params):
+            from financeiro.services.resumo_operacional_pg import (
+                consolidar_empresa_pg,
+                consolidar_grupo_pg,
+            )
 
-            _, db = obter_conexao_mongo()
-            if db is None:
-                return Response(
-                    {"detail": "Mongo indisponível."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
-            fc = (params.get("contas") or "").strip()
+            fc = (params.get("contas") or "").strip() or "resultado"
             if params["modo"] == "empresa":
-                pack = consolidar_empresa_mongo(
-                    db,
+                pack = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -303,8 +247,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                 get_object_or_404(
                     GrupoEmpresarial, pk=params["grupo_id"], ativo=True
                 )
-                grupo = consolidar_grupo_mongo(
-                    db,
+                grupo = consolidar_grupo_pg(
                     grupo_id=params["grupo_id"],
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
@@ -320,68 +263,23 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     )
                 resumo = grupo["consolidado"]
         else:
-            if _resumo_usa_titulos_pg(params):
-                from financeiro.services.resumo_operacional_pg import (
-                    consolidar_empresa_pg,
-                    consolidar_grupo_pg,
+            consolidacao_service = ConsolidacaoFinanceiraService()
+            if params["modo"] == "empresa":
+                resumo = consolidacao_service.consolidar_empresa(
+                    empresa_id=params["empresa_id"],
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
                 )
-
-                por = params.get("por") or "competencia"
-                valor = params.get("valor") or "bruto"
-                fc = (params.get("contas") or "").strip()
-                if params["modo"] == "empresa":
-                    pack = consolidar_empresa_pg(
-                        empresa_id=params["empresa_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                        por=por,
-                        valor=valor,
-                        filtro_contas=fc,
-                        diagnostico=diagnostico,
-                    )
-                    if pack.get("erro"):
-                        return Response(
-                            json_safe({"detail": pack["erro"]}),
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                    resumo = pack
-                else:
-                    get_object_or_404(
-                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                    )
-                    grupo = consolidar_grupo_pg(
-                        grupo_id=params["grupo_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                        por=por,
-                        valor=valor,
-                        filtro_contas=fc,
-                        diagnostico=diagnostico,
-                    )
-                    if grupo.get("erro"):
-                        return Response(
-                            json_safe({"detail": grupo["erro"]}),
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                    resumo = grupo["consolidado"]
             else:
-                consolidacao_service = ConsolidacaoFinanceiraService()
-                if params["modo"] == "empresa":
-                    resumo = consolidacao_service.consolidar_empresa(
-                        empresa_id=params["empresa_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                    )
-                else:
-                    get_object_or_404(
-                        GrupoEmpresarial, pk=params["grupo_id"], ativo=True
-                    )
-                    grupo = consolidacao_service.consolidar_grupo(
-                        grupo_id=params["grupo_id"],
-                        data_inicio=params["data_inicio"],
-                        data_fim=params["data_fim"],
-                    )
-                    resumo = grupo["consolidado"]
+                get_object_or_404(
+                    GrupoEmpresarial, pk=params["grupo_id"], ativo=True
+                )
+                grupo = consolidacao_service.consolidar_grupo(
+                    grupo_id=params["grupo_id"],
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                )
+                resumo = grupo["consolidado"]
 
         dias = params.get("dias_periodo") or 30
         data = equilibrio_service.calcular(
@@ -391,7 +289,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
             despesas_variaveis=resumo["despesas_variaveis"],
             dias_periodo=dias,
         )
-        if diagnostico and params.get("fonte") == "mongo":
+        if diagnostico:
             _log_resumo.info(
                 "[FINANCEIRO_RESUMO_DIAG] gap_equilibrio_payload=%s (insumo receita_op=%s)",
                 json_safe(data),

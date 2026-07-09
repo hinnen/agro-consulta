@@ -9,7 +9,7 @@ class ResumoOperacionalQuerySerializer(serializers.Serializer):
     modo = serializers.ChoiceField(choices=["empresa", "grupo"], required=True)
     dias_periodo = serializers.IntegerField(required=False, default=30, min_value=1)
     fonte = serializers.ChoiceField(
-        choices=["postgres", "mongo"],
+        choices=["postgres"],
         default="postgres",
         required=False,
     )
