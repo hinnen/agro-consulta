@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `despesa` opcional em `titulos_financeiro_montar_qs` · template **Despesas por categoria** com grupos fixa/variável |
 | **Validar** | Ctrl+F5 teste → Indicadores → KPIs + tabela categorias + gráfico |
 
+### 🐛 FIX — Indicadores 500 + despesas fixa/variável (09/07 · **v7.54–v7.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **500** | `titulos_financeiro_montar_qs` exigia `despesa`; DRE Indicadores lê receita+despesa → `TypeError` |
+| **Fix** | `despesa` opcional no PG · rótulos **despesas por categoria** · cards/tabela **fixa / variável / outras** + filtros |
+| **Validar** | Ctrl+F5 `/financeiro/dashboard-gerencial/` |
+
 ### ✅ Indicadores financeiros — tela nova PG (09/07 · Renan · **v7.53**)
 
 | Item | Detalhe |
