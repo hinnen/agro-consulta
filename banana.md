@@ -1154,7 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.60** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.61** · **loja v7.60**
+
+### FIX — Indicadores números vs BI (09/07 · v7.61)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Receita** | Card **Faturamento PDV** = mesmo dado do BI; **Receita financeira (DRE)** = lançamentos |
+| **Despesas** | Classificação fixa/variável/outra corrigida; hint «role a tabela» para ver todos os grupos |
+| **Loja** | Redeploy pendente para ver v7.61 na loja |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 

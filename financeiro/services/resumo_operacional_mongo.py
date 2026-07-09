@@ -137,10 +137,61 @@ def classificar_despesa_plano(nome_plano: str) -> str:
             "frete",
             "publicidade",
             "marketing",
+            "combustivel",
+            "combustível",
+            "gasolina",
+            "diesel",
+            "etanol",
         ),
     ):
         return NF.NATUREZA_DESPESA_VARIAVEL
-    return NF.NATUREZA_DESPESA_FIXA
+    if _match_any(
+        f,
+        (
+            "ativo",
+            "equipamento",
+            "imobilizado",
+            "investimento",
+            "veiculo",
+            "veículo",
+            "maquina",
+            "máquina",
+            "compra de ativo",
+        ),
+    ):
+        return NF.NATUREZA_DESPESA_FINANCEIRA
+    if f.startswith("10 ") or f.startswith("10-") or f.startswith("10—") or " — outros" in f:
+        return NF.NATUREZA_DESPESA_FINANCEIRA
+    if _match_any(
+        f,
+        (
+            "salario",
+            "salário",
+            "aluguel",
+            "energia",
+            "luz eletrica",
+            "luz elétrica",
+            "agua",
+            "água",
+            "esgoto",
+            "internet",
+            "telefone",
+            "contador",
+            "honorario",
+            "honorário",
+            "seguro",
+            "alimentacao",
+            "alimentação",
+            "pro-labore",
+            "pro labore",
+            "condominio",
+            "condomínio",
+            "imposto",
+            "taxa fixa",
+        ),
+    ):
+        return NF.NATUREZA_DESPESA_FIXA
+    return NF.NATUREZA_DESPESA_VARIAVEL
 
 
 def _buckets_vazios() -> dict[str, Decimal]:

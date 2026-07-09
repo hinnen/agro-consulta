@@ -167,6 +167,48 @@ def _benchmark(ref: dict, dias_periodo: int) -> dict:
     )
 
 
+def _faturamento_pdv_periodo(data_ini: date, data_fim: date) -> dict[str, Any]:
+    """Mesma série do BI (PDV + planilha histórica quando catálogo PG)."""
+    try:
+        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+        if agro_catalogo_usa_postgres():
+            from produtos.dashboard_vendas_historico_util import (
+                dashboard_vendas_serie_meta_merged,
+            )
+
+            s = dashboard_vendas_serie_meta_merged(data_ini, data_fim)
+        else:
+            from produtos.views import _dashboard_vendas_serie_pdv
+
+            s = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+    except Exception:
+        return {"ok": False, "total": Decimal("0"), "por_dia": {}, "fonte": "pdv"}
+    if not s.get("ok"):
+        return {"ok": False, "total": Decimal("0"), "por_dia": {}, "fonte": s.get("fonte") or "pdv"}
+    return {
+        "ok": True,
+        "total": _dec(s.get("total")),
+        "por_dia": s.get("por_dia") or {},
+        "fonte": s.get("fonte") or "pdv",
+    }
+
+
+def _serie_faturamento_7d(
+    data_fim: date,
+    por_dia: dict[str, Any],
+) -> tuple[list[str], list[float]]:
+    start = max(data_fim - timedelta(days=6), data_fim.replace(day=1))
+    labels: list[str] = []
+    vals: list[float] = []
+    d = start
+    while d <= data_fim:
+        labels.append(d.strftime("%d/%m"))
+        vals.append(float(por_dia.get(d.isoformat()) or 0))
+        d += timedelta(days=1)
+    return labels, vals
+
+
 def _serie_receita_7d(
     empresa_id: int,
     data_fim: date,
@@ -328,9 +370,14 @@ def get_indicadores_gerencial_pg(
     media_60 = ref60["receita_op"] / Decimal(str(REF_DIAS_COMPARACAO))
     previsao_30 = media_60 * Decimal("30")
     pe_30 = (atual["pe_diario"] or Decimal("0")) * Decimal("30")
-    labels, serie = _serie_receita_7d(
-        empresa_id, data_fim, por=por, valor=valor, filtro_contas=fc
-    )
+
+    fat_pdv = _faturamento_pdv_periodo(data_inicio, data_fim)
+    if fat_pdv.get("ok"):
+        labels, serie = _serie_faturamento_7d(data_fim, fat_pdv.get("por_dia") or {})
+    else:
+        labels, serie = _serie_receita_7d(
+            empresa_id, data_fim, por=por, valor=valor, filtro_contas=fc
+        )
 
     variacao = gastos_variacao_pg(
         empresa_id=empresa_id,
@@ -344,6 +391,7 @@ def get_indicadores_gerencial_pg(
     return {
         "atual": atual,
         "referencia": referencia,
+        "faturamento_pdv": fat_pdv,
         "extras": {
             "previsao_30": previsao_30,
             "tendencia": _tendencia_linear(serie),
