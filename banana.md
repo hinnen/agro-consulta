@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.54** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.56** · **loja v7.40**
 
 ### 🐛 FIX — Indicadores financeiros 500 (09/07 · **v7.54**)
 
