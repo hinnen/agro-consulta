@@ -1,0 +1,591 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | Indicadores financeiros{% endblock %}
+{% block admin_header %}{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800{% endblock %}
+{% block admin_shell_class %}min-h-[100dvh] bg-slate-100 flex flex-col{% endblock %}
+{% block admin_section_class %}w-full max-w-[96rem] mx-auto flex-1 px-3 sm:px-5 lg:px-8 py-3 pb-10{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<style>
+  :root {
+    --ig-emerald: #059669;
+    --ig-emerald-dark: #047857;
+    --ig-orange: #ea580c;
+    --ig-border: #e2e8f0;
+    --ig-card: #ffffff;
+    --ig-radius: 0.875rem;
+    --ig-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+  }
+  .ig-card {
+    border-radius: var(--ig-radius);
+    border: 1px solid var(--ig-border);
+    background: var(--ig-card);
+    box-shadow: var(--ig-shadow);
+  }
+  .ig-muted {
+    color: #64748b;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .ig-kpi {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .ig-up { color: #047857; }
+  .ig-down { color: #b91c1c; }
+  .ig-period-active {
+    background: linear-gradient(135deg, var(--ig-emerald) 0%, var(--ig-emerald-dark) 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+    border-color: transparent;
+  }
+  .ig-period-btn {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+    min-height: 2.5rem;
+    padding: 0 0.65rem;
+    border-radius: 0.55rem;
+    font-size: 0.625rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .ig-period-btn:hover { border-color: #f59e0b; background: #fff7ed; }
+  .ig-chip {
+    min-height: 2.25rem;
+    padding: 0 0.85rem;
+    border-radius: 999px;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+    color: #475569;
+  }
+  .ig-chip.is-active {
+    border-color: var(--ig-emerald);
+    background: var(--ig-emerald);
+    color: #fff;
+  }
+  .ig-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0 0.85rem;
+    border-radius: 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 2px solid var(--ig-border);
+    background: #fff;
+    color: #334155;
+  }
+  .ig-btn:hover { border-color: #f59e0b; color: #92400e; }
+  .ig-btn-primary {
+    border-color: var(--ig-emerald-dark);
+    background: var(--ig-emerald);
+    color: #fff;
+  }
+  .ig-btn-primary:hover { background: var(--ig-emerald-dark); color: #fff; }
+  .ig-trend-up { color: #b91c1c; font-weight: 900; }
+  .ig-trend-down { color: #047857; font-weight: 900; }
+  .ig-trend-flat { color: #64748b; font-weight: 800; }
+  .ig-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ig-table th, .ig-table td {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+  .ig-table tbody tr { cursor: pointer; }
+  .ig-table tbody tr:hover { background: #f0fdf4; }
+  .ig-cp-popup {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center; padding: 0.75rem;
+  }
+  .ig-cp-popup[hidden] { display: none !important; }
+  .ig-cp-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.55); }
+  .ig-cp-panel {
+    position: relative; z-index: 1;
+    width: min(92vw, 96rem); height: min(85vh, calc(100dvh - 1.5rem));
+    background: #fff; border-radius: var(--ig-radius);
+    border: 2px solid var(--ig-border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .ig-cp-iframe { flex: 1; border: 0; width: 100%; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-4">
+  <header class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 m-0">
+        <span class="text-emerald-600">Indicadores</span>
+        <span class="text-slate-400 font-bold mx-1">·</span>
+        <span class="text-amber-950">Financeiro gerencial</span>
+      </h1>
+      <p class="text-xs font-semibold text-slate-600 mt-1 m-0">
+        Postgres · mesma base do Resumo gerencial e Contas a pagar
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'resumo_financeiro_gerencial' %}" class="ig-btn" data-prefetch>Resumo DRE</a>
+      <a href="{% url 'grafico_gastos' %}" class="ig-btn" data-prefetch>Gráfico gastos</a>
+      <a href="{% url 'lancamentos_financeiros' %}" class="ig-btn" data-prefetch>Lançamentos</a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="ig-btn" %}
+    </div>
+  </header>
+
+  <form method="get" id="form-indicadores" class="ig-card p-3 sm:p-4 space-y-3">
+    <input type="hidden" name="periodo" id="ig-periodo" value="{{ periodo_key|default:'mes_ate_hoje' }}" />
+    <input type="hidden" name="data_ini" id="ig-data-ini" value="{% if periodo_key == 'personalizado' %}{{ periodo_cal_ini }}{% endif %}" />
+    <input type="hidden" name="data_fim" id="ig-data-fim" value="{% if periodo_key == 'personalizado' %}{{ periodo_cal_fim }}{% endif %}" />
+    <input type="hidden" name="var_modo" id="ig-var-modo" value="{{ filtro_dashboard.var_modo|default:'mes' }}" />
+    <input type="hidden" name="var_por" id="ig-var-por" value="{{ filtro_dashboard.var_por|default:'competencia' }}" />
+
+    <div class="flex flex-wrap justify-center gap-1 bg-slate-800 p-1 rounded-xl">
+      <button type="button" class="ig-period-btn {% if periodo_key == 'mes_ate_hoje' %}ig-period-active{% endif %}" data-ig-period="mes_ate_hoje">Mês até hoje</button>
+      <button type="button" class="ig-period-btn {% if periodo_key == 'mes_atual' %}ig-period-active{% endif %}" data-ig-period="mes_atual">Mês atual</button>
+      <button type="button" class="ig-period-btn {% if periodo_key == 'mes_anterior' %}ig-period-active{% endif %}" data-ig-period="mes_anterior">Mês ant.</button>
+      <button type="button" class="ig-period-btn {% if periodo_key == 'semana_atual' %}ig-period-active{% endif %}" data-ig-period="semana_atual">Semana</button>
+      <button type="button" class="ig-period-btn {% if periodo_key == 'ano' %}ig-period-active{% endif %}" data-ig-period="ano">Ano</button>
+      <button type="button" id="btn-ig-cal" class="ig-period-btn {% if periodo_key == 'personalizado' %}ig-period-active{% endif %}" data-ig-period="personalizado">Datas</button>
+    </div>
+
+    <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-[12rem]">
+        <label for="empresa" class="ig-muted block mb-1">Empresa</label>
+        <select name="empresa" id="empresa" class="w-full min-h-[2.75rem] rounded-lg border border-slate-300 px-3 font-semibold text-slate-900 bg-white">
+          {% for e in empresas %}
+          <option value="{{ e.id }}" {% if e.id == empresa_id %}selected{% endif %}>{{ e.nome_fantasia }}</option>
+          {% empty %}
+          <option value="">Sem empresa ativa</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="w-full sm:w-40">
+        <label for="por" class="ig-muted block mb-1">Data base DRE</label>
+        <select name="por" id="por" class="w-full min-h-[2.75rem] rounded-lg border border-slate-300 px-3 font-semibold bg-white">
+          <option value="competencia" {% if filtro_dashboard.por == 'competencia' %}selected{% endif %}>Competência</option>
+          <option value="vencimento" {% if filtro_dashboard.por == 'vencimento' %}selected{% endif %}>Vencimento</option>
+          <option value="pagamento" {% if filtro_dashboard.por == 'pagamento' %}selected{% endif %}>Pagamento</option>
+        </select>
+      </div>
+      <div class="w-full sm:w-36">
+        <label for="valor" class="ig-muted block mb-1">Valor DRE</label>
+        <select name="valor" id="valor" class="w-full min-h-[2.75rem] rounded-lg border border-slate-300 px-3 font-semibold bg-white">
+          <option value="bruto" {% if filtro_dashboard.valor == 'bruto' %}selected{% endif %}>Bruto</option>
+          <option value="realizado" {% if filtro_dashboard.valor == 'realizado' %}selected{% endif %}>Realizado</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[10rem]">
+        <label for="contas" class="ig-muted block mb-1">Filtro contas</label>
+        <select name="contas" id="contas" class="w-full min-h-[2.75rem] rounded-lg border border-slate-300 px-3 font-semibold bg-white">
+          <option value="" {% if not filtro_dashboard.contas %}selected{% endif %}>Padrão (.env)</option>
+          <option value="resultado" {% if filtro_dashboard.contas == 'resultado' %}selected{% endif %}>Resultado</option>
+          <option value="resultado_erp" {% if filtro_dashboard.contas == 'resultado_erp' %}selected{% endif %}>Resultado ERP</option>
+          <option value="todas" {% if filtro_dashboard.contas == 'todas' %}selected{% endif %}>Todas</option>
+        </select>
+      </div>
+      <button type="submit" class="ig-btn ig-btn-primary shrink-0">Aplicar</button>
+    </div>
+  </form>
+
+  <div id="ig-cal-modal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/70">
+    <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-2xl max-w-md w-full p-5">
+      <h2 class="text-sm font-black uppercase text-slate-900 mb-3">Período personalizado</h2>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <label class="block text-[10px] font-black uppercase text-slate-500">De
+          <input type="date" id="ig-cal-ini" value="{{ periodo_cal_ini }}" class="mt-1 w-full min-h-[2.75rem] rounded-lg border-2 border-slate-200 px-2 font-bold" />
+        </label>
+        <label class="block text-[10px] font-black uppercase text-slate-500">Até
+          <input type="date" id="ig-cal-fim" value="{{ periodo_cal_fim }}" class="mt-1 w-full min-h-[2.75rem] rounded-lg border-2 border-slate-200 px-2 font-bold" />
+        </label>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="ig-cal-cancel" class="ig-btn">Cancelar</button>
+        <button type="button" id="ig-cal-ok" class="ig-btn ig-btn-primary">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  {% if not empresa_id %}
+  <div class="ig-card p-6 text-center text-slate-600 font-semibold">Cadastre uma empresa ativa.</div>
+  {% elif dados %}
+
+  {% if dados.meta.avisos %}
+  <div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950 space-y-1">
+    {% for av in dados.meta.avisos %}<p class="m-0">{{ av }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  <p class="text-xs font-semibold text-slate-600 m-0">
+    <strong class="text-slate-900">{{ periodo_label }}</strong>
+    · {{ dados.data_inicio_atual|date:"d/m/Y" }} — {{ dados.data_fim_atual|date:"d/m/Y" }}
+    · Ref. média {{ dados.meta.ref_dias }}d projetada para {{ dados.dias_periodo }} dia(s)
+    · {{ dados.meta.por }} · {{ dados.meta.valor }}
+  </p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+    {% with a=dados.atual p=dados.referencia %}
+    <div class="ig-card p-4 border-l-4 border-l-blue-500">
+      <p class="ig-muted m-0">Receita operacional</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {{ a.receita_op|floatformat:2 }}</p>
+      <p class="text-xs font-bold mt-1 m-0 {% if a.receita_op >= p.receita_op %}ig-up{% else %}ig-down{% endif %}">vs média 60d R$ {{ p.receita_op|floatformat:2 }}</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-emerald-500">
+      <p class="ig-muted m-0">Margem bruta / Markup</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.margem_bruta_pct|floatformat:1 }}% <span class="text-slate-400 text-base">/</span> {{ a.markup_pct|floatformat:1 }}%</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-amber-500">
+      <p class="ig-muted m-0">Margem contribuição</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.margem_contrib_pct|floatformat:1 }}%</p>
+      <p class="text-sm font-bold text-slate-600 m-0">R$ {{ a.margem_contrib|floatformat:2 }}</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-violet-500">
+      <p class="ig-muted m-0">EBITDA / Líquido</p>
+      <p class="text-xl font-black ig-kpi m-0 mt-1">R$ {{ a.ebitda|floatformat:0 }} <span class="text-slate-400">|</span> R$ {{ a.resultado_liquido|floatformat:0 }}</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-orange-500">
+      <p class="ig-muted m-0">Ponto equilíbrio</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {{ a.ponto_equilibrio|floatformat:2 }}</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-teal-500">
+      <p class="ig-muted m-0">Índice segurança</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.indice_seguranca_pct|floatformat:1 }}%</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-rose-500">
+      <p class="ig-muted m-0">Geração caixa</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1 {% if a.geracao_caixa >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">R$ {{ a.geracao_caixa|floatformat:2 }}</p>
+      <p class="text-[11px] text-slate-500 font-semibold m-0">pagamento · realizado</p>
+    </div>
+    <div class="ig-card p-4 border-l-4 border-l-slate-500">
+      <p class="ig-muted m-0">Previsão 30d (média 60d)</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {{ dados.extras.previsao_30|floatformat:2 }}</p>
+      <p class="text-xs font-bold text-slate-600 m-0">Tendência: {{ dados.extras.tendencia }}</p>
+    </div>
+    {% endwith %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 ig-card p-4">
+      <h2 class="text-sm font-black uppercase text-slate-900 m-0">Receita operacional — últimos dias</h2>
+      <div class="relative h-52 mt-3">
+        <canvas id="chartReceita" aria-label="Receita diária"></canvas>
+      </div>
+    </div>
+    <div class="ig-card p-4 bg-slate-900 text-white border-slate-800">
+      <h2 class="text-sm font-black uppercase text-emerald-300 m-0">Alertas</h2>
+      <div class="mt-2 space-y-2">
+        {% for d in dados.extras.dicas %}
+        <div class="text-sm font-semibold rounded-lg px-3 py-2 border {% if d.nivel == 'danger' %}border-rose-400/40 bg-rose-950/40{% else %}border-amber-400/40 bg-amber-950/30{% endif %}">
+          <strong>{{ d.titulo }}:</strong> {{ d.msg }}
+        </div>
+        {% empty %}
+        <p class="text-sm text-emerald-200 m-0">Nenhum alerta automático neste período.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if dados.variacao.ok %}
+  <div class="ig-card p-4 space-y-3">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <h2 class="text-base font-black uppercase text-slate-900 m-0">Variação de gastos por plano</h2>
+        <p class="text-xs font-semibold text-slate-500 m-0 mt-1">
+          {{ dados.variacao.total_planos }} plano(s) · último período R$ {{ dados.variacao.total_ultimo_periodo|floatformat:2 }}
+          · clique na linha para abrir CP
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="ig-muted">Comparar</span>
+        <button type="button" class="ig-chip {% if filtro_dashboard.var_modo == 'mes' %}is-active{% endif %}" data-var-modo="mes">3 meses</button>
+        <button type="button" class="ig-chip {% if filtro_dashboard.var_modo == 'semana' %}is-active{% endif %}" data-var-modo="semana">3 semanas</button>
+        <span class="ig-muted ml-2">Data</span>
+        <button type="button" class="ig-chip {% if filtro_dashboard.var_por == 'competencia' %}is-active{% endif %}" data-var-por="competencia">Competência</button>
+        <button type="button" class="ig-chip {% if filtro_dashboard.var_por == 'vencimento' %}is-active{% endif %}" data-var-por="vencimento">Vencimento</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="ig-table-wrap max-h-[28rem] overflow-y-auto border border-slate-200 rounded-lg">
+        <table class="ig-table min-w-full text-left" id="tabela-variacao">
+          <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-xs font-black uppercase text-slate-500">
+            <tr>
+              <th>Plano</th>
+              {% for b in dados.variacao.buckets %}
+              <th class="text-right">{{ b.label }}</th>
+              {% endfor %}
+              <th class="text-right">Δ R$</th>
+              <th class="text-right">Δ %</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody class="font-semibold text-slate-800">
+            {% for row in dados.variacao.linhas %}
+            <tr data-plano="{{ row.plano|escape }}" data-bucket-ate="{{ dados.variacao.buckets|last }}">
+              <td class="max-w-[14rem] truncate" title="{{ row.plano }}">{{ row.plano }}</td>
+              {% for v in row.valores %}
+              <td class="text-right tabular-nums">R$ {{ v|floatformat:2 }}</td>
+              {% endfor %}
+              <td class="text-right tabular-nums {% if row.delta_abs > 0 %}ig-trend-up{% elif row.delta_abs < 0 %}ig-trend-down{% endif %}">
+                {% if row.delta_abs > 0 %}+{% endif %}{{ row.delta_abs|floatformat:2 }}
+              </td>
+              <td class="text-right tabular-nums">
+                {% if row.delta_pct != None %}{{ row.delta_pct|floatformat:1 }}%{% else %}—{% endif %}
+              </td>
+              <td class="text-center">
+                {% if row.tendencia == 'up' %}<span class="ig-trend-up" title="Subiu">↑</span>
+                {% elif row.tendencia == 'down' %}<span class="ig-trend-down" title="Desceu">↓</span>
+                {% else %}<span class="ig-trend-flat">→</span>{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="py-6 text-center text-slate-500">Sem despesas nos períodos.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <p class="ig-muted m-0 mb-2">Top 10 — barras agrupadas</p>
+        <div class="relative h-72 sm:h-80">
+          <canvas id="chartVariacao" aria-label="Variação gastos top 10"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <div class="ig-card p-4">
+      <h2 class="text-sm font-black uppercase text-slate-900 m-0 mb-3">DRE gerencial</h2>
+      <div class="ig-table-wrap">
+        <table class="min-w-full text-sm font-semibold">
+          <thead><tr class="text-xs uppercase text-slate-500 border-b"><th class="py-2">Linha</th><th class="text-right py-2">Atual</th><th class="text-right py-2">Ref. 60d</th></tr></thead>
+          <tbody class="text-slate-800">
+            {% with a=dados.atual p=dados.referencia %}
+            <tr class="border-b border-slate-100"><td class="py-2">Receita operacional</td><td class="text-right">R$ {{ a.receita_op|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.receita_op|floatformat:2 }}</td></tr>
+            <tr class="border-b border-slate-100"><td class="py-2">(−) CMV</td><td class="text-right">R$ {{ a.cmv|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.cmv|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-emerald-50/50"><td class="py-2 font-black">Lucro bruto</td><td class="text-right font-black">R$ {{ a.lucro_bruto|floatformat:2 }}</td><td class="text-right">R$ {{ p.lucro_bruto|floatformat:2 }}</td></tr>
+            <tr class="border-b"><td class="py-2">(−) Desp. variáveis</td><td class="text-right">R$ {{ a.dv|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.dv|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-sky-50/50"><td class="py-2 font-black">Margem contrib.</td><td class="text-right font-black">R$ {{ a.margem_contrib|floatformat:2 }}</td><td class="text-right">R$ {{ p.margem_contrib|floatformat:2 }}</td></tr>
+            <tr class="border-b"><td class="py-2">(−) Desp. fixas</td><td class="text-right">R$ {{ a.df|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.df|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-indigo-50/50"><td class="py-2 font-black">EBITDA</td><td class="text-right font-black">R$ {{ a.ebitda|floatformat:2 }}</td><td class="text-right">R$ {{ p.ebitda|floatformat:2 }}</td></tr>
+            <tr class="border-b"><td class="py-2">(−) Desp. financeiras</td><td class="text-right">R$ {{ a.desp_fin|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.desp_fin|floatformat:2 }}</td></tr>
+            <tr class="bg-emerald-100/50"><td class="py-2 font-black">Resultado líquido</td><td class="text-right font-black">R$ {{ a.resultado_liquido|floatformat:2 }}</td><td class="text-right font-black">R$ {{ p.resultado_liquido|floatformat:2 }}</td></tr>
+            {% endwith %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ig-card p-4">
+      <h2 class="text-sm font-black uppercase text-slate-900 m-0 mb-3">Fluxo de caixa <span class="text-slate-500 font-bold normal-case text-xs">(pagamento · realizado)</span></h2>
+      <table class="min-w-full text-sm font-semibold text-slate-800">
+        {% with a=dados.atual p=dados.referencia %}
+        <tr class="border-b"><td class="py-2">Entradas</td><td class="text-right text-emerald-800">R$ {{ a.entradas_caixa|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.entradas_caixa|floatformat:2 }}</td></tr>
+        <tr class="border-b"><td class="py-2">Saídas</td><td class="text-right text-rose-800">R$ {{ a.saidas_caixa|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.saidas_caixa|floatformat:2 }}</td></tr>
+        <tr class="bg-slate-50"><td class="py-2 font-black">Saldo</td><td class="text-right font-black">R$ {{ a.geracao_caixa|floatformat:2 }}</td><td class="text-right">R$ {{ p.geracao_caixa|floatformat:2 }}</td></tr>
+        {% endwith %}
+      </table>
+    </div>
+  </div>
+
+  <details class="ig-card p-4">
+    <summary class="cursor-pointer text-sm font-black uppercase text-slate-700">? Como ler este painel</summary>
+    <div class="mt-3 text-sm text-slate-700 font-semibold space-y-2 border-t pt-3">
+      <p>KPIs e DRE usam <strong>competência + bruto</strong> por padrão (igual Resumo gerencial). Caixa usa <strong>pagamento + realizado</strong>.</p>
+      <p>A coluna <strong>Ref. 60d</strong> projeta a média dos últimos 60 dias para o mesmo número de dias do período escolhido.</p>
+      <p><strong>Variação por plano</strong> compara os últimos 3 meses ou 3 semanas; Δ compara o período mais recente com o anterior.</p>
+    </div>
+  </details>
+
+  {% endif %}
+</div>
+
+<div id="ig-cp-popup" class="ig-cp-popup" hidden>
+  <div class="ig-cp-backdrop" id="ig-cp-backdrop"></div>
+  <div class="ig-cp-panel">
+    <div class="flex items-center gap-2 p-2 border-b bg-emerald-50 shrink-0">
+      <strong id="ig-cp-titulo" class="flex-1 text-sm font-black truncate">Contas a pagar</strong>
+      <a href="#" id="ig-cp-nova-aba" class="ig-btn" target="_blank" rel="noopener">Nova aba</a>
+      <button type="button" id="ig-cp-fechar" class="ig-btn ig-btn-primary">Fechar</button>
+    </div>
+    <iframe id="ig-cp-iframe" class="ig-cp-iframe" title="CP detalhe"></iframe>
+  </div>
+</div>
+
+{% if dados %}
+{{ dados.extras.grafico_labels|json_script:"ig-receita-labels" }}
+{{ dados.extras.grafico_data|json_script:"ig-receita-data" }}
+{% if dados and dados.variacao.ok %}
+{{ dados.variacao.chart|json_script:"ig-variacao-chart" }}
+{{ dados.variacao.buckets|json_script:"ig-variacao-buckets" }}
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('form-indicadores');
+  function submitPeriod(key, ini, fim) {
+    document.getElementById('ig-periodo').value = key || 'mes_ate_hoje';
+    document.getElementById('ig-data-ini').value = ini || '';
+    document.getElementById('ig-data-fim').value = fim || '';
+    form.submit();
+  }
+  document.querySelectorAll('[data-ig-period]').forEach(function (btn) {
+    if (btn.id === 'btn-ig-cal') return;
+    btn.addEventListener('click', function () {
+      const k = btn.getAttribute('data-ig-period');
+      if (k !== 'personalizado') submitPeriod(k, '', '');
+    });
+  });
+  const modal = document.getElementById('ig-cal-modal');
+  document.getElementById('btn-ig-cal')?.addEventListener('click', function () { modal.classList.remove('hidden'); });
+  document.getElementById('ig-cal-cancel')?.addEventListener('click', function () { modal.classList.add('hidden'); });
+  document.getElementById('ig-cal-ok')?.addEventListener('click', function () {
+    const i = document.getElementById('ig-cal-ini').value;
+    const f = document.getElementById('ig-cal-fim').value;
+    if (!i || !f) { alert('Informe De e Até.'); return; }
+    submitPeriod('personalizado', i, f);
+  });
+
+  document.querySelectorAll('[data-var-modo]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('ig-var-modo').value = btn.getAttribute('data-var-modo');
+      form.submit();
+    });
+  });
+  document.querySelectorAll('[data-var-por]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('ig-var-por').value = btn.getAttribute('data-var-por');
+      form.submit();
+    });
+  });
+
+  if (typeof Chart !== 'undefined') {
+    try {
+      const rl = JSON.parse(document.getElementById('ig-receita-labels').textContent);
+      const rd = JSON.parse(document.getElementById('ig-receita-data').textContent);
+      const cr = document.getElementById('chartReceita');
+      if (cr) {
+        new Chart(cr, {
+          type: 'line',
+          data: {
+            labels: rl,
+            datasets: [{
+              label: 'Receita R$',
+              data: rd,
+              borderColor: '#059669',
+              backgroundColor: 'rgba(5,150,105,0.12)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+      const vcEl = document.getElementById('ig-variacao-chart');
+      const cv = document.getElementById('chartVariacao');
+      if (vcEl && cv) {
+        const vc = JSON.parse(vcEl.textContent);
+        new Chart(cv, {
+          type: 'bar',
+          data: {
+            labels: vc.labels || [],
+            datasets: (vc.datasets || []).map(function (ds) {
+              return Object.assign({}, ds, { borderWidth: 0 });
+            })
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { font: { size: 11, weight: '700' } } } },
+            scales: {
+              x: { ticks: { font: { size: 10, weight: '600' }, maxRotation: 45 } },
+              y: { beginAtZero: true, ticks: { callback: function (v) { return 'R$ ' + v.toLocaleString('pt-BR'); } } }
+            }
+          }
+        });
+      }
+    } catch (e) { /* charts opcionais */ }
+  }
+
+  const CP_URL = "{{ cp_url|escapejs }}";
+  const buckets = (function () {
+    try { return JSON.parse(document.getElementById('ig-variacao-buckets').textContent); }
+    catch (e) { return []; }
+  })();
+  const varPor = "{{ filtro_dashboard.var_por|default:'competencia'|escapejs }}";
+
+  function cpStatus() {
+    return varPor === 'vencimento' ? 'abertos' : 'todos';
+  }
+
+  function montarUrlCp(plano, bucketIdx) {
+    const b = buckets[bucketIdx != null ? bucketIdx : buckets.length - 1];
+    if (!b) return null;
+    const p = new URLSearchParams();
+    p.set('embed', 'grafico');
+    p.set('ref', varPor);
+    p.set('status', cpStatus());
+    if (varPor === 'competencia') {
+      p.set('comp_de', b.de);
+      p.set('comp_ate', b.ate);
+    } else if (varPor === 'pagamento') {
+      p.set('pag_de', b.de);
+      p.set('pag_ate', b.ate);
+    } else {
+      p.set('venc_de', b.de);
+      p.set('venc_ate', b.ate);
+    }
+    if (plano) p.set('q', plano);
+    return CP_URL + '?' + p.toString();
+  }
+
+  const popup = document.getElementById('ig-cp-popup');
+  const iframe = document.getElementById('ig-cp-iframe');
+  function abrirCp(url, titulo) {
+    if (!popup || !iframe) return;
+    document.getElementById('ig-cp-titulo').textContent = titulo || 'Contas a pagar';
+    const na = document.getElementById('ig-cp-nova-aba');
+    if (na) na.href = url;
+    iframe.src = url;
+    popup.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharCp() {
+    if (!popup) return;
+    popup.hidden = true;
+    document.body.style.overflow = '';
+    if (iframe) iframe.src = 'about:blank';
+  }
+  document.getElementById('ig-cp-fechar')?.addEventListener('click', fecharCp);
+  document.getElementById('ig-cp-backdrop')?.addEventListener('click', fecharCp);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && popup && !popup.hidden) fecharCp();
+  });
+
+  document.querySelectorAll('#tabela-variacao tbody tr[data-plano]').forEach(function (tr) {
+    tr.addEventListener('click', function () {
+      const plano = tr.getAttribute('data-plano');
+      const url = montarUrlCp(plano, buckets.length - 1);
+      if (url) abrirCp(url, 'CP · ' + plano);
+    });
+  });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -11,8 +11,8 @@ from django.views.decorators.http import require_http_methods
 
 from base.models import Empresa
 
-from financeiro.services.dashboard_financeiro import get_dashboard_data
 from financeiro.models import GraficoGastosAtalhoAgro
+from financeiro.services.indicadores_gerencial_pg import get_indicadores_gerencial_pg
 from produtos.mongo_financeiro_util import (
     grafico_gastos_planos_despesa_mongo,
     grafico_gastos_serie_mongo,
@@ -22,6 +22,7 @@ from produtos.views import _dashboard_periodo_from_request, obter_conexao_mongo
 
 @login_required(login_url="/admin/login/")
 def dashboard_financeiro_completo(request):
+    """Indicadores financeiros gerenciais — Postgres (TituloFinanceiroAgro)."""
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
     default_eid = empresas.values_list("pk", flat=True).first()
     empresa_id = int(request.GET.get("empresa") or default_eid or 0)
@@ -32,52 +33,50 @@ def dashboard_financeiro_completo(request):
         request
     )
 
-    fonte = (request.GET.get("fonte") or "mongo").strip().lower()
     por = (request.GET.get("por") or "competencia").strip().lower()
     valor = (request.GET.get("valor") or "bruto").strip().lower()
     filtro_contas = (request.GET.get("contas") or "").strip()
-
-    _, mongo_db = obter_conexao_mongo()
+    var_modo = (request.GET.get("var_modo") or "mes").strip().lower()
+    if var_modo not in ("mes", "semana"):
+        var_modo = "mes"
+    var_por = (request.GET.get("var_por") or "competencia").strip().lower()
+    if var_por not in ("competencia", "vencimento", "pagamento"):
+        var_por = "competencia"
 
     dados = (
-        get_dashboard_data(
+        get_indicadores_gerencial_pg(
             empresa_id,
             data_ini,
             data_fim,
-            fonte=fonte,
             por=por,
             valor=valor,
             filtro_contas=filtro_contas,
-            mongo_db=mongo_db,
+            var_modo=var_modo,
+            var_por=var_por,
         )
         if empresa_id
         else None
     )
-    chart_bootstrap = None
-    if dados:
-        chart_bootstrap = {
-            "labels": dados["extras"]["grafico_labels"],
-            "data": dados["extras"]["grafico_data"],
-        }
     filtro_dashboard = {
-        "fonte": fonte,
         "por": por,
         "valor": valor,
         "contas": filtro_contas,
+        "var_modo": var_modo,
+        "var_por": var_por,
     }
     return render(
         request,
-        "financeiro/dashboard_completo.html",
+        "financeiro/indicadores_gerencial.html",
         {
             "empresas": empresas,
             "empresa_id": empresa_id,
             "dados": dados,
-            "chart_bootstrap": chart_bootstrap,
             "filtro_dashboard": filtro_dashboard,
             "periodo_key": periodo_key,
             "periodo_label": periodo_label,
             "periodo_cal_ini": data_ini.isoformat(),
             "periodo_cal_fim": data_fim.isoformat(),
+            "cp_url": reverse("lancamentos_contas_pagar"),
         },
     )
 
