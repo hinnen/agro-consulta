@@ -303,6 +303,7 @@ def get_indicadores_gerencial_pg(
     filtro_contas: str = "",
     var_modo: str = "mes",
     var_por: str = "competencia",
+    var_grupo: str = "todas",
 ) -> dict[str, Any]:
     hoje = timezone.localdate()
     dias_periodo = max((data_fim - data_inicio).days + 1, 1)
@@ -335,6 +336,7 @@ def get_indicadores_gerencial_pg(
         empresa_id=empresa_id,
         modo=var_modo,
         por=var_por,
+        grupo_filtro=var_grupo,
     )
     if not variacao.get("ok") and variacao.get("erro"):
         avisos.append(str(variacao["erro"]))
@@ -362,6 +364,7 @@ def get_indicadores_gerencial_pg(
             "filtro_contas": fc,
             "var_modo": var_modo,
             "var_por": var_por,
+            "var_grupo": var_grupo,
             "avisos": avisos,
             "ref_dias": REF_DIAS_COMPARACAO,
         },

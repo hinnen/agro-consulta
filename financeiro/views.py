@@ -42,6 +42,9 @@ def dashboard_financeiro_completo(request):
     var_por = (request.GET.get("var_por") or "competencia").strip().lower()
     if var_por not in ("competencia", "vencimento", "pagamento"):
         var_por = "competencia"
+    var_grupo = (request.GET.get("var_grupo") or "todas").strip().lower()
+    if var_grupo not in ("todas", "fixa", "variavel", "outra"):
+        var_grupo = "todas"
 
     dados = (
         get_indicadores_gerencial_pg(
@@ -53,6 +56,7 @@ def dashboard_financeiro_completo(request):
             filtro_contas=filtro_contas,
             var_modo=var_modo,
             var_por=var_por,
+            var_grupo=var_grupo,
         )
         if empresa_id
         else None
@@ -63,6 +67,7 @@ def dashboard_financeiro_completo(request):
         "contas": filtro_contas,
         "var_modo": var_modo,
         "var_por": var_por,
+        "var_grupo": var_grupo,
     }
     return render(
         request,

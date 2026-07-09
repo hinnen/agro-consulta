@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.53** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.54** · **loja v7.40**
+
+### 🐛 FIX — Indicadores financeiros 500 (09/07 · **v7.54**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `/financeiro/dashboard-gerencial/` → Server Error 500 |
+| **Causa** | `titulos_financeiro_montar_qs` passou a exigir `despesa`; DRE/indicadores buscam receita+despesa sem filtro |
+| **Fix** | `despesa` opcional em `titulos_financeiro_montar_qs` · template **Despesas por categoria** com grupos fixa/variável |
+| **Validar** | Ctrl+F5 teste → Indicadores → KPIs + tabela categorias + gráfico |
 
 ### ✅ Indicadores financeiros — tela nova PG (09/07 · Renan · **v7.53**)
 
@@ -1163,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **URL** | `/financeiro/dashboard-gerencial/` (`dashboard_financeiro_completo`) — **substituiu** tela Mongo |
 | **Fonte** | 100 % **Postgres** (`TituloFinanceiroAgro`) — mesma base Resumo gerencial + CP |
 | **KPIs** | Receita, margens, equilíbrio, caixa (pagamento·realizado), DRE, ref. média 60d |
-| **Novo** | **Variação gastos por plano** — 3 meses ou 3 semanas · tabela + gráfico top 10 · Δ% · clique → CP |
+| **Novo** | **Despesas por categoria** — fixa/variável/outra · 3 meses ou 3 semanas · tabela + gráfico top 10 · Δ% · clique → CP |
 | **Arquivos** | `indicadores_gerencial.html` · `indicadores_gerencial_pg.py` · `gastos_variacao_pg.py` · `financeiro/views.py` |
 | **Gráfico gastos** | `/financeiro/grafico-gastos/` **mantido** (análise série longa) |
 | **Validar** | Ctrl+F5 teste → Indicadores → KPIs batem Resumo gerencial · trocar 3 meses/semanas |

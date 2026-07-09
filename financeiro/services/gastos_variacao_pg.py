@@ -1,4 +1,4 @@
-"""Comparativo de gastos por plano — últimos 3 meses ou 3 semanas (Postgres)."""
+"""Comparativo de despesas por categoria — últimos 3 meses ou 3 semanas (Postgres)."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -6,7 +6,11 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
-from financeiro.services.resumo_operacional_mongo import get_object_or_none_empresa
+from financeiro.models import LancamentoFinanceiro as NF
+from financeiro.services.resumo_operacional_mongo import (
+    classificar_despesa_plano,
+    get_object_or_none_empresa,
+)
 from produtos.lancamentos_financeiro_pg_analytics_util import (
     _campo_data_titulo,
     _dec2,
@@ -90,6 +94,23 @@ def _valor_despesa_titulo(t, por: str) -> Decimal:
     return _dec2(t.valor_bruto)
 
 
+_GRUPO_ORDEM = ("fixa", "variavel", "outra")
+_GRUPO_LABEL = {
+    "fixa": "Despesas fixas",
+    "variavel": "Despesas variáveis",
+    "outra": "Outras despesas",
+}
+
+
+def _grupo_despesa_ui(nome_plano: str) -> str:
+    nat = classificar_despesa_plano(nome_plano)
+    if nat == NF.NATUREZA_DESPESA_FIXA:
+        return "fixa"
+    if nat == NF.NATUREZA_DESPESA_VARIAVEL:
+        return "variavel"
+    return "outra"
+
+
 def gastos_por_plano_periodo_pg(
     *,
     data_de: date,
@@ -144,8 +165,9 @@ def gastos_variacao_pg(
     modo: str = "mes",
     por: str = "competencia",
     top_chart: int = 10,
+    grupo_filtro: str = "todas",
 ) -> dict[str, Any]:
-    """Tabela + dados de gráfico agrupado para variação por plano."""
+    """Tabela + gráfico agrupado — despesas por categoria (fixa / variável)."""
     empresa = get_object_or_none_empresa(empresa_id)
     if not empresa:
         return {"ok": False, "erro": "Empresa não encontrada", "linhas": [], "buckets": []}
@@ -182,9 +204,13 @@ def gastos_variacao_pg(
         v0, v1, v2 = (Decimal(str(x)) for x in vals)
         delta = v2 - v1
         pct = _fmt_pct(delta, v1)
+        grupo = _grupo_despesa_ui(plano)
         linhas.append(
             {
                 "plano": plano,
+                "categoria": plano,
+                "grupo": grupo,
+                "grupo_label": _GRUPO_LABEL[grupo],
                 "valores": vals,
                 "total": float(sum(vals)),
                 "delta_abs": float(delta.quantize(Decimal("0.01"))),
@@ -193,7 +219,35 @@ def gastos_variacao_pg(
             }
         )
 
-    linhas.sort(key=lambda r: (-r["valores"][-1], r["plano"].casefold()))
+    n_buckets = len(buckets)
+    resumo_grupos: list[dict[str, Any]] = []
+    for gkey in _GRUPO_ORDEM:
+        rows_g = [r for r in linhas if r["grupo"] == gkey]
+        sub = [0.0] * n_buckets
+        for r in rows_g:
+            for i, v in enumerate(r["valores"]):
+                sub[i] += v
+        resumo_grupos.append(
+            {
+                "key": gkey,
+                "label": _GRUPO_LABEL[gkey],
+                "qtd": len(rows_g),
+                "subtotais": [round(x, 2) for x in sub],
+                "ultimo": round(sub[-1], 2) if sub else 0.0,
+            }
+        )
+
+    gf = (grupo_filtro or "todas").strip().lower()
+    if gf in ("fixa", "variavel", "outra"):
+        linhas = [r for r in linhas if r["grupo"] == gf]
+
+    linhas.sort(
+        key=lambda r: (
+            _GRUPO_ORDEM.index(r["grupo"]) if r["grupo"] in _GRUPO_ORDEM else 9,
+            -r["valores"][-1],
+            r["plano"].casefold(),
+        )
+    )
 
     top = linhas[:top_chart]
     chart_labels = [r["plano"][:28] for r in top]
@@ -225,6 +279,9 @@ def gastos_variacao_pg(
             for b in buckets
         ],
         "linhas": linhas,
+        "resumo_grupos": resumo_grupos,
+        "grupo_filtro": gf if gf in ("fixa", "variavel", "outra") else "todas",
+        "total_categorias": len(linhas),
         "total_planos": len(linhas),
         "total_ultimo_periodo": round(total_ultimo, 2),
         "chart": {
