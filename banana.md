@@ -1154,7 +1154,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.56** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.58** · **loja v7.40**
+
+### UX — Indicadores só SisVale (09/07 · v7.58)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tela** | `/financeiro/dashboard-gerencial/` — removido **Filtro contas** (ERP/.env); textos sem Mongo/Postgres/ERP |
+| **Dados** | Sempre lançamentos SisVale; DRE usa só contas de **operação da loja** (fixo no código) |
 
 ### 🐛 FIX — Indicadores financeiros 500 (09/07 · **v7.54**)
 
