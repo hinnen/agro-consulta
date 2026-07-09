@@ -358,7 +358,7 @@ def get_indicadores_gerencial_pg(
         "ref_inicio": ref_ini,
         "ref_fim": hoje,
         "meta": {
-            "fonte": "postgres",
+            "fonte": "sisvale",
             "por": por,
             "valor": valor,
             "filtro_contas": fc,

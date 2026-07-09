@@ -22,7 +22,7 @@ from produtos.views import _dashboard_periodo_from_request, obter_conexao_mongo
 
 @login_required(login_url="/admin/login/")
 def dashboard_financeiro_completo(request):
-    """Indicadores financeiros gerenciais — Postgres (TituloFinanceiroAgro)."""
+    """Indicadores financeiros gerenciais — dados do SisVale (TituloFinanceiroAgro)."""
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
     default_eid = empresas.values_list("pk", flat=True).first()
     empresa_id = int(request.GET.get("empresa") or default_eid or 0)
@@ -35,7 +35,8 @@ def dashboard_financeiro_completo(request):
 
     por = (request.GET.get("por") or "competencia").strip().lower()
     valor = (request.GET.get("valor") or "bruto").strip().lower()
-    filtro_contas = (request.GET.get("contas") or "").strip()
+    # Sempre operação da loja — exclui contas patrimoniais; sem opção ERP/Mongo na tela.
+    filtro_contas = "resultado"
     var_modo = (request.GET.get("var_modo") or "mes").strip().lower()
     if var_modo not in ("mes", "semana"):
         var_modo = "mes"
@@ -64,7 +65,6 @@ def dashboard_financeiro_completo(request):
     filtro_dashboard = {
         "por": por,
         "valor": valor,
-        "contas": filtro_contas,
         "var_modo": var_modo,
         "var_por": var_por,
         "var_grupo": var_grupo,
