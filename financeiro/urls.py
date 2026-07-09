@@ -24,4 +24,9 @@ urlpatterns = [
         views.api_grafico_gastos_atalho_padrao,
         name="api_grafico_gastos_atalho_padrao",
     ),
+    path(
+        "interno/planos-despesa-classificacao/",
+        views.classificacao_despesas_lista,
+        name="financeiro_classificacao_despesas",
+    ),
 ]

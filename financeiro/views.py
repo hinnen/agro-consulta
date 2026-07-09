@@ -408,3 +408,44 @@ def api_grafico_gastos_atalho_padrao(request, slot: int):
         GraficoGastosAtalhoAgro.objects.filter(eh_padrao=True).update(eh_padrao=False)
         GraficoGastosAtalhoAgro.objects.filter(pk=row.pk).update(eh_padrao=True)
     return JsonResponse({"ok": True, "slot_padrao": slot})
+
+
+@login_required(login_url="/admin/login/")
+def classificacao_despesas_lista(request):
+    """Lista planos CP classificados (staff) — para Renan conferir fixa/variável/outra."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+
+    from financeiro.services.gastos_variacao_pg import _GRUPO_LABEL, _grupo_despesa_ui
+    from produtos.models import TituloFinanceiroAgro
+
+    planos = sorted(
+        {
+            str(p or "").strip()
+            for p in TituloFinanceiroAgro.objects.filter(despesa=True).values_list(
+                "plano_conta", flat=True
+            )
+            if str(p or "").strip()
+        },
+        key=lambda x: x.casefold(),
+    )
+    grupos: dict[str, list[str]] = {"fixa": [], "variavel": [], "outra": []}
+    for nome in planos:
+        grupos[_grupo_despesa_ui(nome)].append(nome)
+
+    lines = [
+        "CLASSIFICAÇÃO ATUAL — planos de despesa (CP)",
+        f"Total: {len(planos)} planos",
+        "",
+    ]
+    for key in ("fixa", "variavel", "outra"):
+        rows = grupos[key]
+        lines.append(f"=== {_GRUPO_LABEL[key].upper()} ({len(rows)}) ===")
+        for nome in rows:
+            lines.append(f"- {nome}")
+        lines.append("")
+    body = "\n".join(lines)
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
