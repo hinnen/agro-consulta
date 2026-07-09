@@ -527,6 +527,26 @@
 
 <script>
 (function () {
+  function pathLookLikeFolhaPlanilha(pathStr) {
+    var p = String(pathStr || '').split('?')[0].toLowerCase();
+    if (p.indexOf('/compras/relatorio-planilha') >= 0) return true;
+    if (p.indexOf('/compras/relatorio-a4') >= 0) return true;
+    return false;
+  }
+  window.__agroPathLookLikeFolhaPlanilha = pathLookLikeFolhaPlanilha;
+  window.__agroIsPaginaAuxiliarSemShell = function () {
+    try {
+      var sp = new URLSearchParams(location.search || '');
+      if (sp.get('embed') === '1') return true;
+      if (sp.get('agro_inapp_embed') === '1') return true;
+    } catch (_) {}
+    return pathLookLikeFolhaPlanilha((location.pathname || '').split('?')[0]);
+  };
+})();
+</script>
+
+<script>
+(function () {
   /**
    * IMPORTANTE: __agroOpenAnotherAgroWindow deve existir SEMPRE antes de if (__agroTabLimitInit) return —
    * se _agro_consulta_ui for incluído 2×, o 2.º bloco saía cedo sem isto.
@@ -706,6 +726,9 @@
   function evaluateAndRegister() {
     var tabId = getTabId();
     var role = detectRole();
+    if (window.__agroIsPaginaAuxiliarSemShell && window.__agroIsPaginaAuxiliarSemShell()) {
+      return { ok: true, tabId: tabId, role: role, skipReg: true };
+    }
     var reg = readReg();
     reg = cleanupAndUpsert(reg, tabId, role);
     reg = reconcileMultiPdv(reg);
@@ -724,6 +747,7 @@
 
   function heartbeat(tabId) {
     if (blocked) return;
+    if (window.__agroIsPaginaAuxiliarSemShell && window.__agroIsPaginaAuxiliarSemShell()) return;
     var role = detectRole();
     var reg = readReg();
     reg = cleanupAndUpsert(reg, tabId, role);
@@ -1625,6 +1649,9 @@
 
   function mountShell() {
     if (shell.rail && shell.rail.parentNode === document.body) return;
+    var pathNow = (location.pathname || '').split('?')[0];
+    if (window.__agroIsPaginaAuxiliarSemShell && window.__agroIsPaginaAuxiliarSemShell()) return;
+    if (window.__agroPathLookLikeFolhaPlanilha && window.__agroPathLookLikeFolhaPlanilha(pathNow)) return;
     var b = document.body;
     shell.bar = document.createElement('div');
     shell.bar.id = 'agro-inapp-tabs-bar';

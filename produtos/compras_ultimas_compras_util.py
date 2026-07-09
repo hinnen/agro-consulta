@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -276,3 +276,50 @@ def append_eventos_entrada_nf_agro(
                     "tipo_fonte": "entrada_nf_agro",
                 }
             )
+
+
+def _compras_entrada_cutoff_dt() -> datetime:
+    return datetime.utcnow() - timedelta(days=800)
+
+
+def ultima_entrada_nf_agro_por_produto_ids(
+    db,
+    p_ids: list[str],
+    produtos_por_id: dict | None = None,
+    *,
+    since: datetime | None = None,
+    mongo_max_time_ms: int | None = 20_000,
+) -> dict[str, dict[str, Any]]:
+    """
+    Última entrada NF Agro concluída por produto.
+    Retorno: ``{ pid: {"data": iso str, "qtd": float} }``.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    if not p_ids:
+        return out
+    pid_ok = {str(x) for x in p_ids if str(x).strip()}
+    if not pid_ok:
+        return out
+    since_dt = since or _compras_entrada_cutoff_dt()
+    eventos: dict[str, list[dict]] = {str(pid): [] for pid in pid_ok}
+    append_eventos_entrada_nf_agro(
+        db,
+        eventos=eventos,
+        pid_ok=pid_ok,
+        since=since_dt,
+        produtos_por_id=produtos_por_id,
+        mongo_max_time_ms=mongo_max_time_ms,
+    )
+    for pid in pid_ok:
+        evs = [e for e in (eventos.get(pid) or []) if e.get("dt")]
+        if not evs:
+            continue
+        best = max(evs, key=lambda e: e["dt"])
+        dt = best.get("dt")
+        iso = dt.isoformat()[:19] if isinstance(dt, datetime) else ""
+        try:
+            qtd = round(float(best.get("qtd") or 0), 4)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        out[pid] = {"data": iso, "qtd": qtd}
+    return out

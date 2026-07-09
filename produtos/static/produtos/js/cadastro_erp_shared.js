@@ -86,6 +86,9 @@
       preco_custo: p.preco_custo,
       categoria: p.categoria,
       subcategoria: p.subcategoria,
+      subcategoria_2: p.subcategoria_2,
+      subcategoria_3: p.subcategoria_3,
+      subcategoria_4: p.subcategoria_4,
       fornecedor: p.fornecedor,
       unidade: p.unidade,
       descricao: p.descricao,
@@ -155,7 +158,8 @@
     var out = Object.assign({}, produto);
     var keys = [
       'preco_venda', 'preco_custo', 'nome', 'marca', 'codigo_nfe', 'codigo_barras',
-      'categoria', 'subcategoria', 'fornecedor', 'unidade', 'descricao', 'inativo'
+      'categoria', 'subcategoria', 'subcategoria_2', 'subcategoria_3', 'subcategoria_4',
+      'fornecedor', 'unidade', 'descricao', 'inativo'
     ];
     keys.forEach(function (k) {
       if (Object.prototype.hasOwnProperty.call(patch, k)) out[k] = patch[k];

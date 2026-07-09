@@ -97,12 +97,62 @@ def metricas_vendas_agregadas_por_produto_postgres(dias_media: int) -> tuple[
     return media_tot, w0, w1, spark
 
 
+def medias_diarias_por_pids_postgres(pids: list[str], dias: int = 30) -> dict[str, float]:
+    """Média diária de vendas (ItemVendaAgro) só para os ids pedidos — busca Compras."""
+    from produtos.models import ItemVendaAgro
+
+    variants = [str(x).strip() for x in (pids or []) if str(x).strip()]
+    if not variants:
+        return {}
+    dias = max(7, min(365, int(dias or 30)))
+    now = _naive_local(timezone.now()) or datetime.now()
+    t_m = now - timedelta(days=dias)
+    limite_aware = timezone.make_aware(t_m) if timezone.is_naive(t_m) else t_m
+    tot: dict[str, float] = {}
+    qs = (
+        ItemVendaAgro.objects.filter(
+            venda__devolvida_em__isnull=True,
+            venda__criado_em__gte=limite_aware,
+            produto_id_externo__in=variants[:800],
+        )
+        .only("produto_id_externo", "quantidade")
+    )
+    for item in qs.iterator(chunk_size=1500):
+        pid = str(item.produto_id_externo or "").strip()
+        if not pid:
+            continue
+        try:
+            qtd = float(item.quantidade or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if qtd == 0:
+            continue
+        tot[pid] = tot.get(pid, 0.0) + qtd
+    div = float(dias) if dias else 30.0
+    return {pid: round(tot.get(pid, 0.0) / div, 6) for pid in variants}
+
+
 def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
     """Payload JSON alinhado a ``api_pdv_metricas_produtos`` (v2, 12 colunas por linha)."""
     dias = max(7, min(365, int(dias or 30)))
     media_tot, w0, w1, spark_map = metricas_vendas_agregadas_por_produto_postgres(dias)
 
     pids = set(media_tot.keys()) | set(w0.keys()) | set(w1.keys()) | set(spark_map.keys())
+    ent_map: dict[str, dict[str, Any]] = {}
+    if pids:
+        try:
+            from produtos.views import obter_conexao_mongo
+
+            _, db = obter_conexao_mongo()
+            if db is not None:
+                from produtos.compras_ultimas_compras_util import ultima_entrada_nf_agro_por_produto_ids
+
+                ent_map = ultima_entrada_nf_agro_por_produto_ids(
+                    db, sorted(pids), None, mongo_max_time_ms=25_000
+                )
+        except Exception as exc:
+            logger.warning("metricas_compras_rows_postgres entrada_nf_agro: %s", exc)
+
     div = float(dias) if dias else 30.0
     rows: list[list[Any]] = []
     for pid in sorted(pids):
@@ -117,6 +167,7 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
         else:
             var_pct = None
         sp = spark_map.get(pid) or [0.0, 0.0, 0.0, 0.0]
+        ent = ent_map.get(pid) or {}
         rows.append(
             [
                 pid,
@@ -125,8 +176,8 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
                 round(s0, 4),
                 round(s1, 4),
                 var_pct,
-                "",
-                0.0,
+                ent.get("data") or "",
+                float(ent.get("qtd") or 0),
                 round(float(sp[0]), 4),
                 round(float(sp[1]), 4),
                 round(float(sp[2]), 4),
@@ -134,6 +185,40 @@ def metricas_compras_rows_postgres(dias: int) -> dict[str, Any]:
             ]
         )
     return {"v": 2, "dias": dias, "rows": rows, "fonte": "venda_agro_pg"}
+
+
+def _row_tem_venda_pg(row: list[Any]) -> bool:
+    if not row or len(row) < 3:
+        return False
+    try:
+        return float(row[2] or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def mesclar_metricas_rows_pg_mongo(pg_rows: list[list[Any]], mongo_rows: list[list[Any]]) -> list[list[Any]]:
+    """
+    Catálogo completo (Mongo / DtoVenda) com overlay Postgres quando há venda no Agro.
+    Entrada NF Agro (PG) preservada; vendas zeradas no PG caem no histórico Mongo.
+    """
+    mongo_map = {str(r[0]): r for r in (mongo_rows or []) if r and r[0] is not None}
+    pg_map = {str(r[0]): r for r in (pg_rows or []) if r and r[0] is not None}
+    merged: list[list[Any]] = []
+    for pid, mrow in mongo_map.items():
+        prow = pg_map.get(pid)
+        if prow and _row_tem_venda_pg(prow):
+            row = list(prow)
+            if len(row) >= 8 and len(mrow) >= 8:
+                if not row[6] and mrow[6]:
+                    row[6] = mrow[6]
+                    row[7] = mrow[7]
+            merged.append(row)
+        else:
+            merged.append(mrow)
+    for pid, prow in pg_map.items():
+        if pid not in mongo_map:
+            merged.append(prow)
+    return merged
 
 
 def _aware_bounds(desde: datetime, ate: datetime) -> tuple[datetime, datetime]:

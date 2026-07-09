@@ -279,10 +279,8 @@
             grupo_id: el("f-grupo").value,
             data_inicio: el("f-ini").value,
             data_fim: el("f-fim").value,
-            fonte: el("f-fonte").value,
             por: el("f-por").value,
             valor: el("f-valor").value,
-            contas: el("f-contas").value,
           })
         );
       } catch (e) {}
@@ -298,10 +296,8 @@
         if (o.grupo_id) el("f-grupo").value = o.grupo_id;
         if (o.data_inicio) el("f-ini").value = o.data_inicio;
         if (o.data_fim) el("f-fim").value = o.data_fim;
-        if (o.fonte) el("f-fonte").value = o.fonte;
         if (o.por) el("f-por").value = o.por;
         if (o.valor) el("f-valor").value = o.valor;
-        if (o.contas !== undefined) el("f-contas").value = o.contas;
       } catch (e) {}
     }
 
@@ -310,14 +306,6 @@
       el("wrap-empresa").classList.toggle("hidden", m !== "empresa");
       el("wrap-grupo").classList.toggle("hidden", m !== "grupo");
       el("bloco-grupo").classList.toggle("hidden", m !== "grupo");
-    }
-
-    function toggleFonte() {
-      var mongo = el("f-fonte").value === "mongo";
-      var pgTitulos = el("f-fonte").value === "postgres";
-      ["wrap-mongo-por", "wrap-mongo-valor", "wrap-mongo-contas"].forEach(function (id) {
-        el(id).classList.toggle("hidden", !(mongo || pgTitulos));
-      });
     }
 
     function atualizarResumoFiltroVisivel() {
@@ -335,14 +323,8 @@
         var oG = sg.options[sg.selectedIndex];
         entidade = "Grupo: " + (oG ? oG.text : "—");
       }
-      var fonte = el("f-fonte").value === "mongo" ? "Mongo (DtoLancamento)" : "Postgres (Agro)";
       el("rg-filtro-ativo").innerHTML =
-        "<strong>" +
-        periodo +
-        "</strong> · <strong>" +
-        entidade +
-        "</strong> · Fonte: " +
-        fonte;
+        "<strong>" + periodo + "</strong> · <strong>" + entidade + "</strong>";
     }
 
     function setLoading(on) {
@@ -375,8 +357,9 @@
         zero.classList.add("hidden");
       }
 
-      var info = el("msg-mongo-info");
-      var obs = c.ajustes_eliminacao && c.ajustes_eliminacao.observacao_mongo;
+      var info = el("msg-info");
+      var aj = c.ajustes_eliminacao || {};
+      var obs = aj.observacao || aj.observacao_mongo;
       if (obs) {
         info.textContent = obs;
         info.classList.remove("hidden");
@@ -424,7 +407,6 @@
         mostrarErro("Informe início e fim.");
         return;
       }
-      var fonte = el("f-fonte").value;
       var q =
         "modo=" +
         encodeURIComponent(modo) +
@@ -432,14 +414,12 @@
         encodeURIComponent(ini) +
         "&data_fim=" +
         encodeURIComponent(fim) +
-        "&fonte=" +
-        encodeURIComponent(fonte);
-      if (fonte === "mongo" || fonte === "postgres") {
-        q += "&por=" + encodeURIComponent(el("f-por").value);
-        q += "&valor=" + encodeURIComponent(el("f-valor").value);
-        var ct = el("f-contas").value;
-        if (ct) q += "&contas=" + encodeURIComponent(ct);
-      }
+        "&fonte=postgres" +
+        "&por=" +
+        encodeURIComponent(el("f-por").value) +
+        "&valor=" +
+        encodeURIComponent(el("f-valor").value) +
+        "&contas=resultado";
       if (modo === "empresa") {
         var eid = el("f-empresa").value;
         if (!eid) {
@@ -507,13 +487,8 @@
       salvarCtx();
       atualizarResumoFiltroVisivel();
     });
-    el("f-fonte").addEventListener("change", function () {
-      toggleFonte();
-      salvarCtx();
-      atualizarResumoFiltroVisivel();
-    });
     el("btn-atualizar").addEventListener("click", atualizar);
-    ["f-empresa", "f-grupo", "f-ini", "f-fim", "f-por", "f-valor", "f-contas"].forEach(function (id) {
+    ["f-empresa", "f-grupo", "f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
       el(id).addEventListener("change", function () {
         salvarCtx();
         atualizarResumoFiltroVisivel();
@@ -542,7 +517,6 @@
 
     carregarCtx();
     toggleModo();
-    toggleFonte();
     var hoje = new Date();
     var iso = hoje.toISOString().slice(0, 10);
     if (!el("f-fim").value) el("f-fim").value = iso;
@@ -556,7 +530,7 @@
       atualizar();
     } else {
       setLoading(false);
-      var info = el("msg-mongo-info");
+      var info = el("msg-info");
       if (info) {
         info.textContent =
           "Modo só cache: use Atualizar ou F5 (fora de campos) para buscar indicadores na API.";
@@ -588,4 +562,3 @@
     if (root) initPainel(root);
   });
 })();
-

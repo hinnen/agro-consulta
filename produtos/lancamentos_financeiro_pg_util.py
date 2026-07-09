@@ -189,7 +189,7 @@ def _aplicar_texto_qs(qs: QuerySet, texto: str | None) -> QuerySet:
 
 def titulos_financeiro_montar_qs(
     *,
-    despesa: bool,
+    despesa: bool | None = None,
     status: str = "abertos",
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
@@ -201,7 +201,9 @@ def titulos_financeiro_montar_qs(
     excluir_planos_nomes: list[str] | None = None,
     mongo_id: str | None = None,
 ) -> QuerySet:
-    qs = TituloFinanceiroAgro.objects.filter(despesa=bool(despesa))
+    qs = TituloFinanceiroAgro.objects.all()
+    if despesa is not None:
+        qs = qs.filter(despesa=bool(despesa))
     mid = (mongo_id or "").strip()
     if mid:
         return qs.filter(mongo_id=mid)

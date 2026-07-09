@@ -527,6 +527,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera.
 
+**Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
+
 **Fantasmas Mongo → Postgres (`agro_pg`, 2026-06-24):**
 
 | O quê | Detalhe |
@@ -570,7 +572,10 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 ### 4.9 Compras
 
 - `/compras/` — sugestão, horizonte em dias, métricas avançadas em `<details>`.
+- **Fontes (Renan 08/07):** média/gráfico/sugestão = **vendas PDV Agro**; última compra/chips/planilha = **só Entrada NF Agro** (ERP cortado). Rótulos na tela alinhados.
+- **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
+- **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
 
 ### 4.10 Lançamentos / financeiro
 
@@ -611,6 +616,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - `_agro_consulta_ui.html` — base visual.
 - `_agro_display_scale.html` + `agro_display_scale.js` — escala global.
 - `_agro_open_external.html` — links externos.
+
+**Popups / modais (decisão 08/07 — Renan):** padrão do produto = **`<div>` + Tailwind + JavaScript puro** (MPA Django). Abrir/fechar = tirar/colocar classe `hidden` (+ `modal-open` no `body` quando precisar). **Não** usar biblioteca de modal (Bootstrap, SweetAlert, etc.). **`<dialog>` nativo:** avaliado — **não** adotar em popup novo por padrão (dezenas de modais já no padrão `div`; operador não ganha nada; CPU/memória imperceptível). **Regra:** popup novo numa tela que já tem modal → **copiar o padrão da tela**; tela zerada / FOOD do zero → pode usar `<dialog>` se padronizar a tela inteira. Canônico também em **`SISTVALE.md`** e **`FOOD.md`**.
 
 ### 4.15 Desvinculação ERP (Mongo espelho → Postgres SisVale)
 
@@ -1147,9 +1154,173 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.40** · **loja v7.40**
+**Versão app (`VERSION`):** **teste v7.60** · **loja v7.60**
+
+### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Resumo + Indicadores + Gráfico gastos — **só leitura** SisVale; **não** para uso gerencial ainda — **teste com dado real** |
+| **Pacote** | v7.42–v7.60: financeiro gerencial + fixes Compras métricas + barra lateral BI |
+| **Risco operação** | PDV/CP/caixa **inalterados**; Compras/BI com fixes já validados no teste |
+| **Como** | Merge `teste` → `producao` (09/07) |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · testar `/financeiro/dashboard-gerencial/` e Resumo |
+| **Uso** | **Não** decidir gestão por essas telas até Renan fechar validação |
+
+### UX — Financeiro gerencial 100 % SisVale (09/07 · v7.60)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Resumo** | `/financeiro/resumo-gerencial/` — saiu **Fonte Mongo/ERP**, **Filtro contas** e textos Postgres/Mongo; só data base + valor |
+| **API** | `/api/financeiro/resumo-operacional` e `gap-equilibrio` — só lançamentos SisVale (`fonte=postgres`) |
+| **Gráfico gastos** | `/financeiro/grafico-gastos/` — agregação só SisVale; ajuda sem Mongo |
+| **Menu** | Links Indicadores/Resumo sem «Postgres» no tooltip |
+| **Validar** | Ctrl+F5 teste → Resumo + Indicadores + Gráfico gastos — **Ctrl+F** não deve achar ERP/Mongo/DtoLancamento |
+
+### UX — Indicadores só SisVale (09/07 · v7.58)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tela** | `/financeiro/dashboard-gerencial/` — removido **Filtro contas** (ERP/.env); textos sem Mongo/Postgres/ERP |
+| **Dados** | Sempre lançamentos SisVale; DRE usa só contas de **operação da loja** (fixo no código) |
+
+### 🐛 FIX — Indicadores financeiros 500 (09/07 · **v7.54**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `/financeiro/dashboard-gerencial/` → Server Error 500 |
+| **Causa** | `titulos_financeiro_montar_qs` passou a exigir `despesa`; DRE/indicadores buscam receita+despesa sem filtro |
+| **Fix** | `despesa` opcional em `titulos_financeiro_montar_qs` · template **Despesas por categoria** com grupos fixa/variável |
+| **Validar** | Ctrl+F5 teste → Indicadores → KPIs + tabela categorias + gráfico |
+
+### 🐛 FIX — Indicadores 500 + despesas fixa/variável (09/07 · **v7.54–v7.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **500** | `titulos_financeiro_montar_qs` exigia `despesa`; DRE Indicadores lê receita+despesa → `TypeError` |
+| **Fix** | `despesa` opcional no PG · rótulos **despesas por categoria** · cards/tabela **fixa / variável / outras** + filtros |
+| **Validar** | Ctrl+F5 `/financeiro/dashboard-gerencial/` |
+
+### ✅ Indicadores financeiros — tela nova PG (09/07 · Renan · **v7.53**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **URL** | `/financeiro/dashboard-gerencial/` (`dashboard_financeiro_completo`) — **substituiu** tela Mongo |
+| **Fonte** | 100 % **Postgres** (`TituloFinanceiroAgro`) — mesma base Resumo gerencial + CP |
+| **KPIs** | Receita, margens, equilíbrio, caixa (pagamento·realizado), DRE, ref. média 60d |
+| **Novo** | **Despesas por categoria** — fixa/variável/outra · 3 meses ou 3 semanas · tabela + gráfico top 10 · Δ% · clique → CP |
+| **Arquivos** | `indicadores_gerencial.html` · `indicadores_gerencial_pg.py` · `gastos_variacao_pg.py` · `financeiro/views.py` |
+| **Gráfico gastos** | `/financeiro/grafico-gastos/` **mantido** (análise série longa) |
+| **Validar** | Ctrl+F5 teste → Indicadores → KPIs batem Resumo gerencial · trocar 3 meses/semanas |
+
+### 🐛 FIX — Compras números zerados no teste (08/07 · Renan · v7.51)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Sugestão «—», vendas 0, custo R$ 0 na busca (ex. milho) |
+| **Causa** | F5 no teste lia só Postgres (poucas vendas); API zerava média/custo do catálogo |
+| **Fix** | F5 híbrido PG+Mongo; busca não apaga valor bom com zero da API |
+| **Barra lateral** | **Não mexido** (Renan: não tocar) |
+| **Validar** | Ctrl+F5 Compras → buscar milho → média/sugestão/custo |
+
+### 🐛 FIX — barra lateral sumiu (08/07 · Renan · v7.47)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Faixa escura à esquerda (PDV · Dashboard · +) **sumiu no teste**; produção OK |
+| **Causa** | `isPaginaAuxiliarSemShell` no script de limite de abas — `mountShell` no outro IIFE → **ReferenceError** |
+| **Fix** | Helpers em `window.__agroIsPaginaAuxiliarSemShell` / `__agroPathLookLikeFolhaPlanilha` (escopo compartilhado) |
+| **Validar** | Ctrl+F5 na home teste → barra igual print produção |
+| **Produção** | **Não mexido** |
+
+### 🐛 REVERT — barra lateral BI (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Erro** | Hotfixes v7.43–v7.45 no shell quebraram a **faixa de guias** da home |
+| **Ação** | **Revertido** `_agro_open_external.html` + BI + `agro_dual_window.js` ao estado **pré-v7.42** |
+| **Mantido** | Só isenção folha Compras (`embed=1` / planilha) — **não** mexe na home |
+| **Mantido** | Fix métricas Compras (v7.44) — F5 não zera catálogo |
+| **Validar** | Ctrl+F5 na home → faixa verde **PDV · Dashboard · +** à esquerda |
+
+### 🐛 HOTFIX — barra lateral não monta (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | BI/Compras abrem mas **sem faixa verde** à esquerda (PDV · Dashboard · +) |
+| **Causa** | `mountShell` quebrava na fase de rota e apagava o DOM; boot só no `DOMContentLoaded` |
+| **Fix** | DOM separado da rota; boot com retry + `load`/`pageshow`; gestão no `localStorage` ativa shell |
+| **Arquivo** | `_agro_open_external.html` |
+
+### 🐛 HOTFIX — Compras métricas zeradas + barra lateral (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Telas abrem mas sem guias laterais; produtos sem vendas/custo; planilha com média 0 |
+| **Causa métricas** | F5 (`aplicarMetricasCompraNaBase`) **zerava** todo produto fora do payload PG (só ~6 com venda no teste) |
+| **Fix métricas** | F5 só atualiza quem veio na API; busca `?compras=1` puxa média PG por produto |
+| **Fix shell** | `mountShell` com retry; `__agroInAppAddTab` tenta remontar antes de `location.assign` |
+| **Arquivos** | `compras.html` · `compras_metricas_util.py` · `views.py` · `_agro_open_external.html` · `dashboard_gerencial.html` |
+
+### 🐛 HOTFIX — barra lateral / navegação (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Sumiu barra lateral; F10/Compras/Produtos não abrem — fica no BI |
+| **Causa** | Patch folha Compras deixou shell lateral meio montado; `__agroInAppAddTab` falhava sem fallback |
+| **Fix** | Remonta shell se incompleto; fallback `location.assign`; folha embed não bloqueia shell do BI |
+| **Arquivos** | `_agro_open_external.html` · `agro_dual_window.js` · `dashboard_gerencial.html` |
+
+### ✅ Compras — UX + NF Agro + custo (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Tudo sugerido: rótulos NF Agro (sem «ERP»); tela mais legível; custo/lucro corrigidos; subir teste |
+| **Custo** | Se «final» zerado → usa base cadastro ou última Entrada NF |
+| **Lucro** | Só exibe quando há custo confiável — senão «Sem custo cadastrado» |
+| **Textos** | «Comprar», Centro+Vila, «Últimas entradas NF Agro», «Últ. NF» no detalhe |
+| **F5 / métricas** | `compras_metricas_util` preenche última entrada NF Agro (colunas 6–7) |
+| **Arquivos** | `compras.html` · `compras_relatorio_planilha.html` · `compras_metricas_util.py` · `compras_ultimas_compras_util.py` |
+| **Pacote** | Inclui também cadastro ERP marca/cat + folha popup (sessão 08/07) |
+
+### 🐛 Compras — Folha Compras popup (08/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Folha (fornecedor/cat/unidade) às vezes não abria ou abria «bugada» em nova aba |
+| **Causa** | Limite 3 abas SisVale + barra lateral engolindo a página da planilha |
+| **Fix** | Popup com iframe na Compras; `?embed=1`; folha isenta do shell/limite de abas |
+| **Arquivos** | `compras.html` · `compras_relatorio_planilha.html` · `_agro_open_external.html` |
+
+### 🐛 Cadastro ERP — marca/categoria sumindo (08/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Marca, categoria, subcategorias «não salvavam» / sumiam ao reabrir ou em outro PC |
+| **Causa** | Modal mesclava **lista velha** por cima do **detalhe da API**; popup «texto local» confundia |
+| **Fix** | API prevalece na abertura; lista atualiza após salvar; **só Postgres** (overlay + Produto); cache facetas limpa |
+| **Arquivos** | `_modal_editar_produto_cadastro_erp.inc.html` · `cadastro_erp_panel.js` · `views.py` |
+| **Teste** | Cadastro → editar → marca/cat → **Salvar no Agro** → F5 → outro PC — campos persistem |
+
+### 📋 Decisão — popups / modais (08/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Hoje** | `<div>` + Tailwind + JS (`hidden`) — sem lib de modal |
+| **`<dialog>` nativo** | Avaliado — **não** migrar nem obrigar em popup novo |
+| **Motivo** | Consistência com ~dezenas de modais existentes; zero ganho visível/perf |
+| **Regra assistente** | Novo popup → padrão da tela; tela nova do zero → `<dialog>` opcional |
+| **Docs** | `banana.md` §4.14 · **`SISTVALE.md`** · **`FOOD.md`** |
 
 ### ✅ Deploy loja **v7.40** — FL-051 baixa fiado no PDV (08/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Baixa fiado no **PDV pagamento** · painel fiado **fecha** antes do pagamento no PDV principal |
+| **Como** | Merge `teste` → `producao` `54564da` |
+| **Status** | **✅ loja** |
+
+### ✅ FL-051 — Baixa fiado no PDV
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1157,11 +1328,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Como** | Merge `teste` → `producao` |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** nos PDVs · testar Baixa no fiado (painel e `/fiado/`) |
 | **Fora** | NFC-e na quitação = **FL-052** |
-
-### ✅ FL-051 — Baixa fiado no PDV
-
-| Item | Detalhe |
-| ---- | ------- |
 | **Fluxo overlay** | **Baixa** no painel fiado → **fecha painel** → pagamento no **PDV principal** |
 | **Fluxo página** | `/fiado/` fora do painel → `/pdv/` cobrança normal |
 | **Velocidade** | Caixa já aberto não refaz consulta · POST sem resumo pesado |
