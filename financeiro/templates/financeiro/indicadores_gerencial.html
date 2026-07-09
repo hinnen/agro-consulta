@@ -104,8 +104,10 @@
     font-size: 0.8125rem;
     white-space: nowrap;
   }
-  .ig-table tbody tr { cursor: pointer; }
-  .ig-table tbody tr:hover { background: #f0fdf4; }
+  .ig-table tbody tr[data-plano] { cursor: pointer; }
+  .ig-table tbody tr[data-plano]:hover { background: #f0fdf4; }
+  .ig-table tbody tr.ig-grupo-head { cursor: default; }
+  .ig-table tbody tr.ig-grupo-head:hover { background: inherit; }
   .ig-cp-popup {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center; padding: 0.75rem;
@@ -381,9 +383,15 @@
           <tbody class="font-semibold text-slate-800">
             {% regroup dados.variacao.linhas by grupo as linhas_por_grupo %}
             {% for grupo in linhas_por_grupo %}
+            {% for g in dados.variacao.resumo_grupos %}{% if g.key == grupo.grouper %}
             <tr class="ig-grupo-head ig-grupo-head--{{ grupo.grouper }}">
-              <td colspan="{{ dados.variacao.buckets|length|add:4 }}">{{ grupo.list.0.grupo_label }}</td>
+              <td>{{ g.label }} <span class="font-bold normal-case text-slate-600">({{ g.qtd }})</span></td>
+              {% for st in g.subtotais %}
+              <td class="text-right tabular-nums font-black">R$ {{ st|floatformat:2 }}</td>
+              {% endfor %}
+              <td colspan="3"></td>
             </tr>
+            {% endif %}{% endfor %}
             {% for row in grupo.list %}
             <tr data-plano="{{ row.plano|escape }}">
               <td class="max-w-[14rem] truncate pl-4" title="{{ row.plano }}">{{ row.categoria }}</td>
@@ -410,9 +418,9 @@
         </table>
       </div>
       <div>
-        <p class="ig-muted m-0 mb-2">Top 10 — barras agrupadas</p>
+        <p class="ig-muted m-0 mb-2">Top 10 despesas — barras agrupadas</p>
         <div class="relative h-72 sm:h-80">
-          <canvas id="chartVariacao" aria-label="Variação gastos top 10"></canvas>
+          <canvas id="chartVariacao" aria-label="Variação despesas top 10"></canvas>
         </div>
       </div>
     </div>
