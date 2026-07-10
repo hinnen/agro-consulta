@@ -449,3 +449,31 @@ def classificacao_despesas_lista(request):
         lines.append("")
     body = "\n".join(lines)
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def simulacao_unificar_planos_despesa(request):
+    """Staff: simulação só leitura do mapa de unificação de planos."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from produtos.management.commands.unificar_planos_despesa import (
+        _carregar_mapa,
+        formatar_relatorio,
+        simular_unificacao,
+    )
+
+    path = Path(settings.BASE_DIR) / "docs" / "dados" / "plano_despesas_mapa_unificacao.csv"
+    try:
+        pares = _carregar_mapa(path)
+        sim = simular_unificacao(pares)
+        body = formatar_relatorio(sim)
+    except Exception as e:
+        body = f"Erro na simulação: {e}"
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")

@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.61** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.63** · **loja v7.60**
+
+### Plano despesas — mapa + simulação unificar (09/07 · v7.63)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Mapa** | `docs/dados/plano_despesas_mapa_unificacao.csv` + níveis oficiais |
+| **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
+| **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
+| **Status** | Simulação pronta; **aplicar** só com OK do Renan |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 

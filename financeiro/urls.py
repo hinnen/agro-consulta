@@ -29,4 +29,9 @@ urlpatterns = [
         views.classificacao_despesas_lista,
         name="financeiro_classificacao_despesas",
     ),
+    path(
+        "interno/planos-despesa-simulacao-unificar/",
+        views.simulacao_unificar_planos_despesa,
+        name="financeiro_simulacao_unificar_planos",
+    ),
 ]
