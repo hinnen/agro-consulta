@@ -1156,6 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v7.63** · **loja v7.60**
 
+### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Prioridade** | **P1** — retomar e **terminar** |
+| **Onde paramos** | Mapa OK · simulação só leitura pronta (`/financeiro/interno/planos-despesa-simulacao-unificar/`) · **ainda não aplicou** rename |
+| **Próximo** | 1) Abrir simulação na **loja** (deploy v7.63 se faltar) · 2) Renan confere totais · 3) **Aplicar** unificação (`--aplicar --confirmar`) · 4) Indicadores usam Tipo+Grupo da planilha |
+| **Arquivos** | `plano_despesas_mapa_unificacao.csv` · `plano_despesas_niveis_proposta.csv` · `unificar_planos_despesa.py` |
+| **Lembrete** | Chat 09/07 noite — Renan: *«marca para terminarmos isso amanhã, me lembra, prioridade p1»* |
+
 ### Plano despesas — mapa + simulação unificar (09/07 · v7.63)
 
 | Item | Detalhe |
