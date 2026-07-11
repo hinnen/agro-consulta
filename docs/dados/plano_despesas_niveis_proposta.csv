@@ -1,0 +1,45 @@
+Plano oficial;Tipo;Grupo;Observação
+Salários;Fixa;Pessoal;Nome unificado (várias grafias/códigos → este)
+Adiantamento de Salário (Vale);Fixa;Pessoal;NÃO somar com salário bruto no total Pessoal — abate na folha
+FGTS;Fixa;Pessoal;Encargo
+INSS;Fixa;Pessoal;Encargo
+Despesas Pró-labore;Fixa;Pessoal;
+Cesta de Final de Ano e Churrascos;Fixa;Pessoal;Cesta e churrasco para funcionários
+Bônus;Fixa;Pessoal;Bônus de atingimento de meta para funcionários
+Aluguel;Fixa;Ocupação;
+Energia;Fixa;Ocupação;
+Água e Esgoto;Fixa;Ocupação;
+Manutenção do Prédio;Fixa;Ocupação;
+Taxas de licença de locação;Fixa;Ocupação;
+Contabilidade;Fixa;Administrativo;Unifica Contador / Contabilidade
+Internet;Fixa;Administrativo;
+Sistema e Software;Fixa;Administrativo;Unifica sist + Sistema e Software
+Alimentação;Fixa;Operação loja;Café e almoço da loja para todos
+Matérias de Escritório;Fixa;Operação loja;
+Matérias de Informática;Variável;Operação loja;
+Embalagens;Variável;Operação loja;
+Material de Limpeza e Conservação;Variável;Operação loja;
+Manutenção Equipamentos e Móveis;Variável;Operação loja;
+Impostos e Taxas Fixas;Fixa;Impostos e taxas;
+IPVA e outros;Fixa;Impostos e taxas;
+Impostos e Taxas variáveis;Variável;Impostos e taxas;
+Comissão;Variável;Vendas / meios de pagamento;
+Taxas Máquina Cartão;Variável;Vendas / meios de pagamento;
+Combustível Strada;Variável;Frota / logística;
+Combustível Demais Carros;Variável;Frota / logística;
+Manutenção Frota;Variável;Frota / logística;
+Multas de Trânsito;Variável;Frota / logística;
+Frete de Devolução;Variável;Frota / logística;
+Publicidade e Propaganda;Variável;Marketing / eventos;
+Brindes e ações festivas;Variável;Marketing / eventos;
+Compra Mercadoria CN;Outra;CMV / mercadoria;Fornecedor COM nota fiscal
+Compra Mercadoria SN;Outra;CMV / mercadoria;Fornecedor SEM nota fiscal
+Compra Mercadoria (provisório);Outra;CMV / mercadoria;Títulos antigos sem CN/SN — migrar aos poucos para CN ou SN; NÃO é pai
+Pagamento de Empréstimos;Outra;Empréstimos / financeiro;
+Juros de Empréstimos;Outra;Empréstimos / financeiro;
+Compra de Ativos ou Equipamentos;Outra;Investimento;
+Retiradas Geraldo;Outra;Sócio;
+Retiradas Geraldinho;Outra;Sócio;
+Outros (verificar);Outra;A conferir;
+Lixo teste;Outra;A conferir;
+Lixo x;Outra;A conferir;

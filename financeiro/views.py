@@ -408,3 +408,223 @@ def api_grafico_gastos_atalho_padrao(request, slot: int):
         GraficoGastosAtalhoAgro.objects.filter(eh_padrao=True).update(eh_padrao=False)
         GraficoGastosAtalhoAgro.objects.filter(pk=row.pk).update(eh_padrao=True)
     return JsonResponse({"ok": True, "slot_padrao": slot})
+
+
+@login_required(login_url="/admin/login/")
+def classificacao_despesas_lista(request):
+    """Lista planos CP classificados (staff) — para Renan conferir fixa/variável/outra."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+
+    from financeiro.services.gastos_variacao_pg import _GRUPO_LABEL, _grupo_despesa_ui
+    from produtos.models import TituloFinanceiroAgro
+
+    planos = sorted(
+        {
+            str(p or "").strip()
+            for p in TituloFinanceiroAgro.objects.filter(despesa=True).values_list(
+                "plano_conta", flat=True
+            )
+            if str(p or "").strip()
+        },
+        key=lambda x: x.casefold(),
+    )
+    grupos: dict[str, list[str]] = {"fixa": [], "variavel": [], "outra": []}
+    for nome in planos:
+        grupos[_grupo_despesa_ui(nome)].append(nome)
+
+    lines = [
+        "CLASSIFICAÇÃO ATUAL — planos de despesa (CP)",
+        f"Total: {len(planos)} planos",
+        "",
+    ]
+    for key in ("fixa", "variavel", "outra"):
+        rows = grupos[key]
+        lines.append(f"=== {_GRUPO_LABEL[key].upper()} ({len(rows)}) ===")
+        for nome in rows:
+            lines.append(f"- {nome}")
+        lines.append("")
+    body = "\n".join(lines)
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def painel_unificar_planos_despesa(request):
+    """Staff: links simular / aplicar / reverter unificação de planos."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from django.urls import reverse
+
+    from produtos.models import PlanoUnificacaoLoteAgro
+
+    def _url(name: str, **kwargs) -> str:
+        return request.build_absolute_uri(reverse(name, kwargs=kwargs))
+
+    sim = _url("financeiro_simulacao_unificar_planos")
+    aplicar = _url("financeiro_aplicar_unificar_planos") + "?confirmar=sim"
+    reverter = _url("financeiro_reverter_unificar_planos") + "?confirmar=sim"
+
+    lote = (
+        PlanoUnificacaoLoteAgro.objects.filter(
+            status=PlanoUnificacaoLoteAgro.Status.APLICADO
+        )
+        .order_by("-criado_em")
+        .first()
+    )
+
+    lines = [
+        "UNIFICAR PLANOS DE DESPESA (CP) — staff",
+        "",
+        "1) Simulação (só leitura — não altera nada):",
+        sim,
+        "",
+        "2) Aplicar renomes NESTE ambiente (teste ou loja):",
+        aplicar,
+        "",
+        "3) Reverter o ÚLTIMO apply NESTE ambiente:",
+        reverter,
+        "",
+    ]
+    if lote:
+        lines.append(
+            f"Lote ativo para reverter: #{lote.pk} · {lote.n_titulos} título(s) · "
+            f"{lote.criado_em:%d/%m/%Y %H:%M}"
+        )
+    else:
+        lines.append("Nenhum lote aplicado pendente de reversão.")
+    return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def simulacao_unificar_planos_despesa(request):
+    """Staff: simulação só leitura do mapa de unificação de planos."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from produtos.management.commands.unificar_planos_despesa import (
+        _carregar_mapa,
+        formatar_relatorio,
+        simular_unificacao,
+    )
+
+    path = Path(settings.BASE_DIR) / "docs" / "dados" / "plano_despesas_mapa_unificacao.csv"
+    try:
+        pares = _carregar_mapa(path)
+        sim = simular_unificacao(pares, path=path)
+        body = formatar_relatorio(sim)
+    except Exception as e:
+        body = f"Erro na simulação: {e}"
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def aplicar_unificar_planos_despesa(request):
+    """Staff: aplica renomes do mapa (só teste/loja — ambiente do Render atual)."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from produtos.management.commands.unificar_planos_despesa import (
+        _carregar_mapa,
+        aplicar_unificacao,
+        formatar_relatorio,
+        simular_unificacao,
+    )
+
+    if (request.GET.get("confirmar") or "").strip().lower() != "sim":
+        from django.urls import reverse
+
+        painel = request.build_absolute_uri(reverse("financeiro_painel_unificar_planos"))
+        return HttpResponse(
+            "APLICAR unificação de planos (CP)\n\n"
+            "Isto RENOMEIA plano_conta nos títulos — não apaga.\n"
+            "Use primeiro no TESTE (staging).\n\n"
+            "Para confirmar, abra:\n"
+            "  ?confirmar=sim\n\n"
+            f"Painel (simular / reverter): {painel}\n",
+            content_type="text/plain; charset=utf-8",
+        )
+
+    path = Path(settings.BASE_DIR) / "docs" / "dados" / "plano_despesas_mapa_unificacao.csv"
+    try:
+        pares = _carregar_mapa(path)
+        sim = simular_unificacao(pares, path=path)
+        out = aplicar_unificacao(pares, usuario=request.user)
+        from django.urls import reverse
+
+        reverter = (
+            request.build_absolute_uri(reverse("financeiro_reverter_unificar_planos"))
+            + "?confirmar=sim"
+        )
+        lines = [
+            formatar_relatorio(sim),
+            "",
+            "=== APLICADO NESTE AMBIENTE ===",
+            f"Títulos atualizados: {out['titulos_atualizados']}",
+        ]
+        for d in out["detalhes"]:
+            lines.append(f"  {d['antigo']} → {d['oficial']}: {d['titulos']}")
+        if out.get("lote_id"):
+            lines.append(f"Lote backup #{out['lote_id']} — para desfazer, use:")
+            lines.append(reverter)
+        body = "\n".join(lines)
+    except Exception as e:
+        body = f"Erro ao aplicar: {e}"
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def reverter_unificar_planos_despesa(request):
+    """Staff: desfaz o último apply de unificação de planos."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from django.urls import reverse
+
+    from produtos.management.commands.unificar_planos_despesa import reverter_ultimo_lote
+
+    if (request.GET.get("confirmar") or "").strip().lower() != "sim":
+        painel = request.build_absolute_uri(reverse("financeiro_painel_unificar_planos"))
+        return HttpResponse(
+            "REVERTER último apply de unificação (CP)\n\n"
+            "Volta plano_conta ao nome antigo (só o último lote deste ambiente).\n\n"
+            "Para confirmar, abra:\n"
+            "  ?confirmar=sim\n\n"
+            f"Painel: {painel}\n",
+            content_type="text/plain; charset=utf-8",
+        )
+
+    try:
+        out = reverter_ultimo_lote(usuario=request.user)
+        body = "\n".join(
+            [
+                "=== REVERTIDO NESTE AMBIENTE ===",
+                f"Lote #{out['lote_id']} · apply em {out['criado_em']:%d/%m/%Y %H:%M}",
+                f"Títulos restaurados: {out['revertidos']}",
+                f"Pulados (já alterados manualmente): {out['pulados']}",
+                "",
+                f"Painel: {request.build_absolute_uri(reverse('financeiro_painel_unificar_planos'))}",
+            ]
+        )
+    except Exception as e:
+        body = f"Erro ao reverter: {e}"
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")
