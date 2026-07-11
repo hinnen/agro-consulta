@@ -690,6 +690,13 @@ def api_pdv_mp_point_finalizar(request):
                 cliente_pk = int(cliente_pk_raw) if cliente_pk_raw is not None else None
             except (TypeError, ValueError):
                 cliente_pk = None
+            from produtos.caixa_util import parse_valor_moeda_br
+
+            valor_baixa = None
+            if erp_data.get("valor") is not None:
+                valor_baixa = parse_valor_moeda_br(erp_data.get("valor"))
+            elif erp_data.get("valor_total") is not None:
+                valor_baixa = parse_valor_moeda_br(erp_data.get("valor_total"))
             try:
                 resultado = baixar_fiado_via_pdv(
                     modo=str(erp_data.get("modo") or "titulo"),
@@ -698,7 +705,7 @@ def api_pdv_mp_point_finalizar(request):
                     cliente_agro_pk=cliente_pk,
                     cliente_nome=str(erp_data.get("cliente") or "").strip(),
                     cliente_codigo="",
-                    valor=None,
+                    valor=valor_baixa,
                     pagamentos=erp_data.get("pagamentos") or [],
                     request=request,
                     observacao=str(erp_data.get("observacao") or "").strip(),

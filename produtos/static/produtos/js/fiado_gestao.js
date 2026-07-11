@@ -27,8 +27,6 @@
     baixaResumo: document.getElementById('fiado-baixa-resumo'),
     baixaDica: document.getElementById('fiado-baixa-dica'),
     baixaValor: document.getElementById('fiado-baixa-valor'),
-    baixaForma: document.getElementById('fiado-baixa-forma'),
-    baixaObs: document.getElementById('fiado-baixa-obs'),
     baixaCancelar: document.getElementById('fiado-baixa-cancelar'),
     modalEditar: document.getElementById('fiado-modal-editar'),
     formEditar: document.getElementById('fiado-form-editar'),
@@ -427,6 +425,13 @@
     }
   }
 
+  function parseValorMoedaBr(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return 0;
+    const n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  }
+
   function cobrancaParamsFromCtx(ctx) {
     const modo = ctx.modo || 'cliente';
     const o = { modo: modo };
@@ -438,6 +443,9 @@
       if (ctx.pk) o.cliente_agro_pk = String(ctx.pk);
       if (ctx.nome) o.cliente_nome = ctx.nome;
       if (ctx.codigo) o.cliente_codigo = ctx.codigo;
+    }
+    if (ctx.valor != null && Number(ctx.valor) > 0) {
+      o.valor = String(Number(ctx.valor).toFixed(2)).replace('.', ',');
     }
     return o;
   }
@@ -474,70 +482,59 @@
       if (ctx.nome) p.set('cliente_nome', ctx.nome);
       if (ctx.codigo) p.set('cliente_codigo', ctx.codigo);
     }
+    if (ctx.valor != null && Number(ctx.valor) > 0) {
+      p.set('valor', String(Number(ctx.valor).toFixed(2)).replace('.', ','));
+    }
     window.location.href = base + '?' + p.toString();
   }
 
   function abrirBaixa(ctx) {
-    redirectToPdvCobranca(ctx);
+    baixaCtx = ctx || null;
+    if (!baixaCtx) return;
+    const saldo = Number(baixaCtx.saldo) || 0;
+    let resumo = '';
+    const modo = baixaCtx.modo || 'cliente';
+    if (modo === 'titulo') {
+      resumo = (baixaCtx.doc || 'Lançamento') + ' · saldo ' + fmtMoeda(saldo);
+    } else if (modo === 'selecionados') {
+      const qtd = baixaCtx.ids && baixaCtx.ids.length ? baixaCtx.ids.length : 0;
+      resumo = (baixaCtx.nome || 'Cliente') + ' · ' + qtd + ' título(s) · saldo ' + fmtMoeda(saldo);
+    } else {
+      resumo = (baixaCtx.nome || 'Cliente') + ' · saldo ' + fmtMoeda(saldo);
+    }
+    if (el.baixaTitulo) el.baixaTitulo.textContent = 'Quanto vai receber hoje?';
+    if (el.baixaResumo) el.baixaResumo.textContent = resumo;
+    if (el.baixaValor) {
+      el.baixaValor.value = saldo.toFixed(2).replace('.', ',');
+    }
+    if (el.modalBaixa && el.modalBaixa.showModal) {
+      el.modalBaixa.showModal();
+      if (el.baixaValor) {
+        setTimeout(function () {
+          el.baixaValor.focus();
+          el.baixaValor.select();
+        }, 60);
+      }
+    }
   }
 
-  async function confirmarBaixa(ev) {
+  function confirmarBaixa(ev) {
     ev.preventDefault();
     if (!baixaCtx) return;
-    const valor = el.baixaValor ? el.baixaValor.value : '';
-    const forma = el.baixaForma ? el.baixaForma.value : 'Dinheiro';
-    const obs = el.baixaObs ? el.baixaObs.value : '';
-    const registrarCaixa = !!CFG.caixaAberto;
-    try {
-      if (window.gmLoadingBar) window.gmLoadingBar.show();
-      const modo = baixaCtx.modo || 'cliente';
-      if (modo === 'titulo') {
-        await fetchJson(urls.baixa, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-          body: JSON.stringify({
-            titulo_id: baixaCtx.tituloId,
-            valor: valor,
-            forma_pagamento: forma,
-            observacao: obs,
-            registrar_caixa: registrarCaixa,
-          }),
-        });
-      } else if (modo === 'selecionados') {
-        await fetchJson(urls.baixaSelecionados, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-          body: JSON.stringify({
-            titulo_ids: baixaCtx.ids || [],
-            valor: valor,
-            forma_pagamento: forma,
-            observacao: obs,
-            registrar_caixa: registrarCaixa,
-          }),
-        });
-      } else {
-        await fetchJson(urls.baixaCliente, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-          body: JSON.stringify({
-            cliente_agro_pk: baixaCtx.pk || null,
-            cliente_nome: baixaCtx.nome || '',
-            cliente_codigo: baixaCtx.codigo || '',
-            valor: valor,
-            forma_pagamento: forma,
-            observacao: obs,
-            registrar_caixa: registrarCaixa,
-          }),
-        });
-      }
-      if (el.modalBaixa && el.modalBaixa.close) el.modalBaixa.close();
-      baixaCtx = null;
-      await recarregar();
-    } catch (e) {
-      alert(e.message || String(e));
-    } finally {
-      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    const saldoMax = Number(baixaCtx.saldo) || 0;
+    const valorNum = parseValorMoedaBr(el.baixaValor ? el.baixaValor.value : '');
+    if (valorNum <= 0) {
+      alert('Informe um valor maior que zero.');
+      return;
     }
+    if (valorNum > saldoMax + 0.02) {
+      alert('Valor maior que o saldo em aberto (' + fmtMoeda(saldoMax) + ').');
+      return;
+    }
+    const ctx = Object.assign({}, baixaCtx, { valor: Math.round(valorNum * 100) / 100 });
+    if (el.modalBaixa && el.modalBaixa.close) el.modalBaixa.close();
+    baixaCtx = null;
+    redirectToPdvCobranca(ctx);
   }
 
   function abrirEditar(t) {
@@ -712,7 +709,7 @@
         if (Number(t.saldo_aberto) > 0) saldo += Number(t.saldo_aberto) || 0;
       });
       if (saldo <= 0 && clienteModal.saldo) saldo = Number(clienteModal.saldo) || 0;
-      redirectToPdvCobranca({
+      abrirBaixa({
         modo: 'cliente',
         pk: clienteModal.pk,
         nome: clienteModal.nome,

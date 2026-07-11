@@ -1275,6 +1275,7 @@ def montar_cobranca_pdv_fiado(
         cliente_codigo=cliente_codigo,
         valor=valor,
     )
+    saldo_total = sum(t.saldo_aberto for t in titulos).quantize(Decimal("0.01"))
     modo_n = (modo or "titulo").strip().lower()
     t0 = titulos[0]
     cliente = _cliente_pdv_de_titulo_fiado(t0)
@@ -1291,6 +1292,8 @@ def montar_cobranca_pdv_fiado(
         "titulo_id": titulos[0].pk if modo_n == "titulo" else None,
         "titulo_ids": [t.pk for t in titulos] if modo_n != "titulo" else [],
         "valor_total": float(v_total),
+        "saldo_total": float(saldo_total),
+        "parcial": v_total < saldo_total - Decimal("0.02"),
         "cliente": cliente,
         "titulos": titulos_out,
         "resumo_texto": resumo,
@@ -1329,6 +1332,7 @@ def baixar_fiado_via_pdv(
         cliente_codigo=cliente_codigo,
         valor=valor,
     )
+    saldo_total = sum(t.saldo_aberto for t in titulos).quantize(Decimal("0.01"))
     if abs(soma_pag - v_total) > Decimal("0.02"):
         raise ValueError(
             f"A soma dos pagamentos (R$ {soma_pag:.2f}) deve ser igual ao valor a quitar (R$ {v_total:.2f})."
@@ -1410,6 +1414,8 @@ def baixar_fiado_via_pdv(
 
     resultado = {
         "valor_aplicado": float(v_total),
+        "saldo_total": float(saldo_total),
+        "parcial": v_total < saldo_total - Decimal("0.02"),
         "baixas_ids": baixas_ids,
         "titulos_afetados": len(titulos_afetados_set),
         "movimentos_caixa_ids": movimentos_ids,

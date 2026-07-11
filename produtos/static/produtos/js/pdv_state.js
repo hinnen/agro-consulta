@@ -150,6 +150,8 @@
                 tituloId: null,
                 tituloIds: [],
                 valorTotal: 0,
+                saldoTotal: 0,
+                parcial: false,
                 resumoTexto: '',
                 titulos: [],
                 emOverlay: false
@@ -883,14 +885,27 @@
             tituloId: data.titulo_id != null ? data.titulo_id : null,
             tituloIds: Array.isArray(data.titulo_ids) ? data.titulo_ids.slice() : [],
             valorTotal: toNumber(data.valor_total),
+            saldoTotal: toNumber(
+                data.saldo_total != null ? data.saldo_total : data.valor_total
+            ),
+            parcial: !!data.parcial,
             resumoTexto: String(data.resumo_texto || ''),
             titulos: Array.isArray(data.titulos) ? data.titulos.slice() : [],
             emOverlay: emOverlay
         };
+        if (
+            !state.fiadoCobranca.parcial &&
+            state.fiadoCobranca.saldoTotal > state.fiadoCobranca.valorTotal + 0.009
+        ) {
+            state.fiadoCobranca.parcial = true;
+        }
+        var rotuloCobranca = state.fiadoCobranca.parcial
+            ? 'Recebimento fiado (parcial)'
+            : 'Quitação fiado';
         state.itens = [
             {
                 id: 'fiado-cobranca',
-                nome: 'Quitação fiado — ' + (state.fiadoCobranca.resumoTexto || 'cliente'),
+                nome: rotuloCobranca + ' — ' + (state.fiadoCobranca.resumoTexto || 'cliente'),
                 qtd: 1,
                 preco: state.fiadoCobranca.valorTotal,
                 desconto: 0,

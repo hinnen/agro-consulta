@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.76** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.80** · **loja v7.60**
+
+### Fiado — baixa parcial no PDV (11/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Baixa parcial: 2× R$100, cliente paga R$150 → quita o mais antigo e R$50 no próximo |
+| **Feito teste v7.80** | Modal «Quanto vai receber hoje?» antes do PDV · repasse `valor` na cobrança · FIFO títulos (vencimento) · PDV confirma só o valor de hoje |
+| **Cherry produção** | `git cherry-pick e04d87a` · branch `pacote/fiado-baixa-parcial-v7.80` |
+| **Pendente** | Renan validar no Render teste (Ctrl+F5) |
 
 ### Cadastro ERP — estoque + vitrines (11/07)
 
