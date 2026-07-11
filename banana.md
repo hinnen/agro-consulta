@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.99** · **loja v7.65** (deploy indicadores pendente → v7.65)
+**Versão app (`VERSION`):** **teste v8.04** · **loja v7.66**
+
+### ✅ Deploy loja **v7.66** — Indicadores faturamento PDV (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Card **Faturamento vendas (PDV)** deixa de mostrar «—» · mesmo número do BI |
+| **Pacote** | **1 arquivo** `indicadores_gerencial_pg.py` (**sem** cadastro · busca · despesas CP) |
+| **Causa** | v7.65 tinha card no HTML mas **faltava backend** + fallback planilha→PDV |
+| **Validar** | Ctrl+F5 · Indicadores · **Mês ant.** jun/26 → valor no card PDV |
 
 ### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
 
