@@ -22,12 +22,18 @@
     btnBaixaTotalCli: document.getElementById('fiado-btn-baixa-total-cli'),
     btnAtualizarTitulos: document.getElementById('fiado-btn-atualizar-titulos'),
     modalBaixa: document.getElementById('fiado-modal-baixa'),
-    formBaixa: document.getElementById('fiado-form-baixa'),
+    baixaPassoEscolha: document.getElementById('fiado-baixa-passo-escolha'),
+    formBaixaParcial: document.getElementById('fiado-form-baixa-parcial'),
     baixaTitulo: document.getElementById('fiado-baixa-titulo'),
     baixaResumo: document.getElementById('fiado-baixa-resumo'),
+    baixaSaldoHero: document.getElementById('fiado-baixa-saldo-hero'),
     baixaDica: document.getElementById('fiado-baixa-dica'),
+    baixaBtnTotal: document.getElementById('fiado-baixa-btn-total'),
+    baixaBtnParcial: document.getElementById('fiado-baixa-btn-parcial'),
     baixaValor: document.getElementById('fiado-baixa-valor'),
     baixaCancelar: document.getElementById('fiado-baixa-cancelar'),
+    baixaVoltar: document.getElementById('fiado-baixa-voltar'),
+    baixaConfirmar: document.getElementById('fiado-baixa-confirmar'),
     modalEditar: document.getElementById('fiado-modal-editar'),
     formEditar: document.getElementById('fiado-form-editar'),
     editarResumo: document.getElementById('fiado-editar-resumo'),
@@ -51,6 +57,7 @@
   };
 
   let baixaCtx = null;
+  let baixaPassoAtual = 'escolha';
   let editarTituloId = null;
   let limiteAvulsoPk = null;
   let debounceTimer = null;
@@ -488,6 +495,61 @@
     window.location.href = base + '?' + p.toString();
   }
 
+  function fecharModalBaixa() {
+    if (el.modalBaixa && el.modalBaixa.close) el.modalBaixa.close();
+    baixaCtx = null;
+    baixaPassoAtual = 'escolha';
+  }
+
+  function mostrarPassoBaixa(passo) {
+    baixaPassoAtual = passo === 'parcial' ? 'parcial' : 'escolha';
+    if (el.baixaPassoEscolha) {
+      el.baixaPassoEscolha.classList.toggle('hidden', baixaPassoAtual !== 'escolha');
+    }
+    if (el.formBaixaParcial) {
+      el.formBaixaParcial.classList.toggle('hidden', baixaPassoAtual !== 'parcial');
+    }
+    if (el.baixaTitulo) {
+      el.baixaTitulo.textContent =
+        baixaPassoAtual === 'parcial' ? 'Quanto vai receber hoje?' : 'Como o cliente vai pagar?';
+    }
+  }
+
+  function irParaPdvBaixa(valorNum) {
+    if (!baixaCtx) return;
+    const saldoMax = Number(baixaCtx.saldo) || 0;
+    const v = valorNum != null ? Number(valorNum) : saldoMax;
+    if (v <= 0) {
+      alert('Informe um valor maior que zero.');
+      return;
+    }
+    if (v > saldoMax + 0.02) {
+      alert('Valor maior que o saldo em aberto (' + fmtMoeda(saldoMax) + ').');
+      return;
+    }
+    const ctx = Object.assign({}, baixaCtx, { valor: Math.round(v * 100) / 100 });
+    fecharModalBaixa();
+    redirectToPdvCobranca(ctx);
+  }
+
+  function confirmarBaixaTotal() {
+    if (!baixaCtx) return;
+    irParaPdvBaixa(Number(baixaCtx.saldo) || 0);
+  }
+
+  function abrirPassoParcialBaixa() {
+    if (!baixaCtx) return;
+    const saldo = Number(baixaCtx.saldo) || 0;
+    mostrarPassoBaixa('parcial');
+    if (el.baixaValor) {
+      el.baixaValor.value = saldo.toFixed(2).replace('.', ',');
+      setTimeout(function () {
+        el.baixaValor.focus();
+        el.baixaValor.select();
+      }, 60);
+    }
+  }
+
   function abrirBaixa(ctx) {
     baixaCtx = ctx || null;
     if (!baixaCtx) return;
@@ -502,39 +564,51 @@
     } else {
       resumo = (baixaCtx.nome || 'Cliente') + ' · saldo ' + fmtMoeda(saldo);
     }
-    if (el.baixaTitulo) el.baixaTitulo.textContent = 'Quanto vai receber hoje?';
     if (el.baixaResumo) el.baixaResumo.textContent = resumo;
-    if (el.baixaValor) {
-      el.baixaValor.value = saldo.toFixed(2).replace('.', ',');
-    }
+    if (el.baixaSaldoHero) el.baixaSaldoHero.textContent = fmtMoeda(saldo);
+    mostrarPassoBaixa('escolha');
     if (el.modalBaixa && el.modalBaixa.showModal) {
       el.modalBaixa.showModal();
-      if (el.baixaValor) {
-        setTimeout(function () {
-          el.baixaValor.focus();
-          el.baixaValor.select();
-        }, 60);
-      }
+      setTimeout(function () {
+        if (el.baixaBtnTotal) el.baixaBtnTotal.focus();
+      }, 60);
     }
   }
 
-  function confirmarBaixa(ev) {
-    ev.preventDefault();
+  function confirmarBaixaParcial(ev) {
+    if (ev) ev.preventDefault();
     if (!baixaCtx) return;
-    const saldoMax = Number(baixaCtx.saldo) || 0;
     const valorNum = parseValorMoedaBr(el.baixaValor ? el.baixaValor.value : '');
-    if (valorNum <= 0) {
-      alert('Informe um valor maior que zero.');
+    irParaPdvBaixa(valorNum);
+  }
+
+  function onBaixaModalKeydown(ev) {
+    if (!el.modalBaixa || !el.modalBaixa.open) return;
+    const key = ev.key || '';
+    if (baixaPassoAtual === 'escolha') {
+      if (key === 'Enter') {
+        ev.preventDefault();
+        confirmarBaixaTotal();
+        return;
+      }
+      if (key === 'p' || key === 'P') {
+        ev.preventDefault();
+        abrirPassoParcialBaixa();
+        return;
+      }
+      if (key === 'Escape') {
+        ev.preventDefault();
+        fecharModalBaixa();
+      }
       return;
     }
-    if (valorNum > saldoMax + 0.02) {
-      alert('Valor maior que o saldo em aberto (' + fmtMoeda(saldoMax) + ').');
-      return;
+    if (key === 'Escape') {
+      ev.preventDefault();
+      mostrarPassoBaixa('escolha');
+      setTimeout(function () {
+        if (el.baixaBtnTotal) el.baixaBtnTotal.focus();
+      }, 40);
     }
-    const ctx = Object.assign({}, baixaCtx, { valor: Math.round(valorNum * 100) / 100 });
-    if (el.modalBaixa && el.modalBaixa.close) el.modalBaixa.close();
-    baixaCtx = null;
-    redirectToPdvCobranca(ctx);
   }
 
   function abrirEditar(t) {
@@ -742,9 +816,31 @@
     });
   }
 
-  if (el.formBaixa) el.formBaixa.addEventListener('submit', confirmarBaixa);
-  if (el.baixaCancelar && el.modalBaixa) {
-    el.baixaCancelar.addEventListener('click', function () { el.modalBaixa.close(); });
+  if (el.formBaixaParcial) el.formBaixaParcial.addEventListener('submit', confirmarBaixaParcial);
+  if (el.baixaBtnTotal) el.baixaBtnTotal.addEventListener('click', confirmarBaixaTotal);
+  if (el.baixaBtnParcial) el.baixaBtnParcial.addEventListener('click', abrirPassoParcialBaixa);
+  if (el.baixaCancelar) el.baixaCancelar.addEventListener('click', fecharModalBaixa);
+  if (el.baixaVoltar) {
+    el.baixaVoltar.addEventListener('click', function () {
+      mostrarPassoBaixa('escolha');
+      if (el.baixaBtnTotal) el.baixaBtnTotal.focus();
+    });
+  }
+  if (el.modalBaixa) {
+    el.modalBaixa.addEventListener('keydown', onBaixaModalKeydown);
+    el.modalBaixa.addEventListener('close', function () {
+      baixaCtx = null;
+      baixaPassoAtual = 'escolha';
+    });
+    el.modalBaixa.addEventListener('cancel', function (ev) {
+      ev.preventDefault();
+      if (baixaPassoAtual === 'parcial') {
+        mostrarPassoBaixa('escolha');
+        if (el.baixaBtnTotal) el.baixaBtnTotal.focus();
+        return;
+      }
+      fecharModalBaixa();
+    });
   }
   if (el.formEditar) el.formEditar.addEventListener('submit', confirmarEditar);
   if (el.editarCancelar && el.modalEditar) {

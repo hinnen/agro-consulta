@@ -130,6 +130,68 @@
       border: 2px solid rgb(226 232 240);
       box-shadow: 0 20px 40px -12px rgb(15 23 42 / 0.25);
     }
+    .fiado-baixa-panel {
+      width: min(60vw, 42rem);
+      max-width: 96vw;
+      padding: clamp(1.25rem, 2vw, 2rem);
+      background: #fff;
+      border-radius: 1.25rem;
+      border: 2px solid rgb(226 232 240);
+      box-shadow: 0 24px 48px -16px rgb(15 23 42 / 0.28);
+    }
+    .fiado-baixa-saldo-hero {
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 900;
+      line-height: 1.1;
+      color: rgb(194 65 12);
+      font-variant-numeric: tabular-nums;
+    }
+    .fiado-baixa-btn-choice {
+      min-height: clamp(3.5rem, 6vh, 4.75rem);
+      font-size: clamp(0.95rem, 0.5vw + 0.85rem, 1.15rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      border-radius: 1rem;
+      border-width: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      width: 100%;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .fiado-baixa-btn-choice:active {
+      transform: scale(0.98);
+    }
+    .fiado-baixa-btn-choice kbd {
+      font-size: 0.72em;
+      font-weight: 800;
+      padding: 0.2em 0.55em;
+      border-radius: 0.45em;
+      border: 1px solid rgb(203 213 225);
+      background: rgb(248 250 252);
+      color: rgb(71 85 105);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .fiado-baixa-btn-total {
+      border-color: rgb(234 88 12);
+      background: linear-gradient(180deg, rgb(249 115 22) 0%, rgb(234 88 12) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgb(234 88 12 / 0.35);
+    }
+    .fiado-baixa-btn-total:hover {
+      background: linear-gradient(180deg, rgb(251 146 60) 0%, rgb(249 115 22) 100%);
+    }
+    .fiado-baixa-btn-parcial {
+      border-color: rgb(251 191 36);
+      background: rgb(255 251 235);
+      color: rgb(146 64 14);
+    }
+    .fiado-baixa-btn-parcial:hover {
+      background: rgb(254 243 199);
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
@@ -265,20 +327,40 @@
     </div>
   </dialog>
 
-  <dialog id="fiado-modal-baixa" class="fiado-modal-baixa w-[min(28rem,96vw)]">
-    <form id="fiado-form-baixa" method="dialog" class="fiado-submodal-form p-5 space-y-4">
-      <h2 id="fiado-baixa-titulo" class="text-lg font-black uppercase text-slate-900">Baixa de fiado</h2>
-      <p id="fiado-baixa-resumo" class="text-sm font-bold text-slate-600"></p>
-      <p id="fiado-baixa-dica" class="text-[11px] font-semibold text-slate-500">Pode ser parcial. Quita os títulos mais antigos primeiro; o restante abate no próximo. A forma de pagamento é escolhida no PDV.</p>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Valor a receber hoje (R$)
-        <input type="text" id="fiado-baixa-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
-      </label>
-      <div class="flex gap-2 justify-end pt-2">
-        <button type="button" id="fiado-baixa-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Cancelar</button>
-        <button type="submit" id="fiado-baixa-confirmar" class="min-h-[48px] px-5 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700">Ir para pagamento</button>
+  <dialog id="fiado-modal-baixa" class="fiado-modal-baixa">
+    <div class="fiado-baixa-panel space-y-5">
+      <div>
+        <h2 id="fiado-baixa-titulo" class="text-[clamp(1.15rem,1vw+1rem,1.65rem)] font-black uppercase text-slate-900 leading-tight">Como o cliente vai pagar?</h2>
+        <p id="fiado-baixa-resumo" class="mt-2 text-sm font-bold text-slate-600"></p>
+        <p id="fiado-baixa-saldo-label" class="mt-4 text-[10px] font-black uppercase tracking-wide text-slate-500">Saldo em aberto</p>
+        <p id="fiado-baixa-saldo-hero" class="fiado-baixa-saldo-hero mt-1">R$ 0,00</p>
       </div>
-    </form>
+
+      <div id="fiado-baixa-passo-escolha" class="space-y-3">
+        <p id="fiado-baixa-dica" class="text-xs font-semibold text-slate-500 leading-relaxed">Pagamento total quita tudo agora. Parcial abate nos títulos mais antigos primeiro — a forma de pagamento é no PDV.</p>
+        <button type="button" id="fiado-baixa-btn-total" class="fiado-baixa-btn-choice fiado-baixa-btn-total">
+          Pagamento total <kbd>Enter</kbd>
+        </button>
+        <button type="button" id="fiado-baixa-btn-parcial" class="fiado-baixa-btn-choice fiado-baixa-btn-parcial">
+          Pagamento parcial <kbd>P</kbd>
+        </button>
+        <div class="flex justify-end pt-1">
+          <button type="button" id="fiado-baixa-cancelar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600 hover:bg-slate-50">Cancelar <kbd class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 normal-case">Esc</kbd></button>
+        </div>
+      </div>
+
+      <form id="fiado-form-baixa-parcial" class="hidden space-y-4" method="dialog">
+        <p class="text-xs font-semibold text-slate-500">Digite quanto o cliente paga hoje. O restante continua em aberto.</p>
+        <label class="block text-[10px] font-black uppercase text-slate-500">
+          Valor a receber hoje (R$)
+          <input type="text" id="fiado-baixa-valor" inputmode="decimal" required autocomplete="off" class="mt-2 w-full rounded-xl border-2 border-orange-300 px-4 py-4 font-black text-[clamp(1.35rem,2vw+1rem,2rem)] min-h-[56px] text-orange-950 bg-orange-50/40 focus:outline-none focus:ring-2 focus:ring-orange-400">
+        </label>
+        <div class="flex flex-wrap gap-2 justify-end pt-1">
+          <button type="button" id="fiado-baixa-voltar" class="min-h-[52px] px-5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600 hover:bg-slate-50">Voltar</button>
+          <button type="submit" id="fiado-baixa-confirmar" class="min-h-[52px] px-6 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Ir para pagamento <kbd class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded border border-orange-400/50 bg-orange-500/30 normal-case">Enter</kbd></button>
+        </div>
+      </form>
+    </div>
   </dialog>
 
   <dialog id="fiado-modal-editar" class="fiado-modal-editar w-[min(32rem,96vw)]">
