@@ -1160,11 +1160,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Validado Renan teste** | Baixa parcial OK · popup Total/Parcial OK |
-| **Pacote produção** | Branch `pacote/fiado-baixa-parcial-producao` · commits `2004b0c` + `84690db` (código) · conflitos **só** `VERSION` + `banana.md` já resolvidos na branch |
-| **Deploy loja** | `git checkout producao` → `git merge pacote/fiado-baixa-parcial-producao` → push · **só** com frase + senha Renan |
-| **Pós-deploy loja** | Ctrl+F5 PDVs · testar fiado Total + Parcial · caixa aberto |
-| **Fora do pacote** | FL-029 crédito cliente · NFC-e na baixa (FL-052) · recibo parcial (FL-019) |
+| **Validado Renan teste** | Baixa parcial OK · popup Total (Enter) / Parcial (P) OK |
+| **Pacote produção** | Branch `pacote/fiado-baixa-parcial-producao` · merge pronto · **6 arquivos código** + VERSION/banana |
+| **Deploy loja** | `git checkout producao` → `git merge pacote/fiado-baixa-parcial-producao` → push · **só** frase + senha |
+| **Pós-deploy loja** | Ctrl+F5 PDVs · fiado Total + Parcial · **caixa aberto** |
+| **Fora do pacote** | FL-029 crédito cliente · NFC-e baixa (FL-052) · recibo (FL-019) |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
