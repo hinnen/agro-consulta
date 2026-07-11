@@ -1154,9 +1154,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.89** · **loja v7.61** · **pacote planos v7.63** (local, não subiu)
+**Versão app (`VERSION`):** **teste v7.89** · **loja v7.63**
 
-### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
+### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mapa + URLs staff simular/aplicar/reverter · migrate **0049** · **só renomeia** plano_conta (valores intactos) |
+| **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca/canário) |
+| **Pós-deploy código** | Render ~2–5 min · **migrate 0049** automático no deploy |
+| **Pós-deploy dados** | Simulação → conferir totais → **apply** (`…/aplicar-unificar/?confirmar=sim`) · pode 2 lotes |
+| **Revert** | `…/reverter-unificar/?confirmar=sim` |
+| **Teste ref.** | Apply lote #1+#2 OK · 3158 tít. · R$ 1.088.799,67 |
+
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1172,19 +1182,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Status** | **✅ loja v7.61** |
 | **Teste** | Validado Renan · popup + parcial OK |
 
-### 🔜 Plano despesas CP — pacote loja (11/07 · v7.63) — **NÃO SUBIU**
+### Plano despesas CP — apply banco loja pendente (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Teste** | ✅ Apply lote #1 (1120) + #2 (1255) · CP limpa (1 grafia/plano) · 3158 tít. · R$ 1.088.799,67 |
-| **Pacote** | Branch **`pacote/planos-cp-producao`** — só mapa + comando + URLs staff + migrate **0049** (**sem** cadastro/busca/canário/consulta) |
-| **Loja** | **Pendente** — Renan confere se loja livre · **próximo chat** autoriza deploy (senha) |
-| **Deploy (quando OK)** | Merge pacote → `producao` · push · Render · **migrate 0049** |
-| **Apply banco loja** | Painel `/financeiro/interno/planos-despesa-unificar/` → simulação → `…/aplicar-unificar/?confirmar=sim` (pode 2 lotes) |
-| **Revert** | `…/reverter-unificar/?confirmar=sim` (último lote) |
-| **Fora** | Indicadores Tipo+Grupo (fase B) · «FALTA NO MAPA» cosmético na simulação |
-
-**⚠ Não mergear `teste` inteiro na loja** — fiado já subiu; resto do teste fica no staging.
+| **Código loja** | **✅ v7.63** deploy 11/07 |
+| **Apply PG loja** | **⏳** Renan: simulação → apply quando Render terminar |
+| **Fora** | Indicadores Tipo+Grupo (fase B) |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
