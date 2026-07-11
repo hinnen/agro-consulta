@@ -17416,6 +17416,13 @@ def api_buscar_produtos(request):
             q_strip = str(q).strip()
             if _wizard_json_row_bate_query_exata(res[0], q_strip):
                 exact = True
+        # CANARY busca unificada (PDV + cadastro) — remover após Renan validar visualmente.
+        if q and not wizard_catalog and not entrada_nfe_mode:
+            _suf_canary = " [TESTE]"
+            for _r in res:
+                _nm = _r.get("nome")
+                if _nm and _suf_canary not in str(_nm):
+                    _r["nome"] = str(_nm) + _suf_canary
         payload = {"produtos": res, "exact_barcode_match": exact}
         if getattr(request, "_motor_busca_v2", False):
             payload["motor"] = "v2"

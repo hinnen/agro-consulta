@@ -1162,6 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Pedido** | Baixa parcial: 2× R$100, cliente paga R$150 → quita o mais antigo e R$50 no próximo |
 | **Feito teste v7.81** | Modal «Quanto vai receber hoje?» antes do PDV · repasse `valor` na cobrança · FIFO títulos (vencimento) · PDV confirma só o valor de hoje |
+| **UX 11/07 tarde** | Popup 60 % tela · passo 1: **Total** (Enter) ou **Parcial** (P) · passo 2: digitar valor |
 | **Cherry produção** | `git cherry-pick 2004b0c` · branch `pacote/fiado-baixa-parcial-v7.80` |
 | **Pendente** | Renan validar no Render teste (Ctrl+F5) |
 
@@ -1172,8 +1173,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
 | **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
 | **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
-| **Validação Renan 11/07** | Busca GM · custo · marcas · produto sumindo — OK nos fixes anteriores |
-| **Pendente** | Renan validar busca unificada v7.82 no Render teste · depois desativar `/produtos/gestao/` se OK |
+| **Validação Renan 11/07** | Teste 1+2 busca unificada OK (`/api/buscar/?contexto=cadastro`) |
+| **Canário v7.84** | Nome dos resultados de busca ganha sufixo **` [TESTE]`** no PDV e cadastro — **remover** após Renan confirmar |
+| **Pendente** | Renan ver ` [TESTE]` nas 2 telas → avisar para tirar canário · depois desativar `/produtos/gestao/` |
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
