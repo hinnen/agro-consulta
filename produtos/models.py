@@ -741,6 +741,50 @@ class TituloFinanceiroAgro(models.Model):
         return f"{tipo} · {self.descricao[:40] or self.numero_documento or self.mongo_id}"
 
 
+class PlanoUnificacaoLoteAgro(models.Model):
+    """Backup do último apply de unificação de plano_conta (permite reverter)."""
+
+    class Status(models.TextChoices):
+        APLICADO = "aplicado", "Aplicado"
+        REVERTIDO = "revertido", "Revertido"
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="plano_unificacao_lotes",
+    )
+    n_titulos = models.PositiveIntegerField(default=0)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.APLICADO,
+        db_index=True,
+    )
+    alteracoes = models.JSONField(
+        default=list,
+        help_text="Lista {mongo_id, de, para} antes de renomear.",
+    )
+    revertido_em = models.DateTimeField(null=True, blank=True)
+    revertido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="plano_unificacao_reversoes",
+    )
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Lote unificação planos CP"
+        verbose_name_plural = "Lotes unificação planos CP"
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.n_titulos} tít. · {self.status}"
+
+
 class EntradaNotaRascunhoAgro(models.Model):
     """Rascunho do assistente Entrada NF (etapas 1–6); substitui ``AgroEntradaNotaRascunho`` no Mongo."""
 

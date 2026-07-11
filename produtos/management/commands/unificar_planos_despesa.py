@@ -17,6 +17,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from produtos.lancamentos_financeiro_pg_util import (
     _CAP_LINHAS,
@@ -24,7 +25,7 @@ from produtos.lancamentos_financeiro_pg_util import (
     dedup_titulos,
     titulos_financeiro_montar_qs,
 )
-from produtos.models import TituloFinanceiroAgro
+from produtos.models import PlanoUnificacaoLoteAgro, TituloFinanceiroAgro
 
 
 def _fmt_brl(valor: Decimal) -> str:
@@ -262,18 +263,85 @@ def simular_unificacao(
     }
 
 
-def aplicar_unificacao(pares: list[tuple[str, str]]) -> dict:
-    """Renomeia plano_conta; não apaga títulos."""
+def aplicar_unificacao(
+    pares: list[tuple[str, str]], *, usuario=None
+) -> dict:
+    """Renomeia plano_conta; grava lote para reverter."""
+    alteracoes: list[dict] = []
     atualizados = 0
     detalhes = []
     for antigo, oficial in pares:
-        n = TituloFinanceiroAgro.objects.filter(
-            despesa=True, plano_conta=antigo
-        ).update(plano_conta=oficial[:200])
+        qs = TituloFinanceiroAgro.objects.filter(despesa=True, plano_conta=antigo)
+        mids = list(qs.values_list("mongo_id", flat=True))
+        if not mids:
+            continue
+        for mid in mids:
+            alteracoes.append(
+                {"mongo_id": str(mid), "de": antigo, "para": oficial}
+            )
+        n = qs.update(plano_conta=oficial[:200])
         if n:
             detalhes.append({"antigo": antigo, "oficial": oficial, "titulos": n})
             atualizados += n
-    return {"titulos_atualizados": atualizados, "detalhes": detalhes}
+
+    lote_id = None
+    if alteracoes:
+        u = usuario if getattr(usuario, "is_authenticated", False) else None
+        lote = PlanoUnificacaoLoteAgro.objects.create(
+            usuario=u,
+            n_titulos=len(alteracoes),
+            alteracoes=alteracoes,
+        )
+        lote_id = lote.pk
+
+    return {
+        "titulos_atualizados": atualizados,
+        "detalhes": detalhes,
+        "lote_id": lote_id,
+    }
+
+
+def reverter_ultimo_lote(*, usuario=None) -> dict:
+    """Desfaz o último lote aplicado (plano_conta volta ao nome antigo)."""
+    lote = (
+        PlanoUnificacaoLoteAgro.objects.filter(
+            status=PlanoUnificacaoLoteAgro.Status.APLICADO
+        )
+        .order_by("-criado_em")
+        .first()
+    )
+    if not lote:
+        raise CommandError("Nenhum lote aplicado para reverter neste ambiente.")
+
+    revertidos = 0
+    pulados = 0
+    for item in lote.alteracoes or []:
+        mid = str(item.get("mongo_id") or "").strip()
+        de = str(item.get("de") or "").strip()
+        para = str(item.get("para") or "").strip()
+        if not mid or not de or not para:
+            pulados += 1
+            continue
+        n = TituloFinanceiroAgro.objects.filter(
+            mongo_id=mid, plano_conta=para
+        ).update(plano_conta=de[:200])
+        if n:
+            revertidos += 1
+        else:
+            pulados += 1
+
+    u = usuario if getattr(usuario, "is_authenticated", False) else None
+    lote.status = PlanoUnificacaoLoteAgro.Status.REVERTIDO
+    lote.revertido_em = timezone.now()
+    lote.revertido_por = u
+    lote.save(update_fields=["status", "revertido_em", "revertido_por"])
+
+    return {
+        "lote_id": lote.pk,
+        "revertidos": revertidos,
+        "pulados": pulados,
+        "criado_em": lote.criado_em,
+    }
 
 
 def formatar_relatorio(sim: dict) -> str:
@@ -409,5 +477,7 @@ class Command(BaseCommand):
                 f"OK — {out['titulos_atualizados']} título(s) atualizados."
             )
         )
+        if out.get("lote_id"):
+            self.stdout.write(f"Lote backup #{out['lote_id']} (reversível).")
         for d in out["detalhes"]:
             self.stdout.write(f"  {d['antigo']} → {d['oficial']}: {d['titulos']}")
