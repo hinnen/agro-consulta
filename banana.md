@@ -1162,8 +1162,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Pedido** | Baixa parcial: 2× R$100, cliente paga R$150 → quita o mais antigo e R$50 no próximo |
 | **Feito teste v7.81** | Modal antes do PDV · repasse `valor` · FIFO títulos · PDV confirma só valor de hoje |
-| **UX v7.85** | Popup 60 % · passo 1 **Total** (Enter) / **Parcial** (P) · passo 2 digitar valor |
-| **Cherry produção** | `git cherry-pick 2004b0c` depois `<hash-ux>` (pacote fiado, 2 commits) |
+| **UX v7.87** | Popup 60 % · passo 1 **Total** (Enter) / **Parcial** (P) · passo 2 digitar valor |
+| **Cherry produção** | `git cherry-pick 2004b0c 84690db` (pacote fiado, 2 commits) |
 | **Pendente** | Renan validar no Render teste (Ctrl+F5) |
 
 ### Cadastro ERP — estoque + vitrines (11/07)
