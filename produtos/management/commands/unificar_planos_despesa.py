@@ -16,8 +16,13 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Count, Sum
 
+from produtos.lancamentos_financeiro_pg_util import (
+    _CAP_LINHAS,
+    _dec2,
+    dedup_titulos,
+    titulos_financeiro_montar_qs,
+)
 from produtos.models import TituloFinanceiroAgro
 
 
@@ -68,11 +73,16 @@ def _carregar_mapa(path: Path) -> list[tuple[str, str]]:
     return pares
 
 
-def _contagem_plano(grafia: str) -> tuple[int, Decimal]:
-    agg = TituloFinanceiroAgro.objects.filter(
-        despesa=True, plano_conta=grafia
-    ).aggregate(n=Count("id"), bruto=Sum("valor_bruto"))
-    return int(agg["n"] or 0), Decimal(str(agg["bruto"] or 0))
+def _contagem_plano(grafia: str, *, status: str = "todos") -> tuple[int, Decimal]:
+    """Mesma regra da CP: filtro + deduplicar antes de contar/somar bruto."""
+    qs = titulos_financeiro_montar_qs(despesa=True, status=status).filter(plano_conta=grafia)
+    cap = _CAP_LINHAS
+    rows = list(qs[: cap + 1])
+    if len(rows) > cap:
+        rows = rows[:cap]
+    deduped = dedup_titulos(rows)
+    bruto = sum((_dec2(t.valor_bruto) for t in deduped), Decimal("0"))
+    return len(deduped), bruto
 
 
 def _montar_por_oficial(grupos: dict[str, list[str]]) -> list[dict]:
@@ -203,7 +213,7 @@ def formatar_relatorio(sim: dict) -> str:
         f"Soma valor bruto desses títulos: R$ {_fmt_brl(sim['total_bruto'])}",
         "",
         "=== CONFERIR NA CP (total = soma das grafias → bate com filtro do plano) ===",
-        "Situação Todos · sem data · marque todas as grafias iguais ao plano oficial.",
+        "Situação Todos · sem data · marque todas as grafias · contagem deduplicada (igual CP).",
         "",
     ]
     for bloco in sim.get("por_oficial") or []:
