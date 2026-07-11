@@ -1154,15 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.80** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.82** · **loja v7.60**
 
 ### Fiado — baixa parcial no PDV (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Baixa parcial: 2× R$100, cliente paga R$150 → quita o mais antigo e R$50 no próximo |
-| **Feito teste v7.80** | Modal «Quanto vai receber hoje?» antes do PDV · repasse `valor` na cobrança · FIFO títulos (vencimento) · PDV confirma só o valor de hoje |
-| **Cherry produção** | `git cherry-pick e04d87a` · branch `pacote/fiado-baixa-parcial-v7.80` |
+| **Feito teste v7.81** | Modal «Quanto vai receber hoje?» antes do PDV · repasse `valor` na cobrança · FIFO títulos (vencimento) · PDV confirma só o valor de hoje |
+| **Cherry produção** | `git cherry-pick 2004b0c` · branch `pacote/fiado-baixa-parcial-v7.80` |
 | **Pendente** | Renan validar no Render teste (Ctrl+F5) |
 
 ### Cadastro ERP — estoque + vitrines (11/07)
@@ -1170,9 +1170,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
-| **Feito teste v7.69–v7.74** | Busca Postgres (`catalogo_agro.buscar` = mesmo motor PDV) · GM prefixo (`GM0024` → `-10/-15`) · custo lista sem patch PDV zerando · facetas marcas ordenadas A–Z |
-| **Validação Renan 11/07** | Busca GM · custo vazio (provável espelho teste) · marca fora da lista · produto sumindo após editar — **fix v7.71** |
-| **Pendente** | Renan revalidar no Render teste · depois desativar `/produtos/gestao/` se OK |
+| **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
+| **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
+| **Validação Renan 11/07** | Busca GM · custo · marcas · produto sumindo — OK nos fixes anteriores |
+| **Pendente** | Renan validar busca unificada v7.82 no Render teste · depois desativar `/produtos/gestao/` se OK |
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
