@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.89** · **loja v7.61** · **pacote planos v7.63** (local, não subiu)
+**Versão app (`VERSION`):** **teste v7.89** · **loja v7.64**
+
+### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mapa + URLs staff · migrate **0049** · só renomeia plano_conta |
+| **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca) |
+| **Apply PG loja** | **⏳** simulação → apply quando Render terminar (~2–5 min) |
+| **Revert** | `…/reverter-unificar/?confirmar=sim` |
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
@@ -1182,20 +1191,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
 | **Feito teste v7.92** | Busca **`#prova`** nas 3 telas → cartão verde + amostra «milho» do Postgres via `/api/buscar/` |
 | **Pendente** | Renan digitar `#prova` no cadastro, PDV wizard e Consulta · comparar mensagem e lista milho |
-
-### Plano despesas CP — teste OK · loja preparada (11/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Teste** | ✅ Apply lote #1 (1120) + #2 (1255) · CP limpa · 3158 tít. · R$ 1.088.799,67 |
-| **Pacote loja** | Branch **`pacote/planos-cp-producao`** commit `d901763` — **só** mapa + comando + URLs staff + migrate **0049** |
-| **Fora do pacote** | Cadastro/busca/canário/consulta/indicadores Tipo+Grupo (fase B) |
-| **Loja** | **Pendente** — Renan confere loja livre · **próximo chat** autoriza (senha) |
-| **Quando autorizar** | Merge pacote → `producao` · push · migrate **0049** · simulação → apply (1–2 lotes) |
-| **URLs staff** | `/financeiro/interno/planos-despesa-unificar/` |
-| **Revert** | `…/reverter-unificar/?confirmar=sim` |
-
-**⚠ Não mergear `teste` inteiro na loja.**
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
