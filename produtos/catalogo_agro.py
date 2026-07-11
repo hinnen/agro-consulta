@@ -139,8 +139,12 @@ def listar_paginado(
     sort_key: str = "nome",
     sort_direction: int = 1,
     inativos: bool = False,
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
 ) -> tuple[list[dict], bool]:
     qs = queryset_catalogo_ativos(inativos=inativos)
+    qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
     field = _SORT_MAP.get(sort_key, "nome")
     order = field if sort_direction >= 0 else f"-{field}"
     skip = max(0, (pagina - 1) * por_pagina)
@@ -208,10 +212,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         digits_only = re.sub(r"\D", "", termo)
-        busca_pesada_icontains = not (
-            (digits_only.isdigit() and len(digits_only) >= 8) or termo_eh_codigo_gm(termo)
-        )
-        if busca_pesada_icontains and len(found) < lim:
+        if len(found) < lim:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
@@ -664,7 +665,7 @@ def buscar_gestao(
 
 def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
     seen: set[str] = set()
-    out: list[str] = []
+    uniq: list[str] = []
     for raw in valores:
         s = str(raw or "").strip()
         if not s:
@@ -673,10 +674,12 @@ def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
         if key in seen:
             continue
         seen.add(key)
-        out.append(s)
-        if len(out) >= limite:
-            break
-    return sorted(out, key=lambda x: x.lower())
+        uniq.append(s)
+    uniq.sort(key=lambda x: x.lower())
+    lim = int(limite or 0)
+    if lim > 0:
+        return uniq[:lim]
+    return uniq
 
 
 def compras_dimensoes_relatorio(
@@ -871,46 +874,41 @@ def _produto_overlay_ids_unidade_agro(termo: str) -> list[str]:
         return []
 
 
-def facetas_gestao(*, limite: int = 200) -> dict[str, list[str]]:
+def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
     """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay)."""
-    lim = max(1, min(int(limite or 200), 300))
+    lim_cat = max(1, min(int(limite or 500), 2000))
     qs = queryset_catalogo_ativos(inativos=False)
-    marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=lim)
+    marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=0)
     categorias = _faceta_valores_distintos(
-        qs.exclude(categoria="").values_list("categoria", flat=True).distinct(), limite=lim
+        qs.exclude(categoria="").values_list("categoria", flat=True).distinct(), limite=lim_cat
     )
     subcategorias = _faceta_valores_distintos(
-        qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct(), limite=lim
+        qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct(), limite=lim_cat
     )
     fornecedores = _faceta_valores_distintos(
-        qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct(), limite=lim + 100
+        qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct(), limite=lim_cat + 200
     )
 
     ov_qs = ProdutoGestaoOverlayAgro.objects.all()
     marcas = _faceta_valores_distintos(
         list(marcas)
-        + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[: lim + 50]],
-        limite=lim,
+        + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()],
+        limite=0,
     )
     categorias = _faceta_valores_distintos(
         list(categorias)
-        + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[: lim + 50]],
-        limite=lim,
+        + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()],
+        limite=lim_cat,
     )
     subcategorias = _faceta_valores_distintos(
         list(subcategorias)
-        + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()[: lim + 50]],
-        limite=lim,
+        + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()],
+        limite=lim_cat,
     )
     fornecedores = _faceta_valores_distintos(
         list(fornecedores)
-        + [
-            x
-            for x in ov_qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct()[
-                : lim + 100
-            ]
-        ],
-        limite=lim + 100,
+        + [x for x in ov_qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct()],
+        limite=lim_cat + 200,
     )
     return {
         "marcas": marcas,

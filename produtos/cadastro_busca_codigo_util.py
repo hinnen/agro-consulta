@@ -138,6 +138,10 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
     if termo_eh_codigo_gm(termo):
         esc = termo.strip()
         _or(Q(codigo_interno__iexact=esc) | Q(codigo_nfe__iexact=esc))
+        _or(Q(codigo_interno__istartswith=esc) | Q(codigo_nfe__istartswith=esc))
+        al_gm = somente_alnum(termo).lower()
+        if al_gm.startswith("gm") and len(al_gm) >= 5:
+            _or(Q(codigo_nfe__icontains=al_gm) | Q(codigo_interno__icontains=al_gm))
     tl = somente_alnum(termo).lower()
     if tl and len(tl) >= 3:
         _or(Q(produto_externo_id__iexact=termo) | Q(erp_produto_id__iexact=termo))
@@ -188,6 +192,8 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     if termo_eh_codigo_gm(termo):
         for v in variantes_gm_literal(termo):
             _or(Q(codigo_nfe__iexact=v) | Q(codigo_barras__iexact=v))
+        esc = termo.strip()
+        _or(Q(codigo_nfe__istartswith=esc) | Q(codigo_barras__istartswith=esc))
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
     else:

@@ -1154,61 +1154,71 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.04** · **loja v7.66**
+**Versão app (`VERSION`):** **teste v8.05** · **loja v8.06** (deploy 11/07 — merge teste)
+
+### 🚀 Deploy loja **v8.06** — BCA + pacote teste (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Merge `teste` → `producao`: **BCA** (Busca Catálogo Agro) — PDV + Cadastro ERP + Consulta via `/api/buscar/` · cadastro estoque/vitrines · fiado baixa parcial · indicadores Tipo+Grupo + aba Estoque |
+| **Validado teste** | `#prova` nas 3 telas · `milho` PDV vs cadastro · fix JS Consulta |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDV · cadastro · consulta |
+| **Validar loja** | PDV venda rápida · cadastro `#prova` + `milho` · Consulta orçamento · Indicadores |
+| **Revert código** | Branch **`producao-backup-pre-bca-20260711`** · tag **`rollback/pre-bca-v766`** @ **`e260c48`** (loja **v7.66**) |
+| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-bca-20260711 && git push origin producao --force-with-lease` |
+| **Dados** | BCA = **só leitura** na busca — **não** altera catálogo Mongo/PG |
+| **Pendente** | Desativar `/produtos/gestao/` se cadastro OK na loja |
 
 ### ✅ Deploy loja **v7.66** — Indicadores faturamento PDV (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Card **Faturamento vendas (PDV)** deixa de mostrar «—» · mesmo número do BI |
-| **Pacote** | **1 arquivo** `indicadores_gerencial_pg.py` (**sem** cadastro · busca · despesas CP) |
-| **Causa** | v7.65 tinha card no HTML mas **faltava backend** + fallback planilha→PDV |
-| **Validar** | Ctrl+F5 · Indicadores · **Mês ant.** jun/26 → valor no card PDV |
+| **O quê** | Card **Faturamento vendas (PDV)** · **1 arquivo** `indicadores_gerencial_pg.py` |
+| **Causa** | v7.65 tinha card no HTML mas **faltava backend**; planilha histórica sem fallback |
+| **Fix** | `_faturamento_pdv_periodo` → mesma função do BI (`_dashboard_mongo_vendas_serie`) |
+| **Commit** | `e260c48` · **substituído** pelo merge v8.06 |
 
 ### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Tipo+Grupo da planilha CP na tabela despesas · aba **Estoque & giro** · **só leitura** |
-| **Pacote** | `pacote/indicadores-planilha-producao` (**sem** cadastro/busca/consulta) |
-| **Não mexe** | PDV · CP · caixa · fiado · apply planos (já feito) |
-| **Pode mudar** | Números **Indicadores** e **Resumo gerencial** (classificação fixa/variável) |
-| **Validar** | Ctrl+F5 · `/financeiro/dashboard-gerencial/` |
+| **O quê** | Tipo+Grupo planilha CP · aba Estoque & giro · **só leitura BI** |
+| **Não mexe** | PDV · CP · caixa · fiado |
+| **Pode mudar** | Números Indicadores + Resumo gerencial (classificação) |
+| **Fix 11/07** | Tabela despesas alinhada à **CP** (competência · bruto · todas empresas) |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Mapa + URLs staff simular/aplicar/reverter · migrate **0049** · **só renomeia** plano_conta (valores intactos) |
-| **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca/canário) |
-| **Pós-deploy código** | Render ~2–5 min · **migrate 0049** automático no deploy |
-| **Pós-deploy dados** | Simulação → conferir totais → **apply** (`…/aplicar-unificar/?confirmar=sim`) · pode 2 lotes |
-| **Revert** | `…/reverter-unificar/?confirmar=sim` |
-| **Teste ref.** | Apply lote #1+#2 OK · 3158 tít. · R$ 1.088.799,67 |
+| **O quê** | Mapa + URLs staff · migrate **0049** · só renomeia plano_conta |
+| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos · pós-sim **0** a renomear · **3286 · R$ 1.144.537,97** |
+| **Status** | **✅ CONCLUÍDO** loja |
+| **Revert dados** | `…/reverter-unificar/?confirmar=sim` |
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Baixa parcial fiado · popup Total (Enter) / Parcial (P) · FIFO títulos · PDV pagamento |
-| **Pacote** | `pacote/fiado-baixa-parcial-producao` · fast-forward `2c52f51`→`304a5fa` |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDVs · testar fiado · **caixa aberto** |
-| **Fora** | FL-029 crédito · FL-052 NFC-e baixa · FL-019 recibo |
+| **O quê** | Baixa parcial · popup Total/Parcial · FIFO · PDV pagamento |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDVs · caixa aberto |
+| **Fora** | FL-029 crédito · FL-052 NFC-e · FL-019 recibo |
 
 ### Fiado — baixa parcial no PDV (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | **✅ loja v7.61** |
-| **Teste** | Validado Renan · popup + parcial OK |
+| **Teste** | Validado · popup Total (Enter) / Parcial (P) |
 
-### Plano despesas CP — apply banco loja pendente (11/07)
+### Cadastro ERP — BCA (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Código loja** | **✅ v7.63** deploy 11/07 |
-| **Apply PG loja** | **⏳** Renan: simulação → apply quando Render terminar |
-| **Fora** | Indicadores Tipo+Grupo (fase B) |
+| **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` |
+| **BCA** | `agro_busca_catalogo.js` · `/api/buscar/` · PDV + cadastro + Consulta mesma API |
+| **Validação teste** | `#prova` + `milho` OK nas 3 telas |
+| **Loja** | **✅ v8.06** — validar Renan |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 

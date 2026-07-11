@@ -119,6 +119,7 @@ const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
 const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const CONSULTA_BUSCA_LIMITE = 60;
 const PDV_FOCUS_DELTA_MIN_MS = 5 * 60 * 1000;
 let pdvCatalogoBootAt = 0;
 let pdvCatalogoLastFocusDeltaAt = 0;
@@ -1083,6 +1084,7 @@ function tocarSom(tipo = 'add') {
 }
 
 function mostrarStatusBusca(texto, cor = 'slate') {
+    if (!statusBusca) return;
     statusBusca.classList.remove('hidden', 'text-slate-400', 'text-emerald-600', 'text-orange-500', 'text-red-500');
 
     if (cor === 'emerald') statusBusca.classList.add('text-emerald-600');
@@ -1167,9 +1169,12 @@ function removerSufixoQuantidade(texto) {
 }
 
 function renderizarSugestoes() {
+    if (!similaresContainer) return;
     similaresContainer.innerHTML = '';
-    autoList.innerHTML = '';
-    autoList.classList.add('hidden');
+    if (autoList) {
+        autoList.innerHTML = '';
+        autoList.classList.add('hidden');
+    }
 
     const PLACEHOLDER = (AGRO_PDV_ASSETS.placeholderProduto || '');
     const lapiz = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>`;
@@ -1522,6 +1527,7 @@ function validarItemCarrinhoSilencioso(id, precoLocal) {
 }
 
 function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
+    if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(id)) return;
     addCarrinho(id, nome, preco, qtd, prodRef ? metaOpcoesFromProd(prodRef) : {});
 }
 
@@ -2809,6 +2815,7 @@ function buscarProdutos(q, modo = 'normal') {
 
     quantidadeRapida = obterQuantidadeRapida(q);
     const termoBruto = removerSufixoQuantidade(q);
+    const termoDiagnostico = String(termoBruto || '').trim().indexOf('#') === 0;
     const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
     const mOrc = rawOrc.match(/^GMORC(\d{10,20})$/);
     if (mOrc) {
@@ -2827,7 +2834,7 @@ function buscarProdutos(q, modo = 'normal') {
     const termoBusca = normalizarBuscaLocal(termoBruto);
 
     const minChars = modo === 'scanner' ? 1 : 2;
-    const termoCurto = !termoBusca || termoBusca.trim().length < minChars;
+    const termoCurto = !termoBusca || (termoBusca.trim().length < minChars && !termoDiagnostico);
     if (termoCurto && !(pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo)) {
         limparBuscaVisual();
         esconderStatusBusca();
@@ -2838,6 +2845,10 @@ function buscarProdutos(q, modo = 'normal') {
     const delay = modo === 'scanner' ? 0 : (baseProdutos.length > 0 ? 0 : 220);
 
     debounceTimer = setTimeout(() => {
+        if (consultaUsarBuscaServidorPrimeiro(termoBruto, modo)) {
+            executarBuscaAPI(termoBruto, modo);
+            return;
+        }
         if (baseProdutos.length > 0) {
             if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
                 executarBuscaRapidaSoCategoria();
@@ -2845,8 +2856,15 @@ function buscarProdutos(q, modo = 'normal') {
                 executarBuscaLocal(termoBusca, modo);
             }
         } else if (window.AGRO_MANUAL_SYNC_ONLY) {
-            mostrarStatusBusca('Sem catálogo local. Use o botão «Estoque» no topo antes de buscar.', 'orange');
-            limparBuscaVisual();
+            if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+                limparBuscaVisual();
+                esconderStatusBusca();
+            } else if (!termoCurto) {
+                executarBuscaAPI(termoBruto, modo);
+            } else {
+                mostrarStatusBusca('Sem catálogo local. Use «Estoque» no topo ou digite 2+ letras para buscar online.', 'orange');
+                limparBuscaVisual();
+            }
         } else {
             executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
         }
@@ -2855,6 +2873,22 @@ function buscarProdutos(q, modo = 'normal') {
 
 function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
+}
+
+/** Consulta/orçamento — BCA (Busca Catálogo Agro): servidor primeiro. */
+function consultaUsarBuscaServidorPrimeiro(termoBruto, modo) {
+    if (typeof agroTermoBuscaCatalogoServidor === 'function') {
+        return agroTermoBuscaCatalogoServidor(termoBruto, modo);
+    }
+    if (modo === 'scanner') return false;
+    const bruto = String(termoBruto || '').trim();
+    if (!bruto) return false;
+    if (bruto.toLowerCase() === '#prova' || bruto.indexOf('#') === 0) return true;
+    const norm = normalizarBuscaLocal(bruto);
+    if (norm.length >= 2) return true;
+    if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(norm)) return true;
+    if (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(norm)) return true;
+    return false;
 }
 
 /** Filtro ativo pelos cards «Busca rápida · categoria» (Saco vs Granel). */
@@ -3307,8 +3341,8 @@ function extrairPalavrasParaHighlightDaBusca() {
 }
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
+    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     if (modo === 'scanner') {
-        const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
         const gmSemLocal =
             !locaisOrdenados.length
             && typeof pareceCodigoGmEtiqueta === 'function'
@@ -3331,15 +3365,16 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (window.AGRO_MANUAL_SYNC_ONLY) {
         if (locaisOrdenados.length) {
             processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, { preservarOrdem: true });
+        } else if (termoNorm.length >= 2) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
         } else {
-            mostrarStatusBusca('Sem sugestões locais. Sincronize o catálogo ou refine a busca.', 'orange');
+            mostrarStatusBusca('Sem sugestões locais. Digite 2+ letras para buscar online.', 'orange');
             processarResultadosBusca([], modo, false);
         }
         return;
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
-    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     const map = new Map();
     locaisOrdenados.forEach((p) => map.set(String(p.id), p));
     const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
@@ -3357,11 +3392,14 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     mergeFetchTimer = setTimeout(() => {
         if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch('/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal))
-            .then((res) => res.json())
+        var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+            ? fetchAgroBuscaCatalogo(termoBrutoOriginal, { limit: CONSULTA_BUSCA_LIMITE })
+            : fetch((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+        fetchBusca
             .then((data) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
+                agroMostrarProvaUnificadaBusca(data);
                 const api = data.produtos || [];
                 const apiById = new Map();
                 api.forEach((raw) => {
@@ -3472,13 +3510,27 @@ function executarBuscaLocal(termo, modo) {
     mesclarBuscaLocalComOnline(termoBrutoApi, modo, resultados);
 }
 
+function agroMostrarProvaUnificadaBusca(data) {
+    const p = data && data.prova_unificada;
+    if (p && p.ok) {
+        mostrarStatusBusca('Prova OK · ' + (p.mensagem || (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.nome) || 'BCA'), 'emerald');
+        return;
+    }
+    if (typeof agroStatusTextoBuscaCatalogo === 'function' && data && data.produtos && data.produtos.length) {
+        mostrarStatusBusca(agroStatusTextoBuscaCatalogo(data, data.produtos.length), 'emerald');
+    }
+}
+
 function executarBuscaAPI(termo, modo) {
-    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    mostrarStatusBusca('BCA · buscando no servidor…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-    fetch("/api/buscar/?q=" + encodeURIComponent(termo))
-        .then(res => res.json())
+    var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+        ? fetchAgroBuscaCatalogo(termo, { limit: CONSULTA_BUSCA_LIMITE })
+        : fetch('/api/buscar/?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    fetchBusca
         .then(data => {
             if (data.erro) throw new Error(data.erro);
+            agroMostrarProvaUnificadaBusca(data);
             processarResultadosBusca(data.produtos || [], modo, data.exact_barcode_match);
         })
         .catch(err => {
@@ -3489,6 +3541,13 @@ function executarBuscaAPI(termo, modo) {
 }
 
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
+    if (
+        matchExato
+        && produtosEncontrados.length === 1
+        && String(produtosEncontrados[0].id || '') === '__prova_unificada__'
+    ) {
+        matchExato = false;
+    }
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
         const pid = normalizarIdProdutoPdv(produto.id);
@@ -3561,6 +3620,8 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         const vis = sugestoesAtuais.length;
         if (total > vis) {
             mostrarStatusBusca(`${vis} de ${total} produto(s) — toque em “Ver mais” para o restante`, 'slate');
+        } else if (typeof agroStatusTextoBuscaCatalogo === 'function') {
+            mostrarStatusBusca(agroStatusTextoBuscaCatalogo(null, total), 'emerald');
         } else {
             mostrarStatusBusca(`${total} produto(s) encontrado(s)`, 'slate');
         }
@@ -3953,6 +4014,7 @@ function carregarCacheClientes(opts) {
         })
         .finally(() => { if (!silentBg && window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
+if (inputCliente && clienteResults) {
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
     clienteSelecionado = null;

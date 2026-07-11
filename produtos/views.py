@@ -859,7 +859,7 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v1"
+    _fac_cache_key = "agro_gestao_facetas_v4"
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
@@ -879,7 +879,16 @@ def api_produtos_gestao_facetas(request):
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
-        return JsonResponse({"ok": False, "erro": "Facetas indisponíveis (Postgres)."}, status=503)
+        from produtos import catalogo_agro as cat_agro
+
+        try:
+            fac = cat_agro.facetas_gestao()
+        except Exception as e:
+            logger.warning("api_produtos_gestao_facetas (agro_pg catálogo): %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+        payload = {"fonte": "agro_pg", **fac}
+        cache.set(_fac_cache_key, payload, 900)
+        return JsonResponse({"ok": True, **payload})
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -890,7 +899,7 @@ def api_produtos_gestao_facetas(request):
         marcas = sorted(
             {str(x).strip() for x in col.distinct("Marca", base) if str(x or "").strip()},
             key=lambda s: s.lower(),
-        )[:200]
+        )
         cats: set[str] = set()
         for k in ("NomeCategoria", "Categoria", "Grupo"):
             for x in col.distinct(k, base):
@@ -912,6 +921,34 @@ def api_produtos_gestao_facetas(request):
                 if s:
                     forns.add(s)
         fornecedores = sorted(forns, key=lambda s: s.lower())[:300]
+        from produtos import catalogo_agro as cat_agro
+
+        ov_qs = ProdutoGestaoOverlayAgro.objects.all()
+        marcas = cat_agro._faceta_valores_distintos(
+            list(marcas)
+            + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()],
+            limite=0,
+        )
+        categorias = cat_agro._faceta_valores_distintos(
+            list(categorias)
+            + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[:250]],
+            limite=200,
+        )
+        subcategorias = cat_agro._faceta_valores_distintos(
+            list(subcategorias)
+            + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()[:250]],
+            limite=200,
+        )
+        fornecedores = cat_agro._faceta_valores_distintos(
+            list(fornecedores)
+            + [
+                x
+                for x in ov_qs.exclude(fornecedor_texto="")
+                .values_list("fornecedor_texto", flat=True)
+                .distinct()[:300]
+            ],
+            limite=300,
+        )
     except Exception as e:
         logger.warning("api_produtos_gestao_facetas: %s", e, exc_info=True)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
@@ -8568,7 +8605,13 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         },
     }
     ctx["pdv_consulta_only"] = rota_nome == "consulta_produtos"
-    ctx["agro_pdv_assets_v"] = getattr(settings, "AGRO_PDV_ASSETS_V", "") or ""
+    try:
+        from pathlib import Path
+
+        _v_assets = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        _v_assets = ""
+    ctx["agro_pdv_assets_v"] = getattr(settings, "AGRO_PDV_ASSETS_V", "") or _v_assets
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 
@@ -16902,13 +16945,98 @@ def _buscar_mongo_lite_consulta(
 
 
 # --- APIs DE BUSCA ---
+def _api_buscar_json_prova_unificada(
+    request,
+    *,
+    contexto_cadastro: bool,
+    wizard_mode: bool,
+) -> JsonResponse:
+    """Resposta de diagnóstico — digite ``#prova`` na busca (PDV, wizard ou cadastro)."""
+    from produtos import catalogo_agro as cat_agro
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
+
+    ctx = "cadastro" if contexto_cadastro else ("wizard" if wizard_mode else "pdv")
+    usa_pg = bool(agro_catalogo_usa_postgres() or agro_pdv_catalogo_somente_postgres())
+    try:
+        total_pg = int(cat_agro.queryset_catalogo_ativos(inativos=False).count())
+    except Exception:
+        total_pg = None
+    amostra = cat_agro.buscar("milho", limit=5, inativos=False)
+    try:
+        from pathlib import Path
+
+        versao = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        versao = ""
+    prova = {
+        "ok": True,
+        "termo": "#prova",
+        "api": "/api/buscar/",
+        "motor": "catalogo_agro.buscar",
+        "catalogo_banco": "postgres" if usa_pg else "mongo",
+        "contexto_tela": ctx,
+        "versao_app": versao,
+        "total_produtos_ativos_postgres": total_pg,
+        "amostra_busca_milho": [
+            {"id": str(r.get("id") or ""), "nome": str(r.get("nome") or "")[:120]} for r in amostra[:5]
+        ],
+        "mensagem": (
+            f"Mesma API /api/buscar/ · mesmo motor catalogo_agro.buscar · "
+            f"banco {'Postgres' if usa_pg else 'Mongo'} · tela {ctx.upper()}"
+        ),
+    }
+    linha_prova = {
+        "id": "__prova_unificada__",
+        "nome": "✓ PROVA UNIFICADA — mesma API e mesmo Postgres (não vender)",
+        "marca": "Sistema",
+        "codigo_nfe": "PROVA",
+        "preco_venda": 0.0,
+        "preco_custo": 0.0,
+        "inativo": False,
+        "saldo_centro": 0.0,
+        "saldo_vila": 0.0,
+        "saldo_total": 0.0,
+        "categoria": "Diagnóstico",
+        "fornecedor": prova["mensagem"],
+    }
+    produtos = [linha_prova] + list(amostra)
+    if contexto_cadastro:
+        return JsonResponse(
+            {
+                "ok": True,
+                "modo": "busca",
+                "api": "buscar",
+                "contexto": "cadastro",
+                "motor": "catalogo_agro.buscar",
+                "q": "#prova",
+                "prova_unificada": prova,
+                "produtos": produtos,
+                "total_retornado": len(produtos),
+            }
+        )
+    return JsonResponse(
+        {
+            "produtos": produtos,
+            "exact_barcode_match": False,
+            "motor": "unificado",
+            "prova_unificada": prova,
+        }
+    )
+
+
 @require_GET
 def api_buscar_produtos(request):
-    """Busca única: PDV (`/api/buscar/`) ou tela de compras com `?compras=1` (inclui custos)."""
-    compras = getattr(request, "_compras_mode", False) or request.GET.get("compras") in (
-        "1",
-        "true",
-        "yes",
+    """Busca única: PDV, compras (`?compras=1`) ou cadastro ERP (`?contexto=cadastro`)."""
+    contexto_cadastro = str(request.GET.get("contexto") or "").strip().lower() == "cadastro"
+    compras = (
+        contexto_cadastro
+        or getattr(request, "_compras_mode", False)
+        or request.GET.get("compras")
+        in (
+            "1",
+            "true",
+            "yes",
+        )
     )
     wizard_mode = (request.GET.get("wizard") or "").strip().lower() in ("1", "true", "yes")
     entrada_nfe_mode = (request.GET.get("entrada_nfe") or "").strip().lower() in ("1", "true", "yes")
@@ -16919,6 +17047,12 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
+    if q.strip().lower() == "#prova":
+        return _api_buscar_json_prova_unificada(
+            request,
+            contexto_cadastro=contexto_cadastro,
+            wizard_mode=wizard_mode,
+        )
     try:
         lim_busca_req = int(request.GET.get("limit") or (48 if entrada_nfe_mode else 80))
     except (TypeError, ValueError):
@@ -17299,6 +17433,16 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            if contexto_cadastro:
+                if "inativo" not in row:
+                    row["inativo"] = bool(p.get("CadastroInativo"))
+                if not row.get("unidade"):
+                    row["unidade"] = _valor_texto_campo(
+                        p.get("Unidade") or p.get("SiglaUnidade") or p.get("UnidadeMedida")
+                    )
+                sc_c = _float_api_json(row.get("saldo_centro") or 0)
+                sv_c = _float_api_json(row.get("saldo_vila") or 0)
+                row["saldo_total"] = round(sc_c + sv_c, 2)
             if compras:
                 pv_m = _float_api_json(row.get("preco_venda") or 0)
                 m_lm = _margem_percentual_produto_pv(p, float(pv_m))
@@ -17375,6 +17519,8 @@ def api_buscar_produtos(request):
                 cache.set(entrada_nfe_cache_key, payload, 45)
             except Exception:
                 pass
+        if contexto_cadastro:
+            return _api_buscar_json_contexto_cadastro(request, res)
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
@@ -18897,17 +19043,124 @@ def _sort_cadastro_rows_inplace(rows: list[dict], sort_key: str, direction: int)
     rows.sort(key=key_txt, reverse=desc)
 
 
+def _cadastro_parse_filtros_lista(request) -> tuple[str, str, str, bool]:
+    marca = str(request.GET.get("marca") or "").strip()
+    categoria = str(request.GET.get("categoria") or "").strip()
+    fornecedor = str(request.GET.get("fornecedor") or "").strip()
+    incluir_saldo = request.GET.get("incluir_saldo", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
+    return marca, categoria, fornecedor, incluir_saldo
+
+
+def _cadastro_row_passa_filtros(r: dict, marca: str, categoria: str, fornecedor: str) -> bool:
+    if marca and str(r.get("marca") or "").strip() != marca:
+        return False
+    if categoria and str(r.get("categoria") or "").strip() != categoria:
+        return False
+    if fornecedor:
+        f = str(r.get("fornecedor") or "").strip().lower()
+        if fornecedor.strip().lower() not in f:
+            return False
+    return True
+
+
+def _cadastro_enriquecer_saldo_nas_rows(rows: list[dict]) -> list[dict]:
+    if not rows:
+        return rows
+    p_ids = [str(r.get("id") or "").strip() for r in rows if r.get("id")]
+    p_ids = [x for x in p_ids if x]
+    if not p_ids:
+        return rows
+    from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    client, db = (None, None)
+    if not agro_estoque_operacional_sem_mongo_erp():
+        client, db = obter_conexao_mongo()
+    saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client)
+    ovs = _overlay_mapa_por_ids(p_ids)
+    for r in rows:
+        pid = str(r.get("id") or "").strip()
+        s = saldos.get(pid) or {}
+        sc = _float_api_json(s.get("saldo_centro"), 0.0)
+        sv = _float_api_json(s.get("saldo_vila"), 0.0)
+        r["saldo_centro"] = round(sc, 2)
+        r["saldo_vila"] = round(sv, 2)
+        r["saldo_total"] = round(sc + sv, 2)
+        ov = ovs.get(pid)
+        if ov:
+            if ov.estoque_min_centro is not None:
+                r["estoque_min_centro"] = float(ov.estoque_min_centro)
+            if ov.estoque_max_centro is not None:
+                r["estoque_max_centro"] = float(ov.estoque_max_centro)
+            if ov.estoque_min_vila is not None:
+                r["estoque_min_vila"] = float(ov.estoque_min_vila)
+            if ov.estoque_max_vila is not None:
+                r["estoque_max_vila"] = float(ov.estoque_max_vila)
+    return rows
+
+
+def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict:
+    out = dict(payload)
+    if incluir_saldo and isinstance(out.get("produtos"), list):
+        out["produtos"] = _cadastro_enriquecer_saldo_nas_rows(list(out["produtos"]))
+    return out
+
+
+def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonResponse:
+    """Embalagem cadastro ERP sobre linhas já montadas por ``api_buscar_produtos``."""
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    marca_f, cat_f, forn_f, incluir_saldo = _cadastro_parse_filtros_lista(request)
+    sort_key, sort_direction = _parse_sort_cadastro_request(request)
+    q_raw = str(request.GET.get("q") or "").strip()
+
+    out: list[dict] = []
+    for r in rows:
+        if not inativos and r.get("inativo"):
+            continue
+        if not _cadastro_row_passa_filtros(r, marca_f, cat_f, forn_f):
+            continue
+        out.append(r)
+
+    if incluir_saldo:
+        out = _cadastro_enriquecer_saldo_nas_rows(out)
+    _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "modo": "busca",
+            "api": "buscar",
+            "contexto": "cadastro",
+            "motor": "catalogo_agro.buscar",
+            "q": q_raw,
+            "produtos": out,
+            "total_retornado": len(out),
+            "sort": sort_key,
+            "dir": "desc" if sort_direction < 0 else "asc",
+        }
+    )
+
+
 @require_GET
 def api_produtos_cadastro(request):
     """
-    Lista / busca cadastro de produtos no Mongo (ERP), sem saldos nem médias.
-    - Com `q`: usa ``motor_busca_consulta_documentos`` (igual Consulta / ``/api/buscar/``), com projeção slim.
-    - Sem `q`: paginação alfabética por Nome (`pagina`, `por_pagina`).
+    Lista / busca cadastro de produtos (Mongo ou Postgres Agro).
+    - Com `q`: motor da Consulta / ``/api/buscar/`` (projeção slim no Mongo).
+    - Sem `q`: paginação alfabética (`pagina`, `por_pagina`).
     - `inativos=1`: inclui cadastros inativos.
+    - `marca`, `categoria`, `fornecedor`: filtros (como gestão operacional).
+    - `incluir_saldo=1` (padrão): saldo Centro/Vila operacional Agro.
     - `sort` / `dir`: ordenação (nome, marca, unidade, categoria, subcategoria, preco_custo, preco_venda; asc|desc).
     """
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
     q_raw = str(request.GET.get("q") or "").strip()
+    marca_f, cat_f, forn_f, incluir_saldo = _cadastro_parse_filtros_lista(request)
+    tem_filtros_dim = bool(marca_f or cat_f or forn_f)
+    status_q = "todos" if inativos else "ativos"
 
     try:
         lim_busca = int(request.GET.get("limit") or 80)
@@ -18939,13 +19192,25 @@ def api_produtos_cadastro(request):
 
                 _cad_pg_key = (
                     f"cadastro_busca_pg_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
-                    f"{q_raw.lower()[:100]}"
+                    f"{marca_f}:{cat_f}:{forn_f}:{q_raw.lower()[:100]}"
                 )
                 _cad_pg_hit = cache.get(_cad_pg_key)
                 if _cad_pg_hit is not None:
-                    return JsonResponse(_cad_pg_hit)
+                    return JsonResponse(
+                        _cadastro_finalizar_payload_rows(dict(_cad_pg_hit), incluir_saldo)
+                    )
 
-                rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
+                if tem_filtros_dim:
+                    rows = cat_agro.buscar_gestao(
+                        q_raw,
+                        limit=lim_busca,
+                        status_q=status_q,
+                        marca=marca_f,
+                        categoria=cat_f,
+                        fornecedor=forn_f,
+                    )
+                else:
+                    rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
                 _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
                 _cad_pg_payload = {
                     "ok": True,
@@ -18961,26 +19226,34 @@ def api_produtos_cadastro(request):
                     cache.set(_cad_pg_key, _cad_pg_payload, 45)
                 except Exception:
                     pass
-                return JsonResponse(_cad_pg_payload)
+                return JsonResponse(
+                    _cadastro_finalizar_payload_rows(_cad_pg_payload, incluir_saldo)
+                )
             rows, has_more = cat_agro.listar_paginado(
                 pagina=pagina,
                 por_pagina=por_pagina,
                 sort_key=sort_key,
                 sort_direction=sort_direction,
                 inativos=inativos,
+                marca=marca_f,
+                categoria=cat_f,
+                fornecedor=forn_f,
             )
             return JsonResponse(
-                {
-                    "ok": True,
-                    "modo": "lista",
-                    "fonte": "agro_pg",
-                    "pagina": pagina,
-                    "por_pagina": por_pagina,
-                    "has_more": has_more,
-                    "produtos": rows,
-                    "sort": sort_key,
-                    "dir": "desc" if sort_direction < 0 else "asc",
-                }
+                _cadastro_finalizar_payload_rows(
+                    {
+                        "ok": True,
+                        "modo": "lista",
+                        "fonte": "agro_pg",
+                        "pagina": pagina,
+                        "por_pagina": por_pagina,
+                        "has_more": has_more,
+                        "produtos": rows,
+                        "sort": sort_key,
+                        "dir": "desc" if sort_direction < 0 else "asc",
+                    },
+                    incluir_saldo,
+                )
             )
         except Exception as e:
             logger.warning("api_produtos_cadastro agro_pg falhou: %s", e, exc_info=True)
@@ -18996,11 +19269,13 @@ def api_produtos_cadastro(request):
 
             _cad_cache_key = (
                 f"cadastro_busca_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
-                f"{q_raw.lower()[:100]}"
+                f"{marca_f}:{cat_f}:{forn_f}:{q_raw.lower()[:100]}"
             )
             _cad_hit = cache.get(_cad_cache_key)
             if _cad_hit is not None:
-                return JsonResponse(_cad_hit)
+                return JsonResponse(
+                    _cadastro_finalizar_payload_rows(dict(_cad_hit), incluir_saldo)
+                )
 
             prods: list = []
             bal_cad = _parse_etiqueta_balanca_ean13_br(q_raw)
@@ -19038,6 +19313,12 @@ def api_produtos_cadastro(request):
                     )
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
+            if tem_filtros_dim:
+                rows = [
+                    r
+                    for r in rows
+                    if _cadastro_row_passa_filtros(r, marca_f, cat_f, forn_f)
+                ]
             _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
             for _r in rows:
                 _aplicar_produto_gestao_overlay_em_dict(_r, _ovs.get(str(_r.get("id") or "")))
@@ -19055,9 +19336,28 @@ def api_produtos_cadastro(request):
                 cache.set(_cad_cache_key, _cad_payload, 45)
             except Exception:
                 pass
-            return JsonResponse(_cad_payload)
+            return JsonResponse(_cadastro_finalizar_payload_rows(_cad_payload, incluir_saldo))
 
-        filtro = {} if inativos else {"CadastroInativo": {"$ne": True}}
+        clauses: list[dict] = []
+        if not inativos:
+            clauses.append({"CadastroInativo": {"$ne": True}})
+        if marca_f:
+            clauses.append({"Marca": marca_f})
+        if cat_f:
+            clauses.append(
+                {
+                    "$or": [
+                        {"NomeCategoria": cat_f},
+                        {"Categoria": cat_f},
+                        {"Grupo": cat_f},
+                    ]
+                }
+            )
+        if forn_f:
+            clauses.append(
+                {"NomeFornecedor": {"$regex": re.escape(forn_f), "$options": "i"}}
+            )
+        filtro = {"$and": clauses} if len(clauses) > 1 else (clauses[0] if clauses else {})
         skip = (pagina - 1) * por_pagina
         mongo_field = _MONGO_SORT_CADASTRO.get(sort_key, "Nome")
         cur = (
@@ -19075,16 +19375,19 @@ def api_produtos_cadastro(request):
         for _r2 in rows:
             _aplicar_produto_gestao_overlay_em_dict(_r2, _ovs2.get(str(_r2.get("id") or "")))
         return JsonResponse(
-            {
-                "ok": True,
-                "modo": "lista",
-                "pagina": pagina,
-                "por_pagina": por_pagina,
-                "has_more": has_more,
-                "produtos": rows,
-                "sort": sort_key,
-                "dir": "desc" if sort_direction < 0 else "asc",
-            }
+            _cadastro_finalizar_payload_rows(
+                {
+                    "ok": True,
+                    "modo": "lista",
+                    "pagina": pagina,
+                    "por_pagina": por_pagina,
+                    "has_more": has_more,
+                    "produtos": rows,
+                    "sort": sort_key,
+                    "dir": "desc" if sort_direction < 0 else "asc",
+                },
+                incluir_saldo,
+            )
         )
     except Exception as e:
         logger.warning("api_produtos_cadastro falhou: %s", e, exc_info=True)

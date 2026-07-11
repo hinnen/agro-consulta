@@ -18,7 +18,6 @@ from financeiro.services.resumo_operacional_mongo import (
     get_object_or_none_empresa,
 )
 from produtos.lancamentos_financeiro_pg_analytics_util import (
-    _campo_data_titulo,
     _dec2,
     _titulo_aberto,
     _titulos_no_periodo_pg,
@@ -91,14 +90,6 @@ def buckets_ultimas_semanas(hoje: date, n: int = 3) -> list[dict[str, Any]]:
     return out
 
 
-def _valor_despesa_titulo(t, por: str) -> Decimal:
-    modo = (por or "competencia").strip().lower()
-    if modo == "pagamento":
-        return _dec2(t.valor_pago)
-    if modo == "vencimento":
-        return _dec2(t.valor_restante) if _titulo_aberto(t) else Decimal("0")
-    return _dec2(t.valor_bruto)
-
 
 _GRUPO_ORDEM = ("fixa", "variavel", "outra")
 _GRUPO_LABEL = {
@@ -142,7 +133,10 @@ def gastos_por_plano_periodo_pg(
     por: str,
     empresa_nome: str | None = None,
 ) -> dict[str, Decimal]:
+    """Totais por plano — mesma base da lista CP (dedup + bruto em competência)."""
     from produtos.mongo_financeiro_util import _dashboard_plano_excluido_gastos_chart
+
+    del empresa_nome  # CP não filtra empresa; tabela despesas = espelho CP
 
     modo = (por or "competencia").strip().lower()
     st = "todos" if modo == "pagamento" else "abertos" if modo != "competencia" else "todos"
@@ -150,22 +144,20 @@ def gastos_por_plano_periodo_pg(
         data_de=data_de, data_ate=data_ate, por=por, despesa=True, status=st
     )
     por_plano: dict[str, Decimal] = defaultdict(Decimal)
-    emp = (empresa_nome or "").strip().lower()
     for t in titulos:
-        if emp and str(t.empresa or "").strip().lower() != emp:
-            continue
         plano = str(t.plano_conta or "").strip() or "(sem plano)"
         if _dashboard_plano_excluido_gastos_chart(plano):
             continue
-        dt = _campo_data_titulo(t, por)
-        if dt is None or dt < data_de or dt > data_ate:
-            continue
-        if modo == "pagamento" and _dec2(t.valor_pago) <= 0:
-            continue
-        val = _valor_despesa_titulo(t, por)
-        if val <= 0:
-            continue
-        por_plano[plano] += val
+        if modo == "competencia":
+            por_plano[plano] += _dec2(t.valor_bruto)
+        elif modo == "pagamento":
+            val = _dec2(t.valor_pago)
+            if val > 0:
+                por_plano[plano] += val
+        else:
+            val = _dec2(t.valor_restante) if _titulo_aberto(t) else Decimal("0")
+            if val > 0:
+                por_plano[plano] += val
     return dict(por_plano)
 
 

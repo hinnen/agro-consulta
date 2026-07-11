@@ -1413,6 +1413,7 @@
                 return {
                     produtos: Array.isArray(data.produtos) ? data.produtos : [],
                     exactBarcode: !!data.exact_barcode_match,
+                    provaUnificada: data.prova_unificada || null,
                 };
             });
     }
@@ -7234,6 +7235,7 @@
                         return {
                             remote: srv.produtos,
                             exactBarcode: srv.exactBarcode,
+                            provaUnificada: srv.provaUnificada,
                             localList: localList,
                             skuCode: skuCode,
                             mode: mode,
@@ -7268,7 +7270,10 @@
                 if (merged.length) {
                     productSearchMayHaveMore = merged.length > AUTOCOMPLETE_PAGE_SIZE;
                     renderProductResults(merged);
-                    if (payload.skuCode && remote.length) {
+                    if (payload.provaUnificada && payload.provaUnificada.ok) {
+                        dom.productSearchFeedback.textContent =
+                            'Prova OK · ' + (payload.provaUnificada.mensagem || payload.provaUnificada.api);
+                    } else if (payload.skuCode && remote.length) {
                         dom.productSearchFeedback.textContent =
                             merged.length +
                             ' encontrado(s) (cache + servidor, variantes de código).';
