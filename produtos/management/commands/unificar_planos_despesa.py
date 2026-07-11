@@ -123,6 +123,18 @@ def _contagem_planos_conjunto(
     return len(deduped), bruto
 
 
+def _total_geral_despesa_cp(*, status: str = "todos") -> tuple[int, Decimal]:
+    """Toda despesa CP deduplicada — compare com «todos planos» marcados na lista."""
+    qs = titulos_financeiro_montar_qs(despesa=True, status=status)
+    cap = _CAP_LINHAS
+    rows = list(qs[: cap + 1])
+    if len(rows) > cap:
+        rows = rows[:cap]
+    deduped = dedup_titulos(rows)
+    bruto = sum((_dec2(t.valor_bruto) for t in deduped), Decimal("0"))
+    return len(deduped), bruto
+
+
 def _montar_por_oficial(
     grupos: dict[str, list[str]], planos_cp: set[str]
 ) -> list[dict]:
@@ -230,6 +242,10 @@ def simular_unificacao(
         {str(p).strip() for p in extras if str(p).strip() and str(p).strip() not in mapeados},
         key=lambda s: s.casefold(),
     )
+    total_geral_n, total_geral_bruto = _total_geral_despesa_cp()
+    fora_mapa_n, fora_mapa_bruto = (
+        _contagem_planos_conjunto(fora_mapa) if fora_mapa else (0, Decimal("0"))
+    )
 
     return {
         "por_rename": por_rename,
@@ -237,6 +253,9 @@ def simular_unificacao(
         "destinos": dict(destinos),
         "nao_encontrados": nao_encontrados,
         "fora_mapa": fora_mapa,
+        "fora_mapa_titulos": fora_mapa_n,
+        "fora_mapa_bruto": fora_mapa_bruto,
+        "total_geral_cp": {"titulos": total_geral_n, "valor_bruto": total_geral_bruto},
         "total_titulos": total_titulos,
         "total_bruto": total_bruto,
         "pares": len(pares),
@@ -265,6 +284,17 @@ def formatar_relatorio(sim: dict) -> str:
         f"Renomes no mapa (nome muda): {sim['pares']}",
         f"Títulos que seriam renomeados: {sim['total_titulos']}",
         f"Soma valor bruto desses títulos: R$ {_fmt_brl(sim['total_bruto'])}",
+        "",
+        "=== TOTAL GERAL CP (marque TODOS os planos na lista) ===",
+        "Situação Todos · sem data · deduplicado.",
+        (
+            f"▸ TODA despesa  |  {sim['total_geral_cp']['titulos']} título(s)  |  "
+            f"R$ {_fmt_brl(sim['total_geral_cp']['valor_bruto'])}"
+        ),
+        (
+            f"   Planos fora do mapa CSV: {sim.get('fora_mapa_titulos', 0)} título(s)  |  "
+            f"R$ {_fmt_brl(sim.get('fora_mapa_bruto') or 0)}"
+        ),
         "",
         "=== CONFERIR NA CP (TOTAL = marque TODAS as grafias listadas abaixo) ===",
         "Situação Todos · sem data · deduplicado igual CP · inclui grafias ainda fora do mapa CSV.",
