@@ -472,7 +472,7 @@ def simulacao_unificar_planos_despesa(request):
     path = Path(settings.BASE_DIR) / "docs" / "dados" / "plano_despesas_mapa_unificacao.csv"
     try:
         pares = _carregar_mapa(path)
-        sim = simular_unificacao(pares)
+        sim = simular_unificacao(pares, path=path)
         body = formatar_relatorio(sim)
     except Exception as e:
         body = f"Erro na simulação: {e}"

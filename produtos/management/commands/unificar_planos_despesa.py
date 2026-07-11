@@ -21,35 +21,101 @@ from django.db.models import Count, Sum
 from produtos.models import TituloFinanceiroAgro
 
 
-def _carregar_mapa(path: Path) -> list[tuple[str, str]]:
-    """Retorna pares (antigo, oficial) onde o nome muda."""
+def _fmt_brl(valor: Decimal) -> str:
+    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _colunas_mapa_csv(fieldnames: list[str] | None) -> tuple[str, str]:
+    if not fieldnames:
+        raise CommandError("CSV sem cabeçalho")
+    cols = {(c or "").strip().lower(): c for c in fieldnames}
+    k_ant = cols.get("nome antigo (como está no cp)") or cols.get("nome antigo")
+    k_ofi = cols.get("nome oficial")
+    if not k_ant or not k_ofi:
+        raise CommandError(
+            "CSV precisa das colunas: Nome antigo (como está no CP); Nome oficial"
+        )
+    return k_ant, k_ofi
+
+
+def _carregar_mapa_grupos(path: Path) -> dict[str, list[str]]:
+    """Oficial → grafias distintas listadas no mapa (inclui já-oficial)."""
     if not path.is_file():
         raise CommandError(f"Mapa não encontrado: {path}")
-    pares: list[tuple[str, str]] = []
+    grupos: dict[str, set[str]] = defaultdict(set)
     with path.open(encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f, delimiter=";")
-        if not reader.fieldnames:
-            raise CommandError("CSV sem cabeçalho")
-        # aceita nomes com ou sem espaços
-        cols = { (c or "").strip().lower(): c for c in reader.fieldnames }
-        k_ant = cols.get("nome antigo (como está no cp)") or cols.get("nome antigo")
-        k_ofi = cols.get("nome oficial")
-        if not k_ant or not k_ofi:
-            raise CommandError(
-                "CSV precisa das colunas: Nome antigo (como está no CP); Nome oficial"
-            )
+        k_ant, k_ofi = _colunas_mapa_csv(reader.fieldnames)
         for row in reader:
             antigo = (row.get(k_ant) or "").strip()
             oficial = (row.get(k_ofi) or "").strip()
             if not antigo or not oficial:
                 continue
-            if antigo == oficial:
-                continue
-            pares.append((antigo, oficial))
+            grupos[oficial].add(antigo)
+    return {
+        oficial: sorted(grafias, key=lambda s: s.casefold())
+        for oficial, grafias in grupos.items()
+    }
+
+
+def _carregar_mapa(path: Path) -> list[tuple[str, str]]:
+    """Retorna pares (antigo, oficial) onde o nome muda."""
+    pares: list[tuple[str, str]] = []
+    for oficial, grafias in _carregar_mapa_grupos(path).items():
+        for antigo in grafias:
+            if antigo != oficial:
+                pares.append((antigo, oficial))
     return pares
 
 
-def simular_unificacao(pares: list[tuple[str, str]]) -> dict:
+def _contagem_plano(grafia: str) -> tuple[int, Decimal]:
+    agg = TituloFinanceiroAgro.objects.filter(
+        despesa=True, plano_conta=grafia
+    ).aggregate(n=Count("id"), bruto=Sum("valor_bruto"))
+    return int(agg["n"] or 0), Decimal(str(agg["bruto"] or 0))
+
+
+def _montar_por_oficial(grupos: dict[str, list[str]]) -> list[dict]:
+    """Por nome oficial: grafias que corrigem, que já estão OK e total (≈ CP)."""
+    por_oficial: list[dict] = []
+    for oficial, grafias in grupos.items():
+        corrige: list[dict] = []
+        ja_ok: list[dict] = []
+        total_n = 0
+        total_bruto = Decimal("0")
+        for grafia in grafias:
+            n, bruto = _contagem_plano(grafia)
+            if n == 0:
+                continue
+            entry = {"grafia": grafia, "titulos": n, "valor_bruto": bruto}
+            if grafia == oficial:
+                ja_ok.append(entry)
+            else:
+                corrige.append(entry)
+            total_n += n
+            total_bruto += bruto
+        if total_n == 0:
+            continue
+        por_oficial.append(
+            {
+                "oficial": oficial,
+                "corrige": sorted(
+                    corrige, key=lambda r: (-r["titulos"], r["grafia"].casefold())
+                ),
+                "ja_ok": sorted(
+                    ja_ok, key=lambda r: (-r["titulos"], r["grafia"].casefold())
+                ),
+                "titulos": total_n,
+                "valor_bruto": total_bruto,
+            }
+        )
+    por_oficial.sort(key=lambda r: (-r["titulos"], r["oficial"].casefold()))
+    return por_oficial
+
+
+def simular_unificacao(
+    pares: list[tuple[str, str]], *, path: Path | None = None
+) -> dict:
     """Conta títulos e soma valor_bruto por rename (só leitura)."""
     por_rename: list[dict] = []
     total_titulos = 0
@@ -57,11 +123,7 @@ def simular_unificacao(pares: list[tuple[str, str]]) -> dict:
     nao_encontrados: list[str] = []
 
     for antigo, oficial in pares:
-        agg = TituloFinanceiroAgro.objects.filter(
-            despesa=True, plano_conta=antigo
-        ).aggregate(n=Count("id"), bruto=Sum("valor_bruto"))
-        n = int(agg["n"] or 0)
-        bruto = Decimal(str(agg["bruto"] or 0))
+        n, bruto = _contagem_plano(antigo)
         if n == 0:
             nao_encontrados.append(antigo)
             continue
@@ -83,9 +145,17 @@ def simular_unificacao(pares: list[tuple[str, str]]) -> dict:
         d["titulos"] += row["titulos"]
         d["valor_bruto"] += row["valor_bruto"]
 
-    # planos no CP que não estão no mapa (despesa)
-    mapeados = {a for a, _ in pares} | {o for _, o in pares}
-    # também nomes que já são oficiais (iguais no CSV)
+    grupos = _carregar_mapa_grupos(path) if path else {}
+    por_oficial = _montar_por_oficial(grupos) if grupos else []
+
+    mapeados: set[str] = set()
+    if grupos:
+        for oficial, grafias in grupos.items():
+            mapeados.add(oficial)
+            mapeados.update(grafias)
+    else:
+        mapeados = {a for a, _ in pares} | {o for _, o in pares}
+
     extras = (
         TituloFinanceiroAgro.objects.filter(despesa=True)
         .exclude(plano_conta="")
@@ -99,6 +169,7 @@ def simular_unificacao(pares: list[tuple[str, str]]) -> dict:
 
     return {
         "por_rename": por_rename,
+        "por_oficial": por_oficial,
         "destinos": dict(destinos),
         "nao_encontrados": nao_encontrados,
         "fora_mapa": fora_mapa,
@@ -129,25 +200,40 @@ def formatar_relatorio(sim: dict) -> str:
         "",
         f"Renomes no mapa (nome muda): {sim['pares']}",
         f"Títulos que seriam renomeados: {sim['total_titulos']}",
-        f"Soma valor bruto desses títulos: R$ {sim['total_bruto']:,.2f}".replace(",", "X")
-        .replace(".", ",")
-        .replace("X", "."),
+        f"Soma valor bruto desses títulos: R$ {_fmt_brl(sim['total_bruto'])}",
         "",
-        "=== POR RENAME (antigo → oficial) ===",
+        "=== CONFERIR NA CP (total = soma das grafias → bate com filtro do plano) ===",
+        "Situação Todos · sem data · marque todas as grafias iguais ao plano oficial.",
+        "",
     ]
-    for row in sorted(sim["por_rename"], key=lambda r: (-r["titulos"], r["antigo"].casefold())):
-        vb = f"{row['valor_bruto']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    for bloco in sim.get("por_oficial") or []:
         lines.append(
-            f"- {row['antigo']}  →  {row['oficial']}  |  {row['titulos']} título(s)  |  R$ {vb}"
+            f"▸ {bloco['oficial']}  |  TOTAL {bloco['titulos']} título(s)  |  "
+            f"R$ {_fmt_brl(bloco['valor_bruto'])}"
+        )
+        for row in bloco["corrige"]:
+            lines.append(
+                f"    VAI CORRIGIR: {row['grafia']}  |  {row['titulos']} título(s)  |  "
+                f"R$ {_fmt_brl(row['valor_bruto'])}"
+            )
+        for row in bloco["ja_ok"]:
+            lines.append(
+                f"    JÁ ESTÁ OK: {row['grafia']}  |  {row['titulos']} título(s)  |  "
+                f"R$ {_fmt_brl(row['valor_bruto'])}"
+            )
+        lines.append("")
+    if not sim.get("por_oficial"):
+        lines.append("(nenhum plano oficial com título no CP)")
+        lines.append("")
+
+    lines.append("=== DETALHE — só o que seria renomeado (antigo → oficial) ===")
+    for row in sorted(sim["por_rename"], key=lambda r: (-r["titulos"], r["antigo"].casefold())):
+        lines.append(
+            f"- {row['antigo']}  →  {row['oficial']}  |  {row['titulos']} título(s)  |  "
+            f"R$ {_fmt_brl(row['valor_bruto'])}"
         )
     if not sim["por_rename"]:
         lines.append("(nenhum título encontrado com os nomes antigos do mapa)")
-
-    lines.append("")
-    lines.append("=== CONSOLIDADO POR NOME OFICIAL (só o que muda) ===")
-    for nome, d in sorted(sim["destinos"].items(), key=lambda x: x[0].casefold()):
-        vb = f"{d['valor_bruto']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        lines.append(f"- {nome}  |  +{d['titulos']} título(s)  |  R$ {vb}")
 
     lines.append("")
     lines.append("=== NO MAPA MAS SEM TÍTULO NO CP ===")
@@ -208,12 +294,12 @@ class Command(BaseCommand):
             raise CommandError("Para aplicar use: --aplicar --confirmar")
 
         if not aplicar:
-            sim = simular_unificacao(pares)
+            sim = simular_unificacao(pares, path=path)
             self.stdout.write(formatar_relatorio(sim))
             return
 
         # aplica
-        sim = simular_unificacao(pares)
+        sim = simular_unificacao(pares, path=path)
         self.stdout.write(formatar_relatorio(sim))
         self.stdout.write("")
         self.stdout.write("Aplicando renomes…")

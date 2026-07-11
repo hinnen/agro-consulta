@@ -1174,6 +1174,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
 | **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
 | **Status** | Simulação pronta; **aplicar** só com OK do Renan |
+| **Conferência 11/07** | Simulação ganhou bloco **CONFERIR NA CP**: por plano oficial — **VAI CORRIGIR** + **JÁ ESTÁ OK** + **TOTAL** (soma das grafias ≈ filtro CP). Código em `teste`; loja ainda v7.60 |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
