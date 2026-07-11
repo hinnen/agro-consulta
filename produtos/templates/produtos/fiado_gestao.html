@@ -269,28 +269,14 @@
     <form id="fiado-form-baixa" method="dialog" class="fiado-submodal-form p-5 space-y-4">
       <h2 id="fiado-baixa-titulo" class="text-lg font-black uppercase text-slate-900">Baixa de fiado</h2>
       <p id="fiado-baixa-resumo" class="text-sm font-bold text-slate-600"></p>
-      <p id="fiado-baixa-dica" class="text-[11px] font-semibold text-slate-500">O valor quita os títulos mais antigos primeiro. Com caixa aberto, entra como reforço no turno.</p>
+      <p id="fiado-baixa-dica" class="text-[11px] font-semibold text-slate-500">Pode ser parcial. Quita os títulos mais antigos primeiro; o restante abate no próximo. A forma de pagamento é escolhida no PDV.</p>
       <label class="block text-[10px] font-black uppercase text-slate-500">
-        Valor recebido (R$)
+        Valor a receber hoje (R$)
         <input type="text" id="fiado-baixa-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
-      </label>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Forma de pagamento
-        <select id="fiado-baixa-forma" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
-          <option value="Dinheiro">Dinheiro</option>
-          <option value="PIX">PIX</option>
-          <option value="Cartão de débito">Cartão de débito</option>
-          <option value="Cartão de crédito">Cartão de crédito</option>
-          <option value="Transferência">Transferência</option>
-        </select>
-      </label>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Observação (opcional)
-        <input type="text" id="fiado-baixa-obs" maxlength="200" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-2 font-semibold text-sm min-h-[44px]">
       </label>
       <div class="flex gap-2 justify-end pt-2">
         <button type="button" id="fiado-baixa-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Cancelar</button>
-        <button type="submit" id="fiado-baixa-confirmar" class="min-h-[48px] px-5 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700">Confirmar baixa</button>
+        <button type="submit" id="fiado-baixa-confirmar" class="min-h-[48px] px-5 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700">Ir para pagamento</button>
       </div>
     </form>
   </dialog>

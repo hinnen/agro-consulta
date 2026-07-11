@@ -649,6 +649,9 @@
         }
         if (params.cliente_nome) p.set('cliente_nome', String(params.cliente_nome));
         if (params.cliente_codigo) p.set('cliente_codigo', String(params.cliente_codigo));
+        if (params.valor != null && String(params.valor).trim() !== '') {
+            p.set('valor', String(params.valor));
+        }
         return p;
     }
 
@@ -5972,22 +5975,33 @@
         if (dom.paymentPaidAccum) dom.paymentPaidAccum.textContent = formatMoney(pagoAcum);
         if (dom.paymentRemainingTop) dom.paymentRemainingTop.textContent = formatMoney(restFin);
         var quitadoPay = restFin <= 0.009;
+        var fc = state.fiadoCobranca || {};
         if (dom.paymentRestanteHero) {
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--quitado', quitadoPay);
             dom.paymentRestanteHero.classList.toggle('pdv-pay-restante-hero--pendente', !quitadoPay);
         }
         if (dom.paymentRestanteHeroLabel) {
             dom.paymentRestanteHeroLabel.textContent = isFiadoCobrancaAtiva(state)
-                ? 'Quitar fiado'
+                ? fc.parcial
+                    ? 'Receber hoje'
+                    : 'Quitar fiado'
                 : quitadoPay
                   ? 'Tudo pago'
                   : 'Resta pagar';
         }
         if (dom.paymentRestanteHeroSub) {
-            var fc = state.fiadoCobranca || {};
-            dom.paymentRestanteHeroSub.textContent = fc.ativo
-                ? String(fc.resumoTexto || 'Escolha a forma de pagamento no PDV.')
-                : '';
+            var subFiado = fc.ativo ? String(fc.resumoTexto || '') : '';
+            if (fc.ativo && fc.parcial && fc.saldoTotal > fc.valorTotal + 0.009) {
+                subFiado +=
+                    (subFiado ? ' · ' : '') +
+                    'Saldo ' +
+                    formatMoney(fc.saldoTotal) +
+                    ' → recebendo ' +
+                    formatMoney(fc.valorTotal);
+            } else if (fc.ativo && !subFiado) {
+                subFiado = 'Escolha a forma de pagamento no PDV.';
+            }
+            dom.paymentRestanteHeroSub.textContent = subFiado;
             dom.paymentRestanteHeroSub.classList.toggle('hidden', !fc.ativo);
         }
         if (dom.paymentRestanteHeroVal) {
@@ -7611,6 +7625,7 @@
         var payload = {
             fiado_cobranca: true,
             modo: String(fc.modo || 'titulo'),
+            valor: comp.total,
             valor_total: comp.total,
             cliente: currentClientName(state),
             itens: payloadItens(state),
@@ -8463,7 +8478,11 @@
             data && data.valor_aplicado != null
                 ? formatMoney(data.valor_aplicado)
                 : '';
-        var msg = 'Fiado quitado' + (valor ? ' — ' + valor : '') + '.';
+        var parcial = !!(data && data.parcial);
+        var msg =
+            (parcial ? 'Recebimento parcial registrado' : 'Fiado quitado') +
+            (valor ? ' — ' + valor : '') +
+            '.';
         State.reset(false);
         showSaleDoneFeedback(msg, 'success', { durationMs: 2800 });
         try {
@@ -11737,7 +11756,8 @@
                 titulo_ids: p.get('titulo_ids') || '',
                 cliente_agro_pk: p.get('cliente_agro_pk') || '',
                 cliente_nome: p.get('cliente_nome') || '',
-                cliente_codigo: p.get('cliente_codigo') || ''
+                cliente_codigo: p.get('cliente_codigo') || '',
+                valor: p.get('valor') || ''
             };
             return carregarFiadoCobrancaFromParams(params).then(function (ok) {
                 if (ok) {
