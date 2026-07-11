@@ -10,6 +10,7 @@ Padrão do mapa: docs/dados/plano_despesas_mapa_unificacao.csv
 from __future__ import annotations
 
 import csv
+import unicodedata
 from collections import defaultdict
 from decimal import Decimal
 from pathlib import Path
@@ -73,6 +74,24 @@ def _carregar_mapa(path: Path) -> list[tuple[str, str]]:
     return pares
 
 
+def _norm_plano_chave(nome: str) -> str:
+    s = (nome or "").strip()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return " ".join(s.casefold().split())
+
+
+def _planos_cp_distintos() -> set[str]:
+    return {
+        str(p).strip()
+        for p in TituloFinanceiroAgro.objects.filter(despesa=True)
+        .exclude(plano_conta="")
+        .values_list("plano_conta", flat=True)
+        .distinct()
+        if str(p).strip()
+    }
+
+
 def _contagem_plano(grafia: str, *, status: str = "todos") -> tuple[int, Decimal]:
     """Mesma regra da CP: filtro + deduplicar antes de contar/somar bruto."""
     qs = titulos_financeiro_montar_qs(despesa=True, status=status).filter(plano_conta=grafia)
@@ -85,25 +104,55 @@ def _contagem_plano(grafia: str, *, status: str = "todos") -> tuple[int, Decimal
     return len(deduped), bruto
 
 
-def _montar_por_oficial(grupos: dict[str, list[str]]) -> list[dict]:
-    """Por nome oficial: grafias que corrigem, que já estão OK e total (≈ CP)."""
+def _contagem_planos_conjunto(
+    grafias: list[str], *, status: str = "todos"
+) -> tuple[int, Decimal]:
+    """Igual CP com vários planos marcados: filtra todos e deduplica uma vez."""
+    grafias_u = list(dict.fromkeys((g or "").strip() for g in grafias if (g or "").strip()))
+    if not grafias_u:
+        return 0, Decimal("0")
+    qs = titulos_financeiro_montar_qs(despesa=True, status=status).filter(
+        plano_conta__in=grafias_u
+    )
+    cap = _CAP_LINHAS
+    rows = list(qs[: cap + 1])
+    if len(rows) > cap:
+        rows = rows[:cap]
+    deduped = dedup_titulos(rows)
+    bruto = sum((_dec2(t.valor_bruto) for t in deduped), Decimal("0"))
+    return len(deduped), bruto
+
+
+def _montar_por_oficial(
+    grupos: dict[str, list[str]], planos_cp: set[str]
+) -> list[dict]:
+    """Por nome oficial: grafias do mapa + extras no CP (mesma «família» de nome)."""
     por_oficial: list[dict] = []
-    for oficial, grafias in grupos.items():
+    for oficial, grafias_mapa in grupos.items():
+        mapa_set = set(grafias_mapa)
+        chave = _norm_plano_chave(oficial)
+        extras_cp = sorted(
+            (p for p in planos_cp if _norm_plano_chave(p) == chave and p not in mapa_set),
+            key=str.casefold,
+        )
+        todas_grafias = sorted(set(grafias_mapa) | set(extras_cp), key=str.casefold)
+
         corrige: list[dict] = []
         ja_ok: list[dict] = []
-        total_n = 0
-        total_bruto = Decimal("0")
-        for grafia in grafias:
+        fora_mapa: list[dict] = []
+        for grafia in todas_grafias:
             n, bruto = _contagem_plano(grafia)
             if n == 0:
                 continue
             entry = {"grafia": grafia, "titulos": n, "valor_bruto": bruto}
-            if grafia == oficial:
+            if grafia in extras_cp:
+                fora_mapa.append(entry)
+            elif grafia == oficial:
                 ja_ok.append(entry)
             else:
                 corrige.append(entry)
-            total_n += n
-            total_bruto += bruto
+
+        total_n, total_bruto = _contagem_planos_conjunto(todas_grafias)
         if total_n == 0:
             continue
         por_oficial.append(
@@ -115,6 +164,10 @@ def _montar_por_oficial(grupos: dict[str, list[str]]) -> list[dict]:
                 "ja_ok": sorted(
                     ja_ok, key=lambda r: (-r["titulos"], r["grafia"].casefold())
                 ),
+                "fora_mapa": sorted(
+                    fora_mapa, key=lambda r: (-r["titulos"], r["grafia"].casefold())
+                ),
+                "grafias_cp": todas_grafias,
                 "titulos": total_n,
                 "valor_bruto": total_bruto,
             }
@@ -156,7 +209,8 @@ def simular_unificacao(
         d["valor_bruto"] += row["valor_bruto"]
 
     grupos = _carregar_mapa_grupos(path) if path else {}
-    por_oficial = _montar_por_oficial(grupos) if grupos else []
+    planos_cp = _planos_cp_distintos() if grupos else set()
+    por_oficial = _montar_por_oficial(grupos, planos_cp) if grupos else []
 
     mapeados: set[str] = set()
     if grupos:
@@ -212,14 +266,15 @@ def formatar_relatorio(sim: dict) -> str:
         f"Títulos que seriam renomeados: {sim['total_titulos']}",
         f"Soma valor bruto desses títulos: R$ {_fmt_brl(sim['total_bruto'])}",
         "",
-        "=== CONFERIR NA CP (total = soma das grafias → bate com filtro do plano) ===",
-        "Situação Todos · sem data · marque todas as grafias · contagem deduplicada (igual CP).",
+        "=== CONFERIR NA CP (TOTAL = marque TODAS as grafias listadas abaixo) ===",
+        "Situação Todos · sem data · deduplicado igual CP · inclui grafias ainda fora do mapa CSV.",
         "",
     ]
     for bloco in sim.get("por_oficial") or []:
+        n_graf = len(bloco.get("grafias_cp") or [])
         lines.append(
             f"▸ {bloco['oficial']}  |  TOTAL {bloco['titulos']} título(s)  |  "
-            f"R$ {_fmt_brl(bloco['valor_bruto'])}"
+            f"R$ {_fmt_brl(bloco['valor_bruto'])}  |  {n_graf} grafia(s) no CP"
         )
         for row in bloco["corrige"]:
             lines.append(
@@ -230,6 +285,11 @@ def formatar_relatorio(sim: dict) -> str:
             lines.append(
                 f"    JÁ ESTÁ OK: {row['grafia']}  |  {row['titulos']} título(s)  |  "
                 f"R$ {_fmt_brl(row['valor_bruto'])}"
+            )
+        for row in bloco.get("fora_mapa") or []:
+            lines.append(
+                f"    FALTA NO MAPA: {row['grafia']}  |  {row['titulos']} título(s)  |  "
+                f"R$ {_fmt_brl(row['valor_bruto'])}  ← marque na CP; incluir no CSV antes de aplicar"
             )
         lines.append("")
     if not sim.get("por_oficial"):
