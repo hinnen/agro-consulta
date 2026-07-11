@@ -119,7 +119,6 @@ const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
 const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
-const URL_BUSCAR_PDV = '/api/buscar/';
 const CONSULTA_BUSCA_LIMITE = 60;
 const PDV_FOCUS_DELTA_MIN_MS = 5 * 60 * 1000;
 let pdvCatalogoBootAt = 0;
@@ -1524,6 +1523,7 @@ function validarItemCarrinhoSilencioso(id, precoLocal) {
 }
 
 function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
+    if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(id)) return;
     addCarrinho(id, nome, preco, qtd, prodRef ? metaOpcoesFromProd(prodRef) : {});
 }
 
@@ -2811,6 +2811,7 @@ function buscarProdutos(q, modo = 'normal') {
 
     quantidadeRapida = obterQuantidadeRapida(q);
     const termoBruto = removerSufixoQuantidade(q);
+    const termoDiagnostico = String(termoBruto || '').trim().indexOf('#') === 0;
     const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
     const mOrc = rawOrc.match(/^GMORC(\d{10,20})$/);
     if (mOrc) {
@@ -2829,7 +2830,7 @@ function buscarProdutos(q, modo = 'normal') {
     const termoBusca = normalizarBuscaLocal(termoBruto);
 
     const minChars = modo === 'scanner' ? 1 : 2;
-    const termoCurto = !termoBusca || termoBusca.trim().length < minChars;
+    const termoCurto = !termoBusca || (termoBusca.trim().length < minChars && !termoDiagnostico);
     if (termoCurto && !(pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo)) {
         limparBuscaVisual();
         esconderStatusBusca();
@@ -2870,12 +2871,15 @@ function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
 }
 
-/** Consulta/orçamento: mesma API do cadastro — servidor primeiro (motor catalogo_agro via /api/buscar/). */
+/** Consulta/orçamento — BCA (Busca Catálogo Agro): servidor primeiro. */
 function consultaUsarBuscaServidorPrimeiro(termoBruto, modo) {
+    if (typeof agroTermoBuscaCatalogoServidor === 'function') {
+        return agroTermoBuscaCatalogoServidor(termoBruto, modo);
+    }
     if (modo === 'scanner') return false;
     const bruto = String(termoBruto || '').trim();
     if (!bruto) return false;
-    if (bruto.toLowerCase() === '#prova') return true;
+    if (bruto.toLowerCase() === '#prova' || bruto.indexOf('#') === 0) return true;
     const norm = normalizarBuscaLocal(bruto);
     if (norm.length >= 2) return true;
     if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(norm)) return true;
@@ -3384,8 +3388,10 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     mergeFetchTimer = setTimeout(() => {
         if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE)
-            .then((res) => res.json())
+        var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+            ? fetchAgroBuscaCatalogo(termoBrutoOriginal, { limit: CONSULTA_BUSCA_LIMITE })
+            : fetch((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+        fetchBusca
             .then((data) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
@@ -3501,16 +3507,23 @@ function executarBuscaLocal(termo, modo) {
 }
 
 function agroMostrarProvaUnificadaBusca(data) {
-    var p = data && data.prova_unificada;
-    if (!p || !p.ok) return;
-    mostrarStatusBusca('Prova OK · ' + (p.mensagem || (p.api + ' · ' + p.catalogo_banco)), 'emerald');
+    const p = data && data.prova_unificada;
+    if (p && p.ok) {
+        mostrarStatusBusca('Prova OK · ' + (p.mensagem || (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.nome) || 'BCA'), 'emerald');
+        return;
+    }
+    if (typeof agroStatusTextoBuscaCatalogo === 'function' && data && data.produtos && data.produtos.length) {
+        mostrarStatusBusca(agroStatusTextoBuscaCatalogo(data, data.produtos.length), 'emerald');
+    }
 }
 
 function executarBuscaAPI(termo, modo) {
-    mostrarStatusBusca('Buscando no servidor…', 'slate');
+    mostrarStatusBusca('BCA · buscando no servidor…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-    fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE)
-        .then(res => res.json())
+    var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+        ? fetchAgroBuscaCatalogo(termo, { limit: CONSULTA_BUSCA_LIMITE })
+        : fetch('/api/buscar/?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    fetchBusca
         .then(data => {
             if (data.erro) throw new Error(data.erro);
             agroMostrarProvaUnificadaBusca(data);
@@ -3603,6 +3616,8 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         const vis = sugestoesAtuais.length;
         if (total > vis) {
             mostrarStatusBusca(`${vis} de ${total} produto(s) — toque em “Ver mais” para o restante`, 'slate');
+        } else if (typeof agroStatusTextoBuscaCatalogo === 'function') {
+            mostrarStatusBusca(agroStatusTextoBuscaCatalogo(null, total), 'emerald');
         } else {
             mostrarStatusBusca(`${total} produto(s) encontrado(s)`, 'slate');
         }

@@ -993,9 +993,26 @@
   }
 
   function fetchBuscaCadastroApi(qRaw, sig) {
-    var url = URL_BUSCAR_PDV + '?' + cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
-    return fetch(url, { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return jsonOuErroHumano(r); })
+    var params = cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() });
+    var fetchFn = typeof fetchAgroBuscaCatalogo === 'function'
+      ? fetchAgroBuscaCatalogo(qRaw, {
+          limit: cadastroLimiteBuscaPdv(),
+          contexto: 'cadastro',
+          compras: true,
+          incluir_saldo: true,
+          ativo: params.get('ativo') ? true : undefined,
+          inativos: params.get('inativos') ? true : undefined,
+          extra: {
+            sort: params.get('sort') || '',
+            dir: params.get('dir') || '',
+            marca: params.get('marca') || '',
+            categoria: params.get('categoria') || '',
+            fornecedor: params.get('fornecedor') || '',
+          },
+          signal: sig,
+        })
+      : fetch(URL_BUSCAR_PDV + '?' + params.toString(), { credentials: 'same-origin', signal: sig }).then(function (r) { return jsonOuErroHumano(r); });
+    return Promise.resolve(fetchFn)
       .then(function (j) {
         if (j && j.prova_unificada) cadastroMostrarProvaUnificada(j.prova_unificada);
         if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca');
@@ -1037,7 +1054,7 @@
     var q = (buscaEl.value || '').trim();
     if (data.modo === 'busca') {
       modoLista = false;
-      metaEl.textContent = 'Busca · ' + (produtos.length) + ' resultado(s)';
+      metaEl.textContent = (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.sigla ? AGRO_BUSCA_CATALOGO.sigla + ' · ' : 'BCA · ') + (produtos.length) + ' resultado(s)';
       pagWrap.classList.add('hidden');
     } else {
       modoLista = true;
