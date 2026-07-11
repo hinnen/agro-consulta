@@ -2845,8 +2845,15 @@ function buscarProdutos(q, modo = 'normal') {
                 executarBuscaLocal(termoBusca, modo);
             }
         } else if (window.AGRO_MANUAL_SYNC_ONLY) {
-            mostrarStatusBusca('Sem catálogo local. Use o botão «Estoque» no topo antes de buscar.', 'orange');
-            limparBuscaVisual();
+            if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+                limparBuscaVisual();
+                esconderStatusBusca();
+            } else if (!termoCurto) {
+                executarBuscaAPI(termoBruto, modo);
+            } else {
+                mostrarStatusBusca('Sem catálogo local. Use «Estoque» no topo ou digite 2+ letras para buscar online.', 'orange');
+                limparBuscaVisual();
+            }
         } else {
             executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
         }
@@ -3331,8 +3338,10 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (window.AGRO_MANUAL_SYNC_ONLY) {
         if (locaisOrdenados.length) {
             processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, { preservarOrdem: true });
+        } else if (termoNorm.length >= 2) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
         } else {
-            mostrarStatusBusca('Sem sugestões locais. Sincronize o catálogo ou refine a busca.', 'orange');
+            mostrarStatusBusca('Sem sugestões locais. Digite 2+ letras para buscar online.', 'orange');
             processarResultadosBusca([], modo, false);
         }
         return;

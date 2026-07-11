@@ -1179,9 +1179,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
 | **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
 | **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
-| **Validação Renan 11/07** | Teste 1+2 busca unificada OK (`/api/buscar/?contexto=cadastro`) |
-| **Canário v7.84** | Nome dos resultados de busca ganha sufixo **` [TESTE]`** no PDV e cadastro — **remover** após Renan confirmar |
-| **Pendente** | Renan ver ` [TESTE]` nas 2 telas → avisar para tirar canário · depois desativar `/produtos/gestao/` |
+| **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
+| **Feito teste v7.86** | Canário removido · **Consulta/orçamento** volta a buscar online se cache local vazio (`AGRO_MANUAL_SYNC_ONLY`) |
+| **Pendente** | Renan validar `/consulta/` com `milho` · depois desativar `/produtos/gestao/` |
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
 | **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
 | **Status** | Simulação pronta; **aplicar** só com OK do Renan |
-| **Conferência 11/07** | Apply teste lote #1 (1120 tít.). Mapa +4 grafias: COMPRA CN/SN maiúsc., Taxas Maquina Cartão, Bonús → **2o apply** no teste após deploy |
+| **Conferência 11/07** | **Teste OK** — apply lote #1 (1120) + #2 (1255); CP limpa (1 grafia/plano); total 3158 · R$ 1.088.799,67. **Loja: pendente** (Renan validou visual) |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
