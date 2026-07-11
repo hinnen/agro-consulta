@@ -15,6 +15,7 @@
     return (G.URL_GRUPO_EXCLUIR_TMPL || '').replace('999999', String(pk));
   }
   var API_ERP = G.API_ERP || '';
+  var URL_BUSCAR_PDV = (window.AgroCadastroErpLista && window.AgroCadastroErpLista.URL_BUSCAR_PDV) || '/api/buscar/';
 
   var tabErp = document.getElementById('tab-erp');
   var tabGrupos = document.getElementById('tab-grupos');
@@ -355,11 +356,11 @@
     var q = (modalQ.value || '').trim();
     modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500 font-semibold">Digite para buscar…</p>';
     if (!q) return;
-    fetch(API_ERP + '?q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
+    fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (!data.ok) throw new Error(data.erro || 'erro');
-        var prods = data.produtos || [];
+        if (data && data.erro) throw new Error(data.erro);
+        var prods = (data && data.produtos) ? data.produtos : [];
         modalLista.innerHTML = '';
         if (!prods.length) {
           modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500">Nenhum resultado.</p>';

@@ -1154,7 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.65** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.67** · **loja v7.60**
+
+### Cadastro ERP — estoque + vitrines (11/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
+| **Feito (código local)** | API `api_produtos_cadastro`: saldo + filtros · UI estoque/vitrines · **busca textual → `/api/buscar/` (motor PDV)** |
+| **Pendente** | Validar no Render **teste** · depois desativar rota `/produtos/gestao/` se Renan confirmar |
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
@@ -1174,7 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
 | **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
 | **Status** | Simulação pronta; **aplicar** só com OK do Renan |
-| **Conferência 11/07** | Simulação ganhou bloco **CONFERIR NA CP**: por plano oficial — **VAI CORRIGIR** + **JÁ ESTÁ OK** + **TOTAL** (soma das grafias ≈ filtro CP). Código em `teste`; loja ainda v7.60 |
+| **Conferência 11/07** | Simulação **CONFERIR NA CP** (VAI CORRIGIR + JÁ OK + TOTAL). Fix v7.67: dedup igual CP — antes contava linha duplicada a mais (Pagamento 626→553, Juros 106→101) |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 

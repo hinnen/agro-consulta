@@ -139,8 +139,12 @@ def listar_paginado(
     sort_key: str = "nome",
     sort_direction: int = 1,
     inativos: bool = False,
+    marca: str = "",
+    categoria: str = "",
+    fornecedor: str = "",
 ) -> tuple[list[dict], bool]:
     qs = queryset_catalogo_ativos(inativos=inativos)
+    qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
     field = _SORT_MAP.get(sort_key, "nome")
     order = field if sort_direction >= 0 else f"-{field}"
     skip = max(0, (pagina - 1) * por_pagina)
