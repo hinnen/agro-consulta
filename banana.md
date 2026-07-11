@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.01** · **loja v7.65**
+**Versão app (`VERSION`):** **teste v8.04** · **loja v7.65**
+
+### 🐛 FIX — Indicadores faturamento PDV «—» (11/07 · **v8.04 teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Card **Faturamento vendas (PDV)** = **R$ —** (ex. mês ant. jun/26) · DRE e demais KPIs OK |
+| **Causa** | Indicadores chamava planilha histórica **sem fallback**; BI (`/`) cai para **VendaAgro** se planilha falha |
+| **Fix** | `_faturamento_pdv_periodo` → mesma função do BI (`_dashboard_mongo_vendas_serie`) |
+| **Loja** | **Sem fix** até pacote/cherry — card pode continuar «—» na produção |
 
 ### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
 

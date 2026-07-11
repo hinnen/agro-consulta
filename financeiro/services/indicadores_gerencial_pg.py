@@ -168,20 +168,11 @@ def _benchmark(ref: dict, dias_periodo: int) -> dict:
 
 
 def _faturamento_pdv_periodo(data_ini: date, data_fim: date) -> dict[str, Any]:
-    """Mesma série do BI (PDV + planilha histórica quando catálogo PG)."""
+    """Mesma série do BI (``_dashboard_mongo_vendas_serie`` — PDV + planilha + fallback)."""
     try:
-        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+        from produtos.views import _dashboard_mongo_vendas_serie
 
-        if agro_catalogo_usa_postgres():
-            from produtos.dashboard_vendas_historico_util import (
-                dashboard_vendas_serie_meta_merged,
-            )
-
-            s = dashboard_vendas_serie_meta_merged(data_ini, data_fim)
-        else:
-            from produtos.views import _dashboard_vendas_serie_pdv
-
-            s = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+        s = _dashboard_mongo_vendas_serie(data_ini, data_fim)
     except Exception:
         return {"ok": False, "total": Decimal("0"), "por_dia": {}, "fonte": "pdv"}
     if not s.get("ok"):
