@@ -1002,9 +1002,32 @@
       });
   }
 
-  function finalizarBuscaPdvRows(apiRows, gen) {
+  function cadastroMesclarLinhasBusca(apiLinhas, localLinhas) {
+    var map = new Map();
+    (localLinhas || []).forEach(function (r) {
+      if (r && r.id != null) map.set(String(r.id), r);
+    });
+    (apiLinhas || []).forEach(function (r) {
+      if (!r || r.id == null) return;
+      var id = String(r.id);
+      var loc = map.get(id);
+      if (loc) {
+        var merged = Object.assign({}, loc, r);
+        merged._precoAguardando = false;
+        map.set(id, merged);
+      } else {
+        map.set(id, r);
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  function finalizarBuscaPdvRows(apiRows, gen, locaisPdv) {
     if (gen !== carregarGen) return;
-    var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
+    var catalog = cadastroCatalogoPdvById();
+    var apiLinhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
+    var localLinhas = cadastroFinalizarLinhasBusca(locaisPdv || [], catalog);
+    var linhas = cadastroMesclarLinhasBusca(apiLinhas, localLinhas);
     linhas = cadastroFiltrarDimensoesLista(linhas);
     linhas = cadastroFiltrarAtivosLocal(linhas);
     linhas = cadastroAplicarPatchLista(linhas);
@@ -1015,9 +1038,24 @@
     renderLista(linhas);
   }
 
-  function carregarBuscaPdv(qRaw, gen, sig) {
+  function fetchCadastroApiBusca(qRaw, sig) {
+    var url = API + '?' + cadastroQueryParams({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
+    return fetch(url, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return jsonOuErroHumano(r); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca cadastro');
+        return Array.isArray(j.produtos) ? j.produtos : [];
+      });
+  }
+
+  function carregarBuscaPdv(qRaw, gen, sig, locaisPdv) {
     return fetchBuscaPdvMotor(qRaw, sig).then(function (apiRows) {
-      finalizarBuscaPdvRows(apiRows, gen);
+      if (!apiRows || !apiRows.length) {
+        return fetchCadastroApiBusca(qRaw, sig).then(function (cadRows) {
+          finalizarBuscaPdvRows(cadRows.length ? cadRows : apiRows, gen, locaisPdv);
+        });
+      }
+      finalizarBuscaPdvRows(apiRows, gen, locaisPdv);
     });
   }
 
@@ -1168,8 +1206,17 @@
   var buscaCodigoDebounceTimer = null;
   var BUSCA_CODIGO_DEBOUNCE_MS = 420;
 
+  function pareceEtiquetaGm(q) {
+    q = String(q || '').trim();
+    if (!q || q.indexOf(' ') !== -1) return false;
+    if (/^gm[\d-]+/i.test(q)) return true;
+    if (/^\d{2,}-\d+$/i.test(q)) return true;
+    return false;
+  }
+
   function pareceCodigoBusca(q) {
     q = String(q || '').trim();
+    if (pareceEtiquetaGm(q)) return true;
     var lim = q.replace(/\W/g, '');
     if (!lim) return false;
     if (/^\d+$/.test(lim)) return lim.length >= 8;
@@ -1182,6 +1229,7 @@
   function buscaProntaParaCatalogo(q) {
     q = String(q || '').trim();
     if (!q) return false;
+    if (pareceEtiquetaGm(q)) return q.replace(/\W/g, '').length >= 4;
     var lim = q.replace(/\W/g, '');
     if (/^gm/i.test(lim) && lim.length < 5) return false;
     if (/^\d+$/.test(lim) && lim.length < 8) return false;
@@ -1324,13 +1372,14 @@
     };
   }
 
-  /** GM / barras — motor PDV no servidor (sem cache local na decisão). */
+  /** GM / barras — motor PDV no servidor + fallback cadastro + merge cache local. */
   function carregarBuscaCodigoDireto(qRaw, gen, sig) {
-    return carregarBuscaPdv(qRaw, gen, sig);
+    var locais = cadastroBuscarLocalComoPdv(qRaw);
+    return carregarBuscaPdv(qRaw, gen, sig, locais);
   }
 
-  function carregarBuscaApi(qRaw, gen, sig) {
-    return carregarBuscaPdv(qRaw, gen, sig);
+  function carregarBuscaApi(qRaw, gen, sig, locaisPdv) {
+    return carregarBuscaPdv(qRaw, gen, sig, locaisPdv);
   }
 
   function carregar() {
@@ -1383,6 +1432,7 @@
       var catalog = cadastroCatalogoPdvCacheArray();
       var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
       var linhasLocais = cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog);
+      linhasLocais = cadastroFiltrarDimensoesLista(linhasLocais);
       if (ordenacaoAtual.campo) {
         linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
       }

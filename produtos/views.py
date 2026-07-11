@@ -859,7 +859,7 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v1"
+    _fac_cache_key = "agro_gestao_facetas_v2"
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
@@ -879,7 +879,16 @@ def api_produtos_gestao_facetas(request):
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
-        return JsonResponse({"ok": False, "erro": "Facetas indisponíveis (Postgres)."}, status=503)
+        from produtos import catalogo_agro as cat_agro
+
+        try:
+            fac = cat_agro.facetas_gestao()
+        except Exception as e:
+            logger.warning("api_produtos_gestao_facetas (agro_pg catálogo): %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+        payload = {"fonte": "agro_pg", **fac}
+        cache.set(_fac_cache_key, payload, 900)
+        return JsonResponse({"ok": True, **payload})
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -912,6 +921,34 @@ def api_produtos_gestao_facetas(request):
                 if s:
                     forns.add(s)
         fornecedores = sorted(forns, key=lambda s: s.lower())[:300]
+        from produtos import catalogo_agro as cat_agro
+
+        ov_qs = ProdutoGestaoOverlayAgro.objects.all()
+        marcas = cat_agro._faceta_valores_distintos(
+            list(marcas)
+            + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[:250]],
+            limite=200,
+        )
+        categorias = cat_agro._faceta_valores_distintos(
+            list(categorias)
+            + [x for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[:250]],
+            limite=200,
+        )
+        subcategorias = cat_agro._faceta_valores_distintos(
+            list(subcategorias)
+            + [x for x in ov_qs.exclude(subcategoria="").values_list("subcategoria", flat=True).distinct()[:250]],
+            limite=200,
+        )
+        fornecedores = cat_agro._faceta_valores_distintos(
+            list(fornecedores)
+            + [
+                x
+                for x in ov_qs.exclude(fornecedor_texto="")
+                .values_list("fornecedor_texto", flat=True)
+                .distinct()[:300]
+            ],
+            limite=300,
+        )
     except Exception as e:
         logger.warning("api_produtos_gestao_facetas: %s", e, exc_info=True)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)

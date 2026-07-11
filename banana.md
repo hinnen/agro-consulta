@@ -1154,15 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.67** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.71** · **loja v7.60**
 
 ### Cadastro ERP — estoque + vitrines (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
-| **Feito (código local)** | API `api_produtos_cadastro`: saldo + filtros · UI estoque/vitrines · **busca textual → `/api/buscar/` (motor PDV)** |
-| **Pendente** | Validar no Render **teste** · depois desativar rota `/produtos/gestao/` se Renan confirmar |
+| **Feito teste v7.69–v7.71** | Motor PDV na busca · estoque/vitrines · **v7.71:** merge cache local+servidor (produto não some após reload) · GM etiqueta (`GM0024-10`, `0024-10`) · fallback busca cadastro se PDV vazio · marcas overlay nos filtros (Magnus etc.) |
+| **Validação Renan 11/07** | Busca GM · custo vazio (provável espelho teste) · marca fora da lista · produto sumindo após editar — **fix v7.71** |
+| **Pendente** | Renan revalidar no Render teste · depois desativar `/produtos/gestao/` se OK |
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
