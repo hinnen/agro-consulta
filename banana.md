@@ -1154,9 +1154,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.08** · **loja v8.09**
+**Versão app (`VERSION`):** **teste v8.11** · **loja v8.12**
 
-### 🚀 Deploy loja **v8.09** — BCA Entrada NF etapa 2 (11/07 — Renan senha OK)
+### 🚀 Deploy loja **v8.12** — BCA Entrada NF motor padrão (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Entrada NF busca **só BCA servidor** (`/api/buscar/?compras=1`) — sem cache local PDV · `#prova` igual cadastro |
+| **Commits** | `03e8cb2` + `5a23fc7` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` / `#prova` |
+| **Revert** | **`producao-backup-pre-bca-entrada-motor-20260711`** · **`rollback/pre-bca-entrada-motor-v810`** @ **`5e5a58d`** (v8.10) |
+| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-bca-entrada-motor-20260711 && git push origin producao --force-with-lease` |
+
+### 🚀 Deploy loja **v8.09** — BCA Entrada NF etapa 2 (11/07 — substituído por v8.12)
 
 | Item | Detalhe |
 | ---- | ------- |
