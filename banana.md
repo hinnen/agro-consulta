@@ -1172,6 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **URL aba** | `/financeiro/dashboard-gerencial/?aba=estoque` |
 | **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque e giro · despesas agrupadas Tipo→Grupo |
 | **Fix v7.99** | Aba abre na hora + «Carregando…» · dados via API (consulta pesada não trava a página) |
+| **Fix 11/07** | Tabela despesas alinhada à **CP** (competência · bruto · todas empresas) — antes filtrava só 1 empresa |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
