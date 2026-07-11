@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.89** · **loja v7.63**
+**Versão app (`VERSION`):** **teste v7.99** · **loja v7.65** (deploy indicadores pendente → v7.65)
+
+### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tipo+Grupo da planilha CP na tabela despesas · aba **Estoque & giro** · **só leitura** |
+| **Pacote** | `pacote/indicadores-planilha-producao` (**sem** cadastro/busca/consulta) |
+| **Não mexe** | PDV · CP · caixa · fiado · apply planos (já feito) |
+| **Pode mudar** | Números **Indicadores** e **Resumo gerencial** (classificação fixa/variável) |
+| **Validar** | Ctrl+F5 · `/financeiro/dashboard-gerencial/` |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
@@ -1167,6 +1177,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Revert** | `…/reverter-unificar/?confirmar=sim` |
 | **Teste ref.** | Apply lote #1+#2 OK · 3158 tít. · R$ 1.088.799,67 |
 
+### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |

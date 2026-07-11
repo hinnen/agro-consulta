@@ -133,6 +133,7 @@
   .ig-grupo-head--fixa td { background: #fff7ed; color: #9a3412; border-top-color: #fdba74; }
   .ig-grupo-head--variavel td { background: #eff6ff; color: #1e40af; border-top-color: #93c5fd; }
   .ig-grupo-head--outra td { background: #f8fafc; color: #475569; }
+  .ig-grupo-negocio td { background: #f8fafc; color: #64748b; font-size: 0.68rem; border-top: 1px solid #e2e8f0; }
   .ig-grupo-sub td {
     background: #fafafa;
     font-weight: 800;
@@ -150,6 +151,28 @@
   .ig-resumo-grupo--variavel { border-color: #93c5fd; background: #eff6ff; }
   .ig-resumo-grupo--outra { border-color: #cbd5e1; background: #f8fafc; }
   .ig-cp-iframe { flex: 1; border: 0; width: 100%; }
+  .ig-aba {
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border-radius: 0.65rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ig-aba:hover { border-color: #f59e0b; color: #92400e; }
+  .ig-aba.is-active {
+    border-color: var(--ig-emerald);
+    background: var(--ig-emerald);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2);
+  }
 </style>
 {% endblock %}
 
@@ -163,7 +186,11 @@
         <span class="text-amber-950">Financeiro gerencial</span>
       </h1>
       <p class="text-xs font-semibold text-slate-600 mt-1 m-0">
+        {% if aba_ativa == 'estoque' %}
+        Estoque parado e maior giro — vendas PDV e saldo operacional C+V
+        {% else %}
         Números do SisVale — lançamentos financeiros e contas a pagar
+        {% endif %}
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -174,6 +201,14 @@
     </div>
   </header>
 
+  <nav class="flex flex-wrap gap-2" aria-label="Abas do painel">
+    <a href="{% url 'dashboard_financeiro_completo' %}" class="ig-aba {% if aba_ativa != 'estoque' %}is-active{% endif %}">Financeiro</a>
+    <a href="{% url 'dashboard_financeiro_completo' %}?aba=estoque" class="ig-aba {% if aba_ativa == 'estoque' %}is-active{% endif %}">Estoque &amp; giro</a>
+  </nav>
+
+  {% if aba_ativa == 'estoque' %}
+  {% include "financeiro/includes/indicadores_estoque_giro.html" %}
+  {% else %}
   <form method="get" id="form-indicadores" class="ig-card p-3 sm:p-4 space-y-3">
     <input type="hidden" name="periodo" id="ig-periodo" value="{{ periodo_key|default:'mes_ate_hoje' }}" />
     <input type="hidden" name="data_ini" id="ig-data-ini" value="{% if periodo_key == 'personalizado' %}{{ periodo_cal_ini }}{% endif %}" />
@@ -257,11 +292,17 @@
   </p>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-    {% with a=dados.atual p=dados.referencia %}
+    {% with a=dados.atual p=dados.referencia fp=dados.faturamento_pdv %}
+    <div class="ig-card p-4 border-l-4 border-l-sky-500">
+      <p class="ig-muted m-0">Faturamento vendas (PDV)</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {% if fp.ok %}{{ fp.total|floatformat:2 }}{% else %}—{% endif %}</p>
+      <p class="text-[11px] text-slate-500 font-semibold m-0 mt-1">Igual ao gráfico do BI · todas as unidades</p>
+    </div>
     <div class="ig-card p-4 border-l-4 border-l-blue-500">
-      <p class="ig-muted m-0">Receita operacional</p>
+      <p class="ig-muted m-0">Receita financeira (DRE)</p>
       <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {{ a.receita_op|floatformat:2 }}</p>
-      <p class="text-xs font-bold mt-1 m-0 {% if a.receita_op >= p.receita_op %}ig-up{% else %}ig-down{% endif %}">vs média 60d R$ {{ p.receita_op|floatformat:2 }}</p>
+      <p class="text-xs font-bold mt-1 m-0 text-slate-500">Lançamentos a receber · {{ dados.meta.por }}</p>
+      <p class="text-[11px] font-bold mt-0.5 m-0 {% if a.receita_op >= p.receita_op %}ig-up{% else %}ig-down{% endif %}">vs média 60d R$ {{ p.receita_op|floatformat:2 }}</p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-emerald-500">
       <p class="ig-muted m-0">Margem bruta / Markup</p>
@@ -299,7 +340,7 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="lg:col-span-2 ig-card p-4">
-      <h2 class="text-sm font-black uppercase text-slate-900 m-0">Receita operacional — últimos dias</h2>
+      <h2 class="text-sm font-black uppercase text-slate-900 m-0">Faturamento PDV — últimos dias</h2>
       <div class="relative h-52 mt-3">
         <canvas id="chartReceita" aria-label="Receita diária"></canvas>
       </div>
@@ -325,7 +366,7 @@
         <h2 class="text-base font-black uppercase text-slate-900 m-0">Despesas por categoria</h2>
         <p class="text-xs font-semibold text-slate-500 m-0 mt-1">
           {{ dados.variacao.total_categorias }} categoria(s) · último período R$ {{ dados.variacao.total_ultimo_periodo|floatformat:2 }}
-          · clique na linha para abrir CP
+          · clique na linha para abrir CP · <span class="text-slate-700">agrupado por Tipo e Grupo da planilha oficial</span>
         </p>
       </div>
       <div class="flex flex-wrap gap-2 items-center">
@@ -372,20 +413,25 @@
             </tr>
           </thead>
           <tbody class="font-semibold text-slate-800">
-            {% regroup dados.variacao.linhas by grupo as linhas_por_grupo %}
-            {% for grupo in linhas_por_grupo %}
-            {% for g in dados.variacao.resumo_grupos %}{% if g.key == grupo.grouper %}
-            <tr class="ig-grupo-head ig-grupo-head--{{ grupo.grouper }}">
-              <td>{{ g.label }} <span class="font-bold normal-case text-slate-600">({{ g.qtd }})</span></td>
-              {% for st in g.subtotais %}
+            {% for bloco in dados.variacao.blocos_tipo %}
+            <tr class="ig-grupo-head ig-grupo-head--{{ bloco.key }}">
+              <td>{{ bloco.label }} <span class="font-bold normal-case text-slate-600">({{ bloco.qtd }})</span></td>
+              {% for st in bloco.subtotais %}
               <td class="text-right tabular-nums font-black">R$ {{ st|floatformat:2 }}</td>
               {% endfor %}
               <td colspan="3"></td>
             </tr>
-            {% endif %}{% endfor %}
-            {% for row in grupo.list %}
+            {% for gneg in bloco.grupos_negocio %}
+            <tr class="ig-grupo-negocio">
+              <td class="pl-3 font-black uppercase tracking-wide">{{ gneg.nome }} <span class="font-bold normal-case">({{ gneg.qtd }})</span></td>
+              {% for st in gneg.subtotais %}
+              <td class="text-right tabular-nums font-bold">R$ {{ st|floatformat:2 }}</td>
+              {% endfor %}
+              <td colspan="3"></td>
+            </tr>
+            {% for row in gneg.linhas %}
             <tr data-plano="{{ row.plano|escape }}">
-              <td class="max-w-[14rem] truncate pl-4" title="{{ row.plano }}">{{ row.categoria }}</td>
+              <td class="max-w-[14rem] truncate pl-6" title="{{ row.plano }}{% if row.nota_grupo %} · {{ row.nota_grupo }}{% endif %}">{{ row.categoria }}</td>
               {% for v in row.valores %}
               <td class="text-right tabular-nums">R$ {{ v|floatformat:2 }}</td>
               {% endfor %}
@@ -401,6 +447,7 @@
                 {% else %}<span class="ig-trend-flat">→</span>{% endif %}
               </td>
             </tr>
+            {% endfor %}
             {% endfor %}
             {% empty %}
             <tr><td colspan="{{ dados.variacao.buckets|length|add:4 }}" class="py-6 text-center text-slate-500">Sem despesas nos períodos.</td></tr>
@@ -458,10 +505,12 @@
       <p>Tudo vem dos <strong>lançamentos do SisVale</strong> (contas a pagar e a receber). Não usa sistema legado externo.</p>
       <p>KPIs e DRE usam a data e o valor escolhidos nos filtros de cima. O <strong>caixa</strong> do painel usa sempre <strong>pagamento + valor pago</strong>.</p>
       <p>A coluna <strong>Ref. 60d</strong> projeta a média dos últimos 60 dias para o mesmo número de dias do período escolhido.</p>
-      <p><strong>Despesas por categoria</strong> agrupa fixas, variáveis e outras; compara os últimos 3 meses ou 3 semanas; Δ compara o período mais recente com o anterior.</p>
+      <p><strong>Faturamento PDV</strong> = vendas no caixa (mesmo número do BI). <strong>Receita financeira</strong> = títulos a receber nos lançamentos — costuma ser menor se nem toda venda vira título no período.</p>
+      <p><strong>Despesas por categoria</strong> usa a planilha oficial (Fixa / Variável / Outra + Grupo). Plano fora da planilha cai em «A conferir». Vale: tooltip no plano — não somar com salário bruto no Pessoal.</p>
     </div>
   </details>
 
+  {% endif %}
   {% endif %}
 </div>
 
