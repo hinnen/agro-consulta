@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.63** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.65** · **loja v7.60**
 
 ### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
 
