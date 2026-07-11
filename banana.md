@@ -1154,17 +1154,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.88** · **loja v7.60** *(após deploy fiado → **v7.61**)*
+**Versão app (`VERSION`):** **teste v7.89** · **loja v7.61**
 
-### Fiado — baixa parcial no PDV (11/07) — **PRONTO cherry loja**
+### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Validado Renan teste** | Baixa parcial OK · popup Total (Enter) / Parcial (P) OK |
-| **Pacote produção** | Branch `pacote/fiado-baixa-parcial-producao` · merge pronto · **6 arquivos código** + VERSION/banana |
-| **Deploy loja** | `git checkout producao` → `git merge pacote/fiado-baixa-parcial-producao` → push · **só** frase + senha |
-| **Pós-deploy loja** | Ctrl+F5 PDVs · fiado Total + Parcial · **caixa aberto** |
-| **Fora do pacote** | FL-029 crédito cliente · NFC-e baixa (FL-052) · recibo (FL-019) |
+| **O quê** | Baixa parcial fiado · popup Total (Enter) / Parcial (P) · FIFO títulos · PDV pagamento |
+| **Pacote** | `pacote/fiado-baixa-parcial-producao` · fast-forward `2c52f51`→`304a5fa` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDVs · testar fiado · **caixa aberto** |
+| **Fora** | FL-029 crédito · FL-052 NFC-e baixa · FL-019 recibo |
+
+### Fiado — baixa parcial no PDV (11/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | **✅ loja v7.61** |
+| **Teste** | Validado Renan · popup + parcial OK |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
