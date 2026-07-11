@@ -1154,14 +1154,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.72** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.74** · **loja v7.60**
 
 ### Cadastro ERP — estoque + vitrines (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
-| **Feito teste v7.69–v7.71** | Motor PDV na busca · estoque/vitrines · **v7.71:** merge cache local+servidor (produto não some após reload) · GM etiqueta (`GM0024-10`, `0024-10`) · fallback busca cadastro se PDV vazio · marcas overlay nos filtros (Magnus etc.) |
+| **Feito teste v7.69–v7.72** | **Busca = só `/api/buscar/`** (mesmo motor Postgres do PDV) · sem cache local que piscava/sumia · lista A–Z continua Postgres (`api_produtos_cadastro`) · marcas overlay nos filtros |
 | **Validação Renan 11/07** | Busca GM · custo vazio (provável espelho teste) · marca fora da lista · produto sumindo após editar — **fix v7.71** |
 | **Pendente** | Renan revalidar no Render teste · depois desativar `/produtos/gestao/` se OK |
 
@@ -1183,7 +1183,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
 | **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
 | **Status** | Simulação pronta; **aplicar** só com OK do Renan |
-| **Conferência 11/07** | Simulação **CONFERIR NA CP** (VAI CORRIGIR + JÁ OK + TOTAL). Fix v7.67: dedup igual CP — antes contava linha duplicada a mais (Pagamento 626→553, Juros 106→101) |
+| **Conferência 11/07** | **OK no teste** — totais batem. **Aplicar teste:** URL staff `…/planos-despesa-aplicar-unificar/?confirmar=sim` (v7.71+) · loja **não** |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 

@@ -212,10 +212,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         digits_only = re.sub(r"\D", "", termo)
-        busca_pesada_icontains = not (
-            (digits_only.isdigit() and len(digits_only) >= 8) or termo_eh_codigo_gm(termo)
-        )
-        if busca_pesada_icontains and len(found) < lim:
+        if len(found) < lim:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
@@ -668,7 +665,7 @@ def buscar_gestao(
 
 def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
     seen: set[str] = set()
-    out: list[str] = []
+    uniq: list[str] = []
     for raw in valores:
         s = str(raw or "").strip()
         if not s:
@@ -677,10 +674,9 @@ def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
         if key in seen:
             continue
         seen.add(key)
-        out.append(s)
-        if len(out) >= limite:
-            break
-    return sorted(out, key=lambda x: x.lower())
+        uniq.append(s)
+    uniq.sort(key=lambda x: x.lower())
+    return uniq[: max(1, int(limite or 200))]
 
 
 def compras_dimensoes_relatorio(

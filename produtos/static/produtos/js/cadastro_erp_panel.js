@@ -969,20 +969,13 @@
     });
   }
 
-  /** Busca textual — mesmo endpoint do PDV (`/api/buscar/`), com custo (compras=1). */
-  function urlBuscaPdvMotor(qRaw, limit) {
-    var params = new URLSearchParams();
-    params.set('q', String(qRaw || '').trim());
-    params.set('limit', String(limit != null ? limit : cadastroLimiteBuscaPdv()));
-    params.set('compras', '1');
-    return URL_BUSCAR_PDV + '?' + params.toString();
-  }
-
-  function fetchBuscaPdvMotor(qRaw, sig) {
-    return fetch(urlBuscaPdvMotor(qRaw), { credentials: 'same-origin', signal: sig })
+  /** Mesmo motor de busca do PDV (Postgres `catalogo_agro.buscar`) via API cadastro. */
+  function fetchBuscaCadastroApi(qRaw, sig) {
+    var url = API + '?' + cadastroQueryParams({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
+    return fetch(url, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
-        if (j && j.erro) throw new Error(j.erro);
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca');
         return Array.isArray(j.produtos) ? j.produtos : [];
       });
   }
@@ -992,7 +985,6 @@
     var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
     linhas = cadastroFiltrarDimensoesLista(linhas);
     linhas = cadastroFiltrarAtivosLocal(linhas);
-    linhas = cadastroAplicarPatchLista(linhas);
     if (ordenacaoAtual.campo) {
       linhas = cadastroAplicarOrdenacaoCliente(linhas);
     }
@@ -1001,7 +993,7 @@
   }
 
   function carregarBuscaPdv(qRaw, gen, sig) {
-    return fetchBuscaPdvMotor(qRaw, sig).then(function (apiRows) {
+    return fetchBuscaCadastroApi(qRaw, sig).then(function (apiRows) {
       finalizarBuscaPdvRows(apiRows, gen);
     });
   }
@@ -1469,7 +1461,7 @@
   function fillCadastroFacetSelects() {
     if (facetasCarregadas || !URL_FACETAS) return;
     facetasCarregadas = true;
-    fetch(URL_FACETAS, { credentials: 'same-origin' })
+    fetch(URL_FACETAS + (URL_FACETAS.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), { credentials: 'same-origin' })
       .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
         if (!j.ok) {
