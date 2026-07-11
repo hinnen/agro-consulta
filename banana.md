@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.98** · **loja v7.64**
+**Versão app (`VERSION`):** **teste v7.99** · **loja v7.64**
 
 ### ✅ Indicadores — Tipo + Grupo + Estoque e giro (11/07 · **v7.98 teste**)
 
@@ -1163,6 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Planilha oficial CP (Tipo/Grupo) na tabela despesas + aba **Estoque e giro** (parado 90d + top 5 giro 30d) |
 | **URL aba** | `/financeiro/dashboard-gerencial/?aba=estoque` |
 | **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque e giro · despesas agrupadas Tipo→Grupo |
+| **Fix v7.99** | Aba abre na hora + «Carregando…» · dados via API (consulta pesada não trava a página) |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
