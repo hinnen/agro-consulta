@@ -1154,9 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.99** · **loja v7.64**
+**Versão app (`VERSION`):** **teste v8.01** · **loja v7.65**
 
-### ✅ Indicadores — Tipo + Grupo + Estoque e giro (11/07 · **v7.98 teste**)
+### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tipo+Grupo planilha CP · aba Estoque & giro · **só leitura BI** |
+| **Não mexe** | PDV · CP · caixa · fiado |
+| **Pode mudar** | Números Indicadores + Resumo gerencial (classificação) |
+
+### ✅ Indicadores — Tipo + Grupo + Estoque e giro (11/07 · **v7.98+ teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
