@@ -477,3 +477,51 @@ def simulacao_unificar_planos_despesa(request):
     except Exception as e:
         body = f"Erro na simulação: {e}"
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+def aplicar_unificar_planos_despesa(request):
+    """Staff: aplica renomes do mapa (só teste/loja — ambiente do Render atual)."""
+    if not getattr(request.user, "is_staff", False):
+        from django.http import HttpResponseNotFound
+
+        return HttpResponseNotFound()
+    from django.http import HttpResponse
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from produtos.management.commands.unificar_planos_despesa import (
+        _carregar_mapa,
+        aplicar_unificacao,
+        formatar_relatorio,
+        simular_unificacao,
+    )
+
+    if (request.GET.get("confirmar") or "").strip().lower() != "sim":
+        return HttpResponse(
+            "APLICAR unificação de planos (CP)\n\n"
+            "Isto RENOMEIA plano_conta nos títulos — não apaga.\n"
+            "Use primeiro no TESTE (staging).\n\n"
+            "Para confirmar, abra esta mesma URL com:\n"
+            "  ?confirmar=sim\n",
+            content_type="text/plain; charset=utf-8",
+        )
+
+    path = Path(settings.BASE_DIR) / "docs" / "dados" / "plano_despesas_mapa_unificacao.csv"
+    try:
+        pares = _carregar_mapa(path)
+        sim = simular_unificacao(pares, path=path)
+        out = aplicar_unificacao(pares)
+        lines = [
+            formatar_relatorio(sim),
+            "",
+            "=== APLICADO NESTE AMBIENTE ===",
+            f"Títulos atualizados: {out['titulos_atualizados']}",
+        ]
+        for d in out["detalhes"]:
+            lines.append(f"  {d['antigo']} → {d['oficial']}: {d['titulos']}")
+        body = "\n".join(lines)
+    except Exception as e:
+        body = f"Erro ao aplicar: {e}"
+    return HttpResponse(body, content_type="text/plain; charset=utf-8")

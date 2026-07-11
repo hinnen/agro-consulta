@@ -34,4 +34,9 @@ urlpatterns = [
         views.simulacao_unificar_planos_despesa,
         name="financeiro_simulacao_unificar_planos",
     ),
+    path(
+        "interno/planos-despesa-aplicar-unificar/",
+        views.aplicar_unificar_planos_despesa,
+        name="financeiro_aplicar_unificar_planos",
+    ),
 ]
