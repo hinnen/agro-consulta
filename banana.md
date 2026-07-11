@@ -1154,20 +1154,28 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.05** · **loja v8.07** (deploy 11/07 — merge teste)
+**Versão app (`VERSION`):** **teste v8.08** · **loja v8.09**
+
+### 🚀 Deploy loja **v8.09** — BCA Entrada NF etapa 2 (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Busca produto Entrada NF (linha sentinela + **Mudar**) → **BCA** · `entrada_nfe=1` |
+| **Commit** | `5643eea` (cherry `f624f22`) |
+| **Validado** | Renan OK BCA loja + Entrada NF teste |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` |
+| **Revert** | **`producao-backup-pre-entrada-nfe-bca-20260711`** · **`rollback/pre-entrada-nfe-bca-v807`** @ **`a671ffd`** (v8.07) |
+| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-entrada-nfe-bca-20260711 && git push origin producao --force-with-lease` |
+| **Dados** | Só leitura — **não** altera catálogo |
 
 ### 🚀 Deploy loja **v8.07** — BCA + pacote teste (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Merge `teste` → `producao`: **BCA** (Busca Catálogo Agro) — PDV + Cadastro ERP + Consulta via `/api/buscar/` · cadastro estoque/vitrines · fiado baixa parcial · indicadores Tipo+Grupo + aba Estoque |
-| **Validado teste** | `#prova` nas 3 telas · `milho` PDV vs cadastro · fix JS Consulta |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDV · cadastro · consulta |
-| **Validar loja** | PDV venda rápida · cadastro `#prova` + `milho` · Consulta orçamento · Indicadores |
-| **Revert código** | Branch **`producao-backup-pre-bca-20260711`** · tag **`rollback/pre-bca-v766`** @ **`e260c48`** (loja **v7.66**) |
-| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-bca-20260711 && git push origin producao --force-with-lease` |
-| **Dados** | BCA = **só leitura** na busca — **não** altera catálogo Mongo/PG |
-| **Pendente** | Desativar `/produtos/gestao/` se cadastro OK na loja |
+| **O quê** | Merge `teste` → `producao`: **BCA** PDV + Cadastro + Consulta · estoque/vitrines · fiado · indicadores |
+| **Validado loja** | **✅** Renan OK PDV + cadastro + consulta |
+| **Revert total BCA** | **`producao-backup-pre-bca-20260711`** · **`rollback/pre-bca-v766`** @ **`e260c48`** (v7.66) |
+| **Pendente produto** | Desativar `/produtos/gestao/` se cadastro OK |
 
 ### ✅ Deploy loja **v7.66** — Indicadores faturamento PDV (11/07 — Renan senha OK)
 
@@ -1215,10 +1223,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` |
-| **BCA** | `agro_busca_catalogo.js` · `/api/buscar/` · PDV + cadastro + Consulta mesma API |
-| **Validação teste** | `#prova` + `milho` OK nas 3 telas |
-| **Loja** | **✅ v8.07** — validar Renan |
+| **BCA** | PDV + cadastro + Consulta + **Entrada NF** (`agro_busca_catalogo.js`) |
+| **Validação Renan** | **✅ loja** — PDV/cadastro/consulta + Entrada NF |
+| **Pendente produto** | Desativar `/produtos/gestao/` quando Renan confirmar cadastro |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
