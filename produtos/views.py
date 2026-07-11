@@ -8605,7 +8605,13 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         },
     }
     ctx["pdv_consulta_only"] = rota_nome == "consulta_produtos"
-    ctx["agro_pdv_assets_v"] = getattr(settings, "AGRO_PDV_ASSETS_V", "") or ""
+    try:
+        from pathlib import Path
+
+        _v_assets = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        _v_assets = ""
+    ctx["agro_pdv_assets_v"] = getattr(settings, "AGRO_PDV_ASSETS_V", "") or _v_assets
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 
