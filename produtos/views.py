@@ -16941,11 +16941,17 @@ def _buscar_mongo_lite_consulta(
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
-    """Busca única: PDV (`/api/buscar/`) ou tela de compras com `?compras=1` (inclui custos)."""
-    compras = getattr(request, "_compras_mode", False) or request.GET.get("compras") in (
-        "1",
-        "true",
-        "yes",
+    """Busca única: PDV, compras (`?compras=1`) ou cadastro ERP (`?contexto=cadastro`)."""
+    contexto_cadastro = str(request.GET.get("contexto") or "").strip().lower() == "cadastro"
+    compras = (
+        contexto_cadastro
+        or getattr(request, "_compras_mode", False)
+        or request.GET.get("compras")
+        in (
+            "1",
+            "true",
+            "yes",
+        )
     )
     wizard_mode = (request.GET.get("wizard") or "").strip().lower() in ("1", "true", "yes")
     entrada_nfe_mode = (request.GET.get("entrada_nfe") or "").strip().lower() in ("1", "true", "yes")
@@ -17336,6 +17342,16 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            if contexto_cadastro:
+                if "inativo" not in row:
+                    row["inativo"] = bool(p.get("CadastroInativo"))
+                if not row.get("unidade"):
+                    row["unidade"] = _valor_texto_campo(
+                        p.get("Unidade") or p.get("SiglaUnidade") or p.get("UnidadeMedida")
+                    )
+                sc_c = _float_api_json(row.get("saldo_centro") or 0)
+                sv_c = _float_api_json(row.get("saldo_vila") or 0)
+                row["saldo_total"] = round(sc_c + sv_c, 2)
             if compras:
                 pv_m = _float_api_json(row.get("preco_venda") or 0)
                 m_lm = _margem_percentual_produto_pv(p, float(pv_m))
@@ -17412,6 +17428,8 @@ def api_buscar_produtos(request):
                 cache.set(entrada_nfe_cache_key, payload, 45)
             except Exception:
                 pass
+        if contexto_cadastro:
+            return _api_buscar_json_contexto_cadastro(request, res)
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
@@ -18999,6 +19017,41 @@ def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict
     if incluir_saldo and isinstance(out.get("produtos"), list):
         out["produtos"] = _cadastro_enriquecer_saldo_nas_rows(list(out["produtos"]))
     return out
+
+
+def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonResponse:
+    """Embalagem cadastro ERP sobre linhas já montadas por ``api_buscar_produtos``."""
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    marca_f, cat_f, forn_f, incluir_saldo = _cadastro_parse_filtros_lista(request)
+    sort_key, sort_direction = _parse_sort_cadastro_request(request)
+    q_raw = str(request.GET.get("q") or "").strip()
+
+    out: list[dict] = []
+    for r in rows:
+        if not inativos and r.get("inativo"):
+            continue
+        if not _cadastro_row_passa_filtros(r, marca_f, cat_f, forn_f):
+            continue
+        out.append(r)
+
+    if incluir_saldo:
+        out = _cadastro_enriquecer_saldo_nas_rows(out)
+    _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "modo": "busca",
+            "api": "buscar",
+            "contexto": "cadastro",
+            "motor": "catalogo_agro.buscar",
+            "q": q_raw,
+            "produtos": out,
+            "total_retornado": len(out),
+            "sort": sort_key,
+            "dir": "desc" if sort_direction < 0 else "asc",
+        }
+    )
 
 
 @require_GET

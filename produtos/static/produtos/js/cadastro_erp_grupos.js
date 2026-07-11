@@ -356,7 +356,7 @@
     var q = (modalQ.value || '').trim();
     modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500 font-semibold">Digite para buscar…</p>';
     if (!q) return;
-    fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
+    fetch(URL_BUSCAR_PDV + '?contexto=cadastro&compras=1&q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data && data.erro) throw new Error(data.erro);

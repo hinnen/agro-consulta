@@ -165,6 +165,22 @@
     return params;
   }
 
+  /** Busca unificada: mesma rota do PDV com `contexto=cadastro` (+ custo e saldo). */
+  function cadastroQueryParamsBusca(opts) {
+    var base = cadastroQueryParams({
+      q: opts.q,
+      limit: opts.limit || cadastroLimiteBuscaPdv()
+    });
+    var params = new URLSearchParams();
+    params.set('contexto', 'cadastro');
+    params.set('compras', '1');
+    ['q', 'limit', 'sort', 'dir', 'marca', 'categoria', 'fornecedor', 'ativo', 'inativos', 'incluir_saldo'].forEach(function (k) {
+      if (base.has(k)) params.set(k, base.get(k));
+    });
+    if (!params.has('incluir_saldo')) params.set('incluir_saldo', '1');
+    return params;
+  }
+
   function urlFetch() {
     if (!buscaEl) return API;
     return API + '?' + cadastroQueryParams().toString();
@@ -969,9 +985,9 @@
     });
   }
 
-  /** Mesmo motor de busca do PDV (Postgres `catalogo_agro.buscar`) via API cadastro. */
+  /** Busca unificada — `/api/buscar/?contexto=cadastro` (mesmo motor do PDV). */
   function fetchBuscaCadastroApi(qRaw, sig) {
-    var url = API + '?' + cadastroQueryParams({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
+    var url = URL_BUSCAR_PDV + '?' + cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
     return fetch(url, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
@@ -1014,7 +1030,7 @@
     var q = (buscaEl.value || '').trim();
     if (data.modo === 'busca') {
       modoLista = false;
-      metaEl.textContent = 'Busca PDV · ' + (produtos.length) + ' resultado(s)';
+      metaEl.textContent = 'Busca · ' + (produtos.length) + ' resultado(s)';
       pagWrap.classList.add('hidden');
     } else {
       modoLista = true;
