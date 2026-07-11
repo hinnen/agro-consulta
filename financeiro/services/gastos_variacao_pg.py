@@ -7,6 +7,12 @@ from decimal import Decimal
 from typing import Any
 
 from financeiro.models import LancamentoFinanceiro as NF
+from financeiro.services.plano_despesa_niveis import (
+    grupo_negocio_ui,
+    lookup_plano_nivel,
+    ordem_grupos_negocio,
+    tipo_ui,
+)
 from financeiro.services.resumo_operacional_mongo import (
     classificar_despesa_plano,
     get_object_or_none_empresa,
@@ -103,12 +109,30 @@ _GRUPO_LABEL = {
 
 
 def _grupo_despesa_ui(nome_plano: str) -> str:
+    t = tipo_ui(nome_plano)
+    if t:
+        return t
     nat = classificar_despesa_plano(nome_plano)
     if nat == NF.NATUREZA_DESPESA_FIXA:
         return "fixa"
     if nat == NF.NATUREZA_DESPESA_VARIAVEL:
         return "variavel"
     return "outra"
+
+
+def _ordem_grupo_negocio(nome: str) -> int:
+    try:
+        return ordem_grupos_negocio().index(nome)
+    except ValueError:
+        return 999
+
+
+def _subtotais_bucket(rows: list[dict], n: int) -> list[float]:
+    sub = [0.0] * n
+    for r in rows:
+        for i, v in enumerate(r["valores"]):
+            sub[i] += v
+    return [round(x, 2) for x in sub]
 
 
 def gastos_por_plano_periodo_pg(
@@ -205,11 +229,16 @@ def gastos_variacao_pg(
         delta = v2 - v1
         pct = _fmt_pct(delta, v1)
         grupo = _grupo_despesa_ui(plano)
+        gneg = grupo_negocio_ui(plano)
+        reg = lookup_plano_nivel(plano)
         linhas.append(
             {
                 "plano": plano,
                 "categoria": plano,
                 "grupo": grupo,
+                "grupo_negocio": gneg,
+                "grupo_negocio_ordem": _ordem_grupo_negocio(gneg),
+                "nota_grupo": (reg.observacao[:80] if reg and reg.vale_nao_soma_pessoal else ""),
                 "grupo_label": _GRUPO_LABEL[grupo],
                 "valores": vals,
                 "total": float(sum(vals)),
@@ -220,6 +249,21 @@ def gastos_variacao_pg(
         )
 
     n_buckets = len(buckets)
+
+    gf = (grupo_filtro or "todas").strip().lower()
+    if gf in ("fixa", "variavel", "outra"):
+        linhas = [r for r in linhas if r["grupo"] == gf]
+
+    linhas.sort(
+        key=lambda r: (
+            _GRUPO_ORDEM.index(r["grupo"]) if r["grupo"] in _GRUPO_ORDEM else 9,
+            r.get("grupo_negocio_ordem", 999),
+            r.get("grupo_negocio", "").casefold(),
+            -r["valores"][-1],
+            r["plano"].casefold(),
+        )
+    )
+
     resumo_grupos: list[dict[str, Any]] = []
     for gkey in _GRUPO_ORDEM:
         rows_g = [r for r in linhas if r["grupo"] == gkey]
@@ -237,17 +281,48 @@ def gastos_variacao_pg(
             }
         )
 
-    gf = (grupo_filtro or "todas").strip().lower()
-    if gf in ("fixa", "variavel", "outra"):
-        linhas = [r for r in linhas if r["grupo"] == gf]
-
-    linhas.sort(
-        key=lambda r: (
-            _GRUPO_ORDEM.index(r["grupo"]) if r["grupo"] in _GRUPO_ORDEM else 9,
-            -r["valores"][-1],
-            r["plano"].casefold(),
+    # Blocos Tipo → Grupo (para a tabela Indicadores)
+    blocos_tipo: list[dict[str, Any]] = []
+    for gkey in _GRUPO_ORDEM:
+        rows_tipo = [r for r in linhas if r["grupo"] == gkey]
+        if not rows_tipo:
+            continue
+        res_t = next((x for x in resumo_grupos if x["key"] == gkey), None)
+        grupos_neg: list[dict[str, Any]] = []
+        gneg_atual = None
+        bucket_rows: list[dict] = []
+        for row in rows_tipo:
+            gn = row["grupo_negocio"]
+            if gneg_atual is not None and gn != gneg_atual:
+                grupos_neg.append(
+                    {
+                        "nome": gneg_atual,
+                        "qtd": len(bucket_rows),
+                        "subtotais": _subtotais_bucket(bucket_rows, n_buckets),
+                        "linhas": bucket_rows,
+                    }
+                )
+                bucket_rows = []
+            gneg_atual = gn
+            bucket_rows.append(row)
+        if bucket_rows and gneg_atual is not None:
+            grupos_neg.append(
+                {
+                    "nome": gneg_atual,
+                    "qtd": len(bucket_rows),
+                    "subtotais": _subtotais_bucket(bucket_rows, n_buckets),
+                    "linhas": bucket_rows,
+                }
+            )
+        blocos_tipo.append(
+            {
+                "key": gkey,
+                "label": _GRUPO_LABEL[gkey],
+                "qtd": len(rows_tipo),
+                "subtotais": res_t["subtotais"] if res_t else _subtotais_bucket(rows_tipo, n_buckets),
+                "grupos_negocio": grupos_neg,
+            }
         )
-    )
 
     top = linhas[:top_chart]
     chart_labels = [r["plano"][:28] for r in top]
@@ -279,6 +354,7 @@ def gastos_variacao_pg(
             for b in buckets
         ],
         "linhas": linhas,
+        "blocos_tipo": blocos_tipo,
         "resumo_grupos": resumo_grupos,
         "grupo_filtro": gf if gf in ("fixa", "variavel", "outra") else "todas",
         "total_categorias": len(linhas),

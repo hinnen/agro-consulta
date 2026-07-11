@@ -5,7 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
 from django.urls import reverse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
@@ -13,7 +14,26 @@ from base.models import Empresa
 
 from financeiro.models import GraficoGastosAtalhoAgro
 from financeiro.services.indicadores_gerencial_pg import get_indicadores_gerencial_pg
+from produtos.dashboard_estoque_financeiro_util import pacote_dashboard_financeiro_restrito
 from produtos.views import _dashboard_periodo_from_request
+
+
+@login_required(login_url="/admin/login/")
+@never_cache
+def dashboard_financeiro_restrito(request):
+    """Redireciona para aba Estoque & Giro dentro de Indicadores financeiros."""
+    return redirect(f"{reverse('dashboard_financeiro_completo')}?aba=estoque")
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET"])
+def api_dashboard_financeiro_restrito(request):
+    """JSON para o dashboard restrito (mesmos dados da página)."""
+    pack = pacote_dashboard_financeiro_restrito()
+    gerado = pack.get("gerado_em")
+    if gerado is not None:
+        pack["gerado_em"] = timezone.localtime(gerado).isoformat()
+    return JsonResponse({"ok": True, **pack})
 
 
 @login_required(login_url="/admin/login/")
@@ -43,8 +63,16 @@ def dashboard_financeiro_completo(request):
     if var_grupo not in ("todas", "fixa", "variavel", "outra"):
         var_grupo = "todas"
 
-    dados = (
-        get_indicadores_gerencial_pg(
+    aba = (request.GET.get("aba") or "financeiro").strip().lower()
+    if aba not in ("financeiro", "estoque"):
+        aba = "financeiro"
+
+    dados = None
+    dados_estoque = None
+    if aba == "estoque":
+        dados_estoque = pacote_dashboard_financeiro_restrito()
+    elif empresa_id:
+        dados = get_indicadores_gerencial_pg(
             empresa_id,
             data_ini,
             data_fim,
@@ -55,9 +83,6 @@ def dashboard_financeiro_completo(request):
             var_por=var_por,
             var_grupo=var_grupo,
         )
-        if empresa_id
-        else None
-    )
     filtro_dashboard = {
         "por": por,
         "valor": valor,
@@ -78,6 +103,8 @@ def dashboard_financeiro_completo(request):
             "periodo_cal_ini": data_ini.isoformat(),
             "periodo_cal_fim": data_fim.isoformat(),
             "cp_url": reverse("lancamentos_contas_pagar"),
+            "aba_ativa": aba,
+            "dados_estoque": dados_estoque,
         },
     )
 
@@ -419,7 +446,8 @@ def classificacao_despesas_lista(request):
         return HttpResponseNotFound()
     from django.http import HttpResponse
 
-    from financeiro.services.gastos_variacao_pg import _GRUPO_LABEL, _grupo_despesa_ui
+    from financeiro.services.gastos_variacao_pg import _GRUPO_LABEL, _GRUPO_ORDEM, _grupo_despesa_ui
+    from financeiro.services.plano_despesa_niveis import grupo_negocio_ui, lookup_plano_nivel
     from produtos.models import TituloFinanceiroAgro
 
     planos = sorted(
@@ -432,20 +460,30 @@ def classificacao_despesas_lista(request):
         },
         key=lambda x: x.casefold(),
     )
-    grupos: dict[str, list[str]] = {"fixa": [], "variavel": [], "outra": []}
+    arvore: dict[str, dict[str, list[str]]] = {
+        k: {} for k in _GRUPO_ORDEM
+    }
     for nome in planos:
-        grupos[_grupo_despesa_ui(nome)].append(nome)
+        t = _grupo_despesa_ui(nome)
+        g = grupo_negocio_ui(nome)
+        arvore.setdefault(t, {}).setdefault(g, []).append(nome)
 
     lines = [
-        "CLASSIFICAÇÃO ATUAL — planos de despesa (CP)",
-        f"Total: {len(planos)} planos",
+        "CLASSIFICAÇÃO — planilha oficial (Tipo + Grupo)",
+        f"Total: {len(planos)} planos distintos no CP",
         "",
     ]
-    for key in ("fixa", "variavel", "outra"):
-        rows = grupos[key]
-        lines.append(f"=== {_GRUPO_LABEL[key].upper()} ({len(rows)}) ===")
-        for nome in rows:
-            lines.append(f"- {nome}")
+    for tkey in _GRUPO_ORDEM:
+        bloco = arvore.get(tkey) or {}
+        n_tipo = sum(len(v) for v in bloco.values())
+        lines.append(f"=== {_GRUPO_LABEL[tkey].upper()} ({n_tipo}) ===")
+        for gneg in sorted(bloco.keys(), key=lambda s: s.casefold()):
+            rows = sorted(bloco[gneg], key=lambda s: s.casefold())
+            lines.append(f"  · {gneg} ({len(rows)})")
+            for nome in rows:
+                reg = lookup_plano_nivel(nome)
+                tag = "" if reg else " [fora da planilha — regra antiga]"
+                lines.append(f"      - {nome}{tag}")
         lines.append("")
     body = "\n".join(lines)
     return HttpResponse(body, content_type="text/plain; charset=utf-8")

@@ -1154,26 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.89** · **loja v7.64**
+**Versão app (`VERSION`):** **teste v7.98** · **loja v7.64**
 
-### 🔄 Indicadores — Tipo + Grupo planilha (11/07 · **local, não subiu teste**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Indicadores + Resumo usam `plano_despesas_niveis_proposta.csv` (Fixa/Variável/Outra + Grupo) |
-| **Tela** | Tabela «Despesas por categoria» agrupa Tipo → Grupo → plano |
-| **Arquivos** | `plano_despesa_niveis.py` · `gastos_variacao_pg.py` · `resumo_operacional_mongo.py` · `indicadores_gerencial.html` |
-| **Validar** | Render **teste** quando Renan autorizar push · Indicadores + conferir KPIs vs antes |
-
-### ✅ Indicadores — aba Estoque & giro (11/07 · WIP local)
+### ✅ Indicadores — Tipo + Grupo + Estoque e giro (11/07 · **v7.98 teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Estoque parado (>90d sem venda PDV) + top 5 giro (30d) — dentro de **Indicadores financeiros** |
-| **URL** | `/financeiro/dashboard-gerencial/?aba=estoque` · aba **Estoque & giro** |
-| **Legado** | `/financeiro/dashboard-restrito/` redireciona para a aba |
-| **Dados** | `ItemVendaAgro` + saldo operacional C+V (`dashboard_estoque_financeiro_util.py`) — **não** SQL Gemini |
-| **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque & giro → duas tabelas |
+| **O quê** | Planilha oficial CP (Tipo/Grupo) na tabela despesas + aba **Estoque e giro** (parado 90d + top 5 giro 30d) |
+| **URL aba** | `/financeiro/dashboard-gerencial/?aba=estoque` |
+| **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque e giro · despesas agrupadas Tipo→Grupo |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 

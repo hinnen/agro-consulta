@@ -1,6 +1,10 @@
 from django.urls import include, path
 
-from financeiro.views import dashboard_financeiro_completo
+from financeiro.views import (
+    api_dashboard_financeiro_restrito,
+    dashboard_financeiro_completo,
+    dashboard_financeiro_restrito,
+)
 
 from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
 from . import fiado_gestao_views as fiado_views
@@ -152,6 +156,16 @@ urlpatterns = [
         'financeiro/dashboard-gerencial/',
         dashboard_financeiro_completo,
         name='dashboard_financeiro_completo',
+    ),
+    path(
+        'financeiro/dashboard-restrito/',
+        dashboard_financeiro_restrito,
+        name='dashboard_financeiro_restrito',
+    ),
+    path(
+        'api/financeiro/dashboard-restrito/',
+        api_dashboard_financeiro_restrito,
+        name='api_dashboard_financeiro_restrito',
     ),
     path('dashboard/gerencial/', views.dashboard_gerencial_view, name='dashboard_gerencial'),
     path(

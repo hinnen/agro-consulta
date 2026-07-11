@@ -69,6 +69,12 @@ def classificar_receita_plano(nome_plano: str) -> str:
 
 
 def classificar_despesa_plano(nome_plano: str) -> str:
+    from financeiro.services.plano_despesa_niveis import natureza_dre_por_planilha
+
+    nat_planilha = natureza_dre_por_planilha(nome_plano)
+    if nat_planilha is not None:
+        return nat_planilha
+
     f = _fold(nome_plano)
     # Juros do contrato de empréstimo (ex.: plano «Juros de Emprestimos»): mesmo eixo que
     # «Pagamento de Emprestimos» / amortização ao credor — antes de «juros» genérico (cartão, etc.).
