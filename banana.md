@@ -1161,7 +1161,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
-| **Feito teste v7.69–v7.72** | **Busca = só `/api/buscar/`** (mesmo motor Postgres do PDV) · sem cache local que piscava/sumia · lista A–Z continua Postgres (`api_produtos_cadastro`) · marcas overlay nos filtros |
+| **Feito teste v7.69–v7.74** | Busca Postgres (`catalogo_agro.buscar` = mesmo motor PDV) · GM prefixo (`GM0024` → `-10/-15`) · custo lista sem patch PDV zerando · facetas marcas ordenadas A–Z |
 | **Validação Renan 11/07** | Busca GM · custo vazio (provável espelho teste) · marca fora da lista · produto sumindo após editar — **fix v7.71** |
 | **Pendente** | Renan revalidar no Render teste · depois desativar `/produtos/gestao/` se OK |
 
@@ -1183,7 +1183,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
 | **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
 | **Status** | Simulação pronta; **aplicar** só com OK do Renan |
-| **Conferência 11/07** | **OK no teste** — totais batem. **Aplicar teste:** URL staff `…/planos-despesa-aplicar-unificar/?confirmar=sim` (v7.71+) · loja **não** |
+| **Conferência 11/07** | Apply teste lote #1 (1120 tít.). Mapa +4 grafias: COMPRA CN/SN maiúsc., Taxas Maquina Cartão, Bonús → **2o apply** no teste após deploy |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
