@@ -1154,18 +1154,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.06** · **loja v8.07**
+**Versão app (`VERSION`):** **teste v8.07** · **loja v8.07** → **v8.08** (deploy Entrada NF BCA)
 
-### Entrada NF — BCA etapa 2 produtos (11/07 · **teste v8.06**)
+### 🚀 Deploy loja **v8.08** — BCA Entrada NF etapa 2 (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Busca linha sentinela + modal **Mudar** → **BCA** (`fetchAgroBuscaCatalogo` · `entrada_nfe=1`) |
-| **Prova** | `#prova` na busca da linha → toast · não vincula produto |
-| **Validar** | Ctrl+F5 teste · `/entrada-nota/` etapa 2 · `milho` + `#prova` · Network `/api/buscar/?entrada_nfe=1` |
-| **Loja** | **⏳** após OK no teste |
+| **O quê** | Busca produto na Entrada NF (linha sentinela + **Mudar**) → **BCA** `fetchAgroBuscaCatalogo` · `entrada_nfe=1` |
+| **Commit** | `f624f22` (cherry de `teste`) |
+| **Validado** | Renan OK loja BCA geral · Entrada NF no teste |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` + `#prova` |
+| **Revert** | Branch **`producao-backup-pre-entrada-nfe-bca-20260711`** · tag **`rollback/pre-entrada-nfe-bca-v807`** @ **`a671ffd`** (loja **v8.07**) |
+| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-entrada-nfe-bca-20260711 && git push origin producao --force-with-lease` |
+| **Dados** | Só leitura na busca — **não** altera catálogo |
 
-### ✅ Deploy loja **v7.66** — Indicadores faturamento PDV (11/07 — Renan senha OK)
+### Entrada NF — BCA etapa 2 produtos (11/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mesmo motor PDV/cadastro/consulta · `#prova` = toast diagnóstico (não vincula linha) |
+| **Loja** | **✅ v8.08** |
+
+### 🚀 Deploy loja **v8.07** — BCA + pacote teste (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Merge `teste` → `producao`: **BCA** PDV + Cadastro + Consulta · cadastro estoque/vitrines · fiado · indicadores |
+| **Validado loja** | Renan OK PDV + cadastro + consulta |
+| **Revert total BCA** | **`producao-backup-pre-bca-20260711`** · **`rollback/pre-bca-v766`** @ **`e260c48`** (v7.66) |
+| **Pendente produto** | Desativar `/produtos/gestao/` se cadastro OK |
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1233,8 +1250,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
 | **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
 | **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
-| **Feito teste v7.93–v8.06** | **BCA** — PDV + cadastro + Consulta + **Entrada NF** (`entrada_nfe=1`) |
-| **Validação Renan** | PDV/cadastro/consulta OK loja · Entrada NF **⏳** testar |
+| **Feito v7.69–v8.08** | **BCA** — PDV + cadastro + Consulta + **Entrada NF** |
+| **Validação Renan** | **✅ loja** PDV/cadastro/consulta + Entrada NF |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
@@ -1242,7 +1259,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Receita** | Card **Faturamento PDV** = mesmo dado do BI; **Receita financeira (DRE)** = lançamentos |
 | **Despesas** | Classificação fixa/variável/outra corrigida; hint «role a tabela» para ver todos os grupos |
-| **Loja** | Redeploy pendente para ver v7.61 na loja |
+| **Loja** | **✅ v8.07** — Renan OK |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
