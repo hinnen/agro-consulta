@@ -28,8 +28,14 @@ def dashboard_financeiro_restrito(request):
 @login_required(login_url="/admin/login/")
 @require_http_methods(["GET"])
 def api_dashboard_financeiro_restrito(request):
-    """JSON para o dashboard restrito (mesmos dados da página)."""
-    pack = pacote_dashboard_financeiro_restrito()
+    """JSON para aba Estoque & giro (consulta pesada — carrega no browser)."""
+    try:
+        pack = pacote_dashboard_financeiro_restrito()
+    except Exception as exc:
+        return JsonResponse(
+            {"ok": False, "erro": str(exc)[:240]},
+            status=500,
+        )
     gerado = pack.get("gerado_em")
     if gerado is not None:
         pack["gerado_em"] = timezone.localtime(gerado).isoformat()
@@ -63,14 +69,12 @@ def dashboard_financeiro_completo(request):
     if var_grupo not in ("todas", "fixa", "variavel", "outra"):
         var_grupo = "todas"
 
-    aba = (request.GET.get("aba") or "financeiro").strip().lower()
-    if aba not in ("financeiro", "estoque"):
-        aba = "financeiro"
+    aba_raw = (request.GET.get("aba") or request.GET.get("tab") or "financeiro").strip().lower()
+    aba = "estoque" if aba_raw in ("estoque", "estoque_giro", "estoque-giro") else "financeiro"
 
     dados = None
-    dados_estoque = None
     if aba == "estoque":
-        dados_estoque = pacote_dashboard_financeiro_restrito()
+        pass
     elif empresa_id:
         dados = get_indicadores_gerencial_pg(
             empresa_id,
@@ -104,7 +108,7 @@ def dashboard_financeiro_completo(request):
             "periodo_cal_fim": data_fim.isoformat(),
             "cp_url": reverse("lancamentos_contas_pagar"),
             "aba_ativa": aba,
-            "dados_estoque": dados_estoque,
+            "api_estoque_url": reverse("api_dashboard_financeiro_restrito"),
         },
     )
 
