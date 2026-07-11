@@ -8360,13 +8360,10 @@
   }
 
   /** Catálogo via BCA — `/api/buscar/?entrada_nfe=1` (Postgres lite, sem estoque/médias Mongo). */
-  function entradaNfeExtrairProdutosRespostaBca(data) {
+  function entradaNfeExtrairProdutosRespostaBca(data, termoBruto) {
     if (!data || data.erro) return [];
-    const prova = data.prova_unificada;
-    if (prova && prova.ok && typeof showMsg === 'function') {
-      showMsg(String(prova.mensagem || 'Prova OK · BCA Entrada NF'), true);
-    }
     const arr = Array.isArray(data.produtos) ? data.produtos : [];
+    if (String(termoBruto || '').trim().toLowerCase() === '#prova') return arr;
     return arr.filter((p) => {
       if (typeof agroProdutoIdProvaUnificada === 'function') {
         return !agroProdutoIdProvaUnificada(p.id);
@@ -8380,7 +8377,7 @@
     if (t.length < 2) return [];
     if (typeof fetchAgroBuscaCatalogo === 'function') {
       const j = await fetchAgroBuscaCatalogo(t, { limit: 48, entrada_nfe: true, signal: signal });
-      return entradaNfeExtrairProdutosRespostaBca(j);
+      return entradaNfeExtrairProdutosRespostaBca(j, t);
     }
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
@@ -8391,7 +8388,7 @@
     const r = await fetch(u.toString(), opts);
     if (!r.ok) return [];
     const j = await r.json().catch(() => ({}));
-    return entradaNfeExtrairProdutosRespostaBca(j);
+    return entradaNfeExtrairProdutosRespostaBca(j, t);
   }
 
   async function entradaNfeBuscarProdutosArr(termo) {
@@ -8415,6 +8412,20 @@
       ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
         (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
     if (sid !== _entradaNfeBuscaSeq) return null;
+    if (provaBca) {
+      _entradaNfeBuscaAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const apiSignal = _entradaNfeBuscaAbort ? _entradaNfeBuscaAbort.signal : undefined;
+      try {
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        return await entradaNfeFetchProdutosMotorConsultaApi(tBruto, apiSignal);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return null;
+        return [];
+      } finally {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        if (sid === _entradaNfeBuscaSeq) _entradaNfeBuscaAbort = null;
+      }
+    }
     if (entradaNfeLocalSuficiente(locOrd, termoNorm, modo)) {
       if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
         return ordenarSugestoesPdv(locOrd, termoNorm).slice(0, 80);
