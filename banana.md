@@ -1154,9 +1154,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.05** · **loja v8.06** (deploy 11/07 — merge teste)
+**Versão app (`VERSION`):** **teste v8.05** · **loja v8.05** (deploy 11/07 — merge teste)
 
-### 🚀 Deploy loja **v8.06** — BCA + pacote teste (11/07 — Renan senha OK)
+### 🚀 Deploy loja **v8.05** — BCA + pacote teste (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
