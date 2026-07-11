@@ -1911,6 +1911,7 @@
   {% csrf_token %}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=4"></script>
+  <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
   <script>
 (function () {
   const URL_SEFAZ = "{% url 'api_entrada_nota_sefaz_status' %}";
@@ -8224,13 +8225,11 @@
   }
 
   /**
-   * Busca de produtos na NF-e: mesmo motor da Consulta / Orçamentos no servidor — `GET /api/buscar/?q=`
-   * (sem `wizard`; custo extra só em `entradaNfeBuscarLinhaComprasPorId` com `compras=1`).
-   * Entradas de UI que usam o mesmo pipeline (via `entradaNfeBuscarProdutosArr`):
+   * Busca de produtos na NF-e — **BCA** (Busca Catálogo Agro): `fetchAgroBuscaCatalogo` → `/api/buscar/?entrada_nfe=1`
+   * Entradas de UI (via `entradaNfeBuscarProdutosArr`):
    * - Sentinela «BUSCA» (F2, sugestões, Enter);
    * - Modal «BUSCAR PRODUTO» (MUDAR na linha).
-   * Opcional: cache PDV (`agro_pdv_catalog_cache_v2`) + `filtrarProdutosBuscaInteligente` + merge como no PDV.
-   * Sanitiza `|`, `;`, vírgulas. Custo/margem na linha: `entradaNfeEnriquecerLinhaAposEscolherCatalogo`.
+   * Opcional: cache PDV local + merge como no PDV (exceto `#prova` → só servidor).
    */
   const ENTRADA_NFE_PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
   let _entradaNfeCatLocal = null;
@@ -8360,10 +8359,29 @@
     return Array.isArray(apiProdutos) ? apiProdutos.slice(0, 80) : [];
   }
 
-  /** Catálogo via /api/buscar/ — Postgres (entrada_nfe=1) sem estoque/médias Mongo. */
+  /** Catálogo via BCA — `/api/buscar/?entrada_nfe=1` (Postgres lite, sem estoque/médias Mongo). */
+  function entradaNfeExtrairProdutosRespostaBca(data) {
+    if (!data || data.erro) return [];
+    const prova = data.prova_unificada;
+    if (prova && prova.ok && typeof showMsg === 'function') {
+      showMsg(String(prova.mensagem || 'Prova OK · BCA Entrada NF'), true);
+    }
+    const arr = Array.isArray(data.produtos) ? data.produtos : [];
+    return arr.filter((p) => {
+      if (typeof agroProdutoIdProvaUnificada === 'function') {
+        return !agroProdutoIdProvaUnificada(p.id);
+      }
+      return String(p.id || '') !== '__prova_unificada__';
+    });
+  }
+
   async function entradaNfeFetchProdutosMotorConsultaApi(termoBruto, signal) {
     const t = String(termoBruto || '').trim();
     if (t.length < 2) return [];
+    if (typeof fetchAgroBuscaCatalogo === 'function') {
+      const j = await fetchAgroBuscaCatalogo(t, { limit: 48, entrada_nfe: true, signal: signal });
+      return entradaNfeExtrairProdutosRespostaBca(j);
+    }
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
     u.searchParams.set('entrada_nfe', '1');
@@ -8373,8 +8391,7 @@
     const r = await fetch(u.toString(), opts);
     if (!r.ok) return [];
     const j = await r.json().catch(() => ({}));
-    if (j && j.erro) return [];
-    return Array.isArray(j.produtos) ? j.produtos : [];
+    return entradaNfeExtrairProdutosRespostaBca(j);
   }
 
   async function entradaNfeBuscarProdutosArr(termo) {
@@ -8388,7 +8405,8 @@
     if (!termoNorm || String(termoNorm).trim().length < 2) return [];
     const onlyDig = tBruto.replace(/\s/g, '');
     const modo = /^\d{8,}$/.test(onlyDig) ? 'scanner' : 'normal';
-    const baseLoc = fi ? entradaNfeCatalogoPdvCacheArray() : [];
+    const provaBca = tBruto.toLowerCase() === '#prova';
+    const baseLoc = fi && !provaBca ? entradaNfeCatalogoPdvCacheArray() : [];
     const locFiltrados = fi ? filtrarProdutosBuscaInteligente(baseLoc, termoNorm, modo) : [];
     const locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
     const hadLocal = locOrd.length > 0;
@@ -8435,13 +8453,19 @@
     const c = String(codigoNf || '').trim();
     if (!cid || c.length < 2) return null;
     try {
-      const u = new URL(URL_BUSCA, window.location.origin);
-      u.searchParams.set('q', entradaNfeSanitizeTermoBuscaPdvBruto(entradaNfeRemoverSufixoQuantidadeBusca(c)));
-      u.searchParams.set('compras', '1');
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
-      if (!r.ok) return null;
-      const j = await r.json();
-      const arr = Array.isArray(j.produtos) ? j.produtos : [];
+      const q = entradaNfeSanitizeTermoBuscaPdvBruto(entradaNfeRemoverSufixoQuantidadeBusca(c));
+      let j = null;
+      if (typeof fetchAgroBuscaCatalogo === 'function') {
+        j = await fetchAgroBuscaCatalogo(q, { compras: true, limit: 24 });
+      } else {
+        const u = new URL(URL_BUSCA, window.location.origin);
+        u.searchParams.set('q', q);
+        u.searchParams.set('compras', '1');
+        const r = await fetch(u.toString(), { credentials: 'same-origin' });
+        if (!r.ok) return null;
+        j = await r.json();
+      }
+      const arr = Array.isArray(j && j.produtos) ? j.produtos : [];
       const row = arr.find((x) => String(x.id) === cid);
       return row || arr[0] || null;
     } catch (_) {
@@ -8815,6 +8839,12 @@
   /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
+    if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(p.id)) {
+      if (p.fornecedor && typeof showMsg === 'function') {
+        showMsg(String(p.fornecedor).slice(0, 280), true);
+      }
+      return;
+    }
     delete tr.dataset.nfeCustNfPreservado;
     const eanNfLinha =
       entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
