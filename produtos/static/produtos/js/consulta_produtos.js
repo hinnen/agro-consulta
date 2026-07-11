@@ -119,6 +119,8 @@ const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
 const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const URL_BUSCAR_PDV = '/api/buscar/';
+const CONSULTA_BUSCA_LIMITE = 60;
 const PDV_FOCUS_DELTA_MIN_MS = 5 * 60 * 1000;
 let pdvCatalogoBootAt = 0;
 let pdvCatalogoLastFocusDeltaAt = 0;
@@ -2838,6 +2840,10 @@ function buscarProdutos(q, modo = 'normal') {
     const delay = modo === 'scanner' ? 0 : (baseProdutos.length > 0 ? 0 : 220);
 
     debounceTimer = setTimeout(() => {
+        if (consultaUsarBuscaServidorPrimeiro(termoBruto, modo)) {
+            executarBuscaAPI(termoBruto, modo);
+            return;
+        }
         if (baseProdutos.length > 0) {
             if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
                 executarBuscaRapidaSoCategoria();
@@ -2862,6 +2868,19 @@ function buscarProdutos(q, modo = 'normal') {
 
 function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
+}
+
+/** Consulta/orçamento: mesma API do cadastro — servidor primeiro (motor catalogo_agro via /api/buscar/). */
+function consultaUsarBuscaServidorPrimeiro(termoBruto, modo) {
+    if (modo === 'scanner') return false;
+    const bruto = String(termoBruto || '').trim();
+    if (!bruto) return false;
+    if (bruto.toLowerCase() === '#prova') return true;
+    const norm = normalizarBuscaLocal(bruto);
+    if (norm.length >= 2) return true;
+    if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(norm)) return true;
+    if (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(norm)) return true;
+    return false;
 }
 
 /** Filtro ativo pelos cards «Busca rápida · categoria» (Saco vs Granel). */
@@ -3314,8 +3333,8 @@ function extrairPalavrasParaHighlightDaBusca() {
 }
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
+    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     if (modo === 'scanner') {
-        const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
         const gmSemLocal =
             !locaisOrdenados.length
             && typeof pareceCodigoGmEtiqueta === 'function'
@@ -3348,7 +3367,6 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
-    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     const map = new Map();
     locaisOrdenados.forEach((p) => map.set(String(p.id), p));
     const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
@@ -3366,11 +3384,12 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     mergeFetchTimer = setTimeout(() => {
         if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch('/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal))
+        fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE)
             .then((res) => res.json())
             .then((data) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
+                agroMostrarProvaUnificadaBusca(data);
                 const api = data.produtos || [];
                 const apiById = new Map();
                 api.forEach((raw) => {
@@ -3488,9 +3507,9 @@ function agroMostrarProvaUnificadaBusca(data) {
 }
 
 function executarBuscaAPI(termo, modo) {
-    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    mostrarStatusBusca('Buscando no servidor…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-    fetch("/api/buscar/?q=" + encodeURIComponent(termo))
+    fetch(URL_BUSCAR_PDV + '?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE)
         .then(res => res.json())
         .then(data => {
             if (data.erro) throw new Error(data.erro);
@@ -3505,6 +3524,13 @@ function executarBuscaAPI(termo, modo) {
 }
 
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
+    if (
+        matchExato
+        && produtosEncontrados.length === 1
+        && String(produtosEncontrados[0].id || '') === '__prova_unificada__'
+    ) {
+        matchExato = false;
+    }
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
         const pid = normalizarIdProdutoPdv(produto.id);

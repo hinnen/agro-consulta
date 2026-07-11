@@ -1156,6 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v7.89** · **loja v7.64**
 
+### 🔄 Indicadores — Tipo + Grupo planilha (11/07 · **local, não subiu teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Indicadores + Resumo usam `plano_despesas_niveis_proposta.csv` (Fixa/Variável/Outra + Grupo) |
+| **Tela** | Tabela «Despesas por categoria» agrupa Tipo → Grupo → plano |
+| **Arquivos** | `plano_despesa_niveis.py` · `gastos_variacao_pg.py` · `resumo_operacional_mongo.py` · `indicadores_gerencial.html` |
+| **Validar** | Render **teste** quando Renan autorizar push · Indicadores + conferir KPIs vs antes |
+
 ### ✅ Indicadores — aba Estoque & giro (11/07 · WIP local)
 
 | Item | Detalhe |
@@ -1199,8 +1208,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
 | **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
 | **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
-| **Feito teste v7.92** | Busca **`#prova`** nas 3 telas → cartão verde + amostra «milho» do Postgres via `/api/buscar/` |
-| **Pendente** | Renan digitar `#prova` no cadastro, PDV wizard e Consulta · comparar mensagem e lista milho |
+| **Feito teste v7.93** | **Consulta/orçamento** busca servidor primeiro (`/api/buscar/`) — mesmo motor/API do cadastro · fix `#prova` |
+| **Pendente** | Renan validar `/consulta/` com `#prova` e `milho` |
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 
