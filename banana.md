@@ -1154,19 +1154,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.88** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.89** · **loja v7.62**
+
+### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Baixa parcial · popup Total/Parcial · FIFO · PDV pagamento |
+| **Pacote** | `pacote/fiado-baixa-parcial-producao` → `producao` `304a5fa` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDVs · caixa aberto |
 
 ### Fiado — baixa parcial no PDV (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido** | Baixa parcial: 2× R$100, cliente paga R$150 → quita o mais antigo e R$50 no próximo |
-| **Feito teste v7.81–v7.88** | Backend parcial + FIFO · popup Total (Enter) / Parcial (P) · PDV confirma só valor de hoje |
-| **Validado Renan teste** | OK |
-| **Pacote produção** | Branch **`pacote/fiado-baixa-parcial-producao`** — cherry já resolvido · loja **v7.61** |
-| **Deploy loja** | Aguardando OK loja + frase + senha no próximo chat |
-| **Pós-deploy** | Ctrl+F5 · fiado Total + Parcial · caixa aberto |
-| **Fora do pacote** | FL-029 crédito cliente · NFC-e baixa FL-052 · recibo FL-019 |
+| **Status** | **✅ loja v7.61** (código) · docs checkpoint **v7.62** |
+| **Teste** | Validado · popup Total (Enter) / Parcial (P) |
+| **Fora** | FL-029 crédito · FL-052 NFC-e · FL-019 recibo |
 
 ### Cadastro ERP — estoque + vitrines (11/07)
 
