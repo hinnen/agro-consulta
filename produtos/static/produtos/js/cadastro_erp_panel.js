@@ -123,27 +123,11 @@
   var expandMm = null;
   var facetasCarregadas = false;
 
-  function mostrarErro(msg, opcoes) {
+  function mostrarErro(msg) {
     if (!msg) {
       erroEl.classList.add('hidden');
       erroEl.textContent = '';
       erroEl.innerHTML = '';
-      return;
-    }
-    var hintMongo = opcoes && opcoes.hintMongo;
-    if (hintMongo) {
-      erroEl.innerHTML =
-        '<p class="font-bold">' + escapeHtml(msg) + '</p>' +
-        '<p class="mt-2 text-sm leading-snug">O catálogo precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
-        '<button type="button" id="cadastro-erro-ir-grupos" class="mt-3 min-h-[44px] px-4 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-700">Abrir aba Grupos (funciona sem Mongo)</button>';
-      erroEl.classList.remove('hidden');
-      var b = document.getElementById('cadastro-erro-ir-grupos');
-      if (b) {
-        b.addEventListener('click', function () {
-          var t = document.getElementById('tab-grupos');
-          if (t) t.click();
-        });
-      }
       return;
     }
     erroEl.innerHTML = '';
@@ -985,11 +969,12 @@
     });
   }
 
-  /** Busca textual — mesmo endpoint do PDV (`/api/buscar/`). */
+  /** Busca textual — mesmo endpoint do PDV (`/api/buscar/`), com custo (compras=1). */
   function urlBuscaPdvMotor(qRaw, limit) {
     var params = new URLSearchParams();
     params.set('q', String(qRaw || '').trim());
     params.set('limit', String(limit != null ? limit : cadastroLimiteBuscaPdv()));
+    params.set('compras', '1');
     return URL_BUSCAR_PDV + '?' + params.toString();
   }
 
@@ -1002,32 +987,9 @@
       });
   }
 
-  function cadastroMesclarLinhasBusca(apiLinhas, localLinhas) {
-    var map = new Map();
-    (localLinhas || []).forEach(function (r) {
-      if (r && r.id != null) map.set(String(r.id), r);
-    });
-    (apiLinhas || []).forEach(function (r) {
-      if (!r || r.id == null) return;
-      var id = String(r.id);
-      var loc = map.get(id);
-      if (loc) {
-        var merged = Object.assign({}, loc, r);
-        merged._precoAguardando = false;
-        map.set(id, merged);
-      } else {
-        map.set(id, r);
-      }
-    });
-    return Array.from(map.values());
-  }
-
-  function finalizarBuscaPdvRows(apiRows, gen, locaisPdv) {
+  function finalizarBuscaPdvRows(apiRows, gen) {
     if (gen !== carregarGen) return;
-    var catalog = cadastroCatalogoPdvById();
-    var apiLinhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
-    var localLinhas = cadastroFinalizarLinhasBusca(locaisPdv || [], catalog);
-    var linhas = cadastroMesclarLinhasBusca(apiLinhas, localLinhas);
+    var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
     linhas = cadastroFiltrarDimensoesLista(linhas);
     linhas = cadastroFiltrarAtivosLocal(linhas);
     linhas = cadastroAplicarPatchLista(linhas);
@@ -1038,24 +1000,9 @@
     renderLista(linhas);
   }
 
-  function fetchCadastroApiBusca(qRaw, sig) {
-    var url = API + '?' + cadastroQueryParams({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
-    return fetch(url, { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return jsonOuErroHumano(r); })
-      .then(function (j) {
-        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca cadastro');
-        return Array.isArray(j.produtos) ? j.produtos : [];
-      });
-  }
-
-  function carregarBuscaPdv(qRaw, gen, sig, locaisPdv) {
+  function carregarBuscaPdv(qRaw, gen, sig) {
     return fetchBuscaPdvMotor(qRaw, sig).then(function (apiRows) {
-      if (!apiRows || !apiRows.length) {
-        return fetchCadastroApiBusca(qRaw, sig).then(function (cadRows) {
-          finalizarBuscaPdvRows(cadRows.length ? cadRows : apiRows, gen, locaisPdv);
-        });
-      }
-      finalizarBuscaPdvRows(apiRows, gen, locaisPdv);
+      finalizarBuscaPdvRows(apiRows, gen);
     });
   }
 
@@ -1372,14 +1319,32 @@
     };
   }
 
-  /** GM / barras — motor PDV no servidor + fallback cadastro + merge cache local. */
+  /** GM / barras / texto — só `/api/buscar/` (igual PDV). */
   function carregarBuscaCodigoDireto(qRaw, gen, sig) {
-    var locais = cadastroBuscarLocalComoPdv(qRaw);
-    return carregarBuscaPdv(qRaw, gen, sig, locais);
+    return carregarBuscaPdv(qRaw, gen, sig);
   }
 
-  function carregarBuscaApi(qRaw, gen, sig, locaisPdv) {
-    return carregarBuscaPdv(qRaw, gen, sig, locaisPdv);
+  function carregarBuscaApi(qRaw, gen, sig) {
+    return carregarBuscaPdv(qRaw, gen, sig);
+  }
+
+  function carregarBuscaComErro(qBusca, g, sig) {
+    setLoading(true);
+    if (listaEl) {
+      listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Buscando…</td></tr>';
+    }
+    if (metaEl) metaEl.textContent = 'Buscando…';
+    return carregarBuscaPdv(qBusca, g, sig)
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        if (g !== carregarGen) return;
+        mostrarErro(err.message || 'Erro de rede');
+        if (listaEl) {
+          listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td></tr>';
+        }
+        if (metaEl) metaEl.textContent = '—';
+      })
+      .finally(function () { setLoading(false); });
   }
 
   function carregar() {
@@ -1407,72 +1372,7 @@
     if (qBusca) {
       clearTimeout(buscaMergeTimer);
       clearTimeout(buscaCodigoDebounceTimer);
-
-      if (pareceCodigoBusca(qBusca)) {
-        setLoading(true);
-        if (listaEl) {
-          listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Buscando código…</td></tr>';
-        }
-        if (metaEl) metaEl.textContent = 'Buscando…';
-        carregarBuscaCodigoDireto(qBusca, g, sig)
-          .catch(function (err) {
-            if (err && err.name === 'AbortError') return;
-            if (g !== carregarGen) return;
-            var m = err.message || 'Erro de rede';
-            mostrarErro(m);
-            if (listaEl) {
-              listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</td></tr>';
-            }
-            if (metaEl) metaEl.textContent = '—';
-          })
-          .finally(function () { setLoading(false); });
-        return;
-      }
-
-      var catalog = cadastroCatalogoPdvCacheArray();
-      var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
-      var linhasLocais = cadastroLinhasPreviewBuscaLocal(locaisPdv, catalog);
-      linhasLocais = cadastroFiltrarDimensoesLista(linhasLocais);
-      if (ordenacaoAtual.campo) {
-        linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
-      }
-      var hadLocal = linhasLocais.length > 0;
-      if (hadLocal) {
-        linhasLocais = cadastroAplicarPatchLista(linhasLocais);
-        atualizarMeta({ modo: 'busca' }, linhasLocais);
-        renderLista(linhasLocais);
-        setLoading(false);
-      } else {
-        setLoading(true);
-        if (listaEl) {
-          listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Buscando no catálogo…</td></tr>';
-        }
-      }
-      var mergeSeq = ++buscaMergeSeq;
-      buscaMergeTimer = setTimeout(function () {
-        if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
-        carregarBuscaApi(qBusca, g, sig, locaisPdv)
-          .catch(function (err) {
-            if (err && err.name === 'AbortError') return;
-            if (g !== carregarGen) return;
-            if (hadLocal) return;
-            var m = err.message || 'Erro de rede';
-            var mongo = /mongo/i.test(m);
-            if (mongo) {
-              mostrarErro(m, { hintMongo: true });
-              if (listaEl) {
-                listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
-              }
-            } else {
-              mostrarErro(m);
-              if (listaEl) listaEl.innerHTML = '';
-            }
-            if (metaEl) metaEl.textContent = '—';
-          })
-          .finally(function () {
-            setLoading(false);
-          });
-      }, hadLocal ? 220 : 0);
+      carregarBuscaComErro(qBusca, g, sig);
       return;
     }
 
@@ -1481,17 +1381,8 @@
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
         if (g !== carregarGen) return;
-        var m = err.message || 'Erro de rede';
-        var mongo = /mongo/i.test(m);
-        if (mongo) {
-          mostrarErro(m, { hintMongo: true });
-          if (listaEl) {
-            listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
-          }
-        } else {
-          mostrarErro(m);
-          if (listaEl) listaEl.innerHTML = '';
-        }
+        mostrarErro(err.message || 'Erro de rede');
+        if (listaEl) listaEl.innerHTML = '';
         if (metaEl) metaEl.textContent = '—';
       })
       .finally(function () {
@@ -1537,8 +1428,7 @@
       return;
     }
     if (metaEl) metaEl.textContent = 'Buscando…';
-    var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = forcar ? 0 : (temCache ? 120 : 380);
+    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 100 : 300);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {

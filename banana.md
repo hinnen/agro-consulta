@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.71** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.72** · **loja v7.60**
 
 ### Cadastro ERP — estoque + vitrines (11/07)
 
