@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.89** · **loja v7.62**
+**Versão app (`VERSION`):** **teste v7.89** · **loja v7.61** · **pacote planos v7.63** (local, não subiu)
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
@@ -1180,28 +1180,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
 | **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
 | **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
-| **Feito teste v7.86** | Canário removido · **Consulta/orçamento** volta a buscar online se cache local vazio (`AGRO_MANUAL_SYNC_ONLY`) |
-| **Pendente** | Renan validar `/consulta/` com `milho` · depois desativar `/produtos/gestao/` |
+| **Feito teste v7.92** | Busca **`#prova`** nas 3 telas → cartão verde + amostra «milho» do Postgres via `/api/buscar/` |
+| **Pendente** | Renan digitar `#prova` no cadastro, PDV wizard e Consulta · comparar mensagem e lista milho |
 
-### 🔥 P1 — AMANHÃ (10/07) — Unificar planos de despesa CP
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Prioridade** | **P1** — retomar e **terminar** |
-| **Onde paramos** | Mapa OK · simulação só leitura pronta (`/financeiro/interno/planos-despesa-simulacao-unificar/`) · **ainda não aplicou** rename |
-| **Próximo** | 1) Abrir simulação na **loja** (deploy v7.63 se faltar) · 2) Renan confere totais · 3) **Aplicar** unificação (`--aplicar --confirmar`) · 4) Indicadores usam Tipo+Grupo da planilha |
-| **Arquivos** | `plano_despesas_mapa_unificacao.csv` · `plano_despesas_niveis_proposta.csv` · `unificar_planos_despesa.py` |
-| **Lembrete** | Chat 09/07 noite — Renan: *«marca para terminarmos isso amanhã, me lembra, prioridade p1»* |
-
-### Plano despesas — mapa + simulação unificar (09/07 · v7.63)
+### Plano despesas CP — teste OK · loja preparada (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Mapa** | `docs/dados/plano_despesas_mapa_unificacao.csv` + níveis oficiais |
-| **Comando** | `manage.py unificar_planos_despesa --dry-run` (só leitura) · `--aplicar --confirmar` (renomeia) |
-| **URL staff** | `/financeiro/interno/planos-despesa-simulacao-unificar/` — contagem títulos/R$ sem alterar |
-| **Status** | Simulação pronta; **aplicar** só com OK do Renan |
-| **Conferência 11/07** | **Teste OK** — apply lote #1 (1120) + #2 (1255); CP limpa (1 grafia/plano); total 3158 · R$ 1.088.799,67. **Loja: pendente** (Renan validou visual) |
+| **Teste** | ✅ Apply lote #1 (1120) + #2 (1255) · CP limpa · 3158 tít. · R$ 1.088.799,67 |
+| **Pacote loja** | Branch **`pacote/planos-cp-producao`** commit `d901763` — **só** mapa + comando + URLs staff + migrate **0049** |
+| **Fora do pacote** | Cadastro/busca/canário/consulta/indicadores Tipo+Grupo (fase B) |
+| **Loja** | **Pendente** — Renan confere loja livre · **próximo chat** autoriza (senha) |
+| **Quando autorizar** | Merge pacote → `producao` · push · migrate **0049** · simulação → apply (1–2 lotes) |
+| **URLs staff** | `/financeiro/interno/planos-despesa-unificar/` |
+| **Revert** | `…/reverter-unificar/?confirmar=sim` |
+
+**⚠ Não mergear `teste` inteiro na loja.**
 
 ### FIX — Indicadores números vs BI (09/07 · v7.61)
 

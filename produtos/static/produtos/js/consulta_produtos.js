@@ -3481,6 +3481,12 @@ function executarBuscaLocal(termo, modo) {
     mesclarBuscaLocalComOnline(termoBrutoApi, modo, resultados);
 }
 
+function agroMostrarProvaUnificadaBusca(data) {
+    var p = data && data.prova_unificada;
+    if (!p || !p.ok) return;
+    mostrarStatusBusca('Prova OK · ' + (p.mensagem || (p.api + ' · ' + p.catalogo_banco)), 'emerald');
+}
+
 function executarBuscaAPI(termo, modo) {
     mostrarStatusBusca('Buscando no banco online...', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
@@ -3488,6 +3494,7 @@ function executarBuscaAPI(termo, modo) {
         .then(res => res.json())
         .then(data => {
             if (data.erro) throw new Error(data.erro);
+            agroMostrarProvaUnificadaBusca(data);
             processarResultadosBusca(data.produtos || [], modo, data.exact_barcode_match);
         })
         .catch(err => {

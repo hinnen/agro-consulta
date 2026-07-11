@@ -986,11 +986,18 @@
   }
 
   /** Busca unificada — `/api/buscar/?contexto=cadastro` (mesmo motor do PDV). */
+  function cadastroMostrarProvaUnificada(prova) {
+    if (!prova || !prova.ok || !metaEl) return;
+    metaEl.textContent = 'Prova OK · ' + (prova.mensagem || (prova.api + ' · ' + prova.catalogo_banco));
+    metaEl.classList.add('text-emerald-800');
+  }
+
   function fetchBuscaCadastroApi(qRaw, sig) {
     var url = URL_BUSCAR_PDV + '?' + cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() }).toString();
     return fetch(url, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
+        if (j && j.prova_unificada) cadastroMostrarProvaUnificada(j.prova_unificada);
         if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca');
         return Array.isArray(j.produtos) ? j.produtos : [];
       });

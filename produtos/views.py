@@ -16939,6 +16939,85 @@ def _buscar_mongo_lite_consulta(
 
 
 # --- APIs DE BUSCA ---
+def _api_buscar_json_prova_unificada(
+    request,
+    *,
+    contexto_cadastro: bool,
+    wizard_mode: bool,
+) -> JsonResponse:
+    """Resposta de diagnóstico — digite ``#prova`` na busca (PDV, wizard ou cadastro)."""
+    from produtos import catalogo_agro as cat_agro
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
+
+    ctx = "cadastro" if contexto_cadastro else ("wizard" if wizard_mode else "pdv")
+    usa_pg = bool(agro_catalogo_usa_postgres() or agro_pdv_catalogo_somente_postgres())
+    try:
+        total_pg = int(cat_agro.queryset_catalogo_ativos(inativos=False).count())
+    except Exception:
+        total_pg = None
+    amostra = cat_agro.buscar("milho", limit=5, inativos=False)
+    try:
+        from pathlib import Path
+
+        versao = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        versao = ""
+    prova = {
+        "ok": True,
+        "termo": "#prova",
+        "api": "/api/buscar/",
+        "motor": "catalogo_agro.buscar",
+        "catalogo_banco": "postgres" if usa_pg else "mongo",
+        "contexto_tela": ctx,
+        "versao_app": versao,
+        "total_produtos_ativos_postgres": total_pg,
+        "amostra_busca_milho": [
+            {"id": str(r.get("id") or ""), "nome": str(r.get("nome") or "")[:120]} for r in amostra[:5]
+        ],
+        "mensagem": (
+            f"Mesma API /api/buscar/ · mesmo motor catalogo_agro.buscar · "
+            f"banco {'Postgres' if usa_pg else 'Mongo'} · tela {ctx.upper()}"
+        ),
+    }
+    linha_prova = {
+        "id": "__prova_unificada__",
+        "nome": "✓ PROVA UNIFICADA — mesma API e mesmo Postgres (não vender)",
+        "marca": "Sistema",
+        "codigo_nfe": "PROVA",
+        "preco_venda": 0.0,
+        "preco_custo": 0.0,
+        "inativo": False,
+        "saldo_centro": 0.0,
+        "saldo_vila": 0.0,
+        "saldo_total": 0.0,
+        "categoria": "Diagnóstico",
+        "fornecedor": prova["mensagem"],
+    }
+    produtos = [linha_prova] + list(amostra)
+    if contexto_cadastro:
+        return JsonResponse(
+            {
+                "ok": True,
+                "modo": "busca",
+                "api": "buscar",
+                "contexto": "cadastro",
+                "motor": "catalogo_agro.buscar",
+                "q": "#prova",
+                "prova_unificada": prova,
+                "produtos": produtos,
+                "total_retornado": len(produtos),
+            }
+        )
+    return JsonResponse(
+        {
+            "produtos": produtos,
+            "exact_barcode_match": False,
+            "motor": "unificado",
+            "prova_unificada": prova,
+        }
+    )
+
+
 @require_GET
 def api_buscar_produtos(request):
     """Busca única: PDV, compras (`?compras=1`) ou cadastro ERP (`?contexto=cadastro`)."""
@@ -16962,6 +17041,12 @@ def api_buscar_produtos(request):
         "yes",
     )
     q = request.GET.get("q", "").strip()
+    if q.strip().lower() == "#prova":
+        return _api_buscar_json_prova_unificada(
+            request,
+            contexto_cadastro=contexto_cadastro,
+            wizard_mode=wizard_mode,
+        )
     try:
         lim_busca_req = int(request.GET.get("limit") or (48 if entrada_nfe_mode else 80))
     except (TypeError, ValueError):
