@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v7.82** · **loja v7.60**
+**Versão app (`VERSION`):** **teste v7.84** · **loja v7.60**
 
 ### Fiado — baixa parcial no PDV (11/07)
 
