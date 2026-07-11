@@ -1172,9 +1172,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Mapa + URLs staff · migrate **0049** · só renomeia plano_conta |
 | **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca) |
-| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos renomeados · sim antes: 1743 (dedup) / total CP **3286 · R$ 1.144.537,97** · fora mapa **0** |
-| **Conferir** | Rodar **simulação de novo** → deve dar **0** a renomear · total R$ **igual** · CP 1 grafia/plano |
-| **Revert** | `…/reverter-unificar/?confirmar=sim` (lote #1) |
+| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos · pós-sim **0** a renomear · **3286 · R$ 1.144.537,97** · fora mapa **0** |
+| **Status** | **✅ CONCLUÍDO** loja |
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
