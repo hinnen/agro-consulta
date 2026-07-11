@@ -1154,9 +1154,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.05** · **loja v8.05** (deploy 11/07 — merge teste)
+**Versão app (`VERSION`):** **teste v8.05** · **loja v8.06** (deploy 11/07 — merge teste)
 
-### 🚀 Deploy loja **v8.05** — BCA + pacote teste (11/07 — Renan senha OK)
+### 🚀 Deploy loja **v8.06** — BCA + pacote teste (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` |
 | **BCA** | `agro_busca_catalogo.js` · `/api/buscar/` · PDV + cadastro + Consulta mesma API |
 | **Validação teste** | `#prova` + `milho` OK nas 3 telas |
-| **Loja** | **✅ v8.06** — validar Renan |
+| **Loja** | **✅ v8.05** — validar Renan |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
