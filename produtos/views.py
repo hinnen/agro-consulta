@@ -859,7 +859,7 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v3"
+    _fac_cache_key = "agro_gestao_facetas_v4"
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
@@ -899,7 +899,7 @@ def api_produtos_gestao_facetas(request):
         marcas = sorted(
             {str(x).strip() for x in col.distinct("Marca", base) if str(x or "").strip()},
             key=lambda s: s.lower(),
-        )[:200]
+        )
         cats: set[str] = set()
         for k in ("NomeCategoria", "Categoria", "Grupo"):
             for x in col.distinct(k, base):
@@ -926,8 +926,8 @@ def api_produtos_gestao_facetas(request):
         ov_qs = ProdutoGestaoOverlayAgro.objects.all()
         marcas = cat_agro._faceta_valores_distintos(
             list(marcas)
-            + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[:250]],
-            limite=200,
+            + [x for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()],
+            limite=0,
         )
         categorias = cat_agro._faceta_valores_distintos(
             list(categorias)
