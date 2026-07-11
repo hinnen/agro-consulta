@@ -27,6 +27,7 @@
         if (opts.incluir_saldo) params.set('incluir_saldo', '1');
         if (opts.ativo) params.set('ativo', '1');
         if (opts.inativos) params.set('inativos', '1');
+        if (opts.entrada_nfe) params.set('entrada_nfe', '1');
         var extra = opts.extra || {};
         Object.keys(extra).forEach(function (k) {
             if (extra[k] != null && extra[k] !== '') params.set(k, String(extra[k]));

@@ -16950,12 +16950,20 @@ def _api_buscar_json_prova_unificada(
     *,
     contexto_cadastro: bool,
     wizard_mode: bool,
+    entrada_nfe_mode: bool = False,
 ) -> JsonResponse:
-    """Resposta de diagnóstico — digite ``#prova`` na busca (PDV, wizard ou cadastro)."""
+    """Resposta de diagnóstico — digite ``#prova`` na busca (PDV, wizard, cadastro ou entrada NF)."""
     from produtos import catalogo_agro as cat_agro
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
 
-    ctx = "cadastro" if contexto_cadastro else ("wizard" if wizard_mode else "pdv")
+    if contexto_cadastro:
+        ctx = "cadastro"
+    elif wizard_mode:
+        ctx = "wizard"
+    elif entrada_nfe_mode:
+        ctx = "entrada_nfe"
+    else:
+        ctx = "pdv"
     usa_pg = bool(agro_catalogo_usa_postgres() or agro_pdv_catalogo_somente_postgres())
     try:
         total_pg = int(cat_agro.queryset_catalogo_ativos(inativos=False).count())
@@ -17052,6 +17060,7 @@ def api_buscar_produtos(request):
             request,
             contexto_cadastro=contexto_cadastro,
             wizard_mode=wizard_mode,
+            entrada_nfe_mode=entrada_nfe_mode,
         )
     try:
         lim_busca_req = int(request.GET.get("limit") or (48 if entrada_nfe_mode else 80))
