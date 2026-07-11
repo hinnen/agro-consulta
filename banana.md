@@ -1154,26 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.07** · **loja v8.07** → **v8.08** (deploy Entrada NF BCA)
+**Versão app (`VERSION`):** **teste v8.10** · **loja v8.10**
 
-### 🚀 Deploy loja **v8.08** — BCA Entrada NF etapa 2 (11/07 — Renan senha OK)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Busca produto na Entrada NF (linha sentinela + **Mudar**) → **BCA** `fetchAgroBuscaCatalogo` · `entrada_nfe=1` |
-| **Commit** | `f624f22` (cherry de `teste`) |
-| **Validado** | Renan OK loja BCA geral · Entrada NF no teste |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` + `#prova` |
-| **Revert** | Branch **`producao-backup-pre-entrada-nfe-bca-20260711`** · tag **`rollback/pre-entrada-nfe-bca-v807`** @ **`a671ffd`** (loja **v8.07**) |
-| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-entrada-nfe-bca-20260711 && git push origin producao --force-with-lease` |
-| **Dados** | Só leitura na busca — **não** altera catálogo |
-
-### Entrada NF — BCA etapa 2 produtos (11/07)
+### Entrada NF — BCA fix motor padrão (11/07 · **teste v8.10**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Mesmo motor PDV/cadastro/consulta · `#prova` = toast diagnóstico (não vincula linha) |
-| **Loja** | **✅ v8.08** |
+| **Problema** | Entrada NF usava cache local PDV + `entrada_nfe=1` — lista diferente do cadastro |
+| **Fix** | **Só servidor** BCA · `/api/buscar/?compras=1` · sem merge cache |
+| **Validar** | Ctrl+F5 teste · `milho` / `#prova` = mesma ordem que cadastro |
+| **Loja** | **⏳** após OK |
 
 ### 🚀 Deploy loja **v8.07** — BCA + pacote teste (11/07 — Renan senha OK)
 
