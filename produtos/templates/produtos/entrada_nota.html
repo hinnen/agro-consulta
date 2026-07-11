@@ -8225,15 +8225,9 @@
   }
 
   /**
-   * Busca de produtos na NF-e — **BCA** (Busca Catálogo Agro): `fetchAgroBuscaCatalogo` → `/api/buscar/?entrada_nfe=1`
-   * Entradas de UI (via `entradaNfeBuscarProdutosArr`):
-   * - Sentinela «BUSCA» (F2, sugestões, Enter);
-   * - Modal «BUSCAR PRODUTO» (MUDAR na linha).
-   * Opcional: cache PDV local + merge como no PDV (exceto `#prova` → só servidor).
+   * Busca de produtos na NF-e — **BCA padrão** (igual cadastro/consulta):
+   * só servidor · `fetchAgroBuscaCatalogo` → `/api/buscar/?compras=1` · sem cache local PDV.
    */
-  const ENTRADA_NFE_PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
-  let _entradaNfeCatLocal = null;
-  let _entradaNfeCatLocalInited = false;
   let _entradaNfeBuscaSeq = 0;
   let _entradaNfeBuscaAbort = null;
 
@@ -8244,18 +8238,6 @@
       } catch (_) {}
       _entradaNfeBuscaAbort = null;
     }
-  }
-
-  function entradaNfeLocalSuficiente(locOrd, termoNorm, modo) {
-    if (!locOrd || !locOrd.length) return false;
-    if (modo === 'scanner') return locOrd.length >= 1;
-    if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm) && locOrd.length >= 1) {
-      return true;
-    }
-    if (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm) && locOrd.length >= 1) {
-      return true;
-    }
-    return locOrd.length >= 8;
   }
 
   function entradaNfeRemoverSufixoQuantidadeBusca(texto) {
@@ -8270,96 +8252,6 @@
       .trim();
   }
 
-  function entradaNfeCatalogoPdvCacheArray() {
-    if (_entradaNfeCatLocalInited) return Array.isArray(_entradaNfeCatLocal) ? _entradaNfeCatLocal : [];
-    _entradaNfeCatLocalInited = true;
-    _entradaNfeCatLocal = [];
-    try {
-      const raw = localStorage.getItem(ENTRADA_NFE_PDV_CACHE_KEY);
-      if (!raw) return [];
-      const p = JSON.parse(raw);
-      if (p && Array.isArray(p.produtos) && p.produtos.length) {
-        _entradaNfeCatLocal = p.produtos;
-        if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(_entradaNfeCatLocal);
-      }
-    } catch (_) {
-      _entradaNfeCatLocal = [];
-    }
-    return _entradaNfeCatLocal;
-  }
-
-  function entradaNfeMontarBuscaTextoRapidoPdv(p) {
-    const nb = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal : (tx) => String(tx || '').toLowerCase().trim();
-    const partes = [
-      p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo, p.prateleira, p.referencia, p.sku,
-      p.codigo_fornecedor, p.codigo_interno,
-    ].filter(Boolean);
-    if (Array.isArray(p.index_codigos)) {
-      p.index_codigos.slice(0, 120).forEach((c) => {
-        if (c != null && String(c).trim()) partes.push(String(c));
-      });
-    }
-    return nb(partes.join(' '));
-  }
-
-  function entradaNfeBlobRelevanciaPdv(p) {
-    const nb = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal : (tx) => String(tx || '').toLowerCase().trim();
-    if (p.busca_texto) return nb(String(p.busca_texto));
-    return entradaNfeMontarBuscaTextoRapidoPdv(p);
-  }
-
-  function entradaNfeRelevanciaTextoPdv(p, termoNorm) {
-    const nb = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal : (tx) => String(tx || '').toLowerCase().trim();
-    if (!termoNorm || typeof termoNorm !== 'string') return 0;
-    const t = termoNorm.trim();
-    if (!t) return 0;
-    if (Array.isArray(p.index_codigos) && p.index_codigos.some((x) => nb(String(x ?? '')) === t)) {
-      return 2000000;
-    }
-    const nome = nb(String(p.nome || ''));
-    const blob = entradaNfeBlobRelevanciaPdv(p);
-    if (nome.includes(t)) return 1000000;
-    if (blob.includes(t)) return 500000;
-    const palavras = t.split(/\s+/).filter((w) => w.length >= 2);
-    let s = 0;
-    for (let i = 0; i < palavras.length; i += 1) {
-      const w = palavras[i];
-      if (nome.includes(w)) s += 50000;
-      else if (blob.includes(w)) s += 5000;
-    }
-    return s;
-  }
-
-  function entradaNfeOrdenarSugestoesComoPdv(lista, termoNorm) {
-    let freq = {};
-    try {
-      freq = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
-    } catch (_) {}
-    const termoTrim = termoNorm != null ? String(termoNorm).trim() : '';
-    return [...lista].sort((a, b) => {
-      if (termoTrim) {
-        const rA = entradaNfeRelevanciaTextoPdv(a, termoTrim);
-        const rB = entradaNfeRelevanciaTextoPdv(b, termoTrim);
-        if (rA !== rB) return rB - rA;
-      }
-      const mA = Number(a.media_venda_diaria_30d || 0);
-      const mB = Number(b.media_venda_diaria_30d || 0);
-      if (mA !== mB) return mB - mA;
-      const freqA = freq[a.id] || 0;
-      const freqB = freq[b.id] || 0;
-      if (freqA !== freqB) return freqB - freqA;
-      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
-    });
-  }
-
-  function entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos) {
-    if (typeof mesclarBuscaPdvLocalComApi === 'function') {
-      return mesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos, null, 80);
-    }
-    return Array.isArray(apiProdutos) ? apiProdutos.slice(0, 80) : [];
-  }
-
-  /** Catálogo via BCA — `/api/buscar/?entrada_nfe=1` (Postgres lite, sem estoque/médias Mongo). */
   function entradaNfeExtrairProdutosRespostaBca(data, termoBruto) {
     if (!data || data.erro) return [];
     const arr = Array.isArray(data.produtos) ? data.produtos : [];
@@ -8376,12 +8268,12 @@
     const t = String(termoBruto || '').trim();
     if (t.length < 2) return [];
     if (typeof fetchAgroBuscaCatalogo === 'function') {
-      const j = await fetchAgroBuscaCatalogo(t, { limit: 48, entrada_nfe: true, signal: signal });
+      const j = await fetchAgroBuscaCatalogo(t, { limit: 48, compras: true, signal: signal });
       return entradaNfeExtrairProdutosRespostaBca(j, t);
     }
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
-    u.searchParams.set('entrada_nfe', '1');
+    u.searchParams.set('compras', '1');
     u.searchParams.set('limit', '48');
     const opts = { credentials: 'same-origin' };
     if (signal) opts.signal = signal;
@@ -8396,66 +8288,25 @@
     if (tBruto.length < 2) return [];
     const sid = ++_entradaNfeBuscaSeq;
     entradaNfeAbortarBuscaApiPendente();
-    const nb = typeof normalizarBuscaLocal === 'function' ? normalizarBuscaLocal : null;
-    const fi = typeof filtrarProdutosBuscaInteligente === 'function';
-    const termoNorm = nb ? nb(tBruto) : tBruto.toLowerCase().trim();
-    if (!termoNorm || String(termoNorm).trim().length < 2) return [];
     const onlyDig = tBruto.replace(/\s/g, '');
     const modo = /^\d{8,}$/.test(onlyDig) ? 'scanner' : 'normal';
-    const provaBca = tBruto.toLowerCase() === '#prova';
-    const baseLoc = fi && !provaBca ? entradaNfeCatalogoPdvCacheArray() : [];
-    const locFiltrados = fi ? filtrarProdutosBuscaInteligente(baseLoc, termoNorm, modo) : [];
-    const locOrd = modo === 'scanner' ? locFiltrados.slice(0, 80) : entradaNfeOrdenarSugestoesComoPdv(locFiltrados, termoNorm);
-    const hadLocal = locOrd.length > 0;
-    const gmOuCbSemLocal =
-      !hadLocal &&
-      ((typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termoNorm)) ||
-        (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termoNorm)));
-    if (sid !== _entradaNfeBuscaSeq) return null;
-    if (provaBca) {
-      _entradaNfeBuscaAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const apiSignal = _entradaNfeBuscaAbort ? _entradaNfeBuscaAbort.signal : undefined;
-      try {
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
-        return await entradaNfeFetchProdutosMotorConsultaApi(tBruto, apiSignal);
-      } catch (err) {
-        if (err && err.name === 'AbortError') return null;
-        return [];
-      } finally {
-        if (window.gmLoadingBar) window.gmLoadingBar.hide();
-        if (sid === _entradaNfeBuscaSeq) _entradaNfeBuscaAbort = null;
-      }
-    }
-    if (entradaNfeLocalSuficiente(locOrd, termoNorm, modo)) {
-      if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
-        return ordenarSugestoesPdv(locOrd, termoNorm).slice(0, 80);
-      }
-      return locOrd.slice(0, 80);
+    if (typeof agroTermoBuscaCatalogoServidor === 'function' && !agroTermoBuscaCatalogoServidor(tBruto, modo)) {
+      return [];
     }
     _entradaNfeBuscaAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const apiSignal = _entradaNfeBuscaAbort ? _entradaNfeBuscaAbort.signal : undefined;
-    let apiList = [];
     try {
-      if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.show();
-      apiList = await entradaNfeFetchProdutosMotorConsultaApi(tBruto, apiSignal);
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      const list = await entradaNfeFetchProdutosMotorConsultaApi(tBruto, apiSignal);
       if (sid !== _entradaNfeBuscaSeq) return null;
+      return Array.isArray(list) ? list.slice(0, 80) : [];
     } catch (err) {
       if (err && err.name === 'AbortError') return null;
-      apiList = [];
+      return [];
     } finally {
-      if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.hide();
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
       if (sid === _entradaNfeBuscaSeq) _entradaNfeBuscaAbort = null;
     }
-    if (sid !== _entradaNfeBuscaSeq) return null;
-    if (!fi || !nb) {
-      return gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function'
-        ? ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80)
-        : apiList;
-    }
-    if (gmOuCbSemLocal && typeof ordenarSugestoesPdv === 'function') {
-      return ordenarSugestoesPdv(apiList, termoNorm).slice(0, 80);
-    }
-    return entradaNfeMesclarBuscaPdvLocalComApi(termoNorm, locOrd, apiList);
   }
 
   /** Custo pré-NF (?compras=1): só após escolha, por código NF (evita travar cada tecla). */
