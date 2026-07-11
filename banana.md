@@ -1156,14 +1156,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v7.89** · **loja v7.64**
 
+### ✅ Indicadores — aba Estoque & giro (11/07 · WIP local)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Estoque parado (>90d sem venda PDV) + top 5 giro (30d) — dentro de **Indicadores financeiros** |
+| **URL** | `/financeiro/dashboard-gerencial/?aba=estoque` · aba **Estoque & giro** |
+| **Legado** | `/financeiro/dashboard-restrito/` redireciona para a aba |
+| **Dados** | `ItemVendaAgro` + saldo operacional C+V (`dashboard_estoque_financeiro_util.py`) — **não** SQL Gemini |
+| **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque & giro → duas tabelas |
+
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Mapa + URLs staff · migrate **0049** · só renomeia plano_conta |
 | **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca) |
-| **Apply PG loja** | **⏳** simulação → apply quando Render terminar (~2–5 min) |
-| **Revert** | `…/reverter-unificar/?confirmar=sim` |
+| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos renomeados · sim antes: 1743 (dedup) / total CP **3286 · R$ 1.144.537,97** · fora mapa **0** |
+| **Conferir** | Rodar **simulação de novo** → deve dar **0** a renomear · total R$ **igual** · CP 1 grafia/plano |
+| **Revert** | `…/reverter-unificar/?confirmar=sim` (lote #1) |
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
