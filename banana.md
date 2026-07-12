@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v8.12** · **loja v8.10**
 
-### 🐛 Lote bugs loja Zap 12/07 (teste) — pacote checklist #
+### 🐛 Lote bugs loja Zap 12/07 (teste **v8.12**) — pacote checklist #
 
 | # | Item | Status |
 | - | ---- | ------ |
