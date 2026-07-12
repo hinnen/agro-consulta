@@ -362,6 +362,9 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
         retiradas_dev_dup = _movimentos_retirada_devolucao_duplicados_turno(sessao, mov_list)
         for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
+            obs_m = str(getattr(m, "observacao", "") or "")
+            if m.tipo == "reforco" and "[MP_POINT]" in obs_m:
+                fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
             val = _dec(m.valor)
             if m.tipo == "reforco":
                 reforco_por[fn] += val

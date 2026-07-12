@@ -3494,38 +3494,49 @@
     } catch (_) {}
   }
 
-  function entradaNfeProdutosEtapaInvalidate() {
+  function entradaNfeProdutosEtapaInvalidate(opt) {
     if (entradaNfeRascunhoAplicandoGrade) return;
     if (entradaNfeEditorCongeladoAtivo() || entradaNfeWizardFluxoLegadoOuConcluido()) return;
+    const soft = !!(opt && opt.soft);
     const tinha2 = entradaNfeProdutosEtapaConfirmada;
     const tinha3 = entradaNfeCodigosEtapaConfirmada;
-    if (!tinha2 && !tinha3) {
+    if (!tinha2 && !tinha3 && !entradaNfeLoteEtapaConfirmada) {
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       return;
     }
     entradaNfeProdutosEtapaConfirmada = false;
-    entradaNfeCodigosEtapaConfirmada = false;
-    entradaNfeLoteEtapaConfirmada = false;
     const ex0 = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
     delete ex0.entrada_custo_escolhas;
-    entradaNfeExtraUltimo = {
-      ...ex0,
+    const patchExtra = {
       wizard_etapa2_confirmada_em: '',
-      wizard_etapa3_confirmada_em: '',
-      wizard_etapa4_lote_confirmada_em: '',
-    };
-    entradaNfeWizardPersistExtraPatchFireForget({
-      wizard_etapa2_confirmada_em: '',
-      wizard_etapa3_confirmada_em: '',
-      wizard_etapa4_lote_confirmada_em: '',
       entrada_custo_escolhas: {},
-    });
+    };
+    if (!soft) {
+      entradaNfeCodigosEtapaConfirmada = false;
+      entradaNfeLoteEtapaConfirmada = false;
+      patchExtra.wizard_etapa3_confirmada_em = '';
+      patchExtra.wizard_etapa4_lote_confirmada_em = '';
+      entradaNfeExtraUltimo = {
+        ...ex0,
+        wizard_etapa2_confirmada_em: '',
+        wizard_etapa3_confirmada_em: '',
+        wizard_etapa4_lote_confirmada_em: '',
+      };
+    } else {
+      entradaNfeExtraUltimo = {
+        ...ex0,
+        wizard_etapa2_confirmada_em: '',
+      };
+    }
+    entradaNfeWizardPersistExtraPatchFireForget(patchExtra);
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
-    if (entradaNfeWizardStep > 2) {
+    if (!soft && entradaNfeWizardStep > 2) {
       showMsg('Itens alterados: confirme os produtos de novo antes das próximas etapas.', false);
       entradaNfeWizardApplyStepUi(2);
+    } else if (soft && entradaNfeWizardStep > 2) {
+      showMsg('Produto novo na grade: confirme os produtos (etapa 2) antes de finalizar. Barras e lote dos itens já conferidos foram mantidos.', false);
     }
     entradaNfeWizardAgendarAtualizarCores();
     try {
@@ -3858,7 +3869,7 @@
             erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 7 · Financeiro).',
           };
         }
-        entradaNfeAtualizarPreviewParcelas();
+        /* Não rebuildar a tabela de parcelas aqui — cada tecla no valor recriava o DOM e perdia o foco. */
         const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
         if (pmCol.erro) {
           return { ok: false, irPara: 7, erro: pmCol.erro };
@@ -5794,9 +5805,9 @@
     let formaNome = String(nota.forma_pagamento_sugerida || '').trim();
     if (!formaNome && pags.length) {
       formaNome = String(pags[0].forma_sugerida || '').trim();
-      if (!formaNome && String(pags[0].t_pag || '') === '15') formaNome = 'Boleto bancário';
+      if (!formaNome && String(pags[0].t_pag || '') === '15') formaNome = 'Boleto Bancário SN';
     }
-    if (!formaNome && dups.length) formaNome = 'Boleto bancário';
+    if (!formaNome && dups.length) formaNome = 'Boleto Bancário SN';
     if (formaNome) {
       const ff = document.getElementById('fin-forma-nome');
       if (ff && !String(ff.value || '').trim()) {
@@ -7035,7 +7046,7 @@
     atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
     entradaNfeLoteRebuildSelect();
-    if (!entradaNfeRascunhoAplicandoGrade) entradaNfeProdutosEtapaInvalidate();
+    if (!entradaNfeRascunhoAplicandoGrade) entradaNfeProdutosEtapaInvalidate({ soft: true });
   }
 
   function coletarLinhas() {
@@ -8288,9 +8299,8 @@
     if (tBruto.length < 2) return [];
     const sid = ++_entradaNfeBuscaSeq;
     entradaNfeAbortarBuscaApiPendente();
-    const onlyDig = tBruto.replace(/\s/g, '');
-    const modo = /^\d{8,}$/.test(onlyDig) ? 'scanner' : 'normal';
-    if (typeof agroTermoBuscaCatalogoServidor === 'function' && !agroTermoBuscaCatalogoServidor(tBruto, modo)) {
+    /* Entrada NF: sempre consulta o servidor (inclui código de barras). O modo scanner do PDV bloqueava a API. */
+    if (typeof agroTermoBuscaCatalogoServidor === 'function' && !agroTermoBuscaCatalogoServidor(tBruto, 'normal')) {
       return [];
     }
     _entradaNfeBuscaAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -8766,7 +8776,7 @@
       });
     });
     entradaNfeAgendarAutosaveRascunho();
-    entradaNfeProdutosEtapaInvalidate();
+    entradaNfeProdutosEtapaInvalidate({ soft: true });
     void entradaNfeLembrarEanEmbalagemAposPick(p, eanNfLinha, pidAnterior);
     void entradaNfeLembrarCProdAposPick(p, cProdNfLinha, pidAnterior);
   }
@@ -8889,7 +8899,7 @@
 
   document.getElementById('tbody-itens').addEventListener('input', (e) => {
     const t = e.target;
-    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
+    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate({ soft: true });
     if (t && t.classList.contains('in-desc')) {
       const tr = t.closest('tr');
       if (tr) entradaNfeLinhaApplyCatalogoUi(tr);
@@ -8905,7 +8915,7 @@
   });
   document.getElementById('tbody-itens').addEventListener('change', (e) => {
     const t = e.target;
-    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
+    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate({ soft: true });
     entradaNfeAgendarAutosaveRascunho();
   });
   document.getElementById('tbody-itens').addEventListener('click', (e) => {

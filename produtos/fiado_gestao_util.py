@@ -1210,6 +1210,8 @@ def _resolver_titulos_cobranca_pdv(
 
 
 def _parse_pagamentos_baixa_pdv(raw_list) -> tuple[list[dict[str, Any]], Decimal, str | None]:
+    from produtos.caixa_util import pagamento_linha_eh_mercado_pago
+
     if not isinstance(raw_list, list) or not raw_list:
         return [], Decimal("0"), "Informe ao menos uma forma de pagamento."
     out: list[dict[str, Any]] = []
@@ -1229,6 +1231,7 @@ def _parse_pagamentos_baixa_pdv(raw_list) -> tuple[list[dict[str, Any]], Decimal
                 "forma": forma,
                 "valor": val.quantize(Decimal("0.01")),
                 "maquina_id": str(row.get("maquinaId") or row.get("maquina_id") or "")[:40],
+                "mercado_pago": bool(pagamento_linha_eh_mercado_pago(row)),
             }
         )
     if not out:
@@ -1362,6 +1365,8 @@ def baixar_fiado_via_pdv(
             obs_caixa = f"Baixa fiado PDV — {nome_cli[:36]}"
             if observacao:
                 obs_caixa = f"{obs_caixa} — {observacao}"[:500]
+            if p.get("mercado_pago"):
+                obs_caixa = f"{obs_caixa} [MP_POINT]"[:500]
             mov = MovimentoCaixa.objects.create(
                 sessao_caixa=sessao,
                 tipo=MovimentoCaixa.Tipo.REFORCO,

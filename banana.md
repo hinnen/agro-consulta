@@ -1154,7 +1154,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.10** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.12** · **loja v8.10**
+
+### 🐛 Lote bugs loja Zap 12/07 (teste) — pacote checklist #
+
+| # | Item | Status |
+| - | ---- | ------ |
+| **1** | Entrada NF etapa 7 — valor recarregava a cada tecla | ✅ não rebuilda preview na validação |
+| **2** | Entrada NF etapa 2 — busca barras | ✅ não bloqueia modo scanner |
+| **3** | Cadastro lista — custo | ✅ custos compra na row Mongo + overlay |
+| **4** | Cadastro — campo modelo não salvava | ✅ body + `cadastro_extras.modelo` |
+| **8** | Produto novo sumia da lista | ✅ merge coloca no topo |
+| **9** | Fiado MP → forma genérica no caixa | ✅ `[MP_POINT]` + split conferência |
+| **10** | Fiado sem cancelar/voltar | ✅ botão **Cancelar cobrança** |
+| **11** | Menu caixa/vendas às vezes não fecha | ✅ Esc no iframe fecha overlay |
+| **13** | XML boleto → **Boleto Bancário SN** | ✅ (Renan pediu SN; FL-027 era CN) |
+| **14** | Add produto perde barras/lote | ✅ invalidate soft (FL-026) |
+| **15** | Código interno 9000+ → 4xxx | ✅ teto auto 5999 (FL-025) |
+| **16** | CP busca limpa datas | ✅ (FL-023) |
+| **18** | Taxa entrega no cupom/NFC-e | ✅ `VendaAgro.frete` + vFrete + linha cupom |
+| **5–7, 12, 17** | Lentidão / PIN / impressão / devolução parcial / busca CP inteligente | ⏳ depois |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Validar** | Ctrl+F5 teste · números #1–4, #8–11, #13–16, #18 |
+| **Migração** | `0050_vendaagro_frete` (Render aplica no deploy) |
+| **Loja** | **⏳** só com frase + senha |
 
 ### Entrada NF — BCA fix motor padrão (11/07 · **teste v8.10**)
 
@@ -2910,16 +2935,16 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** não zera / confunde fechamento) | 📋 Pendente | 29/06 |
 | **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | **✅ loja v5.22** · validado teste | 29/06 |
-| **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
+| **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | ✅ parcial 12/07 | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
-| **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
+| **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | 📋 Pendente | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
-| **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** (não manter período antigo preso na busca) | 📋 Pendente | 29/06 16:20 |
+| **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
-| **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** — está indo para **9000+** em vez da faixa combinada (**~4–5 mil**) | 📋 Pendente · 🔍 conferir | 29/06 16:20 |
-| **FL-026** | **P2** | Entrada NF | Ao **adicionar produto novo** na nota: itens já conferidos perdem **código de barras** (etapa 3) e **lote/validade** (etapas 4–5) | 📋 Pendente | 29/06 16:20 |
-| **FL-027** | **P2** | Entrada NF | Etapa **7**: notas via **XML** preenchem forma de pagamento só **«Boleto Bancário»** — corrigir para **«Boleto Bancário CN»** | 📋 Pendente | 29/06 16:20 |
+| **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
+| **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
+| **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário SN** (Renan 12/07; fila antiga CN) | ✅ 12/07 | 29/06 16:20 |
 | **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | ✅ Tolerância centavos v7.36 | 29/06 16:20 |
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |

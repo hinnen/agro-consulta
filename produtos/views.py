@@ -751,6 +751,8 @@ def _aplicar_produto_gestao_overlay_em_dict(
             row["preco_custo"] = round(float(ce_pc["preco_custo_overlay"]), 2)
         except (TypeError, ValueError):
             pass
+    if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
+        row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
     return row
 
 
@@ -2018,6 +2020,12 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["preco_custo_overlay"] = float(custo_payload)
         else:
             ex.pop("preco_custo_overlay", None)
+    if "modelo" in payload:
+        mod = _txt("modelo", 200)
+        if mod:
+            ex["modelo"] = mod
+        else:
+            ex.pop("modelo", None)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -17588,6 +17596,16 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
     )
     pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
     p_custo = _float_api_json(p.get("PrecoCusto") or p.get("ValorCusto") or 0)
+    try:
+        custos_lista = _custos_compra_produto(p)
+        if custos_lista:
+            pc_f = float(custos_lista.get("preco_custo_final") or custos_lista.get("preco_custo") or 0)
+            if pc_f > 0:
+                p_custo = pc_f
+            elif float(custos_lista.get("preco_custo") or 0) > 0:
+                p_custo = float(custos_lista.get("preco_custo") or 0)
+    except Exception:
+        pass
     fornecedor = (
         p.get("NomeFornecedor")
         or p.get("Fornecedor")
@@ -18324,6 +18342,8 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     ce_ov = (
         ov_det.cadastro_extras if ov_det and isinstance(ov_det.cadastro_extras, dict) else None
     )
+    if ce_ov and str(ce_ov.get("modelo") or "").strip():
+        row["modelo"] = str(ce_ov.get("modelo") or "").strip()[:200]
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
     ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})
@@ -21280,6 +21300,20 @@ def _persistir_venda_agro(
             }
         )
 
+    frete = Decimal("0")
+    try:
+        frete_raw = data.get("frete")
+        if frete_raw is None:
+            frete_raw = data.get("taxa_entrega")
+        if frete_raw is not None and str(frete_raw).strip() != "":
+            frete = _decimal_item_pedido(frete_raw, "0")
+            if frete < 0:
+                frete = Decimal("0")
+    except Exception:
+        frete = Decimal("0")
+    if frete > 0:
+        total = (total + frete).quantize(Decimal("0.01"))
+
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
     sessao = resolver_sessao_caixa_para_venda(request, data)
@@ -21316,6 +21350,7 @@ def _persistir_venda_agro(
             cliente_id_erp=cid[:32],
             cliente_documento=re.sub(r"\D", "", doc)[:20],
             total=total.quantize(Decimal("0.01")),
+            frete=frete.quantize(Decimal("0.01")),
             forma_pagamento=forma,
             pagamentos_json=pagamentos_json or None,
             fiado_cronograma_json=fiado_cron,

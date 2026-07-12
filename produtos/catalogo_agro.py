@@ -315,6 +315,12 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
+    if not row.get("modelo"):
+        ov = ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id=str(row.get("id") or "")[:64]
+        ).first()
+        if ov and isinstance(ov.cadastro_extras, dict):
+            row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
     return {
         **row,
         "preco_custo_com_acrescimos": pc,

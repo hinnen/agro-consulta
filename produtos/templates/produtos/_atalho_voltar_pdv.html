@@ -52,15 +52,24 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.defaultPrevented) return;
-    if (e.code !== 'F1' && e.key !== 'F1') return;
+    var isF1 = e.code === 'F1' || e.key === 'F1';
+    var isEsc = e.key === 'Escape' || e.code === 'Escape';
+    if (!isF1 && !isEsc) return;
     if (inGestaoContext()) return;
     if (inPdvOverlay()) {
       var t = e.target;
+      if (isEsc) {
+        /* Esc no iframe do menu Caixa/Vendas deve fechar o overlay (igual F1). */
+        e.preventDefault();
+        closePdvOverlay();
+        return;
+      }
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       e.preventDefault();
       closePdvOverlay();
       return;
     }
+    if (!isF1) return;
     var p = window.location.pathname || '';
     if (p === '/pdv/' || p === '/pdv') return;
     var t2 = e.target;

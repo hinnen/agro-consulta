@@ -2476,6 +2476,13 @@
     clearTimeout(buscaTimer);
     buscaTimer = setTimeout(() => {
       marcarPrefiltro('');
+      const qNow = (document.getElementById('sv-busca').value || '').trim();
+      if (qNow) {
+        /* Busca textual: não manter período de data preso (FL-023). */
+        filtroRemotoCp = null;
+        document.getElementById('sv-venc-de').value = '';
+        document.getElementById('sv-venc-ate').value = '';
+      }
       recarregarAposFiltro();
     }, 400);
   });

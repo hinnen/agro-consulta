@@ -1116,9 +1116,13 @@
     for (var i = 0; i < ultimos.length; i++) {
       if (String(ultimos[i].id) === pid) {
         Object.assign(ultimos[i], patch);
+        try { renderLista(); } catch (eR) { /* ignore */ }
         return;
       }
     }
+    /* Produto novo: aparece no topo da lista atual (antes sumia na paginação A–Z). */
+    ultimos.unshift(Object.assign({ id: produto.id }, patch));
+    try { renderLista(); } catch (eR2) { /* ignore */ }
   }
   window.agroCadastroMergeProdutoCacheLocal = agroCadastroMergeProdutoCacheLocal;
   window.agroCadastroMergeLinhaLista = agroCadastroMergeLinhaLista;
