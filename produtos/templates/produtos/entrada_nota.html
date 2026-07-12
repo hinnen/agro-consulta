@@ -5805,9 +5805,9 @@
     let formaNome = String(nota.forma_pagamento_sugerida || '').trim();
     if (!formaNome && pags.length) {
       formaNome = String(pags[0].forma_sugerida || '').trim();
-      if (!formaNome && String(pags[0].t_pag || '') === '15') formaNome = 'Boleto Bancário SN';
+      if (!formaNome && String(pags[0].t_pag || '') === '15') formaNome = 'Boleto Bancário CN';
     }
-    if (!formaNome && dups.length) formaNome = 'Boleto Bancário SN';
+    if (!formaNome && dups.length) formaNome = 'Boleto Bancário CN';
     if (formaNome) {
       const ff = document.getElementById('fin-forma-nome');
       if (ff && !String(ff.value || '').trim()) {

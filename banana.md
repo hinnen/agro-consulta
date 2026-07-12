@@ -1168,7 +1168,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **9** | Fiado MP → forma genérica no caixa | ✅ `[MP_POINT]` + split conferência |
 | **10** | Fiado sem cancelar/voltar | ✅ botão **Cancelar cobrança** |
 | **11** | Menu caixa/vendas às vezes não fecha | ✅ Esc no iframe fecha overlay |
-| **13** | XML boleto → **Boleto Bancário SN** | ✅ (Renan pediu SN; FL-027 era CN) |
+| **13** | XML boleto → **Boleto Bancário CN** | ✅ (Renan confirmou CN) |
 | **14** | Add produto perde barras/lote | ✅ invalidate soft (FL-026) |
 | **15** | Código interno 9000+ → 4xxx | ✅ teto auto 5999 (FL-025) |
 | **16** | CP busca limpa datas | ✅ (FL-023) |
@@ -2944,7 +2944,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
-| **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário SN** (Renan 12/07; fila antiga CN) | ✅ 12/07 | 29/06 16:20 |
+| **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
 | **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | ✅ Tolerância centavos v7.36 | 29/06 16:20 |
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |

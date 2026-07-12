@@ -242,7 +242,7 @@ _NFE_TPAG_FORMA_SUGERIDA: dict[str, str] = {
     "11": "Vale refeição",
     "12": "Vale presente",
     "13": "Vale combustível",
-    "15": "Boleto Bancário SN",
+    "15": "Boleto Bancário CN",
     "16": "Depósito bancário",
     "17": "Pagamento instantâneo (PIX)",
     "18": "Transferência bancária",
@@ -664,7 +664,7 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             forma_sug = fs
             break
     if not forma_sug and duplicatas:
-        forma_sug = "Boleto Bancário SN"
+        forma_sug = "Boleto Bancário CN"
     out["forma_pagamento_sugerida"] = forma_sug
 
     itens_out: list[dict[str, Any]] = []
