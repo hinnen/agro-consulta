@@ -1154,7 +1154,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.14** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.15** · **loja v8.10**
+
+### 🐛 Hotfix #3 custo via BCA (teste **v8.15**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cadastro e Entrada NF via busca BCA continuavam mostrando custo **R$ 0,00** mesmo com custo salvo no produto |
+| **Causa** | `/api/buscar/` não reaproveitava o custo salvo em `Produto.custo` quando o documento da busca vinha zerado |
+| **Fix** | fallback de custo Postgres no `api_buscar_produtos` para fluxos `compras=1` / cadastro / Entrada NF |
+| **Arquivo** | `produtos/views.py` |
+| **Validar** | Ctrl+F5 teste · cadastro lista custo · busca da Entrada NF com o mesmo produto |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🐛 Pós-validação bugs loja Zap 12/07 (teste **v8.14**) — ajustes amarelo/vermelho
 

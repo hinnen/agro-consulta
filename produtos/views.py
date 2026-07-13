@@ -17305,6 +17305,23 @@ def api_buscar_produtos(request):
                 logger.warning("api_buscar_produtos: ultimas_compras indisponível — %s", exc)
 
         overlay_pdv_map = _overlay_mapa_por_ids_chunked(p_ids) if p_ids else {}
+        custo_pg_map: dict[str, float] = {}
+        if compras and p_ids:
+            try:
+                _chunk_pg = 400
+                for _i in range(0, len(p_ids), _chunk_pg):
+                    _slice = [str(x or "").strip()[:64] for x in p_ids[_i : _i + _chunk_pg] if x]
+                    if not _slice:
+                        continue
+                    for _pm in Produto.objects.filter(produto_externo_id__in=_slice).only(
+                        "produto_externo_id", "custo"
+                    ):
+                        try:
+                            custo_pg_map[str(_pm.produto_externo_id or "").strip()] = float(_pm.custo or 0)
+                        except (TypeError, ValueError):
+                            continue
+            except Exception:
+                logger.warning("api_buscar_produtos: custo PG indisponível", exc_info=True)
 
         res = []
         for p in prods:
@@ -17450,6 +17467,16 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            if compras:
+                try:
+                    custo_pg = float(custo_pg_map.get(pid) or 0)
+                except (TypeError, ValueError):
+                    custo_pg = 0.0
+                custo_row = _float_api_json(row.get("preco_custo") or 0)
+                if custo_pg > 0 and custo_row <= 0:
+                    row["preco_custo"] = round(custo_pg, 2)
+                    row["preco_custo_acrescimo"] = round(custo_pg, 2)
+                    row["preco_custo_final"] = round(custo_pg, 2)
             if contexto_cadastro:
                 if "inativo" not in row:
                     row["inativo"] = bool(p.get("CadastroInativo"))
