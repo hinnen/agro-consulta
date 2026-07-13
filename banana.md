@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.15** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.16** · **loja v8.10**
+
+### 🐛 Hotfix #18 frete nas 3 vias e cupom fiscal (teste **v8.16**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Na `via do cliente` do fluxo de entrega a taxa não saía no primeiro cupom, mas reaparecia na reimpressão |
+| **Fix** | frete incluído no payload das 3 vias de entrega e fallback explícito no render do cupom 80mm / NFC-e |
+| **Arquivos** | `pdv_wizard.js` · `venda_cupom_80mm.js` · `nfce_cupom_util.py` |
+| **Validar** | Ctrl+F5 teste · fluxo entrega com 3 vias · via do cliente · cupom fiscal |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🐛 Hotfix #3 custo via BCA (teste **v8.15**)
 

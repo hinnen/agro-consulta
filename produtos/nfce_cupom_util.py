@@ -105,6 +105,8 @@ def serializar_nfce_cupom_80mm(
         "criado_em": _formatar_data_venda(venda.criado_em),
         "itens": itens,
         "qtd_itens": len(itens),
+        "frete": frete,
+        "frete_texto": format_moeda_br(frete),
         "total": total,
         "total_texto": format_moeda_br(venda.total),
         "valor_pago": valor_pago,
