@@ -8279,12 +8279,13 @@
     const t = String(termoBruto || '').trim();
     if (t.length < 2) return [];
     if (typeof fetchAgroBuscaCatalogo === 'function') {
-      const j = await fetchAgroBuscaCatalogo(t, { limit: 48, compras: true, signal: signal });
+      const j = await fetchAgroBuscaCatalogo(t, { limit: 48, compras: true, entrada_nfe: true, signal: signal });
       return entradaNfeExtrairProdutosRespostaBca(j, t);
     }
     const u = new URL(URL_BUSCA, window.location.origin);
     u.searchParams.set('q', t);
     u.searchParams.set('compras', '1');
+    u.searchParams.set('entrada_nfe', '1');
     u.searchParams.set('limit', '48');
     const opts = { credentials: 'same-origin' };
     if (signal) opts.signal = signal;

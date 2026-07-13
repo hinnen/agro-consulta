@@ -667,31 +667,34 @@ MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
 MSG_CAIXA_PIN_ALHEIO = "Informe seu PIN para gerenciar outro caixa."
 
 
-def validar_pin_operador(pin: str) -> tuple[bool, str]:
-    """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
+def _perfil_usuario_por_pin(pin: str):
     from base.models import PerfilUsuario
 
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return None
+    return (
+        PerfilUsuario.objects.filter(senha_rapida=pin)
+        .select_related("user")
+        .only("pk", "senha_rapida", "codigo_vendedor", "user__first_name", "user__last_name", "user__username")
+        .first()
+    )
+
+
+def validar_pin_operador(pin: str) -> tuple[bool, str]:
+    """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
     pin = (pin or "").strip()
     if not pin:
         return False, "Informe o PIN."
     if pin == "1234":
         return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+    if _perfil_usuario_por_pin(pin) is None:
         return False, "PIN incorreto."
     return True, ""
 
 
 def rotulo_operador_pin(pin: str) -> str:
-    from base.models import PerfilUsuario
-
-    pin = (pin or "").strip()
-    if not pin or pin == "1234":
-        return ""
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
-        .select_related("user")
-        .first()
-    )
+    perfil = _perfil_usuario_por_pin(pin)
     if not perfil:
         return ""
     u = perfil.user
@@ -790,12 +793,7 @@ def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
 
 
 def usuario_django_de_pin(pin: str):
-    from base.models import PerfilUsuario
-
-    pin = (pin or "").strip()
-    if not pin:
-        return None
-    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).select_related("user").first()
+    perfil = _perfil_usuario_por_pin(pin)
     return perfil.user if perfil else None
 
 

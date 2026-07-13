@@ -1154,7 +1154,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.16** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.17** · **loja v8.10**
+
+### 🐛 Pacote performance + UX (teste **v8.17**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **#5** | Busca do cadastro e da Entrada NF mais leve no BCA |
+| **#6** | Validação de PIN com menos consultas ao banco |
+| **#16** | Aviso da limpeza de datas no CP movido para o local pedido |
+| **Arquivos** | `views.py` · `caixa_util.py` · `entrada_nota.html` · `lancamentos_contas_pagar_teste.html` |
+| **Validar** | Ctrl+F5 teste · busca cadastro · busca Entrada NF · PIN · posição do aviso no CP |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🐛 Hotfix #18 frete nas 3 vias e cupom fiscal (teste **v8.16**)
 

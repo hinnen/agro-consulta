@@ -17286,7 +17286,13 @@ def api_buscar_produtos(request):
                 logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
 
         ultimas_compras_map: dict[str, list] = {}
-        if compras and prods and not (wizard_catalog and len(prods) > 400):
+        if (
+            compras
+            and prods
+            and not contexto_cadastro
+            and not entrada_nfe_mode
+            and not (wizard_catalog and len(prods) > 400)
+        ):
             try:
                 from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
 
