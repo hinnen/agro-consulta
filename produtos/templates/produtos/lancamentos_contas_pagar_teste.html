@@ -454,6 +454,9 @@
     <p id="sv-filtro-data-hint" class="sv-sub" style="margin: 0 0 12px; font-size: 0.82rem; line-height: 1.35; color: var(--cor-texto-secundario);">
       Com <strong>Em aberto</strong> e filtro só por <strong>pagamento</strong>, a lista pode ficar vazia — use <strong>Todos</strong> ou <strong>Quitados</strong>.
     </p>
+    <p id="sv-busca-data-hint" class="sv-sub hidden" style="margin: -4px 0 12px; font-size: 0.82rem; line-height: 1.35; color: #92400e;">
+      Busca por texto ativa: os campos de data foram limpos para não travar o resultado.
+    </p>
     <div class="sv-planos-block" aria-label="Planos de contas">
       <div class="sv-planos-head">
         <div>
@@ -2231,7 +2234,18 @@
     document.getElementById('sv-busca').value = '';
     marcarPrefiltro('');
     saveExcludedSet(new Set());
+    atualizarHintBuscaLimpandoDatas();
     recarregarAposFiltro({ planos: true });
+  }
+
+  function atualizarHintBuscaLimpandoDatas() {
+    const el = document.getElementById('sv-busca-data-hint');
+    if (!el) return;
+    const q = (document.getElementById('sv-busca')?.value || '').trim();
+    const de = (document.getElementById('sv-venc-de')?.value || '').trim();
+    const ate = (document.getElementById('sv-venc-ate')?.value || '').trim();
+    const show = !!q && !de && !ate;
+    el.classList.toggle('hidden', !show);
   }
 
   document.getElementById('sv-log-fechar')?.addEventListener('click', () => fecharModal('sv-modal-log'));
@@ -2464,12 +2478,14 @@
     filtroRemotoCp = null;
     marcarPrefiltro('');
     atualizarLabelsFiltroData();
+    atualizarHintBuscaLimpandoDatas();
     recarregarAposFiltro();
   });
   ['sv-venc-de', 'sv-venc-ate'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => {
       filtroRemotoCp = null;
       marcarPrefiltro('');
+      atualizarHintBuscaLimpandoDatas();
     });
   });
   document.getElementById('sv-busca').addEventListener('input', () => {
@@ -2483,6 +2499,7 @@
         document.getElementById('sv-venc-de').value = '';
         document.getElementById('sv-venc-ate').value = '';
       }
+      atualizarHintBuscaLimpandoDatas();
       recarregarAposFiltro();
     }, 400);
   });
@@ -2512,6 +2529,7 @@
 
   aplicarFiltrosDaUrl();
   atualizarLabelsFiltroData();
+  atualizarHintBuscaLimpandoDatas();
   const params = new URLSearchParams(window.location.search);
   const mid = params.get('mongo_id');
   if (mid) {

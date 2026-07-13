@@ -178,12 +178,12 @@ def alocar_codigo_sequencial_novo_cadastro(
 ) -> tuple[dict | None, str | None, str | None]:
     """
     Próximo par livre: código sistema (4 dígitos) + ``GM`` + mesmo número.
-    Continua após o maior código da faixa automática (4010–5999); 9xxx não puxa a sequência.
+    Procura da menor lacuna livre na faixa automática (4010–5999); 9xxx não puxa a sequência.
     """
-    n = _codigo_sequencial_inicio(db, col)
     piso = _piso_sequencia_codigo()
     teto = _teto_sequencia_auto()
-    max_steps = teto - piso + 2
+    n = piso
+    max_steps = teto - piso + 1
     steps = 0
     while steps < max_steps and n <= teto:
         ds = formatar_codigo_sistema(n)

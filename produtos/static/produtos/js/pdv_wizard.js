@@ -7857,6 +7857,15 @@
                 subtotal: lineSubtotal(item)
             };
         });
+        var freteCupom = State.toNumber((computed && computed.frete) || (state.pagamento && state.pagamento.frete) || 0);
+        if (freteCupom > 0.009) {
+            itens.push({
+                nome: 'Taxa de entrega',
+                qtd: 1,
+                preco: freteCupom,
+                subtotal: freteCupom
+            });
+        }
         var formaTxt = formaPagamentoResumoUi(state, computed);
         var fiadoDias = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
         var ehFiado =

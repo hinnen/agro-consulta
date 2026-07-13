@@ -792,9 +792,15 @@
       var mmOpen = expandMm === p.id;
       var rowHi = (ajOpen || mmOpen) ? ' bg-emerald-50/60' : ' hover:bg-slate-50';
       var cod = p.codigo_nfe || p.codigo || '';
+      var custoListaNum =
+        (p.preco_custo != null && isFinite(Number(p.preco_custo)))
+          ? Number(p.preco_custo)
+          : ((p.preco_custo_com_acrescimos != null && isFinite(Number(p.preco_custo_com_acrescimos)))
+            ? Number(p.preco_custo_com_acrescimos)
+            : null);
       var custoTxt = p._precoAguardando
         ? '…'
-        : (p.preco_custo != null && isFinite(Number(p.preco_custo)) ? fmtMoney(Number(p.preco_custo)) : '—');
+        : (custoListaNum != null ? fmtMoney(custoListaNum) : '—');
       var vendaTxt = p._precoAguardando ? '…' : fmtMoney(p.preco_venda);
       var sc = p.saldo_centro != null ? String(p.saldo_centro) : '—';
       var sv = p.saldo_vila != null ? String(p.saldo_vila) : '—';
@@ -1075,11 +1081,13 @@
       codigo_barras: produto.codigo_barras,
       preco_venda: produto.preco_venda,
       preco_custo: produto.preco_custo,
+      preco_custo_com_acrescimos: produto.preco_custo_com_acrescimos,
       categoria: produto.categoria,
       subcategoria: produto.subcategoria,
       subcategoria_2: produto.subcategoria_2,
       subcategoria_3: produto.subcategoria_3,
       subcategoria_4: produto.subcategoria_4,
+      modelo: produto.modelo,
       fornecedor: produto.fornecedor,
       unidade: produto.unidade,
       descricao: produto.descricao,
@@ -1168,10 +1176,12 @@
       codigo_barras: src.codigo_barras,
       preco_venda: src.preco_venda,
       preco_custo: src.preco_custo,
+      preco_custo_com_acrescimos: src.preco_custo_com_acrescimos,
       categoria: src.categoria,
       subcategoria: sub || catList || '',
       categoria_listagem: catList || sub || '',
       prateleira: src.prateleira,
+      modelo: src.modelo,
       fornecedor: src.fornecedor,
       imagem: src.imagem,
       inativo: !!src.inativo,
@@ -1334,10 +1344,12 @@
       codigo_barras: p.codigo_barras,
       preco_venda: p.preco_venda,
       preco_custo: p.preco_custo,
+      preco_custo_com_acrescimos: p.preco_custo_com_acrescimos,
       categoria: p.categoria,
       subcategoria: p.subcategoria,
       categoria_listagem: p.categoria_listagem || p.subcategoria,
       prateleira: p.prateleira,
+      modelo: p.modelo,
       fornecedor: p.fornecedor,
       imagem: p.imagem,
       inativo: !!p.inativo,

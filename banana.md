@@ -1154,7 +1154,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.12** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.14** · **loja v8.10**
+
+### 🐛 Pós-validação bugs loja Zap 12/07 (teste **v8.14**) — ajustes amarelo/vermelho
+
+| Item | Detalhe |
+| ---- | ------- |
+| **#3** | Cadastro lista mostra **preço de custo** com fallback mais robusto |
+| **#4** | Busca cadastro passa a considerar **modelo** (`cadastro_extras.modelo`) |
+| **#15** | **Código interno** novo ocupa a **menor lacuna livre** a partir de **4010** |
+| **#16** | **CP** continua limpando datas na busca e agora mostra **aviso visual** |
+| **#18** | **Taxa de entrega** entra também na **via do cliente** do cupom |
+| **Validar** | Ctrl+F5 teste · #3 · #4 · #15 · #16 · #18 |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🐛 Lote bugs loja Zap 12/07 (teste **v8.12**) — pacote checklist #
 
