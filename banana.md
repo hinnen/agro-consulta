@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.26** · **loja v8.26** _(deploy sobe agora — Renan frase+senha)_
+**Versão app (`VERSION`):** **teste v8.28** · **loja v8.26** _(hotfix GM0024 PG+Mongo — sobe loja com nova senha)_
+
+### 🚑 Hotfix #3 GM0024 loja só 1 (14/07 · **v8.28**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Loja v8.26: `GM0093`/`GM0090` OK · `GM0024` → só `-1` (nome → 3) |
+| **Causa** | Com `agro_pg`, 1 hit no Postgres fazia **pular Mongo** — `-10/-15` só no Mongo |
+| **Fix** | Família GM **sempre** complementa/mescla Mongo |
+| **Validar** | Ctrl+F5 · `gm0024` → 3 magnus |
+| **Loja** | ⏳ frase+senha |
 
 ### 📦 Deploy loja **v8.26** — busca GM CodigoNFe (14/07 · Renan autorizou)
 

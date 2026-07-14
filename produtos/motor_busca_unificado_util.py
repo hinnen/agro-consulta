@@ -297,13 +297,13 @@ def buscar_documentos_unificado(
 
     from produtos.cadastro_busca_codigo_util import gm_base_familia
 
-    # Família GM (GM0024): Postgres/overlay já trouxe irmãos — não deixar Mongo (1 exact) ganhar.
+    # Família GM: NÃO pular Mongo só porque o PG trouxe 1 item (ex. GM0024-1 no PG
+    # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
     _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
-    _pg_suficiente = (
-        (skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim))
-        or (_familia_gm and bool(pg_docs))
-    )
+    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
+    if _familia_gm:
+        _pg_suficiente = False
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
             from produtos.views import (
@@ -328,7 +328,8 @@ def buscar_documentos_unificado(
     if somente_pg or (usa_pg and not mongo_docs):
         prods = pg_docs
     elif pg_docs and mongo_docs:
-        if merge_pg:
+        # Família GM: sempre mesclar (não descartar PG nem Mongo)
+        if merge_pg or _familia_gm:
             prods = cat_agro.mesclar_prods_busca_pdv(mongo_docs, q=termo, limit=lim)
             prods = _merge_pg_prioriza_postgres(pg_docs, prods)
         else:
@@ -336,7 +337,7 @@ def buscar_documentos_unificado(
     elif pg_docs:
         prods = pg_docs
     elif mongo_docs:
-        if merge_pg:
+        if merge_pg or _familia_gm:
             prods = cat_agro.mesclar_prods_busca_pdv(mongo_docs, q=termo, limit=lim)
         else:
             prods = mongo_docs
