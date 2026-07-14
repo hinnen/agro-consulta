@@ -24,7 +24,8 @@ def _noop_reverse(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("produtos", "0050_vendaagro_frete"),
+        # Irmã da 0050 (frete): loja pode receber 0051 sem a 0050.
+        ("produtos", "0049_plano_unificacao_lote_agro"),
     ]
 
     operations = [
