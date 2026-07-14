@@ -113,7 +113,7 @@ def q_nome_tokens_cadastro(termo: str) -> Q | None:
         return None
     q_obj = Q()
     for pl in parts:
-        q_obj &= Q(nome__icontains=pl) | Q(marca__icontains=pl)
+        q_obj &= Q(nome__icontains=pl) | Q(marca__icontains=pl) | Q(modelo__icontains=pl)
     return q_obj
 
 
@@ -154,6 +154,7 @@ def q_icontains_cadastro(termo: str) -> Q:
     q_obj = (
         Q(nome__icontains=termo)
         | Q(marca__icontains=termo)
+        | Q(modelo__icontains=termo)
         | Q(categoria__icontains=termo)
         | Q(codigo_interno__icontains=termo)
         | Q(codigo_nfe__icontains=termo)

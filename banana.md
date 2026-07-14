@@ -1154,20 +1154,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.17** · **loja v8.15**
+**Versão app (`VERSION`):** **teste v8.19** · **loja v8.15**
+
+### 🐛 Hotfix #4 modelo persiste (teste **v8.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Campo **Modelo** no cadastro “salvava” e sumia ao reabrir |
+| **Causa** | Modelo só no JSON do overlay; resposta/lista/Mongo sem coluna; detalhe Mongo sobrescrevia com Modelo vazio |
+| **Fix** | Coluna `Produto.modelo` + sync no salvar · espelho Mongo `Modelo`/`NomeModelo` · lista/detalhe/UI sempre devolvem o campo |
+| **Migração** | `0051_produto_modelo` (copia do overlay → coluna) |
+| **Validar** | Ctrl+F5 teste · editar modelo · Salvar no Agro · fechar · reabrir — campo cheio |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
 
 | Ambiente | Versão | Commit | Notas |
 | -------- | ------ | ------ | ----- |
 | **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
-| **Teste** | **v8.17** | `191e70b` | pacote **#5 #6 #16** · antes: v8.16 `3c99649` (#18) · v8.15 `3ab459b` (#3 BCA custo) |
+| **Teste** | **v8.19** | *(este pacote #4)* | antes: v8.18 handoff · v8.17 `191e70b` (#5 #6 #16) |
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
 | **15** | 🟢 loja OK | Confirmado Renan em produção |
-| **8 · 10 · 18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
-| **4** | 🟠 reaberto | modelo ainda não persiste/aparece — **1º a atacar** |
+| **8 · 10 ·.18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
+| **4** | 🟡 teste v8.19 | modelo em coluna PG + Mongo — **validar no Render teste** |
 | **3** | 🟠 regressão | custo OK; **busca prefixo GM** ainda quebrada (1× vs 3 no nome) · hotfix loja v8.15 **não** validado |
 | **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
@@ -1176,7 +1187,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
 
-**Ordem combinada:** **#4** → **#3 (GM)** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+**Ordem combinada:** validar **#4** → **#3 (GM)** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
