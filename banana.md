@@ -1154,7 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.36** · **loja v8.34**
+**Versão app (`VERSION`):** **teste v8.37** · **loja v8.34**
+
+### 🔐 PDV pede PIN ao abrir (14/07 · **teste v8.37**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Fechar/reabrir PDV **não** mantém operador — tela de PIN na entrada |
+| **Validar** | Ctrl+F5 · digita PIN · fecha aba / volta do BI · abre PDV → pede PIN de novo |
+| **Loja** | ⏳ |
 
 ### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
 
