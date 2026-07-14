@@ -783,10 +783,16 @@ def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
     Valida PIN (PerfilUsuario.senha_rapida) e devolve rótulo do operador.
     Retorno: (ok, label, erro_usuario).
     """
-    ok, err = validar_pin_operador(pin)
-    if not ok:
-        return False, "", err or "PIN incorreto."
-    rot = rotulo_operador_pin(pin)
+    pin = (pin or "").strip()
+    if not pin:
+        return False, "", "Informe o PIN."
+    if pin == "1234":
+        return False, "", "Senha padrão (1234) bloqueada. Troque seu PIN."
+    perfil = _perfil_usuario_por_pin(pin)
+    if perfil is None:
+        return False, "", "PIN incorreto."
+    u = perfil.user
+    rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
     if not rot:
         return False, "", "PIN não vinculado a um operador."
     return True, rot[:150], ""

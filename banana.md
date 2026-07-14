@@ -1156,6 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (`VERSION`):** **teste v8.30** · **loja v8.30**
 
+### 🩹 #6 PIN — 1 query no rótulo (14/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Já tinha helper `_perfil_usuario_por_pin` (191e70b) · **faltava**: `operador_label_de_pin` ainda batia 2× no banco |
+| **Fix** | Valida + rótulo na **mesma** leitura |
+| **Validar** | Render **teste** · digitar PIN no PDV/caixa · deve responder rápido |
+| **Loja** | ⏳ com #10 no próximo pacote |
+
 ### 📦 Deploy loja **v8.30** (14/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1173,7 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Lista agrupa por **nome**; cobrança/baixa filtrava só `cliente_agro_pk` (muitos títulos sem FK / modo default `titulo` no PDV) |
 | **Fix** | Mesmo filtro da gestão (`_q_titulos_cliente_gestao`) · PDV default modo `cliente` |
 | **Dados** | **Só leitura/filtro** — não apaga título, baixa nem saldo |
-| **Loja** | ⏳ frase+senha (junto pacote) |
+| **Loja** | **✅** v8.30 `1cdad18` |
 
 ### 🚑 Hotfix #3 GM0024 loja só 1 (14/07 · **v8.28**)
 
@@ -1268,7 +1277,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | ------ | ---------- |
 | **3** | 🟢 loja v8.26 + 🟡 v8.28 teste | prefixo GM OK na maioria; `GM0024` parcial (PG+Mongo) — wait pacote |
 | **4** | 🟡 loja v8.22+ | modelo — Renan confirmar salva/reabre |
-| **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
+| **10** | 🟢 pronto produção | Cancelar cobrança fiado — **validado Renan**; ainda **só no teste** (sobe no próximo pacote) |
+| **5 · 6** | 🟡 teste | #6 PIN polish 1 query · validar no **teste** |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
 | **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
 | **7** | 🔴 | impressão notebook — medir host vs app |
