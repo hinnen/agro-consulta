@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Erro** | `Conflicting migrations … (0050_vendaagro_frete, 0051_produto_modelo)` |
 | **Fix** | `0052_merge_0050_frete_0051_modelo` |
-| **Loja** | sobe junto com o merge |
+| **Loja** | **✅** `c119f51` v8.39 · teste `bcfdc8a` |
 
 ### 📦 Deploy loja **v8.38** — lote Zap restante + PIN ao abrir (14/07 · Renan frase+senha)
 
