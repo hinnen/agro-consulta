@@ -52,6 +52,11 @@ def _aplicar_overlay_em_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> d
     from produtos.views import _aplicar_produto_gestao_overlay_em_dict
 
     _aplicar_produto_gestao_overlay_em_dict(row, ov)
+    modelo = str(row.get("modelo") or "").strip()
+    if modelo:
+        busca_txt = str(row.get("busca_texto") or "").strip()
+        if modelo.lower() not in busca_txt.lower():
+            row["busca_texto"] = f"{busca_txt} {modelo}".strip()
     return row
 
 
@@ -66,6 +71,7 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
         "codigo_barras": (p.codigo_barras or "").strip(),
         "preco_venda": _dec(p.preco_venda),
         "preco_custo": _dec(p.custo),
+        "preco_custo_com_acrescimos": _dec(p.custo),
         "categoria": (p.categoria or "").strip(),
         "subcategoria": (p.subcategoria or "").strip(),
         "subcategoria_2": (p.subcategoria_2 or "").strip(),
@@ -194,6 +200,29 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     found: list[Produto] = []
     seen_pk: set[int] = set()
 
+    def _append_overlay_modelo_matches(raw_termo: str) -> None:
+        termo_txt = str(raw_termo or "").strip()
+        if not termo_txt or len(found) >= lim:
+            return
+        partes = [p.strip() for p in termo_txt.split() if len(p.strip()) >= 2]
+        if not partes:
+            partes = [termo_txt]
+        try:
+            ovs = ProdutoGestaoOverlayAgro.objects.all()
+            for pl in partes:
+                ovs = ovs.filter(cadastro_extras__modelo__icontains=pl[:120])
+            pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
+            if not pids:
+                return
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        except Exception:
+            return
+
     if parece_codigo_cadastro(termo):
         pids = overlay_pids_por_codigo(termo, limit=lim)
         if pids:
@@ -228,6 +257,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
+        _append_overlay_modelo_matches(termo)
         if len(found) < min(8, lim):
             _cadastro_pg_append_unicos(
                 found,
@@ -315,6 +345,12 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
+    if not row.get("modelo"):
+        ov = ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id=str(row.get("id") or "")[:64]
+        ).first()
+        if ov and isinstance(ov.cadastro_extras, dict):
+            row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
     return {
         **row,
         "preco_custo_com_acrescimos": pc,

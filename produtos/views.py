@@ -751,6 +751,8 @@ def _aplicar_produto_gestao_overlay_em_dict(
             row["preco_custo"] = round(float(ce_pc["preco_custo_overlay"]), 2)
         except (TypeError, ValueError):
             pass
+    if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
+        row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
     return row
 
 
@@ -2018,6 +2020,12 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["preco_custo_overlay"] = float(custo_payload)
         else:
             ex.pop("preco_custo_overlay", None)
+    if "modelo" in payload:
+        mod = _txt("modelo", 200)
+        if mod:
+            ex["modelo"] = mod
+        else:
+            ex.pop("modelo", None)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -17297,6 +17305,23 @@ def api_buscar_produtos(request):
                 logger.warning("api_buscar_produtos: ultimas_compras indisponível — %s", exc)
 
         overlay_pdv_map = _overlay_mapa_por_ids_chunked(p_ids) if p_ids else {}
+        custo_pg_map: dict[str, float] = {}
+        if compras and p_ids:
+            try:
+                _chunk_pg = 400
+                for _i in range(0, len(p_ids), _chunk_pg):
+                    _slice = [str(x or "").strip()[:64] for x in p_ids[_i : _i + _chunk_pg] if x]
+                    if not _slice:
+                        continue
+                    for _pm in Produto.objects.filter(produto_externo_id__in=_slice).only(
+                        "produto_externo_id", "custo"
+                    ):
+                        try:
+                            custo_pg_map[str(_pm.produto_externo_id or "").strip()] = float(_pm.custo or 0)
+                        except (TypeError, ValueError):
+                            continue
+            except Exception:
+                logger.warning("api_buscar_produtos: custo PG indisponível", exc_info=True)
 
         res = []
         for p in prods:
@@ -17442,6 +17467,16 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            if compras:
+                try:
+                    custo_pg = float(custo_pg_map.get(pid) or 0)
+                except (TypeError, ValueError):
+                    custo_pg = 0.0
+                custo_row = _float_api_json(row.get("preco_custo") or 0)
+                if custo_pg > 0 and custo_row <= 0:
+                    row["preco_custo"] = round(custo_pg, 2)
+                    row["preco_custo_acrescimo"] = round(custo_pg, 2)
+                    row["preco_custo_final"] = round(custo_pg, 2)
             if contexto_cadastro:
                 if "inativo" not in row:
                     row["inativo"] = bool(p.get("CadastroInativo"))
@@ -17588,6 +17623,16 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
     )
     pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
     p_custo = _float_api_json(p.get("PrecoCusto") or p.get("ValorCusto") or 0)
+    try:
+        custos_lista = _custos_compra_produto(p)
+        if custos_lista:
+            pc_f = float(custos_lista.get("preco_custo_final") or custos_lista.get("preco_custo") or 0)
+            if pc_f > 0:
+                p_custo = pc_f
+            elif float(custos_lista.get("preco_custo") or 0) > 0:
+                p_custo = float(custos_lista.get("preco_custo") or 0)
+    except Exception:
+        pass
     fornecedor = (
         p.get("NomeFornecedor")
         or p.get("Fornecedor")
@@ -18324,6 +18369,8 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     ce_ov = (
         ov_det.cadastro_extras if ov_det and isinstance(ov_det.cadastro_extras, dict) else None
     )
+    if ce_ov and str(ce_ov.get("modelo") or "").strip():
+        row["modelo"] = str(ce_ov.get("modelo") or "").strip()[:200]
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
     ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})

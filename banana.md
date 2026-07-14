@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.11** · **loja v8.12**
+**Versão app (`VERSION`):** **teste v8.17** · **loja v8.14**
+
+### 🚀 Deploy loja **v8.14** — pacote isolado `#3 #4 #15` (14/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Só `#3` custo cadastro/BCA · `#4` modelo no cadastro/busca · `#15` sequência código interno 4010–5999 pela menor lacuna |
+| **Escopo** | Pacote isolado de produção — **não** leva `#16`, `#18`, `#5`, `#6` |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · cadastro lista custo · salvar modelo · novo produto pegando 4010+ |
+| **Rollback base** | estado anterior da loja em **`10b0b51`** |
+| **Como reverter** | preferir `git revert <commit_deste_deploy>`; emergência: `git reset --hard 10b0b51 && git push origin producao --force-with-lease` |
 
 ### 🚀 Deploy loja **v8.12** — BCA Entrada NF motor padrão (11/07 — Renan senha OK)
 

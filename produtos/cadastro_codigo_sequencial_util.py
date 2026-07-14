@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 _CODIGO_SISTEMA_4D = re.compile(r"^\d{4}$")
 _CODIGO_SISTEMA_MAX = 9999
 _CODIGO_SEQ_PISO = 4010
+_CODIGO_SEQ_TETO_AUTO = 5999
 
 
 def _piso_sequencia_codigo() -> int:
@@ -22,6 +23,15 @@ def _piso_sequencia_codigo() -> int:
     except ValueError:
         n0 = _CODIGO_SEQ_PISO
     return max(_CODIGO_SEQ_PISO, min(n0, _CODIGO_SISTEMA_MAX))
+
+
+def _teto_sequencia_auto() -> int:
+    try:
+        n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MAX_AUTO", str(_CODIGO_SEQ_TETO_AUTO)))
+    except ValueError:
+        n0 = _CODIGO_SEQ_TETO_AUTO
+    piso = _piso_sequencia_codigo()
+    return max(piso, min(n0, _CODIGO_SISTEMA_MAX))
 
 
 def codigo_sistema_4_digitos_valido(val) -> bool:
@@ -58,12 +68,13 @@ def extrair_numero_sequencial_4d(val) -> int | None:
 
 
 def extrair_numero_sequencial_faixa(val) -> int | None:
-    """Código sistema (4 dígitos) na faixa da loja (4010+). GM não entra na sequência."""
+    """Código sistema (4 dígitos) na faixa automática da loja (4010–5999). GM/9xxx não entram."""
     n = extrair_numero_sequencial_4d(val)
     if n is None:
         return None
     piso = _piso_sequencia_codigo()
-    if n < piso or n > _CODIGO_SISTEMA_MAX:
+    teto = _teto_sequencia_auto()
+    if n < piso or n > teto:
         return None
     return n
 
@@ -119,9 +130,10 @@ def max_codigo_numerico_mongo(db, col: str) -> int:
 
 def _codigo_sequencial_inicio(db=None, col: str | None = None) -> int:
     piso = _piso_sequencia_codigo()
+    teto = _teto_sequencia_auto()
     mx = max(max_codigo_numerico_postgres(), max_codigo_numerico_mongo(db, col or ""))
     if mx >= piso:
-        return min(mx + 1, _CODIGO_SISTEMA_MAX)
+        return min(mx + 1, teto)
     return piso
 
 
@@ -165,13 +177,14 @@ def alocar_codigo_sequencial_novo_cadastro(
 ) -> tuple[dict | None, str | None, str | None]:
     """
     Próximo par livre: código sistema (4 dígitos) + ``GM`` + mesmo número.
-    Continua após o maior código de 4 dígitos já usado; se vazio, ``AGRO_NOVO_PRODUTO_COD_MIN``.
+    Procura da menor lacuna livre na faixa automática (4010–5999); 9xxx não puxa a sequência.
     """
-    n = _codigo_sequencial_inicio(db, col)
     piso = _piso_sequencia_codigo()
-    max_steps = _CODIGO_SISTEMA_MAX - piso + 2
+    teto = _teto_sequencia_auto()
+    n = piso
+    max_steps = teto - piso + 1
     steps = 0
-    while steps < max_steps and n <= _CODIGO_SISTEMA_MAX:
+    while steps < max_steps and n <= teto:
         ds = formatar_codigo_sistema(n)
         gm = gm_sugerido_de_codigo_sistema(ds)
         if not codigo_seq_ocupado(db, col, ds, gm, int(n)):
@@ -182,7 +195,7 @@ def alocar_codigo_sequencial_novo_cadastro(
         {
             "ok": False,
             "erro": (
-                "Não foi possível gerar código sequencial automático (faixa 4010–9999 esgotada ou ocupada). "
+                "Não foi possível gerar código sequencial automático (faixa 4010–5999 esgotada ou ocupada). "
                 "Informe manualmente «Código sistema» (4 números) e «Código interno (GM)»."
             ),
             "status": 400,
