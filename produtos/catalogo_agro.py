@@ -91,6 +91,10 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
 
+    if ov is None and pid:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+    row = _aplicar_overlay_em_row(row, ov)
+    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
     row["index_codigos"] = index_codigos_de_campos(
         codigo=row.get("codigo"),
         codigo_nfe=row.get("codigo_nfe"),
@@ -111,9 +115,6 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
         )
         if x
     ).strip()
-    if ov is None and pid:
-        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-    row = _aplicar_overlay_em_row(row, ov)
     from produtos.catalogo_nome_util import aplicar_nome_resolvido_em_row
 
     return aplicar_nome_resolvido_em_row(row, p, ov)
