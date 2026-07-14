@@ -1154,19 +1154,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.22** · **loja v8.15**
+**Versão app (`VERSION`):** **teste v8.22** · **loja v8.22**
 
-### 🐛 Hotfix #3 busca prefixo GM (teste **v8.22**)
+### 📦 Deploy loja **v8.22** — pacote #3 + #4 (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pacote** | **#4** modelo persiste + **#3** prefixo GM (família) |
+| **Commits loja** | `2c44d45` (#4) · `a285d52` (#3) |
+| **Antes** | loja **v8.15** `812226b` |
+| **Backup** | `producao-backup-pre-v822-20260714` · anterior `pre-v815` / `pre-v814` |
+| **NÃO veio** | #5 #6 #16 #18 frete · lote Zap restante — continua só no teste |
+| **Validar loja** | Ctrl+F5 · `GM0024` → 3 itens · Modelo salvar/reabrir |
+| **Revert** | `git reset --hard 812226b` na `producao` + push (ou checkout backup) |
+
+### 🐛 Hotfix #3 busca prefixo GM (teste **v8.22** · **loja v8.22**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | `GM0024` → 1 resultado; pelo nome → 3 (GM0024-1/10/15). Cadastro e PDV |
 | **Causa** | Filtro GM do motor lia só `Produto.codigo_nfe` e descartava irmãos cujo GM está no **overlay** |
 | **Fix** | Filtrar GM **depois** do overlay · index/prefixo no motor · PDV scanner `GM0024` (sem hífen) usa família |
-| **Validar** | Ctrl+F5 teste · buscar `GM0024` → 3 itens · PDV igual |
-| **Loja** | **⏳** só com frase + senha |
+| **Validar** | Ctrl+F5 loja · buscar `GM0024` → 3 itens · PDV igual |
+| **Loja** | **✅** v8.22 |
 
-### 🐛 Hotfix #4 modelo persiste (teste **v8.19** / badge **v8.20**)
+### 🐛 Hotfix #4 modelo persiste (teste **v8.19+** · **loja v8.22**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1174,22 +1186,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Modelo só no JSON do overlay; resposta/lista/Mongo sem coluna; detalhe Mongo sobrescrevia com Modelo vazio |
 | **Fix** | Coluna `Produto.modelo` + sync no salvar · espelho Mongo `Modelo`/`NomeModelo` · lista/detalhe/UI sempre devolvem o campo |
 | **Migração** | `0051_produto_modelo` (copia do overlay → coluna) |
-| **Validar** | Ctrl+F5 teste · editar modelo · Salvar no Agro · fechar · reabrir — campo cheio |
-| **Loja** | **⏳** só com frase + senha |
+| **Validar** | Ctrl+F5 loja · editar modelo · Salvar · reabrir |
+| **Loja** | **✅** v8.22 |
 
 ### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
 
 | Ambiente | Versão | Commit | Notas |
 | -------- | ------ | ------ | ----- |
-| **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
-| **Teste** | **v8.22** | *(#3 GM)* | #4 em `7026feb` · antes v8.17 `191e70b` |
+| **Loja** | **v8.22** | `a285d52` | pacote #3+#4 · backup `producao-backup-pre-v822-20260714` |
+| **Teste** | **v8.22** | `9bf591f` | alinhado no badge; ainda tem commits extras só no teste |
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
 | **15** | 🟢 loja OK | Confirmado Renan em produção |
-| **8 · 10 · 18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
-| **4** | 🟡 teste | modelo — ainda validar no Render |
-| **3** | 🟡 teste v8.22 | prefixo GM restaurado — **validar GM0024 → 3** |
+| **8 · 10 · 18** | 🟢 pronto loja | #18 fiscal — conferir se já estava; frete novo ainda só teste |
+| **4** | 🟢 loja v8.22 | modelo — Renan validar na loja |
+| **3** | 🟢 loja v8.22 | prefixo GM — Renan validar `GM0024` → 3 |
 | **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
 | **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
@@ -1197,7 +1209,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
 
-**Ordem combinada:** validar **#4** + **#3** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+**Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
