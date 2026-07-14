@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.23** · **loja v8.23**
+**Versão app (`VERSION`):** **teste v8.25** · **loja v8.25**
+
+### 🚑 Hotfix #3 GM maiúsc/minúsc + família (14/07 · **v8.25**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Loja v8.23: `gm0024` → 1 item; nome → 3 |
+| **Causa** | No Postgres `istartswith` é **case-sensitive** (`gm` ≠ `GM`) + família não expandia |
+| **Fix** | Prefixo CI (`iregex`/`GM`+`gm`) + busca explícita família `GM0024` / `GM0024-*` · overlay igual |
+| **Validar** | Ctrl+F5 loja · `gm0024` → **3** · PDV igual |
+| **Loja** | sobe junto (hotfx do pacote #3 já autorizado) |
 
 ### 🚑 Hotfix migração loja (14/07) — deploy v8.22 falhou no Render
 
