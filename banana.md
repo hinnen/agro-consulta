@@ -1172,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Ambiente | Versão | Commit | Notas |
 | -------- | ------ | ------ | ----- |
 | **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
-| **Teste** | **v8.19** | *(este pacote #4)* | antes: v8.18 handoff · v8.17 `191e70b` (#5 #6 #16) |
+| **Teste** | **v8.19** | `7026feb` | hotfix **#4** modelo · antes: v8.18 handoff · v8.17 `191e70b` |
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
