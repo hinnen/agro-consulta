@@ -1154,15 +1154,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.37** · **loja v8.34**
+**Versão app (`VERSION`):** **teste v8.38** · **loja v8.38**
 
-### 🔐 PDV pede PIN ao abrir (14/07 · **teste v8.37**)
+### 📦 Deploy loja **v8.38** — lote Zap restante + PIN ao abrir (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *pode mandar tudo para produção* + `99738595` |
+| **Commit loja** | `93cbc67` · backup `producao-backup-pre-v838-20260714` @ `74b95fc` |
+| **Pacote** | **#5** busca leve · **#16** aviso CP (texto + fonte) · **#18** frete 3 vias (+ mig `0050_vendaagro_frete`) · **#1 #2 #9 #11 #13 #14** · **PIN ao abrir** PDV |
+| **#16 texto** | *Busca por texto ativa: os campos de data foram limpos* · fonte `1rem` |
+| **Validar loja** | Ctrl+F5 · badge **v8.38** · abrir PDV → pede PIN · CP busca texto → aviso · entrega+frete nas 3 vias · Entrada NF #1/#2 · Esc fecha overlay menu |
+| **Revert** | `git reset --hard 74b95fc` na `producao` + push (ou checkout backup) |
+
+### 🔐 PDV pede PIN ao abrir (14/07 · **teste v8.37** → **loja v8.38**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Fechar/reabrir PDV **não** mantém operador — tela de PIN na entrada |
 | **Validar** | Ctrl+F5 · digita PIN · fecha aba / volta do BI · abre PDV → pede PIN de novo |
-| **Loja** | ⏳ |
+| **Loja** | **✅** v8.38 `93cbc67` |
 
 ### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
 
@@ -1319,17 +1330,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
-| **3** | 🟢 loja v8.26 + 🟡 v8.28 teste | prefixo GM OK na maioria; `GM0024` parcial (PG+Mongo) — wait pacote |
-| **4** | 🟡 loja v8.22+ | modelo — Renan confirmar salva/reabre |
-| **10** | ✅ loja v8.34 | Cancelar cobrança fiado — **validado Renan** · na loja `74b95fc` |
-| **5 · 6** | ✅ loja v8.34 | #6 PIN 1 query |
-| **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
-| **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
+| **3** | ✅ loja | prefixo GM / família |
+| **4** | 🟡 loja | modelo — confirmar se ainda ok |
+| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
+| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
+| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
+| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
+| **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
+| **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
-| **18** | 🟡 teste | frete 3 vias — ainda não loja |
-| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ — **validados loja** (Renan 14/07) |
+| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 
 **Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
