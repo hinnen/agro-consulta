@@ -479,6 +479,9 @@
       <span id="sv-resumo-lista">Carregando…</span>
       <span id="sv-sync-badge" class="sv-sync-badge" hidden aria-live="polite">Sincronizando…</span>
     </p>
+    <p id="sv-busca-data-hint" class="sv-sub hidden" style="margin: 0; font-size: 1rem; line-height: 1.4; color: #92400e; flex: 1 1 320px; font-weight: 700;">
+      Busca por texto ativa: os campos de data foram limpos
+    </p>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
       <div class="sv-totais" id="sv-totais" hidden></div>
       <div class="sv-cols-wrap">
@@ -2231,7 +2234,18 @@
     document.getElementById('sv-busca').value = '';
     marcarPrefiltro('');
     saveExcludedSet(new Set());
+    atualizarHintBuscaLimpandoDatas();
     recarregarAposFiltro({ planos: true });
+  }
+
+  function atualizarHintBuscaLimpandoDatas() {
+    const el = document.getElementById('sv-busca-data-hint');
+    if (!el) return;
+    const q = (document.getElementById('sv-busca')?.value || '').trim();
+    const de = (document.getElementById('sv-venc-de')?.value || '').trim();
+    const ate = (document.getElementById('sv-venc-ate')?.value || '').trim();
+    const show = !!q && !de && !ate;
+    el.classList.toggle('hidden', !show);
   }
 
   document.getElementById('sv-log-fechar')?.addEventListener('click', () => fecharModal('sv-modal-log'));
@@ -2464,18 +2478,28 @@
     filtroRemotoCp = null;
     marcarPrefiltro('');
     atualizarLabelsFiltroData();
+    atualizarHintBuscaLimpandoDatas();
     recarregarAposFiltro();
   });
   ['sv-venc-de', 'sv-venc-ate'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => {
       filtroRemotoCp = null;
       marcarPrefiltro('');
+      atualizarHintBuscaLimpandoDatas();
     });
   });
   document.getElementById('sv-busca').addEventListener('input', () => {
     clearTimeout(buscaTimer);
     buscaTimer = setTimeout(() => {
       marcarPrefiltro('');
+      const qNow = (document.getElementById('sv-busca').value || '').trim();
+      if (qNow) {
+        /* Busca textual: não manter período de data preso (FL-023). */
+        filtroRemotoCp = null;
+        document.getElementById('sv-venc-de').value = '';
+        document.getElementById('sv-venc-ate').value = '';
+      }
+      atualizarHintBuscaLimpandoDatas();
       recarregarAposFiltro();
     }, 400);
   });
@@ -2505,6 +2529,7 @@
 
   aplicarFiltrosDaUrl();
   atualizarLabelsFiltroData();
+  atualizarHintBuscaLimpandoDatas();
   const params = new URLSearchParams(window.location.search);
   const mid = params.get('mongo_id');
   if (mid) {

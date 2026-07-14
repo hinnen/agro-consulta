@@ -1,5 +1,5 @@
 {# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
-<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %} aria-hidden="true">
+<div id="sspin-root" class="fixed inset-0 flex flex-col items-center justify-center bg-slate-950/94 text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" style="z-index:2147483646" data-idle-min="3"{% if lancamentos_pin_entrada %} data-sspin-lancamentos="1"{% endif %}{% if lancamentos_pin_entrada %} data-sspin-hide-idle-hint="1"{% endif %}{% if sspin_pedir_pin_ao_abrir %} data-sspin-require-pin-on-load="1"{% endif %} aria-hidden="true">
   <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
     <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
       <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">SisVale</p>
@@ -72,6 +72,7 @@
 
   var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
+  var requirePinOnLoad = root.getAttribute('data-sspin-require-pin-on-load') === '1';
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
   if (entryOnly) idleMin = 0;
   else if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
@@ -658,6 +659,15 @@
   function initSspin() {
     if (!lancamentosMode) {
       try { sessionStorage.removeItem(LS_LANC_DESBLOQ); } catch (eClr) {}
+    }
+    /* PDV: cada abertura pede PIN — não reaproveita operador da visita anterior.
+       Só limpa Chrome aqui; a sessão do servidor atualiza no desbloqueio (evita
+       corrida se limpar async chegar depois do PIN novo). */
+    if (requirePinOnLoad) {
+      setOperador('');
+      try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
+      openLock(true);
+      return;
     }
     carregarOperadorSessao();
     if (lancamentosMode) {

@@ -17380,7 +17380,13 @@ def api_buscar_produtos(request):
                 logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
 
         ultimas_compras_map: dict[str, list] = {}
-        if compras and prods and not (wizard_catalog and len(prods) > 400):
+        if (
+            compras
+            and prods
+            and not contexto_cadastro
+            and not entrada_nfe_mode
+            and not (wizard_catalog and len(prods) > 400)
+        ):
             try:
                 from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
 
@@ -21422,6 +21428,20 @@ def _persistir_venda_agro(
             }
         )
 
+    frete = Decimal("0")
+    try:
+        frete_raw = data.get("frete")
+        if frete_raw is None:
+            frete_raw = data.get("taxa_entrega")
+        if frete_raw is not None and str(frete_raw).strip() != "":
+            frete = _decimal_item_pedido(frete_raw, "0")
+            if frete < 0:
+                frete = Decimal("0")
+    except Exception:
+        frete = Decimal("0")
+    if frete > 0:
+        total = (total + frete).quantize(Decimal("0.01"))
+
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
     sessao = resolver_sessao_caixa_para_venda(request, data)
@@ -21458,6 +21478,7 @@ def _persistir_venda_agro(
             cliente_id_erp=cid[:32],
             cliente_documento=re.sub(r"\D", "", doc)[:20],
             total=total.quantize(Decimal("0.01")),
+            frete=frete.quantize(Decimal("0.01")),
             forma_pagamento=forma,
             pagamentos_json=pagamentos_json or None,
             fiado_cronograma_json=fiado_cron,

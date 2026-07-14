@@ -7863,6 +7863,15 @@
                 subtotal: lineSubtotal(item)
             };
         });
+        var freteCupom = State.toNumber((computed && computed.frete) || (state.pagamento && state.pagamento.frete) || 0);
+        if (freteCupom > 0.009) {
+            itens.push({
+                nome: 'Taxa de entrega',
+                qtd: 1,
+                preco: freteCupom,
+                subtotal: freteCupom
+            });
+        }
         var formaTxt = formaPagamentoResumoUi(state, computed);
         var fiadoDias = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
         var ehFiado =
@@ -9827,6 +9836,7 @@
         var e = state.entrega || {};
         var c = state.cliente || {};
         var dh = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        var frete = State.toNumber((state.pagamento && state.pagamento.frete) || (computed && computed.frete) || 0);
         var trocoPrecisa = (function () {
             var arr = state.pagamento.lancamentos || [];
             var any = arr.some(function (L) {
@@ -9860,6 +9870,8 @@
             maps_url_manual: String(c.maps_url_manual || '').trim(),
             itens_json: itensJson,
             total_texto: formatMoney(computed.total),
+            frete: frete,
+            frete_texto: frete > 0.009 ? formatMoney(frete) : ''
         };
     }
 
@@ -9998,6 +10010,16 @@
                 subtotal: isFinite(q) && isFinite(preco) ? q * preco : 0
             };
         });
+        var freteCupom = Number(e.frete || 0);
+        if (isFinite(freteCupom) && freteCupom > 0.009) {
+            mapped.push({
+                nome: 'Taxa de entrega',
+                qtd: 1,
+                preco: freteCupom,
+                subtotal: freteCupom,
+                eh_frete: true
+            });
+        }
         var bc = wizardPrintCodigoBarrasEntrega(e);
         var rodapeExtra =
             'Retomar: ' +

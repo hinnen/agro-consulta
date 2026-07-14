@@ -692,6 +692,15 @@ def api_pdv_mp_point_finalizar(request):
                 cliente_pk = None
             from produtos.caixa_util import parse_valor_moeda_br
 
+            # Garante metadados MP no payload (mesmo caminho da venda) antes da baixa.
+            if not modo_tranche:
+                try:
+                    _mp_point_reconciliar_forma_venda(erp_data, body)
+                    row.erp_payload = erp_data
+                    row.save(update_fields=["erp_payload", "atualizado_em"])
+                except Exception:
+                    logger.warning("mp point fiado: recon forma", exc_info=True)
+
             valor_baixa = None
             if erp_data.get("valor") is not None:
                 valor_baixa = parse_valor_moeda_br(erp_data.get("valor"))

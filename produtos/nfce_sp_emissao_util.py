@@ -428,7 +428,10 @@ def _montar_xml_nfce(
         _sub(cofnt, "CST", "07")
 
     total_nf = Decimal(str(venda.total or total_prod)).quantize(Decimal("0.01"))
-    v_desc = max(Decimal("0"), (total_prod - total_nf).quantize(Decimal("0.01")))
+    v_frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
+    if v_frete < 0:
+        v_frete = Decimal("0")
+    v_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
     ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=uf_ibpt)
     icms_tot = _sub(inf, "total")
     icms = _sub(icms_tot, "ICMSTot")
@@ -446,7 +449,7 @@ def _montar_xml_nfce(
         ("vFCPST", "0.00"),
         ("vFCPSTRet", "0.00"),
         ("vProd", _q2(total_prod)),
-        ("vFrete", "0.00"),
+        ("vFrete", _q2(v_frete)),
         ("vSeg", "0.00"),
         ("vDesc", _q2(v_desc)),
         ("vII", "0.00"),

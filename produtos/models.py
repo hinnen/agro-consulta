@@ -362,6 +362,12 @@ class VendaAgro(models.Model):
     cliente_id_erp = models.CharField(max_length=32, blank=True, default="")
     cliente_documento = models.CharField(max_length=20, blank=True, default="")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    frete = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Taxa de entrega cobrada na venda (compõe o total).",
+    )
     forma_pagamento = models.CharField(max_length=80, blank=True, default="")
     pagamentos_json = models.JSONField(
         null=True,

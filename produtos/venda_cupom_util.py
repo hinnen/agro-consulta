@@ -114,6 +114,18 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
             }
         )
     total = Decimal(str(getattr(venda, "total", 0) or 0)).quantize(Decimal("0.01"))
+    frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
+    if frete > 0:
+        itens.append(
+            {
+                "nome": "Taxa de entrega",
+                "codigo": "",
+                "qtd": 1.0,
+                "preco": float(frete),
+                "subtotal": float(frete),
+                "eh_frete": True,
+            }
+        )
     eh_fiado = _venda_eh_fiado_cupom(venda)
     fiado_dias = _fiado_dias_vencimento_cupom(venda) if eh_fiado else 0
     out: dict[str, Any] = {
@@ -124,6 +136,8 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
         "forma_pagamento": _forma_pagamento_cupom(venda),
         "total": float(total),
         "total_texto": "R$ " + format_moeda_br(total),
+        "frete": float(frete),
+        "frete_texto": ("R$ " + format_moeda_br(frete)) if frete > 0 else "",
         "operador": str(getattr(venda, "usuario_registro", "") or "").strip()[:150],
         "caixa_id": getattr(venda, "sessao_caixa_id", None),
         "devolvida": bool(getattr(venda, "devolvida_em", None)),

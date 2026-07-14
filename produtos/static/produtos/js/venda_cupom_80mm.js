@@ -81,6 +81,27 @@
         return /fiado/i.test(String((c && c.forma_pagamento) || ''));
     }
 
+    function cupomEnsureFreteItem(c, itensRaw) {
+        var itens = Array.isArray(itensRaw) ? itensRaw.slice() : [];
+        var frete = Number((c && c.frete) || 0);
+        if (!isFinite(frete) || frete <= 0.009) return itens;
+        var jaTemFrete = itens.some(function (it) {
+            if (!it || typeof it !== 'object') return false;
+            if (it.eh_frete) return true;
+            var nome = String(it.nome || '').toLowerCase();
+            return nome.indexOf('taxa de entrega') >= 0 || nome === 'frete';
+        });
+        if (jaTemFrete) return itens;
+        itens.push({
+            nome: 'Taxa de entrega',
+            qtd: 1,
+            preco: frete,
+            subtotal: frete,
+            eh_frete: true
+        });
+        return itens;
+    }
+
     function parseDataCupomBr(str) {
         var s = String(str || '').trim();
         var m = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
@@ -177,7 +198,7 @@
         var subtitulo =
             c.subtitulo ||
             (fiado ? 'COMPROVANTE FIADO' : 'COMPROVANTE DE VENDA');
-        var itens = Array.isArray(c.itens) ? c.itens : [];
+        var itens = cupomEnsureFreteItem(c, c.itens);
         var lines = '';
         itens.forEach(function (it) {
             var q = Number(it.qtd != null ? it.qtd : 0);
@@ -284,7 +305,7 @@
 
     function buildNfceCupomInnerHtml(c) {
         c = c || {};
-        var itens = Array.isArray(c.itens) ? c.itens : [];
+        var itens = cupomEnsureFreteItem(c, c.itens);
         var lines = '';
         itens.forEach(function (it) {
             var q = Number(it.qtd != null ? it.qtd : 0);
