@@ -463,6 +463,10 @@
       var ae = document.activeElement;
       if (ae && typeof ae.blur === 'function') ae.blur();
     } catch (e) {}
+    /* Limpa nome no Chrome; sessão do servidor só atualiza no próximo PIN online
+       (evitar corrida: limpar async após o desbloqueio apagaria o nome certo). */
+    setOperador('');
+    try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
     locked = true;
     root.classList.remove('opacity-0', 'pointer-events-none');
     root.setAttribute('aria-hidden', 'false');
@@ -502,13 +506,7 @@
       showSetupPanel();
       return;
     }
-    var operadorCache = readPinSession(pin);
-    if (operadorCache) {
-      setOperador(operadorCache);
-      if (input) input.value = '';
-      closeLock();
-      return;
-    }
+    /* Sempre online: 1 query no servidor — evita nome de outra pessoa na sessão. */
     validando = true;
     if (msg) msg.textContent = 'Validando…';
     var fd = new FormData();

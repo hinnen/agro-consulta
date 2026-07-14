@@ -2724,16 +2724,25 @@
 
         var prev = prevStep(state, computed);
         var next = nextStep(state, computed);
-        dom.btnPrev.disabled = !prev;
-        dom.btnPrev.classList.toggle('opacity-40', !prev);
-        if (dom.btnPrev) {
-            if (state.currentStep === 'entrega') {
-                dom.btnPrev.innerHTML =
-                    'Voltar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 bg-slate-100 px-1 font-mono text-[8px] text-slate-600">F1</kbd>';
-                dom.btnPrev.title = 'Volta um passo (tela ou pergunta anterior) · F1';
-            } else {
-                dom.btnPrev.textContent = 'Voltar';
-                dom.btnPrev.title = 'Etapa anterior · Alt+←';
+        if (isFiadoCobrancaAtiva(state) && state.currentStep === 'pagamento') {
+            dom.btnPrev.disabled = false;
+            dom.btnPrev.classList.toggle('opacity-40', false);
+            if (dom.btnPrev) {
+                dom.btnPrev.textContent = 'Cancelar cobrança';
+                dom.btnPrev.title = 'Desiste da baixa do fiado e limpa o PDV';
+            }
+        } else {
+            dom.btnPrev.disabled = !prev;
+            dom.btnPrev.classList.toggle('opacity-40', !prev);
+            if (dom.btnPrev) {
+                if (state.currentStep === 'entrega') {
+                    dom.btnPrev.innerHTML =
+                        'Voltar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 bg-slate-100 px-1 font-mono text-[8px] text-slate-600">F1</kbd>';
+                    dom.btnPrev.title = 'Volta um passo (tela ou pergunta anterior) · F1';
+                } else {
+                    dom.btnPrev.textContent = 'Voltar';
+                    dom.btnPrev.title = 'Etapa anterior · Alt+←';
+                }
             }
         }
         if (dom.btnNext) {
@@ -6244,6 +6253,69 @@
         return jsonPost(abandonUrl, { order_id: oid }).catch(function () {});
     }
 
+    function limparQueryCobrancaFiado() {
+        try {
+            var u = new URL(window.location.href);
+            [
+                'fiado_cobranca',
+                'fiado_modo',
+                'fiado_titulo_id',
+                'fiado_titulo_ids',
+                'fiado_cliente_pk',
+                'fiado_cliente_nome',
+                'fiado_valor',
+                'titulo_id',
+                'titulo_ids',
+                'cliente_agro_pk',
+                'modo',
+                'valor'
+            ].forEach(function (k) {
+                u.searchParams.delete(k);
+            });
+            var qs = u.searchParams.toString();
+            window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + (u.hash || ''));
+        } catch (_) {}
+    }
+
+    function cancelarCobrancaFiadoPdv() {
+        if (isProcessingSale) {
+            showPdvAviso('Aguarde terminar de confirmar o pagamento.', { tone: 'info' });
+            return;
+        }
+        showPdvConfirmacao('Cancelar a cobrança do fiado e limpar o PDV?', {
+            title: 'Cancelar cobrança',
+            confirmLabel: 'Sim, cancelar',
+            cancelLabel: 'Continuar cobrando'
+        }).then(function (ok) {
+            if (!ok) return;
+            if (window.gmLoadingBar) window.gmLoadingBar.show();
+            abandonMpPointEmAndamento()
+                .then(function () {
+                    return jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                })
+                .then(function () {
+                    closePaymentFormaModal();
+                    hideMpPointWaitBar();
+                    if (dom.stepPagamentoRoot) {
+                        dom.stepPagamentoRoot.querySelectorAll('dialog[open]').forEach(function (dlg) {
+                            try {
+                                dlg.close();
+                            } catch (errDlg) {}
+                        });
+                    }
+                    State.reset(false);
+                    limparQueryCobrancaFiado();
+                    State.setCurrentStep('produtos');
+                    if (typeof openStartModal === 'function') {
+                        /* Cobrança fiado: não abre modal de nova venda — só limpa. */
+                    }
+                })
+                .finally(function () {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                });
+        });
+    }
+
     function executarNovaVendaLimpar() {
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         return abandonMpPointEmAndamento()
@@ -6252,6 +6324,14 @@
             })
             .then(function () {
                 hideSaleDoneToast();
+                if (isFiadoCobrancaAtiva()) {
+                    closePaymentFormaModal();
+                    hideMpPointWaitBar();
+                    State.reset(false);
+                    limparQueryCobrancaFiado();
+                    State.setCurrentStep('produtos');
+                    return;
+                }
                 resetWizardParaNovaVenda();
             })
             .finally(function () {
@@ -6268,7 +6348,7 @@
             showPdvConfirmacao(
                 'Há cobrança na maquininha em andamento.\n\nDescartar cancela no PDV e tenta cancelar no terminal também.',
                 {
-                    title: 'Nova venda',
+                    title: isFiadoCobrancaAtiva() ? 'Cancelar cobrança' : 'Nova venda',
                     confirmLabel: 'Sim, descartar',
                     cancelLabel: 'Voltar'
                 }
@@ -6278,6 +6358,10 @@
             return;
         }
         var state = State.getState();
+        if (isFiadoCobrancaAtiva(state)) {
+            cancelarCobrancaFiadoPdv();
+            return;
+        }
         if (!vendaTemConteudoParaDescartar(state)) {
             executarNovaVendaLimpar();
             return;
@@ -7592,15 +7676,16 @@
     }
 
     function operadorPdvAtual() {
+        /* Chrome (último PIN online) manda no state em memória — evita nome antigo do rascunho. */
+        try {
+            var ls = (localStorage.getItem('gm_sspin_operador') || '').trim();
+            if (ls) return ls;
+        } catch (e0) {}
         var st = State.getState();
         if (st && st.pagamento && st.pagamento.operadorPdv) {
             return String(st.pagamento.operadorPdv).trim();
         }
-        try {
-            return (localStorage.getItem('gm_sspin_operador') || '').trim();
-        } catch (e0) {
-            return '';
-        }
+        return '';
     }
 
     function injetarOperadorNoPayload(payload) {
@@ -7619,7 +7704,7 @@
         } catch (e0) {
             op = '';
         }
-        if (op) State.setPagamentoField('operadorPdv', op);
+        State.setPagamentoField('operadorPdv', op);
     }
 
     function buildFiadoBaixaPayload(state, computed) {
@@ -9774,7 +9859,7 @@
             troco_precisa: trocoPrecisa,
             maps_url_manual: String(c.maps_url_manual || '').trim(),
             itens_json: itensJson,
-            total_texto: formatMoney(computed.total)
+            total_texto: formatMoney(computed.total),
         };
     }
 
@@ -10191,6 +10276,10 @@
 
         dom.btnPrev.addEventListener('click', function () {
             var state = State.getState();
+            if (isFiadoCobrancaAtiva(state) && state.currentStep === 'pagamento') {
+                cancelarCobrancaFiadoPdv();
+                return;
+            }
             if (state.currentStep === 'entrega' && voltarUmPassoEntrega()) {
                 return;
             }
@@ -11720,7 +11809,7 @@
     sincronizarOperadorPdvNoState();
     window.addEventListener('gm-sspin-operador', function (ev) {
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
-        if (nome) State.setPagamentoField('operadorPdv', nome);
+        State.setPagamentoField('operadorPdv', nome);
     });
     window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
 

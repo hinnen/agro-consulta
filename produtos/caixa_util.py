@@ -362,6 +362,9 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
         retiradas_dev_dup = _movimentos_retirada_devolucao_duplicados_turno(sessao, mov_list)
         for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
+            obs_m = str(getattr(m, "observacao", "") or "")
+            if m.tipo == "reforco" and "[MP_POINT]" in obs_m:
+                fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
             val = _dec(m.valor)
             if m.tipo == "reforco":
                 reforco_por[fn] += val
@@ -664,31 +667,34 @@ MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
 MSG_CAIXA_PIN_ALHEIO = "Informe seu PIN para gerenciar outro caixa."
 
 
-def validar_pin_operador(pin: str) -> tuple[bool, str]:
-    """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
+def _perfil_usuario_por_pin(pin: str):
     from base.models import PerfilUsuario
 
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return None
+    return (
+        PerfilUsuario.objects.filter(senha_rapida=pin)
+        .select_related("user")
+        .only("pk", "senha_rapida", "codigo_vendedor", "user__first_name", "user__last_name", "user__username")
+        .first()
+    )
+
+
+def validar_pin_operador(pin: str) -> tuple[bool, str]:
+    """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
     pin = (pin or "").strip()
     if not pin:
         return False, "Informe o PIN."
     if pin == "1234":
         return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+    if _perfil_usuario_por_pin(pin) is None:
         return False, "PIN incorreto."
     return True, ""
 
 
 def rotulo_operador_pin(pin: str) -> str:
-    from base.models import PerfilUsuario
-
-    pin = (pin or "").strip()
-    if not pin or pin == "1234":
-        return ""
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
-        .select_related("user")
-        .first()
-    )
+    perfil = _perfil_usuario_por_pin(pin)
     if not perfil:
         return ""
     u = perfil.user
@@ -777,22 +783,23 @@ def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
     Valida PIN (PerfilUsuario.senha_rapida) e devolve rótulo do operador.
     Retorno: (ok, label, erro_usuario).
     """
-    ok, err = validar_pin_operador(pin)
-    if not ok:
-        return False, "", err or "PIN incorreto."
-    rot = rotulo_operador_pin(pin)
+    pin = (pin or "").strip()
+    if not pin:
+        return False, "", "Informe o PIN."
+    if pin == "1234":
+        return False, "", "Senha padrão (1234) bloqueada. Troque seu PIN."
+    perfil = _perfil_usuario_por_pin(pin)
+    if perfil is None:
+        return False, "", "PIN incorreto."
+    u = perfil.user
+    rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
     if not rot:
         return False, "", "PIN não vinculado a um operador."
     return True, rot[:150], ""
 
 
 def usuario_django_de_pin(pin: str):
-    from base.models import PerfilUsuario
-
-    pin = (pin or "").strip()
-    if not pin:
-        return None
-    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).select_related("user").first()
+    perfil = _perfil_usuario_por_pin(pin)
     return perfil.user if perfil else None
 
 
@@ -1093,12 +1100,12 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
     """
     Rótulo do vendedor/operador na venda Agro: operador do PDV (descanso/PIN),
     não o login Django (ex.: admin).
+
+    Ordem: PIN (fonte da verdade) → sessão do último PIN online → nome vindo do
+    navegador só se a sessão ainda estiver vazia (evita nome «grudado» de outro
+    operador no mesmo Chrome).
     """
     data = data if isinstance(data, dict) else {}
-    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
-        val = str(data.get(key) or "").strip()
-        if val:
-            return val[:150]
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
     if pin:
         rot = rotulo_operador_pin(pin)
@@ -1110,6 +1117,10 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
         sess_op = ""
     if sess_op:
         return sess_op[:150]
+    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
+        val = str(data.get(key) or "").strip()
+        if val:
+            return val[:150]
     u = getattr(request, "user", None)
     if u is not None and getattr(u, "is_authenticated", False):
         nome = (u.get_full_name() or u.first_name or "").strip()
