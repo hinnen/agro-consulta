@@ -1154,7 +1154,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.34** · **loja v8.30**
+**Versão app (`VERSION`):** **teste v8.34** · **loja v8.34**
+
+### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *manda produção* + `99738595` |
+| **Commit loja** | `74b95fc` · backup `producao-backup-pre-v834-20260714` @ `1cdad18` |
+| **Pacote** | **#6** PIN 1 query · **#10** Cancelar cobrança (+ MP fiado caixa) · **PIN nome** online/sessão · **chip** entre Nova venda e PIN |
+| **NÃO veio** | frete #18 · resto do `teste` |
+| **Validar loja** | Ctrl+F5 · badge **v8.34** · digitar PIN → nome no chip · fiado BAIXA → **Cancelar cobrança** · venda no nome certo após trocar PIN no descanso |
+| **Revert** | `git reset --hard 1cdad18` na `producao` + push (ou checkout backup) |
 
 ### 👁 PDV — nome do PIN entre Nova venda e PIN (14/07 · **teste v8.34**)
 
@@ -1170,7 +1181,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | (1) desbloqueio pelo cache local **sem** gravar sessão no servidor → reload trazia o nome anterior; (2) servidor confiava no nome do Chrome antes da sessão; (3) state/rascunho PDV podia guardar nome velho |
 | **Fix** | PIN **sempre online** · no descanso limpa nome no Chrome · venda usa **sessão/PIN** antes do Chrome · PDV limpa `operadorPdv` ao trocar/sair |
 | **Validar** | Render **teste** · Ctrl+F5 · PC1: Geraldo PIN → descanso → Renan PIN → venda no **seu** nome; 2 pessoas no mesmo Chrome sem trocar PIN ainda grudam (esperado até o descanso) |
-| **Loja** | ⏳ próximo pacote |
+| **Loja** | **✅** v8.34 `74b95fc` |
 
 ### 🔍 PIN / nome trocado (Renan ↔ Geraldo etc.) — 14/07 · **só diagnóstico**
 
@@ -1188,7 +1199,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Status** | Já tinha helper `_perfil_usuario_por_pin` (191e70b) · **faltava**: `operador_label_de_pin` ainda batia 2× no banco |
 | **Fix** | Valida + rótulo na **mesma** leitura |
 | **Validar** | Render **teste** · digitar PIN no PDV/caixa · deve responder rápido |
-| **Loja** | ⏳ com #10 no próximo pacote |
+| **Loja** | **✅** v8.34 `74b95fc` |
 
 ### 📦 Deploy loja **v8.30** (14/07 · Renan frase+senha)
 
