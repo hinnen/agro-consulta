@@ -1154,7 +1154,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.17** · **loja v8.10**
+**Versão app (`VERSION`):** **teste v8.17** · **loja v8.15**
+
+### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
+
+| Ambiente | Versão | Commit | Notas |
+| -------- | ------ | ------ | ----- |
+| **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
+| **Teste** | **v8.17** | `191e70b` | pacote **#5 #6 #16** · antes: v8.16 `3c99649` (#18) · v8.15 `3ab459b` (#3 BCA custo) |
+
+| # | Status | Nota curta |
+| - | ------ | ---------- |
+| **15** | 🟢 loja OK | Confirmado Renan em produção |
+| **8 · 10 · 18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
+| **4** | 🟠 reaberto | modelo ainda não persiste/aparece — **1º a atacar** |
+| **3** | 🟠 regressão | custo OK; **busca prefixo GM** ainda quebrada (1× vs 3 no nome) · hotfix loja v8.15 **não** validado |
+| **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
+| **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
+| **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
+| **7** | 🔴 | impressão notebook — medir host vs app |
+| **12** | 🔴 | devolução parcial (escopo OK; implementar) |
+| **17** | ⚪ | aguarda exemplos de busca CP |
+
+**Ordem combinada:** **#4** → **#3 (GM)** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
