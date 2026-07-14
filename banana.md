@@ -1175,7 +1175,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa 2 (real quirera)** | Mongo: irmãos **sem `index_codigos`**; motor só buscava índice → só `GM0093-25`. `CodigoNFe` tinha os 3 |
 | **Fix** | Prefixo em `CodigoNFe`/`Codigo` no motor + misto sem early-return no index · Id=`_id` se faltar |
 | **Validar local** | Ctrl+F5 · `GM0093` → quirera 1kg + 5kg + 25kg (≥3) · nome “quirera fina” igual |
-| **Loja** | **NÃO** subir até Renan pedir |
+| **Loja** | **✅** push `780d964` / teste `0033d39` · badge **v8.26** · Ctrl+F5 |
 
 ### 🚑 Hotfix #3 GM maiúsc/minúsc + família (14/07 · **v8.25**)
 
