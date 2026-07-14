@@ -188,6 +188,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         overlay_pids_por_codigo,
         parece_codigo_cadastro,
         q_codigo_exato_cadastro,
+        q_familia_gm_cadastro,
         q_icontains_cadastro,
         q_nome_tokens_cadastro,
         termo_bate_codigos_produto,
@@ -232,6 +233,14 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 found,
                 seen_pk,
                 qs.filter(produto_externo_id__in=pids).order_by("nome", "pk")[:lim],
+                lim,
+            )
+        fam = q_familia_gm_cadastro(termo)
+        if fam is not None and len(found) < lim:
+            _cadastro_pg_append_unicos(
+                found,
+                seen_pk,
+                qs.filter(fam).order_by("nome", "pk")[:lim],
                 lim,
             )
         q_ex = q_codigo_exato_cadastro(termo)

@@ -20,6 +20,60 @@ def termo_eh_codigo_gm(termo: str) -> bool:
     return bool(re.match(r"^gm", str(termo or "").strip(), re.I))
 
 
+def gm_base_familia(termo: str) -> str | None:
+    """
+    Prefixo de família GM sem variante: ``GM0024`` / ``gm0024`` → ``GM0024``.
+    Com hífen (``GM0024-10``) → None (etiqueta completa, não expandir família).
+    """
+    t = str(termo or "").strip()
+    if not t or "-" in t:
+        return None
+    al = somente_alnum(t)
+    m = re.match(r"^(gm\d{4})$", al, re.I)
+    if not m:
+        return None
+    return m.group(1).upper()
+
+
+def q_prefixo_codigo_ci(*campos: str, prefixo: str) -> Q:
+    """Prefixo case-insensitive (Postgres: ``istartswith`` é case-sensitive)."""
+    p = str(prefixo or "").strip()
+    if not p or not campos:
+        return Q(pk__in=[])
+    variantes = {p, p.lower(), p.upper()}
+    if p[:2].lower() == "gm" and len(p) > 2:
+        variantes.add("GM" + p[2:])
+        variantes.add("gm" + p[2:])
+    esc = re.escape(p)
+    q = Q()
+    for c in campos:
+        q |= Q(**{f"{c}__iregex": rf"^{esc}"})
+        for v in variantes:
+            q |= Q(**{f"{c}__istartswith": v})
+    return q
+
+
+def q_familia_gm_cadastro(termo: str) -> Q | None:
+    """Todas as variantes ``GMXXXX`` / ``GMXXXX-*`` (case-insensitive)."""
+    base = gm_base_familia(termo)
+    if not base:
+        return None
+    # base já é GM0024 uppercase
+    bl = base.lower()
+    esc = re.escape(base)
+    return (
+        Q(codigo_nfe__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_interno__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_barras__iregex=rf"^{esc}(-|$)")
+        | Q(codigo_nfe__istartswith=base)
+        | Q(codigo_nfe__istartswith=bl)
+        | Q(codigo_interno__istartswith=base)
+        | Q(codigo_interno__istartswith=bl)
+        | Q(codigo_nfe__icontains=base)
+        | Q(codigo_nfe__icontains=bl)
+    )
+
+
 def parece_codigo_cadastro(termo: str) -> bool:
     t = str(termo or "").strip()
     if not t:
@@ -137,8 +191,10 @@ def q_codigo_exato_cadastro(termo: str) -> Q | None:
         _or(Q(codigo_interno__iexact=v) | Q(codigo_nfe__iexact=v))
     if termo_eh_codigo_gm(termo):
         esc = termo.strip()
-        _or(Q(codigo_interno__iexact=esc) | Q(codigo_nfe__iexact=esc))
-        _or(Q(codigo_interno__istartswith=esc) | Q(codigo_nfe__istartswith=esc))
+        _or(q_prefixo_codigo_ci("codigo_interno", "codigo_nfe", prefixo=esc))
+        fam = q_familia_gm_cadastro(termo)
+        if fam is not None:
+            _or(fam)
         al_gm = somente_alnum(termo).lower()
         if al_gm.startswith("gm") and len(al_gm) >= 5:
             _or(Q(codigo_nfe__icontains=al_gm) | Q(codigo_interno__icontains=al_gm))
@@ -194,7 +250,11 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         for v in variantes_gm_literal(termo):
             _or(Q(codigo_nfe__iexact=v) | Q(codigo_barras__iexact=v))
         esc = termo.strip()
-        _or(Q(codigo_nfe__istartswith=esc) | Q(codigo_barras__istartswith=esc))
+        _or(q_prefixo_codigo_ci("codigo_nfe", "codigo_barras", prefixo=esc))
+        base = gm_base_familia(termo)
+        if base:
+            esc_b = re.escape(base)
+            _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
     else:
