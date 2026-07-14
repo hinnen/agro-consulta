@@ -66,6 +66,7 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
         "id": pid,
         "nome": (p.nome or "").strip(),
         "marca": (p.marca or "").strip(),
+        "modelo": (getattr(p, "modelo", None) or "").strip(),
         "codigo": (p.codigo_interno or "").strip(),
         "codigo_nfe": (p.codigo_nfe or p.codigo_interno or "").strip(),
         "codigo_barras": (p.codigo_barras or "").strip(),
@@ -100,6 +101,7 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
         for x in (
             row.get("nome"),
             row.get("marca"),
+            row.get("modelo"),
             row.get("codigo"),
             row.get("codigo_nfe"),
             row.get("codigo_barras"),
@@ -356,12 +358,14 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
-    if not row.get("modelo"):
+    # Coluna Produto.modelo + overlay — nunca sumir ao reabrir o modal
+    if not str(row.get("modelo") or "").strip():
         ov = ProdutoGestaoOverlayAgro.objects.filter(
             produto_externo_id=str(row.get("id") or "")[:64]
         ).first()
         if ov and isinstance(ov.cadastro_extras, dict):
             row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
+    row["modelo"] = str(row.get("modelo") or "").strip()[:200]
     return {
         **row,
         "preco_custo_com_acrescimos": pc,
@@ -379,6 +383,10 @@ def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro 
     row["codigo_gm"] = row.get("codigo_nfe") or row.get("codigo") or ""
     row["preco_custo_final"] = row.get("preco_custo")
     row["tem_overlay"] = ov is not None
+    if not str(row.get("modelo") or "").strip() and ov and isinstance(ov.cadastro_extras, dict):
+        row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
+    if not str(row.get("modelo") or "").strip():
+        row["modelo"] = str(getattr(p, "modelo", None) or "").strip()[:200]
     return row
 
 
@@ -425,12 +433,21 @@ def sincronizar_modelo_produto_de_overlay(
         ativo = bool(ov.ativo_exibicao)
         cad_inativo = not ativo
 
+    modelo_val = ""
+    if "modelo" in payload:
+        modelo_val = _txt("modelo", 200)
+    elif ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
+        modelo_val = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
+    elif p is not None:
+        modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
+
     defaults = {
         "codigo_interno": codigo_interno,
         "codigo_nfe": codigo_nfe_val,
         "codigo_barras": (ov.codigo_barras.strip() or None),
         "nome": nome[:300],
         "marca": ov.marca.strip()[:120],
+        "modelo": modelo_val,
         "categoria": ov.categoria.strip()[:200] or None,
         "subcategoria": ov.subcategoria.strip()[:200],
         "subcategoria_2": ov.subcategoria_2.strip()[:200],

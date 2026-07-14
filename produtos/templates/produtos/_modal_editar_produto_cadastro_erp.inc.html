@@ -1919,6 +1919,11 @@
         if (typeof window.agroCadastroMergeLinhaLista === 'function') {
           window.agroCadastroMergeLinhaLista(j.produto);
         }
+        if (Object.prototype.hasOwnProperty.call(j.produto, 'modelo')) {
+          setVal('edit-modelo', j.produto.modelo || '');
+        } else {
+          setVal('edit-modelo', gv('edit-modelo'));
+        }
         loadFacetasDatalists();
       }
     }).catch(function (e) {

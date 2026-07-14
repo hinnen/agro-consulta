@@ -1154,67 +1154,142 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.17** · **loja v8.15**
+**Versão app (`VERSION`):** **teste v8.19** · **loja v8.15**
 
-### 🚀 Hotfix loja **v8.15** — busca GM cadastro (`#3` regressão) (14/07 — Renan senha OK)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Busca por prefixo `GM` no cadastro volta a considerar também códigos do `overlay`, sem derrubar variações irmãs |
-| **Causa** | filtro final do `catalogo_agro.buscar` estreitava demais usando só campos do `Produto` local |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · buscar `GM0024` e conferir as 3 versões |
-| **Rollback base** | estado anterior da loja em **`08fd195`** |
-| **Como reverter** | preferir `git revert <commit_deste_hotfix>`; emergência: `git reset --hard 08fd195 && git push origin producao --force-with-lease` |
-
-### 🚀 Deploy loja **v8.14** — pacote isolado `#3 #4 #15` (14/07 — Renan senha OK)
+### 🐛 Hotfix #4 modelo persiste (teste **v8.19**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Só `#3` custo cadastro/BCA · `#4` modelo no cadastro/busca · `#15` sequência código interno 4010–5999 pela menor lacuna |
-| **Escopo** | Pacote isolado de produção — **não** leva `#16`, `#18`, `#5`, `#6` |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · cadastro lista custo · salvar modelo · novo produto pegando 4010+ |
-| **Rollback base** | estado anterior da loja em **`10b0b51`** |
-| **Como reverter** | preferir `git revert <commit_deste_deploy>`; emergência: `git reset --hard 10b0b51 && git push origin producao --force-with-lease` |
+| **Sintoma** | Campo **Modelo** no cadastro “salvava” e sumia ao reabrir |
+| **Causa** | Modelo só no JSON do overlay; resposta/lista/Mongo sem coluna; detalhe Mongo sobrescrevia com Modelo vazio |
+| **Fix** | Coluna `Produto.modelo` + sync no salvar · espelho Mongo `Modelo`/`NomeModelo` · lista/detalhe/UI sempre devolvem o campo |
+| **Migração** | `0051_produto_modelo` (copia do overlay → coluna) |
+| **Validar** | Ctrl+F5 teste · editar modelo · Salvar no Agro · fechar · reabrir — campo cheio |
+| **Loja** | **⏳** só com frase + senha |
 
-### 🚀 Deploy loja **v8.12** — BCA Entrada NF motor padrão (11/07 — Renan senha OK)
+### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
+
+| Ambiente | Versão | Commit | Notas |
+| -------- | ------ | ------ | ----- |
+| **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
+| **Teste** | **v8.19** | *(este pacote #4)* | antes: v8.18 handoff · v8.17 `191e70b` (#5 #6 #16) |
+
+| # | Status | Nota curta |
+| - | ------ | ---------- |
+| **15** | 🟢 loja OK | Confirmado Renan em produção |
+| **8 · 10 ·.18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
+| **4** | 🟡 teste v8.19 | modelo em coluna PG + Mongo — **validar no Render teste** |
+| **3** | 🟠 regressão | custo OK; **busca prefixo GM** ainda quebrada (1× vs 3 no nome) · hotfix loja v8.15 **não** validado |
+| **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
+| **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
+| **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
+| **7** | 🔴 | impressão notebook — medir host vs app |
+| **12** | 🔴 | devolução parcial (escopo OK; implementar) |
+| **17** | ⚪ | aguarda exemplos de busca CP |
+
+**Ordem combinada:** validar **#4** → **#3 (GM)** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+
+### 🐛 Pacote performance + UX (teste **v8.17**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Entrada NF busca **só BCA servidor** (`/api/buscar/?compras=1`) — sem cache local PDV · `#prova` igual cadastro |
-| **Commits** | `03e8cb2` + `5a23fc7` |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` / `#prova` |
-| **Revert** | **`producao-backup-pre-bca-entrada-motor-20260711`** · **`rollback/pre-bca-entrada-motor-v810`** @ **`5e5a58d`** (v8.10) |
-| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-bca-entrada-motor-20260711 && git push origin producao --force-with-lease` |
+| **#5** | Busca do cadastro e da Entrada NF mais leve no BCA |
+| **#6** | Validação de PIN com menos consultas ao banco |
+| **#16** | Aviso da limpeza de datas no CP movido para o local pedido |
+| **Arquivos** | `views.py` · `caixa_util.py` · `entrada_nota.html` · `lancamentos_contas_pagar_teste.html` |
+| **Validar** | Ctrl+F5 teste · busca cadastro · busca Entrada NF · PIN · posição do aviso no CP |
+| **Loja** | **⏳** só com frase + senha |
 
-### 🚀 Deploy loja **v8.09** — BCA Entrada NF etapa 2 (11/07 — substituído por v8.12)
+### 🐛 Hotfix #18 frete nas 3 vias e cupom fiscal (teste **v8.16**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Busca produto Entrada NF (linha sentinela + **Mudar**) → **BCA** · `entrada_nfe=1` |
-| **Commit** | `5643eea` (cherry `f624f22`) |
-| **Validado** | Renan OK BCA loja + Entrada NF teste |
-| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · `/entrada-nota/` etapa 2 · `milho` |
-| **Revert** | **`producao-backup-pre-entrada-nfe-bca-20260711`** · **`rollback/pre-entrada-nfe-bca-v807`** @ **`a671ffd`** (v8.07) |
-| **Como reverter** | `git checkout producao && git reset --hard producao-backup-pre-entrada-nfe-bca-20260711 && git push origin producao --force-with-lease` |
-| **Dados** | Só leitura — **não** altera catálogo |
+| **Sintoma** | Na `via do cliente` do fluxo de entrega a taxa não saía no primeiro cupom, mas reaparecia na reimpressão |
+| **Fix** | frete incluído no payload das 3 vias de entrega e fallback explícito no render do cupom 80mm / NFC-e |
+| **Arquivos** | `pdv_wizard.js` · `venda_cupom_80mm.js` · `nfce_cupom_util.py` |
+| **Validar** | Ctrl+F5 teste · fluxo entrega com 3 vias · via do cliente · cupom fiscal |
+| **Loja** | **⏳** só com frase + senha |
+
+### 🐛 Hotfix #3 custo via BCA (teste **v8.15**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cadastro e Entrada NF via busca BCA continuavam mostrando custo **R$ 0,00** mesmo com custo salvo no produto |
+| **Causa** | `/api/buscar/` não reaproveitava o custo salvo em `Produto.custo` quando o documento da busca vinha zerado |
+| **Fix** | fallback de custo Postgres no `api_buscar_produtos` para fluxos `compras=1` / cadastro / Entrada NF |
+| **Arquivo** | `produtos/views.py` |
+| **Validar** | Ctrl+F5 teste · cadastro lista custo · busca da Entrada NF com o mesmo produto |
+| **Loja** | **⏳** só com frase + senha |
+
+### 🐛 Pós-validação bugs loja Zap 12/07 (teste **v8.14**) — ajustes amarelo/vermelho
+
+| Item | Detalhe |
+| ---- | ------- |
+| **#3** | Cadastro lista mostra **preço de custo** com fallback mais robusto |
+| **#4** | Busca cadastro passa a considerar **modelo** (`cadastro_extras.modelo`) |
+| **#15** | **Código interno** novo ocupa a **menor lacuna livre** a partir de **4010** |
+| **#16** | **CP** continua limpando datas na busca e agora mostra **aviso visual** |
+| **#18** | **Taxa de entrega** entra também na **via do cliente** do cupom |
+| **Validar** | Ctrl+F5 teste · #3 · #4 · #15 · #16 · #18 |
+| **Loja** | **⏳** só com frase + senha |
+
+### 🐛 Lote bugs loja Zap 12/07 (teste **v8.12**) — pacote checklist #
+
+| # | Item | Status |
+| - | ---- | ------ |
+| **1** | Entrada NF etapa 7 — valor recarregava a cada tecla | ✅ não rebuilda preview na validação |
+| **2** | Entrada NF etapa 2 — busca barras | ✅ não bloqueia modo scanner |
+| **3** | Cadastro lista — custo | ✅ custos compra na row Mongo + overlay |
+| **4** | Cadastro — campo modelo não salvava | ✅ body + `cadastro_extras.modelo` |
+| **8** | Produto novo sumia da lista | ✅ merge coloca no topo |
+| **9** | Fiado MP → forma genérica no caixa | ✅ `[MP_POINT]` + split conferência |
+| **10** | Fiado sem cancelar/voltar | ✅ botão **Cancelar cobrança** |
+| **11** | Menu caixa/vendas às vezes não fecha | ✅ Esc no iframe fecha overlay |
+| **13** | XML boleto → **Boleto Bancário CN** | ✅ (Renan confirmou CN) |
+| **14** | Add produto perde barras/lote | ✅ invalidate soft (FL-026) |
+| **15** | Código interno 9000+ → 4xxx | ✅ teto auto 5999 (FL-025) |
+| **16** | CP busca limpa datas | ✅ (FL-023) |
+| **18** | Taxa entrega no cupom/NFC-e | ✅ `VendaAgro.frete` + vFrete + linha cupom |
+| **5–7, 12, 17** | Lentidão / PIN / impressão / devolução parcial / busca CP inteligente | ⏳ depois |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Validar** | Ctrl+F5 teste · números #1–4, #8–11, #13–16, #18 |
+| **Migração** | `0050_vendaagro_frete` (Render aplica no deploy) |
+| **Loja** | **⏳** só com frase + senha |
+
+### Entrada NF — BCA fix motor padrão (11/07 · **teste v8.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Entrada NF usava cache local PDV + `entrada_nfe=1` — lista diferente do cadastro |
+| **Fix** | **Só servidor** BCA · `/api/buscar/?compras=1` · sem merge cache |
+| **Validar** | Ctrl+F5 teste · `milho` / `#prova` = mesma ordem que cadastro |
+| **Loja** | **⏳** após OK |
 
 ### 🚀 Deploy loja **v8.07** — BCA + pacote teste (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Merge `teste` → `producao`: **BCA** PDV + Cadastro + Consulta · estoque/vitrines · fiado · indicadores |
-| **Validado loja** | **✅** Renan OK PDV + cadastro + consulta |
+| **O quê** | Merge `teste` → `producao`: **BCA** PDV + Cadastro + Consulta · cadastro estoque/vitrines · fiado · indicadores |
+| **Validado loja** | Renan OK PDV + cadastro + consulta |
 | **Revert total BCA** | **`producao-backup-pre-bca-20260711`** · **`rollback/pre-bca-v766`** @ **`e260c48`** (v7.66) |
 | **Pendente produto** | Desativar `/produtos/gestao/` se cadastro OK |
-
-### ✅ Deploy loja **v7.66** — Indicadores faturamento PDV (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Card **Faturamento vendas (PDV)** · **1 arquivo** `indicadores_gerencial_pg.py` |
+| **Sem** | cadastro · busca · fix despesas CP (af328ba) |
+| **Commit** | `e260c48` |
+
+### 🐛 FIX — Indicadores faturamento PDV «—» (11/07 · **v8.04 teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Card **Faturamento vendas (PDV)** = **R$ —** (ex. mês ant. jun/26) · DRE e demais KPIs OK |
 | **Causa** | v7.65 tinha card no HTML mas **faltava backend**; planilha histórica sem fallback |
 | **Fix** | `_faturamento_pdv_periodo` → mesma função do BI (`_dashboard_mongo_vendas_serie`) |
-| **Commit** | `e260c48` · **substituído** pelo merge v8.06 |
+| **Loja** | **✅ v7.66** |
 
 ### ✅ Deploy loja **v7.65** — Indicadores planilha + Estoque giro (11/07 — Renan senha OK)
 
@@ -1223,39 +1298,60 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Tipo+Grupo planilha CP · aba Estoque & giro · **só leitura BI** |
 | **Não mexe** | PDV · CP · caixa · fiado |
 | **Pode mudar** | Números Indicadores + Resumo gerencial (classificação) |
-| **Fix 11/07** | Tabela despesas alinhada à **CP** (competência · bruto · todas empresas) |
+
+### ✅ Indicadores — Tipo + Grupo + Estoque e giro (11/07 · **v7.98+ teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Planilha oficial CP (Tipo/Grupo) na tabela despesas + aba **Estoque e giro** (parado 90d + top 5 giro 30d) |
+| **URL aba** | `/financeiro/dashboard-gerencial/?aba=estoque` |
+| **Validar** | Ctrl+F5 teste → Indicadores → aba Estoque e giro · despesas agrupadas Tipo→Grupo |
+| **Fix v7.99** | Aba abre na hora + «Carregando…» · dados via API (consulta pesada não trava a página) |
+| **Fix 11/07** | Tabela despesas alinhada à **CP** (competência · bruto · todas empresas) — antes filtrava só 1 empresa |
 
 ### ✅ Deploy loja **v7.63** — Unificar planos despesa CP (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Mapa + URLs staff · migrate **0049** · só renomeia plano_conta |
-| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos · pós-sim **0** a renomear · **3286 · R$ 1.144.537,97** |
+| **Pacote** | `pacote/planos-cp-producao` → `producao` `d901763` (**sem** cadastro/busca) |
+| **Apply PG loja** | **✅ 11/07** lote #1 · **2483** títulos · pós-sim **0** a renomear · **3286 · R$ 1.144.537,97** · fora mapa **0** |
 | **Status** | **✅ CONCLUÍDO** loja |
-| **Revert dados** | `…/reverter-unificar/?confirmar=sim` |
 
 ### ✅ Deploy loja **v7.61** — Fiado baixa parcial (11/07 — Renan senha OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Baixa parcial · popup Total/Parcial · FIFO · PDV pagamento |
+| **Pacote** | `pacote/fiado-baixa-parcial-producao` → `producao` `304a5fa` |
 | **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** PDVs · caixa aberto |
-| **Fora** | FL-029 crédito · FL-052 NFC-e · FL-019 recibo |
 
 ### Fiado — baixa parcial no PDV (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | **✅ loja v7.61** |
+| **Status** | **✅ loja v7.61** (código) · docs checkpoint **v7.62** |
 | **Teste** | Validado · popup Total (Enter) / Parcial (P) |
+| **Fora** | FL-029 crédito · FL-052 NFC-e · FL-019 recibo |
 
-### Cadastro ERP — BCA (11/07)
+### Cadastro ERP — estoque + vitrines (11/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **BCA** | PDV + cadastro + Consulta + **Entrada NF** (`agro_busca_catalogo.js`) |
-| **Validação Renan** | **✅ loja** — PDV/cadastro/consulta + Entrada NF |
-| **Pendente produto** | Desativar `/produtos/gestao/` quando Renan confirmar cadastro |
+| **Pedido** | Trazer para `/produtos/cadastro-erp/` o que só existia em `/produtos/gestao/` (coluna estoque + ajuste + vitrines marca/cat/forn) |
+| **Feito teste v7.69–v7.76** | Busca Postgres (`catalogo_agro.buscar`) · GM prefixo · custo lista · facetas marcas A–Z |
+| **Feito teste v7.82** | **API única** `/api/buscar/` — PDV padrão · cadastro `?contexto=cadastro&compras=1` (+ custo/saldo/filtros). Lista A–Z continua `api_produtos_cadastro` sem `q` |
+| **Validação Renan 11/07** | Teste 1+2 busca unificada OK · canário `[TESTE]` confirmou cadastro + wizard (cache local) |
+| **Feito v7.69–v8.08** | **BCA** — PDV + cadastro + Consulta + **Entrada NF** |
+| **Validação Renan** | **✅ loja** PDV/cadastro/consulta + Entrada NF |
+
+### FIX — Indicadores números vs BI (09/07 · v7.61)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Receita** | Card **Faturamento PDV** = mesmo dado do BI; **Receita financeira (DRE)** = lançamentos |
+| **Despesas** | Classificação fixa/variável/outra corrigida; hint «role a tabela» para ver todos os grupos |
+| **Loja** | **✅ v8.07** — Renan OK |
 
 ### ✅ Deploy loja **v7.60** — Financeiro gerencial SisVale (09/07 — Renan senha OK · loja aberta)
 
@@ -2916,16 +3012,16 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** — PDV não leu direito; Renan fez **poucos testes** ainda | 📋 Pendente · 🔍 validar | 29/06 |
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** não zera / confunde fechamento) | 📋 Pendente | 29/06 |
 | **FL-017** | **P1** | Caixa / devolução | **Devolução duplicada** no caixa — apaga venda e ainda registra **saída** (dobra o efeito) | **✅ loja v5.22** · validado teste | 29/06 |
-| **FL-018** | **P2** | Vendas | **Frete** não entra no total em **consultar venda** (`/vendas/`) — no **relatório de caixa** soma certo | 📋 Pendente | 29/06 |
+| **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | ✅ parcial 12/07 | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
-| **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** fora do **cupom fiscal (NFC-e)** e do **cupom de venda** (não compor base/itens do cupom) | 📋 Pendente | 29/06 |
+| **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | 📋 Pendente | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
-| **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** (não manter período antigo preso na busca) | 📋 Pendente | 29/06 16:20 |
+| **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
-| **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** — está indo para **9000+** em vez da faixa combinada (**~4–5 mil**) | 📋 Pendente · 🔍 conferir | 29/06 16:20 |
-| **FL-026** | **P2** | Entrada NF | Ao **adicionar produto novo** na nota: itens já conferidos perdem **código de barras** (etapa 3) e **lote/validade** (etapas 4–5) | 📋 Pendente | 29/06 16:20 |
-| **FL-027** | **P2** | Entrada NF | Etapa **7**: notas via **XML** preenchem forma de pagamento só **«Boleto Bancário»** — corrigir para **«Boleto Bancário CN»** | 📋 Pendente | 29/06 16:20 |
+| **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
+| **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
+| **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
 | **FL-028** | **P1** | Fiado | Botão **Baixa** manda quitar **total de notas** de uma vez e **dá erro** | ✅ Tolerância centavos v7.36 | 29/06 16:20 |
 | **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opção de deixar valor em **crédito** | 📋 Pendente | 29/06 16:20 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** — **PIN Geraldo / Geraldinho** | 📋 Pendente | 29/06 16:20 |

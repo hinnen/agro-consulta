@@ -1073,7 +1073,7 @@
 
   function patchCadastroLinhaProduto(produto) {
     if (!produto || produto.id == null) return null;
-    return {
+    var patch = {
       id: String(produto.id),
       nome: produto.nome,
       marca: produto.marca,
@@ -1087,12 +1087,15 @@
       subcategoria_2: produto.subcategoria_2,
       subcategoria_3: produto.subcategoria_3,
       subcategoria_4: produto.subcategoria_4,
-      modelo: produto.modelo,
       fornecedor: produto.fornecedor,
       unidade: produto.unidade,
       descricao: produto.descricao,
       inativo: !!produto.inativo
     };
+    if (Object.prototype.hasOwnProperty.call(produto, 'modelo')) {
+      patch.modelo = String(produto.modelo || '').trim();
+    }
+    return patch;
   }
 
   /** Catálogo local do PDV (mesmo cache da Consulta) — busca instantânea antes do Mongo. */

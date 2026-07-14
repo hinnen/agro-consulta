@@ -62,6 +62,13 @@ class Produto(models.Model):
     nome = models.CharField(max_length=300)
     categoria = models.CharField(max_length=200, blank=True, null=True)
     marca = models.CharField(max_length=120, blank=True, null=True)
+    modelo = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="Modelo",
+        help_text="Modelo/versão do produto (cadastro SisVale).",
+    )
     fornecedor_texto = models.CharField(max_length=300, blank=True, default="")
     subcategoria = models.CharField(max_length=200, blank=True, default="")
     subcategoria_2 = models.CharField(max_length=200, blank=True, default="")

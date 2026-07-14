@@ -80,6 +80,7 @@
       id: String(p.id),
       nome: p.nome,
       marca: p.marca,
+      modelo: p.modelo,
       codigo_nfe: p.codigo_gm || p.codigo_nfe || p.codigo,
       codigo_barras: p.codigo_barras,
       preco_venda: p.preco_venda,
@@ -157,7 +158,7 @@
     if (!patch) return produto;
     var out = Object.assign({}, produto);
     var keys = [
-      'preco_venda', 'preco_custo', 'nome', 'marca', 'codigo_nfe', 'codigo_barras',
+      'preco_venda', 'preco_custo', 'nome', 'marca', 'modelo', 'codigo_nfe', 'codigo_barras',
       'categoria', 'subcategoria', 'subcategoria_2', 'subcategoria_3', 'subcategoria_4',
       'fornecedor', 'unidade', 'descricao', 'inativo'
     ];

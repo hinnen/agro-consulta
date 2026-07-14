@@ -683,6 +683,14 @@ def _linha_gestao_produto_json(
         "imagem": img_url or "",
         "descricao": descricao,
         "marca": marca,
+        "modelo": (
+            str(ce_lin.get("modelo") or "").strip()[:200]
+            if isinstance(ce_lin, dict)
+            else ""
+        )
+        or str(
+            p.get("Modelo") or p.get("NomeModelo") or p.get("ProdutoModelo") or ""
+        ).strip()[:200],
         "categoria": cat,
         "fornecedor": forn,
         "unidade": unidade,
@@ -2163,6 +2171,23 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception:
                 logger.warning("overlay salvar: sync ValorVenda Mongo", exc_info=True)
                 aviso_preco_venda_mongo = "Não foi possível gravar o preço de venda no espelho Mongo."
+        # Modelo: mesmo padrão do custo — sem espelho Mongo o campo some ao reabrir
+        # em caminhos que leem Modelo/NomeModelo do documento.
+        if "modelo" in payload:
+            try:
+                mod_m = str(ex.get("modelo") or "").strip()[:200]
+                set_mod = {"Modelo": mod_m, "NomeModelo": mod_m}
+                res_mod = db[client.col_p].update_one(
+                    _mongo_filtro_id_produto_externo(pid),
+                    {"$set": set_mod},
+                )
+                if not getattr(res_mod, "matched_count", 0):
+                    logger.info(
+                        "overlay salvar: Modelo Mongo sem match (pid=%s)",
+                        pid[:48],
+                    )
+            except Exception:
+                logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
     with transaction.atomic():
         ov.save()
@@ -18369,7 +18394,8 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     ce_ov = (
         ov_det.cadastro_extras if ov_det and isinstance(ov_det.cadastro_extras, dict) else None
     )
-    if ce_ov and str(ce_ov.get("modelo") or "").strip():
+    # Overlay / extras prevalecem sobre Mongo (extra.modelo costumava zerar o campo ao reabrir)
+    if ce_ov and ce_ov.get("modelo") is not None:
         row["modelo"] = str(ce_ov.get("modelo") or "").strip()[:200]
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
