@@ -1100,12 +1100,12 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
     """
     Rótulo do vendedor/operador na venda Agro: operador do PDV (descanso/PIN),
     não o login Django (ex.: admin).
+
+    Ordem: PIN (fonte da verdade) → sessão do último PIN online → nome vindo do
+    navegador só se a sessão ainda estiver vazia (evita nome «grudado» de outro
+    operador no mesmo Chrome).
     """
     data = data if isinstance(data, dict) else {}
-    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
-        val = str(data.get(key) or "").strip()
-        if val:
-            return val[:150]
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
     if pin:
         rot = rotulo_operador_pin(pin)
@@ -1117,6 +1117,10 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
         sess_op = ""
     if sess_op:
         return sess_op[:150]
+    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
+        val = str(data.get(key) or "").strip()
+        if val:
+            return val[:150]
     u = getattr(request, "user", None)
     if u is not None and getattr(u, "is_authenticated", False):
         nome = (u.get_full_name() or u.first_name or "").strip()

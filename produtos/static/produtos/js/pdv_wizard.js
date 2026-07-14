@@ -7676,15 +7676,16 @@
     }
 
     function operadorPdvAtual() {
+        /* Chrome (último PIN online) manda no state em memória — evita nome antigo do rascunho. */
+        try {
+            var ls = (localStorage.getItem('gm_sspin_operador') || '').trim();
+            if (ls) return ls;
+        } catch (e0) {}
         var st = State.getState();
         if (st && st.pagamento && st.pagamento.operadorPdv) {
             return String(st.pagamento.operadorPdv).trim();
         }
-        try {
-            return (localStorage.getItem('gm_sspin_operador') || '').trim();
-        } catch (e0) {
-            return '';
-        }
+        return '';
     }
 
     function injetarOperadorNoPayload(payload) {
@@ -7703,7 +7704,7 @@
         } catch (e0) {
             op = '';
         }
-        if (op) State.setPagamentoField('operadorPdv', op);
+        State.setPagamentoField('operadorPdv', op);
     }
 
     function buildFiadoBaixaPayload(state, computed) {
@@ -11830,7 +11831,7 @@
     sincronizarOperadorPdvNoState();
     window.addEventListener('gm-sspin-operador', function (ev) {
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
-        if (nome) State.setPagamentoField('operadorPdv', nome);
+        State.setPagamentoField('operadorPdv', nome);
     });
     window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
 

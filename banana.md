@@ -1154,7 +1154,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.30** · **loja v8.30**
+**Versão app (`VERSION`):** **teste v8.33** · **loja v8.30**
+
+### 🚑 PIN / nome trocado (14/07 · **teste v8.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | (1) desbloqueio pelo cache local **sem** gravar sessão no servidor → reload trazia o nome anterior; (2) servidor confiava no nome do Chrome antes da sessão; (3) state/rascunho PDV podia guardar nome velho |
+| **Fix** | PIN **sempre online** · no descanso limpa nome no Chrome · venda usa **sessão/PIN** antes do Chrome · PDV limpa `operadorPdv` ao trocar/sair |
+| **Validar** | Render **teste** · Ctrl+F5 · PC1: Geraldo PIN → descanso → Renan PIN → venda no **seu** nome; 2 pessoas no mesmo Chrome sem trocar PIN ainda grudam (esperado até o descanso) |
+| **Loja** | ⏳ próximo pacote |
+
+### 🔍 PIN / nome trocado (Renan ↔ Geraldo etc.) — 14/07 · **só diagnóstico**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relato** | Ação com PIN do Renan (e outros) gravando nome de **outra pessoa** (ex. Geraldo Hinnen) |
+| **Status** | → virado fix **v8.33** acima |
+| **Causa A (mais forte)** | Nome no Chrome + sessão desatualizada (atalho local sem API) |
+| **Causa B** | PIN **não é único** no banco (`.first()`) — ainda existe; cadastro novo barra duplicata |
 
 ### 🩹 #6 PIN — 1 query no rótulo (14/07 · **teste**)
 
