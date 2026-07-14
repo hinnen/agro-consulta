@@ -270,11 +270,22 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         pid = str(ov.produto_externo_id or "").strip()
         if not pid or pid in seen:
             continue
-        if termo_bate_codigos_produto(termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras):
-            seen.add(pid)
-            out.append(pid)
-            if len(out) >= limit:
-                break
+        # Família GM0024: o Q já restringiu prefixo; não derrubar com match “exato” estrito.
+        base = gm_base_familia(termo)
+        if base:
+            cn = str(ov.codigo_nfe or "").strip().upper()
+            cb = str(ov.codigo_barras or "").strip().upper()
+            ok_fam = cn.startswith(base) or cb.startswith(base) or termo_bate_codigos_produto(
+                termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras
+            )
+            if not ok_fam:
+                continue
+        elif not termo_bate_codigos_produto(termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras):
+            continue
+        seen.add(pid)
+        out.append(pid)
+        if len(out) >= limit:
+            break
     return out
 
 

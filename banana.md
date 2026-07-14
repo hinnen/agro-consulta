@@ -1154,7 +1154,28 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.25** · **loja v8.25**
+**Versão app (`VERSION`):** **teste v8.26** · **loja v8.26** _(deploy sobe agora — Renan frase+senha)_
+
+### 📦 Deploy loja **v8.26** — busca GM CodigoNFe (14/07 · Renan autorizou)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Motor Mongo prefixa `CodigoNFe`/`Codigo` (não só `index_codigos`) · overlay família · index após overlay |
+| **Validado** | Local: `GM0093` + mais 3 famílias OK |
+| **Seed local** | `seed-gm0024-*` Teste Local — **apagado** (`--limpar`); loja nunca teve esses nomes |
+| **Antes loja** | **v8.25** |
+| **NÃO veio** | resto do `teste` (frete, lote Zap…) |
+
+### 🚑 #3 busca GM — causa real + teste local (14/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `gm0024`/`GM0093` → 1; nome → 3 |
+| **Causa 1** | overlay / Mongo exact (hotfix anterior) |
+| **Causa 2 (real quirera)** | Mongo: irmãos **sem `index_codigos`**; motor só buscava índice → só `GM0093-25`. `CodigoNFe` tinha os 3 |
+| **Fix** | Prefixo em `CodigoNFe`/`Codigo` no motor + misto sem early-return no index · Id=`_id` se faltar |
+| **Validar local** | Ctrl+F5 · `GM0093` → quirera 1kg + 5kg + 25kg (≥3) · nome “quirera fina” igual |
+| **Loja** | **NÃO** subir até Renan pedir |
 
 ### 🚑 Hotfix #3 GM maiúsc/minúsc + família (14/07 · **v8.25**)
 

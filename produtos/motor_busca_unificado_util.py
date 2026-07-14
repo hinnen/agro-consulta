@@ -134,6 +134,93 @@ def _pid_doc(doc: dict) -> str:
     return str(doc.get("Id") or doc.get("_id") or doc.get("id") or "").strip()
 
 
+def _enriquecer_e_injetar_overlay_codigo(
+    termo: str,
+    docs: list[dict],
+    db,
+    client,
+    *,
+    limit: int = 80,
+) -> list[dict]:
+    """Aplica GM/barras do overlay nos docs e injeta irmãos (família GM) que só existem no overlay."""
+    from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo, parece_codigo_cadastro
+    from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    termo = str(termo or "").strip()
+    if not termo or not parece_codigo_cadastro(termo):
+        return list(docs or [])
+
+    out = [dict(d) for d in (docs or [])]
+    have = {_pid_doc(d) for d in out if _pid_doc(d)}
+    lim = max(1, min(int(limit or 80), 160))
+
+    # 1) Patch CodigoNFe/barras + index a partir do overlay (antes do filtro GM estrito)
+    pids_existentes = [pid for pid in have if pid]
+    if pids_existentes:
+        ov_map: dict[str, ProdutoGestaoOverlayAgro] = {}
+        step = 400
+        for i in range(0, len(pids_existentes), step):
+            chunk = pids_existentes[i : i + step]
+            for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=chunk).only(
+                "produto_externo_id", "codigo_nfe", "codigo_barras", "nome", "marca"
+            ):
+                ov_map[str(ov.produto_externo_id or "").strip()] = ov
+        from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+        for d in out:
+            pid = _pid_doc(d)
+            ov = ov_map.get(pid)
+            if not ov:
+                continue
+            if ov.codigo_nfe.strip():
+                d["CodigoNFe"] = ov.codigo_nfe.strip()
+            if ov.codigo_barras.strip():
+                d["CodigoBarras"] = ov.codigo_barras.strip()
+                d["EAN_NFe"] = ov.codigo_barras.strip()
+            if ov.nome.strip() and not str(d.get("Nome") or "").strip():
+                d["Nome"] = ov.nome.strip()
+            if ov.marca.strip() and not str(d.get("Marca") or "").strip():
+                d["Marca"] = ov.marca.strip()
+            d[INDEX_CODIGOS_CAMPO] = index_codigos_de_campos(
+                codigo=d.get("Codigo") or d.get("codigo"),
+                codigo_nfe=d.get("CodigoNFe") or d.get("codigo_nfe"),
+                codigo_barras=d.get("CodigoBarras") or d.get("codigo_barras"),
+            )
+
+    # 2) Injetar pids do overlay ainda ausentes (família GM0024-*)
+    try:
+        from produtos.views import _mongo_produtos_por_overlay_codigo_busca
+
+        extras = _mongo_produtos_por_overlay_codigo_busca(termo, db, client, have)
+    except Exception:
+        extras = []
+        pids = overlay_pids_por_codigo(termo, limit=lim)
+        if pids:
+            try:
+                from produtos import catalogo_agro as cat_agro
+
+                for pid in pids:
+                    if not pid or pid in have:
+                        continue
+                    p = cat_agro.obter_produto_model(pid)
+                    if p is None:
+                        continue
+                    extras.append(cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p)))
+            except Exception:
+                extras = []
+
+    for ex in extras or []:
+        pid = _pid_doc(ex)
+        if not pid or pid in have:
+            continue
+        out.append(ex)
+        have.add(pid)
+        if len(out) >= lim * 2:
+            break
+    return out
+
+
 def _merge_pg_prioriza_postgres(pg_docs: list[dict], mongo_docs: list[dict]) -> list[dict]:
     from produtos import catalogo_agro as cat_agro
 
@@ -208,8 +295,15 @@ def buscar_documentos_unificado(
         except Exception:
             logger.warning("motor_busca_unificado: buscar Postgres falhou", exc_info=True)
 
+    from produtos.cadastro_busca_codigo_util import gm_base_familia
+
+    # Família GM (GM0024): Postgres/overlay já trouxe irmãos — não deixar Mongo (1 exact) ganhar.
+    _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
-    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
+    _pg_suficiente = (
+        (skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim))
+        or (_familia_gm and bool(pg_docs))
+    )
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
             from produtos.views import (
@@ -249,6 +343,7 @@ def buscar_documentos_unificado(
     else:
         prods = []
 
+    prods = _enriquecer_e_injetar_overlay_codigo(termo, prods, db, client, limit=lim)
     prods = _filtrar_gm_estrito(termo, prods)
     from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv, score_relevancia_doc
 

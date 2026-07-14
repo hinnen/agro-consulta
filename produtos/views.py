@@ -778,18 +778,16 @@ def _mongo_produtos_por_overlay_codigo_busca(
 ) -> list[dict]:
     """Resolve produtos pelo código/barras gravados só no overlay Agro (SQLite) e variações locais.
 
+    Inclui família ``GM0024`` → ``GM0024-1/10/15`` (antes só match exato → 1 resultado).
     Similares exclusivos do espelho ERP/Mongo entram pelo ``motor_de_busca_agro`` (``$elemMatch``).
     """
     q_raw = str(q_raw or "").strip()
     if not q_raw or not _termo_parece_codigo(q_raw):
         return []
+    from produtos.cadastro_busca_codigo_util import overlay_pids_por_codigo
+
+    pids = list(overlay_pids_por_codigo(q_raw, limit=80) or [])
     tl = _somente_alnum(q_raw)
-    q0 = Q(codigo_barras__iexact=q_raw) | Q(codigo_nfe__iexact=q_raw)
-    if tl:
-        q0 |= Q(codigo_barras__iexact=tl) | Q(codigo_nfe__iexact=tl)
-    pids = list(
-        ProdutoGestaoOverlayAgro.objects.filter(q0).values_list("produto_externo_id", flat=True)[:30]
-    )
     qv = (
         Q(codigo_barras__iexact=q_raw)
         | Q(codigo_fornecedor__iexact=q_raw)
@@ -811,10 +809,35 @@ def _mongo_produtos_por_overlay_codigo_busca(
         if not ps or ps in ja_ids or ps in seen_p:
             continue
         seen_p.add(ps)
-        doc = _produto_mongo_por_id_externo(db, client_m, ps)
+        doc = _produto_mongo_por_id_externo(db, client_m, ps) if db is not None and client_m else None
         if doc:
             doc = _enriquecer_doc_mongo_nome_postgres(doc, ps)
             out.append(doc)
+            continue
+        # Sem Mongo / sem espelho: monta doc mínimo a partir do overlay + Produto PG
+        try:
+            from produtos import catalogo_agro as cat_agro
+
+            p = cat_agro.obter_produto_model(ps)
+            if p is not None:
+                out.append(cat_agro.row_para_doc_busca_pdv(cat_agro.produto_agro_para_row(p)))
+                continue
+            ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ps[:64]).first()
+            if ov and (ov.codigo_nfe.strip() or ov.codigo_barras.strip() or ov.nome.strip()):
+                out.append(
+                    {
+                        "Id": ps,
+                        "_id": ps,
+                        "Nome": (ov.nome or "").strip() or ps,
+                        "Marca": (ov.marca or "").strip(),
+                        "Codigo": "",
+                        "CodigoNFe": (ov.codigo_nfe or "").strip(),
+                        "CodigoBarras": (ov.codigo_barras or "").strip(),
+                        "EAN_NFe": (ov.codigo_barras or "").strip(),
+                    }
+                )
+        except Exception:
+            continue
     return out
 
 
@@ -16346,12 +16369,20 @@ def _mongo_busca_codigo_misto_rapido(
 ) -> list:
     """GM / código misto sem ``$expr`` + ``$replaceAll`` (collscan de minutos em catálogos grandes)."""
     lim = max(1, int(limit))
-    or_mix: list[dict] = []
+    out: list = []
+    seen: set[str] = set()
+
+    def _push(docs: list) -> None:
+        for item in docs or []:
+            pid = str(item.get("Id") or item.get("_id") or "").strip()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            out.append(item)
+            if len(out) >= lim:
+                return
+
     to_strip = str(termo_original or "").strip()
-    if to_strip:
-        rx_lit = _regex_exato_ci(to_strip)
-        for fld in ("CodigoNFe", "Codigo", "CodigoInterno", "Referencia", "Sku", "SKU"):
-            or_mix.append({fld: rx_lit})
     tl_norm = str(termo_limpo or "").lower()
     if tl_norm:
         alvos_ix = {tl_norm, re.sub(r"[-\s]", "", tl_norm)}
@@ -16359,14 +16390,25 @@ def _mongo_busca_codigo_misto_rapido(
             if not al:
                 continue
             cur = col.find({**base_filter, INDEX_CODIGOS_CAMPO: al}, projection)
-            hit = list(cur.limit(lim))
-            if hit:
-                return hit
+            _push(list(cur.limit(lim)))
+            if len(out) >= lim:
+                return out
+
+    or_mix: list[dict] = []
+    if to_strip:
+        rx_lit = _regex_exato_ci(to_strip)
+        rx_pref = _regex_inicio_ci(to_strip)
+        for fld in ("CodigoNFe", "Codigo", "CodigoInterno", "Referencia", "Sku", "SKU"):
+            or_mix.append({fld: rx_lit})
+            or_mix.append({fld: rx_pref})
+    if tl_norm and tl_norm != to_strip.lower():
+        rx_al = _regex_inicio_ci(tl_norm)
+        for fld in ("CodigoNFe", "Codigo", "CodigoInterno"):
+            or_mix.append({fld: rx_al})
     if or_mix:
         cur = col.find({**base_filter, "$or": or_mix}, projection)
-        return list(cur.limit(lim))
-    return []
-
+        _push(list(cur.limit(lim)))
+    return out
 
 def motor_de_busca_agro(
     termo_original,
@@ -16430,7 +16472,11 @@ def motor_de_busca_agro(
 
     def adicionar(lista):
         for item in lista:
-            pid = str(item.get("Id") or item.get("_id"))
+            if not item.get("Id") and item.get("_id") is not None:
+                item["Id"] = str(item.get("_id"))
+            pid = str(item.get("Id") or item.get("_id") or "").strip()
+            if not pid or pid.lower() == "none":
+                continue
             if pid not in vistos:
                 vistos.add(pid)
                 candidatos.append(item)
@@ -16483,6 +16529,29 @@ def motor_de_busca_agro(
                 )
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback codigo raiz misto", exc_info=True)
+
+        # 1d) Prefixo em CodigoNFe/Codigo — ``index_codigos`` muitas vezes NULL/atrasado
+        # (ex.: GM0093-1 e GM0093-5S sem índice; só GM0093-25 indexado → busca raiz trazia 1).
+        if any(ch.isalpha() for ch in termo_limpo) and any(ch.isdigit() for ch in termo_limpo):
+            try:
+                from produtos.cadastro_busca_codigo_util import gm_base_familia, termo_eh_codigo_gm
+
+                or_pref: list[dict] = []
+                for raw in {termo_original.strip(), termo_limpo, termo_limpo.lower(), termo_limpo.upper()}:
+                    if not raw:
+                        continue
+                    rx = _regex_inicio_ci(raw)
+                    for fld in ("CodigoNFe", "Codigo", "CodigoInterno", "Referencia"):
+                        or_pref.append({fld: rx})
+                base_fam = gm_base_familia(termo_original) if termo_eh_codigo_gm(termo_original) else None
+                if base_fam:
+                    rx_fam = re.compile(rf"^{re.escape(base_fam)}(-|$)", re.IGNORECASE)
+                    for fld in ("CodigoNFe", "Codigo", "CodigoInterno"):
+                        or_pref.append({fld: rx_fam})
+                if or_pref:
+                    adicionar(find_prod({**base_filter, "$or": or_pref}, max(limit, 40)))
+            except Exception:
+                logger.warning("motor_de_busca_agro: fallback prefixo CodigoNFe", exc_info=True)
 
     # Termo único de código: não rodar regex em Nome/BuscaTexto (collscan); só ranquear achados do passo 1.
     if busca_so_codigo:
