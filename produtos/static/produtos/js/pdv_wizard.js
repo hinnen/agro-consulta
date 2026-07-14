@@ -7629,7 +7629,8 @@
         var pag = pagamentosDetalheParaErp(state);
         var payload = {
             fiado_cobranca: true,
-            modo: String(fc.modo || 'titulo'),
+            // Default: cliente (lista BAIXA). 'titulo' sem id → «Nenhum título…».
+            modo: String(fc.modo || 'cliente'),
             valor: comp.total,
             valor_total: comp.total,
             cliente: currentClientName(state),
@@ -7639,8 +7640,12 @@
         };
         if (fc.tituloId != null) payload.titulo_id = fc.tituloId;
         if (fc.tituloIds && fc.tituloIds.length) payload.titulo_ids = fc.tituloIds.slice();
-        if (cliente.cliente_agro_pk != null) payload.cliente_agro_pk = cliente.cliente_agro_pk;
+        if (cliente.cliente_agro_pk != null && cliente.cliente_agro_pk !== '') {
+            payload.cliente_agro_pk = cliente.cliente_agro_pk;
+        }
         payload.cliente_nome = currentClientName(state);
+        if (fc.clienteCodigo) payload.cliente_codigo = String(fc.clienteCodigo);
+        else if (cliente.codigo) payload.cliente_codigo = String(cliente.codigo);
         if (pag && pag.length) payload.pagamentos = pag;
         var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
         if (idem) payload.client_request_id = idem;
