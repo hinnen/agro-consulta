@@ -139,7 +139,7 @@ def filtrar_documentos_estilo_pdv(docs: list[dict], termo: str) -> list[dict]:
 
 
 def score_relevancia_doc(doc: dict, termo: str) -> int:
-    """Espelho de ``relevanciaTextoBuscaPdv`` no cliente."""
+    """Espelho de ``relevanciaTextoBuscaPdv`` no cliente (+ bônus prefixo GM)."""
     t = _norm_termo(termo)
     if not t:
         return 0
@@ -149,6 +149,21 @@ def score_relevancia_doc(doc: dict, termo: str) -> int:
         for x in ix:
             if _norm_termo(str(x or "")) == t:
                 return 2_000_000
+
+    from produtos.cadastro_busca_codigo_util import termo_eh_codigo_gm, termo_bate_valor_codigo
+
+    if termo_eh_codigo_gm(t):
+        cnfe = doc.get("CodigoNFe") or doc.get("codigo_nfe") or doc.get("codigo_gm") or ""
+        if termo_bate_valor_codigo(t, cnfe):
+            vn = _norm_termo(str(cnfe))
+            if vn == t:
+                return 1_900_000
+            if vn.startswith(t) or somente_alnum(vn).startswith(somente_alnum(t)):
+                return 1_750_000
+        if isinstance(ix, list):
+            for x in ix:
+                if termo_bate_valor_codigo(t, x):
+                    return 1_700_000
 
     nome = _norm_termo(str(doc.get("Nome") or doc.get("nome") or ""))
     blob = blob_busca_de_doc(doc)

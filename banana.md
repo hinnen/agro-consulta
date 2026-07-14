@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.20** · **loja v8.15**
+**Versão app (`VERSION`):** **teste v8.22** · **loja v8.15**
+
+### 🐛 Hotfix #3 busca prefixo GM (teste **v8.22**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `GM0024` → 1 resultado; pelo nome → 3 (GM0024-1/10/15). Cadastro e PDV |
+| **Causa** | Filtro GM do motor lia só `Produto.codigo_nfe` e descartava irmãos cujo GM está no **overlay** |
+| **Fix** | Filtrar GM **depois** do overlay · index/prefixo no motor · PDV scanner `GM0024` (sem hífen) usa família |
+| **Validar** | Ctrl+F5 teste · buscar `GM0024` → 3 itens · PDV igual |
+| **Loja** | **⏳** só com frase + senha |
 
 ### 🐛 Hotfix #4 modelo persiste (teste **v8.19** / badge **v8.20**)
 
@@ -1172,14 +1182,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Ambiente | Versão | Commit | Notas |
 | -------- | ------ | ------ | ----- |
 | **Loja** | **v8.15** | `812226b` | anterior estável `08fd195` · backups `producao-backup-pre-v815-20260714` / `pre-v814` |
-| **Teste** | **v8.19** | `7026feb` | hotfix **#4** modelo · antes: v8.18 handoff · v8.17 `191e70b` |
+| **Teste** | **v8.22** | *(#3 GM)* | #4 em `7026feb` · antes v8.17 `191e70b` |
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
 | **15** | 🟢 loja OK | Confirmado Renan em produção |
 | **8 · 10 · 18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
-| **4** | 🟡 teste v8.19 | modelo em coluna PG + Mongo — **validar no Render teste** |
-| **3** | 🟠 regressão | custo OK; **busca prefixo GM** ainda quebrada (1× vs 3 no nome) · hotfix loja v8.15 **não** validado |
+| **4** | 🟡 teste | modelo — ainda validar no Render |
+| **3** | 🟡 teste v8.22 | prefixo GM restaurado — **validar GM0024 → 3** |
 | **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
 | **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
@@ -1187,7 +1197,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
 
-**Ordem combinada:** validar **#4** → **#3 (GM)** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+**Ordem combinada:** validar **#4** + **#3** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 

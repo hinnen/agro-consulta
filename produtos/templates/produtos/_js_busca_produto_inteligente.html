@@ -259,7 +259,11 @@
             }
             if (tAl.length >= 5 && somenteAlnumCodigoBusca(vn) === tAl) return true;
             if (tAl.length >= 5 && gmAlnumEquivalente(tAl, somenteAlnumCodigoBusca(vn))) return true;
-            return variantesLiteraisCodigoGm(t).some((v) => v === vn || somenteAlnumCodigoBusca(v) === tAl);
+            return variantesLiteraisCodigoGm(t).some((v) => {
+                if (v === vn) return true;
+                const vAl = somenteAlnumCodigoBusca(v);
+                return vAl.length >= 5 && (vAl === somenteAlnumCodigoBusca(vn) || gmAlnumEquivalente(vAl, somenteAlnumCodigoBusca(vn)));
+            });
         }
 
         const campos = [
@@ -347,8 +351,15 @@
         const palavras = termo.split(/\s+/).filter(Boolean);
         const index = buildBuscaProdutoIndex(lista);
         if (modo === 'scanner') {
-            /* Etiqueta GM: só match exato (com/sem hífen); não usar dígitos parciais (15415 ≠ GM1541-5). */
+            /* GM sem hífen (GM0024) = família; com hífen (GM0024-1) = etiqueta bipada exata. */
             if (pareceCodigoGmEtiqueta(termo)) {
+                if (termo.indexOf('-') < 0) {
+                    return lista.filter(
+                        (p) =>
+                            termoIgualCodigoProdutoExato(termo, p)
+                            || casaCodigoGmPrefixo(termo, p)
+                    );
+                }
                 return lista.filter((p) => termoIgualCodigoProdutoExato(termo, p));
             }
             /* Código de barras numérico curto (ex. 1813647): match exato só-dígitos. */

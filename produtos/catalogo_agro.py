@@ -269,20 +269,22 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
             )
 
     if found:
+        rows = _rows_de_produtos(found[: lim * 2 if lim < 80 else lim])
         if termo_eh_codigo_gm(termo):
-            found = [
-                p
-                for p in found
+            # Filtrar depois do overlay: código GM costuma estar no overlay, não só em Produto.
+            rows = [
+                r
+                for r in rows
                 if termo_bate_codigos_produto(
                     termo,
-                    codigo_interno=p.codigo_interno,
-                    codigo_nfe=p.codigo_nfe,
-                    codigo_barras=p.codigo_barras,
-                    extras=(p.produto_externo_id, p.erp_produto_id),
+                    codigo_interno=r.get("codigo"),
+                    codigo_nfe=r.get("codigo_nfe") or r.get("codigo_gm"),
+                    codigo_barras=r.get("codigo_barras"),
+                    extras=(r.get("id"),),
                 )
             ]
-        if found:
-            return _rows_de_produtos(found[:lim])
+        if rows:
+            return rows[:lim]
 
     if parece_codigo_cadastro(termo):
         from produtos.agro_fonte_config import agro_catalogo_usa_postgres
