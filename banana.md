@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.17** · **loja v8.14**
+**Versão app (`VERSION`):** **teste v8.17** · **loja v8.15**
+
+### 🚀 Hotfix loja **v8.15** — busca GM cadastro (`#3` regressão) (14/07 — Renan senha OK)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Busca por prefixo `GM` no cadastro volta a considerar também códigos do `overlay`, sem derrubar variações irmãs |
+| **Causa** | filtro final do `catalogo_agro.buscar` estreitava demais usando só campos do `Produto` local |
+| **Pós-deploy** | Render ~2–5 min · **Ctrl+F5** · buscar `GM0024` e conferir as 3 versões |
+| **Rollback base** | estado anterior da loja em **`08fd195`** |
+| **Como reverter** | preferir `git revert <commit_deste_hotfix>`; emergência: `git reset --hard 08fd195 && git push origin producao --force-with-lease` |
 
 ### 🚀 Deploy loja **v8.14** — pacote isolado `#3 #4 #15` (14/07 — Renan senha OK)
 

@@ -268,6 +268,12 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
 
     if found:
         if termo_eh_codigo_gm(termo):
+            ov_map_filtra = _overlay_mapa_por_ids(
+                [
+                    str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
+                    for p in found
+                ]
+            )
             found = [
                 p
                 for p in found
@@ -276,7 +282,12 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                     codigo_interno=p.codigo_interno,
                     codigo_nfe=p.codigo_nfe,
                     codigo_barras=p.codigo_barras,
-                    extras=(p.produto_externo_id, p.erp_produto_id),
+                    extras=(
+                        p.produto_externo_id,
+                        p.erp_produto_id,
+                        getattr(ov_map_filtra.get(str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]), "codigo_nfe", None),
+                        getattr(ov_map_filtra.get(str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]), "codigo_barras", None),
+                    ),
                 )
             ]
         if found:
