@@ -1154,7 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.38** · **loja v8.38**
+**Versão app (`VERSION`):** **teste v8.39** · **loja v8.39** *(hotfix merge mig)*
+
+### 🚑 Hotfix loja **v8.39** — merge migrações 0050+0051 (14/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Erro** | `Conflicting migrations … (0050_vendaagro_frete, 0051_produto_modelo)` |
+| **Fix** | `0052_merge_0050_frete_0051_modelo` |
+| **Loja** | sobe junto com o merge |
 
 ### 📦 Deploy loja **v8.38** — lote Zap restante + PIN ao abrir (14/07 · Renan frase+senha)
 
