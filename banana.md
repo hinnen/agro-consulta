@@ -1154,7 +1154,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.33** · **loja v8.30**
+**Versão app (`VERSION`):** **teste v8.34** · **loja v8.30**
+
+### 👁 PDV — nome do PIN entre Nova venda e PIN (14/07 · **teste v8.34**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Chip `gm-sspin-operador-chip` no topbar do wizard (entre **Nova venda** e **PIN**) |
+| **Validar** | Ctrl+F5 · digitar PIN · nome aparece ali |
 
 ### 🚑 PIN / nome trocado (14/07 · **teste v8.33**)
 
