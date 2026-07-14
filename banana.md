@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.35** · **loja v8.34**
+**Versão app (`VERSION`):** **teste v8.36** · **loja v8.34**
 
 ### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
 
