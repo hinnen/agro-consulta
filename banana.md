@@ -1154,7 +1154,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.29+** · **loja v8.26**
+**Versão app (`VERSION`):** **teste v8.30** · **loja v8.30**
+
+### 📦 Deploy loja **v8.30** (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commits** | `96df934` GM0024 PG+Mongo · `1cdad18` baixa fiado filtro nome |
+| **Antes** | loja **v8.26** `780d964` |
+| **Validar** | Ctrl+F5 · Fiado → BAIXA · `gm0024` → 3 |
+| **Dados** | fiado: só filtro — **não** apaga títulos |
 
 ### 🚑 Fiado BAIXA «Nenhum título em aberto» (14/07)
 
