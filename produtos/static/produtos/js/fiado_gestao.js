@@ -679,7 +679,12 @@
         ev.stopPropagation();
         abrirBaixa({
           modo: 'cliente',
-          pk: bBaixa.getAttribute('data-pk') ? parseInt(bBaixa.getAttribute('data-pk'), 10) : null,
+          pk: (function () {
+            var raw = bBaixa.getAttribute('data-pk');
+            if (!raw) return null;
+            var n = parseInt(raw, 10);
+            return Number.isFinite(n) ? n : null;
+          })(),
           nome: bBaixa.getAttribute('data-nome') || '',
           codigo: bBaixa.getAttribute('data-codigo') || '',
           saldo: parseFloat(bBaixa.getAttribute('data-saldo') || '0'),

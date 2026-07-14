@@ -1178,14 +1178,12 @@ def _resolver_titulos_cobranca_pdv(
         if len(titulos) != len(set(ids)):
             raise ValueError("Um ou mais títulos não estão disponíveis para baixa.")
     elif modo_n == "cliente":
-        filtros = Q()
-        if cliente_agro_pk:
-            filtros = Q(cliente_agro_id=cliente_agro_pk)
-        elif (cliente_nome or "").strip():
-            filtros = Q(cliente_nome__iexact=(cliente_nome or "").strip())
-            if (cliente_codigo or "").strip():
-                filtros &= Q(cliente_codigo=str(cliente_codigo).strip())
-        else:
+        filtros = _q_titulos_cliente_gestao(
+            cliente_agro_pk=cliente_agro_pk,
+            cliente_nome=(cliente_nome or "").strip(),
+            cliente_codigo=(cliente_codigo or "").strip(),
+        )
+        if not _q_fiado_tem_escopo(filtros):
             raise ValueError("Informe o cliente.")
         titulos = list(
             FiadoTituloAgro.objects.filter(filtros)

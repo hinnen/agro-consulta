@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.28** · **loja v8.26** _(hotfix GM0024 PG+Mongo — sobe loja com nova senha)_
+**Versão app (`VERSION`):** **teste v8.29+** · **loja v8.26**
+
+### 🚑 Fiado BAIXA «Nenhum título em aberto» (14/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Qualquer BAIXA no `/fiado/` → *Nenhum título em aberto para quitar* |
+| **Causa** | Lista agrupa por **nome**; cobrança/baixa filtrava só `cliente_agro_pk` (muitos títulos sem FK / modo default `titulo` no PDV) |
+| **Fix** | Mesmo filtro da gestão (`_q_titulos_cliente_gestao`) · PDV default modo `cliente` |
+| **Dados** | **Só leitura/filtro** — não apaga título, baixa nem saldo |
+| **Loja** | ⏳ frase+senha (junto pacote) |
 
 ### 🚑 Hotfix #3 GM0024 loja só 1 (14/07 · **v8.28**)
 
@@ -1247,16 +1257,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
-| **15** | 🟢 loja OK | Confirmado Renan em produção |
-| **8 · 10 · 18** | 🟢 pronto loja | #18 fiscal — conferir se já estava; frete novo ainda só teste |
-| **4** | 🟢 loja v8.22 | modelo — Renan validar na loja |
-| **3** | 🟢 loja v8.22 | prefixo GM — Renan validar `GM0024` → 3 |
+| **3** | 🟢 loja v8.26 + 🟡 v8.28 teste | prefixo GM OK na maioria; `GM0024` parcial (PG+Mongo) — wait pacote |
+| **4** | 🟡 loja v8.22+ | modelo — Renan confirmar salva/reabre |
 | **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
 | **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
 | **7** | 🔴 | impressão notebook — medir host vs app |
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
+| **18** | 🟡 teste | frete 3 vias — ainda não loja |
+| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ — **validados loja** (Renan 14/07) |
 
 **Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
