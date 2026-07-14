@@ -1164,7 +1164,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Com `agro_pg`, 1 hit no Postgres fazia **pular Mongo** — `-10/-15` só no Mongo |
 | **Fix** | Família GM **sempre** complementa/mescla Mongo |
 | **Validar** | Ctrl+F5 · `gm0024` → 3 magnus |
-| **Loja** | ⏳ frase+senha |
+| **Loja** | ⏳ aguarda pacote maior (Renan 14/07: não sobe sozinho) |
 
 ### 📦 Deploy loja **v8.26** — busca GM CodigoNFe (14/07 · Renan autorizou)
 
