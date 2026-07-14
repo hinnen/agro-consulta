@@ -15,15 +15,23 @@ logger = logging.getLogger(__name__)
 
 
 def _doc_bate_codigo_gm(termo: str, doc: dict) -> bool:
-    from produtos.cadastro_busca_codigo_util import termo_bate_codigos_produto
+    from produtos.cadastro_busca_codigo_util import (
+        termo_bate_codigos_produto,
+        termo_bate_valor_codigo,
+    )
 
-    return termo_bate_codigos_produto(
+    if termo_bate_codigos_produto(
         termo,
         codigo_interno=doc.get("Codigo") or doc.get("codigo"),
-        codigo_nfe=doc.get("CodigoNFe") or doc.get("codigo_nfe"),
+        codigo_nfe=doc.get("CodigoNFe") or doc.get("codigo_nfe") or doc.get("codigo_gm"),
         codigo_barras=doc.get("CodigoBarras") or doc.get("EAN_NFe") or doc.get("codigo_barras"),
         extras=(doc.get("Id"), doc.get("_id"), doc.get("id")),
-    )
+    ):
+        return True
+    ix = doc.get(INDEX_CODIGOS_CAMPO) or doc.get("index_codigos")
+    if isinstance(ix, list):
+        return any(termo_bate_valor_codigo(termo, x) for x in ix if x not in (None, ""))
+    return False
 
 
 def _extrair_codigo_barras_doc(doc: dict) -> str:
