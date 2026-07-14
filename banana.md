@@ -1154,7 +1154,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.34** · **loja v8.34**
+**Versão app (`VERSION`):** **teste v8.35** · **loja v8.34**
 
 ### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
 
@@ -1313,8 +1313,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | - | ------ | ---------- |
 | **3** | 🟢 loja v8.26 + 🟡 v8.28 teste | prefixo GM OK na maioria; `GM0024` parcial (PG+Mongo) — wait pacote |
 | **4** | 🟡 loja v8.22+ | modelo — Renan confirmar salva/reabre |
-| **10** | 🟢 pronto produção | Cancelar cobrança fiado — **validado Renan**; ainda **só no teste** (sobe no próximo pacote) |
-| **5 · 6** | 🟡 teste | #6 PIN polish 1 query · validar no **teste** |
+| **10** | ✅ loja v8.34 | Cancelar cobrança fiado — **validado Renan** · na loja `74b95fc` |
+| **5 · 6** | ✅ loja v8.34 | #6 PIN 1 query |
 | **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
 | **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
 | **7** | 🔴 | impressão notebook — medir host vs app |
