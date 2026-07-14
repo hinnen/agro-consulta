@@ -1154,9 +1154,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.19** · **loja v8.15**
+**Versão app (`VERSION`):** **teste v8.20** · **loja v8.15**
 
-### 🐛 Hotfix #4 modelo persiste (teste **v8.19**)
+### 🐛 Hotfix #4 modelo persiste (teste **v8.19** / badge **v8.20**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1177,7 +1177,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
 | **15** | 🟢 loja OK | Confirmado Renan em produção |
-| **8 · 10 ·.18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
+| **8 · 10 · 18** | 🟢 pronto loja | Renan marcou; #18 fiscal só valida na loja |
 | **4** | 🟡 teste v8.19 | modelo em coluna PG + Mongo — **validar no Render teste** |
 | **3** | 🟠 regressão | custo OK; **busca prefixo GM** ainda quebrada (1× vs 3 no nome) · hotfix loja v8.15 **não** validado |
 | **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
