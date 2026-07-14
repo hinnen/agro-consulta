@@ -1154,7 +1154,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.22** · **loja v8.22**
+**Versão app (`VERSION`):** **teste v8.23** · **loja v8.23**
+
+### 🚑 Hotfix migração loja (14/07) — deploy v8.22 falhou no Render
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Erro** | `0051_produto_modelo` dependia de `0050_vendaagro_frete` (frete) — **não** estava na loja |
+| **Fix** | `0051` passa a depender de `0049` (irmã da 0050) |
+| **Loja** | push hotfix → badge **v8.23** |
 
 ### 📦 Deploy loja **v8.22** — pacote #3 + #4 (14/07 · Renan frase+senha)
 
