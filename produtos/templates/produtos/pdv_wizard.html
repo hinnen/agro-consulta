@@ -54,7 +54,7 @@
   }
   .pdv-cart-row-tools {
     display: grid;
-    grid-template-columns: 7rem 6.35rem auto auto auto;
+    grid-template-columns: 7rem 6.35rem auto 13.75rem auto auto;
     align-items: center;
     justify-content: end;
     gap: 0.45rem;
@@ -358,7 +358,8 @@
   #pdv-product-autocomplete .pdv-ac-head,
   #pdv-product-autocomplete .pdv-ac-row {
     display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr) 6.75rem 5.75rem 7rem;
+    /* foto | produto | marca | GM (mais à dir.) | 2 preços reservados */
+    grid-template-columns: 3rem minmax(0, 1fr) 5.5rem 7.25rem 15rem;
     align-items: center;
     column-gap: 0.45rem;
     padding-left: 0.55rem;
@@ -383,6 +384,7 @@
   #pdv-product-autocomplete .pdv-ac-head span:nth-child(4) {
     padding-left: 0.15rem;
   }
+  #pdv-product-autocomplete .pdv-ac-head span:nth-child(4) { text-align: left; }
   #pdv-product-autocomplete .pdv-ac-row {
     width: 100%;
     border: 0;
@@ -484,34 +486,39 @@
     letter-spacing: 0.02em;
   }
   #pdv-product-autocomplete .pdv-ac-preco {
-    justify-self: end;
+    justify-self: stretch;
     text-align: right;
+    min-width: 0;
   }
   #pdv-product-autocomplete .pdv-ac-preco-duo {
-    display: inline-flex;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     align-items: center;
-    justify-content: flex-end;
     gap: 0.35rem;
+    width: 100%;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-slot {
+    min-height: 2.65rem;
   }
   #pdv-product-autocomplete .pdv-ac-preco-box {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
+    width: 100%;
     min-height: 2.65rem;
-    padding: 0 0.5rem;
+    padding: 0 0.35rem;
     border-radius: 0.65rem;
     border: 2px solid #6ee7b7;
     background: #ecfdf5;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #047857;
     white-space: nowrap;
+    box-sizing: border-box;
   }
   #pdv-product-autocomplete .pdv-ac-preco-box--grupo {
     gap: 0.28rem;
-    padding-left: 0.35rem;
   }
   #pdv-product-autocomplete .pdv-ac-preco-box--grupo-b {
     border-color: #7dd3fc;
@@ -535,18 +542,30 @@
     background: #0369a1;
   }
   .pdv-cart-grupos-hint {
-    display: inline-flex;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 0.3rem;
+    width: 13.75rem;
+    min-width: 13.75rem;
+    box-sizing: border-box;
     flex-shrink: 0;
+  }
+  .pdv-cart-grupos-hint--empty {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .pdv-cart-grupo-slot {
+    min-height: 2.45rem;
   }
   .pdv-cart-grupo-chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.25rem;
+    width: 100%;
     min-height: 2.45rem;
-    padding: 0 0.45rem;
+    padding: 0 0.35rem;
     border-radius: 0.6rem;
     border: 2px solid #6ee7b7;
     background: #ecfdf5;
@@ -555,6 +574,7 @@
     font-variant-numeric: tabular-nums;
     color: #047857;
     white-space: nowrap;
+    box-sizing: border-box;
   }
   .pdv-cart-grupo-chip--b {
     border-color: #7dd3fc;
@@ -2799,7 +2819,7 @@
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
-      grid-template-columns: 2.65rem minmax(0, 1fr) 6rem 5rem 6.25rem !important;
+      grid-template-columns: 2.65rem minmax(0, 1fr) 4.75rem 6.35rem 13.25rem !important;
       column-gap: 0.35rem !important;
       padding-left: 0.4rem !important;
       padding-right: 0.4rem !important;
@@ -2822,9 +2842,13 @@
     .pdv-cart-row > span:first-child { width: 2.75rem; height: 2.75rem; }
     .pdv-cart-row-tools {
       grid-column: 1 / -1;
-      grid-template-columns: 6.25rem 5.5rem auto auto auto;
+      grid-template-columns: 6.25rem 5.5rem auto 12.25rem auto auto;
       justify-content: end;
       row-gap: 0.35rem;
+    }
+    .pdv-cart-grupos-hint {
+      width: 12.25rem;
+      min-width: 12.25rem;
     }
     .pdv-cart-promo-wrap {
       flex: 0 0 5.5rem;

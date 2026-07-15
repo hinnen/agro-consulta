@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.58** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.59** · **loja v8.54**
+
+### 🩹 PDV — alinhamento GM + 2 preços (lista e carrinho) (15/07 · **teste v8.59**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Busca: Marca → GM → espaço fixo p/ 2 preços. Carrinho: coluna A/B sempre reservada (não empurra lixeira) |
+| **Validar** | Ctrl+F5 teste · badge **v8.59** · digitar «milho» · carrinho misturando 1 e 2 preços |
+| **Loja** | ⏳ |
+
 
 ### ✨ Visual A/B — lista cadastro + edição + Entrada NF (15/07 · **teste v8.58**)
 
