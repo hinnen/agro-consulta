@@ -487,6 +487,13 @@
     justify-self: end;
     text-align: right;
   }
+  #pdv-product-autocomplete .pdv-ac-preco-duo {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+  }
   #pdv-product-autocomplete .pdv-ac-preco-box {
     display: inline-flex;
     align-items: center;
@@ -501,6 +508,74 @@
     font-variant-numeric: tabular-nums;
     color: #047857;
     white-space: nowrap;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo {
+    gap: 0.28rem;
+    padding-left: 0.35rem;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo-b {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-grupo-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 0.35rem;
+    background: #047857;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  #pdv-product-autocomplete .pdv-ac-preco-box--grupo-b .pdv-ac-preco-grupo-tag {
+    background: #0369a1;
+  }
+  .pdv-cart-grupos-hint {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+  .pdv-cart-grupo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 2.45rem;
+    padding: 0 0.45rem;
+    border-radius: 0.6rem;
+    border: 2px solid #6ee7b7;
+    background: #ecfdf5;
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #047857;
+    white-space: nowrap;
+  }
+  .pdv-cart-grupo-chip--b {
+    border-color: #7dd3fc;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  .pdv-cart-grupo-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0.3rem;
+    background: #047857;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .pdv-cart-grupo-chip--b .pdv-cart-grupo-tag {
+    background: #0369a1;
   }
   .pdv-product-results-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
   .pdv-product-results-empty { display: flex; min-height: 12rem; align-items: center; justify-content: center; border: 1px dashed #cbd5e1; border-radius: 1.25rem; background: linear-gradient(180deg, #fff, #f8fafc); color: #64748b; font-size: .9rem; font-weight: 700; text-align: center; padding: 1rem; }

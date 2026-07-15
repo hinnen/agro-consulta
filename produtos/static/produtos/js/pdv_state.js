@@ -443,6 +443,18 @@
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
+            if (produto.precos_modo) {
+                existing.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            }
+            if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
+                existing.precos_grupos = Object.assign({}, produto.precos_grupos);
+                if (Array.isArray(produto.precos_grupos.formas_a)) {
+                    existing.precos_grupos.formas_a = produto.precos_grupos.formas_a.slice();
+                }
+                if (Array.isArray(produto.precos_grupos.formas_b)) {
+                    existing.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
+                }
+            }
             if (!existing.preco_manual) recalcularTodasPromocoes();
         } else {
             var novo = {
@@ -460,6 +472,18 @@
             };
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
+            }
+            if (produto.precos_modo) {
+                novo.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            }
+            if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
+                novo.precos_grupos = Object.assign({}, produto.precos_grupos);
+                if (Array.isArray(produto.precos_grupos.formas_a)) {
+                    novo.precos_grupos.formas_a = produto.precos_grupos.formas_a.slice();
+                }
+                if (Array.isArray(produto.precos_grupos.formas_b)) {
+                    novo.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
+                }
             }
             state.itens.push(novo);
             recalcularTodasPromocoes();
