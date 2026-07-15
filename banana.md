@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.43** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.45** · **loja v8.43**
+
+### 🩹 Entrada NF — UX rateio + passos 1–8 numa linha (15/07 · **teste v8.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Caixa amarela do rateio compacta na linha «2 · Produtos» · chips 1–8 numa fileira (sem 7/8 sozinhos) |
+| **Validar** | Ctrl+F5 teste · badge **v8.45** · etapa 2: faixa amarela fina · passo a passo: 8 tags na mesma linha |
+| **Loja** | ⏳ |
+
 
 ### 📦 Deploy loja **v8.43** — rateio frete/ST + hidrata GM paralelo (14/07 · Renan frase+senha)
 

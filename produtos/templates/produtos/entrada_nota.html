@@ -950,16 +950,30 @@
     }
     #entrada-nfe-wizard-nav .nfe-wiz-track {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.35rem;
+      /* 8 passos numa linha (7/8 não caem sozinhos na 2ª fileira). */
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 0.3rem;
       margin-top: 0.35rem;
+    }
+    @media (max-width: 1100px) {
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-btn {
+        min-height: 2.45rem;
+        padding: 0.3rem 0.2rem;
+        gap: 0.2rem;
+      }
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-name {
+        font-size: 0.62rem;
+      }
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-num {
+        font-size: 0.85rem;
+      }
     }
     @media (max-width: 639px) {
       #entrada-nfe-wizard-nav .nfe-wiz-track {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-name {
-        font-size: 0.64rem;
+        font-size: 0.58rem;
       }
     }
     #entrada-nfe-wizard-nav .nfe-wiz-actions {
@@ -1225,21 +1239,19 @@
       <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
 
       <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">2 · Produtos</h2>
-          <div class="flex flex-wrap gap-2 justify-end">
-            <button type="button" id="btn-prod-novo-popup"
-              class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0"
-              title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
-          </div>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight shrink-0">2 · Produtos</h2>
+          <label id="nfe-rateio-acrescimos-wrap" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border-2 border-amber-300 bg-amber-50/90 cursor-pointer min-h-[2.25rem] flex-1 min-w-[14rem] max-w-3xl" title="">
+            <input type="checkbox" id="nfe-chk-rateio-acrescimos" class="h-4 w-4 accent-amber-600 shrink-0" disabled>
+            <span class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0 leading-tight">
+              <span class="text-[10px] sm:text-[11px] font-black uppercase text-amber-950 whitespace-nowrap">Incluir acréscimos no custo</span>
+              <span id="nfe-rateio-acrescimos-hint" class="text-[10px] font-semibold text-amber-900/90 truncate max-w-full">Leia o XML primeiro — se houver frete/ST, rateia no custo.</span>
+            </span>
+          </label>
+          <button type="button" id="btn-prod-novo-popup"
+            class="inline-flex min-h-[2.25rem] items-center px-3 py-1.5 rounded-xl bg-white border-2 border-blue-600 text-[10px] sm:text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0 ml-auto"
+            title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
         </div>
-        <label id="nfe-rateio-acrescimos-wrap" class="inline-flex flex-wrap items-start gap-2.5 px-3 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50/90 cursor-pointer min-h-[44px] w-full max-w-3xl">
-          <input type="checkbox" id="nfe-chk-rateio-acrescimos" class="mt-0.5 h-5 w-5 accent-amber-600 shrink-0" disabled>
-          <span class="min-w-0">
-            <span class="block text-xs font-black uppercase text-amber-950 leading-snug">Incluir no custo os acréscimos da nota</span>
-            <span id="nfe-rateio-acrescimos-hint" class="block text-[11px] font-semibold text-amber-900/90 leading-snug mt-0.5">Leia o XML primeiro. Se houver frete, ST, seguro, outras ou IPI, o sistema rateia no custo unitário (sem ler o arquivo de novo).</span>
-          </span>
-        </label>
         <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
         <table class="nfe-grade-itens w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
@@ -5821,39 +5833,56 @@
   function entradaNfeAtualizarUiRateioAcrescimos(notaOpt) {
     const chk = document.getElementById('nfe-chk-rateio-acrescimos');
     const hint = document.getElementById('nfe-rateio-acrescimos-hint');
+    const wrap = document.getElementById('nfe-rateio-acrescimos-wrap');
     if (!chk) return;
     const nota = notaOpt != null ? notaOpt : ultimaNotaParse;
     const acresc = entradaNfeNotaAcrescimosCusto(nota);
     const vnf = Number(nota && nota.valor_total) || 0;
     const vprod = entradaNfeNotaSomaVProd(nota);
+    const setHint = (curto, completo) => {
+      const full = completo || curto || '';
+      if (hint) hint.textContent = curto || '';
+      if (wrap) wrap.title = full;
+      if (hint) hint.title = full;
+    };
     if (!(acresc > 0)) {
       chk.disabled = true;
       if (chk.checked) chk.checked = false;
-      if (hint) {
-        hint.textContent = nota
-          ? 'Esta nota não trouxe frete/ST/IPI/outras no total — deixar marcado não muda o custo.'
-          : 'Leia o XML primeiro. Se houver frete, ST, seguro, outras ou IPI, o sistema rateia no custo unitário (sem ler o arquivo de novo).';
+      if (nota) {
+        setHint(
+          'Sem frete/ST nesta nota — marcar não muda o custo.',
+          'Esta nota não trouxe frete/ST/IPI/outras no total — deixar marcado não muda o custo.'
+        );
+      } else {
+        setHint(
+          'Leia o XML primeiro — se houver frete/ST, rateia no custo.',
+          'Leia o XML primeiro. Se houver frete, ST, seguro, outras ou IPI, o sistema rateia no custo unitário (sem ler o arquivo de novo).'
+        );
       }
       return;
     }
     chk.disabled = false;
-    if (hint) {
-      const partes = [];
-      const t = (nota && nota.totais_nf) || {};
-      if (Number(t.v_frete) > 0) partes.push(`frete ${entradaNfeFmtMoedaHint(t.v_frete)}`);
-      if (Number(t.v_st) > 0) partes.push(`ST ${entradaNfeFmtMoedaHint(t.v_st)}`);
-      if (Number(t.v_seg) > 0) partes.push(`seguro ${entradaNfeFmtMoedaHint(t.v_seg)}`);
-      if (Number(t.v_outro) > 0) partes.push(`outras ${entradaNfeFmtMoedaHint(t.v_outro)}`);
-      if (Number(t.v_ipi) > 0) partes.push(`IPI ${entradaNfeFmtMoedaHint(t.v_ipi)}`);
-      if (Number(t.v_desc) > 0) partes.push(`− desc. ${entradaNfeFmtMoedaHint(t.v_desc)}`);
-      const detalhe = partes.length ? ` (${partes.join(' · ')})` : '';
-      hint.textContent =
-        `Rateia ${entradaNfeFmtMoedaHint(acresc)}${detalhe} no custo dos itens`
-        + (vprod > 0 && vnf > 0
-          ? ` · produtos ${entradaNfeFmtMoedaHint(vprod)} → nota ${entradaNfeFmtMoedaHint(vnf)}.`
-          : '.')
-        + ' Marque ou desmarque — a grade recalcula na hora.';
-    }
+    const partes = [];
+    const t = (nota && nota.totais_nf) || {};
+    if (Number(t.v_frete) > 0) partes.push(`frete ${entradaNfeFmtMoedaHint(t.v_frete)}`);
+    if (Number(t.v_st) > 0) partes.push(`ST ${entradaNfeFmtMoedaHint(t.v_st)}`);
+    if (Number(t.v_seg) > 0) partes.push(`seguro ${entradaNfeFmtMoedaHint(t.v_seg)}`);
+    if (Number(t.v_outro) > 0) partes.push(`outras ${entradaNfeFmtMoedaHint(t.v_outro)}`);
+    if (Number(t.v_ipi) > 0) partes.push(`IPI ${entradaNfeFmtMoedaHint(t.v_ipi)}`);
+    if (Number(t.v_desc) > 0) partes.push(`− desc. ${entradaNfeFmtMoedaHint(t.v_desc)}`);
+    const detalhe = partes.length ? ` (${partes.join(' · ')})` : '';
+    const completo =
+      `Rateia ${entradaNfeFmtMoedaHint(acresc)}${detalhe} no custo dos itens`
+      + (vprod > 0 && vnf > 0
+        ? ` · produtos ${entradaNfeFmtMoedaHint(vprod)} → nota ${entradaNfeFmtMoedaHint(vnf)}.`
+        : '.')
+      + ' Marque ou desmarque — a grade recalcula na hora.';
+    const curto =
+      `${entradaNfeFmtMoedaHint(acresc)}${detalhe}`
+      + (vprod > 0 && vnf > 0
+        ? ` · ${entradaNfeFmtMoedaHint(vprod)} → ${entradaNfeFmtMoedaHint(vnf)}`
+        : '');
+    setHint(curto, completo);
   }
 
   /**
