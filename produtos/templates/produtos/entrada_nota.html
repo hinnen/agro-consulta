@@ -8070,6 +8070,7 @@
     const trs = [...document.querySelectorAll('#tbody-itens tr')].filter(
       (tr) => tr.dataset.nfeLinhaModo !== 'compact'
     );
+    const jobs = [];
     for (const tr of trs) {
       const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
       if (!pid || pid.toLowerCase().startsWith('local:')) continue;
@@ -8079,22 +8080,25 @@
       const pareceGm = /^gm/i.test(cprodAtual) || /-/i.test(cprodAtual);
       const precisaGm = !pareceGm;
       if (!precisaPv && !precisaGm) continue;
-      try {
-        const det = await fetch(`/api/buscar-produto-id/${encodeURIComponent(pid)}/`, {
-          credentials: 'same-origin',
-        }).then((r) => (r.ok ? r.json() : null));
-        if (!det || !tr.isConnected) continue;
-        if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) continue;
-        tr.dataset.nfeCustNfPreservado = '1';
-        const gm = entradaNfeStrCampo(det.codigo_nfe || det.codigo);
-        if (gm) tr.querySelector('.in-cprod').value = gm;
-        const nome = entradaNfeStrCampo(det.nome);
-        if (nome) tr.dataset.nfeNomeCatalogo = nome.slice(0, 500);
-        entradaNfeAplicarPrecosCatalogoNaLinha(tr, det);
-        entradaNfeLinhaApplyCatalogoUi(tr);
-        entradaNfeSyncEditProdBtn(tr);
-      } catch (_) {}
+      jobs.push(
+        fetch(`/api/buscar-produto-id/${encodeURIComponent(pid)}/`, { credentials: 'same-origin' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((det) => {
+            if (!det || !tr.isConnected) return;
+            if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
+            tr.dataset.nfeCustNfPreservado = '1';
+            const gm = entradaNfeStrCampo(det.codigo_nfe || det.codigo);
+            if (gm) tr.querySelector('.in-cprod').value = gm;
+            const nome = entradaNfeStrCampo(det.nome);
+            if (nome) tr.dataset.nfeNomeCatalogo = nome.slice(0, 500);
+            entradaNfeAplicarPrecosCatalogoNaLinha(tr, det);
+            entradaNfeLinhaApplyCatalogoUi(tr);
+            entradaNfeSyncEditProdBtn(tr);
+          })
+          .catch(function () {})
+      );
     }
+    if (jobs.length) await Promise.all(jobs);
     atualizarPainelTotalNfe();
     entradaNfeAgendarAutosaveRascunho();
   }
