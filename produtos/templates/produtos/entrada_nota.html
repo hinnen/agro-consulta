@@ -962,8 +962,26 @@
     .nfe-grade-itens col.nfe-col-desc {
       width: 17%;
     }
+    .nfe-grade-itens col.nfe-col-cod {
+      width: 5.25rem;
+    }
+    .nfe-grade-itens col.nfe-col-ean {
+      width: 5.75rem;
+    }
+    /* Embalagem recolhida: espaços das 3 cols vão para Descrição + Cód. + EAN (sem “buraco” à direita). */
     .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-desc {
-      width: 32%;
+      width: 26%;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-cod {
+      width: 8.25rem;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-ean {
+      width: 9rem;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid .in-cprod,
+    .nfe-grade-itens.nfe-grade-itens--emb-hid .in-ean {
+      font-size: 0.78rem;
+      letter-spacing: -0.01em;
     }
     #nfe-btn-toggle-emb-cols {
       display: inline-flex;
@@ -1362,8 +1380,8 @@
         <table class="nfe-grade-itens nfe-grade-itens--emb-hid w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
             <col class="nfe-col-desc" />
-            <col class="w-[5.25rem]" />
-            <col class="w-[5.75rem]" />
+            <col class="nfe-col-cod" />
+            <col class="nfe-col-ean" />
             <col class="w-[4.5rem]" />
             <col class="w-[5.5rem]" />
             <col class="nfe-col-emb w-[4.25rem]" />
