@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.45** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.46** · **loja v8.43**
+
+### 🩹 Entrada NF — abas + meta numa linha (15/07 · **teste v8.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Manual/XML/SEFAZ + Origem/NF/Linhas/datas na **mesma faixa** · passos 1–8 + Anterior/Próximo sem 2ª fileira |
+| **Validar** | Ctrl+F5 teste · badge **v8.46** · topo do editor: uma linha só |
+| **Loja** | ⏳ |
+
 
 ### 🩹 Entrada NF — UX rateio + passos 1–8 numa linha (15/07 · **teste v8.45**)
 
