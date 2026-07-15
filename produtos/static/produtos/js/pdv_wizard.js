@@ -2980,29 +2980,32 @@
     }
 
     function renderCartPrecosGruposHint(item) {
+        var empty =
+            '<div class="pdv-cart-grupos-hint pdv-cart-grupos-hint--empty" aria-hidden="true">' +
+            '<span class="pdv-cart-grupo-slot"></span><span class="pdv-cart-grupo-slot"></span>' +
+            '</div>';
         var vis =
             window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosGruposVisiveis
                 ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(item)
                 : null;
-        if (!vis || (vis.a == null && vis.b == null)) return '';
-        var parts = [];
-        if (vis.a != null) {
-            parts.push(
-                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço grupo A (unitário)">' +
-                    '<span class="pdv-cart-grupo-tag">A</span>' +
-                    escapeHtml(formatMoney(vis.a)) +
-                    '</span>'
-            );
-        }
-        if (vis.b != null) {
-            parts.push(
-                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="Preço grupo B (unitário)">' +
-                    '<span class="pdv-cart-grupo-tag">B</span>' +
-                    escapeHtml(formatMoney(vis.b)) +
-                    '</span>'
-            );
-        }
-        return '<div class="pdv-cart-grupos-hint" aria-label="Preços por grupo">' + parts.join('') + '</div>';
+        if (!vis || (vis.a == null && vis.b == null)) return empty;
+        var aPart =
+            vis.a != null
+                ? '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço grupo A (unitário)">' +
+                  '<span class="pdv-cart-grupo-tag">A</span>' +
+                  escapeHtml(formatMoney(vis.a)) +
+                  '</span>'
+                : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
+        var bPart =
+            vis.b != null
+                ? '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="Preço grupo B (unitário)">' +
+                  '<span class="pdv-cart-grupo-tag">B</span>' +
+                  escapeHtml(formatMoney(vis.b)) +
+                  '</span>'
+                : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
+        return (
+            '<div class="pdv-cart-grupos-hint" aria-label="Preços por grupo">' + aPart + bPart + '</div>'
+        );
     }
 
     function renderCartPromoBadges(item, itens) {
@@ -3843,7 +3846,7 @@
     function productAutocompleteHeaderHtml() {
         return (
             '<div class="pdv-ac-head" aria-hidden="true">' +
-            '<span></span><span>Produto</span><span>GM</span><span>Marca</span><span>Preço</span>' +
+            '<span></span><span>Produto</span><span>Marca</span><span>GM</span><span>Preço</span>' +
             '</div>'
         );
     }
@@ -3978,11 +3981,11 @@
             '  <span class="pdv-ac-nome">' +
             escapeHtml(produto.nome || '') +
             '</span>' +
-            '  <span class="pdv-ac-gm">' +
-            escapeHtml(gm) +
-            '</span>' +
             '  <span class="pdv-ac-marca">' +
             escapeHtml(marca) +
+            '</span>' +
+            '  <span class="pdv-ac-gm">' +
+            escapeHtml(gm) +
             '</span>' +
             '  <span class="pdv-ac-preco">' +
             renderPdvPrecosVisiveis(produto) +
@@ -3992,29 +3995,27 @@
     }
 
     function renderPdvPrecosVisiveis(produtoOuItem) {
+        var slotEmpty = '<span class="pdv-ac-preco-slot" aria-hidden="true"></span>';
         var vis =
             window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosGruposVisiveis
                 ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(produtoOuItem)
                 : null;
         if (vis && (vis.a != null || vis.b != null)) {
-            var parts = [];
-            if (vis.a != null) {
-                parts.push(
-                    '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo" title="Grupo A">' +
-                        '<span class="pdv-ac-preco-grupo-tag">A</span>' +
-                        escapeHtml(formatMoney(vis.a)) +
-                        '</span>'
-                );
-            }
-            if (vis.b != null) {
-                parts.push(
-                    '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo pdv-ac-preco-box--grupo-b" title="Grupo B">' +
-                        '<span class="pdv-ac-preco-grupo-tag">B</span>' +
-                        escapeHtml(formatMoney(vis.b)) +
-                        '</span>'
-                );
-            }
-            return '<span class="pdv-ac-preco-duo">' + parts.join('') + '</span>';
+            var aPart =
+                vis.a != null
+                    ? '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo" title="Grupo A">' +
+                      '<span class="pdv-ac-preco-grupo-tag">A</span>' +
+                      escapeHtml(formatMoney(vis.a)) +
+                      '</span>'
+                    : slotEmpty;
+            var bPart =
+                vis.b != null
+                    ? '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo pdv-ac-preco-box--grupo-b" title="Grupo B">' +
+                      '<span class="pdv-ac-preco-grupo-tag">B</span>' +
+                      escapeHtml(formatMoney(vis.b)) +
+                      '</span>'
+                    : slotEmpty;
+            return '<span class="pdv-ac-preco-duo">' + aPart + bPart + '</span>';
         }
         var pv =
             produtoOuItem.preco_venda != null
@@ -4022,7 +4023,14 @@
                 : produtoOuItem.preco_padrao != null
                   ? produtoOuItem.preco_padrao
                   : produtoOuItem.preco || 0;
-        return '<span class="pdv-ac-preco-box">' + escapeHtml(formatMoney(pv || 0)) + '</span>';
+        return (
+            '<span class="pdv-ac-preco-duo">' +
+            slotEmpty +
+            '<span class="pdv-ac-preco-box">' +
+            escapeHtml(formatMoney(pv || 0)) +
+            '</span>' +
+            '</span>'
+        );
     }
 
     function invalidatePendingProductSearch() {
