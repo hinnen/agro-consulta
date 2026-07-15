@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.51** · **loja v8.49**
+**Versão app (`VERSION`):** **teste v8.52** · **loja v8.49**
+
+### 🩹 Entrada NF — emb. recolhida alarga Cód./EAN (15/07 · **teste v8.52**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Com Embalagem fechada, espaço livre vai para **Cód.** e **EAN** (não fica buraco à direita) |
+| **Validar** | Ctrl+F5 teste · badge **v8.52** · Emb. fechada → GM completo + EAN mais largo |
+| **Loja** | ⏳ |
+
 
 ### 🩹 Entrada NF — nome do cadastro sob a descrição (15/07 · **teste v8.51**)
 
