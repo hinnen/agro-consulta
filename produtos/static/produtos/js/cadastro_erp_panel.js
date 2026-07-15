@@ -776,6 +776,36 @@
     }
   }
 
+  function formatVendaListaHtml(p) {
+    var modo = String((p && p.precos_modo) || '').toLowerCase();
+    var g = p && p.precos_grupos;
+    if (modo === 'grupos' && g && typeof g === 'object') {
+      var a = Number(g.preco_a);
+      var b = Number(g.preco_b);
+      var chips = [];
+      if (isFinite(a) && a > 0) {
+        chips.push(
+          '<span class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-emerald-800" title="Grupo A">' +
+            '<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-emerald-700 text-[10px] font-black text-white">A</span>' +
+            escapeHtml(fmtMoney(a)) +
+            '</span>'
+        );
+      }
+      if (isFinite(b) && b > 0) {
+        chips.push(
+          '<span class="inline-flex items-center gap-1 rounded-lg border-2 border-sky-300 bg-sky-50 px-1.5 py-0.5 text-sky-800" title="Grupo B">' +
+            '<span class="inline-flex h-4 min-w-[1rem] items-center justify-center rounded bg-sky-700 text-[10px] font-black text-white">B</span>' +
+            escapeHtml(fmtMoney(b)) +
+            '</span>'
+        );
+      }
+      if (chips.length) {
+        return '<div class="inline-flex flex-col items-end gap-1">' + chips.join('') + '</div>';
+      }
+    }
+    return escapeHtml(fmtMoney(p && p.preco_venda));
+  }
+
   function renderLista(produtos) {
     var tbody = listaEl || document.getElementById('cadastro-lista');
     if (!tbody) return;
@@ -801,7 +831,7 @@
       var custoTxt = p._precoAguardando
         ? '…'
         : (custoListaNum != null ? fmtMoney(custoListaNum) : '—');
-      var vendaTxt = p._precoAguardando ? '…' : fmtMoney(p.preco_venda);
+      var vendaTxt = p._precoAguardando ? '…' : formatVendaListaHtml(p);
       var sc = p.saldo_centro != null ? String(p.saldo_centro) : '—';
       var sv = p.saldo_vila != null ? String(p.saldo_vila) : '—';
       var st = p.saldo_total != null ? String(p.saldo_total) : '—';
@@ -1082,6 +1112,9 @@
       preco_venda: produto.preco_venda,
       preco_custo: produto.preco_custo,
       preco_custo_com_acrescimos: produto.preco_custo_com_acrescimos,
+      precos_modo: produto.precos_modo,
+      precos_grupos: produto.precos_grupos,
+      precos_por_forma: produto.precos_por_forma,
       categoria: produto.categoria,
       subcategoria: produto.subcategoria,
       subcategoria_2: produto.subcategoria_2,
@@ -1176,6 +1209,9 @@
       preco_venda: src.preco_venda,
       preco_custo: src.preco_custo,
       preco_custo_com_acrescimos: src.preco_custo_com_acrescimos,
+      precos_modo: src.precos_modo,
+      precos_grupos: src.precos_grupos,
+      precos_por_forma: src.precos_por_forma,
       categoria: src.categoria,
       subcategoria: sub || catList || '',
       categoria_listagem: catList || sub || '',

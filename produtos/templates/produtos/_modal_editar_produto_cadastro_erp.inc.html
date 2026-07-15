@@ -286,6 +286,17 @@
           </div>
         </label>
 
+        <div id="edit-precos-grupos-preview" class="hidden w-full grid grid-cols-2 gap-2">
+          <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50 px-3 py-2.5 text-center">
+            <div class="text-[10px] font-black uppercase tracking-wide text-emerald-900">Grupo A</div>
+            <div id="edit-precos-grupos-a" class="text-xl font-black tabular-nums text-emerald-800 mt-0.5">—</div>
+          </div>
+          <div class="rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2.5 text-center">
+            <div class="text-[10px] font-black uppercase tracking-wide text-sky-900">Grupo B</div>
+            <div id="edit-precos-grupos-b" class="text-xl font-black tabular-nums text-sky-800 mt-0.5">—</div>
+          </div>
+        </div>
+
         <div class="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <button type="button" id="btn-precos-forma-pagamento" class="min-h-[52px] flex-1 rounded-xl border-2 border-orange-300 bg-white hover:bg-orange-50 text-orange-900 font-black text-sm uppercase tracking-wide px-4 py-3 shadow-sm transition-colors flex items-center justify-center gap-2" title="Valores opcionais por forma de pagamento. Vazio usa o preço de venda final.">
             <span>Preços por forma de pagamento</span>
@@ -2350,7 +2361,16 @@
 
     function atualizarBadgePrecosForma() {
       var badge = document.getElementById('badge-precos-forma-count');
-      if (!badge) return;
+      var btnLab = document.querySelector('#btn-precos-forma-pagamento > span:first-child');
+      if (btnLab) {
+        btnLab.textContent = modalEdit._precosModo === 'grupos'
+          ? 'Preços em 2 grupos (A / B)'
+          : 'Preços por forma de pagamento';
+      }
+      if (!badge) {
+        atualizarPreviewPrecosGruposNaEdicao();
+        return;
+      }
       var n = 0;
       if (modalEdit._precosModo === 'grupos') {
         var g = modalEdit._precosGrupos || {};
@@ -2371,6 +2391,27 @@
         badge.textContent = '';
         badge.classList.add('hidden');
       }
+      atualizarPreviewPrecosGruposNaEdicao();
+    }
+
+    function atualizarPreviewPrecosGruposNaEdicao() {
+      var box = document.getElementById('edit-precos-grupos-preview');
+      var aEl = document.getElementById('edit-precos-grupos-a');
+      var bEl = document.getElementById('edit-precos-grupos-b');
+      if (!box || !aEl || !bEl) return;
+      var g = modalEdit._precosGrupos || {};
+      var modoOk = modalEdit._precosModo === 'grupos';
+      var a = g.preco_a != null ? parseMoeda(g.preco_a) : 0;
+      var b = g.preco_b != null ? parseMoeda(g.preco_b) : 0;
+      if (!modoOk || (a <= 0 && b <= 0)) {
+        box.classList.add('hidden');
+        aEl.textContent = '—';
+        bEl.textContent = '—';
+        return;
+      }
+      box.classList.remove('hidden');
+      aEl.textContent = a > 0 ? ('R$ ' + fmtMoeda2(a)) : '—';
+      bEl.textContent = b > 0 ? ('R$ ' + fmtMoeda2(b)) : '—';
     }
 
     function aplicarModoUi() {
@@ -2400,6 +2441,7 @@
           ? 'Defina o preço A e B e em qual grupo fica cada forma. Forma sem grupo usa o preço de venda final.'
           : 'Deixe em branco para usar o preço de venda final. Só formas preenchidas alteram o PDV.';
       }
+      atualizarBadgePrecosForma();
     }
 
     function renderPrecosFormaTabela() {

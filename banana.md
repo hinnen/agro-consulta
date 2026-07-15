@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.57** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.58** · **loja v8.54**
+
+### ✨ Visual A/B — lista cadastro + edição + Entrada NF (15/07 · **teste v8.58**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Coluna VENDA com chips A/B · preview Grupo A/B na aba preços · chips A/B sob P.venda na Entrada NF |
+| **Validar** | Ctrl+F5 teste · badge **v8.58** · produto em 2 grupos: lista + lápis + casar na NF |
+| **Loja** | ⏳ |
+
 
 ### 🩹 PDV — grupos A/B aparecem + modal preços maior (15/07 · **teste v8.57**)
 
@@ -1513,10 +1522,33 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
-| **17** | ⚪ | aguarda exemplos de busca CP |
+| **17** | ⚪ | exemplos 15/07 — ver bloco abaixo |
 | ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 
 **Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+
+### 🐛 #17 Busca CP inteligente — exemplos Renan (15/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Busca por **valor** às vezes não acha nada — mesmo digitando o valor **exato** do título |
+| **Causa real (PG)** | Tela CP usa Postgres: `_aplicar_texto_qs` **não busca valor** (só texto). Mongo antigo tinha valor; PG ficou atrás |
+| **Melhoria (não bug)** | Buscar também por **data de vencimento** digitando a data (ex. `15/07/2026`) |
+| **Status** | ⚪ pacote proposto · aguarda Renan escolher o que implementar |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` (principal) · `mongo_financeiro_util.py` · help §10 |
+
+**Pacote #17 proposto (padrão ERP · ordem prática loja):**
+
+| Prio | Item | Por quê |
+| ---- | ---- | ------- |
+| **P0** | Valor (bruto / pago / restante) + inteiro sem vírgula | Bug atual — loja usa todo dia |
+| **P0** | Data digitada (venc. / também comp. e pagto se parecer data) | Pedido Renan |
+| **P1** | Código de barras / linha digitável do boleto | Campo já existe (`boleto_codigo_barras`); leitor na loja |
+| **P1** | Nº documento “só números” + prefixo parcial | NF/parcela sem acento no fornecedor |
+| **P2** | Parcela (`2/6` ou `parcela 2`) | Contas parceladas |
+| **P2** | Acentos / maiúsculas iguais (já parcial) + CNPJ/CPF mascarado | ERP clássico |
+| **P3** | Operadores: `>` `<` valor, `venc:dd/mm` | Avançado — só se Renan quiser |
+| **Fora** | Busca fuzzy fonética / IA | Ruído + custo; não necessário na loja |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
