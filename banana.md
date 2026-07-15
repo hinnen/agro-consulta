@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 
-**Versão app (`VERSION`):** **teste v8.43** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.49** · **loja v8.49**
+
+### 📦 Deploy loja **v8.49** — UX Entrada NF + P.venda overlay (15/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *enviar… produção* + `99738595` |
+| **Pacote** | passos 1–8 · abas/meta topbar · emb. recolhível · fix overlay R$0 não apaga P.venda |
+| **Backup** | `producao-backup-pre-v849-20260715` @ `6f46143` |
+| **Validar** | Ctrl+F5 loja · badge **v8.49** · XML → P.venda nos itens · layout compacto |
+| **Revert** | `git reset --hard 6f46143` na `producao` + push |
+
 
 ### 📦 Deploy loja **v8.43** — rateio frete/ST + hidrata GM paralelo (14/07 · Renan frase+senha)
 

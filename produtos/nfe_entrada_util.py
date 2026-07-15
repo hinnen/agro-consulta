@@ -1033,7 +1033,9 @@ def _overlay_preco_e_gm_por_pids(pids: list[str]) -> dict[str, dict[str, object]
         row: dict[str, object] = {}
         if gm:
             row["codigo_nfe"] = gm[:64]
-        if pv is not None and pv >= 0:
+        # Só sobrescreve preço do Mongo quando overlay/PG traz valor útil (> 0).
+        # Zero no overlay não pode apagar ValorVenda do catálogo Mongo.
+        if pv is not None and pv > 0:
             row["preco_venda"] = pv
         if row:
             out[pid] = row
@@ -1097,9 +1099,11 @@ def casar_produtos_mongo(
                 it["codigo_nfe"] = str(row["codigo_nfe"])[:64]
             if row.get("preco_venda") is not None:
                 try:
-                    it["preco_venda"] = float(row["preco_venda"])
+                    pv_ov = float(row["preco_venda"])
                 except (TypeError, ValueError):
-                    pass
+                    pv_ov = 0.0
+                if pv_ov > 0:
+                    it["preco_venda"] = pv_ov
     return itens
 
 
