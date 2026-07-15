@@ -1154,7 +1154,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.41** · **loja v8.41**
+**Versão app (`VERSION`):** **teste v8.42** · **loja v8.41**
+
+### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **teste v8.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | GM não pula de 2 em 2 s — busca do cadastro em paralelo |
+| **Loja** | ⏳ |
 
 ### 🚑 Entrada NF — após Confirmar XML sem GM / P.venda 0 (14/07 · **loja v8.41**)
 
