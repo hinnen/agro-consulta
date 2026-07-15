@@ -923,6 +923,52 @@
     .entrada-nfe-tabs .tab-btn.tab-off {
       background: transparent !important;
     }
+    /* Grade: Un/emb · Qtd est. · R$ pacote recolhíveis (ganha largura na Descrição). */
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-emb,
+    .nfe-grade-itens.nfe-grade-itens--emb-hid th.nfe-col-emb,
+    .nfe-grade-itens.nfe-grade-itens--emb-hid td.nfe-col-emb {
+      display: none !important;
+    }
+    .nfe-grade-itens col.nfe-col-desc {
+      width: 17%;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-desc {
+      width: 32%;
+    }
+    #nfe-btn-toggle-emb-cols {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      min-height: 2.25rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 0.65rem;
+      border: 2px solid rgb(203 213 225);
+      background: rgb(255 255 255);
+      color: rgb(51 65 85);
+      font-size: 0.65rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #nfe-btn-toggle-emb-cols:hover {
+      border-color: rgb(148 163 184);
+      background: rgb(248 250 252);
+    }
+    #nfe-btn-toggle-emb-cols[aria-expanded="true"] {
+      border-color: rgb(56 189 248);
+      background: rgb(240 249 255);
+      color: rgb(3 105 161);
+    }
+    #nfe-btn-toggle-emb-cols .nfe-emb-arrow {
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: transform 0.12s ease;
+    }
+    #nfe-btn-toggle-emb-cols[aria-expanded="true"] .nfe-emb-arrow {
+      transform: rotate(90deg);
+    }
     #entrada-nfe-wizard-nav.entrada-nfe-wiz-nav--compact {
       border-style: solid;
       border-width: 1px;
@@ -1254,21 +1300,26 @@
               <span id="nfe-rateio-acrescimos-hint" class="text-[10px] font-semibold text-amber-900/90 truncate max-w-full">Leia o XML primeiro — se houver frete/ST, rateia no custo.</span>
             </span>
           </label>
+          <button type="button" id="nfe-btn-toggle-emb-cols" aria-expanded="false" aria-controls="entrada-nfe-grade-scroll"
+            title="Mostra ou esconde Un/emb, Qtd est. e R$ pacote — pouco usados no dia a dia.">
+            <span class="nfe-emb-arrow" aria-hidden="true">▸</span>
+            <span class="nfe-emb-label">Embalagem</span>
+          </button>
           <button type="button" id="btn-prod-novo-popup"
             class="inline-flex min-h-[2.25rem] items-center px-3 py-1.5 rounded-xl bg-white border-2 border-blue-600 text-[10px] sm:text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0 ml-auto"
             title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
         </div>
         <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
-        <table class="nfe-grade-itens w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
+        <table class="nfe-grade-itens nfe-grade-itens--emb-hid w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
-            <col class="w-[17%]" />
+            <col class="nfe-col-desc" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
             <col class="w-[4.5rem]" />
             <col class="w-[5.5rem]" />
-            <col class="w-[4.25rem]" />
-            <col class="w-[5.25rem]" />
-            <col class="w-[5.25rem]" />
+            <col class="nfe-col-emb w-[4.25rem]" />
+            <col class="nfe-col-emb w-[5.25rem]" />
+            <col class="nfe-col-emb w-[5.25rem]" />
             <col class="w-[7rem]" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
@@ -1284,9 +1335,9 @@
               <th class="text-left align-bottom px-2 py-2" title="EAN ou código de barras">EAN</th>
               <th class="text-center align-bottom px-1 py-2" title="Mudar ou escolher produto do Agro nesta linha">Cat.</th>
               <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal">Qtd NF</th>
-              <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem na NF; com valor 1 aparece «—» (editável); acima de 1, moldura azul">Un/emb</th>
-              <th class="text-right align-bottom px-2 py-2" title="Só aparece quando Un/emb é maior que 1; valor = Qtd NF × Un/emb (automático)">Qtd est.</th>
-              <th class="text-right align-bottom px-2 py-2" title="Custo de uma embalagem (editável quando Un/emb maior que 1). Ao sair do campo: calcula o V. unit dividindo pelo Un/emb.">R$ pacote</th>
+              <th class="nfe-col-emb text-right align-bottom px-2 py-2" title="Unidades por embalagem na NF; com valor 1 aparece «—» (editável); acima de 1, moldura azul">Un/emb</th>
+              <th class="nfe-col-emb text-right align-bottom px-2 py-2" title="Só aparece quando Un/emb é maior que 1; valor = Qtd NF × Un/emb (automático)">Qtd est.</th>
+              <th class="nfe-col-emb text-right align-bottom px-2 py-2" title="Custo de uma embalagem (editável quando Un/emb maior que 1). Ao sair do campo: calcula o V. unit dividindo pelo Un/emb.">R$ pacote</th>
               <th class="text-right align-bottom px-2 py-2" title="Custo unitário na NF. Com Un/emb maior que 1, use R$ pacote para informar o valor da embalagem (ex.: 14,00); ou edite aqui o custo por unidade — o pacote é atualizado (× Un/emb).">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
@@ -2336,6 +2387,9 @@
       if (custoPacote != null && Number.isFinite(custoPacote) && custoPacote >= 0) {
         tr.dataset.nfeCustoEmbalagem = String(custoPacote);
       }
+      try {
+        entradaNfeGradeEmbColsAutoAbrirSePreciso();
+      } catch (_) {}
     }
 
     if (fromUnitInput && un > 1) {
@@ -7009,17 +7063,17 @@
           class="in-qtd nfe-num-destaque w-full min-w-0 rounded-lg border-2 border-slate-300 bg-white px-2 py-2 text-center font-black tabular-nums text-slate-900 shadow-inner"
           title="Quantidade na NF (digite o número)">
       </td>
-      <td class="px-1 py-1 align-middle">
+      <td class="nfe-col-emb px-1 py-1 align-middle">
         <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
           class="in-un-emb w-full min-w-0 min-h-[44px] rounded-lg border-2 border-slate-200 bg-slate-50 px-2 py-2 text-center text-sm sm:text-base font-black tabular-nums tracking-tight text-slate-400 shadow-inner"
           value="" placeholder="—" title="Unidades por embalagem na NF">
       </td>
-      <td class="px-1 py-1 align-middle">
+      <td class="nfe-col-emb px-1 py-1 align-middle">
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" readonly tabindex="-1"
           class="in-q-est w-full min-w-0 min-h-[44px] rounded-lg border-2 border-sky-500 bg-white px-2 py-2 text-center text-xs sm:text-sm font-black text-slate-900 tabular-nums tracking-tight disabled:pointer-events-none disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 shadow-inner"
           title="Quantidade para estoque quando Un/emb é maior que 1">
       </td>
-      <td class="px-1 py-1 align-middle">
+      <td class="nfe-col-emb px-1 py-1 align-middle">
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
           class="in-preco-pacote w-full min-w-0 min-h-[44px] rounded-lg border-2 border-sky-500 bg-white px-2 py-2 text-center text-xs sm:text-sm font-black text-slate-900 tabular-nums tracking-tight disabled:pointer-events-none disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 shadow-inner"
           title="Custo da embalagem na NF. Ao mudar Un/emb de 1 para mais, o V. unit vira este valor; o unitário = R$ pacote ÷ Un/emb.">
@@ -7292,6 +7346,9 @@
     entradaNfeBipRebuildSelect();
     entradaNfeLoteRebuildSelect();
     if (!entradaNfeRascunhoAplicandoGrade) entradaNfeProdutosEtapaInvalidate({ soft: true });
+    try {
+      entradaNfeGradeEmbColsAutoAbrirSePreciso();
+    } catch (_) {}
   }
 
   function coletarLinhas() {
@@ -9909,6 +9966,51 @@
   document.getElementById('nfe-chk-rateio-acrescimos')?.addEventListener('change', () => {
     entradaNfeReaplicarRateioAcrescimosNaGrade();
   });
+
+  const ENTRADA_NFE_LS_EMB_COLS = 'agro_nfe_emb_cols_abertas_v1';
+  function entradaNfeGradeEmbColsAbertas() {
+    const tbl = document.querySelector('#entrada-nfe-grade-scroll .nfe-grade-itens');
+    return !!(tbl && !tbl.classList.contains('nfe-grade-itens--emb-hid'));
+  }
+  function entradaNfeGradeEmbColsAplicar(aberto, opts) {
+    const o = opts && typeof opts === 'object' ? opts : {};
+    const tbl = document.querySelector('#entrada-nfe-grade-scroll .nfe-grade-itens');
+    const btn = document.getElementById('nfe-btn-toggle-emb-cols');
+    if (tbl) tbl.classList.toggle('nfe-grade-itens--emb-hid', !aberto);
+    if (btn) {
+      btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      const lab = btn.querySelector('.nfe-emb-label');
+      if (lab) lab.textContent = aberto ? 'Recolher emb.' : 'Embalagem';
+      btn.title = aberto
+        ? 'Esconde Un/emb, Qtd est. e R$ pacote (mais espaço na Descrição).'
+        : 'Mostra Un/emb, Qtd est. e R$ pacote.';
+    }
+    if (!o.skipStore) {
+      try {
+        localStorage.setItem(ENTRADA_NFE_LS_EMB_COLS, aberto ? '1' : '0');
+      } catch (_) {}
+    }
+  }
+  /** Se alguma linha tem Un/emb &gt; 1, abre o bloco (precisa mexer). */
+  function entradaNfeGradeEmbColsAutoAbrirSePreciso() {
+    if (entradaNfeGradeEmbColsAbertas()) return;
+    let precisa = false;
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (precisa || tr.dataset.nfeLinhaModo === 'compact') return;
+      if (entradaNfeLinhaUnEmbCalculo(tr) > 1) precisa = true;
+    });
+    if (precisa) entradaNfeGradeEmbColsAplicar(true);
+  }
+  document.getElementById('nfe-btn-toggle-emb-cols')?.addEventListener('click', () => {
+    entradaNfeGradeEmbColsAplicar(!entradaNfeGradeEmbColsAbertas());
+  });
+  try {
+    const pref = localStorage.getItem(ENTRADA_NFE_LS_EMB_COLS);
+    if (pref === '1') entradaNfeGradeEmbColsAplicar(true, { skipStore: true });
+    else entradaNfeGradeEmbColsAplicar(false, { skipStore: true });
+  } catch (_) {
+    entradaNfeGradeEmbColsAplicar(false, { skipStore: true });
+  }
 
   document.getElementById('btn-parse-xml').addEventListener('click', async () => {
     if (entradaNfeEditorCongeladoAtivo()) {

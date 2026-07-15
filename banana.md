@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.46** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.47** · **loja v8.43**
+
+### 🩹 Entrada NF — colunas embalagem recolhíveis (15/07 · **teste v8.47**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **Embalagem** (▸) esconde Un/emb · Qtd est. · R$ pacote · Descrição ganha largura · abre sozinho se Un/emb &gt; 1 |
+| **Validar** | Ctrl+F5 teste · badge **v8.47** · colunas somem · descrição mais larga · seta abre de novo |
+| **Loja** | ⏳ |
+
 
 ### 🩹 Entrada NF — abas + meta numa linha (15/07 · **teste v8.46**)
 
