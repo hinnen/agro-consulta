@@ -1154,17 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.40** · **loja v8.39**
+**Versão app (`VERSION`):** **teste v8.40** · **loja v8.40**
 
-### 🩹 Entrada NF — modal XML «Sem vínculo» com grade vazia (14/07 · **teste**)
+### 🩹 Entrada NF — modal XML «Sem vínculo» com grade vazia (14/07 · **loja v8.40**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Após entrar NF, ao ler o **mesmo XML** de novo tudo «Sem vínculo» e esquerda vazia |
 | **Causa** | Badge = par **grade↔XML**, não casamento com cadastro. Grade vazia = todos «Sem vínculo» mesmo com produto casado |
 | **Fix** | Badge **Cadastro** (verde) quando `produto_id` veio do parse · texto da grade vazia · Confirmar também lembra EAN embalagem |
-| **Validar** | Ctrl+F5 teste · Ler XML com grade vazia → itens casados em verde **Cadastro** |
-| **Loja** | ⏳ |
+| **Loja** | **✅** `a4d60fc` · backup `producao-backup-pre-v840-20260714` |
+| **Validar** | Ctrl+F5 loja · badge **v8.40** · Ler XML grade vazia → **Cadastro** nos casados |
 
 ### 🚑 Hotfix loja **v8.39** — merge migrações 0050+0051 (14/07)
 
