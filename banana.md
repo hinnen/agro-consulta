@@ -1155,7 +1155,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.49** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.49** · **loja v8.49**
 
 ### 🚑 Entrada NF — overlay R$ 0 apagava P.venda do Mongo (15/07 · **teste v8.49**)
 
@@ -1164,9 +1164,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Alguns itens do XML ficam P.venda 0,00 / margem -100 (ex.: 3 primeiros da NF) |
 | **Causa** | Overlay/PG com preço 0 sobrescrevia `ValorVenda` do Mongo no casamento |
 | **Fix** | Só aplica overlay/API quando preço **> 0** |
-| **Loja** | sobe no pacote UX (abaixo) |
+| **Loja** | **✅** v8.49 6f0df25 |
 
-### 📦 Pacote UX Entrada NF → loja (15/07 · pending deploy)
+### 📦 Deploy loja **v8.49** — UX Entrada NF + P.venda (15/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
