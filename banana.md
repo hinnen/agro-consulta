@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.49** · **loja v8.49**
+**Versão app (`VERSION`):** **teste v8.51** · **loja v8.49**
+
+### 🩹 Entrada NF — nome do cadastro sob a descrição (15/07 · **teste v8.51**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Embaixo da descrição da NF aparece o nome SisVale (verde), sem coluna nova |
+| **Validar** | Ctrl+F5 teste · badge **v8.51** · linha casada → texto verde sob a descrição |
+| **Loja** | ⏳ |
+
 
 ### 🚑 Entrada NF — overlay R$ 0 apagava P.venda do Mongo (15/07 · **teste v8.49**)
 
