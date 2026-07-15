@@ -8807,7 +8807,8 @@
       entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
     }
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
-    if (pvInp && pv != null && pv >= 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
+    /* Não gravar 0,00 do catálogo por cima de um preço já útil (ou «apagar» o que veio do Mongo). */
+    if (pvInp && pv != null && pv > 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
     entradaNfeLinhaRecalcMargemDisplay(tr);
     entradaNfeLinhaApplyMargemCor(tr);
   }
