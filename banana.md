@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.59** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.60** · **loja v8.54**
+
+### 🩹 PDV carrinho — colunas fixas + total sem corte (15/07 · **teste v8.60**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | GM/qtd/A-B/total/lixeira com largura fixa (alinha). Total cabe milhar (ex. 1.131,00) |
+| **Validar** | Ctrl+F5 teste · badge **v8.60** · milho misto + qtd alta no item com grupos |
+| **Loja** | ⏳ |
+
 
 ### 🩹 PDV — alinhamento GM + 2 preços (lista e carrinho) (15/07 · **teste v8.59**)
 
