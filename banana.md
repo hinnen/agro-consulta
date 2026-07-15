@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (\VERSION\):** **teste v8.54** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.55** · **loja v8.54**
+
+### 🩹 Cadastro — busca digitada mais leve (15/07 · **teste v8.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Digitação no cadastro: Mongo slim · sem média/pedidos · sem recalcular saldo 2× · debounce texto 450 ms |
+| **Validar** | Ctrl+F5 teste · badge **v8.55** · digitar nome no cadastro deve responder mais rápido |
+| **Loja** | ⏳ |
+
 
 ### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
 

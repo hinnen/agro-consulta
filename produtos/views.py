@@ -17178,7 +17178,12 @@ def api_buscar_produtos(request):
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
-    skip_mongo_complemento = busca_lite or (entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg))
+    # Cadastro tipado: mesma projeção slim + caps do caminho lite (sem DTO Mongo inteiro).
+    skip_mongo_complemento = (
+        busca_lite
+        or contexto_cadastro
+        or (entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg))
+    )
     if entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg):
         client, db = None, None
     else:
@@ -17308,12 +17313,13 @@ def api_buscar_produtos(request):
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
-        if not busca_lite and db is not None:
+        # Cadastro não mostra média de venda na lista — evita mapa diário + métricas PG na digitação.
+        if not busca_lite and not contexto_cadastro and db is not None:
             try:
                 medias_map = _obter_mapa_medias_venda_cache(db)
             except Exception:
                 logger.warning("api_buscar_produtos: medias indisponíveis", exc_info=True)
-        if compras and p_ids:
+        if compras and p_ids and not contexto_cadastro:
             try:
                 from produtos.agro_fonte_config import agro_compras_metricas_postgres
 
@@ -17366,7 +17372,7 @@ def api_buscar_produtos(request):
                 logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
 
         pedido_sep_map: dict[str, float] = {}
-        if not entrada_nfe_mode:
+        if not entrada_nfe_mode and not contexto_cadastro:
             try:
                 if p_ids:
                     _chunk_pt = 400
@@ -19282,8 +19288,19 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
             continue
         out.append(r)
 
+    # api_buscar já montou saldo operacional; re-enriquecer aqui dobrava Mongo+ajuste.
     if incluir_saldo:
-        out = _cadastro_enriquecer_saldo_nas_rows(out)
+        precisa_saldo = any(
+            r.get("saldo_centro") is None and r.get("saldo_vila") is None for r in out
+        )
+        if precisa_saldo:
+            out = _cadastro_enriquecer_saldo_nas_rows(out)
+        else:
+            for r in out:
+                if r.get("saldo_total") is None:
+                    sc = _float_api_json(r.get("saldo_centro") or 0)
+                    sv = _float_api_json(r.get("saldo_vila") or 0)
+                    r["saldo_total"] = round(sc + sv, 2)
     _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
 
     return JsonResponse(
