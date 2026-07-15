@@ -7786,6 +7786,12 @@
     return out;
   }
 
+  function entradaNfeXmlMergeItemCasadoCatalogo(row) {
+    const pid = entradaNfeStrCampo(row?.produto_id);
+    if (!pid || pid.toLowerCase().startsWith('local:')) return false;
+    return true;
+  }
+
   function entradaNfeXmlMergeResumoHtml(row) {
     const esc = (s) =>
       String(s || '')
@@ -7793,15 +7799,23 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
     const c = entradaNfeStrCampo(row?.c_prod).slice(0, 28);
-    const d = entradaNfeStrCampo(row?.x_prod || row?.nome_catalogo).replace(/\s+/g, ' ').trim().slice(0, 80);
+    const d = entradaNfeStrCampo(row?.x_prod).replace(/\s+/g, ' ').trim().slice(0, 80);
+    const nc = entradaNfeStrCampo(row?.nome_catalogo).replace(/\s+/g, ' ').trim().slice(0, 80);
     const e = entradaNfeStrCampo(row?.ean).slice(0, 16);
     const q = row?.q_com != null ? String(row.q_com) : '';
+    const mt = entradaNfeStrCampo(row?.match_tipo).slice(0, 24);
     const bits = [];
     if (c) bits.push(`<span class="text-slate-500 font-bold">${esc(c)}</span>`);
     if (e) bits.push(`EAN ${esc(e)}`);
     if (q) bits.push(`×${esc(q)}`);
     const head = bits.join(' · ');
-    return `<div class="text-[11px] font-bold text-slate-600 leading-tight">${head || '—'}</div><div class="mt-1 text-sm font-black text-slate-900 leading-snug line-clamp-3">${esc(d) || '(sem descrição)'}</div>`;
+    let catLine = '';
+    if (nc && nc.toLowerCase() !== d.toLowerCase()) {
+      catLine = `<div class="mt-1 text-[11px] font-bold text-emerald-800 leading-snug line-clamp-2">Cadastro: ${esc(nc)}${mt ? ` · ${esc(mt)}` : ''}</div>`;
+    } else if (entradaNfeXmlMergeItemCasadoCatalogo(row) && mt) {
+      catLine = `<div class="mt-1 text-[11px] font-bold text-emerald-800 leading-snug">Casado no cadastro · ${esc(mt)}</div>`;
+    }
+    return `<div class="text-[11px] font-bold text-slate-600 leading-tight">${head || '—'}</div><div class="mt-1 text-sm font-black text-slate-900 leading-snug line-clamp-3">${esc(d || nc) || '(sem descrição)'}</div>${catLine}`;
   }
 
   function entradaNfeXmlMergeRender() {
@@ -7865,9 +7879,13 @@
       const stripeStyle = ph != null ? `background:hsl(${ph},72%,44%)` : 'background:rgb(226 232 240 / 0.75)';
       const cardBg = ph != null ? `background:hsl(${ph},58%,96.5%)` : '';
       const cardBr = ph != null ? `border-color:hsl(${ph},52%,38%)` : '';
+      const casadoCat = !l && entradaNfeXmlMergeItemCasadoCatalogo(row);
       const badge = l
         ? `<span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border-2 leading-tight" style="border-color:hsl(${ph},55%,40%);background:hsl(${ph},62%,92%);color:hsl(${ph},32%,16%)"><span class="tabular-nums">Par</span> G${l.preIdx + 1} ↔ X${xi + 1}</span>`
-        : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
+        : casadoCat
+          ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900" title="Já casado com produto do cadastro (EAN/código/histórico)">Cadastro</span>`
+          : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700" title="Sem par na grade da esquerda e sem produto no cadastro">Sem vínculo</span>`;
+      const stripeXml = ph != null ? stripeStyle : casadoCat ? 'background:#059669' : stripeStyle;
       const acoes = [];
       if (l) {
         acoes.push(
@@ -7878,9 +7896,9 @@
         `<button type="button" draggable="false" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
       );
       htmlXml += `
-      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : 'border-slate-200 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
+      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : casadoCat ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
         draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}"${l && ph != null ? ` data-xml-merge-pair="${pairIdx}" style="${cardBr};${cardBg}"` : ''}>
-        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeStyle}" aria-hidden="true"></div>
+        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeXml}" aria-hidden="true"></div>
         <div class="flex flex-1 min-w-0 flex-row items-stretch gap-2 sm:gap-3 p-2.5 sm:p-3">
           <div class="min-w-0 flex-1 flex flex-col gap-1">
             <div class="flex flex-wrap items-start justify-between gap-2">
@@ -7897,7 +7915,7 @@
     });
     if (!htmlPre) {
       htmlPre =
-        '<p class="p-4 text-sm font-semibold text-slate-600">Nenhuma linha na grade (ou todas descartadas). Itens só do XML podem ser confirmados.</p>';
+        '<p class="p-4 text-sm font-semibold text-slate-600">Grade vazia — normal ao abrir nota nova ou limpar a tela. Olhe à direita: <span class="text-emerald-800 font-black">Cadastro</span> = produto já casado (EAN/código); <span class="font-black">Sem vínculo</span> = precisa escolher no cadastro depois. Confirmar importa o XML mesmo assim.</p>';
     }
     if (!htmlXml) {
       htmlXml =
@@ -8051,8 +8069,12 @@
     rows.forEach((row) => {
       const pid = String(row.produto_id || '').trim();
       const cp = String(row.c_prod || '').trim();
-      if (pid && cp.length >= 2 && !pid.toLowerCase().startsWith('local:')) {
-        void entradaNfeLembrarCProdAposPick({ id: pid }, cp, '');
+      const ean = String(row.ean || '').trim();
+      if (pid && !pid.toLowerCase().startsWith('local:')) {
+        if (cp.length >= 2) void entradaNfeLembrarCProdAposPick({ id: pid }, cp, '');
+        if (ean.replace(/\D/g, '').length >= 8) {
+          void entradaNfeLembrarEanEmbalagemAposPick({ id: pid }, ean, '');
+        }
       }
     });
     atualizarPainelTotalNfe();
