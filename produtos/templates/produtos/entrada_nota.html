@@ -962,8 +962,26 @@
     .nfe-grade-itens col.nfe-col-desc {
       width: 17%;
     }
+    .nfe-grade-itens col.nfe-col-cod {
+      width: 5.25rem;
+    }
+    .nfe-grade-itens col.nfe-col-ean {
+      width: 5.75rem;
+    }
+    /* Embalagem recolhida: espaços das 3 cols vão para Descrição + Cód. + EAN (sem “buraco” à direita). */
     .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-desc {
-      width: 32%;
+      width: 26%;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-cod {
+      width: 8.25rem;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid col.nfe-col-ean {
+      width: 9rem;
+    }
+    .nfe-grade-itens.nfe-grade-itens--emb-hid .in-cprod,
+    .nfe-grade-itens.nfe-grade-itens--emb-hid .in-ean {
+      font-size: 0.78rem;
+      letter-spacing: -0.01em;
     }
     #nfe-btn-toggle-emb-cols {
       display: inline-flex;
@@ -998,6 +1016,45 @@
     }
     #nfe-btn-toggle-emb-cols[aria-expanded="true"] .nfe-emb-arrow {
       transform: rotate(90deg);
+    }
+    /* Descrição NF + nome SisVale abaixo: célula cresce no final; demais cols no topo (sem linha “quebrada”). */
+    .nfe-grade-itens tbody > tr > td {
+      vertical-align: top !important;
+    }
+    .nfe-grade-itens td.nfe-desc-cell {
+      vertical-align: top !important;
+    }
+    .nfe-grade-itens .nfe-desc-catalogo {
+      display: none;
+      margin-top: 0.12rem;
+      padding: 0 0.15rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: rgb(4 120 87);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .nfe-grade-itens .nfe-desc-catalogo.is-on {
+      display: block;
+    }
+    /* Contorno dos campos da grade: um pouco mais marcado (ainda sutil; margem colorida mantém). */
+    .nfe-grade-itens tbody input:not([type="hidden"]):not(:disabled):not(.nfe-margem--crit):not(.nfe-margem--warn):not(.nfe-margem--orange):not(.nfe-margem--ok) {
+      border-color: rgb(148 163 184);
+    }
+    .nfe-grade-itens tbody input.in-qtd:not(:disabled),
+    .nfe-grade-itens tbody input.in-vun:not(:disabled),
+    .nfe-grade-itens tbody input.in-un-emb:not(:disabled),
+    .nfe-grade-itens tbody input.in-q-est:not(:disabled),
+    .nfe-grade-itens tbody input.in-preco-pacote:not(:disabled),
+    .nfe-grade-itens tbody input.in-pvenda:not(:disabled),
+    .nfe-grade-itens tbody input.in-margem:not(:disabled):not(.nfe-margem--crit):not(.nfe-margem--warn):not(.nfe-margem--orange):not(.nfe-margem--ok) {
+      border-color: rgb(100 116 139);
+    }
+    .nfe-grade-itens tbody input:disabled {
+      border-color: rgb(203 213 225);
     }
     #entrada-nfe-wizard-nav.entrada-nfe-wiz-nav--compact {
       border-style: solid;
@@ -1342,8 +1399,8 @@
         <table class="nfe-grade-itens nfe-grade-itens--emb-hid w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
             <col class="nfe-col-desc" />
-            <col class="w-[5.25rem]" />
-            <col class="w-[5.75rem]" />
+            <col class="nfe-col-cod" />
+            <col class="nfe-col-ean" />
             <col class="w-[4.5rem]" />
             <col class="w-[5.5rem]" />
             <col class="nfe-col-emb w-[4.25rem]" />
@@ -1359,7 +1416,7 @@
           </colgroup>
           <thead class="bg-slate-100 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 whitespace-nowrap">
             <tr>
-              <th class="text-left align-bottom px-2 py-2" title="Descrição conforme NF (texto do fornecedor)">Descrição</th>
+              <th class="text-left align-bottom px-2 py-2" title="Em cima: descrição da NF. Embaixo (verde): nome do cadastro SisVale quando a linha está casada.">Descrição</th>
               <th class="text-left align-bottom px-2 py-2" title="Código interno / GM da linha na NF">Cód.</th>
               <th class="text-left align-bottom px-2 py-2" title="EAN ou código de barras">EAN</th>
               <th class="text-center align-bottom px-1 py-2" title="Mudar ou escolher produto do Agro nesta linha">Cat.</th>
@@ -6909,13 +6966,23 @@
     return s;
   }
 
-  /** Nome catálogo só em `data`; na tela aparece só em tooltip da Descrição. Coluna «Cat. ✓»: ● se casado + texto. */
+  /** Nome do cadastro sem sufixo « (match) » para exibir sob a descrição da NF. */
+  function entradaNfeLinhaNomeCatalogoLimpo(tr) {
+    let s = entradaNfeLinhaNomeCatalogoTexto(tr);
+    if (!s) return '';
+    s = s.replace(/\s*\([^)]{1,48}\)\s*$/u, '').trim();
+    return s;
+  }
+
+  /** Nome catálogo em `data` + linha verde sob a Descrição da NF; «Cat. ✓»: ● se casado. */
   function entradaNfeLinhaApplyCatalogoUi(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     const nomeCat = entradaNfeLinhaNomeCatalogoTexto(tr);
+    const nomeLimpo = entradaNfeLinhaNomeCatalogoLimpo(tr);
     const tipo = String(tr.dataset.nfeMatchTipo || '').trim();
     const descEl = tr.querySelector('.in-desc');
+    const subEl = tr.querySelector('.nfe-desc-catalogo');
     const mxEl = tr.querySelector('.in-match');
     const partes = [];
     if (nomeCat) partes.push(`Nome no catálogo: ${nomeCat}`);
@@ -6924,6 +6991,18 @@
     if (descEl) {
       if (pid && partes.length) descEl.title = partes.join('\n').slice(0, 850);
       else descEl.removeAttribute('title');
+    }
+    if (subEl) {
+      const pareceSoId = !!(nomeLimpo && /^[a-f0-9-]{20,}$/i.test(nomeLimpo));
+      if (pid && nomeLimpo && !pareceSoId) {
+        subEl.textContent = nomeLimpo;
+        subEl.title = `Cadastro SisVale: ${nomeLimpo}`;
+        subEl.classList.add('is-on');
+      } else {
+        subEl.textContent = '';
+        subEl.removeAttribute('title');
+        subEl.classList.remove('is-on');
+      }
     }
     if (mxEl) {
       mxEl.removeAttribute('title');
@@ -7083,7 +7162,10 @@
     }
 
     tr.innerHTML = `
-      <td class="px-2 py-1"><input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
+      <td class="nfe-desc-cell px-2 py-1">
+        <input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value="" title="Descrição da NF (fornecedor)">
+        <span class="nfe-desc-catalogo" aria-label="Nome no cadastro SisVale"></span>
+      </td>
       <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-1 py-1.5 text-center align-middle"><button type="button" class="btn-pick-prod inline-flex items-center justify-center min-h-[40px] min-w-[4.25rem] px-2.5 py-2 text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800 shrink-0" title="Trocar o produto do Agro vinculado a esta linha (mesma busca do catálogo).">Mudar</button><input type="hidden" class="in-prod-id" value=""></td>

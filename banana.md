@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 
-**Versão app (`VERSION`):** **teste v8.49** · **loja v8.49**
+**Versão app (\VERSION\):** **teste v8.54** · **loja v8.54**
+
+### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Nome SisVale sob descrição · Emb. fechada alarga Cód./EAN · alinhamento linha + bordas campos |
+| **Commits base** | acfb468 · 4f1169f · 4079614 (arquivo entrada_nota.html) |
+| **Backup** | branch producao-backup-pre-v854-20260715 @ 6f0df25 |
+| **Autorização** | *enviar… produção* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v8.54** |
+
 
 ### 📦 Deploy loja **v8.49** — UX Entrada NF + P.venda overlay (15/07 · Renan frase+senha)
 
