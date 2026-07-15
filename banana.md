@@ -1155,40 +1155,116 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+**Versão app (VERSION):** **teste v8.55** · **loja v8.54**
 
-**Versão app (\VERSION\):** **teste v8.54** · **loja v8.54**
+### 🩹 Cadastro — busca digitada mais leve (15/07 · **teste v8.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Digitação no cadastro: Mongo slim · sem média/pedidos · sem recalcular saldo 2× · debounce texto 450 ms |
+| **Validar** | Ctrl+F5 teste · badge **v8.55** · digitar nome no cadastro deve responder mais rápido |
+| **Loja** | ⏳ |
+
 
 ### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | Nome SisVale sob descrição · Emb. fechada alarga Cód./EAN · alinhamento linha + bordas campos |
-| **Commits base** | acfb468 · 4f1169f · 4079614 (arquivo entrada_nota.html) |
-| **Backup** | branch producao-backup-pre-v854-20260715 @ 6f0df25 |
+| **Inclui** | Nome SisVale sob descrição · Emb. fechada alarga Cód./EAN · alinhamento linha + bordas |
+| **Commit loja** | ccb4fd8 · backup producao-backup-pre-v854-20260715 @ 6f0df25 |
 | **Autorização** | *enviar… produção* + 99738595 |
 | **Você** | Ctrl+F5 loja · badge **v8.54** |
 
 
-### 📦 Deploy loja **v8.49** — UX Entrada NF + P.venda overlay (15/07 · Renan frase+senha)
+### 🩹 Entrada NF — alinhamento linha + borda campos (15/07 · **teste v8.54**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **O quê** | Nome SisVale só empurra o fim da descrição; Cód./demais campos alinhados no topo · borda dos campos um pouco mais forte |
+| **Validar** | Ctrl+F5 teste · badge **v8.54** · linha reta descrição→código · campos mais legíveis |
+| **Loja** | **✅** v8.54 |
+
+
+### 🩹 Entrada NF — emb. recolhida alarga Cód./EAN (15/07 · **teste v8.53**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Com Embalagem fechada, espaço livre vai para **Cód.** e **EAN** (não fica buraco à direita) |
+| **Validar** | Ctrl+F5 teste · badge **v8.52** · Emb. fechada → GM completo + EAN mais largo |
+| **Loja** | **✅** v8.54 |
+
+
+### 🩹 Entrada NF — nome do cadastro sob a descrição (15/07 · **teste v8.51**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Embaixo da descrição da NF aparece o nome SisVale (verde), sem coluna nova |
+| **Validar** | Ctrl+F5 teste · badge **v8.51** · linha casada → texto verde sob a descrição |
+| **Loja** | **✅** v8.54 |
+
+
+### 🚑 Entrada NF — overlay R$ 0 apagava P.venda do Mongo (15/07 · **teste v8.49**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Alguns itens do XML ficam P.venda 0,00 / margem -100 (ex.: 3 primeiros da NF) |
+| **Causa** | Overlay/PG com preço 0 sobrescrevia `ValorVenda` do Mongo no casamento |
+| **Fix** | Só aplica overlay/API quando preço **> 0** |
+| **Loja** | **✅** v8.49 6f0df25 |
+
+### 📦 Deploy loja **v8.49** — UX Entrada NF + P.venda (15/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | v8.45–v8.48 layout (passos, abas, embalagem, topbar) + fix P.venda v8.49 |
 | **Autorização** | *enviar… produção* + `99738595` |
-| **Pacote** | passos 1–8 · abas/meta topbar · emb. recolhível · fix overlay R$0 não apaga P.venda |
-| **Backup** | `producao-backup-pre-v849-20260715` @ `6f46143` |
-| **Validar** | Ctrl+F5 loja · badge **v8.49** · XML → P.venda nos itens · layout compacto |
-| **Revert** | `git reset --hard 6f46143` na `producao` + push |
+
+
+### 🩹 Entrada NF — abas/meta na barra do topo (15/07 · **teste v8.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Manual/XML/SEFAZ + Origem/NF/datas sobem para a faixa do «← Lista» (uma linha a menos) |
+| **Validar** | Ctrl+F5 teste · badge **v8.48** · editor sem faixa solta abaixo do topo |
+| **Loja** | ⏳ |
+
+
+### 🩹 Entrada NF — colunas embalagem recolhíveis (15/07 · **teste v8.47**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **Embalagem** (▸) esconde Un/emb · Qtd est. · R$ pacote · Descrição ganha largura · abre sozinho se Un/emb &gt; 1 |
+| **Validar** | Ctrl+F5 teste · badge **v8.47** · colunas somem · descrição mais larga · seta abre de novo |
+| **Loja** | ⏳ |
+
+
+### 🩹 Entrada NF — abas + meta numa linha (15/07 · **teste v8.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Manual/XML/SEFAZ + Origem/NF/Linhas/datas na **mesma faixa** · passos 1–8 + Anterior/Próximo sem 2ª fileira |
+| **Validar** | Ctrl+F5 teste · badge **v8.46** · topo do editor: uma linha só |
+| **Loja** | ⏳ |
+
+
+### 🩹 Entrada NF — UX rateio + passos 1–8 numa linha (15/07 · **teste v8.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Caixa amarela do rateio compacta na linha «2 · Produtos» · chips 1–8 numa fileira (sem 7/8 sozinhos) |
+| **Validar** | Ctrl+F5 teste · badge **v8.45** · etapa 2: faixa amarela fina · passo a passo: 8 tags na mesma linha |
+| **Loja** | ⏳ |
 
 
 ### 📦 Deploy loja **v8.43** — rateio frete/ST + hidrata GM paralelo (14/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | *pode subir pra produção* + 99738595 |
-| **Pacote** | Rateio acréscimos no custo (checkbox etapa 2) · hidrata GM em paralelo (v8.42) |
-| **Backup** | producao-backup-pre-v843-20260714 @ 6e64db |
-| **Validar** | Ctrl+F5 loja · badge **v8.43** · XML com frete/ST → marcar opção → custo sobe · desmarcar → volta |
-| **Revert** | git reset --hard b6e64db na producao + push (ou checkout backup) |
+| **Autorização** | *pode subir pra produção* + `99738595` |
+| **Commit loja** | `6f46143` (+ `e873147` hidrata paralelo) · backup `producao-backup-pre-v843-20260714` @ `b6e64db` |
+| **Pacote** | Rateio acréscimos no custo · hidrata GM em paralelo |
+| **Validar** | Ctrl+F5 loja · badge **v8.43** · XML frete/ST → marcar → custo sobe |
+| **Revert** | `git reset --hard b6e64db` na `producao` + push (ou checkout backup) |
 
 
 ### ⚡ Entrada NF — rateio frete/ST no custo (14/07 · **loja v8.43**)
@@ -1199,12 +1275,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `nfe_entrada_util.py` (totais ICMSTot) · `entrada_nota.html` |
 | **Validar** | Ctrl+F5 teste · badge **v8.43** · XML com frete/ST → marcar → custo sobe · desmarcar → volta · nota limpa → opção desligada |
 
-### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **teste v8.42**)
+### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **loja v8.43**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | GM não pula de 2 em 2 s — busca do cadastro em paralelo |
-| **Loja** | **✅** v8.43 |
+| **Loja** | **✅** v8.43 e873147 |
 
 ### 🚑 Entrada NF — após Confirmar XML sem GM / P.venda 0 (14/07 · **loja v8.41**)
 
@@ -1307,7 +1383,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validar** | Ctrl+F5 · Fiado → BAIXA · `gm0024` → 3 |
 | **Dados** | fiado: só filtro — **não** apaga títulos |
 
-
 ### 🚑 Fiado BAIXA «Nenhum título em aberto» (14/07)
 
 | Item | Detalhe |
@@ -1316,7 +1391,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Lista agrupa por **nome**; cobrança/baixa filtrava só `cliente_agro_pk` (muitos títulos sem FK / modo default `titulo` no PDV) |
 | **Fix** | Mesmo filtro da gestão (`_q_titulos_cliente_gestao`) · PDV default modo `cliente` |
 | **Dados** | **Só leitura/filtro** — não apaga título, baixa nem saldo |
-| **Loja** | ⏳ frase+senha (junto pacote) |
+| **Loja** | **✅** v8.30 `1cdad18` |
 
 ### 🚑 Hotfix #3 GM0024 loja só 1 (14/07 · **v8.28**)
 
@@ -1326,7 +1401,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Com `agro_pg`, 1 hit no Postgres fazia **pular Mongo** — `-10/-15` só no Mongo |
 | **Fix** | Família GM **sempre** complementa/mescla Mongo |
 | **Validar** | Ctrl+F5 · `gm0024` → 3 magnus |
-| **Loja** | ⏳ frase+senha |
+| **Loja** | ⏳ aguarda pacote maior (Renan 14/07: não sobe sozinho) |
 
 ### 📦 Deploy loja **v8.26** — busca GM CodigoNFe (14/07 · Renan autorizou)
 
@@ -1347,7 +1422,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa 2 (real quirera)** | Mongo: irmãos **sem `index_codigos`**; motor só buscava índice → só `GM0093-25`. `CodigoNFe` tinha os 3 |
 | **Fix** | Prefixo em `CodigoNFe`/`Codigo` no motor + misto sem early-return no index · Id=`_id` se faltar |
 | **Validar local** | Ctrl+F5 · `GM0093` → quirera 1kg + 5kg + 25kg (≥3) · nome “quirera fina” igual |
-| **Loja** | **NÃO** subir até Renan pedir |
+| **Loja** | **✅** push `780d964` / teste `0033d39` · badge **v8.26** · Ctrl+F5 |
 
 ### 🚑 Hotfix #3 GM maiúsc/minúsc + família (14/07 · **v8.25**)
 
@@ -1409,16 +1484,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
-| **3** | 🟢 loja v8.26 + 🟡 v8.28 teste | prefixo GM OK na maioria; `GM0024` parcial (PG+Mongo) — wait pacote |
-| **4** | 🟡 loja v8.22+ | modelo — Renan confirmar salva/reabre |
-| **5 · 6** | 🟡 teste | em `191e70b` — subir loja quando Renan quiser |
-| **16** | 🟡 teste + WIP local | limpeza/aviso em teste; micro texto/fonte local **não** subiu |
-| **1 · 2 · 9 · 11 · 13 · 14** | 🟡 código OK | falta reteste Renan |
+| **3** | ✅ loja | prefixo GM / família |
+| **4** | 🟡 loja | modelo — confirmar se ainda ok |
+| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
+| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
+| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
+| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
+| **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
+| **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
 | **12** | 🔴 | devolução parcial (escopo OK; implementar) |
 | **17** | ⚪ | aguarda exemplos de busca CP |
-| **18** | 🟡 teste | frete 3 vias — ainda não loja |
-| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ — **validados loja** (Renan 14/07) |
+| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 
 **Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 

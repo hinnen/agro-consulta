@@ -1475,7 +1475,7 @@
       return;
     }
     if (metaEl) metaEl.textContent = 'Buscando…';
-    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 100 : 300);
+    var ms = forcar ? 0 : (pareceCodigoBusca(q) ? 100 : 450);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (!q2) {
