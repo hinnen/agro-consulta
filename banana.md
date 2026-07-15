@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.47** · **loja v8.43**
+**Versão app (`VERSION`):** **teste v8.48** · **loja v8.43**
+
+### 🩹 Entrada NF — abas/meta na barra do topo (15/07 · **teste v8.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Manual/XML/SEFAZ + Origem/NF/datas sobem para a faixa do «← Lista» (uma linha a menos) |
+| **Validar** | Ctrl+F5 teste · badge **v8.48** · editor sem faixa solta abaixo do topo |
+| **Loja** | ⏳ |
+
 
 ### 🩹 Entrada NF — colunas embalagem recolhíveis (15/07 · **teste v8.47**)
 
