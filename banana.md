@@ -560,7 +560,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
-- **Acréscimos no custo (14/07 · teste v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
+- **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
@@ -1155,9 +1155,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.43** · **loja v8.41**
+**Versão app (`VERSION`):** **teste v8.43** · **loja v8.43**
 
-### ⚡ Entrada NF — rateio frete/ST no custo (14/07 · **teste v8.43**)
+### 📦 Deploy loja **v8.43** — rateio frete/ST + hidrata GM paralelo (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *pode subir pra produção* + `99738595` |
+| **Commit loja** | `6f46143` (+ `e873147` hidrata paralelo) · backup `producao-backup-pre-v843-20260714` @ `b6e64db` |
+| **Pacote** | Rateio acréscimos no custo · hidrata GM em paralelo |
+| **Validar** | Ctrl+F5 loja · badge **v8.43** · XML frete/ST → marcar → custo sobe |
+| **Revert** | `git reset --hard b6e64db` na `producao` + push (ou checkout backup) |
+
+
+### ⚡ Entrada NF — rateio frete/ST no custo (14/07 · **loja v8.43**)
 
 | | |
 | --- | --- |
@@ -1165,12 +1176,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `nfe_entrada_util.py` (totais ICMSTot) · `entrada_nota.html` |
 | **Validar** | Ctrl+F5 teste · badge **v8.43** · XML com frete/ST → marcar → custo sobe · desmarcar → volta · nota limpa → opção desligada |
 
-### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **teste v8.42**)
+### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **loja v8.43**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | GM não pula de 2 em 2 s — busca do cadastro em paralelo |
-| **Loja** | ⏳ |
+| **Loja** | **✅** v8.43 e873147 |
 
 ### 🚑 Entrada NF — após Confirmar XML sem GM / P.venda 0 (14/07 · **loja v8.41**)
 
