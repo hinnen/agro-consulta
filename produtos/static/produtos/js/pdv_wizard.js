@@ -2970,6 +2970,32 @@
         );
     }
 
+    function renderCartPrecosGruposHint(item) {
+        var vis =
+            window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosGruposVisiveis
+                ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(item)
+                : null;
+        if (!vis || (vis.a == null && vis.b == null)) return '';
+        var parts = [];
+        if (vis.a != null) {
+            parts.push(
+                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço grupo A (unitário)">' +
+                    '<span class="pdv-cart-grupo-tag">A</span>' +
+                    escapeHtml(formatMoney(vis.a)) +
+                    '</span>'
+            );
+        }
+        if (vis.b != null) {
+            parts.push(
+                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="Preço grupo B (unitário)">' +
+                    '<span class="pdv-cart-grupo-tag">B</span>' +
+                    escapeHtml(formatMoney(vis.b)) +
+                    '</span>'
+            );
+        }
+        return '<div class="pdv-cart-grupos-hint" aria-label="Preços por grupo">' + parts.join('') + '</div>';
+    }
+
     function renderCartPromoBadges(item, itens) {
         var empty = '<span class="pdv-cart-promo-wrap pdv-cart-promo--empty" aria-hidden="true"></span>';
         if (!item || item.preco_manual) return empty;
@@ -3112,6 +3138,7 @@
                     escapeHtml(itemId) +
                     '" data-item-delta="1" title="Mais">+</button>' +
                     '    </div>' +
+                    renderCartPrecosGruposHint(item) +
                     '    <div class="pdv-cart-price-wrap">' +
                     '      <div class="pdv-cart-price-box">' +
                     '        <span class="pdv-cart-price-prefix" aria-hidden="true">R$</span>' +
@@ -3948,11 +3975,45 @@
             '  <span class="pdv-ac-marca">' +
             escapeHtml(marca) +
             '</span>' +
-            '  <span class="pdv-ac-preco"><span class="pdv-ac-preco-box">' +
-            escapeHtml(formatMoney(produto.preco_venda || 0)) +
-            '</span></span>' +
+            '  <span class="pdv-ac-preco">' +
+            renderPdvPrecosVisiveis(produto) +
+            '</span>' +
             '</button>'
         );
+    }
+
+    function renderPdvPrecosVisiveis(produtoOuItem) {
+        var vis =
+            window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosGruposVisiveis
+                ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(produtoOuItem)
+                : null;
+        if (vis && (vis.a != null || vis.b != null)) {
+            var parts = [];
+            if (vis.a != null) {
+                parts.push(
+                    '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo" title="Grupo A">' +
+                        '<span class="pdv-ac-preco-grupo-tag">A</span>' +
+                        escapeHtml(formatMoney(vis.a)) +
+                        '</span>'
+                );
+            }
+            if (vis.b != null) {
+                parts.push(
+                    '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo pdv-ac-preco-box--grupo-b" title="Grupo B">' +
+                        '<span class="pdv-ac-preco-grupo-tag">B</span>' +
+                        escapeHtml(formatMoney(vis.b)) +
+                        '</span>'
+                );
+            }
+            return '<span class="pdv-ac-preco-duo">' + parts.join('') + '</span>';
+        }
+        var pv =
+            produtoOuItem.preco_venda != null
+                ? produtoOuItem.preco_venda
+                : produtoOuItem.preco_padrao != null
+                  ? produtoOuItem.preco_padrao
+                  : produtoOuItem.preco || 0;
+        return '<span class="pdv-ac-preco-box">' + escapeHtml(formatMoney(pv || 0)) + '</span>';
     }
 
     function invalidatePendingProductSearch() {

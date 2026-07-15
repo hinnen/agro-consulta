@@ -578,15 +578,19 @@
   <datalist id="dl-subcats-agro"></datalist>
 
   <div id="modal-precos-forma-pagamento" class="hidden fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-2 sm:p-4 bg-slate-900/55" role="dialog" aria-modal="true" aria-labelledby="modal-precos-forma-titulo">
-    <div class="bg-white rounded-2xl border-2 border-orange-200 shadow-2xl w-full max-w-lg max-h-[min(90dvh,640px)] flex flex-col overflow-hidden">
+    <div class="bg-white rounded-2xl border-2 border-orange-200 shadow-2xl w-full max-w-lg max-h-[min(90dvh,720px)] flex flex-col overflow-hidden">
       <div class="shrink-0 px-4 py-3 border-b border-orange-100 bg-orange-50/80 flex items-start justify-between gap-3">
         <div class="min-w-0">
           <h4 id="modal-precos-forma-titulo" class="text-base font-black uppercase text-orange-900 leading-tight">Preços por forma de pagamento</h4>
-          <p class="text-sm font-semibold text-slate-600 mt-1 leading-snug">Deixe em branco para usar o preço de venda final. Só formas preenchidas alteram o PDV.</p>
+          <p id="modal-precos-forma-hint" class="text-sm font-semibold text-slate-600 mt-1 leading-snug">Deixe em branco para usar o preço de venda final. Só formas preenchidas alteram o PDV.</p>
         </div>
         <button type="button" id="modal-precos-forma-fechar" class="shrink-0 w-10 h-10 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xl leading-none hover:bg-white" aria-label="Fechar">×</button>
       </div>
-      <div class="flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin]">
+      <div class="shrink-0 px-4 py-2.5 border-b border-orange-100 bg-white flex gap-2" role="tablist" aria-label="Modo de preços">
+        <button type="button" id="precos-modo-por-forma" class="precos-modo-btn flex-1 min-h-[44px] rounded-xl border-2 border-orange-500 bg-orange-50 text-orange-950 text-xs font-black uppercase tracking-wide px-2" data-modo="por_forma" aria-pressed="true">Por forma</button>
+        <button type="button" id="precos-modo-grupos" class="precos-modo-btn flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 bg-white text-slate-600 text-xs font-black uppercase tracking-wide px-2" data-modo="grupos" aria-pressed="false">2 grupos</button>
+      </div>
+      <div id="precos-panel-por-forma" class="flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin]">
         <table class="w-full text-base">
           <thead class="sticky top-0 bg-slate-50 text-xs font-black uppercase text-slate-600">
             <tr>
@@ -595,6 +599,28 @@
             </tr>
           </thead>
           <tbody id="tbody-precos-forma-pagamento" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="precos-panel-grupos" class="hidden flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin] p-3 space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+          <label class="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-3">
+            <span class="block text-[11px] font-black uppercase text-emerald-900 mb-1">Preço grupo A (R$)</span>
+            <input type="text" id="precos-grupo-preco-a" class="w-full min-h-[46px] px-3 rounded-lg border-2 border-emerald-300 bg-white text-base font-black text-right focus:border-emerald-600 outline-none" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="rounded-xl border-2 border-sky-200 bg-sky-50/60 p-3">
+            <span class="block text-[11px] font-black uppercase text-sky-900 mb-1">Preço grupo B (R$)</span>
+            <input type="text" id="precos-grupo-preco-b" class="w-full min-h-[46px] px-3 rounded-lg border-2 border-sky-300 bg-white text-base font-black text-right focus:border-sky-600 outline-none" inputmode="decimal" placeholder="0,00" autocomplete="off" spellcheck="false" />
+          </label>
+        </div>
+        <p class="text-xs font-semibold text-slate-500 px-1">Marque cada forma em A, B ou nenhum (usa o preço de venda final).</p>
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-slate-50 text-[10px] font-black uppercase text-slate-600">
+            <tr>
+              <th class="px-3 py-2 text-left">Forma</th>
+              <th class="px-2 py-2 text-center w-[7.5rem]">Grupo</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-precos-grupos-formas" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
       <div class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
@@ -1841,6 +1867,12 @@
     if (typeof window.agroCadastroObterPrecosPorFormaPayload === 'function') {
       body.precos_por_forma = window.agroCadastroObterPrecosPorFormaPayload();
     }
+    if (typeof window.agroCadastroObterPrecosModoPayload === 'function') {
+      body.precos_modo = window.agroCadastroObterPrecosModoPayload();
+    }
+    if (typeof window.agroCadastroObterPrecosGruposPayload === 'function') {
+      body.precos_grupos = window.agroCadastroObterPrecosGruposPayload();
+    }
     body.validar_cadastro_minimo = true;
     var tok = obterCsrfCadastro(cfg);
     if (!tok) {
@@ -2276,6 +2308,13 @@
     if (!sub) return;
 
     modalEdit._precosPorForma = modalEdit._precosPorForma || {};
+    modalEdit._precosModo = modalEdit._precosModo || 'por_forma';
+    modalEdit._precosGrupos = modalEdit._precosGrupos || {
+      preco_a: null,
+      preco_b: null,
+      formas_a: [],
+      formas_b: []
+    };
 
     function formasLista() {
       var cfg = window.AgroCadastroErpLista || {};
@@ -2283,21 +2322,84 @@
       return ['Dinheiro', 'PIX', 'Cartão de débito', 'Cartão de crédito', 'Cartão de crédito parcelado', 'Fiado', 'Vale crédito', 'Cashback', 'Outro'];
     }
 
+    function syncGruposInputsToState() {
+      var aEl = document.getElementById('precos-grupo-preco-a');
+      var bEl = document.getElementById('precos-grupo-preco-b');
+      var g = modalEdit._precosGrupos || {};
+      if (aEl) {
+        var ra = (aEl.value || '').trim();
+        var na = ra ? parseMoeda(ra) : 0;
+        g.preco_a = na > 0 ? na : null;
+      }
+      if (bEl) {
+        var rb = (bEl.value || '').trim();
+        var nb = rb ? parseMoeda(rb) : 0;
+        g.preco_b = nb > 0 ? nb : null;
+      }
+      var formasA = [];
+      var formasB = [];
+      sub.querySelectorAll('.preco-grupo-sel').forEach(function (sel) {
+        var f = sel.getAttribute('data-forma') || '';
+        if (!f) return;
+        if (sel.value === 'a') formasA.push(f);
+        else if (sel.value === 'b') formasB.push(f);
+      });
+      g.formas_a = formasA;
+      g.formas_b = formasB;
+      modalEdit._precosGrupos = g;
+    }
+
     function atualizarBadgePrecosForma() {
       var badge = document.getElementById('badge-precos-forma-count');
       if (!badge) return;
       var n = 0;
-      var map = modalEdit._precosPorForma || {};
-      Object.keys(map).forEach(function (k) {
-        var v = parseMoeda(map[k]);
-        if (v > 0) n += 1;
-      });
+      if (modalEdit._precosModo === 'grupos') {
+        var g = modalEdit._precosGrupos || {};
+        if (g.preco_a != null && parseMoeda(g.preco_a) > 0) n += 1;
+        if (g.preco_b != null && parseMoeda(g.preco_b) > 0) n += 1;
+        n += (g.formas_a || []).length + (g.formas_b || []).length;
+      } else {
+        var map = modalEdit._precosPorForma || {};
+        Object.keys(map).forEach(function (k) {
+          var v = parseMoeda(map[k]);
+          if (v > 0) n += 1;
+        });
+      }
       if (n > 0) {
         badge.textContent = String(n);
         badge.classList.remove('hidden');
       } else {
         badge.textContent = '';
         badge.classList.add('hidden');
+      }
+    }
+
+    function aplicarModoUi() {
+      var modo = modalEdit._precosModo === 'grupos' ? 'grupos' : 'por_forma';
+      modalEdit._precosModo = modo;
+      var panelForma = document.getElementById('precos-panel-por-forma');
+      var panelGrupos = document.getElementById('precos-panel-grupos');
+      var hint = document.getElementById('modal-precos-forma-hint');
+      sub.querySelectorAll('.precos-modo-btn').forEach(function (btn) {
+        var on = btn.getAttribute('data-modo') === modo;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) {
+          btn.classList.add('border-orange-500', 'bg-orange-50', 'text-orange-950');
+          btn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
+        } else {
+          btn.classList.remove('border-orange-500', 'bg-orange-50', 'text-orange-950');
+          btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
+        }
+      });
+      if (panelForma) panelForma.classList.toggle('hidden', modo === 'grupos');
+      if (panelGrupos) {
+        panelGrupos.classList.toggle('hidden', modo !== 'grupos');
+        panelGrupos.classList.toggle('block', modo === 'grupos');
+      }
+      if (hint) {
+        hint.textContent = modo === 'grupos'
+          ? 'Defina o preço A e B e em qual grupo fica cada forma. Forma sem grupo usa o preço de venda final.'
+          : 'Deixe em branco para usar o preço de venda final. Só formas preenchidas alteram o PDV.';
       }
     }
 
@@ -2332,8 +2434,34 @@
       });
     }
 
+    function renderPrecosGruposUi() {
+      var g = modalEdit._precosGrupos || {};
+      var aEl = document.getElementById('precos-grupo-preco-a');
+      var bEl = document.getElementById('precos-grupo-preco-b');
+      if (aEl) aEl.value = g.preco_a != null && parseMoeda(g.preco_a) > 0 ? fmtMoeda2(parseMoeda(g.preco_a)) : '';
+      if (bEl) bEl.value = g.preco_b != null && parseMoeda(g.preco_b) > 0 ? fmtMoeda2(parseMoeda(g.preco_b)) : '';
+      var setA = {};
+      var setB = {};
+      (g.formas_a || []).forEach(function (f) { setA[f] = true; });
+      (g.formas_b || []).forEach(function (f) { setB[f] = true; });
+      var tb = document.getElementById('tbody-precos-grupos-formas');
+      if (!tb) return;
+      tb.innerHTML = formasLista().map(function (forma) {
+        var cur = setA[forma] ? 'a' : (setB[forma] ? 'b' : '');
+        return '<tr><td class="px-3 py-2.5 font-bold text-slate-800">' + esc(forma) + '</td>' +
+          '<td class="px-2 py-2 text-center">' +
+          '<select class="preco-grupo-sel w-full min-h-[42px] rounded-lg border-2 border-slate-200 text-sm font-black text-center bg-white" data-forma="' + esc(forma) + '">' +
+          '<option value=""' + (cur === '' ? ' selected' : '') + '>—</option>' +
+          '<option value="a"' + (cur === 'a' ? ' selected' : '') + '>A</option>' +
+          '<option value="b"' + (cur === 'b' ? ' selected' : '') + '>B</option>' +
+          '</select></td></tr>';
+      }).join('');
+    }
+
     function abrirPrecosFormaModal() {
+      aplicarModoUi();
       renderPrecosFormaTabela();
+      renderPrecosGruposUi();
       sub.classList.remove('hidden');
       sub.classList.add('flex');
     }
@@ -2350,10 +2478,22 @@
         if (n > 0) modalEdit._precosPorForma[f] = n;
         else delete modalEdit._precosPorForma[f];
       });
+      syncGruposInputsToState();
       atualizarBadgePrecosForma();
       sub.classList.add('hidden');
       sub.classList.remove('flex');
     }
+
+    sub.querySelectorAll('.precos-modo-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        syncGruposInputsToState();
+        modalEdit._precosModo = btn.getAttribute('data-modo') === 'grupos' ? 'grupos' : 'por_forma';
+        aplicarModoUi();
+        if (modalEdit._precosModo === 'grupos') renderPrecosGruposUi();
+        else renderPrecosFormaTabela();
+        atualizarBadgePrecosForma();
+      });
+    });
 
     var btnOpen = document.getElementById('btn-precos-forma-pagamento');
     if (btnOpen) btnOpen.addEventListener('click', abrirPrecosFormaModal);
@@ -2363,8 +2503,13 @@
     if (btnOk) btnOk.addEventListener('click', fecharPrecosFormaModal);
     var btnLimpar = document.getElementById('modal-precos-forma-limpar');
     if (btnLimpar) btnLimpar.addEventListener('click', function () {
-      modalEdit._precosPorForma = {};
-      renderPrecosFormaTabela();
+      if (modalEdit._precosModo === 'grupos') {
+        modalEdit._precosGrupos = { preco_a: null, preco_b: null, formas_a: [], formas_b: [] };
+        renderPrecosGruposUi();
+      } else {
+        modalEdit._precosPorForma = {};
+        renderPrecosFormaTabela();
+      }
       atualizarBadgePrecosForma();
     });
     sub.addEventListener('click', function (e) {
@@ -2380,6 +2525,19 @@
         ppf = ce.precos_por_forma;
       }
       modalEdit._precosPorForma = ppf && typeof ppf === 'object' ? Object.assign({}, ppf) : {};
+      var modo = (produto && produto.precos_modo) || (ce && ce.precos_modo) || 'por_forma';
+      modalEdit._precosModo = String(modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+      var pg = (produto && produto.precos_grupos) || (ce && ce.precos_grupos) || null;
+      if (pg && typeof pg === 'object') {
+        modalEdit._precosGrupos = {
+          preco_a: pg.preco_a != null ? pg.preco_a : null,
+          preco_b: pg.preco_b != null ? pg.preco_b : null,
+          formas_a: Array.isArray(pg.formas_a) ? pg.formas_a.slice() : [],
+          formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : []
+        };
+      } else {
+        modalEdit._precosGrupos = { preco_a: null, preco_b: null, formas_a: [], formas_b: [] };
+      }
       atualizarBadgePrecosForma();
     };
     window.agroCadastroObterPrecosPorFormaPayload = function () {
@@ -2390,6 +2548,19 @@
         if (n > 0) out[k] = n;
       });
       return out;
+    };
+    window.agroCadastroObterPrecosModoPayload = function () {
+      return modalEdit._precosModo === 'grupos' ? 'grupos' : 'por_forma';
+    };
+    window.agroCadastroObterPrecosGruposPayload = function () {
+      syncGruposInputsToState();
+      var g = modalEdit._precosGrupos || {};
+      return {
+        preco_a: g.preco_a != null && parseMoeda(g.preco_a) > 0 ? parseMoeda(g.preco_a) : null,
+        preco_b: g.preco_b != null && parseMoeda(g.preco_b) > 0 ? parseMoeda(g.preco_b) : null,
+        formas_a: Array.isArray(g.formas_a) ? g.formas_a.slice() : [],
+        formas_b: Array.isArray(g.formas_b) ? g.formas_b.slice() : []
+      };
     };
   })();
 })();

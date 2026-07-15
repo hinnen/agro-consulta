@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.55** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.56** · **loja v8.54**
+
+### ✨ PDV — preço por forma OU 2 grupos (15/07 · **teste v8.56**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | No cadastro: modo **Por forma** (igual antes) ou **2 grupos** (preço A/B + formas em A/B). PDV mostra A e B na busca/carrinho; total só muda na etapa 3 ao escolher a forma |
+| **Validar** | Ctrl+F5 teste · badge **v8.56** · produto em 2 grupos → 2 chips no PDV · pagar com forma do grupo A/B |
+| **Loja** | ⏳ |
+
 
 ### 🩹 Cadastro — busca digitada mais leve (15/07 · **teste v8.55**)
 

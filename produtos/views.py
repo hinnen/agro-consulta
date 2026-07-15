@@ -108,9 +108,15 @@ from .caixa_util import (
     resolver_sessao_caixa_para_venda,
 )
 from .precos_forma_pagamento_util import (
+    extrair_precos_grupos_cadastro_extras,
+    extrair_precos_grupos_overlay,
+    extrair_precos_modo_cadastro_extras,
+    extrair_precos_modo_overlay,
     extrair_precos_por_forma_cadastro_extras,
     extrair_precos_por_forma_overlay,
     formas_pagamento_lista,
+    normalizar_precos_grupos_payload,
+    normalizar_precos_modo,
     normalizar_precos_por_forma_payload,
 )
 from .fiado_credito_util import (
@@ -669,7 +675,7 @@ def _linha_gestao_produto_json(
     from produtos.cashback_venda_util import cashback_percentual_de_overlay
 
     cb_pct = float(cashback_percentual_de_overlay(ov))
-    return {
+    out = {
         "id": pid,
         "nome": nome,
         "codigo_gm": codigo_nfe,
@@ -708,7 +714,15 @@ def _linha_gestao_produto_json(
         "estoque_min_vila": emin_v,
         "estoque_max_vila": emax_v,
         "cashback_percentual": cb_pct,
+        "precos_modo": extrair_precos_modo_overlay(ov),
     }
+    ppf_lin = extrair_precos_por_forma_overlay(ov)
+    if ppf_lin:
+        out["precos_por_forma"] = ppf_lin
+    pg_lin = extrair_precos_grupos_overlay(ov)
+    if pg_lin:
+        out["precos_grupos"] = pg_lin
+    return out
 
 
 def _aplicar_produto_gestao_overlay_em_dict(
@@ -753,6 +767,12 @@ def _aplicar_produto_gestao_overlay_em_dict(
         row["precos_por_forma"] = ppf
     elif "precos_por_forma" in row:
         row.pop("precos_por_forma", None)
+    row["precos_modo"] = extrair_precos_modo_overlay(ov)
+    pg = extrair_precos_grupos_overlay(ov)
+    if pg:
+        row["precos_grupos"] = pg
+    elif "precos_grupos" in row:
+        row.pop("precos_grupos", None)
     ce_pc = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
     if isinstance(ce_pc, dict) and ce_pc.get("preco_custo_overlay") is not None:
         try:
@@ -2046,6 +2066,18 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["precos_por_forma"] = ppf
         else:
             ex.pop("precos_por_forma", None)
+    if "precos_modo" in payload:
+        modo = normalizar_precos_modo(payload.get("precos_modo"))
+        if modo == "grupos":
+            ex["precos_modo"] = "grupos"
+        else:
+            ex.pop("precos_modo", None)
+    if "precos_grupos" in payload:
+        pg = normalizar_precos_grupos_payload(payload.get("precos_grupos"))
+        if pg:
+            ex["precos_grupos"] = pg
+        else:
+            ex.pop("precos_grupos", None)
     if "preco_custo" in payload:
         if custo_payload is not None:
             ex["preco_custo_overlay"] = float(custo_payload)
@@ -18483,6 +18515,10 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})
     if ppf_det:
         row["precos_por_forma"] = ppf_det
+    row["precos_modo"] = extrair_precos_modo_cadastro_extras(ce_ov or {})
+    pg_det = extrair_precos_grupos_cadastro_extras(ce_ov or {})
+    if pg_det:
+        row["precos_grupos"] = pg_det
     if ov_det and ov_det.estoque_min_centro is not None:
         row["estoque_minimo"] = float(ov_det.estoque_min_centro)
     if ov_det and ov_det.estoque_max_centro is not None:

@@ -1426,6 +1426,17 @@ function metaOpcoesFromProd(p) {
     } else if (p.cadastro_extras && p.cadastro_extras.precos_por_forma) {
         out.precos_por_forma = Object.assign({}, p.cadastro_extras.precos_por_forma);
     }
+    var modo = p.precos_modo || (p.cadastro_extras && p.cadastro_extras.precos_modo);
+    if (modo) out.precos_modo = String(modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+    var pg = p.precos_grupos || (p.cadastro_extras && p.cadastro_extras.precos_grupos);
+    if (pg && typeof pg === 'object') {
+        out.precos_grupos = {
+            preco_a: pg.preco_a,
+            preco_b: pg.preco_b,
+            formas_a: Array.isArray(pg.formas_a) ? pg.formas_a.slice() : [],
+            formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : [],
+        };
+    }
     if (p.auditoria_codigo_bip) {
         out.auditoria_codigo_bip = String(p.auditoria_codigo_bip).trim();
     }
@@ -1465,10 +1476,14 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
     const precoPadrao = Number(preco || 0);
     const ppf = opcoes.precos_por_forma;
+    const modoPg = opcoes.precos_modo;
+    const pgMeta = opcoes.precos_grupos;
     if (item) {
         item.qtd += qtd;
         if (item.preco_padrao == null) item.preco_padrao = precoPadrao;
         if (ppf && typeof ppf === 'object') item.precos_por_forma = Object.assign({}, ppf);
+        if (modoPg) item.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+        if (pgMeta && typeof pgMeta === 'object') item.precos_grupos = Object.assign({}, pgMeta);
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
@@ -1483,6 +1498,8 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
             prateleira: pr,
         };
         if (ppf && typeof ppf === 'object') linha.precos_por_forma = Object.assign({}, ppf);
+        if (modoPg) linha.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+        if (pgMeta && typeof pgMeta === 'object') linha.precos_grupos = Object.assign({}, pgMeta);
         if (aud) linha.auditoria_codigo_bip = aud;
         carrinho.push(linha);
     }

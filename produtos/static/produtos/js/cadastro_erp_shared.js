@@ -101,6 +101,10 @@
     if (p.precos_por_forma && typeof p.precos_por_forma === 'object') {
       patch.precos_por_forma = p.precos_por_forma;
     }
+    if (p.precos_modo) patch.precos_modo = String(p.precos_modo);
+    if (p.precos_grupos && typeof p.precos_grupos === 'object') {
+      patch.precos_grupos = p.precos_grupos;
+    }
     return patch;
   }
 
@@ -167,6 +171,10 @@
     });
     if (patch.precos_por_forma && typeof patch.precos_por_forma === 'object') {
       out.precos_por_forma = patch.precos_por_forma;
+    }
+    if (patch.precos_modo) out.precos_modo = patch.precos_modo;
+    if (patch.precos_grupos && typeof patch.precos_grupos === 'object') {
+      out.precos_grupos = patch.precos_grupos;
     }
     if (patch.cashback_percentual != null && isFinite(Number(patch.cashback_percentual))) {
       out.cashback_percentual = Number(patch.cashback_percentual);
