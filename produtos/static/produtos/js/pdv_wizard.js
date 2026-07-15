@@ -547,7 +547,7 @@
     var productSearchSuppressDismissUntil = 0;
     var productSearchDismissedSnapshot = null;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v10';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v11';
     /** Mesma chave da Consulta — sobrevive fechar o navegador. */
     var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v2';
     var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
@@ -1272,18 +1272,27 @@
     }
 
     function mergeProductsById(primary, extra) {
-        var seen = {};
-        var out = [];
-        function addList(arr) {
+        var map = {};
+        var order = [];
+        function upsert(arr, preferIncoming) {
             normalizeWizardCatalogList(arr || []).forEach(function (p) {
-                if (seen[p.id]) return;
-                seen[p.id] = true;
-                out.push(p);
+                var id = p.id;
+                if (!id) return;
+                var prev = map[id];
+                if (!prev) {
+                    map[id] = p;
+                    order.push(id);
+                    return;
+                }
+                map[id] = preferIncoming ? Object.assign({}, prev, p) : Object.assign({}, p, prev);
             });
         }
-        addList(primary);
-        addList(extra);
-        return out;
+        // primary define a ordem; extra atualiza campos no mesmo id (preços / grupos vêm do servidor).
+        upsert(primary, false);
+        upsert(extra, true);
+        return order.map(function (id) {
+            return map[id];
+        });
     }
 
     function findUniqueBarcodeMatch(q) {
@@ -7356,14 +7365,7 @@
                     tryAutoAddBarcodeHit(localList[0]);
                     return null;
                 }
-                if (skuCode && localList.length && localSkuCacheSufficient(localList, qlSku)) {
-                    finishLocalProductSearch(localList);
-                    return null;
-                }
-                if (mode === 'manual' && !skuCode && localTextCacheSufficient(localList)) {
-                    finishLocalProductSearch(localList);
-                    return null;
-                }
+                // Sempre confirma no servidor: cache local não traz precos_grupos atualizados.
                 if (localList.length >= AUTOCOMPLETE_PAGE_SIZE) {
                     productSearchMayHaveMore = true;
                 }
@@ -7401,9 +7403,8 @@
                 if (!payload || !Array.isArray(payload.remote)) return;
                 productSearchAwaitingServer = false;
                 var remote = payload.remote;
-                var merged = stagingReadonly
-                    ? mergeProductsById(remote, payload.localList || [])
-                    : mergeProductsById(payload.localList || [], remote);
+                // Ordem do cache local; servidor atualiza preço / grupos no mesmo id.
+                var merged = mergeProductsById(payload.localList || [], remote);
                 if (payload.mode === 'barcode' && merged.length === 1) {
                     tryAutoAddBarcodeHit(merged[0]);
                     return;
@@ -7414,6 +7415,7 @@
                 }
                 if (merged.length) {
                     productSearchMayHaveMore = merged.length > AUTOCOMPLETE_PAGE_SIZE;
+                    if (remote.length) aplicarWizardPatchesProdutos(remote);
                     renderProductResults(merged);
                     if (payload.provaUnificada && payload.provaUnificada.ok) {
                         dom.productSearchFeedback.textContent =

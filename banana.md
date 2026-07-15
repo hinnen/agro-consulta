@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.56** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.57** · **loja v8.54**
+
+### 🩹 PDV — grupos A/B aparecem + modal preços maior (15/07 · **teste v8.57**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Busca usava só cache local e merge ignorava o servidor → sem precos_grupos |
+| **Fix** | Sempre confere servidor · merge atualiza campos · overlay no catálogo PDV · modal preços ~90% |
+| **Validar** | Ctrl+F5 teste · badge **v8.57** · digitar produto com 2 grupos → chips A/B na busca e no carrinho |
+| **Loja** | ⏳ |
+
 
 ### ✨ PDV — preço por forma OU 2 grupos (15/07 · **teste v8.56**)
 
