@@ -1154,7 +1154,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.40** · **loja v8.40**
+**Versão app (`VERSION`):** **teste v8.41** · **loja v8.40**
+
+### 🚑 Entrada NF — após Confirmar XML sem GM / P.venda 0 (14/07 · **teste v8.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Modal mostra **Cadastro**, mas na grade: Cód. só do fornecedor, P. venda **0,00**, margem **-100** |
+| **Causa** | `casar_produtos_mongo` só ia `produto_id`+nome — sem preço/GM |
+| **Fix** | Parse traz **preço + GM** (Mongo+overlay) · grade mostra GM · hidrata pós-Confirmar via API se faltar |
+| **Validar** | Ctrl+F5 teste · Ler XML → Confirmar → Cód. tipo `GM…` · P. venda do cadastro · custo da NF permanece |
+| **Loja** | ⏳ |
 
 ### 🩹 Entrada NF — modal XML «Sem vínculo» com grade vazia (14/07 · **loja v8.40**)
 

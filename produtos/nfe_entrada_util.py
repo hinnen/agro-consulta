@@ -864,7 +864,17 @@ def _produto_mongo_por_pid_entrada(db, col_p: str, pid: str) -> dict | None:
     try:
         doc = db[col_p].find_one(
             {"$or": ors},
-            {"Id": 1, "_id": 1, "Nome": 1, INDEX_CODIGOS_CAMPO: 1},
+            {
+                "Id": 1,
+                "_id": 1,
+                "Nome": 1,
+                "ValorVenda": 1,
+                "PrecoVenda": 1,
+                "CodigoNFe": 1,
+                "Codigo": 1,
+                "CodigoBarras": 1,
+                INDEX_CODIGOS_CAMPO: 1,
+            },
         )
     except Exception:
         return None
@@ -910,6 +920,87 @@ def resolver_vinculo_historico_entrada_nfe(
     return None, None
 
 
+def _float_preco_doc_mongo(doc: dict | None) -> float | None:
+    if not isinstance(doc, dict):
+        return None
+    for k in ("ValorVenda", "PrecoVenda", "preco_venda", "valor_venda"):
+        raw = doc.get(k)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if v >= 0:
+            return v
+    return None
+
+
+def _codigo_gm_doc_mongo(doc: dict | None) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for k in ("CodigoNFe", "Codigo", "codigo_nfe", "codigo"):
+        s = str(doc.get(k) or "").strip()
+        if s:
+            return s[:64]
+    return ""
+
+
+def _overlay_preco_e_gm_por_pids(pids: list[str]) -> dict[str, dict[str, object]]:
+    """Lê overlay/Produto Postgres — preço e GM oficiais do SisVale."""
+    out: dict[str, dict[str, object]] = {}
+    ids = [str(p or "").strip()[:64] for p in pids if str(p or "").strip()]
+    if not ids:
+        return out
+    try:
+        from produtos.models import Produto, ProdutoGestaoOverlayAgro
+    except Exception:
+        return out
+    try:
+        ovs = {
+            str(o.produto_externo_id): o
+            for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids).only(
+                "produto_externo_id", "codigo_nfe", "preco_venda", "codigo_barras"
+            )
+        }
+        prods = {
+            str(p.produto_externo_id): p
+            for p in Produto.objects.filter(produto_externo_id__in=ids).only(
+                "produto_externo_id", "codigo_nfe", "codigo_interno", "preco_venda", "codigo_barras"
+            )
+        }
+    except Exception as exc:
+        logger.warning("overlay_preco_e_gm_por_pids: %s", exc)
+        return out
+    for pid in ids:
+        ov = ovs.get(pid)
+        pr = prods.get(pid)
+        gm = ""
+        if ov is not None:
+            gm = str(getattr(ov, "codigo_nfe", None) or "").strip()
+        if not gm and pr is not None:
+            gm = str(getattr(pr, "codigo_nfe", None) or getattr(pr, "codigo_interno", None) or "").strip()
+        pv = None
+        if ov is not None and getattr(ov, "preco_venda", None) is not None:
+            try:
+                pv = float(ov.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        if (pv is None or pv <= 0) and pr is not None and getattr(pr, "preco_venda", None) is not None:
+            try:
+                pv = float(pr.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        row: dict[str, object] = {}
+        if gm:
+            row["codigo_nfe"] = gm[:64]
+        if pv is not None and pv >= 0:
+            row["preco_venda"] = pv
+        if row:
+            out[pid] = row
+    return out
+
+
 def casar_produtos_mongo(
     db,
     col_p: str,
@@ -917,9 +1008,10 @@ def casar_produtos_mongo(
     *,
     emit_cnpj: str = "",
 ) -> list[dict]:
-    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN, código ou histórico."""
+    """Enriquece itens com produto_id / nome / preço / GM quando encontra por EAN, código ou histórico."""
     if db is None or not itens:
         return itens
+    matched_pids: list[str] = []
     for it in itens:
         it["produto_id"] = None
         it["nome_catalogo"] = None
@@ -946,6 +1038,29 @@ def casar_produtos_mongo(
             it["produto_id"] = pid
             it["nome_catalogo"] = str(doc.get("Nome") or "")[:300]
             it["match_tipo"] = mtipo
+            gm = _codigo_gm_doc_mongo(doc)
+            if gm:
+                it["codigo_nfe"] = gm
+            pv = _float_preco_doc_mongo(doc)
+            if pv is not None:
+                it["preco_venda"] = pv
+            if pid:
+                matched_pids.append(pid)
+    # Overlay Postgres (fonte GM/preço da loja) sobrescreve Mongo quando existir.
+    ov_map = _overlay_preco_e_gm_por_pids(matched_pids)
+    if ov_map:
+        for it in itens:
+            pid = str(it.get("produto_id") or "").strip()
+            row = ov_map.get(pid)
+            if not row:
+                continue
+            if row.get("codigo_nfe"):
+                it["codigo_nfe"] = str(row["codigo_nfe"])[:64]
+            if row.get("preco_venda") is not None:
+                try:
+                    it["preco_venda"] = float(row["preco_venda"])
+                except (TypeError, ValueError):
+                    pass
     return itens
 
 

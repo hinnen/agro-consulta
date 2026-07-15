@@ -5951,11 +5951,13 @@
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
       v_prod: it.v_prod != null ? it.v_prod : null,
       preco_venda: it.preco_venda != null ? it.preco_venda : 0,
+      codigo_nfe: entradaNfeStrCampo(it.codigo_nfe || it.codigo_gm || it.codigo),
       cfop: entradaNfeStrCampo(it.cfop),
       produto_id: entradaNfeStrCampo(it.produto_id),
       nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
       match_tipo: entradaNfeStrCampo(it.match_tipo),
       catalogo_via: entradaNfeStrCampo(it.catalogo_via),
+      preservar_custo_nf: it.preservar_custo_nf != null ? !!it.preservar_custo_nf : true,
       lote_numero: entradaNfeStrCampo(it.lote_numero),
       lote_fabricacao: entradaNfeLoteDataParaInput(it.lote_fabricacao),
       lote_validade: entradaNfeLoteDataParaInput(it.lote_validade),
@@ -6743,12 +6745,14 @@
       nome_catalogo: entradaNfeStrCampo(merged.nome_catalogo),
       match_tipo: entradaNfeStrCampo(merged.match_tipo),
       catalogo_via: entradaNfeStrCampo(merged.catalogo_via),
+      codigo_nfe: entradaNfeStrCampo(merged.codigo_nfe || merged.codigo_gm || merged.codigo),
       q_com: merged.q_com != null ? merged.q_com : 1,
       un_por_embalagem: merged.un_por_embalagem != null ? merged.un_por_embalagem : 1,
       v_un_com: merged.v_un_com != null ? merged.v_un_com : 0,
       margem_percentual: merged.margem_percentual != null ? merged.margem_percentual : null,
       preco_venda: merged.preco_venda != null ? merged.preco_venda : 0,
       q_estoque: merged.q_estoque,
+      preservar_custo_nf: !!merged.preservar_custo_nf,
     };
     const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
     const textoCatCompleto =
@@ -6811,6 +6815,11 @@
     const cprodOrig = entradaNfeStrCampo(d.c_prod_fornecedor || d.c_prod);
     if (cprodOrig.length >= 2) tr.dataset.nfeCprodOrig = cprodOrig;
     else delete tr.dataset.nfeCprodOrig;
+    /* Casado no cadastro: mostra GM (codigo_nfe) na coluna Cód.; guarda cProd do XML em nfeCprodOrig. */
+    const gmShow = entradaNfeStrCampo(d.codigo_nfe || d.codigo_gm);
+    if (gmShow && entradaNfeStrCampo(d.produto_id)) {
+      tr.querySelector('.in-cprod').value = gmShow;
+    }
     const eanInp = tr.querySelector('.in-ean');
     if (eanInp) eanInp.value = d.ean;
     const digOrig = entradaNfeCatalogOnlyDigits(d.ean).slice(0, 20);
@@ -7732,6 +7741,14 @@
     if (via) out.catalogo_via = via;
     if (pre.margem_percentual != null && pre.margem_percentual !== '') out.margem_percentual = pre.margem_percentual;
     if (pre.preco_venda != null && Number(pre.preco_venda) > 0) out.preco_venda = pre.preco_venda;
+    else if (out.preco_venda == null || !(Number(out.preco_venda) > 0)) {
+      /* mantém preco_venda vindo do casar_produtos_mongo no xml */
+    }
+    const gm =
+      entradaNfeStrCampo(pre.codigo_nfe || pre.codigo_gm) ||
+      entradaNfeStrCampo(out.codigo_nfe || out.codigo_gm);
+    if (gm) out.codigo_nfe = gm;
+    out.preservar_custo_nf = true;
     if (pre.bip_conf) out.bip_conf = pre.bip_conf;
     if (Array.isArray(pre.bip_similar_codigos) && pre.bip_similar_codigos.length) {
       out.bip_similar_codigos = [...pre.bip_similar_codigos];
@@ -7776,7 +7793,7 @@
         usedPre.add(l.preIdx);
         out.push(entradaNfeXmlMergeCombinar(preLinhas[l.preIdx], xmlRow));
       } else {
-        out.push({ ...xmlRow });
+        out.push({ ...xmlRow, preservar_custo_nf: true });
       }
     });
     preLinhas.forEach((preRow, pi) => {
@@ -8049,10 +8066,46 @@
     if (inp) inp.value = '';
   }
 
+  async function entradaNfeHidratarLinhasCasadasAposXml() {
+    const trs = [...document.querySelectorAll('#tbody-itens tr')].filter(
+      (tr) => tr.dataset.nfeLinhaModo !== 'compact'
+    );
+    for (const tr of trs) {
+      const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (!pid || pid.toLowerCase().startsWith('local:')) continue;
+      const pvAtual = entradaNfeParseDecimalApi(tr.querySelector('.in-pvenda')?.value);
+      const cprodAtual = entradaNfeStrCampo(tr.querySelector('.in-cprod')?.value);
+      const precisaPv = pvAtual == null || !Number.isFinite(pvAtual) || pvAtual <= 0;
+      const pareceGm = /^gm/i.test(cprodAtual) || /-/i.test(cprodAtual);
+      const precisaGm = !pareceGm;
+      if (!precisaPv && !precisaGm) continue;
+      try {
+        const det = await fetch(`/api/buscar-produto-id/${encodeURIComponent(pid)}/`, {
+          credentials: 'same-origin',
+        }).then((r) => (r.ok ? r.json() : null));
+        if (!det || !tr.isConnected) continue;
+        if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) continue;
+        tr.dataset.nfeCustNfPreservado = '1';
+        const gm = entradaNfeStrCampo(det.codigo_nfe || det.codigo);
+        if (gm) tr.querySelector('.in-cprod').value = gm;
+        const nome = entradaNfeStrCampo(det.nome);
+        if (nome) tr.dataset.nfeNomeCatalogo = nome.slice(0, 500);
+        entradaNfeAplicarPrecosCatalogoNaLinha(tr, det);
+        entradaNfeLinhaApplyCatalogoUi(tr);
+        entradaNfeSyncEditProdBtn(tr);
+      } catch (_) {}
+    }
+    atualizarPainelTotalNfe();
+    entradaNfeAgendarAutosaveRascunho();
+  }
+
   function entradaNfeXmlMergeConfirmar() {
     const ctx = entradaNfeXmlMergeCtx;
     if (!ctx) return;
-    const rows = entradaNfeXmlMergeMontarGradeFinal(ctx);
+    const rows = entradaNfeXmlMergeMontarGradeFinal(ctx).map((row) => ({
+      ...row,
+      preservar_custo_nf: true,
+    }));
     if (!rows.length) {
       if (
         !window.confirm(
@@ -8085,6 +8138,7 @@
     const finHint = finXml ? ` · ${(ctx.nota.duplicatas || []).length || 1} parcela(s) do XML na etapa Financeiro` : '';
     showMsg(`NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns).${finHint} Revise e salve.`, true);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+    void entradaNfeHidratarLinhasCasadasAposXml();
   }
 
   function entradaNfeXmlMergeAbrir(nota, fileInput) {
