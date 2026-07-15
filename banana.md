@@ -1155,9 +1155,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.52** · **loja v8.49**
+**Versão app (`VERSION`):** **teste v8.54** · **loja v8.49**
 
-### 🩹 Entrada NF — emb. recolhida alarga Cód./EAN (15/07 · **teste v8.52**)
+### 🩹 Entrada NF — alinhamento linha + borda campos (15/07 · **teste v8.54**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Nome SisVale só empurra o fim da descrição; Cód./demais campos alinhados no topo · borda dos campos um pouco mais forte |
+| **Validar** | Ctrl+F5 teste · badge **v8.54** · linha reta descrição→código · campos mais legíveis |
+| **Loja** | ⏳ |
+
+
+### 🩹 Entrada NF — emb. recolhida alarga Cód./EAN (15/07 · **teste v8.53**)
 
 | Item | Detalhe |
 | ---- | ------- |

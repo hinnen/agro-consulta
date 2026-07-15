@@ -1017,9 +1017,12 @@
     #nfe-btn-toggle-emb-cols[aria-expanded="true"] .nfe-emb-arrow {
       transform: rotate(90deg);
     }
-    /* Descrição NF + nome do cadastro SisVale logo abaixo (sem coluna nova). */
+    /* Descrição NF + nome SisVale abaixo: célula cresce no final; demais cols no topo (sem linha “quebrada”). */
+    .nfe-grade-itens tbody > tr > td {
+      vertical-align: top !important;
+    }
     .nfe-grade-itens td.nfe-desc-cell {
-      vertical-align: top;
+      vertical-align: top !important;
     }
     .nfe-grade-itens .nfe-desc-catalogo {
       display: none;
@@ -1036,6 +1039,22 @@
     }
     .nfe-grade-itens .nfe-desc-catalogo.is-on {
       display: block;
+    }
+    /* Contorno dos campos da grade: um pouco mais marcado (ainda sutil; margem colorida mantém). */
+    .nfe-grade-itens tbody input:not([type="hidden"]):not(:disabled):not(.nfe-margem--crit):not(.nfe-margem--warn):not(.nfe-margem--orange):not(.nfe-margem--ok) {
+      border-color: rgb(148 163 184);
+    }
+    .nfe-grade-itens tbody input.in-qtd:not(:disabled),
+    .nfe-grade-itens tbody input.in-vun:not(:disabled),
+    .nfe-grade-itens tbody input.in-un-emb:not(:disabled),
+    .nfe-grade-itens tbody input.in-q-est:not(:disabled),
+    .nfe-grade-itens tbody input.in-preco-pacote:not(:disabled),
+    .nfe-grade-itens tbody input.in-pvenda:not(:disabled),
+    .nfe-grade-itens tbody input.in-margem:not(:disabled):not(.nfe-margem--crit):not(.nfe-margem--warn):not(.nfe-margem--orange):not(.nfe-margem--ok) {
+      border-color: rgb(100 116 139);
+    }
+    .nfe-grade-itens tbody input:disabled {
+      border-color: rgb(203 213 225);
     }
     #entrada-nfe-wizard-nav.entrada-nfe-wiz-nav--compact {
       border-style: solid;
