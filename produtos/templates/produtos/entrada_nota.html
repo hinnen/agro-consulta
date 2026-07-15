@@ -1233,6 +1233,13 @@
               title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
           </div>
         </div>
+        <label id="nfe-rateio-acrescimos-wrap" class="inline-flex flex-wrap items-start gap-2.5 px-3 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50/90 cursor-pointer min-h-[44px] w-full max-w-3xl">
+          <input type="checkbox" id="nfe-chk-rateio-acrescimos" class="mt-0.5 h-5 w-5 accent-amber-600 shrink-0" disabled>
+          <span class="min-w-0">
+            <span class="block text-xs font-black uppercase text-amber-950 leading-snug">Incluir no custo os acréscimos da nota</span>
+            <span id="nfe-rateio-acrescimos-hint" class="block text-[11px] font-semibold text-amber-900/90 leading-snug mt-0.5">Leia o XML primeiro. Se houver frete, ST, seguro, outras ou IPI, o sistema rateia no custo unitário (sem ler o arquivo de novo).</span>
+          </span>
+        </label>
         <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
         <table class="nfe-grade-itens w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
@@ -1610,6 +1617,7 @@
           <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full min-h-[48px] text-sm font-bold border-2 border-slate-200 rounded-xl px-2 py-2 bg-white"></label>
         <button type="button" id="btn-parse-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-blue-600 text-white font-black text-sm uppercase hover:bg-blue-700 shadow-sm">Ler XML</button>
       </div>
+      <p class="text-[11px] font-semibold text-slate-600 leading-snug">Acréscimos no custo (frete/ST…): opção na etapa <strong>2 · Produtos</strong> — marca/desmarca e a grade recalcula sem ler o XML de novo.</p>
       <button type="button" id="btn-salvar-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar entrada</button>
     </section>
 
@@ -1877,7 +1885,8 @@
         </div>
         <div class="border-l-4 border-orange-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Colunas da grade</p>
-          <p><strong>Rateio:</strong> Un/emb = unidades por embalagem na NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (editável).</p>
+          <p><strong>Rateio Un/emb:</strong> Un/emb = unidades por embalagem na NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (editável).</p>
+          <p><strong>Acréscimos no custo:</strong> na etapa 2, marque <strong>«Incluir no custo os acréscimos da nota»</strong> para ratear frete, ICMS ST, seguro, outras e IPI (menos desconto) no custo unitário. Sem esses valores no XML, a opção não muda nada. Pode marcar/desmarcar depois — a grade recalcula sem ler o XML de novo.</p>
         </div>
         <div class="border-l-4 border-violet-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">EAN da nota (caixa) × unidade no Agro</p>
@@ -5764,6 +5773,171 @@
 
   let ultimaNotaParse = null;
 
+  /** Frete + ST + seguro + outras + IPI − desconto (só o que vier &gt; 0 no total). */
+  function entradaNfeNotaAcrescimosCusto(nota) {
+    if (!nota || typeof nota !== 'object') return 0;
+    const raw = nota.acrescimos_custo;
+    if (raw != null && raw !== '') {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) return entradaNfeRoundHalfUp(n, 2);
+      if (Number.isFinite(n) && n <= 0) return 0;
+    }
+    const t = nota.totais_nf && typeof nota.totais_nf === 'object' ? nota.totais_nf : {};
+    const a =
+      (Number(t.v_frete) || 0) +
+      (Number(t.v_st) || 0) +
+      (Number(t.v_seg) || 0) +
+      (Number(t.v_outro) || 0) +
+      (Number(t.v_ipi) || 0) -
+      (Number(t.v_desc) || 0);
+    return a > 0 ? entradaNfeRoundHalfUp(a, 2) : 0;
+  }
+
+  function entradaNfeNotaSomaVProd(nota) {
+    if (!nota || typeof nota !== 'object') return 0;
+    const vp = Number(nota.valor_produtos);
+    if (Number.isFinite(vp) && vp > 0) return vp;
+    const t = nota.totais_nf && typeof nota.totais_nf === 'object' ? nota.totais_nf : {};
+    const vp2 = Number(t.v_prod);
+    if (Number.isFinite(vp2) && vp2 > 0) return vp2;
+    let s = 0;
+    (nota.itens || []).forEach((it) => {
+      const v = Number(it && it.v_prod);
+      if (Number.isFinite(v) && v > 0) s += v;
+    });
+    return s > 0 ? entradaNfeRoundHalfUp(s, 2) : 0;
+  }
+
+  function entradaNfeFmtMoedaHint(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 'R$ 0,00';
+    try {
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    } catch (_) {
+      return `R$ ${n.toFixed(2).replace('.', ',')}`;
+    }
+  }
+
+  function entradaNfeAtualizarUiRateioAcrescimos(notaOpt) {
+    const chk = document.getElementById('nfe-chk-rateio-acrescimos');
+    const hint = document.getElementById('nfe-rateio-acrescimos-hint');
+    if (!chk) return;
+    const nota = notaOpt != null ? notaOpt : ultimaNotaParse;
+    const acresc = entradaNfeNotaAcrescimosCusto(nota);
+    const vnf = Number(nota && nota.valor_total) || 0;
+    const vprod = entradaNfeNotaSomaVProd(nota);
+    if (!(acresc > 0)) {
+      chk.disabled = true;
+      if (chk.checked) chk.checked = false;
+      if (hint) {
+        hint.textContent = nota
+          ? 'Esta nota não trouxe frete/ST/IPI/outras no total — deixar marcado não muda o custo.'
+          : 'Leia o XML primeiro. Se houver frete, ST, seguro, outras ou IPI, o sistema rateia no custo unitário (sem ler o arquivo de novo).';
+      }
+      return;
+    }
+    chk.disabled = false;
+    if (hint) {
+      const partes = [];
+      const t = (nota && nota.totais_nf) || {};
+      if (Number(t.v_frete) > 0) partes.push(`frete ${entradaNfeFmtMoedaHint(t.v_frete)}`);
+      if (Number(t.v_st) > 0) partes.push(`ST ${entradaNfeFmtMoedaHint(t.v_st)}`);
+      if (Number(t.v_seg) > 0) partes.push(`seguro ${entradaNfeFmtMoedaHint(t.v_seg)}`);
+      if (Number(t.v_outro) > 0) partes.push(`outras ${entradaNfeFmtMoedaHint(t.v_outro)}`);
+      if (Number(t.v_ipi) > 0) partes.push(`IPI ${entradaNfeFmtMoedaHint(t.v_ipi)}`);
+      if (Number(t.v_desc) > 0) partes.push(`− desc. ${entradaNfeFmtMoedaHint(t.v_desc)}`);
+      const detalhe = partes.length ? ` (${partes.join(' · ')})` : '';
+      hint.textContent =
+        `Rateia ${entradaNfeFmtMoedaHint(acresc)}${detalhe} no custo dos itens`
+        + (vprod > 0 && vnf > 0
+          ? ` · produtos ${entradaNfeFmtMoedaHint(vprod)} → nota ${entradaNfeFmtMoedaHint(vnf)}.`
+          : '.')
+        + ' Marque ou desmarque — a grade recalcula na hora.';
+    }
+  }
+
+  /**
+   * Custo unitário da linha XML: puro (vUnCom) ou + fatia proporcional dos acréscimos.
+   * @returns {{ base: number, unit: number }|null}
+   */
+  function entradaNfeCalcularVUnComComRateio(xmlItem, nota, incluir) {
+    if (!xmlItem || typeof xmlItem !== 'object') return null;
+    const base = entradaNfeXmlMergeVUnNfDoItem(xmlItem);
+    if (base == null || !Number.isFinite(base)) return null;
+    if (!incluir) return { base, unit: base };
+    const acresc = entradaNfeNotaAcrescimosCusto(nota);
+    if (!(acresc > 0)) return { base, unit: base };
+    const somaProd = entradaNfeNotaSomaVProd(nota);
+    if (!(somaProd > 0)) return { base, unit: base };
+    const vp = Number(xmlItem.v_prod);
+    const q = Number(xmlItem.q_com);
+    if (!(Number.isFinite(vp) && vp > 0 && Number.isFinite(q) && q > 0)) {
+      return { base, unit: base };
+    }
+    const share = acresc * (vp / somaProd);
+    return { base, unit: entradaNfeRoundHalfUp(base + share / q, 6) };
+  }
+
+  function entradaNfeAplicarVUnNaLinhaTr(tr, unit) {
+    if (!tr || !(Number.isFinite(unit) && unit >= 0)) return;
+    tr.dataset.nfeVunPreciso = String(unit);
+    const unEmb = entradaNfeLinhaUnEmbCalculo(tr);
+    if (unEmb > 1) tr.dataset.nfeCustoEmbalagem = String(unit * unEmb);
+    else delete tr.dataset.nfeCustoEmbalagem;
+    entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-vun'), unit);
+    entradaNfeLinhaAtualizarVunitTd(tr);
+    entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+    entradaNfeLinhaRecalcMargemDisplay(tr);
+    entradaNfeLinhaAtualizarTotalProduto(tr);
+  }
+
+  /** Reaplica base ± rateio nas linhas que guardam custo puro da NF (sem ler XML de novo). */
+  function entradaNfeReaplicarRateioAcrescimosNaGrade() {
+    if (entradaNfeEditorCongeladoAtivo()) return;
+    /* Com o modal de pareamento aberto, a opção só vale no «Confirmar na grade». */
+    const mergeEl = document.getElementById('modal-xml-merge');
+    if (mergeEl && !mergeEl.classList.contains('hidden')) {
+      entradaNfeAtualizarUiRateioAcrescimos(entradaNfeXmlMergeCtx?.nota || ultimaNotaParse);
+      return;
+    }
+    const nota = ultimaNotaParse;
+    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
+    let somaProd = entradaNfeNotaSomaVProd(nota);
+    const rows = [];
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
+      if (tr.dataset.nfeVunBaseNf == null || tr.dataset.nfeVunBaseNf === '') return;
+      rows.push(tr);
+    });
+    if (!rows.length) {
+      entradaNfeAtualizarUiRateioAcrescimos();
+      return;
+    }
+    if (!(somaProd > 0)) {
+      somaProd = rows.reduce((s, tr) => s + (Number(tr.dataset.nfeVprodNf) || 0), 0);
+    }
+    rows.forEach((tr) => {
+      const base = Number(tr.dataset.nfeVunBaseNf);
+      if (!Number.isFinite(base) || base < 0) return;
+      const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
+      const vp = Number(tr.dataset.nfeVprodNf) || 0;
+      let unit = base;
+      if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
+        unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
+      }
+      entradaNfeAplicarVUnNaLinhaTr(tr, unit);
+    });
+    atualizarPainelTotalNfe();
+    entradaNfeAgendarAutosaveRascunho();
+    entradaNfeAtualizarUiRateioAcrescimos();
+    if (acresc > 0 && incluir) {
+      showMsg(`Custos atualizados com acréscimos da nota (${entradaNfeFmtMoedaHint(acresc)}).`, true);
+    } else if (nota && entradaNfeNotaAcrescimosCusto(nota) > 0) {
+      showMsg('Custos voltaram ao valor dos produtos (sem frete/ST no unitário).', true);
+    }
+  }
+
   function aplicarCabecalho(n) {
     document.getElementById('m-emit-nome').value = n.emit_nome || '';
     document.getElementById('m-emit-cnpj').value = n.emit_cnpj || '';
@@ -5949,7 +6123,9 @@
       un_por_embalagem: un,
       q_estoque: qest,
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
+      v_un_com_base_nf: it.v_un_com_base_nf != null ? it.v_un_com_base_nf : null,
       v_prod: it.v_prod != null ? it.v_prod : null,
+      n_item: it.n_item != null ? it.n_item : '',
       preco_venda: it.preco_venda != null ? it.preco_venda : 0,
       codigo_nfe: entradaNfeStrCampo(it.codigo_nfe || it.codigo_gm || it.codigo),
       cfop: entradaNfeStrCampo(it.cfop),
@@ -6749,6 +6925,9 @@
       q_com: merged.q_com != null ? merged.q_com : 1,
       un_por_embalagem: merged.un_por_embalagem != null ? merged.un_por_embalagem : 1,
       v_un_com: merged.v_un_com != null ? merged.v_un_com : 0,
+      v_un_com_base_nf: merged.v_un_com_base_nf != null ? merged.v_un_com_base_nf : null,
+      v_prod: merged.v_prod != null ? merged.v_prod : null,
+      n_item: merged.n_item != null ? merged.n_item : '',
       margem_percentual: merged.margem_percentual != null ? merged.margem_percentual : null,
       preco_venda: merged.preco_venda != null ? merged.preco_venda : 0,
       q_estoque: merged.q_estoque,
@@ -6762,6 +6941,28 @@
     tr.dataset.nfeMatchTipo = d.match_tipo ? String(d.match_tipo).trim().slice(0, 80) : '';
     if (d.preservar_custo_nf) tr.dataset.nfeCustNfPreservado = '1';
     else delete tr.dataset.nfeCustNfPreservado;
+    const baseNf =
+      entradaNfeParseDecimalApi(d.v_un_com_base_nf) ??
+      (d.preservar_custo_nf ? entradaNfeParseDecimalApi(d.v_un_com) : null);
+    if (baseNf != null && Number.isFinite(baseNf) && baseNf >= 0) {
+      tr.dataset.nfeVunBaseNf = String(baseNf);
+    } else {
+      delete tr.dataset.nfeVunBaseNf;
+    }
+    const vprodNf = entradaNfeParseDecimalApi(d.v_prod);
+    if (vprodNf != null && Number.isFinite(vprodNf) && vprodNf > 0) {
+      tr.dataset.nfeVprodNf = String(vprodNf);
+    } else {
+      delete tr.dataset.nfeVprodNf;
+    }
+    const qnf = Number(d.q_com);
+    if (Number.isFinite(qnf) && qnf > 0) tr.dataset.nfeQComNf = String(qnf);
+    else delete tr.dataset.nfeQComNf;
+    if (d.n_item != null && String(d.n_item).trim() !== '') {
+      tr.dataset.nfeXmlNItem = String(d.n_item).trim();
+    } else {
+      delete tr.dataset.nfeXmlNItem;
+    }
 
     tr.innerHTML = `
       <td class="px-2 py-1"><input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
@@ -7097,6 +7298,15 @@
           }
         })(),
         preservar_custo_nf: tr.dataset.nfeCustNfPreservado === '1',
+        v_prod: (() => {
+          const x = entradaNfeParseDecimalApi(tr.dataset.nfeVprodNf || '');
+          return x != null && Number.isFinite(x) ? x : null;
+        })(),
+        v_un_com_base_nf: (() => {
+          const x = entradaNfeParseDecimalApi(tr.dataset.nfeVunBaseNf || '');
+          return x != null && Number.isFinite(x) ? x : null;
+        })(),
+        n_item: String(tr.dataset.nfeXmlNItem || '').trim(),
         lote_numero: String(tr.dataset.loteNumero || '').trim(),
         lote_fabricacao: String(tr.dataset.loteFab || '').trim(),
         lote_validade: String(tr.dataset.loteVal || '').trim(),
@@ -8106,10 +8316,17 @@
   function entradaNfeXmlMergeConfirmar() {
     const ctx = entradaNfeXmlMergeCtx;
     if (!ctx) return;
-    const rows = entradaNfeXmlMergeMontarGradeFinal(ctx).map((row) => ({
-      ...row,
-      preservar_custo_nf: true,
-    }));
+    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    const rows = entradaNfeXmlMergeMontarGradeFinal(ctx).map((row) => {
+      const baseRow = { ...row, preservar_custo_nf: true };
+      const calc = entradaNfeCalcularVUnComComRateio(baseRow, ctx.nota, incluir);
+      if (!calc) return baseRow;
+      return {
+        ...baseRow,
+        v_un_com_base_nf: calc.base,
+        v_un_com: calc.unit,
+      };
+    });
     if (!rows.length) {
       if (
         !window.confirm(
@@ -8135,12 +8352,20 @@
       }
     });
     atualizarPainelTotalNfe();
+    entradaNfeAtualizarUiRateioAcrescimos();
     const finXml = entradaNfeAplicarFinanceiroDoXml(ctx.nota);
     const inp = ctx.fileInput;
     entradaNfeXmlMergeFechar();
     if (inp) inp.value = '';
     const finHint = finXml ? ` · ${(ctx.nota.duplicatas || []).length || 1} parcela(s) do XML na etapa Financeiro` : '';
-    showMsg(`NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns).${finHint} Revise e salve.`, true);
+    const rateioHint =
+      incluir && entradaNfeNotaAcrescimosCusto(ctx.nota) > 0
+        ? ` · custos com acréscimos (${entradaNfeFmtMoedaHint(entradaNfeNotaAcrescimosCusto(ctx.nota))})`
+        : '';
+    showMsg(
+      `NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns).${finHint}${rateioHint} Revise e salve.`,
+      true
+    );
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
     void entradaNfeHidratarLinhasCasadasAposXml();
   }
@@ -8166,6 +8391,7 @@
       dirty: false,
       fileInput: fileInput || null,
     };
+    entradaNfeAtualizarUiRateioAcrescimos(nota);
     entradaNfeXmlMergeRender();
     document.getElementById('modal-xml-merge')?.classList.remove('hidden');
     entradaNfeXmlMergeBindEsc(true);
@@ -9645,6 +9871,10 @@
     });
   });
 
+  document.getElementById('nfe-chk-rateio-acrescimos')?.addEventListener('change', () => {
+    entradaNfeReaplicarRateioAcrescimosNaGrade();
+  });
+
   document.getElementById('btn-parse-xml').addEventListener('click', async () => {
     if (entradaNfeEditorCongeladoAtivo()) {
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
@@ -9759,9 +9989,19 @@
             entradaNfeDepositoDefinir('', true);
             aplicarCabecalho(n);
             tbodyClear();
-            (n.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
+            const incluirSefaz = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+            (n.itens || []).forEach((it) => {
+              const base = { ...linhaFromItem(it), preservar_custo_nf: true };
+              const calc = entradaNfeCalcularVUnComComRateio(base, n, incluirSefaz);
+              if (calc) {
+                base.v_un_com_base_nf = calc.base;
+                base.v_un_com = calc.unit;
+              }
+              addLinhaRow(base);
+            });
             entradaNfeEnsureTrailingCompactRow();
             atualizarPainelTotalNfe();
+            entradaNfeAtualizarUiRateioAcrescimos(n);
             const finXml = entradaNfeAplicarFinanceiroDoXml(n);
             const finHint = finXml ? ' Parcelas do XML preenchidas no Financeiro.' : '';
             showMsg(`Nota carregada na grade (aba manual).${finHint}`, true);
