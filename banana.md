@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.54** · **loja v8.49**
+**Versão app (\VERSION\):** **teste v8.54** · **loja v8.54**
+
+### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Nome SisVale sob descrição · Emb. fechada alarga Cód./EAN · alinhamento linha + bordas |
+| **Commit loja** | ccb4fd8 · backup producao-backup-pre-v854-20260715 @ 6f0df25 |
+| **Autorização** | *enviar… produção* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v8.54** |
+
 
 ### 🩹 Entrada NF — alinhamento linha + borda campos (15/07 · **teste v8.54**)
 
@@ -1163,7 +1173,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Nome SisVale só empurra o fim da descrição; Cód./demais campos alinhados no topo · borda dos campos um pouco mais forte |
 | **Validar** | Ctrl+F5 teste · badge **v8.54** · linha reta descrição→código · campos mais legíveis |
-| **Loja** | ⏳ |
+| **Loja** | **✅** v8.54 |
 
 
 ### 🩹 Entrada NF — emb. recolhida alarga Cód./EAN (15/07 · **teste v8.53**)
@@ -1172,7 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Com Embalagem fechada, espaço livre vai para **Cód.** e **EAN** (não fica buraco à direita) |
 | **Validar** | Ctrl+F5 teste · badge **v8.52** · Emb. fechada → GM completo + EAN mais largo |
-| **Loja** | ⏳ |
+| **Loja** | **✅** v8.54 |
 
 
 ### 🩹 Entrada NF — nome do cadastro sob a descrição (15/07 · **teste v8.51**)
@@ -1181,7 +1191,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Embaixo da descrição da NF aparece o nome SisVale (verde), sem coluna nova |
 | **Validar** | Ctrl+F5 teste · badge **v8.51** · linha casada → texto verde sob a descrição |
-| **Loja** | ⏳ |
+| **Loja** | **✅** v8.54 |
 
 
 ### 🚑 Entrada NF — overlay R$ 0 apagava P.venda do Mongo (15/07 · **teste v8.49**)
