@@ -2550,8 +2550,8 @@ _CLIENTE_PDV_ONLY_FIELDS = (
 )
 
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
-CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
-CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v1"
+CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v2"
+CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v2"
 
 # Saldos PDV: cache curto só com Redis (settings.AGRO_PDV_SALDOS_CACHE_SECONDS > 0).
 _SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
@@ -23074,7 +23074,8 @@ def _catalogo_pdv_montar_produtos(db, client):
                 "index_codigos": index_codigos_list,
             }
         )
-    if getattr(settings, "AGRO_STAGING_READONLY", False) and res:
+    # Overlay Agro (preço, precos_por_forma / grupos) — necessário no PDV local e no loja.
+    if res:
         ovm = _overlay_mapa_por_ids_chunked([str(x.get("id") or "") for x in res if x.get("id")])
         for row in res:
             _aplicar_produto_gestao_overlay_em_dict(row, ovm.get(str(row.get("id") or "")))
@@ -23094,7 +23095,9 @@ def _catalogo_pdv_version(produtos: list[dict]) -> str:
         h.update(
             (
                 f"{p.get('id','')}|{p.get('nome','')}|{p.get('codigo_nfe','')}|"
-                f"{p.get('codigo_barras','')}|{p.get('preco_venda',0)}|{p.get('preco_custo_final',0)}|{ix_fp}"
+                f"{p.get('codigo_barras','')}|{p.get('preco_venda',0)}|{p.get('preco_custo_final',0)}|"
+                f"{p.get('precos_modo','')}|{p.get('precos_grupos') or {}}|"
+                f"{p.get('precos_por_forma') or {}}|{ix_fp}"
             ).encode("utf-8")
         )
     return h.hexdigest()[:20]
