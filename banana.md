@@ -560,6 +560,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
+- **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
@@ -1154,7 +1155,136 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (`VERSION`):** **teste v8.29+** · **loja v8.26**
+
+**Versão app (`VERSION`):** **teste v8.43** · **loja v8.43**
+
+### 📦 Deploy loja **v8.43** — rateio frete/ST + hidrata GM paralelo (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *pode subir pra produção* + 99738595 |
+| **Pacote** | Rateio acréscimos no custo (checkbox etapa 2) · hidrata GM em paralelo (v8.42) |
+| **Backup** | producao-backup-pre-v843-20260714 @ 6e64db |
+| **Validar** | Ctrl+F5 loja · badge **v8.43** · XML com frete/ST → marcar opção → custo sobe · desmarcar → volta |
+| **Revert** | git reset --hard b6e64db na producao + push (ou checkout backup) |
+
+
+### ⚡ Entrada NF — rateio frete/ST no custo (14/07 · **loja v8.43**)
+
+| | |
+| --- | --- |
+| **O quê** | Checkbox «Incluir no custo os acréscimos da nota» — rateia frete+ST(+seguro/outras/IPI−desc) no V. unit; marca/desmarca sem reler XML |
+| **Arquivos** | `nfe_entrada_util.py` (totais ICMSTot) · `entrada_nota.html` |
+| **Validar** | Ctrl+F5 teste · badge **v8.43** · XML com frete/ST → marcar → custo sobe · desmarcar → volta · nota limpa → opção desligada |
+
+### ⚡ Entrada NF — hidrata GM em paralelo (14/07 · **teste v8.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | GM não pula de 2 em 2 s — busca do cadastro em paralelo |
+| **Loja** | **✅** v8.43 |
+
+### 🚑 Entrada NF — após Confirmar XML sem GM / P.venda 0 (14/07 · **loja v8.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Modal mostra **Cadastro**, mas na grade: Cód. só do fornecedor, P. venda **0,00**, margem **-100** |
+| **Causa** | `casar_produtos_mongo` só ia `produto_id`+nome — sem preço/GM |
+| **Fix** | Parse traz **preço + GM** (Mongo+overlay) · grade mostra GM · hidrata pós-Confirmar via API se faltar |
+| **Loja** | **✅** `b6e64db` · backup `producao-backup-pre-v841-20260714` |
+| **Validar** | Ctrl+F5 loja · badge **v8.41** · Ler XML → Confirmar → GM + P. venda |
+
+### 🩹 Entrada NF — modal XML «Sem vínculo» com grade vazia (14/07 · **loja v8.40**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após entrar NF, ao ler o **mesmo XML** de novo tudo «Sem vínculo» e esquerda vazia |
+| **Causa** | Badge = par **grade↔XML**, não casamento com cadastro. Grade vazia = todos «Sem vínculo» mesmo com produto casado |
+| **Fix** | Badge **Cadastro** (verde) quando `produto_id` veio do parse · texto da grade vazia · Confirmar também lembra EAN embalagem |
+| **Loja** | **✅** `a4d60fc` · backup `producao-backup-pre-v840-20260714` |
+| **Validar** | Ctrl+F5 loja · badge **v8.40** · Ler XML grade vazia → **Cadastro** nos casados |
+
+### 🚑 Hotfix loja **v8.39** — merge migrações 0050+0051 (14/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Erro** | `Conflicting migrations … (0050_vendaagro_frete, 0051_produto_modelo)` |
+| **Fix** | `0052_merge_0050_frete_0051_modelo` |
+| **Loja** | **✅** `c119f51` v8.39 · teste `bcfdc8a` |
+
+### 📦 Deploy loja **v8.38** — lote Zap restante + PIN ao abrir (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *pode mandar tudo para produção* + `99738595` |
+| **Commit loja** | `93cbc67` · backup `producao-backup-pre-v838-20260714` @ `74b95fc` |
+| **Pacote** | **#5** busca leve · **#16** aviso CP (texto + fonte) · **#18** frete 3 vias (+ mig `0050_vendaagro_frete`) · **#1 #2 #9 #11 #13 #14** · **PIN ao abrir** PDV |
+| **#16 texto** | *Busca por texto ativa: os campos de data foram limpos* · fonte `1rem` |
+| **Validar loja** | Ctrl+F5 · badge **v8.38** · abrir PDV → pede PIN · CP busca texto → aviso · entrega+frete nas 3 vias · Entrada NF #1/#2 · Esc fecha overlay menu |
+| **Revert** | `git reset --hard 74b95fc` na `producao` + push (ou checkout backup) |
+
+### 🔐 PDV pede PIN ao abrir (14/07 · **teste v8.37** → **loja v8.38**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Fechar/reabrir PDV **não** mantém operador — tela de PIN na entrada |
+| **Validar** | Ctrl+F5 · digita PIN · fecha aba / volta do BI · abre PDV → pede PIN de novo |
+| **Loja** | **✅** v8.38 `93cbc67` |
+
+### 📦 Deploy loja **v8.34** — #6 + #10 + PIN nome (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorização** | *manda produção* + `99738595` |
+| **Commit loja** | `74b95fc` · backup `producao-backup-pre-v834-20260714` @ `1cdad18` |
+| **Pacote** | **#6** PIN 1 query · **#10** Cancelar cobrança (+ MP fiado caixa) · **PIN nome** online/sessão · **chip** entre Nova venda e PIN |
+| **NÃO veio** | frete #18 · resto do `teste` |
+| **Validar loja** | Ctrl+F5 · badge **v8.34** · digitar PIN → nome no chip · fiado BAIXA → **Cancelar cobrança** · venda no nome certo após trocar PIN no descanso |
+| **Revert** | `git reset --hard 1cdad18` na `producao` + push (ou checkout backup) |
+
+### 👁 PDV — nome do PIN entre Nova venda e PIN (14/07 · **teste v8.34**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Chip `gm-sspin-operador-chip` no topbar do wizard (entre **Nova venda** e **PIN**) |
+| **Validar** | Ctrl+F5 · digitar PIN · nome aparece ali |
+
+### 🚑 PIN / nome trocado (14/07 · **teste v8.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | (1) desbloqueio pelo cache local **sem** gravar sessão no servidor → reload trazia o nome anterior; (2) servidor confiava no nome do Chrome antes da sessão; (3) state/rascunho PDV podia guardar nome velho |
+| **Fix** | PIN **sempre online** · no descanso limpa nome no Chrome · venda usa **sessão/PIN** antes do Chrome · PDV limpa `operadorPdv` ao trocar/sair |
+| **Validar** | Render **teste** · Ctrl+F5 · PC1: Geraldo PIN → descanso → Renan PIN → venda no **seu** nome; 2 pessoas no mesmo Chrome sem trocar PIN ainda grudam (esperado até o descanso) |
+| **Loja** | **✅** v8.34 `74b95fc` |
+
+### 🔍 PIN / nome trocado (Renan ↔ Geraldo etc.) — 14/07 · **só diagnóstico**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relato** | Ação com PIN do Renan (e outros) gravando nome de **outra pessoa** (ex. Geraldo Hinnen) |
+| **Status** | → virado fix **v8.33** acima |
+| **Causa A (mais forte)** | Nome no Chrome + sessão desatualizada (atalho local sem API) |
+| **Causa B** | PIN **não é único** no banco (`.first()`) — ainda existe; cadastro novo barra duplicata |
+
+### 🩹 #6 PIN — 1 query no rótulo (14/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Já tinha helper `_perfil_usuario_por_pin` (191e70b) · **faltava**: `operador_label_de_pin` ainda batia 2× no banco |
+| **Fix** | Valida + rótulo na **mesma** leitura |
+| **Validar** | Render **teste** · digitar PIN no PDV/caixa · deve responder rápido |
+| **Loja** | **✅** v8.34 `74b95fc` |
+
+### 📦 Deploy loja **v8.30** (14/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commits** | `96df934` GM0024 PG+Mongo · `1cdad18` baixa fiado filtro nome |
+| **Antes** | loja **v8.26** `780d964` |
+| **Validar** | Ctrl+F5 · Fiado → BAIXA · `gm0024` → 3 |
+| **Dados** | fiado: só filtro — **não** apaga títulos |
+
 
 ### 🚑 Fiado BAIXA «Nenhum título em aberto» (14/07)
 

@@ -523,6 +523,9 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
         "dest_cpf": "",
         "dest_nome": "",
         "valor_total": 0.0,
+        "valor_produtos": 0.0,
+        "acrescimos_custo": 0.0,
+        "totais_nf": {},
         "duplicatas": [],
         "pagamentos": [],
         "fatura": {},
@@ -583,12 +586,48 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
     if total_el is not None:
         icms_tot = _find1(total_el, ["ICMSTot"])
         if icms_tot is not None:
+            totais_nf: dict[str, float] = {
+                "v_prod": 0.0,
+                "v_frete": 0.0,
+                "v_st": 0.0,
+                "v_seg": 0.0,
+                "v_outro": 0.0,
+                "v_ipi": 0.0,
+                "v_desc": 0.0,
+                "v_nf": 0.0,
+            }
+            mapa = {
+                "vProd": "v_prod",
+                "vFrete": "v_frete",
+                "vST": "v_st",
+                "vSeg": "v_seg",
+                "vOutro": "v_outro",
+                "vIPI": "v_ipi",
+                "vDesc": "v_desc",
+                "vNF": "v_nf",
+            }
             for child in icms_tot:
-                if _localname(child.tag) == "vNF":
-                    try:
-                        out["valor_total"] = float(Decimal(_text(child) or "0"))
-                    except Exception:
-                        out["valor_total"] = 0.0
+                ln = _localname(child.tag)
+                key = mapa.get(ln)
+                if not key:
+                    continue
+                try:
+                    totais_nf[key] = float(Decimal(_text(child).replace(",", ".") or "0"))
+                except Exception:
+                    totais_nf[key] = 0.0
+            out["totais_nf"] = totais_nf
+            out["valor_total"] = float(totais_nf.get("v_nf") or 0.0)
+            # Cesta de acréscimos para rateio no custo (frete + ST + seguro + outras + IPI − desconto).
+            acresc = (
+                float(totais_nf.get("v_frete") or 0)
+                + float(totais_nf.get("v_st") or 0)
+                + float(totais_nf.get("v_seg") or 0)
+                + float(totais_nf.get("v_outro") or 0)
+                + float(totais_nf.get("v_ipi") or 0)
+                - float(totais_nf.get("v_desc") or 0)
+            )
+            out["acrescimos_custo"] = round(acresc, 2) if acresc > 0 else 0.0
+            out["valor_produtos"] = float(totais_nf.get("v_prod") or 0.0)
 
     cobr = _find1(inf, ["cobr"])
     duplicatas: list[dict[str, Any]] = []
