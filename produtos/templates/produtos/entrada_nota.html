@@ -1040,6 +1040,52 @@
     .nfe-grade-itens .nfe-desc-catalogo.is-on {
       display: block;
     }
+    .nfe-grade-itens .nfe-pvenda-grupos {
+      display: none;
+      margin-top: 0.2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.2rem;
+    }
+    .nfe-grade-itens .nfe-pvenda-grupos.is-on {
+      display: inline-flex;
+    }
+    .nfe-grade-itens .nfe-pvenda-grupo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.4rem;
+      border: 1.5px solid rgb(110 231 183);
+      background: rgb(236 253 245);
+      font-size: 0.68rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: rgb(4 120 87);
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .nfe-grade-itens .nfe-pvenda-grupo-chip--b {
+      border-color: rgb(125 211 252);
+      background: rgb(240 249 255);
+      color: rgb(3 105 161);
+    }
+    .nfe-grade-itens .nfe-pvenda-grupo-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 0.2rem;
+      background: rgb(4 120 87);
+      color: #fff;
+      font-size: 0.58rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .nfe-grade-itens .nfe-pvenda-grupo-chip--b .nfe-pvenda-grupo-tag {
+      background: rgb(3 105 161);
+    }
     /* Contorno dos campos da grade: um pouco mais marcado (ainda sutil; margem colorida mantém). */
     .nfe-grade-itens tbody input:not([type="hidden"]):not(:disabled):not(.nfe-margem--crit):not(.nfe-margem--warn):not(.nfe-margem--orange):not(.nfe-margem--ok) {
       border-color: rgb(148 163 184);
@@ -7203,6 +7249,7 @@
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
           class="in-pvenda nfe-num-destaque w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center font-black text-slate-900 tabular-nums tracking-tight"
           title="Preço de venda — só você altera; a margem % recalcula quando o custo da NF muda.">
+        <span class="nfe-pvenda-grupos" aria-label="Preços por grupo A/B"></span>
       </td>
       <td class="px-2 py-1 align-middle text-right">
         <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd est. × V. unit">0,00</span>
@@ -7275,6 +7322,7 @@
     if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
     else delete tr.dataset.nfeCatVia;
     entradaNfeLinhaApplyCatalogoUi(tr);
+    entradaNfeLinhaApplyPrecosGruposUi(tr, d);
     entradaNfeLinhaRatearCustoPorEmbalagem(tr);
     entradaNfeLinhaAtualizarVunitTd(tr);
     entradaNfeLinhaAtualizarTotalProduto(tr);
@@ -8880,6 +8928,55 @@
     } catch (_) {}
   }
 
+  function entradaNfeLinhaApplyPrecosGruposUi(tr, p) {
+    if (!tr) return;
+    const el = tr.querySelector('.nfe-pvenda-grupos');
+    if (!el) return;
+    const src = p || {};
+    const modo = String(src.precos_modo || tr.dataset.nfePrecosModo || '').toLowerCase();
+    let g = src.precos_grupos;
+    if ((!g || typeof g !== 'object') && tr.dataset.nfePrecosGrupos) {
+      try {
+        g = JSON.parse(tr.dataset.nfePrecosGrupos);
+      } catch (_) {
+        g = null;
+      }
+    }
+    if (modo === 'grupos' && g && typeof g === 'object') {
+      tr.dataset.nfePrecosModo = 'grupos';
+      try {
+        tr.dataset.nfePrecosGrupos = JSON.stringify({
+          preco_a: g.preco_a,
+          preco_b: g.preco_b,
+          formas_a: Array.isArray(g.formas_a) ? g.formas_a : [],
+          formas_b: Array.isArray(g.formas_b) ? g.formas_b : [],
+        });
+      } catch (_) {}
+      const a = Number(g.preco_a);
+      const b = Number(g.preco_b);
+      const parts = [];
+      if (Number.isFinite(a) && a > 0) {
+        parts.push(
+          `<span class="nfe-pvenda-grupo-chip" title="Grupo A"><span class="nfe-pvenda-grupo-tag">A</span>${entradaNfeFmtMoedaLista(a)}</span>`
+        );
+      }
+      if (Number.isFinite(b) && b > 0) {
+        parts.push(
+          `<span class="nfe-pvenda-grupo-chip nfe-pvenda-grupo-chip--b" title="Grupo B"><span class="nfe-pvenda-grupo-tag">B</span>${entradaNfeFmtMoedaLista(b)}</span>`
+        );
+      }
+      if (parts.length) {
+        el.innerHTML = parts.join('');
+        el.classList.add('is-on');
+        return;
+      }
+    }
+    delete tr.dataset.nfePrecosModo;
+    delete tr.dataset.nfePrecosGrupos;
+    el.innerHTML = '';
+    el.classList.remove('is-on');
+  }
+
   function entradaNfeAplicarPrecosCatalogoNaLinha(tr, p) {
     if (!tr || !p) return;
     const vunInp = tr.querySelector('.in-vun');
@@ -8891,6 +8988,7 @@
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
     /* Não gravar 0,00 do catálogo por cima de um preço já útil (ou «apagar» o que veio do Mongo). */
     if (pvInp && pv != null && pv > 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
+    entradaNfeLinhaApplyPrecosGruposUi(tr, p);
     entradaNfeLinhaRecalcMargemDisplay(tr);
     entradaNfeLinhaApplyMargemCor(tr);
   }
