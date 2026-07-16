@@ -97,35 +97,53 @@ def _forma_pagamento_cupom(venda) -> str:
 
 def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str, Any]:
     """Payload JSON para impressão 80mm (lista de vendas, detalhe, PDV)."""
+    from produtos.devolucao_venda_util import frete_restante, valor_restante_venda
+
     itens: list[dict[str, Any]] = []
     for it in venda.itens.all().order_by("pk"):
         qtd = Decimal(str(it.quantidade or 0))
+        q_dev = Decimal(str(getattr(it, "quantidade_devolvida", 0) or 0))
+        rest = it.quantidade_restante if hasattr(it, "quantidade_restante") else max(qtd - q_dev, Decimal("0"))
         vu = Decimal(str(it.valor_unitario or 0))
         vt = Decimal(str(it.valor_total or 0))
         if vt <= 0 and qtd > 0:
             vt = (qtd * vu).quantize(Decimal("0.01"))
+        devolvido_total = q_dev > 0 and rest <= Decimal("0.0001")
+        devolvido_parcial = q_dev > Decimal("0.0001") and rest > Decimal("0.0001")
         itens.append(
             {
                 "nome": str(it.descricao or "").strip()[:500],
                 "codigo": str(it.codigo or "").strip()[:120],
                 "qtd": float(qtd),
+                "qtd_devolvida": float(q_dev),
+                "qtd_restante": float(rest),
                 "preco": float(vu.quantize(Decimal("0.0001"))),
                 "subtotal": float(vt.quantize(Decimal("0.01"))),
+                "devolvido_total": bool(devolvido_total),
+                "devolvido_parcial": bool(devolvido_parcial),
             }
         )
     total = Decimal(str(getattr(venda, "total", 0) or 0)).quantize(Decimal("0.01"))
     frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
+    frete_dev = Decimal(str(getattr(venda, "frete_devolvido", 0) or 0)).quantize(Decimal("0.01"))
+    frete_rest = frete_restante(venda)
     if frete > 0:
         itens.append(
             {
                 "nome": "Taxa de entrega",
                 "codigo": "",
                 "qtd": 1.0,
+                "qtd_devolvida": 1.0 if frete_rest <= Decimal("0.009") and frete_dev > 0 else 0.0,
+                "qtd_restante": 0.0 if frete_rest <= Decimal("0.009") else 1.0,
                 "preco": float(frete),
                 "subtotal": float(frete),
                 "eh_frete": True,
+                "devolvido_total": bool(frete_rest <= Decimal("0.009") and frete_dev > 0),
+                "devolvido_parcial": False,
             }
         )
+    total_rest = valor_restante_venda(venda)
+    tem_parcial = (not getattr(venda, "devolvida_em", None)) and total_rest < total - Decimal("0.009")
     eh_fiado = _venda_eh_fiado_cupom(venda)
     fiado_dias = _fiado_dias_vencimento_cupom(venda) if eh_fiado else 0
     out: dict[str, Any] = {
@@ -134,8 +152,11 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
         "segunda_via": bool(segunda_via),
         "cliente_nome": str(getattr(venda, "cliente_nome", "") or "").strip()[:300],
         "forma_pagamento": _forma_pagamento_cupom(venda),
-        "total": float(total),
-        "total_texto": "R$ " + format_moeda_br(total),
+        "total": float(total_rest),
+        "total_texto": "R$ " + format_moeda_br(total_rest),
+        "total_original": float(total),
+        "total_original_texto": "R$ " + format_moeda_br(total),
+        "tem_devolucao_parcial": bool(tem_parcial),
         "frete": float(frete),
         "frete_texto": ("R$ " + format_moeda_br(frete)) if frete > 0 else "",
         "operador": str(getattr(venda, "usuario_registro", "") or "").strip()[:150],

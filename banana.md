@@ -1155,9 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.83** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.85** · **loja v8.68**
 
-### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.83**)
+### 🩹 Cupom — risco no item devolvido (16/07 · **teste v8.85**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Reimpressão 80mm: item/frete devolvido riscado + TOTAL restante + faixa «devolução parcial» |
+| **Validar** | Ctrl+F5 teste · badge **v8.85** · venda parcial → Imprimir |
+
+### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -2487,6 +2494,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Vale caixa + pagamento CP parcial iguais → CP **Pago** inflado |
 | **Fix** | Hook só baixa direta em Lançamentos · sync Postgres · aviso verde no fechamento |
 | **Status** | **Na loja** — não reabrir folhas já gambiarradas |
+| **16/07** | Renan pediu cherry **só** deste bug + senha — **já estava** em `producao` (`e557857` / `6741ed2`) · **nada a subir** |
 
 ### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
 
