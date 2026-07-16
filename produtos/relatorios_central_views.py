@@ -50,7 +50,7 @@ def _relatorios_mais_vendidos_impl(request):
     rows = ru.ranking_produtos(
         f["desde"], f["ate_dt"], ordenar=ordenar, sentido=sentido, limite=100
     )
-    headers = ["#", "Código", "Produto", "Qtd", "Ticket médio", "Total R$"]
+    headers = ["#", "Código GM", "Produto", "Qtd", "Ticket médio", "Total R$"]
     if request.GET.get("export") == "xlsx":
         data = [
             [r["pos"], r["codigo"], r["nome"], r["qtd"], r["ticket_medio"], r["valor"]]
@@ -144,15 +144,41 @@ def relatorios_vendas_grupo(request):
 @require_GET
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
-    rows = ru.curva_abc(f["desde"], f["ate_dt"])
-    headers = ["#", "Classe", "Código", "Produto", "Total R$", "%", "% acum."]
+    todos = (request.GET.get("todos") or "").strip() in ("1", "sim", "true", "yes")
+    categoria = (request.GET.get("categoria") or "").strip()
+    rows, meta = ru.curva_abc(
+        f["desde"], f["ate_dt"], todos=todos, categoria=categoria or None
+    )
+    headers = [
+        "#",
+        "Classe",
+        "Código GM",
+        "Produto",
+        "Categoria",
+        "Total R$",
+        "%",
+        "% acum.",
+    ]
+    cat_label = meta.get("categoria") or ""
+    sub_periodo = f["label"]
+    if cat_label:
+        sub_periodo = f"{sub_periodo} · categoria {cat_label}"
     if request.GET.get("export") == "xlsx":
+        # Excel sempre completo (respeita filtro de categoria)
+        if not todos:
+            rows, meta = ru.curva_abc(
+                f["desde"], f["ate_dt"], todos=True, categoria=categoria or None
+            )
+            cat_label = meta.get("categoria") or cat_label
+            if cat_label:
+                sub_periodo = f'{f["label"]} · categoria {cat_label}'
         data = [
             [
                 r["pos"],
                 r["classe"],
                 r["codigo"],
                 r["nome"],
+                r.get("categoria") or "Sem categoria",
                 r["valor"],
                 r["pct"],
                 r["pct_acum"],
@@ -161,17 +187,40 @@ def relatorios_curva_abc(request):
         ]
         return ru.xlsx_http_response(
             "curva-abc.xlsx",
-            ru.montar_xlsx("Curva ABC", headers, data, subtitulo=f["label"]),
+            ru.montar_xlsx("Curva ABC", headers, data, subtitulo=sub_periodo),
         )
+    q = request.GET.copy()
+    q["todos"] = "1"
+    ver_todos_qs = "?" + urlencode(q, doseq=True)
+    q_menos = request.GET.copy()
+    if "todos" in q_menos:
+        del q_menos["todos"]
+    ver_menos_qs = "?" + urlencode(q_menos, doseq=True) if q_menos else "?"
+    totais = [
+        f"{meta['n_tela']} de {meta['n_total']} produtos",
+        f"Total {'categoria' if cat_label else 'período'} {ru.fmt_brl(meta['total_periodo'])}",
+    ]
+    subtitulo = (
+        "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. "
+        + (
+            f"% sobre o total da categoria «{cat_label}»."
+            if cat_label
+            else "% sobre o total do período."
+        )
+    )
     return render(
         request,
         "produtos/relatorios_generico.html",
         {
             "titulo": "Curva ABC",
             "eyebrow": "Classificação",
-            "subtitulo": "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%.",
+            "subtitulo": subtitulo,
             "filtros": f,
-            "filtro_parcial": "periodo",
+            "filtro_parcial": "curva_abc",
+            "extra_filtros": {
+                "categoria": cat_label,
+                "categorias": meta.get("categorias") or [],
+            },
             "headers": headers,
             "rows": [
                 [
@@ -179,15 +228,28 @@ def relatorios_curva_abc(request):
                     r["classe"],
                     r["codigo"],
                     r["nome"],
+                    r.get("categoria") or "Sem categoria",
                     ru.fmt_brl(r["valor"]),
                     f'{r["pct"]}%',
                     f'{r["pct_acum"]}%',
                 ]
                 for r in rows
             ],
-            "totais": [ru.fmt_brl(sum(r["valor"] for r in rows))],
+            "totais": totais,
             "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período.",
+            "vazio_msg": (
+                "Nenhuma venda nesta categoria no período."
+                if cat_label
+                else "Nenhuma venda neste período."
+            ),
+            "ver_mais": {
+                "truncado": meta["truncado"],
+                "todos": meta["todos"],
+                "ver_todos_qs": ver_todos_qs,
+                "ver_menos_qs": ver_menos_qs,
+                "n_total": meta["n_total"],
+                "n_tela": meta["n_tela"],
+            },
         },
     )
 
@@ -263,7 +325,7 @@ def relatorios_margem(request):
     rows = ru.margem_produtos(f["desde"], f["ate_dt"], ordenar=ordenar, limite=100)
     headers = [
         "#",
-        "Código",
+        "Código GM",
         "Produto",
         "Qtd",
         "Venda R$",
@@ -516,7 +578,7 @@ def relatorios_ruptura(request):
     except (TypeError, ValueError):
         dias_i = 30
     rows = ru.ruptura_estoque(dias_venda=dias_i, limite=150)
-    headers = ["#", "Código", "Produto", "Categoria", "Estoque C+V"]
+    headers = ["#", "Código GM", "Produto", "Categoria", "Estoque C+V"]
     if request.GET.get("export") == "xlsx":
         data = [
             [r["pos"], r["codigo"], r["nome"], r["categoria"], r["estoque"]]
@@ -560,7 +622,7 @@ def relatorios_comissao(request):
     rows = ru.comissao_estimada(f["desde"], f["ate_dt"], limite=200)
     headers = [
         "#",
-        "Código",
+        "Código GM",
         "Produto",
         "Qtd",
         "Venda R$",

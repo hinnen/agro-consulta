@@ -1156,16 +1156,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.06** · **loja v9.06**
+**Versão app (VERSION):** **teste v9.14** · **loja v9.14**
 
+### 📦 Deploy loja **v9.14** — Relatórios (pós-v9.07) (16/07 · Renan frase+senha)
 
-### hotfix loja **v9.06** — relatorios 500 (16/07)
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Código GM · filtro De/Até personalizado · ABC Ver todos + total período · loading (abrir/Excel/imprimir) · ABC filtro categoria + coluna Categoria. **Só relatórios** — **não** sobe NFC-e #31eb9dc nem #12/#17 |
+| **Base** | `origin/producao` **53c13fb** (v9.07) + arquivos do `teste` **30381e2** |
+| **Backup** | `producao-backup-pre-v914-relatorios-20260716` @ **53c13fb** (v9.07) — reverter: `git push origin producao-backup-pre-v914-relatorios-20260716:producao` |
+| **Autorização** | *pode subir para produção essas atualizações nos relatórios* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v9.14** · Relatórios → ABC (categoria) · Excel · Imprimir |
+
+### hotfix loja **v9.07 / v9.06** — relatorios 500 (16/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Mais vendidos / ABC / grupo / margem / comparativo / comissao = 500 |
 | **Causa** | ExpressionWrapper na agregacao ItemVendaAgro |
-| **Fix** | Sum simples + liquido em Python (`00fc1af`) |
+| **Fix** | Sum simples (`53c13fb`) |
 | **Validar** | Ctrl+F5 · Mais vendidos + Curva ABC |
 
 ### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)

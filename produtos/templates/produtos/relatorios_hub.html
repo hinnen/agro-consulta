@@ -5,6 +5,7 @@
 
 {% block head_extra %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script>window.GM_LOADING_BAR_SHOW_DELAY_MS = 0;</script>
 {% endblock %}
 
 {% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
@@ -238,5 +239,7 @@
   </section>
 
 </div>
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_relatorios_loading.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% endblock %}

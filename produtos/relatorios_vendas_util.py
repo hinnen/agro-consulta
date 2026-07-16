@@ -32,7 +32,7 @@ def parse_periodo_request(
 ) -> dict[str, Any]:
     """
     Lê GET: periodo (hoje|7d|30d|mes_atual|custom) + de/ate (YYYY-MM-DD).
-    Retorna dict com desde, ate (aware), labels e valores de formulário.
+    Se De/Até vierem e não baterem com o atalho do período, usa personalizado.
     """
     hoje = timezone.localdate()
     periodo = (request.GET.get("periodo") or padrao).strip().lower()
@@ -45,6 +45,9 @@ def parse_periodo_request(
         except (TypeError, ValueError):
             return None
 
+    d_de = _parse_d(de_s)
+    d_ate = _parse_d(ate_s)
+
     if periodo == "hoje":
         d0, d1 = hoje, hoje
     elif periodo == "7d":
@@ -52,14 +55,21 @@ def parse_periodo_request(
     elif periodo == "30d":
         d0, d1 = hoje - timedelta(days=29), hoje
     elif periodo == "custom":
-        d0 = _parse_d(de_s) or (hoje - timedelta(days=29))
-        d1 = _parse_d(ate_s) or hoje
+        d0 = d_de or (hoje - timedelta(days=29))
+        d1 = d_ate or hoje
         if d0 > d1:
             d0, d1 = d1, d0
     else:
         periodo = "mes_atual"
         d0 = hoje.replace(day=1)
         d1 = hoje
+
+    # Usuário mudou as datas sem trocar o select → respeita De/Até (vira personalizado)
+    if d_de and d_ate and periodo != "custom" and (d_de != d0 or d_ate != d1):
+        periodo = "custom"
+        d0, d1 = d_de, d_ate
+        if d0 > d1:
+            d0, d1 = d1, d0
 
     desde = datetime.combine(d0, time.min)
     ate = datetime.combine(d1, time(23, 59, 59))
@@ -78,11 +88,22 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
     """Segundo período para comparativo (de_b / ate_b ou atalho mes_passado)."""
     hoje = timezone.localdate()
     modo = (request.GET.get("periodo_b") or "mes_passado").strip().lower()
-    if modo == "custom":
+    de_s = (request.GET.get("de_b") or "").strip()
+    ate_s = (request.GET.get("ate_b") or "").strip()
+
+    def _parse_d(s: str) -> date | None:
         try:
-            d0 = date.fromisoformat((request.GET.get("de_b") or "")[:10])
-            d1 = date.fromisoformat((request.GET.get("ate_b") or "")[:10])
-        except ValueError:
+            return date.fromisoformat(s[:10])
+        except (TypeError, ValueError):
+            return None
+
+    d_de = _parse_d(de_s)
+    d_ate = _parse_d(ate_s)
+
+    if modo == "custom":
+        d0 = d_de
+        d1 = d_ate
+        if d0 is None or d1 is None:
             primeiro = hoje.replace(day=1)
             d1 = primeiro - timedelta(days=1)
             d0 = d1.replace(day=1)
@@ -91,6 +112,11 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
         d1 = primeiro - timedelta(days=1)
         d0 = d1.replace(day=1)
         modo = "mes_passado"
+
+    if d_de and d_ate and modo != "custom" and (d_de != d0 or d_ate != d1):
+        modo = "custom"
+        d0, d1 = d_de, d_ate
+
     if d0 > d1:
         d0, d1 = d1, d0
     desde = datetime.combine(d0, time.min)
@@ -146,8 +172,33 @@ def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
 
 
 
+def _parece_id_mongo_ou_sistema(s: str) -> bool:
+    """ObjectId hex (24) ou só dígitos longos do ERP — não é código GM da loja."""
+    t = (s or "").strip()
+    if not t:
+        return False
+    if len(t) == 24 and all(c in "0123456789abcdef" for c in t.lower()):
+        return True
+    if t.isdigit() and len(t) >= 6:
+        return True
+    return False
+
+
+def _codigo_gm_preferido(*candidatos: object) -> str:
+    """Prioriza código GM (NFe/GM); nunca devolve ObjectId Mongo na coluna Código."""
+    humanos: list[str] = []
+    for raw in candidatos:
+        t = str(raw or "").strip()
+        if not t or _parece_id_mongo_ou_sistema(t):
+            continue
+        if t.upper().startswith("GM"):
+            return t
+        humanos.append(t)
+    return humanos[0] if humanos else ""
+
+
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
-    """nome, codigo, categoria, custo, comissao_% e comissao_R$."""
+    """nome, codigo (GM), categoria, custo, comissao_% e comissao_R$."""
     from produtos.catalogo_agro import produto_agro_para_row
     from produtos.models import Produto
 
@@ -162,7 +213,13 @@ def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
             row = produto_agro_para_row(p)
             out[pid] = {
                 "nome": (row.get("nome") or p.nome or pid).strip(),
-                "codigo": (p.codigo_interno or p.codigo_nfe or "").strip(),
+                "codigo": _codigo_gm_preferido(
+                    row.get("codigo_nfe"),
+                    row.get("codigo_gm"),
+                    p.codigo_nfe,
+                    row.get("codigo"),
+                    p.codigo_interno,
+                ),
                 "categoria": (row.get("categoria") or p.categoria or "").strip() or "Sem categoria",
                 "custo": float(row.get("preco_custo") or p.custo or 0),
                 "comissao_pct": None,
@@ -193,6 +250,9 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     "Nome": 1,
                     "Codigo": 1,
                     "CodigoInterno": 1,
+                    "CodigoNFe": 1,
+                    "CodigoNfe": 1,
+                    "CodigoGM": 1,
                     "Categoria": 1,
                     "NomeCategoria": 1,
                     "PrecoCusto": 1,
@@ -226,7 +286,13 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                 rs_f = None
             out[pid] = {
                 "nome": (doc.get("Nome") or pid).strip(),
-                "codigo": str(doc.get("Codigo") or doc.get("CodigoInterno") or "").strip(),
+                "codigo": _codigo_gm_preferido(
+                    doc.get("CodigoNFe"),
+                    doc.get("CodigoNfe"),
+                    doc.get("CodigoGM"),
+                    doc.get("Codigo"),
+                    doc.get("CodigoInterno"),
+                ),
                 "categoria": (
                     doc.get("Categoria") or doc.get("NomeCategoria") or "Sem categoria"
                 ).strip()
@@ -250,7 +316,9 @@ def ranking_produtos(
     reverse = sentido != "menos"
     key = "qtd" if ordenar == "qtd" else "valor"
     rows.sort(key=lambda x: x[key], reverse=reverse)
-    rows = rows[: max(1, min(500, int(limite)))]
+    lim = int(limite or 0)
+    if lim > 0:
+        rows = rows[: max(1, min(50000, lim))]
     pids = [str(r["produto_id_externo"]) for r in rows]
     meta = mapa_produtos_meta(pids)
     out: list[dict] = []
@@ -303,12 +371,44 @@ def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
     return out
 
 
-def curva_abc(desde: datetime, ate: datetime) -> list[dict]:
-    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=500)
-    total = sum(r["valor"] for r in rows) or 1.0
+def curva_abc(
+    desde: datetime,
+    ate: datetime,
+    *,
+    todos: bool = False,
+    lim_tela: int = 500,
+    categoria: str | None = None,
+) -> tuple[list[dict], dict]:
+    """
+    Classifica produtos do período (ou de uma categoria).
+    Por padrão mostra só os primeiros ``lim_tela``; com ``todos=True`` lista inteira.
+    % e classes usam o faturamento **total** do recorte (período ou categoria).
+    """
+    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=0)
+    categorias = sorted(
+        {(r.get("categoria") or "Sem categoria").strip() or "Sem categoria" for r in rows},
+        key=lambda x: x.casefold(),
+    )
+    cat_raw = (categoria or "").strip()
+    cat_ativa = ""
+    if cat_raw:
+        for c in categorias:
+            if c.casefold() == cat_raw.casefold():
+                cat_ativa = c
+                break
+        if not cat_ativa:
+            cat_ativa = cat_raw
+        rows = [
+            r
+            for r in rows
+            if ((r.get("categoria") or "Sem categoria").strip() or "Sem categoria").casefold()
+            == cat_ativa.casefold()
+        ]
+    total_bruto = sum(r["valor"] for r in rows)
+    total = total_bruto or 1.0
     acum = 0.0
-    out = []
-    for r in rows:
+    out: list[dict] = []
+    for i, r in enumerate(rows, start=1):
         acum += r["valor"]
         pct_acum = 100.0 * acum / total
         if pct_acum <= 80.0:
@@ -320,12 +420,25 @@ def curva_abc(desde: datetime, ate: datetime) -> list[dict]:
         out.append(
             {
                 **r,
+                "pos": i,
                 "pct": round(100.0 * r["valor"] / total, 2),
                 "pct_acum": round(pct_acum, 2),
                 "classe": classe,
             }
         )
-    return out
+    n_total = len(out)
+    lim = max(1, int(lim_tela or 500))
+    truncado = (not todos) and n_total > lim
+    mostrar = out if todos else out[:lim]
+    return mostrar, {
+        "total_periodo": round(total_bruto, 2),
+        "n_total": n_total,
+        "n_tela": len(mostrar),
+        "truncado": truncado,
+        "todos": bool(todos),
+        "categorias": categorias,
+        "categoria": cat_ativa,
+    }
 
 
 def margem_produtos(
