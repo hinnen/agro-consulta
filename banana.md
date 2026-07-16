@@ -1155,16 +1155,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.89** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.90** · **loja v8.68**
 
-### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.89**)
+### 📦 Pacote pronto loja — fechar depois (16/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Quando** | Depois que a **loja fechar** — frase + senha na mesma mensagem |
+| **Inclui** | **#12** devolução parcial (lista/detalhe/cupom + corta ERP venda) · **#17** busca CP inteligente (+ hotfixes valor/parcela) · FL-021 botão NF CP se ainda não estiver na loja |
+| **Teste** | **#12 ✅ Renan** (cupom risco OK) · **#17** no teste |
+| **Não sobe** | **#7** impressão notebook (ainda aberto) |
+| **Antes** | loja hoje **v8.68** |
+
+### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.89** · **✅ Renan**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | TOTAL já R$ 1,30, item de R$ 5 sem risco |
 | **Causa** | JS da lista em cache `?v=1` + risco no flex some no Chrome |
 | **Fix** | `agro_pdv_assets_v` global + `<s>` no texto do item · commits `6caed7d`+ |
-| **Validar** | Ctrl+F5 · badge **v8.89** · #42 Imprimir → item riscado «(devolvido)» |
+| **Validar** | ✅ Renan OK · pronto loja (fecha) |
 
 ### 🩹 Cupom — risco no item devolvido (16/07 · **teste v8.85**)
 
@@ -1715,20 +1725,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Status | Nota curta |
 | - | ------ | ---------- |
-| **3** | ✅ loja | prefixo GM / família |
-| **4** | 🟡 loja | modelo — confirmar se ainda ok |
-| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
-| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
-| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
-| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
 | **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
+| **3** | ✅ loja | prefixo GM / família |
+| **4** | ✅ loja v8.22 | modelo |
+| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
+| **7** | 🔴 aberto | impressão notebook — medir host vs app |
+| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
+| **12** | 📦 pronto loja | devolução parcial ✅ teste (lista/detalhe/cupom + sem ERP) — sobe no fecha |
+| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
+| **17** | 📦 pronto loja | busca CP inteligente ✅ teste — sobe no fecha |
+| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
 | **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
-| **7** | 🔴 | impressão notebook — medir host vs app |
-| **12** | 🟡 teste v8.79 | devolução por item — lista restante + risco + sem coluna ERP |
-| **17** | ✅ teste | P0+P1+P2 busca CP — ver bloco abaixo |
 | ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 
-**Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+**Próximo deploy loja (fecha):** **#12** + **#17** (+ FL-021 se faltar). **Aberto:** só **#7**.
+
+**Ordem antiga (já feita em partes):** #3+#4 → #5/#6 → #16 → agora falta promover **#12+#17**.
 
 ### ✅ #17 Busca CP inteligente — P0+P1+P2 (16/07 · **teste**)
 
@@ -1740,7 +1752,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa bug valor** | QS Postgres `_aplicar_texto_qs` não buscava valor — só texto |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help §10 · placeholder CP |
 | **Validar** | Ctrl+F5 teste · CP · buscar valor exato · data `dd/mm/aaaa` · parcela · boleto |
-| **Loja** | ⏳ só com frase + senha |
+| **Loja** | ⏳ frase + senha — **📦 no pacote do fecha** (com #12) |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
