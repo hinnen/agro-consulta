@@ -1251,6 +1251,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_hub.html` · `relatorios_generico.html` · `urls.py` |
 | **Validar** | Ctrl+F5 · BI → Relatórios gerais · abrir cada card · Excel + período |
 | **Versão** | **teste v8.93** |
+| **Layout hub (16/07)** | Largura máxima + **4 colunas** · seções **Vendas / Estoque / Equipe e clientes** |
 
 ### 📦 Pacote pronto loja — fechar depois (16/07 · Renan)
 
