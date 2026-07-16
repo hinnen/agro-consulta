@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.99** · **loja v8.69**
+**Versão app (VERSION):** **teste v9.00** · **loja v8.69**
 
 ### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
 
@@ -1295,7 +1295,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | `234,` / `234,7` trazia títulos de R$ 600; parcela sem match trazia títulos soltos |
 | **Causa** | Termo numérico misturava texto + `mongo_id` (ObjectId contém «234») |
 | **Fix** | Modos exclusivos: vírgula/R$ → só valor; `2/6` → só parcela; data → só data; nº curto sem mongo_id |
-| **Validar** | Ctrl+F5 teste · `234,78` acha · `234,7` não traz 600 · `9/9` vazio se não houver |
+| **Validar** | ✅ Renan · sem lixo R$ 600 |
 | **Arquivo** | `lancamentos_financeiro_pg_util.py` |
 
 ### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste v8.82**)
