@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.09** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.10** · **loja v9.07**
+
+### feat — ABC Ver todos + total período (16/07 · **teste v9.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lista padrão 500 · botão **Ver todos** · rodapé = total do período (para bater com vendas) · % sobre o período inteiro |
+| **Excel** | Sempre exporta lista completa |
 
 ### fix — filtro De/Até vira personalizado (16/07 · **teste v9.09**)
 
