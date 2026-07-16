@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.60** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.61** · **loja v8.54**
+
+### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cliente** | Esc no início = consumidor final (antes só fechava e a tela mentia). Sem cliente → texto «Toque para escolher» |
+| **Pagamento** | Ao escolher forma, recalcula preço do grupo **depois** preenche «Valor desta forma» (ex. 92, não 87) |
+| **Validar** | Ctrl+F5 · badge **v8.61** · milho grupos · PAGAR · cartão do grupo A → valor 92 |
+| **Loja** | ⏳ |
+
 
 ### 🩹 PDV carrinho — colunas fixas + total sem corte (15/07 · **teste v8.60**)
 
