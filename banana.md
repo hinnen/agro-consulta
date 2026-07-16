@@ -1156,9 +1156,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.12** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.13** · **loja v9.07**
 
-### feat — loading Excel + impressão (16/07 · **teste**)
+### feat — loading Excel + impressão (16/07 · **teste v9.13**)
 
 | Item | Detalhe |
 | ---- | ------- |
