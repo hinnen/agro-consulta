@@ -1155,7 +1155,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.60** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.64** · **loja v8.54**
+
+### 🩹 PDV — PAGAR sem travar cliente + consumidor na busca (15/07 · **teste v8.64**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Se cliente ficou «unset», PAGAR grava consumidor final sozinho. Busca de cliente já traz botão laranja do consumidor |
+| **Validar** | Ctrl+F5 · badge **v8.64** · montar carrinho e PAGAR sem alerta · faixa mostra consumidor |
+| **Loja** | ⏳ |
+
+
+### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.63**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cliente** | Esc no início = consumidor final (antes só fechava e a tela mentia). Sem cliente → texto «Toque para escolher» |
+| **Pagamento** | Ao escolher forma, recalcula preço do grupo **depois** preenche «Valor desta forma» (ex. 92, não 87) |
+| **Validar** | Ctrl+F5 · badge **v8.61** · milho grupos · PAGAR · cartão do grupo A → valor 92 |
+| **Loja** | ⏳ |
+
 
 ### 🩹 PDV carrinho — colunas fixas + total sem corte (15/07 · **teste v8.60**)
 

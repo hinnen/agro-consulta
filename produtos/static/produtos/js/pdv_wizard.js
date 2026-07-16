@@ -2627,7 +2627,9 @@
         }
         if (state.currentStep === 'produtos') {
             if (!state.itens.length) return 'Adicione ao menos 1 item antes de continuar.';
-            if (state.clienteMode === 'unset') return 'Defina o cliente ou consumidor final antes de continuar.';
+            if (state.clienteMode === 'unset') {
+                State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
+            }
         }
         if (state.currentStep === 'entrega') {
             if (!enderecoEntregaMinimoOk(state)) return 'Informe o endereço básico da entrega (logradouro e bairro ou endereço legível).';
@@ -2840,6 +2842,13 @@
         }
     }
 
+    function garantirClienteOuConsumidorFinal() {
+        var st = State.getState();
+        if (st && st.clienteMode && st.clienteMode !== 'unset') return st;
+        State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
+        return State.getState();
+    }
+
     function irParaPagamentoFromProdutos() {
         if (typeof hideSaleDoneToast === 'function') hideSaleDoneToast();
         var state = State.getState();
@@ -2847,10 +2856,8 @@
             alert('Adicione ao menos 1 item antes de ir para pagamento.');
             return;
         }
-        if (state.clienteMode === 'unset') {
-            alert('Defina o cliente ou consumidor final antes de ir para pagamento.');
-            return;
-        }
+        /* Se o modal inicial foi fechado sem gravar, assume consumidor final (balcão). */
+        state = garantirClienteOuConsumidorFinal();
         marcarVendaBalcaoSemEntrega();
         State.setCurrentStep('pagamento');
     }
@@ -3464,8 +3471,8 @@
     function salvarOrcamentoWizard() {
         var state = State.getState();
         if (state.clienteMode === 'unset') {
-            alert('Defina o cliente ou consumidor final antes de salvar o orçamento.');
-            return;
+            State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
+            state = State.getState();
         }
         if (!state.itens || !state.itens.length) {
             alert('Adicione itens ao carrinho antes de salvar o orçamento.');
@@ -6770,12 +6777,42 @@
         }
     }
 
+    function isNomeConsumidorFinal(nome) {
+        return /consumidor\s+n[aã]o\s+identificado/i.test(String(nome || ''));
+    }
+
+    function selecionarClienteNaBusca(cliente) {
+        if (!cliente) return;
+        if (cliente.__consumidor_final || isNomeConsumidorFinal(cliente.nome)) {
+            State.setConsumidorFinal(
+                String(cliente.nome || '').trim() ||
+                    bootstrap.clientePadraoNome ||
+                    'CONSUMIDOR NÃO IDENTIFICADO...'
+            );
+        } else {
+            State.setCliente(cliente, 'cliente');
+            syncEntregaEnderecoFromCliente();
+            refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
+        }
+        closeQuickClientPicker();
+    }
+
     function resetQuickClientResultsIdle() {
         if (!dom.quickClientResults) return;
+        var nomePadrao = bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
         dom.quickClientResults.innerHTML =
-            '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Digite pelo menos 2 letras para buscar.</p>';
-        delete dom.quickClientResults._clientes;
-        clientListSelectIdx = -1;
+            '<div class="px-3 py-3 space-y-3">' +
+            '<button type="button" data-select-consumidor-final="1" class="w-full min-h-[3.25rem] rounded-2xl border-2 border-orange-300 bg-orange-50 px-4 py-3 text-left text-orange-950 hover:bg-orange-100">' +
+            '<span class="block text-sm font-black">Consumidor não identificado</span>' +
+            '<span class="mt-0.5 block text-[11px] font-bold text-orange-800/90">Venda rápida · sem cadastro</span>' +
+            '</button>' +
+            '<p class="text-center text-xs font-bold text-slate-500">Ou digite nome / WhatsApp / CPF acima (mín. 2 letras).</p>' +
+            '</div>';
+        dom.quickClientResults.classList.remove('hidden');
+        dom.quickClientResults._clientes = [
+            { id: '__consumidor_final__', nome: nomePadrao, __consumidor_final: true }
+        ];
+        clientListSelectIdx = 0;
     }
 
     function focusQuickClientSearchField() {
@@ -10423,6 +10460,11 @@
         });
 
         dom.quickClientChange.addEventListener('click', function () {
+            var stCh = State.getState();
+            if (stCh && stCh.clienteMode === 'unset') {
+                openStartModal();
+                return;
+            }
             openQuickClientPicker();
         });
         if (dom.quickClientEditStep1) {
@@ -10432,6 +10474,11 @@
         }
 
         function openQuickClientPickerFromHit() {
+            var stHit = State.getState();
+            if (stHit && stHit.clienteMode === 'unset') {
+                openStartModal();
+                return;
+            }
             openQuickClientPicker();
         }
         if (dom.quickClientHit) {
@@ -10553,15 +10600,19 @@
             if (vis && clientes.length && event.key === 'Enter') {
                 event.preventDefault();
                 if (clientListSelectIdx >= 0 && clientListSelectIdx < clientes.length) {
-                    State.setCliente(clientes[clientListSelectIdx], 'cliente');
-                    syncEntregaEnderecoFromCliente();
-                    refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
-                    closeQuickClientPicker();
+                    selecionarClienteNaBusca(clientes[clientListSelectIdx]);
                 }
             }
         });
 
         dom.quickClientResults.addEventListener('click', function (event) {
+            if (event.target.closest('[data-select-consumidor-final]')) {
+                selecionarClienteNaBusca({
+                    __consumidor_final: true,
+                    nome: bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...'
+                });
+                return;
+            }
             if (event.target.closest('[data-wizard-cadastrar-cliente]')) {
                 openWizardQuickClientCadastro();
                 return;
@@ -10586,10 +10637,7 @@
             var clientes = dom.quickClientResults._clientes || [];
             var cliente = clientes.find(function (item) { return String(item.id) === String(id); });
             if (!cliente) return;
-            State.setCliente(cliente, 'cliente');
-            syncEntregaEnderecoFromCliente();
-            refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
-            closeQuickClientPicker();
+            selecionarClienteNaBusca(cliente);
         });
 
         dom.productSearch.addEventListener('keydown', function (event) {
@@ -11006,7 +11054,7 @@
         });
 
         dom.startConsumidorFinal.addEventListener('click', function () {
-            State.setConsumidorFinal(bootstrap.clientePadraoNome);
+            State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
             closeStartModal();
             setTimeout(focusProductSearch, 30);
         });
