@@ -50,7 +50,7 @@ def _relatorios_mais_vendidos_impl(request):
     rows = ru.ranking_produtos(
         f["desde"], f["ate_dt"], ordenar=ordenar, sentido=sentido, limite=100
     )
-    headers = ["#", "Código", "Produto", "Qtd", "Ticket médio", "Total R$"]
+    headers = ["#", "Código GM", "Produto", "Qtd", "Ticket médio", "Total R$"]
     if request.GET.get("export") == "xlsx":
         data = [
             [r["pos"], r["codigo"], r["nome"], r["qtd"], r["ticket_medio"], r["valor"]]
@@ -145,7 +145,7 @@ def relatorios_vendas_grupo(request):
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
     rows = ru.curva_abc(f["desde"], f["ate_dt"])
-    headers = ["#", "Classe", "Código", "Produto", "Total R$", "%", "% acum."]
+    headers = ["#", "Classe", "Código GM", "Produto", "Total R$", "%", "% acum."]
     if request.GET.get("export") == "xlsx":
         data = [
             [
@@ -263,7 +263,7 @@ def relatorios_margem(request):
     rows = ru.margem_produtos(f["desde"], f["ate_dt"], ordenar=ordenar, limite=100)
     headers = [
         "#",
-        "Código",
+        "Código GM",
         "Produto",
         "Qtd",
         "Venda R$",
@@ -516,7 +516,7 @@ def relatorios_ruptura(request):
     except (TypeError, ValueError):
         dias_i = 30
     rows = ru.ruptura_estoque(dias_venda=dias_i, limite=150)
-    headers = ["#", "Código", "Produto", "Categoria", "Estoque C+V"]
+    headers = ["#", "Código GM", "Produto", "Categoria", "Estoque C+V"]
     if request.GET.get("export") == "xlsx":
         data = [
             [r["pos"], r["codigo"], r["nome"], r["categoria"], r["estoque"]]
@@ -560,7 +560,7 @@ def relatorios_comissao(request):
     rows = ru.comissao_estimada(f["desde"], f["ate_dt"], limite=200)
     headers = [
         "#",
-        "Código",
+        "Código GM",
         "Produto",
         "Qtd",
         "Venda R$",
