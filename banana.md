@@ -1224,6 +1224,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P0,1** | **Zap #23** · **FL-055** | NFC-e **535** frete: `vFrete` nos itens (= total) — vendas #3418/#3380 | 🔧 teste · fix `nfce_sp_emissao_util` |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
