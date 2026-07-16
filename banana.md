@@ -560,6 +560,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
+- **Busca produtos etapa 2 (16/07 · teste v8.94):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
@@ -1155,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.93** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.94** · **loja v8.68**
+
+### 🩹 Entrada NF — busca BCA = cadastro (16/07 · **teste v8.94**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `gm0008` no cadastro = **3** (BCA); na Entrada NF = **1** |
+| **Causa** | API com `entrada_nfe=1` desligava Mongo — família GM não completava (cadastro completa) |
+| **Fix** | Mesmo motor unificado + complemento Mongo família GM; cache busca NF **v2** |
+| **Arquivos** | `views.py` · `entrada_nota.html` (comentário) |
+| **Validar** | Ctrl+F5 teste · Entrada NF etapa 2 · digitar `gm0008` → **3** iguais ao cadastro |
 
 ### 📊 Central de Relatórios — pacote completo (16/07 · teste)
 

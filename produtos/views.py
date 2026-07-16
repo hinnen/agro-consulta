@@ -17376,16 +17376,10 @@ def api_buscar_produtos(request):
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
-    # Cadastro tipado: mesma projeção slim + caps do caminho lite (sem DTO Mongo inteiro).
-    skip_mongo_complemento = (
-        busca_lite
-        or contexto_cadastro
-        or (entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg))
-    )
-    if entrada_nfe_mode and (usa_pg_cat or pdv_somente_pg):
-        client, db = None, None
-    else:
-        client, db = obter_conexao_mongo()
+    # Cadastro / Entrada NF: projeção slim; família GM ainda precisa complementar Mongo
+    # (ex. GM0008-1 no PG e GM0008-10 / GM0008-2,5 só no índice Mongo) — igual PDV/cadastro.
+    skip_mongo_complemento = busca_lite or contexto_cadastro
+    client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
@@ -17395,7 +17389,8 @@ def api_buscar_produtos(request):
     if entrada_nfe_mode and q:
         from django.core.cache import cache
 
-        entrada_nfe_cache_key = f"entrada_nfe_busca_v1:{q.lower()[:80]}:{lim_busca_req}"
+        # v2: não cachear resposta sem complemento Mongo da família GM
+        entrada_nfe_cache_key = f"entrada_nfe_busca_v2:{q.lower()[:80]}:{lim_busca_req}"
         _enf_hit = cache.get(entrada_nfe_cache_key)
         if _enf_hit is not None:
             return JsonResponse(_enf_hit)
@@ -17442,7 +17437,8 @@ def api_buscar_produtos(request):
                         preco_por_id[pid_b] = preco_etiqueta
                         prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
                     else:
-                        if busca_lite and db is not None:
+                        # Com BCA (Postgres): nunca mongo-lite — senão Entrada NF diverge do cadastro.
+                        if busca_lite and db is not None and not use_motor_unificado:
                             prods = _buscar_mongo_lite_consulta(
                                 q, db, client, limit=lim_busca_req
                             )
@@ -17459,7 +17455,7 @@ def api_buscar_produtos(request):
                                 skip_mongo_complemento=skip_mongo_complemento,
                             )
                 else:
-                    if busca_lite and db is not None:
+                    if busca_lite and db is not None and not use_motor_unificado:
                         prods = _buscar_mongo_lite_consulta(
                             q, db, client, limit=lim_busca_req
                         )
