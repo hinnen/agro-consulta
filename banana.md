@@ -583,7 +583,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · `/classico/` → redirect · `/teste/` → redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
-- Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
+- Busca na lista: termos com espaço; **valor** (bruto/pago/saldo); **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas. **Filtro de data:** vencimento (padrão) · competência · pagamento (`ref` + `venc_*` / `comp_*` / `pag_*` na URL e na API).
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
@@ -1157,6 +1157,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v8.79** · **loja v8.68**
 
+### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **P0** | Valor + data digitada |
+| **P1** | Boleto + doc flexível |
+| **P2** | Parcela + CPF/CNPJ |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help + placeholder |
+| **Validar** | Ctrl+F5 teste · CP · valor · `15/07/2026` · `2/6` · boleto |
+| **Loja** | ⏳ frase + senha |
+
 ### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79**)
 
 | Item | Detalhe |
@@ -1678,33 +1689,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
 | **12** | 🟡 teste v8.79 | devolução por item — lista restante + risco + sem coluna ERP |
-| **17** | ⚪ | exemplos 15/07 — ver bloco abaixo |
+| **17** | ✅ teste | P0+P1+P2 busca CP — ver bloco abaixo |
 | ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 
 **Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
 
-### 🐛 #17 Busca CP inteligente — exemplos Renan (15/07)
+### ✅ #17 Busca CP inteligente — P0+P1+P2 (16/07 · **teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | Busca por **valor** às vezes não acha nada — mesmo digitando o valor **exato** do título |
-| **Causa real (PG)** | Tela CP usa Postgres: `_aplicar_texto_qs` **não busca valor** (só texto). Mongo antigo tinha valor; PG ficou atrás |
-| **Melhoria (não bug)** | Buscar também por **data de vencimento** digitando a data (ex. `15/07/2026`) |
-| **Status** | ⚪ pacote proposto · aguarda Renan escolher o que implementar |
-| **Arquivos** | `lancamentos_financeiro_pg_util.py` (principal) · `mongo_financeiro_util.py` · help §10 |
-
-**Pacote #17 proposto (padrão ERP · ordem prática loja):**
-
-| Prio | Item | Por quê |
-| ---- | ---- | ------- |
-| **P0** | Valor (bruto / pago / restante) + inteiro sem vírgula | Bug atual — loja usa todo dia |
-| **P0** | Data digitada (venc. / também comp. e pagto se parecer data) | Pedido Renan |
-| **P1** | Código de barras / linha digitável do boleto | Campo já existe (`boleto_codigo_barras`); leitor na loja |
-| **P1** | Nº documento “só números” + prefixo parcial | NF/parcela sem acento no fornecedor |
-| **P2** | Parcela (`2/6` ou `parcela 2`) | Contas parceladas |
-| **P2** | Acentos / maiúsculas iguais (já parcial) + CNPJ/CPF mascarado | ERP clássico |
-| **P3** | Operadores: `>` `<` valor, `venc:dd/mm` | Avançado — só se Renan quiser |
-| **Fora** | Busca fuzzy fonética / IA | Ruído + custo; não necessário na loja |
+| **P0** | Valor (bruto/pago/restante; inteiro ou `1.500,00` / R$) + data digitada (venc./comp./pagto) |
+| **P1** | Boleto (código/linha) + nº documento só-dígitos |
+| **P2** | Parcela (`2/6`, «parcela 2») + CPF/CNPJ com/sem máscara |
+| **Causa bug valor** | QS Postgres `_aplicar_texto_qs` não buscava valor — só texto |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help §10 · placeholder CP |
+| **Validar** | Ctrl+F5 teste · CP · buscar valor exato · data `dd/mm/aaaa` · parcela · boleto |
+| **Loja** | ⏳ só com frase + senha |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
