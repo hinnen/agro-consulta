@@ -1374,10 +1374,11 @@ def normalizar_pagamentos_devolucao(
         return None, "Nenhum valor válido nas formas de pagamento."
     soma = sum(merged.values(), Decimal("0")).quantize(Decimal("0.01"))
     tot = _dec(total_venda).quantize(Decimal("0.01"))
-    if abs(soma - tot) > Decimal("0.02"):
+    if abs(soma - tot) > Decimal("0.009"):
         return (
             None,
-            f"A soma devolvida (R$ {soma}) deve ser igual ao total a devolver (R$ {tot}).",
+            f"A soma devolvida (R$ {soma}) deve ser igual ao total a devolver (R$ {tot}). "
+            "Não pode sobrar nem faltar centavo.",
         )
     out = [
         {"forma": fn, "valor": float(v.quantize(Decimal("0.01")))}

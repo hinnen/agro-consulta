@@ -420,6 +420,7 @@
         </div>
 
         <p class="text-lg sm:text-xl font-black text-slate-900">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ 0,00</span></p>
+        <p id="devolucao-total-dica" class="hidden text-base font-bold text-rose-700 leading-snug">Ajuste o valor da forma — tem que ser <strong>igual</strong> aos itens (não pode sobrar nem faltar centavo).</p>
 
       </div>
 
@@ -433,6 +434,31 @@
 
     </div>
 
+  </div>
+
+  <div id="modal-devolucao-ask" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border-2 border-rose-300 shadow-2xl w-full max-w-[min(96vw,36rem)] overflow-hidden">
+      <div class="px-6 py-5 border-b border-rose-100 bg-rose-50">
+        <h3 class="text-xl sm:text-2xl font-black uppercase text-rose-900">Confirmar devolução?</h3>
+        <p id="devolucao-ask-texto" class="text-lg font-semibold text-rose-900 mt-3 leading-snug"></p>
+      </div>
+      <div class="px-6 py-5 flex flex-wrap gap-3 justify-end bg-slate-50">
+        <button type="button" id="btn-devolucao-ask-nao" class="min-h-[56px] px-6 rounded-2xl border-2 border-slate-300 font-black uppercase text-base text-slate-800">Voltar</button>
+        <button type="button" id="btn-devolucao-ask-sim" class="min-h-[56px] px-8 rounded-2xl bg-rose-600 text-white font-black uppercase text-base hover:bg-rose-700 shadow-md">Sim, devolver</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-devolucao-aviso" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border-2 border-amber-400 shadow-2xl w-full max-w-[min(96vw,36rem)] overflow-hidden">
+      <div class="px-6 py-5 bg-amber-50 border-b border-amber-200">
+        <h3 class="text-xl sm:text-2xl font-black uppercase text-amber-950">Atenção</h3>
+        <p id="devolucao-aviso-texto" class="text-lg font-semibold text-amber-950 mt-3 leading-snug whitespace-pre-wrap"></p>
+      </div>
+      <div class="px-6 py-5 flex justify-end bg-slate-50">
+        <button type="button" id="btn-devolucao-aviso-ok" class="min-h-[56px] px-8 rounded-2xl bg-amber-500 text-white font-black uppercase text-base hover:bg-amber-600 border-2 border-amber-600">Entendi</button>
+      </div>
+    </div>
   </div>
 
   {% endif %}
@@ -742,9 +768,12 @@
   function updTotal() {
     var alvo = totalSelecionado();
     var s = collectRows().reduce(function (a, r) { return a + (r.valor || 0); }, 0);
+    var ok = Math.abs(s - alvo) < 0.005;
     totalLabel.textContent = 'R$ ' + fmtBr(s) + ' / R$ ' + fmtBr(alvo);
-    totalLabel.classList.toggle('text-rose-700', Math.abs(s - alvo) > 0.02);
-    totalLabel.classList.toggle('text-emerald-700', Math.abs(s - alvo) <= 0.02);
+    totalLabel.classList.toggle('text-rose-700', !ok);
+    totalLabel.classList.toggle('text-emerald-700', ok);
+    var dica = document.getElementById('devolucao-total-dica');
+    if (dica) dica.classList.toggle('hidden', ok || alvo <= 0);
   }
 
   function bindRowEvents() {
@@ -759,6 +788,22 @@
         rows.splice(idx, 1);
         renderRows(rows);
       });
+    });
+  }
+
+  var askEl = document.getElementById('modal-devolucao-ask');
+  var avisoEl = document.getElementById('modal-devolucao-aviso');
+  var pendenteEnvio = null;
+
+  function mostrarAviso(msg) {
+    var el = document.getElementById('devolucao-aviso-texto');
+    if (el) el.textContent = msg;
+    if (avisoEl) avisoEl.classList.remove('hidden');
+  }
+  var btnAvisoOk = document.getElementById('btn-devolucao-aviso-ok');
+  if (btnAvisoOk) {
+    btnAvisoOk.addEventListener('click', function () {
+      if (avisoEl) avisoEl.classList.add('hidden');
     });
   }
 
@@ -801,21 +846,7 @@
     renderRows(rows);
   });
 
-  document.getElementById('btn-devolucao-confirmar').addEventListener('click', function () {
-    var itens = collectItensPayload();
-    var devolverFrete = !!(freteChk && freteChk.checked);
-    var alvo = totalSelecionado();
-    if (alvo <= 0.009) {
-      alert('Marque ao menos um item ou a taxa de entrega.');
-      return;
-    }
-    var rows = collectRows();
-    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
-    if (Math.abs(soma - alvo) > 0.02) {
-      alert('A soma das formas (R$ ' + fmtBr(soma) + ') deve ser igual ao total marcado (R$ ' + fmtBr(alvo) + ').');
-      return;
-    }
-    if (!confirm('Confirmar devolução de R$ ' + fmtBr(alvo) + '?')) return;
+  function enviarDevolucao(payload) {
     var btn = document.getElementById('btn-devolucao-confirmar');
     btn.disabled = true;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
@@ -827,30 +858,73 @@
         'X-CSRFToken': getCookie('csrftoken'),
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        motivo: document.getElementById('devolucao-motivo').value || '',
-        pagamentos: rows,
-        itens: itens,
-        devolver_frete: devolverFrete,
-      }),
+      body: JSON.stringify(payload),
     })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (x) {
         if (x.j && x.j.ok) {
           var msg = x.j.mensagem || 'Devolução registrada.';
           if (x.j.avisos && x.j.avisos.length) msg += '\n\n' + x.j.avisos.join('\n');
-          alert(msg);
-          location.reload();
+          mostrarAviso(msg);
+          setTimeout(function () { location.reload(); }, 700);
           return;
         }
-        alert((x.j && x.j.erro) || 'Falha ao devolver.');
+        mostrarAviso((x.j && x.j.erro) || 'Falha ao devolver.');
       })
-      .catch(function () { alert('Falha de rede.'); })
+      .catch(function () { mostrarAviso('Falha de rede.'); })
       .finally(function () {
         btn.disabled = false;
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
       });
+  }
+
+  document.getElementById('btn-devolucao-confirmar').addEventListener('click', function () {
+    var itens = collectItensPayload();
+    var devolverFrete = !!(freteChk && freteChk.checked);
+    var alvo = totalSelecionado();
+    if (alvo <= 0.009) {
+      mostrarAviso('Marque ao menos um item ou a taxa de entrega.');
+      return;
+    }
+    var rows = collectRows();
+    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
+    if (Math.abs(soma - alvo) >= 0.005) {
+      mostrarAviso(
+        'O valor das formas (R$ ' + fmtBr(soma) + ') precisa ser igual ao dos itens (R$ ' + fmtBr(alvo) + ').\n\n' +
+        'Não sobra e não falta centavo — o sistema devolve só o que está marcado.'
+      );
+      return;
+    }
+    pendenteEnvio = {
+      motivo: document.getElementById('devolucao-motivo').value || '',
+      pagamentos: rows,
+      itens: itens,
+      devolver_frete: devolverFrete,
+    };
+    var askTxt = document.getElementById('devolucao-ask-texto');
+    if (askTxt) {
+      askTxt.textContent = 'Devolver R$ ' + fmtBr(alvo) + ' ao cliente? Estoque dos itens marcados volta e o valor sai na forma escolhida.';
+    }
+    if (askEl) askEl.classList.remove('hidden');
   });
+
+  var btnAskNao = document.getElementById('btn-devolucao-ask-nao');
+  if (btnAskNao) {
+    btnAskNao.addEventListener('click', function () {
+      if (askEl) askEl.classList.add('hidden');
+      pendenteEnvio = null;
+    });
+  }
+  var btnAskSim = document.getElementById('btn-devolucao-ask-sim');
+  if (btnAskSim) {
+    btnAskSim.addEventListener('click', function () {
+      if (askEl) askEl.classList.add('hidden');
+      if (!pendenteEnvio) return;
+      var payload = pendenteEnvio;
+      pendenteEnvio = null;
+      enviarDevolucao(payload);
+    });
+  }
 
 })();
 
