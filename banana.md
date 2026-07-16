@@ -1156,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.04** · **loja v9.04**
+**Versão app (VERSION):** **teste v9.06** · **loja v9.06**
+
+
+### hotfix loja **v9.06** — relatorios 500 (16/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Mais vendidos / ABC / grupo / margem / comparativo / comissao = 500 |
+| **Causa** | ExpressionWrapper na agregacao ItemVendaAgro |
+| **Fix** | Sum simples + liquido em Python (`00fc1af`) |
+| **Validar** | Ctrl+F5 · Mais vendidos + Curva ABC |
 
 ### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)
 
