@@ -10808,6 +10808,13 @@ def _api_lancamentos_postgres_lista(request, *, despesa: bool) -> JsonResponse:
             }
         )
 
+    if despesa and linhas:
+        _, db_nfe = obter_conexao_mongo()
+        try:
+            enriquecer_lancamentos_entrada_nfe_rascunho(db_nfe, linhas)
+        except Exception:
+            logger.exception("enriquecer_lancamentos_entrada_nfe_rascunho (postgres lista)")
+
     payload: dict[str, Any] = {
         "lancamentos": linhas,
         "total": total,
@@ -11082,6 +11089,14 @@ def _lancamentos_cp_bootstrap_payload(request) -> dict[str, Any] | None:
         except Exception:
             logger.exception("lancamentos_cp_bootstrap_payload postgres")
             return None
+        if linhas:
+            _, db_nfe = obter_conexao_mongo()
+            try:
+                enriquecer_lancamentos_entrada_nfe_rascunho(db_nfe, linhas)
+            except Exception:
+                logger.exception(
+                    "enriquecer_lancamentos_entrada_nfe_rascunho (postgres bootstrap)"
+                )
         tot_out = None
         if totais is not None:
             tot_out = {
