@@ -1155,7 +1155,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.67** · **loja v8.67**
+**Versão app (VERSION):** **teste v8.77** · **loja v8.68**
+
+### 📦 Deploy loja **v8.68** — FL-021 hotfix match NF (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Só `nfe_entrada_util.py` — match ORM por nº NF na descrição (Agromaia etc.). **Não** sobe devolução |
+| **Commits loja** | arquivo de `f304560` · HEAD após push |
+| **Backup** | branch `producao-backup-pre-v868-20260716` @ **ed1698e** (v8.67) — reverter: `git push origin producao-backup-pre-v868-20260716:producao` |
+| **Autorização** | *pode subir só esse hotfix* + 99738595 · pediu backup/seguro |
+| **Você** | Ctrl+F5 loja · badge **v8.68** · CP Agromaia → botão **NF** |
+
 
 ### 📦 Deploy loja **v8.67** — botão NF no CP (FL-021) (16/07 · Renan frase+senha)
 
@@ -1174,10 +1185,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Com financeiro Postgres, a API não preenchia o link da Entrada NF → coluna NF vazia. Agora enriquece na lista/bootstrap; match de rascunho PG mais confiável |
 | **Validar** | Ctrl+F5 · Contas a pagar · busca Agromaia (ou RBS) · botão **NF** na coluna · abre overlay da nota |
-| **Loja** | ✅ v8.67 |
-
-
-### 📦 Deploy loja **v8.65** — preços A/B + PDV (16/07 · Renan frase+senha)
+| **Loja** | ✅ v8.67 · hotfix match **v8.68** |
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -3453,7 +3461,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | ✅ parcial 12/07 | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
-| **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.67** | 29/06 |
+| **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
