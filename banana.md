@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.10** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.11** · **loja v9.07**
+
+### feat — loading visual nos relatórios (16/07 · **teste v9.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Overlay «Carregando…» ao clicar no card / Atualizar / Excel / Ver todos |
+| **Arquivo** | `_relatorios_loading.html` |
 
 ### feat — ABC Ver todos + total período (16/07 · **teste v9.10**)
 
@@ -3727,6 +3734,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-033** | **P3** | BI / Home | **Zap #21:** indicador comparativo — **N-ésimo** dia da semana vs mês anterior (ex. **3ª terça** × **3ª terça**) | 📋 Pendente · foto Word | 16/07 |
 | **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
 | **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
+| **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | 🔧 fix teste 16/07 | 16/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
@@ -3783,6 +3791,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-033 | `bi-vendas-dia-nth-weekday` | **#21:** dashboard N-ésimo weekday vs mês anterior |
 | FL-053 | `entrada-nf-historico-custo-duplo` | **#19:** tick histórico custo 2× (etapa 2 + finalize) — dedupe / um só evento |
 | FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressão separação / entregador / cliente no painel entregas |
+| FL-055 | `nfce-frete-vfrete-itens-535` | **#23:** `det/prod/vFrete` = `ICMSTot/vFrete` (535) |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
