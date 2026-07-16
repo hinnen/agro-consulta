@@ -341,8 +341,19 @@ class _PgFindCursor:
     def _rows(self):
         from produtos.models import EntradaNotaRascunhoAgro
 
+        qs = EntradaNotaRascunhoAgro.objects.all().order_by(self._sort_field)
+        qs = _apply_find_filter(qs, self._filt)
+        # Com filtro de financeiro_ids / lote já estreito: não cortar demais.
         scan = min(max(self._limit or 500, 50) * 4, 8000)
-        return EntradaNotaRascunhoAgro.objects.all().order_by(self._sort_field)[:scan]
+        if self._filt and (
+            "extra.financeiro_ids" in self._filt
+            or "extra.financeiro_lote" in self._filt
+            or "cabecalho.numero" in self._filt
+            or "$and" in self._filt
+            or "$or" in self._filt
+        ):
+            scan = max(scan, 2500)
+        return qs[:scan]
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         n = 0
@@ -380,10 +391,12 @@ def _doc_matches_mongo_filter(doc: dict[str, Any], filt: dict[str, Any]) -> bool
                 if val in cond["$nin"]:
                     return False
             if "$in" in cond:
+                wanted = {str(x).strip() for x in cond["$in"]}
                 if isinstance(val, list):
-                    if not set(val).intersection(set(cond["$in"])):
+                    have = {str(x).strip() for x in val}
+                    if not wanted.intersection(have):
                         return False
-                elif val not in cond["$in"]:
+                elif str(val).strip() not in wanted:
                     return False
             if "$exists" in cond:
                 exists = val is not None and val != ""
@@ -425,6 +438,11 @@ def _apply_find_filter(qs, filt: dict[str, Any]):
     if not filt:
         return qs
 
+    if "$and" in filt:
+        for clause in filt["$and"]:
+            if isinstance(clause, dict):
+                qs = _apply_find_filter(qs, clause)
+
     if "$or" in filt:
         from django.db.models import Q
 
@@ -445,6 +463,16 @@ def _apply_find_filter(qs, filt: dict[str, Any]):
             qs = qs.exclude(status=str(st["$ne"]))
         if "$nin" in st:
             qs = qs.exclude(status__in=[str(x) for x in st["$nin"]])
+
+    cab_num = filt.get("cabecalho.numero")
+    if cab_num is not None and not isinstance(cab_num, dict):
+        want_nf = str(cab_num).strip()
+        matched_nf: list[str] = []
+        for row in qs.order_by("-atualizado_em")[:2500]:
+            cab = row.cabecalho if isinstance(row.cabecalho, dict) else {}
+            if str(cab.get("numero") or "").strip() == want_nf:
+                matched_nf.append(row.rascunho_id)
+        qs = EntradaNotaRascunhoAgro.objects.filter(rascunho_id__in=matched_nf)
 
     fin_ids = filt.get("extra.financeiro_ids")
     if isinstance(fin_ids, dict) and "$in" in fin_ids:
