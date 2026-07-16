@@ -1155,7 +1155,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.65** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.65** · **loja v8.65**
+
+### 📦 Deploy loja **v8.65** — preços A/B + PDV (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Cadastro busca leve · preços por forma **ou** 2 grupos A/B · visual lista/edição/NF · layout PDV · Esc/PAGAR consumidor · toque A/B no carrinho (forma manda na etapa 3) |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Backup** | branch producao-backup-pre-v865-20260716 @ **ccb4fd8** (v8.54) — reverter: git push origin producao-backup-pre-v865-20260716:producao |
+| **Autorização** | *pode subir* + 99738595 · pedido de backup |
+| **Você** | Ctrl+F5 loja · badge **v8.65** · se der errado avisar (dá pra voltar ao backup) |
+
 
 ### ✨ PDV — toque A/B no carrinho (prévia; forma manda) (15/07 · **teste v8.65**)
 
@@ -1163,7 +1174,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | No carrinho, toque em A ou B muda o preço da etapa 1. Etapa 3: forma de pagamento **sempre** redefine o preço (com ou sem toque) |
 | **Validar** | Ctrl+F5 · badge **v8.65** · toque A → 92 · PAGAR · forma do grupo B → valor volta p/ 87 |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — PAGAR sem travar cliente + consumidor na busca (15/07 · **teste v8.64**)
@@ -1172,7 +1183,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Se cliente ficou «unset», PAGAR grava consumidor final sozinho. Busca de cliente já traz botão laranja do consumidor |
 | **Validar** | Ctrl+F5 · badge **v8.64** · montar carrinho e PAGAR sem alerta · faixa mostra consumidor |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.63**)
@@ -1182,7 +1193,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Cliente** | Esc no início = consumidor final (antes só fechava e a tela mentia). Sem cliente → texto «Toque para escolher» |
 | **Pagamento** | Ao escolher forma, recalcula preço do grupo **depois** preenche «Valor desta forma» (ex. 92, não 87) |
 | **Validar** | Ctrl+F5 · badge **v8.61** · milho grupos · PAGAR · cartão do grupo A → valor 92 |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV carrinho — colunas fixas + total sem corte (15/07 · **teste v8.60**)
@@ -1191,7 +1202,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | GM/qtd/A-B/total/lixeira com largura fixa (alinha). Total cabe milhar (ex. 1.131,00) |
 | **Validar** | Ctrl+F5 teste · badge **v8.60** · milho misto + qtd alta no item com grupos |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — alinhamento GM + 2 preços (lista e carrinho) (15/07 · **teste v8.59**)
@@ -1200,7 +1211,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Busca: Marca → GM → espaço fixo p/ 2 preços. Carrinho: coluna A/B sempre reservada (não empurra lixeira) |
 | **Validar** | Ctrl+F5 teste · badge **v8.59** · digitar «milho» · carrinho misturando 1 e 2 preços |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### ✨ Visual A/B — lista cadastro + edição + Entrada NF (15/07 · **teste v8.58**)
@@ -1209,7 +1220,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Coluna VENDA com chips A/B · preview Grupo A/B na aba preços · chips A/B sob P.venda na Entrada NF |
 | **Validar** | Ctrl+F5 teste · badge **v8.58** · produto em 2 grupos: lista + lápis + casar na NF |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — grupos A/B aparecem + modal preços maior (15/07 · **teste v8.57**)
@@ -1219,7 +1230,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Busca usava só cache local e merge ignorava o servidor → sem precos_grupos |
 | **Fix** | Sempre confere servidor · merge atualiza campos · overlay no catálogo PDV · modal preços ~90% |
 | **Validar** | Ctrl+F5 teste · badge **v8.57** · digitar produto com 2 grupos → chips A/B na busca e no carrinho |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### ✨ PDV — preço por forma OU 2 grupos (15/07 · **teste v8.56**)
@@ -1228,7 +1239,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | No cadastro: modo **Por forma** (igual antes) ou **2 grupos** (preço A/B + formas em A/B). PDV mostra A e B na busca/carrinho; total só muda na etapa 3 ao escolher a forma |
 | **Validar** | Ctrl+F5 teste · badge **v8.56** · produto em 2 grupos → 2 chips no PDV · pagar com forma do grupo A/B |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 Cadastro — busca digitada mais leve (15/07 · **teste v8.55**)
@@ -1237,7 +1248,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Digitação no cadastro: Mongo slim · sem média/pedidos · sem recalcular saldo 2× · debounce texto 450 ms |
 | **Validar** | Ctrl+F5 teste · badge **v8.55** · digitar nome no cadastro deve responder mais rápido |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
