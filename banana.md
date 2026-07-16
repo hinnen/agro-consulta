@@ -1155,9 +1155,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.82** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.83** · **loja v8.68**
 
-### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste**)
+### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.83**)
 
 | Item | Detalhe |
 | ---- | ------- |
