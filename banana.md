@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.64** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.65** · **loja v8.54**
+
+### ✨ PDV — toque A/B no carrinho (prévia; forma manda) (15/07 · **teste v8.65**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | No carrinho, toque em A ou B muda o preço da etapa 1. Etapa 3: forma de pagamento **sempre** redefine o preço (com ou sem toque) |
+| **Validar** | Ctrl+F5 · badge **v8.65** · toque A → 92 · PAGAR · forma do grupo B → valor volta p/ 87 |
+| **Loja** | ⏳ |
+
 
 ### 🩹 PDV — PAGAR sem travar cliente + consumidor na busca (15/07 · **teste v8.64**)
 

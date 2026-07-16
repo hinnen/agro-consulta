@@ -189,12 +189,20 @@
     function padraoItemComForma(item, forma) {
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
         if (!item.preco_padrao) item.preco_padrao = padrao;
+        /* Etapa 3: forma manda — ignora toque A/B do carrinho. */
         if (
             forma &&
             global.AgroPrecosFormaPagamento &&
             global.AgroPrecosFormaPagamento.precoBaseForma
         ) {
+            if (item.preco_grupo_preview) item.preco_grupo_preview = '';
             return global.AgroPrecosFormaPagamento.precoBaseForma(item, forma);
+        }
+        /* Etapa 1: se o operador tocou A ou B, usa esse preço até escolher a forma. */
+        var prev = String(item.preco_grupo_preview || '').toLowerCase();
+        if ((prev === 'a' || prev === 'b') && item.precos_grupos && typeof item.precos_grupos === 'object') {
+            var pv = prev === 'a' ? toNum(item.precos_grupos.preco_a, 0) : toNum(item.precos_grupos.preco_b, 0);
+            if (pv > 0) return pv;
         }
         return padrao;
     }

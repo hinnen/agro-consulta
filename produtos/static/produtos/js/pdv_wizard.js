@@ -3002,22 +3002,35 @@
                 ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(item)
                 : null;
         if (!vis || (vis.a == null && vis.b == null)) return empty;
+        var id = escapeHtml(String(item.id || ''));
+        var escolhido = String(item.preco_grupo_preview || '').toLowerCase();
         var aPart =
             vis.a != null
-                ? '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço grupo A (unitário)">' +
+                ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a' +
+                  (escolhido === 'a' ? ' is-selected' : '') +
+                  '" data-cart-grupo="a" data-item-id="' +
+                  id +
+                  '" title="Usar preço do grupo A nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
                   '<span class="pdv-cart-grupo-tag">A</span>' +
                   escapeHtml(formatMoney(vis.a)) +
-                  '</span>'
+                  '</button>'
                 : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
         var bPart =
             vis.b != null
-                ? '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="Preço grupo B (unitário)">' +
+                ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b' +
+                  (escolhido === 'b' ? ' is-selected' : '') +
+                  '" data-cart-grupo="b" data-item-id="' +
+                  id +
+                  '" title="Usar preço do grupo B nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
                   '<span class="pdv-cart-grupo-tag">B</span>' +
                   escapeHtml(formatMoney(vis.b)) +
-                  '</span>'
+                  '</button>'
                 : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
         return (
-            '<div class="pdv-cart-grupos-hint" aria-label="Preços por grupo">' + aPart + bPart + '</div>'
+            '<div class="pdv-cart-grupos-hint" aria-label="Escolher prévia do grupo A ou B">' +
+            aPart +
+            bPart +
+            '</div>'
         );
     }
 
@@ -10810,6 +10823,16 @@
             if (zoomC) {
                 event.preventDefault();
                 openProductPhotoPop(zoomC.getAttribute('data-pdv-photo-zoom') || '');
+                return;
+            }
+            var grupoBtn = event.target.closest('[data-cart-grupo]');
+            if (grupoBtn) {
+                event.preventDefault();
+                var gid = grupoBtn.getAttribute('data-item-id');
+                var gLetra = grupoBtn.getAttribute('data-cart-grupo');
+                if (gid && gLetra && typeof State.setItemPrecoGrupoPreview === 'function') {
+                    State.setItemPrecoGrupoPreview(gid, gLetra);
+                }
                 return;
             }
             var removeBtn = event.target.closest('[data-remove-item]');

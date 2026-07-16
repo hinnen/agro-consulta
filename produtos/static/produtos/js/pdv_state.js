@@ -566,8 +566,43 @@
         if (!p) return;
         state.itens = state.itens.map(function (item) {
             if (String(item.id) !== String(itemId)) return item;
-            return Object.assign({}, item, { preco: p, preco_manual: true });
+            return Object.assign({}, item, {
+                preco: p,
+                preco_manual: true,
+                preco_grupo_preview: ''
+            });
         });
+        notify();
+    }
+
+    /** Prévia A/B no carrinho (etapa 1). Não trava preço: a forma na etapa 3 sempre manda. */
+    function setItemPrecoGrupoPreview(itemId, grupo) {
+        var gWant = String(grupo || '').toLowerCase() === 'b' ? 'b' : String(grupo || '').toLowerCase() === 'a' ? 'a' : '';
+        if (!gWant) return;
+        state.itens = state.itens.map(function (item) {
+            if (String(item.id) !== String(itemId)) return item;
+            if (String(item.precos_modo || '').toLowerCase() !== 'grupos') return item;
+            var g = item.precos_grupos;
+            if (!g || typeof g !== 'object') return item;
+            var atual = String(item.preco_grupo_preview || '').toLowerCase();
+            /* Segundo toque no mesmo chip volta ao preço padrão (sem escolha). */
+            if (atual === gWant) {
+                var padrao = toNumber(item.preco_padrao != null ? item.preco_padrao : item.preco);
+                return Object.assign({}, item, {
+                    preco_grupo_preview: '',
+                    preco_manual: false,
+                    preco: padrao
+                });
+            }
+            var preco = gWant === 'a' ? toNumber(g.preco_a) : toNumber(g.preco_b);
+            if (!(preco > 0)) return item;
+            return Object.assign({}, item, {
+                preco_grupo_preview: gWant,
+                preco_manual: false,
+                preco: preco
+            });
+        });
+        recalcularTodasPromocoes();
         notify();
     }
 
@@ -1018,6 +1053,7 @@
         addItem: addItem,
         updateItemQuantity: updateItemQuantity,
         updateItemPrice: updateItemPrice,
+        setItemPrecoGrupoPreview: setItemPrecoGrupoPreview,
         normalizePrice: normalizePrice,
         formatMoneyInputDisplay: formatMoneyInputDisplay,
         sanitizeMoneyInputTyping: sanitizeMoneyInputTyping,
