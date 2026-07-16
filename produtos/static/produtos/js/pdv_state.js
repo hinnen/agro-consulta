@@ -353,7 +353,7 @@
         state.clienteMode = 'consumidor_final';
         state.cliente = {
             id: '',
-            nome: String(nomePadrao || 'CONSUMIDOR NÃO IDENTIFICADO...'),
+            nome: String(nomePadrao || 'CONSUMIDOR NÃO IDENTIFICADO...').trim() || 'CONSUMIDOR NÃO IDENTIFICADO...',
             documento: '',
             telefone: '',
             endereco: '',
