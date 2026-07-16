@@ -1156,9 +1156,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.94** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.94** · **loja v8.69**
 
-### 🩹 Entrada NF — busca BCA = cadastro (16/07 · **teste v8.94**)
+### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Só fix busca Entrada NF = BCA/família GM (`views.py` + comentário `entrada_nota.html`). **Não** sobe pacote do fecha (#12/#17/relatórios) |
+| **Commit loja** | **5c44084** (origem teste `93ac5b3`) |
+| **Backup** | branch `producao-backup-pre-v869-20260716` @ **45622b0** (v8.68) — reverter: `git push origin producao-backup-pre-v869-20260716:producao` |
+| **Autorização** | *pode subir esse cherry-pick* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v8.69** · Entrada NF · `gm0008` → **3** iguais ao cadastro |
+
+### 🩹 Entrada NF — busca BCA = cadastro (16/07 · **teste v8.94** · **loja v8.69**)
 
 | Item | Detalhe |
 | ---- | ------- |
