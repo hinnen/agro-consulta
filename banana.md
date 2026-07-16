@@ -1155,9 +1155,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.79** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.80** · **loja v8.68**
 
-### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste**)
+### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste v8.80**)
 
 | Item | Detalhe |
 | ---- | ------- |
