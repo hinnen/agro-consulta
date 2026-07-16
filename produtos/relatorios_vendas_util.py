@@ -7,8 +7,7 @@ from decimal import Decimal
 from io import BytesIO
 from typing import Any
 
-from django.db.models import DecimalField, F, Q, Sum, Value
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from openpyxl import Workbook
@@ -16,8 +15,6 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 logger = logging.getLogger(__name__)
-
-_DEC = DecimalField(max_digits=18, decimal_places=4)
 
 
 def _aware_bounds(desde: datetime, ate: datetime) -> tuple[datetime, datetime]:
@@ -119,20 +116,42 @@ def _qs_itens(desde: datetime, ate: datetime):
     ).exclude(produto_id_externo="")
 
 
-def _annotate_liquido(qs):
-    """Quantidade e valor líquidos (desconta devolução parcial)."""
-    from django.db.models import ExpressionWrapper
+def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
+    """
+    Soma qtd/valor por produto. Usa só Sum em colunas reais (sem ExpressionWrapper)
+    — compatível com o Postgres/Gunicorn da loja.
+    """
+    qs = (
+        _qs_itens(desde, ate)
+        .values("produto_id_externo")
+        .annotate(
+            qtd_bruta=Sum("quantidade"),
+            qtd_dev=Sum("quantidade_devolvida"),
+            valor_bruto=Sum("valor_total"),
+        )
+    )
+    out: list[dict] = []
+    for r in qs.iterator(chunk_size=2000):
+        pid = str(r.get("produto_id_externo") or "").strip()
+        if not pid:
+            continue
+        try:
+            qtd_b = float(r.get("qtd_bruta") or 0)
+            qtd_d = float(r.get("qtd_dev") or 0)
+            valor_b = float(r.get("valor_bruto") or 0)
+        except (TypeError, ValueError):
+            continue
+        qtd = qtd_b - qtd_d
+        if qtd <= 0:
+            continue
+        # valor líquido proporcional à qtd não devolvida
+        if qtd_b > 0:
+            valor = valor_b * (qtd / qtd_b)
+        else:
+            valor = 0.0
+        out.append({"produto_id_externo": pid, "qtd": qtd, "valor": valor})
+    return out
 
-    qtd_expr = ExpressionWrapper(
-        F("quantidade") - Coalesce(F("quantidade_devolvida"), Value(0)),
-        output_field=_DEC,
-    )
-    valor_expr = ExpressionWrapper(
-        Coalesce(F("valor_unitario"), Value(0))
-        * (F("quantidade") - Coalesce(F("quantidade_devolvida"), Value(0))),
-        output_field=_DEC,
-    )
-    return qs.annotate(_qtd_liq=qtd_expr, _valor_liq=valor_expr)
 
 
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
@@ -235,19 +254,11 @@ def ranking_produtos(
     sentido: str = "mais",
     limite: int = 100,
 ) -> list[dict]:
-    qs = _annotate_liquido(_qs_itens(desde, ate))
-    agg = (
-        qs.values("produto_id_externo")
-        .annotate(
-            qtd=Sum("_qtd_liq"),
-            valor=Sum("_valor_liq"),
-        )
-        .filter(qtd__gt=0)
-    )
-    order = "-valor" if ordenar != "qtd" else "-qtd"
-    if sentido == "menos":
-        order = order.lstrip("-")
-    rows = list(agg.order_by(order)[: max(1, min(500, int(limite)))])
+    rows = _agg_itens_por_produto(desde, ate)
+    reverse = sentido != "menos"
+    key = "qtd" if ordenar == "qtd" else "valor"
+    rows.sort(key=lambda x: x[key], reverse=reverse)
+    rows = rows[: max(1, min(500, int(limite)))]
     pids = [str(r["produto_id_externo"]) for r in rows]
     meta = mapa_produtos_meta(pids)
     out: list[dict] = []
@@ -272,12 +283,7 @@ def ranking_produtos(
 
 
 def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
-    qs = _annotate_liquido(_qs_itens(desde, ate))
-    agg = list(
-        qs.values("produto_id_externo")
-        .annotate(qtd=Sum("_qtd_liq"), valor=Sum("_valor_liq"))
-        .filter(qtd__gt=0)
-    )
+    agg = _agg_itens_por_produto(desde, ate)
     pids = [str(r["produto_id_externo"]) for r in agg]
     meta = mapa_produtos_meta(pids)
     buckets: dict[str, dict] = {}
@@ -499,15 +505,14 @@ def comparativo_periodos(
             criado_em__gte=d0,
             criado_em__lte=d1,
         ).aggregate(total=Sum("total"), n=Count("id"))
-        itens = (
-            _annotate_liquido(_qs_itens(d0, d1))
-            .aggregate(qtd=Sum("_qtd_liq"), valor=Sum("_valor_liq"))
-        )
+        itens = _agg_itens_por_produto(d0, d1)
+        qtd = sum(x["qtd"] for x in itens)
+        valor = sum(x["valor"] for x in itens)
         return {
             "vendas": int(agg["n"] or 0),
             "faturamento": round(float(agg["total"] or 0), 2),
-            "itens": round(float(itens["qtd"] or 0), 3),
-            "itens_rs": round(float(itens["valor"] or 0), 2),
+            "itens": round(float(qtd), 3),
+            "itens_rs": round(float(valor), 2),
         }
 
     a = _tot(desde_a, ate_a)
