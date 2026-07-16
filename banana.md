@@ -1156,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.04** · **loja v8.69**
+**Versão app (VERSION):** **teste v9.04** · **loja v9.04**
+
+### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Só pacote **relatórios** (hub + todos os cards novos + Excel). **Não** sobe #12/#17 |
+| **HEAD loja** | **da264a3** (código `1cb43f2` + docs) |
+| **Backup** | `producao-backup-pre-v904-relatorios-20260716` @ **5c44084** (v8.69) — reverter: `git push origin producao-backup-pre-v904-relatorios-20260716:producao` |
+| **Autorização** | *pode subir para produção esse cherry-pick* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v9.04** · Relatórios · ABC |
 
 ### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
 
