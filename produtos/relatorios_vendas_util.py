@@ -32,7 +32,7 @@ def parse_periodo_request(
 ) -> dict[str, Any]:
     """
     Lê GET: periodo (hoje|7d|30d|mes_atual|custom) + de/ate (YYYY-MM-DD).
-    Retorna dict com desde, ate (aware), labels e valores de formulário.
+    Se De/Até vierem e não baterem com o atalho do período, usa personalizado.
     """
     hoje = timezone.localdate()
     periodo = (request.GET.get("periodo") or padrao).strip().lower()
@@ -45,6 +45,9 @@ def parse_periodo_request(
         except (TypeError, ValueError):
             return None
 
+    d_de = _parse_d(de_s)
+    d_ate = _parse_d(ate_s)
+
     if periodo == "hoje":
         d0, d1 = hoje, hoje
     elif periodo == "7d":
@@ -52,14 +55,21 @@ def parse_periodo_request(
     elif periodo == "30d":
         d0, d1 = hoje - timedelta(days=29), hoje
     elif periodo == "custom":
-        d0 = _parse_d(de_s) or (hoje - timedelta(days=29))
-        d1 = _parse_d(ate_s) or hoje
+        d0 = d_de or (hoje - timedelta(days=29))
+        d1 = d_ate or hoje
         if d0 > d1:
             d0, d1 = d1, d0
     else:
         periodo = "mes_atual"
         d0 = hoje.replace(day=1)
         d1 = hoje
+
+    # Usuário mudou as datas sem trocar o select → respeita De/Até (vira personalizado)
+    if d_de and d_ate and periodo != "custom" and (d_de != d0 or d_ate != d1):
+        periodo = "custom"
+        d0, d1 = d_de, d_ate
+        if d0 > d1:
+            d0, d1 = d1, d0
 
     desde = datetime.combine(d0, time.min)
     ate = datetime.combine(d1, time(23, 59, 59))
@@ -78,11 +88,22 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
     """Segundo período para comparativo (de_b / ate_b ou atalho mes_passado)."""
     hoje = timezone.localdate()
     modo = (request.GET.get("periodo_b") or "mes_passado").strip().lower()
-    if modo == "custom":
+    de_s = (request.GET.get("de_b") or "").strip()
+    ate_s = (request.GET.get("ate_b") or "").strip()
+
+    def _parse_d(s: str) -> date | None:
         try:
-            d0 = date.fromisoformat((request.GET.get("de_b") or "")[:10])
-            d1 = date.fromisoformat((request.GET.get("ate_b") or "")[:10])
-        except ValueError:
+            return date.fromisoformat(s[:10])
+        except (TypeError, ValueError):
+            return None
+
+    d_de = _parse_d(de_s)
+    d_ate = _parse_d(ate_s)
+
+    if modo == "custom":
+        d0 = d_de
+        d1 = d_ate
+        if d0 is None or d1 is None:
             primeiro = hoje.replace(day=1)
             d1 = primeiro - timedelta(days=1)
             d0 = d1.replace(day=1)
@@ -91,6 +112,11 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
         d1 = primeiro - timedelta(days=1)
         d0 = d1.replace(day=1)
         modo = "mes_passado"
+
+    if d_de and d_ate and modo != "custom" and (d_de != d0 or d_ate != d1):
+        modo = "custom"
+        d0, d1 = d_de, d_ate
+
     if d0 > d1:
         d0, d1 = d1, d0
     desde = datetime.combine(d0, time.min)

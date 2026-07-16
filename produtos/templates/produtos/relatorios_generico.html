@@ -49,11 +49,11 @@
 
 {% block pdv_content %}
 <div class="print-root min-w-0 p-1 sm:p-2">
-  <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
+  <form method="get" id="form-relatorio-filtros" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
     {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
-      <select name="periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
+      <select name="periodo" id="filtro-periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
         <option value="hoje" {% if filtros.periodo == 'hoje' %}selected{% endif %}>Hoje</option>
         <option value="7d" {% if filtros.periodo == '7d' %}selected{% endif %}>7 dias</option>
         <option value="30d" {% if filtros.periodo == '30d' %}selected{% endif %}>30 dias</option>
@@ -63,11 +63,11 @@
     </div>
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De</label>
-      <input type="date" name="de" value="{{ filtros.de }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      <input type="date" name="de" id="filtro-de" value="{{ filtros.de }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
     </div>
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
-      <input type="date" name="ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      <input type="date" name="ate" id="filtro-ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
     </div>
     {% endif %}
 
@@ -111,18 +111,18 @@
     {% if filtro_parcial == 'comparativo' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período B</label>
-      <select name="periodo_b" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+      <select name="periodo_b" id="filtro-periodo-b" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
         <option value="mes_passado" {% if extra_filtros.periodo_b == 'mes_passado' %}selected{% endif %}>Mês passado</option>
         <option value="custom" {% if extra_filtros.periodo_b == 'custom' %}selected{% endif %}>Personalizado</option>
       </select>
     </div>
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De (B)</label>
-      <input type="date" name="de_b" value="{{ extra_filtros.de_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      <input type="date" name="de_b" id="filtro-de-b" value="{{ extra_filtros.de_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
     </div>
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até (B)</label>
-      <input type="date" name="ate_b" value="{{ extra_filtros.ate_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+      <input type="date" name="ate_b" id="filtro-ate-b" value="{{ extra_filtros.ate_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
     </div>
     {% endif %}
 
@@ -189,4 +189,24 @@
   {% endif %}
 </div>
 {% include "produtos/_atalho_voltar_pdv.html" %}
+<script>
+(function () {
+  function bindCustom(dateIds, selectId) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    dateIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", function () {
+        sel.value = "custom";
+      });
+      el.addEventListener("input", function () {
+        sel.value = "custom";
+      });
+    });
+  }
+  bindCustom(["filtro-de", "filtro-ate"], "filtro-periodo");
+  bindCustom(["filtro-de-b", "filtro-ate-b"], "filtro-periodo-b");
+})();
+</script>
 {% endblock %}
