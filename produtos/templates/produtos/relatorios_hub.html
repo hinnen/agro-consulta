@@ -28,6 +28,7 @@
 {% block pdv_content %}
 <div class="p-2 sm:p-4">
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+
     <a href="{% url 'produtos_etiquetas' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
       <div class="mb-4 flex items-center gap-4">
         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 transition-transform group-hover:scale-110">
@@ -38,13 +39,8 @@
           <span class="text-xs font-bold uppercase tracking-wider text-emerald-500">4×4 cm · térmica</span>
         </div>
       </div>
-      <p class="text-sm leading-relaxed text-slate-400">
-        Busque produtos no cadastro, monte a fila com quantidades e imprima direto na térmica (Electron).
-      </p>
-      <div class="mt-6 flex items-center text-sm font-bold text-emerald-500">
-        <span>ABRIR IMPRESSÃO</span>
-        <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i>
-      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Busque produtos, monte a fila e imprima na térmica.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-emerald-500"><span>ABRIR IMPRESSÃO</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
     </a>
 
     <a href="{% url 'relatorios_validade' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
@@ -57,27 +53,164 @@
           <span class="text-xs font-bold uppercase tracking-wider text-orange-500">Perecíveis</span>
         </div>
       </div>
-      <p class="text-sm leading-relaxed text-slate-400">
-        Lista de produtos com data de vencimento próxima ou vencidos. Ideal para gestão de perdas.
-      </p>
-      <div class="mt-6 flex items-center text-sm font-bold text-orange-500">
-        <span>GERAR RELATÓRIO</span>
-        <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i>
-      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Produtos próximos do vencimento ou vencidos — gestão de perdas.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-orange-500"><span>GERAR RELATÓRIO</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
     </a>
 
-    <div class="cursor-not-allowed rounded-2xl border border-slate-700 bg-slate-800/90 p-6 opacity-50">
+    <a href="{% url 'relatorios_mais_vendidos' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
       <div class="mb-4 flex items-center gap-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-trophy text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Produtos mais vendidos</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Ranking</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Ordene por preço total ou quantidade. Também lista os menos vendidos.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-emerald-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_vendas_grupo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-sky-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 transition-transform group-hover:scale-110">
           <i class="fas fa-chart-bar text-2xl" aria-hidden="true"></i>
         </div>
         <div>
-          <h3 class="text-xl font-bold text-white">Vendas por Grupo</h3>
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-500">Em breve</span>
+          <h3 class="text-xl font-bold text-white">Vendas por grupo</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Categoria</span>
         </div>
       </div>
-      <p class="text-sm text-slate-400">Análise detalhada de performance por categoria de produto.</p>
-    </div>
+      <p class="text-sm leading-relaxed text-slate-400">Performance por categoria do cadastro.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-sky-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_curva_abc' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-violet-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-layer-group text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Curva ABC</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-violet-400">80 / 15 / 5</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Classifica produtos A, B e C pelo faturamento.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-violet-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_giro_estoque' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-amber-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-warehouse text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Giro e estoque parado</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Capital</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">O que gira rápido e o que está parado com saldo.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-amber-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_margem' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-lime-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-lime-500/20 text-lime-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-percent text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Margem por produto</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-lime-400">Lucro</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Venda versus custo — margem em R$ e %.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-lime-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_vendas_operador' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-cyan-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-user-tie text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Vendas por operador</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">Equipe</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Totais por quem registrou a venda no PDV.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-cyan-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_ranking_clientes' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-pink-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500/20 text-pink-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-users text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Ranking de clientes</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-pink-400">Relacionamento</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Quem mais comprou no período.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-pink-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_comparativo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-indigo-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-exchange-alt text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Comparativo períodos</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Tendência</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Este período versus o anterior (variação %).</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-indigo-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_formas_pagamento' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-teal-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-money-bill-wave text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Formas de pagamento</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-400">Caixa</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Dinheiro, cartão, fiado e demais formas.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-teal-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_ruptura' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-red-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/20 text-red-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-exclamation-triangle text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Ruptura de estoque</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-red-400">Falta na prateleira</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Vendeu recentemente e estoque zerou. Complementa o de validade.</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-red-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
+    <a href="{% url 'relatorios_comissao' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-yellow-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-500/20 text-yellow-400 transition-transform group-hover:scale-110">
+          <i class="fas fa-hand-holding-usd text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Comissão estimada</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-yellow-400">Sem meta</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">Estimativa com %/R$ do cadastro do produto (quando existir).</p>
+      <div class="mt-6 flex items-center text-sm font-bold text-yellow-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+    </a>
+
   </div>
 </div>
 {% include "produtos/_atalho_voltar_pdv.html" %}

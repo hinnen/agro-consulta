@@ -1155,7 +1155,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.91** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.93** · **loja v8.68**
+
+### 📊 Central de Relatórios — pacote completo (16/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Hub com cards: mais/menos vendidos · por grupo · curva ABC · giro/parado · margem · operador · ranking clientes · comparativo · formas pagamento · ruptura · comissão estimada (+ validade/etiquetas já existentes) |
+| **Extras** | Período · print A4 · **Excel ↓** em cada relatório novo |
+| **Fonte** | `VendaAgro` / `ItemVendaAgro` (Postgres) · giro/parado reusa `dashboard_estoque_financeiro_util` |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_hub.html` · `relatorios_generico.html` · `urls.py` |
+| **Validar** | Ctrl+F5 · BI → Relatórios gerais · abrir cada card · Excel + período |
+| **Versão** | **teste v8.93** |
 
 ### 📦 Pacote pronto loja — fechar depois (16/07 · Renan)
 

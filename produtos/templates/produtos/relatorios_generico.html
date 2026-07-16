@@ -1,0 +1,192 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}{{ titulo }} | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body, .print-root { background: #fff !important; color: #0f172a !important; }
+      .print-table { border: 1px solid #cbd5e1 !important; }
+      .print-table th, .print-table td { color: #0f172a !important; border-color: #e2e8f0 !important; }
+    }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="no-print border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">{{ eyebrow }}</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">{{ titulo }}</h1>
+      {% if subtitulo %}<p class="mt-1 text-sm font-medium text-slate-400">{{ subtitulo }}</p>{% endif %}
+    </div>
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <button type="button" onclick="window.print()"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
+        <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
+      </button>
+      <a href="{{ export_qs }}"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-emerald-500">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>Excel ↓
+      </a>
+      {% if link_extra %}
+      <a href="{% url link_extra.url_name %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-amber-500 bg-amber-500/20 px-4 py-2 text-xs font-black uppercase text-amber-300 hover:bg-amber-500/30">{{ link_extra.label }}</a>
+      {% endif %}
+      <a href="{% url 'relatorios_hub' %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">Voltar</a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="print-root min-w-0 p-1 sm:p-2">
+  <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
+    {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
+      <select name="periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
+        <option value="hoje" {% if filtros.periodo == 'hoje' %}selected{% endif %}>Hoje</option>
+        <option value="7d" {% if filtros.periodo == '7d' %}selected{% endif %}>7 dias</option>
+        <option value="30d" {% if filtros.periodo == '30d' %}selected{% endif %}>30 dias</option>
+        <option value="mes_atual" {% if filtros.periodo == 'mes_atual' %}selected{% endif %}>Mês atual</option>
+        <option value="custom" {% if filtros.periodo == 'custom' %}selected{% endif %}>Personalizado</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De</label>
+      <input type="date" name="de" value="{{ filtros.de }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
+      <input type="date" name="ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'mais_vendidos' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Preço total</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Sentido</label>
+      <select name="sentido" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="mais" {% if extra_filtros.sentido == 'mais' %}selected{% endif %}>Mais vendidos</option>
+        <option value="menos" {% if extra_filtros.sentido == 'menos' %}selected{% endif %}>Menos vendidos</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'margem' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="margem_rs" {% if extra_filtros.ordenar == 'margem_rs' %}selected{% endif %}>Margem R$</option>
+        <option value="margem_pct" {% if extra_filtros.ordenar == 'margem_pct' %}selected{% endif %}>Margem %</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'clientes' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Total R$</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Nº vendas</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'comparativo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período B</label>
+      <select name="periodo_b" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="mes_passado" {% if extra_filtros.periodo_b == 'mes_passado' %}selected{% endif %}>Mês passado</option>
+        <option value="custom" {% if extra_filtros.periodo_b == 'custom' %}selected{% endif %}>Personalizado</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">De (B)</label>
+      <input type="date" name="de_b" value="{{ extra_filtros.de_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até (B)</label>
+      <input type="date" name="ate_b" value="{{ extra_filtros.ate_b }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'giro' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Lista</label>
+      <select name="aba" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="parado" {% if extra_filtros.aba == 'parado' %}selected{% endif %}>Estoque parado (90d)</option>
+        <option value="giro" {% if extra_filtros.aba == 'giro' %}selected{% endif %}>Top giro (30d)</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'ruptura' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Janela de venda</label>
+      <select name="dias" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="15" {% if extra_filtros.dias == '15' %}selected{% endif %}>15 dias</option>
+        <option value="30" {% if extra_filtros.dias == '30' %}selected{% endif %}>30 dias</option>
+        <option value="60" {% if extra_filtros.dias == '60' %}selected{% endif %}>60 dias</option>
+        <option value="90" {% if extra_filtros.dias == '90' %}selected{% endif %}>90 dias</option>
+      </select>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-xs font-black uppercase text-slate-950 hover:bg-orange-400">
+      Atualizar
+    </button>
+  </form>
+
+  {% if filtros.label %}
+  <p class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Período: <span class="text-slate-300">{{ filtros.label }}</span></p>
+  {% endif %}
+
+  <div class="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80">
+    <table class="print-table min-w-full text-left text-sm">
+      <thead class="bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
+        <tr>
+          {% for h in headers %}
+          <th class="px-3 py-2.5 whitespace-nowrap">{{ h }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% for row in rows %}
+        <tr class="hover:bg-slate-800/50">
+          {% for cell in row %}
+          <td class="px-3 py-2 font-semibold text-slate-200 {% if forloop.counter == 3 %}max-w-[18rem] truncate{% endif %}">{{ cell }}</td>
+          {% endfor %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ headers|length }}" class="px-3 py-8 text-center text-slate-500 font-semibold">{{ vazio_msg|default:"Sem dados." }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if totais %}
+  <div class="mt-3 flex flex-wrap gap-3 text-sm font-black text-emerald-400">
+    {% for t in totais %}<span>{{ t }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% endblock %}

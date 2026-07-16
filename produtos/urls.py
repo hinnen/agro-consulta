@@ -8,6 +8,7 @@ from financeiro.views import (
 
 from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
 from . import fiado_gestao_views as fiado_views
+from . import relatorios_central_views as relatorios_views
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -137,6 +138,18 @@ urlpatterns = [
     path('contabilidade/logout/', views_nfce.contabilidade_logout, name='contabilidade_logout'),
     path('contabilidade/', views_nfce.contabilidade_painel, name='contabilidade_painel'),
     path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
+    path('relatorios/mais-vendidos/', relatorios_views.relatorios_mais_vendidos, name='relatorios_mais_vendidos'),
+    path('relatorios/vendas-grupo/', relatorios_views.relatorios_vendas_grupo, name='relatorios_vendas_grupo'),
+    path('relatorios/curva-abc/', relatorios_views.relatorios_curva_abc, name='relatorios_curva_abc'),
+    path('relatorios/giro-estoque/', relatorios_views.relatorios_giro_estoque, name='relatorios_giro_estoque'),
+    path('relatorios/margem/', relatorios_views.relatorios_margem, name='relatorios_margem'),
+    path('relatorios/vendas-operador/', relatorios_views.relatorios_vendas_operador, name='relatorios_vendas_operador'),
+    path('relatorios/ranking-clientes/', relatorios_views.relatorios_ranking_clientes, name='relatorios_ranking_clientes'),
+    path('relatorios/comparativo/', relatorios_views.relatorios_comparativo, name='relatorios_comparativo'),
+    path('relatorios/formas-pagamento/', relatorios_views.relatorios_formas_pagamento, name='relatorios_formas_pagamento'),
+    path('relatorios/ruptura/', relatorios_views.relatorios_ruptura, name='relatorios_ruptura'),
+    path('relatorios/comissao/', relatorios_views.relatorios_comissao, name='relatorios_comissao'),
+
     path(
         'entrada-nota/',
         views.entrada_nota_view,
