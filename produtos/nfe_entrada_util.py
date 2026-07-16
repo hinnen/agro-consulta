@@ -2924,14 +2924,160 @@ def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
 
 
 def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
-    nd = str(linha.get("numero_documento") or "").strip()
+    """Número da NF do título — prioriza texto «NF 76468» na descrição (padrão ERP/CP)."""
+    for key in ("descricao", "Descricao", "observacoes", "Observacao"):
+        texto = str(linha.get(key) or "")
+        m = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", texto, re.I)
+        if m:
+            return m.group(1).strip()
+    nd = str(linha.get("numero_documento") or linha.get("NumeroDocumento") or "").strip()
     if nd and nd not in ("0", "000") and not _LOTE_AGRO_NUMDOC_RE.match(nd):
-        return nd
-    desc = str(linha.get("descricao") or "")
-    m = re.match(r"^NF\s+(\S+)", desc, re.I)
-    if m:
-        return m.group(1).strip("—- ").split()[0]
+        if re.fullmatch(r"\d{1,12}", nd):
+            return nd
+        m2 = re.search(r"\bNF\s*[.:]?\s*(\d{1,12})\b", nd, re.I)
+        if m2:
+            return m2.group(1).strip()
     return ""
+
+
+def _nf_numero_norm(nf: str) -> str:
+    s = str(nf or "").strip()
+    if not s:
+        return ""
+    if s.isdigit():
+        return s.lstrip("0") or "0"
+    return s
+
+
+def _nf_numero_variantes(nf: str) -> list[str]:
+    s = str(nf or "").strip()
+    if not s:
+        return []
+    out: set[str] = {s}
+    if s.isdigit():
+        bare = s.lstrip("0") or "0"
+        out.add(bare)
+        for width in (6, 7, 8, 9):
+            out.add(bare.zfill(width))
+            out.add(s.zfill(width))
+    return [x for x in out if x]
+
+
+def _map_lancamentos_entrada_nfe_rascunho_ids_pg(
+    linhas: list[dict[str, Any]]
+) -> dict[str, str]:
+    """Match confiável no Postgres (sem corte dos rascunhos mais novos)."""
+    from django.db.models import Q
+
+    from produtos.models import EntradaNotaRascunhoAgro
+
+    ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
+    ids = [x for x in ids if x]
+    if not ids:
+        return {}
+    id_set = set(ids)
+    out: dict[str, str] = {}
+
+    q_fin = Q()
+    for lid in ids[:150]:
+        q_fin |= Q(extra__financeiro_ids__contains=[lid])
+        q_fin |= Q(extra__financeiro_ids__contains=lid)
+    try:
+        if q_fin:
+            qs = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(q_fin)
+                .order_by("-atualizado_em")[:400]
+            )
+            for row in qs:
+                ex = row.extra if isinstance(row.extra, dict) else {}
+                fin_list = ex.get("financeiro_ids")
+                if not isinstance(fin_list, list):
+                    continue
+                for raw in fin_list:
+                    sid = str(raw or "").strip()
+                    if sid in id_set and sid not in out:
+                        out[sid] = str(row.rascunho_id)
+    except Exception as exc:
+        logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg financeiro: %s", exc)
+
+    missing = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    nf_por_norm: dict[str, list[str]] = {}
+    variantes: set[str] = set()
+    for ln in missing:
+        lid = str(ln.get("id") or "")
+        nf = _extrair_nf_numero_lancamento(ln)
+        if not nf or not lid:
+            continue
+        nkey = _nf_numero_norm(nf)
+        nf_por_norm.setdefault(nkey, []).append(lid)
+        variantes.update(_nf_numero_variantes(nf))
+    if variantes:
+        try:
+            q_nf = Q(cabecalho__numero__in=list(variantes))
+            for v in list(variantes):
+                if str(v).isdigit():
+                    try:
+                        q_nf |= Q(cabecalho__numero=int(v))
+                    except (TypeError, ValueError):
+                        pass
+            qs_nf = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(q_nf)
+                .order_by("-atualizado_em")[:400]
+            )
+            for row in qs_nf:
+                cab = row.cabecalho if isinstance(row.cabecalho, dict) else {}
+                nkey = _nf_numero_norm(str(cab.get("numero") or ""))
+                if not nkey:
+                    continue
+                for lid in nf_por_norm.get(nkey, []):
+                    if lid not in out:
+                        out[lid] = str(row.rascunho_id)
+        except Exception as exc:
+            logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg nf: %s", exc)
+
+    missing_lote = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    lote_por_lanc: dict[str, list[str]] = {}
+    for ln in missing_lote:
+        lid = str(ln.get("id") or "")
+        lt = _extrair_lote_agro_lancamento(ln)
+        if not lt or not lid:
+            continue
+        lote_por_lanc.setdefault(lt, []).append(lid)
+    for lote, lanc_ids in lote_por_lanc.items():
+        try:
+            row = (
+                EntradaNotaRascunhoAgro.objects.exclude(
+                    status=ENTRADA_NFE_STATUS_DESCARTADA
+                )
+                .filter(extra__financeiro_lote=lote)
+                .order_by("-atualizado_em")
+                .first()
+            )
+            if not row:
+                for cand in (
+                    EntradaNotaRascunhoAgro.objects.exclude(
+                        status=ENTRADA_NFE_STATUS_DESCARTADA
+                    )
+                    .order_by("-atualizado_em")[:800]
+                ):
+                    ex = cand.extra if isinstance(cand.extra, dict) else {}
+                    if str(ex.get("financeiro_lote") or "").strip().upper() == lote:
+                        row = cand
+                        break
+            if not row:
+                continue
+            for lid in lanc_ids:
+                if lid not in out:
+                    out[lid] = str(row.rascunho_id)
+        except Exception as exc:
+            logger.warning("map_lancamentos_entrada_nfe_rascunho_ids_pg lote: %s", exc)
+    return out
 
 
 def _ids_titulos_mongo_por_lote_agro(db, lote: str) -> list[str]:
@@ -3035,9 +3181,19 @@ def _rascunho_entrada_por_lote_agro(
 def map_lancamentos_entrada_nfe_rascunho_ids(
     db, linhas: list[dict[str, Any]]
 ) -> dict[str, str]:
-    """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
+    """Mapeia ID do título → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
+    if not linhas:
+        return {}
+    try:
+        from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+        if agro_entrada_nota_rascunho_postgres():
+            return _map_lancamentos_entrada_nfe_rascunho_ids_pg(linhas)
+    except Exception as exc:
+        logger.warning("map_lancamentos_entrada_nfe_rascunho_ids pg gate: %s", exc)
+
     col = _entrada_nota_rascunho_store(db)
-    if col is None or not linhas:
+    if col is None:
         return {}
     ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
     ids = [x for x in ids if x]
@@ -3067,14 +3223,19 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
 
     missing = [ln for ln in linhas if str(ln.get("id") or "") not in out]
     nf_por_lanc: dict[str, list[str]] = {}
+    nf_norm_index: dict[str, str] = {}
     for ln in missing:
         lid = str(ln.get("id") or "")
         nf = _extrair_nf_numero_lancamento(ln)
         if nf and lid:
             nf_por_lanc.setdefault(nf, []).append(lid)
+            nf_norm_index[_nf_numero_norm(nf)] = nf
     if nf_por_lanc:
         try:
-            ors = [{"cabecalho.numero": nf} for nf in nf_por_lanc]
+            variantes: list[str] = []
+            for nf in nf_por_lanc:
+                variantes.extend(_nf_numero_variantes(nf))
+            ors = [{"cabecalho.numero": v} for v in dict.fromkeys(variantes)]
             cur2 = col.find(
                 {
                     "$and": [
@@ -3083,12 +3244,16 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
                     ]
                 },
                 {"cabecalho.numero": 1},
-            ).limit(120)
+            ).limit(200)
             for doc in cur2:
                 rid = str(doc.get("_id", ""))
                 cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-                nf = str(cab.get("numero") or "").strip()
-                for lid in nf_por_lanc.get(nf, []):
+                nf_doc = str(cab.get("numero") or "").strip()
+                chave = nf_norm_index.get(_nf_numero_norm(nf_doc))
+                lids = nf_por_lanc.get(nf_doc) or (
+                    nf_por_lanc.get(chave) if chave else []
+                )
+                for lid in lids:
                     if lid not in out:
                         out[lid] = rid
         except Exception as exc:
