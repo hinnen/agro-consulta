@@ -1155,7 +1155,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.65** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.65** · **loja v8.65**
+
+### 📦 Deploy loja **v8.65** — preços A/B + PDV (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Cadastro busca leve · preços por forma **ou** 2 grupos A/B · visual lista/edição/NF · layout PDV · Esc/PAGAR consumidor · toque A/B no carrinho (forma manda na etapa 3) |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+0f4e31\) · HEAD **0ed48dd** |
+| **Backup** | branch producao-backup-pre-v865-20260716 @ **ccb4fd8** (v8.54) — reverter: git push origin producao-backup-pre-v865-20260716:producao |
+| **Autorização** | *pode subir* + 99738595 · pedido de backup |
+| **Você** | Ctrl+F5 loja · badge **v8.65** · se der errado avisar (dá pra voltar ao backup) |
+
 
 ### ✨ PDV — toque A/B no carrinho (prévia; forma manda) (15/07 · **teste v8.65**)
 
@@ -1163,7 +1175,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | No carrinho, toque em A ou B muda o preço da etapa 1. Etapa 3: forma de pagamento **sempre** redefine o preço (com ou sem toque) |
 | **Validar** | Ctrl+F5 · badge **v8.65** · toque A → 92 · PAGAR · forma do grupo B → valor volta p/ 87 |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — PAGAR sem travar cliente + consumidor na busca (15/07 · **teste v8.64**)
@@ -1172,7 +1184,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Se cliente ficou «unset», PAGAR grava consumidor final sozinho. Busca de cliente já traz botão laranja do consumidor |
 | **Validar** | Ctrl+F5 · badge **v8.64** · montar carrinho e PAGAR sem alerta · faixa mostra consumidor |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.63**)
@@ -1182,7 +1194,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Cliente** | Esc no início = consumidor final (antes só fechava e a tela mentia). Sem cliente → texto «Toque para escolher» |
 | **Pagamento** | Ao escolher forma, recalcula preço do grupo **depois** preenche «Valor desta forma» (ex. 92, não 87) |
 | **Validar** | Ctrl+F5 · badge **v8.61** · milho grupos · PAGAR · cartão do grupo A → valor 92 |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV carrinho — colunas fixas + total sem corte (15/07 · **teste v8.60**)
@@ -1191,7 +1203,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | GM/qtd/A-B/total/lixeira com largura fixa (alinha). Total cabe milhar (ex. 1.131,00) |
 | **Validar** | Ctrl+F5 teste · badge **v8.60** · milho misto + qtd alta no item com grupos |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — alinhamento GM + 2 preços (lista e carrinho) (15/07 · **teste v8.59**)
@@ -1200,7 +1212,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Busca: Marca → GM → espaço fixo p/ 2 preços. Carrinho: coluna A/B sempre reservada (não empurra lixeira) |
 | **Validar** | Ctrl+F5 teste · badge **v8.59** · digitar «milho» · carrinho misturando 1 e 2 preços |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### ✨ Visual A/B — lista cadastro + edição + Entrada NF (15/07 · **teste v8.58**)
@@ -1209,7 +1221,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Coluna VENDA com chips A/B · preview Grupo A/B na aba preços · chips A/B sob P.venda na Entrada NF |
 | **Validar** | Ctrl+F5 teste · badge **v8.58** · produto em 2 grupos: lista + lápis + casar na NF |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 PDV — grupos A/B aparecem + modal preços maior (15/07 · **teste v8.57**)
@@ -1219,7 +1231,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Busca usava só cache local e merge ignorava o servidor → sem precos_grupos |
 | **Fix** | Sempre confere servidor · merge atualiza campos · overlay no catálogo PDV · modal preços ~90% |
 | **Validar** | Ctrl+F5 teste · badge **v8.57** · digitar produto com 2 grupos → chips A/B na busca e no carrinho |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### ✨ PDV — preço por forma OU 2 grupos (15/07 · **teste v8.56**)
@@ -1228,7 +1240,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | No cadastro: modo **Por forma** (igual antes) ou **2 grupos** (preço A/B + formas em A/B). PDV mostra A e B na busca/carrinho; total só muda na etapa 3 ao escolher a forma |
 | **Validar** | Ctrl+F5 teste · badge **v8.56** · produto em 2 grupos → 2 chips no PDV · pagar com forma do grupo A/B |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 🩹 Cadastro — busca digitada mais leve (15/07 · **teste v8.55**)
@@ -1237,7 +1249,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Digitação no cadastro: Mongo slim · sem média/pedidos · sem recalcular saldo 2× · debounce texto 450 ms |
 | **Validar** | Ctrl+F5 teste · badge **v8.55** · digitar nome no cadastro deve responder mais rápido |
-| **Loja** | ⏳ |
+| **Loja** | ✅ v8.65 |
 
 
 ### 📦 Deploy loja **v8.54** — Entrada NF UX restante (15/07 · Renan frase+senha)
@@ -1521,7 +1533,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pacote** | **#4** modelo persiste + **#3** prefixo GM (família) |
-| **Commits loja** | `2c44d45` (#4) · `a285d52` (#3) |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **Antes** | loja **v8.15** `812226b` |
 | **Backup** | `producao-backup-pre-v822-20260714` · anterior `pre-v815` / `pre-v814` |
 | **NÃO veio** | #5 #6 #16 #18 frete · lote Zap restante — continua só no teste |
@@ -2214,7 +2226,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | PIN manual/descanso PDV · contagem fechar caixa ao reabrir Chrome · overlay caixa não trava |
-| **Commits loja** | `8410ebc` · `8df7e18` · `ca78b88` · `ae69827` |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **Fora da loja** | Entregas PDV · FL-049/050 (só teste) |
 | **Status** | **✅ loja** — validar PIN + contagem na operação |
 
@@ -4424,7 +4436,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | Item | Detalhe |
 | ---- | ------- |
 | **Commits teste** | `11277f0` … **`7c9774f`** (UX filtros retráteis + KPIs) |
-| **Commits loja** | `ec13fc4` · **`3935d1a`** (mesmo pacote · VERSION **v3.02**) |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
 | **API** | `POST` (preferido) ou `GET` `/financeiro/api/dados-grafico-gastos/` — `agrupamento`, `inicio`, `fim`, `planos[]`, `individual`, **`por`**, **`valor`** |
 | **Fonte dados** | Mongo `DtoLancamento` · dedup **`_lancamentos_mongo_stages_dedup_por_titulo_erp`** (igual CP) |
@@ -4558,7 +4570,7 @@ Loja OK v3.01 — checklist 0–9 fechado.
 | ---- | ------- |
 | **Pacote** | Autocomplete busca `/pdv/` — carregar mais, 10 itens, azul, Esc, Enter |
 | **Commits teste** | `c5a318b` … `61fe06a` (12 commits — ver tabela abaixo) |
-| **Commits loja** | `5e2fa57` … `8e09584` · VERSION `f87955d` |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **VERSION loja** | **v2.28** |
 | **Arquivos** | `pdv_wizard.js`, `pdv_wizard.html`, `step_produtos.html`, `pdv/views.py`, `config/settings.py` |
 | **Não incluído** | `577e09c` Entrada NF · `312e1ca` Compras · commits só banana |
@@ -4853,7 +4865,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Pacote** | Layout desktop compacto + lista NFC-e rejeitada/erro + CSV |
 | **Commits teste** | `64dc9fa` · `848b562` |
-| **Commits loja** | `899ba8a` · `1434ffd` · VERSION `731607c` |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **VERSION loja** | **v2.27** |
 
 **Renan — após deploy Render:** Ctrl+F5 → `/contabilidade/` → resumo/export lado a lado · pendências NFC-e · CSV.
@@ -4866,7 +4878,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Fix** | `/contabilidade/login/` — contador entra **sem** staff do Admin |
 | **Commit teste** | `2d77b88` |
-| **Commits loja** | `e98cc13` · VERSION `e51e810` |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **VERSION loja** | **v2.26** |
 | **Env** | `AGRO_CONTABILIDADE_USERNAMES=martins` · usuário Admin **sem** marcar staff |
 
@@ -4898,7 +4910,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Pacote** | 4 commits Contabilidade (só NFC-e na tela) — **sem** PDV snapshot/Akiles |
 | **Commits teste** | `a570cd0` · `8523686` · `be536b6` · `81aa0eb` |
-| **Commits loja** | `fce67a6` · `db7ea29` · `c694537` · `4590ad1` · VERSION `86d3af2` |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **VERSION loja** | **v2.25** |
 | **URL** | `/contabilidade/` |
 
@@ -5099,7 +5111,7 @@ Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `9
 | Item | Valor |
 | ---- | ----- |
 | **Branch** | `producao` ← cherry-pick `7227d83` + `7395c2a` |
-| **Commits loja** | `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ na devolução) |
+| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
 | **VERSION loja** | **1.97** |
 | **Bug pós-deploy** | «infEvento não encontrado» — **corrigido** v1.99 |
 | **Fix loja** | `c89f3ef` |
