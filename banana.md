@@ -1155,7 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.77** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.79** · **loja v8.68**
+
+### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **1 Lista** | Parcial mostra **restante** (ex. R$ 1,30) + original riscado; total do período soma restantes |
+| **2 Detalhe** | Item devolvido com **risco** + badge; total restante no card |
+| **3 ERP** | Coluna/botões ERP sumiram; `PDV_VENDA_ERP_ENVIO=False` (padrão) — não manda Pedidos/Salvar |
+| **Validar** | Ctrl+F5 teste · badge **v8.79** · venda parcial · lista + detalhe |
 
 ### 📦 Deploy loja **v8.68** — FL-021 hotfix match NF (16/07 · Renan frase+senha)
 
@@ -1668,7 +1677,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
 | **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
-| **12** | 🟡 teste v8.66 | devolução por item — validar no Render teste |
+| **12** | 🟡 teste v8.79 | devolução por item — lista restante + risco + sem coluna ERP |
 | **17** | ⚪ | exemplos 15/07 — ver bloco abaixo |
 | ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 

@@ -79,15 +79,6 @@
 
         <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">{% if v.tem_devolucao_parcial %}↩ Continuar devolução{% else %}↩ Devolver venda{% endif %}</button>
 
-        {% if erp_painel.tem_fiado %}
-        {% if erp_painel.pode_enviar_erp %}
-        <button type="button" id="btn-erp-envio-manual" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-orange-400 bg-orange-500 text-white hover:bg-orange-600">Enviar ERP</button>
-        {% endif %}
-        {% if erp_painel.pode_reverter_erp %}
-        <button type="button" id="btn-erp-reverter" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50">Reverter ERP</button>
-        {% endif %}
-        {% endif %}
-
         {% endif %}
 
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shrink-0" %}
@@ -173,30 +164,6 @@
 
 
 
-    {% if erp_painel.tem_fiado %}
-    <div class="shrink-0 rounded-2xl border border-orange-200 bg-orange-50/50 p-4 sm:p-5">
-      <h2 class="text-sm font-black uppercase text-orange-950">Envio fiado ao ERP</h2>
-      <p class="text-xs font-bold text-orange-900 mt-1">Histórico local (reverter não cancela pedido no ERP).</p>
-      <details class="mt-2 rounded-xl border border-orange-200 bg-white px-3 py-2">
-        <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Histórico · copiar para suporte</summary>
-        <ul class="mt-2 space-y-2 text-[11px] font-semibold text-slate-700 max-h-48 overflow-y-auto">
-          {% for lg in erp_painel.logs %}
-          <li>
-            <span class="font-black">{% if lg.ok %}✓{% else %}✗{% endif %} {{ lg.acao }}</span>
-            · {{ lg.ts|slice:":19"|default:"" }}
-            {% if lg.usuario %}· {{ lg.usuario }}{% endif %}
-            <div class="text-slate-600">{{ lg.mensagem }}</div>
-          </li>
-          {% empty %}
-          <li class="text-slate-500">Nenhum envio registrado.</li>
-          {% endfor %}
-        </ul>
-        <pre id="erp-log-json" class="mt-2 text-[10px] font-mono bg-slate-900 text-slate-100 p-2 rounded-lg max-h-32 overflow-auto">{{ erp_logs_json }}</pre>
-        <button type="button" id="btn-copiar-erp-log" class="mt-2 min-h-[40px] px-3 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase">Copiar log JSON</button>
-      </details>
-    </div>
-    {% endif %}
-
     <div class="shrink-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -223,34 +190,14 @@
 
             <p class="text-[10px] font-black uppercase text-slate-400">Total</p>
 
-            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ v.total|moeda_br }}</p>
-
-          </div>
-
-          <div>
-
-            <p class="text-[10px] font-black uppercase text-slate-400">ERP</p>
-
-            {% with s=v.erp_sync_efetivo %}
-
-            {% if s == 'aceito' %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Aceito</span>
-
-            {% elif s == 'recusado_erp' %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900">Recusado</span>
-
+            {% if v.devolvida %}
+            <p class="text-xl sm:text-2xl font-black text-rose-700 tabular-nums leading-tight mt-0.5">R$ 0,00</p>
+            <p class="text-xs font-bold text-slate-400 line-through">R$ {{ v.total|moeda_br }}</p>
+            {% elif mostra_total_restante %}
+            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ total_restante|moeda_br }}</p>
+            <p class="text-xs font-bold text-slate-400 line-through">original R$ {{ v.total|moeda_br }}</p>
             {% else %}
-
-            <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Falha envio</span>
-
-            {% endif %}
-
-            {% endwith %}
-
-            {% if erp_painel.tem_fiado and erp_painel.fiado_aguarda_envio_erp %}
-            <p class="text-[10px] font-bold text-orange-800 mt-1">Aguardando envio manual</p>
+            <p class="text-xl sm:text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">R$ {{ v.total|moeda_br }}</p>
             {% endif %}
 
           </div>
@@ -332,15 +279,29 @@
 
             {% for it in v.itens.all %}
 
-            <tr class="hover:bg-slate-50/80">
+            <tr class="hover:bg-slate-50/80 {% if it.quantidade_restante <= 0 %}bg-rose-50/40{% endif %}">
 
-              <td class="px-4 py-3 text-slate-900">{{ it.descricao|default:"—" }}</td>
+              <td class="px-4 py-3 text-slate-900">
+                <span class="{% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">{{ it.descricao|default:"—" }}</span>
+                {% if it.quantidade_devolvida > 0 %}
+                <span class="ml-2 inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase {% if it.quantidade_restante <= 0 %}bg-rose-100 text-rose-800{% else %}bg-amber-100 text-amber-900{% endif %}">
+                  {% if it.quantidade_restante <= 0 %}Devolvido{% else %}Parc. devolvido {{ it.quantidade_devolvida|qtd_br }}{% endif %}
+                </span>
+                {% endif %}
+              </td>
 
-              <td class="px-4 py-3 text-right tabular-nums text-base">{{ it.quantidade|qtd_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums text-base {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">
+                {% if it.quantidade_devolvida > 0 and it.quantidade_restante > 0 %}
+                <span class="block text-slate-900">{{ it.quantidade_restante|qtd_br }}</span>
+                <span class="block text-xs font-bold text-slate-400 line-through">{{ it.quantidade|qtd_br }}</span>
+                {% else %}
+                {{ it.quantidade|qtd_br }}
+                {% endif %}
+              </td>
 
-              <td class="px-4 py-3 text-right tabular-nums">R$ {{ it.valor_unitario|moeda_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">R$ {{ it.valor_unitario|moeda_br }}</td>
 
-              <td class="px-4 py-3 text-right tabular-nums font-black text-base">R$ {{ it.valor_total|moeda_br }}</td>
+              <td class="px-4 py-3 text-right tabular-nums font-black text-base {% if it.quantidade_restante <= 0 %}line-through text-slate-500{% endif %}">R$ {{ it.valor_total|moeda_br }}</td>
 
             </tr>
 
@@ -543,112 +504,6 @@
   function fmtBr(n) {
 
     return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  }
-
-
-
-  var btnErpEnv = document.getElementById('btn-erp-envio-manual');
-
-  if (btnErpEnv) {
-
-    btnErpEnv.addEventListener('click', function () {
-
-      if (!confirm('Conferiu cliente e valor? Enviar venda #{{ v.pk }} ao ERP?')) return;
-
-      if (!confirm('Última confirmação: enviar agora ao ERP?')) return;
-
-      btnErpEnv.disabled = true;
-
-      fetch('{% url "api_venda_agro_reenviar_erp" v.pk %}', {
-
-        method: 'POST',
-
-        credentials: 'same-origin',
-
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json', 'Accept': 'application/json' },
-
-        body: JSON.stringify({ confirmar: true }),
-
-      })
-
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-
-        .then(function (x) {
-
-          if (x.j && x.j.ok) { alert(x.j.mensagem || 'Enviado ao ERP.'); location.reload(); return; }
-
-          var det = (x.j && x.j.log_ultimo) ? '\n\nLog: ' + JSON.stringify(x.j.log_ultimo) : '';
-
-          alert(((x.j && (x.j.erro || x.j.mensagem)) || 'Falha.') + det);
-
-        })
-
-        .catch(function () { alert('Falha de rede.'); })
-
-        .finally(function () { btnErpEnv.disabled = false; });
-
-    });
-
-  }
-
-  var btnErpRev = document.getElementById('btn-erp-reverter');
-
-  if (btnErpRev) {
-
-    btnErpRev.addEventListener('click', function () {
-
-      if (!confirm('Reverter envio no Agro? O ERP não será cancelado automaticamente.')) return;
-
-      fetch('{% url "api_venda_agro_reverter_erp" v.pk %}', {
-
-        method: 'POST',
-
-        credentials: 'same-origin',
-
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ confirmar: true }),
-
-      })
-
-        .then(function (r) { return r.json(); })
-
-        .then(function (j) {
-
-          if (j.ok) { alert(j.mensagem || 'Revertido.'); location.reload(); return; }
-
-          alert(j.erro || 'Falha ao reverter.');
-
-        })
-
-        .catch(function () { alert('Falha de rede.'); });
-
-    });
-
-  }
-
-  var btnCopLog = document.getElementById('btn-copiar-erp-log');
-
-  if (btnCopLog) {
-
-    btnCopLog.addEventListener('click', function () {
-
-      var pre = document.getElementById('erp-log-json');
-
-      var txt = pre ? pre.textContent : '[]';
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-
-        navigator.clipboard.writeText(txt).then(function () { alert('Log copiado.'); });
-
-      } else {
-
-        alert('Copie o texto do bloco JSON abaixo.');
-
-      }
-
-    });
 
   }
 

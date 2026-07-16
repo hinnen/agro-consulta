@@ -59,6 +59,19 @@ def venda_restante_zerada(venda: VendaAgro) -> bool:
     return True
 
 
+def valor_restante_venda(venda: VendaAgro) -> Decimal:
+    """Total ainda na venda após devoluções parciais (0 se devolvida total)."""
+    if getattr(venda, "devolvida_em", None):
+        return Decimal("0.00")
+    s = Decimal("0")
+    for it in venda.itens.all():
+        rest = it.quantidade_restante
+        if rest > Decimal("0.0001"):
+            s += valor_linha_proporcional(it, rest)
+    s += frete_restante(venda)
+    return s.quantize(Decimal("0.01"))
+
+
 def montar_selecao_devolucao(
     venda: VendaAgro,
     *,
