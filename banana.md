@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.08** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.09** · **loja v9.07**
+
+### fix — filtro De/Até vira personalizado (16/07 · **teste v9.09**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mudar De/Até → período **Personalizado** (tela + servidor) |
+| **Loja** | Ainda **v9.07** — sobe com frase + senha (junto com código GM v9.08 se quiser) |
 
 ### fix — Código GM nos relatórios (16/07 · **teste v9.08**)
 
