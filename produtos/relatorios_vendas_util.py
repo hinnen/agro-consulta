@@ -146,8 +146,33 @@ def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
 
 
 
+def _parece_id_mongo_ou_sistema(s: str) -> bool:
+    """ObjectId hex (24) ou só dígitos longos do ERP — não é código GM da loja."""
+    t = (s or "").strip()
+    if not t:
+        return False
+    if len(t) == 24 and all(c in "0123456789abcdef" for c in t.lower()):
+        return True
+    if t.isdigit() and len(t) >= 6:
+        return True
+    return False
+
+
+def _codigo_gm_preferido(*candidatos: object) -> str:
+    """Prioriza código GM (NFe/GM); nunca devolve ObjectId Mongo na coluna Código."""
+    humanos: list[str] = []
+    for raw in candidatos:
+        t = str(raw or "").strip()
+        if not t or _parece_id_mongo_ou_sistema(t):
+            continue
+        if t.upper().startswith("GM"):
+            return t
+        humanos.append(t)
+    return humanos[0] if humanos else ""
+
+
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
-    """nome, codigo, categoria, custo, comissao_% e comissao_R$."""
+    """nome, codigo (GM), categoria, custo, comissao_% e comissao_R$."""
     from produtos.catalogo_agro import produto_agro_para_row
     from produtos.models import Produto
 
@@ -162,7 +187,13 @@ def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
             row = produto_agro_para_row(p)
             out[pid] = {
                 "nome": (row.get("nome") or p.nome or pid).strip(),
-                "codigo": (p.codigo_interno or p.codigo_nfe or "").strip(),
+                "codigo": _codigo_gm_preferido(
+                    row.get("codigo_nfe"),
+                    row.get("codigo_gm"),
+                    p.codigo_nfe,
+                    row.get("codigo"),
+                    p.codigo_interno,
+                ),
                 "categoria": (row.get("categoria") or p.categoria or "").strip() or "Sem categoria",
                 "custo": float(row.get("preco_custo") or p.custo or 0),
                 "comissao_pct": None,
@@ -193,6 +224,9 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     "Nome": 1,
                     "Codigo": 1,
                     "CodigoInterno": 1,
+                    "CodigoNFe": 1,
+                    "CodigoNfe": 1,
+                    "CodigoGM": 1,
                     "Categoria": 1,
                     "NomeCategoria": 1,
                     "PrecoCusto": 1,
@@ -226,7 +260,13 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                 rs_f = None
             out[pid] = {
                 "nome": (doc.get("Nome") or pid).strip(),
-                "codigo": str(doc.get("Codigo") or doc.get("CodigoInterno") or "").strip(),
+                "codigo": _codigo_gm_preferido(
+                    doc.get("CodigoNFe"),
+                    doc.get("CodigoNfe"),
+                    doc.get("CodigoGM"),
+                    doc.get("Codigo"),
+                    doc.get("CodigoInterno"),
+                ),
                 "categoria": (
                     doc.get("Categoria") or doc.get("NomeCategoria") or "Sem categoria"
                 ).strip()
