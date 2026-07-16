@@ -1163,7 +1163,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Inclui** | Cadastro busca leve · preços por forma **ou** 2 grupos A/B · visual lista/edição/NF · layout PDV · Esc/PAGAR consumidor · toque A/B no carrinho (forma manda na etapa 3) |
 | **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
-0f4e31\) · HEAD **0ed48dd** |
 | **Backup** | branch producao-backup-pre-v865-20260716 @ **ccb4fd8** (v8.54) — reverter: git push origin producao-backup-pre-v865-20260716:producao |
 | **Autorização** | *pode subir* + 99738595 · pedido de backup |
 | **Você** | Ctrl+F5 loja · badge **v8.65** · se der errado avisar (dá pra voltar ao backup) |
