@@ -428,6 +428,11 @@
         if (!fp && typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
             fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
         }
+        if (!state.itens || !state.itens.length) return;
+        if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);
+            return;
+        }
         recalcularTodasPromocoes();
     }
 

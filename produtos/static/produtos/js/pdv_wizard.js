@@ -1633,8 +1633,14 @@
     }
 
     function currentClientName(state) {
+        if (!state || state.clienteMode === 'unset') {
+            return 'Toque para escolher o cliente';
+        }
         if (state.cliente && state.cliente.nome) return state.cliente.nome;
-        return bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
+        if (state.clienteMode === 'consumidor_final') {
+            return bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
+        }
+        return 'Toque para escolher o cliente';
     }
 
     function clienteComSaldoAgro(state) {
@@ -3078,6 +3084,8 @@
         if (!dom.quickClientMeta) return;
         if (state.clienteMode === 'consumidor_final') {
             dom.quickClientMeta.textContent = 'Consumidor final definido para venda rápida.';
+        } else if (state.clienteMode === 'unset') {
+            dom.quickClientMeta.textContent = 'Ainda sem cliente — escolha no início ou toque em Trocar.';
         } else if (state.cliente) {
             dom.quickClientMeta.textContent = compactText(state.cliente.telefone || state.cliente.endereco, 'Cliente carregado no wizard.');
         } else {
@@ -6805,6 +6813,11 @@
         if (dom.quickClientSearch) dom.quickClientSearch.value = '';
         clientListSelectIdx = -1;
         pdvTryRemoveModalOpenBody();
+        var st = State.getState();
+        if (st && st.clienteMode === 'unset') {
+            openStartModal();
+            return;
+        }
         focusProductSearch();
     }
 
@@ -9521,35 +9534,41 @@
     }
 
     function selectPaymentForma(forma) {
+        if (!forma) return;
         var st = State.getState();
-        var comp = State.getComputed();
-        var rest = saldoRestantePagamento(st, comp);
         var patch = {
             forma: forma,
             maquinaId: '',
             maquinaNome: '',
             mpBalcaoModo: '',
-            outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false
+            outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false,
+            valorDestaForma: ''
         };
-        if (forma === 'Vale crédito') {
-            var sv = Math.min(saldoValeAtual(st), rest);
-            patch.valorDestaForma = sv > 0 ? String(sv.toFixed(2)).replace('.', ',') : '';
-        } else if (forma === 'Cashback') {
-            var scb = Math.min(saldoCashbackAtual(st), rest);
-            patch.valorDestaForma = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
-        } else if (forma === 'Fiado') {
+        if (forma === 'Fiado') {
             var msgFiado = validarFiadoPermitido(st);
             if (msgFiado) {
                 showSaleDoneFeedback(msgFiado, 'error');
                 return;
             }
-            patch.valorDestaForma = rest > 0 ? String(rest.toFixed(2)).replace('.', ',') : '';
-        } else if (forma !== 'Dinheiro') {
-            patch.valorDestaForma = rest > 0.009 ? String(rest.toFixed(2)).replace('.', ',') : '';
-        } else {
-            patch.valorDestaForma = '';
         }
+        /* 1º aplica a forma (atualiza preço por grupo A/B) · 2º preenche valor com o restante novo */
         State.setPagamentoPatch(patch);
+        st = State.getState();
+        var comp = State.getComputed();
+        var rest = saldoRestantePagamento(st, comp);
+        var valorFmt = '';
+        if (forma === 'Vale crédito') {
+            var sv = Math.min(saldoValeAtual(st), rest);
+            valorFmt = sv > 0 ? String(sv.toFixed(2)).replace('.', ',') : '';
+        } else if (forma === 'Cashback') {
+            var scb = Math.min(saldoCashbackAtual(st), rest);
+            valorFmt = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
+        } else if (forma === 'Dinheiro') {
+            valorFmt = '';
+        } else {
+            valorFmt = rest > 0.009 ? String(rest.toFixed(2)).replace('.', ',') : '';
+        }
+        State.setPagamentoField('valorDestaForma', valorFmt);
     }
 
     function normalizeDigitKeyCode(code) {
@@ -11649,7 +11668,10 @@
                 }
                 if (dom.modalStart && !dom.modalStart.classList.contains('hidden')) {
                     event.preventDefault();
+                    /* Esc = mesma escolha de Enter: consumidor final (antes só fechava e a tela mentia). */
+                    State.setConsumidorFinal(bootstrap.clientePadraoNome);
                     closeStartModal();
+                    setTimeout(focusProductSearch, 30);
                     return;
                 }
             }
