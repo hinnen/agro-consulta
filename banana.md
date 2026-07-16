@@ -1155,16 +1155,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.88** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.89** · **loja v8.68**
 
-### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.88**)
+### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.89**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | TOTAL já R$ 1,30, item de R$ 5 sem risco |
 | **Causa** | JS da lista em cache `?v=1` + risco no flex some no Chrome |
-| **Fix** | `agro_pdv_assets_v` global + `<s>` no texto do item |
-| **Validar** | Ctrl+F5 · badge **v8.88** · #42 Imprimir → item riscado «(devolvido)» |
+| **Fix** | `agro_pdv_assets_v` global + `<s>` no texto do item · commits `6caed7d`+ |
+| **Validar** | Ctrl+F5 · badge **v8.89** · #42 Imprimir → item riscado «(devolvido)» |
 
 ### 🩹 Cupom — risco no item devolvido (16/07 · **teste v8.85**)
 

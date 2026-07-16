@@ -353,22 +353,56 @@ def _parse_valor_busca_pg(tok: str) -> Decimal | None:
     return lo
 
 
-def _parse_parcela_busca_pg(tok: str) -> int | None:
+def _parse_parcela_busca_pg(tok: str) -> tuple[int, int | None] | None:
+    """Retorna ``(número_parcela, total_ou_None)`` p/ «parcela:7» ou «7/12»."""
     s = (tok or "").strip()
     if not s:
         return None
     m = re.fullmatch(r"(?i)parcela:(\d{1,3})", s)
     if m:
         n = int(m.group(1))
-        return n if 1 <= n <= 999 else None
+        return (n, None) if 1 <= n <= 999 else None
     m2 = _RX_PARCELA_FRAC.match(s)
     if m2:
         n = int(m2.group(1))
         tot = int(m2.group(2))
-        if tot < 1:
+        if tot < 1 or not (1 <= n <= 999):
             return None
-        return n if 1 <= n <= 999 else None
+        return n, tot
     return None
+
+
+def _q_parcela_busca(n: int, total: int | None) -> Q:
+    """
+    Campo ``parcela`` **ou** texto na descrição/obs (ex. «Parcela 7 de 12»).
+    Muitos títulos da loja só gravam a parcela no texto, não na coluna.
+    """
+    q = Q(parcela=n) & Q(parcela__gte=1)
+    # Evitar «Parcela 7» solto (pega «Parcela 70»); preferir «de» / «/»
+    variantes: list[str] = [
+        f"Parcela {n} de",
+        f"parcela {n} de",
+        f"PARCELA {n} DE",
+        f"Parcela {n}/",
+        f"parcela {n}/",
+        f"(Parcela {n} ",
+        f"(parcela {n} ",
+    ]
+    if total is not None:
+        variantes.extend(
+            [
+                f"{n}/{total}",
+                f"Parcela {n} de {total}",
+                f"parcela {n} de {total}",
+                f"PARCELA {n} DE {total}",
+                f"Parcela {n}/{total}",
+                f"({n}/{total})",
+                f"(Parcela {n} de {total})",
+            ]
+        )
+    for v in variantes:
+        q |= Q(descricao__icontains=v) | Q(observacoes__icontains=v)
+    return q
 
 
 def _variantes_doc_cpf_cnpj(dig: str) -> list[str]:
@@ -415,10 +449,11 @@ def _q_token_busca_pg(tok: str) -> Q:
     """Um termo com modos exclusivos — valor progressivo sem lixo."""
     dig = _so_digitos(tok)
 
-    # P2 — parcela só com «2/6» ou «parcela 2» (número solto NÃO é parcela)
+    # P2 — parcela: coluna + texto («Parcela 7 de 12» / «7/12»)
     parc = _parse_parcela_busca_pg(tok)
     if parc is not None:
-        return Q(parcela=parc) & Q(parcela__gte=1)
+        n, tot = parc
+        return _q_parcela_busca(n, tot)
 
     # P0 — data: SÓ datas
     dt = _parse_data_busca_pg(tok)
