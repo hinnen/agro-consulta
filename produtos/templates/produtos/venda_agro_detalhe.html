@@ -364,70 +364,70 @@
 
   {% if not v.devolvida %}
 
-  <div id="modal-devolucao" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true">
+  <div id="modal-devolucao" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70" role="dialog" aria-modal="true">
 
-    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden">
+    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-[min(96vw,54rem)] max-h-[96dvh] flex flex-col overflow-hidden">
 
-      <div class="px-4 py-3 border-b border-rose-100 bg-rose-50/80">
+      <div class="px-5 py-4 border-b border-rose-100 bg-rose-50/80">
 
-        <h2 class="text-base font-black uppercase text-rose-900">Devolver venda #{{ v.id }}</h2>
+        <h2 class="text-xl sm:text-2xl font-black uppercase text-rose-900 leading-tight">Devolver venda #{{ v.id }}</h2>
 
-        <p class="text-xs font-semibold text-rose-800 mt-1">Marque os <strong>itens</strong> (e frete, se quiser). Forma <strong>Fiado</strong> só abate dívida — outras formas saem do caixa.</p>
+        <p class="text-base font-semibold text-rose-800 mt-2 leading-snug">Marque os <strong>itens</strong> (e frete, se quiser). Forma <strong>Fiado</strong> só abate dívida — outras formas saem do caixa.</p>
 
       </div>
 
-      <div class="p-4 space-y-3 overflow-y-auto flex-1">
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
 
         <div>
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <p class="text-[10px] font-black uppercase text-slate-500">Itens a devolver</p>
-            <button type="button" id="btn-devolver-tudo" class="text-xs font-black uppercase text-rose-700 underline">Marcar tudo</button>
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <p class="text-sm font-black uppercase tracking-wide text-slate-600">Itens a devolver</p>
+            <button type="button" id="btn-devolver-tudo" class="min-h-[44px] px-3 text-base font-black uppercase text-rose-700 underline">Marcar tudo</button>
           </div>
-          <div id="devolucao-itens-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+          <div id="devolucao-itens-list" class="space-y-3 max-h-[min(40vh,22rem)] overflow-y-auto"></div>
           {% if frete_venda and frete_restante %}
-          <label class="mt-2 flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 min-h-[44px] cursor-pointer">
-            <input type="checkbox" id="devolucao-frete-chk" class="w-5 h-5 accent-rose-600">
-            <span class="text-sm font-bold text-slate-800">Taxa de entrega — R$ <span id="devolucao-frete-val">{{ frete_restante }}</span></span>
+          <label class="mt-3 flex items-center gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3 min-h-[56px] cursor-pointer">
+            <input type="checkbox" id="devolucao-frete-chk" class="w-7 h-7 accent-rose-600 shrink-0">
+            <span class="text-lg font-bold text-slate-900">Taxa de entrega — R$ <span id="devolucao-frete-val" class="tabular-nums">{{ frete_restante }}</span></span>
           </label>
           {% endif %}
         </div>
 
         <label class="block">
 
-          <span class="text-[10px] font-black uppercase text-slate-500">Motivo (opcional)</span>
+          <span class="text-sm font-black uppercase tracking-wide text-slate-600">Motivo (opcional)</span>
 
-          <textarea id="devolucao-motivo" rows="2" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" maxlength="500" placeholder="Ex.: produto com defeito, desistência…"></textarea>
+          <textarea id="devolucao-motivo" rows="2" class="mt-2 w-full rounded-2xl border-2 border-slate-300 px-4 py-3 text-base font-semibold min-h-[4.5rem]" maxlength="500" placeholder="Ex.: produto com defeito, desistência…"></textarea>
 
         </label>
 
         {% if nfce_painel.autorizada %}
-        <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3">
-          <p class="text-sm font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
-          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Parcial: cupom <strong>não</strong> cancela. Total: tenta cancelar (prazo SEFAZ ~30 min após emissão).</p>
+        <div class="rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-4">
+          <p class="text-base font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
+          <p class="text-base font-semibold text-amber-900 mt-2 leading-snug">Parcial: cupom <strong>não</strong> cancela. Total: tenta cancelar (prazo SEFAZ ~30 min após emissão).</p>
         </div>
         {% endif %}
 
         <div>
 
-          <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Valor devolvido por forma</p>
+          <p class="text-sm font-black uppercase tracking-wide text-slate-600 mb-2">Valor devolvido por forma</p>
 
-          <p class="text-xs text-slate-500 mb-2">A soma deve bater com o total marcado acima.</p>
+          <p class="text-base text-slate-600 mb-3">A soma deve bater com o total marcado acima.</p>
 
-          <div id="devolucao-pagamentos-list" class="space-y-2"></div>
+          <div id="devolucao-pagamentos-list" class="space-y-3"></div>
 
-          <button type="button" id="btn-add-forma-dev" class="mt-2 text-xs font-black uppercase text-emerald-700 underline">+ Adicionar forma</button>
+          <button type="button" id="btn-add-forma-dev" class="mt-3 min-h-[44px] text-base font-black uppercase text-emerald-700 underline">+ Adicionar forma</button>
 
         </div>
 
-        <p class="text-sm font-black text-slate-800">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ 0,00</span></p>
+        <p class="text-lg sm:text-xl font-black text-slate-900">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ 0,00</span></p>
 
       </div>
 
-      <div class="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end bg-slate-50">
+      <div class="px-5 py-4 border-t border-slate-200 flex flex-wrap gap-3 justify-end bg-slate-50">
 
-        <button type="button" id="btn-devolucao-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black uppercase text-xs text-slate-700">Cancelar</button>
+        <button type="button" id="btn-devolucao-cancelar" class="min-h-[56px] px-6 rounded-2xl border-2 border-slate-300 font-black uppercase text-base text-slate-800">Cancelar</button>
 
-        <button type="button" id="btn-devolucao-confirmar" class="min-h-[48px] px-5 rounded-xl bg-rose-600 text-white font-black uppercase text-xs hover:bg-rose-700">Confirmar devolução</button>
+        <button type="button" id="btn-devolucao-confirmar" class="min-h-[56px] px-8 rounded-2xl bg-rose-600 text-white font-black uppercase text-base hover:bg-rose-700 shadow-md">Confirmar devolução</button>
 
       </div>
 
@@ -668,18 +668,18 @@
       var rest = Number(it.quantidade_restante || 0);
       if (rest <= 0) return;
       var div = document.createElement('div');
-      div.className = 'flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2';
+      div.className = 'flex flex-wrap items-center gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 px-3 py-3 min-h-[56px]';
       div.setAttribute('data-item-id', String(it.id));
       div.setAttribute('data-restante', String(it.valor_restante || 0));
       div.setAttribute('data-valor-restante', String(it.valor_restante || 0));
       div.setAttribute('data-qtd-restante', String(rest));
       div.innerHTML =
-        '<label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">' +
-        '<input type="checkbox" class="dev-item-chk w-5 h-5 accent-rose-600" checked>' +
-        '<span class="text-sm font-bold text-slate-800 truncate">' + String(it.descricao || 'Item').replace(/</g, '') + '</span>' +
+        '<label class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">' +
+        '<input type="checkbox" class="dev-item-chk w-7 h-7 accent-rose-600 shrink-0" checked>' +
+        '<span class="text-lg font-bold text-slate-900 truncate">' + String(it.descricao || 'Item').replace(/</g, '') + '</span>' +
         '</label>' +
-        '<input type="text" inputmode="decimal" class="dev-item-qtd min-h-[40px] w-[4.5rem] rounded-lg border-2 border-slate-200 px-2 text-right text-sm font-black tabular-nums" value="' + String(rest).replace('.', ',') + '">' +
-        '<span class="text-xs font-bold text-slate-500 tabular-nums w-[5.5rem] text-right">R$ ' + fmtBr(Number(it.valor_restante || 0)) + '</span>';
+        '<input type="text" inputmode="decimal" class="dev-item-qtd min-h-[52px] w-[5.5rem] rounded-xl border-2 border-slate-300 px-3 text-right text-lg font-black tabular-nums" value="' + String(rest).replace('.', ',') + '">' +
+        '<span class="text-base font-black text-slate-700 tabular-nums w-[7rem] text-right">R$ ' + fmtBr(Number(it.valor_restante || 0)) + '</span>';
       itensEl.appendChild(div);
     });
     if (itensEl) {
@@ -712,18 +712,18 @@
     listEl.innerHTML = '';
     (rows || []).forEach(function (row, idx) {
       var div = document.createElement('div');
-      div.className = 'flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2';
-      var sel = '<select data-idx="' + idx + '" class="dev-forma flex-1 min-h-[44px] rounded-lg border-2 border-slate-200 px-2 text-sm font-bold">';
+      div.className = 'flex flex-wrap items-end gap-3 rounded-2xl border-2 border-slate-300 bg-slate-50 p-3';
+      var sel = '<select data-idx="' + idx + '" class="dev-forma flex-1 min-h-[56px] rounded-xl border-2 border-slate-300 px-3 text-lg font-bold">';
       formas.forEach(function (f) {
         sel += '<option value="' + f.replace(/"/g, '&quot;') + '"' + (f === row.forma ? ' selected' : '') + '>' + f + '</option>';
       });
       sel += '</select>';
       div.innerHTML =
         sel +
-        '<input type="text" inputmode="decimal" data-idx="' + idx + '" class="dev-valor min-h-[44px] w-[6.5rem] rounded-lg border-2 border-slate-200 px-2 text-right text-base font-black tabular-nums" value="' +
+        '<input type="text" inputmode="decimal" data-idx="' + idx + '" class="dev-valor min-h-[56px] w-[8rem] rounded-xl border-2 border-slate-300 px-3 text-right text-xl font-black tabular-nums" value="' +
         fmtBr(Number(row.valor || 0)) +
         '">' +
-        '<button type="button" data-rm="' + idx + '" class="min-h-[44px] px-2 text-xs font-black uppercase text-red-700">Rem.</button>';
+        '<button type="button" data-rm="' + idx + '" class="min-h-[56px] px-3 text-base font-black uppercase text-red-700">Rem.</button>';
       listEl.appendChild(div);
     });
     bindRowEvents();

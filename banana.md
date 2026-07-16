@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.67** · **loja v8.67**
+**Versão app (VERSION):** **teste v8.69** · **loja v8.67**
+
+### 🩹 Devolução — modal maior (idosos) (16/07 · **teste v8.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Popup devolução ~54rem · fontes/botões/checkbox maiores (padrão idosos / Display Scale) |
+| **Validar** | Ctrl+F5 · badge **v8.69** · Devolver venda → ler sem apertar os olhos |
+| **Loja** | ⏳ |
+
+
 
 ### 📦 Deploy loja **v8.67** — botão NF no CP (FL-021) (16/07 · Renan frase+senha)
 
