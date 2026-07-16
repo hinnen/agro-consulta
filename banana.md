@@ -1157,6 +1157,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v8.82** · **loja v8.68**
 
+### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `234,` / `234,7` trazia títulos de R$ 600; parcela sem match trazia títulos soltos |
+| **Causa** | Termo numérico misturava texto + `mongo_id` (ObjectId contém «234») |
+| **Fix** | Modos exclusivos: vírgula/R$ → só valor; `2/6` → só parcela; data → só data; nº curto sem mongo_id |
+| **Validar** | Ctrl+F5 teste · `234,78` acha · `234,7` não traz 600 · `9/9` vazio se não houver |
+| **Arquivo** | `lancamentos_financeiro_pg_util.py` |
+
 ### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste v8.82**)
 
 | Item | Detalhe |

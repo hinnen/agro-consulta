@@ -178,7 +178,10 @@ def _so_digitos(s: str) -> str:
 
 
 def _normalizar_tokens_busca_pg(texto: str) -> list[str]:
-    """Separa termos; junta «parcela N»; remove pontuação nas bordas; máx. 12."""
+    """Separa termos; junta «parcela N»; remove pontuação nas bordas; máx. 12.
+
+    Não corta vírgula/ponto de token que parece valor (ex. ``234,`` / ``234,7``).
+    """
     t = (texto or "").strip()
     if not t:
         return []
@@ -186,10 +189,24 @@ def _normalizar_tokens_busca_pg(texto: str) -> list[str]:
     parts = re.split(r"\s+", t)
     out: list[str] = []
     for p in parts:
-        p2 = p.strip('.,;:|()[]{}"\'').strip()
+        raw = p.strip()
+        if not raw:
+            continue
+        parece_valor = bool(
+            re.search(r"\d", raw)
+            and (
+                "," in raw
+                or raw.upper().startswith("R$")
+                or re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", raw)
+            )
+        )
+        if parece_valor:
+            p2 = raw[:120]
+        else:
+            p2 = raw.strip('.,;:|()[]{}"\'').strip()[:120]
         if not p2:
             continue
-        out.append(p2[:120])
+        out.append(p2)
         if len(out) >= 12:
             break
     return out or [t[:120]]
@@ -212,6 +229,20 @@ def _parse_data_busca_pg(tok: str) -> date | None:
         return date(y, mo, d)
     except ValueError:
         return None
+
+
+def _parece_valor_monetario_token(tok: str) -> bool:
+    """True se o termo é claramente dinheiro (vírgula decimal, R$, milhar)."""
+    s = (tok or "").strip()
+    if not s:
+        return False
+    if s.upper().startswith("R$"):
+        return True
+    if "," in s and re.search(r"\d", s):
+        return True
+    if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", s):
+        return True
+    return False
 
 
 def _parse_valor_busca_pg(tok: str) -> Decimal | None:
@@ -238,6 +269,11 @@ def _parse_valor_busca_pg(tok: str) -> Decimal | None:
         if len(dig) >= 8:
             return None
     s_num = s.replace(" ", "")
+    # ``234,`` / ``234.`` incompleto → ainda é o inteiro 234 (modo só-valor)
+    if s_num.endswith(",") or s_num.endswith("."):
+        s_num = s_num[:-1]
+        if not s_num:
+            return None
     try:
         if "," in s_num:
             q = Decimal(s_num.replace(".", "").replace(",", "."))
@@ -263,6 +299,10 @@ def _parse_parcela_busca_pg(tok: str) -> int | None:
     m2 = _RX_PARCELA_FRAC.match(s)
     if m2:
         n = int(m2.group(1))
+        tot = int(m2.group(2))
+        # Exige total >= 2 — evita lixo; «1/1» ainda é parcela 1
+        if tot < 1:
+            return None
         return n if 1 <= n <= 999 else None
     return None
 
@@ -286,8 +326,8 @@ def _variantes_doc_cpf_cnpj(dig: str) -> list[str]:
     return uniq
 
 
-def _q_texto_basico(tok: str) -> Q:
-    return (
+def _q_texto_basico(tok: str, *, incluir_mongo_id: bool = True) -> Q:
+    q = (
         Q(cliente__icontains=tok)
         | Q(descricao__icontains=tok)
         | Q(numero_documento__icontains=tok)
@@ -297,36 +337,51 @@ def _q_texto_basico(tok: str) -> Q:
         | Q(banco__icontains=tok)
         | Q(empresa__icontains=tok)
         | Q(observacoes__icontains=tok)
-        | Q(mongo_id__icontains=tok)
         | Q(centro_custo__icontains=tok)
         | Q(boleto_codigo_barras__icontains=tok)
         | Q(criado_por__icontains=tok)
         | Q(usuario_lancou__icontains=tok)
     )
+    if incluir_mongo_id:
+        q |= Q(mongo_id__icontains=tok)
+    return q
+
+
+def _q_somente_valor(val: Decimal) -> Q:
+    lo, hi = val - _TOL, val + _TOL
+    return (
+        Q(valor_bruto__gte=lo, valor_bruto__lte=hi)
+        | Q(valor_pago__gte=lo, valor_pago__lte=hi)
+        | Q(valor_restante__gte=lo, valor_restante__lte=hi)
+    )
 
 
 def _q_token_busca_pg(tok: str) -> Q:
-    """Um termo: texto + valor + data + boleto + doc + parcela + CPF/CNPJ."""
-    q = _q_texto_basico(tok)
-
+    """Um termo com modos exclusivos — evita lixo (mongo_id com «234», etc.)."""
     dig = _so_digitos(tok)
-    if dig and dig != tok:
-        q |= (
-            Q(numero_documento__icontains=dig)
-            | Q(observacoes__icontains=dig)
-            | Q(descricao__icontains=dig)
-            | Q(boleto_codigo_barras__icontains=dig)
-            | Q(cliente__icontains=dig)
-        )
 
-    # P1 — boleto / linha digitável
+    # P2 — parcela (2/6 ou parcela:2): SÓ parcela (parcela>0)
+    parc = _parse_parcela_busca_pg(tok)
+    if parc is not None:
+        return Q(parcela=parc) & Q(parcela__gte=1)
+
+    # P0 — data: SÓ datas
+    dt = _parse_data_busca_pg(tok)
+    if dt is not None:
+        return Q(data_vencimento=dt) | Q(data_competencia=dt) | Q(data_pagamento=dt)
+
+    # P1 — boleto / linha digitável: SÓ boleto
     if dig and len(dig) >= 40:
-        q |= Q(boleto_codigo_barras__icontains=dig[:54])
+        q = Q(boleto_codigo_barras__icontains=dig[:54])
         if len(dig) >= 44:
             q |= Q(boleto_codigo_barras__icontains=dig[:44])
+        return q
 
-    # P2 — CPF / CNPJ (com ou sem máscara)
-    if dig and len(dig) in (11, 14):
+    # P2 — CPF / CNPJ: SÓ campos de pessoa/doc (sem mongo_id)
+    if dig and len(dig) in (11, 14) and (
+        dig == tok or re.fullmatch(r"[\d./\-]+", tok or "")
+    ):
+        q = Q(pk__in=[])  # neutro
         for v in _variantes_doc_cpf_cnpj(dig):
             q |= (
                 Q(cliente__icontains=v)
@@ -334,27 +389,39 @@ def _q_token_busca_pg(tok: str) -> Q:
                 | Q(observacoes__icontains=v)
                 | Q(numero_documento__icontains=v)
             )
+        return q
 
-    # P2 — parcela (2/6 ou parcela:2)
-    parc = _parse_parcela_busca_pg(tok)
-    if parc is not None:
-        q |= Q(parcela=parc)
+    # P0 — valor com vírgula/R$/milhar: SÓ valor (não mistura texto/mongo_id)
+    if _parece_valor_monetario_token(tok):
+        val = _parse_valor_busca_pg(tok)
+        if val is None:
+            # Digitando incompleto sem número útil → não devolve lixo
+            return Q(pk__in=[])
+        return _q_somente_valor(val)
 
-    # P0 — data digitada (venc. / competência / pagamento)
-    dt = _parse_data_busca_pg(tok)
-    if dt is not None:
-        q |= Q(data_vencimento=dt) | Q(data_competencia=dt) | Q(data_pagamento=dt)
+    # Inteiro curto (1–7 dígitos): valor OU nº documento OU parcela (1–3) — sem mongo_id
+    if dig and dig == tok and len(dig) <= 7:
+        val = _parse_valor_busca_pg(tok)
+        q = Q(numero_documento__icontains=dig)
+        if val is not None:
+            q |= _q_somente_valor(val)
+        if len(dig) <= 3:
+            n = int(dig)
+            if 1 <= n <= 999:
+                q |= Q(parcela=n) & Q(parcela__gte=1)
+        return q
 
-    # P0 — valor (bruto / pago / restante)
-    val = _parse_valor_busca_pg(tok)
-    if val is not None:
-        lo, hi = val - _TOL, val + _TOL
+    # Texto livre — mongo_id só com termo longo (evita «234» em ObjectId)
+    incluir_mid = len(tok) >= 8
+    q = _q_texto_basico(tok, incluir_mongo_id=incluir_mid)
+    if dig and dig != tok and len(dig) >= 3:
         q |= (
-            Q(valor_bruto__gte=lo, valor_bruto__lte=hi)
-            | Q(valor_pago__gte=lo, valor_pago__lte=hi)
-            | Q(valor_restante__gte=lo, valor_restante__lte=hi)
+            Q(numero_documento__icontains=dig)
+            | Q(observacoes__icontains=dig)
+            | Q(descricao__icontains=dig)
+            | Q(boleto_codigo_barras__icontains=dig)
+            | Q(cliente__icontains=dig)
         )
-
     return q
 
 
