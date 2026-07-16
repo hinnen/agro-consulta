@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Inclui** | Só `nfe_entrada_util.py` — match ORM por nº NF na descrição (Agromaia etc.). **Não** sobe devolução |
-| **Commits loja** | arquivo de `f304560` · HEAD após push |
+| **Commits loja** | arquivo de `f304560` → **02dc397** |
 | **Backup** | branch `producao-backup-pre-v868-20260716` @ **ed1698e** (v8.67) — reverter: `git push origin producao-backup-pre-v868-20260716:producao` |
 | **Autorização** | *pode subir só esse hotfix* + 99738595 · pediu backup/seguro |
 | **Você** | Ctrl+F5 loja · badge **v8.68** · CP Agromaia → botão **NF** |
