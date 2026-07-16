@@ -8793,8 +8793,9 @@
   }
 
   /**
-   * Busca de produtos na NF-e — **BCA padrão** (igual cadastro/consulta):
-   * só servidor · `fetchAgroBuscaCatalogo` → `/api/buscar/?compras=1` · sem cache local PDV.
+   * Busca de produtos na NF-e — **BCA padrão** (igual cadastro/PDV):
+   * só servidor · `fetchAgroBuscaCatalogo` → `/api/buscar/?compras=1&entrada_nfe=1`
+   * (mesmo motor; família GM completa no servidor — sem cache local PDV).
    */
   let _entradaNfeBuscaSeq = 0;
   let _entradaNfeBuscaAbort = null;
