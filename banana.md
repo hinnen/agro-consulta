@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.70** · **loja v8.67**
+**Versão app (VERSION):** **teste v8.72** · **loja v8.67**
+
+### 🩹 Devolução — fontes do modal um pouco maiores (16/07 · **teste v8.72**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Textos/itens/formas/total no popup um degrau maior (sem exagero) |
+| **Validar** | Ctrl+F5 · badge **v8.72** · Devolver |
+| **Loja** | ⏳ |
+
+
 
 ### 🩹 Devolução — confirmação bonita + valor igual aos itens (16/07 · **teste v8.70**)
 
