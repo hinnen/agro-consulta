@@ -1156,9 +1156,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.14** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.14** · **loja v9.14**
 
-### feat — ABC filtro por categoria (16/07 · **teste v9.14**)
+### 📦 Deploy loja **v9.14** — Relatórios (pós-v9.07) (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Código GM · De/Até personalizado · ABC Ver todos · loading (abrir/Excel/imprimir) · ABC filtro categoria. **Só relatórios** — **não** NFC-e nem #12/#17 |
+| **HEAD loja** | **c61f7dd** (base **53c13fb** v9.07) |
+| **Backup** | `producao-backup-pre-v914-relatorios-20260716` @ **53c13fb** (v9.07) — reverter: `git push origin producao-backup-pre-v914-relatorios-20260716:producao` |
+| **Autorização** | *pode subir para produção essas atualizações nos relatórios* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v9.14** · Relatórios → ABC (categoria) · Excel · Imprimir |
+
+### feat — ABC filtro por categoria (16/07 · **teste v9.14** · **loja v9.14**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1191,7 +1201,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Mudar De/Até → período **Personalizado** (tela + servidor) |
-| **Loja** | Ainda **v9.07** — sobe com frase + senha (junto com código GM v9.08 se quiser) |
+| **Loja** | ✅ **v9.14** (16/07) |
 
 ### fix — Código GM nos relatórios (16/07 · **teste v9.08**)
 
@@ -1199,7 +1209,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Coluna Código = **código GM** (`codigo_nfe`/overlay); não mostra ObjectId Mongo |
 | **Onde** | Todos os relatórios com produto (ABC, ranking, margem, ruptura, comissão…) |
-| **Loja** | Ainda **v9.07** — sobe com frase + senha |
+| **Loja** | ✅ **v9.14** (16/07) |
 
 ### hotfix loja **v9.07** — relatorios 500 resolvido (16/07)
 
