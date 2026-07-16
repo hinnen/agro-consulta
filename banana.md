@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.07** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.08** · **loja v9.07**
+
+### fix — Código GM nos relatórios (16/07 · **teste v9.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Coluna Código = **código GM** (`codigo_nfe`/overlay); não mostra ObjectId Mongo |
+| **Onde** | Todos os relatórios com produto (ABC, ranking, margem, ruptura, comissão…) |
+| **Loja** | Ainda **v9.07** — sobe com frase + senha |
 
 ### hotfix loja **v9.07** — relatorios 500 resolvido (16/07)
 
