@@ -60,7 +60,7 @@ def agro_app_build(request):
                 or str(build.get("version") or "").strip()
                 or "1"
             )
-        return {"agro_build": build, "agro_asset_v": asset_v}
+        return {"agro_build": build, "agro_asset_v": asset_v, "agro_pdv_assets_v": asset_v}
     except Exception:
         logger.exception("agro_app_build: falha ao ler versão")
         return {
@@ -75,5 +75,6 @@ def agro_app_build(request):
                 "version_commits": [],
             },
             "agro_asset_v": "1",
+            "agro_pdv_assets_v": "1",
         }
 

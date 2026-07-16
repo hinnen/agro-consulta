@@ -207,7 +207,6 @@
             var nome = String(it.nome || '').slice(0, 52);
             var devTotal = !!it.devolvido_total;
             var devParc = !!it.devolvido_parcial;
-            var risco = devTotal ? 'text-decoration:line-through;opacity:.72;' : '';
             var rotulo = fmtQtd(q) + '× ' + nome;
             if (devParc) {
                 var qRest = Number(it.qtd_restante != null ? it.qtd_restante : q);
@@ -215,14 +214,21 @@
             } else if (devTotal) {
                 rotulo = fmtQtd(q) + '× ' + nome + ' (devolvido)';
             }
+            // <s> nos filhos: text-decoration no flex some na impressão do Chrome
+            var left = escHtml(rotulo);
+            var right = escHtml(subTxt);
+            if (devTotal) {
+                left = '<s style="text-decoration:line-through;">' + left + '</s>';
+                right = '<s style="text-decoration:line-through;">' + right + '</s>';
+            }
             lines +=
                 '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;' +
-                risco +
+                (devTotal ? 'opacity:.75;' : '') +
                 '">' +
                 '<span style="flex:1;min-width:0;">' +
-                escHtml(rotulo) +
+                left +
                 '</span><span style="white-space:nowrap;font-weight:800;flex-shrink:0;font-size:11px;">' +
-                escHtml(subTxt) +
+                right +
                 '</span></div>';
         });
 
