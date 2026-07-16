@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.98** · **loja v8.69**
+**Versão app (VERSION):** **teste v8.99** · **loja v8.69**
+
+### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · **📦 pronto para envio à produção** (frase + senha) |
+| **Pacote** | Fecha com **#12** / FL-035 |
+| **Validou** | Valor progressivo (`234`…`234,78`) · parcela (`parcela 7` / `7/12` no texto) · sem lixo |
+| **Loja** | ⏳ aguarda frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — por prioridade · 16/07
 
@@ -1167,8 +1176,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha |
-| **Loja** | **v8.69** · teste **v8.98** |
+| **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha (**ambos ✅ Renan testou**) |
+| **Loja** | **v8.69** · teste **v8.99** |
 
 #### Fila aberta (por prioridade)
 
@@ -1177,7 +1186,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
-| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | 📦 pronto (fecha) |
+| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | ✅ Renan testou · 📦 pronto produção |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | 📋 |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
@@ -1249,7 +1258,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Quando** | Depois que a **loja fechar** — frase + senha na mesma mensagem |
 | **Inclui** | **#12** / **FL-035** · **#17** / **FL-022** (ver CHECKLIST ÚNICO) |
-| **Teste** | **#12 ✅ Renan** · **#17** no teste |
+| **Teste** | **#12 ✅ Renan** · **#17 ✅ Renan** (valor + parcela) — **pronto envio produção** |
 | **Não sobe** | **#7** impressão notebook |
 | **Antes** | loja hoje **v8.69** |
 
@@ -1276,7 +1285,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Prints** | `234` → lixo R$ 600; `234,`/`234,7` → vazio; `234,78` → OK |
 | **Causa** | Exato demais + «234» ainda misturava documento/parcela |
 | **Fix** | Faixa ao digitar: `234`/`234,` = [234–235); `234,7` = [234,70–234,80); completo = exato. Sem parcela em número solto |
-| **Validar** | Ctrl+F5 · os 4 passos do print devem achar o Detran (exceto se não houver título na faixa) |
+| **Validar** | ✅ Renan · faixa valor OK |
 | **Arquivo** | `lancamentos_financeiro_pg_util.py` |
 
 ### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.84**)
@@ -1297,8 +1306,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P1** | Boleto + doc flexível |
 | **P2** | Parcela + CPF/CNPJ |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help + placeholder |
-| **Validar** | Ctrl+F5 teste · CP · valor · `15/07/2026` · `2/6` · boleto |
-| **Loja** | ⏳ frase + senha — **📦 no pacote do fecha** |
+| **Validar** | ✅ Renan testou · valor + parcela OK |
+| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
 
 ### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79** · **✅ Renan**)
 
@@ -1822,8 +1831,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P2** | Parcela (`2/6`, «parcela 2») + CPF/CNPJ com/sem máscara |
 | **Causa bug valor** | QS Postgres `_aplicar_texto_qs` não buscava valor — só texto |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help §10 · placeholder CP |
-| **Validar** | Ctrl+F5 teste · CP · buscar valor exato · data `dd/mm/aaaa` · parcela · boleto |
-| **Loja** | ⏳ frase + senha — **📦 no pacote do fecha** (com #12) |
+| **Validar** | ✅ Renan testou · valor + parcela OK |
+| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
@@ -3655,7 +3664,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
-| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📦 **#17** pronto loja (fecha) · teste OK | 29/06 |
+| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
