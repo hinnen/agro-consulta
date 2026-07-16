@@ -370,9 +370,22 @@
 
       <div class="px-5 py-4 border-b border-rose-100 bg-rose-50/80">
 
-        <h2 class="text-2xl sm:text-[1.75rem] font-black uppercase text-rose-900 leading-tight">Devolver venda #{{ v.id }}</h2>
-
-        <p class="text-lg sm:text-xl font-semibold text-rose-800 mt-2 leading-snug">Marque os <strong>itens</strong> (e frete, se quiser). Forma <strong>Fiado</strong> só abate dívida — outras formas saem do caixa.</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <h2 class="text-2xl sm:text-[1.75rem] font-black uppercase text-rose-900 leading-tight">Devolver venda #{{ v.id }}</h2>
+          <details class="shrink-0 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-1.5 text-slate-800 max-w-full sm:max-w-[22rem]">
+            <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-amber-950 text-sm tracking-wide list-none flex items-center gap-2">
+              <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-600 bg-white text-base" aria-hidden="true">?</span>
+              Ajuda
+            </summary>
+            <div class="mt-2 space-y-2 text-base font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-800">
+              <p>Marque os <strong>itens</strong> (e a taxa de entrega, se quiser devolver o frete).</p>
+              <p>Forma <strong>Fiado</strong> só aparece se a venda foi no fiado — aí <strong>abate a dívida</strong>, sem tirar dinheiro do caixa.</p>
+              <p>Dinheiro, PIX, cartão etc. → <strong>saída no caixa aberto</strong>.</p>
+              <p>O valor das formas tem que ser <strong>igual</strong> aos itens marcados (não sobra nem falta centavo).</p>
+              <p>Devolução parcial: o cupom fiscal (NFC-e), se existir, <strong>não</strong> cancela. Só na devolução total o sistema tenta cancelar (prazo SEFAZ ~30 min).</p>
+            </div>
+          </details>
+        </div>
 
       </div>
 
@@ -401,17 +414,15 @@
         </label>
 
         {% if nfce_painel.autorizada %}
-        <div class="rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-4">
-          <p class="text-lg font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
-          <p class="text-lg font-semibold text-amber-900 mt-2 leading-snug">Parcial: cupom <strong>não</strong> cancela. Total: tenta cancelar (prazo SEFAZ ~30 min após emissão).</p>
+        <div class="rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
+          <p class="text-lg font-black uppercase text-amber-950">Esta venda tem NFC-e autorizada</p>
+          <p class="text-base font-semibold text-amber-900 mt-1">Detalhes do cupom → toque em <strong>?</strong> Ajuda no topo.</p>
         </div>
         {% endif %}
 
         <div>
 
           <p class="text-base sm:text-lg font-black uppercase tracking-wide text-slate-700 mb-2">Valor devolvido por forma</p>
-
-          <p class="text-lg text-slate-700 mb-3">A soma deve bater com o total marcado acima.</p>
 
           <div id="devolucao-pagamentos-list" class="space-y-3"></div>
 
