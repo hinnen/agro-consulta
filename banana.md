@@ -560,7 +560,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
-- **Busca produtos etapa 2 (16/07 · teste v8.94):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
+- **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.94** · **loja v8.69**
+**Versão app (VERSION):** **teste v8.95** · **loja v8.69**
 
 ### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
 
