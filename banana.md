@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.94** · **loja v8.69**
+**Versão app (VERSION):** **teste v9.04** · **loja v9.04**
+
+### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | Só pacote **relatórios**: ranking/ABC/grupo/giro/margem/operador/clientes/comparativo/formas/ruptura/comissão + hub 4 colunas/seções + Excel. **Não** sobe #12/#17 |
+| **Commits loja** | `86c804d` ← `7cb5894` · `1cb43f2` ← `92f2881` |
+| **HEAD loja** | **1cb43f2** |
+| **Backup** | branch `producao-backup-pre-v904-relatorios-20260716` @ **5c44084** (v8.69) — reverter: `git push origin producao-backup-pre-v904-relatorios-20260716:producao` |
+| **Autorização** | *pode subir para produção esse cherry-pick* + 99738595 |
+| **Você** | Ctrl+F5 loja · badge **v9.04** · BI → Relatórios · Curva ABC / mais vendidos |
 
 ### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
 
