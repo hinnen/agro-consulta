@@ -1164,6 +1164,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Reimpressão 80mm: item/frete devolvido riscado + TOTAL restante + faixa «devolução parcial» |
 | **Validar** | Ctrl+F5 teste · badge **v8.85** · venda parcial → Imprimir |
 
+### 🩹 #17 busca valor progressiva (16/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Prints** | `234` → lixo R$ 600; `234,`/`234,7` → vazio; `234,78` → OK |
+| **Causa** | Exato demais + «234» ainda misturava documento/parcela |
+| **Fix** | Faixa ao digitar: `234`/`234,` = [234–235); `234,7` = [234,70–234,80); completo = exato. Sem parcela em número solto |
+| **Validar** | Ctrl+F5 · os 4 passos do print devem achar o Detran (exceto se não houver título na faixa) |
+| **Arquivo** | `lancamentos_financeiro_pg_util.py` |
+
 ### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.84**)
 
 | Item | Detalhe |
