@@ -144,9 +144,13 @@ def relatorios_vendas_grupo(request):
 @require_GET
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
-    rows = ru.curva_abc(f["desde"], f["ate_dt"])
+    todos = (request.GET.get("todos") or "").strip() in ("1", "sim", "true", "yes")
+    rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=todos)
     headers = ["#", "Classe", "Código GM", "Produto", "Total R$", "%", "% acum."]
     if request.GET.get("export") == "xlsx":
+        # Excel sempre completo
+        if not todos:
+            rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=True)
         data = [
             [
                 r["pos"],
@@ -163,13 +167,24 @@ def relatorios_curva_abc(request):
             "curva-abc.xlsx",
             ru.montar_xlsx("Curva ABC", headers, data, subtitulo=f["label"]),
         )
+    q = request.GET.copy()
+    q["todos"] = "1"
+    ver_todos_qs = "?" + urlencode(q, doseq=True)
+    q_menos = request.GET.copy()
+    if "todos" in q_menos:
+        del q_menos["todos"]
+    ver_menos_qs = "?" + urlencode(q_menos, doseq=True) if q_menos else "?"
+    totais = [
+        f"{meta['n_tela']} de {meta['n_total']} produtos",
+        f"Total período {ru.fmt_brl(meta['total_periodo'])}",
+    ]
     return render(
         request,
         "produtos/relatorios_generico.html",
         {
             "titulo": "Curva ABC",
             "eyebrow": "Classificação",
-            "subtitulo": "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%.",
+            "subtitulo": "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. % sobre o total do período.",
             "filtros": f,
             "filtro_parcial": "periodo",
             "headers": headers,
@@ -185,9 +200,17 @@ def relatorios_curva_abc(request):
                 ]
                 for r in rows
             ],
-            "totais": [ru.fmt_brl(sum(r["valor"] for r in rows))],
+            "totais": totais,
             "export_qs": _qs_export(request),
             "vazio_msg": "Nenhuma venda neste período.",
+            "ver_mais": {
+                "truncado": meta["truncado"],
+                "todos": meta["todos"],
+                "ver_todos_qs": ver_todos_qs,
+                "ver_menos_qs": ver_menos_qs,
+                "n_total": meta["n_total"],
+                "n_tela": meta["n_tela"],
+            },
         },
     )
 

@@ -187,6 +187,23 @@
     {% for t in totais %}<span>{{ t }}</span>{% endfor %}
   </div>
   {% endif %}
+
+  {% if ver_mais %}
+  <div class="no-print mt-4 flex flex-wrap items-center gap-3">
+    {% if ver_mais.truncado %}
+    <a href="{{ ver_mais.ver_todos_qs }}"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-violet-500 bg-violet-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-violet-500">
+      Ver todos ({{ ver_mais.n_total }} produtos)
+    </a>
+    <span class="text-xs font-semibold text-slate-500">Mostrando {{ ver_mais.n_tela }} · total do período já está no rodapé</span>
+    {% elif ver_mais.todos and ver_mais.n_total > 500 %}
+    <a href="{{ ver_mais.ver_menos_qs }}"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">
+      Mostrar só os 500 primeiros
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 <script>

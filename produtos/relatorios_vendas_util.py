@@ -316,7 +316,9 @@ def ranking_produtos(
     reverse = sentido != "menos"
     key = "qtd" if ordenar == "qtd" else "valor"
     rows.sort(key=lambda x: x[key], reverse=reverse)
-    rows = rows[: max(1, min(500, int(limite)))]
+    lim = int(limite or 0)
+    if lim > 0:
+        rows = rows[: max(1, min(50000, lim))]
     pids = [str(r["produto_id_externo"]) for r in rows]
     meta = mapa_produtos_meta(pids)
     out: list[dict] = []
@@ -369,11 +371,23 @@ def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
     return out
 
 
-def curva_abc(desde: datetime, ate: datetime) -> list[dict]:
-    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=500)
-    total = sum(r["valor"] for r in rows) or 1.0
+def curva_abc(
+    desde: datetime,
+    ate: datetime,
+    *,
+    todos: bool = False,
+    lim_tela: int = 500,
+) -> tuple[list[dict], dict]:
+    """
+    Classifica todos os produtos do período.
+    Por padrão mostra só os primeiros ``lim_tela``; com ``todos=True`` lista inteira.
+    % e classes usam o faturamento **total** do período (não só a fatia da tela).
+    """
+    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=0)
+    total_bruto = sum(r["valor"] for r in rows)
+    total = total_bruto or 1.0
     acum = 0.0
-    out = []
+    out: list[dict] = []
     for r in rows:
         acum += r["valor"]
         pct_acum = 100.0 * acum / total
@@ -391,7 +405,17 @@ def curva_abc(desde: datetime, ate: datetime) -> list[dict]:
                 "classe": classe,
             }
         )
-    return out
+    n_total = len(out)
+    lim = max(1, int(lim_tela or 500))
+    truncado = (not todos) and n_total > lim
+    mostrar = out if todos else out[:lim]
+    return mostrar, {
+        "total_periodo": round(total_bruto, 2),
+        "n_total": n_total,
+        "n_tela": len(mostrar),
+        "truncado": truncado,
+        "todos": bool(todos),
+    }
 
 
 def margem_produtos(
