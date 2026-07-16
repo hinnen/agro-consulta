@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.72** · **loja v8.67**
+**Versão app (VERSION):** **teste v8.74** · **loja v8.67**
+
+### 🩹 Devolução — textos no ? (16/07 · **teste v8.74**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Regras longas no **?** Ajuda do modal (padrão banana / tela limpa) |
+| **Validar** | Ctrl+F5 · badge **v8.74** · Devolver → ? |
+| **Loja** | ⏳ |
+
+
 
 ### 🩹 Devolução — fontes do modal um pouco maiores (16/07 · **teste v8.72**)
 
