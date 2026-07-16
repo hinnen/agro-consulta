@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.13** · **loja v9.07**
+**Versão app (VERSION):** **teste v9.14** · **loja v9.07**
+
+### feat — ABC filtro por categoria (16/07 · **teste v9.14**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Select **Categoria** na Curva ABC · recalcula A/B/C só da categoria · coluna Categoria na tela / A4 / Excel |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` |
 
 ### feat — loading Excel + impressão (16/07 · **teste v9.13**)
 

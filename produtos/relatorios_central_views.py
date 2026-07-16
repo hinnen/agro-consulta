@@ -145,18 +145,40 @@ def relatorios_vendas_grupo(request):
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
     todos = (request.GET.get("todos") or "").strip() in ("1", "sim", "true", "yes")
-    rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=todos)
-    headers = ["#", "Classe", "Código GM", "Produto", "Total R$", "%", "% acum."]
+    categoria = (request.GET.get("categoria") or "").strip()
+    rows, meta = ru.curva_abc(
+        f["desde"], f["ate_dt"], todos=todos, categoria=categoria or None
+    )
+    headers = [
+        "#",
+        "Classe",
+        "Código GM",
+        "Produto",
+        "Categoria",
+        "Total R$",
+        "%",
+        "% acum.",
+    ]
+    cat_label = meta.get("categoria") or ""
+    sub_periodo = f["label"]
+    if cat_label:
+        sub_periodo = f"{sub_periodo} · categoria {cat_label}"
     if request.GET.get("export") == "xlsx":
-        # Excel sempre completo
+        # Excel sempre completo (respeita filtro de categoria)
         if not todos:
-            rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=True)
+            rows, meta = ru.curva_abc(
+                f["desde"], f["ate_dt"], todos=True, categoria=categoria or None
+            )
+            cat_label = meta.get("categoria") or cat_label
+            if cat_label:
+                sub_periodo = f'{f["label"]} · categoria {cat_label}'
         data = [
             [
                 r["pos"],
                 r["classe"],
                 r["codigo"],
                 r["nome"],
+                r.get("categoria") or "Sem categoria",
                 r["valor"],
                 r["pct"],
                 r["pct_acum"],
@@ -165,7 +187,7 @@ def relatorios_curva_abc(request):
         ]
         return ru.xlsx_http_response(
             "curva-abc.xlsx",
-            ru.montar_xlsx("Curva ABC", headers, data, subtitulo=f["label"]),
+            ru.montar_xlsx("Curva ABC", headers, data, subtitulo=sub_periodo),
         )
     q = request.GET.copy()
     q["todos"] = "1"
@@ -176,17 +198,29 @@ def relatorios_curva_abc(request):
     ver_menos_qs = "?" + urlencode(q_menos, doseq=True) if q_menos else "?"
     totais = [
         f"{meta['n_tela']} de {meta['n_total']} produtos",
-        f"Total período {ru.fmt_brl(meta['total_periodo'])}",
+        f"Total {'categoria' if cat_label else 'período'} {ru.fmt_brl(meta['total_periodo'])}",
     ]
+    subtitulo = (
+        "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. "
+        + (
+            f"% sobre o total da categoria «{cat_label}»."
+            if cat_label
+            else "% sobre o total do período."
+        )
+    )
     return render(
         request,
         "produtos/relatorios_generico.html",
         {
             "titulo": "Curva ABC",
             "eyebrow": "Classificação",
-            "subtitulo": "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. % sobre o total do período.",
+            "subtitulo": subtitulo,
             "filtros": f,
-            "filtro_parcial": "periodo",
+            "filtro_parcial": "curva_abc",
+            "extra_filtros": {
+                "categoria": cat_label,
+                "categorias": meta.get("categorias") or [],
+            },
             "headers": headers,
             "rows": [
                 [
@@ -194,6 +228,7 @@ def relatorios_curva_abc(request):
                     r["classe"],
                     r["codigo"],
                     r["nome"],
+                    r.get("categoria") or "Sem categoria",
                     ru.fmt_brl(r["valor"]),
                     f'{r["pct"]}%',
                     f'{r["pct_acum"]}%',
@@ -202,7 +237,11 @@ def relatorios_curva_abc(request):
             ],
             "totais": totais,
             "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período.",
+            "vazio_msg": (
+                "Nenhuma venda nesta categoria no período."
+                if cat_label
+                else "Nenhuma venda neste período."
+            ),
             "ver_mais": {
                 "truncado": meta["truncado"],
                 "todos": meta["todos"],

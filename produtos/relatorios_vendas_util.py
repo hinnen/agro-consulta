@@ -377,18 +377,38 @@ def curva_abc(
     *,
     todos: bool = False,
     lim_tela: int = 500,
+    categoria: str | None = None,
 ) -> tuple[list[dict], dict]:
     """
-    Classifica todos os produtos do período.
+    Classifica produtos do período (ou de uma categoria).
     Por padrão mostra só os primeiros ``lim_tela``; com ``todos=True`` lista inteira.
-    % e classes usam o faturamento **total** do período (não só a fatia da tela).
+    % e classes usam o faturamento **total** do recorte (período ou categoria).
     """
     rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=0)
+    categorias = sorted(
+        {(r.get("categoria") or "Sem categoria").strip() or "Sem categoria" for r in rows},
+        key=lambda x: x.casefold(),
+    )
+    cat_raw = (categoria or "").strip()
+    cat_ativa = ""
+    if cat_raw:
+        for c in categorias:
+            if c.casefold() == cat_raw.casefold():
+                cat_ativa = c
+                break
+        if not cat_ativa:
+            cat_ativa = cat_raw
+        rows = [
+            r
+            for r in rows
+            if ((r.get("categoria") or "Sem categoria").strip() or "Sem categoria").casefold()
+            == cat_ativa.casefold()
+        ]
     total_bruto = sum(r["valor"] for r in rows)
     total = total_bruto or 1.0
     acum = 0.0
     out: list[dict] = []
-    for r in rows:
+    for i, r in enumerate(rows, start=1):
         acum += r["valor"]
         pct_acum = 100.0 * acum / total
         if pct_acum <= 80.0:
@@ -400,6 +420,7 @@ def curva_abc(
         out.append(
             {
                 **r,
+                "pos": i,
                 "pct": round(100.0 * r["valor"] / total, 2),
                 "pct_acum": round(pct_acum, 2),
                 "classe": classe,
@@ -415,6 +436,8 @@ def curva_abc(
         "n_tela": len(mostrar),
         "truncado": truncado,
         "todos": bool(todos),
+        "categorias": categorias,
+        "categoria": cat_ativa,
     }
 
 
