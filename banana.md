@@ -1156,7 +1156,60 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.96** · **loja v8.69**
+**Versão app (VERSION):** **teste v8.97** · **loja v8.69**
+
+### ✅ CHECKLIST ÚNICO — Zap # + fila FL (prioridades) · 16/07
+
+**Fonte da verdade.** Zap = bugs 12/07 (#1–18). FL = fila com **P** (P0 loja → P1 grave → P2 melhoria → P3 depois). Decimal **menor** = mais urgente na faixa (P1,1 antes de P1,5).
+
+#### Agora / próximo deploy
+
+| Quando | O quê |
+| ------ | ----- |
+| **Fecha loja** | **#12** (= **FL-035**) + **#17** (= **FL-022**) — frase + senha |
+| **Aberto Zap** | só **#7** impressão notebook |
+| **Loja hoje** | **v8.69** · teste **v8.97** |
+
+#### Mapa Zap #1–18 ↔ FL / P / status
+
+| Zap # | Pedido (curto) | FL | P | Status |
+| ----- | -------------- | -- | - | ------ |
+| **1** | Entrada NF etapa 7 — valor não recarrega | — | — | ✅ loja |
+| **2** | Entrada NF etapa 2 — busca barras | — | — | ✅ loja |
+| **3** | Cadastro — custo na lista / prefixo GM | — | — | ✅ loja |
+| **4** | Cadastro — modelo persiste | — | — | ✅ loja |
+| **5** | Busca cadastro + Entrada NF leve | — | — | ✅ loja |
+| **6** | PIN mais rápido | — | — | ✅ loja |
+| **7** | Notebook demora impressão | — | **P1** | 🔴 aberto |
+| **8** | Produto novo na lista | — | — | ✅ loja |
+| **9** | Fiado MP → forma correta no caixa | — | — | ✅ loja |
+| **10** | Cancelar cobrança fiado | — | — | ✅ loja |
+| **11** | Menu caixa/vendas fecha (Esc) | — | — | ✅ loja |
+| **12** | Devolução parcial / por item | **FL-035** | **P2** | 📦 **pronto loja** (fecha) |
+| **13** | XML boleto → Boleto Bancário CN | **FL-027** | **P2** | ✅ loja |
+| **14** | Add produto não perde barras/lote | **FL-026** | **P2** | ✅ loja |
+| **15** | Código interno 4010–5999 | **FL-025** | **P0,9** | ✅ loja |
+| **16** | CP busca limpa datas + aviso | **FL-023** | **P1,2** | ✅ loja |
+| **17** | Busca CP inteligente (valor/data/parcela…) | **FL-022** | **P1,1** | 📦 **pronto loja** (fecha) |
+| **18** | Frete no cupom / 3 vias / NFC-e | **FL-018** · **FL-020** | **P2** · **P1,5** | ✅ loja |
+| **+** | PIN ao abrir PDV | — | — | ✅ loja |
+
+#### Fila FL ainda aberta (fora do Zap #) — por prioridade
+
+| FL | P | Pedido | Status |
+| -- | - | ------ | ------ |
+| **FL-008** | **P1** | Carrinho trava (qtd/preço/remover) | 📋 |
+| **FL-016** | **P1** | Reset contagem caixa (dia anterior) | 📋 |
+| **FL-029** | **P1,1** | Baixa parcial fiado + crédito | 📋 |
+| **FL-052** | **P1,1** | NFC-e na baixa fiado | 📋 após FL-051 ✅ |
+| **FL-030** | **P1,3** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
+| **FL-019** | **P1,5** | Recibo pagamento fiado | 📋 |
+| **FL-049** | **P1,5** | CPF no cliente PDV → NFC-e | 🧪 teste |
+| **FL-031** | **P1,6** | Terminar tela `/entregas/` | 📋 |
+| **FL-034** | **P1,9** | Histórico F8 filtra cliente | 🔄 teste |
+| **FL-005…** etc. | **P2+** | Ver tabela completa «Fila loja» abaixo | 📋 / ✅ |
+
+**Detalhe FL completo** (tags técnicas): seção **«Fila loja — pedidos Zap / melhorias»** mais abaixo. Ao mudar status → atualizar **aqui primeiro**.
 
 ### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
 
@@ -1194,10 +1247,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Quando** | Depois que a **loja fechar** — frase + senha na mesma mensagem |
-| **Inclui** | **#12** devolução parcial (lista/detalhe/cupom + corta ERP venda) · **#17** busca CP inteligente (+ hotfixes valor/parcela) · FL-021 botão NF CP se ainda não estiver na loja |
-| **Teste** | **#12 ✅ Renan** (cupom risco OK) · **#17** no teste |
-| **Não sobe** | **#7** impressão notebook (ainda aberto) |
-| **Antes** | loja hoje **v8.68** |
+| **Inclui** | **#12** / **FL-035** · **#17** / **FL-022** (ver CHECKLIST ÚNICO) |
+| **Teste** | **#12 ✅ Renan** · **#17** no teste |
+| **Não sobe** | **#7** impressão notebook |
+| **Antes** | loja hoje **v8.69** |
 
 ### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.89** · **✅ Renan**)
 
@@ -1748,31 +1801,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validar** | Ctrl+F5 loja · editar modelo · Salvar · reabrir |
 | **Loja** | **✅** v8.22 |
 
-### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
+### 🔄 Handoff Renan 14/07 — histórico (versão antiga)
 
-| Ambiente | Versão | Commit | Notas |
-| -------- | ------ | ------ | ----- |
-| **Loja** | **v8.22** | `a285d52` | pacote #3+#4 · backup `producao-backup-pre-v822-20260714` |
-| **Teste** | **v8.22** | `9bf591f` | alinhado no badge; ainda tem commits extras só no teste |
+> **Atualizado 16/07:** status vivo está no **CHECKLIST ÚNICO** no topo do CHECKPOINT (Zap # + FL + P).
 
-| # | Status | Nota curta |
-| - | ------ | ---------- |
-| **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
-| **3** | ✅ loja | prefixo GM / família |
-| **4** | ✅ loja v8.22 | modelo |
-| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
-| **7** | 🔴 aberto | impressão notebook — medir host vs app |
-| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
-| **12** | 📦 pronto loja | devolução parcial ✅ teste (lista/detalhe/cupom + sem ERP) — sobe no fecha |
-| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
-| **17** | 📦 pronto loja | busca CP inteligente ✅ teste — sobe no fecha |
-| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
-| **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
-| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
+| Ambiente (14/07) | Versão | Notas |
+| ---------------- | ------ | ----- |
+| **Loja** | era v8.22 → hoje **v8.69** | ver CHECKLIST ÚNICO no topo |
+| **Teste** | hoje **v8.97** | ver CHECKLIST ÚNICO no topo |
 
-**Próximo deploy loja (fecha):** **#12** + **#17** (+ FL-021 se faltar). **Aberto:** só **#7**.
-
-**Ordem antiga (já feita em partes):** #3+#4 → #5/#6 → #16 → agora falta promover **#12+#17**.
+**Próximo:** fecha → **#12+#17** · aberto Zap → **#7**.
 
 ### ✅ #17 Busca CP inteligente — P0+P1+P2 (16/07 · **teste**)
 
@@ -3574,6 +3612,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
+> **Status operacional (Zap #+P+deploy):** ver **CHECKLIST ÚNICO** no topo do CHECKPOINT. Esta tabela é o **cadastro FL** (P + módulo + pedido). Ao mudar status, atualizar **os dois**.
+
 **Pacotes prontos — aguardando deploy loja (Renan 30/06):**
 
 | Pacote | O quê | Observação |
@@ -3614,7 +3654,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
-| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
+| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📦 **#17** pronto loja (fecha) · teste OK | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
@@ -3629,7 +3669,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
 | **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
-| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
+| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
 | **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico · **este deploy = manual §3.2** | 📋 Código pendente | 30/06 |

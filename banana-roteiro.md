@@ -73,7 +73,7 @@ Tarefa
 
 Usar **Grep** em `banana.md`, seção `## CHECKPOINT`, com 1–3 termos:
 
-`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome`
+`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome` · `checklist` · `FL-` · `Zap`
 
 Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
