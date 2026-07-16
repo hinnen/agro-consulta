@@ -1187,7 +1187,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Quando | O quê |
 | ------ | ----- |
 | **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha (**ambos ✅ Renan testou**) |
-| **Loja** | **v8.69** · teste **v9.01** |
+| **Loja** | **v9.04** · teste **v9.04** |
 
 #### Fila aberta (por prioridade)
 
@@ -1201,10 +1201,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
 | **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 |
+| **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega (separação / entregador / cliente) | 📋 · foto Word |
 | **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | 🧪 teste |
+| **P1,6** | **Zap #22** · **FL-024** | Cadastro: cat/sub/marca só selecionar existentes · popup Food se novo · PIN + log · busca sem acento/caixa | 📋 |
 | **P1,6** | **FL-031** | Terminar tela `/entregas/` | 📋 |
 | **P1,9** | **FL-034** | Histórico F8 filtra cliente | 🔄 teste |
 | **P2** | **Zap #12** · **FL-035** | Devolução parcial / por item | 📦 pronto (fecha) |
+| **P2** | **Zap #19** · **FL-053** | Histórico de custo (últ. pedidos) tick **2×** (fim etapa 2 + finalizar NF) | 📋 · foto Word |
+| **P3** | **Zap #21** · **FL-033** | BI comparativo: N-ésimo dia da semana vs mês anterior (ex. 3ª terça) | 📋 · foto Word |
 | **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
 
 #### Checklist concluído (já na loja)
@@ -3677,7 +3681,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
-| **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
+| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | 📋 Pendente | 16/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
@@ -3688,7 +3692,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
 | **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ **loja v7.40** | 07/07 |
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
-| **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
+| **FL-033** | **P3** | BI / Home | **Zap #21:** indicador comparativo — **N-ésimo** dia da semana vs mês anterior (ex. **3ª terça** × **3ª terça**) | 📋 Pendente · foto Word | 16/07 |
+| **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
+| **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
