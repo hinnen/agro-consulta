@@ -1156,60 +1156,61 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.97** · **loja v8.69**
+**Versão app (VERSION):** **teste v8.98** · **loja v8.69**
 
-### ✅ CHECKLIST ÚNICO — Zap # + fila FL (prioridades) · 16/07
+### ✅ CHECKLIST ÚNICO — por prioridade · 16/07
 
-**Fonte da verdade.** Zap = bugs 12/07 (#1–18). FL = fila com **P** (P0 loja → P1 grave → P2 melhoria → P3 depois). Decimal **menor** = mais urgente na faixa (P1,1 antes de P1,5).
+**P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente (P1,1 antes de P1,5).  
+**Zap #** e **FL-** na mesma fila. Já na loja → só em **Checklist concluído** (abaixo).
 
-#### Agora / próximo deploy
+#### Agora
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha loja** | **#12** (= **FL-035**) + **#17** (= **FL-022**) — frase + senha |
-| **Aberto Zap** | só **#7** impressão notebook |
-| **Loja hoje** | **v8.69** · teste **v8.97** |
+| **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha |
+| **Loja** | **v8.69** · teste **v8.98** |
 
-#### Mapa Zap #1–18 ↔ FL / P / status
+#### Fila aberta (por prioridade)
 
-| Zap # | Pedido (curto) | FL | P | Status |
-| ----- | -------------- | -- | - | ------ |
-| **1** | Entrada NF etapa 7 — valor não recarrega | — | — | ✅ loja |
-| **2** | Entrada NF etapa 2 — busca barras | — | — | ✅ loja |
-| **3** | Cadastro — custo na lista / prefixo GM | — | — | ✅ loja |
-| **4** | Cadastro — modelo persiste | — | — | ✅ loja |
-| **5** | Busca cadastro + Entrada NF leve | — | — | ✅ loja |
-| **6** | PIN mais rápido | — | — | ✅ loja |
-| **7** | Notebook demora impressão | — | **P1** | 🔴 aberto |
-| **8** | Produto novo na lista | — | — | ✅ loja |
-| **9** | Fiado MP → forma correta no caixa | — | — | ✅ loja |
-| **10** | Cancelar cobrança fiado | — | — | ✅ loja |
-| **11** | Menu caixa/vendas fecha (Esc) | — | — | ✅ loja |
-| **12** | Devolução parcial / por item | **FL-035** | **P2** | 📦 **pronto loja** (fecha) |
-| **13** | XML boleto → Boleto Bancário CN | **FL-027** | **P2** | ✅ loja |
-| **14** | Add produto não perde barras/lote | **FL-026** | **P2** | ✅ loja |
-| **15** | Código interno 4010–5999 | **FL-025** | **P0,9** | ✅ loja |
-| **16** | CP busca limpa datas + aviso | **FL-023** | **P1,2** | ✅ loja |
-| **17** | Busca CP inteligente (valor/data/parcela…) | **FL-022** | **P1,1** | 📦 **pronto loja** (fecha) |
-| **18** | Frete no cupom / 3 vias / NFC-e | **FL-018** · **FL-020** | **P2** · **P1,5** | ✅ loja |
-| **+** | PIN ao abrir PDV | — | — | ✅ loja |
+| P | Ref | Pedido | Status |
+| - | --- | ------ | ------ |
+| **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
+| **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
+| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
+| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | 📦 pronto (fecha) |
+| **P1,1** | **FL-029** | Baixa parcial fiado + crédito | 📋 |
+| **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
+| **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 |
+| **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | 🧪 teste |
+| **P1,6** | **FL-031** | Terminar tela `/entregas/` | 📋 |
+| **P1,9** | **FL-034** | Histórico F8 filtra cliente | 🔄 teste |
+| **P2** | **Zap #12** · **FL-035** | Devolução parcial / por item | 📦 pronto (fecha) |
+| **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
 
-#### Fila FL ainda aberta (fora do Zap #) — por prioridade
+#### Checklist concluído (já na loja)
 
-| FL | P | Pedido | Status |
-| -- | - | ------ | ------ |
-| **FL-008** | **P1** | Carrinho trava (qtd/preço/remover) | 📋 |
-| **FL-016** | **P1** | Reset contagem caixa (dia anterior) | 📋 |
-| **FL-029** | **P1,1** | Baixa parcial fiado + crédito | 📋 |
-| **FL-052** | **P1,1** | NFC-e na baixa fiado | 📋 após FL-051 ✅ |
-| **FL-030** | **P1,3** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
-| **FL-019** | **P1,5** | Recibo pagamento fiado | 📋 |
-| **FL-049** | **P1,5** | CPF no cliente PDV → NFC-e | 🧪 teste |
-| **FL-031** | **P1,6** | Terminar tela `/entregas/` | 📋 |
-| **FL-034** | **P1,9** | Histórico F8 filtra cliente | 🔄 teste |
-| **FL-005…** etc. | **P2+** | Ver tabela completa «Fila loja» abaixo | 📋 / ✅ |
+| Ref | Pedido | Nota |
+| --- | ------ | ---- |
+| Zap **#1** | Entrada NF etapa 7 — valor | ✅ |
+| Zap **#2** | Entrada NF busca barras | ✅ |
+| Zap **#3** | Cadastro custo / prefixo GM | ✅ |
+| Zap **#4** | Cadastro modelo | ✅ |
+| Zap **#5** | Busca cadastro + NF leve | ✅ |
+| Zap **#6** | PIN mais rápido | ✅ |
+| Zap **#8** | Produto novo na lista | ✅ |
+| Zap **#9** | Fiado MP forma no caixa | ✅ |
+| Zap **#10** | Cancelar cobrança fiado | ✅ |
+| Zap **#11** | Menu caixa/vendas fecha | ✅ |
+| Zap **#13** · FL-027 | XML boleto → CN | ✅ |
+| Zap **#14** · FL-026 | Add produto barras/lote | ✅ |
+| Zap **#15** · FL-025 | Código interno 4010–5999 | ✅ P0,9 |
+| Zap **#16** · FL-023 | CP busca limpa datas | ✅ P1,2 |
+| Zap **#18** · FL-018 · FL-020 | Frete cupom / 3 vias | ✅ |
+| **+** | PIN ao abrir PDV | ✅ |
+| FL-017 · FL-021 · FL-028 · FL-032 · FL-051 · FL-046 · FL-047… | Outros FL já na loja | ver «Fila loja» |
 
-**Detalhe FL completo** (tags técnicas): seção **«Fila loja — pedidos Zap / melhorias»** mais abaixo. Ao mudar status → atualizar **aqui primeiro**.
+**Cadastro FL completo** (tags): «Fila loja — pedidos Zap / melhorias» mais abaixo. Status do dia → **esta seção primeiro**.
 
 ### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
 
