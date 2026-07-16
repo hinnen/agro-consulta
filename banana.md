@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.01** · **loja v8.69**
+**Versão app (VERSION):** **teste v9.04** · **loja v8.69**
 
 ### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
 
