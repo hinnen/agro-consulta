@@ -427,6 +427,12 @@ class VendaAgro(models.Model):
         help_text="IDs de MovimentoCaixa (retirada) gerados na devolução.",
     )
     devolucao_usuario = models.CharField(max_length=150, blank=True, default="")
+    frete_devolvido = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Soma do frete já devolvido (parcial ou total).",
+    )
     nfce_solicitada = models.BooleanField(
         default=False,
         db_index=True,
@@ -455,6 +461,16 @@ class VendaAgro(models.Model):
     @property
     def devolvida(self) -> bool:
         return self.devolvida_em is not None
+
+    @property
+    def tem_devolucao_parcial(self) -> bool:
+        """Há ao menos um evento de devolução, mas a venda ainda não está totalmente devolvida."""
+        if self.devolvida_em is not None:
+            return False
+        try:
+            return self.devolucoes.exists()
+        except Exception:
+            return False
 
     def tem_fiado(self) -> bool:
         from produtos.fiado_credito_util import venda_local_tem_fiado
@@ -883,6 +899,12 @@ class ItemVendaAgro(models.Model):
     quantidade = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     valor_unitario = models.DecimalField(max_digits=12, decimal_places=4, default=0)
     valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quantidade_devolvida = models.DecimalField(
+        max_digits=14,
+        decimal_places=4,
+        default=0,
+        help_text="Quantidade já devolvida (parcial acumulada).",
+    )
 
     class Meta:
         verbose_name = "Item de venda Agro"
@@ -890,6 +912,75 @@ class ItemVendaAgro(models.Model):
 
     def __str__(self):
         return f"{self.descricao[:30]} x {self.quantidade}"
+
+    @property
+    def quantidade_restante(self):
+        from decimal import Decimal
+
+        q = self.quantidade or Decimal("0")
+        d = self.quantidade_devolvida or Decimal("0")
+        r = q - d
+        return r if r > 0 else Decimal("0")
+
+
+class DevolucaoVendaAgro(models.Model):
+    """Evento de devolução (parcial ou total) de uma VendaAgro."""
+
+    venda = models.ForeignKey(
+        VendaAgro,
+        on_delete=models.CASCADE,
+        related_name="devolucoes",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    motivo = models.TextField(blank=True, default="")
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    pagamentos_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Formas e valores deste evento [{forma, valor}].",
+    )
+    movimento_caixa_ids = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="IDs de MovimentoCaixa (retirada) deste evento.",
+    )
+    incluiu_frete = models.BooleanField(default=False)
+    frete_valor = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    totalizou_venda = models.BooleanField(
+        default=False,
+        help_text="True se este evento zerou o restante da venda.",
+    )
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Devolução de venda Agro"
+        verbose_name_plural = "Devoluções de venda Agro"
+
+    def __str__(self):
+        return f"Dev #{self.pk} venda #{self.venda_id} R$ {self.total}"
+
+
+class DevolucaoItemVendaAgro(models.Model):
+    devolucao = models.ForeignKey(
+        DevolucaoVendaAgro,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    item = models.ForeignKey(
+        ItemVendaAgro,
+        on_delete=models.CASCADE,
+        related_name="devolucoes_item",
+    )
+    quantidade = models.DecimalField(max_digits=14, decimal_places=4, default=0)
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "Item devolvido (venda Agro)"
+        verbose_name_plural = "Itens devolvidos (venda Agro)"
+
+    def __str__(self):
+        return f"Item {self.item_id} x {self.quantidade}"
 
 
 class PedidoEntrega(models.Model):

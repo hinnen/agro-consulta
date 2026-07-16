@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.65** · **loja v8.65**
+**Versão app (VERSION):** **teste v8.66** · **loja v8.65**
+
+### ✨ PDV — devolução por item (#12) (16/07 · **teste v8.66**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Devolver itens escolhidos (+ frete opcional). Forma Fiado só se a venda era fiado (abate dívida, sem caixa). Outras formas = RETIRADA. NFC-e cancela só no total |
+| **Validar** | Ctrl+F5 · badge **v8.66** · venda com 2+ itens → devolver 1 · badge Parcial · devolver resto · total |
+| **Loja** | ⏳ |
+
+
 
 ### 📦 Deploy loja **v8.65** — preços A/B + PDV (16/07 · Renan frase+senha)
 
@@ -1578,7 +1588,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
 | **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
 | **7** | 🔴 | impressão notebook — medir host vs app |
-| **12** | 🔴 | devolução parcial (escopo OK; implementar) |
+| **12** | 🟡 teste v8.66 | devolução por item — validar no Render teste |
 | **17** | ⚪ | exemplos 15/07 — ver bloco abaixo |
 | ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
 

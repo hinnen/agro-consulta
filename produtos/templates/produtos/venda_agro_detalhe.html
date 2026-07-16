@@ -77,7 +77,7 @@
 
         {% if not v.devolvida %}
 
-        <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">↩ Devolver venda</button>
+        <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">{% if v.tem_devolucao_parcial %}↩ Continuar devolução{% else %}↩ Devolver venda{% endif %}</button>
 
         {% if erp_painel.tem_fiado %}
         {% if erp_painel.pode_enviar_erp %}
@@ -106,7 +106,7 @@
 
     <div class="shrink-0 rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-3">
 
-      <p class="text-sm font-black uppercase text-rose-900">Venda devolvida</p>
+      <p class="text-sm font-black uppercase text-rose-900">Venda devolvida (total)</p>
 
       <p class="text-xs font-bold text-rose-800 mt-1">{{ v.devolvida_em|date:"d/m/Y H:i" }}{% if v.devolucao_usuario %} · {{ v.devolucao_usuario }}{% endif %}</p>
 
@@ -130,6 +130,20 @@
 
       {% endif %}
 
+    </div>
+
+    {% elif v.tem_devolucao_parcial %}
+
+    <div class="shrink-0 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+      <p class="text-sm font-black uppercase text-amber-950">Devolução parcial</p>
+      <p class="text-xs font-bold text-amber-900 mt-1">Ainda há itens (ou frete) nesta venda. Pode devolver o restante.</p>
+      {% if historico_devolucoes %}
+      <ul class="mt-2 space-y-1 text-xs font-semibold text-amber-950">
+        {% for h in historico_devolucoes %}
+        <li>R$ {{ h.total }} · {{ h.usuario|default:"—" }}{% if h.incluiu_frete %} · +frete{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
     </div>
 
     {% endif %}
@@ -352,17 +366,31 @@
 
   <div id="modal-devolucao" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true">
 
-    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="bg-white rounded-2xl border-2 border-rose-200 shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden">
 
       <div class="px-4 py-3 border-b border-rose-100 bg-rose-50/80">
 
         <h2 class="text-base font-black uppercase text-rose-900">Devolver venda #{{ v.id }}</h2>
 
-        <p class="text-xs font-semibold text-rose-800 mt-1">Repõe o estoque (se houve baixa) e registra <strong>saída no caixa aberto</strong> para devolver ao cliente.</p>
+        <p class="text-xs font-semibold text-rose-800 mt-1">Marque os <strong>itens</strong> (e frete, se quiser). Forma <strong>Fiado</strong> só abate dívida — outras formas saem do caixa.</p>
 
       </div>
 
       <div class="p-4 space-y-3 overflow-y-auto flex-1">
+
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-black uppercase text-slate-500">Itens a devolver</p>
+            <button type="button" id="btn-devolver-tudo" class="text-xs font-black uppercase text-rose-700 underline">Marcar tudo</button>
+          </div>
+          <div id="devolucao-itens-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+          {% if frete_venda and frete_restante %}
+          <label class="mt-2 flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 min-h-[44px] cursor-pointer">
+            <input type="checkbox" id="devolucao-frete-chk" class="w-5 h-5 accent-rose-600">
+            <span class="text-sm font-bold text-slate-800">Taxa de entrega — R$ <span id="devolucao-frete-val">{{ frete_restante }}</span></span>
+          </label>
+          {% endif %}
+        </div>
 
         <label class="block">
 
@@ -375,7 +403,7 @@
         {% if nfce_painel.autorizada %}
         <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3">
           <p class="text-sm font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
-          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Esta venda tem NFC-e <strong>autorizada</strong> na SEFAZ{% if nfce_painel.numero %} (nº {{ nfce_painel.numero }}{% if nfce_painel.serie %}, série {{ nfce_painel.serie }}{% endif %}){% endif %}. Ao confirmar, o sistema <strong>tenta cancelar</strong> o cupom (motivo padrão). <strong>Atenção:</strong> a SEFAZ só aceita cancelamento até ~<strong>30 minutos</strong> após a emissão do cupom — não conta a partir de agora. Passou disso → aviso 501; estoque e caixa ajustam igual.</p>
+          <p class="text-xs font-semibold text-amber-900 mt-1 leading-snug">Parcial: cupom <strong>não</strong> cancela. Total: tenta cancelar (prazo SEFAZ ~30 min após emissão).</p>
         </div>
         {% endif %}
 
@@ -383,7 +411,7 @@
 
           <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Valor devolvido por forma</p>
 
-          <p class="text-xs text-slate-500 mb-2">Padrão = pagamento da venda. Ajuste se devolver em outra forma.</p>
+          <p class="text-xs text-slate-500 mb-2">A soma deve bater com o total marcado acima.</p>
 
           <div id="devolucao-pagamentos-list" class="space-y-2"></div>
 
@@ -391,7 +419,7 @@
 
         </div>
 
-        <p class="text-sm font-black text-slate-800">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ {{ v.total|moeda_br }}</span></p>
+        <p class="text-sm font-black text-slate-800">Total a devolver: <span id="devolucao-total-label" class="tabular-nums text-emerald-700">R$ 0,00</span></p>
 
       </div>
 
@@ -446,6 +474,8 @@
 {{ pagamentos_devolucao_default|json_script:"venda-pagamentos-default" }}
 
 {{ formas_pagamento_caixa|json_script:"venda-formas-caixa" }}
+
+{{ itens_devolucao_json|json_script:"venda-itens-devolucao" }}
 
 <script>
 
@@ -591,140 +621,150 @@
 
   if (!modal) return;
 
-
-
-  var totalVenda = parseBr('{{ v.total }}');
-
   var formas = [];
-
   var defaultPag = [];
-
+  var itensDev = [];
+  var freteRestante = parseBr('{{ frete_restante|default:"0" }}');
   try { formas = JSON.parse(document.getElementById('venda-formas-caixa').textContent || '[]'); } catch (e) {}
-
   try { defaultPag = JSON.parse(document.getElementById('venda-pagamentos-default').textContent || '[]'); } catch (e) {}
-
-
+  try { itensDev = JSON.parse(document.getElementById('venda-itens-devolucao').textContent || '[]'); } catch (e) {}
 
   var listEl = document.getElementById('devolucao-pagamentos-list');
-
+  var itensEl = document.getElementById('devolucao-itens-list');
   var totalLabel = document.getElementById('devolucao-total-label');
+  var freteChk = document.getElementById('devolucao-frete-chk');
 
+  function totalSelecionado() {
+    var s = 0;
+    if (itensEl) {
+      itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+        var chk = row.querySelector('.dev-item-chk');
+        var qInp = row.querySelector('.dev-item-qtd');
+        if (!chk || !chk.checked) return;
+        var max = parseFloat(row.getAttribute('data-restante') || '0') || 0;
+        var unitVal = parseFloat(row.getAttribute('data-valor-restante') || '0') || 0;
+        var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
+        var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+        if (q <= 0 || qMax <= 0) return;
+        if (q >= qMax) s += unitVal;
+        else s += unitVal * (q / qMax);
+      });
+    }
+    if (freteChk && freteChk.checked) s += freteRestante;
+    return Math.round(s * 100) / 100;
+  }
 
+  function syncPagamentosAoTotal() {
+    var t = totalSelecionado();
+    var forma0 = (defaultPag[0] && defaultPag[0].forma) || formas[0] || 'Dinheiro';
+    if (formas.indexOf(forma0) < 0) forma0 = formas[0] || 'Dinheiro';
+    renderRows([{ forma: forma0, valor: t }]);
+  }
+
+  function renderItens() {
+    if (!itensEl) return;
+    itensEl.innerHTML = '';
+    (itensDev || []).forEach(function (it) {
+      var rest = Number(it.quantidade_restante || 0);
+      if (rest <= 0) return;
+      var div = document.createElement('div');
+      div.className = 'flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2';
+      div.setAttribute('data-item-id', String(it.id));
+      div.setAttribute('data-restante', String(it.valor_restante || 0));
+      div.setAttribute('data-valor-restante', String(it.valor_restante || 0));
+      div.setAttribute('data-qtd-restante', String(rest));
+      div.innerHTML =
+        '<label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">' +
+        '<input type="checkbox" class="dev-item-chk w-5 h-5 accent-rose-600" checked>' +
+        '<span class="text-sm font-bold text-slate-800 truncate">' + String(it.descricao || 'Item').replace(/</g, '') + '</span>' +
+        '</label>' +
+        '<input type="text" inputmode="decimal" class="dev-item-qtd min-h-[40px] w-[4.5rem] rounded-lg border-2 border-slate-200 px-2 text-right text-sm font-black tabular-nums" value="' + String(rest).replace('.', ',') + '">' +
+        '<span class="text-xs font-bold text-slate-500 tabular-nums w-[5.5rem] text-right">R$ ' + fmtBr(Number(it.valor_restante || 0)) + '</span>';
+      itensEl.appendChild(div);
+    });
+    if (itensEl) {
+      itensEl.querySelectorAll('.dev-item-chk, .dev-item-qtd').forEach(function (el) {
+        el.addEventListener('input', syncPagamentosAoTotal);
+        el.addEventListener('change', syncPagamentosAoTotal);
+      });
+    }
+    if (freteChk) {
+      freteChk.checked = false;
+      freteChk.addEventListener('change', syncPagamentosAoTotal);
+    }
+  }
+
+  function collectItensPayload() {
+    var out = [];
+    if (!itensEl) return out;
+    itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+      var chk = row.querySelector('.dev-item-chk');
+      var qInp = row.querySelector('.dev-item-qtd');
+      if (!chk || !chk.checked) return;
+      var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+      if (q <= 0) return;
+      out.push({ item_id: parseInt(row.getAttribute('data-item-id'), 10), quantidade: q });
+    });
+    return out;
+  }
 
   function renderRows(rows) {
-
     listEl.innerHTML = '';
-
     (rows || []).forEach(function (row, idx) {
-
       var div = document.createElement('div');
-
       div.className = 'flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2';
-
       var sel = '<select data-idx="' + idx + '" class="dev-forma flex-1 min-h-[44px] rounded-lg border-2 border-slate-200 px-2 text-sm font-bold">';
-
       formas.forEach(function (f) {
-
         sel += '<option value="' + f.replace(/"/g, '&quot;') + '"' + (f === row.forma ? ' selected' : '') + '>' + f + '</option>';
-
       });
-
       sel += '</select>';
-
       div.innerHTML =
-
         sel +
-
         '<input type="text" inputmode="decimal" data-idx="' + idx + '" class="dev-valor min-h-[44px] w-[6.5rem] rounded-lg border-2 border-slate-200 px-2 text-right text-base font-black tabular-nums" value="' +
-
         fmtBr(Number(row.valor || 0)) +
-
         '">' +
-
         '<button type="button" data-rm="' + idx + '" class="min-h-[44px] px-2 text-xs font-black uppercase text-red-700">Rem.</button>';
-
       listEl.appendChild(div);
-
     });
-
     bindRowEvents();
-
     updTotal();
-
   }
-
-
 
   function collectRows() {
-
     var rows = [];
-
     listEl.querySelectorAll('.dev-forma').forEach(function (sel, i) {
-
       var valInp = listEl.querySelectorAll('.dev-valor')[i];
-
-      rows.push({
-
-        forma: sel.value,
-
-        valor: parseBr(valInp ? valInp.value : 0),
-
-      });
-
+      rows.push({ forma: sel.value, valor: parseBr(valInp ? valInp.value : 0) });
     });
-
     return rows;
-
   }
-
-
 
   function updTotal() {
-
+    var alvo = totalSelecionado();
     var s = collectRows().reduce(function (a, r) { return a + (r.valor || 0); }, 0);
-
-    totalLabel.textContent = 'R$ ' + fmtBr(s);
-
-    totalLabel.classList.toggle('text-rose-700', Math.abs(s - totalVenda) > 0.02);
-
-    totalLabel.classList.toggle('text-emerald-700', Math.abs(s - totalVenda) <= 0.02);
-
+    totalLabel.textContent = 'R$ ' + fmtBr(s) + ' / R$ ' + fmtBr(alvo);
+    totalLabel.classList.toggle('text-rose-700', Math.abs(s - alvo) > 0.02);
+    totalLabel.classList.toggle('text-emerald-700', Math.abs(s - alvo) <= 0.02);
   }
-
-
 
   function bindRowEvents() {
-
     listEl.querySelectorAll('.dev-forma, .dev-valor').forEach(function (el) {
-
       el.addEventListener('input', updTotal);
-
       el.addEventListener('change', updTotal);
-
     });
-
     listEl.querySelectorAll('[data-rm]').forEach(function (btn) {
-
       btn.addEventListener('click', function () {
-
         var idx = parseInt(btn.getAttribute('data-rm'), 10);
-
         var rows = collectRows();
-
         rows.splice(idx, 1);
-
         renderRows(rows);
-
       });
-
     });
-
   }
 
-
-
   function abrirModalDevolucao() {
-    renderRows(defaultPag.length ? defaultPag.slice() : [{ forma: formas[0] || 'Dinheiro', valor: totalVenda }]);
+    renderItens();
+    syncPagamentosAoTotal();
     modal.classList.remove('hidden');
   }
   document.getElementById('btn-devolver-venda').addEventListener('click', abrirModalDevolucao);
@@ -734,102 +774,82 @@
     }
   } catch (e) {}
 
+  var btnTudo = document.getElementById('btn-devolver-tudo');
+  if (btnTudo) {
+    btnTudo.addEventListener('click', function () {
+      if (itensEl) {
+        itensEl.querySelectorAll('[data-item-id]').forEach(function (row) {
+          var chk = row.querySelector('.dev-item-chk');
+          var qInp = row.querySelector('.dev-item-qtd');
+          var qMax = row.getAttribute('data-qtd-restante') || '0';
+          if (chk) chk.checked = true;
+          if (qInp) qInp.value = String(qMax).replace('.', ',');
+        });
+      }
+      if (freteChk && freteRestante > 0) freteChk.checked = true;
+      syncPagamentosAoTotal();
+    });
+  }
+
   document.getElementById('btn-devolucao-cancelar').addEventListener('click', function () {
-
     modal.classList.add('hidden');
-
   });
 
   document.getElementById('btn-add-forma-dev').addEventListener('click', function () {
-
     var rows = collectRows();
-
     rows.push({ forma: formas[0] || 'Dinheiro', valor: 0 });
-
     renderRows(rows);
-
   });
 
   document.getElementById('btn-devolucao-confirmar').addEventListener('click', function () {
-
-    var rows = collectRows();
-
-    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
-
-    if (Math.abs(soma - totalVenda) > 0.02) {
-
-      alert('A soma das formas (R$ ' + fmtBr(soma) + ') deve ser igual ao total da venda (R$ ' + fmtBr(totalVenda) + ').');
-
+    var itens = collectItensPayload();
+    var devolverFrete = !!(freteChk && freteChk.checked);
+    var alvo = totalSelecionado();
+    if (alvo <= 0.009) {
+      alert('Marque ao menos um item ou a taxa de entrega.');
       return;
-
     }
-
-    if (!confirm('Confirmar devolução? O estoque será reposto e o valor sairá do caixa aberto.')) return;
-
+    var rows = collectRows();
+    var soma = rows.reduce(function (a, r) { return a + (r.valor || 0); }, 0);
+    if (Math.abs(soma - alvo) > 0.02) {
+      alert('A soma das formas (R$ ' + fmtBr(soma) + ') deve ser igual ao total marcado (R$ ' + fmtBr(alvo) + ').');
+      return;
+    }
+    if (!confirm('Confirmar devolução de R$ ' + fmtBr(alvo) + '?')) return;
     var btn = document.getElementById('btn-devolucao-confirmar');
-
     btn.disabled = true;
-
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-
     fetch('{% url "api_venda_agro_devolver" v.pk %}', {
-
       method: 'POST',
-
       credentials: 'same-origin',
-
       headers: {
-
         'Content-Type': 'application/json',
-
         'X-CSRFToken': getCookie('csrftoken'),
-
         'Accept': 'application/json',
-
       },
-
       body: JSON.stringify({
-
         motivo: document.getElementById('devolucao-motivo').value || '',
-
         pagamentos: rows,
-
+        itens: itens,
+        devolver_frete: devolverFrete,
       }),
-
     })
-
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-
       .then(function (x) {
-
         if (x.j && x.j.ok) {
-
           var msg = x.j.mensagem || 'Devolução registrada.';
-
-          if (x.j.avisos && x.j.avisos.length) msg += '\\n\\n' + x.j.avisos.join('\\n');
-
+          if (x.j.avisos && x.j.avisos.length) msg += '\n\n' + x.j.avisos.join('\n');
           alert(msg);
-
           location.reload();
-
           return;
-
         }
-
         alert((x.j && x.j.erro) || 'Falha ao devolver.');
-
       })
-
       .catch(function () { alert('Falha de rede.'); })
-
       .finally(function () {
-
         btn.disabled = false;
-
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
-
       });
-
   });
 
 })();

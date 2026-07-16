@@ -119,6 +119,8 @@
                 <span class="font-black text-slate-900 tabular-nums">#{{ v.id }}</span>
                 {% if v.devolvida_em %}
                 <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-rose-100 text-rose-800">Devolvida</span>
+                {% elif v.tem_devolucao_parcial %}
+                <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-100 text-amber-900">Parcial</span>
                 {% endif %}
               </td>
               <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
