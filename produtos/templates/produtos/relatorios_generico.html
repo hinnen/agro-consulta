@@ -147,6 +147,20 @@
         <option value="giro" {% if extra_filtros.aba == 'giro' %}selected{% endif %}>Top giro (30d)</option>
       </select>
     </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] min-w-[12rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        {% if extra_filtros.aba == 'parado' %}
+        <option value="ultima_venda_asc" {% if extra_filtros.ordenar == 'ultima_venda_asc' %}selected{% endif %}>Mais antigo primeiro</option>
+        <option value="ultima_venda_desc" {% if extra_filtros.ordenar == 'ultima_venda_desc' %}selected{% endif %}>Mais recente primeiro</option>
+        {% else %}
+        <option value="ultima_venda_desc" {% if extra_filtros.ordenar == 'ultima_venda_desc' %}selected{% endif %}>Última venda mais recente</option>
+        <option value="ultima_venda_asc" {% if extra_filtros.ordenar == 'ultima_venda_asc' %}selected{% endif %}>Última venda mais antiga</option>
+        <option value="receita_desc" {% if extra_filtros.ordenar == 'receita_desc' %}selected{% endif %}>Receita 30d</option>
+        <option value="qtd_desc" {% if extra_filtros.ordenar == 'qtd_desc' %}selected{% endif %}>Quantidade 30d</option>
+        {% endif %}
+      </select>
+    </div>
     {% endif %}
 
     {% if filtro_parcial == 'ruptura' %}

@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.14** · **loja v9.14**
+**Versão app (VERSION):** **teste v9.15** · **loja v9.14**
+
+### feat — giro/parado com última venda + ordenação (16/07 · **teste v9.15**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Coluna **Última venda** no giro/parado + filtro **Ordenar** por data |
+| **Onde** | Tela, impressão A4 e Excel |
 
 ### 📦 Deploy loja **v9.14** — Relatórios (pós-v9.07) (16/07 · Renan frase+senha)
 
