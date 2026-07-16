@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Inclui** | Só o fix do botão **NF** em Contas a pagar (Postgres) — **não** sobe devolução parcial |
-| **Commits loja** | cherry `5000678` → **54d37b9** |
+| **Commits loja** | cherry `5000678` → **0a5b620** |
 | **Backup** | branch `producao-backup-pre-v867-20260716` @ **92b1804** (v8.65) — reverter: `git push origin producao-backup-pre-v867-20260716:producao` |
 | **Autorização** | *pode subir* + 99738595 · pediu backup/seguro |
 | **Você** | Ctrl+F5 loja · badge **v8.67** · CP busca Agromaia → botão NF |
