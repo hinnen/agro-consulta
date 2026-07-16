@@ -1155,7 +1155,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.69** · **loja v8.67**
+**Versão app (VERSION):** **teste v8.70** · **loja v8.67**
+
+### 🩹 Devolução — confirmação bonita + valor igual aos itens (16/07 · **teste v8.70**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Sem confirm do Chrome · aviso no estilo SisVale · formas = itens (centavo a mais bloqueia) |
+| **Validar** | F5 · 1,31 vs 1,30 bloqueia · igualar · confirmação grande |
+| **Loja** | ⏳ |
+
+
 
 ### 🩹 Devolução — modal maior (idosos) (16/07 · **teste v8.69**)
 
