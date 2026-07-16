@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.04** · **loja v9.04**
+**Versão app (VERSION):** **teste v9.06** · **loja v9.06**
+
+### hotfix loja **v9.06** — relatorios 500 (16/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Mais vendidos / ABC / grupo / margem / comparativo / comissao = 500 |
+| **Causa** | ExpressionWrapper na agregacao ItemVendaAgro (loja) |
+| **Fix** | Sum simples + liquido em Python · loja `adc7d58` / `6102608` |
+| **Validar** | Ctrl+F5 · Mais vendidos + Curva ABC |
 
 ### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)
 
@@ -3739,7 +3748,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-021 | `cp-btn-nf-ausente` | `lancamentos_contas_pagar_teste.html` — `urlEntradaNfeEmbed` / vínculo NF entrada · ex. **RBS 781,64** |
 | FL-022 | `cp-busca-inconsistente` | Filtro busca lista CP — `mongo_financeiro_util` + JS modal filtros |
 | FL-023 | `cp-busca-limpa-datas` | Ao buscar na lista CP: resetar filtros de **data** (período não deve persistir na busca textual) |
-| FL-024 | `cadastro-popup-cat-marca-food` | Modal estilo instância Food — cadastro rápido **categoria** + **marca** |
+| FL-024 | `cadastro-popup-cat-marca-food` | **#22:** não auto-criar ao digitar · select só se existir · popup Food+PIN+log · busca CI sem acento · cat/sub/marca |
 | FL-025 | `codigo-interno-seq-4k` | Sequência código interno GM — hoje **9000+**; alvo combinado **~4000–5000** — `cadastro_erp` / overlay |
 | FL-026 | `entrada-nf-perde-conferencia` | Add linha nova na NF: zera barras (passo 3) e lote/val (4–5) dos itens já conferidos |
 | FL-027 | `entrada-nf-xml-forma-boleto-cn` | Parse XML etapa 7: mapear forma pag. **Boleto Bancário CN** (não só «Boleto Bancário») |
@@ -3748,7 +3757,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-030 | `fiado-ignorar-vencido-pin` | Override bloqueio notinhas vencidas — PIN **Geraldo** / **Geraldinho** |
 | FL-031 | `entregas-polish` | Continuar FL-006 — `entregas_painel.html` + APIs |
 | FL-032 | `pdv-reset-nova-venda` | Botão explícito reset carrinho/contexto e nova venda |
-| FL-033 | `bi-vendas-dia-nth-weekday` | Dashboard: comparar **N-ésimo** dia da semana no mês vs mês anterior |
+| FL-033 | `bi-vendas-dia-nth-weekday` | **#21:** dashboard N-ésimo weekday vs mês anterior |
+| FL-053 | `entrada-nf-historico-custo-duplo` | **#19:** tick histórico custo 2× (etapa 2 + finalize) — dedupe / um só evento |
+| FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressão separação / entregador / cliente no painel entregas |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
