@@ -1155,9 +1155,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.61** · **loja v8.54**
+**Versão app (VERSION):** **teste v8.62** · **loja v8.54**
 
-### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.61**)
+### 🩹 PDV — cliente Esc + valor grupo A/B (15/07 · **teste v8.61** / badge **v8.62**)
 
 | Item | Detalhe |
 | ---- | ------- |
