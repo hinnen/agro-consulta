@@ -62,7 +62,7 @@ def parse_periodo_request(
         d1 = hoje
 
     desde = datetime.combine(d0, time.min)
-    ate = datetime.combine(d1, time.max)
+    ate = datetime.combine(d1, time(23, 59, 59))
     desde, ate = _aware_bounds(desde, ate)
     return {
         "periodo": periodo,
@@ -94,7 +94,7 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
     if d0 > d1:
         d0, d1 = d1, d0
     desde = datetime.combine(d0, time.min)
-    ate = datetime.combine(d1, time.max)
+    ate = datetime.combine(d1, time(23, 59, 59))
     desde, ate = _aware_bounds(desde, ate)
     return {
         "periodo_b": modo,
@@ -118,37 +118,29 @@ def _qs_itens(desde: datetime, ate: datetime):
 
 def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
     """
-    Soma qtd/valor por produto. Usa só Sum em colunas reais (sem ExpressionWrapper)
-    — compatível com o Postgres/Gunicorn da loja.
+    Soma qtd/valor por produto — mesmo padrão do giro (Sum em colunas reais).
     """
     qs = (
         _qs_itens(desde, ate)
         .values("produto_id_externo")
         .annotate(
-            qtd_bruta=Sum("quantidade"),
-            qtd_dev=Sum("quantidade_devolvida"),
-            valor_bruto=Sum("valor_total"),
+            qtd=Sum("quantidade"),
+            valor=Sum("valor_total"),
         )
+        .order_by()
     )
     out: list[dict] = []
-    for r in qs.iterator(chunk_size=2000):
+    for r in list(qs):
         pid = str(r.get("produto_id_externo") or "").strip()
         if not pid:
             continue
         try:
-            qtd_b = float(r.get("qtd_bruta") or 0)
-            qtd_d = float(r.get("qtd_dev") or 0)
-            valor_b = float(r.get("valor_bruto") or 0)
+            qtd = float(r.get("qtd") or 0)
+            valor = float(r.get("valor") or 0)
         except (TypeError, ValueError):
             continue
-        qtd = qtd_b - qtd_d
         if qtd <= 0:
             continue
-        # valor líquido proporcional à qtd não devolvida
-        if qtd_b > 0:
-            valor = valor_b * (qtd / qtd_b)
-        else:
-            valor = 0.0
         out.append({"produto_id_externo": pid, "qtd": qtd, "valor": valor})
     return out
 

@@ -1,12 +1,15 @@
 """Views da Central de Relatórios (além de validade/etiquetas)."""
 from __future__ import annotations
 
+import logging
 from urllib.parse import urlencode
 
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 from produtos import relatorios_vendas_util as ru
+
+logger = logging.getLogger(__name__)
 
 
 def _qs_export(request) -> str:
@@ -21,6 +24,22 @@ def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
 
 @require_GET
 def relatorios_mais_vendidos(request):
+    try:
+        return _relatorios_mais_vendidos_impl(request)
+    except Exception as exc:
+        logger.exception("relatorios_mais_vendidos")
+        if (request.GET.get("diag") or "") == "1":
+            from django.http import HttpResponse
+
+            return HttpResponse(
+                f"ERRO relatorios_mais_vendidos: {type(exc).__name__}: {exc}",
+                status=500,
+                content_type="text/plain; charset=utf-8",
+            )
+        raise
+
+
+def _relatorios_mais_vendidos_impl(request):
     f = _periodo_filtros(request)
     ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
     if ordenar not in ("valor", "qtd"):
