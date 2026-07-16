@@ -1155,7 +1155,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v8.90** · **loja v8.68**
+**Versão app (VERSION):** **teste v8.91** · **loja v8.68**
 
 ### 📦 Pacote pronto loja — fechar depois (16/07 · Renan)
 
@@ -1212,16 +1212,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P2** | Parcela + CPF/CNPJ |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help + placeholder |
 | **Validar** | Ctrl+F5 teste · CP · valor · `15/07/2026` · `2/6` · boleto |
-| **Loja** | ⏳ frase + senha |
+| **Loja** | ⏳ frase + senha — **📦 no pacote do fecha** |
 
-### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79**)
+### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79** · **✅ Renan**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **1 Lista** | Parcial mostra **restante** (ex. R$ 1,30) + original riscado; total do período soma restantes |
 | **2 Detalhe** | Item devolvido com **risco** + badge; total restante no card |
 | **3 ERP** | Coluna/botões ERP sumiram; `PDV_VENDA_ERP_ENVIO=False` (padrão) — não manda Pedidos/Salvar |
-| **Validar** | Ctrl+F5 teste · badge **v8.79** · venda parcial · lista + detalhe |
+| **Validar** | ✅ Renan · **📦 pronto loja (fecha)** |
 
 ### 📦 Deploy loja **v8.68** — FL-021 hotfix match NF (16/07 · Renan frase+senha)
 
