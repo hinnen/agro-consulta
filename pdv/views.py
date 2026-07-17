@@ -159,6 +159,7 @@ def pdv_home(request):
                 ),
                 "apiPdvProdutoAjusteEstoque": reverse("api_pdv_produto_ajuste_estoque"),
                 "apiProdutosGestaoOverlaySalvar": reverse("api_produtos_gestao_overlay_salvar"),
+                "apiComprasRelatorioDim": reverse("api_compras_relatorio_dim_sugestao"),
             },
             "search": {
                 "mode": "wizard",

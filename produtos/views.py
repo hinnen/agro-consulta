@@ -1297,24 +1297,55 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
     pid = str(produto_id or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
-    p = obter_produto_model(pid)
-    if p is None:
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
-    row = produto_agro_para_row(p)
-    pid_out = str(row.get("id") or pid).strip()
-    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+
     client_m, db_m = None, None
     try:
         client_m, db_m = obter_conexao_mongo()
     except Exception:
         client_m, db_m = None, None
 
-    cod_sys = str(row.get("codigo") or getattr(p, "codigo_interno", None) or "").strip()
+    p = obter_produto_model(pid)
+    row: dict = {}
+    doc = None
+    if p is not None:
+        row = produto_agro_para_row(p)
+    else:
+        # Carrinho/PDV pode ter id só no espelho Mongo (ainda sem linha Produto no PG).
+        try:
+            doc = _produto_mongo_por_id_externo(db_m, client_m, pid) if db_m is not None else None
+        except Exception:
+            doc = None
+        if not isinstance(doc, dict):
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
+        row = {
+            "id": str(doc.get("Id") or doc.get("_id") or pid).strip() or pid,
+            "nome": str(doc.get("Nome") or "").strip(),
+            "codigo": str(doc.get("Codigo") or "").strip(),
+            "codigo_nfe": str(
+                doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("codigo_nfe") or ""
+            ).strip(),
+            "codigo_barras": str(_extrair_codigo_barras(doc) or "").strip(),
+            "unidade": str(doc.get("Unidade") or doc.get("SiglaUnidade") or "UN").strip() or "UN",
+            "preco_custo": 0.0,
+            "preco_venda": float(doc.get("ValorVenda") or doc.get("PrecoVenda") or 0),
+        }
+        try:
+            custos = _custos_compra_produto(doc)
+            row["preco_custo"] = float(custos.get("preco_custo") or 0)
+        except Exception:
+            pass
+
+    pid_out = str(row.get("id") or pid).strip()
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+    if ov is None and pid_out != pid:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+
+    cod_sys = str(row.get("codigo") or (getattr(p, "codigo_interno", None) if p else "") or "").strip()
     # GM = CodigoNFe/overlay — nunca usar o código sistema (4 dígitos) como se fosse GM.
     cod_gm = ""
     if ov and (ov.codigo_nfe or "").strip():
         cod_gm = ov.codigo_nfe.strip()
-    elif (getattr(p, "codigo_nfe", None) or "").strip():
+    elif p is not None and (getattr(p, "codigo_nfe", None) or "").strip():
         cod_gm = str(p.codigo_nfe).strip()
     else:
         cn_row = str(row.get("codigo_nfe") or "").strip()
@@ -1332,6 +1363,9 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
     cb = str(row.get("codigo_barras") or "").strip()
     if ov and (ov.codigo_barras or "").strip():
         cb = ov.codigo_barras.strip()
+    unidade = str(row.get("unidade") or "UN").strip() or "UN"
+    if ov and (ov.unidade or "").strip():
+        unidade = ov.unidade.strip()
     try:
         pc = float(row.get("preco_custo") or 0)
     except (TypeError, ValueError):
@@ -1343,13 +1377,26 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
                 pc = float(str(raw_c).replace(",", "."))
             except (TypeError, ValueError):
                 pass
+    try:
+        pv = float(row.get("preco_venda") or 0)
+    except (TypeError, ValueError):
+        pv = 0.0
+    if ov and ov.preco_venda is not None:
+        try:
+            pv = float(ov.preco_venda)
+        except (TypeError, ValueError):
+            pass
+    nome = str(row.get("nome") or "").strip()
+    if ov and (ov.nome or "").strip():
+        nome = ov.nome.strip()
 
     # Complemento Mongo quando PG/overlay ainda não têm GM/barras/custo (mesmo espelho do cadastro).
     if db_m is not None and client_m is not None:
-        try:
-            doc = _produto_mongo_por_id_externo(db_m, client_m, pid_out)
-        except Exception:
-            doc = None
+        if not isinstance(doc, dict):
+            try:
+                doc = _produto_mongo_por_id_externo(db_m, client_m, pid_out)
+            except Exception:
+                doc = None
         if isinstance(doc, dict):
             if _gm_parece_sistema(cod_gm):
                 mongo_gm = str(
@@ -1365,6 +1412,12 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
                     pc = float(custos.get("preco_custo") or 0)
                 except Exception:
                     pass
+            if not nome:
+                nome = str(doc.get("Nome") or "").strip()
+            if not unidade or unidade == "UN":
+                mu = str(doc.get("Unidade") or doc.get("SiglaUnidade") or "").strip()
+                if mu:
+                    unidade = mu
 
     saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
     sinfo = saldos.get(pid_out) or {}
@@ -1377,15 +1430,15 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
             "ok": True,
             "produto": {
                 "id": pid_out,
-                "nome": str(row.get("nome") or "").strip(),
+                "nome": nome,
                 "codigo": cod_sys,
                 "codigo_sistema": cod_sys,
                 "codigo_nfe": cod_gm,
                 "codigo_gm": cod_gm,
                 "codigo_barras": cb,
-                "unidade": str(row.get("unidade") or "UN").strip() or "UN",
+                "unidade": unidade,
                 "preco_custo": round(pc, 2) if pc > 0 else round(float(row.get("preco_custo") or 0), 2),
-                "preco_venda": round(float(row.get("preco_venda") or 0), 2),
+                "preco_venda": round(pv, 2),
                 "precos_modo": modo,
                 "precos_grupos": pg,
                 "saldo_centro": round(float(sinfo.get("saldo_centro") or 0), 2),
@@ -1429,19 +1482,38 @@ def api_pdv_produto_ajuste_estoque(request):
     if novo_c is None and novo_v is None:
         return JsonResponse({"ok": False, "erro": "Informe saldo_centro e/ou saldo_vila"}, status=400)
 
-    p = obter_produto_model(pid)
-    if p is None:
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
-    row = produto_agro_para_row(p)
-    pid_out = str(row.get("id") or pid).strip()
-    nome_p = str(row.get("nome") or pid_out)[:200]
-    codigo = str(row.get("codigo_nfe") or row.get("codigo") or "")[:100]
-
     client_m, db_m = None, None
     try:
         client_m, db_m = obter_conexao_mongo()
     except Exception:
         client_m, db_m = None, None
+
+    p = obter_produto_model(pid)
+    if p is not None:
+        row = produto_agro_para_row(p)
+        pid_out = str(row.get("id") or pid).strip()
+        nome_p = str(row.get("nome") or pid_out)[:200]
+        codigo = str(row.get("codigo_nfe") or row.get("codigo") or "")[:100]
+    else:
+        # Mesmo fallback do GET: id do carrinho pode existir só no Mongo.
+        try:
+            doc = _produto_mongo_por_id_externo(db_m, client_m, pid) if db_m is not None else None
+        except Exception:
+            doc = None
+        if not isinstance(doc, dict):
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
+        pid_out = str(doc.get("Id") or doc.get("_id") or pid).strip() or pid
+        nome_p = str(doc.get("Nome") or pid_out)[:200]
+        codigo = str(
+            doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("Codigo") or ""
+        ).strip()[:100]
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+        if ov:
+            if (ov.nome or "").strip():
+                nome_p = ov.nome.strip()[:200]
+            if (ov.codigo_nfe or "").strip():
+                codigo = ov.codigo_nfe.strip()[:100]
+
     saldos_antes = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
     sinfo = saldos_antes.get(pid_out) or {}
     erp_c = Decimal(str(sinfo.get("saldo_erp_centro") or 0))

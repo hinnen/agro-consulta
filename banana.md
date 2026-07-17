@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.42** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.44** · **loja v9.16**
+
+### 🩹 PDV — editor: 2 tags estoque + unidade busca (17/07 · **teste v9.44**)
+
+| | |
+| --- | --- |
+| **O quê** | Estoque em **2 cards** (tag Centro / Vila). Unidade = busca nas já usadas (ignora acento/maiúscula) + **Cadastrar «…»** se não achar. Mensagem vermelha «Produto não encontrado» sumiu: API agora lê Mongo se o produto ainda não está no Postgres |
+| **Você** | Ctrl+F5 · badge **v9.44** · lápis no milho · confere estoque + unidade |
 
 ### ✨ Cadastro — modal editar maior (altura) (17/07 · **teste v9.42**)
 
