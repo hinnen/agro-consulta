@@ -1351,6 +1351,7 @@ class ProdutoCadastroAlteracaoAgro(models.Model):
 
     class Origem(models.TextChoices):
         MODAL = "modal", "Modal cadastro"
+        PDV = "pdv", "PDV edição rápida"
         GESTAO = "gestao", "Gestão"
         PLANILHA = "planilha", "Excel"
         NF = "nf", "Entrada NF"

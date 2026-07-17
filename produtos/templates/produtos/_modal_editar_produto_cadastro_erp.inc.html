@@ -2337,6 +2337,7 @@
       body.precos_grupos = window.agroCadastroObterPrecosGruposPayload();
     }
     body.validar_cadastro_minimo = true;
+    body.origem_historico = 'modal';
     var tok = obterCsrfCadastro(cfg);
     if (!tok) {
       mostrarStatusModalSalvo(

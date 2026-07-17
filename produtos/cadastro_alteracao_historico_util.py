@@ -151,6 +151,8 @@ def inferir_origem_payload(payload: dict | None) -> str:
     raw = str(p.get("origem_historico") or p.get("historico_origem") or "").strip().lower()
     if raw in {c.value for c in ProdutoCadastroAlteracaoAgro.Origem}:
         return raw
+    if p.get("pdv_edicao_rapida") or p.get("origem_pdv"):
+        return ProdutoCadastroAlteracaoAgro.Origem.PDV
     if p.get("validar_cadastro_minimo"):
         return ProdutoCadastroAlteracaoAgro.Origem.MODAL
     if p.get("entrada_nfe") or p.get("origem_entrada_nf"):

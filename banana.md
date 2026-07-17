@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.60** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.62** · **loja v9.16**
+
+### 🩹 PDV + Cadastro — histórico aba 9 também no lápis (17/07 · **teste v9.62**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Edição rápida do PDV (lápis) já salvava no mesmo overlay — agora marca origem **«PDV edição rápida»** na aba **9. Alterações**. Cadastro modal marca **«Modal cadastro»**. Mudança de **saldo** no lápis continua só na aba **4 Estoque** (não mistura) |
+| **Você** | Ctrl+F5 · badge **v9.62** · lápis muda nome/preço → cadastro → aba 9 · confere origem |
+| **Pacote** | Entra no **Cadastro modal** + **PDV lápis** (ambos 📦) |
 
 ### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.60**)
 
@@ -1171,8 +1179,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
-| **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
-| **Versão alvo loja** | **v9.56** (ou badge do deploy) |
+| **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) — **inclui PDV lápis** (origem «PDV edição rápida») · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
+| **Versão alvo loja** | **v9.62** (ou badge do deploy) |
 | **Base loja hoje** | **v9.16** |
 | **Arquivos (núcleo)** | `_modal_editar_produto_cadastro_erp.inc.html` · `estoque_movimentos_cadastro_util.py` · `cadastro_alteracao_historico_util.py` · `migrations/0054_produto_cadastro_alteracao_agro.py` · URLs/API cadastro (estoque-movimentos + alteracoes-historico) · hooks salvar overlay/Excel |
 | **Pente fino** | IDs dos campos intactos · `edit-img` agora com rótulo «URL da imagem» · kardex ≠ alterações · sem altura falsa nos cards de Preços |

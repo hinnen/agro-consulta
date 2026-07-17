@@ -7764,7 +7764,9 @@
                 ? String(dom.quickProductEditUnidade.value || '').trim()
                 : '',
             precos_modo: temGrupo ? 'grupos' : 'por_forma',
-            sincronizar_erp: false
+            sincronizar_erp: false,
+            origem_historico: 'pdv',
+            pdv_edicao_rapida: true
         };
         var custoN = parseMoneyEdit(dom.quickProductEditCusto && dom.quickProductEditCusto.value);
         var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
