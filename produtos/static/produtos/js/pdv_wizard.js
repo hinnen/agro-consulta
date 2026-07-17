@@ -2750,12 +2750,6 @@
             panel.classList.toggle('hidden', !visible);
         });
         esconderSubpainelsEntregaForaDaEtapa();
-        var topSearch = document.getElementById('pdv-topbar-product-search');
-        if (topSearch) {
-            var onProdutos = state.currentStep === 'produtos';
-            topSearch.classList.toggle('hidden', !onProdutos);
-            topSearch.hidden = !onProdutos;
-        }
         dom.stepNavs.forEach(function (btn) {
             var step = btn.getAttribute('data-step-nav');
             var idx = flowIndex(flow, step);
