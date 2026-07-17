@@ -18997,6 +18997,85 @@ def api_produtos_cadastro_compras_historico(request):
 
 
 @require_GET
+def api_produtos_cadastro_estoque_movimentos(request):
+    """
+    Kardex SisVale do produto (``AjusteRapidoEstoque``) para o modal de cadastro.
+    Nunca devolve PIN — só nome do operador quando houver.
+    """
+    from produtos.estoque_movimentos_cadastro_util import montar_movimentos_produto
+
+    pid = str(request.GET.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório", "linhas": []}, status=400)
+
+    pid_set: set[str] = {pid[:100]}
+    try:
+        pid_set.update(str(x) for x in _produto_ids_variants_mongo([pid]) if x)
+    except Exception:
+        pass
+
+    cbs = [str(x).strip() for x in request.GET.getlist("cb") if str(x).strip()]
+    cfs = [str(x).strip() for x in request.GET.getlist("cf") if str(x).strip()]
+    cis = [str(x).strip() for x in request.GET.getlist("ci") if str(x).strip()]
+
+    compras_linhas: list[dict] = []
+    client, db = obter_conexao_mongo()
+    if db is not None:
+        try:
+            pid_set.update(_mongo_produto_ids_por_codigos_cadastro(db, client, cbs, cfs, cis))
+            pid_list = [x for x in pid_set if x][:120]
+            por_id: dict[str, dict] = {}
+            for p in pid_list:
+                doc = _produto_mongo_por_id_externo(db, client, p)
+                if doc:
+                    por_id[p] = doc
+            mapa = _ultimas_compras_por_produto_ids(db, pid_list, por_id, limit=30)
+            for plid, rows in mapa.items():
+                for r in rows or []:
+                    det = r.get("detalhe") if isinstance(r.get("detalhe"), dict) else {}
+                    try:
+                        pp = round(float(r.get("preco_final") or 0), 2)
+                    except (TypeError, ValueError):
+                        pp = 0.0
+                    compras_linhas.append(
+                        {
+                            "fornecedor": str(r.get("fornecedor") or "—")[:200],
+                            "preco_pago": pp,
+                            "data": str(det.get("data") or ""),
+                        }
+                    )
+            compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
+        except Exception:
+            logger.exception("api_produtos_cadastro_estoque_movimentos compras enrich")
+    else:
+        pid_list = [x for x in pid_set if x][:120]
+
+    try:
+        dias = int(request.GET.get("dias") if request.GET.get("dias") is not None else 90)
+    except (TypeError, ValueError):
+        dias = 90
+    try:
+        limit = int(request.GET.get("limit") or 50)
+    except (TypeError, ValueError):
+        limit = 50
+    try:
+        offset = int(request.GET.get("offset") or 0)
+    except (TypeError, ValueError):
+        offset = 0
+
+    payload = montar_movimentos_produto(
+        produto_ids=list(pid_set),
+        deposito=str(request.GET.get("deposito") or "").strip(),
+        origem=str(request.GET.get("origem") or "").strip(),
+        dias=dias,
+        limit=limit,
+        offset=offset,
+        compras_linhas=compras_linhas,
+    )
+    return JsonResponse(payload)
+
+
+@require_GET
 def api_produtos_cadastro_detalhe(request, produto_id: str):
     """Detalhe completo do cadastro (Mongo / ERP) para a tela de consulta — sem saldos."""
     pid = str(produto_id or "").strip()
@@ -20381,20 +20460,39 @@ def api_pdv_registrar_operador(request):
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
-    if (pin == "SESSAO" and request.session.get("mobile_auth")) or PerfilUsuario.objects.filter(
-        senha_rapida=pin
-    ).exists():
+    perfil_pin = None
+    if pin and pin != "SESSAO":
+        perfil_pin = (
+            PerfilUsuario.objects.select_related("user")
+            .filter(senha_rapida=pin)
+            .first()
+        )
+    if (pin == "SESSAO" and request.session.get("mobile_auth")) or perfil_pin is not None:
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+            user_op = None
+            if request.user.is_authenticated:
+                user_op = request.user
+            elif perfil_pin is not None:
+                user_op = getattr(perfil_pin, "user", None)
+            nome_base = str(request.POST.get("nome_produto") or "").strip()
+            # Grava nome do operador no texto — nunca o PIN
+            if user_op is not None:
+                rotulo = (
+                    (user_op.get_full_name() or "").strip()
+                    or (getattr(user_op, "username", None) or "").strip()
+                )
+                if rotulo and rotulo not in nome_base:
+                    nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 produto_externo_id=request.POST.get("produto_id"),
                 deposito=request.POST.get("deposito", "centro"),
-                nome_produto=request.POST.get("nome_produto"),
+                nome_produto=nome_base[:255],
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
                 saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
                 origem=OrigemAjusteEstoque.AJUSTE_PIN,
-                usuario=request.user if request.user.is_authenticated else None,
+                usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
             return JsonResponse({"ok": True})

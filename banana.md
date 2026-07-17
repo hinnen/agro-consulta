@@ -1156,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.29** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.30** · **loja v9.16**
+
+### ✨ Cadastro — kardex unificado na aba Estoque (17/07 · **teste v9.30**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Remove «Histórico de Fornecedores» · tabela **Histórico de movimentação** (venda, devolução, NF, transferência, ajuste) · filtros depósito/tipo/período · 50 + carregar mais (teto 200) · link da venda · **operador = nome, nunca PIN** |
+| **API** | `GET /api/produtos/cadastro/estoque-movimentos/` |
+| **Arquivos** | `estoque_movimentos_cadastro_util.py` · `views.py` · `_modal_editar_produto_cadastro_erp.inc.html` · `produtos_cadastro_erp.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.30** · abrir produto → aba Estoque |
+| **Loja** | ⏳ |
 
 ### ✨ PDV — lixeira + lápis no carrinho (17/07 · **teste v9.29**)
 

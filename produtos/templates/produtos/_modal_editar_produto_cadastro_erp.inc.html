@@ -343,16 +343,66 @@
         </label>
 
         <div class="sm:col-span-2 md:col-span-3 mt-2">
-          <span class="text-base font-black uppercase text-slate-600 mb-2 block tracking-widest">Histórico de Fornecedores</span>
+          <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+            <div class="min-w-0">
+              <span class="text-base font-black uppercase text-slate-600 block tracking-widest">Histórico de movimentação</span>
+              <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes deste produto.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Depósito</span>
+                <select id="mov-filtro-deposito" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="">Todos</option>
+                  <option value="centro">Centro</option>
+                  <option value="vila">Vila</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Tipo</span>
+                <select id="mov-filtro-origem" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="">Todos</option>
+                  <option value="baixa_venda_pdv">Venda</option>
+                  <option value="devolucao_venda_pdv">Devolução</option>
+                  <option value="entrada_nf_agro">Entrada NF</option>
+                  <option value="transferencia_ui">Transferência</option>
+                  <option value="ajuste_pin">Ajuste PIN</option>
+                  <option value="outro">Ajuste gestão</option>
+                  <option value="vencimento_em_loja">Vencimento</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Período</span>
+                <select id="mov-filtro-dias" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="30">30 dias</option>
+                  <option value="90" selected>90 dias</option>
+                  <option value="365">1 ano</option>
+                  <option value="0">Tudo (até 200)</option>
+                </select>
+              </label>
+            </div>
+          </div>
           <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
-            <table class="w-full text-base min-w-[500px]">
-              <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
-                <tr><th class="px-4 py-3 text-left">Fornecedor</th><th class="px-4 py-3 text-left">Data</th><th class="px-4 py-3 text-right">Preço Pago</th></tr>
+            <table class="w-full text-sm min-w-[720px]">
+              <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600">
+                <tr>
+                  <th class="px-3 py-2.5 text-left">Quando</th>
+                  <th class="px-3 py-2.5 text-left">Tipo</th>
+                  <th class="px-3 py-2.5 text-left">Documento</th>
+                  <th class="px-3 py-2.5 text-left">Fornecedor / Preço</th>
+                  <th class="px-3 py-2.5 text-left">Depósito</th>
+                  <th class="px-3 py-2.5 text-right">Entrada</th>
+                  <th class="px-3 py-2.5 text-right">Saída</th>
+                  <th class="px-3 py-2.5 text-right">Saldo</th>
+                  <th class="px-3 py-2.5 text-left">Quem</th>
+                </tr>
               </thead>
-              <tbody id="lista-fornecedores" class="divide-y divide-slate-100">
-                <tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhum histórico disponível.</td></tr>
+              <tbody id="lista-estoque-movimentos" class="divide-y divide-slate-100">
+                <tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="mt-2 flex justify-center">
+            <button type="button" id="mov-btn-mais" class="hidden min-h-[40px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
           </div>
         </div>
       </div>
@@ -1297,36 +1347,105 @@
       .catch(function () { /* facetas opcional */ });
   }
 
-  function renderFornecedoresLinhas(linhas) {
-    var tb = document.getElementById('lista-fornecedores');
+  function seloTipoMov(origem, label) {
+    var o = String(origem || '');
+    var base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wide ';
+    if (o === 'baixa_venda_pdv') return '<span class="' + base + 'bg-rose-100 text-rose-800 border border-rose-200">' + esc(label) + '</span>';
+    if (o === 'devolucao_venda_pdv' || o === 'entrada_nf_agro') return '<span class="' + base + 'bg-emerald-100 text-emerald-900 border border-emerald-200">' + esc(label) + '</span>';
+    if (o === 'transferencia_ui') return '<span class="' + base + 'bg-sky-100 text-sky-900 border border-sky-200">' + esc(label) + '</span>';
+    if (o === 'ajuste_pin' || o === 'outro') return '<span class="' + base + 'bg-amber-100 text-amber-900 border border-amber-200">' + esc(label) + '</span>';
+    return '<span class="' + base + 'bg-slate-100 text-slate-700 border border-slate-200">' + esc(label || 'Outro') + '</span>';
+  }
+
+  function fmtQtdMov(n) {
+    var x = Number(n);
+    if (!isFinite(x) || x === 0) return '—';
+    return String(x.toFixed(3)).replace(/\.?0+$/, '').replace('.', ',');
+  }
+
+  function linkDocMov(ln) {
+    var doc = ln.documento || '—';
+    var vid = ln.venda_id;
+    var cfg = window.AgroCadastroErpLista || {};
+    var tmpl = cfg.URL_VENDA_DETALHE_TMPL || '';
+    if (vid && tmpl) {
+      var href = String(tmpl).replace('999999', String(vid));
+      return '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="font-bold text-emerald-800 underline decoration-emerald-400 hover:text-emerald-950">' + esc(doc) + '</a>';
+    }
+    return esc(doc);
+  }
+
+  function fornPrecoMov(ln) {
+    var f = (ln.fornecedor || '').trim();
+    var p = ln.preco_pago;
+    if (!f && (p == null || p === '' || Number(p) === 0)) return '—';
+    var parts = [];
+    if (f) parts.push(esc(f));
+    if (p != null && p !== '' && isFinite(Number(p)) && Number(p) !== 0) parts.push(esc(fmtMoneyPt(p)));
+    return parts.join(' · ') || '—';
+  }
+
+  var _movOffset = 0;
+  var _movLoading = false;
+
+  function renderEstoqueMovimentos(linhas, append) {
+    var tb = document.getElementById('lista-estoque-movimentos');
     if (!tb) return;
-    if (!linhas || !linhas.length) {
-      tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhum histórico disponível.</td></tr>';
+    if (!append) tb.innerHTML = '';
+    if ((!linhas || !linhas.length) && !append) {
+      tb.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>';
       return;
     }
+    if ((!linhas || !linhas.length) && append) return;
     var h = '';
-    linhas.forEach(function (ln) {
-      var dt = (ln.data || '').replace('T', ' ').slice(0, 16);
-      h += '<tr><td class="px-4 py-3 text-base font-semibold text-slate-800">' + esc(ln.fornecedor || '—') + '</td>' +
-        '<td class="px-4 py-3 text-base text-slate-600">' + esc(dt || '—') + '</td>' +
-        '<td class="px-4 py-3 text-right text-base font-bold text-slate-800">' + esc(fmtMoneyPt(ln.preco_pago)) + '</td></tr>';
+    (linhas || []).forEach(function (ln) {
+      var dep = String(ln.deposito || '').toLowerCase() === 'vila' ? 'Vila' : 'Centro';
+      h += '<tr class="hover:bg-slate-50/80">' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold whitespace-nowrap">' + esc(ln.quando || '—') + '</td>' +
+        '<td class="px-3 py-2.5">' + seloTipoMov(ln.origem, ln.tipo_label) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-800">' + linkDocMov(ln) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-700">' + fornPrecoMov(ln) + '</td>' +
+        '<td class="px-3 py-2.5 font-semibold text-slate-700">' + esc(dep) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-bold text-emerald-700">' + esc(fmtQtdMov(ln.qtd_entrada)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-bold text-rose-700">' + esc(fmtQtdMov(ln.qtd_saida)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black text-slate-900">' + esc(fmtQtdMov(ln.saldo_depois)) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold">' + esc(ln.operador || '—') + '</td>' +
+        '</tr>';
     });
-    tb.innerHTML = h;
+    if (append) tb.insertAdjacentHTML('beforeend', h);
+    else tb.innerHTML = h;
   }
 
-  var historicoTimer = null;
-  function agendarHistoricoCompras() {
-    if (historicoTimer) clearTimeout(historicoTimer);
-    historicoTimer = setTimeout(carregarHistoricoCompras, 450);
-  }
-
-  function carregarHistoricoCompras() {
+  function carregarHistoricoMovimentos(opts) {
+    opts = opts || {};
+    var append = !!opts.append;
     var cfg = window.AgroCadastroErpLista || {};
-    var base = cfg.URL_COMPRAS_HISTORICO || '';
+    var base = cfg.URL_ESTOQUE_MOVIMENTOS || '';
     var pid = modalEdit.getAttribute('data-produto-id');
-    if (!base || !pid) return;
+    var btnMais = document.getElementById('mov-btn-mais');
+    if (!base || !pid || pid === '__novo__') {
+      renderEstoqueMovimentos([], false);
+      if (btnMais) btnMais.classList.add('hidden');
+      return;
+    }
+    if (_movLoading) return;
+    _movLoading = true;
+    if (!append) {
+      _movOffset = 0;
+      renderEstoqueMovimentos([], false);
+      var tb0 = document.getElementById('lista-estoque-movimentos');
+      if (tb0) tb0.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
+    }
     var params = new URLSearchParams();
     params.set('produto_id', pid);
+    params.set('limit', '50');
+    params.set('offset', String(_movOffset));
+    var elDep = document.getElementById('mov-filtro-deposito');
+    var elOri = document.getElementById('mov-filtro-origem');
+    var elDias = document.getElementById('mov-filtro-dias');
+    if (elDep && elDep.value) params.set('deposito', elDep.value);
+    if (elOri && elOri.value) params.set('origem', elOri.value);
+    if (elDias) params.set('dias', elDias.value || '90');
     (modalEdit._variacoes || []).forEach(function (v) {
       if (v.codigo_barras) params.append('cb', String(v.codigo_barras).trim());
       if (v.codigo_fornecedor) params.append('cf', String(v.codigo_fornecedor).trim());
@@ -1335,11 +1454,31 @@
     fetch(base + '?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (data) {
-        if (data && data.ok && data.linhas) renderFornecedoresLinhas(data.linhas);
-        else renderFornecedoresLinhas([]);
+        _movLoading = false;
+        var linhas = (data && data.ok && data.linhas) ? data.linhas : [];
+        if (!append && !linhas.length) renderEstoqueMovimentos([], false);
+        else renderEstoqueMovimentos(linhas, append);
+        _movOffset += linhas.length;
+        if (btnMais) {
+          if (data && data.tem_mais) btnMais.classList.remove('hidden');
+          else btnMais.classList.add('hidden');
+        }
       })
-      .catch(function () { renderFornecedoresLinhas([]); });
+      .catch(function () {
+        _movLoading = false;
+        if (!append) renderEstoqueMovimentos([], false);
+        if (btnMais) btnMais.classList.add('hidden');
+      });
   }
+
+  (function bindFiltrosMovimentos() {
+    ['mov-filtro-deposito', 'mov-filtro-origem', 'mov-filtro-dias'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', function () { carregarHistoricoMovimentos({ append: false }); });
+    });
+    var btnMais = document.getElementById('mov-btn-mais');
+    if (btnMais) btnMais.addEventListener('click', function () { carregarHistoricoMovimentos({ append: true }); });
+  })();
 
   function fmtQtd(q) {
     var n = Number(q);
@@ -1659,8 +1798,7 @@
     renderComposicao(produto.composicao || []);
     syncCustoMestre();
     atualizarMargemLivre();
-    renderFornecedoresLinhas([]);
-    carregarHistoricoCompras();
+    carregarHistoricoMovimentos({ append: false });
 
     var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
     if (btnExcluirSomenteAgro) {
@@ -1674,12 +1812,18 @@
     }
   }
 
+  var historicoMovTimer = null;
+  function agendarHistoricoMovimentos() {
+    if (historicoMovTimer) clearTimeout(historicoMovTimer);
+    historicoMovTimer = setTimeout(function () { carregarHistoricoMovimentos({ append: false }); }, 450);
+  }
+
   var listaVar = document.getElementById('lista-variacoes');
   if (listaVar) {
     listaVar.addEventListener('input', function () {
       syncVariacoesFromDom();
       syncCustoMestre();
-      agendarHistoricoCompras();
+      agendarHistoricoMovimentos();
     });
     listaVar.addEventListener('click', function (e) {
       var btn = e.target.closest('.var-btn-rem');
@@ -1691,7 +1835,7 @@
       if (isFinite(ix)) (modalEdit._variacoes || []).splice(ix, 1);
       renderVariacoes();
       syncCustoMestre();
-      agendarHistoricoCompras();
+      agendarHistoricoMovimentos();
     });
   }
 
@@ -1720,7 +1864,7 @@
     setVal('var-custo', '');
     renderVariacoes();
     syncCustoMestre();
-    agendarHistoricoCompras();
+    agendarHistoricoMovimentos();
   });
 
   function salvarCadastroModalAgro(syncErp) {
