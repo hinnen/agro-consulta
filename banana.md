@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.28** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.29** · **loja v9.16**
+
+### ✨ PDV — lixeira + lápis no carrinho (17/07 · **teste v9.29**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Ações do item: **lixeira em cima** + **lápis embaixo** (menor, mesma altura de linha). Lápis = placeholder (`data-edit-item`) p/ ligar tela depois |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` |
+| **Você** | Ctrl+F5 teste · badge **v9.29** · carrinho com 2 itens · conferir 2 botões sem esticar a linha |
+| **Loja** | ⏳ |
 
 ### fix — Relatórios «?» sumiu (17/07 · **teste v9.28**)
 
