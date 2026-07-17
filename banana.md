@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.34** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.36** · **loja v9.16**
+
+### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.36**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lápis do carrinho: modal leve (nome, GM, barras, unidade, custo, venda, **A/B + formas**, estoque Centro/Vila). Salva e atualiza o item |
+| **APIs** | pdv-edicao-rapida · pdv-ajuste-estoque · overlay parcial |
+| **Você** | Ctrl+F5 teste · badge **v9.36** · lápis → edita → Salvar |
+| **Loja** | ⏳ |
 
 ### ✨ Cadastro — aba 9 Alterações (histórico cadastro) (17/07 · **teste v9.33**)
 
@@ -1167,7 +1176,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Você** | Ctrl+F5 · badge **v9.34** · editar produto → mudar nome → Salvar → aba **Alterações** |
 | **Loja** | ⏳ |
 
-### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.32**)
+### ✨ PDV — editor rápido (API) (17/07 · **teste v9.32**)
 
 | Item | Detalhe |
 | ---- | ------- |
