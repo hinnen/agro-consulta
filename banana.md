@@ -1156,9 +1156,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.15** · **loja v9.14**
+**Versão app (VERSION):** **teste v9.15** · **loja v9.16**
 
-### 📦 PACOTE PRONTO LOJA — aguardando autorização (17/07)
+### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | **#12** devolução · **#17** busca CP · giro última venda · **#23** NFC-e 535 |
+| **HEAD loja** | **4113492** · base **c61f7dd** (v9.14) |
+| **Backup** | `producao-backup-pre-v916-fecha-relatorios-nfce-20260717` @ **c61f7dd** — reverter: `git push origin producao-backup-pre-v916-fecha-relatorios-nfce-20260717:producao` |
+| **Autorização** | *pode enviar* + 99738595 |
+| **Você** | Ctrl+F5 · badge **v9.16** · devolução · busca CP · giro · NFC-e c/ frete |
+
+### 📦 PACOTE PRONTO LOJA — ✅ ENVIADO v9.16 (17/07)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1306,18 +1316,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **📦 Pacote pronto** | **#12+#17** + **relatórios v9.15** + **#23 NFC-e** → loja **v9.16** — aguarda frase + senha |
-| **Loja** | **v9.14** · teste **v9.15** |
+| **Loja** | **v9.16** no ar · teste **v9.15** |
+| **Validar** | Ctrl+F5 · #12 devolução · #17 busca CP · giro última venda · #23 NFC-e frete |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P0,1** | **Zap #23** · **FL-055** | NFC-e **535** frete: `vFrete` nos itens (= total) — vendas #3418/#3380 | 📦 no pacote v9.16 |
-| **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
-| **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
-| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
-| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | ✅ Renan testou · 📦 pronto produção |
+| **P0,1** | **Zap #23** · **FL-055** | NFC-e **535** frete | ✅ loja **v9.16** |
+| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | ✅ loja **v9.16** |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | 📋 |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
