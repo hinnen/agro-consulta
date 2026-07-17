@@ -154,6 +154,11 @@ def pdv_home(request):
                 "apiFiadoCobrancaPdv": reverse("api_fiado_cobranca_pdv"),
                 "apiFiadoBaixaPdv": reverse("api_fiado_baixa_pdv"),
                 "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
+                "apiPdvProdutoEdicaoRapidaPattern": reverse(
+                    "api_pdv_produto_edicao_rapida", args=["__PID__"]
+                ),
+                "apiPdvProdutoAjusteEstoque": reverse("api_pdv_produto_ajuste_estoque"),
+                "apiProdutosGestaoOverlaySalvar": reverse("api_produtos_gestao_overlay_salvar"),
             },
             "search": {
                 "mode": "wizard",

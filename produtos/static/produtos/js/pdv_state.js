@@ -606,6 +606,55 @@
         notify();
     }
 
+    function patchItemCadastro(itemId, patch) {
+        if (!patch || typeof patch !== 'object') return;
+        state.itens = state.itens.map(function (item) {
+            if (String(item.id) !== String(itemId)) return item;
+            var next = Object.assign({}, item);
+            if (patch.nome != null) next.nome = String(patch.nome || '');
+            if (patch.codigo_nfe != null || patch.codigo != null) {
+                next.codigo = String(patch.codigo_nfe != null ? patch.codigo_nfe : patch.codigo || '');
+            }
+            if (patch.codigo_barras != null) next.codigo_barras = String(patch.codigo_barras || '');
+            if (patch.unidade != null) next.unidade = String(patch.unidade || '');
+            if (patch.precos_modo != null) {
+                next.precos_modo = String(patch.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            }
+            if (patch.precos_grupos && typeof patch.precos_grupos === 'object') {
+                next.precos_grupos = Object.assign({}, patch.precos_grupos);
+                if (Array.isArray(patch.precos_grupos.formas_a)) {
+                    next.precos_grupos.formas_a = patch.precos_grupos.formas_a.slice();
+                }
+                if (Array.isArray(patch.precos_grupos.formas_b)) {
+                    next.precos_grupos.formas_b = patch.precos_grupos.formas_b.slice();
+                }
+            }
+            if (patch.preco_venda != null && !(toNumber(patch.preco_venda) < 0)) {
+                var pv = toNumber(patch.preco_venda);
+                next.preco_padrao = pv;
+                if (!next.preco_manual) {
+                    var preview = String(next.preco_grupo_preview || '').toLowerCase();
+                    var g2 = next.precos_grupos;
+                    if (preview === 'a' && g2 && toNumber(g2.preco_a) > 0) {
+                        next.preco = toNumber(g2.preco_a);
+                    } else if (preview === 'b' && g2 && toNumber(g2.preco_b) > 0) {
+                        next.preco = toNumber(g2.preco_b);
+                    } else {
+                        next.preco = pv;
+                    }
+                }
+            } else if (next.precos_grupos && !next.preco_manual) {
+                var preview2 = String(next.preco_grupo_preview || '').toLowerCase();
+                var g3 = next.precos_grupos;
+                if (preview2 === 'a' && toNumber(g3.preco_a) > 0) next.preco = toNumber(g3.preco_a);
+                else if (preview2 === 'b' && toNumber(g3.preco_b) > 0) next.preco = toNumber(g3.preco_b);
+            }
+            return next;
+        });
+        recalcularTodasPromocoes();
+        notify();
+    }
+
     function removeItem(itemId) {
         state.itens = state.itens.filter(function (item) { return String(item.id) !== String(itemId); });
         notify();
@@ -1054,6 +1103,7 @@
         updateItemQuantity: updateItemQuantity,
         updateItemPrice: updateItemPrice,
         setItemPrecoGrupoPreview: setItemPrecoGrupoPreview,
+        patchItemCadastro: patchItemCadastro,
         normalizePrice: normalizePrice,
         formatMoneyInputDisplay: formatMoneyInputDisplay,
         sanitizeMoneyInputTyping: sanitizeMoneyInputTyping,

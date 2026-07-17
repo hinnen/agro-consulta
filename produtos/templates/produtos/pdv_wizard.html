@@ -2580,6 +2580,60 @@
   #pdv-quick-client-edit-overlay .pdv-client-edit-field.pdv-client-edit-missing .pdv-client-edit-label {
     color: #b45309;
   }
+  .pdv-product-edit-panel {
+    width: min(96vw, 52rem);
+    max-height: min(94dvh, 44rem);
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
+    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.55rem);
+    line-height: 1.15;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-label {
+    font-size: clamp(0.7rem, 0.28vw + 0.62rem, 0.85rem);
+    letter-spacing: 0.04em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-input {
+    min-height: 2.65rem;
+    padding: 0.45rem 0.7rem;
+    font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.1rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
+    margin: 0.35rem 0 0.45rem;
+    font-size: clamp(0.75rem, 0.3vw + 0.68rem, 0.9rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.55rem;
+  }
+  @media (min-width: 640px) {
+    #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-nome { grid-column: 1 / -1; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-gm { grid-column: 1 / 3; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-cb { grid-column: 3 / 5; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-un { grid-column: 5 / 7; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-custo { grid-column: 1 / 4; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
+    min-height: 3.1rem;
+    font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.15rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-forma-sel {
+    min-height: 2.35rem;
+    border-radius: 0.65rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    font-weight: 900;
+    font-size: 0.85rem;
+  }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
   #pdv-step-pagamento-root .pdv-pay-flow-pop::backdrop { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(5px); }
@@ -3348,6 +3402,100 @@
       </footer>
     </div>
   </div>
+
+<div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title">
+  <div class="pdv-product-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-[0.12em] text-orange-800">Edição rápida</p>
+        <h3 id="pdv-quick-product-edit-title" class="min-w-0 truncate font-black text-slate-900">Produto</h3>
+      </div>
+      <button type="button" id="pdv-quick-product-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
+    </header>
+    <div class="pdv-wizard-scroll pdv-product-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
+      <div class="pdv-product-edit-form">
+        <label class="pdv-product-edit-field pdv-pe-f-nome">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
+          <input id="pdv-quick-product-edit-nome" type="text" class="pdv-input pdv-product-edit-input w-full" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-gm">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código GM</span>
+          <input id="pdv-quick-product-edit-gm" type="text" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-cb">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código de barras</span>
+          <input id="pdv-quick-product-edit-cb" type="text" inputmode="numeric" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-un">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Unidade</span>
+          <input id="pdv-quick-product-edit-unidade" type="text" class="pdv-input pdv-product-edit-input w-full" placeholder="UN / KG / SC" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-custo">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de custo</span>
+          <input id="pdv-quick-product-edit-custo" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-venda">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de venda</span>
+          <input id="pdv-quick-product-edit-venda" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+
+        <div id="pdv-quick-product-edit-grupos" class="pdv-pe-grupos" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Grupos de preço A / B</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-emerald-700">Preço A</span>
+              <input id="pdv-quick-product-edit-preco-a" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-emerald-200" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-sky-700">Preço B</span>
+              <input id="pdv-quick-product-edit-preco-b" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-sky-200" autocomplete="off">
+            </label>
+          </div>
+          <div class="mt-2 overflow-hidden rounded-xl border-2 border-slate-200">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-2 py-1.5 text-[10px] font-black uppercase text-slate-500">Forma de pagamento</th>
+                  <th class="w-28 px-2 py-1.5 text-center text-[10px] font-black uppercase text-slate-500">Grupo</th>
+                </tr>
+              </thead>
+              <tbody id="pdv-quick-product-edit-formas-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pdv-pe-estoque" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Estoque (ajuste rápido)</p>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div class="rounded-xl border-2 border-emerald-100 bg-emerald-50/80 px-2.5 py-2">
+              <p class="text-[10px] font-black uppercase text-emerald-700">Centro agora</p>
+              <p id="pdv-quick-product-edit-saldo-centro-atual" class="text-xl font-black tabular-nums text-emerald-900">—</p>
+            </div>
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Novo centro</span>
+              <input id="pdv-quick-product-edit-saldo-centro" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+            </label>
+            <div class="rounded-xl border-2 border-sky-100 bg-sky-50/80 px-2.5 py-2">
+              <p class="text-[10px] font-black uppercase text-sky-700">Vila agora</p>
+              <p id="pdv-quick-product-edit-saldo-vila-atual" class="text-xl font-black tabular-nums text-sky-900">—</p>
+            </div>
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Novo vila</span>
+              <input id="pdv-quick-product-edit-saldo-vila" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+            </label>
+          </div>
+          <p class="mt-1 text-[11px] font-semibold text-slate-500">Deixe em branco o depósito que não quiser mudar.</p>
+        </div>
+
+        <p id="pdv-quick-product-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
+      </div>
+    </div>
+    <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <button type="button" id="pdv-quick-product-edit-cancelar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-quick-product-edit-salvar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 bg-orange-500 uppercase text-white shadow-md hover:bg-orange-600">Salvar</button>
+    </footer>
+  </div>
+</div>
 
 <div id="pdv-cliente-start-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
   <div class="w-full max-w-lg rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.25)]">

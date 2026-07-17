@@ -362,6 +362,25 @@
         quickClientEditSalvar: document.getElementById('pdv-quick-client-edit-salvar'),
         quickClientEditCancelar: document.getElementById('pdv-quick-client-edit-cancelar'),
         quickClientEditFechar: document.getElementById('pdv-quick-client-edit-fechar'),
+        quickProductEditOverlay: document.getElementById('pdv-quick-product-edit-overlay'),
+        quickProductEditTitle: document.getElementById('pdv-quick-product-edit-title'),
+        quickProductEditNome: document.getElementById('pdv-quick-product-edit-nome'),
+        quickProductEditGm: document.getElementById('pdv-quick-product-edit-gm'),
+        quickProductEditCb: document.getElementById('pdv-quick-product-edit-cb'),
+        quickProductEditUnidade: document.getElementById('pdv-quick-product-edit-unidade'),
+        quickProductEditCusto: document.getElementById('pdv-quick-product-edit-custo'),
+        quickProductEditVenda: document.getElementById('pdv-quick-product-edit-venda'),
+        quickProductEditPrecoA: document.getElementById('pdv-quick-product-edit-preco-a'),
+        quickProductEditPrecoB: document.getElementById('pdv-quick-product-edit-preco-b'),
+        quickProductEditFormasTbody: document.getElementById('pdv-quick-product-edit-formas-tbody'),
+        quickProductEditSaldoCentroAtual: document.getElementById('pdv-quick-product-edit-saldo-centro-atual'),
+        quickProductEditSaldoVilaAtual: document.getElementById('pdv-quick-product-edit-saldo-vila-atual'),
+        quickProductEditSaldoCentro: document.getElementById('pdv-quick-product-edit-saldo-centro'),
+        quickProductEditSaldoVila: document.getElementById('pdv-quick-product-edit-saldo-vila'),
+        quickProductEditErro: document.getElementById('pdv-quick-product-edit-erro'),
+        quickProductEditSalvar: document.getElementById('pdv-quick-product-edit-salvar'),
+        quickProductEditCancelar: document.getElementById('pdv-quick-product-edit-cancelar'),
+        quickProductEditFechar: document.getElementById('pdv-quick-product-edit-fechar'),
         step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
         quickClientEditStep1: document.getElementById('pdv-quick-client-edit-step1'),
@@ -518,6 +537,20 @@
     var quickClientEditPk = null;
     var quickClientEditListIdx = -1;
     var quickClientEditBairroRuralExpandido = false;
+    var quickProductEditItemId = null;
+    var quickProductEditProdutoId = null;
+    var quickProductEditSaldoOrig = { centro: null, vila: null };
+    var PDV_QUICK_FORMAS = [
+        'Dinheiro',
+        'PIX',
+        'Cartão de débito',
+        'Cartão de crédito',
+        'Cartão de crédito parcelado',
+        'Fiado',
+        'Vale crédito',
+        'Cashback',
+        'Outro'
+    ];
     var quickClientGeocodeTimer = null;
     var quickClientGeocodeSeq = 0;
     var quickClientGeocodeLastQ = '';
@@ -6647,6 +6680,11 @@
             }
         } catch (eQce) {}
         try {
+            if (dom.quickProductEditOverlay && !dom.quickProductEditOverlay.classList.contains('hidden')) {
+                closeQuickProductEditOverlay();
+            }
+        } catch (eQpe) {}
+        try {
             document.querySelectorAll('dialog[open]').forEach(function (dlg) {
                 try {
                     dlg.close();
@@ -7264,6 +7302,380 @@
         dom.quickClientEditOverlay.classList.remove('flex');
         clearQuickClientEditForm();
         if (pickerOpen) window.setTimeout(focusQuickClientSearchField, 40);
+    }
+
+    function isQuickProductEditOpen() {
+        return !!(
+            dom.quickProductEditOverlay &&
+            dom.quickProductEditOverlay.classList.contains('flex')
+        );
+    }
+
+    function fmtQtyEdit(n) {
+        var v = Number(n);
+        if (!isFinite(v)) return '—';
+        return String(v).replace('.', ',');
+    }
+
+    function parseMoneyEdit(raw) {
+        var s = String(raw || '').trim().replace(/\s/g, '').replace('R$', '');
+        if (!s) return null;
+        if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(s);
+        return isFinite(n) ? n : null;
+    }
+
+    function fmtMoneyEdit(n) {
+        var v = Number(n);
+        if (!isFinite(v) || v <= 0) return '';
+        return v.toFixed(2).replace('.', ',');
+    }
+
+    function renderQuickProductFormas(pg) {
+        var tb = dom.quickProductEditFormasTbody;
+        if (!tb) return;
+        var setA = {};
+        var setB = {};
+        if (pg && typeof pg === 'object') {
+            (pg.formas_a || []).forEach(function (f) {
+                setA[String(f)] = true;
+            });
+            (pg.formas_b || []).forEach(function (f) {
+                setB[String(f)] = true;
+            });
+        }
+        tb.innerHTML = PDV_QUICK_FORMAS.map(function (forma) {
+            var cur = setA[forma] ? 'a' : setB[forma] ? 'b' : '';
+            return (
+                '<tr><td class="px-2 py-1.5 text-sm font-bold text-slate-800">' +
+                escapeHtml(forma) +
+                '</td><td class="px-2 py-1 text-center">' +
+                '<select class="pdv-pe-forma-sel w-full" data-forma="' +
+                escapeHtml(forma) +
+                '">' +
+                '<option value=""' +
+                (cur === '' ? ' selected' : '') +
+                '>—</option>' +
+                '<option value="a"' +
+                (cur === 'a' ? ' selected' : '') +
+                '>A</option>' +
+                '<option value="b"' +
+                (cur === 'b' ? ' selected' : '') +
+                '>B</option>' +
+                '</select></td></tr>'
+            );
+        }).join('');
+    }
+
+    function collectQuickProductFormas() {
+        var formasA = [];
+        var formasB = [];
+        if (!dom.quickProductEditFormasTbody) return { formas_a: formasA, formas_b: formasB };
+        dom.quickProductEditFormasTbody.querySelectorAll('.pdv-pe-forma-sel').forEach(function (sel) {
+            var forma = sel.getAttribute('data-forma') || '';
+            var v = String(sel.value || '').toLowerCase();
+            if (!forma) return;
+            if (v === 'a') formasA.push(forma);
+            else if (v === 'b') formasB.push(forma);
+        });
+        return { formas_a: formasA, formas_b: formasB };
+    }
+
+    function fillQuickProductEditForm(prod) {
+        prod = prod || {};
+        if (dom.quickProductEditTitle) {
+            dom.quickProductEditTitle.textContent = String(prod.nome || 'Produto');
+        }
+        if (dom.quickProductEditNome) dom.quickProductEditNome.value = String(prod.nome || '');
+        if (dom.quickProductEditGm) dom.quickProductEditGm.value = String(prod.codigo_nfe || '');
+        if (dom.quickProductEditCb) dom.quickProductEditCb.value = String(prod.codigo_barras || '');
+        if (dom.quickProductEditUnidade) dom.quickProductEditUnidade.value = String(prod.unidade || '');
+        if (dom.quickProductEditCusto) dom.quickProductEditCusto.value = fmtMoneyEdit(prod.preco_custo);
+        if (dom.quickProductEditVenda) dom.quickProductEditVenda.value = fmtMoneyEdit(prod.preco_venda);
+        var pg = prod.precos_grupos && typeof prod.precos_grupos === 'object' ? prod.precos_grupos : {};
+        if (dom.quickProductEditPrecoA) dom.quickProductEditPrecoA.value = fmtMoneyEdit(pg.preco_a);
+        if (dom.quickProductEditPrecoB) dom.quickProductEditPrecoB.value = fmtMoneyEdit(pg.preco_b);
+        renderQuickProductFormas(pg);
+        var sc = Number(prod.saldo_centro);
+        var sv = Number(prod.saldo_vila);
+        quickProductEditSaldoOrig = {
+            centro: isFinite(sc) ? sc : 0,
+            vila: isFinite(sv) ? sv : 0
+        };
+        if (dom.quickProductEditSaldoCentroAtual) {
+            dom.quickProductEditSaldoCentroAtual.textContent = fmtQtyEdit(quickProductEditSaldoOrig.centro);
+        }
+        if (dom.quickProductEditSaldoVilaAtual) {
+            dom.quickProductEditSaldoVilaAtual.textContent = fmtQtyEdit(quickProductEditSaldoOrig.vila);
+        }
+        if (dom.quickProductEditSaldoCentro) dom.quickProductEditSaldoCentro.value = '';
+        if (dom.quickProductEditSaldoVila) dom.quickProductEditSaldoVila.value = '';
+        if (dom.quickProductEditErro) {
+            dom.quickProductEditErro.textContent = '';
+            dom.quickProductEditErro.classList.add('hidden');
+        }
+    }
+
+    function closeQuickProductEditOverlay() {
+        if (!dom.quickProductEditOverlay) return;
+        dom.quickProductEditOverlay.classList.add('hidden');
+        dom.quickProductEditOverlay.classList.remove('flex');
+        quickProductEditItemId = null;
+        quickProductEditProdutoId = null;
+    }
+
+    function openQuickProductEditOverlay(itemId) {
+        if (!dom.quickProductEditOverlay) return;
+        var state = State.getState();
+        var item = (state.itens || []).find(function (it) {
+            return String(it.id) === String(itemId);
+        });
+        if (!item) return;
+        var produtoId = String(item.id || '').trim();
+        if (!produtoId) return;
+        quickProductEditItemId = String(itemId);
+        quickProductEditProdutoId = produtoId;
+        fillQuickProductEditForm({
+            nome: item.nome,
+            codigo_nfe: item.codigo || item.codigo_nfe,
+            codigo_barras: item.codigo_barras,
+            unidade: item.unidade,
+            preco_custo: item.preco_custo,
+            preco_venda: item.preco_padrao != null ? item.preco_padrao : item.preco,
+            precos_modo: item.precos_modo,
+            precos_grupos: item.precos_grupos,
+            saldo_centro: item.saldo_centro,
+            saldo_vila: item.saldo_vila
+        });
+        dom.quickProductEditOverlay.classList.remove('hidden');
+        dom.quickProductEditOverlay.classList.add('flex');
+        var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
+        if (!pattern) return;
+        var url = pattern.replace('__PID__', encodeURIComponent(produtoId));
+        jsonGet(url)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok || !res.data.produto) {
+                    if (dom.quickProductEditErro) {
+                        dom.quickProductEditErro.textContent =
+                            (res.data && res.data.erro) || 'Não deu para carregar o produto.';
+                        dom.quickProductEditErro.classList.remove('hidden');
+                    }
+                    return;
+                }
+                if (String(quickProductEditProdutoId) !== produtoId) return;
+                fillQuickProductEditForm(res.data.produto);
+            })
+            .catch(function () {
+                if (dom.quickProductEditErro) {
+                    dom.quickProductEditErro.textContent = 'Falha de rede ao carregar o produto.';
+                    dom.quickProductEditErro.classList.remove('hidden');
+                }
+            });
+        window.setTimeout(function () {
+            if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
+        }, 40);
+    }
+
+    function patchWizardCatalogFromQuickEdit(prod, saldos) {
+        if (!prod || prod.id == null) return;
+        var pid = String(prod.id);
+        var patch = {
+            id: pid,
+            nome: prod.nome,
+            codigo_nfe: prod.codigo_nfe,
+            codigo: prod.codigo_nfe,
+            codigo_barras: prod.codigo_barras,
+            unidade: prod.unidade,
+            preco: prod.preco_venda,
+            preco_venda: prod.preco_venda,
+            preco_custo: prod.preco_custo,
+            precos_modo: prod.precos_modo,
+            precos_grupos: prod.precos_grupos
+        };
+        if (saldos) {
+            if (saldos.saldo_centro != null) patch.saldo_centro = saldos.saldo_centro;
+            if (saldos.saldo_vila != null) patch.saldo_vila = saldos.saldo_vila;
+        }
+        for (var i = 0; i < wizardProductCatalog.length; i++) {
+            var row = wizardProductCatalog[i];
+            if (String(row.id || row.Id || '') === pid) {
+                Object.keys(patch).forEach(function (k) {
+                    if (patch[k] !== undefined) row[k] = patch[k];
+                });
+                break;
+            }
+        }
+        agroPdvEnqueuePatchesRespostaVenda({
+            pdv_catalog_patches: [
+                {
+                    id: pid,
+                    saldo_centro: saldos && saldos.saldo_centro,
+                    saldo_vila: saldos && saldos.saldo_vila
+                }
+            ]
+        });
+    }
+
+    function saveQuickProductEditOverlay() {
+        if (!quickProductEditProdutoId) return;
+        var overlayUrl = String(urls.apiProdutosGestaoOverlaySalvar || '').trim();
+        if (!overlayUrl) {
+            if (dom.quickProductEditErro) {
+                dom.quickProductEditErro.textContent = 'Rota de salvar não configurada.';
+                dom.quickProductEditErro.classList.remove('hidden');
+            }
+            return;
+        }
+        var nome = dom.quickProductEditNome ? String(dom.quickProductEditNome.value || '').trim() : '';
+        if (!nome) {
+            if (dom.quickProductEditErro) {
+                dom.quickProductEditErro.textContent = 'Informe o nome do produto.';
+                dom.quickProductEditErro.classList.remove('hidden');
+            }
+            if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
+            return;
+        }
+        var precoA = parseMoneyEdit(dom.quickProductEditPrecoA && dom.quickProductEditPrecoA.value);
+        var precoB = parseMoneyEdit(dom.quickProductEditPrecoB && dom.quickProductEditPrecoB.value);
+        var formas = collectQuickProductFormas();
+        var temGrupo =
+            (precoA != null && precoA > 0) ||
+            (precoB != null && precoB > 0) ||
+            (formas.formas_a && formas.formas_a.length) ||
+            (formas.formas_b && formas.formas_b.length);
+        var precosGrupos = temGrupo
+            ? {
+                  preco_a: precoA != null && precoA > 0 ? precoA : null,
+                  preco_b: precoB != null && precoB > 0 ? precoB : null,
+                  formas_a: formas.formas_a || [],
+                  formas_b: formas.formas_b || []
+              }
+            : null;
+        var payload = {
+            produto_id: quickProductEditProdutoId,
+            nome: nome,
+            codigo_nfe: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
+            codigo_barras: dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '',
+            unidade: dom.quickProductEditUnidade
+                ? String(dom.quickProductEditUnidade.value || '').trim()
+                : '',
+            precos_modo: temGrupo ? 'grupos' : 'por_forma',
+            sincronizar_erp: false
+        };
+        var custoN = parseMoneyEdit(dom.quickProductEditCusto && dom.quickProductEditCusto.value);
+        var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
+        if (custoN != null) payload.preco_custo = custoN;
+        if (vendaN != null) payload.preco_venda = vendaN;
+        if (precosGrupos) payload.precos_grupos = precosGrupos;
+        else payload.precos_grupos = null;
+        var novoCentroRaw = dom.quickProductEditSaldoCentro
+            ? String(dom.quickProductEditSaldoCentro.value || '').trim()
+            : '';
+        var novoVilaRaw = dom.quickProductEditSaldoVila
+            ? String(dom.quickProductEditSaldoVila.value || '').trim()
+            : '';
+        var ajustePayload = { produto_id: quickProductEditProdutoId };
+        var precisaAjuste = false;
+        if (novoCentroRaw !== '') {
+            var nc = parseMoneyEdit(novoCentroRaw);
+            if (nc == null) {
+                if (dom.quickProductEditErro) {
+                    dom.quickProductEditErro.textContent = 'Saldo centro inválido.';
+                    dom.quickProductEditErro.classList.remove('hidden');
+                }
+                return;
+            }
+            if (Math.abs(nc - Number(quickProductEditSaldoOrig.centro || 0)) > 0.0001) {
+                ajustePayload.saldo_centro = nc;
+                precisaAjuste = true;
+            }
+        }
+        if (novoVilaRaw !== '') {
+            var nv = parseMoneyEdit(novoVilaRaw);
+            if (nv == null) {
+                if (dom.quickProductEditErro) {
+                    dom.quickProductEditErro.textContent = 'Saldo vila inválido.';
+                    dom.quickProductEditErro.classList.remove('hidden');
+                }
+                return;
+            }
+            if (Math.abs(nv - Number(quickProductEditSaldoOrig.vila || 0)) > 0.0001) {
+                ajustePayload.saldo_vila = nv;
+                precisaAjuste = true;
+            }
+        }
+        if (dom.quickProductEditErro) {
+            dom.quickProductEditErro.textContent = '';
+            dom.quickProductEditErro.classList.add('hidden');
+        }
+        var btn = dom.quickProductEditSalvar;
+        if (btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+        }
+        var itemIdSaved = quickProductEditItemId;
+        jsonPost(overlayUrl, payload)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    throw new Error((res.data && res.data.erro) || 'Falha ao salvar cadastro.');
+                }
+                var chain = Promise.resolve({ saldos: null });
+                if (precisaAjuste) {
+                    var ajusteUrl = String(urls.apiPdvProdutoAjusteEstoque || '').trim();
+                    if (!ajusteUrl) {
+                        throw new Error('Rota de ajuste de estoque não configurada.');
+                    }
+                    chain = jsonPost(ajusteUrl, ajustePayload).then(function (aj) {
+                        if (!aj.ok || !aj.data || !aj.data.ok) {
+                            throw new Error(
+                                (aj.data && aj.data.erro) ||
+                                    'Cadastro salvo, mas estoque não ajustou.'
+                            );
+                        }
+                        return {
+                            saldos: {
+                                saldo_centro: aj.data.saldo_centro,
+                                saldo_vila: aj.data.saldo_vila
+                            }
+                        };
+                    });
+                }
+                return chain.then(function (pack) {
+                    var cadastroPatch = {
+                        nome: payload.nome,
+                        codigo_nfe: payload.codigo_nfe,
+                        codigo_barras: payload.codigo_barras,
+                        unidade: payload.unidade,
+                        preco_venda: payload.preco_venda,
+                        precos_modo: payload.precos_modo,
+                        precos_grupos: payload.precos_grupos
+                    };
+                    if (typeof State.patchItemCadastro === 'function' && itemIdSaved) {
+                        State.patchItemCadastro(itemIdSaved, cadastroPatch);
+                    }
+                    patchWizardCatalogFromQuickEdit(
+                        Object.assign({ id: quickProductEditProdutoId, preco_custo: payload.preco_custo }, cadastroPatch),
+                        pack.saldos
+                    );
+                    closeQuickProductEditOverlay();
+                    if (typeof showPdvAviso === 'function') {
+                        showPdvAviso('Produto atualizado.', { title: 'Salvo', tone: 'success' });
+                    }
+                });
+            })
+            .catch(function (err) {
+                if (dom.quickProductEditErro) {
+                    dom.quickProductEditErro.textContent =
+                        (err && err.message) || 'Não foi possível salvar.';
+                    dom.quickProductEditErro.classList.remove('hidden');
+                }
+            })
+            .then(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-busy');
+                }
+            });
     }
 
     function patchClienteInSearchResults(updated) {
@@ -10543,6 +10955,20 @@
                 if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
             });
         }
+        if (dom.quickProductEditSalvar) {
+            dom.quickProductEditSalvar.addEventListener('click', saveQuickProductEditOverlay);
+        }
+        if (dom.quickProductEditCancelar) {
+            dom.quickProductEditCancelar.addEventListener('click', closeQuickProductEditOverlay);
+        }
+        if (dom.quickProductEditFechar) {
+            dom.quickProductEditFechar.addEventListener('click', closeQuickProductEditOverlay);
+        }
+        if (dom.quickProductEditOverlay) {
+            dom.quickProductEditOverlay.addEventListener('click', function (event) {
+                if (event.target === dom.quickProductEditOverlay) closeQuickProductEditOverlay();
+            });
+        }
         if (dom.quickClientEditPluscode) {
             dom.quickClientEditPluscode.addEventListener('input', function () {
                 scheduleQuickClientPlusGeocode(false);
@@ -10849,7 +11275,8 @@
             }
             var editBtn = event.target.closest('[data-edit-item]');
             if (editBtn) {
-                // Placeholder: tela de edição será ligada depois (data-edit-item = id do item).
+                event.preventDefault();
+                openQuickProductEditOverlay(editBtn.getAttribute('data-edit-item'));
                 return;
             }
             var qtyBtn = event.target.closest('[data-item-qty]');
@@ -11737,6 +12164,11 @@
                 if (isQuickClientEditOpen()) {
                     event.preventDefault();
                     closeQuickClientEditOverlay();
+                    return;
+                }
+                if (isQuickProductEditOpen()) {
+                    event.preventDefault();
+                    closeQuickProductEditOverlay();
                     return;
                 }
                 if (dom.budgetHistoryModal && !dom.budgetHistoryModal.classList.contains('hidden')) {
