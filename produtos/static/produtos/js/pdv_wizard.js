@@ -2878,6 +2878,22 @@
         if (document.body) {
             document.body.setAttribute('data-pdv-step', state.currentStep || 'produtos');
         }
+        var topHelp = document.getElementById('pdv-topbar-help');
+        if (topHelp) {
+            var helpKey = state.currentStep || 'produtos';
+            if (helpKey !== 'produtos' && helpKey !== 'entrega' && helpKey !== 'pagamento') {
+                helpKey = 'produtos';
+            }
+            topHelp.setAttribute('data-pdv-help', helpKey);
+            topHelp.setAttribute(
+                'title',
+                helpKey === 'entrega'
+                    ? 'Ajuda — entrega'
+                    : helpKey === 'pagamento'
+                      ? 'Ajuda — pagamento'
+                      : 'Ajuda — produtos'
+            );
+        }
     }
 
     function garantirClienteOuConsumidorFinal() {

@@ -1872,6 +1872,23 @@
     background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
+  #pdv-topbar-help.pdv-topbar-help {
+    align-self: center;
+    min-height: 2.15rem;
+    min-width: 2.15rem;
+    border-radius: 0.75rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    color: #334155;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-topbar-help.pdv-topbar-help:hover {
+    background: #f8fafc;
+    border-color: #64748b;
+  }
   .pdv-wiz-topbar-brand {
     flex-shrink: 0;
     display: inline-flex;
@@ -3296,6 +3313,7 @@
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">3</kbd><span class="pdv-step-label">Pagamento</span>
                 </button>
               </nav>
+              <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>

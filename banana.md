@@ -1156,14 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.65** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.66** · **loja v9.16**
 
-### 🩹 PDV — reverteu layout etapa 1 (17/07 · **teste v9.65**)
+### 🩹 PDV — tira Etapa 1/Produtos · ? sobe pro header (17/07 · **teste v9.66**)
 
 | | |
 | --- | --- |
-| **O quê** | Voltou o visual da etapa 1 como antes (eu tinha entendido errado: **?** fica; o que some é **Etapa 1 / Produtos**). Próximo: Renan pede **um a um** |
-| **Você** | Ctrl+F5 · badge **v9.65** · confere se voltou o layout antigo |
+| **O quê** | Só isto: remove texto **Etapa 1 / Produtos** · **?** vai para a barra de etapas (ao lado de 1·2·3) |
+| **Você** | Ctrl+F5 · badge **v9.66** · confere |
 
 ### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · aguarda senha)
 
