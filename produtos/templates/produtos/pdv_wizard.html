@@ -837,6 +837,10 @@
   }
   #pdv-step1-client-bar {
     flex-wrap: nowrap;
+    align-items: center;
+    min-height: 3.55rem;
+    padding: 0.65rem 0.85rem !important;
+    gap: 0.55rem;
     border-color: #fdba74 !important;
     border-bottom: 2px solid #fdba74 !important;
     background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%) !important;
@@ -849,6 +853,8 @@
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;
+    gap: 0.55rem;
+    padding: 0.25rem 0.45rem;
   }
   #pdv-step1-client-bar .pdv-step1-client-etapa {
     font-size: 9px;
@@ -880,32 +886,22 @@
     border-color: #fb923c;
     background: #fff7ed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-badge {
-    border-radius: 0.45rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 11.5px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #fff;
-    background: #ea580c;
-  }
   #pdv-step1-client-bar #pdv-quick-client-name {
-    font-size: 16.1px !important;
+    font-size: 1.3rem !important;
     font-weight: 900;
-    line-height: 1.25;
+    line-height: 1.2;
     color: #0f172a;
   }
   #pdv-step1-client-bar .pdv-step1-client-edit-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    min-height: 2.25rem;
-    padding: 0.35rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.4rem 0.7rem;
     border-radius: 0.65rem;
     border: 2px solid #fb923c;
     background: #fff;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -918,13 +914,31 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
   #pdv-step1-main-panel {
     border: 2px solid #bae6fd;
     border-radius: 1.15rem;
     background: transparent;
     overflow: hidden;
   }
+  /* Ícone + título padrão (Cliente / Busca / Carrinho) */
+  #pdv-step1-main-panel .pdv-step1-head-icon {
+    width: 2.9rem !important;
+    height: 2.9rem !important;
+    border-radius: 0.65rem;
+  }
+  #pdv-step1-main-panel .pdv-step1-head-icon svg {
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+  }
+  #pdv-step1-main-panel .pdv-step1-block-title {
+    font-size: 1.3rem !important;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+  }
+  .pdv-step1-head-icon--client { background: #ea580c; color: #fff; }
+  .pdv-step1-block-title--client { color: #c2410c; }
   .pdv-step1-block-head {
     display: flex;
     align-items: center;
@@ -973,18 +987,6 @@
     gap: 0.55rem;
     min-height: 3.55rem;
   }
-  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-head-icon {
-    width: 2.9rem;
-    height: 2.9rem;
-  }
-  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-head-icon svg {
-    width: 1.6rem;
-    height: 1.6rem;
-  }
-  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-title--search {
-    font-size: 1.3rem !important;
-    letter-spacing: 0.03em;
-  }
   #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-meta {
     margin-left: 0;
     font-size: 0.875rem;
@@ -1024,8 +1026,12 @@
     flex-direction: column;
     min-height: 0;
     flex: 1;
-    padding: 0.65rem 0.75rem 0.75rem;
+    padding: 0.65rem 0.85rem 0.75rem;
     background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  #pdv-step1-cart-wrap .pdv-step1-cart-head {
+    gap: 0.55rem;
+    min-height: 3.55rem;
   }
   #pdv-step1-cart-wrap .pdv-step1-clear-btn {
     margin-left: auto;
@@ -2455,8 +2461,8 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     flex-shrink: 0;
-    min-height: 2.25rem;
-    padding: 0.4rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.45rem 0.7rem;
     border-radius: 0.65rem;
     border-width: 2px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);

@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.77** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.78** · **loja v9.16**
+
+### 🩹 PDV — Cliente/Busca/Carrinho mesmo padrão (17/07 · **teste v9.78**)
+
+| | |
+| --- | --- |
+| **O quê** | Três linhas iguais: **ícone + título** no tamanho da Busca. Cliente ganhou símbolo (pessoa). Carrinho/ícones alinhados |
+| **Você** | Ctrl+F5 · badge **v9.78** |
 
 ### 🩹 PDV — busca +1 ponto (17/07 · **teste v9.77**)
 
