@@ -3659,21 +3659,21 @@
                 : state.clienteMode === 'consumidor_final'
                   ? 'Consumidor não identificado'
                   : 'Cliente';
-        var msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
+        var sep = '────────────────';
+        var msg = '🐴🌾 *ORÇAMENTO AGROMAIS* 🌾🐔\n\n';
         msg += '👤 *Cliente:* ' + nome + '\n';
+        msg += sep + '\n';
         msg += '🛒 *Itens:*\n';
-        msg += '━━━━━━━━━━━━━━━━━━\n';
         (state.itens || []).forEach(function (item) {
             var qtd = State.toNumber(item && item.qtd);
             var preco = State.toNumber(item && item.preco);
             var linha = formatMoney(qtd * preco);
-            msg += '🔸 ' + qtd + 'x ' + String((item && item.nome) || '') + '\n';
-            msg += '   💰 ' + linha + '\n';
+            msg += qtd + 'x - ' + String((item && item.nome) || '') + '  ' + linha + '\n';
         });
-        msg += '━━━━━━━━━━━━━━━━━━\n';
+        msg += sep + '\n';
         var total = computed.subtotal != null ? computed.subtotal : computed.total || 0;
         msg += '💵 *TOTAL: ' + formatMoney(total) + '*\n\n';
-        msg += '✨ Obrigado por escolher a *SisVale*!';
+        msg += '✨ Obrigado por escolher a *AGROMAIS*!';
         return msg;
     }
 

@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.84** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.85** · **loja v9.16**
+
+### 🩹 PDV — texto Zap orçamento padrão Agromais (17/07 · **teste v9.85**)
+
+| | |
+| --- | --- |
+| **O quê** | Mensagem WhatsApp no formato do 2º print: *ORÇAMENTO AGROMAIS*, item em 1 linha 1x - nome  R$, linhas finas, sem losango/💰 |
+| **Você** | Ctrl+F5 · badge **v9.85** · Enviar de novo e conferir o Zap |
 
 ### ✨ PDV — Enviar orçamento WhatsApp (acima do Subtotal) (17/07 · **teste v9.84**)
 
