@@ -147,6 +147,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         warning="Imports de planilha, etiquetas, BI dia e histórico ERP no F8.",
         models=(
             "produtos.CadastroPlanilhaImportHistoricoAgro",
+            "produtos.ProdutoCadastroAlteracaoAgro",
             "produtos.EtiquetaImpressaoHistoricoAgro",
             "produtos.DashboardVendaDiaHistoricoAgro",
             "produtos.RelacionamentoHistoricoImportLoteAgro",

@@ -422,6 +422,16 @@ urlpatterns = [
         name='api_produtos_gestao_ajuste_estoque',
     ),
     path(
+        'api/produtos/pdv-edicao-rapida/<str:produto_id>/',
+        views.api_pdv_produto_edicao_rapida,
+        name='api_pdv_produto_edicao_rapida',
+    ),
+    path(
+        'api/produtos/pdv-ajuste-estoque/',
+        views.api_pdv_produto_ajuste_estoque,
+        name='api_pdv_produto_ajuste_estoque',
+    ),
+    path(
         'api/produtos/gestao/overlay/',
         views.api_produtos_gestao_overlay_salvar,
         name='api_produtos_gestao_overlay_salvar',
@@ -480,6 +490,11 @@ urlpatterns = [
         'api/produtos/cadastro/estoque-movimentos/',
         views.api_produtos_cadastro_estoque_movimentos,
         name='api_produtos_cadastro_estoque_movimentos',
+    ),
+    path(
+        'api/produtos/cadastro/alteracoes-historico/',
+        views.api_produtos_cadastro_alteracoes_historico,
+        name='api_produtos_cadastro_alteracoes_historico',
     ),
     path('api/produtos/grupos/', views.api_produtos_grupos_listar, name='api_produtos_grupos_listar'),
     path('api/produtos/grupos/salvar/', views.api_produtos_grupo_salvar, name='api_produtos_grupo_salvar'),

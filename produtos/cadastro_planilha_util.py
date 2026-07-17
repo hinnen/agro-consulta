@@ -991,12 +991,18 @@ def _invalidar_cache_catalogo_pdv() -> None:
 
 
 def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
+    from produtos.cadastro_alteracao_historico_util import (
+        registrar_diffs_cadastro,
+        snapshot_overlay,
+    )
+    from produtos.models import ProdutoCadastroAlteracaoAgro
     from produtos.views import _mongo_filtro_id_produto_externo
 
     ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
         produto_externo_id=pid[:64],
         defaults={"usuario": user if user and user.is_authenticated else None},
     )
+    antes = snapshot_overlay(ov)
     ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
     if COL_CODIGO_GM in patch:
         ov.codigo_nfe = str(patch[COL_CODIGO_GM] or "")[:64]
@@ -1015,6 +1021,17 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
     if COL_PRECO_CUSTO in patch:
         ex["preco_custo_overlay"] = float(patch[COL_PRECO_CUSTO])
     ov.cadastro_extras = ex
+    depois = snapshot_overlay(ov)
+    try:
+        registrar_diffs_cadastro(
+            produto_id=pid,
+            antes=antes,
+            depois=depois,
+            usuario=user if user and getattr(user, "is_authenticated", False) else None,
+            origem=ProdutoCadastroAlteracaoAgro.Origem.PLANILHA,
+        )
+    except Exception:
+        pass
     ov.save()
 
     custo_payload = patch.get(COL_PRECO_CUSTO) if COL_PRECO_CUSTO in patch else None

@@ -1343,6 +1343,54 @@ class ProdutoGestaoOverlayAgro(models.Model):
         return f"{self.produto_externo_id} · overlay"
 
 
+class ProdutoCadastroAlteracaoAgro(models.Model):
+    """
+    Histórico de alteração do cadastro (nome, preço, códigos…).
+    Não registra movimentação de estoque/saldo — só campos do cadastro SisVale.
+    """
+
+    class Origem(models.TextChoices):
+        MODAL = "modal", "Modal cadastro"
+        GESTAO = "gestao", "Gestão"
+        PLANILHA = "planilha", "Excel"
+        NF = "nf", "Entrada NF"
+        OUTRO = "outro", "Outro"
+
+    produto_externo_id = models.CharField(max_length=64, db_index=True)
+    campo = models.CharField(max_length=64, db_index=True)
+    campo_label = models.CharField(max_length=80, blank=True, default="")
+    valor_antes = models.CharField(max_length=500, blank=True, default="")
+    valor_depois = models.CharField(max_length=500, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="produto_cadastro_alteracoes",
+    )
+    origem = models.CharField(
+        max_length=16,
+        choices=Origem.choices,
+        default=Origem.OUTRO,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Alteração cadastro produto"
+        verbose_name_plural = "Alterações cadastro produto"
+        ordering = ["-criado_em", "-id"]
+        indexes = [
+            models.Index(
+                fields=["produto_externo_id", "-criado_em"],
+                name="prod_cad_alt_pid_criado_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.produto_externo_id} · {self.campo} · {self.criado_em}"
+
+
 class EstoqueLote(models.Model):
     """Lote / validade com saldo local (Agro) associado a um overlay de produto."""
 

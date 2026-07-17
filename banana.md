@@ -1156,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.30** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.32** · **loja v9.16**
+
+### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.32**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lápis do carrinho: modal leve (nome, GM, barras, unidade, custo, venda, **A/B + formas**, estoque Centro/Vila). Sem cadastro completo |
+| **APIs** | `GET api/produtos/pdv-edicao-rapida/<id>/` · `POST api/produtos/pdv-ajuste-estoque/` · salva overlay parcial |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `pdv_state.js` · `pdv/views.py` · `produtos/views.py` · `urls.py` |
+| **Você** | Ctrl+F5 teste · badge **v9.32** · lápis no item · muda preço A · ajusta centro · Salvar · confere carrinho |
+| **Loja** | ⏳ |
 
 ### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · aguarda senha)
 
