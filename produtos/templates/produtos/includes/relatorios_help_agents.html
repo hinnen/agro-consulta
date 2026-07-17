@@ -1,0 +1,161 @@
+{# Ajuda leiga dos relatórios — {% with rel_help="slug" %}{% include ... %}{% endwith %} #}
+{% if rel_help %}
+<details class="rel-help-agents no-print group relative shrink-0">
+  <summary
+    class="list-none inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-amber-400 bg-gradient-to-br from-amber-400 to-orange-500 text-lg font-black text-slate-950 shadow-lg shadow-amber-500/30 hover:scale-105 hover:from-amber-300 hover:to-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden"
+    title="Como ler este relatório"
+    aria-label="Ajuda: como ler este relatório">?</summary>
+
+  <div class="absolute left-0 top-[calc(100%+0.5rem)] z-40 w-[min(36rem,calc(100vw-1.5rem))] max-h-[min(70vh,32rem)] overflow-y-auto rounded-2xl border-2 border-slate-600 bg-slate-900 p-4 shadow-2xl shadow-black/50 sm:left-auto sm:right-0">
+    <div class="mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-sm font-black text-amber-300">?</span>
+      <div>
+        <p class="text-sm font-black text-white">Como ler este relatório</p>
+        <p class="text-[11px] font-semibold text-slate-400">Explicação simples · toque de novo no ? para fechar</p>
+      </div>
+    </div>
+
+    {% if rel_help == "hub" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Aqui ficam os <span class="text-emerald-300">números da loja</span> em formato de lista. Cada cartão abre um tipo de análise. Use o período (quando tiver) e o botão <span class="text-orange-300">Atualizar</span>.</p>
+    <div class="space-y-2 text-[12px] font-semibold leading-snug">
+      <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, margem, comparativo e formas de pagamento.</div>
+      <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura e etiquetas.</div>
+      <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes e comissão estimada.</div>
+    </div>
+
+    {% elif rel_help == "curva_abc" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">A <span class="text-violet-300">Curva ABC</span> ordena os produtos do que mais faturou para o que menos faturou. Serve para ver o que <strong class="text-white">segura a loja</strong> e o que é “resto”.</p>
+    <div class="mb-3 grid grid-cols-3 gap-2 text-center text-[11px] font-black">
+      <div class="rounded-xl border-2 border-emerald-400 bg-emerald-500/20 px-2 py-2 text-emerald-200"><span class="block text-lg text-emerald-300">A</span>~80% do $</div>
+      <div class="rounded-xl border-2 border-amber-400 bg-amber-500/20 px-2 py-2 text-amber-200"><span class="block text-lg text-amber-300">B</span>~15% do $</div>
+      <div class="rounded-xl border-2 border-slate-400 bg-slate-500/20 px-2 py-2 text-slate-200"><span class="block text-lg text-slate-300">C</span>~5% do $</div>
+    </div>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">#</span><span>Posição no ranking (1 = quem mais faturou).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">CLASSE</span><span>A, B ou C — conforme a fatia acumulada do faturamento.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO GM</span><span>Código interno do produto na loja.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / CATEGORIA</span><span>Nome e grupo do cadastro.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Quanto esse produto vendeu no período (em reais).</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia <strong>só deste produto</strong> no total do período (ou da categoria filtrada).</span></li>
+      <li class="flex gap-2 rounded-lg border border-pink-500/40 bg-pink-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-pink-500/40 px-1.5 py-0.5 text-[10px] font-black text-pink-100">% ACUM.</span><span>Soma deste + todos os de cima. Quando chega perto de 80%, termina a classe A.</span></li>
+    </ul>
+
+    {% elif rel_help == "mais_vendidos" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que <span class="text-emerald-300">mais</span> (ou menos) saiu no período. Dá para ordenar por dinheiro ou por quantidade.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">#</span><span>Colocação no ranking.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO GM / PRODUTO</span><span>Identificação do item.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade vendida (unidades / kg etc.).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">TICKET MÉDIO</span><span>Valor médio por unidade vendida (Total ÷ Qtd).</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">TOTAL R$</span><span>Faturamento desse produto no período.</span></li>
+    </ul>
+
+    {% elif rel_help == "vendas_grupo" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria</span> (ex.: Rações, Sacaria) — útil para ver qual prateleira puxa a loja.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>Categoria do cadastro.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">SKUs</span><span>Quantos produtos diferentes daquele grupo venderam.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade total vendida no grupo.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Dinheiro que o grupo gerou.</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Quanto esse grupo representa do faturamento total do período.</span></li>
+    </ul>
+
+    {% elif rel_help == "margem" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200"><span class="text-lime-300">Margem</span> = o que sobrou depois de tirar o custo. Ajuda a ver o que vende bem <em>e</em> deixa lucro.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO / PRODUTO / QTD</span><span>O quê e quanto vendeu.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">VENDA R$</span><span>Total que o cliente pagou.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/30 px-1.5 py-0.5 text-[10px] font-black text-red-200">CUSTO R$</span><span>Custo do cadastro × quantidade.</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">MARGEM R$</span><span>Venda menos custo (lucro bruto em reais).</span></li>
+      <li class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/40 px-1.5 py-0.5 text-[10px] font-black text-amber-100">MARGEM %</span><span>Lucro em porcentagem da venda (ex.: 30% = a cada R$ 100, sobram R$ 30).</span></li>
+    </ul>
+
+    {% elif rel_help == "comparativo" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Compara <span class="text-indigo-300">dois períodos</span> lado a lado (ex.: este mês × mês passado) para ver se a loja subiu ou caiu.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-indigo-500/30 px-1.5 py-0.5 text-[10px] font-black text-indigo-200">INDICADOR</span><span>O que está sendo medido (cupons, faturamento, itens…).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">PERÍODO A</span><span>Números do filtro de cima (De / Até).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">PERÍODO B</span><span>Números do período B (mês passado ou datas que você escolheu).</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">VARIAÇÃO %</span><span>Quanto A mudou em relação a B. Positivo = cresceu; negativo = caiu.</span></li>
+    </ul>
+
+    {% elif rel_help == "formas_pagamento" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra <span class="text-teal-300">como o cliente pagou</span>: dinheiro, cartão, fiado etc.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-teal-500/30 px-1.5 py-0.5 text-[10px] font-black text-teal-200">FORMA</span><span>Tipo de pagamento.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">LANÇAMENTOS</span><span>Quantas vezes aquela forma apareceu (uma venda pode ter mais de uma forma).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Soma em reais daquela forma.</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia daquela forma no total do período.</span></li>
+    </ul>
+
+    {% elif rel_help == "giro" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Duas listas no mesmo lugar: o que <span class="text-amber-300">gira rápido</span> e o que está <span class="text-red-300">parado</span> com saldo.</p>
+    <div class="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] font-semibold text-amber-100">
+      <p class="mb-1 font-black text-amber-300">Estoque parado (90 dias)</p>
+      <ul class="space-y-1 text-amber-50/90">
+        <li><span class="font-black">ÚLTIMA VENDA</span> — última vez que saiu (quanto mais antiga, pior).</li>
+        <li><span class="font-black">ESTOQUE</span> — quanto ainda tem na loja.</li>
+        <li><span class="font-black">CUSTO / VALOR PARADO</span> — dinheiro “preso” nesse estoque.</li>
+      </ul>
+    </div>
+    <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[12px] font-semibold text-emerald-100">
+      <p class="mb-1 font-black text-emerald-300">Top giro (30 dias)</p>
+      <ul class="space-y-1 text-emerald-50/90">
+        <li><span class="font-black">QTD 30d / RECEITA 30d</span> — quanto vendeu e quanto faturou nos últimos 30 dias.</li>
+        <li><span class="font-black">ÚLTIMA VENDA</span> — data da última saída.</li>
+      </ul>
+    </div>
+
+    {% elif rel_help == "ruptura" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200"><span class="text-red-300">Ruptura</span> = produto que <strong>vendeu recentemente</strong> e o estoque <strong>zerou</strong>. É “falta na prateleira”.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO / PRODUTO / CATEGORIA</span><span>Qual item está faltando.</span></li>
+      <li class="flex gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/40 px-1.5 py-0.5 text-[10px] font-black text-red-100">ESTOQUE C+V</span><span>Saldo Centro + Vila. Aqui deve estar zerado (por isso entrou na lista).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">JANELA</span><span>Filtro “15 / 30 / 60 / 90 dias” = período em que o produto ainda vendeu.</span></li>
+    </ul>
+
+    {% elif rel_help == "operador" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Totais por <span class="text-cyan-300">quem registrou a venda</span> no PDV (operador do caixa).</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-cyan-500/30 px-1.5 py-0.5 text-[10px] font-black text-cyan-200">OPERADOR</span><span>Nome de quem fechou a venda.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">VENDAS</span><span>Quantos cupons / vendas.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">TICKET MÉDIO</span><span>Valor médio por venda.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">FRETE</span><span>Soma de frete nas vendas desse operador.</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">TOTAL R$</span><span>Faturamento total daquele operador no período.</span></li>
+    </ul>
+
+    {% elif rel_help == "clientes" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Quem <span class="text-pink-300">mais comprou</span> no período — bons clientes para cuidar e fidelizar.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-pink-500/30 px-1.5 py-0.5 text-[10px] font-black text-pink-200">CLIENTE / DOCUMENTO</span><span>Nome e CPF/CNPJ.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">VENDAS</span><span>Quantas compras no período.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">TICKET</span><span>Valor médio por compra.</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">TOTAL R$</span><span>Quanto esse cliente gastou no período.</span></li>
+    </ul>
+
+    {% elif rel_help == "comissao" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200"><span class="text-yellow-300">Estimativa</span> de comissão com base no % ou R$ cadastrado no produto. Não é meta de vendedor.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO / PRODUTO / QTD / VENDA</span><span>O que vendeu e o total em reais.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-yellow-500/30 px-1.5 py-0.5 text-[10px] font-black text-yellow-200">COMISSÃO %</span><span>Percentual cadastrado (se existir).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">COMISSÃO R$/UN</span><span>Valor fixo por unidade (se existir).</span></li>
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">ESTIMADA R$</span><span>Conta aproximada da comissão daquele produto no período.</span></li>
+    </ul>
+
+    {% elif rel_help == "validade" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista lotes <span class="text-orange-300">perto de vencer</span> ou já vencidos — para evitar perda e priorizar a venda.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / LOTE</span><span>Item e número do lote.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">C+V</span><span>Estoque Centro + Vila (saldo da loja).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/30 px-1.5 py-0.5 text-[10px] font-black text-red-200">VENC.</span><span>Quantidade já vencida naquela linha.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">VENCIMENTO</span><span>Data em que o lote vence.</span></li>
+      <li class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/40 px-1.5 py-0.5 text-[10px] font-black text-amber-100">SIT.</span><span>Situação (próximo / vencido etc.).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">BAIXA / GRAVAR</span><span>Ações para dar baixa ou salvar ajuste (quando liberado).</span></li>
+    </ul>
+
+    {% else %}
+    <p class="text-sm font-semibold text-slate-300">Use os filtros e a tabela abaixo. Em dúvida, pergunte ao Renan.</p>
+    {% endif %}
+  </div>
+</details>
+{% endif %}

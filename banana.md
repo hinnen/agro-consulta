@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.22** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.23** · **loja v9.16**
+
+### ✨ Relatórios — ajuda «?» leiga em todas as telas (17/07 · **teste v9.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **?** colorido ao lado do título · painel didático (colunas + o que o relatório faz) · hub, validade e todos os cards do genérico |
+| **Arquivos** | `includes/relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
+| **Você** | Ctrl+F5 teste · badge **v9.23** · Relatórios → Curva ABC (e outros) → clicar **?** |
+| **Loja** | ainda **v9.16** — sobe só com frase+senha |
 
 ### ✨ Cadastro ERP — layout header/toolbar (17/07 · **teste v9.22**)
 
