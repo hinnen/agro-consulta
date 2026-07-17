@@ -2626,6 +2626,30 @@
     min-height: 3.1rem;
     font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.15rem);
   }
+  /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
+    padding: 0.7rem 0.85rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
+    font-size: clamp(0.7rem, 0.25vw + 0.65rem, 0.8rem);
+    letter-spacing: 0.06em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-lbl {
+    font-size: clamp(0.7rem, 0.25vw + 0.62rem, 0.8rem);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-num,
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.75rem) !important;
+    font-weight: 900;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    min-height: 2.85rem;
+  }
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    padding: 0.35rem 0.55rem;
+  }
   #pdv-quick-product-edit-overlay .pdv-pe-forma-sel {
     min-height: 2.35rem;
     border-radius: 0.65rem;
@@ -3471,29 +3495,29 @@
         <div class="pdv-pe-estoque" style="grid-column:1/-1">
           <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Estoque (ajuste rápido)</p>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/90 px-2.5 py-2.5 shadow-sm">
-              <p class="mb-2 inline-flex rounded-lg bg-emerald-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">Centro</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <p class="text-[10px] font-black uppercase text-emerald-800">Agora</p>
-                  <p id="pdv-quick-product-edit-saldo-centro-atual" class="text-xl font-black tabular-nums leading-tight text-emerald-950">—</p>
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-emerald-200 bg-emerald-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-emerald-600 px-2.5 py-1 font-black uppercase text-white">Centro</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-emerald-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-centro-atual" class="pdv-pe-estoque-num text-emerald-950">—</p>
                 </div>
                 <label class="pdv-product-edit-field min-w-0">
-                  <span class="pdv-product-edit-label block font-black uppercase text-emerald-800">Novo</span>
-                  <input id="pdv-quick-product-edit-saldo-centro" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off" placeholder="—">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-emerald-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-centro" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-emerald-300 bg-white text-emerald-950" autocomplete="off" placeholder="—">
                 </label>
               </div>
             </div>
-            <div class="rounded-xl border-2 border-sky-200 bg-sky-50/90 px-2.5 py-2.5 shadow-sm">
-              <p class="mb-2 inline-flex rounded-lg bg-sky-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">Vila</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <p class="text-[10px] font-black uppercase text-sky-800">Agora</p>
-                  <p id="pdv-quick-product-edit-saldo-vila-atual" class="text-xl font-black tabular-nums leading-tight text-sky-950">—</p>
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-sky-200 bg-sky-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-sky-600 px-2.5 py-1 font-black uppercase text-white">Vila</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-sky-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-vila-atual" class="pdv-pe-estoque-num text-sky-950">—</p>
                 </div>
                 <label class="pdv-product-edit-field min-w-0">
-                  <span class="pdv-product-edit-label block font-black uppercase text-sky-800">Novo</span>
-                  <input id="pdv-quick-product-edit-saldo-vila" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off" placeholder="—">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-sky-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-vila" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-sky-300 bg-white text-sky-950" autocomplete="off" placeholder="—">
                 </label>
               </div>
             </div>
