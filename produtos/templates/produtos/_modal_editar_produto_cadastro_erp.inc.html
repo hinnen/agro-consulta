@@ -7,38 +7,40 @@
       max-height: min(98dvh, 98vh);
     }
     #modal-editar-produto .cadastro-modal-hist-scroll {
-      min-height: clamp(14rem, 38dvh, 28rem);
-      max-height: clamp(16rem, 48dvh, 36rem);
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
       overflow: auto;
     }
     /* Ajuste de proporção: menos padding, valores em destaque (#modal-editar-produto só) */
     #modal-editar-produto .info-card-compact {
-      padding: 0.75rem 1rem !important;
+      padding: 0.85rem 1.1rem !important;
       min-height: 0 !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      gap: 0.35rem;
     }
     #modal-editar-produto .info-card-label {
-      font-size: 0.7rem !important;
+      font-size: clamp(0.95rem, 0.85rem + 0.35vw, 1.1rem) !important;
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 2px !important;
-      line-height: 1.15;
+      letter-spacing: 0.03em;
+      margin-bottom: 0 !important;
+      line-height: 1.25;
     }
     #modal-editar-produto input.info-card-value {
-      font-size: 1.5rem !important;
+      font-size: clamp(1.35rem, 1.15rem + 0.55vw, 1.65rem) !important;
       font-weight: 800;
-      line-height: 1 !important;
-      padding: 0.25rem 0 !important;
+      line-height: 1.1 !important;
+      padding: 0.2rem 0 !important;
       margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
       outline: none !important;
       background: transparent !important;
       width: 100%;
-      min-height: 2.5rem;
+      min-height: 2.1rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -67,17 +69,17 @@
       }
     }
     #modal-editar-produto input.price-main-value {
-      font-size: clamp(2.25rem, 5.5vmin, 3rem) !important;
+      font-size: clamp(1.85rem, 1.5rem + 1vw, 2.35rem) !important;
       font-weight: 900;
       letter-spacing: -0.02em;
-      line-height: 1 !important;
+      line-height: 1.1 !important;
       padding: 0.15rem 0 !important;
       border: none !important;
       background: transparent !important;
       outline: none !important;
       width: auto;
       max-width: min(100%, 18ch);
-      min-height: 2.75rem;
+      min-height: 2.5rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -94,9 +96,9 @@
       justify-content: center;
     }
     #modal-editar-produto .margin-dark-card input.info-card-value--light {
-      font-size: 1.5rem !important;
+      font-size: clamp(1.35rem, 1.15rem + 0.55vw, 1.65rem) !important;
       font-weight: 800;
-      line-height: 1 !important;
+      line-height: 1.1 !important;
       color: #fff !important;
     }
     #modal-editar-produto .tab-custos-wrap {
@@ -118,7 +120,7 @@
       border-color: rgb(239 246 255 / 0.95);
       background: rgb(248 250 252 / 0.75);
     }
-    /* Abas sem lista histórica: aproveitar altura do modal */
+    /* Abas: preencher altura do modal (lista cresce; forms sem buraco no meio) */
     #modal-editar-produto .cadastro-modal-body {
       flex: 1 1 auto;
       min-height: 0;
@@ -130,20 +132,22 @@
     #modal-editar-produto .cadastro-modal-body-scroll {
       flex: 1 1 auto;
       min-height: 0;
-      overflow-y: auto;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       padding: clamp(0.85rem, 1.5vh, 1.35rem) clamp(0.85rem, 1.2vw, 1.5rem);
-      scrollbar-width: thin;
     }
     #modal-editar-produto .tab-content:not(.hidden) {
       flex: 1 1 auto;
       width: 100%;
-      min-height: min(100%, 58dvh);
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) {
-      gap: clamp(1rem, 2.2vh, 1.75rem) !important;
-      align-content: space-evenly;
+      gap: clamp(0.85rem, 1.6vh, 1.35rem) !important;
+      align-content: start;
       padding-bottom: 0.5rem;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="text"],
@@ -152,7 +156,7 @@
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="search"],
     #modal-editar-produto .tab-fill-form:not(.hidden) select,
     #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
-      min-height: clamp(3.25rem, 5.5vh, 3.75rem) !important;
+      min-height: clamp(3.1rem, 5vh, 3.55rem) !important;
       font-size: clamp(1.05rem, 0.95rem + 0.35vw, 1.2rem) !important;
       padding-top: 0.55rem !important;
       padding-bottom: 0.55rem !important;
@@ -169,12 +173,14 @@
     #modal-editar-produto .tab-fill-stack:not(.hidden) {
       display: flex !important;
       flex-direction: column;
-      gap: clamp(0.85rem, 1.8vh, 1.35rem);
-      min-height: min(100%, 58dvh);
+      gap: clamp(0.75rem, 1.4vh, 1.1rem);
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow {
       flex: 1 1 auto;
-      min-height: clamp(12rem, 32dvh, 26rem);
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
@@ -182,6 +188,7 @@
     #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow.border {
       flex: 1 1 auto;
       min-height: 0;
+      overflow: auto;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="text"],
     #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="number"],
@@ -191,35 +198,66 @@
       font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
     }
     #modal-editar-produto #tab-custos:not(.hidden) {
-      justify-content: space-evenly;
-      min-height: min(100%, 58dvh);
+      justify-content: flex-start;
+      gap: clamp(0.85rem, 1.6vh, 1.25rem);
+      overflow-y: auto;
     }
     #modal-editar-produto #tab-custos:not(.hidden) .price-main-card {
-      padding: clamp(1.1rem, 2.5vh, 1.75rem) 1.5rem !important;
+      padding: 1rem 1.5rem !important;
     }
     #modal-editar-produto #tab-custos:not(.hidden) input.price-main-value {
-      font-size: clamp(2rem, 1.5rem + 1.5vw, 2.75rem) !important;
-      min-height: clamp(2.75rem, 6vh, 3.5rem) !important;
+      font-size: clamp(1.85rem, 1.5rem + 1vw, 2.35rem) !important;
+      min-height: 2.5rem !important;
     }
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer {
+      margin-top: auto;
+    }
+    /* Config: colado em cima, fonte um pouco maior */
     #modal-editar-produto #tab-config:not(.hidden) {
-      align-content: center;
+      align-content: start;
       justify-items: stretch;
-      min-height: min(100%, 58dvh);
-      gap: 1.5rem !important;
+      min-height: 0;
+      height: auto;
+      gap: 1rem !important;
+      overflow: visible;
     }
     #modal-editar-produto #tab-config:not(.hidden) label {
-      min-height: 4.5rem;
-      padding: 1.25rem 1.5rem;
+      min-height: 3.75rem;
+      padding: 1rem 1.25rem;
       border-radius: 1rem;
       border: 2px solid rgb(226 232 240);
       background: #fff;
     }
     #modal-editar-produto #tab-config:not(.hidden) input[type="checkbox"] {
-      width: 1.75rem !important;
-      height: 1.75rem !important;
+      width: 1.5rem !important;
+      height: 1.5rem !important;
     }
     #modal-editar-produto #tab-config:not(.hidden) span {
-      font-size: 1.15rem !important;
+      font-size: 1.2rem !important;
+    }
+    /* Alterações / estoque: lista ocupa o resto até o rodapé */
+    #modal-editar-produto #tab-alteracoes:not(.hidden),
+    #modal-editar-produto #tab-estoque:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+    }
+    #modal-editar-produto #tab-estoque .estoque-hist-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    #modal-editar-produto #tab-estoque .cadastro-modal-hist-scroll,
+    #modal-editar-produto #tab-alteracoes .cadastro-modal-hist-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    #modal-editar-produto #lista-composicao td,
+    #modal-editar-produto #lista-cadastro-alteracoes td {
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      font-size: 1.05rem;
     }
   </style>
   <div class="cadastro-modal-panel bg-white rounded-2xl border border-slate-200 shadow-2xl w-full flex flex-col min-h-0 overflow-hidden font-['Inter']">
@@ -439,7 +477,8 @@
         </div>
       </div>
 
-      <div id="tab-estoque" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+      <div id="tab-estoque" class="tab-content hidden flex flex-col gap-4 font-['Inter']">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shrink-0">
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Estoque Mínimo</span>
           <input type="number" id="edit-est-min" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -457,9 +496,10 @@
           <input type="checkbox" id="edit-permite-negativo" checked="checked" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
           <span class="text-base font-bold text-slate-700">Permitir venda com estoque negativo</span>
         </label>
+        </div>
 
-        <div class="sm:col-span-2 md:col-span-3 mt-2">
-          <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+        <div class="estoque-hist-wrap flex flex-col min-h-0 flex-1 gap-2">
+          <div class="flex flex-wrap items-end justify-between gap-2 shrink-0">
             <div class="min-w-0">
               <span class="text-base font-black uppercase text-slate-600 block tracking-widest">Histórico de movimentação</span>
               <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes deste produto.</p>
@@ -497,7 +537,7 @@
               </label>
             </div>
           </div>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
+          <div class="border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
             <table class="w-full text-sm min-w-[720px]">
               <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
                 <tr>
@@ -517,7 +557,7 @@
               </tbody>
             </table>
           </div>
-          <div class="mt-2 flex justify-center">
+          <div class="mt-1 flex justify-center shrink-0">
             <button type="button" id="mov-btn-mais" class="hidden min-h-[40px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
           </div>
         </div>
@@ -597,7 +637,7 @@
         </div>
       </div>
 
-      <div id="tab-config" class="tab-content tab-fill-form hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div id="tab-config" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="sm:col-span-2 flex flex-col sm:flex-row gap-4 p-5 rounded-xl border border-slate-200 bg-white">
           <label class="flex-1 flex items-center gap-3 cursor-pointer select-none">
             <input type="checkbox" id="edit-ativo-exibicao" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
@@ -652,31 +692,31 @@
         </div>
       </div>
 
-      <div id="tab-alteracoes" class="tab-content hidden flex flex-col gap-3 font-['Inter']">
-        <div class="min-w-0">
-          <h4 class="text-base font-black uppercase text-slate-800 tracking-tight">Histórico de alterações do cadastro</h4>
-          <p class="text-sm font-semibold text-slate-600 mt-1 leading-snug">Só mudanças de cadastro (nome, preço, código…). <strong>Não</strong> é movimentação de estoque. Registra a partir de agora — o passado não volta.</p>
+      <div id="tab-alteracoes" class="tab-content tab-fill-stack hidden flex flex-col gap-3 font-['Inter']">
+        <div class="min-w-0 shrink-0">
+          <h4 class="text-lg font-black uppercase text-slate-800 tracking-tight">Histórico de alterações do cadastro</h4>
+          <p class="text-base font-semibold text-slate-600 mt-1 leading-snug">Só mudanças de cadastro (nome, preço, código…). <strong>Não</strong> é movimentação de estoque. Registra a partir de agora — o passado não volta.</p>
         </div>
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
-          <table class="w-full text-sm min-w-[640px]">
-            <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
+          <table class="w-full min-w-[640px]">
+            <thead class="bg-slate-50 text-sm font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
-                <th class="px-3 py-2.5 text-left">Quando</th>
-                <th class="px-3 py-2.5 text-left">Campo</th>
-                <th class="px-3 py-2.5 text-left">De</th>
-                <th class="px-3 py-2.5 text-left">Para</th>
-                <th class="px-3 py-2.5 text-left">Quem</th>
-                <th class="px-3 py-2.5 text-left">Origem</th>
+                <th class="px-3 py-3 text-left">Quando</th>
+                <th class="px-3 py-3 text-left">Campo</th>
+                <th class="px-3 py-3 text-left">De</th>
+                <th class="px-3 py-3 text-left">Para</th>
+                <th class="px-3 py-3 text-left">Quem</th>
+                <th class="px-3 py-3 text-left">Origem</th>
               </tr>
             </thead>
             <tbody id="lista-cadastro-alteracoes" class="divide-y divide-slate-100">
-              <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma alteração registrada ainda.</td></tr>
+              <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 font-semibold text-lg">Nenhuma alteração registrada ainda.</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="flex flex-wrap items-center justify-center gap-2">
-          <button type="button" id="alt-btn-mais" class="hidden min-h-[40px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
-          <button type="button" id="alt-btn-completo" class="min-h-[40px] px-4 rounded-xl text-xs font-black uppercase border-2 border-red-600 text-red-800 bg-white hover:bg-red-50">Histórico completo</button>
+        <div class="flex flex-wrap items-center justify-center gap-2 shrink-0">
+          <button type="button" id="alt-btn-mais" class="hidden min-h-[44px] px-5 rounded-xl text-sm font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
+          <button type="button" id="alt-btn-completo" class="min-h-[44px] px-5 rounded-xl text-sm font-black uppercase border-2 border-red-600 text-red-800 bg-white hover:bg-red-50">Histórico completo</button>
         </div>
       </div>
 
@@ -1734,7 +1774,7 @@
     var totEl = document.getElementById('edit-comp-custo-total');
     if (!tb) return;
     if (!lista || !lista.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Sem itens de composição neste cadastro.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-16 text-center text-slate-400 font-semibold text-lg">Sem itens de composição neste cadastro.</td></tr>';
       if (totEl) totEl.textContent = 'R$ 0,00';
       return;
     }

@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.46** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.48** · **loja v9.16**
+
+### 🩹 Cadastro — modal: proporção Preços + listas até o rodapé (17/07 · **teste v9.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Preços: tag e número mais equilibrados. Config colado em cima. Composição / Alterações / Estoque: área da lista cresce até o rodapé (sem buraco branco) |
+| **Você** | Ctrl+F5 · badge **v9.48** · Preços · Composição · Config · Alterações |
+| **Loja** | ⏳ |
 
 ### 🩹 PDV — estoque editor: números do mesmo tamanho (17/07 · **teste v9.46**)
 
