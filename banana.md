@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.51** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.53** · **loja v9.16**
+
+### 🩹 PDV — editor sem scroll: pop quase tela cheia (17/07 · **teste v9.53**)
+
+| | |
+| --- | --- |
+| **O quê** | Letras grandes iguais; **popup mais alto** (quase 98 % da tela, sem teto em rem) — estoque cabe **sem barra de rolagem** |
+| **Você** | Ctrl+F5 · badge **v9.53** · lápis · confere se some o scroll |
 
 ### 🩹 PDV — editor rápido bem maior (+25 %) (17/07 · **teste v9.51**)
 

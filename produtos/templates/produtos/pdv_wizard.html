@@ -2581,11 +2581,16 @@
     color: #b45309;
   }
   .pdv-product-edit-panel {
-    /* Estica o pop inteiro (~+25 %) — fonte, campos e botões juntos (Chrome) */
+    /* Mesmo tamanho das letras; caixa quase tela cheia — sem scroll interno */
     --pdv-pe-zoom: 1.25;
-    width: min(calc(96vw / var(--pdv-pe-zoom)), calc(52rem / var(--pdv-pe-zoom)));
-    max-height: min(calc(94dvh / var(--pdv-pe-zoom)), calc(44rem / var(--pdv-pe-zoom)));
+    width: min(calc(98vw / var(--pdv-pe-zoom)), calc(64rem / var(--pdv-pe-zoom)));
+    max-height: calc(98dvh / var(--pdv-pe-zoom));
+    height: auto;
     zoom: var(--pdv-pe-zoom);
+  }
+  #pdv-quick-product-edit-overlay {
+    padding: 0.25rem !important;
+    align-items: center;
   }
   #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
     font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.6rem);
@@ -2601,18 +2606,18 @@
     font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.22rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
-    margin: 0.4rem 0 0.5rem;
+    margin: 0.35rem 0 0.4rem;
     font-size: clamp(0.82rem, 0.32vw + 0.72rem, 0.98rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow-y: hidden; /* sem barra se couber; painel já usa quase 98dvh */
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem 0.6rem;
+    gap: 0.45rem 0.55rem;
   }
   @media (min-width: 640px) {
     #pdv-quick-product-edit-overlay .pdv-product-edit-form {
