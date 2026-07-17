@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.79** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.80** · **loja v9.16**
+
+### 🩹 PDV — ícone Cliente fora do campo + texto Carrinho (17/07 · **teste v9.80**)
+
+| | |
+| --- | --- |
+| **O quê** | Ícone do cliente **fora** do campo (igual Busca) · volta escrita **Carrinho** |
+| **Você** | Ctrl+F5 · badge **v9.80** |
 
 ### 🩹 PDV — só ícones sem texto (teste visual) (17/07 · **teste v9.79**)
 
