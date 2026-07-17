@@ -1323,8 +1323,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P0,1** | **Zap #23** · **FL-055** | NFC-e **535** frete | ✅ loja **v9.16** |
-| **P1,1** | **Zap #17** · **FL-022** | Busca CP inteligente | ✅ loja **v9.16** |
+| **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
+| **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
+| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | 📋 |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
@@ -1334,7 +1335,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P1,6** | **Zap #22** · **FL-024** | Cadastro: cat/sub/marca só selecionar existentes · popup Food se novo · PIN + log · busca sem acento/caixa | 📋 |
 | **P1,6** | **FL-031** | Terminar tela `/entregas/` | 📋 |
 | **P1,9** | **FL-034** | Histórico F8 filtra cliente | 🔄 teste |
-| **P2** | **Zap #12** · **FL-035** | Devolução parcial / por item | 📦 pronto (fecha) |
 | **P2** | **Zap #19** · **FL-053** | Histórico de custo (últ. pedidos) tick **2×** (fim etapa 2 + finalizar NF) | 📋 · foto Word |
 | **P3** | **Zap #21** · **FL-033** | BI comparativo: N-ésimo dia da semana vs mês anterior (ex. 3ª terça) | 📋 · foto Word |
 | **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
@@ -1343,6 +1343,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Ref | Pedido | Nota |
 | --- | ------ | ---- |
+| Zap **#12** · FL-035 | Devolução parcial | ✅ loja **v9.16** |
+| Zap **#17** · FL-022 | Busca CP inteligente | ✅ loja **v9.16** |
+| Zap **#23** · FL-055 | NFC-e 535 frete | ✅ loja **v9.16** |
 | Zap **#1** | Entrada NF etapa 7 — valor | ✅ |
 | Zap **#2** | Entrada NF busca barras | ✅ |
 | Zap **#3** | Cadastro custo / prefixo GM | ✅ |
