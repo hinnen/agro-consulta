@@ -1,33 +1,46 @@
-<div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
+<div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-2 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
   <style>
-    /* Ajuste de proporção: menos padding, valores em destaque (#modal-editar-produto só) */
+    /* Modal grande — histórico de movimentação / alterações precisa de altura */
+    #modal-editar-produto .cadastro-modal-panel {
+      width: min(100%, 90rem);
+      height: min(98dvh, 98vh);
+      max-height: min(98dvh, 98vh);
+    }
+    #modal-editar-produto .cadastro-modal-hist-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+      overflow: auto;
+    }
+    /* Cards Preços: número grande preenchendo a tag (não a caixa vazia) */
     #modal-editar-produto .info-card-compact {
       padding: 0.75rem 1rem !important;
       min-height: 0 !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      gap: 0.35rem;
     }
     #modal-editar-produto .info-card-label {
-      font-size: 0.7rem !important;
+      font-size: 1.05rem !important;
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 2px !important;
-      line-height: 1.15;
+      letter-spacing: 0.03em;
+      margin-bottom: 0 !important;
+      line-height: 1.2;
     }
     #modal-editar-produto input.info-card-value {
-      font-size: 1.5rem !important;
-      font-weight: 800;
-      line-height: 1 !important;
-      padding: 0.25rem 0 !important;
+      font-size: 2.75rem !important;
+      font-weight: 900;
+      line-height: 1.05 !important;
+      padding: 0.1rem 0 !important;
       margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
       outline: none !important;
       background: transparent !important;
       width: 100%;
-      min-height: 2.5rem;
+      min-height: 3rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -49,6 +62,7 @@
       border-style: solid !important;
       border-color: rgb(251 146 60) !important;
       display: block;
+      min-height: 0;
     }
     @media (min-width: 768px) {
       #modal-editar-produto .price-main-card {
@@ -56,17 +70,17 @@
       }
     }
     #modal-editar-produto input.price-main-value {
-      font-size: clamp(2.25rem, 5.5vmin, 3rem) !important;
+      font-size: 3rem !important;
       font-weight: 900;
       letter-spacing: -0.02em;
-      line-height: 1 !important;
+      line-height: 1.05 !important;
       padding: 0.15rem 0 !important;
       border: none !important;
       background: transparent !important;
       outline: none !important;
       width: auto;
       max-width: min(100%, 18ch);
-      min-height: 2.75rem;
+      min-height: 3.25rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -77,15 +91,16 @@
       border-radius: 0.25rem;
     }
     #modal-editar-produto .margin-dark-card {
-      padding: 1rem !important;
+      padding: 0.75rem 1rem !important;
+      min-height: 0 !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
     #modal-editar-produto .margin-dark-card input.info-card-value--light {
-      font-size: 1.5rem !important;
-      font-weight: 800;
-      line-height: 1 !important;
+      font-size: 2.75rem !important;
+      font-weight: 900;
+      line-height: 1.05 !important;
       color: #fff !important;
     }
     #modal-editar-produto .tab-custos-wrap {
@@ -107,8 +122,168 @@
       border-color: rgb(239 246 255 / 0.95);
       background: rgb(248 250 252 / 0.75);
     }
+    /* Abas: preencher altura do modal (lista cresce; forms sem buraco no meio) */
+    #modal-editar-produto .cadastro-modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: rgb(248 250 252 / 0.5);
+    }
+    #modal-editar-produto .cadastro-modal-body-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(0.85rem, 1.5vh, 1.35rem) clamp(0.85rem, 1.2vw, 1.5rem);
+    }
+    #modal-editar-produto .tab-content:not(.hidden) {
+      flex: 1 1 0%;
+      width: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) {
+      gap: 0.55rem !important;
+      row-gap: 0.55rem !important;
+      column-gap: 0.65rem !important;
+      align-content: start;
+      height: auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 0.25rem;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="text"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="number"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="date"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="search"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) select,
+    #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
+      min-height: 3.75rem !important;
+      font-size: 1.35rem !important;
+      padding-top: 0.65rem !important;
+      padding-bottom: 0.65rem !important;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
+      min-height: 6rem !important;
+      font-size: 1.25rem !important;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) > span.text-base,
+    #modal-editar-produto .tab-fill-form:not(.hidden) label > span,
+    #modal-editar-produto .tab-fill-form:not(.hidden) .flex.flex-col > span {
+      font-size: 1.1rem !important;
+      margin-bottom: 0.25rem !important;
+    }
+    #modal-editar-produto #tab-fiscal:not(.hidden) #btn-gerar-cb-loja {
+      min-height: 3.75rem !important;
+      font-size: 1.1rem !important;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      gap: clamp(0.65rem, 1.2vh, 1rem);
+      flex: 1 1 0% !important;
+      min-height: 0;
+      overflow: hidden !important;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow {
+      flex: 1 1 0%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow > .border,
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow.border {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow: auto;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="text"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="number"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="date"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) select {
+      min-height: clamp(3.1rem, 5vh, 3.6rem) !important;
+      font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 0.75rem;
+      overflow-y: auto;
+      height: auto;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) .price-main-card {
+      padding: 1rem 1.5rem !important;
+      min-height: 0;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) input.price-main-value {
+      font-size: 3rem !important;
+      min-height: 3.25rem !important;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer {
+      margin-top: 0;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer .info-card-compact,
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer .margin-dark-card {
+      min-height: 0 !important;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) input.info-card-value,
+    #modal-editar-produto #tab-custos:not(.hidden) input.info-card-value--light {
+      font-size: 2.75rem !important;
+    }
+    /* Config: colado em cima, fonte um pouco maior */
+    #modal-editar-produto #tab-config:not(.hidden) {
+      align-content: start;
+      justify-items: stretch;
+      height: auto;
+      min-height: 0;
+      gap: 1rem !important;
+      overflow: visible;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) label {
+      min-height: 3.75rem;
+      padding: 1rem 1.25rem;
+      border-radius: 1rem;
+      border: 2px solid rgb(226 232 240);
+      background: #fff;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) input[type="checkbox"] {
+      width: 1.5rem !important;
+      height: 1.5rem !important;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) span {
+      font-size: 1.2rem !important;
+    }
+    /* Alterações / estoque: lista ocupa o resto até o rodapé */
+    #modal-editar-produto #tab-alteracoes:not(.hidden),
+    #modal-editar-produto #tab-estoque:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+    }
+    #modal-editar-produto #tab-estoque .estoque-hist-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    #modal-editar-produto #tab-estoque .cadastro-modal-hist-scroll,
+    #modal-editar-produto #tab-alteracoes .cadastro-modal-hist-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    #modal-editar-produto #lista-composicao td,
+    #modal-editar-produto #lista-cadastro-alteracoes td {
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+      font-size: 1.05rem;
+    }
   </style>
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
+  <div class="cadastro-modal-panel bg-white rounded-2xl border border-slate-200 shadow-2xl w-full flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
     <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
       <h3 id="cadastro-modal-titulo" class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">SisVale</span></h3>
@@ -124,16 +299,18 @@
       <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-variacoes">6. Marcas/Cód.</button>
       <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-config">7. Config</button>
       <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-validade">8. Validade e Lote</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-alteracoes">9. Alterações</button>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 [scrollbar-width:thin]">
+    <div class="cadastro-modal-body">
+    <div class="cadastro-modal-body-scroll">
 
-      <p class="text-sm font-bold text-slate-700 mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-snug">
+      <p class="text-sm font-bold text-slate-700 mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-snug shrink-0">
         <span class="text-red-600 font-black" title="Obrigatório">*</span>
         <span>Somente os campos marcados com asterisco são obrigatórios para salvar no SisVale{% if cadastro_produto_erp_sync_habilitado %} ou enviar ao ERP{% endif %}.</span>
       </p>
 
-      <div id="tab-gerais" class="tab-content grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+      <div id="tab-gerais" class="tab-content tab-fill-form grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
 
         <label class="block sm:col-span-2 md:col-span-3">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Nome do Produto <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
@@ -205,11 +382,12 @@
         </label>
 
         <label class="block sm:col-span-2 md:col-span-3">
-          <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">URL da imagem (opcional)</span>
+          <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="https://… ou deixe em branco" autocomplete="off" />
         </label>
       </div>
 
-      <div id="tab-fiscal" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div id="tab-fiscal" class="tab-content tab-fill-form hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Sistema</span>
           <input type="text" id="edit-codigo" maxlength="4" inputmode="numeric" autocomplete="off" pattern="\d{4}" title="Exatamente 4 números (ex.: 4252)" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -255,7 +433,7 @@
         </label>
       </div>
 
-      <div id="tab-custos" class="tab-content hidden flex flex-col gap-4 w-full font-['Inter']">
+      <div id="tab-custos" class="tab-content tab-fill-stack hidden flex flex-col gap-4 w-full font-['Inter']">
 
         <div class="tab-custos-wrap w-full">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-0">
@@ -323,7 +501,8 @@
         </div>
       </div>
 
-      <div id="tab-estoque" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+      <div id="tab-estoque" class="tab-content hidden flex flex-col gap-4 font-['Inter']">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shrink-0">
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Estoque Mínimo</span>
           <input type="number" id="edit-est-min" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -341,25 +520,76 @@
           <input type="checkbox" id="edit-permite-negativo" checked="checked" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
           <span class="text-base font-bold text-slate-700">Permitir venda com estoque negativo</span>
         </label>
+        </div>
 
-        <div class="sm:col-span-2 md:col-span-3 mt-2">
-          <span class="text-base font-black uppercase text-slate-600 mb-2 block tracking-widest">Histórico de Fornecedores</span>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
-            <table class="w-full text-base min-w-[500px]">
-              <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
-                <tr><th class="px-4 py-3 text-left">Fornecedor</th><th class="px-4 py-3 text-left">Data</th><th class="px-4 py-3 text-right">Preço Pago</th></tr>
+        <div class="estoque-hist-wrap flex flex-col min-h-0 flex-1 gap-2">
+          <div class="flex flex-wrap items-end justify-between gap-2 shrink-0">
+            <div class="min-w-0">
+              <span class="text-base font-black uppercase text-slate-600 block tracking-widest">Histórico de movimentação</span>
+              <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes deste produto.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Depósito</span>
+                <select id="mov-filtro-deposito" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="">Todos</option>
+                  <option value="centro">Centro</option>
+                  <option value="vila">Vila</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Tipo</span>
+                <select id="mov-filtro-origem" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="">Todos</option>
+                  <option value="baixa_venda_pdv">Venda</option>
+                  <option value="devolucao_venda_pdv">Devolução</option>
+                  <option value="entrada_nf_agro">Entrada NF</option>
+                  <option value="transferencia_ui">Transferência</option>
+                  <option value="ajuste_pin">Ajuste PIN</option>
+                  <option value="outro">Ajuste gestão</option>
+                  <option value="vencimento_em_loja">Vencimento</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-0.5">
+                <span class="text-[10px] font-bold uppercase text-slate-500">Período</span>
+                <select id="mov-filtro-dias" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
+                  <option value="30">30 dias</option>
+                  <option value="90" selected>90 dias</option>
+                  <option value="365">1 ano</option>
+                  <option value="0">Tudo (até 200)</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
+            <table class="w-full text-sm min-w-[720px]">
+              <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
+                <tr>
+                  <th class="px-3 py-2.5 text-left">Quando</th>
+                  <th class="px-3 py-2.5 text-left">Tipo</th>
+                  <th class="px-3 py-2.5 text-left">Documento</th>
+                  <th class="px-3 py-2.5 text-left">Fornecedor / Preço</th>
+                  <th class="px-3 py-2.5 text-left">Depósito</th>
+                  <th class="px-3 py-2.5 text-right">Entrada</th>
+                  <th class="px-3 py-2.5 text-right">Saída</th>
+                  <th class="px-3 py-2.5 text-right">Saldo</th>
+                  <th class="px-3 py-2.5 text-left">Quem</th>
+                </tr>
               </thead>
-              <tbody id="lista-fornecedores" class="divide-y divide-slate-100">
-                <tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhum histórico disponível.</td></tr>
+              <tbody id="lista-estoque-movimentos" class="divide-y divide-slate-100">
+                <tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="mt-1 flex justify-center shrink-0">
+            <button type="button" id="mov-btn-mais" class="hidden min-h-[40px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
           </div>
         </div>
       </div>
 
-      <div id="tab-composicao" class="tab-content hidden flex flex-col gap-4 font-['Inter']">
+      <div id="tab-composicao" class="tab-content tab-fill-stack hidden flex flex-col gap-4 font-['Inter']">
 
-        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3">
+        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3 shrink-0">
           <label class="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
             <span class="text-base font-bold text-slate-700">Baixar estoque dos componentes na venda</span>
@@ -374,7 +604,7 @@
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm shrink-0">
           <div class="flex-1 min-w-[250px] relative">
             <span class="text-base font-black uppercase text-slate-600 mb-1 block">Buscar Componente / Insumo</span>
             <input type="text" id="comp-busca" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Nome ou código..." />
@@ -407,9 +637,9 @@
           <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-slate-200 text-slate-500 border-2 border-slate-300 cursor-not-allowed" disabled title="Composição definida no ERP">Add</button>
         </div>
 
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin]">
           <table class="w-full text-base min-w-[750px]">
-            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
                 <th class="px-4 py-3 text-left">Produto</th>
                 <th class="px-4 py-3 text-left">Depósito Saída</th>
@@ -444,11 +674,11 @@
         </div>
       </div>
 
-      <div id="tab-validade" class="tab-content hidden flex flex-col gap-4">
-        <div class="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-2 tracking-tight">Lotes, validade e saldo (Agro)</h4>
-          <p class="text-sm text-slate-600 mb-4">Cada lote fica no overlay; o resumo (data + lote) para o relatório é alinhado ao lote mais crítico. <strong>Adicionar / remover</strong> grava de imediato (é necessário login).</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80 mb-4">
+      <div id="tab-validade" class="tab-content tab-fill-stack hidden flex flex-col gap-4">
+        <div class="cadastro-tab-grow p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-2 tracking-tight shrink-0">Lotes, validade e saldo (Agro)</h4>
+          <p class="text-sm text-slate-600 mb-4 shrink-0">Cada lote fica no overlay; o resumo (data + lote) para o relatório é alinhado ao lote mais crítico. <strong>Adicionar / remover</strong> grava de imediato (é necessário login).</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80 mb-4 shrink-0">
             <label class="block min-w-0">
               <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Lote</span>
               <input type="text" id="lote-novo-cod" class="w-full min-h-[44px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white" placeholder="Ex. 001/25" autocomplete="off" />
@@ -465,9 +695,9 @@
               <button type="button" id="lote-btn-adicionar" class="w-full min-h-[44px] rounded-lg border-2 border-orange-500 bg-orange-500 px-2 text-xs font-black uppercase text-white hover:bg-orange-400">Adicionar</button>
             </div>
           </div>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto">
+          <div class="border border-slate-200 rounded-xl overflow-auto flex-1 min-h-0 [scrollbar-width:thin]">
             <table class="w-full text-sm min-w-[520px]">
-              <thead class="bg-slate-800 text-white text-xs font-black uppercase">
+              <thead class="bg-slate-800 text-white text-xs font-black uppercase sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Lote</th>
                   <th class="px-3 py-2.5 text-left">Validade</th>
@@ -481,18 +711,46 @@
             </table>
           </div>
         </div>
-        <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug">
+        <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug shrink-0">
           O resumo (uma data / lote) usado no relatório de vencimentos segue o lote de validade <strong>mais antiga</strong> (se houver qtd. &gt; 0, prefere esses). O botão <strong>Salvar no Agro</strong> grava as outras abas, não a tabela de lotes (já salva por linha).
         </div>
       </div>
 
-      <div id="tab-variacoes" class="tab-content hidden flex flex-col gap-4">
-        <div id="bloco-similares-erp" class="rounded-xl border border-slate-300 bg-slate-50/90 p-4 shadow-sm">
+      <div id="tab-alteracoes" class="tab-content tab-fill-stack hidden flex flex-col gap-3 font-['Inter']">
+        <div class="min-w-0 shrink-0">
+          <h4 class="text-lg font-black uppercase text-slate-800 tracking-tight">Histórico de alterações do cadastro</h4>
+          <p class="text-base font-semibold text-slate-600 mt-1 leading-snug">Só mudanças de cadastro (nome, preço, código…). <strong>Não</strong> é movimentação de estoque. Registra a partir de agora — o passado não volta.</p>
+        </div>
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
+          <table class="w-full min-w-[640px]">
+            <thead class="bg-slate-50 text-sm font-black uppercase text-slate-600 sticky top-0 z-[1]">
+              <tr>
+                <th class="px-3 py-3 text-left">Quando</th>
+                <th class="px-3 py-3 text-left">Campo</th>
+                <th class="px-3 py-3 text-left">De</th>
+                <th class="px-3 py-3 text-left">Para</th>
+                <th class="px-3 py-3 text-left">Quem</th>
+                <th class="px-3 py-3 text-left">Origem</th>
+              </tr>
+            </thead>
+            <tbody id="lista-cadastro-alteracoes" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 font-semibold text-lg">Nenhuma alteração registrada ainda.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2 shrink-0">
+          <button type="button" id="alt-btn-mais" class="hidden min-h-[44px] px-5 rounded-xl text-sm font-black uppercase border-2 border-emerald-500 text-emerald-800 bg-white hover:bg-emerald-50">Carregar mais</button>
+          <button type="button" id="alt-btn-completo" class="min-h-[44px] px-5 rounded-xl text-sm font-black uppercase border-2 border-red-600 text-red-800 bg-white hover:bg-red-50">Histórico completo</button>
+        </div>
+      </div>
+
+      <div id="tab-variacoes" class="tab-content tab-fill-stack hidden flex flex-col gap-4">
+        <div id="bloco-similares-erp" class="rounded-xl border border-slate-300 bg-slate-50/90 p-4 shadow-sm shrink-0">
           <h4 class="text-base font-black uppercase tracking-widest text-slate-800 mb-1">Similares (ERP)</h4>
           <p class="text-base text-slate-600 mb-3 leading-snug">Produtos vinculados como similares no espelho Mongo (somente leitura; alteração no ERP).</p>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] max-h-[28vh]">
             <table class="w-full text-base min-w-[720px]">
-              <thead class="bg-slate-900 text-white text-sm sm:text-base font-black uppercase">
+              <thead class="bg-slate-900 text-white text-sm sm:text-base font-black uppercase sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Código</th>
                   <th class="px-3 py-2.5 text-left">Nome</th>
@@ -508,7 +766,7 @@
           </div>
         </div>
 
-        <div class="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50">
+        <div class="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50 shrink-0">
           <p class="text-base font-bold text-emerald-800 mb-4 tracking-tight">Variações locais (Agro): o custo mestre (aba Preços) é a média ponderada (estoque × custo) das linhas abaixo.</p>
 
           <div class="flex flex-wrap items-end gap-3">
@@ -544,9 +802,9 @@
           </div>
         </div>
 
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin]">
           <table class="w-full text-base min-w-[800px]">
-            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
                 <th class="px-4 py-3 text-left">Cód. Interno</th>
                 <th class="px-4 py-3 text-left">Marca</th>
@@ -563,6 +821,7 @@
         </div>
       </div>
 
+    </div>
     </div>
 
     <div id="cadastro-modal-status" class="hidden px-4 sm:px-6 py-3 border-t shrink-0 bg-emerald-50 border-emerald-200" role="status" aria-live="polite">
@@ -1297,36 +1556,105 @@
       .catch(function () { /* facetas opcional */ });
   }
 
-  function renderFornecedoresLinhas(linhas) {
-    var tb = document.getElementById('lista-fornecedores');
+  function seloTipoMov(origem, label) {
+    var o = String(origem || '');
+    var base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wide ';
+    if (o === 'baixa_venda_pdv') return '<span class="' + base + 'bg-rose-100 text-rose-800 border border-rose-200">' + esc(label) + '</span>';
+    if (o === 'devolucao_venda_pdv' || o === 'entrada_nf_agro') return '<span class="' + base + 'bg-emerald-100 text-emerald-900 border border-emerald-200">' + esc(label) + '</span>';
+    if (o === 'transferencia_ui') return '<span class="' + base + 'bg-sky-100 text-sky-900 border border-sky-200">' + esc(label) + '</span>';
+    if (o === 'ajuste_pin' || o === 'outro') return '<span class="' + base + 'bg-amber-100 text-amber-900 border border-amber-200">' + esc(label) + '</span>';
+    return '<span class="' + base + 'bg-slate-100 text-slate-700 border border-slate-200">' + esc(label || 'Outro') + '</span>';
+  }
+
+  function fmtQtdMov(n) {
+    var x = Number(n);
+    if (!isFinite(x) || x === 0) return '—';
+    return String(x.toFixed(3)).replace(/\.?0+$/, '').replace('.', ',');
+  }
+
+  function linkDocMov(ln) {
+    var doc = ln.documento || '—';
+    var vid = ln.venda_id;
+    var cfg = window.AgroCadastroErpLista || {};
+    var tmpl = cfg.URL_VENDA_DETALHE_TMPL || '';
+    if (vid && tmpl) {
+      var href = String(tmpl).replace('999999', String(vid));
+      return '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="font-bold text-emerald-800 underline decoration-emerald-400 hover:text-emerald-950">' + esc(doc) + '</a>';
+    }
+    return esc(doc);
+  }
+
+  function fornPrecoMov(ln) {
+    var f = (ln.fornecedor || '').trim();
+    var p = ln.preco_pago;
+    if (!f && (p == null || p === '' || Number(p) === 0)) return '—';
+    var parts = [];
+    if (f) parts.push(esc(f));
+    if (p != null && p !== '' && isFinite(Number(p)) && Number(p) !== 0) parts.push(esc(fmtMoneyPt(p)));
+    return parts.join(' · ') || '—';
+  }
+
+  var _movOffset = 0;
+  var _movLoading = false;
+
+  function renderEstoqueMovimentos(linhas, append) {
+    var tb = document.getElementById('lista-estoque-movimentos');
     if (!tb) return;
-    if (!linhas || !linhas.length) {
-      tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhum histórico disponível.</td></tr>';
+    if (!append) tb.innerHTML = '';
+    if ((!linhas || !linhas.length) && !append) {
+      tb.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>';
       return;
     }
+    if ((!linhas || !linhas.length) && append) return;
     var h = '';
-    linhas.forEach(function (ln) {
-      var dt = (ln.data || '').replace('T', ' ').slice(0, 16);
-      h += '<tr><td class="px-4 py-3 text-base font-semibold text-slate-800">' + esc(ln.fornecedor || '—') + '</td>' +
-        '<td class="px-4 py-3 text-base text-slate-600">' + esc(dt || '—') + '</td>' +
-        '<td class="px-4 py-3 text-right text-base font-bold text-slate-800">' + esc(fmtMoneyPt(ln.preco_pago)) + '</td></tr>';
+    (linhas || []).forEach(function (ln) {
+      var dep = String(ln.deposito || '').toLowerCase() === 'vila' ? 'Vila' : 'Centro';
+      h += '<tr class="hover:bg-slate-50/80">' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold whitespace-nowrap">' + esc(ln.quando || '—') + '</td>' +
+        '<td class="px-3 py-2.5">' + seloTipoMov(ln.origem, ln.tipo_label) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-800">' + linkDocMov(ln) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-700">' + fornPrecoMov(ln) + '</td>' +
+        '<td class="px-3 py-2.5 font-semibold text-slate-700">' + esc(dep) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-bold text-emerald-700">' + esc(fmtQtdMov(ln.qtd_entrada)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-bold text-rose-700">' + esc(fmtQtdMov(ln.qtd_saida)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black text-slate-900">' + esc(fmtQtdMov(ln.saldo_depois)) + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold">' + esc(ln.operador || '—') + '</td>' +
+        '</tr>';
     });
-    tb.innerHTML = h;
+    if (append) tb.insertAdjacentHTML('beforeend', h);
+    else tb.innerHTML = h;
   }
 
-  var historicoTimer = null;
-  function agendarHistoricoCompras() {
-    if (historicoTimer) clearTimeout(historicoTimer);
-    historicoTimer = setTimeout(carregarHistoricoCompras, 450);
-  }
-
-  function carregarHistoricoCompras() {
+  function carregarHistoricoMovimentos(opts) {
+    opts = opts || {};
+    var append = !!opts.append;
     var cfg = window.AgroCadastroErpLista || {};
-    var base = cfg.URL_COMPRAS_HISTORICO || '';
+    var base = cfg.URL_ESTOQUE_MOVIMENTOS || '';
     var pid = modalEdit.getAttribute('data-produto-id');
-    if (!base || !pid) return;
+    var btnMais = document.getElementById('mov-btn-mais');
+    if (!base || !pid || pid === '__novo__') {
+      renderEstoqueMovimentos([], false);
+      if (btnMais) btnMais.classList.add('hidden');
+      return;
+    }
+    if (_movLoading) return;
+    _movLoading = true;
+    if (!append) {
+      _movOffset = 0;
+      renderEstoqueMovimentos([], false);
+      var tb0 = document.getElementById('lista-estoque-movimentos');
+      if (tb0) tb0.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
+    }
     var params = new URLSearchParams();
     params.set('produto_id', pid);
+    params.set('limit', '50');
+    params.set('offset', String(_movOffset));
+    var elDep = document.getElementById('mov-filtro-deposito');
+    var elOri = document.getElementById('mov-filtro-origem');
+    var elDias = document.getElementById('mov-filtro-dias');
+    if (elDep && elDep.value) params.set('deposito', elDep.value);
+    if (elOri && elOri.value) params.set('origem', elOri.value);
+    if (elDias) params.set('dias', elDias.value || '90');
     (modalEdit._variacoes || []).forEach(function (v) {
       if (v.codigo_barras) params.append('cb', String(v.codigo_barras).trim());
       if (v.codigo_fornecedor) params.append('cf', String(v.codigo_fornecedor).trim());
@@ -1335,11 +1663,129 @@
     fetch(base + '?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (data) {
-        if (data && data.ok && data.linhas) renderFornecedoresLinhas(data.linhas);
-        else renderFornecedoresLinhas([]);
+        _movLoading = false;
+        var linhas = (data && data.ok && data.linhas) ? data.linhas : [];
+        if (!append && !linhas.length) renderEstoqueMovimentos([], false);
+        else renderEstoqueMovimentos(linhas, append);
+        _movOffset += linhas.length;
+        if (btnMais) {
+          if (data && data.tem_mais) btnMais.classList.remove('hidden');
+          else btnMais.classList.add('hidden');
+        }
       })
-      .catch(function () { renderFornecedoresLinhas([]); });
+      .catch(function () {
+        _movLoading = false;
+        if (!append) renderEstoqueMovimentos([], false);
+        if (btnMais) btnMais.classList.add('hidden');
+      });
   }
+
+  (function bindFiltrosMovimentos() {
+    ['mov-filtro-deposito', 'mov-filtro-origem', 'mov-filtro-dias'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', function () { carregarHistoricoMovimentos({ append: false }); });
+    });
+    var btnMais = document.getElementById('mov-btn-mais');
+    if (btnMais) btnMais.addEventListener('click', function () { carregarHistoricoMovimentos({ append: true }); });
+  })();
+
+  var _altOffset = 0;
+  var _altLoading = false;
+  var _altCompleto = false;
+
+  function renderCadastroAlteracoes(linhas, append) {
+    var tb = document.getElementById('lista-cadastro-alteracoes');
+    if (!tb) return;
+    if (!append) tb.innerHTML = '';
+    if ((!linhas || !linhas.length) && !append) {
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma alteração registrada ainda.</td></tr>';
+      return;
+    }
+    if ((!linhas || !linhas.length) && append) return;
+    var h = '';
+    (linhas || []).forEach(function (ln) {
+      h += '<tr class="hover:bg-slate-50/80">' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold whitespace-nowrap">' + esc(ln.quando || '—') + '</td>' +
+        '<td class="px-3 py-2.5 font-bold text-slate-800">' + esc(ln.campo_label || ln.campo || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-600 break-words max-w-[12rem]">' + esc(ln.valor_antes || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-emerald-900 font-semibold break-words max-w-[12rem]">' + esc(ln.valor_depois || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-700 font-semibold">' + esc(ln.operador || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-600">' + esc(ln.origem_label || ln.origem || '—') + '</td>' +
+        '</tr>';
+    });
+    if (append) tb.insertAdjacentHTML('beforeend', h);
+    else tb.innerHTML = h;
+  }
+
+  function carregarHistoricoAlteracoes(opts) {
+    opts = opts || {};
+    var append = !!opts.append;
+    var completo = !!opts.completo;
+    var cfg = window.AgroCadastroErpLista || {};
+    var base = cfg.URL_ALTERACOES_HISTORICO || '';
+    var pid = modalEdit.getAttribute('data-produto-id');
+    var btnMais = document.getElementById('alt-btn-mais');
+    var btnComp = document.getElementById('alt-btn-completo');
+    if (!base || !pid || pid === '__novo__') {
+      renderCadastroAlteracoes([], false);
+      if (btnMais) btnMais.classList.add('hidden');
+      return;
+    }
+    if (_altLoading) return;
+    _altLoading = true;
+    if (completo) {
+      _altCompleto = true;
+      _altOffset = 0;
+      append = false;
+    }
+    if (!append) {
+      if (!completo) _altCompleto = false;
+      _altOffset = 0;
+      var tb0 = document.getElementById('lista-cadastro-alteracoes');
+      if (tb0) tb0.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
+    }
+    var params = new URLSearchParams();
+    params.set('produto_id', pid);
+    if (_altCompleto || completo) {
+      params.set('completo', '1');
+      params.set('limit', '500');
+    } else {
+      params.set('limit', '40');
+      params.set('offset', String(_altOffset));
+    }
+    fetch(base + '?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        _altLoading = false;
+        var linhas = (data && data.ok && data.linhas) ? data.linhas : [];
+        if (!append && !linhas.length) renderCadastroAlteracoes([], false);
+        else renderCadastroAlteracoes(linhas, append && !_altCompleto);
+        if (!_altCompleto) _altOffset += linhas.length;
+        if (btnMais) {
+          if (data && data.tem_mais && !_altCompleto) btnMais.classList.remove('hidden');
+          else btnMais.classList.add('hidden');
+        }
+        if (btnComp && _altCompleto) {
+          btnComp.textContent = 'Histórico completo (carregado)';
+          btnComp.disabled = true;
+        } else if (btnComp) {
+          btnComp.textContent = 'Histórico completo';
+          btnComp.disabled = false;
+        }
+      })
+      .catch(function () {
+        _altLoading = false;
+        if (!append) renderCadastroAlteracoes([], false);
+        if (btnMais) btnMais.classList.add('hidden');
+      });
+  }
+
+  (function bindHistoricoAlteracoes() {
+    var btnMais = document.getElementById('alt-btn-mais');
+    if (btnMais) btnMais.addEventListener('click', function () { carregarHistoricoAlteracoes({ append: true }); });
+    var btnComp = document.getElementById('alt-btn-completo');
+    if (btnComp) btnComp.addEventListener('click', function () { carregarHistoricoAlteracoes({ completo: true }); });
+  })();
 
   function fmtQtd(q) {
     var n = Number(q);
@@ -1352,7 +1798,7 @@
     var totEl = document.getElementById('edit-comp-custo-total');
     if (!tb) return;
     if (!lista || !lista.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Sem itens de composição neste cadastro.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-16 text-center text-slate-400 font-semibold text-lg">Sem itens de composição neste cadastro.</td></tr>';
       if (totEl) totEl.textContent = 'R$ 0,00';
       return;
     }
@@ -1659,8 +2105,8 @@
     renderComposicao(produto.composicao || []);
     syncCustoMestre();
     atualizarMargemLivre();
-    renderFornecedoresLinhas([]);
-    carregarHistoricoCompras();
+    carregarHistoricoMovimentos({ append: false });
+    carregarHistoricoAlteracoes({ append: false });
 
     var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
     if (btnExcluirSomenteAgro) {
@@ -1674,12 +2120,18 @@
     }
   }
 
+  var historicoMovTimer = null;
+  function agendarHistoricoMovimentos() {
+    if (historicoMovTimer) clearTimeout(historicoMovTimer);
+    historicoMovTimer = setTimeout(function () { carregarHistoricoMovimentos({ append: false }); }, 450);
+  }
+
   var listaVar = document.getElementById('lista-variacoes');
   if (listaVar) {
     listaVar.addEventListener('input', function () {
       syncVariacoesFromDom();
       syncCustoMestre();
-      agendarHistoricoCompras();
+      agendarHistoricoMovimentos();
     });
     listaVar.addEventListener('click', function (e) {
       var btn = e.target.closest('.var-btn-rem');
@@ -1691,7 +2143,7 @@
       if (isFinite(ix)) (modalEdit._variacoes || []).splice(ix, 1);
       renderVariacoes();
       syncCustoMestre();
-      agendarHistoricoCompras();
+      agendarHistoricoMovimentos();
     });
   }
 
@@ -1720,7 +2172,7 @@
     setVal('var-custo', '');
     renderVariacoes();
     syncCustoMestre();
-    agendarHistoricoCompras();
+    agendarHistoricoMovimentos();
   });
 
   function salvarCadastroModalAgro(syncErp) {
@@ -1843,6 +2295,7 @@
       subcategoria_3: gv('edit-subcategoria-3'),
       subcategoria_4: gv('edit-subcategoria-4'),
       descricao: gv('edit-desc'),
+      modelo: gv('edit-modelo'),
       preco_venda: gv('edit-venda'),
       preco_custo: gv('edit-custo'),
       estoque_min_centro: gv('edit-est-min'),
@@ -1884,6 +2337,7 @@
       body.precos_grupos = window.agroCadastroObterPrecosGruposPayload();
     }
     body.validar_cadastro_minimo = true;
+    body.origem_historico = 'modal';
     var tok = obterCsrfCadastro(cfg);
     if (!tok) {
       mostrarStatusModalSalvo(
@@ -1942,6 +2396,7 @@
       if (syncErp && j.erp_sync_ok === false) tipoStatus = 'aviso';
       else if (j.somente_agro && cfg.CADASTRO_ERP_SYNC_HABILITADO) tipoStatus = 'aviso';
       mostrarStatusModalSalvo(msgSalvo, tipoStatus);
+      try { carregarHistoricoAlteracoes({ append: false }); } catch (eAlt) { /* ignore */ }
       if (eraNovo && j.produto && j.produto.id) {
         modalEdit.setAttribute('data-produto-id', String(j.produto.id));
         var titNovo = document.getElementById('cadastro-modal-titulo');

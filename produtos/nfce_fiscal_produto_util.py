@@ -1,10 +1,15 @@
 """Dados fiscais por produto para montagem da NFC-e."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from produtos.agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn
 from produtos.models import ProdutoGestaoOverlayAgro
+
+
+def _so_digitos(val: Any, n: int) -> str:
+    return re.sub(r"\D", "", str(val or ""))[:n]
 
 
 def _fiscal_de_mongo_doc(doc: dict | None) -> dict[str, str]:
@@ -56,11 +61,16 @@ def fiscal_por_produto_id(produto_id_externo: str, *, db=None, col_p: str | None
         except Exception:
             mongo_fis = {}
     merged = merge_fiscal_padrao_cadastro_manual_sp_sn({**mongo_fis, **overlay_fis})
-    ncm = merged.get("ncm") or "23099020"
+    # Só dígitos no XML — ponto/traço no CFOP/CEST/NCM → SEFAZ 225 (schema).
+    ncm = _so_digitos(merged.get("ncm"), 8) or "23099020"
+    cfop = _so_digitos(merged.get("cfop"), 4) or "5102"
+    csosn = _so_digitos(merged.get("csosn"), 3) or "102"
+    origem = _so_digitos(merged.get("origem"), 1) or "0"
+    cest = _so_digitos(merged.get("cest"), 7)
     return {
-        "ncm": ncm[:8],
-        "cfop": (merged.get("cfop") or "5102")[:4],
-        "csosn": (merged.get("csosn") or "102")[:3],
-        "origem": (merged.get("origem") or "0")[:1],
-        "cest": (merged.get("cest") or "")[:7],
+        "ncm": ncm,
+        "cfop": cfop,
+        "csosn": csosn,
+        "origem": origem,
+        "cest": cest if len(cest) == 7 else "",
     }

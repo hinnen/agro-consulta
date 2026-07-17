@@ -54,7 +54,7 @@
   }
   .pdv-cart-row-tools {
     display: grid;
-    /* GM | promo | qty | A/B | total | lixeira — tudo fixo p/ alinhar entre linhas */
+    /* GM | promo | qty | A/B | total | ações (lixeira+lápis) — tudo fixo p/ alinhar entre linhas */
     grid-template-columns: 7.25rem 5.75rem 8.6rem 14.5rem 9.5rem 2.75rem;
     align-items: center;
     justify-content: end;
@@ -337,25 +337,46 @@
     background: #fff;
     box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.35);
   }
-  .pdv-cart-remove {
+  .pdv-cart-actions {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.2rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .pdv-cart-remove,
+  .pdv-cart-edit {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.65rem;
-    min-height: 2.65rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 1.35rem;
+    height: 1.35rem;
     padding: 0;
-    border-radius: 0.75rem;
-    border: 2px solid #fecaca;
+    border-radius: 0.45rem;
+    border: 1.5px solid #fecaca;
     background: #fff1f2;
     color: #b91c1c;
   }
-  .pdv-cart-remove svg {
-    width: 1.15rem;
-    height: 1.15rem;
+  .pdv-cart-edit {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+  }
+  .pdv-cart-remove svg,
+  .pdv-cart-edit svg {
+    width: 0.85rem;
+    height: 0.85rem;
     pointer-events: none;
   }
   .pdv-cart-remove:active { background: #fee2e2; }
+  .pdv-cart-edit:active { background: #e2e8f0; }
   #pdv-product-autocomplete {
     display: flex;
     flex-direction: column;
@@ -657,6 +678,13 @@
     box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.07);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 28%);
   }
+  #pdv-step1-enviar-whatsapp.pdv-step1-enviar-whatsapp {
+    min-height: 2.65rem;
+  }
+  #pdv-step1-enviar-whatsapp .pdv-step1-enviar-whatsapp-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
   #pdv-step1-subtotal-dock .pdv-step1-side-actions .pdv-step1-side-action-btn {
     touch-action: manipulation;
     min-height: clamp(2.5rem, 7vh, 3rem);
@@ -816,14 +844,25 @@
   }
   #pdv-step1-client-bar {
     flex-wrap: nowrap;
+    align-items: center;
+    min-height: 3.55rem;
+    padding: 0.65rem 0.85rem !important;
+    gap: 0.55rem;
     border-color: #fdba74 !important;
+    border-bottom: 2px solid #fdba74 !important;
     background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%) !important;
     box-shadow: none !important;
+  }
+  #pdv-step1-main-panel > #pdv-step1-client-bar {
+    border-radius: 0;
   }
   #pdv-step1-client-bar #pdv-quick-client-hit {
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;
+    gap: 0.55rem;
+    min-height: 3.3rem;
+    padding: 0.55rem 0.85rem;
   }
   #pdv-step1-client-bar .pdv-step1-client-etapa {
     font-size: 9px;
@@ -855,32 +894,22 @@
     border-color: #fb923c;
     background: #fff7ed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-badge {
-    border-radius: 0.45rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 11.5px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #fff;
-    background: #ea580c;
-  }
   #pdv-step1-client-bar #pdv-quick-client-name {
-    font-size: 16.1px !important;
+    font-size: 1.3rem !important;
     font-weight: 900;
-    line-height: 1.25;
+    line-height: 1.2;
     color: #0f172a;
   }
   #pdv-step1-client-bar .pdv-step1-client-edit-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    min-height: 2.25rem;
-    padding: 0.35rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.4rem 0.7rem;
     border-radius: 0.65rem;
     border: 2px solid #fb923c;
     background: #fff;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -893,13 +922,31 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
-  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+  #pdv-step1-client-bar .pdv-step1-client-edit-btn svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
   #pdv-step1-main-panel {
-    border: 2px solid #bae6fd;
+    border: 2px solid #e2e8f0;
     border-radius: 1.15rem;
-    background: transparent;
+    background: #fff;
     overflow: hidden;
   }
+  /* Ícone + título padrão (Cliente / Busca / Carrinho) */
+  #pdv-step1-main-panel .pdv-step1-head-icon {
+    width: 2.9rem !important;
+    height: 2.9rem !important;
+    border-radius: 0.65rem;
+  }
+  #pdv-step1-main-panel .pdv-step1-head-icon svg {
+    width: 1.6rem !important;
+    height: 1.6rem !important;
+  }
+  #pdv-step1-main-panel .pdv-step1-block-title {
+    font-size: 1.3rem !important;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+  }
+  .pdv-step1-head-icon--client { background: #ea580c; color: #fff; }
+  .pdv-step1-block-title--client { color: #c2410c; }
   .pdv-step1-block-head {
     display: flex;
     align-items: center;
@@ -937,30 +984,73 @@
     white-space: nowrap;
   }
   #pdv-step1-search-wrap {
-    padding: 0.65rem 0.75rem 0.75rem;
-    border-bottom: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 0.55rem 0.85rem 0.35rem;
+    border: 0 !important;
+    border-bottom: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    overflow: visible;
+    position: relative;
+    z-index: 20;
+  }
+  #pdv-step1-search-wrap::before,
+  #pdv-step1-search-wrap::after {
+    content: none !important;
+    display: none !important;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head {
+    gap: 0.55rem;
+    min-height: 3.55rem;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-meta {
+    margin-left: 0;
+    font-size: 0.875rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-search-wrap {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    max-width: none;
   }
   #pdv-step1-search-wrap #pdv-product-search {
-    border-color: #bae6fd;
+    border-color: #cbd5e1 !important;
     background: #fff;
+    min-height: 3.3rem !important;
+    height: 3.3rem !important;
+    font-size: 1.3rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+    box-shadow: none !important;
   }
   #pdv-step1-search-wrap #pdv-product-search:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    border-color: #94a3b8 !important;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
   }
   #pdv-step1-search-wrap .pdv-step1-search-f2 {
-    border-color: #bae6fd;
-    background: #f0f9ff;
-    color: #0369a1;
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-autocomplete {
+    background: #fff;
   }
   #pdv-step1-cart-wrap {
     display: flex;
     flex-direction: column;
     min-height: 0;
     flex: 1;
-    padding: 0.65rem 0.75rem 0.75rem;
+    padding: 0.5rem 0.85rem 0.75rem;
+    border-top: 0 !important;
+    box-shadow: none !important;
     background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  #pdv-step1-cart-wrap .pdv-step1-cart-head {
+    gap: 0.55rem;
+    min-height: 3.55rem;
   }
   #pdv-step1-cart-wrap .pdv-step1-clear-btn {
     margin-left: auto;
@@ -1851,6 +1941,23 @@
     background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
+  #pdv-topbar-help.pdv-topbar-help {
+    align-self: center;
+    min-height: 2.15rem;
+    min-width: 2.15rem;
+    border-radius: 0.75rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    color: #334155;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-topbar-help.pdv-topbar-help:hover {
+    background: #f8fafc;
+    border-color: #64748b;
+  }
   .pdv-wiz-topbar-brand {
     flex-shrink: 0;
     display: inline-flex;
@@ -2373,8 +2480,8 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     flex-shrink: 0;
-    min-height: 2.25rem;
-    padding: 0.4rem 0.65rem;
+    min-height: 2.65rem;
+    padding: 0.45rem 0.7rem;
     border-radius: 0.65rem;
     border-width: 2px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -2558,6 +2665,105 @@
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-field.pdv-client-edit-missing .pdv-client-edit-label {
     color: #b45309;
+  }
+  .pdv-product-edit-panel {
+    /* Mesmo tamanho das letras; caixa quase tela cheia — sem scroll interno */
+    --pdv-pe-zoom: 1.25;
+    width: min(calc(98vw / var(--pdv-pe-zoom)), calc(64rem / var(--pdv-pe-zoom)));
+    max-height: calc(98dvh / var(--pdv-pe-zoom));
+    height: auto;
+    zoom: var(--pdv-pe-zoom);
+  }
+  #pdv-quick-product-edit-overlay {
+    padding: 0.25rem !important;
+    align-items: center;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
+    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.6rem);
+    line-height: 1.15;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-label {
+    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.92rem);
+    letter-spacing: 0.04em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-input {
+    min-height: 2.85rem;
+    padding: 0.5rem 0.75rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.22rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
+    margin: 0.35rem 0 0.4rem;
+    font-size: clamp(0.82rem, 0.32vw + 0.72rem, 0.98rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* Só rola se abrir Formas A/B em tela bem baixa; formulário padrão cabe sem barra */
+    overflow-y: auto;
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.55rem;
+  }
+  @media (min-width: 640px) {
+    #pdv-quick-product-edit-overlay .pdv-product-edit-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-nome { grid-column: 1 / -1; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-gm { grid-column: 1 / 3; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-cb { grid-column: 3 / 5; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-un { grid-column: 5 / 7; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-custo { grid-column: 1 / 4; }
+    #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
+  }
+  #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
+    min-height: 3.35rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.25rem);
+  }
+  /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
+    padding: 0.75rem 0.9rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
+    letter-spacing: 0.06em;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-lbl {
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25rem;
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-estoque-num,
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    font-size: clamp(1.4rem, 0.75vw + 1.2rem, 1.85rem) !important;
+    font-weight: 900;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    min-height: 3rem;
+  }
+  #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
+    padding: 0.4rem 0.6rem;
+  }
+  #pdv-quick-product-edit-overlay header p {
+    font-size: clamp(0.82rem, 0.35vw + 0.72rem, 1rem) !important;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-fechar {
+    min-height: 3.6rem;
+    min-width: 3.6rem;
+    font-size: clamp(1.85rem, 0.95vw + 1.45rem, 2.35rem);
+  }
+  #pdv-quick-product-edit-overlay .pdv-pe-forma-sel {
+    min-height: 2.5rem;
+    border-radius: 0.65rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    font-weight: 900;
+    font-size: 0.9rem;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-formas-toggle {
+    min-height: 3rem;
+    font-size: clamp(0.9rem, 0.3vw + 0.8rem, 1.05rem);
   }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
@@ -2759,9 +2965,9 @@
     top: 0 !important;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-panel {
-    width: min(52rem, calc(100vw - 2rem));
+    width: min(44rem, calc(100vw - 2rem));
     border-width: 4px;
-    padding: 2.1rem 2.35rem 2.2rem;
+    padding: 2.4rem 2.5rem 2.5rem;
     box-shadow: 0 32px 64px rgba(0, 0, 0, 0.35);
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-prominent-inner {
@@ -2769,35 +2975,35 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.75rem;
+    gap: 1rem;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-icon {
-    width: 4.25rem;
-    height: 4.25rem;
-    font-size: 2rem;
-    margin-bottom: 0.2rem;
+    width: 5.5rem;
+    height: 5.5rem;
+    font-size: 2.75rem;
+    margin-bottom: 0.15rem;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-title {
-    font-size: clamp(1.45rem, 0.75vw + 1.25rem, 1.9rem);
+    font-size: clamp(2.05rem, 1.2vw + 1.7rem, 2.75rem) !important;
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.15;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-body {
-    font-size: clamp(1.12rem, 0.55vw + 1.02rem, 1.38rem);
-    line-height: 1.58;
+    font-size: clamp(1.55rem, 0.85vw + 1.3rem, 2.05rem) !important;
+    line-height: 1.45;
     white-space: pre-line;
-    max-width: 40rem;
+    max-width: 36rem;
     font-weight: 700;
   }
   #pdv-sale-toast.pdv-sale-toast--prominent .pdv-sale-toast-dismiss {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 3.65rem;
-    min-width: 12.5rem;
-    margin-top: 1rem;
-    padding: 0.85rem 2rem;
-    font-size: 1.05rem;
+    min-height: 4.25rem;
+    min-width: 14rem;
+    margin-top: 1.15rem;
+    padding: 1rem 2.25rem;
+    font-size: 1.35rem !important;
     letter-spacing: 0.05em;
     border-radius: 1rem;
     border-width: 2px;
@@ -2852,9 +3058,10 @@
     #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
-    #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
-    #pdv-step1-search-wrap h3 { font-size: 12px !important; }
-    #pdv-product-search { height: 2.4rem !important; font-size: 13px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
+    #pdv-step1-search-wrap { padding: .55rem .75rem !important; }
+    #pdv-step1-search-wrap .pdv-step1-search-head { min-height: 3.2rem !important; }
+    #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
+    #pdv-step1-search-wrap #pdv-product-search { height: 3rem !important; min-height: 3rem !important; font-size: 1.2rem !important; font-weight: 900 !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -2891,8 +3098,11 @@
     }
     .pdv-cart-promo--empty { min-height: 3.85rem; }
     .pdv-cart-promo-badge { font-size: 8px; }
-    .pdv-cart-remove { min-width: 2.35rem; min-height: 2.35rem; }
-    .pdv-cart-remove svg { width: 1rem; height: 1rem; }
+    .pdv-cart-remove,
+    .pdv-cart-edit { min-height: 1.2rem; height: 1.2rem; border-radius: 0.4rem; }
+    .pdv-cart-remove svg,
+    .pdv-cart-edit svg { width: 0.78rem; height: 0.78rem; }
+    .pdv-cart-actions { gap: 0.15rem; }
     .pdv-cart-qty-wrap button { min-width: 2.2rem; min-height: 2.35rem; font-size: 1.1rem; }
     .pdv-cart-qty-input { min-height: 2.35rem; font-size: .85rem; }
     .pdv-cart-price-box { height: 2.75rem; }
@@ -3173,6 +3383,7 @@
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">3</kbd><span class="pdv-step-label">Pagamento</span>
                 </button>
               </nav>
+              <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
@@ -3324,6 +3535,114 @@
       </footer>
     </div>
   </div>
+
+<div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title">
+  <div class="pdv-product-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-[0.12em] text-orange-800">Edição rápida</p>
+        <h3 id="pdv-quick-product-edit-title" class="min-w-0 truncate font-black text-slate-900">Produto</h3>
+      </div>
+      <button type="button" id="pdv-quick-product-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
+    </header>
+    <div class="pdv-wizard-scroll pdv-product-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
+      <div class="pdv-product-edit-form">
+        <label class="pdv-product-edit-field pdv-pe-f-nome">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
+          <input id="pdv-quick-product-edit-nome" type="text" class="pdv-input pdv-product-edit-input w-full" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-gm">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código GM</span>
+          <input id="pdv-quick-product-edit-gm" type="text" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-cb">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Código de barras</span>
+          <input id="pdv-quick-product-edit-cb" type="text" inputmode="numeric" class="pdv-input pdv-product-edit-input w-full font-mono" autocomplete="off">
+        </label>
+        <div class="pdv-product-edit-field pdv-pe-f-un relative">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Unidade</span>
+          <input id="pdv-quick-product-edit-unidade" type="text" class="pdv-input pdv-product-edit-input w-full" placeholder="Buscar unidade…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="pdv-quick-product-edit-unidade-lista" aria-expanded="false">
+          <div id="pdv-quick-product-edit-unidade-lista" class="pdv-quick-un-lista hidden absolute left-0 right-0 z-30 mt-0.5 max-h-40 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl [scrollbar-width:thin]" role="listbox"></div>
+        </div>
+        <label class="pdv-product-edit-field pdv-pe-f-custo">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de custo</span>
+          <input id="pdv-quick-product-edit-custo" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+        <label class="pdv-product-edit-field pdv-pe-f-venda">
+          <span class="pdv-product-edit-label block font-black uppercase text-slate-500">Preço de venda</span>
+          <input id="pdv-quick-product-edit-venda" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums" autocomplete="off">
+        </label>
+
+        <div id="pdv-quick-product-edit-grupos" class="pdv-pe-grupos" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Grupos de preço A / B</p>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-emerald-700">Preço A</span>
+              <input id="pdv-quick-product-edit-preco-a" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-emerald-200" autocomplete="off">
+            </label>
+            <label class="pdv-product-edit-field">
+              <span class="pdv-product-edit-label block font-black uppercase text-sky-700">Preço B</span>
+              <input id="pdv-quick-product-edit-preco-b" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-sky-200" autocomplete="off">
+            </label>
+            <button type="button" id="pdv-quick-product-edit-formas-toggle" class="min-h-[2.65rem] rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900" aria-expanded="false" aria-controls="pdv-quick-product-edit-formas-wrap" title="Mostrar ou esconder quais formas vão no grupo A ou B">
+              Formas A/B ▾
+            </button>
+          </div>
+          <div id="pdv-quick-product-edit-formas-wrap" class="mt-2 hidden overflow-hidden rounded-xl border-2 border-slate-200" hidden>
+            <table class="w-full text-left">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-2 py-1.5 text-[10px] font-black uppercase text-slate-500">Forma de pagamento</th>
+                  <th class="w-28 px-2 py-1.5 text-center text-[10px] font-black uppercase text-slate-500">Grupo</th>
+                </tr>
+              </thead>
+              <tbody id="pdv-quick-product-edit-formas-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pdv-pe-estoque" style="grid-column:1/-1">
+          <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Estoque (ajuste rápido)</p>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-emerald-200 bg-emerald-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-emerald-600 px-2.5 py-1 font-black uppercase text-white">Centro</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-emerald-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-centro-atual" class="pdv-pe-estoque-num text-emerald-950">—</p>
+                </div>
+                <label class="pdv-product-edit-field min-w-0">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-emerald-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-centro" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-emerald-300 bg-white text-emerald-950" autocomplete="off" placeholder="—">
+                </label>
+              </div>
+            </div>
+            <div class="pdv-pe-estoque-card rounded-xl border-2 border-sky-200 bg-sky-50/90 shadow-sm">
+              <p class="pdv-pe-estoque-tag mb-2 inline-flex rounded-lg bg-sky-600 px-2.5 py-1 font-black uppercase text-white">Vila</p>
+              <div class="grid grid-cols-2 items-end gap-2.5">
+                <div class="min-w-0">
+                  <p class="pdv-pe-estoque-lbl font-black uppercase text-sky-800">Agora</p>
+                  <p id="pdv-quick-product-edit-saldo-vila-atual" class="pdv-pe-estoque-num text-sky-950">—</p>
+                </div>
+                <label class="pdv-product-edit-field min-w-0">
+                  <span class="pdv-pe-estoque-lbl block font-black uppercase text-sky-800">Novo</span>
+                  <input id="pdv-quick-product-edit-saldo-vila" type="text" inputmode="decimal" class="pdv-input pdv-pe-estoque-num w-full border-sky-300 bg-white text-sky-950" autocomplete="off" placeholder="—">
+                </label>
+              </div>
+            </div>
+          </div>
+          <p class="mt-1 text-[11px] font-semibold text-slate-500">Deixe em branco o depósito que não quiser mudar.</p>
+        </div>
+
+        <p id="pdv-quick-product-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
+      </div>
+    </div>
+    <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <button type="button" id="pdv-quick-product-edit-cancelar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
+      <button type="button" id="pdv-quick-product-edit-salvar" class="pdv-action-btn pdv-product-edit-footer-btn flex-1 bg-orange-500 uppercase text-white shadow-md hover:bg-orange-600">Salvar</button>
+    </footer>
+  </div>
+</div>
 
 <div id="pdv-cliente-start-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
   <div class="w-full max-w-lg rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.25)]">

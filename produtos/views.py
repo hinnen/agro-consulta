@@ -1288,6 +1288,284 @@ def api_produtos_gestao_ajuste_estoque(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_produto_edicao_rapida(request, produto_id: str):
+    """Campos essenciais + A/B + saldos para o lápis do carrinho no PDV (leve)."""
+    from produtos.catalogo_agro import obter_produto_model, produto_agro_para_row
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    pid = str(produto_id or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+
+    client_m, db_m = None, None
+    try:
+        client_m, db_m = obter_conexao_mongo()
+    except Exception:
+        client_m, db_m = None, None
+
+    p = obter_produto_model(pid)
+    row: dict = {}
+    doc = None
+    if p is not None:
+        row = produto_agro_para_row(p)
+    else:
+        # Carrinho/PDV pode ter id só no espelho Mongo (ainda sem linha Produto no PG).
+        try:
+            doc = _produto_mongo_por_id_externo(db_m, client_m, pid) if db_m is not None else None
+        except Exception:
+            doc = None
+        if not isinstance(doc, dict):
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
+        row = {
+            "id": str(doc.get("Id") or doc.get("_id") or pid).strip() or pid,
+            "nome": str(doc.get("Nome") or "").strip(),
+            "codigo": str(doc.get("Codigo") or "").strip(),
+            "codigo_nfe": str(
+                doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("codigo_nfe") or ""
+            ).strip(),
+            "codigo_barras": str(_extrair_codigo_barras(doc) or "").strip(),
+            "unidade": str(doc.get("Unidade") or doc.get("SiglaUnidade") or "UN").strip() or "UN",
+            "preco_custo": 0.0,
+            "preco_venda": float(doc.get("ValorVenda") or doc.get("PrecoVenda") or 0),
+        }
+        try:
+            custos = _custos_compra_produto(doc)
+            row["preco_custo"] = float(custos.get("preco_custo") or 0)
+        except Exception:
+            pass
+
+    pid_out = str(row.get("id") or pid).strip()
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+    if ov is None and pid_out != pid:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+
+    cod_sys = str(row.get("codigo") or (getattr(p, "codigo_interno", None) if p else "") or "").strip()
+    # GM = CodigoNFe/overlay — nunca usar o código sistema (4 dígitos) como se fosse GM.
+    cod_gm = ""
+    if ov and (ov.codigo_nfe or "").strip():
+        cod_gm = ov.codigo_nfe.strip()
+    elif p is not None and (getattr(p, "codigo_nfe", None) or "").strip():
+        cod_gm = str(p.codigo_nfe).strip()
+    else:
+        cn_row = str(row.get("codigo_nfe") or "").strip()
+        if cn_row and cn_row != cod_sys:
+            cod_gm = cn_row
+
+    def _gm_parece_sistema(val: str) -> bool:
+        s = str(val or "").strip()
+        if not s:
+            return True
+        if s == cod_sys:
+            return True
+        return bool(s.isdigit() and len(s) <= 4)
+
+    cb = str(row.get("codigo_barras") or "").strip()
+    if ov and (ov.codigo_barras or "").strip():
+        cb = ov.codigo_barras.strip()
+    unidade = str(row.get("unidade") or "UN").strip() or "UN"
+    if ov and (ov.unidade or "").strip():
+        unidade = ov.unidade.strip()
+    try:
+        pc = float(row.get("preco_custo") or 0)
+    except (TypeError, ValueError):
+        pc = 0.0
+    if ov and isinstance(getattr(ov, "cadastro_extras", None), dict):
+        raw_c = ov.cadastro_extras.get("preco_custo_overlay")
+        if raw_c is not None and str(raw_c).strip() != "":
+            try:
+                pc = float(str(raw_c).replace(",", "."))
+            except (TypeError, ValueError):
+                pass
+    try:
+        pv = float(row.get("preco_venda") or 0)
+    except (TypeError, ValueError):
+        pv = 0.0
+    if ov and ov.preco_venda is not None:
+        try:
+            pv = float(ov.preco_venda)
+        except (TypeError, ValueError):
+            pass
+    nome = str(row.get("nome") or "").strip()
+    if ov and (ov.nome or "").strip():
+        nome = ov.nome.strip()
+
+    # Complemento Mongo quando PG/overlay ainda não têm GM/barras/custo (mesmo espelho do cadastro).
+    if db_m is not None and client_m is not None:
+        if not isinstance(doc, dict):
+            try:
+                doc = _produto_mongo_por_id_externo(db_m, client_m, pid_out)
+            except Exception:
+                doc = None
+        if isinstance(doc, dict):
+            if _gm_parece_sistema(cod_gm):
+                mongo_gm = str(
+                    doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("codigo_nfe") or ""
+                ).strip()
+                if mongo_gm and not _gm_parece_sistema(mongo_gm):
+                    cod_gm = mongo_gm
+            if not cb:
+                cb = str(_extrair_codigo_barras(doc) or "").strip()
+            if not (pc > 0):
+                try:
+                    custos = _custos_compra_produto(doc)
+                    pc = float(custos.get("preco_custo") or 0)
+                except Exception:
+                    pass
+            if not nome:
+                nome = str(doc.get("Nome") or "").strip()
+            if not unidade or unidade == "UN":
+                mu = str(doc.get("Unidade") or doc.get("SiglaUnidade") or "").strip()
+                if mu:
+                    unidade = mu
+
+    saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
+    sinfo = saldos.get(pid_out) or {}
+    pg = extrair_precos_grupos_overlay(ov)
+    if not pg and isinstance(row.get("precos_grupos"), dict):
+        pg = row.get("precos_grupos")
+    modo = extrair_precos_modo_overlay(ov) or str(row.get("precos_modo") or "por_forma")
+    return JsonResponse(
+        {
+            "ok": True,
+            "produto": {
+                "id": pid_out,
+                "nome": nome,
+                "codigo": cod_sys,
+                "codigo_sistema": cod_sys,
+                "codigo_nfe": cod_gm,
+                "codigo_gm": cod_gm,
+                "codigo_barras": cb,
+                "unidade": unidade,
+                "preco_custo": round(pc, 2) if pc > 0 else round(float(row.get("preco_custo") or 0), 2),
+                "preco_venda": round(pv, 2),
+                "precos_modo": modo,
+                "precos_grupos": pg,
+                "saldo_centro": round(float(sinfo.get("saldo_centro") or 0), 2),
+                "saldo_vila": round(float(sinfo.get("saldo_vila") or 0), 2),
+                "saldo_erp_centro": round(float(sinfo.get("saldo_erp_centro") or 0), 2),
+                "saldo_erp_vila": round(float(sinfo.get("saldo_erp_vila") or 0), 2),
+            },
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_produto_ajuste_estoque(request):
+    """Ajuste rápido de saldo no PDV (Postgres + AjusteRapidoEstoque; Mongo opcional)."""
+    from produtos.catalogo_agro import obter_produto_model, produto_agro_para_row
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+
+    def _dec(key):
+        raw = payload.get(key)
+        if raw is None or str(raw).strip() == "":
+            return None
+        try:
+            return Decimal(str(raw).replace(",", ".").strip())
+        except Exception:
+            raise ValueError(f"Valor inválido: {key}")
+
+    try:
+        novo_c = _dec("saldo_centro")
+        novo_v = _dec("saldo_vila")
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    if novo_c is None and novo_v is None:
+        return JsonResponse({"ok": False, "erro": "Informe saldo_centro e/ou saldo_vila"}, status=400)
+
+    client_m, db_m = None, None
+    try:
+        client_m, db_m = obter_conexao_mongo()
+    except Exception:
+        client_m, db_m = None, None
+
+    p = obter_produto_model(pid)
+    if p is not None:
+        row = produto_agro_para_row(p)
+        pid_out = str(row.get("id") or pid).strip()
+        nome_p = str(row.get("nome") or pid_out)[:200]
+        codigo = str(row.get("codigo_nfe") or row.get("codigo") or "")[:100]
+    else:
+        # Mesmo fallback do GET: id do carrinho pode existir só no Mongo.
+        try:
+            doc = _produto_mongo_por_id_externo(db_m, client_m, pid) if db_m is not None else None
+        except Exception:
+            doc = None
+        if not isinstance(doc, dict):
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado."}, status=404)
+        pid_out = str(doc.get("Id") or doc.get("_id") or pid).strip() or pid
+        nome_p = str(doc.get("Nome") or pid_out)[:200]
+        codigo = str(
+            doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("Codigo") or ""
+        ).strip()[:100]
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+        if ov:
+            if (ov.nome or "").strip():
+                nome_p = ov.nome.strip()[:200]
+            if (ov.codigo_nfe or "").strip():
+                codigo = ov.codigo_nfe.strip()[:100]
+
+    saldos_antes = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
+    sinfo = saldos_antes.get(pid_out) or {}
+    erp_c = Decimal(str(sinfo.get("saldo_erp_centro") or 0))
+    erp_v = Decimal(str(sinfo.get("saldo_erp_vila") or 0))
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first() or Empresa.objects.first()
+    try:
+        with transaction.atomic():
+            if novo_c is not None:
+                AjusteRapidoEstoque.objects.create(
+                    empresa=empresa,
+                    produto_externo_id=pid_out[:100],
+                    codigo_interno=codigo,
+                    nome_produto=(nome_p or pid_out)[:255],
+                    deposito="centro",
+                    saldo_erp_referencia=erp_c,
+                    saldo_informado=novo_c,
+                    origem=OrigemAjusteEstoque.OUTRO,
+                    observacao="PDV — edição rápida centro",
+                    usuario=request.user if request.user.is_authenticated else None,
+                )
+            if novo_v is not None:
+                AjusteRapidoEstoque.objects.create(
+                    empresa=empresa,
+                    produto_externo_id=pid_out[:100],
+                    codigo_interno=codigo,
+                    nome_produto=(nome_p or pid_out)[:255],
+                    deposito="vila",
+                    saldo_erp_referencia=erp_v,
+                    saldo_informado=novo_v,
+                    origem=OrigemAjusteEstoque.OUTRO,
+                    observacao="PDV — edição rápida vila",
+                    usuario=request.user if request.user.is_authenticated else None,
+                )
+        _invalidar_caches_apos_ajuste_pin()
+    except Exception as e:
+        logger.warning("api_pdv_produto_ajuste_estoque: %s", e, exc_info=True)
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+    saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
+    s2 = saldos.get(pid_out) or {}
+    return JsonResponse(
+        {
+            "ok": True,
+            "produto_id": pid_out,
+            "saldo_centro": round(float(s2.get("saldo_centro") or 0), 2),
+            "saldo_vila": round(float(s2.get("saldo_vila") or 0), 2),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_gestao_overlay_salvar(request):
     """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""
@@ -1861,6 +2139,18 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         produto_externo_id=pid[:64],
         defaults={"usuario": request.user if request.user.is_authenticated else None},
     )
+    from produtos.cadastro_alteracao_historico_util import (
+        inferir_origem_payload,
+        registrar_diffs_cadastro,
+        snapshot_overlay,
+        snapshot_variacoes_resumo,
+    )
+    from produtos.models import ProdutoMarcaVariacaoAgro as _PMVA_hist
+
+    hist_antes = snapshot_overlay(ov)
+    hist_antes["variacoes"] = snapshot_variacoes_resumo(
+        list(_PMVA_hist.objects.filter(produto_externo_id=pid[:64]).order_by("ordem", "id")[:200])
+    )
     if "nome" in payload:
         ov.nome = _txt("nome", 300)
     if "marca" in payload:
@@ -2245,6 +2535,21 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
     with transaction.atomic():
+        hist_depois = snapshot_overlay(ov)
+        if variacoes_novas is not None:
+            hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
+        else:
+            hist_depois["variacoes"] = hist_antes.get("variacoes") or ""
+        try:
+            registrar_diffs_cadastro(
+                produto_id=pid,
+                antes=hist_antes,
+                depois=hist_depois,
+                usuario=request.user if request.user.is_authenticated else None,
+                origem=inferir_origem_payload(payload),
+            )
+        except Exception:
+            logger.exception("overlay salvar: histórico alteração cadastro")
         ov.save()
         if variacoes_novas is not None:
             ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).delete()
@@ -18997,6 +19302,121 @@ def api_produtos_cadastro_compras_historico(request):
 
 
 @require_GET
+def api_produtos_cadastro_estoque_movimentos(request):
+    """
+    Kardex SisVale do produto (``AjusteRapidoEstoque``) para o modal de cadastro.
+    Nunca devolve PIN — só nome do operador quando houver.
+    """
+    from produtos.estoque_movimentos_cadastro_util import montar_movimentos_produto
+
+    pid = str(request.GET.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório", "linhas": []}, status=400)
+
+    pid_set: set[str] = {pid[:100]}
+    try:
+        pid_set.update(str(x) for x in _produto_ids_variants_mongo([pid]) if x)
+    except Exception:
+        pass
+
+    cbs = [str(x).strip() for x in request.GET.getlist("cb") if str(x).strip()]
+    cfs = [str(x).strip() for x in request.GET.getlist("cf") if str(x).strip()]
+    cis = [str(x).strip() for x in request.GET.getlist("ci") if str(x).strip()]
+
+    compras_linhas: list[dict] = []
+    client, db = obter_conexao_mongo()
+    if db is not None:
+        try:
+            pid_set.update(_mongo_produto_ids_por_codigos_cadastro(db, client, cbs, cfs, cis))
+            pid_list = [x for x in pid_set if x][:120]
+            por_id: dict[str, dict] = {}
+            for p in pid_list:
+                doc = _produto_mongo_por_id_externo(db, client, p)
+                if doc:
+                    por_id[p] = doc
+            mapa = _ultimas_compras_por_produto_ids(db, pid_list, por_id, limit=30)
+            for plid, rows in mapa.items():
+                for r in rows or []:
+                    det = r.get("detalhe") if isinstance(r.get("detalhe"), dict) else {}
+                    try:
+                        pp = round(float(r.get("preco_final") or 0), 2)
+                    except (TypeError, ValueError):
+                        pp = 0.0
+                    compras_linhas.append(
+                        {
+                            "fornecedor": str(r.get("fornecedor") or "—")[:200],
+                            "preco_pago": pp,
+                            "data": str(det.get("data") or ""),
+                        }
+                    )
+            compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
+        except Exception:
+            logger.exception("api_produtos_cadastro_estoque_movimentos compras enrich")
+    else:
+        pid_list = [x for x in pid_set if x][:120]
+
+    try:
+        dias = int(request.GET.get("dias") if request.GET.get("dias") is not None else 90)
+    except (TypeError, ValueError):
+        dias = 90
+    try:
+        limit = int(request.GET.get("limit") or 50)
+    except (TypeError, ValueError):
+        limit = 50
+    try:
+        offset = int(request.GET.get("offset") or 0)
+    except (TypeError, ValueError):
+        offset = 0
+
+    payload = montar_movimentos_produto(
+        produto_ids=list(pid_set),
+        deposito=str(request.GET.get("deposito") or "").strip(),
+        origem=str(request.GET.get("origem") or "").strip(),
+        dias=dias,
+        limit=limit,
+        offset=offset,
+        compras_linhas=compras_linhas,
+    )
+    return JsonResponse(payload)
+
+
+@require_GET
+def api_produtos_cadastro_alteracoes_historico(request):
+    """
+    Histórico de alteração do cadastro (nome, preço, códigos…).
+    Não inclui movimentação de estoque/saldo.
+    """
+    from produtos.cadastro_alteracao_historico_util import listar_alteracoes_cadastro
+
+    pid = str(request.GET.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório", "linhas": []}, status=400)
+    completo = str(request.GET.get("completo") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "yes",
+        "on",
+    )
+    try:
+        limit = int(request.GET.get("limit") or (500 if completo else 40))
+    except (TypeError, ValueError):
+        limit = 500 if completo else 40
+    try:
+        offset = int(request.GET.get("offset") or 0)
+    except (TypeError, ValueError):
+        offset = 0
+    return JsonResponse(
+        listar_alteracoes_cadastro(
+            produto_id=pid,
+            limit=limit,
+            offset=offset,
+            completo=completo,
+        )
+    )
+
+
+@require_GET
 def api_produtos_cadastro_detalhe(request, produto_id: str):
     """Detalhe completo do cadastro (Mongo / ERP) para a tela de consulta — sem saldos."""
     pid = str(produto_id or "").strip()
@@ -20381,20 +20801,39 @@ def api_pdv_registrar_operador(request):
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
-    if (pin == "SESSAO" and request.session.get("mobile_auth")) or PerfilUsuario.objects.filter(
-        senha_rapida=pin
-    ).exists():
+    perfil_pin = None
+    if pin and pin != "SESSAO":
+        perfil_pin = (
+            PerfilUsuario.objects.select_related("user")
+            .filter(senha_rapida=pin)
+            .first()
+        )
+    if (pin == "SESSAO" and request.session.get("mobile_auth")) or perfil_pin is not None:
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+            user_op = None
+            if request.user.is_authenticated:
+                user_op = request.user
+            elif perfil_pin is not None:
+                user_op = getattr(perfil_pin, "user", None)
+            nome_base = str(request.POST.get("nome_produto") or "").strip()
+            # Grava nome do operador no texto — nunca o PIN
+            if user_op is not None:
+                rotulo = (
+                    (user_op.get_full_name() or "").strip()
+                    or (getattr(user_op, "username", None) or "").strip()
+                )
+                if rotulo and rotulo not in nome_base:
+                    nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 produto_externo_id=request.POST.get("produto_id"),
                 deposito=request.POST.get("deposito", "centro"),
-                nome_produto=request.POST.get("nome_produto"),
+                nome_produto=nome_base[:255],
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
                 saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
                 origem=OrigemAjusteEstoque.AJUSTE_PIN,
-                usuario=request.user if request.user.is_authenticated else None,
+                usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
             return JsonResponse({"ok": True})

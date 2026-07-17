@@ -1160,9 +1160,13 @@
     for (var i = 0; i < ultimos.length; i++) {
       if (String(ultimos[i].id) === pid) {
         Object.assign(ultimos[i], patch);
+        try { renderLista(); } catch (eR) { /* ignore */ }
         return;
       }
     }
+    /* Produto novo: aparece no topo da lista atual (antes sumia na paginação A–Z). */
+    ultimos.unshift(Object.assign({ id: produto.id }, patch));
+    try { renderLista(); } catch (eR2) { /* ignore */ }
   }
   window.agroCadastroMergeProdutoCacheLocal = agroCadastroMergeProdutoCacheLocal;
   window.agroCadastroMergeLinhaLista = agroCadastroMergeLinhaLista;
@@ -1653,8 +1657,18 @@
   document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
     det.addEventListener('toggle', function () {
       if (det.open) fillCadastroFacetSelects();
+      var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+      if (btnAdv) btnAdv.setAttribute('aria-expanded', det.open ? 'true' : 'false');
     });
   });
+  (function () {
+    var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+    var detAdv = document.getElementById('cadastro-adv-filtros');
+    if (!btnAdv || !detAdv) return;
+    btnAdv.addEventListener('click', function () {
+      detAdv.open = !detAdv.open;
+    });
+  })();
   fillCadastroFacetSelects();
 
   if (prevEl && nextEl) {

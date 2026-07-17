@@ -468,7 +468,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
 
-**SEFAZ:** rejeição **225** corrigida com grupo `<card><tpIntegra>2</tpIntegra></card>` em PIX/cartão (NT 2024.003) + `vTotTrib` por item.
+**SEFAZ:** PIX/cartão → grupo `<card><tpIntegra>2</tpIntegra></card>` (NT 2024.003) + `vTotTrib` por item. **Não** mandar `card` em fiado/`tPag=05` (rejeição **963**). NCM/CFOP/CEST só dígitos no XML (rejeição **225** schema).
 
 **Arquivos centrais:**
 
@@ -560,7 +560,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
-- **Busca produtos etapa 2 (16/07 · teste v8.94):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
+- **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
@@ -584,7 +584,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - `/lancamentos/` — redirect → **Contas a pagar padrão:** `/lancamentos/contas-pagar/` (**layout novo**) · `/classico/` → redirect · `/teste/` → redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clássico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observações longas; forma pagamento; bruto destacado).
-- Busca na lista: termos com espaço; valor em bruto/pago/saldo. Ajuda: `includes/lancamentos_help_agents.html`.
+- Busca na lista: termos com espaço; **valor** (bruto/pago/saldo); **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` — API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/páginas. **Filtro de data:** vencimento (padrão) · competência · pagamento (`ref` + `venc_*` / `comp_*` / `pag_*` na URL e na API).
 - **Perf lista (2026-06-19):** projeção slim Mongo; `skip_totais` pág. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP — Chrome (2026-06-19, v1.48+):** prefetch BI/F7 · cache do dia · selo **Sincronizando…** · **bootstrap HTML** (lista hoje+abertos já no servidor, sem 2ª ida à API). Renan validou melhora **sutil** — esperado no Chrome MPA.
@@ -1156,76 +1156,842 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.15** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.90** · **loja v9.90**
+
+### 📦 Deploy loja **v9.90** — Fecha PDV+Cadastro+NFC-e+Relatórios (17/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · aguarda Render Live |
+| **Inclui** | **PDV Enviar WhatsApp** · **PDV lápis/editor** · **Cadastro modal** (kardex + aba 9 + origem PDV) · **FL-056** NFC-e 963/225 · **Relatórios ajuda «?»** · layout PDV etapa 1 (até v9.90) |
+| **HEAD loja** | *(este commit)* · base **4113492** (v9.16) |
+| **Backup** | `producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717` @ **4113492** — reverter: `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
+| **Método** | worktree · checkout arquivos do `teste` · **não** merge inteiro |
+| **Migration** | **0054** `ProdutoCadastroAlteracaoAgro` (Render migrate no deploy) |
+| **Autorização** | *envie para produção* + **99738595** (checklist Fecha) |
+| **Você** | Ctrl+F5 · badge **v9.90** · Enviar Zap · lápis → aba 9 · modal cadastro · Relatórios **?** · reemitir NFC-e **#2812**/**#3347** |
+
+### 📦 PDV — Enviar orçamento WhatsApp · pronto produção (17/07 · **teste v9.90**)
+
+
+| | |
+| --- | --- |
+| **Status** | ✅ **enviado loja v9.90** |
+| **O quê** | Botão **Enviar** (Zap) acima do Subtotal · texto Agromais · grava em Orçamentos · ícone Zap na lista · avisos toast central |
+| **Commits** | c3ce765…1b09f96 (pacote Zap PDV) · HEAD 1b09f96 |
+| **OK Renan** | 17/07 — fluxo + lista + ícone |
+| **Loja** | ✅ **v9.90** (pacote Fecha 17/07) |
+
+### ✨ PDV — ícone Zap nos orçamentos enviados (17/07 · **teste v9.90**)
+
+| | |
+| --- | --- |
+| **O quê** | Orçamentos salvos pelo **Enviar** WhatsApp mostram ícone verde do Zap na lista (e no Ver mais) |
+| **Você** | Ctrl+F5 · badge **v9.90** · Enviar de novo → linha nova com ícone Zap |
+
+### 🩹 PDV — Enviar Zap também grava em Orçamentos (17/07 · **teste v9.89**)
+
+| | |
+| --- | --- |
+| **O quê** | **Enviar** = mesma gravação do **Salvar orçamento** (lista + servidor) · depois abre o Zap |
+| **Você** | Ctrl+F5 · badge **v9.89** · Enviar → confere se aparece no card Orçamentos |
+
+### 🩹 PDV — texto do aviso central maior (17/07 · **teste v9.88**)
+
+| | |
+| --- | --- |
+| **O quê** | Título/corpo/botão do toast prominent bem maiores (legível na loja) |
+| **Você** | Ctrl+F5 · badge **v9.88** · Enviar sem telefone → lê o texto grande |
+
+### 🩹 PDV — avisos Enviar Zap no meio da tela (17/07 · **teste v9.87**)
+
+| | |
+| --- | --- |
+| **O quê** | Avisos do Enviar WhatsApp no centro (toast prominent, grande) |
+| **Você** | Ctrl+F5 · badge **v9.87** · Enviar sem telefone → aviso grande no meio |
+
+### 🩹 PDV — avisos Enviar Zap sem alert Chrome (17/07 · **teste v9.86**)
+
+| | |
+| --- | --- |
+| **O quê** | Carrinho vazio / sem cliente / sem telefone → toast PDV (showPdvAviso), não janela do navegador |
+| **Você** | Ctrl+F5 · badge **v9.86** · clica Enviar nos 3 casos e confere o aviso SisVale |
+
+### 🩹 PDV — texto Zap orçamento padrão Agromais (17/07 · **teste v9.85**)
+
+| | |
+| --- | --- |
+| **O quê** | Mensagem WhatsApp no formato do 2º print: *ORÇAMENTO AGROMAIS*, item em 1 linha 1x - nome  R$, linhas finas, sem losango/💰 |
+| **Você** | Ctrl+F5 · badge **v9.85** · Enviar de novo e conferir o Zap |
+
+### ✨ PDV — Enviar orçamento WhatsApp (acima do Subtotal) (17/07 · **teste v9.84**)
+
+| | |
+| --- | --- |
+| **O quê** | Botão verde **Enviar** (ícone Zap) acima do Subtotal · texto no padrão Consulta · sem cliente abre busca F4 · salva orçamento antes · abre Zap do cliente |
+| **Você** | Ctrl+F5 · badge **v9.84** · testa: com cliente+itens; sem cliente; carrinho vazio |
+
+### 🩹 PDV — some azul de vez (painel+campo) (17/07 · **teste v9.83**)
+
+| | |
+| --- | --- |
+| **O quê** | Contorno do painel e borda do campo de busca saem do azul (cinza) · sem linha entre busca e carrinho |
+| **Você** | Ctrl+F5 forte · badge tem que ser **v9.83** (se for menor, ainda tá cache) |
+
+### 🩹 PDV — some de vez a linha/faixa azul da busca (17/07 · **teste v9.82**)
+
+| | |
+| --- | --- |
+| **O quê** | Tira borda **e** fundo azul da faixa da busca (era isso que ainda aparecia) |
+| **Você** | Ctrl+F5 · badge **v9.82** |
+
+### 🩹 PDV — tira linha azul sob a busca (17/07 · **teste v9.81**)
+
+| | |
+| --- | --- |
+| **O quê** | Remove a faixa/borda azul embaixo do campo de busca |
+| **Você** | Ctrl+F5 · badge **v9.81** |
+
+### 🩹 PDV — ícone Cliente fora do campo + texto Carrinho (17/07 · **teste v9.80**)
+
+| | |
+| --- | --- |
+| **O quê** | Ícone do cliente **fora** do campo (igual Busca) · volta escrita **Carrinho** |
+| **Você** | Ctrl+F5 · badge **v9.80** |
+
+### 🩹 PDV — só ícones sem texto (teste visual) (17/07 · **teste v9.79**)
+
+| | |
+| --- | --- |
+| **O quê** | Tira as escritas Cliente/Busca/Carrinho — fica **só o ícone** (pra Renan ver como fica) |
+| **Você** | Ctrl+F5 · badge **v9.79** · diz se mantém ou volta o texto |
+
+### 🩹 PDV — Cliente/Busca/Carrinho mesmo padrão (17/07 · **teste v9.78**)
+
+| | |
+| --- | --- |
+| **O quê** | Três linhas iguais: **ícone + título** no tamanho da Busca. Cliente ganhou símbolo (pessoa). Carrinho/ícones alinhados |
+| **Você** | Ctrl+F5 · badge **v9.78** |
+
+### 🩹 PDV — busca +1 ponto (17/07 · **teste v9.77**)
+
+| | |
+| --- | --- |
+| **O quê** | Busca/fonte digitada + altura mais um pouquinho |
+| **Você** | Ctrl+F5 · badge **v9.77** |
+
+### 🩹 PDV — busca fonte maior de novo (17/07 · **teste v9.76**)
+
+| | |
+| --- | --- |
+| **O quê** | Linha da busca + **Busca** + texto digitado bem maiores (mesmo tamanho, peso 900) |
+| **Você** | Ctrl+F5 · badge **v9.76** |
+
+### 🩹 PDV — fonte digitada = Busca (17/07 · **teste v9.75**)
+
+| | |
+| --- | --- |
+| **O quê** | Texto digitado na busca no **mesmo tamanho** da fonte **Busca** |
+| **Você** | Ctrl+F5 · badge **v9.75** |
+
+### 🩹 PDV — busca um pouco maior (17/07 · **teste v9.74**)
+
+| | |
+| --- | --- |
+| **O quê** | Linha da busca um pouco mais alta · fonte **Busca** + texto digitado maiores (proporcional) |
+| **Você** | Ctrl+F5 · badge **v9.74** |
+
+### 🩹 PDV — busca na linha do ícone Busca (17/07 · **teste v9.73**)
+
+| | |
+| --- | --- |
+| **O quê** | Campo de busca sobe **na mesma linha** do ícone/título **Busca** (vão vermelho do print) · some a faixa de baixo · **1 itens** à direita |
+| **Você** | Ctrl+F5 · badge **v9.73** · confere se bate com o print |
+
+### 🩹 PDV — reverte busca na linha do Cliente (17/07 · **teste v9.72**)
+
+| | |
+| --- | --- |
+| **O quê** | Reverteu de novo — volta layout **v9.67** (busca embaixo · Saldos no topo direito). Próximo: confirmar no print antes de mexer |
+| **Você** | Ctrl+F5 · badge **v9.72** |
+
+### 🩹 PDV — reverte busca no header (17/07 · **teste v9.71**)
+
+| | |
+| --- | --- |
+| **O quê** | Reverteu busca no topo — volta layout **v9.67** (busca na coluna esquerda · Saldos no topo direito) |
+| **Você** | Ctrl+F5 · badge **v9.71** |
+
+### 🩹 PDV — Saldos sobe · botões cliente à esquerda (17/07 · **teste v9.67**)
+
+| | |
+| --- | --- |
+| **O quê** | Cliente + **Editar/Trocar/Hist** ficam na coluna da **busca** (esquerda). **Saldos** sobe no topo da coluna direita. Orçamentos no mesmo lugar de sempre (abaixo do Saldos) |
+| **Você** | Ctrl+F5 · badge **v9.67** · confere |
+
+### 🩹 PDV — tira Etapa 1/Produtos · ? sobe pro header (17/07 · **teste v9.66**)
+
+| | |
+| --- | --- |
+| **O quê** | Só isto: remove texto **Etapa 1 / Produtos** · **?** vai para a barra de etapas (ao lado de 1·2·3) |
+| **Você** | Ctrl+F5 · badge **v9.66** · confere |
+
+### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · ✅ enviado v9.90)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Lápis do PDV grava histórico na aba **9. Alterações** com origem **«PDV edição rápida»** (mesmo overlay do cadastro). Saldo no lápis continua só na aba **4** |
+| **Versão alvo loja** | **v9.62** |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos** | `pdv_wizard.js` · `cadastro_alteracao_historico_util.py` · `models.py` (Origem.PDV) · `_modal_editar_produto_cadastro_erp.inc.html` (`origem_historico=modal`) |
+| **Sobe junto** | Ideal com pacote **Cadastro modal** (migration `0054` + aba 9) — se a aba 9 ainda não estiver na loja, subir os dois |
+| **Risco** | Baixo — só marca origem + mesmo hook de histórico já existente |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir histórico PDV lápis / aba 9»* + **99738595** · ou junto: *«pode subir cadastro modal / histórico»* + senha |
+| **Você após** | Ctrl+F5 loja · lápis muda nome → cadastro → aba 9 · origem «PDV edição rápida» |
+
+### 🩹 PDV + Cadastro — histórico aba 9 também no lápis (17/07 · **teste v9.62**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Edição rápida do PDV (lápis) já salvava no mesmo overlay — agora marca origem **«PDV edição rápida»** na aba **9. Alterações**. Cadastro modal marca **«Modal cadastro»**. Mudança de **saldo** no lápis continua só na aba **4 Estoque** (não mistura) |
+| **Status** | 📦 **pronto pra envio** — pacote acima |
+| **Você** | Ctrl+F5 · badge **v9.62** · lápis muda nome/preço → cadastro → aba 9 · confere origem |
+
+### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.60**)
+
+| | |
+| --- | --- |
+| **O quê** | Tira **?** · **Editar / Trocar / Hist** colados no cliente (esquerda) · busca sobe (sem título «Busca») · Saldos sobe no painel · contagem de itens no Carrinho |
+| **Você** | Ctrl+F5 · badge **v9.60** · confere barra do cliente + busca + saldos |
+| **Pacote lápis** | Continua 📦 pronto; este layout sobe junto se pedir PDV |
+
+### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · ✅ enviado v9.90)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) — **inclui PDV lápis** (origem «PDV edição rápida») · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
+| **Versão alvo loja** | **v9.62** (ou badge do deploy) |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos (núcleo)** | `_modal_editar_produto_cadastro_erp.inc.html` · `estoque_movimentos_cadastro_util.py` · `cadastro_alteracao_historico_util.py` · `migrations/0054_produto_cadastro_alteracao_agro.py` · URLs/API cadastro (estoque-movimentos + alteracoes-historico) · hooks salvar overlay/Excel · `pdv_wizard.js` (origem PDV) · `models.py` (Origem.PDV) |
+| **Pente fino** | IDs dos campos intactos · `edit-img` com rótulo · kardex ≠ alterações · Preços sem altura falsa · lápis PDV → aba 9 com origem correta |
+| **Risco** | Médio-baixo — UX + APIs de leitura + migration `0054` (tabela histórico) · deploy precisa rodar migrate |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir cadastro modal / histórico»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · badge · Preços · Fiscal · Estoque · Alterações · **lápis PDV** muda nome → aba 9 origem PDV |
+
+### 🩹 Cadastro — Preços: número grande de verdade (17/07 · **teste v9.56**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Custo / MVA / comissão / margem: fonte **~2,75rem** no número. Caixa sem altura artificial. Preço final **~3rem** |
+| **Status** | 📦 fecha no pacote **Cadastro modal** acima |
+| **Você** | Ctrl+F5 · badge **v9.56** · aba Preços |
+
+### 🩹 Cadastro — Fiscal: fonte maior + campos mais juntos (17/07 · **teste v9.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs |
+| **Status** | 📦 fecha no pacote **Cadastro modal** acima |
+
+### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · ✅ enviado v9.90)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Lápis no carrinho → edição rápida (nome, GM, barras, unidade com busca, preços A/B, estoque Centro/Vila) · popup grande sem scroll · sem travar o PDV · **histórico aba 9** com origem «PDV edição rápida» |
+| **Versão alvo loja** | **v9.62** (ou badge do deploy) |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `pdv_state.js` · `produtos/views.py` · `produtos/urls.py` · `pdv/views.py` · `cadastro_alteracao_historico_util.py` · `models.py` (Origem.PDV) |
+| **Pente fino** | Unidades lazy · Esc · custo no carrinho · API Mongo fallback · **origem histórico PDV** |
+| **Risco** | Baixo — overlay PDV + APIs; histórico depende da aba 9 / migration `0054` (pacote Cadastro modal) |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · badge · lápis no milho → salva → aba 9 no cadastro |
+
+### 🩹 PDV — pente fino editor rápido (17/07 · **teste v9.54**)
+
+| | |
+| --- | --- |
+| **O quê** | Lazy unidade · Esc correto · custo no patch do carrinho · scroll só se Formas A/B estourar tela baixa |
+| **Status** | 📦 fecha no pacote acima |
+
+### 🩹 PDV — editor sem scroll: pop quase tela cheia (17/07 · **teste v9.53**)
+
+| | |
+| --- | --- |
+| **O quê** | Letras grandes iguais; **popup mais alto** (quase 98 % da tela, sem teto em rem) — estoque cabe **sem barra de rolagem** |
+| **Você** | Ctrl+F5 · badge **v9.53** · lápis · confere se some o scroll |
+
+### 🩹 PDV — editor rápido bem maior (+25 %) (17/07 · **teste v9.51**)
+
+| | |
+| --- | --- |
+| **O quê** | Popup edição rápida com **zoom 1,25** (tudo cresce junto). Deve dar pra notar |
+| **Você** | **Ctrl+F5** · badge **v9.51** · lápis |
+
+### 🩹 Cadastro — Preços bem legível + preenche altura + URL imagem (17/07 · **teste v9.50**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Números dos cards de Preços bem maiores (preenchem a tag). Fiscal/Gerais espalham na altura. Composição: tabela cresce até o rodapé. Campo sem nome = **URL da imagem** (agora com rótulo) |
+| **Você** | Ctrl+F5 forte · badge **v9.50** · Preços · Fiscal · Composição · Gerais |
+| **Loja** | ⏳ |
+
+### 🩹 PDV — editor rápido um degrau maior (17/07 · **teste v9.49**)
+
+| | |
+| --- | --- |
+| **O quê** | Popup edição rápida **maior ~12 %** (caixa + rótulos + campos + botões + saldos) — mesma disposição, melhor em tela pequena |
+| **Você** | Ctrl+F5 · badge **v9.49** · lápis → confere se cabe e lê melhor |
+
+### 🩹 Cadastro — modal: proporção Preços + listas até o rodapé (17/07 · **teste v9.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Preços: tag e número mais equilibrados. Config colado em cima. Composição / Alterações / Estoque: área da lista cresce até o rodapé (sem buraco branco) |
+| **Você** | Ctrl+F5 · badge **v9.48** · Preços · Composição · Config · Alterações |
+| **Loja** | ⏳ |
+
+### 🩹 PDV — estoque editor: números do mesmo tamanho (17/07 · **teste v9.46**)
+
+| | |
+| --- | --- |
+| **O quê** | Nos cards Centro/Vila, **agora** e **novo** ficam com a mesma fonte grande (campo não fica miúdo ao lado do saldo) |
+| **Você** | Ctrl+F5 · badge **v9.46** · lápis → confere proporção dos saldos |
+
+### ✨ Cadastro — abas do modal usam a altura (17/07 · **teste v9.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Abas sem lista histórica (Gerais, Fiscal, Preços, Composição, Config, Validade, Marcas) espalham campos / tabela maior — sem “buraco branco” embaixo. Estoque e Alterações continuam com scroll na lista |
+| **Você** | Ctrl+F5 · badge **v9.45** · abrir produto → Fiscal / Composição |
+| **Loja** | ⏳ |
+
+### 🩹 PDV — editor: 2 tags estoque + unidade busca (17/07 · **teste v9.44**)
+
+| | |
+| --- | --- |
+| **O quê** | Estoque em **2 cards** (tag Centro / Vila). Unidade = busca nas já usadas (ignora acento/maiúscula) + **Cadastrar «…»** se não achar. Mensagem vermelha «Produto não encontrado» sumiu: API agora lê Mongo se o produto ainda não está no Postgres |
+| **Você** | Ctrl+F5 · badge **v9.44** · lápis no milho · confere estoque + unidade |
+
+### ✨ Cadastro — modal editar maior (altura) (17/07 · **teste v9.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Popup editar produto quase tela cheia (~98dvh, mais largo) · área das listas de histórico com altura mínima + scroll próprio |
+| **Você** | Ctrl+F5 · badge **v9.42** · abrir produto → aba Estoque / Alterações |
+| **Loja** | ⏳ |
+
+### 🩹 PDV — editor rápido puxa GM/barras/custo certos (17/07 · **teste v9.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Campo GM deixa de mostrar código sistema (ex. 9047) · puxa **GM0090-47**, barras e custo (overlay/Mongo) |
+| **Você** | Ctrl+F5 · badge **v9.41** · lápis no milho · confere GM + barras + custo 67 |
+| **Loja** | ⏳ |
+
+### 🩹 PDV — formas A/B recolhidas no editor rápido (17/07 · **teste v9.40**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tabela de formas A/B fica **escondida**; botão **Formas A/B** ao lado dos preços abre/fecha |
+| **Você** | Ctrl+F5 · badge **v9.40** · lápis → só preços A/B; clicar Formas A/B se precisar |
+| **Loja** | ⏳ |
+
+### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.38**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lápis do carrinho: modal leve (nome, GM, barras, unidade, custo, venda, **A/B + formas**, estoque Centro/Vila). Salva e atualiza o item |
+| **APIs** | pdv-edicao-rapida · pdv-ajuste-estoque · overlay parcial |
+| **Você** | Ctrl+F5 teste · badge **v9.38** · lápis → edita → Salvar |
+| **Loja** | ⏳ |
+
+### ✨ Cadastro — aba 9 Alterações (histórico cadastro) (17/07 · **teste v9.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba **9. Alterações**: qualquer campo do cadastro (nome, preço, código…) **antes → depois + quem**. **Não** é movimentação de estoque (isso fica na aba 4). 40 + carregar mais · botão vermelho histórico completo (até 500). Só daqui pra frente |
+| **API** | `GET /api/produtos/cadastro/alteracoes-historico/` · migration `0054` |
+| **Você** | Ctrl+F5 · badge **v9.34** · editar produto → mudar nome → Salvar → aba **Alterações** |
+| **Loja** | ⏳ |
+
+
+### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · ✅ enviado v9.90)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto pra envio** — Renan OK no teste · espera frase + senha `99738595` na **mesma mensagem** |
+| **Inclui** | Ajuda **?** leiga em **todas** as telas de relatórios (hub, validade, ABC, ranking, margem…) · botão âmbar ao lado de Imprimir A4 · painel colorido por coluna · **sem** scroll interno |
+| **Commits teste** | `3828dcf` · `6016bc1` · `61f6137` (feat + alinhamento + restaura botão) |
+| **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
+| **Versão alvo loja** | cherry-pick dos 3 commits (após FL-056 ou junto, se pedir) |
+| **Base loja hoje** | **v9.16** |
+| **Autorizar com** | *«pode subir ajuda relatórios»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · Relatórios → Curva ABC → **?** ao lado do azul |
+
+### ✨ Cadastro — kardex unificado na aba Estoque (17/07 · **teste v9.30**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Remove «Histórico de Fornecedores» · tabela **Histórico de movimentação** (venda, devolução, NF, transferência, ajuste) · filtros depósito/tipo/período · 50 + carregar mais (teto 200) · link da venda · **operador = nome, nunca PIN** |
+| **API** | `GET /api/produtos/cadastro/estoque-movimentos/` |
+| **Arquivos** | `estoque_movimentos_cadastro_util.py` · `views.py` · `_modal_editar_produto_cadastro_erp.inc.html` · `produtos_cadastro_erp.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.30** · abrir produto → aba Estoque |
+| **Loja** | ⏳ |
+
+### ✨ PDV — lixeira + lápis no carrinho (17/07 · **teste v9.29**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Ações do item: **lixeira em cima** + **lápis embaixo** (menor, mesma altura de linha). Lápis = placeholder (`data-edit-item`) p/ ligar tela depois |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` |
+| **Você** | Ctrl+F5 teste · badge **v9.29** · carrinho com 2 itens · conferir 2 botões sem esticar a linha |
+| **Loja** | ⏳ |
+
+### fix — Relatórios «?» sumiu (17/07 · **teste v9.28**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Troca `<details>` por **botão** âmbar fixo (mesmo tamanho do Imprimir A4) · painel abre/fecha no clique · estilo inline pra não sumir |
+| **Arquivo** | `relatorios_help_agents.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.28** · ? laranja ao lado do azul |
+| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
+
+### fix — Relatórios ajuda «?» alinhada + sem scroll no card (17/07 · **teste v9.27**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | **?** ao lado de Imprimir A4 / Voltar (mesmo tamanho 44px) · painel à direita **sem** max-height / scrollbar interna |
+| **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.27** · Relatórios → ? ao lado do azul |
+| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
+
+### ✨ Cadastro ERP — busca + filtros na barra (17/07 · **teste v9.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Sem botão Catálogo · **Filtros avançados** ao lado do Novo · busca com borda verde forte + «Digite aqui para buscar…» |
+| **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` |
+| **Você** | Ctrl+F5 teste · badge **v9.25** · `/produtos/cadastro-erp/` |
+
+### ✨ Relatórios — ajuda «?» leiga em todas as telas (17/07 · **teste v9.23** · ✅ OK Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **?** em todas as telas de relatórios · painel didático (colunas + o que o relatório faz) · hub, validade e todos os cards do genérico |
+| **Arquivos** | `includes/relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
+| **Você** | ✅ OK no teste (v9.28) |
+| **Loja** | 📦 **pronto pra envio** — ver pacote **Relatórios ajuda «?»** |
+
+### ✨ Cadastro ERP — layout header/toolbar (17/07 · **teste v9.22**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Catálogo + «Gestão de Produtos» / Somente ativos sobem pro header · **Grupos** oculto · barra: Busca · Filtrar · **+ Novo** · (direita) Excel↓↑ · Histórico · Colunas |
+| **Arquivo** | `produtos_cadastro_erp.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.22** · `/produtos/cadastro-erp/` |
+| **Loja** | ainda **v9.16** — sobe só com frase+senha |
+
+### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · ✅ enviado v9.90)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Inclui** | **FL-056** — SEFAZ **963** + **225** (`nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py`) |
+| **Versão alvo loja** | **v9.21** |
+| **Base loja hoje** | **v9.16** |
+| **Autorizar com** | *«pode subir NFC-e 963/225»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · reemitir **#2812** e **#3347** |
+
+### 🐛 NFC-e — rejeições 963 + 225 (17/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Casos** | Venda **#2812** → **963** · Venda **#3347** → **225** (frete #23 já OK) |
+| **963** | Fiado/`tPag=05` ia com grupo `<card>` — SEFAZ não aceita. `_TPAG_REQUER_CARD` só **03/04/10–13/15/17/18** |
+| **225** | CFOP/CEST/NCM com ponto/traço no XML (schema). Limpa só dígitos + CEST só se 7 dígitos |
+| **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
+| **Commits teste** | `fb6ba2f` … (**v9.21**) |
+| **Você** | Ctrl+F5 teste · badge **v9.21** · em Contabilidade **reemitir** #2812 e #3347 |
+| **Status** | 📦 **pronto pra envio** (loja ainda v9.16) |
+| **Loja** | frase + senha na mesma mensagem |
 
 ### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | **#12** devolução parcial · **#17** busca CP · relatórios **última venda/ordenar** · **#23** NFC-e 535 frete |
-| **HEAD loja** | *(este commit)* · base **c61f7dd** (v9.14) |
-| **Backup** | `producao-backup-pre-v916-fecha-relatorios-nfce-20260717` @ **c61f7dd** (v9.14) — reverter: `git push origin producao-backup-pre-v916-fecha-relatorios-nfce-20260717:producao` |
+| **Inclui** | **#12** devolução · **#17** busca CP · giro última venda · **#23** NFC-e 535 |
+| **HEAD loja** | **4113492** · base **c61f7dd** (v9.14) |
+| **Backup** | `producao-backup-pre-v916-fecha-relatorios-nfce-20260717` @ **c61f7dd** — reverter: `git push origin producao-backup-pre-v916-fecha-relatorios-nfce-20260717:producao` |
 | **Autorização** | *pode enviar* + 99738595 |
-| **Você** | Ctrl+F5 · badge **v9.16** · devolução · busca CP · giro última venda · NFC-e c/ frete |
+| **Você** | Ctrl+F5 · badge **v9.16** · devolução · busca CP · giro · NFC-e c/ frete |
+
+### 📦 PACOTE PRONTO LOJA — ✅ ENVIADO v9.16 (17/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **montado** · **não subiu** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Versão alvo loja** | **v9.16** |
+| **Base loja hoje** | **c61f7dd** · **v9.14** |
+| **Backup (criar no envio)** | `producao-backup-pre-v916-fecha-relatorios-nfce-YYYYMMDD` @ HEAD loja atual |
+| **Reverter** | `git push origin <backup>:producao` |
+| **Método** | worktree em `origin/producao` · `git checkout origin/teste -- <arquivos>` · **não** merge inteiro teste→producao |
+| **Risco** | Médio — #12 mexe venda/caixa/migração **0053** · #17 só busca CP · relatórios só leitura · #23 NFC-e frete (pequeno) |
+| **Autorizar com** | *«pode subir para produção o pacote fecha + relatórios + #23»* + **99738595** |
+
+#### A) Fecha (✅ Renan testou)
+
+| Ref | O quê | Arquivos-chave |
+| --- | ----- | -------------- |
+| **#12** / FL-035 | Devolução parcial / por item no PDV | `devolucao_venda_util.py` · migração **0053** · `models.py` · `views.py` · `venda_agro_detalhe.html` · `vendas_lista.html` · `caixa_util.py` · `caixa_relatorio_util.py` |
+| **#12 cupom** | Risco + total restante na reimpressão | `venda_cupom_util.py` · `venda_cupom_80mm.js` · `context_processors.py` · `views_mp_point.py` · `config/settings.py` |
+| **#17** / FL-022 | Busca CP inteligente (valor/data/boleto/parcela/CPF) | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · `lancamentos_help_agents.html` · `lancamentos_contas_pagar_teste.html` · `AGENTS.md` |
+
+#### B) Relatórios (tudo que falta na loja)
+
+| Item | O quê |
+| ---- | ----- |
+| **v9.15** | Giro/parado: coluna **Última venda** + filtro **Ordenar** por data (tela / A4 / Excel) |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` |
+| **Já na loja (v9.14)** | Hub · ABC categoria · loading · código GM · Ver todos · De/Até — **não precisa subir de novo** |
+
+#### C) NFC-e #23 (incluso)
+
+| Ref | O quê | Arquivo |
+| --- | ----- | ------- |
+| **#23** / FL-055 | SEFAZ **535** — `vFrete` nos itens = total do frete (vendas #3418/#3380) | `nfce_sp_emissao_util.py` · commit teste `31eb9dc` |
+
+#### Não sobe neste pacote
+
+| Item | Motivo |
+| ---- | ------ |
+| Merge inteiro `teste`→`producao` | Outras coisas do teste fora do pacote |
+| **#7** notebook impressão | Ainda 🔴 aberto |
+| FL-008 / 016 / 029 / 052 / 030 / 019 / 054 / 049 / 024 / 031 / 034 / 053 / 033 | Ainda na fila |
+
+#### Checklist validar depois do deploy (Ctrl+F5 · badge **v9.16**)
+
+1. Relatórios → Giro/parado → coluna **Última venda** + ordenar  
+2. Relatórios → ABC → categoria / Excel / loading (já v9.14; smoke)  
+3. Vendas → devolução parcial (#12)  
+4. Contas a pagar → busca valor / parcela (#17)  
+5. NFC-e com frete — sem rejeição **535** (#23)  
+
+### feat — giro/parado com última venda + ordenação (16/07 · **teste v9.15**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Coluna **Última venda** no giro/parado + filtro **Ordenar** por data |
+| **Onde** | Tela, impressão A4 e Excel |
 
 ### 📦 Deploy loja **v9.14** — Relatórios (pós-v9.07) (16/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | Código GM · filtro De/Até personalizado · ABC Ver todos + total período · loading (abrir/Excel/imprimir) · ABC filtro categoria + coluna Categoria. **Só relatórios** — **não** sobe NFC-e #31eb9dc nem #12/#17 |
-| **Base** | `origin/producao` **53c13fb** (v9.07) + arquivos do `teste` **30381e2** |
+| **Inclui** | Código GM · De/Até personalizado · ABC Ver todos · loading (abrir/Excel/imprimir) · ABC filtro categoria. **Só relatórios** — **não** NFC-e nem #12/#17 |
+| **HEAD loja** | **c61f7dd** (base **53c13fb** v9.07) |
 | **Backup** | `producao-backup-pre-v914-relatorios-20260716` @ **53c13fb** (v9.07) — reverter: `git push origin producao-backup-pre-v914-relatorios-20260716:producao` |
 | **Autorização** | *pode subir para produção essas atualizações nos relatórios* + 99738595 |
 | **Você** | Ctrl+F5 loja · badge **v9.14** · Relatórios → ABC (categoria) · Excel · Imprimir |
 
-### hotfix loja **v9.07 / v9.06** — relatorios 500 (16/07)
+### feat — ABC filtro por categoria (16/07 · **teste v9.14** · **loja v9.14**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Select **Categoria** na Curva ABC · recalcula A/B/C só da categoria · coluna Categoria na tela / A4 / Excel |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` |
+
+### feat — loading Excel + impressão (16/07 · **teste v9.13**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Excel** | Overlay «Gerando Excel…» até o arquivo baixar (não some a tela) |
+| **Imprimir** | Overlay «Preparando impressão…» até abrir a caixa |
+
+### feat — loading visual nos relatórios (16/07 · **teste v9.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Overlay «Carregando…» ao clicar no card / Atualizar / Excel / Ver todos |
+| **Arquivo** | `_relatorios_loading.html` |
+
+### feat — ABC Ver todos + total período (16/07 · **teste v9.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lista padrão 500 · botão **Ver todos** · rodapé = total do período (para bater com vendas) · % sobre o período inteiro |
+| **Excel** | Sempre exporta lista completa |
+
+### fix — filtro De/Até vira personalizado (16/07 · **teste v9.09**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mudar De/Até → período **Personalizado** (tela + servidor) |
+| **Loja** | ✅ **v9.14** (16/07) |
+
+### fix — Código GM nos relatórios (16/07 · **teste v9.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Coluna Código = **código GM** (`codigo_nfe`/overlay); não mostra ObjectId Mongo |
+| **Onde** | Todos os relatórios com produto (ABC, ranking, margem, ruptura, comissão…) |
+| **Loja** | ✅ **v9.14** (16/07) |
+
+### hotfix loja **v9.07** — relatorios 500 resolvido (16/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Mais vendidos / ABC / grupo / margem / comparativo / comissao = 500 |
-| **Causa** | ExpressionWrapper na agregacao ItemVendaAgro |
-| **Fix** | Sum simples (`53c13fb`) |
-| **Validar** | Ctrl+F5 · Mais vendidos + Curva ABC |
+| **Causa** | Agregacao ItemVendaAgro com ExpressionWrapper (incompativel na loja) |
+| **Fix** | Mesmo padrao do giro (`Sum` quantidade/valor) · `53c13fb` |
+| **Validar** | Ctrl+F5 · badge **v9.07** · Mais vendidos + Curva ABC |
 
 ### 📦 Deploy loja **v9.04** — Central de Relatórios (16/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | Só pacote **relatórios**: ranking/ABC/grupo/giro/margem/operador/clientes/comparativo/formas/ruptura/comissão + hub 4 colunas/seções + Excel. **Não** sobe #12/#17 |
-| **Commits loja** | `86c804d` ← `7cb5894` · `1cb43f2` ← `92f2881` |
-| **HEAD loja** | **1cb43f2** |
-| **Backup** | branch `producao-backup-pre-v904-relatorios-20260716` @ **5c44084** (v8.69) — reverter: `git push origin producao-backup-pre-v904-relatorios-20260716:producao` |
+| **Inclui** | Só pacote **relatórios** (hub + todos os cards novos + Excel). **Não** sobe #12/#17 |
+| **HEAD loja** | **da264a3** (código `1cb43f2` + docs) |
+| **Backup** | `producao-backup-pre-v904-relatorios-20260716` @ **5c44084** (v8.69) — reverter: `git push origin producao-backup-pre-v904-relatorios-20260716:producao` |
 | **Autorização** | *pode subir para produção esse cherry-pick* + 99738595 |
-| **Você** | Ctrl+F5 loja · badge **v9.04** · BI → Relatórios · Curva ABC / mais vendidos |
+| **Você** | Ctrl+F5 loja · badge **v9.04** · Relatórios · ABC |
+
+### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · **📦 pronto para envio à produção** (frase + senha) |
+| **Pacote** | Fecha com **#12** / FL-035 |
+| **Validou** | Valor progressivo (`234`…`234,78`) · parcela (`parcela 7` / `7/12` no texto) · sem lixo |
+| **Loja** | ⏳ aguarda frase + senha |
+
+### ✅ CHECKLIST ÚNICO — por prioridade · 17/07
+
+**P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente (P1,1 antes de P1,5).  
+**Zap #** e **FL-** na mesma fila. Já na loja → só em **Checklist concluído** (abaixo).
+
+#### Agora
+
+| Quando | O quê |
+| ------ | ----- |
+| **✅ Loja v9.90** | **PDV Enviar WhatsApp** · **Cadastro modal** · **PDV lápis/aba 9** · **FL-056** · **Relatórios ?** — enviados 17/07 |
+| **Validar loja** | Ctrl+F5 · badge **v9.90** · Zap · lápis→aba 9 · modal · Relatórios **?** · reemitir **#2812**/**#3347** |
+| **Reverter** | `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
+
+#### Fila aberta (por prioridade)
+
+| P | Ref | Pedido | Status |
+| - | --- | ------ | ------ |
+| **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
+| **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
+| **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
+| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | ✅ **loja v9.90** |
+| **P2** | PDV Enviar Zap | Botão Enviar orçamento WhatsApp · Agromais · grava Orçamentos · ícone Zap | ✅ **loja v9.90** |
+| **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | ✅ **loja v9.90** |
+| **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
+| **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
+| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
+| **P1,1** | **FL-029** | Baixa parcial fiado + crédito | 📋 |
+| **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 (após FL-051 ✅) |
+| **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 |
+| **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega (separação / entregador / cliente) | 📋 · foto Word |
+| **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | 🧪 teste |
+| **P1,6** | **Zap #22** · **FL-024** | Cadastro: cat/sub/marca só selecionar existentes · popup Food se novo · PIN + log · busca sem acento/caixa | 📋 |
+| **P1,6** | **FL-031** | Terminar tela `/entregas/` | 📋 |
+| **P1,9** | **FL-034** | Histórico F8 filtra cliente | 🔄 teste |
+| **P2** | **Zap #19** · **FL-053** | Histórico de custo (últ. pedidos) tick **2×** (fim etapa 2 + finalizar NF) | 📋 · foto Word |
+| **P3** | **Zap #21** · **FL-033** | BI comparativo: N-ésimo dia da semana vs mês anterior (ex. 3ª terça) | 📋 · foto Word |
+| **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
+
+#### Checklist concluído (já na loja)
+
+| Ref | Pedido | Nota |
+| --- | ------ | ---- |
+| Zap **#12** · FL-035 | Devolução parcial | ✅ loja **v9.16** |
+| Zap **#17** · FL-022 | Busca CP inteligente | ✅ loja **v9.16** |
+| Zap **#23** · FL-055 | NFC-e 535 frete | ✅ loja **v9.16** |
+| Zap **#1** | Entrada NF etapa 7 — valor | ✅ |
+| Zap **#2** | Entrada NF busca barras | ✅ |
+| Zap **#3** | Cadastro custo / prefixo GM | ✅ |
+| Zap **#4** | Cadastro modelo | ✅ |
+| Zap **#5** | Busca cadastro + NF leve | ✅ |
+| Zap **#6** | PIN mais rápido | ✅ |
+| Zap **#8** | Produto novo na lista | ✅ |
+| Zap **#9** | Fiado MP forma no caixa | ✅ |
+| Zap **#10** | Cancelar cobrança fiado | ✅ |
+| Zap **#11** | Menu caixa/vendas fecha | ✅ |
+| Zap **#13** · FL-027 | XML boleto → CN | ✅ |
+| Zap **#14** · FL-026 | Add produto barras/lote | ✅ |
+| Zap **#15** · FL-025 | Código interno 4010–5999 | ✅ P0,9 |
+| Zap **#16** · FL-023 | CP busca limpa datas | ✅ P1,2 |
+| Zap **#18** · FL-018 · FL-020 | Frete cupom / 3 vias | ✅ |
+| **+** | PIN ao abrir PDV | ✅ |
+| FL-017 · FL-021 · FL-028 · FL-032 · FL-051 · FL-046 · FL-047… | Outros FL já na loja | ver «Fila loja» |
+
+**Cadastro FL completo** (tags): «Fila loja — pedidos Zap / melhorias» mais abaixo. Status do dia → **esta seção primeiro**.
 
 ### 📦 Deploy loja **v8.69** — Entrada NF busca BCA (16/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | Só fix busca Entrada NF = BCA/família GM (iews.py + comentário entrada_nota.html). **Não** sobe pacote do fecha (#12/#17/relatórios) |
-| **Commit origem** | 93ac5b3 (teste v8.94) |
-| **Backup** | branch producao-backup-pre-v869-20260716 @ **45622b0** (v8.68) — reverter: git push origin producao-backup-pre-v869-20260716:producao |
+| **Inclui** | Só fix busca Entrada NF = BCA/família GM (`views.py` + comentário `entrada_nota.html`). **Não** sobe pacote do fecha (#12/#17/relatórios) |
+| **Commit loja** | **5c44084** (origem teste `93ac5b3`) |
+| **Backup** | branch `producao-backup-pre-v869-20260716` @ **45622b0** (v8.68) — reverter: `git push origin producao-backup-pre-v869-20260716:producao` |
 | **Autorização** | *pode subir esse cherry-pick* + 99738595 |
-| **Você** | Ctrl+F5 loja · badge **v8.69** · Entrada NF · gm0008 → **3** iguais ao cadastro |
+| **Você** | Ctrl+F5 loja · badge **v8.69** · Entrada NF · `gm0008` → **3** iguais ao cadastro |
 
 ### 🩹 Entrada NF — busca BCA = cadastro (16/07 · **teste v8.94** · **loja v8.69**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | gm0008 no cadastro = **3** (BCA); na Entrada NF = **1** |
-| **Causa** | API com entrada_nfe=1 desligava Mongo — família GM não completava |
+| **Sintoma** | `gm0008` no cadastro = **3** (BCA); na Entrada NF = **1** |
+| **Causa** | API com `entrada_nfe=1` desligava Mongo — família GM não completava (cadastro completa) |
 | **Fix** | Mesmo motor unificado + complemento Mongo família GM; cache busca NF **v2** |
+| **Arquivos** | `views.py` · `entrada_nota.html` (comentário) |
+| **Validar** | Ctrl+F5 teste · Entrada NF etapa 2 · digitar `gm0008` → **3** iguais ao cadastro |
 
+### 📊 Central de Relatórios — pacote completo (16/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Hub com cards: mais/menos vendidos · por grupo · curva ABC · giro/parado · margem · operador · ranking clientes · comparativo · formas pagamento · ruptura · comissão estimada (+ validade/etiquetas já existentes) |
+| **Extras** | Período · print A4 · **Excel ↓** em cada relatório novo |
+| **Fonte** | `VendaAgro` / `ItemVendaAgro` (Postgres) · giro/parado reusa `dashboard_estoque_financeiro_util` |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_hub.html` · `relatorios_generico.html` · `urls.py` |
+| **Validar** | Ctrl+F5 · BI → Relatórios gerais · abrir cada card · Excel + período |
+| **Versão** | **teste v8.93** |
+| **Layout hub (16/07)** | Largura máxima + **4 colunas** · seções **Vendas / Estoque / Equipe e clientes** |
+
+### 📦 Pacote pronto loja — fechar depois (16/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Quando** | Depois que a **loja fechar** — frase + senha na mesma mensagem |
+| **Inclui** | **#12** / **FL-035** · **#17** / **FL-022** (ver CHECKLIST ÚNICO) |
+| **Teste** | **#12 ✅ Renan** · **#17 ✅ Renan** (valor + parcela) — **pronto envio produção** |
+| **Não sobe** | **#7** impressão notebook |
+| **Antes** | loja hoje **v8.69** |
+
+### 🩹 Cupom — risco sumia na impressão (16/07 · **teste v8.89** · **✅ Renan**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | TOTAL já R$ 1,30, item de R$ 5 sem risco |
+| **Causa** | JS da lista em cache `?v=1` + risco no flex some no Chrome |
+| **Fix** | `agro_pdv_assets_v` global + `<s>` no texto do item · commits `6caed7d`+ |
+| **Validar** | ✅ Renan OK · pronto loja (fecha) |
+
+### 🩹 Cupom — risco no item devolvido (16/07 · **teste v8.85**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Reimpressão 80mm: item/frete devolvido riscado + TOTAL restante + faixa «devolução parcial» |
+| **Validar** | Ctrl+F5 teste · badge **v8.85** · venda parcial → Imprimir |
+
+### 🩹 #17 busca valor progressiva (16/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Prints** | `234` → lixo R$ 600; `234,`/`234,7` → vazio; `234,78` → OK |
+| **Causa** | Exato demais + «234» ainda misturava documento/parcela |
+| **Fix** | Faixa ao digitar: `234`/`234,` = [234–235); `234,7` = [234,70–234,80); completo = exato. Sem parcela em número solto |
+| **Validar** | ✅ Renan · faixa valor OK |
+| **Arquivo** | `lancamentos_financeiro_pg_util.py` |
+
+### 🩹 #17 busca CP — valor/parcela sem lixo (16/07 · **teste v8.84**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `234,` / `234,7` trazia títulos de R$ 600; parcela sem match trazia títulos soltos |
+| **Causa** | Termo numérico misturava texto + `mongo_id` (ObjectId contém «234») |
+| **Fix** | Modos exclusivos: vírgula/R$ → só valor; `2/6` → só parcela; data → só data; nº curto sem mongo_id |
+| **Validar** | ✅ Renan · sem lixo R$ 600 |
+| **Arquivo** | `lancamentos_financeiro_pg_util.py` |
+
+### ✅ #17 Busca CP inteligente P0+P1+P2 (16/07 · **teste v8.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **P0** | Valor + data digitada |
+| **P1** | Boleto + doc flexível |
+| **P2** | Parcela + CPF/CNPJ |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help + placeholder |
+| **Validar** | ✅ Renan testou · valor + parcela OK |
+| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
+
+### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79** · **✅ Renan**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **1 Lista** | Parcial mostra **restante** (ex. R$ 1,30) + original riscado; total do período soma restantes |
+| **2 Detalhe** | Item devolvido com **risco** + badge; total restante no card |
+| **3 ERP** | Coluna/botões ERP sumiram; `PDV_VENDA_ERP_ENVIO=False` (padrão) — não manda Pedidos/Salvar |
+| **Validar** | ✅ Renan · **📦 pronto loja (fecha)** |
 
 ### 📦 Deploy loja **v8.68** — FL-021 hotfix match NF (16/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Inclui** | Só `nfe_entrada_util.py` — match ORM por nº NF na descrição (Agromaia etc.). **Não** sobe devolução |
-| **Commits loja** | arquivo de `f304560` → **02dc397** |
+| **Inclui** | Só `nfe_entrada_util.py` — match ORM por nº NF na descrição. **Não** sobe devolução |
+| **Commits loja** | **02dc397** + docs **45622b0** |
 | **Backup** | branch `producao-backup-pre-v868-20260716` @ **ed1698e** (v8.67) — reverter: `git push origin producao-backup-pre-v868-20260716:producao` |
-| **Autorização** | *pode subir só esse hotfix* + 99738595 · pediu backup/seguro |
+| **Autorização** | *pode subir só esse hotfix* + 99738595 |
 | **Você** | Ctrl+F5 loja · badge **v8.68** · CP Agromaia → botão **NF** |
+
+
+### 🩹 CP — botão NF ainda vazio (FL-021 hotfix) (16/07 · **teste v8.76** · **loja v8.68**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Match do rascunho no Postgres via ORM (número NF na descrição + variantes) — o v8.67 só ligava o enrich, mas a busca cortava notas antigas |
+| **Validar** | Ctrl+F5 loja · CP Agromaia → botão **NF** |
+| **Loja** | ✅ v8.68 |
+
+
+### 🩹 Devolução — textos no ? (16/07 · **teste v8.74**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Regras longas no **?** Ajuda do modal (padrão banana / tela limpa) |
+| **Validar** | Ctrl+F5 · badge **v8.74** · Devolver → ? |
+| **Loja** | ⏳ |
+
+
+
+### 🩹 Devolução — fontes do modal um pouco maiores (16/07 · **teste v8.72**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Textos/itens/formas/total no popup um degrau maior (sem exagero) |
+| **Validar** | Ctrl+F5 · badge **v8.72** · Devolver |
+| **Loja** | ⏳ |
+
+
+
+### 🩹 Devolução — confirmação bonita + valor igual aos itens (16/07 · **teste v8.70**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Sem confirm do Chrome · aviso no estilo SisVale · formas = itens (centavo a mais bloqueia) |
+| **Validar** | F5 · 1,31 vs 1,30 bloqueia · igualar · confirmação grande |
+| **Loja** | ⏳ |
+
+
+
+### 🩹 Devolução — modal maior (idosos) (16/07 · **teste v8.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Popup devolução ~54rem · fontes/botões/checkbox maiores (padrão idosos / Display Scale) |
+| **Validar** | Ctrl+F5 · badge **v8.69** · Devolver venda → ler sem apertar os olhos |
+| **Loja** | ⏳ |
+
 
 
 ### 📦 Deploy loja **v8.67** — botão NF no CP (FL-021) (16/07 · Renan frase+senha)
@@ -1233,7 +1999,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Inclui** | Só o fix do botão **NF** em Contas a pagar (Postgres) — **não** sobe devolução parcial |
-| **Commits loja** | cherry `5000678` → **0a5b620** |
+| **Commits loja** | cherry `5000678` → **0a5b620** · docs **ed1698e** |
 | **Backup** | branch `producao-backup-pre-v867-20260716` @ **92b1804** (v8.65) — reverter: `git push origin producao-backup-pre-v867-20260716:producao` |
 | **Autorização** | *pode subir* + 99738595 · pediu backup/seguro |
 | **Você** | Ctrl+F5 loja · badge **v8.67** · CP busca Agromaia → botão NF |
@@ -1245,7 +2011,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Com financeiro Postgres, a API não preenchia o link da Entrada NF → coluna NF vazia. Agora enriquece na lista/bootstrap; match de rascunho PG mais confiável |
 | **Validar** | Ctrl+F5 · Contas a pagar · busca Agromaia (ou RBS) · botão **NF** na coluna · abre overlay da nota |
-| **Loja** | ✅ v8.67 · hotfix match **v8.68** |
+| **Loja** | ✅ v8.67 |
+
+
+### ✨ PDV — devolução por item (#12) (16/07 · **teste v8.66**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Devolver itens escolhidos (+ frete opcional). Forma Fiado só se a venda era fiado (abate dívida, sem caixa). Outras formas = RETIRADA. NFC-e cancela só no total |
+| **Validar** | Ctrl+F5 · badge **v8.66** · venda com 2+ itens → devolver 1 · badge Parcial · devolver resto · total |
+| **Loja** | ⏳ |
+
+
+
+### 📦 Deploy loja **v8.65** — preços A/B + PDV (16/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1620,7 +2399,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Pacote** | **#4** modelo persiste + **#3** prefixo GM (família) |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `2c44d45` (#4) · `a285d52` (#3) |
 | **Antes** | loja **v8.15** `812226b` |
 | **Backup** | `producao-backup-pre-v822-20260714` · anterior `pre-v815` / `pre-v814` |
 | **NÃO veio** | #5 #6 #16 #18 frete · lote Zap restante — continua só no teste |
@@ -1648,52 +2427,28 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validar** | Ctrl+F5 loja · editar modelo · Salvar · reabrir |
 | **Loja** | **✅** v8.22 |
 
-### 🔄 Handoff Renan 14/07 — outro Agent → este chat (fonte da verdade operacional)
+### 🔄 Handoff Renan 14/07 — histórico (versão antiga)
 
-| Ambiente | Versão | Commit | Notas |
-| -------- | ------ | ------ | ----- |
-| **Loja** | **v8.22** | `a285d52` | pacote #3+#4 · backup `producao-backup-pre-v822-20260714` |
-| **Teste** | **v8.22** | `9bf591f` | alinhado no badge; ainda tem commits extras só no teste |
+> **Atualizado 16/07:** status vivo está no **CHECKLIST ÚNICO** no topo do CHECKPOINT (Zap # + FL + P).
 
-| # | Status | Nota curta |
-| - | ------ | ---------- |
-| **3** | ✅ loja | prefixo GM / família |
-| **4** | 🟡 loja | modelo — confirmar se ainda ok |
-| **10** | ✅ loja v8.34 | Cancelar cobrança fiado |
-| **5 · 6** | ✅ loja v8.38 / v8.34 | #5 busca leve · #6 PIN 1 query |
-| **16** | ✅ loja v8.38 | aviso CP — texto curto + fonte maior |
-| **18** | ✅ loja v8.38 | frete 3 vias / cupom |
-| **1 · 2 · 9 · 11 · 13 · 14** | ✅ loja v8.38 | retestar se quiser |
-| **+ PIN ao abrir** | ✅ loja v8.38 | PDV pede PIN ao entrar |
-| **7** | 🔴 | impressão notebook — medir host vs app |
-| **12** | 🔴 | devolução parcial (escopo OK; implementar) |
-| **17** | ⚪ | exemplos 15/07 — ver bloco abaixo |
-| ~~**3b · 8 · 15**~~ | ✅ fora da lista | custo · produto novo · código 4000+ |
+| Ambiente (14/07) | Versão | Notas |
+| ---------------- | ------ | ----- |
+| **Loja** | era v8.22 → hoje **v8.69** | ver CHECKLIST ÚNICO no topo |
+| **Teste** | hoje **v8.97** | ver CHECKLIST ÚNICO no topo |
 
-**Ordem combinada:** Renan valida loja **#3+#4** → promover **#5/#6** → micro **#16** → **#12** → exemplos **#17**.
+**Próximo:** fecha → **#12+#17** · aberto Zap → **#7**.
 
-### 🐛 #17 Busca CP inteligente — exemplos Renan (15/07)
+### ✅ #17 Busca CP inteligente — P0+P1+P2 (16/07 · **teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | Busca por **valor** às vezes não acha nada — mesmo digitando o valor **exato** do título |
-| **Causa real (PG)** | Tela CP usa Postgres: `_aplicar_texto_qs` **não busca valor** (só texto). Mongo antigo tinha valor; PG ficou atrás |
-| **Melhoria (não bug)** | Buscar também por **data de vencimento** digitando a data (ex. `15/07/2026`) |
-| **Status** | ⚪ pacote proposto · aguarda Renan escolher o que implementar |
-| **Arquivos** | `lancamentos_financeiro_pg_util.py` (principal) · `mongo_financeiro_util.py` · help §10 |
-
-**Pacote #17 proposto (padrão ERP · ordem prática loja):**
-
-| Prio | Item | Por quê |
-| ---- | ---- | ------- |
-| **P0** | Valor (bruto / pago / restante) + inteiro sem vírgula | Bug atual — loja usa todo dia |
-| **P0** | Data digitada (venc. / também comp. e pagto se parecer data) | Pedido Renan |
-| **P1** | Código de barras / linha digitável do boleto | Campo já existe (`boleto_codigo_barras`); leitor na loja |
-| **P1** | Nº documento “só números” + prefixo parcial | NF/parcela sem acento no fornecedor |
-| **P2** | Parcela (`2/6` ou `parcela 2`) | Contas parceladas |
-| **P2** | Acentos / maiúsculas iguais (já parcial) + CNPJ/CPF mascarado | ERP clássico |
-| **P3** | Operadores: `>` `<` valor, `venc:dd/mm` | Avançado — só se Renan quiser |
-| **Fora** | Busca fuzzy fonética / IA | Ruído + custo; não necessário na loja |
+| **P0** | Valor (bruto/pago/restante; inteiro ou `1.500,00` / R$) + data digitada (venc./comp./pagto) |
+| **P1** | Boleto (código/linha) + nº documento só-dígitos |
+| **P2** | Parcela (`2/6`, «parcela 2») + CPF/CNPJ com/sem máscara |
+| **Causa bug valor** | QS Postgres `_aplicar_texto_qs` não buscava valor — só texto |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help §10 · placeholder CP |
+| **Validar** | ✅ Renan testou · valor + parcela OK |
+| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
@@ -2313,7 +3068,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | PIN manual/descanso PDV · contagem fechar caixa ao reabrir Chrome · overlay caixa não trava |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `8410ebc` · `8df7e18` · `ca78b88` · `ae69827` |
 | **Fora da loja** | Entregas PDV · FL-049/050 (só teste) |
 | **Status** | **✅ loja** — validar PIN + contagem na operação |
 
@@ -2466,6 +3221,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Vale caixa + pagamento CP parcial iguais → CP **Pago** inflado |
 | **Fix** | Hook só baixa direta em Lançamentos · sync Postgres · aviso verde no fechamento |
 | **Status** | **Na loja** — não reabrir folhas já gambiarradas |
+| **16/07** | Renan pediu cherry **só** deste bug + senha — **já estava** em `producao` (`e557857` / `6741ed2`) · **nada a subir** |
 
 ### 🐛 FL-048 — «Baixar ZIP selecionado» não baixava (02/07 · Renan)
 
@@ -3482,6 +4238,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 
 ### Fila loja — pedidos Zap / melhorias (Renan triagem)
 
+> **Status operacional (Zap #+P+deploy):** ver **CHECKLIST ÚNICO** no topo do CHECKPOINT. Esta tabela é o **cadastro FL** (P + módulo + pedido). Ao mudar status, atualizar **os dois**.
+
 **Pacotes prontos — aguardando deploy loja (Renan 30/06):**
 
 | Pacote | O quê | Observação |
@@ -3522,9 +4280,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
-| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | 📋 Pendente | 29/06 |
+| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
-| **FL-024** | **P3** | Cadastro | **Popup** no estilo **Food** para cadastrar **categoria** e **marca** | 📋 Pendente | 29/06 16:20 |
+| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | 📋 Pendente | 16/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
@@ -3535,9 +4293,13 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-032** | **P1,5** | PDV | Botão **reset** no PDV — zerar pedido e **começar nova venda** | **✅ loja v7.27** | 29/06 16:20 |
 | **FL-051** | **P1** | Fiado / PDV | **Baixa fiado no PDV** — Baixa em `/fiado/` → pagamento wizard (formas + maquininha + Point); substitui modal atual | ✅ **loja v7.40** | 07/07 |
 | **FL-052** | **P1,1** | Fiado / fiscal | **NFC-e na baixa fiado** — emitir cupom na **quitação** com forma real (venda original `venda_agro`); validar contador/SEFAZ | 📋 Fila após **FL-051** | 07/07 |
-| **FL-033** | **P2,91** | BI / Home | **Indicador vendas do dia** — comparativo: **mesma sequência do dia da semana** vs mês anterior (ex.: **3ª terça** deste mês vs **3ª terça** do mês passado) | 📋 Pendente | 29/06 16:20 |
+| **FL-033** | **P3** | BI / Home | **Zap #21:** indicador comparativo — **N-ésimo** dia da semana vs mês anterior (ex. **3ª terça** × **3ª terça**) | 📋 Pendente · foto Word | 16/07 |
+| **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
+| **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
+| **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
+| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** | 17/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
-| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📋 Pendente | 29/06 16:20 |
+| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
 | **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico · **este deploy = manual §3.2** | 📋 Código pendente | 30/06 |
@@ -3580,7 +4342,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-021 | `cp-btn-nf-ausente` | `lancamentos_contas_pagar_teste.html` — `urlEntradaNfeEmbed` / vínculo NF entrada · ex. **RBS 781,64** |
 | FL-022 | `cp-busca-inconsistente` | Filtro busca lista CP — `mongo_financeiro_util` + JS modal filtros |
 | FL-023 | `cp-busca-limpa-datas` | Ao buscar na lista CP: resetar filtros de **data** (período não deve persistir na busca textual) |
-| FL-024 | `cadastro-popup-cat-marca-food` | Modal estilo instância Food — cadastro rápido **categoria** + **marca** |
+| FL-024 | `cadastro-popup-cat-marca-food` | **#22:** não auto-criar ao digitar · select só se existir · popup Food+PIN+log · busca CI sem acento · cat/sub/marca |
 | FL-025 | `codigo-interno-seq-4k` | Sequência código interno GM — hoje **9000+**; alvo combinado **~4000–5000** — `cadastro_erp` / overlay |
 | FL-026 | `entrada-nf-perde-conferencia` | Add linha nova na NF: zera barras (passo 3) e lote/val (4–5) dos itens já conferidos |
 | FL-027 | `entrada-nf-xml-forma-boleto-cn` | Parse XML etapa 7: mapear forma pag. **Boleto Bancário CN** (não só «Boleto Bancário») |
@@ -3589,7 +4351,11 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-030 | `fiado-ignorar-vencido-pin` | Override bloqueio notinhas vencidas — PIN **Geraldo** / **Geraldinho** |
 | FL-031 | `entregas-polish` | Continuar FL-006 — `entregas_painel.html` + APIs |
 | FL-032 | `pdv-reset-nova-venda` | Botão explícito reset carrinho/contexto e nova venda |
-| FL-033 | `bi-vendas-dia-nth-weekday` | Dashboard: comparar **N-ésimo** dia da semana no mês vs mês anterior |
+| FL-033 | `bi-vendas-dia-nth-weekday` | **#21:** dashboard N-ésimo weekday vs mês anterior |
+| FL-053 | `entrada-nf-historico-custo-duplo` | **#19:** tick histórico custo 2× (etapa 2 + finalize) — dedupe / um só evento |
+| FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressão separação / entregador / cliente no painel entregas |
+| FL-055 | `nfce-frete-vfrete-itens-535` | **#23:** `det/prod/vFrete` = `ICMSTot/vFrete` (535) |
+| FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 · **225:** NCM/CFOP/CEST só dígitos |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
@@ -4523,7 +5289,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | Item | Detalhe |
 | ---- | ------- |
 | **Commits teste** | `11277f0` … **`7c9774f`** (UX filtros retráteis + KPIs) |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `ec13fc4` · **`3935d1a`** (mesmo pacote · VERSION **v3.02**) |
 | **Rota tela** | `/financeiro/grafico-gastos/` (`grafico_gastos`) |
 | **API** | `POST` (preferido) ou `GET` `/financeiro/api/dados-grafico-gastos/` — `agrupamento`, `inicio`, `fim`, `planos[]`, `individual`, **`por`**, **`valor`** |
 | **Fonte dados** | Mongo `DtoLancamento` · dedup **`_lancamentos_mongo_stages_dedup_por_titulo_erp`** (igual CP) |
@@ -4657,7 +5423,7 @@ Loja OK v3.01 — checklist 0–9 fechado.
 | ---- | ------- |
 | **Pacote** | Autocomplete busca `/pdv/` — carregar mais, 10 itens, azul, Esc, Enter |
 | **Commits teste** | `c5a318b` … `61fe06a` (12 commits — ver tabela abaixo) |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `5e2fa57` … `8e09584` · VERSION `f87955d` |
 | **VERSION loja** | **v2.28** |
 | **Arquivos** | `pdv_wizard.js`, `pdv_wizard.html`, `step_produtos.html`, `pdv/views.py`, `config/settings.py` |
 | **Não incluído** | `577e09c` Entrada NF · `312e1ca` Compras · commits só banana |
@@ -4952,7 +5718,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Pacote** | Layout desktop compacto + lista NFC-e rejeitada/erro + CSV |
 | **Commits teste** | `64dc9fa` · `848b562` |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `899ba8a` · `1434ffd` · VERSION `731607c` |
 | **VERSION loja** | **v2.27** |
 
 **Renan — após deploy Render:** Ctrl+F5 → `/contabilidade/` → resumo/export lado a lado · pendências NFC-e · CSV.
@@ -4965,7 +5731,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Fix** | `/contabilidade/login/` — contador entra **sem** staff do Admin |
 | **Commit teste** | `2d77b88` |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `e98cc13` · VERSION `e51e810` |
 | **VERSION loja** | **v2.26** |
 | **Env** | `AGRO_CONTABILIDADE_USERNAMES=martins` · usuário Admin **sem** marcar staff |
 
@@ -4997,7 +5763,7 @@ batom …d267 | nome OK gm=1 | só higiene (--higiene)
 | ---- | ----- |
 | **Pacote** | 4 commits Contabilidade (só NFC-e na tela) — **sem** PDV snapshot/Akiles |
 | **Commits teste** | `a570cd0` · `8523686` · `be536b6` · `81aa0eb` |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `fce67a6` · `db7ea29` · `c694537` · `4590ad1` · VERSION `86d3af2` |
 | **VERSION loja** | **v2.25** |
 | **URL** | `/contabilidade/` |
 
@@ -5198,7 +5964,7 @@ Renan pediu na madrugada (chat PDV): **nunca** subir loja sem **frase + senha `9
 | Item | Valor |
 | ---- | ----- |
 | **Branch** | `producao` ← cherry-pick `7227d83` + `7395c2a` |
-| **Commits loja** | 16b576b…0ed48dd (cherry dafa6c9…f0f4e31) · HEAD **0ed48dd** |
+| **Commits loja** | `1d09438` (CPF PIX) · `20c33bb` (cancelamento SEFAZ na devolução) |
 | **VERSION loja** | **1.97** |
 | **Bug pós-deploy** | «infEvento não encontrado» — **corrigido** v1.99 |
 | **Fix loja** | `c89f3ef` |

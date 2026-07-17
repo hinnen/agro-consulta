@@ -80,6 +80,7 @@ def _relatorios_mais_vendidos_impl(request):
                 "sentido": sentido,
             },
             "filtro_parcial": "mais_vendidos",
+            "rel_help": "mais_vendidos",
             "headers": headers,
             "rows": [
                 [
@@ -122,6 +123,7 @@ def relatorios_vendas_grupo(request):
             "subtitulo": "Faturamento e quantidade por categoria do cadastro.",
             "filtros": f,
             "filtro_parcial": "periodo",
+            "rel_help": "vendas_grupo",
             "headers": headers,
             "rows": [
                 [
@@ -217,6 +219,7 @@ def relatorios_curva_abc(request):
             "subtitulo": subtitulo,
             "filtros": f,
             "filtro_parcial": "curva_abc",
+            "rel_help": "curva_abc",
             "extra_filtros": {
                 "categoria": cat_label,
                 "categorias": meta.get("categorias") or [],
@@ -364,6 +367,7 @@ def relatorios_giro_estoque(request):
             "subtitulo": "Giro = mais vendidos em 30 dias. Parado = saldo com venda há mais de 90 dias.",
             "filtros": {"periodo": "", "de": "", "ate": "", "label": ""},
             "filtro_parcial": "giro",
+            "rel_help": "giro",
             "extra_filtros": {"aba": aba, "ordenar": ordenar},
             "headers": headers,
             "rows": display,
@@ -422,6 +426,7 @@ def relatorios_margem(request):
             "subtitulo": "Venda líquida menos custo do cadastro × quantidade.",
             "filtros": f,
             "filtro_parcial": "margem",
+            "rel_help": "margem",
             "extra_filtros": {"ordenar": ordenar},
             "headers": headers,
             "rows": [
@@ -470,6 +475,7 @@ def relatorios_vendas_operador(request):
             "subtitulo": "Totais por quem registrou a venda no PDV.",
             "filtros": f,
             "filtro_parcial": "periodo",
+            "rel_help": "operador",
             "headers": headers,
             "rows": [
                 [
@@ -515,6 +521,7 @@ def relatorios_ranking_clientes(request):
             "subtitulo": "Quem mais comprou no período (valor ou nº de vendas).",
             "filtros": f,
             "filtro_parcial": "clientes",
+            "rel_help": "clientes",
             "extra_filtros": {"ordenar": ordenar},
             "headers": headers,
             "rows": [
@@ -582,6 +589,7 @@ def relatorios_comparativo(request):
             "subtitulo": "Período A (filtro de cima) versus período B (mês passado ou custom).",
             "filtros": fa,
             "filtro_parcial": "comparativo",
+            "rel_help": "comparativo",
             "extra_filtros": fb,
             "headers": headers,
             "rows": rows_disp,
@@ -614,6 +622,7 @@ def relatorios_formas_pagamento(request):
             "subtitulo": "Soma por forma (inclui vendas com mais de um pagamento).",
             "filtros": f,
             "filtro_parcial": "periodo",
+            "rel_help": "formas_pagamento",
             "headers": headers,
             "rows": [
                 [
@@ -664,6 +673,7 @@ def relatorios_ruptura(request):
             "subtitulo": "Vendeu recentemente e estoque C+V está zerado. Validade: use o relatório de validade.",
             "filtros": {"periodo": "", "de": "", "ate": "", "label": f"{dias_i} dias"},
             "filtro_parcial": "ruptura",
+            "rel_help": "ruptura",
             "extra_filtros": {"dias": str(dias_i)},
             "headers": headers,
             "rows": [
@@ -719,6 +729,7 @@ def relatorios_comissao(request):
             "subtitulo": "Usa % e R$ de comissão do cadastro (quando existir). Sem meta de vendedor.",
             "filtros": f,
             "filtro_parcial": "periodo",
+            "rel_help": "comissao",
             "headers": headers,
             "rows": [
                 [
