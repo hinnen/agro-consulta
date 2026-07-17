@@ -3441,7 +3441,7 @@
 
         <div id="pdv-quick-product-edit-grupos" class="pdv-pe-grupos" style="grid-column:1/-1">
           <p class="pdv-product-edit-section-title font-black uppercase tracking-wide text-slate-600">Grupos de preço A / B</p>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <label class="pdv-product-edit-field">
               <span class="pdv-product-edit-label block font-black uppercase text-emerald-700">Preço A</span>
               <input id="pdv-quick-product-edit-preco-a" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-emerald-200" autocomplete="off">
@@ -3450,8 +3450,11 @@
               <span class="pdv-product-edit-label block font-black uppercase text-sky-700">Preço B</span>
               <input id="pdv-quick-product-edit-preco-b" type="text" inputmode="decimal" class="pdv-input pdv-product-edit-input w-full tabular-nums border-sky-200" autocomplete="off">
             </label>
+            <button type="button" id="pdv-quick-product-edit-formas-toggle" class="min-h-[2.65rem] rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-700 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900" aria-expanded="false" aria-controls="pdv-quick-product-edit-formas-wrap" title="Mostrar ou esconder quais formas vão no grupo A ou B">
+              Formas A/B ▾
+            </button>
           </div>
-          <div class="mt-2 overflow-hidden rounded-xl border-2 border-slate-200">
+          <div id="pdv-quick-product-edit-formas-wrap" class="mt-2 hidden overflow-hidden rounded-xl border-2 border-slate-200" hidden>
             <table class="w-full text-left">
               <thead class="bg-slate-50">
                 <tr>

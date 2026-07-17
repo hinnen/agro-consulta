@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.38** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.40** · **loja v9.16**
+
+### 🩹 PDV — formas A/B recolhidas no editor rápido (17/07 · **teste v9.40**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tabela de formas A/B fica **escondida**; botão **Formas A/B** ao lado dos preços abre/fecha |
+| **Você** | Ctrl+F5 · badge **v9.40** · lápis → só preços A/B; clicar Formas A/B se precisar |
+| **Loja** | ⏳ |
 
 ### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.38**)
 

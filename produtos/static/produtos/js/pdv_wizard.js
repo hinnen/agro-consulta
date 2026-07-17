@@ -372,6 +372,8 @@
         quickProductEditVenda: document.getElementById('pdv-quick-product-edit-venda'),
         quickProductEditPrecoA: document.getElementById('pdv-quick-product-edit-preco-a'),
         quickProductEditPrecoB: document.getElementById('pdv-quick-product-edit-preco-b'),
+        quickProductEditFormasToggle: document.getElementById('pdv-quick-product-edit-formas-toggle'),
+        quickProductEditFormasWrap: document.getElementById('pdv-quick-product-edit-formas-wrap'),
         quickProductEditFormasTbody: document.getElementById('pdv-quick-product-edit-formas-tbody'),
         quickProductEditSaldoCentroAtual: document.getElementById('pdv-quick-product-edit-saldo-centro-atual'),
         quickProductEditSaldoVilaAtual: document.getElementById('pdv-quick-product-edit-saldo-vila-atual'),
@@ -7331,6 +7333,23 @@
         return v.toFixed(2).replace('.', ',');
     }
 
+    function setQuickProductFormasOpen(open) {
+        var wrap = dom.quickProductEditFormasWrap;
+        var btn = dom.quickProductEditFormasToggle;
+        if (!wrap) return;
+        if (open) {
+            wrap.classList.remove('hidden');
+            wrap.removeAttribute('hidden');
+        } else {
+            wrap.classList.add('hidden');
+            wrap.setAttribute('hidden', '');
+        }
+        if (btn) {
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            btn.textContent = open ? 'Formas A/B ▴' : 'Formas A/B ▾';
+        }
+    }
+
     function renderQuickProductFormas(pg) {
         var tb = dom.quickProductEditFormasTbody;
         if (!tb) return;
@@ -7414,6 +7433,7 @@
             dom.quickProductEditErro.textContent = '';
             dom.quickProductEditErro.classList.add('hidden');
         }
+        setQuickProductFormasOpen(false);
     }
 
     function closeQuickProductEditOverlay() {
@@ -10967,6 +10987,13 @@
         if (dom.quickProductEditOverlay) {
             dom.quickProductEditOverlay.addEventListener('click', function (event) {
                 if (event.target === dom.quickProductEditOverlay) closeQuickProductEditOverlay();
+            });
+        }
+        if (dom.quickProductEditFormasToggle) {
+            dom.quickProductEditFormasToggle.addEventListener('click', function () {
+                var wrap = dom.quickProductEditFormasWrap;
+                var aberto = !!(wrap && !wrap.classList.contains('hidden') && !wrap.hasAttribute('hidden'));
+                setQuickProductFormasOpen(!aberto);
             });
         }
         if (dom.quickClientEditPluscode) {
