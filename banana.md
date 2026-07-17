@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.23** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.25** · **loja v9.16**
+
+### ✨ Cadastro ERP — busca + filtros na barra (17/07 · **teste v9.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Sem botão Catálogo · **Filtros avançados** ao lado do Novo · busca com borda verde forte + «Digite aqui para buscar…» |
+| **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` |
+| **Você** | Ctrl+F5 teste · badge **v9.25** · `/produtos/cadastro-erp/` |
 
 ### ✨ Relatórios — ajuda «?» leiga em todas as telas (17/07 · **teste v9.23**)
 
