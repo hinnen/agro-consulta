@@ -1158,6 +1158,57 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.15** · **loja v9.14**
 
+### 📦 PACOTE PRONTO LOJA — aguardando autorização (17/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **montado** · **não subiu** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Versão alvo loja** | **v9.15** (ou **v9.16** se incluir NFC-e #23 no mesmo push) |
+| **Base loja hoje** | **c61f7dd** · **v9.14** |
+| **Backup (criar no envio)** | `producao-backup-pre-v915-fecha-relatorios-YYYYMMDD` @ HEAD loja atual |
+| **Reverter** | `git push origin <backup>:producao` |
+| **Método** | worktree em `origin/producao` · `git checkout origin/teste -- <arquivos>` · **não** merge inteiro teste→producao |
+| **Risco** | Médio — #12 mexe venda/caixa/migração **0053** · #17 só busca CP · relatórios só leitura |
+| **Autorizar com** | *«pode subir para produção o pacote fecha + relatórios»* + **99738595** |
+
+#### A) Fecha (✅ Renan testou)
+
+| Ref | O quê | Arquivos-chave |
+| --- | ----- | -------------- |
+| **#12** / FL-035 | Devolução parcial / por item no PDV | `devolucao_venda_util.py` · migração **0053** · `models.py` · `views.py` · `venda_agro_detalhe.html` · `vendas_lista.html` · `caixa_util.py` · `caixa_relatorio_util.py` |
+| **#12 cupom** | Risco + total restante na reimpressão | `venda_cupom_util.py` · `venda_cupom_80mm.js` · `context_processors.py` · `views_mp_point.py` · `config/settings.py` |
+| **#17** / FL-022 | Busca CP inteligente (valor/data/boleto/parcela/CPF) | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · `lancamentos_help_agents.html` · `lancamentos_contas_pagar_teste.html` · `AGENTS.md` |
+
+#### B) Relatórios (tudo que falta na loja)
+
+| Item | O quê |
+| ---- | ----- |
+| **v9.15** | Giro/parado: coluna **Última venda** + filtro **Ordenar** por data (tela / A4 / Excel) |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_generico.html` |
+| **Já na loja (v9.14)** | Hub · ABC categoria · loading · código GM · Ver todos · De/Até — **não precisa subir de novo** |
+
+#### C) Opcional no mesmo envio (diga se quer)
+
+| Ref | O quê | Arquivo |
+| --- | ----- | ------- |
+| **#23** / FL-055 | NFC-e SEFAZ **535** — `vFrete` nos itens = total do frete | `nfce_sp_emissao_util.py` |
+
+#### Não sobe neste pacote
+
+| Item | Motivo |
+| ---- | ------ |
+| Merge inteiro `teste`→`producao` | Outras coisas do teste fora do fecha |
+| **#7** notebook impressão | Ainda 🔴 aberto |
+| FL-008 / 016 / 029 / 052 / 030 / 019 / 054 / 049 / 024 / 031 / 034 / 053 / 033 | Ainda na fila |
+
+#### Checklist validar depois do deploy (Ctrl+F5 · badge **v9.15+**)
+
+1. Relatórios → Giro/parado → coluna **Última venda** + ordenar  
+2. Relatórios → ABC → categoria / Excel / loading (já v9.14; smoke)  
+3. Vendas → devolução parcial (#12)  
+4. Contas a pagar → busca valor / parcela (#17)  
+5. *(se #23)* NFC-e com frete sem rejeição 535  
+
 ### feat — giro/parado com última venda + ordenação (16/07 · **teste v9.15**)
 
 | Item | Detalhe |
@@ -1255,9 +1306,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha (**ambos ✅ Renan testou**) |
+| **📦 Pacote pronto** | **Fecha #12+#17** + **relatórios v9.15** — aguarda frase + senha |
 | **Loja** | **v9.14** · teste **v9.15** |
-| **Só no teste** | Giro/parado: coluna **Última venda** + ordenar por data (**v9.15**) · NFC-e 535 frete (**#23**) |
+| **Opcional no pacote** | NFC-e **#23** (535 frete) — confirmar se inclui |
 
 #### Fila aberta (por prioridade)
 
