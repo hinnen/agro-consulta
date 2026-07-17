@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.83** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.84** · **loja v9.16**
+
+### ✨ PDV — Enviar orçamento WhatsApp (acima do Subtotal) (17/07 · **teste v9.84**)
+
+| | |
+| --- | --- |
+| **O quê** | Botão verde **Enviar** (ícone Zap) acima do Subtotal · texto no padrão Consulta · sem cliente abre busca F4 · salva orçamento antes · abre Zap do cliente |
+| **Você** | Ctrl+F5 · badge **v9.84** · testa: com cliente+itens; sem cliente; carrinho vazio |
 
 ### 🩹 PDV — some azul de vez (painel+campo) (17/07 · **teste v9.83**)
 

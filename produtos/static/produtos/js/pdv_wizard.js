@@ -424,6 +424,7 @@
         step1Payment: document.getElementById('pdv-step1-payment'),
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
         step1SalvarOrcamentoBtn: document.getElementById('pdv-step1-salvar-orcamento-btn'),
+        step1EnviarWhatsappBtn: document.getElementById('pdv-step1-enviar-whatsapp'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
         topbarNovaVendaBtn: document.getElementById('pdv-topbar-nova-venda-btn'),
@@ -3647,6 +3648,81 @@
             .finally(function () {
                 if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
             });
+    }
+
+    function montarTextoOrcamentoWhatsappWizard() {
+        var state = State.getState();
+        var computed = State.getComputed();
+        var nome =
+            state.cliente && state.cliente.nome
+                ? String(state.cliente.nome).trim()
+                : state.clienteMode === 'consumidor_final'
+                  ? 'Consumidor não identificado'
+                  : 'Cliente';
+        var msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
+        msg += '👤 *Cliente:* ' + nome + '\n';
+        msg += '🛒 *Itens:*\n';
+        msg += '━━━━━━━━━━━━━━━━━━\n';
+        (state.itens || []).forEach(function (item) {
+            var qtd = State.toNumber(item && item.qtd);
+            var preco = State.toNumber(item && item.preco);
+            var linha = formatMoney(qtd * preco);
+            msg += '🔸 ' + qtd + 'x ' + String((item && item.nome) || '') + '\n';
+            msg += '   💰 ' + linha + '\n';
+        });
+        msg += '━━━━━━━━━━━━━━━━━━\n';
+        var total = computed.subtotal != null ? computed.subtotal : computed.total || 0;
+        msg += '💵 *TOTAL: ' + formatMoney(total) + '*\n\n';
+        msg += '✨ Obrigado por escolher a *SisVale*!';
+        return msg;
+    }
+
+    function abrirUrlWhatsappOrcamento(telefone, texto) {
+        var d = String(telefone || '').replace(/\D/g, '');
+        if (d.length === 10 || d.length === 11) d = '55' + d;
+        if (d.length < 12) return false;
+        var url =
+            'https://api.whatsapp.com/send?phone=' +
+            d +
+            '&text=' +
+            encodeURIComponent(texto || '');
+        if (typeof window.agroAbrirUrlExterna === 'function') {
+            window.agroAbrirUrlExterna(url);
+            return true;
+        }
+        if (window.agroShell && typeof window.agroShell.openExternal === 'function') {
+            window.agroShell.openExternal(url);
+            return true;
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return true;
+    }
+
+    function enviarOrcamentoWhatsappWizard() {
+        var state = State.getState();
+        if (!state.itens || !state.itens.length) {
+            alert('Adicione itens ao carrinho antes de enviar o orçamento.');
+            return;
+        }
+        var semCliente =
+            state.clienteMode === 'unset' ||
+            state.clienteMode === 'consumidor_final' ||
+            !state.cliente;
+        if (semCliente) {
+            alert('Escolha o cliente que vai receber o orçamento no WhatsApp.');
+            openQuickClientPicker();
+            return;
+        }
+        var tel = String((state.cliente && state.cliente.telefone) || '').replace(/\D/g, '');
+        if (tel.length < 10) {
+            alert('Este cliente não tem WhatsApp/telefone cadastrado. Edite o cadastro e tente de novo.');
+            return;
+        }
+        salvarOrcamentoWizard();
+        var txt = montarTextoOrcamentoWhatsappWizard();
+        if (!abrirUrlWhatsappOrcamento(tel, txt)) {
+            alert('Não foi possível abrir o WhatsApp.');
+        }
     }
 
     function renderRecentBudgetsSnippet() {
@@ -11702,6 +11778,9 @@
         if (dom.step1BudgetVerMais) dom.step1BudgetVerMais.addEventListener('click', openBudgetHistory);
         if (dom.step1SalvarOrcamentoBtn) {
             dom.step1SalvarOrcamentoBtn.addEventListener('click', salvarOrcamentoWizard);
+        }
+        if (dom.step1EnviarWhatsappBtn) {
+            dom.step1EnviarWhatsappBtn.addEventListener('click', enviarOrcamentoWhatsappWizard);
         }
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
