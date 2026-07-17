@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.19** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.21** · **loja v9.16**
+
+### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · aguarda senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Inclui** | **FL-056** — SEFAZ **963** + **225** (`nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py`) |
+| **Versão alvo loja** | **v9.21** |
+| **Base loja hoje** | **v9.16** |
+| **Autorizar com** | *«pode subir NFC-e 963/225»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · reemitir **#2812** e **#3347** |
 
 ### 🐛 NFC-e — rejeições 963 + 225 (17/07 · teste)
 
@@ -1166,8 +1177,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **963** | Fiado/`tPag=05` ia com grupo `<card>` — SEFAZ não aceita. `_TPAG_REQUER_CARD` só **03/04/10–13/15/17/18** |
 | **225** | CFOP/CEST/NCM com ponto/traço no XML (schema). Limpa só dígitos + CEST só se 7 dígitos |
 | **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
-| **Commits teste** | `fb6ba2f` … (**v9.19**) |
-| **Você** | Ctrl+F5 teste · badge **v9.19** · em Contabilidade **reemitir** #2812 e #3347 |
+| **Commits teste** | `fb6ba2f` … (**v9.21**) |
+| **Você** | Ctrl+F5 teste · badge **v9.21** · em Contabilidade **reemitir** #2812 e #3347 |
 | **Status** | 📦 **pronto pra envio** (loja ainda v9.16) |
 | **Loja** | frase + senha na mesma mensagem |
 
@@ -1329,7 +1340,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.19** · loja ainda **v9.16** |
+| **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
 | **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
 | **Autorizar** | *«pode subir NFC-e 963/225»* + **99738595** |
 
@@ -1337,7 +1348,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.19** |
+| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
@@ -3842,7 +3853,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
 | **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
-| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.19** | 17/07 |
+| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** | 17/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
