@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.49** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.50** · **loja v9.16**
+
+### 🩹 Cadastro — Preços bem legível + preenche altura + URL imagem (17/07 · **teste v9.50**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Números dos cards de Preços bem maiores (preenchem a tag). Fiscal/Gerais espalham na altura. Composição: tabela cresce até o rodapé. Campo sem nome = **URL da imagem** (agora com rótulo) |
+| **Você** | Ctrl+F5 forte · badge **v9.50** · Preços · Fiscal · Composição · Gerais |
+| **Loja** | ⏳ |
 
 ### 🩹 PDV — editor rápido um degrau maior (17/07 · **teste v9.49**)
 

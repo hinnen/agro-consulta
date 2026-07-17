@@ -12,35 +12,35 @@
       max-height: none;
       overflow: auto;
     }
-    /* Ajuste de proporção: menos padding, valores em destaque (#modal-editar-produto só) */
+    /* Cards Preços: número grande preenchendo a tag */
     #modal-editar-produto .info-card-compact {
-      padding: 0.85rem 1.1rem !important;
-      min-height: 0 !important;
+      padding: clamp(1rem, 2vh, 1.35rem) 1.15rem !important;
+      min-height: clamp(6.5rem, 14vh, 8.5rem) !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 0.35rem;
+      gap: 0.45rem;
     }
     #modal-editar-produto .info-card-label {
-      font-size: clamp(0.95rem, 0.85rem + 0.35vw, 1.1rem) !important;
+      font-size: clamp(1.05rem, 0.95rem + 0.4vw, 1.25rem) !important;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       margin-bottom: 0 !important;
-      line-height: 1.25;
+      line-height: 1.2;
     }
     #modal-editar-produto input.info-card-value {
-      font-size: clamp(1.35rem, 1.15rem + 0.55vw, 1.65rem) !important;
-      font-weight: 800;
-      line-height: 1.1 !important;
-      padding: 0.2rem 0 !important;
+      font-size: clamp(2.15rem, 1.7rem + 1.4vw, 2.9rem) !important;
+      font-weight: 900;
+      line-height: 1.05 !important;
+      padding: 0.15rem 0 !important;
       margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
       outline: none !important;
       background: transparent !important;
       width: 100%;
-      min-height: 2.1rem;
+      min-height: 2.75rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -57,29 +57,30 @@
       outline-color: rgba(6, 95, 70, 0.35) !important;
     }
     #modal-editar-produto .price-main-card {
-      padding: 1rem 1.5rem !important;
+      padding: clamp(1.15rem, 2.5vh, 1.75rem) 1.5rem !important;
       border-width: 3px !important;
       border-style: solid !important;
       border-color: rgb(251 146 60) !important;
       display: block;
+      min-height: clamp(6.5rem, 13vh, 8rem);
     }
     @media (min-width: 768px) {
       #modal-editar-produto .price-main-card {
-        padding: 1rem 2rem !important;
+        padding: clamp(1.15rem, 2.5vh, 1.75rem) 2rem !important;
       }
     }
     #modal-editar-produto input.price-main-value {
-      font-size: clamp(1.85rem, 1.5rem + 1vw, 2.35rem) !important;
+      font-size: clamp(2.6rem, 2rem + 2vw, 3.6rem) !important;
       font-weight: 900;
       letter-spacing: -0.02em;
-      line-height: 1.1 !important;
+      line-height: 1.05 !important;
       padding: 0.15rem 0 !important;
       border: none !important;
       background: transparent !important;
       outline: none !important;
       width: auto;
       max-width: min(100%, 18ch);
-      min-height: 2.5rem;
+      min-height: 3rem;
       text-align: center;
       font-variant-numeric: tabular-nums;
       cursor: text;
@@ -90,15 +91,16 @@
       border-radius: 0.25rem;
     }
     #modal-editar-produto .margin-dark-card {
-      padding: 1rem !important;
+      padding: clamp(1rem, 2vh, 1.35rem) !important;
+      min-height: clamp(6.5rem, 14vh, 8.5rem) !important;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
     #modal-editar-produto .margin-dark-card input.info-card-value--light {
-      font-size: clamp(1.35rem, 1.15rem + 0.55vw, 1.65rem) !important;
-      font-weight: 800;
-      line-height: 1.1 !important;
+      font-size: clamp(2.15rem, 1.7rem + 1.4vw, 2.9rem) !important;
+      font-weight: 900;
+      line-height: 1.05 !important;
       color: #fff !important;
     }
     #modal-editar-produto .tab-custos-wrap {
@@ -138,17 +140,19 @@
       padding: clamp(0.85rem, 1.5vh, 1.35rem) clamp(0.85rem, 1.2vw, 1.5rem);
     }
     #modal-editar-produto .tab-content:not(.hidden) {
-      flex: 1 1 auto;
+      flex: 1 1 0%;
       width: 100%;
       min-height: 0;
-      height: 100%;
       overflow-y: auto;
       scrollbar-width: thin;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) {
-      gap: clamp(0.85rem, 1.6vh, 1.35rem) !important;
-      align-content: start;
-      padding-bottom: 0.5rem;
+      gap: clamp(0.75rem, 1.4vh, 1.15rem) !important;
+      align-content: space-between;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 0.25rem;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="text"],
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="number"],
@@ -156,37 +160,37 @@
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="search"],
     #modal-editar-produto .tab-fill-form:not(.hidden) select,
     #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
-      min-height: clamp(3.1rem, 5vh, 3.55rem) !important;
-      font-size: clamp(1.05rem, 0.95rem + 0.35vw, 1.2rem) !important;
+      min-height: clamp(3.4rem, 6vh, 4rem) !important;
+      font-size: clamp(1.1rem, 1rem + 0.4vw, 1.3rem) !important;
       padding-top: 0.55rem !important;
       padding-bottom: 0.55rem !important;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
-      min-height: clamp(5rem, 12vh, 8rem) !important;
+      min-height: clamp(5.5rem, 12vh, 8.5rem) !important;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) > span.text-base,
     #modal-editar-produto .tab-fill-form:not(.hidden) label > span,
     #modal-editar-produto .tab-fill-form:not(.hidden) .flex.flex-col > span {
-      font-size: clamp(0.95rem, 0.85rem + 0.25vw, 1.05rem) !important;
+      font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
       margin-bottom: 0.35rem !important;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) {
       display: flex !important;
       flex-direction: column;
-      gap: clamp(0.75rem, 1.4vh, 1.1rem);
+      gap: clamp(0.65rem, 1.2vh, 1rem);
+      flex: 1 1 0% !important;
       min-height: 0;
-      height: 100%;
-      overflow: hidden;
+      overflow: hidden !important;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow {
-      flex: 1 1 auto;
+      flex: 1 1 0%;
       min-height: 0;
       display: flex;
       flex-direction: column;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow > .border,
     #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow.border {
-      flex: 1 1 auto;
+      flex: 1 1 0%;
       min-height: 0;
       overflow: auto;
     }
@@ -198,26 +202,33 @@
       font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
     }
     #modal-editar-produto #tab-custos:not(.hidden) {
-      justify-content: flex-start;
-      gap: clamp(0.85rem, 1.6vh, 1.25rem);
+      display: flex !important;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: clamp(0.75rem, 1.4vh, 1.1rem);
       overflow-y: auto;
+      height: 100%;
     }
     #modal-editar-produto #tab-custos:not(.hidden) .price-main-card {
-      padding: 1rem 1.5rem !important;
+      padding: clamp(1.15rem, 2.5vh, 1.75rem) 1.5rem !important;
     }
     #modal-editar-produto #tab-custos:not(.hidden) input.price-main-value {
-      font-size: clamp(1.85rem, 1.5rem + 1vw, 2.35rem) !important;
-      min-height: 2.5rem !important;
+      font-size: clamp(2.6rem, 2rem + 2vw, 3.6rem) !important;
+      min-height: 3rem !important;
     }
     #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer {
-      margin-top: auto;
+      margin-top: 0;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer .info-card-compact,
+    #modal-editar-produto #tab-custos:not(.hidden) .tab-custos-footer .margin-dark-card {
+      min-height: clamp(6.5rem, 14vh, 8.5rem) !important;
     }
     /* Config: colado em cima, fonte um pouco maior */
     #modal-editar-produto #tab-config:not(.hidden) {
       align-content: start;
       justify-items: stretch;
-      min-height: 0;
       height: auto;
+      min-height: 0;
       gap: 1rem !important;
       overflow: visible;
     }
@@ -359,7 +370,8 @@
         </label>
 
         <label class="block sm:col-span-2 md:col-span-3">
-          <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">URL da imagem (opcional)</span>
+          <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="https://… ou deixe em branco" autocomplete="off" />
         </label>
       </div>
 
