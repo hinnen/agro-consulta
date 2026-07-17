@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.57** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.58** · **loja v9.16**
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · aguarda senha)
 
