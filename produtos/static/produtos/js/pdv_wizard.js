@@ -3701,7 +3701,10 @@
     function enviarOrcamentoWhatsappWizard() {
         var state = State.getState();
         if (!state.itens || !state.itens.length) {
-            alert('Adicione itens ao carrinho antes de enviar o orçamento.');
+            showPdvAviso('Adicione itens ao carrinho antes de enviar o orçamento.', {
+                title: 'Carrinho vazio',
+                tone: 'warn'
+            });
             return;
         }
         var semCliente =
@@ -3709,19 +3712,25 @@
             state.clienteMode === 'consumidor_final' ||
             !state.cliente;
         if (semCliente) {
-            alert('Escolha o cliente que vai receber o orçamento no WhatsApp.');
+            showPdvAviso('Escolha o cliente que vai receber o orçamento no WhatsApp.', {
+                title: 'Cliente',
+                tone: 'warn'
+            });
             openQuickClientPicker();
             return;
         }
         var tel = String((state.cliente && state.cliente.telefone) || '').replace(/\D/g, '');
         if (tel.length < 10) {
-            alert('Este cliente não tem WhatsApp/telefone cadastrado. Edite o cadastro e tente de novo.');
+            showPdvAviso('Este cliente não tem WhatsApp/telefone cadastrado. Edite o cadastro e tente de novo.', {
+                title: 'Sem WhatsApp',
+                tone: 'warn'
+            });
             return;
         }
         salvarOrcamentoWizard();
         var txt = montarTextoOrcamentoWhatsappWizard();
         if (!abrirUrlWhatsappOrcamento(tel, txt)) {
-            alert('Não foi possível abrir o WhatsApp.');
+            showPdvAviso('Não foi possível abrir o WhatsApp.', { title: 'Erro', tone: 'error' });
         }
     }
 

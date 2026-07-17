@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.85** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.86** · **loja v9.16**
+
+### 🩹 PDV — avisos Enviar Zap sem alert Chrome (17/07 · **teste v9.86**)
+
+| | |
+| --- | --- |
+| **O quê** | Carrinho vazio / sem cliente / sem telefone → toast PDV (showPdvAviso), não janela do navegador |
+| **Você** | Ctrl+F5 · badge **v9.86** · clica Enviar nos 3 casos e confere o aviso SisVale |
 
 ### 🩹 PDV — texto Zap orçamento padrão Agromais (17/07 · **teste v9.85**)
 
