@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.80** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.81** · **loja v9.16**
+
+### 🩹 PDV — tira linha azul sob a busca (17/07 · **teste v9.81**)
+
+| | |
+| --- | --- |
+| **O quê** | Remove a faixa/borda azul embaixo do campo de busca |
+| **Você** | Ctrl+F5 · badge **v9.81** |
 
 ### 🩹 PDV — ícone Cliente fora do campo + texto Carrinho (17/07 · **teste v9.80**)
 
