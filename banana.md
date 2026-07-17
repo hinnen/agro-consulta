@@ -1246,7 +1246,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Validou** | Valor progressivo (`234`…`234,78`) · parcela (`parcela 7` / `7/12` no texto) · sem lixo |
 | **Loja** | ⏳ aguarda frase + senha |
 
-### ✅ CHECKLIST ÚNICO — por prioridade · 16/07
+### ✅ CHECKLIST ÚNICO — por prioridade · 17/07
 
 **P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente (P1,1 antes de P1,5).  
 **Zap #** e **FL-** na mesma fila. Já na loja → só em **Checklist concluído** (abaixo).
@@ -1256,13 +1256,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Quando | O quê |
 | ------ | ----- |
 | **Fecha** | **#12** / FL-035 + **#17** / FL-022 — frase + senha (**ambos ✅ Renan testou**) |
-| **Loja** | **v9.04** · teste **v9.04** |
+| **Loja** | **v9.14** · teste **v9.15** |
+| **Só no teste** | Giro/parado: coluna **Última venda** + ordenar por data (**v9.15**) · NFC-e 535 frete (**#23**) |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
 | **P0,1** | **Zap #23** · **FL-055** | NFC-e **535** frete: `vFrete` nos itens (= total) — vendas #3418/#3380 | 🔧 teste · fix `nfce_sp_emissao_util` |
+| **—** | Relatórios | Giro/parado: última venda + ordenar por data | 🧪 teste **v9.15** · falta loja |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
