@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.67** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.68** · **loja v9.16**
+
+### 🩹 PDV — busca sobe pro meio do header (17/07 · **teste v9.68**)
+
+| | |
+| --- | --- |
+| **O quê** | Campo de busca de produto vai pro **topo**, no meio entre etapas (1·2·3) e **Caixa** · menor pra caber · some na etapa 2/3 · contagem de itens no Carrinho |
+| **Você** | Ctrl+F5 · badge **v9.68** · confere busca no header + lista F2 |
 
 ### 🩹 PDV — Saldos sobe · botões cliente à esquerda (17/07 · **teste v9.67**)
 

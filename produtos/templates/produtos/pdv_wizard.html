@@ -961,24 +961,6 @@
     color: #0369a1;
     white-space: nowrap;
   }
-  #pdv-step1-search-wrap {
-    padding: 0.65rem 0.75rem 0.75rem;
-    border-bottom: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
-  }
-  #pdv-step1-search-wrap #pdv-product-search {
-    border-color: #bae6fd;
-    background: #fff;
-  }
-  #pdv-step1-search-wrap #pdv-product-search:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
-  }
-  #pdv-step1-search-wrap .pdv-step1-search-f2 {
-    border-color: #bae6fd;
-    background: #f0f9ff;
-    color: #0369a1;
-  }
   #pdv-step1-cart-wrap {
     display: flex;
     flex-direction: column;
@@ -986,6 +968,9 @@
     flex: 1;
     padding: 0.65rem 0.75rem 0.75rem;
     background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  #pdv-step1-cart-wrap .pdv-step1-block-meta {
+    margin-left: 0.35rem;
   }
   #pdv-step1-cart-wrap .pdv-step1-clear-btn {
     margin-left: auto;
@@ -1858,6 +1843,34 @@
     gap: 0.45rem;
     width: 100%;
     min-width: 0;
+  }
+  .pdv-wiz-topbar-search {
+    flex: 1 1 10rem;
+    align-self: center;
+    min-width: 8rem;
+    max-width: 22rem;
+    margin: 0 0.15rem;
+  }
+  .pdv-wiz-topbar-search.hidden {
+    display: none !important;
+  }
+  #pdv-topbar-product-search #pdv-product-search {
+    border-color: #bae6fd;
+    background: #fff;
+    min-height: 2.25rem;
+    font-weight: 700;
+  }
+  #pdv-topbar-product-search #pdv-product-search:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  }
+  #pdv-topbar-product-search .pdv-step1-search-f2 {
+    border-color: #bae6fd;
+    background: #f0f9ff;
+    color: #0369a1;
+  }
+  #pdv-topbar-product-search #pdv-product-autocomplete {
+    background: #fff;
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
@@ -2993,9 +3006,8 @@
     #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
-    #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
-    #pdv-step1-search-wrap h3 { font-size: 12px !important; }
-    #pdv-product-search { height: 2.4rem !important; font-size: 13px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
+    .pdv-wiz-topbar-search { max-width: 16rem; }
+    #pdv-topbar-product-search #pdv-product-search { height: 2.15rem !important; font-size: 12px !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -3291,8 +3303,8 @@
 {% endif %}
 
 <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
-    <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-      <header class="shrink-0">
+    <section id="pdv-wizard-shell" class="flex min-h-0 flex-1 flex-col overflow-visible rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+      <header class="relative z-40 shrink-0 overflow-visible">
         {% if not caixa_aberto %}
         <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950" role="alert">
           <span class="text-sm sm:text-base font-black uppercase tracking-wide">Caixa fechado</span>
@@ -3318,6 +3330,18 @@
                 </button>
               </nav>
               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
+            </div>
+            <div id="pdv-topbar-product-search" class="pdv-wiz-topbar-search">
+              <div id="pdv-product-search-wrap" class="relative w-full min-w-0">
+                <label class="sr-only" for="pdv-product-search">Buscar produto</label>
+                <input id="pdv-product-search" type="text" class="pdv-input h-9 w-full pr-11 text-[13px]" placeholder="Nome, GM, EAN ou barras" autocomplete="off" title="F2 · lista ↑↓ · Enter · +/− último">
+                <span class="pdv-step1-search-f2 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-black uppercase">F2</span>
+                <div id="pdv-product-autocomplete" class="absolute left-0 top-[calc(100%+0.35rem)] z-[60] hidden min-w-[min(28rem,92vw)] rounded-xl border-2 border-sky-400 shadow-[0_18px_48px_rgba(14,116,144,0.22)]"></div>
+              </div>
+              <div class="sr-only" aria-live="polite">
+                <div id="pdv-product-search-feedback"></div>
+                <div id="pdv-product-search-meta"></div>
+              </div>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
@@ -3870,8 +3894,8 @@
       titulo: 'Ajuda · Etapa 1 · Produtos',
       resumo: 'Monte o carrinho e confira o cliente antes de seguir.',
       itens: [
-        'Campo amarelo: busque por nome, GM, EAN ou código; F2 foca na busca; setas ↑↓ escolhem e Enter confirma.',
-        'Ao lado você vê cliente atual; F4 ou “Trocar” para buscar outro cliente sem sair dos produtos.',
+        'Campo de busca no topo (entre etapas e Caixa): nome, GM, EAN ou barras; F2 foca; setas ↑↓ e Enter confirmam.',
+        'Na barra laranja: cliente atual; F4 ou “Trocar” para outro cliente.',
         'Histórico do cliente: botão Hist. ou F8 (relacionamento). F5 recarrega a página.',
         'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
         '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
