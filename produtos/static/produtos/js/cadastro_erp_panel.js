@@ -1657,8 +1657,18 @@
   document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
     det.addEventListener('toggle', function () {
       if (det.open) fillCadastroFacetSelects();
+      var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+      if (btnAdv) btnAdv.setAttribute('aria-expanded', det.open ? 'true' : 'false');
     });
   });
+  (function () {
+    var btnAdv = document.getElementById('cadastro-btn-filtros-adv');
+    var detAdv = document.getElementById('cadastro-adv-filtros');
+    if (!btnAdv || !detAdv) return;
+    btnAdv.addEventListener('click', function () {
+      detAdv.open = !detAdv.open;
+    });
+  })();
   fillCadastroFacetSelects();
 
   if (prevEl && nextEl) {
