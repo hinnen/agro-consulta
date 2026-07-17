@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.73** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.74** · **loja v9.16**
+
+### 🩹 PDV — busca um pouco maior (17/07 · **teste v9.74**)
+
+| | |
+| --- | --- |
+| **O quê** | Linha da busca um pouco mais alta · fonte **Busca** + texto digitado maiores (proporcional) |
+| **Você** | Ctrl+F5 · badge **v9.74** |
 
 ### 🩹 PDV — busca na linha do ícone Busca (17/07 · **teste v9.73**)
 
