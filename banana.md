@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.48** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.49** · **loja v9.16**
+
+### 🩹 PDV — editor rápido um degrau maior (17/07 · **teste v9.49**)
+
+| | |
+| --- | --- |
+| **O quê** | Popup edição rápida **maior ~12 %** (caixa + rótulos + campos + botões + saldos) — mesma disposição, melhor em tela pequena |
+| **Você** | Ctrl+F5 · badge **v9.49** · lápis → confere se cabe e lê melhor |
 
 ### 🩹 Cadastro — modal: proporção Preços + listas até o rodapé (17/07 · **teste v9.48**)
 
