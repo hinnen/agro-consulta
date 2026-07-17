@@ -1156,15 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.59** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.60** · **loja v9.16**
 
-### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.59**)
+### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.60**)
 
 | | |
 | --- | --- |
 | **O quê** | Tira **?** · **Editar / Trocar / Hist** colados no cliente (esquerda) · busca sobe (sem título «Busca») · Saldos sobe no painel · contagem de itens no Carrinho |
-| **Você** | Ctrl+F5 · badge **v9.59** · confere barra do cliente + busca + saldos |
-| **Pacote lápis** | Continua 📦 pronto; este layout entra junto se subir PDV |
+| **Você** | Ctrl+F5 · badge **v9.60** · confere barra do cliente + busca + saldos |
+| **Pacote lápis** | Continua 📦 pronto; este layout sobe junto se pedir PDV |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · aguarda senha)
 
