@@ -1,31 +1,33 @@
 <section class="pdv-step-panel flex h-full min-h-0 flex-1 flex-col gap-1.5" data-step-panel="produtos">
-  <div id="pdv-step1-client-bar" class="flex min-w-0 items-center gap-2 rounded-[1rem] border-2 px-2.5 py-1.5 shadow-sm">
-    <div
-      id="pdv-quick-client-hit"
-      class="pdv-step1-client-hit pdv-wizard-scroll flex min-w-0 flex-1 cursor-pointer items-center gap-2 overflow-x-auto px-2.5 py-2 transition"
-      role="button"
-      tabindex="0"
-      title="Trocar cliente · F4"
-    >
-      <span class="pdv-step1-client-badge shrink-0">Cliente</span>
-      <span id="pdv-quick-client-name" class="pdv-step1-client-nome min-w-0 flex-1 truncate whitespace-nowrap text-left font-black text-slate-900">Selecione o cliente da venda</span>
-    </div>
-    <button type="button" id="pdv-quick-client-edit-step1" class="pdv-step1-client-edit-btn shrink-0" title="Editar cadastro do cliente selecionado" disabled>
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
-      Editar
-    </button>
-    <button type="button" id="pdv-quick-client-change" class="pdv-step1-client-action-btn shrink-0 border-slate-300 bg-white text-slate-800 hover:bg-slate-50" title="Trocar cliente · F4">
-      Trocar <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 sm:inline">F4</kbd>
-    </button>
-    <button type="button" id="pdv-client-purchase-history" class="pdv-step1-client-action-btn shrink-0 border-slate-300 bg-white text-slate-800 hover:bg-slate-50" title="Histórico e relacionamento do cliente · F8">
-      Hist. <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 sm:inline">F8</kbd>
-    </button>
-  </div>
-
   <p id="pdv-quick-client-meta" class="sr-only">Resultados da busca de cliente.</p>
 
   <div id="pdv-step1-layout" class="grid min-h-0 flex-1 gap-1.5 xl:grid-cols-[minmax(0,1fr)_18rem]">
     <div id="pdv-step1-main-panel" class="flex min-h-0 min-w-0 flex-col overflow-hidden shadow-sm">
+      <div id="pdv-step1-client-bar" class="flex min-w-0 shrink-0 items-center gap-2 rounded-none border-0 border-b-2 px-2.5 py-1.5 shadow-none">
+        <div
+          id="pdv-quick-client-hit"
+          class="pdv-step1-client-hit pdv-wizard-scroll flex min-w-0 flex-1 cursor-pointer items-center gap-2 overflow-x-auto px-2.5 py-2 transition"
+          role="button"
+          tabindex="0"
+          title="Trocar cliente · F4"
+        >
+          <span class="pdv-step1-client-badge shrink-0">Cliente</span>
+          <span id="pdv-quick-client-name" class="pdv-step1-client-nome min-w-0 flex-1 truncate whitespace-nowrap text-left font-black text-slate-900">Selecione o cliente da venda</span>
+        </div>
+        <div id="pdv-step1-client-actions" class="flex shrink-0 items-center gap-1.5">
+          <button type="button" id="pdv-quick-client-edit-step1" class="pdv-step1-client-edit-btn shrink-0" title="Editar cadastro do cliente selecionado" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+            Editar
+          </button>
+          <button type="button" id="pdv-quick-client-change" class="pdv-step1-client-action-btn shrink-0 border-slate-300 bg-white text-slate-800 hover:bg-slate-50" title="Trocar cliente · F4">
+            Trocar <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 sm:inline">F4</kbd>
+          </button>
+          <button type="button" id="pdv-client-purchase-history" class="pdv-step1-client-action-btn shrink-0 border-slate-300 bg-white text-slate-800 hover:bg-slate-50" title="Histórico e relacionamento do cliente · F8">
+            Hist. <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 sm:inline">F8</kbd>
+          </button>
+        </div>
+      </div>
+
       <div id="pdv-step1-search-wrap" class="shrink-0">
         <div class="pdv-step1-block-head">
           <span class="pdv-step1-head-icon pdv-step1-head-icon--search" aria-hidden="true">

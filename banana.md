@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.66** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.67** · **loja v9.16**
+
+### 🩹 PDV — Saldos sobe · botões cliente à esquerda (17/07 · **teste v9.67**)
+
+| | |
+| --- | --- |
+| **O quê** | Cliente + **Editar/Trocar/Hist** ficam na coluna da **busca** (esquerda). **Saldos** sobe no topo da coluna direita. Orçamentos no mesmo lugar de sempre (abaixo do Saldos) |
+| **Você** | Ctrl+F5 · badge **v9.67** · confere |
 
 ### 🩹 PDV — tira Etapa 1/Produtos · ? sobe pro header (17/07 · **teste v9.66**)
 
