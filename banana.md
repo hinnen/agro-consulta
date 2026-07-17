@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.54** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.55** · **loja v9.16**
+
+### 🩹 Cadastro — Fiscal: fonte maior + campos mais juntos (17/07 · **teste v9.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs — tirou o “espalhar” que piorou |
+| **Você** | Ctrl+F5 · badge **v9.55** · aba Fiscal |
+| **Loja** | ⏳ |
 
 ### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · aguarda senha)
 
@@ -1540,9 +1548,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
+| **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.54** · OK Renan (tamanho/UX) · loja ainda **v9.16** |
 | **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
 | **Fecha** | **Relatórios ajuda «?»** — 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
+| **Autorizar PDV lápis** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
 | **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
 | **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
 
@@ -1550,6 +1560,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | PDV lápis | Editor rápido no carrinho (nome/GM/unidade/preços/estoque) | 📦 **pronto pra envio** · teste **v9.54** · OK Renan |
 | **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
 | **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |

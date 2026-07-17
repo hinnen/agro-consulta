@@ -147,9 +147,11 @@
       scrollbar-width: thin;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) {
-      gap: clamp(0.75rem, 1.4vh, 1.15rem) !important;
-      align-content: space-between;
-      height: 100%;
+      gap: 0.55rem !important;
+      row-gap: 0.55rem !important;
+      column-gap: 0.65rem !important;
+      align-content: start;
+      height: auto;
       min-height: 0;
       overflow-y: auto;
       padding-bottom: 0.25rem;
@@ -160,19 +162,24 @@
     #modal-editar-produto .tab-fill-form:not(.hidden) input[type="search"],
     #modal-editar-produto .tab-fill-form:not(.hidden) select,
     #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
-      min-height: clamp(3.4rem, 6vh, 4rem) !important;
-      font-size: clamp(1.1rem, 1rem + 0.4vw, 1.3rem) !important;
-      padding-top: 0.55rem !important;
-      padding-bottom: 0.55rem !important;
+      min-height: 3.75rem !important;
+      font-size: 1.35rem !important;
+      padding-top: 0.65rem !important;
+      padding-bottom: 0.65rem !important;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
-      min-height: clamp(5.5rem, 12vh, 8.5rem) !important;
+      min-height: 6rem !important;
+      font-size: 1.25rem !important;
     }
     #modal-editar-produto .tab-fill-form:not(.hidden) > span.text-base,
     #modal-editar-produto .tab-fill-form:not(.hidden) label > span,
     #modal-editar-produto .tab-fill-form:not(.hidden) .flex.flex-col > span {
-      font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
-      margin-bottom: 0.35rem !important;
+      font-size: 1.1rem !important;
+      margin-bottom: 0.25rem !important;
+    }
+    #modal-editar-produto #tab-fiscal:not(.hidden) #btn-gerar-cb-loja {
+      min-height: 3.75rem !important;
+      font-size: 1.1rem !important;
     }
     #modal-editar-produto .tab-fill-stack:not(.hidden) {
       display: flex !important;
