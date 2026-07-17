@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.45** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.46** · **loja v9.16**
+
+### 🩹 PDV — estoque editor: números do mesmo tamanho (17/07 · **teste v9.46**)
+
+| | |
+| --- | --- |
+| **O quê** | Nos cards Centro/Vila, **agora** e **novo** ficam com a mesma fonte grande (campo não fica miúdo ao lado do saldo) |
+| **Você** | Ctrl+F5 · badge **v9.46** · lápis → confere proporção dos saldos |
 
 ### ✨ Cadastro — abas do modal usam a altura (17/07 · **teste v9.45**)
 
