@@ -29,18 +29,18 @@
       </div>
 
       <div id="pdv-step1-search-wrap" class="shrink-0">
-        <div class="pdv-step1-block-head">
+        <div class="pdv-step1-block-head pdv-step1-search-head">
           <span class="pdv-step1-head-icon pdv-step1-head-icon--search" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
           </span>
           <h3 class="pdv-step1-block-title pdv-step1-block-title--search">Busca</h3>
-          <div class="pdv-step1-block-meta"><span id="pdv-product-step-count">0</span>&nbsp;itens</div>
-        </div>
-        <div id="pdv-product-search-wrap" class="relative mt-2 rounded-xl">
-          <label class="sr-only" for="pdv-product-search">Buscar produto</label>
-          <input id="pdv-product-search" type="text" class="pdv-input h-11 pr-14 text-[14px]" placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" title="F2 · lista ↑↓ · Enter · +/− último">
-          <span class="pdv-step1-search-f2 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border px-2 py-1 text-[10px] font-black uppercase">F2</span>
-          <div id="pdv-product-autocomplete" class="absolute inset-x-0 top-[calc(100%+0.35rem)] z-20 hidden rounded-xl border-2 border-sky-400 shadow-[0_18px_48px_rgba(14,116,144,0.22)]"></div>
+          <div id="pdv-product-search-wrap" class="relative min-w-0 flex-1">
+            <label class="sr-only" for="pdv-product-search">Buscar produto</label>
+            <input id="pdv-product-search" type="text" class="pdv-input h-9 w-full pr-11 text-[13px]" placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" title="F2 · lista ↑↓ · Enter · +/− último">
+            <span class="pdv-step1-search-f2 pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-black uppercase">F2</span>
+            <div id="pdv-product-autocomplete" class="absolute inset-x-0 top-[calc(100%+0.35rem)] z-30 hidden rounded-xl border-2 border-sky-400 shadow-[0_18px_48px_rgba(14,116,144,0.22)]"></div>
+          </div>
+          <div class="pdv-step1-block-meta shrink-0"><span id="pdv-product-step-count">0</span>&nbsp;itens</div>
         </div>
         <div class="sr-only" aria-live="polite">
           <div id="pdv-product-search-feedback"></div>

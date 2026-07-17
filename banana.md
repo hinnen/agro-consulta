@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.72** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.73** · **loja v9.16**
+
+### 🩹 PDV — busca na linha do ícone Busca (17/07 · **teste v9.73**)
+
+| | |
+| --- | --- |
+| **O quê** | Campo de busca sobe **na mesma linha** do ícone/título **Busca** (vão vermelho do print) · some a faixa de baixo · **1 itens** à direita |
+| **Você** | Ctrl+F5 · badge **v9.73** · confere se bate com o print |
 
 ### 🩹 PDV — reverte busca na linha do Cliente (17/07 · **teste v9.72**)
 
