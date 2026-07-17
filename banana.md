@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.87** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.88** · **loja v9.16**
+
+### 🩹 PDV — texto do aviso central maior (17/07 · **teste v9.88**)
+
+| | |
+| --- | --- |
+| **O quê** | Título/corpo/botão do toast prominent bem maiores (legível na loja) |
+| **Você** | Ctrl+F5 · badge **v9.88** · Enviar sem telefone → lê o texto grande |
 
 ### 🩹 PDV — avisos Enviar Zap no meio da tela (17/07 · **teste v9.87**)
 

@@ -8881,17 +8881,17 @@
         var icon =
             tone === 'error' ? '✕' : tone === 'warn' ? '⚠' : tone === 'info' ? 'ℹ' : '✓';
         var titleHtml = opts.title
-            ? '<p class="pdv-sale-toast-title text-base font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
+            ? '<p class="pdv-sale-toast-title font-black leading-tight">' + escapeHtml(opts.title) + '</p>'
             : '';
         var bodyClass =
             'pdv-sale-toast-body ' +
-            (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1');
+            (opts.title ? 'mt-1 font-semibold leading-snug' : 'font-bold leading-snug pt-1');
         if (opts.keepNewlines) bodyClass += ' whitespace-pre-line';
         var bodyHtml =
             '<p class="' + bodyClass + '">' + escapeHtml(msg || 'Venda confirmada.') + '</p>';
         var dismissBtn =
             tone === 'warn' || tone === 'error' || tone === 'info' || persistent
-                ? '<button type="button" class="pdv-sale-toast-dismiss mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
+                ? '<button type="button" class="pdv-sale-toast-dismiss mt-3 rounded-xl border-2 border-current/25 bg-white px-4 py-2 font-black uppercase tracking-wide hover:bg-white/80" data-pdv-toast-dismiss>Entendi</button>'
                 : '';
         if (prominent) {
             host.innerHTML =
@@ -8916,9 +8916,23 @@
                 icon +
                 '</span>' +
                 '<div class="min-w-0 flex-1">' +
-                titleHtml +
-                bodyHtml +
-                dismissBtn +
+                (opts.title
+                    ? '<p class="pdv-sale-toast-title text-base font-black leading-tight">' +
+                      escapeHtml(opts.title) +
+                      '</p>'
+                    : '') +
+                '<p class="pdv-sale-toast-body ' +
+                (opts.title ? 'mt-1 text-sm font-semibold leading-snug' : 'text-sm font-bold leading-snug pt-1') +
+                (opts.keepNewlines ? ' whitespace-pre-line' : '') +
+                '">' +
+                escapeHtml(msg || 'Venda confirmada.') +
+                '</p>' +
+                (dismissBtn
+                    ? dismissBtn.replace(
+                          'pdv-sale-toast-dismiss mt-3',
+                          'pdv-sale-toast-dismiss mt-3 text-xs'
+                      )
+                    : '') +
                 '</div></div></div>';
         }
         var dismissEl = host.querySelector('[data-pdv-toast-dismiss]');
