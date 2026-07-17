@@ -1,5 +1,16 @@
-<div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
+<div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-2 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
   <style>
+    /* Modal grande — histórico de movimentação / alterações precisa de altura */
+    #modal-editar-produto .cadastro-modal-panel {
+      width: min(100%, 90rem);
+      height: min(98dvh, 98vh);
+      max-height: min(98dvh, 98vh);
+    }
+    #modal-editar-produto .cadastro-modal-hist-scroll {
+      min-height: clamp(14rem, 38dvh, 28rem);
+      max-height: clamp(16rem, 48dvh, 36rem);
+      overflow: auto;
+    }
     /* Ajuste de proporção: menos padding, valores em destaque (#modal-editar-produto só) */
     #modal-editar-produto .info-card-compact {
       padding: 0.75rem 1rem !important;
@@ -108,7 +119,7 @@
       background: rgb(248 250 252 / 0.75);
     }
   </style>
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
+  <div class="cadastro-modal-panel bg-white rounded-2xl border border-slate-200 shadow-2xl w-full flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
     <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
       <h3 id="cadastro-modal-titulo" class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">SisVale</span></h3>
@@ -382,9 +393,9 @@
               </label>
             </div>
           </div>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
             <table class="w-full text-sm min-w-[720px]">
-              <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600">
+              <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Quando</th>
                   <th class="px-3 py-2.5 text-left">Tipo</th>
@@ -542,9 +553,9 @@
           <h4 class="text-base font-black uppercase text-slate-800 tracking-tight">Histórico de alterações do cadastro</h4>
           <p class="text-sm font-semibold text-slate-600 mt-1 leading-snug">Só mudanças de cadastro (nome, preço, código…). <strong>Não</strong> é movimentação de estoque. Registra a partir de agora — o passado não volta.</p>
         </div>
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
           <table class="w-full text-sm min-w-[640px]">
-            <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600">
+            <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
                 <th class="px-3 py-2.5 text-left">Quando</th>
                 <th class="px-3 py-2.5 text-left">Campo</th>
