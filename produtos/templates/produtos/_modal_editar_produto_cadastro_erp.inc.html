@@ -118,6 +118,109 @@
       border-color: rgb(239 246 255 / 0.95);
       background: rgb(248 250 252 / 0.75);
     }
+    /* Abas sem lista histórica: aproveitar altura do modal */
+    #modal-editar-produto .cadastro-modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: rgb(248 250 252 / 0.5);
+    }
+    #modal-editar-produto .cadastro-modal-body-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(0.85rem, 1.5vh, 1.35rem) clamp(0.85rem, 1.2vw, 1.5rem);
+      scrollbar-width: thin;
+    }
+    #modal-editar-produto .tab-content:not(.hidden) {
+      flex: 1 1 auto;
+      width: 100%;
+      min-height: min(100%, 58dvh);
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) {
+      gap: clamp(1rem, 2.2vh, 1.75rem) !important;
+      align-content: space-evenly;
+      padding-bottom: 0.5rem;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="text"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="number"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="date"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) input[type="search"],
+    #modal-editar-produto .tab-fill-form:not(.hidden) select,
+    #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
+      min-height: clamp(3.25rem, 5.5vh, 3.75rem) !important;
+      font-size: clamp(1.05rem, 0.95rem + 0.35vw, 1.2rem) !important;
+      padding-top: 0.55rem !important;
+      padding-bottom: 0.55rem !important;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) textarea {
+      min-height: clamp(5rem, 12vh, 8rem) !important;
+    }
+    #modal-editar-produto .tab-fill-form:not(.hidden) > span.text-base,
+    #modal-editar-produto .tab-fill-form:not(.hidden) label > span,
+    #modal-editar-produto .tab-fill-form:not(.hidden) .flex.flex-col > span {
+      font-size: clamp(0.95rem, 0.85rem + 0.25vw, 1.05rem) !important;
+      margin-bottom: 0.35rem !important;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      gap: clamp(0.85rem, 1.8vh, 1.35rem);
+      min-height: min(100%, 58dvh);
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow {
+      flex: 1 1 auto;
+      min-height: clamp(12rem, 32dvh, 26rem);
+      display: flex;
+      flex-direction: column;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow > .border,
+    #modal-editar-produto .tab-fill-stack:not(.hidden) .cadastro-tab-grow.border {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="text"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="number"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) input[type="date"],
+    #modal-editar-produto .tab-fill-stack:not(.hidden) select {
+      min-height: clamp(3.1rem, 5vh, 3.6rem) !important;
+      font-size: clamp(1rem, 0.9rem + 0.3vw, 1.15rem) !important;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) {
+      justify-content: space-evenly;
+      min-height: min(100%, 58dvh);
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) .price-main-card {
+      padding: clamp(1.1rem, 2.5vh, 1.75rem) 1.5rem !important;
+    }
+    #modal-editar-produto #tab-custos:not(.hidden) input.price-main-value {
+      font-size: clamp(2rem, 1.5rem + 1.5vw, 2.75rem) !important;
+      min-height: clamp(2.75rem, 6vh, 3.5rem) !important;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) {
+      align-content: center;
+      justify-items: stretch;
+      min-height: min(100%, 58dvh);
+      gap: 1.5rem !important;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) label {
+      min-height: 4.5rem;
+      padding: 1.25rem 1.5rem;
+      border-radius: 1rem;
+      border: 2px solid rgb(226 232 240);
+      background: #fff;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) input[type="checkbox"] {
+      width: 1.75rem !important;
+      height: 1.75rem !important;
+    }
+    #modal-editar-produto #tab-config:not(.hidden) span {
+      font-size: 1.15rem !important;
+    }
   </style>
   <div class="cadastro-modal-panel bg-white rounded-2xl border border-slate-200 shadow-2xl w-full flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
@@ -138,14 +241,15 @@
       <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-alteracoes">9. Alterações</button>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 [scrollbar-width:thin]">
+    <div class="cadastro-modal-body">
+    <div class="cadastro-modal-body-scroll">
 
-      <p class="text-sm font-bold text-slate-700 mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-snug">
+      <p class="text-sm font-bold text-slate-700 mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-snug shrink-0">
         <span class="text-red-600 font-black" title="Obrigatório">*</span>
         <span>Somente os campos marcados com asterisco são obrigatórios para salvar no SisVale{% if cadastro_produto_erp_sync_habilitado %} ou enviar ao ERP{% endif %}.</span>
       </p>
 
-      <div id="tab-gerais" class="tab-content grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+      <div id="tab-gerais" class="tab-content tab-fill-form grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
 
         <label class="block sm:col-span-2 md:col-span-3">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Nome do Produto <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
@@ -221,7 +325,7 @@
         </label>
       </div>
 
-      <div id="tab-fiscal" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div id="tab-fiscal" class="tab-content tab-fill-form hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Sistema</span>
           <input type="text" id="edit-codigo" maxlength="4" inputmode="numeric" autocomplete="off" pattern="\d{4}" title="Exatamente 4 números (ex.: 4252)" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -267,7 +371,7 @@
         </label>
       </div>
 
-      <div id="tab-custos" class="tab-content hidden flex flex-col gap-4 w-full font-['Inter']">
+      <div id="tab-custos" class="tab-content tab-fill-stack hidden flex flex-col gap-4 w-full font-['Inter']">
 
         <div class="tab-custos-wrap w-full">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-0">
@@ -419,9 +523,9 @@
         </div>
       </div>
 
-      <div id="tab-composicao" class="tab-content hidden flex flex-col gap-4 font-['Inter']">
+      <div id="tab-composicao" class="tab-content tab-fill-stack hidden flex flex-col gap-4 font-['Inter']">
 
-        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3">
+        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3 shrink-0">
           <label class="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
             <span class="text-base font-bold text-slate-700">Baixar estoque dos componentes na venda</span>
@@ -436,7 +540,7 @@
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm shrink-0">
           <div class="flex-1 min-w-[250px] relative">
             <span class="text-base font-black uppercase text-slate-600 mb-1 block">Buscar Componente / Insumo</span>
             <input type="text" id="comp-busca" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Nome ou código..." />
@@ -469,9 +573,9 @@
           <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-slate-200 text-slate-500 border-2 border-slate-300 cursor-not-allowed" disabled title="Composição definida no ERP">Add</button>
         </div>
 
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin]">
           <table class="w-full text-base min-w-[750px]">
-            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
                 <th class="px-4 py-3 text-left">Produto</th>
                 <th class="px-4 py-3 text-left">Depósito Saída</th>
@@ -493,7 +597,7 @@
         </div>
       </div>
 
-      <div id="tab-config" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div id="tab-config" class="tab-content tab-fill-form hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="sm:col-span-2 flex flex-col sm:flex-row gap-4 p-5 rounded-xl border border-slate-200 bg-white">
           <label class="flex-1 flex items-center gap-3 cursor-pointer select-none">
             <input type="checkbox" id="edit-ativo-exibicao" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
@@ -506,11 +610,11 @@
         </div>
       </div>
 
-      <div id="tab-validade" class="tab-content hidden flex flex-col gap-4">
-        <div class="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-2 tracking-tight">Lotes, validade e saldo (Agro)</h4>
-          <p class="text-sm text-slate-600 mb-4">Cada lote fica no overlay; o resumo (data + lote) para o relatório é alinhado ao lote mais crítico. <strong>Adicionar / remover</strong> grava de imediato (é necessário login).</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80 mb-4">
+      <div id="tab-validade" class="tab-content tab-fill-stack hidden flex flex-col gap-4">
+        <div class="cadastro-tab-grow p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-2 tracking-tight shrink-0">Lotes, validade e saldo (Agro)</h4>
+          <p class="text-sm text-slate-600 mb-4 shrink-0">Cada lote fica no overlay; o resumo (data + lote) para o relatório é alinhado ao lote mais crítico. <strong>Adicionar / remover</strong> grava de imediato (é necessário login).</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80 mb-4 shrink-0">
             <label class="block min-w-0">
               <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Lote</span>
               <input type="text" id="lote-novo-cod" class="w-full min-h-[44px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white" placeholder="Ex. 001/25" autocomplete="off" />
@@ -527,9 +631,9 @@
               <button type="button" id="lote-btn-adicionar" class="w-full min-h-[44px] rounded-lg border-2 border-orange-500 bg-orange-500 px-2 text-xs font-black uppercase text-white hover:bg-orange-400">Adicionar</button>
             </div>
           </div>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto">
+          <div class="border border-slate-200 rounded-xl overflow-auto flex-1 min-h-0 [scrollbar-width:thin]">
             <table class="w-full text-sm min-w-[520px]">
-              <thead class="bg-slate-800 text-white text-xs font-black uppercase">
+              <thead class="bg-slate-800 text-white text-xs font-black uppercase sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Lote</th>
                   <th class="px-3 py-2.5 text-left">Validade</th>
@@ -543,7 +647,7 @@
             </table>
           </div>
         </div>
-        <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug">
+        <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug shrink-0">
           O resumo (uma data / lote) usado no relatório de vencimentos segue o lote de validade <strong>mais antiga</strong> (se houver qtd. &gt; 0, prefere esses). O botão <strong>Salvar no Agro</strong> grava as outras abas, não a tabela de lotes (já salva por linha).
         </div>
       </div>
@@ -576,13 +680,13 @@
         </div>
       </div>
 
-      <div id="tab-variacoes" class="tab-content hidden flex flex-col gap-4">
-        <div id="bloco-similares-erp" class="rounded-xl border border-slate-300 bg-slate-50/90 p-4 shadow-sm">
+      <div id="tab-variacoes" class="tab-content tab-fill-stack hidden flex flex-col gap-4">
+        <div id="bloco-similares-erp" class="rounded-xl border border-slate-300 bg-slate-50/90 p-4 shadow-sm shrink-0">
           <h4 class="text-base font-black uppercase tracking-widest text-slate-800 mb-1">Similares (ERP)</h4>
           <p class="text-base text-slate-600 mb-3 leading-snug">Produtos vinculados como similares no espelho Mongo (somente leitura; alteração no ERP).</p>
-          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin] max-h-[28vh]">
             <table class="w-full text-base min-w-[720px]">
-              <thead class="bg-slate-900 text-white text-sm sm:text-base font-black uppercase">
+              <thead class="bg-slate-900 text-white text-sm sm:text-base font-black uppercase sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Código</th>
                   <th class="px-3 py-2.5 text-left">Nome</th>
@@ -598,7 +702,7 @@
           </div>
         </div>
 
-        <div class="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50">
+        <div class="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50 shrink-0">
           <p class="text-base font-bold text-emerald-800 mb-4 tracking-tight">Variações locais (Agro): o custo mestre (aba Preços) é a média ponderada (estoque × custo) das linhas abaixo.</p>
 
           <div class="flex flex-wrap items-end gap-3">
@@ -634,9 +738,9 @@
           </div>
         </div>
 
-        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin]">
           <table class="w-full text-base min-w-[800px]">
-            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600 sticky top-0 z-[1]">
               <tr>
                 <th class="px-4 py-3 text-left">Cód. Interno</th>
                 <th class="px-4 py-3 text-left">Marca</th>
@@ -653,6 +757,7 @@
         </div>
       </div>
 
+    </div>
     </div>
 
     <div id="cadastro-modal-status" class="hidden px-4 sm:px-6 py-3 border-t shrink-0 bg-emerald-50 border-emerald-200" role="status" aria-live="polite">

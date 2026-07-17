@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.44** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.45** · **loja v9.16**
+
+### ✨ Cadastro — abas do modal usam a altura (17/07 · **teste v9.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Abas sem lista histórica (Gerais, Fiscal, Preços, Composição, Config, Validade, Marcas) espalham campos / tabela maior — sem “buraco branco” embaixo. Estoque e Alterações continuam com scroll na lista |
+| **Você** | Ctrl+F5 · badge **v9.45** · abrir produto → Fiscal / Composição |
+| **Loja** | ⏳ |
 
 ### 🩹 PDV — editor: 2 tags estoque + unidade busca (17/07 · **teste v9.44**)
 
