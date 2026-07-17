@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.88** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.89** · **loja v9.16**
+
+### 🩹 PDV — Enviar Zap também grava em Orçamentos (17/07 · **teste v9.89**)
+
+| | |
+| --- | --- |
+| **O quê** | **Enviar** = mesma gravação do **Salvar orçamento** (lista + servidor) · depois abre o Zap |
+| **Você** | Ctrl+F5 · badge **v9.89** · Enviar → confere se aparece no card Orçamentos |
 
 ### 🩹 PDV — texto do aviso central maior (17/07 · **teste v9.88**)
 

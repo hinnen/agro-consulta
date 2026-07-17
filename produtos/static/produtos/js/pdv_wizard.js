@@ -3543,15 +3543,22 @@
         return true;
     }
 
-    function salvarOrcamentoWizard() {
+    function salvarOrcamentoWizard(opts) {
+        opts = opts || {};
         var state = State.getState();
         if (state.clienteMode === 'unset') {
             State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
             state = State.getState();
         }
         if (!state.itens || !state.itens.length) {
-            alert('Adicione itens ao carrinho antes de salvar o orçamento.');
-            return;
+            if (!opts.quiet) {
+                showPdvAviso('Adicione itens ao carrinho antes de salvar o orçamento.', {
+                    title: 'Carrinho vazio',
+                    tone: 'warn',
+                    prominent: true
+                });
+            }
+            return false;
         }
         var computed = State.getComputed();
         var historico = readHistoricoOrcamentos();
@@ -3573,7 +3580,7 @@
                 bootstrap && bootstrap.usuarioSalvamento
                     ? String(bootstrap.usuarioSalvamento).trim()
                     : '';
-        } catch (eUs) {}
+        } catch (eU) {}
         if (!usuarioSalvo) usuarioSalvo = operadorSalvo;
         var novo = {
             id: idOrc,
@@ -3590,6 +3597,7 @@
             entrega: !!(state.entrega && state.entrega.ativa),
             usuario: usuarioSalvo || undefined,
             cliente_extra: state.cliente ? JSON.parse(JSON.stringify(state.cliente)) : null,
+            origem: opts.fromWhatsapp ? 'whatsapp' : 'manual'
         };
         historico.unshift(novo);
         var perKey = {};
@@ -3603,15 +3611,16 @@
         writeHistoricoOrcamentos(historico);
         renderRecentBudgetsSnippet();
         var doneFeedback = function () {
+            if (opts.silent) return;
             showSaleDoneFeedback('Orçamento salvo para ' + clienteNome + '.', 'success', {
                 title: 'Orçamento salvo',
-                placementTop: true,
+                placementTop: true
             });
         };
         var urlSave = apiPdvOrcamentosUrl();
         if (!urlSave) {
             doneFeedback();
-            return;
+            return true;
         }
         if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = true;
         fetch(urlSave, {
@@ -3619,9 +3628,9 @@
             credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': pdvCsrfTokenOrcamentos(),
+                'X-CSRFToken': pdvCsrfTokenOrcamentos()
             },
-            body: JSON.stringify({ entry: novo }),
+            body: JSON.stringify({ entry: novo })
         })
             .then(function (r) {
                 return r.json().then(function (data) {
@@ -3636,18 +3645,28 @@
                     return;
                 }
                 renderRecentBudgetsSnippet();
-                alert(
-                    (res && res.data && res.data.erro) ||
-                        'Orçamento salvo só neste navegador — servidor não confirmou. Tente de novo.'
-                );
+                if (!opts.silent) {
+                    showPdvAviso(
+                        (res && res.data && res.data.erro) ||
+                            'Orçamento salvo só neste navegador — servidor não confirmou. Tente de novo.',
+                        { title: 'Aviso', tone: 'warn', prominent: true }
+                    );
+                }
             })
             .catch(function () {
                 renderRecentBudgetsSnippet();
-                alert('Falha de rede ao gravar orçamento no servidor. Ficou só neste navegador.');
+                if (!opts.silent) {
+                    showPdvAviso('Falha de rede ao gravar orçamento no servidor. Ficou só neste navegador.', {
+                        title: 'Rede',
+                        tone: 'warn',
+                        prominent: true
+                    });
+                }
             })
             .finally(function () {
                 if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
             });
+        return true;
     }
 
     function montarTextoOrcamentoWhatsappWizard() {
@@ -3730,15 +3749,24 @@
             });
             return;
         }
-        salvarOrcamentoWizard();
+        salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
+        renderRecentBudgetsSnippet();
         var txt = montarTextoOrcamentoWhatsappWizard();
-        if (!abrirUrlWhatsappOrcamento(tel, txt)) {
-            showPdvAviso('Não foi possível abrir o WhatsApp.', {
-                title: 'Erro',
-                tone: 'error',
-                prominent: true
+        var telOk = tel;
+        window.setTimeout(function () {
+            if (!abrirUrlWhatsappOrcamento(telOk, txt)) {
+                showPdvAviso('Não foi possível abrir o WhatsApp.', {
+                    title: 'Erro',
+                    tone: 'error',
+                    prominent: true
+                });
+                return;
+            }
+            showSaleDoneFeedback('Orçamento salvo em Orçamentos e enviado no WhatsApp.', 'success', {
+                title: 'Salvo e enviado',
+                placementTop: true,
             });
-        }
+        }, 120);
     }
 
     function renderRecentBudgetsSnippet() {
