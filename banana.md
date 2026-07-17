@@ -1156,14 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.72** · **loja v9.16**
-
-### 🩹 PDV — busca na linha do Cliente (17/07 · **teste v9.72**)
-
-| | |
-| --- | --- |
-| **O quê** | Busca sobe **na mesma linha** do Cliente, **depois** do Hist. F8 · menor · some a faixa «Busca» · contagem no Carrinho |
-| **Você** | Ctrl+F5 · badge **v9.72** · confere |
+**Versão app (VERSION):** **teste v9.71** · **loja v9.16**
 
 ### 🩹 PDV — reverte busca no header (17/07 · **teste v9.71**)
 
