@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.56** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.57** · **loja v9.16**
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · aguarda senha)
 
@@ -1570,10 +1570,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
+| **Fecha** | **Cadastro modal** (UX + kardex + alterações) — 📦 **pronto pra envio** · teste **v9.56** · OK Renan · loja ainda **v9.16** |
 | **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.54** · OK Renan (tamanho/UX) · loja ainda **v9.16** |
 | **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
 | **Fecha** | **Relatórios ajuda «?»** — 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
+| **Autorizar Cadastro modal** | *«pode subir cadastro modal / histórico»* + **99738595** |
 | **Autorizar PDV lápis** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
 | **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
 | **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
@@ -1582,6 +1584,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P2** | Cadastro modal | Modal editar: UX altura/fontes · kardex · aba Alterações | 📦 **pronto pra envio** · teste **v9.56** · OK Renan |
 | **P1** | PDV lápis | Editor rápido no carrinho (nome/GM/unidade/preços/estoque) | 📦 **pronto pra envio** · teste **v9.54** · OK Renan |
 | **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
 | **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
