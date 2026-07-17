@@ -1158,6 +1158,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.90** · **loja v9.16**
 
+### 📦 PDV — Enviar orçamento WhatsApp · pronto produção (17/07 · **teste v9.90**)
+
+| | |
+| --- | --- |
+| **Status** | ✅ **testado no teste** · **📦 pronto para envio à produção** (frase + senha) |
+| **O quê** | Botão **Enviar** (Zap) acima do Subtotal · texto Agromais · grava em Orçamentos · ícone Zap na lista · avisos toast central |
+| **Commits** | c3ce765…1b09f96 (pacote Zap PDV) · HEAD 1b09f96 |
+| **OK Renan** | 17/07 — fluxo + lista + ícone |
+| **Loja** | ⏳ aguarda frase + senha · ainda **v9.16** |
+| **Autorizar** | *«pode subir Enviar WhatsApp PDV»* + **99738595** |
+
 ### ✨ PDV — ícone Zap nos orçamentos enviados (17/07 · **teste v9.90**)
 
 | | |
@@ -1755,6 +1766,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
+| **Fecha** | **PDV Enviar WhatsApp** (orçamento Zap + lista + ícone) — 📦 **pronto pra envio** · teste **v9.90** · OK Renan · loja ainda **v9.16** |
 | **Fecha** | **Cadastro modal** (UX + kardex + alterações + origem PDV) — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
 | **Fecha** | **PDV lápis → aba 9** (origem «PDV edição rápida») — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · sobe junto com Cadastro modal |
 | **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
@@ -1765,6 +1777,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Autorizar PDV lápis / aba 9** | *«pode subir histórico PDV lápis / aba 9»* + **99738595** (ou junto no Cadastro modal) |
 | **Autorizar PDV lápis** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
 | **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
+| **Autorizar PDV Enviar Zap** | *«pode subir Enviar WhatsApp PDV»* + **99738595** |
 | **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
 
 #### Fila aberta (por prioridade)
@@ -1775,6 +1788,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
 | **P2** | PDV→aba 9 | Lápis registra em Alterações | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
 | **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
+| **P2** | PDV Enviar Zap | Botão Enviar orçamento WhatsApp · Agromais · grava Orçamentos · ícone Zap | 📦 **pronto pra envio** · teste **v9.90** · OK Renan |
 | **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
