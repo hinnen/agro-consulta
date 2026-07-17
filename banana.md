@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.32** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.33** · **loja v9.16**
+
+### ✨ Cadastro — aba 9 Alterações (histórico cadastro) (17/07 · **teste v9.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba **9. Alterações**: qualquer campo do cadastro (nome, preço, código…) **antes → depois + quem**. **Não** é movimentação de estoque (isso fica na aba 4). 40 + carregar mais · botão vermelho histórico completo (até 500). Só daqui pra frente |
+| **API** | `GET /api/produtos/cadastro/alteracoes-historico/` · migration `0054` |
+| **Você** | Ctrl+F5 · badge **v9.33** · editar produto → mudar nome → Salvar → aba **Alterações** |
+| **Loja** | ⏳ |
 
 ### ✨ PDV — editor rápido no lápis (17/07 · **teste v9.32**)
 
