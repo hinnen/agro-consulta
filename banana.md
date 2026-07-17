@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.17** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.19** · **loja v9.16**
 
 ### 🐛 NFC-e — rejeições 963 + 225 (17/07 · teste)
 
@@ -1166,8 +1166,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **963** | Fiado/`tPag=05` ia com grupo `<card>` — SEFAZ não aceita. `_TPAG_REQUER_CARD` só **03/04/10–13/15/17/18** |
 | **225** | CFOP/CEST/NCM com ponto/traço no XML (schema). Limpa só dígitos + CEST só se 7 dígitos |
 | **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
-| **Commits teste** | `fb6ba2f` + `c80fb9e` (**v9.17**) |
-| **Você** | Ctrl+F5 teste · badge **v9.17** · em Contabilidade **reemitir** #2812 e #3347 |
+| **Commits teste** | `fb6ba2f` … (**v9.19**) |
+| **Você** | Ctrl+F5 teste · badge **v9.19** · em Contabilidade **reemitir** #2812 e #3347 |
 | **Loja** | Só com frase + senha depois do OK no teste |
 
 ### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
