@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.25** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.27** · **loja v9.16**
+
+### fix — Relatórios ajuda «?» alinhada + sem scroll no card (17/07 · **teste v9.27**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | **?** ao lado de Imprimir A4 / Voltar (mesmo tamanho 44px) · painel à direita **sem** max-height / scrollbar interna |
+| **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.27** · Relatórios → ? ao lado do azul |
 
 ### ✨ Cadastro ERP — busca + filtros na barra (17/07 · **teste v9.24**)
 
