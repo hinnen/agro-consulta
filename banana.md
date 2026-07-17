@@ -1168,7 +1168,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
 | **Commits teste** | `fb6ba2f` … (**v9.19**) |
 | **Você** | Ctrl+F5 teste · badge **v9.19** · em Contabilidade **reemitir** #2812 e #3347 |
-| **Loja** | Só com frase + senha depois do OK no teste |
+| **Status** | 📦 **pronto pra envio** (loja ainda v9.16) |
+| **Loja** | frase + senha na mesma mensagem |
 
 ### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
 
@@ -1328,13 +1329,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Loja** | **v9.16** no ar · teste **v9.15** |
-| **Validar** | Ctrl+F5 · #12 devolução · #17 busca CP · giro última venda · #23 NFC-e frete |
+| **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.19** · loja ainda **v9.16** |
+| **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
+| **Autorizar** | *«pode subir NFC-e 963/225»* + **99738595** |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.19** |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
@@ -3838,7 +3841,8 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-033** | **P3** | BI / Home | **Zap #21:** indicador comparativo — **N-ésimo** dia da semana vs mês anterior (ex. **3ª terça** × **3ª terça**) | 📋 Pendente · foto Word | 16/07 |
 | **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
 | **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
-| **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | 🔧 fix teste 16/07 | 16/07 |
+| **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
+| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.19** | 17/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
@@ -3896,6 +3900,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-053 | `entrada-nf-historico-custo-duplo` | **#19:** tick histórico custo 2× (etapa 2 + finalize) — dedupe / um só evento |
 | FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressão separação / entregador / cliente no painel entregas |
 | FL-055 | `nfce-frete-vfrete-itens-535` | **#23:** `det/prod/vFrete` = `ICMSTot/vFrete` (535) |
+| FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 · **225:** NCM/CFOP/CEST só dígitos |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
