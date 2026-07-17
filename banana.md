@@ -1156,14 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.68** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.70** · **loja v9.16**
 
-### 🩹 PDV — reverte busca no header (17/07 · **teste v9.68**)
+### 🩹 PDV — reverte busca no header (17/07 · **teste v9.70**)
 
 | | |
 | --- | --- |
 | **O quê** | Reverteu busca no topo — volta layout **v9.67** (busca na coluna esquerda · Saldos no topo direito) |
-| **Você** | Ctrl+F5 · badge **v9.68** |
+| **Você** | Ctrl+F5 · badge **v9.70** |
 
 ### 🩹 PDV — Saldos sobe · botões cliente à esquerda (17/07 · **teste v9.67**)
 
