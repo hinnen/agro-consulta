@@ -7673,7 +7673,6 @@
                     dom.quickProductEditErro.classList.remove('hidden');
                 }
             });
-        ensureQuickProductUnidades();
         window.setTimeout(function () {
             if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
         }, 40);
@@ -7851,6 +7850,7 @@
                         codigo_nfe: payload.codigo_nfe,
                         codigo_barras: payload.codigo_barras,
                         unidade: payload.unidade,
+                        preco_custo: payload.preco_custo,
                         preco_venda: payload.preco_venda,
                         precos_modo: payload.precos_modo,
                         precos_grupos: payload.precos_grupos
@@ -11190,14 +11190,19 @@
             });
             dom.quickProductEditUnidade.addEventListener('keydown', function (event) {
                 if (event.key === 'Escape') {
-                    closeQuickProductUnidadeLista();
-                    event.stopPropagation();
-                } else if (event.key === 'Enter') {
                     var lista = dom.quickProductEditUnidadeLista;
+                    var aberta = !!(lista && !lista.classList.contains('hidden'));
+                    if (aberta) {
+                        closeQuickProductUnidadeLista();
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                } else if (event.key === 'Enter') {
+                    var listaEnt = dom.quickProductEditUnidadeLista;
                     var first =
-                        lista &&
-                        !lista.classList.contains('hidden') &&
-                        lista.querySelector('.pdv-quick-un-opt');
+                        listaEnt &&
+                        !listaEnt.classList.contains('hidden') &&
+                        listaEnt.querySelector('.pdv-quick-un-opt');
                     if (first) {
                         event.preventDefault();
                         pickQuickProductUnidade(first.getAttribute('data-un') || '');

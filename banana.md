@@ -1156,7 +1156,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.53** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.54** · **loja v9.16**
+
+### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · aguarda senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Lápis no carrinho → edição rápida (nome, GM, barras, unidade com busca, preços A/B, estoque Centro/Vila) · popup grande sem scroll · sem travar o PDV |
+| **Versão alvo loja** | **v9.54** (ou badge do deploy) |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `pdv_state.js` · `produtos/views.py` · `produtos/urls.py` · `pdv/views.py` |
+| **Pente fino** | Unidades só carregam ao focar o campo (não atrasa abertura) · Esc fecha o pop (lista unidade não engole Esc) · custo atualiza no carrinho · API com fallback Mongo |
+| **Risco** | Baixo — só overlay do PDV + 2 APIs novas; salvar = overlay Agro (sem sync ERP) |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · badge · lápis no milho → salva nome/preço/estoque → confere carrinho |
+
+### 🩹 PDV — pente fino editor rápido (17/07 · **teste v9.54**)
+
+| | |
+| --- | --- |
+| **O quê** | Lazy unidade · Esc correto · custo no patch do carrinho · scroll só se Formas A/B estourar tela baixa |
+| **Status** | 📦 fecha no pacote acima |
 
 ### 🩹 PDV — editor sem scroll: pop quase tela cheia (17/07 · **teste v9.53**)
 

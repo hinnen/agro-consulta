@@ -2612,7 +2612,8 @@
   #pdv-quick-product-edit-overlay .pdv-product-edit-body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: hidden; /* sem barra se couber; painel já usa quase 98dvh */
+    /* Só rola se abrir Formas A/B em tela bem baixa; formulário padrão cabe sem barra */
+    overflow-y: auto;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-form {
     display: grid;
