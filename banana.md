@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.27** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.28** · **loja v9.16**
+
+### fix — Relatórios «?» sumiu (17/07 · **teste v9.28**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Troca `<details>` por **botão** âmbar fixo (mesmo tamanho do Imprimir A4) · painel abre/fecha no clique · estilo inline pra não sumir |
+| **Arquivo** | `relatorios_help_agents.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.28** · ? laranja ao lado do azul |
 
 ### fix — Relatórios ajuda «?» alinhada + sem scroll no card (17/07 · **teste v9.27**)
 

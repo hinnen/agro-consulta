@@ -1,12 +1,18 @@
 {# Ajuda leiga dos relatórios — {% with rel_help="slug" %}{% include ... %}{% endwith %} #}
 {% if rel_help %}
-<details class="rel-help-agents no-print relative shrink-0">
-  <summary
-    class="list-none inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl border-2 border-amber-400 bg-amber-500 px-3.5 text-sm font-black uppercase text-slate-950 shadow-sm hover:bg-amber-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden"
+<div class="rel-help-agents no-print relative shrink-0" data-rel-help="{{ rel_help }}">
+  <button type="button"
+    class="rel-help-toggle inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border-2 border-amber-400 bg-amber-500 px-3.5 text-sm font-black text-slate-950 shadow-sm hover:bg-amber-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+    style="background:#f59e0b;border-color:#fbbf24;color:#0f172a;min-height:44px;min-width:44px;"
     title="Como ler este relatório"
-    aria-label="Ajuda: como ler este relatório">?</summary>
+    aria-label="Ajuda: como ler este relatório"
+    aria-expanded="false"
+    aria-controls="rel-help-panel-{{ rel_help }}">?</button>
 
-  <div class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(28rem,calc(100vw-2rem))] rounded-2xl border-2 border-slate-500 bg-slate-900 p-4 shadow-2xl shadow-black/60">
+  <div id="rel-help-panel-{{ rel_help }}"
+    class="rel-help-panel absolute right-0 top-[calc(100%+0.5rem)] z-50 hidden w-[min(28rem,calc(100vw-2rem))] rounded-2xl border-2 border-slate-500 bg-slate-900 p-4 shadow-2xl shadow-black/60"
+    role="dialog"
+    aria-label="Como ler este relatório">
     <div class="mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
       <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-sm font-black text-slate-950">?</span>
       <div>
@@ -157,5 +163,35 @@
     <p class="text-sm font-semibold text-slate-300">Use os filtros e a tabela abaixo. Em dúvida, pergunte ao Renan.</p>
     {% endif %}
   </div>
-</details>
+</div>
+<script>
+(function () {
+  if (window.__agroRelHelpBound) return;
+  window.__agroRelHelpBound = true;
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target && ev.target.closest && ev.target.closest(".rel-help-toggle");
+    var wrap = btn && btn.closest(".rel-help-agents");
+    document.querySelectorAll(".rel-help-agents").forEach(function (el) {
+      var panel = el.querySelector(".rel-help-panel");
+      var t = el.querySelector(".rel-help-toggle");
+      if (!panel || !t) return;
+      if (el === wrap) {
+        var open = panel.classList.toggle("hidden") === false;
+        t.setAttribute("aria-expanded", open ? "true" : "false");
+      } else {
+        panel.classList.add("hidden");
+        t.setAttribute("aria-expanded", "false");
+      }
+    });
+    if (!btn && !ev.target.closest(".rel-help-panel")) {
+      document.querySelectorAll(".rel-help-panel").forEach(function (p) {
+        p.classList.add("hidden");
+      });
+      document.querySelectorAll(".rel-help-toggle").forEach(function (t) {
+        t.setAttribute("aria-expanded", "false");
+      });
+    }
+  });
+})();
+</script>
 {% endif %}
