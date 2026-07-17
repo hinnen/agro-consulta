@@ -1156,18 +1156,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.90** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.90** · **loja v9.90**
+
+### 📦 Deploy loja **v9.90** — Fecha PDV+Cadastro+NFC-e+Relatórios (17/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · aguarda Render Live |
+| **Inclui** | **PDV Enviar WhatsApp** · **PDV lápis/editor** · **Cadastro modal** (kardex + aba 9 + origem PDV) · **FL-056** NFC-e 963/225 · **Relatórios ajuda «?»** · layout PDV etapa 1 (até v9.90) |
+| **HEAD loja** | *(este commit)* · base **4113492** (v9.16) |
+| **Backup** | `producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717` @ **4113492** — reverter: `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
+| **Método** | worktree · checkout arquivos do `teste` · **não** merge inteiro |
+| **Migration** | **0054** `ProdutoCadastroAlteracaoAgro` (Render migrate no deploy) |
+| **Autorização** | *envie para produção* + **99738595** (checklist Fecha) |
+| **Você** | Ctrl+F5 · badge **v9.90** · Enviar Zap · lápis → aba 9 · modal cadastro · Relatórios **?** · reemitir NFC-e **#2812**/**#3347** |
 
 ### 📦 PDV — Enviar orçamento WhatsApp · pronto produção (17/07 · **teste v9.90**)
 
+
 | | |
 | --- | --- |
-| **Status** | ✅ **testado no teste** · **📦 pronto para envio à produção** (frase + senha) |
+| **Status** | ✅ **enviado loja v9.90** |
 | **O quê** | Botão **Enviar** (Zap) acima do Subtotal · texto Agromais · grava em Orçamentos · ícone Zap na lista · avisos toast central |
 | **Commits** | c3ce765…1b09f96 (pacote Zap PDV) · HEAD 1b09f96 |
 | **OK Renan** | 17/07 — fluxo + lista + ícone |
-| **Loja** | ⏳ aguarda frase + senha · ainda **v9.16** |
-| **Autorizar** | *«pode subir Enviar WhatsApp PDV»* + **99738595** |
+| **Loja** | ✅ **v9.90** (pacote Fecha 17/07) |
 
 ### ✨ PDV — ícone Zap nos orçamentos enviados (17/07 · **teste v9.90**)
 
@@ -1323,7 +1336,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Só isto: remove texto **Etapa 1 / Produtos** · **?** vai para a barra de etapas (ao lado de 1·2·3) |
 | **Você** | Ctrl+F5 · badge **v9.66** · confere |
 
-### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · aguarda senha)
+### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1354,7 +1367,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Você** | Ctrl+F5 · badge **v9.60** · confere barra do cliente + busca + saldos |
 | **Pacote lápis** | Continua 📦 pronto; este layout sobe junto se pedir PDV |
 
-### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · aguarda senha)
+### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1384,7 +1397,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs |
 | **Status** | 📦 fecha no pacote **Cadastro modal** acima |
 
-### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · aguarda senha)
+### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1508,7 +1521,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Loja** | ⏳ |
 
 
-### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · aguarda senha)
+### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1584,7 +1597,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Você** | Ctrl+F5 teste · badge **v9.22** · `/produtos/cadastro-erp/` |
 | **Loja** | ainda **v9.16** — sobe só com frase+senha |
 
-### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · aguarda senha)
+### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1766,30 +1779,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **PDV Enviar WhatsApp** (orçamento Zap + lista + ícone) — 📦 **pronto pra envio** · teste **v9.90** · OK Renan · loja ainda **v9.16** |
-| **Fecha** | **Cadastro modal** (UX + kardex + alterações + origem PDV) — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
-| **Fecha** | **PDV lápis → aba 9** (origem «PDV edição rápida») — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · sobe junto com Cadastro modal |
-| **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
-| **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
-| **Fecha** | **Relatórios ajuda «?»** — 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
-| **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
-| **Autorizar Cadastro modal** | *«pode subir cadastro modal / histórico»* + **99738595** |
-| **Autorizar PDV lápis / aba 9** | *«pode subir histórico PDV lápis / aba 9»* + **99738595** (ou junto no Cadastro modal) |
-| **Autorizar PDV lápis** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
-| **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
-| **Autorizar PDV Enviar Zap** | *«pode subir Enviar WhatsApp PDV»* + **99738595** |
-| **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
+| **✅ Loja v9.90** | **PDV Enviar WhatsApp** · **Cadastro modal** · **PDV lápis/aba 9** · **FL-056** · **Relatórios ?** — enviados 17/07 |
+| **Validar loja** | Ctrl+F5 · badge **v9.90** · Zap · lápis→aba 9 · modal · Relatórios **?** · reemitir **#2812**/**#3347** |
+| **Reverter** | `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
-| **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
-| **P2** | PDV→aba 9 | Lápis registra em Alterações | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
-| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
-| **P2** | PDV Enviar Zap | Botão Enviar orçamento WhatsApp · Agromais · grava Orçamentos · ícone Zap | 📦 **pronto pra envio** · teste **v9.90** · OK Renan |
-| **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
+| **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
+| **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
+| **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
+| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | ✅ **loja v9.90** |
+| **P2** | PDV Enviar Zap | Botão Enviar orçamento WhatsApp · Agromais · grava Orçamentos · ícone Zap | ✅ **loja v9.90** |
+| **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | ✅ **loja v9.90** |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
