@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · aguarda Render Live |
+| **Status** | ✅ **Live** · Render loja **v9.90** · commit e40e898 |
 | **Inclui** | **PDV Enviar WhatsApp** · **PDV lápis/editor** · **Cadastro modal** (kardex + aba 9 + origem PDV) · **FL-056** NFC-e 963/225 · **Relatórios ajuda «?»** · layout PDV etapa 1 (até v9.90) |
 | **HEAD loja** | *(este commit)* · base **4113492** (v9.16) |
 | **Backup** | `producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717` @ **4113492** — reverter: `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
