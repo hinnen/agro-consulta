@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.78** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.79** · **loja v9.16**
+
+### 🩹 PDV — só ícones sem texto (teste visual) (17/07 · **teste v9.79**)
+
+| | |
+| --- | --- |
+| **O quê** | Tira as escritas Cliente/Busca/Carrinho — fica **só o ícone** (pra Renan ver como fica) |
+| **Você** | Ctrl+F5 · badge **v9.79** · diz se mantém ou volta o texto |
 
 ### 🩹 PDV — Cliente/Busca/Carrinho mesmo padrão (17/07 · **teste v9.78**)
 
