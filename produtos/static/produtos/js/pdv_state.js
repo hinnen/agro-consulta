@@ -612,10 +612,17 @@
             if (String(item.id) !== String(itemId)) return item;
             var next = Object.assign({}, item);
             if (patch.nome != null) next.nome = String(patch.nome || '');
-            if (patch.codigo_nfe != null || patch.codigo != null) {
-                next.codigo = String(patch.codigo_nfe != null ? patch.codigo_nfe : patch.codigo || '');
+            if (patch.codigo_nfe != null) {
+                next.codigoGm = String(patch.codigo_nfe || '').trim();
+                next.codigo_nfe = next.codigoGm;
+            }
+            if (patch.codigo_sistema != null) {
+                next.codigo = String(patch.codigo_sistema || '').trim();
+            } else if (patch.codigo != null && patch.codigo_nfe == null) {
+                next.codigo = String(patch.codigo || '');
             }
             if (patch.codigo_barras != null) next.codigo_barras = String(patch.codigo_barras || '');
+            if (patch.preco_custo != null) next.preco_custo = toNumber(patch.preco_custo);
             if (patch.unidade != null) next.unidade = String(patch.unidade || '');
             if (patch.precos_modo != null) {
                 next.precos_modo = String(patch.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';

@@ -7406,10 +7406,27 @@
             dom.quickProductEditTitle.textContent = String(prod.nome || 'Produto');
         }
         if (dom.quickProductEditNome) dom.quickProductEditNome.value = String(prod.nome || '');
-        if (dom.quickProductEditGm) dom.quickProductEditGm.value = String(prod.codigo_nfe || '');
-        if (dom.quickProductEditCb) dom.quickProductEditCb.value = String(prod.codigo_barras || '');
-        if (dom.quickProductEditUnidade) dom.quickProductEditUnidade.value = String(prod.unidade || '');
-        if (dom.quickProductEditCusto) dom.quickProductEditCusto.value = fmtMoneyEdit(prod.preco_custo);
+        var gm =
+            String(prod.codigo_gm || prod.codigo_nfe || '').trim() ||
+            String(prod.codigoGm || '').trim();
+        // Nunca mostrar código sistema (ex. 9047) no campo GM.
+        var codSys = String(prod.codigo_sistema || prod.codigo || '').trim();
+        if (gm && codSys && gm === codSys && /^\d{1,4}$/.test(gm)) {
+            gm = '';
+        }
+        if (dom.quickProductEditGm) dom.quickProductEditGm.value = gm;
+        if (dom.quickProductEditCb) {
+            dom.quickProductEditCb.value = String(prod.codigo_barras || '').trim();
+        }
+        if (dom.quickProductEditUnidade) {
+            var un = String(prod.unidade || '').trim();
+            dom.quickProductEditUnidade.value = un === 'UN / KG / SC' ? '' : un;
+        }
+        if (dom.quickProductEditCusto) {
+            var custoN = Number(prod.preco_custo);
+            dom.quickProductEditCusto.value =
+                isFinite(custoN) && custoN > 0 ? fmtMoneyEdit(custoN) : '';
+        }
         if (dom.quickProductEditVenda) dom.quickProductEditVenda.value = fmtMoneyEdit(prod.preco_venda);
         var pg = prod.precos_grupos && typeof prod.precos_grupos === 'object' ? prod.precos_grupos : {};
         if (dom.quickProductEditPrecoA) dom.quickProductEditPrecoA.value = fmtMoneyEdit(pg.preco_a);
@@ -7457,7 +7474,10 @@
         quickProductEditProdutoId = produtoId;
         fillQuickProductEditForm({
             nome: item.nome,
-            codigo_nfe: item.codigo || item.codigo_nfe,
+            codigo_gm: item.codigoGm || item.codigo_nfe,
+            codigo_nfe: item.codigoGm || item.codigo_nfe,
+            codigo_sistema: item.codigo,
+            codigo: item.codigo,
             codigo_barras: item.codigo_barras,
             unidade: item.unidade,
             preco_custo: item.preco_custo,
@@ -7467,6 +7487,36 @@
             saldo_centro: item.saldo_centro,
             saldo_vila: item.saldo_vila
         });
+        // Completa barras/custo/GM a partir do catálogo em memória (carrinho costuma não ter).
+        try {
+            for (var ci = 0; ci < wizardProductCatalog.length; ci++) {
+                var crow = wizardProductCatalog[ci];
+                if (String(crow.id || crow.Id || '') === produtoId) {
+                    fillQuickProductEditForm({
+                        nome: item.nome || crow.nome,
+                        codigo_gm: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
+                        codigo_nfe: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
+                        codigo_sistema: crow.codigo || item.codigo,
+                        codigo: crow.codigo || item.codigo,
+                        codigo_barras: crow.codigo_barras || item.codigo_barras,
+                        unidade: crow.unidade || item.unidade,
+                        preco_custo: crow.preco_custo != null ? crow.preco_custo : item.preco_custo,
+                        preco_venda:
+                            item.preco_padrao != null
+                                ? item.preco_padrao
+                                : crow.preco_venda != null
+                                  ? crow.preco_venda
+                                  : item.preco,
+                        precos_modo: item.precos_modo || crow.precos_modo,
+                        precos_grupos: item.precos_grupos || crow.precos_grupos,
+                        saldo_centro:
+                            crow.saldo_centro != null ? crow.saldo_centro : item.saldo_centro,
+                        saldo_vila: crow.saldo_vila != null ? crow.saldo_vila : item.saldo_vila
+                    });
+                    break;
+                }
+            }
+        } catch (_) {}
         dom.quickProductEditOverlay.classList.remove('hidden');
         dom.quickProductEditOverlay.classList.add('flex');
         var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
@@ -7502,8 +7552,8 @@
         var patch = {
             id: pid,
             nome: prod.nome,
-            codigo_nfe: prod.codigo_nfe,
-            codigo: prod.codigo_nfe,
+            codigo_nfe: prod.codigo_nfe || prod.codigo_gm,
+            codigo_gm: prod.codigo_nfe || prod.codigo_gm,
             codigo_barras: prod.codigo_barras,
             unidade: prod.unidade,
             preco: prod.preco_venda,
@@ -7512,6 +7562,8 @@
             precos_modo: prod.precos_modo,
             precos_grupos: prod.precos_grupos
         };
+        if (prod.codigo_sistema) patch.codigo = prod.codigo_sistema;
+        else if (prod.codigo && prod.codigo !== patch.codigo_nfe) patch.codigo = prod.codigo;
         if (saldos) {
             if (saldos.saldo_centro != null) patch.saldo_centro = saldos.saldo_centro;
             if (saldos.saldo_vila != null) patch.saldo_vila = saldos.saldo_vila;

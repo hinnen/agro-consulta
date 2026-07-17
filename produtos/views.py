@@ -1308,6 +1308,64 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
         client_m, db_m = obter_conexao_mongo()
     except Exception:
         client_m, db_m = None, None
+
+    cod_sys = str(row.get("codigo") or getattr(p, "codigo_interno", None) or "").strip()
+    # GM = CodigoNFe/overlay — nunca usar o código sistema (4 dígitos) como se fosse GM.
+    cod_gm = ""
+    if ov and (ov.codigo_nfe or "").strip():
+        cod_gm = ov.codigo_nfe.strip()
+    elif (getattr(p, "codigo_nfe", None) or "").strip():
+        cod_gm = str(p.codigo_nfe).strip()
+    else:
+        cn_row = str(row.get("codigo_nfe") or "").strip()
+        if cn_row and cn_row != cod_sys:
+            cod_gm = cn_row
+
+    def _gm_parece_sistema(val: str) -> bool:
+        s = str(val or "").strip()
+        if not s:
+            return True
+        if s == cod_sys:
+            return True
+        return bool(s.isdigit() and len(s) <= 4)
+
+    cb = str(row.get("codigo_barras") or "").strip()
+    if ov and (ov.codigo_barras or "").strip():
+        cb = ov.codigo_barras.strip()
+    try:
+        pc = float(row.get("preco_custo") or 0)
+    except (TypeError, ValueError):
+        pc = 0.0
+    if ov and isinstance(getattr(ov, "cadastro_extras", None), dict):
+        raw_c = ov.cadastro_extras.get("preco_custo_overlay")
+        if raw_c is not None and str(raw_c).strip() != "":
+            try:
+                pc = float(str(raw_c).replace(",", "."))
+            except (TypeError, ValueError):
+                pass
+
+    # Complemento Mongo quando PG/overlay ainda não têm GM/barras/custo (mesmo espelho do cadastro).
+    if db_m is not None and client_m is not None:
+        try:
+            doc = _produto_mongo_por_id_externo(db_m, client_m, pid_out)
+        except Exception:
+            doc = None
+        if isinstance(doc, dict):
+            if _gm_parece_sistema(cod_gm):
+                mongo_gm = str(
+                    doc.get("CodigoNFe") or doc.get("CodigoNfe") or doc.get("codigo_nfe") or ""
+                ).strip()
+                if mongo_gm and not _gm_parece_sistema(mongo_gm):
+                    cod_gm = mongo_gm
+            if not cb:
+                cb = str(_extrair_codigo_barras(doc) or "").strip()
+            if not (pc > 0):
+                try:
+                    custos = _custos_compra_produto(doc)
+                    pc = float(custos.get("preco_custo") or 0)
+                except Exception:
+                    pass
+
     saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
     sinfo = saldos.get(pid_out) or {}
     pg = extrair_precos_grupos_overlay(ov)
@@ -1320,10 +1378,13 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
             "produto": {
                 "id": pid_out,
                 "nome": str(row.get("nome") or "").strip(),
-                "codigo_nfe": str(row.get("codigo_nfe") or "").strip(),
-                "codigo_barras": str(row.get("codigo_barras") or "").strip(),
+                "codigo": cod_sys,
+                "codigo_sistema": cod_sys,
+                "codigo_nfe": cod_gm,
+                "codigo_gm": cod_gm,
+                "codigo_barras": cb,
                 "unidade": str(row.get("unidade") or "UN").strip() or "UN",
-                "preco_custo": round(float(row.get("preco_custo") or 0), 2),
+                "preco_custo": round(pc, 2) if pc > 0 else round(float(row.get("preco_custo") or 0), 2),
                 "preco_venda": round(float(row.get("preco_venda") or 0), 2),
                 "precos_modo": modo,
                 "precos_grupos": pg,

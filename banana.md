@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.40** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.41** · **loja v9.16**
+
+### 🩹 PDV — editor rápido puxa GM/barras/custo certos (17/07 · **teste v9.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Campo GM deixa de mostrar código sistema (ex. 9047) · puxa **GM0090-47**, barras e custo (overlay/Mongo) |
+| **Você** | Ctrl+F5 · badge **v9.41** · lápis no milho · confere GM + barras + custo 67 |
+| **Loja** | ⏳ |
 
 ### 🩹 PDV — formas A/B recolhidas no editor rápido (17/07 · **teste v9.40**)
 
