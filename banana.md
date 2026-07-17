@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.41** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.42** · **loja v9.16**
+
+### ✨ Cadastro — modal editar maior (altura) (17/07 · **teste v9.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Popup editar produto quase tela cheia (~98dvh, mais largo) · área das listas de histórico com altura mínima + scroll próprio |
+| **Você** | Ctrl+F5 · badge **v9.42** · abrir produto → aba Estoque / Alterações |
+| **Loja** | ⏳ |
 
 ### 🩹 PDV — editor rápido puxa GM/barras/custo certos (17/07 · **teste v9.41**)
 
