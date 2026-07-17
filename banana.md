@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.62** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.64** · **loja v9.16**
 
 ### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · aguarda senha)
 
