@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.81** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.82** · **loja v9.16**
+
+### 🩹 PDV — some de vez a linha/faixa azul da busca (17/07 · **teste v9.82**)
+
+| | |
+| --- | --- |
+| **O quê** | Tira borda **e** fundo azul da faixa da busca (era isso que ainda aparecia) |
+| **Você** | Ctrl+F5 · badge **v9.82** |
 
 ### 🩹 PDV — tira linha azul sob a busca (17/07 · **teste v9.81**)
 
