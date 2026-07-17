@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.89** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.90** · **loja v9.16**
+
+### ✨ PDV — ícone Zap nos orçamentos enviados (17/07 · **teste v9.90**)
+
+| | |
+| --- | --- |
+| **O quê** | Orçamentos salvos pelo **Enviar** WhatsApp mostram ícone verde do Zap na lista (e no Ver mais) |
+| **Você** | Ctrl+F5 · badge **v9.90** · Enviar de novo → linha nova com ícone Zap |
 
 ### 🩹 PDV — Enviar Zap também grava em Orçamentos (17/07 · **teste v9.89**)
 
