@@ -1156,7 +1156,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.14** · **loja v9.14**
+**Versão app (VERSION):** **teste v9.15** · **loja v9.16**
+
+### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Inclui** | **#12** devolução parcial · **#17** busca CP · relatórios **última venda/ordenar** · **#23** NFC-e 535 frete |
+| **HEAD loja** | *(este commit)* · base **c61f7dd** (v9.14) |
+| **Backup** | `producao-backup-pre-v916-fecha-relatorios-nfce-20260717` @ **c61f7dd** (v9.14) — reverter: `git push origin producao-backup-pre-v916-fecha-relatorios-nfce-20260717:producao` |
+| **Autorização** | *pode enviar* + 99738595 |
+| **Você** | Ctrl+F5 · badge **v9.16** · devolução · busca CP · giro última venda · NFC-e c/ frete |
 
 ### 📦 Deploy loja **v9.14** — Relatórios (pós-v9.07) (16/07 · Renan frase+senha)
 

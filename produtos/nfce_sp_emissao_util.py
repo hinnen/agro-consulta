@@ -384,6 +384,10 @@ def _montar_xml_nfce(
         _sub(dest, "indIEDest", "9")
 
     uf_ibpt = cfg.get("uf") or "SP"
+    v_frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
+    if v_frete < 0:
+        v_frete = Decimal("0")
+    # SEFAZ 535: ICMSTot/vFrete = soma det/prod/vFrete — coloca o frete no 1º item.
     total_prod = Decimal("0")
     total_v_tot_trib = Decimal("0")
     for idx, item in enumerate(itens, start=1):
@@ -394,6 +398,7 @@ def _montar_xml_nfce(
         total_prod += vt
         v_tot_trib_item = ibpt_valor_item(item, db=db, col_p=col_p, uf=uf_ibpt, fiscal=fis)
         total_v_tot_trib += v_tot_trib_item
+        v_frete_item = v_frete if idx == 1 and v_frete > 0 else Decimal("0")
         det = ET.SubElement(inf, f"{{{NS}}}det")
         det.set("nItem", str(idx))
         prod = _sub(det, "prod")
@@ -412,6 +417,8 @@ def _montar_xml_nfce(
         _sub(prod, "uTrib", "UN")
         _sub(prod, "qTrib", _q4(qtd))
         _sub(prod, "vUnTrib", _q4(vu))
+        if v_frete_item > 0:
+            _sub(prod, "vFrete", _q2(v_frete_item))
         _sub(prod, "indTot", "1")
         imposto = _sub(det, "imposto")
         if v_tot_trib_item > 0:
@@ -428,9 +435,6 @@ def _montar_xml_nfce(
         _sub(cofnt, "CST", "07")
 
     total_nf = Decimal(str(venda.total or total_prod)).quantize(Decimal("0.01"))
-    v_frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
-    if v_frete < 0:
-        v_frete = Decimal("0")
     v_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
     ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=uf_ibpt)
     icms_tot = _sub(inf, "total")

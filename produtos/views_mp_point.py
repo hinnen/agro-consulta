@@ -791,6 +791,36 @@ def api_pdv_mp_point_finalizar(request):
 
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
+        if not getattr(settings, "PDV_VENDA_ERP_ENVIO", False):
+            try:
+                venda_local = _persistir_venda_agro(
+                    request,
+                    erp_data,
+                    raw_itens,
+                    None,
+                    None,
+                    False,
+                    erp_sync_status=VendaAgro.ErpSyncStatus.ACEITO,
+                )
+            except SessaoCaixaObrigatoriaError as e:
+                row.status = PdvMercadoPagoPointOrder.Status.FAILED
+                row.save(update_fields=["status", "atualizado_em"])
+                return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+            vid = venda_local.pk if venda_local else None
+            row.status = PdvMercadoPagoPointOrder.Status.FINALIZED
+            row.venda_id = vid
+            row.erp_payload = erp_data
+            row.save(update_fields=["status", "venda", "erp_payload", "atualizado_em"])
+            payload = {
+                "ok": True,
+                "mensagem": "Venda registrada no Agro.",
+                "venda_id": vid,
+                "erp_pendente": False,
+            }
+            _mp_point_anexar_recon_payload(payload, recon)
+            anexar_nfce_resposta_venda(venda_local, erp_data, payload)
+            return JsonResponse(payload)
+
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
             try:
                 venda_local = _persistir_venda_agro(

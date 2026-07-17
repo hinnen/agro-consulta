@@ -205,12 +205,30 @@
             var sub = it.subtotal != null ? Number(it.subtotal) : q * Number(it.preco != null ? it.preco : 0);
             var subTxt = isFinite(sub) ? moedaCupom(sub) : '—';
             var nome = String(it.nome || '').slice(0, 52);
+            var devTotal = !!it.devolvido_total;
+            var devParc = !!it.devolvido_parcial;
+            var rotulo = fmtQtd(q) + '× ' + nome;
+            if (devParc) {
+                var qRest = Number(it.qtd_restante != null ? it.qtd_restante : q);
+                rotulo = fmtQtd(qRest) + '× ' + nome + ' (parc. devolvido)';
+            } else if (devTotal) {
+                rotulo = fmtQtd(q) + '× ' + nome + ' (devolvido)';
+            }
+            // <s> nos filhos: text-decoration no flex some na impressão do Chrome
+            var left = escHtml(rotulo);
+            var right = escHtml(subTxt);
+            if (devTotal) {
+                left = '<s style="text-decoration:line-through;">' + left + '</s>';
+                right = '<s style="text-decoration:line-through;">' + right + '</s>';
+            }
             lines +=
-                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;' +
+                (devTotal ? 'opacity:.75;' : '') +
+                '">' +
                 '<span style="flex:1;min-width:0;">' +
-                escHtml(fmtQtd(q) + '× ' + nome) +
+                left +
                 '</span><span style="white-space:nowrap;font-weight:800;flex-shrink:0;font-size:11px;">' +
-                escHtml(subTxt) +
+                right +
                 '</span></div>';
         });
 
@@ -238,6 +256,8 @@
         }
         if (c.devolvida) {
             h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;color:#b91c1c;">*** DEVOLVIDA ***</div>';
+        } else if (c.tem_devolucao_parcial) {
+            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">DEVOLUÇÃO PARCIAL</div>';
         }
         h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
         h += cupomNomeClienteHtml(c.cliente_nome);
@@ -263,6 +283,12 @@
             '<div class="total-linha"><span>TOTAL</span><span class="total-valor">' +
             escHtml(c.total_texto || moedaCupom(c.total)) +
             '</span></div>';
+        if (c.tem_devolucao_parcial && c.total_original_texto) {
+            h +=
+                '<div style="font-size:9px;font-weight:700;text-align:right;margin-top:2px;text-decoration:line-through;opacity:.7;">Original ' +
+                escHtml(c.total_original_texto) +
+                '</div>';
+        }
         if (c.forma_pagamento) {
             h +=
                 '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +

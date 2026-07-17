@@ -1358,7 +1358,7 @@ def normalizar_pagamentos_devolucao(
     *,
     total_venda: Decimal,
 ) -> tuple[list[dict[str, Any]] | None, str | None]:
-    """Valida pagamentos informados na devolução; soma deve bater com o total da venda."""
+    """Valida pagamentos informados na devolução; soma deve bater com o total esperado."""
     if not isinstance(raw_list, list) or not raw_list:
         return None, "Informe ao menos uma forma de pagamento para devolver."
     merged: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
@@ -1374,10 +1374,11 @@ def normalizar_pagamentos_devolucao(
         return None, "Nenhum valor válido nas formas de pagamento."
     soma = sum(merged.values(), Decimal("0")).quantize(Decimal("0.01"))
     tot = _dec(total_venda).quantize(Decimal("0.01"))
-    if abs(soma - tot) > Decimal("0.02"):
+    if abs(soma - tot) > Decimal("0.009"):
         return (
             None,
-            f"A soma devolvida (R$ {soma}) deve ser igual ao total da venda (R$ {tot}).",
+            f"A soma devolvida (R$ {soma}) deve ser igual ao total a devolver (R$ {tot}). "
+            "Não pode sobrar nem faltar centavo.",
         )
     out = [
         {"forma": fn, "valor": float(v.quantize(Decimal("0.01")))}

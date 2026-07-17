@@ -1440,6 +1440,7 @@ def _lancamentos_busca_valor_literal_dot_2(tok: str) -> list[str] | None:
     """
     Retorna variantes de string para igualar a ``$toString($round($convert(...), 2))`` no Mongo
     (ex.: ``["833.33"]`` ou ``["100.00", "100"]`` se o arredondado vier sem decimais).
+    Inteiro curto (ex. ``1500``) também conta; CPF/CNPJ/boleto/NF longa não.
     """
     s = (tok or "").strip()
     if not s:
@@ -1450,9 +1451,11 @@ def _lancamentos_busca_valor_literal_dot_2(tok: str) -> list[str] | None:
         s = s[2:].lstrip().strip()
     if not s or not re.search(r"\d", s):
         return None
-    # Só dígitos: ambíguo (parcela, NF, ano)
+    dig = re.sub(r"\D+", "", s)
+    # Só dígitos longos: CPF/CNPJ/boleto/NF — não valor
     if re.fullmatch(r"\d+$", s):
-        return None
+        if len(dig) in (11, 14) or len(dig) >= 8 or len(dig) >= 40:
+            return None
     s = s.replace(" ", "")
     try:
         if "," in s:
@@ -1523,6 +1526,19 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
         AGRO_BOLETO_CODIGO_BARRAS,
     )
     or_list: list[dict[str, Any]] = [{f: rx} for f in str_fields]
+    # Data digitada (venc. / competência / pagamento) — alinhado à busca PG
+    try:
+        from produtos.lancamentos_financeiro_pg_util import _parse_data_busca_pg
+
+        dt = _parse_data_busca_pg(tok)
+    except Exception:
+        dt = None
+    if dt is not None:
+        tz = timezone.get_current_timezone()
+        d0 = timezone.make_aware(datetime.combine(dt, dtime.min), tz)
+        d1 = timezone.make_aware(datetime.combine(dt, dtime.max), tz)
+        for fld in ("DataVencimento", "DataCompetencia", "DataPagamento"):
+            or_list.append({fld: {"$gte": d0, "$lte": d1}})
     id_like = (
         "Id",
         "ClienteID",

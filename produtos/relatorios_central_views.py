@@ -260,26 +260,88 @@ def relatorios_giro_estoque(request):
     aba = (request.GET.get("aba") or "parado").strip().lower()
     if aba not in ("parado", "giro"):
         aba = "parado"
+    ordenar = (request.GET.get("ordenar") or "").strip().lower()
+    validos = (
+        ("ultima_venda_desc", "ultima_venda_asc")
+        if aba == "parado"
+        else ("ultima_venda_desc", "ultima_venda_asc", "receita_desc", "qtd_desc")
+    )
+    if ordenar not in validos:
+        ordenar = "ultima_venda_asc" if aba == "parado" else "ultima_venda_desc"
     if aba == "giro":
-        headers = ["#", "Produto", "Qtd 30d", "Receita 30d"]
+        headers = ["#", "Produto", "Última venda", "Qtd 30d", "Receita 30d"]
         rows_raw = pacote["giro"]
-        xlsx_rows = [[r["pos"], r["nome"], r["qtd"], r["valor"]] for r in rows_raw]
+        if ordenar == "ultima_venda_asc":
+            rows_raw = sorted(
+                rows_raw,
+                key=lambda r: (
+                    r.get("ultima_venda") is None,
+                    r.get("ultima_venda") or ru.timezone.now(),
+                ),
+            )
+        elif ordenar == "qtd_desc":
+            rows_raw = sorted(rows_raw, key=lambda r: r.get("qtd") or 0, reverse=True)
+        elif ordenar == "receita_desc":
+            rows_raw = sorted(rows_raw, key=lambda r: r.get("valor") or 0, reverse=True)
+        else:
+            rows_raw = sorted(
+                rows_raw,
+                key=lambda r: (
+                    r.get("ultima_venda") is not None,
+                    r.get("ultima_venda") or ru.timezone.now(),
+                ),
+                reverse=True,
+            )
+        for i, r in enumerate(rows_raw, start=1):
+            r["pos"] = i
+        xlsx_rows = [
+            [r["pos"], r["nome"], ru.fmt_data_curta(r.get("ultima_venda")), r["qtd"], r["valor"]]
+            for r in rows_raw
+        ]
         display = [
-            [r["pos"], r["nome"], r["qtd"], ru.fmt_brl(r["valor"])] for r in rows_raw
+            [r["pos"], r["nome"], ru.fmt_data_curta(r.get("ultima_venda")), r["qtd"], ru.fmt_brl(r["valor"])]
+            for r in rows_raw
         ]
         nome = "giro-30d.xlsx"
         titulo = "Top giro (30 dias)"
     else:
-        headers = ["#", "Produto", "Estoque", "Custo", "Valor parado"]
+        headers = ["#", "Produto", "Última venda", "Estoque", "Custo", "Valor parado"]
         rows_raw = pacote["parado"]
+        if ordenar == "ultima_venda_desc":
+            rows_raw = sorted(
+                rows_raw,
+                key=lambda r: (
+                    r.get("ultima_venda") is not None,
+                    r.get("ultima_venda") or ru.timezone.now(),
+                ),
+                reverse=True,
+            )
+        else:
+            rows_raw = sorted(
+                rows_raw,
+                key=lambda r: (
+                    r.get("ultima_venda") is None,
+                    r.get("ultima_venda") or ru.timezone.now(),
+                ),
+            )
+        for i, r in enumerate(rows_raw, start=1):
+            r["pos"] = i
         xlsx_rows = [
-            [r["pos"], r["nome"], r["estoque"], r["custo"], r["valor_parado"]]
+            [
+                r["pos"],
+                r["nome"],
+                ru.fmt_data_curta(r.get("ultima_venda")),
+                r["estoque"],
+                r["custo"],
+                r["valor_parado"],
+            ]
             for r in rows_raw
         ]
         display = [
             [
                 r["pos"],
                 r["nome"],
+                ru.fmt_data_curta(r.get("ultima_venda")),
                 r["estoque"],
                 ru.fmt_brl(r["custo"]),
                 ru.fmt_brl(r["valor_parado"]),
@@ -302,7 +364,7 @@ def relatorios_giro_estoque(request):
             "subtitulo": "Giro = mais vendidos em 30 dias. Parado = saldo com venda há mais de 90 dias.",
             "filtros": {"periodo": "", "de": "", "ate": "", "label": ""},
             "filtro_parcial": "giro",
-            "extra_filtros": {"aba": aba},
+            "extra_filtros": {"aba": aba, "ordenar": ordenar},
             "headers": headers,
             "rows": display,
             "totais": (

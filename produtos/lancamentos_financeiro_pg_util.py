@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import logging
 import re
+import unicodedata
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from django.db.models import Q, QuerySet
@@ -17,6 +18,16 @@ logger = logging.getLogger(__name__)
 _TOL = Decimal("0.02")
 _CAP_LINHAS = 25_000
 _SEM_PLANO_MARKER = "__SEM_PLANO__"
+_RX_SO_DIGITOS = re.compile(r"\D+")
+_RX_PARCELA_TXT = re.compile(r"(?i)\bparcela\s*[:=]?\s*(\d{1,3})\b")
+_RX_PARCELA_FRAC = re.compile(r"^(\d{1,3})\s*/\s*(\d{1,3})$")
+_RX_DATA = re.compile(
+    r"^(?:"
+    r"(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})"  # dd/mm/aaaa
+    r"|"
+    r"(\d{4})[/.\-](\d{1,2})[/.\-](\d{1,2})"  # aaaa-mm-dd
+    r")$"
+)
 
 
 def _cap_linhas_consulta_pg(
@@ -162,28 +173,350 @@ def _aplicar_exclusao_planos(qs: QuerySet, excluir_planos: list[str] | None) -> 
     return qs
 
 
+def _so_digitos(s: str) -> str:
+    return _RX_SO_DIGITOS.sub("", s or "")
+
+
+def _normalizar_tokens_busca_pg(texto: str) -> list[str]:
+    """Separa termos; junta «parcela N»; remove pontuação nas bordas; máx. 12.
+
+    Não corta vírgula/ponto de token que parece valor (ex. ``234,`` / ``234,7``).
+    """
+    t = (texto or "").strip()
+    if not t:
+        return []
+    t = _RX_PARCELA_TXT.sub(r"parcela:\1", t)
+    parts = re.split(r"\s+", t)
+    out: list[str] = []
+    for p in parts:
+        raw = p.strip()
+        if not raw:
+            continue
+        parece_valor = bool(
+            re.search(r"\d", raw)
+            and (
+                "," in raw
+                or raw.upper().startswith("R$")
+                or re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", raw)
+            )
+        )
+        if parece_valor:
+            p2 = raw[:120]
+        else:
+            p2 = raw.strip('.,;:|()[]{}"\'').strip()[:120]
+        if not p2:
+            continue
+        out.append(p2)
+        if len(out) >= 12:
+            break
+    return out or [t[:120]]
+
+
+def _parse_data_busca_pg(tok: str) -> date | None:
+    s = (tok or "").strip()
+    if not s:
+        return None
+    m = _RX_DATA.match(s)
+    if not m:
+        return None
+    try:
+        if m.group(1) is not None:
+            d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            if y < 100:
+                y += 2000 if y < 70 else 1900
+        else:
+            y, mo, d = int(m.group(4)), int(m.group(5)), int(m.group(6))
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
+def _parece_valor_monetario_token(tok: str) -> bool:
+    """True se o termo é claramente dinheiro (vírgula decimal, R$, milhar)."""
+    s = (tok or "").strip()
+    if not s:
+        return False
+    if s.upper().startswith("R$"):
+        return True
+    if "," in s and re.search(r"\d", s):
+        return True
+    if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", s):
+        return True
+    return False
+
+
+def _faixa_valor_digitacao(tok: str) -> tuple[Decimal, Decimal, bool] | None:
+    """
+    Faixa de valor enquanto digita.
+
+    - ``234`` / ``234,`` → [234,00 · 235,00)  (prefixo)
+    - ``234,7`` → [234,70 · 234,80)  (prefixo)
+    - ``234,78`` → exato ± tol
+
+    Retorna ``(lo, hi, exato)``.
+    """
+    s = (tok or "").strip()
+    if not s:
+        return None
+    s = unicodedata.normalize("NFKC", s)
+    s = s.replace("\xa0", " ").replace("\u202f", " ").strip()
+    if s.upper().startswith("R$"):
+        s = s[2:].lstrip().strip()
+    if not s or not re.search(r"\d", s):
+        return None
+    if _parse_data_busca_pg(s) is not None:
+        return None
+    if _RX_PARCELA_FRAC.match(s) or s.lower().startswith("parcela:"):
+        return None
+
+    dig = _so_digitos(s)
+    if dig and len(dig) in (11, 14):
+        return None
+    if dig and len(dig) >= 40:
+        return None
+    # NF longa sem vírgula — não é digitação de valor
+    if dig and "," not in s and "." not in s and len(dig) >= 8:
+        return None
+
+    s_num = s.replace(" ", "")
+    try:
+        if "," in s_num or s_num.endswith("."):
+            # milhar BR: 1.234,56
+            if re.fullmatch(r"\d{1,3}(\.\d{3})+,?\d*", s_num):
+                if "," in s_num:
+                    inteiro_s, _, frac_s = s_num.partition(",")
+                    inteiro_s = inteiro_s.replace(".", "")
+                else:
+                    inteiro_s = s_num.rstrip(".").replace(".", "")
+                    frac_s = ""
+            else:
+                limpo = s_num.replace(".", "")
+                if "," in limpo:
+                    inteiro_s, _, frac_s = limpo.partition(",")
+                elif limpo.endswith("."):
+                    inteiro_s, frac_s = limpo[:-1], ""
+                else:
+                    inteiro_s, frac_s = limpo, ""
+            if not inteiro_s or not inteiro_s.isdigit():
+                return None
+            base = Decimal(inteiro_s)
+            if frac_s == "":
+                return base, base + Decimal("1"), False
+            if not frac_s.isdigit():
+                return None
+            if len(frac_s) == 1:
+                lo = base + (Decimal(frac_s) / Decimal("10"))
+                lo = lo.quantize(Decimal("0.01"))
+                return lo, lo + Decimal("0.10"), False
+            # 2+ casas → exato
+            val = base + (Decimal(frac_s[:2]) / Decimal("100"))
+            val = val.quantize(Decimal("0.01"))
+            return val - _TOL, val + _TOL, True
+        if re.fullmatch(r"\d{1,3}(\.\d{3})+", s_num):
+            base = Decimal(s_num.replace(".", ""))
+            return base, base + Decimal("1"), False
+        if re.fullmatch(r"\d+", s_num):
+            if len(s_num) >= 8:
+                return None
+            base = Decimal(s_num)
+            return base, base + Decimal("1"), False
+        # 234.78 estilo US
+        val = Decimal(s_num).quantize(Decimal("0.01"))
+        return val - _TOL, val + _TOL, True
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _q_valor_faixa(lo: Decimal, hi: Decimal, *, exato: bool) -> Q:
+    if exato:
+        return (
+            Q(valor_bruto__gte=lo, valor_bruto__lte=hi)
+            | Q(valor_pago__gte=lo, valor_pago__lte=hi)
+            | Q(valor_restante__gte=lo, valor_restante__lte=hi)
+        )
+    # prefixo: [lo, hi)
+    return (
+        Q(valor_bruto__gte=lo, valor_bruto__lt=hi)
+        | Q(valor_pago__gte=lo, valor_pago__lt=hi)
+        | Q(valor_restante__gte=lo, valor_restante__lt=hi)
+    )
+
+
+def _parse_valor_busca_pg(tok: str) -> Decimal | None:
+    """Valor monetário completo (legado / testes). Preferir ``_faixa_valor_digitacao``."""
+    faixa = _faixa_valor_digitacao(tok)
+    if faixa is None:
+        return None
+    lo, hi, exato = faixa
+    if exato:
+        return ((lo + hi) / 2).quantize(Decimal("0.01"))
+    return lo
+
+
+def _parse_parcela_busca_pg(tok: str) -> tuple[int, int | None] | None:
+    """Retorna ``(número_parcela, total_ou_None)`` p/ «parcela:7» ou «7/12»."""
+    s = (tok or "").strip()
+    if not s:
+        return None
+    m = re.fullmatch(r"(?i)parcela:(\d{1,3})", s)
+    if m:
+        n = int(m.group(1))
+        return (n, None) if 1 <= n <= 999 else None
+    m2 = _RX_PARCELA_FRAC.match(s)
+    if m2:
+        n = int(m2.group(1))
+        tot = int(m2.group(2))
+        if tot < 1 or not (1 <= n <= 999):
+            return None
+        return n, tot
+    return None
+
+
+def _q_parcela_busca(n: int, total: int | None) -> Q:
+    """
+    Campo ``parcela`` **ou** texto na descrição/obs (ex. «Parcela 7 de 12»).
+    Muitos títulos da loja só gravam a parcela no texto, não na coluna.
+    """
+    q = Q(parcela=n) & Q(parcela__gte=1)
+    # Evitar «Parcela 7» solto (pega «Parcela 70»); preferir «de» / «/»
+    variantes: list[str] = [
+        f"Parcela {n} de",
+        f"parcela {n} de",
+        f"PARCELA {n} DE",
+        f"Parcela {n}/",
+        f"parcela {n}/",
+        f"(Parcela {n} ",
+        f"(parcela {n} ",
+    ]
+    if total is not None:
+        variantes.extend(
+            [
+                f"{n}/{total}",
+                f"Parcela {n} de {total}",
+                f"parcela {n} de {total}",
+                f"PARCELA {n} DE {total}",
+                f"Parcela {n}/{total}",
+                f"({n}/{total})",
+                f"(Parcela {n} de {total})",
+            ]
+        )
+    for v in variantes:
+        q |= Q(descricao__icontains=v) | Q(observacoes__icontains=v)
+    return q
+
+
+def _variantes_doc_cpf_cnpj(dig: str) -> list[str]:
+    """Gera grafias comuns de CPF/CNPJ a partir só dos dígitos."""
+    out = [dig]
+    if len(dig) == 11:
+        out.append(f"{dig[:3]}.{dig[3:6]}.{dig[6:9]}-{dig[9:]}")
+        out.append(f"{dig[:3]}{dig[3:6]}{dig[6:9]}{dig[9:]}")
+    elif len(dig) == 14:
+        out.append(f"{dig[:2]}.{dig[2:5]}.{dig[5:8]}/{dig[8:12]}-{dig[12:]}")
+        out.append(f"{dig[:2]}{dig[2:5]}{dig[5:8]}{dig[8:12]}{dig[12:]}")
+    # dedup preservando ordem
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for x in out:
+        if x and x not in seen:
+            seen.add(x)
+            uniq.append(x)
+    return uniq
+
+
+def _q_texto_basico(tok: str, *, incluir_mongo_id: bool = True) -> Q:
+    q = (
+        Q(cliente__icontains=tok)
+        | Q(descricao__icontains=tok)
+        | Q(numero_documento__icontains=tok)
+        | Q(plano_conta__icontains=tok)
+        | Q(grupo__icontains=tok)
+        | Q(forma_pagamento__icontains=tok)
+        | Q(banco__icontains=tok)
+        | Q(empresa__icontains=tok)
+        | Q(observacoes__icontains=tok)
+        | Q(centro_custo__icontains=tok)
+        | Q(boleto_codigo_barras__icontains=tok)
+        | Q(criado_por__icontains=tok)
+        | Q(usuario_lancou__icontains=tok)
+    )
+    if incluir_mongo_id:
+        q |= Q(mongo_id__icontains=tok)
+    return q
+
+
+def _q_token_busca_pg(tok: str) -> Q:
+    """Um termo com modos exclusivos — valor progressivo sem lixo."""
+    dig = _so_digitos(tok)
+
+    # P2 — parcela: coluna + texto («Parcela 7 de 12» / «7/12»)
+    parc = _parse_parcela_busca_pg(tok)
+    if parc is not None:
+        n, tot = parc
+        return _q_parcela_busca(n, tot)
+
+    # P0 — data: SÓ datas
+    dt = _parse_data_busca_pg(tok)
+    if dt is not None:
+        return Q(data_vencimento=dt) | Q(data_competencia=dt) | Q(data_pagamento=dt)
+
+    # P1 — boleto / linha digitável: SÓ boleto
+    if dig and len(dig) >= 40:
+        q = Q(boleto_codigo_barras__icontains=dig[:54])
+        if len(dig) >= 44:
+            q |= Q(boleto_codigo_barras__icontains=dig[:44])
+        return q
+
+    # P2 — CPF / CNPJ: SÓ campos de pessoa/doc (sem mongo_id)
+    if dig and len(dig) in (11, 14) and (
+        dig == tok or re.fullmatch(r"[\d./\-]+", tok or "")
+    ):
+        q = Q(pk__in=[])
+        for v in _variantes_doc_cpf_cnpj(dig):
+            q |= (
+                Q(cliente__icontains=v)
+                | Q(descricao__icontains=v)
+                | Q(observacoes__icontains=v)
+                | Q(numero_documento__icontains=v)
+            )
+        return q
+
+    # Valor: inteiro curto OU vírgula/R$ — faixa progressiva (234 → acha 234,78)
+    puro_curto = bool(dig and dig == tok and 1 <= len(dig) <= 7)
+    if puro_curto or _parece_valor_monetario_token(tok):
+        faixa = _faixa_valor_digitacao(tok)
+        if faixa is None:
+            return Q(pk__in=[])
+        lo, hi, exato = faixa
+        q = _q_valor_faixa(lo, hi, exato=exato)
+        # NF: só número puro com 5+ dígitos (evita «234» em documento/ID)
+        if puro_curto and len(dig) >= 5:
+            q |= Q(numero_documento__icontains=dig)
+        return q
+
+    # Texto livre — mongo_id só com termo longo
+    incluir_mid = len(tok) >= 8
+    q = _q_texto_basico(tok, incluir_mongo_id=incluir_mid)
+    if dig and dig != tok and len(dig) >= 3:
+        q |= (
+            Q(numero_documento__icontains=dig)
+            | Q(observacoes__icontains=dig)
+            | Q(descricao__icontains=dig)
+            | Q(boleto_codigo_barras__icontains=dig)
+            | Q(cliente__icontains=dig)
+        )
+    return q
+
+
 def _aplicar_texto_qs(qs: QuerySet, texto: str | None) -> QuerySet:
     t = (texto or "").strip()
     if not t:
         return qs
-    tokens = [x for x in t.split() if x.strip()]
-    for tok in tokens[:12]:
-        tok = tok.strip()
+    tokens = _normalizar_tokens_busca_pg(t)
+    for tok in tokens:
         if not tok:
             continue
-        q_tok = (
-            Q(cliente__icontains=tok)
-            | Q(descricao__icontains=tok)
-            | Q(numero_documento__icontains=tok)
-            | Q(plano_conta__icontains=tok)
-            | Q(grupo__icontains=tok)
-            | Q(forma_pagamento__icontains=tok)
-            | Q(banco__icontains=tok)
-            | Q(empresa__icontains=tok)
-            | Q(observacoes__icontains=tok)
-            | Q(mongo_id__icontains=tok)
-        )
-        qs = qs.filter(q_tok)
+        qs = qs.filter(_q_token_busca_pg(tok))
     return qs
 
 

@@ -6204,14 +6204,16 @@ def _vendas_qs_periodo(di: date, df: date):
 
 def _venda_lista_preparar_linha(v, *, nfce_cfg: dict, tem_fiado: bool) -> None:
     """Evita reparse de JSON fiado e NFC-e config a cada coluna do template."""
-    v.lista_tem_fiado = tem_fiado
-    v.lista_fiado_aguarda = (
-        tem_fiado
-        and (v.erp_sync_status or "") == VendaAgro.ErpSyncStatus.PENDENTE
-        and not v.enviado_erp
-    )
+    from produtos.devolucao_venda_util import valor_restante_venda
     from produtos.nfce_venda_util import painel_nfce_venda
 
+    v.lista_tem_fiado = tem_fiado
+    # Envio ERP de venda desligado (PDV_VENDA_ERP_ENVIO=False) — não acionar botões na lista.
+    v.lista_fiado_aguarda = False
+    rest = valor_restante_venda(v)
+    tot = (v.total or Decimal("0")).quantize(Decimal("0.01"))
+    v.lista_total_restante = rest
+    v.lista_mostra_restante = (not v.devolvida_em) and rest < tot - Decimal("0.009")
     v.nfce_painel = painel_nfce_venda(v, _cfg=nfce_cfg)
 
 
@@ -7872,16 +7874,35 @@ def _dashboard_vendas_hoje_pdv() -> tuple[float, int]:
 
 
 def _dashboard_devolucoes_periodo(data_ini: date, data_fim: date) -> dict[str, int | float]:
-    """Devoluções registradas no intervalo (data da devolução, não da venda)."""
-    qs = VendaAgro.objects.filter(
-        devolvida_em__isnull=False,
-        devolvida_em__date__gte=data_ini,
-        devolvida_em__date__lte=data_fim,
+    """Devoluções registradas no intervalo (data do evento; legado sem evento)."""
+    from django.db.models import Exists, OuterRef
+
+    from produtos.models import DevolucaoVendaAgro
+
+    qs_ev = DevolucaoVendaAgro.objects.filter(
+        criado_em__date__gte=data_ini,
+        criado_em__date__lte=data_fim,
     )
-    agg = qs.aggregate(n=Count("id"), soma=Sum("total"))
+    agg = qs_ev.aggregate(n=Count("id"), soma=Sum("total"))
+    n = int(agg.get("n") or 0)
+    soma = _dashboard_float(agg.get("soma"))
+    if n == 0:
+        has_ev = Exists(DevolucaoVendaAgro.objects.filter(venda_id=OuterRef("pk")))
+        qs = (
+            VendaAgro.objects.filter(
+                devolvida_em__isnull=False,
+                devolvida_em__date__gte=data_ini,
+                devolvida_em__date__lte=data_fim,
+            )
+            .annotate(_tem_ev=has_ev)
+            .filter(_tem_ev=False)
+        )
+        agg2 = qs.aggregate(n=Count("id"), soma=Sum("total"))
+        n = int(agg2.get("n") or 0)
+        soma = _dashboard_float(agg2.get("soma"))
     return {
-        "quantidade": int(agg.get("n") or 0),
-        "valor": round(_dashboard_float(agg.get("soma")), 2),
+        "quantidade": n,
+        "valor": round(soma, 2),
     }
 
 
@@ -8876,10 +8897,9 @@ def vendas_lista(request):
     elif filtro_erp == "enviado":
         qs = qs.filter(enviado_erp=True).filter(filtro_fiado_q)
     qs_ativas = qs.filter(devolvida_em__isnull=True)
-    agg = qs_ativas.aggregate(soma=Sum("total"), n=Count("id"))
+    n_ativas = qs_ativas.count()
     n_devolvidas = qs.filter(devolvida_em__isnull=False).count()
     devolucoes_registradas = _dashboard_devolucoes_periodo(di, df)
-    soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
@@ -8887,9 +8907,12 @@ def vendas_lista(request):
     from produtos.nfce_config_util import nfce_config_resumo
 
     nfce_cfg = nfce_config_resumo()
-    vendas = list(qs)
+    vendas = list(qs.prefetch_related("itens", "devolucoes"))
+    soma = Decimal("0")
     for v in vendas:
         _venda_lista_preparar_linha(v, nfce_cfg=nfce_cfg, tem_fiado=venda_local_tem_fiado(v))
+        if v.devolvida_em is None:
+            soma += v.lista_total_restante
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -8899,7 +8922,7 @@ def vendas_lista(request):
             "periodo_label": label,
             "vendas": vendas,
             "total_periodo": soma.quantize(Decimal("0.01")),
-            "quantidade_vendas": agg["n"] or 0,
+            "quantidade_vendas": n_ativas,
             "quantidade_devolvidas": n_devolvidas,
             "devolucoes_registradas_qtd": int(devolucoes_registradas.get("quantidade") or 0),
             "devolucoes_registradas_valor": float(devolucoes_registradas.get("valor") or 0),
@@ -10075,7 +10098,9 @@ def caixa_fechar(request):
 @ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
-        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
+        VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related(
+            "itens", "devolucoes", "devolucoes__itens", "devolucoes__itens__item"
+        ),
         pk=pk,
     )
     erp_txt = ""
@@ -10090,8 +10115,17 @@ def venda_agro_detalhe(request, pk):
     cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
     from produtos.nfce_config_util import nfce_config_resumo
     from produtos.nfce_venda_util import painel_nfce_venda
+    from produtos.devolucao_venda_util import (
+        formas_pagamento_devolucao,
+        frete_restante,
+        serializar_historico_devolucoes,
+        serializar_itens_devolucao_ui,
+        valor_restante_venda,
+    )
+    from produtos.fiado_credito_util import venda_local_tem_fiado
 
     nfce_painel = painel_nfce_venda(v)
+    total_restante = valor_restante_venda(v)
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
@@ -10108,7 +10142,15 @@ def venda_agro_detalhe(request, pk):
                 indent=2,
             ),
             "pagamentos_devolucao_default": pagamentos_lista_de_venda(v),
-            "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
+            "formas_pagamento_caixa": formas_pagamento_devolucao(v),
+            "venda_tem_fiado": venda_local_tem_fiado(v),
+            "itens_devolucao_json": serializar_itens_devolucao_ui(v),
+            "historico_devolucoes": serializar_historico_devolucoes(v),
+            "frete_restante": frete_restante(v),
+            "frete_venda": v.frete or 0,
+            "total_restante": total_restante,
+            "mostra_total_restante": (not v.devolvida_em)
+            and total_restante < (v.total or Decimal("0")) - Decimal("0.009"),
         },
     )
 
@@ -10116,23 +10158,26 @@ def venda_agro_detalhe(request, pk):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_venda_agro_devolver(request, pk):
-    """Devolução total da venda: repõe estoque Agro e registra retirada(s) no caixa aberto."""
+    """Devolução total ou parcial (itens + frete opcional)."""
+    from decimal import Decimal as Dec
+
+    from produtos.devolucao_venda_util import (
+        abater_valor_fiado_venda,
+        montar_selecao_devolucao,
+        registrar_evento_devolucao,
+        separar_pagamentos_caixa_fiado,
+        total_evento,
+        venda_restante_zerada,
+    )
+    from produtos.fiado_credito_util import venda_local_tem_fiado
+    from produtos.fiado_gestao_util import cancelar_titulos_venda
+
     venda = get_object_or_404(
         VendaAgro.objects.select_related("sessao_caixa", "nfce").prefetch_related("itens"),
         pk=pk,
     )
     if venda.devolvida_em:
-        return JsonResponse({"ok": False, "erro": "Esta venda já foi devolvida."}, status=400)
-
-    sessao = _obter_sessao_caixa_aberta(request)
-    if not sessao:
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Abra o caixa neste navegador para registrar a saída do valor devolvido ao cliente.",
-            },
-            status=400,
-        )
+        return JsonResponse({"ok": False, "erro": "Esta venda já foi devolvida por completo."}, status=400)
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -10140,23 +10185,65 @@ def api_venda_agro_devolver(request, pk):
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
 
     motivo = str(payload.get("motivo") or "").strip()[:500]
+    devolver_tudo = bool(payload.get("devolver_tudo"))
+    devolver_frete = bool(payload.get("devolver_frete"))
+    # Compat legado: sem chave "itens" e sem devolver_tudo → restante inteiro
+    if devolver_tudo or "itens" not in payload:
+        linhas, frete_v, err_sel = montar_selecao_devolucao(
+            venda, itens_raw=None, devolver_frete=True, devolver_tudo=True
+        )
+    else:
+        linhas, frete_v, err_sel = montar_selecao_devolucao(
+            venda,
+            itens_raw=payload.get("itens"),
+            devolver_frete=devolver_frete,
+            devolver_tudo=False,
+        )
+    if err_sel:
+        return JsonResponse({"ok": False, "erro": err_sel}, status=400)
+
+    total_dev = total_evento(linhas or [], frete_v)
+    if total_dev <= 0:
+        return JsonResponse({"ok": False, "erro": "Nada a devolver."}, status=400)
+
     raw_pag = payload.get("pagamentos")
     if raw_pag is None:
-        raw_pag = pagamentos_lista_de_venda(venda)
-    pagamentos, err_pag = normalizar_pagamentos_devolucao(
-        raw_pag, total_venda=venda.total
-    )
+        raw_pag = [{"forma": "Dinheiro", "valor": float(total_dev)}]
+    pagamentos, err_pag = normalizar_pagamentos_devolucao(raw_pag, total_venda=total_dev)
     if err_pag:
         return JsonResponse({"ok": False, "erro": err_pag}, status=400)
+
+    tem_fiado = venda_local_tem_fiado(venda)
+    pags_caixa, pags_fiado, err_split = separar_pagamentos_caixa_fiado(
+        pagamentos, venda_tem_fiado=tem_fiado
+    )
+    if err_split:
+        return JsonResponse({"ok": False, "erro": err_split}, status=400)
+
+    soma_caixa = sum(Dec(str(p["valor"])) for p in pags_caixa)
+    soma_fiado = sum(Dec(str(p["valor"])) for p in pags_fiado)
+
+    sessao = None
+    if soma_caixa > Dec("0.009"):
+        sessao = _obter_sessao_caixa_aberta(request)
+        if not sessao:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Abra o caixa neste navegador para registrar a saída do valor devolvido ao cliente.",
+                },
+                status=400,
+            )
 
     user_label = rotulo_usuario_django(request.user) if request.user.is_authenticated else ""
 
     avisos: list[str] = []
     movimento_ids: list[int] = []
     estoque_ok = True
+    filtro_est = [(it, q) for it, q, _v in (linhas or [])]
 
     with transaction.atomic():
-        if venda.estoque_baixa_agro_aplicada:
+        if venda.estoque_baixa_agro_aplicada and filtro_est:
             try:
                 cm, dbe = obter_conexao_mongo()
             except Exception as exc:
@@ -10173,6 +10260,7 @@ def api_venda_agro_devolver(request, pk):
                     deposito=dep_v,
                     usuario_label=user_label,
                     usuario_django=request.user if request.user.is_authenticated else None,
+                    itens_filtro=filtro_est,
                 )
                 if r_est.get("erros"):
                     estoque_ok = False
@@ -10194,16 +10282,16 @@ def api_venda_agro_devolver(request, pk):
             else:
                 avisos.append("Mongo indisponível — estoque não foi reposto na camada Agro.")
                 estoque_ok = False
-        else:
+        elif filtro_est and not venda.estoque_baixa_agro_aplicada:
             avisos.append("Venda sem baixa automática de estoque — nada a repor no Agro.")
 
         obs_base = f"Devolução venda #{venda.pk}"
         if motivo:
             obs_base += f" — {motivo}"
-        for row in pagamentos or []:
+        for row in pags_caixa:
             fn = normalizar_forma_pagamento_caixa(str(row.get("forma") or ""))
             val = parse_valor_moeda_br(row.get("valor"))
-            if val is None or val <= 0:
+            if val is None or val <= 0 or sessao is None:
                 continue
             mov = MovimentoCaixa.objects.create(
                 sessao_caixa=sessao,
@@ -10215,56 +10303,105 @@ def api_venda_agro_devolver(request, pk):
             )
             movimento_ids.append(mov.pk)
 
-        if not movimento_ids:
+        if soma_caixa > Dec("0.009") and not movimento_ids:
             return JsonResponse(
                 {"ok": False, "erro": "Nenhuma retirada de caixa foi registrada."},
                 status=400,
             )
 
-        venda.devolvida_em = timezone.now()
-        venda.devolucao_motivo = motivo
-        venda.devolucao_pagamentos_json = pagamentos
-        venda.devolucao_movimento_caixa_ids = movimento_ids
-        venda.devolucao_usuario = user_label[:150]
-        venda.save(
-            update_fields=[
-                "devolvida_em",
-                "devolucao_motivo",
-                "devolucao_pagamentos_json",
-                "devolucao_movimento_caixa_ids",
-                "devolucao_usuario",
-            ]
-        )
-        from produtos.fiado_gestao_util import cancelar_titulos_venda
+        if soma_fiado > Dec("0.009"):
+            ab = abater_valor_fiado_venda(
+                venda,
+                soma_fiado,
+                usuario=user_label,
+                motivo=motivo or "Devolução — abate fiado",
+            )
+            if ab + Dec("0.02") < soma_fiado:
+                avisos.append(
+                    f"Fiado: abatido R$ {ab} (pedido R$ {soma_fiado.quantize(Dec('0.01'))}). "
+                    "Confira títulos em aberto."
+                )
 
-        cancelar_titulos_venda(venda, usuario=user_label, motivo=motivo or "Devolução venda")
+        ev = registrar_evento_devolucao(
+            venda=venda,
+            linhas=linhas or [],
+            frete_v=frete_v,
+            pagamentos=pagamentos,
+            movimento_ids=movimento_ids,
+            motivo=motivo,
+            usuario=user_label,
+            totalizou=False,
+        )
+
+        # refresh remaining after qty updates
+        venda.refresh_from_db()
+        totalizou = venda_restante_zerada(venda)
+        ev.totalizou_venda = totalizou
+        ev.save(update_fields=["totalizou_venda"])
+
+        if totalizou:
+            venda.devolvida_em = timezone.now()
+            venda.devolucao_motivo = motivo
+            venda.devolucao_pagamentos_json = pagamentos
+            venda.devolucao_movimento_caixa_ids = movimento_ids
+            venda.devolucao_usuario = user_label[:150]
+            venda.save(
+                update_fields=[
+                    "devolvida_em",
+                    "devolucao_motivo",
+                    "devolucao_pagamentos_json",
+                    "devolucao_movimento_caixa_ids",
+                    "devolucao_usuario",
+                    "frete_devolvido",
+                ]
+            )
+            cancelar_titulos_venda(
+                venda, usuario=user_label, motivo=motivo or "Devolução venda total"
+            )
+        else:
+            venda.save(update_fields=["frete_devolvido"])
+            nfce = getattr(venda, "nfce", None)
+            if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+                avisos.append(
+                    "Devolução parcial: o cupom fiscal (NFC-e) permanece autorizado. "
+                    "Cancelamento na SEFAZ só na devolução total (e dentro do prazo)."
+                )
 
     nfce_cancelada = False
-    nfce = getattr(venda, "nfce", None)
-    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-        from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
+    if totalizou:
+        nfce = getattr(venda, "nfce", None)
+        if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+            from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
 
-        r_nfce = cancelar_nfce_autorizada(nfce)
-        if r_nfce.get("ok"):
-            nfce_cancelada = True
-            num = nfce.numero or "?"
-            avisos.append(f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ.")
-        else:
-            num = nfce.numero or "?"
-            avisos.append(
-                f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
-                f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
-            )
+            r_nfce = cancelar_nfce_autorizada(nfce)
+            if r_nfce.get("ok"):
+                nfce_cancelada = True
+                num = nfce.numero or "?"
+                avisos.append(f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ.")
+            else:
+                num = nfce.numero or "?"
+                avisos.append(
+                    f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
+                    f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
+                )
 
     _dashboard_invalidar_cache_apos_venda_agro(venda)
 
+    msg = (
+        "Devolução total registrada."
+        if totalizou
+        else "Devolução parcial registrada. Ainda há itens nesta venda."
+    )
     return JsonResponse(
         {
             "ok": True,
-            "mensagem": "Devolução registrada. Estoque reposto e valor saiu do caixa aberto.",
+            "mensagem": msg,
             "movimento_ids": movimento_ids,
-            "estoque_reposto": bool(venda.estoque_baixa_agro_aplicada and estoque_ok),
+            "estoque_reposto": bool(venda.estoque_baixa_agro_aplicada and estoque_ok and filtro_est),
             "nfce_cancelada": nfce_cancelada,
+            "parcial": not totalizou,
+            "totalizou": totalizou,
+            "total_devolvido": float(total_dev),
             "avisos": avisos,
         }
     )
@@ -12291,8 +12428,12 @@ def aplicar_estorno_estoque_venda_agro(
     deposito: str,
     usuario_label: str,
     usuario_django=None,
+    itens_filtro: list | None = None,
 ) -> dict:
-    """Entrada de estoque na camada Agro (estorno da baixa da venda)."""
+    """Entrada de estoque na camada Agro (estorno da baixa da venda).
+
+    `itens_filtro`: lista opcional de `(ItemVendaAgro, Decimal qtd)` — se None, estorna todos os itens.
+    """
     dep_sess = (deposito or "centro").strip().lower()
     if dep_sess not in ("centro", "vila"):
         dep_sess = "centro"
@@ -12344,14 +12485,24 @@ def aplicar_estorno_estoque_venda_agro(
             )
             erros.append({"produto_id": pid_loc, "erro": str(exc)[:300]})
 
-    for it in venda.itens.all():
+    if itens_filtro is None:
+        pares = [(it, Decimal(str(it.quantidade or 0))) for it in venda.itens.all()]
+    else:
+        pares = []
+        for pair in itens_filtro:
+            if not pair or len(pair) < 2:
+                continue
+            it, q = pair[0], pair[1]
+            try:
+                q = Decimal(str(q))
+            except Exception:
+                continue
+            if q > 0:
+                pares.append((it, q))
+
+    for it, qtd in pares:
         pid = str(it.produto_id_externo or "").strip()
         if not pid or pid.lower().startswith("local:"):
-            continue
-        try:
-            qtd = Decimal(str(it.quantidade))
-        except Exception:
-            erros.append({"produto_id": pid, "erro": "Quantidade inválida."})
             continue
         if qtd <= 0:
             continue
@@ -22124,6 +22275,8 @@ def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
 
 
 def _disparar_envio_erp_venda_background(venda_id: int, data: dict):
+    if not getattr(settings, "PDV_VENDA_ERP_ENVIO", False):
+        return
     threading.Thread(
         target=_enviar_venda_erp_background_worker,
         args=(venda_id, data),
@@ -22236,6 +22389,7 @@ def api_enviar_pedido_erp(request):
             raw_itens = data.get("itens", [])
             if not isinstance(raw_itens, list):
                 raw_itens = []
+            erp_on = bool(getattr(settings, "PDV_VENDA_ERP_ENVIO", False))
             venda_local = _persistir_venda_agro(
                 request,
                 data,
@@ -22243,7 +22397,11 @@ def api_enviar_pedido_erp(request):
                 None,
                 None,
                 False,
-                erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
+                erp_sync_status=(
+                    VendaAgro.ErpSyncStatus.PENDENTE
+                    if erp_on
+                    else VendaAgro.ErpSyncStatus.ACEITO
+                ),
             )
             vid = venda_local.pk if venda_local else None
             return _resposta_venda(
@@ -22251,12 +22409,41 @@ def api_enviar_pedido_erp(request):
                 venda_local,
                 ok=True,
                 venda_id=vid,
-                fiado_aguarda_erp=True,
+                fiado_aguarda_erp=erp_on,
                 erp_pendente=False,
                 mensagem=(
                     "Venda fiado registrada no Agro. Envie ao ERP manualmente em Vendas → Fiado pendente ERP."
+                    if erp_on
+                    else "Venda fiado registrada no Agro."
                 ),
                 credito=cred,
+            )
+        if not getattr(settings, "PDV_VENDA_ERP_ENVIO", False):
+            err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
+                data, client_m=client_m, db=db
+            )
+            if err_early is not None:
+                return err_early
+            raw_itens = data.get("itens", [])
+            if not isinstance(raw_itens, list):
+                raw_itens = []
+            venda_local = _persistir_venda_agro(
+                request,
+                data,
+                raw_itens,
+                None,
+                None,
+                False,
+                erp_sync_status=VendaAgro.ErpSyncStatus.ACEITO,
+            )
+            vid = venda_local.pk if venda_local else None
+            return _resposta_venda(
+                data,
+                venda_local,
+                ok=True,
+                venda_id=vid,
+                erp_pendente=False,
+                mensagem="Venda registrada no Agro.",
             )
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
             err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
@@ -22512,6 +22699,14 @@ def api_venda_agro_reverter_erp(request, pk):
 @require_POST
 def api_venda_agro_reenviar_erp(request, pk):
     """Envio manual fiado → ERP (Pedidos/Salvar) com confirmação e histórico."""
+    if not getattr(settings, "PDV_VENDA_ERP_ENVIO", False):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Envio de venda ao ERP está desligado neste sistema.",
+            },
+            status=400,
+        )
     try:
         body = json.loads(request.body.decode("utf-8")) if request.body else {}
     except (json.JSONDecodeError, UnicodeDecodeError):

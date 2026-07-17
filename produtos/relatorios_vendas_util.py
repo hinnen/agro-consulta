@@ -7,7 +7,7 @@ from decimal import Decimal
 from io import BytesIO
 from typing import Any
 
-from django.db.models import Q, Sum
+from django.db.models import Max, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from openpyxl import Workbook
@@ -679,10 +679,31 @@ def giro_e_parado(*, dias_giro: int = 30, dias_parado: int = 90, limite: int = 1
         obter_estoque_parado_90d,
         obter_top_giro_30d,
     )
+    from produtos.models import ItemVendaAgro
 
     # funções existentes usam 30/90 fixos — reutilizamos e documentamos
     giro = obter_top_giro_30d(limite)
     parado, total_parado = obter_estoque_parado_90d(limite)
+    pids = {
+        str(x.get("produto_id") or "").strip()
+        for x in list(giro) + list(parado)
+        if str(x.get("produto_id") or "").strip()
+    }
+    ultimas_vendas: dict[str, datetime] = {}
+    if pids:
+        qs_ult = (
+            ItemVendaAgro.objects.filter(
+                produto_id_externo__in=list(pids),
+                venda__devolvida_em__isnull=True,
+            )
+            .values("produto_id_externo")
+            .annotate(ultima_venda=Max("venda__criado_em"))
+        )
+        ultimas_vendas = {
+            str(r["produto_id_externo"] or "").strip(): r["ultima_venda"]
+            for r in qs_ult
+            if str(r["produto_id_externo"] or "").strip()
+        }
     return {
         "giro": [
             {
@@ -691,6 +712,7 @@ def giro_e_parado(*, dias_giro: int = 30, dias_parado: int = 90, limite: int = 1
                 "nome": g["nome"],
                 "qtd": round(g["total_vendido"], 3),
                 "valor": round(g["receita_gerada"], 2),
+                "ultima_venda": ultimas_vendas.get(str(g["produto_id"] or "").strip()),
             }
             for i, g in enumerate(giro, start=1)
         ],
@@ -702,6 +724,7 @@ def giro_e_parado(*, dias_giro: int = 30, dias_parado: int = 90, limite: int = 1
                 "estoque": p["estoque_atual"],
                 "custo": p["custo"],
                 "valor_parado": p["valor_parado"],
+                "ultima_venda": ultimas_vendas.get(str(p["produto_id"] or "").strip()),
             }
             for i, p in enumerate(parado, start=1)
         ],
@@ -802,3 +825,15 @@ def fmt_brl(v: float | Decimal | None) -> str:
         n = 0.0
     s = f"{n:,.2f}"
     return "R$ " + s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def fmt_data_curta(v: datetime | date | None) -> str:
+    if not v:
+        return "-"
+    if isinstance(v, datetime):
+        try:
+            v = timezone.localtime(v)
+        except Exception:
+            pass
+        v = v.date()
+    return v.strftime("%d/%m/%Y")

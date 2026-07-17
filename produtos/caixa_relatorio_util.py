@@ -188,11 +188,65 @@ def montar_relatorio_caixa(
                 )
             )
 
-    # Devoluções (data da devolução)
+    # Devoluções (eventos parciais/totais + legado só devolvida_em)
+    from produtos.models import DevolucaoVendaAgro
+
+    dev_ev = DevolucaoVendaAgro.objects.filter(
+        criado_em__gte=ini, criado_em__lte=fim
+    ).select_related("venda").order_by("criado_em")
+    seen_venda_ev: set[int] = set()
+    for ev in dev_ev:
+        v = ev.venda
+        seen_venda_ev.add(v.pk)
+        sid = v.sessao_caixa_id
+        if sid and not _sessao_ok(sid):
+            continue
+        if not sid and sessao_id is not None:
+            continue
+        pag = ev.pagamentos_json
+        if isinstance(pag, list) and pag:
+            for row in pag:
+                if not isinstance(row, dict):
+                    continue
+                val = _dec(row.get("valor"))
+                fn_dev = str(row.get("forma") or "")
+                if val <= 0 or not _forma_ok(fn_dev):
+                    continue
+                if fn_dev == "Fiado":
+                    continue  # abate dívida — não conta como saída de caixa no relatório
+                buckets["devolucoes"].append(
+                    _row(
+                        "devolucoes",
+                        quando=ev.criado_em,
+                        descricao=f"Devolução venda #{v.pk} · {(v.cliente_nome or '')[:35]}",
+                        forma=fn_dev,
+                        valor=val,
+                        sinal="-",
+                        sessao_pk=sid,
+                        ref=f"dev-ev:{ev.pk}",
+                    )
+                )
+        elif not filtro_forma:
+            buckets["devolucoes"].append(
+                _row(
+                    "devolucoes",
+                    quando=ev.criado_em,
+                    descricao=f"Devolução venda #{v.pk}",
+                    forma="",
+                    valor=_dec(ev.total),
+                    sinal="-",
+                    sessao_pk=sid,
+                    ref=f"dev-ev:{ev.pk}",
+                )
+            )
+
+    # Legado: total sem eventos
     dev_qs = VendaAgro.objects.filter(
         devolvida_em__gte=ini, devolvida_em__lte=fim
     ).order_by("devolvida_em")
     for v in dev_qs:
+        if v.pk in seen_venda_ev:
+            continue
         sid = v.sessao_caixa_id
         if sid and not _sessao_ok(sid):
             continue
