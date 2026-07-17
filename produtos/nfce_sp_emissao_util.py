@@ -74,8 +74,9 @@ CUF_SP = "35"
 # SEFAZ já registrou esse nNF com outra chave (testes repetidos) — tenta próximo número.
 _NFCE_RETRY_CSTAT_DUPLICIDADE = frozenset({"539", "204"})
 
-# NT 2024.003 — PIX/cartão exigem grupo card (tpIntegra 2 = não integrado ao TEF).
-_TPAG_REQUER_CARD = frozenset({"03", "04", "05", "10", "11", "12", "13", "15", "17", "18", "19", "20", "21", "22"})
+# NT 2023.004 / 2024.003 — só estes tPag aceitam grupo card (tpIntegra 2 = sem TEF).
+# Incluir 05 (crédito loja/fiado) ou 19–22 → SEFAZ 963.
+_TPAG_REQUER_CARD = frozenset({"03", "04", "10", "11", "12", "13", "15", "17", "18"})
 
 
 def _q2(v: Decimal | float) -> str:
@@ -406,8 +407,9 @@ def _montar_xml_nfce(
         _sub(prod, "cEAN", "SEM GTIN")
         _sub(prod, "xProd", (item.descricao or "PRODUTO")[:120])
         _sub(prod, "NCM", fis["ncm"])
-        if fis.get("cest"):
-            _sub(prod, "CEST", fis["cest"])
+        cest = re.sub(r"\D", "", str(fis.get("cest") or ""))
+        if len(cest) == 7:
+            _sub(prod, "CEST", cest)
         _sub(prod, "CFOP", fis["cfop"])
         _sub(prod, "uCom", "UN")
         _sub(prod, "qCom", _q4(qtd))

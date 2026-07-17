@@ -468,7 +468,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). Reemissão em `/vendas/` → após autorizar pergunta **Imprimir cupom / Agora não**. Aviso pós-venda NFC-e falhou: toast **no topo**, depois da janela de impressão Windows.
 
-**SEFAZ:** rejeição **225** corrigida com grupo `<card><tpIntegra>2</tpIntegra></card>` em PIX/cartão (NT 2024.003) + `vTotTrib` por item.
+**SEFAZ:** PIX/cartão → grupo `<card><tpIntegra>2</tpIntegra></card>` (NT 2024.003) + `vTotTrib` por item. **Não** mandar `card` em fiado/`tPag=05` (rejeição **963**). NCM/CFOP/CEST só dígitos no XML (rejeição **225** schema).
 
 **Arquivos centrais:**
 
@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.15** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.17** · **loja v9.16**
+
+### 🐛 NFC-e — rejeições 963 + 225 (17/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Casos** | Venda **#2812** → **963** · Venda **#3347** → **225** (frete #23 já OK) |
+| **963** | Fiado/`tPag=05` ia com grupo `<card>` — SEFAZ não aceita. `_TPAG_REQUER_CARD` só **03/04/10–13/15/17/18** |
+| **225** | CFOP/CEST/NCM com ponto/traço no XML (schema). Limpa só dígitos + CEST só se 7 dígitos |
+| **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
+| **Você** | Ctrl+F5 teste · badge **v9.17** · em Contabilidade **reemitir** #2812 e #3347 |
+| **Loja** | Só com frase + senha depois do OK no teste |
 
 ### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
 
