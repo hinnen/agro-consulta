@@ -2581,26 +2581,28 @@
     color: #b45309;
   }
   .pdv-product-edit-panel {
-    /* Um degrau maior (telas compactas): caixa + tipografia juntas */
-    width: min(98vw, 58rem);
-    max-height: min(96dvh, 50rem);
+    /* Estica o pop inteiro (~+25 %) — fonte, campos e botões juntos (Chrome) */
+    --pdv-pe-zoom: 1.25;
+    width: min(calc(96vw / var(--pdv-pe-zoom)), calc(52rem / var(--pdv-pe-zoom)));
+    max-height: min(calc(94dvh / var(--pdv-pe-zoom)), calc(44rem / var(--pdv-pe-zoom)));
+    zoom: var(--pdv-pe-zoom);
   }
   #pdv-quick-product-edit-overlay #pdv-quick-product-edit-title {
-    font-size: clamp(1.3rem, 0.65vw + 1.1rem, 1.75rem);
+    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.6rem);
     line-height: 1.15;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-label {
-    font-size: clamp(0.8rem, 0.32vw + 0.7rem, 0.95rem);
+    font-size: clamp(0.78rem, 0.3vw + 0.68rem, 0.92rem);
     letter-spacing: 0.04em;
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-input {
-    min-height: 3rem;
-    padding: 0.5rem 0.8rem;
-    font-size: clamp(1.05rem, 0.4vw + 0.95rem, 1.25rem);
+    min-height: 2.85rem;
+    padding: 0.5rem 0.75rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.22rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-section-title {
     margin: 0.4rem 0 0.5rem;
-    font-size: clamp(0.85rem, 0.35vw + 0.75rem, 1rem);
+    font-size: clamp(0.82rem, 0.32vw + 0.72rem, 0.98rem);
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-body {
     flex: 1 1 auto;
@@ -2610,7 +2612,7 @@
   #pdv-quick-product-edit-overlay .pdv-product-edit-form {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem 0.65rem;
+    gap: 0.5rem 0.6rem;
   }
   @media (min-width: 640px) {
     #pdv-quick-product-edit-overlay .pdv-product-edit-form {
@@ -2624,48 +2626,52 @@
     #pdv-quick-product-edit-overlay .pdv-pe-f-venda { grid-column: 4 / 7; }
   }
   #pdv-quick-product-edit-overlay .pdv-product-edit-footer-btn {
-    min-height: 3.5rem;
-    font-size: clamp(1.05rem, 0.4vw + 0.95rem, 1.3rem);
+    min-height: 3.35rem;
+    font-size: clamp(1.05rem, 0.4vw + 0.92rem, 1.25rem);
   }
   /* Estoque: «agora» e «novo» com o mesmo tamanho de número */
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-card {
-    padding: 0.8rem 1rem;
+    padding: 0.75rem 0.9rem;
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-tag {
-    font-size: clamp(0.78rem, 0.28vw + 0.7rem, 0.9rem);
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
     letter-spacing: 0.06em;
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-lbl {
-    font-size: clamp(0.78rem, 0.28vw + 0.7rem, 0.9rem);
+    font-size: clamp(0.75rem, 0.28vw + 0.68rem, 0.88rem);
     letter-spacing: 0.04em;
     margin-bottom: 0.25rem;
   }
   #pdv-quick-product-edit-overlay .pdv-pe-estoque-num,
   #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
-    font-size: clamp(1.5rem, 0.8vw + 1.25rem, 1.95rem) !important;
+    font-size: clamp(1.4rem, 0.75vw + 1.2rem, 1.85rem) !important;
     font-weight: 900;
     line-height: 1.15;
     font-variant-numeric: tabular-nums;
-    min-height: 3.2rem;
+    min-height: 3rem;
   }
   #pdv-quick-product-edit-overlay input.pdv-pe-estoque-num {
-    padding: 0.4rem 0.65rem;
+    padding: 0.4rem 0.6rem;
   }
   #pdv-quick-product-edit-overlay header p {
-    font-size: clamp(0.85rem, 0.4vw + 0.75rem, 1.05rem) !important;
+    font-size: clamp(0.82rem, 0.35vw + 0.72rem, 1rem) !important;
   }
   #pdv-quick-product-edit-overlay #pdv-quick-product-edit-fechar {
-    min-height: 3.85rem;
-    min-width: 3.85rem;
-    font-size: clamp(1.9rem, 1vw + 1.5rem, 2.45rem);
+    min-height: 3.6rem;
+    min-width: 3.6rem;
+    font-size: clamp(1.85rem, 0.95vw + 1.45rem, 2.35rem);
   }
   #pdv-quick-product-edit-overlay .pdv-pe-forma-sel {
-    min-height: 2.35rem;
+    min-height: 2.5rem;
     border-radius: 0.65rem;
     border: 2px solid #e2e8f0;
     background: #fff;
     font-weight: 900;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+  }
+  #pdv-quick-product-edit-overlay #pdv-quick-product-edit-formas-toggle {
+    min-height: 3rem;
+    font-size: clamp(0.9rem, 0.3vw + 0.8rem, 1.05rem);
   }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
