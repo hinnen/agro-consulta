@@ -1166,6 +1166,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **963** | Fiado/`tPag=05` ia com grupo `<card>` — SEFAZ não aceita. `_TPAG_REQUER_CARD` só **03/04/10–13/15/17/18** |
 | **225** | CFOP/CEST/NCM com ponto/traço no XML (schema). Limpa só dígitos + CEST só se 7 dígitos |
 | **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
+| **Commits teste** | `fb6ba2f` + `c80fb9e` (**v9.17**) |
 | **Você** | Ctrl+F5 teste · badge **v9.17** · em Contabilidade **reemitir** #2812 e #3347 |
 | **Loja** | Só com frase + senha depois do OK no teste |
 
