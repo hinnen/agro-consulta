@@ -1158,6 +1158,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.30** · **loja v9.16**
 
+### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · aguarda senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto pra envio** — Renan OK no teste · espera frase + senha `99738595` na **mesma mensagem** |
+| **Inclui** | Ajuda **?** leiga em **todas** as telas de relatórios (hub, validade, ABC, ranking, margem…) · botão âmbar ao lado de Imprimir A4 · painel colorido por coluna · **sem** scroll interno |
+| **Commits teste** | `3828dcf` · `6016bc1` · `61f6137` (feat + alinhamento + restaura botão) |
+| **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
+| **Versão alvo loja** | cherry-pick dos 3 commits (após FL-056 ou junto, se pedir) |
+| **Base loja hoje** | **v9.16** |
+| **Autorizar com** | *«pode subir ajuda relatórios»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · Relatórios → Curva ABC → **?** ao lado do azul |
+
 ### ✨ Cadastro — kardex unificado na aba Estoque (17/07 · **teste v9.30**)
 
 | Item | Detalhe |
@@ -1184,6 +1197,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Troca `<details>` por **botão** âmbar fixo (mesmo tamanho do Imprimir A4) · painel abre/fecha no clique · estilo inline pra não sumir |
 | **Arquivo** | `relatorios_help_agents.html` |
 | **Você** | Ctrl+F5 teste · badge **v9.28** · ? laranja ao lado do azul |
+| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
 
 ### fix — Relatórios ajuda «?» alinhada + sem scroll no card (17/07 · **teste v9.27**)
 
@@ -1192,6 +1206,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | **?** ao lado de Imprimir A4 / Voltar (mesmo tamanho 44px) · painel à direita **sem** max-height / scrollbar interna |
 | **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` |
 | **Você** | Ctrl+F5 teste · badge **v9.27** · Relatórios → ? ao lado do azul |
+| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
 
 ### ✨ Cadastro ERP — busca + filtros na barra (17/07 · **teste v9.24**)
 
@@ -1201,14 +1216,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` |
 | **Você** | Ctrl+F5 teste · badge **v9.25** · `/produtos/cadastro-erp/` |
 
-### ✨ Relatórios — ajuda «?» leiga em todas as telas (17/07 · **teste v9.23**)
+### ✨ Relatórios — ajuda «?» leiga em todas as telas (17/07 · **teste v9.23** · ✅ OK Renan)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Botão **?** colorido ao lado do título · painel didático (colunas + o que o relatório faz) · hub, validade e todos os cards do genérico |
+| **O quê** | Botão **?** em todas as telas de relatórios · painel didático (colunas + o que o relatório faz) · hub, validade e todos os cards do genérico |
 | **Arquivos** | `includes/relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
-| **Você** | Ctrl+F5 teste · badge **v9.23** · Relatórios → Curva ABC (e outros) → clicar **?** |
-| **Loja** | ainda **v9.16** — sobe só com frase+senha |
+| **Você** | ✅ OK no teste (v9.28) |
+| **Loja** | 📦 **pronto pra envio** — ver pacote **Relatórios ajuda «?»** |
 
 ### ✨ Cadastro ERP — layout header/toolbar (17/07 · **teste v9.22**)
 
@@ -1402,14 +1417,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Quando | O quê |
 | ------ | ----- |
 | **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
+| **Fecha** | **Relatórios ajuda «?»** — 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
-| **Autorizar** | *«pode subir NFC-e 963/225»* + **99738595** |
+| **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
+| **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
 | **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
+| **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | 📋 |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | 📋 |
