@@ -1,14 +1,14 @@
 {# Ajuda leiga dos relatórios — {% with rel_help="slug" %}{% include ... %}{% endwith %} #}
 {% if rel_help %}
-<details class="rel-help-agents no-print group relative shrink-0">
+<details class="rel-help-agents no-print relative shrink-0">
   <summary
-    class="list-none inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-amber-400 bg-gradient-to-br from-amber-400 to-orange-500 text-lg font-black text-slate-950 shadow-lg shadow-amber-500/30 hover:scale-105 hover:from-amber-300 hover:to-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden"
+    class="list-none inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-xl border-2 border-amber-400 bg-amber-500 px-3.5 text-sm font-black uppercase text-slate-950 shadow-sm hover:bg-amber-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 [&::-webkit-details-marker]:hidden"
     title="Como ler este relatório"
     aria-label="Ajuda: como ler este relatório">?</summary>
 
-  <div class="absolute left-0 top-[calc(100%+0.5rem)] z-40 w-[min(36rem,calc(100vw-1.5rem))] max-h-[min(70vh,32rem)] overflow-y-auto rounded-2xl border-2 border-slate-600 bg-slate-900 p-4 shadow-2xl shadow-black/50 sm:left-auto sm:right-0">
+  <div class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(28rem,calc(100vw-2rem))] rounded-2xl border-2 border-slate-500 bg-slate-900 p-4 shadow-2xl shadow-black/60">
     <div class="mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
-      <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-sm font-black text-amber-300">?</span>
+      <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-sm font-black text-slate-950">?</span>
       <div>
         <p class="text-sm font-black text-white">Como ler este relatório</p>
         <p class="text-[11px] font-semibold text-slate-400">Explicação simples · toque de novo no ? para fechar</p>
