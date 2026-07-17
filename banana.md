@@ -1158,13 +1158,28 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.62** · **loja v9.16**
 
+### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · aguarda senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Lápis do PDV grava histórico na aba **9. Alterações** com origem **«PDV edição rápida»** (mesmo overlay do cadastro). Saldo no lápis continua só na aba **4** |
+| **Versão alvo loja** | **v9.62** |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos** | `pdv_wizard.js` · `cadastro_alteracao_historico_util.py` · `models.py` (Origem.PDV) · `_modal_editar_produto_cadastro_erp.inc.html` (`origem_historico=modal`) |
+| **Sobe junto** | Ideal com pacote **Cadastro modal** (migration `0054` + aba 9) — se a aba 9 ainda não estiver na loja, subir os dois |
+| **Risco** | Baixo — só marca origem + mesmo hook de histórico já existente |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir histórico PDV lápis / aba 9»* + **99738595** · ou junto: *«pode subir cadastro modal / histórico»* + senha |
+| **Você após** | Ctrl+F5 loja · lápis muda nome → cadastro → aba 9 · origem «PDV edição rápida» |
+
 ### 🩹 PDV + Cadastro — histórico aba 9 também no lápis (17/07 · **teste v9.62**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Edição rápida do PDV (lápis) já salvava no mesmo overlay — agora marca origem **«PDV edição rápida»** na aba **9. Alterações**. Cadastro modal marca **«Modal cadastro»**. Mudança de **saldo** no lápis continua só na aba **4 Estoque** (não mistura) |
+| **Status** | 📦 **pronto pra envio** — pacote acima |
 | **Você** | Ctrl+F5 · badge **v9.62** · lápis muda nome/preço → cadastro → aba 9 · confere origem |
-| **Pacote** | Entra no **Cadastro modal** + **PDV lápis** (ambos 📦) |
 
 ### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.60**)
 
@@ -1182,12 +1197,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) — **inclui PDV lápis** (origem «PDV edição rápida») · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
 | **Versão alvo loja** | **v9.62** (ou badge do deploy) |
 | **Base loja hoje** | **v9.16** |
-| **Arquivos (núcleo)** | `_modal_editar_produto_cadastro_erp.inc.html` · `estoque_movimentos_cadastro_util.py` · `cadastro_alteracao_historico_util.py` · `migrations/0054_produto_cadastro_alteracao_agro.py` · URLs/API cadastro (estoque-movimentos + alteracoes-historico) · hooks salvar overlay/Excel |
-| **Pente fino** | IDs dos campos intactos · `edit-img` agora com rótulo «URL da imagem» · kardex ≠ alterações · sem altura falsa nos cards de Preços |
+| **Arquivos (núcleo)** | `_modal_editar_produto_cadastro_erp.inc.html` · `estoque_movimentos_cadastro_util.py` · `cadastro_alteracao_historico_util.py` · `migrations/0054_produto_cadastro_alteracao_agro.py` · URLs/API cadastro (estoque-movimentos + alteracoes-historico) · hooks salvar overlay/Excel · `pdv_wizard.js` (origem PDV) · `models.py` (Origem.PDV) |
+| **Pente fino** | IDs dos campos intactos · `edit-img` com rótulo · kardex ≠ alterações · Preços sem altura falsa · lápis PDV → aba 9 com origem correta |
 | **Risco** | Médio-baixo — UX + APIs de leitura + migration `0054` (tabela histórico) · deploy precisa rodar migrate |
 | **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
 | **Autorizar com** | *«pode subir cadastro modal / histórico»* + **99738595** |
-| **Você após** | Ctrl+F5 loja · badge · abrir produto → Preços (números) · Fiscal · Estoque (lista) · Alterações · salvar um campo e ver aba 9 |
+| **Você após** | Ctrl+F5 loja · badge · Preços · Fiscal · Estoque · Alterações · **lápis PDV** muda nome → aba 9 origem PDV |
 
 ### 🩹 Cadastro — Preços: número grande de verdade (17/07 · **teste v9.56**)
 
@@ -1209,15 +1224,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
-| **O quê** | Lápis no carrinho → edição rápida (nome, GM, barras, unidade com busca, preços A/B, estoque Centro/Vila) · popup grande sem scroll · sem travar o PDV |
-| **Versão alvo loja** | **v9.54** (ou badge do deploy) |
+| **O quê** | Lápis no carrinho → edição rápida (nome, GM, barras, unidade com busca, preços A/B, estoque Centro/Vila) · popup grande sem scroll · sem travar o PDV · **histórico aba 9** com origem «PDV edição rápida» |
+| **Versão alvo loja** | **v9.62** (ou badge do deploy) |
 | **Base loja hoje** | **v9.16** |
-| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `pdv_state.js` · `produtos/views.py` · `produtos/urls.py` · `pdv/views.py` |
-| **Pente fino** | Unidades só carregam ao focar o campo (não atrasa abertura) · Esc fecha o pop (lista unidade não engole Esc) · custo atualiza no carrinho · API com fallback Mongo |
-| **Risco** | Baixo — só overlay do PDV + 2 APIs novas; salvar = overlay Agro (sem sync ERP) |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `pdv_state.js` · `produtos/views.py` · `produtos/urls.py` · `pdv/views.py` · `cadastro_alteracao_historico_util.py` · `models.py` (Origem.PDV) |
+| **Pente fino** | Unidades lazy · Esc · custo no carrinho · API Mongo fallback · **origem histórico PDV** |
+| **Risco** | Baixo — overlay PDV + APIs; histórico depende da aba 9 / migration `0054` (pacote Cadastro modal) |
 | **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
 | **Autorizar com** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
-| **Você após** | Ctrl+F5 loja · badge · lápis no milho → salva nome/preço/estoque → confere carrinho |
+| **Você após** | Ctrl+F5 loja · badge · lápis no milho → salva → aba 9 no cadastro |
 
 ### 🩹 PDV — pente fino editor rápido (17/07 · **teste v9.54**)
 
@@ -1586,12 +1601,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **Cadastro modal** (UX + kardex + alterações) — 📦 **pronto pra envio** · teste **v9.56** · OK Renan · loja ainda **v9.16** |
-| **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.54** · OK Renan (tamanho/UX) · loja ainda **v9.16** |
+| **Fecha** | **Cadastro modal** (UX + kardex + alterações + origem PDV) — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
+| **Fecha** | **PDV lápis → aba 9** (origem «PDV edição rápida») — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · sobe junto com Cadastro modal |
+| **Fecha** | **PDV editor rápido (lápis)** — 📦 **pronto pra envio** · teste **v9.62** · OK Renan · loja ainda **v9.16** |
 | **Fecha** | **FL-056** NFC-e **963**+#**225** — 📦 **pronto pra envio** · teste **v9.21** · loja ainda **v9.16** |
 | **Fecha** | **Relatórios ajuda «?»** — 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **Validar antes** | Ctrl+F5 teste · reemitir vendas **#2812** (963) e **#3347** (225) |
 | **Autorizar Cadastro modal** | *«pode subir cadastro modal / histórico»* + **99738595** |
+| **Autorizar PDV lápis / aba 9** | *«pode subir histórico PDV lápis / aba 9»* + **99738595** (ou junto no Cadastro modal) |
 | **Autorizar PDV lápis** | *«pode subir editor rápido PDV / lápis»* + **99738595** |
 | **Autorizar NFC-e** | *«pode subir NFC-e 963/225»* + **99738595** |
 | **Autorizar Relatórios** | *«pode subir ajuda relatórios»* + **99738595** |
@@ -1600,8 +1617,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P2** | Cadastro modal | Modal editar: UX altura/fontes · kardex · aba Alterações | 📦 **pronto pra envio** · teste **v9.56** · OK Renan |
-| **P1** | PDV lápis | Editor rápido no carrinho (nome/GM/unidade/preços/estoque) | 📦 **pronto pra envio** · teste **v9.54** · OK Renan |
+| **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
+| **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
+| **P2** | PDV→aba 9 | Lápis registra em Alterações | 📦 **pronto pra envio** · teste **v9.62** · OK Renan |
 | **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** |
 | **P2** | Relatórios | Ajuda **?** leiga (todas as telas) | 📦 **pronto pra envio** · teste **v9.28** · OK Renan |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 |
