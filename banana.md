@@ -1158,21 +1158,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.56** · **loja v9.16**
 
+### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · aguarda senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
+| **Versão alvo loja** | **v9.56** (ou badge do deploy) |
+| **Base loja hoje** | **v9.16** |
+| **Arquivos (núcleo)** | `_modal_editar_produto_cadastro_erp.inc.html` · `estoque_movimentos_cadastro_util.py` · `cadastro_alteracao_historico_util.py` · `migrations/0054_produto_cadastro_alteracao_agro.py` · URLs/API cadastro (estoque-movimentos + alteracoes-historico) · hooks salvar overlay/Excel |
+| **Pente fino** | IDs dos campos intactos · `edit-img` agora com rótulo «URL da imagem» · kardex ≠ alterações · sem altura falsa nos cards de Preços |
+| **Risco** | Médio-baixo — UX + APIs de leitura + migration `0054` (tabela histórico) · deploy precisa rodar migrate |
+| **Método** | worktree `origin/producao` · checkout desses arquivos de `teste` · **não** merge inteiro |
+| **Autorizar com** | *«pode subir cadastro modal / histórico»* + **99738595** |
+| **Você após** | Ctrl+F5 loja · badge · abrir produto → Preços (números) · Fiscal · Estoque (lista) · Alterações · salvar um campo e ver aba 9 |
+
 ### 🩹 Cadastro — Preços: número grande de verdade (17/07 · **teste v9.56**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Custo / MVA / comissão / margem: fonte **~2,75rem** no número. Caixa sem altura artificial. Preço final **~3rem** |
-| **Você** | Ctrl+F5 · badge **v9.56** · aba Preços · olha o “40” |
-| **Loja** | ⏳ |
+| **Status** | 📦 fecha no pacote **Cadastro modal** acima |
+| **Você** | Ctrl+F5 · badge **v9.56** · aba Preços |
 
 ### 🩹 Cadastro — Fiscal: fonte maior + campos mais juntos (17/07 · **teste v9.55**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs — tirou o “espalhar” que piorou |
-| **Você** | Ctrl+F5 · badge **v9.55** · aba Fiscal |
-| **Loja** | ⏳ |
+| **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs |
+| **Status** | 📦 fecha no pacote **Cadastro modal** acima |
 
 ### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · aguarda senha)
 
