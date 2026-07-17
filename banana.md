@@ -1156,7 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.21** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.22** · **loja v9.16**
+
+### ✨ Cadastro ERP — layout header/toolbar (17/07 · **teste v9.22**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Catálogo + «Gestão de Produtos» / Somente ativos sobem pro header · **Grupos** oculto · barra: Busca · Filtrar · **+ Novo** · (direita) Excel↓↑ · Histórico · Colunas |
+| **Arquivo** | `produtos_cadastro_erp.html` |
+| **Você** | Ctrl+F5 teste · badge **v9.22** · `/produtos/cadastro-erp/` |
+| **Loja** | ainda **v9.16** — sobe só com frase+senha |
 
 ### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · aguarda senha)
 
