@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.86** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.87** · **loja v9.16**
+
+### 🩹 PDV — avisos Enviar Zap no meio da tela (17/07 · **teste v9.87**)
+
+| | |
+| --- | --- |
+| **O quê** | Avisos do Enviar WhatsApp no centro (toast prominent, grande) |
+| **Você** | Ctrl+F5 · badge **v9.87** · Enviar sem telefone → aviso grande no meio |
 
 ### 🩹 PDV — avisos Enviar Zap sem alert Chrome (17/07 · **teste v9.86**)
 

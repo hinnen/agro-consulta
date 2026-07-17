@@ -3703,7 +3703,8 @@
         if (!state.itens || !state.itens.length) {
             showPdvAviso('Adicione itens ao carrinho antes de enviar o orçamento.', {
                 title: 'Carrinho vazio',
-                tone: 'warn'
+                tone: 'warn',
+                prominent: true
             });
             return;
         }
@@ -3714,7 +3715,8 @@
         if (semCliente) {
             showPdvAviso('Escolha o cliente que vai receber o orçamento no WhatsApp.', {
                 title: 'Cliente',
-                tone: 'warn'
+                tone: 'warn',
+                prominent: true
             });
             openQuickClientPicker();
             return;
@@ -3723,14 +3725,19 @@
         if (tel.length < 10) {
             showPdvAviso('Este cliente não tem WhatsApp/telefone cadastrado. Edite o cadastro e tente de novo.', {
                 title: 'Sem WhatsApp',
-                tone: 'warn'
+                tone: 'warn',
+                prominent: true
             });
             return;
         }
         salvarOrcamentoWizard();
         var txt = montarTextoOrcamentoWhatsappWizard();
         if (!abrirUrlWhatsappOrcamento(tel, txt)) {
-            showPdvAviso('Não foi possível abrir o WhatsApp.', { title: 'Erro', tone: 'error' });
+            showPdvAviso('Não foi possível abrir o WhatsApp.', {
+                title: 'Erro',
+                tone: 'error',
+                prominent: true
+            });
         }
     }
 
