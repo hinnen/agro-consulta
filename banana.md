@@ -1156,7 +1156,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.82** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.83** · **loja v9.16**
+
+### 🩹 PDV — some azul de vez (painel+campo) (17/07 · **teste v9.83**)
+
+| | |
+| --- | --- |
+| **O quê** | Contorno do painel e borda do campo de busca saem do azul (cinza) · sem linha entre busca e carrinho |
+| **Você** | Ctrl+F5 forte · badge tem que ser **v9.83** (se for menor, ainda tá cache) |
 
 ### 🩹 PDV — some de vez a linha/faixa azul da busca (17/07 · **teste v9.82**)
 
