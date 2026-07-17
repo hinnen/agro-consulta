@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.55** · **loja v9.16**
+**Versão app (VERSION):** **teste v9.56** · **loja v9.16**
+
+### 🩹 Cadastro — Preços: número grande de verdade (17/07 · **teste v9.56**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Custo / MVA / comissão / margem: fonte **~2,75rem** no número. Caixa sem altura artificial. Preço final **~3rem** |
+| **Você** | Ctrl+F5 · badge **v9.56** · aba Preços · olha o “40” |
+| **Loja** | ⏳ |
 
 ### 🩹 Cadastro — Fiscal: fonte maior + campos mais juntos (17/07 · **teste v9.55**)
 
