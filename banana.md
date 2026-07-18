@@ -4498,7 +4498,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
-| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | ✅ teste v10.18 | 18/07 |
+| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | ✅ teste v10.19 | 18/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
