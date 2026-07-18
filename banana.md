@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.11** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.14** · **loja v9.91**
+
+### 🩹 PDV — badge estoque + aviso caixa sem F5 (18/07 · **teste v10.14**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Abrir Centro: badge ficava «Vila Elias» até F5 · Fechar Centro no overlay: sumia o painel mas sem faixa «Caixa fechado» e dava pra montar venda até o fim |
+| **Fix** | Aviso sempre no HTML (só some/aparece) · refresh puxa `pdvDeposito` + badge · iframe avisa `agro-pdv-caixa-changed` · bloqueia item/avançar com caixa fechado |
+| **Validar** | Abrir Centro no PDV → badge **Centro** na hora · Fechar → faixa âmbar + não deixa adicionar item |
 
 ### 🩹 Caixa fechado — bloqueia venda + refresh no PDV (18/07 · **teste v10.11**)
 
@@ -1196,7 +1204,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.12** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.13** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **UX aba 10** | Grade compacta no modal: cat+sub+estoque · título+peso+ordem · desc+destaque+foto (menos scroll) |
+| **Base** | v10.12 categorias · 2 endereços · WhatsApp no fluxo |
+| **Renan testar** | Cadastro → aba Delivery: campos lado a lado · gestão cat/endereços · vitrine celular |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.12** (18/07/2026) *(histórico — ver v10.13)*
 
 | Item | Detalhe |
 | ---- | ------- |
