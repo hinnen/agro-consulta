@@ -35,6 +35,11 @@ urlpatterns = [
         name="api_catalogo_categoria_criar",
     ),
     path(
+        "catalogo/api/categorias/foto/",
+        views_catalogo_delivery.api_catalogo_categoria_foto,
+        name="api_catalogo_categoria_foto",
+    ),
+    path(
         'api/pdv/cliente-credito-fiado/',
         views.api_pdv_cliente_credito_fiado,
         name='api_pdv_cliente_credito_fiado',

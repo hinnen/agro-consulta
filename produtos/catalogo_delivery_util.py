@@ -233,6 +233,11 @@ def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
             }
             for f in by_parent.get(c.pk, [])
         ]
+        img = ""
+        b64 = (c.imagem_base64 or "").strip()
+        if b64:
+            mime = (c.imagem_mime or "image/jpeg").strip() or "image/jpeg"
+            img = f"data:{mime};base64,{b64}"
         roots.append(
             {
                 "id": c.pk,
@@ -240,10 +245,57 @@ def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
                 "slug": c.slug,
                 "ordem": c.ordem,
                 "ativo": c.ativo,
+                "imagem": img,
                 "filhos": filhos,
             }
         )
     return roots
+
+
+def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: str = "") -> None:
+    """Grava foto do card (limite ~700 KB de base64)."""
+    b64, mime_guess = _strip_data_url(raw_b64 or "")
+    mime_final = (mime or mime_guess or "image/jpeg").strip()[:40] or "image/jpeg"
+    if len(b64) > 900_000:
+        b64 = ""
+        mime_final = "image/jpeg"
+    cat.imagem_base64 = b64
+    cat.imagem_mime = mime_final if b64 else "image/jpeg"
+    cat.save(update_fields=["imagem_base64", "imagem_mime"])
+
+
+def cards_home_catalogo(itens: list[dict]) -> list[dict]:
+    """
+    Cards da tela inicial: categorias raiz ativas + opcional «Outros».
+    Contagem de produtos por categoria.
+    """
+    contagem: dict[str, int] = {}
+    for it in itens:
+        ck = it.get("categoria_slug") or "_sem"
+        contagem[ck] = contagem.get(ck, 0) + 1
+    cards = []
+    for c in listar_categorias_arvore(so_ativas=True):
+        cards.append(
+            {
+                "id": c["id"],
+                "slug": c["slug"],
+                "nome": c["nome"],
+                "imagem": c.get("imagem") or "",
+                "qtd": contagem.get(c["slug"], 0),
+            }
+        )
+    q_sem = contagem.get("_sem", 0)
+    if q_sem:
+        cards.append(
+            {
+                "id": 0,
+                "slug": "_sem",
+                "nome": "Outros",
+                "imagem": "",
+                "qtd": q_sem,
+            }
+        )
+    return cards
 
 
 def slugify_categoria(nome: str, *, exclude_pk: int | None = None) -> str:
