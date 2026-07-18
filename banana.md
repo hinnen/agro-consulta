@@ -574,7 +574,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 ### 4.9 Compras
 
 - `/compras/` — sugestão, horizonte em dias, métricas avançadas em `<details>`.
-- **UI etapa 1 (18/07 · v9.93):** painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · detalhe expandido em blocos — **só visual**, regras/cálculos iguais.
+- **UI etapa 1 (18/07 · v9.94):** painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · detalhe expandido em blocos — **só visual**, regras/cálculos iguais.
 - **Fontes (Renan 08/07):** média/gráfico/sugestão = **vendas PDV Agro**; última compra/chips/planilha = **só Entrada NF Agro** (ERP cortado). Rótulos na tela alinhados.
 - **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
@@ -1157,13 +1157,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.93** · **loja v9.91**
+**Versão app (VERSION):** **teste v9.94** · **loja v9.91**
 
-### ✨ Compras — etapa 1 UI (reorganização visual) (18/07 · **teste v9.93**)
+### ✨ Compras — etapa 1 UI (reorganização visual) (18/07 · **teste v9.94**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ código · push `teste` · validar no Render staging |
+| **Status** | ✅ push `teste` · validar no Render staging (Ctrl+F5) |
 | **Escopo** | Só visual/organização — **sem** mudança de regra, API, Mongo, cálculo de sugestão |
 | **Feito** | Painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · filtros limpos · lista + detalhe expandido em blocos |
 | **Arquivo** | `produtos/templates/produtos/compras.html` |
