@@ -16,7 +16,11 @@
     {% else %}
     <p class="mt-2 text-sm text-slate-600">Obrigado! Em breve entraremos em contato.</p>
     {% endif %}
-    {% if config.whatsapp_contato %}
+    {% if whatsapp_digits %}
+    <a class="mt-5 inline-block w-full bg-green-600 text-white font-black py-3.5 rounded-xl"
+       href="https://wa.me/{{ whatsapp_digits }}?text=Ol%C3%A1%2C%20fiz%20um%20pedido%20no%20cat%C3%A1logo%20delivery"
+       target="_blank" rel="noopener">WhatsApp da loja</a>
+    {% elif config.whatsapp_contato %}
     <a class="mt-5 inline-block w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl"
        href="https://wa.me/{{ config.whatsapp_contato }}?text=Ol%C3%A1%2C%20fiz%20um%20pedido%20no%20cat%C3%A1logo%20delivery"
        target="_blank" rel="noopener">Falar no WhatsApp</a>

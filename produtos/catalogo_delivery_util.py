@@ -9,6 +9,7 @@ from django.db import transaction
 from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp, extrair_whatsapp_digits
 from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 from produtos.models import (
+    CatalogoDeliveryCategoria,
     CatalogoDeliveryConfig,
     ClienteAgro,
     PedidoEntrega,
@@ -60,6 +61,16 @@ def normalizar_delivery(raw: Any) -> dict:
     if len(b64) > 900_000:
         b64 = ""
         mime = "image/jpeg"
+    cat_id = 0
+    sub_id = 0
+    try:
+        cat_id = int(d.get("categoria_id") or 0)
+    except (TypeError, ValueError):
+        cat_id = 0
+    try:
+        sub_id = int(d.get("subcategoria_id") or 0)
+    except (TypeError, ValueError):
+        sub_id = 0
     return {
         "ativo": _bool(d.get("ativo")),
         "titulo": titulo,
@@ -70,6 +81,8 @@ def normalizar_delivery(raw: Any) -> dict:
         "peso_texto": peso,
         "imagem_base64": b64,
         "imagem_mime": mime,
+        "categoria_id": cat_id if cat_id > 0 else 0,
+        "subcategoria_id": sub_id if sub_id > 0 else 0,
     }
 
 
@@ -112,6 +125,11 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
     if not ativos:
         return []
 
+    cats = {
+        c.pk: c
+        for c in CatalogoDeliveryCategoria.objects.filter(ativo=True).select_related("parent")
+    }
+
     pids = [ov.produto_externo_id for ov, _ in ativos]
     produtos_pg = {
         str(p.produto_externo_id): p
@@ -129,7 +147,6 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         nome = (d.get("titulo") or ov.nome or (pg.nome if pg else "") or "Produto").strip()
         desc = (d.get("descricao") or ov.descricao or (pg.descricao if pg else "") or "").strip()
         marca = (ov.marca or (pg.marca if pg else "") or "").strip()
-        categoria = (ov.categoria or (pg.categoria if pg else "") or "").strip()
         unidade = (ov.unidade or (pg.unidade if pg else "") or "UN").strip() or "UN"
         preco = ov.preco_venda
         if preco is None and pg is not None:
@@ -147,6 +164,18 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         if not incluir_ocultos_estoque and not forcar and saldo_total <= 0:
             continue
 
+        cat_id = int(d.get("categoria_id") or 0)
+        sub_id = int(d.get("subcategoria_id") or 0)
+        cat = cats.get(cat_id) if cat_id else None
+        sub = cats.get(sub_id) if sub_id else None
+        # Se sub aponta para outra árvore, ignora
+        if sub and sub.parent_id and cat and sub.parent_id != cat.pk:
+            sub = None
+            sub_id = 0
+        if sub and not cat and sub.parent_id:
+            cat = cats.get(sub.parent_id)
+            cat_id = cat.pk if cat else 0
+
         itens.append(
             {
                 "id": pid,
@@ -154,7 +183,12 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
                 "descricao": desc,
                 "preco": round(preco_f, 2),
                 "marca": marca,
-                "categoria": categoria,
+                "categoria_id": cat_id,
+                "categoria_nome": (cat.nome if cat else "") or "",
+                "categoria_slug": (cat.slug if cat else "") or "",
+                "subcategoria_id": sub_id,
+                "subcategoria_nome": (sub.nome if sub else "") or "",
+                "subcategoria_slug": (sub.slug if sub else "") or "",
                 "peso_texto": d.get("peso_texto") or "",
                 "destaque": bool(d.get("destaque")),
                 "ordem": int(d.get("ordem") or 0),
@@ -167,8 +201,106 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
             }
         )
 
-    itens.sort(key=lambda x: (not x["destaque"], x["ordem"], x["nome"].lower()))
+    itens.sort(
+        key=lambda x: (
+            not x["destaque"],
+            x.get("categoria_nome") or "ÿ",
+            x.get("subcategoria_nome") or "",
+            x["ordem"],
+            x["nome"].lower(),
+        )
+    )
     return itens
+
+
+def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
+    """Categorias raiz + filhos para gestão e selects do cadastro."""
+    qs = CatalogoDeliveryCategoria.objects.all().order_by("ordem", "nome")
+    if so_ativas:
+        qs = qs.filter(ativo=True)
+    roots = []
+    by_parent: dict[int | None, list] = {}
+    for c in qs:
+        by_parent.setdefault(c.parent_id, []).append(c)
+    for c in by_parent.get(None, []):
+        filhos = [
+            {
+                "id": f.pk,
+                "nome": f.nome,
+                "slug": f.slug,
+                "ordem": f.ordem,
+                "ativo": f.ativo,
+            }
+            for f in by_parent.get(c.pk, [])
+        ]
+        roots.append(
+            {
+                "id": c.pk,
+                "nome": c.nome,
+                "slug": c.slug,
+                "ordem": c.ordem,
+                "ativo": c.ativo,
+                "filhos": filhos,
+            }
+        )
+    return roots
+
+
+def slugify_categoria(nome: str, *, exclude_pk: int | None = None) -> str:
+    from django.utils.text import slugify
+
+    base = slugify(nome)[:80] or "categoria"
+    slug = base
+    n = 2
+    while True:
+        qs = CatalogoDeliveryCategoria.objects.filter(slug=slug)
+        if exclude_pk:
+            qs = qs.exclude(pk=exclude_pk)
+        if not qs.exists():
+            return slug
+        slug = f"{base}-{n}"[:90]
+        n += 1
+
+
+def agrupar_itens_por_categoria(itens: list[dict]) -> list[dict]:
+    """Monta seções para a vitrine mobile (categoria → sub → produtos)."""
+    ordem_cat: list[str] = []
+    mapa: dict[str, dict] = {}
+    for it in itens:
+        ck = it.get("categoria_slug") or "_sem"
+        cn = it.get("categoria_nome") or "Outros"
+        if ck not in mapa:
+            mapa[ck] = {
+                "slug": ck,
+                "nome": cn,
+                "subs": {},
+                "produtos_sem_sub": [],
+            }
+            ordem_cat.append(ck)
+        sk = it.get("subcategoria_slug") or ""
+        if sk:
+            if sk not in mapa[ck]["subs"]:
+                mapa[ck]["subs"][sk] = {
+                    "slug": sk,
+                    "nome": it.get("subcategoria_nome") or sk,
+                    "produtos": [],
+                }
+            mapa[ck]["subs"][sk]["produtos"].append(it)
+        else:
+            mapa[ck]["produtos_sem_sub"].append(it)
+    secoes = []
+    for ck in ordem_cat:
+        bloco = mapa[ck]
+        subs_list = list(bloco["subs"].values())
+        secoes.append(
+            {
+                "slug": bloco["slug"],
+                "nome": bloco["nome"],
+                "subs": subs_list,
+                "produtos_sem_sub": bloco["produtos_sem_sub"],
+            }
+        )
+    return secoes
 
 
 def _montar_endereco_linha(

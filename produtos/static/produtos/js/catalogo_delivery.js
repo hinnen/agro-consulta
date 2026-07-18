@@ -103,16 +103,42 @@
     });
 
     var busca = document.getElementById("busca-catalogo");
-    if (busca) {
-      busca.addEventListener("input", function () {
-        var q = String(busca.value || "")
-          .toLowerCase()
-          .trim();
-        document.querySelectorAll(".produto-linha").forEach(function (el) {
-          var nome = el.getAttribute("data-nome") || "";
-          el.classList.toggle("hidden", q && nome.indexOf(q) < 0);
-        });
+
+    function catChipAtiva() {
+      var on = document.querySelector(".cat-chip.is-on");
+      return on ? String(on.getAttribute("data-cat") || "") : "";
+    }
+
+    function aplicarFiltros() {
+      var q = String((busca && busca.value) || "")
+        .toLowerCase()
+        .trim();
+      var cat = catChipAtiva();
+      document.querySelectorAll(".produto-linha").forEach(function (el) {
+        var nome = el.getAttribute("data-nome") || "";
+        var matchQ = !q || nome.indexOf(q) >= 0;
+        el.classList.toggle("hidden", !matchQ);
       });
+      document.querySelectorAll(".secao-cat").forEach(function (sec) {
+        var sc = String(sec.getAttribute("data-cat") || "");
+        var matchCat = !cat || sc === cat;
+        var visible = sec.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
+        sec.classList.toggle("hidden", !(matchCat && visible));
+      });
+    }
+
+    document.querySelectorAll(".cat-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        document.querySelectorAll(".cat-chip").forEach(function (c) {
+          c.classList.remove("is-on");
+        });
+        chip.classList.add("is-on");
+        aplicarFiltros();
+      });
+    });
+
+    if (busca) {
+      busca.addEventListener("input", aplicarFiltros);
     }
 
     var btnOpen = document.getElementById("btn-abrir-checkout");

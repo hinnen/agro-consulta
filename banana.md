@@ -1196,17 +1196,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.05** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.12** (18/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Catálogo público `/catalogo/` dentro do SisVale · aba **10. Delivery** no cadastro produto · pedidos → `/entregas/` (origem `catalogo`) |
-| **Gestão loja** | `/catalogo/gestao/` (staff) — publicar, WhatsApp, cores |
-| **Regra estoque** | Só positivo **ou** forçar negativo (por produto) |
-| **Visual** | Estilo ração (emerald/orange), cards marca + peso |
-| **Migrate** | `0057_catalogo_delivery` (config + `PedidoEntrega.origem`) |
-| **Renan testar** | Cadastro → aba Delivery → marcar 1 ração → `/catalogo/gestao/` publicar → pedir teste → ver em Entregas |
+| **Status** | ✅ push `teste` · migrate `0058` no deploy |
+| **O quê** | `/catalogo/` público · aba **10. Delivery** · pedidos → `/entregas/` (`origem=catalogo`) |
+| **Gestão** | `/catalogo/gestao/` — publicar, WhatsApp, **2 endereços** (rótulo+rua), **CRUD categorias/sub** |
+| **Categorias** | Padrão apps ração: Cães/Gatos/… + sub (Adulto/Filhote) · seed na migrate · select na aba Delivery |
+| **Vitrine** | Mobile-first · chips categoria · 2 endereços no hero · botão WhatsApp **fixo** (não FAB) |
+| **Migrate** | `0057` config · `0058` categorias + endereços 1/2 |
+| **Renan testar** | Gestão: 2 endereços + criar cat/sub → produto aba Delivery (cat+sub) → vitrine celular chips + Zap |
 | **Produção** | **Não** — só teste até Renan pedir + senha |
+
+### WIP — Catálogo delivery GM Agro **v10.05** (18/07/2026) *(histórico — ver v10.12)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Catálogo público `/catalogo/` · aba **10. Delivery** · pedidos → entregas |
+| **Gestão loja** | `/catalogo/gestao/` — publicar, WhatsApp, cores (sem cat/endereços 2 ainda) |
 
 
 ### 🔒 Vila Elias — antiburro digitar loja (18/07 · **teste v10.04**)

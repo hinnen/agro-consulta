@@ -2374,6 +2374,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 d_del.get("permitir_estoque_negativo"),
                 d_del.get("destaque"),
                 int(d_del.get("ordem") or 0) > 0,
+                int(d_del.get("categoria_id") or 0) > 0,
+                int(d_del.get("subcategoria_id") or 0) > 0,
             )
         ):
             ex["delivery"] = d_del

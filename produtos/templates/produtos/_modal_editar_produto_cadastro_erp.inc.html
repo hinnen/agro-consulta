@@ -757,6 +757,19 @@
           Saldo operacional: <span id="edit-delivery-saldo-txt" class="font-black text-slate-900">—</span>
         </div>
         <label class="block">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Categoria no catálogo</span>
+          <select id="edit-delivery-categoria" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+            <option value="">— Sem categoria —</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Subcategoria</span>
+          <select id="edit-delivery-subcategoria" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+            <option value="">— Sem subcategoria —</option>
+          </select>
+          <p class="text-[0.65rem] text-slate-500 mt-1 font-semibold">Crie categorias em <a href="/catalogo/gestao/" target="_blank" class="underline text-emerald-700">/catalogo/gestao/</a> (ex.: Cães → Adulto).</p>
+        </label>
+        <label class="block">
           <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Estoque negativo</span>
           <select id="edit-delivery-estoque-regra" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
             <option value="positivo">Só manda ao catálogo se estoque positivo</option>
@@ -2128,6 +2141,11 @@
     setChk('edit-delivery-destaque', !!del.destaque);
     var regraEl = document.getElementById('edit-delivery-estoque-regra');
     if (regraEl) regraEl.value = del.permitir_estoque_negativo ? 'forcar' : 'positivo';
+    modalEdit._deliveryCatId = del.categoria_id ? String(del.categoria_id) : '';
+    modalEdit._deliverySubId = del.subcategoria_id ? String(del.subcategoria_id) : '';
+    if (typeof carregarDeliveryCategorias === 'function') {
+      carregarDeliveryCategorias(modalEdit._deliveryCatId, modalEdit._deliverySubId);
+    }
     var b64El = document.getElementById('edit-delivery-imagem-b64');
     var mimeEl = document.getElementById('edit-delivery-imagem-mime');
     var prevEl = document.getElementById('edit-delivery-foto-preview');
@@ -2423,6 +2441,8 @@
         ordem: gv('edit-delivery-ordem') || '0',
         destaque: !!(document.getElementById('edit-delivery-destaque') || {}).checked,
         permitir_estoque_negativo: ((document.getElementById('edit-delivery-estoque-regra') || {}).value === 'forcar'),
+        categoria_id: gv('edit-delivery-categoria') || '0',
+        subcategoria_id: gv('edit-delivery-subcategoria') || '0',
         imagem_base64: gv('edit-delivery-imagem-b64'),
         imagem_mime: gv('edit-delivery-imagem-mime') || 'image/jpeg'
       },
@@ -2603,6 +2623,55 @@
         limpar.classList.add('hidden');
       });
     }
+  })();
+
+  var _deliveryCatsCache = null;
+  function preencherSubsDelivery(catId, subIdSel) {
+    var sub = document.getElementById('edit-delivery-subcategoria');
+    if (!sub) return;
+    var opts = '<option value="">— Sem subcategoria —</option>';
+    var roots = _deliveryCatsCache || [];
+    var root = null;
+    for (var i = 0; i < roots.length; i++) {
+      if (String(roots[i].id) === String(catId)) { root = roots[i]; break; }
+    }
+    if (root && Array.isArray(root.filhos)) {
+      root.filhos.forEach(function (f) {
+        opts += '<option value="' + f.id + '"' + (String(f.id) === String(subIdSel || '') ? ' selected' : '') + '>' + (f.nome || '') + '</option>';
+      });
+    }
+    sub.innerHTML = opts;
+  }
+  function carregarDeliveryCategorias(catId, subId) {
+    var sel = document.getElementById('edit-delivery-categoria');
+    if (!sel) return;
+    function apply(list) {
+      _deliveryCatsCache = list || [];
+      var html = '<option value="">— Sem categoria —</option>';
+      _deliveryCatsCache.forEach(function (c) {
+        html += '<option value="' + c.id + '"' + (String(c.id) === String(catId || '') ? ' selected' : '') + '>' + (c.nome || '') + '</option>';
+      });
+      sel.innerHTML = html;
+      preencherSubsDelivery(catId || sel.value, subId);
+    }
+    if (_deliveryCatsCache) {
+      apply(_deliveryCatsCache);
+      return;
+    }
+    fetch('/catalogo/api/categorias/', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        apply((j && j.categorias) || []);
+      })
+      .catch(function () { apply([]); });
+  }
+  (function bindDeliveryCats() {
+    var sel = document.getElementById('edit-delivery-categoria');
+    if (!sel || sel.dataset.boundCats) return;
+    sel.dataset.boundCats = '1';
+    sel.addEventListener('change', function () {
+      preencherSubsDelivery(sel.value, '');
+    });
   })();
 
   bindClick('btn-excluir-somente-agro', function () {
