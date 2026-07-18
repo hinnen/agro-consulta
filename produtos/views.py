@@ -20080,6 +20080,55 @@ def api_produtos_cadastro_proximo_cb_loja(request):
 
 @login_required(login_url="/admin/login/")
 @require_POST
+def api_produtos_cadastro_faceta_nova(request):
+    """
+    Cria valor novo de faceta (marca/categoria/fornecedor/sub) com PIN + log (FL-024).
+    Não grava no produto — só autoriza o valor para o combobox do modal.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    tipo = str(payload.get("tipo") or "").strip().lower()
+    valor = str(payload.get("valor") or "").strip()[:200]
+    pin = str(payload.get("pin") or "").strip()
+    mapa = {
+        "marca": "Nova marca",
+        "fornecedor": "Novo fornecedor",
+        "categoria": "Nova categoria",
+        "subcategoria": "Nova subcategoria",
+    }
+    if tipo not in mapa:
+        return JsonResponse({"ok": False, "erro": "Tipo inválido."}, status=400)
+    if len(valor) < 2:
+        return JsonResponse({"ok": False, "erro": "Informe o nome (mínimo 2 caracteres)."}, status=400)
+
+    ok_pin, err_pin = validar_pin_operador(pin)
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+
+    from produtos.models import ProdutoCadastroAlteracaoAgro
+
+    operador = rotulo_operador_pin(pin) or ""
+    try:
+        ProdutoCadastroAlteracaoAgro.objects.create(
+            produto_externo_id="__faceta__",
+            campo=f"faceta_{tipo}",
+            campo_label=mapa[tipo],
+            valor_antes="",
+            valor_depois=f"{valor}" + (f" · PIN {operador}" if operador else ""),
+            usuario=request.user if getattr(request.user, "is_authenticated", False) else None,
+            origem=ProdutoCadastroAlteracaoAgro.Origem.MODAL,
+        )
+    except Exception:
+        logger.exception("falha ao gravar log faceta nova tipo=%s", tipo)
+
+    return JsonResponse({"ok": True, "valor": valor, "tipo": tipo, "operador": operador})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
 def api_produtos_somente_agro_excluir(request):
     """
     Remove produto criado apenas no Agro, overlays locais e vínculos Agro.

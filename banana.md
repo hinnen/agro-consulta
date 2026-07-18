@@ -1157,6 +1157,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 **Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push `23c4b84`)
+### 🩹 Cadastro — marca/cat só lista + PIN (FL-024) (18/07 · **teste v10.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Marca / fornecedor / categoria / sub: buscar e **só selecionar**; digitar solto **não** grava; **+** abre popup com parecidos + **PIN** + log |
+| **Busca** | Sem acento / caixa |
+| **Validar** | Digitar marca inventada → Salvar barra · escolher da lista OK · + com PIN cria |
 
 ### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
 

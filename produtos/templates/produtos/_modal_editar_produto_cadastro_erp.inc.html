@@ -901,12 +901,25 @@
   </div>
 
   <div id="modal-mini-agro" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50" role="dialog" aria-modal="true">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5">
-      <h4 id="modal-mini-agro-titulo" class="text-base font-black uppercase text-slate-800 mb-3">Novo</h4>
-      <input type="text" id="modal-mini-agro-input" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold mb-4" />
-      <div class="flex justify-end gap-2">
+    <div class="bg-white rounded-2xl border-2 border-emerald-200 shadow-xl max-w-lg w-full p-5 max-h-[min(92dvh,36rem)] flex flex-col">
+      <h4 id="modal-mini-agro-titulo" class="text-base font-black uppercase text-slate-800 mb-1 shrink-0">Novo</h4>
+      <p class="text-xs font-semibold text-slate-600 mb-3 shrink-0 leading-snug">Só use se não achar na lista. Confira os parecidos e digite o PIN.</p>
+      <label class="block shrink-0 mb-2">
+        <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">Nome novo</span>
+        <input type="text" id="modal-mini-agro-input" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold" autocomplete="off" />
+      </label>
+      <div id="modal-mini-agro-parecidos-wrap" class="hidden mb-3 min-h-0 flex-1 flex flex-col">
+        <span class="text-[11px] font-black uppercase text-amber-800 mb-1 shrink-0">Parecidos — clique para usar o existente</span>
+        <div id="modal-mini-agro-parecidos" class="border-2 border-amber-200 rounded-xl bg-amber-50/60 max-h-36 overflow-y-auto [scrollbar-width:thin]"></div>
+      </div>
+      <label class="block shrink-0 mb-4">
+        <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">PIN do operador</span>
+        <input type="password" id="modal-mini-agro-pin" inputmode="numeric" maxlength="12" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold tracking-widest" autocomplete="off" />
+      </label>
+      <p id="modal-mini-agro-erro" class="hidden text-sm font-bold text-red-700 mb-2 shrink-0"></p>
+      <div class="flex justify-end gap-2 shrink-0">
         <button type="button" id="modal-mini-agro-cancelar" class="min-h-[50px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 text-slate-700">Cancelar</button>
-        <button type="button" id="modal-mini-agro-ok" class="min-h-[50px] px-5 rounded-xl text-sm font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700">OK</button>
+        <button type="button" id="modal-mini-agro-ok" class="min-h-[50px] px-5 rounded-xl text-sm font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700">Cadastrar com PIN</button>
       </div>
     </div>
   </div>
@@ -993,6 +1006,9 @@
     var el = document.getElementById(id);
     if (!el) return;
     el.value = v == null || v === undefined ? '' : String(v);
+    if (el.dataset && el.dataset.agroPick) {
+      markPickCommitted(el, el.value);
+    }
   }
 
   function setMoeda(id, v) {
@@ -1292,41 +1308,158 @@
     el.value = formatarMargem(pct);
   }
 
+  function normFacetTxt(s) {
+    return String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function facetArr(facetKey) {
+    var arr = (window._agroFacetas && window._agroFacetas[facetKey]) || [];
+    return Array.isArray(arr) ? arr : [];
+  }
+
+  function findFacetExact(facetKey, q) {
+    var nq = normFacetTxt(q);
+    if (!nq) return '';
+    var list = facetArr(facetKey);
+    for (var i = 0; i < list.length; i++) {
+      if (normFacetTxt(list[i]) === nq) return String(list[i]).trim();
+    }
+    return '';
+  }
+
+  function findFacetParecidos(facetKey, q, limit) {
+    var nq = normFacetTxt(q);
+    if (!nq || nq.length < 2) return [];
+    var list = facetArr(facetKey);
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var t = String(list[i]).trim();
+      var nt = normFacetTxt(t);
+      if (!nt) continue;
+      if (nt === nq) continue;
+      if (nt.indexOf(nq) >= 0 || nq.indexOf(nt) >= 0) {
+        out.push(t);
+        if (out.length >= (limit || 8)) break;
+      }
+    }
+    return out;
+  }
+
+  function markPickCommitted(inp, canon) {
+    if (!inp) return;
+    var c = String(canon == null ? inp.value : canon).trim();
+    inp._agroPickOk = true;
+    inp._agroPickCanon = c;
+    inp.classList.remove('border-amber-500', 'ring-2', 'ring-amber-300');
+  }
+
+  function markPickDirty(inp) {
+    if (!inp) return;
+    inp._agroPickOk = false;
+    if (String(inp.value || '').trim()) {
+      inp.classList.add('border-amber-500', 'ring-2', 'ring-amber-300');
+    } else {
+      inp.classList.remove('border-amber-500', 'ring-2', 'ring-amber-300');
+    }
+  }
+
+  function syncPickFromValue(inp, facetKey) {
+    if (!inp) return true;
+    var v = String(inp.value || '').trim();
+    if (!v) {
+      markPickCommitted(inp, '');
+      return true;
+    }
+    var exact = findFacetExact(facetKey, v);
+    if (exact) {
+      if (inp.value !== exact) inp.value = exact;
+      markPickCommitted(inp, exact);
+      return true;
+    }
+    if (inp._agroPickOk && normFacetTxt(inp._agroPickCanon) === normFacetTxt(v)) {
+      markPickCommitted(inp, inp._agroPickCanon || v);
+      return true;
+    }
+    markPickDirty(inp);
+    return false;
+  }
+
+  function assertPickField(inputId, facetKey, label, obrigatorio) {
+    var el = document.getElementById(inputId);
+    var v = el ? String(el.value || '').trim() : '';
+    if (!v) {
+      if (obrigatorio) {
+        return 'Escolha ' + label + ' na lista (ou use + para cadastrar novo).';
+      }
+      return '';
+    }
+    if (!syncPickFromValue(el, facetKey)) {
+      return label + ' «' + v + '» não está na lista. Selecione um item ou use + para cadastrar com PIN.';
+    }
+    return '';
+  }
+
   function renderAgroFacetBox(box, q, facetKey) {
     if (!box) return;
-    var arr = (window._agroFacetas && window._agroFacetas[facetKey]) || [];
-    var list = Array.isArray(arr) ? arr : [];
-    var qq = (q || '').trim().toLowerCase();
-    var hit = !qq ? list.slice(0, 24) : list.filter(function (s) {
-      return String(s).toLowerCase().indexOf(qq) >= 0;
-    }).slice(0, 24);
+    var list = facetArr(facetKey);
+    var nq = normFacetTxt(q);
+    var hit = !nq
+      ? list.slice(0, 24)
+      : list.filter(function (s) {
+          return normFacetTxt(s).indexOf(nq) >= 0;
+        }).slice(0, 24);
     if (!hit.length) {
-      box.classList.add('hidden');
-      box.innerHTML = '';
+      box.innerHTML =
+        '<div class="px-3 py-2.5 text-sm font-semibold text-slate-500">Nenhum resultado. Use o botão + para cadastrar novo (com PIN).</div>';
+      box.classList.remove('hidden');
       return;
     }
-    box.innerHTML = hit.map(function (t) {
-      return '<button type="button" class="agro-facet-opt w-full text-left px-3 py-2.5 text-base font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-100 last:border-0">' + esc(t) + '</button>';
-    }).join('');
+    box.innerHTML = hit
+      .map(function (t) {
+        return (
+          '<button type="button" class="agro-facet-opt w-full text-left px-3 py-2.5 text-base font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-100 last:border-0">' +
+          esc(t) +
+          '</button>'
+        );
+      })
+      .join('');
     box.classList.remove('hidden');
   }
 
-  /** Liga input à lista branca (#…-resultados); inputs não usam atributo list (evita sugestão nativa duplicada). */
+  /** Liga input à lista branca (#…-resultados); só valor da lista (ou + com PIN) é válido. */
   function wireFacetAutocompleteElements(inp, box, facetKey) {
     if (!inp || !box || inp._agroFacetaOk) return;
     inp._agroFacetaOk = true;
+    inp.dataset.agroPick = facetKey;
     function atualiza() {
+      markPickDirty(inp);
+      var exact = findFacetExact(facetKey, inp.value);
+      if (exact && normFacetTxt(exact) === normFacetTxt(inp.value)) {
+        markPickCommitted(inp, exact);
+      }
       renderAgroFacetBox(box, inp.value, facetKey);
     }
     inp.addEventListener('focus', atualiza);
     inp.addEventListener('input', atualiza);
+    inp.addEventListener('blur', function () {
+      setTimeout(function () {
+        syncPickFromValue(inp, facetKey);
+      }, 120);
+    });
     box.addEventListener('mousedown', function (e) {
       e.preventDefault();
     });
     box.addEventListener('click', function (e) {
       var b = e.target.closest('.agro-facet-opt');
       if (!b) return;
-      inp.value = (b.textContent || '').trim();
+      var t = (b.textContent || '').trim();
+      inp.value = t;
+      markPickCommitted(inp, t);
       box.classList.add('hidden');
       box.innerHTML = '';
       try {
@@ -1377,6 +1510,7 @@
         if (!inp || inp.tagName !== 'INPUT') return;
         if (!inp.classList.contains('var-inp-marca') && inp.id !== 'var-marca') return;
         inp.value = (opt.textContent || '').trim();
+        markPickCommitted(inp, inp.value);
         box.classList.add('hidden');
         box.innerHTML = '';
         try {
@@ -2209,6 +2343,16 @@
       if (m0) try { m0.focus(); } catch (eF2) { /* ignore */ }
       return;
     }
+    var errPick =
+      assertPickField('edit-marca', 'marcas', 'Marca', true) ||
+      assertPickField('edit-categoria', 'categorias', 'Categoria', true) ||
+      assertPickField('edit-fornecedor', 'fornecedores', 'Fornecedor', false) ||
+      assertPickField('edit-subcategoria', 'subcategorias', 'Subcategoria', false);
+    if (errPick) {
+      ativarTabPorId('tab-gerais');
+      if (typeof alert !== 'undefined') alert(errPick);
+      return;
+    }
     if (!vreq('edit-categoria')) {
       ativarTabPorId('tab-gerais');
       if (typeof alert !== 'undefined') alert('Preencha a Categoria (obrigatório).');
@@ -2600,26 +2744,202 @@
 
   var miniAgro = document.getElementById('modal-mini-agro');
   var miniInp = document.getElementById('modal-mini-agro-input');
+  var miniPin = document.getElementById('modal-mini-agro-pin');
   var miniTit = document.getElementById('modal-mini-agro-titulo');
+  var miniParecidos = document.getElementById('modal-mini-agro-parecidos');
+  var miniParecidosWrap = document.getElementById('modal-mini-agro-parecidos-wrap');
+  var miniErro = document.getElementById('modal-mini-agro-erro');
   var miniCb = null;
+  var miniFacetKey = '';
+  var miniTipo = '';
+  var miniTargetId = '';
+
   function fecharMiniAgro() {
     if (miniAgro) miniAgro.classList.add('hidden');
     miniCb = null;
+    miniFacetKey = '';
+    miniTipo = '';
+    miniTargetId = '';
+    if (miniErro) {
+      miniErro.classList.add('hidden');
+      miniErro.textContent = '';
+    }
+    if (miniPin) miniPin.value = '';
   }
-  function abrirMiniAgro(titulo, onOk) {
+
+  function renderMiniParecidos() {
+    if (!miniParecidos || !miniParecidosWrap) return;
+    var q = (miniInp && miniInp.value) || '';
+    var hits = findFacetParecidos(miniFacetKey, q, 8);
+    if (!hits.length) {
+      miniParecidosWrap.classList.add('hidden');
+      miniParecidos.innerHTML = '';
+      return;
+    }
+    miniParecidos.innerHTML = hits
+      .map(function (t) {
+        return (
+          '<button type="button" class="mini-parecido-opt w-full text-left px-3 py-2.5 text-sm font-bold text-amber-950 hover:bg-amber-100 border-b border-amber-100 last:border-0">' +
+          esc(t) +
+          '</button>'
+        );
+      })
+      .join('');
+    miniParecidosWrap.classList.remove('hidden');
+  }
+
+  function abrirMiniAgro(titulo, facetKey, tipo, targetInputId, onOk) {
     if (!miniAgro || !miniInp || !miniTit) return;
     miniTit.textContent = titulo;
     miniInp.value = '';
+    if (miniPin) miniPin.value = '';
+    if (miniErro) {
+      miniErro.classList.add('hidden');
+      miniErro.textContent = '';
+    }
     miniCb = onOk;
+    miniFacetKey = facetKey || '';
+    miniTipo = tipo || '';
+    miniTargetId = targetInputId || '';
+    var target = document.getElementById(miniTargetId);
+    if (target && String(target.value || '').trim()) {
+      miniInp.value = String(target.value || '').trim();
+    }
+    renderMiniParecidos();
     miniAgro.classList.remove('hidden');
-    setTimeout(function () { try { miniInp.focus(); } catch (e1) { /* ignore */ } }, 30);
+    setTimeout(function () {
+      try {
+        miniInp.focus();
+        miniInp.select();
+      } catch (e1) { /* ignore */ }
+    }, 30);
   }
+
+  if (miniInp && !miniInp.dataset.boundParecidos) {
+    miniInp.dataset.boundParecidos = '1';
+    miniInp.addEventListener('input', renderMiniParecidos);
+  }
+  if (miniParecidos && !miniParecidos.dataset.boundClick) {
+    miniParecidos.dataset.boundClick = '1';
+    miniParecidos.addEventListener('click', function (e) {
+      var b = e.target.closest('.mini-parecido-opt');
+      if (!b) return;
+      var t = (b.textContent || '').trim();
+      if (!t) return;
+      var target = document.getElementById(miniTargetId);
+      if (target) {
+        target.value = t;
+        markPickCommitted(target, t);
+        appendFacetToList(miniFacetKey, t);
+      }
+      if (typeof miniCb === 'function') miniCb(t, { existente: true });
+      fecharMiniAgro();
+    });
+  }
+
+  function appendFacetToList(facetKey, val) {
+    if (!window._agroFacetas) window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [] };
+    var arr = window._agroFacetas[facetKey];
+    if (!Array.isArray(arr)) {
+      window._agroFacetas[facetKey] = [];
+      arr = window._agroFacetas[facetKey];
+    }
+    var v = String(val || '').trim();
+    if (!v) return;
+    if (!findFacetExact(facetKey, v)) arr.push(v);
+    var mapDl = {
+      marcas: 'dl-marcas-agro',
+      fornecedores: 'dl-forns-agro',
+      categorias: 'dl-cats-agro',
+      subcategorias: 'dl-subcats-agro'
+    };
+    if (mapDl[facetKey]) appendDatalistOption(mapDl[facetKey], v);
+  }
+
   var miniOk = document.getElementById('modal-mini-agro-ok');
   if (miniOk) {
     miniOk.addEventListener('click', function () {
       var v = (miniInp && miniInp.value || '').trim();
-      if (miniCb) miniCb(v);
-      fecharMiniAgro();
+      var pin = (miniPin && miniPin.value || '').trim();
+      if (miniErro) {
+        miniErro.classList.add('hidden');
+        miniErro.textContent = '';
+      }
+      if (v.length < 2) {
+        if (miniErro) {
+          miniErro.textContent = 'Informe o nome (mínimo 2 caracteres).';
+          miniErro.classList.remove('hidden');
+        }
+        return;
+      }
+      var exact = findFacetExact(miniFacetKey, v);
+      if (exact) {
+        var targetEx = document.getElementById(miniTargetId);
+        if (targetEx) {
+          targetEx.value = exact;
+          markPickCommitted(targetEx, exact);
+        }
+        if (typeof miniCb === 'function') miniCb(exact, { existente: true });
+        fecharMiniAgro();
+        return;
+      }
+      if (!pin) {
+        if (miniErro) {
+          miniErro.textContent = 'Informe o PIN do operador para cadastrar novo.';
+          miniErro.classList.remove('hidden');
+        }
+        return;
+      }
+      var cfg = window.AgroCadastroErpLista || {};
+      var url = cfg.URL_FACETA_NOVA || '';
+      if (!url) {
+        if (miniErro) {
+          miniErro.textContent = 'API de cadastro novo indisponível. Recarregue a página.';
+          miniErro.classList.remove('hidden');
+        }
+        return;
+      }
+      miniOk.disabled = true;
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': obterCsrfCadastro(cfg)
+        },
+        body: JSON.stringify({ tipo: miniTipo, valor: v, pin: pin })
+      })
+        .then(function (r) {
+          return r.json().catch(function () {
+            return {};
+          }).then(function (j) {
+            return { okHttp: r.ok, j: j };
+          });
+        })
+        .then(function (pack) {
+          var j = pack.j || {};
+          if (!pack.okHttp || !j.ok) {
+            throw new Error((j && j.erro) || 'Não foi possível cadastrar.');
+          }
+          var canon = String(j.valor || v).trim();
+          appendFacetToList(miniFacetKey, canon);
+          var target = document.getElementById(miniTargetId);
+          if (target) {
+            target.value = canon;
+            markPickCommitted(target, canon);
+          }
+          if (typeof miniCb === 'function') miniCb(canon, { existente: false });
+          fecharMiniAgro();
+        })
+        .catch(function (err) {
+          if (miniErro) {
+            miniErro.textContent = (err && err.message) || 'Erro ao cadastrar.';
+            miniErro.classList.remove('hidden');
+          }
+        })
+        .finally(function () {
+          miniOk.disabled = false;
+        });
     });
   }
   bindClick('modal-mini-agro-cancelar', fecharMiniAgro);
@@ -2672,31 +2992,27 @@
   bindCodigoSistemaGmSync();
 
   bindClick('btn-marca-nova', function () {
-    abrirMiniAgro('Nova marca', function (v) {
+    abrirMiniAgro('Nova marca', 'marcas', 'marca', 'edit-marca', function (v) {
       if (!v) return;
       setVal('edit-marca', v);
-      appendDatalistOption('dl-marcas-agro', v);
     });
   });
   bindClick('btn-fornec-nova', function () {
-    abrirMiniAgro('Novo fornecedor', function (v) {
+    abrirMiniAgro('Novo fornecedor', 'fornecedores', 'fornecedor', 'edit-fornecedor', function (v) {
       if (!v) return;
       setVal('edit-fornecedor', v);
-      appendDatalistOption('dl-forns-agro', v);
     });
   });
   bindClick('btn-categoria-nova', function () {
-    abrirMiniAgro('Nova categoria', function (v) {
+    abrirMiniAgro('Nova categoria', 'categorias', 'categoria', 'edit-categoria', function (v) {
       if (!v) return;
       setVal('edit-categoria', v);
-      appendDatalistOption('dl-cats-agro', v);
     });
   });
   bindClick('btn-subcategoria-nova', function () {
-    abrirMiniAgro('Nova subcategoria', function (v) {
+    abrirMiniAgro('Nova subcategoria', 'subcategorias', 'subcategoria', 'edit-subcategoria', function (v) {
       if (!v) return;
       setVal('edit-subcategoria', v);
-      appendDatalistOption('dl-subcats-agro', v);
     });
   });
   bindClick('btn-gerar-cb-loja', function () {
@@ -2733,10 +3049,9 @@
   });
 
   bindClick('btn-var-marca-nova', function () {
-    abrirMiniAgro('Nova marca (variação)', function (v) {
+    abrirMiniAgro('Nova marca (variação)', 'marcas', 'marca', 'var-marca', function (v) {
       if (!v) return;
       setVal('var-marca', v);
-      appendDatalistOption('dl-marcas-agro', v);
     });
   });
 
