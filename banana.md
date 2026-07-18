@@ -1156,7 +1156,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.91** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.35** · **loja v10.28** (pacote Vila — subindo)
+
+### 📦 Deploy loja **v10.28** — pacote Vila Elias / Centro (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · Render migrate 0055/0056 · aguardar Live |
+| **Inclui** | Depósito Centro×Vila · caixa separado · antiburro · bloqueio sem caixa · badge/aviso · filtro vendas/relatório · MP Renan · saldo cadastro recente |
+| **NÃO inclui** | Catálogo delivery · FL-024 picklist · Compras UI · resto só no teste |
+| **Método** | cherry-pick 12 commits do `teste` · **não** merge inteiro |
+| **Base** | `c0620af` (loja v9.91) |
+| **Backup / reverter** | tag `rollback/pre-vila-v9.91` (= `producao-backup-pre-v1028-vila-20260718` @ **c0620af**) → `git push origin rollback/pre-vila-v9.91:producao` (**só** com nova frase+senha) |
+| **Env** | `PDV_VENDA_ESTOQUE_DEPOSITO` **ausente** ✅ (= centro) |
+| **Risco Centro** | Baixo (venda segue caixa Gaveta) · **exige caixa aberto** pra vender |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.28** · smoke Gaveta: abrir → vender 1 → fechar → relatório chip **Centro** |
 
 ### 📦 Deploy loja **v9.91** — kardex Quem + Entrada NF (18/07 · Renan frase+senha)
 
