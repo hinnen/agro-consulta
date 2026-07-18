@@ -19,10 +19,29 @@
   {% if msg %}<p class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{{ msg }}</p>{% endif %}
   {% if erro %}<p class="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ erro }}</p>{% endif %}
 
-  <form method="post" class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
+  <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
     {% csrf_token %}
     <input type="hidden" name="acao" value="salvar_loja">
     <h2 class="text-sm font-black uppercase text-slate-700">Loja e WhatsApp</h2>
+    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+      <p class="text-xs font-black uppercase text-slate-500">Logotipo (topo do catálogo)</p>
+      <div class="flex items-center gap-3">
+        {% if config.logo_url %}
+        <img src="{{ config.logo_url }}" alt="" class="w-14 h-14 rounded-xl object-contain bg-white border border-slate-200">
+        {% else %}
+        <div class="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-black text-lg">?</div>
+        {% endif %}
+        <div class="min-w-0 flex-1 space-y-1.5">
+          <input type="file" name="logo_loja" accept="image/*" class="w-full text-xs">
+          <p class="text-[0.65rem] text-slate-500 font-semibold">PNG/JPG · máx. ~700 KB · aparece antes do nome</p>
+          {% if config.logo_url %}
+          <label class="flex items-center gap-2 text-xs font-bold text-red-700">
+            <input type="checkbox" name="remover_logo" value="1" class="w-4 h-4"> Remover logo
+          </label>
+          {% endif %}
+        </div>
+      </div>
+    </div>
     <label class="block"><span class="text-xs font-black uppercase text-slate-500">Nome na vitrine</span>
       <input name="nome_loja" value="{{ config.nome_loja }}" class="w-full mt-1 p-3 border-2 rounded-xl font-bold"></label>
     <label class="block"><span class="text-xs font-black uppercase text-slate-500">WhatsApp (só números, com DDD)</span>

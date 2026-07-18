@@ -264,6 +264,18 @@ def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: st
     cat.save(update_fields=["imagem_base64", "imagem_mime"])
 
 
+def salvar_logo_loja(cfg: CatalogoDeliveryConfig, raw_b64: str, mime: str = "") -> None:
+    """Grava logotipo da loja (limite ~700 KB)."""
+    b64, mime_guess = _strip_data_url(raw_b64 or "")
+    mime_final = (mime or mime_guess or "image/png").strip()[:40] or "image/png"
+    if len(b64) > 900_000:
+        b64 = ""
+        mime_final = "image/png"
+    cfg.logo_base64 = b64
+    cfg.logo_mime = mime_final if b64 else "image/png"
+    cfg.save(update_fields=["logo_base64", "logo_mime"])
+
+
 def cards_home_catalogo(itens: list[dict]) -> list[dict]:
     """
     Cards da tela inicial: categorias raiz ativas + opcional «Outros».

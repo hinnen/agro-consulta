@@ -1237,14 +1237,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.22** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.24** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · migrate `0060` logo loja |
+| **Logo** | Upload em `/catalogo/gestao/` · aparece **antes do nome** no topo do `/catalogo/` |
+| **Fluxo** | Categoria → sub (se houver) → produtos (v10.22) |
+| **Renan testar** | Gestão → logotipo → Salvar loja → vitrine Ctrl+F5 |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.22** (18/07/2026) *(histórico — ver v10.24)*
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ push `teste` |
 | **Fluxo** | Home categoria → **subcategoria** (se existir) → produtos filtrados · Voltar em cascata |
-| **Sem sub** | Categoria sem filhos → vai direto aos produtos |
-| **Renan testar** | Cães → Adulto/Filhote → lista · Voltar volta às subs · Ctrl+F5 |
 | **Produção** | **Não** |
 
 ### WIP — Catálogo delivery GM Agro **v10.21** (18/07/2026) *(histórico — ver v10.22)*
