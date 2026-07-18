@@ -1184,15 +1184,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Autorizar** | *«pode subir Compras UI etapa 1»* + **99738595** |
 | **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
 
-### 🩹 Cadastro — aba 9 histórico só o que mudou (18/07 · **teste v10.01**)
+### 📦 PACOTE PRONTO LOJA — aba 9 histórico só o que mudou (18/07 · **teste v10.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
 | **Sintoma** | Lápis PDV (1 centavo) gerava várias linhas com **DE = —** (nome, GM, barras…) · preço sem valor anterior |
-| **Causa** | Overlay vazio no 1º save · «antes» vazio · permite_venda forçado True em todo save |
+| **Causa** | Overlay vazio no 1º save · «antes» vazio · `permite_venda` forçado True em todo save |
 | **Fix** | «Antes» completa com catálogo · não força permite_venda no lápis |
-| **Arquivos** | cadastro_alteracao_historico_util.py · iews.py |
-| **Você** | Ctrl+F5 teste · lápis muda só preço · aba 9 = **1 linha** · DE = preço antigo · PARA = novo |
+| **Arquivos** | `cadastro_alteracao_historico_util.py` · `views.py` |
+| **Risco** | Baixo — só histórico de cadastro; não mexe estoque/venda |
+| **Backup no envio** | `producao-backup-pre-v1001-aba9-YYYYMMDD` @ HEAD loja |
+| **Após enviar** | **Obrigatório testar na loja** (Ctrl+F5 · lápis muda 1 centavo · aba 9 = **1 linha** · DE = preço antigo) |
+| **Autorizar** | *«pode subir aba 9 histórico»* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
 
@@ -1852,8 +1856,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
+| **Fecha** | **Aba 9 histórico** (só o que mudou no lápis) — 📦 **pronto pra envio** · teste **v10.01** · **após loja: testar de novo** (1 centavo → 1 linha · DE = preço antigo) |
+| **Autorizar aba 9** | *«pode subir aba 9 histórico»* + **99738595** |
 | **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **após loja: testar de novo** (Quem sem @ · NF 399636 = entrada) |
-| **Autorizar** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
+| **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
+| **Fecha** | **Compras UI etapa 1** — 📦 **pronto pra envio** · teste **v9.95+** · validar `/compras/` na loja |
 | **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
 | **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
 
@@ -1862,6 +1869,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
+| **P1** | Aba 9 | Histórico lápis PDV: várias linhas DE=— · sem preço antigo | 📦 **pronto pra envio** · teste **v10.01** · **validar na loja após envio** |
 | **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
 | **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
 | **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
