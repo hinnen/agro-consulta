@@ -6515,6 +6515,35 @@ def _vendas_qs_periodo(di: date, df: date):
     )
 
 
+def _vendas_filtro_loja_from_request(request) -> tuple[str, str | None]:
+    """
+    Retorna (modo_ui, deposito_filtro).
+    modo_ui: centro | vila | todas
+    deposito_filtro: centro | vila | None (todas).
+    Padrão = loja do aparelho (mesmo seletor do BI/PDV).
+    """
+    from produtos.pdv_deposito_util import bootstrap_deposito, normalizar_deposito
+
+    raw = (request.GET.get("loja") or request.GET.get("deposito") or "").strip().lower()
+    if raw in ("todas", "todos", "all"):
+        return "todas", None
+    if raw in ("centro", "vila", "1", "2", "vila elias", "vila_elias"):
+        dep = normalizar_deposito(raw)
+        return dep, dep
+    boot = bootstrap_deposito(request)
+    dep = normalizar_deposito(boot.get("deposito"))
+    return dep, dep
+
+
+def _vendas_aplicar_filtro_loja(qs, deposito_filtro: str | None):
+    if deposito_filtro is None:
+        return qs
+    if deposito_filtro == "vila":
+        return qs.filter(deposito__iexact="vila")
+    # Centro + vendas antigas sem campo preenchido
+    return qs.filter(Q(deposito__iexact="centro") | Q(deposito="") | Q(deposito__isnull=True))
+
+
 def _venda_lista_preparar_linha(v, *, nfce_cfg: dict, tem_fiado: bool) -> None:
     """Evita reparse de JSON fiado e NFC-e config a cada coluna do template."""
     from produtos.devolucao_venda_util import valor_restante_venda
@@ -9234,6 +9263,8 @@ def api_pdv_relacionamento_cliente_extras(request):
 def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = _vendas_qs_periodo(di, df)
+    filtro_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
+    qs = _vendas_aplicar_filtro_loja(qs, dep_filtro)
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
     filtro_fiado_q = Q(forma_pagamento__icontains="fiado") | Q(pagamentos_json__icontains="Fiado")
     if filtro_fiado == "1" or filtro_fiado == "sim":
@@ -9255,11 +9286,15 @@ def vendas_lista(request):
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
     from produtos.fiado_credito_util import venda_local_tem_fiado
     from produtos.nfce_config_util import nfce_config_resumo
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
 
     nfce_cfg = nfce_config_resumo()
     vendas = list(qs.prefetch_related("itens", "devolucoes"))
     soma = Decimal("0")
     for v in vendas:
+        dep_v = normalizar_deposito(getattr(v, "deposito", None) or "centro")
+        v.lista_loja_label = ROTULO_DEPOSITO.get(dep_v, "Centro")
+        v.lista_loja_dep = dep_v
         _venda_lista_preparar_linha(v, nfce_cfg=nfce_cfg, tem_fiado=venda_local_tem_fiado(v))
         if v.devolvida_em is None:
             soma += v.lista_total_restante
@@ -9279,6 +9314,12 @@ def vendas_lista(request):
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
+            "filtro_loja": filtro_loja,
+            "filtro_loja_label": (
+                "Todas as lojas"
+                if filtro_loja == "todas"
+                else ROTULO_DEPOSITO.get(filtro_loja, "Centro")
+            ),
             "nfce_cfg": nfce_cfg,
         },
     )
@@ -9288,6 +9329,10 @@ def vendas_lista(request):
 def vendas_exportar_csv(request):
     di, df, _label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = _vendas_qs_periodo(di, df)
+    _modo_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
+    qs = _vendas_aplicar_filtro_loja(qs, dep_filtro)
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
+
     resp = HttpResponse(content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = (
         f'attachment; filename="vendas_{di.isoformat()}_{df.isoformat()}.csv"'
@@ -9298,6 +9343,7 @@ def vendas_exportar_csv(request):
         [
             "id",
             "data_hora",
+            "loja",
             "cliente",
             "cliente_id_erp",
             "cpf_cnpj",
@@ -9313,10 +9359,12 @@ def vendas_exportar_csv(request):
         situacao = dict(VendaAgro.ErpSyncStatus.choices).get(
             v.erp_sync_efetivo, v.erp_sync_efetivo
         )
+        dep_v = normalizar_deposito(getattr(v, "deposito", None) or "centro")
         w.writerow(
             [
                 v.pk,
                 v.criado_em.strftime("%Y-%m-%d %H:%M:%S"),
+                ROTULO_DEPOSITO.get(dep_v, "Centro"),
                 v.cliente_nome,
                 v.cliente_id_erp,
                 v.cliente_documento,
