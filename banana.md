@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.26** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.28** · **loja v9.91**
+
+### feat — Caixa relatório/conferências por loja (18/07 · **teste v10.28**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Achado** | Saldo / reforço / retirada / fechar já usavam o turno da loja · relatório e conferências misturavam Centro+Vila |
+| **Fix** | Filtro Centro / Vila / Todas (padrão = loja do PC) · MP Renan já soma nas linhas «— Mercado Pago» |
+| **Validar** | Relatório e Conferências → chips Loja · saldo do turno aberto |
 
 ### feat — PDV maquininha Mercado Pago Renan (18/07 · **teste v10.26**)
 
