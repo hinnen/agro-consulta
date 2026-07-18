@@ -103,18 +103,20 @@
     .fab-wa:active { transform: scale(0.94); }
     .fab-wa svg { width: 1.85rem; height: 1.85rem; display: block; }
     .logo-loja {
+      display: block;
       width: auto;
-      max-width: min(12.5rem, 48vw);
-      height: 3.35rem;
-      border-radius: 0.85rem;
+      max-width: min(22rem, 92vw);
+      height: 5.1rem;
+      border-radius: 1rem;
       object-fit: contain;
       object-position: left center;
       background: rgba(255, 255, 255, 0.97);
       border: 2px solid rgba(255, 255, 255, 0.55);
       box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
-      flex-shrink: 0;
-      padding: 0.2rem 0.35rem;
+      padding: 0.35rem 0.55rem;
     }
+    .hero-brand { display: flex; flex-direction: column; gap: 0.55rem; padding-right: 3.25rem; }
+    .hero-brand-meta { min-width: 0; }
     .card-rota {
       display: flex;
       flex-direction: column;
@@ -185,17 +187,18 @@
   {% if eh_staff %}
   <a href="{% url 'catalogo_gestao' %}" class="absolute right-3 top-3 text-[0.65rem] font-bold uppercase tracking-wide bg-white/20 px-2 py-1 rounded-lg z-10">Gestão</a>
   {% endif %}
-  <div class="flex items-center gap-3.5 pr-14">
+  <div class="hero-brand">
     {% if config.logo_url %}
     <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
+    {% else %}
+    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight">{{ config.nome_loja }}</h1>
     {% endif %}
-    <div class="min-w-0 flex-1">
+    <div class="hero-brand-meta">
       <p class="text-[0.65rem] font-black uppercase tracking-[0.18em] opacity-80">Delivery · rações</p>
-      <h1 class="text-[1.55rem] font-black tracking-tight leading-tight mt-0.5">{{ config.nome_loja }}</h1>
       {% if config.mensagem_boas_vindas %}
-      <p class="mt-1.5 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
+      <p class="mt-1 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
       {% else %}
-      <p class="mt-1.5 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
+      <p class="mt-1 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
       {% endif %}
     </div>
   </div>
