@@ -154,15 +154,17 @@
   </div>
 
   {% if enderecos %}
-  <div class="mt-3 space-y-1.5">
+  <div class="mt-3 grid grid-cols-2 gap-1.5">
     {% for end in enderecos %}
-    <a class="block text-[0.7rem] font-semibold leading-snug bg-white/15 hover:bg-white/25 active:bg-white/30 rounded-xl px-3 py-2.5 border border-white/20"
+    <a class="block text-[0.65rem] sm:text-[0.7rem] font-semibold leading-snug bg-white/15 hover:bg-white/25 active:bg-white/30 rounded-xl px-2.5 py-2 border border-white/20 min-w-0"
        href="https://www.google.com/maps/dir/?api=1&destination={{ end.endereco|urlencode }}&travelmode=driving"
        target="_blank" rel="noopener"
        aria-label="Abrir rota até {{ end.rotulo }}">
-      <span class="uppercase tracking-wide opacity-80">{{ end.rotulo }}</span>
-      <span class="float-right text-[0.6rem] font-black uppercase tracking-wide opacity-90">🗺 Rota</span><br>
-      {{ end.endereco }}
+      <span class="flex items-center justify-between gap-1">
+        <span class="uppercase tracking-wide opacity-80 truncate">{{ end.rotulo }}</span>
+        <span class="text-[0.55rem] font-black uppercase tracking-wide opacity-90 shrink-0">🗺</span>
+      </span>
+      <span class="block mt-0.5 line-clamp-2">{{ end.endereco }}</span>
     </a>
     {% endfor %}
   </div>
