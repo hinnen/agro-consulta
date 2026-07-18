@@ -562,6 +562,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
+- **Histórico C1–C3 + NF (18/07):** C1–C3 = só compras **anteriores**; a NF aberta **não** entra (evitava parecer 2 notas: data entrada vs emissão).
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
@@ -1157,7 +1158,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.95** · **loja v9.91**
+**Versão app (VERSION):** **teste v9.97** · **loja v9.91**
+
+### 🩹 Entrada NF — histórico C1–C3 não duplica a própria nota (18/07 · **teste v9.97**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no Render (Ctrl+F5 etapa 8) |
+| **Sintoma** | C3 e NF com mesmo preço e datas diferentes (entrada 14/07 vs emissão 30/06) — parecia 2 notas |
+| **Causa** | Após estoque, a NF aberta entrava em «últimas compras» (data entrada) e de novo na coluna NF (emissão) |
+| **Fix** | Prévia exclui o rascunho atual do histórico; filtro extra por nº+custo; rótulo «Compras anteriores + NF» |
+| **Arquivos** | `views.py` · `compras_ultimas_compras_util.py` · `entrada_nota.html` |
+| **Validar** | Abrir NF 320 (ou qualquer) → etapa 8 → C1–C3 sem a nota atual · NF só à direita |
 
 ### ✨ Compras — etapa 1 UI (reorganização visual) (18/07 · **teste v9.95**)
 

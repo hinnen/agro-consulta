@@ -4109,9 +4109,11 @@ def _ultimas_compras_por_produto_ids(
     limit: int = 3,
     mongo_max_time_ms: int | None = None,
     skip_erp: bool = False,
+    excluir_entrada_nf_rascunho_ids: set[str] | None = None,
 ) -> dict[str, list[dict]]:
     """
     Últimas compras por produto a partir de DtoCompra*, DtoNotaEntrada*, etc. (Mongo ERP).
+    ``excluir_entrada_nf_rascunho_ids``: omite esses rascunhos Agro (prévia de custo da NF aberta).
     """
     out_map: dict[str, list[dict]] = {str(pid): [] for pid in p_ids}
     if not p_ids:
@@ -4146,6 +4148,7 @@ def _ultimas_compras_por_produto_ids(
             since=since,
             produtos_por_id=produtos_por_id,
             mongo_max_time_ms=min(int(mongo_max_time_ms or 20_000), 20_000),
+            excluir_rascunho_ids=excluir_entrada_nf_rascunho_ids,
         )
     except Exception as exc:
         logger.warning("ultimas_compras entrada_nf_agro merge: %s", exc)
@@ -13326,6 +13329,7 @@ def api_entrada_nota_aprovar_wizard(request):
                 cab=cab_ap,
                 extra=ex_ap,
                 user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+                excluir_rascunho_id=oid,
             )
         except Exception as exc:
             logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
@@ -13503,6 +13507,7 @@ def _entrada_nfe_compras_mapa_batch_para_spark(
     *,
     produtos_por_id: dict[str, dict] | None = None,
     mongo_max_time_ms: int | None = None,
+    excluir_rascunho_id: str | None = None,
 ) -> dict[str, list]:
     """
     Uma chamada a ``_ultimas_compras_por_produto_ids`` para todos os produtos da grade,
@@ -13528,9 +13533,43 @@ def _entrada_nfe_compras_mapa_batch_para_spark(
         pids_ord.append(pid)
     if not pids_ord:
         return {}
+    excluir: set[str] | None = None
+    rid = str(excluir_rascunho_id or "").strip()
+    if rid:
+        excluir = {rid}
     return _ultimas_compras_por_produto_ids(
-        db, pids_ord, por_id, limit=3, mongo_max_time_ms=mongo_max_time_ms
+        db,
+        pids_ord,
+        por_id,
+        limit=6,
+        mongo_max_time_ms=mongo_max_time_ms,
+        excluir_entrada_nf_rascunho_ids=excluir,
     )
+
+
+def _entrada_nfe_spark_row_eh_esta_nota(
+    row: dict, cab: dict | None, *, custo_nf: float | None = None
+) -> bool:
+    """True se a linha de compra parece ser a própria NF aberta (nº/série + custo parecido)."""
+    cab = cab if isinstance(cab, dict) else {}
+    num = str(cab.get("numero") or "").strip()
+    if not num:
+        return False
+    ser = str(cab.get("serie") or "").strip()
+    det = row.get("detalhe") if isinstance(row.get("detalhe"), dict) else {}
+    docu = str(det.get("documento") or "").strip()
+    if not docu:
+        return False
+    num_ok = docu == num or docu.endswith("/" + num) or (ser and docu == f"{ser}/{num}")
+    if not num_ok:
+        return False
+    if custo_nf is None:
+        return True
+    try:
+        pf = float(row.get("preco_final") or 0)
+    except (TypeError, ValueError):
+        return False
+    return abs(pf - float(custo_nf)) < 0.02
 
 
 def _entrada_nfe_custo_spark_quatro_pontos(
@@ -13545,9 +13584,10 @@ def _entrada_nfe_custo_spark_quatro_pontos(
     compras_rows_precalc: list[dict] | None = None,
 ) -> tuple[list[float], list[str]]:
     """
-    Quatro pontos para mini gráfico na etapa 6: até 3 últimas compras (Mongo ERP,
+    Quatro pontos para mini gráfico na etapa 6: até 3 compras **anteriores** (Mongo/Agro,
     custo unitário final, mais antigo → mais recente) + custo unitário desta NF à direita.
     Compras a menos de 3: preenche à esquerda com o custo de catálogo anterior (data vazia).
+    A NF aberta não entra em C1–C3 (evita duplicar emissão vs data de entrada).
     Quando ``compras_rows_precalc`` vem do lote da API (etapa 6), não consulta o Mongo de novo.
     """
     try:
@@ -13562,23 +13602,27 @@ def _entrada_nfe_custo_spark_quatro_pontos(
     try:
         rows_src: list[dict] = []
         if compras_rows_precalc is not None:
-            rows_src = [r for r in compras_rows_precalc[:3] if isinstance(r, dict)]
+            rows_src = [r for r in compras_rows_precalc[:6] if isinstance(r, dict)]
         elif pid and not pid.lower().startswith("local:"):
             doc_ref = doc if isinstance(doc, dict) else {}
             if not doc_ref:
                 doc_ref = _produto_doc_por_id_externo(db, client_m, pid) or {}
             rows_src = list(
                 (
-                    _ultimas_compras_por_produto_ids(db, [pid], {pid: doc_ref}, limit=3).get(pid)
+                    _ultimas_compras_por_produto_ids(db, [pid], {pid: doc_ref}, limit=6).get(pid)
                 )
                 or []
-            )[:3]
+            )
         for row in rows_src:
+            if _entrada_nfe_spark_row_eh_esta_nota(row, cab, custo_nf=xnf):
+                continue
             try:
                 val = round(float(row.get("preco_final") or 0), 2)
             except (TypeError, ValueError):
                 continue
             hist_pairs.append((val, _entrada_nfe_row_compra_data_iso(row)))
+            if len(hist_pairs) >= 3:
+                break
     except Exception:
         hist_pairs = []
     hist_pairs.reverse()
@@ -13727,6 +13771,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     cab: dict | None,
     extra: dict | None,
     user_pk: int | None,
+    excluir_rascunho_id: str | None = None,
 ) -> dict[str, Any]:
     """Após PIN na etapa 6: grava custo no espelho Mongo conforme escolhas (média vs NF)."""
     out: dict[str, Any] = {"ok": True, "atualizados": 0, "erros": []}
@@ -13757,7 +13802,12 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     saldos_map = _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids)
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
     compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client_m, linhas, produtos_por_id=docs_map, mongo_max_time_ms=70000
+        db,
+        client_m,
+        linhas,
+        produtos_por_id=docs_map,
+        mongo_max_time_ms=70000,
+        excluir_rascunho_id=excluir_rascunho_id,
     )
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
@@ -13854,7 +13904,7 @@ def api_entrada_nota_preview_custo(request):
     saldos_map = _saldos_erp_produtos_depositos_batch(db, client, uniq_pids)
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
     compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000
+        db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000, excluir_rascunho_id=rid
     )
     itens = []
     for ix, ln in enumerate(linhas):

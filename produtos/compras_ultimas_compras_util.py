@@ -200,10 +200,12 @@ def append_eventos_entrada_nf_agro(
     since: datetime,
     produtos_por_id: dict | None = None,
     mongo_max_time_ms: int | None = 45_000,
+    excluir_rascunho_ids: set[str] | None = None,
 ) -> None:
     """
     Acrescenta eventos de compra a partir de ``AgroEntradaNotaRascunho`` (Entrada NF Agro).
     Mesmo formato interno que ``_ultimas_compras_por_produto_ids`` (Mongo ERP).
+    ``excluir_rascunho_ids``: não inclui esses rascunhos (ex.: a NF aberta na prévia de custo).
     """
     if not pid_ok:
         return
@@ -217,6 +219,8 @@ def append_eventos_entrada_nf_agro(
     codigo_map = _mapa_codigo_para_pid(produtos_por_id)
     if not pid_map:
         return
+
+    excluir = {str(x).strip() for x in (excluir_rascunho_ids or set()) if str(x).strip()}
 
     filtro: dict[str, Any] = {
         "$or": [
@@ -248,6 +252,9 @@ def append_eventos_entrada_nf_agro(
     for doc in docs:
         if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
             continue
+        doc_id = str(doc.get("_id") or doc.get("rascunho_id") or "").strip()
+        if doc_id and doc_id in excluir:
+            continue
         cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
         dt = _data_doc_entrada_nf_agro(cab, doc)
         if dt is None or dt < since:
@@ -274,6 +281,7 @@ def append_eventos_entrada_nf_agro(
                     "unit_ja_final": ja_final,
                     "numero_doc": numero_doc,
                     "tipo_fonte": "entrada_nf_agro",
+                    "rascunho_id": doc_id,
                 }
             )
 
