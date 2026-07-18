@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.14** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.17** · **loja v9.91**
+
+### 🩹 Cadastro — código sistema+GM no produto novo sem agro_pg (18/07 · **teste v10.17**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Local (catálogo Mongo): Novo produto → Fiscal sem código sistema/GM; loja `agro_pg` preenchia OK |
+| **Fix** | Detalhe `__novo__` no caminho Mongo também aloca sequência 4010+ / `GM####` |
+| **Validar** | Local: Novo produto → aba Fiscal → código + GM preenchidos |
 
 ### 🩹 PDV — badge estoque + aviso caixa sem F5 (18/07 · **teste v10.14**)
 
