@@ -1156,9 +1156,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.90** · **loja v9.90**
+**Versão app (VERSION):** **teste v9.91** · **loja v9.90**
 
-### 🩹 Cadastro — kardex Quem + Entrada NF (17/07 · **teste**)
+### 🩹 Cadastro — kardex Quem + Entrada NF (17/07 · **teste v9.91**)
 
 | Item | Detalhe |
 | ---- | ------- |
