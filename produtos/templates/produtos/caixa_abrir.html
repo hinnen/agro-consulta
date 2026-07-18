@@ -18,10 +18,20 @@
     }
     .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
     .caixa-ponto-card {
-      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
       min-height: clamp(5.5rem, 14vh, 7.5rem);
     }
-    .caixa-ponto-card.is-selected { box-shadow: 0 12px 32px rgba(16, 185, 129, 0.18); }
+    .caixa-ponto-card.is-selected {
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+      opacity: 1;
+    }
+    .caixa-ponto-card:not(.is-selected):not(.is-disabled) {
+      opacity: 0.72;
+    }
+    .caixa-ponto-card.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     .caixa-ponto-panel[hidden] { display: none !important; }
   </style>
   {% include "produtos/includes/caixa_viewport_shell.html" %}
@@ -64,32 +74,36 @@
       </div>
       <div class="flex-1 min-h-0 p-3 sm:p-4">
         <div class="grid grid-cols-2 gap-2 sm:gap-3 h-full" role="radiogroup" aria-label="Tipo de caixa">
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_gaveta %}border-emerald-300 bg-emerald-50/50 hover:border-emerald-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_gaveta %}is-disabled{% endif %}" data-ponto="gaveta">
             <input type="radio" name="ponto_caixa_ui" value="gaveta" class="sr-only" {% if pode_abrir_gaveta and deposito_browser != 'vila' %}checked{% endif %} {% if not pode_abrir_gaveta %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-emerald-800">Selecionado</span>
             <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Gaveta Centro</span>
             <span class="block text-xs font-semibold text-slate-600 mt-1">Turno principal do Centro</span>
             {% if gaveta_aberta %}
             <span class="mt-2 block text-[11px] font-black uppercase text-emerald-800">Aberto · #{{ gaveta_aberta.pk }}</span>
             {% endif %}
           </label>
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_vila %}border-slate-400 bg-slate-50 hover:border-slate-600{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_vila %}is-disabled{% endif %}" data-ponto="vila">
             <input type="radio" name="ponto_caixa_ui" value="vila" class="sr-only" {% if pode_abrir_vila and deposito_browser == 'vila' %}checked{% endif %} {% if not pode_abrir_vila %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-slate-800">Selecionado</span>
             <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Vila Elias</span>
             <span class="block text-xs font-semibold text-slate-600 mt-1">Turno separado da Vila</span>
             {% if vila_aberta %}
             <span class="mt-2 block text-[11px] font-black uppercase text-slate-800">Aberto · #{{ vila_aberta.pk }}</span>
             {% endif %}
           </label>
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_notebook %}border-sky-300 bg-sky-50/50 hover:border-sky-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_notebook %}is-disabled{% endif %}" data-ponto="notebook">
             <input type="radio" name="ponto_caixa_ui" value="notebook" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and pode_abrir_notebook %}checked{% endif %} {% if not pode_abrir_notebook %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-sky-800">Selecionado</span>
             <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Notebook</span>
             <span class="block text-xs font-semibold text-slate-600 mt-1">Mesma loja do BI · PIN</span>
             {% if not pode_abrir_notebook %}
             <span class="mt-2 block text-[11px] font-black uppercase text-amber-800">Abra o caixa da loja antes</span>
             {% endif %}
           </label>
-          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_teste %}border-violet-300 bg-violet-50/50 hover:border-violet-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_teste %}is-disabled{% endif %}" data-ponto="teste">
             <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
+            <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-violet-800">Selecionado</span>
             <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Teste</span>
             <span class="block text-xs font-semibold text-slate-600 mt-1">Isolado · não soma</span>
             {% if teste_aberto %}
@@ -178,6 +192,8 @@
             <span class="text-[10px] font-black uppercase text-amber-800">Para abrir, digite <strong id="confirm-loja-palavra" class="text-emerald-800">centro</strong></span>
             <input type="text" name="confirmacao_loja" id="confirmacao_loja" value="" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide" placeholder="digite aqui" inputmode="text">
             <span class="mt-1 block text-[11px] font-bold text-slate-600" id="confirm-loja-ajuda">Escrevendo a loja você confirma que não abriu a errada.</span>
+            <span class="mt-1 hidden block text-sm font-black text-red-700" id="confirm-loja-erro" role="alert">Ainda não está certo — digite exatamente a palavra pedida.</span>
+            <span class="mt-1 hidden block text-sm font-black text-emerald-700" id="confirm-loja-ok">Certo. Pode abrir.</span>
           </label>
           <label class="block sm:col-span-2">
             <span class="text-[10px] font-black uppercase text-slate-500">Observação (opcional)</span>
@@ -212,11 +228,20 @@
   var sugVila = '{% if sugestao_fechamento_vila %}{{ sugestao_fechamento_vila.dinheiro_contado_br|escapejs }}{% else %}0{% endif %}';
 
   var selClass = {
-    gaveta: ['border-emerald-500', 'bg-emerald-50'],
-    vila: ['border-slate-600', 'bg-slate-100'],
-    notebook: ['border-sky-500', 'bg-sky-50'],
-    teste: ['border-violet-500', 'bg-violet-50']
+    gaveta: ['border-emerald-600', 'bg-emerald-100', 'ring-4', 'ring-emerald-300'],
+    vila: ['border-slate-800', 'bg-slate-200', 'ring-4', 'ring-slate-400'],
+    notebook: ['border-sky-600', 'bg-sky-100', 'ring-4', 'ring-sky-300'],
+    teste: ['border-violet-600', 'bg-violet-100', 'ring-4', 'ring-violet-300']
   };
+  var allSelClasses = [
+    'border-emerald-600', 'bg-emerald-100', 'ring-4', 'ring-emerald-300',
+    'border-slate-800', 'bg-slate-200', 'ring-slate-400',
+    'border-sky-600', 'bg-sky-100', 'ring-sky-300',
+    'border-violet-600', 'bg-violet-100', 'ring-violet-300',
+    'border-slate-300', 'bg-white', 'border-emerald-300', 'bg-emerald-50', 'bg-emerald-50/50',
+    'border-slate-400', 'bg-slate-50', 'border-sky-300', 'bg-sky-50', 'bg-sky-50/50',
+    'border-violet-300', 'bg-violet-50', 'bg-violet-50/50'
+  ];
 
   function normConfirm(t) {
     return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
@@ -236,37 +261,82 @@
     return p === 'vila' ? 'vila' : 'centro';
   }
 
+  var confirmErro = document.getElementById('confirm-loja-erro');
+  var confirmOkHint = document.getElementById('confirm-loja-ok');
+  var confirmAjuda = document.getElementById('confirm-loja-ajuda');
+  var CLS_CONF_IDLE = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+  var CLS_CONF_OK = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+  var CLS_CONF_ERR = 'mt-1 w-full min-h-[56px] rounded-xl border-2 border-red-500 bg-red-50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide';
+
   function syncConfirm() {
     var p = pontoAtivo();
     var precisa = (p === 'gaveta' || p === 'vila');
+    var esp = palavraEsperada(p);
     if (blocoConfirm) blocoConfirm.classList.toggle('hidden', !precisa);
-    if (confirmPalavra) confirmPalavra.textContent = palavraEsperada(p);
+    if (confirmPalavra) confirmPalavra.textContent = esp;
     if (confirmInput) {
       confirmInput.required = precisa;
       if (!precisa) confirmInput.value = '';
     }
+    var raw = confirmInput ? confirmInput.value : '';
+    var vazio = !String(raw || '').trim();
+    var certo = precisa && confirmBate(raw, esp);
     if (btnAbrir) {
-      if (!precisa) {
-        btnAbrir.disabled = false;
-      } else {
-        btnAbrir.disabled = !confirmBate(confirmInput && confirmInput.value, palavraEsperada(p));
-      }
+      btnAbrir.disabled = precisa ? !certo : false;
     }
+    if (!precisa || !confirmInput) {
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.add('hidden');
+      if (confirmAjuda) confirmAjuda.classList.remove('hidden');
+      return;
+    }
+    if (vazio) {
+      confirmInput.className = CLS_CONF_IDLE;
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.add('hidden');
+      if (confirmAjuda) confirmAjuda.classList.remove('hidden');
+      return;
+    }
+    if (certo) {
+      confirmInput.className = CLS_CONF_OK;
+      if (confirmErro) confirmErro.classList.add('hidden');
+      if (confirmOkHint) confirmOkHint.classList.remove('hidden');
+      if (confirmAjuda) confirmAjuda.classList.add('hidden');
+      return;
+    }
+    confirmInput.className = CLS_CONF_ERR;
+    if (confirmErro) {
+      confirmErro.textContent = 'Ainda não está certo — digite exatamente: ' + esp;
+      confirmErro.classList.remove('hidden');
+    }
+    if (confirmOkHint) confirmOkHint.classList.add('hidden');
+    if (confirmAjuda) confirmAjuda.classList.add('hidden');
+  }
+
+  function pintarCards(p) {
+    cards.forEach(function (card) {
+      var inp = card.querySelector('input[type="radio"]');
+      var val = inp ? inp.value : (card.getAttribute('data-ponto') || '');
+      var on = !!(inp && inp.checked && !inp.disabled);
+      var disabled = !!(inp && inp.disabled);
+      card.classList.toggle('is-selected', on);
+      card.classList.toggle('is-disabled', disabled);
+      allSelClasses.forEach(function (c) { card.classList.remove(c); });
+      var badge = card.querySelector('.caixa-ponto-sel');
+      if (badge) badge.classList.toggle('hidden', !on);
+      if (on) {
+        var extra = selClass[val] || selClass.gaveta;
+        extra.forEach(function (c) { card.classList.add(c); });
+      } else {
+        card.classList.add('border-slate-300', 'bg-white');
+      }
+    });
   }
 
   function syncUi() {
     var p = pontoAtivo();
     if (postPonto) postPonto.value = p;
-    cards.forEach(function (card) {
-      var inp = card.querySelector('input[type="radio"]');
-      var on = !!(inp && inp.checked && !inp.disabled);
-      card.classList.toggle('is-selected', on);
-      var extra = selClass[inp && inp.value] || selClass.gaveta;
-      ['border-emerald-500', 'bg-emerald-50', 'border-slate-600', 'bg-slate-100', 'border-sky-500', 'bg-sky-50', 'border-violet-500', 'bg-violet-50'].forEach(function (c) {
-        card.classList.remove(c);
-      });
-      if (on && extra) extra.forEach(function (c) { card.classList.add(c); });
-    });
+    pintarCards(p);
     panels.forEach(function (el) {
       var allowed = (el.getAttribute('data-ponto-panel') || '').split(/\s+/);
       el.hidden = allowed.indexOf(p) < 0;
@@ -274,7 +344,7 @@
     if (formAbrir) formAbrir.hidden = p === 'notebook';
     if (formNotebook) formNotebook.hidden = p !== 'notebook';
     if (formAbrir) {
-      formAbrir.classList.remove('border-emerald-500', 'border-violet-500', 'border-slate-500');
+      formAbrir.classList.remove('border-emerald-500', 'border-violet-500', 'border-slate-500', 'border-slate-800');
     }
     if (p === 'teste') {
       if (titulo) titulo.textContent = 'Passo 2 — abrir teste';
@@ -286,7 +356,7 @@
       if (titulo) titulo.textContent = 'Passo 2 — abrir Vila Elias';
       if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Vila Elias';
       if (ajuda) ajuda.textContent = 'Dinheiro e vendas só da Vila — não mistura com o Centro.';
-      if (formAbrir) formAbrir.classList.add('border-slate-500');
+      if (formAbrir) formAbrir.classList.add('border-slate-800');
       if (valorAbertura) valorAbertura.value = sugVila || '0';
     } else if (p === 'gaveta') {
       if (titulo) titulo.textContent = 'Passo 2 — abrir gaveta Centro';

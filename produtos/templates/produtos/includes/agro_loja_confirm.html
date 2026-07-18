@@ -7,9 +7,10 @@
       <span class="text-[10px] font-black uppercase text-slate-600">Digite exatamente: <span id="agro-loja-confirm-palavra" class="text-emerald-700">centro</span></span>
       <input type="text" id="agro-loja-confirm-input" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-400 bg-amber-50/40 px-4 text-lg font-black tracking-wide" placeholder="centro ou vila">
     </label>
-    <p id="agro-loja-confirm-erro" class="mt-2 hidden text-sm font-bold text-red-700">Palavra incorreta. Digite de novo.</p>
+    <p id="agro-loja-confirm-erro" class="mt-2 hidden text-sm font-black text-red-700" role="alert">Ainda não está certo — digite exatamente a palavra pedida.</p>
+    <p id="agro-loja-confirm-ok-hint" class="mt-2 hidden text-sm font-black text-emerald-700">Certo. Pode confirmar.</p>
     <div class="mt-4 flex flex-col sm:flex-row gap-2">
-      <button type="button" id="agro-loja-confirm-ok" class="flex-1 min-h-[52px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700" disabled>Confirmar</button>
+      <button type="button" id="agro-loja-confirm-ok" class="flex-1 min-h-[52px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed">Confirmar</button>
       <button type="button" id="agro-loja-confirm-cancel" class="flex-1 min-h-[52px] rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase text-sm hover:bg-slate-50">Cancelar</button>
     </div>
   </div>
@@ -17,6 +18,10 @@
 <script>
 (function () {
   if (window.AgroLojaConfirm) return;
+  var CLS_BASE = 'mt-1 w-full min-h-[52px] rounded-xl border-2 px-4 text-lg font-black tracking-wide';
+  var CLS_IDLE = CLS_BASE + ' border-amber-400 bg-amber-50/40';
+  var CLS_OK = CLS_BASE + ' border-emerald-500 bg-emerald-50';
+  var CLS_ERR = CLS_BASE + ' border-red-500 bg-red-50';
   function norm(t) {
     return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
   }
@@ -37,6 +42,7 @@
       var ok = el('agro-loja-confirm-ok');
       var cancel = el('agro-loja-confirm-cancel');
       var err = el('agro-loja-confirm-erro');
+      var okHint = el('agro-loja-confirm-ok-hint');
       var palavra = el('agro-loja-confirm-palavra');
       var msg = el('agro-loja-confirm-msg');
       if (!modal || !inp || !ok) {
@@ -52,7 +58,12 @@
         );
       }
       inp.value = '';
-      if (err) err.classList.add('hidden');
+      inp.className = CLS_IDLE;
+      if (err) {
+        err.textContent = 'Ainda não está certo — digite exatamente: ' + esperado;
+        err.classList.add('hidden');
+      }
+      if (okHint) okHint.classList.add('hidden');
       ok.disabled = true;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -66,15 +77,36 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       }
+      function mostrarErro() {
+        inp.className = CLS_ERR;
+        if (err) err.classList.remove('hidden');
+        if (okHint) okHint.classList.add('hidden');
+      }
       function syncOk() {
-        ok.disabled = !bate(inp.value, esperado);
-        if (err) err.classList.add('hidden');
+        var raw = inp.value;
+        var vazio = !String(raw || '').trim();
+        var certo = bate(raw, esperado);
+        ok.disabled = !certo;
+        if (vazio) {
+          inp.className = CLS_IDLE;
+          if (err) err.classList.add('hidden');
+          if (okHint) okHint.classList.add('hidden');
+          return;
+        }
+        if (certo) {
+          inp.className = CLS_OK;
+          if (err) err.classList.add('hidden');
+          if (okHint) okHint.classList.remove('hidden');
+          return;
+        }
+        // Digitou algo incompleto/errado → feedback imediato
+        mostrarErro();
       }
       inp.oninput = syncOk;
       inp.onkeydown = function (ev) {
         if (ev.key === 'Enter') {
           ev.preventDefault();
-          if (!ok.disabled) ok.click();
+          ok.click();
         } else if (ev.key === 'Escape') {
           ev.preventDefault();
           cancel.click();
@@ -82,7 +114,8 @@
       };
       ok.onclick = function () {
         if (!bate(inp.value, esperado)) {
-          if (err) err.classList.remove('hidden');
+          mostrarErro();
+          try { inp.focus(); } catch (e1) {}
           return;
         }
         var texto = inp.value;
