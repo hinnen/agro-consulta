@@ -1158,15 +1158,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.92** · **loja v9.91**
 
-### 🩹 Cadastro — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
+### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Quem ainda com e-mail (gromaisgm@…) · Entrada NF (ex. 399636) ainda como **saída ~172** |
-| **Causa** | Label da NF era e-mail do login · qty usava Δ saldo_informado bruto (mistura salto ERP) |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **Sintoma** | Quem ainda com e-mail (`agromaisgm@…`) · Entrada NF (ex. 399636) ainda como **saída ~172** |
+| **Causa** | Label da NF era e-mail do login · qty usava Δ `saldo_informado` bruto (mistura salto ERP) |
 | **Fix** | Resolve e-mail→nome · movimento = Δ(camada Agro = informado−ERP ref) · saldo recomposto |
-| **Arquivo** | estoque_movimentos_cadastro_util.py |
-| **Você** | Ctrl+F5 teste · milho · Estoque · NF 399636 = **entrada** · Quem sem @ |
+| **Arquivo** | `estoque_movimentos_cadastro_util.py` |
+| **Risco** | Baixo — só leitura/exibição do histórico |
+| **Backup no envio** | `producao-backup-pre-v992-kardex-YYYYMMDD` @ HEAD loja |
+| **Após enviar** | **Obrigatório testar na loja** (Ctrl+F5 · badge · milho · Estoque · Quem sem @ · NF 399636 = entrada) |
+| **Autorizar** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
 
 ### 📦 Deploy loja **v9.91** — kardex Quem + Entrada NF (18/07 · Renan frase+senha)
 
@@ -1812,14 +1816,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Quando | O quê |
 | ------ | ----- |
-| **✅ Loja v9.90** | **PDV Enviar WhatsApp** · **Cadastro modal** · **PDV lápis/aba 9** · **FL-056** · **Relatórios ?** — enviados 17/07 |
-| **Validar loja** | Ctrl+F5 · badge **v9.90** · Zap · lápis→aba 9 · modal · Relatórios **?** · reemitir **#2812**/**#3347** |
-| **Reverter** | `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
+| **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **após loja: testar de novo** (Quem sem @ · NF 399636 = entrada) |
+| **Autorizar** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
+| **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
+| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
 | **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
 | **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
 | **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
