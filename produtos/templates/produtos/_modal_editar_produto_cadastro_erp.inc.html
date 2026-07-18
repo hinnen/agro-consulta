@@ -763,7 +763,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           <div class="min-w-0">
             <div class="flex items-end gap-1.5">
               <label class="block min-w-0 flex-1">
@@ -800,7 +800,25 @@
               </div>
             </div>
           </div>
-          <label class="block min-w-0 sm:col-span-2 lg:col-span-1">
+          <div class="min-w-0">
+            <div class="flex items-end gap-1.5">
+              <label class="block min-w-0 flex-1">
+                <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Sub-subcategoria</span>
+                <select id="edit-delivery-subcategoria2" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+                  <option value="">— Sem sub-sub —</option>
+                </select>
+              </label>
+              <button type="button" id="btn-delivery-nova-sub2" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Nova sub-subcategoria">+</button>
+            </div>
+            <div id="panel-delivery-nova-sub2" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
+              <input type="text" id="input-delivery-nova-sub2" maxlength="80" placeholder="Ex.: Premium" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
+              <div class="flex gap-1.5">
+                <button type="button" id="btn-delivery-salvar-sub2" class="flex-1 min-h-[32px] rounded-lg bg-emerald-600 text-white text-xs font-black">Criar</button>
+                <button type="button" id="btn-delivery-cancelar-sub2" class="px-2 min-h-[32px] rounded-lg border text-xs font-bold">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <label class="block min-w-0">
             <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Estoque negativo</span>
             <select id="edit-delivery-estoque-regra" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
               <option value="positivo">Só se estoque positivo</option>
@@ -2320,8 +2338,9 @@
     if (regraEl) regraEl.value = del.permitir_estoque_negativo ? 'forcar' : 'positivo';
     modalEdit._deliveryCatId = del.categoria_id ? String(del.categoria_id) : '';
     modalEdit._deliverySubId = del.subcategoria_id ? String(del.subcategoria_id) : '';
+    modalEdit._deliverySub2Id = del.subcategoria2_id ? String(del.subcategoria2_id) : '';
     if (typeof carregarDeliveryCategorias === 'function') {
-      carregarDeliveryCategorias(modalEdit._deliveryCatId, modalEdit._deliverySubId);
+      carregarDeliveryCategorias(modalEdit._deliveryCatId, modalEdit._deliverySubId, false, modalEdit._deliverySub2Id);
     }
     var b64El = document.getElementById('edit-delivery-imagem-b64');
     var mimeEl = document.getElementById('edit-delivery-imagem-mime');
@@ -2631,6 +2650,7 @@
         permitir_estoque_negativo: ((document.getElementById('edit-delivery-estoque-regra') || {}).value === 'forcar'),
         categoria_id: gv('edit-delivery-categoria') || '0',
         subcategoria_id: gv('edit-delivery-subcategoria') || '0',
+        subcategoria2_id: gv('edit-delivery-subcategoria2') || '0',
         imagem_base64: gv('edit-delivery-imagem-b64'),
         imagem_mime: gv('edit-delivery-imagem-mime') || 'image/jpeg'
       },
@@ -2818,23 +2838,47 @@
     var ck = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
     return ck ? decodeURIComponent(ck[1]) : '';
   }
-  function preencherSubsDelivery(catId, subIdSel) {
+  function _rootDelivery(catId) {
+    var roots = _deliveryCatsCache || [];
+    for (var i = 0; i < roots.length; i++) {
+      if (String(roots[i].id) === String(catId)) return roots[i];
+    }
+    return null;
+  }
+  function _subDelivery(catId, subId) {
+    var root = _rootDelivery(catId);
+    if (!root || !Array.isArray(root.filhos)) return null;
+    for (var i = 0; i < root.filhos.length; i++) {
+      if (String(root.filhos[i].id) === String(subId)) return root.filhos[i];
+    }
+    return null;
+  }
+  function preencherSubs2Delivery(catId, subId, sub2Sel) {
+    var sub2 = document.getElementById('edit-delivery-subcategoria2');
+    if (!sub2) return;
+    var opts = '<option value="">— Sem sub-sub —</option>';
+    var sub = _subDelivery(catId, subId);
+    if (sub && Array.isArray(sub.filhos)) {
+      sub.filhos.forEach(function (f) {
+        opts += '<option value="' + f.id + '"' + (String(f.id) === String(sub2Sel || '') ? ' selected' : '') + '>' + (f.nome || '') + '</option>';
+      });
+    }
+    sub2.innerHTML = opts;
+  }
+  function preencherSubsDelivery(catId, subIdSel, sub2Sel) {
     var sub = document.getElementById('edit-delivery-subcategoria');
     if (!sub) return;
     var opts = '<option value="">— Sem subcategoria —</option>';
-    var roots = _deliveryCatsCache || [];
-    var root = null;
-    for (var i = 0; i < roots.length; i++) {
-      if (String(roots[i].id) === String(catId)) { root = roots[i]; break; }
-    }
+    var root = _rootDelivery(catId);
     if (root && Array.isArray(root.filhos)) {
       root.filhos.forEach(function (f) {
         opts += '<option value="' + f.id + '"' + (String(f.id) === String(subIdSel || '') ? ' selected' : '') + '>' + (f.nome || '') + '</option>';
       });
     }
     sub.innerHTML = opts;
+    preencherSubs2Delivery(catId, subIdSel || sub.value, sub2Sel);
   }
-  function aplicarListaDeliveryCats(list, catId, subId) {
+  function aplicarListaDeliveryCats(list, catId, subId, sub2Id) {
     var sel = document.getElementById('edit-delivery-categoria');
     if (!sel) return;
     _deliveryCatsCache = list || [];
@@ -2843,21 +2887,21 @@
       html += '<option value="' + c.id + '"' + (String(c.id) === String(catId || '') ? ' selected' : '') + '>' + (c.nome || '') + '</option>';
     });
     sel.innerHTML = html;
-    preencherSubsDelivery(catId || sel.value, subId);
+    preencherSubsDelivery(catId || sel.value, subId, sub2Id);
   }
-  function carregarDeliveryCategorias(catId, subId, force) {
+  function carregarDeliveryCategorias(catId, subId, force, sub2Id) {
     var sel = document.getElementById('edit-delivery-categoria');
     if (!sel) return;
     if (_deliveryCatsCache && !force) {
-      aplicarListaDeliveryCats(_deliveryCatsCache, catId, subId);
+      aplicarListaDeliveryCats(_deliveryCatsCache, catId, subId, sub2Id);
       return;
     }
     fetch('/catalogo/api/categorias/', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        aplicarListaDeliveryCats((j && j.categorias) || [], catId, subId);
+        aplicarListaDeliveryCats((j && j.categorias) || [], catId, subId, sub2Id);
       })
-      .catch(function () { aplicarListaDeliveryCats([], catId, subId); });
+      .catch(function () { aplicarListaDeliveryCats([], catId, subId, sub2Id); });
   }
   function criarDeliveryCategoriaInline(nome, parentId, onOk, onDone) {
     fetch('/catalogo/api/categorias/criar/', {
@@ -2884,28 +2928,42 @@
   }
   (function bindDeliveryCats() {
     var sel = document.getElementById('edit-delivery-categoria');
+    var selSub = document.getElementById('edit-delivery-subcategoria');
     if (!sel || sel.dataset.boundCats) return;
     sel.dataset.boundCats = '1';
     sel.addEventListener('change', function () {
-      preencherSubsDelivery(sel.value, '');
+      preencherSubsDelivery(sel.value, '', '');
     });
+    if (selSub) {
+      selSub.addEventListener('change', function () {
+        preencherSubs2Delivery(sel.value, selSub.value, '');
+      });
+    }
 
     function togglePanel(panelId, show) {
       var p = document.getElementById(panelId);
       if (!p) return;
       p.classList.toggle('hidden', !show);
     }
+    function fecharPaineisCat() {
+      togglePanel('panel-delivery-nova-cat', false);
+      togglePanel('panel-delivery-nova-sub', false);
+      togglePanel('panel-delivery-nova-sub2', false);
+    }
 
     var btnCat = document.getElementById('btn-delivery-nova-cat');
     var btnSub = document.getElementById('btn-delivery-nova-sub');
+    var btnSub2 = document.getElementById('btn-delivery-nova-sub2');
     var panCat = document.getElementById('panel-delivery-nova-cat');
     var panSub = document.getElementById('panel-delivery-nova-sub');
+    var panSub2 = document.getElementById('panel-delivery-nova-sub2');
     var inpCat = document.getElementById('input-delivery-nova-cat');
     var inpSub = document.getElementById('input-delivery-nova-sub');
+    var inpSub2 = document.getElementById('input-delivery-nova-sub2');
 
     if (btnCat) {
       btnCat.addEventListener('click', function () {
-        togglePanel('panel-delivery-nova-sub', false);
+        fecharPaineisCat();
         var open = panCat && panCat.classList.contains('hidden');
         togglePanel('panel-delivery-nova-cat', open);
         if (open && inpCat) { inpCat.value = ''; inpCat.focus(); }
@@ -2917,16 +2975,30 @@
           if (typeof alert !== 'undefined') alert('Escolha ou crie a categoria primeiro.');
           return;
         }
-        togglePanel('panel-delivery-nova-cat', false);
+        fecharPaineisCat();
         var open = panSub && panSub.classList.contains('hidden');
         togglePanel('panel-delivery-nova-sub', open);
         if (open && inpSub) { inpSub.value = ''; inpSub.focus(); }
       });
     }
+    if (btnSub2) {
+      btnSub2.addEventListener('click', function () {
+        if (!selSub || !selSub.value) {
+          if (typeof alert !== 'undefined') alert('Escolha ou crie a subcategoria primeiro.');
+          return;
+        }
+        fecharPaineisCat();
+        var open = panSub2 && panSub2.classList.contains('hidden');
+        togglePanel('panel-delivery-nova-sub2', open);
+        if (open && inpSub2) { inpSub2.value = ''; inpSub2.focus(); }
+      });
+    }
     var cancelCat = document.getElementById('btn-delivery-cancelar-cat');
     var cancelSub = document.getElementById('btn-delivery-cancelar-sub');
+    var cancelSub2 = document.getElementById('btn-delivery-cancelar-sub2');
     if (cancelCat) cancelCat.addEventListener('click', function () { togglePanel('panel-delivery-nova-cat', false); });
     if (cancelSub) cancelSub.addEventListener('click', function () { togglePanel('panel-delivery-nova-sub', false); });
+    if (cancelSub2) cancelSub2.addEventListener('click', function () { togglePanel('panel-delivery-nova-sub2', false); });
 
     var salvarCat = document.getElementById('btn-delivery-salvar-cat');
     if (salvarCat) {
@@ -2936,7 +3008,7 @@
         salvarCat.disabled = true;
         criarDeliveryCategoriaInline(nome, null, function (cat) {
           togglePanel('panel-delivery-nova-cat', false);
-          aplicarListaDeliveryCats(_deliveryCatsCache, cat.id, '');
+          aplicarListaDeliveryCats(_deliveryCatsCache, cat.id, '', '');
         }, function () { salvarCat.disabled = false; });
       });
     }
@@ -2950,8 +3022,23 @@
         salvarSub.disabled = true;
         criarDeliveryCategoriaInline(nome, parentId, function (cat) {
           togglePanel('panel-delivery-nova-sub', false);
-          aplicarListaDeliveryCats(_deliveryCatsCache, parentId, cat.id);
+          aplicarListaDeliveryCats(_deliveryCatsCache, parentId, cat.id, '');
         }, function () { salvarSub.disabled = false; });
+      });
+    }
+    var salvarSub2 = document.getElementById('btn-delivery-salvar-sub2');
+    if (salvarSub2) {
+      salvarSub2.addEventListener('click', function () {
+        var nome = (inpSub2 && inpSub2.value || '').trim();
+        var catId = sel.value;
+        var parentId = selSub ? selSub.value : '';
+        if (!parentId) { if (typeof alert !== 'undefined') alert('Escolha a subcategoria primeiro.'); return; }
+        if (!nome) { if (typeof alert !== 'undefined') alert('Digite o nome da sub-subcategoria.'); return; }
+        salvarSub2.disabled = true;
+        criarDeliveryCategoriaInline(nome, parentId, function (cat) {
+          togglePanel('panel-delivery-nova-sub2', false);
+          aplicarListaDeliveryCats(_deliveryCatsCache, catId, parentId, cat.id);
+        }, function () { salvarSub2.disabled = false; });
       });
     }
     if (inpCat) {
@@ -2962,6 +3049,11 @@
     if (inpSub) {
       inpSub.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); if (salvarSub) salvarSub.click(); }
+      });
+    }
+    if (inpSub2) {
+      inpSub2.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); if (salvarSub2) salvarSub2.click(); }
       });
     }
   })();

@@ -19,6 +19,7 @@ from produtos.catalogo_delivery_util import (
     listar_categorias_arvore,
     listar_itens_catalogo,
     obter_config_catalogo,
+    opcoes_pai_categoria,
     salvar_foto_categoria,
     salvar_logo_loja,
     slugify_categoria,
@@ -188,14 +189,22 @@ def api_catalogo_categoria_criar(request):
     parent_raw = payload.get("parent_id") if "parent_id" in payload else request.POST.get("parent_id")
     if parent_raw not in (None, "", 0, "0"):
         try:
-            parent = CatalogoDeliveryCategoria.objects.filter(
-                pk=int(parent_raw), parent__isnull=True, ativo=True
-            ).first()
+            parent = (
+                CatalogoDeliveryCategoria.objects.filter(pk=int(parent_raw), ativo=True)
+                .select_related("parent")
+                .first()
+            )
         except (TypeError, ValueError):
             parent = None
         if parent is None:
             return JsonResponse(
-                {"ok": False, "erro": "Categoria pai inválida. Escolha a categoria principal primeiro."},
+                {"ok": False, "erro": "Categoria pai inválida."},
+                status=400,
+            )
+        # Máx. 3 níveis: pai pode ser raiz (nível 1) ou sub (nível 2)
+        if parent.parent_id and parent.parent and parent.parent.parent_id:
+            return JsonResponse(
+                {"ok": False, "erro": "Máximo 3 níveis (categoria → sub → sub-sub)."},
                 status=400,
             )
     try:
@@ -307,14 +316,19 @@ def catalogo_gestao_view(request):
             parent = None
             if parent_raw:
                 try:
-                    parent = CatalogoDeliveryCategoria.objects.filter(
-                        pk=int(parent_raw), parent__isnull=True
-                    ).first()
+                    parent = (
+                        CatalogoDeliveryCategoria.objects.filter(pk=int(parent_raw))
+                        .select_related("parent")
+                        .first()
+                    )
                 except (TypeError, ValueError):
                     parent = None
+                if parent and parent.parent_id and parent.parent and parent.parent.parent_id:
+                    parent = None
+                    erro = "Máximo 3 níveis (categoria → sub → sub-sub)."
             if not nome:
                 erro = "Informe o nome da categoria."
-            else:
+            elif not erro:
                 CatalogoDeliveryCategoria.objects.create(
                     nome=nome,
                     slug=slugify_categoria(nome),
@@ -387,5 +401,6 @@ def catalogo_gestao_view(request):
             "qtd_produtos_marcados": qtd,
             "categorias": listar_categorias_arvore(so_ativas=False),
             "categorias_raiz": listar_categorias_arvore(so_ativas=True),
+            "categorias_pai_opts": opcoes_pai_categoria(so_ativas=True),
         },
     )
