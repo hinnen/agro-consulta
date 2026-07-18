@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.10** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.11** · **loja v9.91**
+
+### 🩹 Caixa fechado — bloqueia venda + refresh no PDV (18/07 · **teste v10.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Após fechar caixa no overlay, PDV ainda vendia (bootstrap velho) e servidor aceitava venda sem turno |
+| **Fix** | API exige caixa aberto · PDV revalida caixa antes de cada venda · ao fechar overlay atualiza status · redirects do Fechar mantêm overlay |
+| **Validar local** | Abrir caixa → fechar → tentar vender → deve barrar · abrir de novo → vende |
 
 ### 🩹 Caixa no PDV — não abrir BI no overlay (18/07 · **teste v10.10**)
 
