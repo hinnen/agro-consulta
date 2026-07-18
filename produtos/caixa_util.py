@@ -617,9 +617,7 @@ def obter_sessao_caixa_aberta_request(request):
 def adotar_sessao_caixa_unica_aberta(request):
     """
     Quando há um único caixa aberto (ou um do usuário logado), associa ao navegador.
-    Evita vendas «sem caixa» quando o turno está aberto mas o cookie de sessão não foi setado.
-    Nunca mistura Caixa Teste com Gaveta/Notebook: adoção respeita o ponto do navegador ou só
-    um turno aberto no sistema.
+    Respeita o depósito do aparelho (Centro × Vila) e o ponto do navegador (teste/notebook).
     """
     from produtos.models import SessaoCaixa
 
@@ -627,18 +625,27 @@ def adotar_sessao_caixa_unica_aberta(request):
     if atual:
         return atual
     ponto_nav = ponto_operacao_browser(request)
+    dep = deposito_caixa_browser(request)
     qs = SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("-aberto_em")
     if ponto_nav == PONTO_CAIXA_TESTE:
         qs = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
-    elif ponto_nav in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK):
+    elif ponto_nav == PONTO_CAIXA_NOTEBOOK:
+        pai = ponto_pai_de_deposito(dep)
+        qs = qs.filter(ponto_caixa=pai)
+    elif ponto_nav == PONTO_CAIXA_VILA:
+        qs = qs.filter(ponto_caixa=PONTO_CAIXA_VILA)
+    elif ponto_nav == PONTO_CAIXA_GAVETA:
         qs = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
     else:
-        qs_op = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
+        pai = ponto_pai_de_deposito(dep)
+        qs_op = qs.filter(ponto_caixa=pai)
         qs_te = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
         if qs_op.count() == 1 and qs_te.count() == 0:
             qs = qs_op
         elif qs_te.count() == 1 and qs_op.count() == 0:
             qs = qs_te
+        elif qs_op.count() == 1:
+            qs = qs_op
         elif qs.count() != 1:
             return None
     usuario = getattr(request, "user", None)
@@ -842,12 +849,17 @@ def qtd_caixas_abertos() -> int:
 PONTO_CAIXA_GAVETA = "gaveta"
 PONTO_CAIXA_NOTEBOOK = "notebook"
 PONTO_CAIXA_TESTE = "teste"
+PONTO_CAIXA_VILA = "vila"
 
 PONTOS_CAIXA_ABERTURA: tuple[tuple[str, str], ...] = (
-    (PONTO_CAIXA_GAVETA, "Caixa Gaveta"),
+    (PONTO_CAIXA_GAVETA, "Caixa Gaveta (Centro)"),
+    (PONTO_CAIXA_VILA, "Caixa Vila Elias"),
     (PONTO_CAIXA_NOTEBOOK, "Caixa Notebook"),
     (PONTO_CAIXA_TESTE, "Caixa Teste"),
 )
+
+# Pontos “pai” (turno próprio) por loja física
+PONTOS_CAIXA_PAI = frozenset({PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA})
 
 SESSION_PONTO_OPERACAO_KEY = "pdv_ponto_operacao"
 SESSION_MP_POINT_HOST_KEY = "pdv_mp_point_host"
@@ -855,9 +867,45 @@ SESSION_MP_POINT_HOST_KEY = "pdv_mp_point_host"
 
 def normalizar_ponto_caixa(valor: str | None) -> str:
     v = (valor or "").strip().lower()
-    if v in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK, PONTO_CAIXA_TESTE):
+    if v in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK, PONTO_CAIXA_TESTE, PONTO_CAIXA_VILA):
         return v
     return PONTO_CAIXA_GAVETA
+
+
+def deposito_de_ponto_caixa(ponto: str | None) -> str:
+    """centro | vila — notebook/teste/gaveta → centro; vila → vila."""
+    p = normalizar_ponto_caixa(ponto)
+    if p == PONTO_CAIXA_VILA:
+        return "vila"
+    return "centro"
+
+
+def ponto_pai_de_deposito(deposito: str | None) -> str:
+    """Depósito operacional → ponto pai do caixa (gaveta Centro ou Vila Elias)."""
+    d = str(deposito or "").strip().lower()
+    if d == "vila":
+        return PONTO_CAIXA_VILA
+    return PONTO_CAIXA_GAVETA
+
+
+def deposito_caixa_browser(request) -> str:
+    """Depósito da loja neste aparelho (mesmo seletor do PDV)."""
+    try:
+        from produtos.pdv_deposito_util import resolver_deposito_request
+
+        return resolver_deposito_request(request)
+    except Exception:
+        return "centro"
+
+
+def sincronizar_deposito_com_ponto_caixa(request, ponto: str) -> None:
+    """Ao abrir caixa, alinha o seletor de loja do PDV com o ponto aberto."""
+    try:
+        from produtos.pdv_deposito_util import gravar_deposito_request
+
+        gravar_deposito_request(request, deposito_de_ponto_caixa(ponto))
+    except Exception:
+        pass
 
 
 def rotulo_ponto_caixa(ponto: str | None) -> str:
@@ -908,13 +956,28 @@ def formatar_opcao_sessao_caixa(row: dict) -> str:
 
 
 def obter_caixa_gaveta_aberto():
-    """Turno principal da loja (gaveta), obrigatório antes do notebook."""
+    """Turno principal do Centro (gaveta)."""
     from produtos.models import SessaoCaixa
 
     return (
         SessaoCaixa.objects.filter(
             fechado_em__isnull=True,
             ponto_caixa=PONTO_CAIXA_GAVETA,
+        )
+        .select_related("usuario")
+        .order_by("aberto_em")
+        .first()
+    )
+
+
+def obter_caixa_vila_aberto():
+    """Turno principal da Vila Elias."""
+    from produtos.models import SessaoCaixa
+
+    return (
+        SessaoCaixa.objects.filter(
+            fechado_em__isnull=True,
+            ponto_caixa=PONTO_CAIXA_VILA,
         )
         .select_related("usuario")
         .order_by("aberto_em")
@@ -937,12 +1000,16 @@ def obter_caixa_teste_aberto():
 
 
 def sessao_caixa_e_operacional(sessao) -> bool:
-    """Turno da loja (gaveta; notebook usa o PK da gaveta no navegador)."""
+    """Turno de loja (gaveta Centro, Vila Elias; notebook satélite). Não inclui teste."""
     return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) != PONTO_CAIXA_TESTE
 
 
 def sessao_caixa_e_teste(sessao) -> bool:
     return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) == PONTO_CAIXA_TESTE
+
+
+def sessao_caixa_grupo_deposito(sessao) -> str:
+    return deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
 
 
 def filtrar_sessoes_operacional(sessoes) -> list:
@@ -953,11 +1020,25 @@ def filtrar_sessoes_teste(sessoes) -> list:
     return [s for s in sessoes if sessao_caixa_e_teste(s)]
 
 
+def filtrar_sessoes_por_deposito(sessoes, deposito: str | None) -> list:
+    """Só turnos pai do depósito (gaveta ou vila) — notebook não cria sessão própria."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    pai = ponto_pai_de_deposito(dep)
+    out = []
+    for s in sessoes or []:
+        p = normalizar_ponto_caixa(getattr(s, "ponto_caixa", None))
+        if p == pai:
+            out.append(s)
+    return out
+
+
 def qtd_caixas_operacional_abertos() -> int:
     from produtos.models import SessaoCaixa
 
     return SessaoCaixa.objects.filter(
-        fechado_em__isnull=True, ponto_caixa=PONTO_CAIXA_GAVETA
+        fechado_em__isnull=True, ponto_caixa__in=list(PONTOS_CAIXA_PAI)
     ).count()
 
 
@@ -969,8 +1050,11 @@ def qtd_caixas_teste_abertos() -> int:
     ).count()
 
 
-def obter_caixa_pai_aberto():
-    """Caixa principal operacional (Caixa Gaveta aberto)."""
+def obter_caixa_pai_aberto(deposito: str | None = None):
+    """Caixa principal do depósito (gaveta Centro ou Vila Elias)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep == "vila":
+        return obter_caixa_vila_aberto()
     return obter_caixa_gaveta_aberto()
 
 
@@ -983,8 +1067,8 @@ def ponto_operacao_browser(request) -> str:
 
 def navegador_pode_mp_point_automatico(request) -> bool:
     """
-    Mercado Pago Point só no PC que abriu o Caixa Gaveta (ou Teste).
-    Notebook e PDV sem abertura de gaveta neste navegador não mandam cobrança ao Point.
+    Mercado Pago Point só no PC que abriu o Caixa Gaveta Centro (ou Teste).
+    Vila Elias e Notebook não mandam cobrança automática ao Point (evita aparelho errado).
     """
     if request.session.get(SESSION_MP_POINT_HOST_KEY) != "1":
         return False
@@ -993,7 +1077,7 @@ def navegador_pode_mp_point_automatico(request) -> bool:
 
 
 def marcar_navegador_host_mp_point(request) -> None:
-    """Marca este navegador como host da maquininha MP (abertura Gaveta/Teste)."""
+    """Marca este navegador como host da maquininha MP (abertura Gaveta Centro / Teste)."""
     request.session[SESSION_MP_POINT_HOST_KEY] = "1"
     request.session.modified = True
 
@@ -1041,11 +1125,14 @@ def rotulo_caixa_browser(request, sessao=None) -> str:
         return "Caixa fechado"
     ponto_nav = ponto_operacao_browser(request)
     if ponto_nav == PONTO_CAIXA_NOTEBOOK:
-        gaveta = sessao
-        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa != PONTO_CAIXA_GAVETA:
-            gaveta = obter_caixa_gaveta_aberto() or sessao
-        pk = getattr(gaveta, "pk", sessao.pk)
-        return f"Caixa Notebook · Gaveta #{pk}"
+        pai = sessao
+        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa not in PONTOS_CAIXA_PAI:
+            pai = obter_caixa_pai_aberto(deposito_caixa_browser(request)) or sessao
+        elif isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa in PONTOS_CAIXA_PAI:
+            pai = sessao
+        pk = getattr(pai, "pk", sessao.pk)
+        rot_pai = rotulo_ponto_caixa(getattr(pai, "ponto_caixa", PONTO_CAIXA_GAVETA))
+        return f"Caixa Notebook · {rot_pai} #{pk}"
     rotulo = rotulo_ponto_caixa(getattr(sessao, "ponto_caixa", None) or ponto_nav)
     return f"{rotulo} #{sessao.pk}"
 

@@ -596,7 +596,10 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### 4.11 Caixa
 
-- **Gaveta** = turno principal · **Notebook** = vínculo sem sessão própria · **Teste** = isolado (`ponto_caixa=teste`), fora do fechamento em lote.
+- **Gaveta (Centro)** = turno principal do Centro · **Vila Elias** (`ponto_caixa=vila`) = turno próprio da Vila · **Notebook** = satélite do pai da loja do aparelho · **Teste** = isolado, fora do lote.
+- Painel «todos» e fechamento em lote: **só a loja do seletor** (Centro × Vila) — não misturam.
+- Abrir caixa alinha o seletor de loja do PDV; venda usa depósito do `ponto_caixa` da sessão.
+- MP Point automático: só Gaveta Centro / Teste (não Vila).
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
@@ -1158,7 +1161,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.02** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.03** · **loja v9.91**
+
+### 💰 Vila Elias — Caixa separado Centro × Vila (18/07 · **teste v10.03**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no Render · 📦 produção só com frase + senha |
+| **Feito** | `ponto_caixa=vila` (turno próprio) · abrir 4 cartões (Gaveta Centro / Vila / Notebook / Teste) · painel «todos» e fechamento em lote **só da loja do aparelho** · venda herda depósito do ponto do caixa · MP Point **não** na Vila · migration **0056** |
+| **Arquivos** | `caixa_util.py` · `views.py` · `models.py` · `0056_*` · `caixa_abrir.html` · `caixa_fechar.html` · `caixa_painel.html` |
+| **Validar teste** | BI → Loja **Vila** → Abrir **Caixa Vila** → vender → painel soma só Vila · Centro aberto no outro PC não mistura · fechar lote = só Vila |
+| **Ops** | PC Vila: seletor Loja Vila + abrir Caixa Vila. Centro continua Gaveta. Notebook satélite da loja do aparelho. |
+| **Autorizar loja** | *«pode subir Vila Elias caixa separado»* + **99738595** |
 
 ### 🏪 Vila Elias — PDV baixa estoque por loja do aparelho (18/07 · **teste v10.02**)
 
