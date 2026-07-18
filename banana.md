@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · Render deploy em curso |
+| **Status** | ✅ **Live** · Render loja **v9.91** · commit 372bb70 |
 | **Inclui** | Só fix kardex: **Quem** = operador real · **Entrada NF** sem saída fantasma · fornecedor por nº NF |
 | **Arquivos** | `estoque_movimentos_cadastro_util.py` · `views.py` (+9 linhas) · **não** merge inteiro |
 | **HEAD loja** | *(este commit)* · base **8418ba8** (v9.90) |
