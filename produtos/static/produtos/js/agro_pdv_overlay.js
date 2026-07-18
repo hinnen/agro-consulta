@@ -200,6 +200,12 @@
     root.setAttribute('hidden', '');
     document.documentElement.classList.remove('agro-pdv-overlay-open');
     openFlag = false;
+    // Após fechar caixa/abrir no overlay, PDV precisa saber se o turno ainda existe
+    try {
+      if (typeof window.AgroPdvRefreshCaixa === 'function') {
+        window.AgroPdvRefreshCaixa();
+      }
+    } catch (_) {}
   }
 
   function isOpen() {

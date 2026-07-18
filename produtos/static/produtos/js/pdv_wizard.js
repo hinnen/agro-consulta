@@ -70,7 +70,7 @@
     }
 
     function ensureCaixaAbertoParaVenda() {
-        if (caixaAbertoParaVenda()) return Promise.resolve(true);
+        // Sempre revalida no servidor — após fechar caixa no overlay o bootstrap fica velho
         return refreshCaixaBootstrap().then(function (ok) {
             if (!ok) {
                 showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
@@ -9468,10 +9468,6 @@
             alert(validation);
             return;
         }
-        if (caixaAbertoParaVenda()) {
-            confirmFiadoCobrancaProsseguir();
-            return;
-        }
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
             confirmFiadoCobrancaProsseguir();
@@ -13018,6 +13014,10 @@
                 carregarDadosSecundariosPdv();
             });
         });
+
+    window.AgroPdvRefreshCaixa = function () {
+        return refreshCaixaBootstrap();
+    };
 
     window.AgroPdvAddProductByCode = function (code) {
         var c = String(code || '').trim();

@@ -112,6 +112,8 @@ from .caixa_util import (
     obter_sessao_caixa_aberta_request,
     adotar_sessao_caixa_unica_aberta,
     resolver_sessao_caixa_para_venda,
+    exigir_sessao_caixa_para_venda,
+    SessaoCaixaObrigatoriaError,
 )
 from .precos_forma_pagamento_util import (
     extrair_precos_grupos_cadastro_extras,
@@ -10311,7 +10313,7 @@ def caixa_fechar(request):
     sessoes = list(sessoes_qs)
     if not sessoes:
         messages.info(request, "Nenhum caixa aberto no sistema.")
-        return redirect("caixa_painel")
+        return _redirect_caixa(request, "caixa_painel")
 
     def _conferencia_de_post(linhas, post):
         conferencia: dict = {}
@@ -10364,7 +10366,7 @@ def caixa_fechar(request):
                 "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
                 "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
             )
-            return redirect("caixa_fechar")
+            return _redirect_caixa(request, "caixa_fechar")
         acao = (request.POST.get("acao") or "fechar_todos").strip()
         if acao == "fechar_um":
             try:
@@ -10374,12 +10376,12 @@ def caixa_fechar(request):
             sessao = next((s for s in sessoes if s.pk == sid), None)
             if not sessao:
                 messages.error(request, "Caixa não encontrado ou já fechado.")
-                return redirect("caixa_fechar")
+                return _redirect_caixa(request, "caixa_fechar")
             pin_f = (request.POST.get("pin") or "").strip()
             ok_pin, err_pin = exigir_pin_gerir_caixa(request, sessao, pin_f)
             if not ok_pin:
                 messages.error(request, err_pin)
-                return redirect("caixa_fechar")
+                return _redirect_caixa(request, "caixa_fechar")
             linhas = linhas_conferencia_fechar(sessao)
             obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
             rot = rotulo_operador_pin(pin_f) if pin_f else ""
@@ -10396,7 +10398,7 @@ def caixa_fechar(request):
             _limpar_sessao_browser(request, sessao.pk)
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
-            return redirect("caixa_fechar")
+            return _redirect_caixa(request, "caixa_fechar")
         # Fechar todos — só a loja deste aparelho (Centro ou Vila Elias)
         if not sessoes_lote:
             messages.error(
@@ -10404,7 +10406,7 @@ def caixa_fechar(request):
                 "Nenhum caixa desta loja aberto para fechar em lote. "
                 "Confira o seletor Loja no BI (Centro × Vila) ou feche um a um nos cartões.",
             )
-            return redirect("caixa_fechar")
+            return _redirect_caixa(request, "caixa_fechar")
         pin_f = (request.POST.get("pin") or "").strip()
         precisa_pin_lote = len(sessoes_lote) > 1 or any(
             not sessao_caixa_e_do_browser(request, s) for s in sessoes_lote
@@ -10413,14 +10415,14 @@ def caixa_fechar(request):
             ok_pin, err_pin = validar_pin_operador(pin_f)
             if not ok_pin:
                 messages.error(request, err_pin)
-                return redirect("caixa_fechar")
+                return _redirect_caixa(request, "caixa_fechar")
         linhas = linhas_conferencia_agregada(sessoes_lote, todas_formas=True)
         fiado_vendas = listar_fiado_vendas_conferencia_caixa(sessoes_lote)
         fiado_baixas = listar_fiado_baixas_conferencia_caixa(sessoes_lote)
         err_fiado = validar_conferencia_fiado_caixa(request.POST, fiado_vendas, fiado_baixas)
         if err_fiado:
             messages.error(request, err_fiado)
-            return redirect("caixa_fechar")
+            return _redirect_caixa(request, "caixa_fechar")
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
         rot = rotulo_operador_pin(pin_f) if pin_f else ""
@@ -10452,7 +10454,7 @@ def caixa_fechar(request):
         request.session.modified = True
         loja_lbl = "Vila Elias" if dep_fechar == "vila" else "Centro"
         messages.success(request, f"{n} caixa(s) da loja {loja_lbl} fechado(s).")
-        return redirect("caixa_painel")
+        return _redirect_caixa(request, "caixa_painel")
 
     _sincronizar_turno_conferencia_caixa(request, sessoes_lote)
 
@@ -22316,7 +22318,7 @@ def _persistir_venda_agro(
 
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
-    sessao = resolver_sessao_caixa_para_venda(request, data)
+    sessao = exigir_sessao_caixa_para_venda(request, data)
     sync_st = (erp_sync_status or "").strip()
     if not sync_st:
         sync_st = (
@@ -23007,6 +23009,10 @@ def api_enviar_pedido_erp(request):
     err_cashback = _validar_cashback_venda_json(data, raw_itens_cb)
     if err_cashback is not None:
         return err_cashback
+    try:
+        exigir_sessao_caixa_para_venda(request, data)
+    except SessaoCaixaObrigatoriaError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
     try:
         client_m, db = obter_conexao_mongo_pdv()
         if venda_payload_tem_fiado(data):
