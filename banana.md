@@ -1158,6 +1158,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.91** · **loja v9.91**
 
+### 🩹 Cadastro — kardex e-mail + Entrada NF Δcamada (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Quem ainda com e-mail (gromaisgm@…) · Entrada NF (ex. 399636) ainda como **saída ~172** |
+| **Causa** | Label da NF era e-mail do login · qty usava Δ saldo_informado bruto (mistura salto ERP) |
+| **Fix** | Resolve e-mail→nome · movimento = Δ(camada Agro = informado−ERP ref) · saldo recomposto |
+| **Arquivo** | estoque_movimentos_cadastro_util.py |
+| **Você** | Ctrl+F5 teste · milho · Estoque · NF 399636 = **entrada** · Quem sem @ |
+
 ### 📦 Deploy loja **v9.91** — kardex Quem + Entrada NF (18/07 · Renan frase+senha)
 
 | Item | Detalhe |

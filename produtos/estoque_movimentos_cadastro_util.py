@@ -25,6 +25,7 @@ _RE_VENDA = re.compile(r"venda\s*#\s*(\d+)", re.I)
 _RE_OPERADOR_PAREN = re.compile(r"\(([^)]{2,80})\)\s*$")
 _RE_PIN_SOLO = re.compile(r"^\d{3,6}$")
 _RE_NF_REF = re.compile(r"Entrada NF-e Agro\s*\(([^)]*)\)", re.I)
+_RE_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", re.I)
 
 
 def _dec(v) -> Decimal:
@@ -34,16 +35,68 @@ def _dec(v) -> Decimal:
         return Decimal("0.000")
 
 
+def _eh_email(s: str) -> bool:
+    return bool(_RE_EMAIL.match((s or "").strip()))
+
+
+def _nome_amigavel_de_email(email: str) -> str:
+    """Tenta nome do User Django; senão parte antes do @ capitalizada."""
+    em = (email or "").strip()
+    if not em:
+        return ""
+    try:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        u = (
+            User.objects.filter(email__iexact=em)
+            .only("first_name", "last_name", "username", "email")
+            .first()
+        )
+        if u is None:
+            u = (
+                User.objects.filter(username__iexact=em)
+                .only("first_name", "last_name", "username", "email")
+                .first()
+            )
+        if u is not None:
+            nome = (u.get_full_name() or "").strip()
+            if nome and not _eh_email(nome):
+                return nome[:120]
+            un = (getattr(u, "username", None) or "").strip()
+            if un and not _eh_email(un):
+                return un[:120]
+    except Exception:
+        pass
+    local = em.split("@", 1)[0].strip()
+    if not local:
+        return ""
+    # agromaisgm → Agromaisgm (melhor que e-mail cru)
+    return local.replace(".", " ").replace("_", " ").strip().title()[:120]
+
+
 def _nome_usuario(user) -> str:
     if user is None:
         return ""
     try:
         nome = (user.get_full_name() or "").strip()
-        if nome:
+        if nome and not _eh_email(nome):
             return nome[:120]
-        return (getattr(user, "username", None) or "")[:120]
+        un = (getattr(user, "username", None) or "").strip()
+        if un and not _eh_email(un):
+            return un[:120]
+        em = (getattr(user, "email", None) or "").strip()
+        if em:
+            amig = _nome_amigavel_de_email(em)
+            if amig:
+                return amig
+        if nome:
+            return _nome_amigavel_de_email(nome) or nome[:120]
+        if un:
+            return _nome_amigavel_de_email(un) or un[:120]
     except Exception:
         return ""
+    return ""
 
 
 def _candidato_operador_ok(cand: str) -> bool:
@@ -54,12 +107,26 @@ def _candidato_operador_ok(cand: str) -> bool:
         return False
     if "PIN" in c.upper():
         return False
+    if _eh_email(c):
+        return False
     return True
+
+
+def _normalizar_operador_label(cand: str) -> str:
+    """Aceita nome; se for e-mail, resolve para nome amigável."""
+    c = (cand or "").strip()
+    if not c:
+        return ""
+    if _eh_email(c):
+        return _nome_amigavel_de_email(c)
+    if _candidato_operador_ok(c):
+        return c[:120]
+    return ""
 
 
 def _operador_sem_pin(row: AjusteRapidoEstoque) -> str:
     """
-    Nome do operador da operação — nunca o PIN.
+    Nome do operador da operação — nunca o PIN nem e-mail cru.
     Prefere o rótulo gravado na hora (PIN do PDV / label da NF) ao usuário
     Django da sessão Chrome (que costuma ficar «preso» num login).
     """
@@ -71,32 +138,36 @@ def _operador_sem_pin(row: AjusteRapidoEstoque) -> str:
         OrigemAjusteEstoque.DEVOLUCAO_VENDA_PDV,
     ):
         m = _RE_OPERADOR_PAREN.search(texto)
-        if m and _candidato_operador_ok(m.group(1)):
-            return (m.group(1) or "").strip()[:120]
+        if m:
+            op = _normalizar_operador_label(m.group(1) or "")
+            if op:
+                return op
 
     if origem == OrigemAjusteEstoque.ENTRADA_NF_AGRO:
         # "nome · Entrada NF-e Agro (NF 123) · Operador"
         parts = [p.strip() for p in texto.split("·") if p.strip()]
         if parts:
             cand = parts[-1]
-            if (
-                _candidato_operador_ok(cand)
-                and not cand.upper().startswith("ENTRADA")
-                and not re.match(r"^NF\b", cand, re.I)
-            ):
-                return cand[:120]
+            if not cand.upper().startswith("ENTRADA") and not re.match(r"^NF\b", cand, re.I):
+                op = _normalizar_operador_label(cand)
+                if op:
+                    return op
 
     nome = _nome_usuario(getattr(row, "usuario", None))
-    if nome and _candidato_operador_ok(nome):
+    if nome:
         return nome
 
     m = _RE_OPERADOR_PAREN.search(texto)
-    if m and _candidato_operador_ok(m.group(1)):
-        return (m.group(1) or "").strip()[:120]
+    if m:
+        op = _normalizar_operador_label(m.group(1) or "")
+        if op:
+            return op
 
     obs = str(row.observacao or "").strip()
-    if obs and _candidato_operador_ok(obs) and "pin" not in obs.lower() and len(obs) <= 80:
-        return obs[:120]
+    if obs and "pin" not in obs.lower() and len(obs) <= 80:
+        op = _normalizar_operador_label(obs)
+        if op:
+            return op
     return "—"
 
 
@@ -195,6 +266,18 @@ def _match_compra(
     return "", None
 
 
+def _camada_agro(row: AjusteRapidoEstoque) -> Decimal:
+    """
+    Camada Agro no momento do ajuste: saldo_informado − saldo_erp_referencia.
+    A movimentação real entre dois ajustes = diferença desta camada
+    (ignora salto do Mongo ERP entre uma operação e outra).
+    """
+    try:
+        return _dec(row.diferenca_saldo)
+    except Exception:
+        return _dec(row.saldo_informado) - _dec(row.saldo_erp_referencia)
+
+
 def montar_movimentos_produto(
     *,
     produto_ids: list[str],
@@ -239,9 +322,11 @@ def montar_movimentos_produto(
 
     # Janela cronológica (ASC) para calcular deltas; teto de leitura.
     crono = list(qs.order_by("criado_em", "id")[:2500])
-    # Chave por produto+depósito — misturar IDs variantes no mesmo saldo gerava
-    # «Entrada NF» com saída inventada (ex. −172).
-    prev_saldo: dict[tuple[str, str], Decimal] = {}
+    # Chave por produto+depósito.
+    # Movimento = Δ(camada Agro), não Δ(saldo_informado bruto) — o bruto
+    # misturava salto do ERP e gerava «Entrada NF» como saída (~170).
+    prev_camada: dict[tuple[str, str], Decimal] = {}
+    running_saldo: dict[tuple[str, str], Decimal] = {}
     enriched: list[dict] = []
     compras = list(compras_linhas or [])
     venda_ids: list[int] = []
@@ -249,14 +334,14 @@ def montar_movimentos_produto(
     for row in crono:
         dep_k = str(row.deposito or "centro").lower()
         pid_k = str(row.produto_externo_id or "").strip()
-        saldo = _dec(row.saldo_informado)
         chave = (pid_k, dep_k)
-        antes = prev_saldo.get(chave)
+        camada = _camada_agro(row)
+        antes = prev_camada.get(chave)
         if antes is None:
             delta = None
         else:
-            delta = saldo - antes
-        prev_saldo[chave] = saldo
+            delta = camada - antes
+        prev_camada[chave] = camada
 
         qtd_ent = 0.0
         qtd_sai = 0.0
@@ -265,6 +350,14 @@ def montar_movimentos_produto(
                 qtd_ent = float(delta)
             elif delta < 0:
                 qtd_sai = float(-delta)
+
+        # Saldo exibido: recompõe a partir dos movimentos (coerente com entrada/saída).
+        # 1ª linha da cadeia usa o saldo_informado gravado como âncora.
+        if chave not in running_saldo:
+            running_saldo[chave] = _dec(row.saldo_informado)
+        elif delta is not None:
+            running_saldo[chave] = (running_saldo[chave] + delta).quantize(Decimal("0.001"))
+        saldo_exibe = running_saldo[chave]
 
         doc, venda_id, nf_digits = _documento_e_venda(row)
         if venda_id:
@@ -296,7 +389,7 @@ def montar_movimentos_produto(
                 "deposito": dep_k,
                 "qtd_entrada": qtd_ent,
                 "qtd_saida": qtd_sai,
-                "saldo_depois": float(saldo),
+                "saldo_depois": float(saldo_exibe),
                 "operador": _operador_sem_pin(row),
             }
         )
@@ -317,8 +410,8 @@ def montar_movimentos_produto(
                 vid = e.get("venda_id")
                 if not vid:
                     continue
-                op_v = mapa_op.get(int(vid)) or ""
-                if op_v and _candidato_operador_ok(op_v):
+                op_v = _normalizar_operador_label(mapa_op.get(int(vid)) or "")
+                if op_v:
                     e["operador"] = op_v[:120]
         except Exception:
             pass
