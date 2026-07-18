@@ -28,6 +28,7 @@ urlpatterns = [
     path("catalogo/api/pedido/", views_catalogo_delivery.api_catalogo_pedido, name="api_catalogo_pedido"),
     path("catalogo/api/cliente/", views_catalogo_delivery.api_catalogo_cliente, name="api_catalogo_cliente"),
     path("catalogo/api/saldo/", views_catalogo_delivery.api_catalogo_saldo_produto, name="api_catalogo_saldo"),
+    path("catalogo/api/categorias/", views_catalogo_delivery.api_catalogo_categorias, name="api_catalogo_categorias"),
     path(
         'api/pdv/cliente-credito-fiado/',
         views.api_pdv_cliente_credito_fiado,

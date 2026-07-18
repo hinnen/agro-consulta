@@ -1882,7 +1882,16 @@ class CatalogoDeliveryConfig(models.Model):
     )
     mensagem_boas_vindas = models.TextField(blank=True, default="")
     area_entrega = models.CharField(max_length=300, blank=True, default="")
-    endereco_loja = models.CharField(max_length=320, blank=True, default="")
+    endereco_loja = models.CharField(
+        max_length=320,
+        blank=True,
+        default="",
+        help_text="Legado — preferir endereço 1 / 2 abaixo.",
+    )
+    rotulo_loja_1 = models.CharField(max_length=80, blank=True, default="Centro")
+    endereco_loja_1 = models.CharField(max_length=320, blank=True, default="")
+    rotulo_loja_2 = models.CharField(max_length=80, blank=True, default="Vila Elias")
+    endereco_loja_2 = models.CharField(max_length=320, blank=True, default="")
     cor_primaria = models.CharField(max_length=7, default="#059669")
     cor_secundaria = models.CharField(max_length=7, default="#fff7ed")
     publicado = models.BooleanField(
@@ -1897,3 +1906,54 @@ class CatalogoDeliveryConfig(models.Model):
 
     def __str__(self):
         return self.nome_loja
+
+    def enderecos_exibir(self) -> list[dict]:
+        """Lista de lojas com rótulo + endereço (até 2)."""
+        out = []
+        e1 = (self.endereco_loja_1 or self.endereco_loja or "").strip()
+        if e1:
+            out.append(
+                {
+                    "rotulo": (self.rotulo_loja_1 or "Loja 1").strip() or "Loja 1",
+                    "endereco": e1,
+                }
+            )
+        e2 = (self.endereco_loja_2 or "").strip()
+        if e2:
+            out.append(
+                {
+                    "rotulo": (self.rotulo_loja_2 or "Loja 2").strip() or "Loja 2",
+                    "endereco": e2,
+                }
+            )
+        return out
+
+
+class CatalogoDeliveryCategoria(models.Model):
+    """
+    Categorias do catálogo delivery (estilo apps de ração: Cães → Adulto / Filhote…).
+    Sem parent = categoria principal; com parent = subcategoria.
+    """
+
+    nome = models.CharField(max_length=80)
+    slug = models.SlugField(max_length=90, unique=True)
+    ordem = models.PositiveIntegerField(default=0)
+    ativo = models.BooleanField(default=True)
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="filhos",
+        verbose_name="Categoria pai (se for subcategoria)",
+    )
+
+    class Meta:
+        ordering = ["ordem", "nome"]
+        verbose_name = "Categoria catálogo delivery"
+        verbose_name_plural = "Categorias catálogo delivery"
+
+    def __str__(self):
+        if self.parent_id:
+            return f"{self.parent.nome} › {self.nome}"
+        return self.nome

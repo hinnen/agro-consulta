@@ -5,19 +5,22 @@ import json
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.catalogo_delivery_util import (
     ErroPedidoCatalogo,
+    agrupar_itens_por_categoria,
     cliente_catalogo_json,
     criar_pedido_catalogo_delivery,
+    listar_categorias_arvore,
     listar_itens_catalogo,
     obter_config_catalogo,
+    slugify_categoria,
 )
 from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp, extrair_whatsapp_digits
-from produtos.models import PedidoEntrega
+from produtos.models import CatalogoDeliveryCategoria, PedidoEntrega
 
 
 def _staff(u):
@@ -41,6 +44,16 @@ def catalogo_delivery_view(request):
             {"config": cfg},
         )
     itens = listar_itens_catalogo(incluir_ocultos_estoque=False)
+    secoes = agrupar_itens_por_categoria(itens)
+    cats_nav = [
+        {"slug": s["slug"], "nome": s["nome"]}
+        for s in secoes
+        if s["slug"] != "_sem" or s["produtos_sem_sub"] or s["subs"]
+    ]
+    # Inclui categorias cadastradas mesmo sem produto (nav vazia ok)
+    for c in listar_categorias_arvore(so_ativas=True):
+        if not any(x["slug"] == c["slug"] for x in cats_nav):
+            cats_nav.append({"slug": c["slug"], "nome": c["nome"]})
     catalogo_json = json.dumps(
         [
             {
@@ -52,17 +65,24 @@ def catalogo_delivery_view(request):
                 "peso_texto": i["peso_texto"],
                 "destaque": i["destaque"],
                 "imagem": i["imagem"],
+                "categoria_slug": i.get("categoria_slug") or "",
+                "subcategoria_slug": i.get("subcategoria_slug") or "",
             }
             for i in itens
         ],
         ensure_ascii=False,
     )
+    wa = "".join(c for c in (cfg.whatsapp_contato or "") if c.isdigit())
     return render(
         request,
         "produtos/catalogo/catalogo_delivery.html",
         {
             "config": cfg,
             "itens": itens,
+            "secoes": secoes,
+            "cats_nav": cats_nav,
+            "enderecos": cfg.enderecos_exibir(),
+            "whatsapp_digits": wa,
             "catalogo_json": catalogo_json,
             "catalogo_vazio": not itens,
             "eh_staff": _staff(request.user),
@@ -79,10 +99,11 @@ def catalogo_pedido_ok_view(request):
         pedido = PedidoEntrega.objects.filter(pk=int(pk), origem="catalogo").first()
     except (TypeError, ValueError):
         pedido = None
+    wa = "".join(c for c in (cfg.whatsapp_contato or "") if c.isdigit())
     return render(
         request,
         "produtos/catalogo/catalogo_pedido_ok.html",
-        {"config": cfg, "pedido": pedido},
+        {"config": cfg, "pedido": pedido, "whatsapp_digits": wa},
     )
 
 
@@ -144,29 +165,100 @@ def api_catalogo_cliente(request):
     return JsonResponse({"ok": True, "encontrado": True, "cliente": cliente_catalogo_json(cli)})
 
 
+@require_GET
+def api_catalogo_categorias(request):
+    """Lista categorias/sub para selects da aba Delivery (cadastro)."""
+    return JsonResponse({"ok": True, "categorias": listar_categorias_arvore(so_ativas=True)})
+
+
 @login_required(login_url="/admin/login/")
 @user_passes_test(_staff, login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def catalogo_gestao_view(request):
     cfg = obter_config_catalogo()
-    msg = ""
+    msg = request.GET.get("msg") or ""
+    erro = ""
+
     if request.method == "POST":
-        cfg.nome_loja = (request.POST.get("nome_loja") or "GM Agro").strip()[:100] or "GM Agro"
-        cfg.whatsapp_contato = "".join(
-            c for c in (request.POST.get("whatsapp_contato") or "") if c.isdigit()
-        )[:20]
-        cfg.mensagem_boas_vindas = (request.POST.get("mensagem_boas_vindas") or "").strip()[:2000]
-        cfg.area_entrega = (request.POST.get("area_entrega") or "").strip()[:300]
-        cfg.endereco_loja = (request.POST.get("endereco_loja") or "").strip()[:320]
-        cfg.cor_primaria = _hex_cor(request.POST.get("cor_primaria"), "#059669")
-        cfg.cor_secundaria = _hex_cor(request.POST.get("cor_secundaria"), "#fff7ed")
-        cfg.publicado = request.POST.get("publicado") in ("1", "on", "true", "True")
-        cfg.save()
-        msg = "Salvo."
-        return redirect("catalogo_gestao")
+        acao = (request.POST.get("acao") or "salvar_loja").strip()
+
+        if acao == "salvar_loja":
+            cfg.nome_loja = (request.POST.get("nome_loja") or "GM Agro").strip()[:100] or "GM Agro"
+            cfg.whatsapp_contato = "".join(
+                c for c in (request.POST.get("whatsapp_contato") or "") if c.isdigit()
+            )[:20]
+            cfg.mensagem_boas_vindas = (request.POST.get("mensagem_boas_vindas") or "").strip()[:2000]
+            cfg.area_entrega = (request.POST.get("area_entrega") or "").strip()[:300]
+            cfg.rotulo_loja_1 = (request.POST.get("rotulo_loja_1") or "Centro").strip()[:80]
+            cfg.endereco_loja_1 = (request.POST.get("endereco_loja_1") or "").strip()[:320]
+            cfg.rotulo_loja_2 = (request.POST.get("rotulo_loja_2") or "Vila Elias").strip()[:80]
+            cfg.endereco_loja_2 = (request.POST.get("endereco_loja_2") or "").strip()[:320]
+            if cfg.endereco_loja_1:
+                cfg.endereco_loja = cfg.endereco_loja_1
+            cfg.cor_primaria = _hex_cor(request.POST.get("cor_primaria"), "#059669")
+            cfg.cor_secundaria = _hex_cor(request.POST.get("cor_secundaria"), "#fff7ed")
+            cfg.publicado = request.POST.get("publicado") in ("1", "on", "true", "True")
+            cfg.save()
+            return redirect("/catalogo/gestao/?msg=loja")
+
+        if acao == "nova_categoria":
+            nome = (request.POST.get("cat_nome") or "").strip()[:80]
+            parent_raw = (request.POST.get("cat_parent") or "").strip()
+            parent = None
+            if parent_raw:
+                try:
+                    parent = CatalogoDeliveryCategoria.objects.filter(
+                        pk=int(parent_raw), parent__isnull=True
+                    ).first()
+                except (TypeError, ValueError):
+                    parent = None
+            if not nome:
+                erro = "Informe o nome da categoria."
+            else:
+                CatalogoDeliveryCategoria.objects.create(
+                    nome=nome,
+                    slug=slugify_categoria(nome),
+                    ordem=int(request.POST.get("cat_ordem") or 0) or 0,
+                    ativo=True,
+                    parent=parent,
+                )
+                return redirect("/catalogo/gestao/?msg=cat")
+
+        if acao == "toggle_categoria":
+            try:
+                pk = int(request.POST.get("cat_id") or 0)
+            except (TypeError, ValueError):
+                pk = 0
+            cat = get_object_or_404(CatalogoDeliveryCategoria, pk=pk)
+            cat.ativo = not cat.ativo
+            cat.save(update_fields=["ativo"])
+            return redirect("/catalogo/gestao/?msg=cat")
+
+        if acao == "excluir_categoria":
+            try:
+                pk = int(request.POST.get("cat_id") or 0)
+            except (TypeError, ValueError):
+                pk = 0
+            CatalogoDeliveryCategoria.objects.filter(pk=pk).delete()
+            return redirect("/catalogo/gestao/?msg=cat")
+
+    if msg == "loja":
+        msg = "Dados da loja salvos."
+    elif msg == "cat":
+        msg = "Categorias atualizadas."
+    else:
+        msg = ""
+
     qtd = len(listar_itens_catalogo(incluir_ocultos_estoque=True))
     return render(
         request,
         "produtos/catalogo/catalogo_gestao.html",
-        {"config": cfg, "msg": msg, "qtd_produtos_marcados": qtd},
+        {
+            "config": cfg,
+            "msg": msg,
+            "erro": erro,
+            "qtd_produtos_marcados": qtd,
+            "categorias": listar_categorias_arvore(so_ativas=False),
+            "categorias_raiz": listar_categorias_arvore(so_ativas=True),
+        },
     )
