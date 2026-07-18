@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.19** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.20** · **loja v9.91**
+
+### 🩹 Cadastro — fase 2 picklist (gestão / overlay / unidade / PDV) (18/07 · **teste v10.20**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Mesmo padrão FL-024 em: cadastro **unidade**, **gestão** drawer, **overlay** lista ERP, **PDV lápis** unidade (Cadastrar exige PIN) |
+| **JS** | `agro_picklist.js` compartilhado · facetas incluem `unidades` |
+| **Validar** | Gestão: digitar marca inventada → barra · PDV lápis: Cadastrar unidade → PIN |
 
 ### 🩹 Cadastro — marca/cat só lista + PIN (FL-024) (18/07 · **teste v10.19**)
 
