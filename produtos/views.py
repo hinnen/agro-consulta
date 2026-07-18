@@ -19678,12 +19678,16 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     if pid.lower() in ("__novo__", "novo", "_novo"):
+        # Mesma regra da loja (agro_pg): sugerir próximo código sistema + GM
+        err_al, c_sys, c_gm = _mongo_alocar_codigo_sequencial_novo_agro(db, client.col_p)
+        if err_al is not None:
+            return err_al
         stub = {
             "Id": "__novo__",
             "Nome": "",
             "Marca": "",
-            "Codigo": "",
-            "CodigoNFe": "",
+            "Codigo": str(c_sys or "").strip(),
+            "CodigoNFe": str(c_gm or "").strip(),
             "CodigoBarras": "",
             "ValorVenda": 0,
             "PrecoCusto": 0,
