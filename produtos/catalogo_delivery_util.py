@@ -298,6 +298,64 @@ def cards_home_catalogo(itens: list[dict]) -> list[dict]:
     return cards
 
 
+def arvore_navegacao_catalogo(itens: list[dict]) -> list[dict]:
+    """
+    Árvore para o fluxo mobile: categoria → subcategoria → produtos.
+    Inclui contagem por sub e flag se há produtos sem sub.
+    """
+    por_cat_sub: dict[str, dict[str, int]] = {}
+    sem_sub: dict[str, int] = {}
+    for it in itens:
+        ck = it.get("categoria_slug") or "_sem"
+        sk = (it.get("subcategoria_slug") or "").strip()
+        if sk:
+            por_cat_sub.setdefault(ck, {})
+            por_cat_sub[ck][sk] = por_cat_sub[ck].get(sk, 0) + 1
+        else:
+            sem_sub[ck] = sem_sub.get(ck, 0) + 1
+
+    out = []
+    for c in listar_categorias_arvore(so_ativas=True):
+        filhos = []
+        for f in c.get("filhos") or []:
+            filhos.append(
+                {
+                    "id": f["id"],
+                    "slug": f["slug"],
+                    "nome": f["nome"],
+                    "qtd": (por_cat_sub.get(c["slug"]) or {}).get(f["slug"], 0),
+                }
+            )
+        # Sub que aparece só nos produtos (sem cadastro na árvore)
+        conhecidos = {f["slug"] for f in filhos}
+        for sk, q in (por_cat_sub.get(c["slug"]) or {}).items():
+            if sk not in conhecidos:
+                filhos.append({"id": 0, "slug": sk, "nome": sk, "qtd": q})
+        q_sem = sem_sub.get(c["slug"], 0)
+        out.append(
+            {
+                "slug": c["slug"],
+                "nome": c["nome"],
+                "filhos": filhos,
+                "qtd_sem_sub": q_sem,
+            }
+        )
+    if sem_sub.get("_sem") or por_cat_sub.get("_sem"):
+        filhos_sem = [
+            {"id": 0, "slug": sk, "nome": sk, "qtd": q}
+            for sk, q in (por_cat_sub.get("_sem") or {}).items()
+        ]
+        out.append(
+            {
+                "slug": "_sem",
+                "nome": "Outros",
+                "filhos": filhos_sem,
+                "qtd_sem_sub": sem_sub.get("_sem", 0),
+            }
+        )
+    return out
+
+
 def slugify_categoria(nome: str, *, exclude_pk: int | None = None) -> str:
     from django.utils.text import slugify
 

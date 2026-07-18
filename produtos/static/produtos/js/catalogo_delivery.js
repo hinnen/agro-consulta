@@ -104,66 +104,107 @@
 
     var busca = document.getElementById("busca-catalogo");
     var homeEl = document.getElementById("home-categorias");
+    var viewSubs = document.getElementById("view-subcategorias");
     var viewProd = document.getElementById("view-produtos");
+    var gradeSubs = document.getElementById("grade-subcategorias");
+    var tituloSubPasso = document.getElementById("titulo-sub-passo");
     var tituloCat = document.getElementById("titulo-cat-atual");
-    var navSubs = document.getElementById("nav-subs");
     var listaVazia = document.getElementById("lista-vazia-cat");
+    var arvore = Array.isArray(opts.arvore) ? opts.arvore : [];
+    var arvoreBySlug = {};
+    arvore.forEach(function (c) {
+      arvoreBySlug[c.slug] = c;
+    });
     var catAtual = "";
+    var catNomeAtual = "";
     var subAtual = "";
+    var veioDeSubs = false;
     var modoBusca = false;
+
+    function esconderTodasViews() {
+      if (homeEl) homeEl.classList.add("hidden");
+      if (viewSubs) viewSubs.classList.add("hidden");
+      if (viewProd) viewProd.classList.add("hidden");
+    }
 
     function mostrarHome() {
       catAtual = "";
+      catNomeAtual = "";
       subAtual = "";
+      veioDeSubs = false;
       modoBusca = false;
+      esconderTodasViews();
       if (homeEl) homeEl.classList.remove("hidden");
-      if (viewProd) viewProd.classList.add("hidden");
       if (busca) busca.value = "";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function mostrarSubs() {
+      esconderTodasViews();
+      if (viewSubs) viewSubs.classList.remove("hidden");
+      if (tituloSubPasso) tituloSubPasso.textContent = catNomeAtual || "Subcategoria";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     function mostrarProdutos(titulo) {
-      if (homeEl) homeEl.classList.add("hidden");
+      esconderTodasViews();
       if (viewProd) viewProd.classList.remove("hidden");
       if (tituloCat) tituloCat.textContent = titulo || "Produtos";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function montarSubsDaCategoria(slug) {
-      if (!navSubs) return;
-      var wrap = navSubs.querySelector(".cat-scroll") || navSubs;
-      var nomes = {};
-      document.querySelectorAll('.secao-cat[data-cat="' + slug + '"] .bloco-sub').forEach(function (b) {
-        var s = String(b.getAttribute("data-sub") || "");
-        if (!s) return;
-        var h = b.querySelector("h3");
-        nomes[s] = h ? h.textContent.trim() : s;
+    function opcoesSubDaCategoria(slug) {
+      var info = arvoreBySlug[slug];
+      if (!info) return [];
+      var optsSub = [];
+      (info.filhos || []).forEach(function (f) {
+        optsSub.push({
+          slug: f.slug,
+          nome: f.nome,
+          qtd: f.qtd || 0,
+        });
       });
-      var keys = Object.keys(nomes);
-      if (!keys.length) {
-        navSubs.classList.add("hidden");
-        wrap.innerHTML = "";
-        return;
+      if (info.qtd_sem_sub > 0) {
+        optsSub.push({
+          slug: "_geral",
+          nome: "Geral",
+          qtd: info.qtd_sem_sub,
+        });
       }
-      var html = '<button type="button" class="chip-sub is-on sub-chip" data-sub="">Todas</button>';
-      keys.forEach(function (k) {
+      return optsSub;
+    }
+
+    function renderCardsSub(lista) {
+      if (!gradeSubs) return;
+      var html = "";
+      lista.forEach(function (s) {
+        var letra = (s.nome || "?").charAt(0).toUpperCase();
         html +=
-          '<button type="button" class="chip-sub sub-chip" data-sub="' +
-          k +
+          '<button type="button" class="card-cat sub-home-card" data-sub="' +
+          s.slug +
+          '" data-nome="' +
+          String(s.nome || "").replace(/"/g, "&quot;") +
           '">' +
-          nomes[k] +
-          "</button>";
+          '<div class="card-cat-ph">' +
+          letra +
+          "</div>" +
+          '<div class="px-2.5 py-2.5">' +
+          '<p class="font-black text-slate-900 text-[0.95rem] leading-tight">' +
+          (s.nome || "") +
+          "</p>" +
+          '<p class="text-[0.7rem] font-semibold text-slate-500 mt-0.5">' +
+          (s.qtd
+            ? s.qtd + " produto" + (s.qtd !== 1 ? "s" : "")
+            : "Em breve") +
+          "</p></div></button>";
       });
-      wrap.innerHTML = html;
-      navSubs.classList.remove("hidden");
-      wrap.querySelectorAll(".sub-chip").forEach(function (chip) {
-        chip.addEventListener("click", function () {
-          wrap.querySelectorAll(".sub-chip").forEach(function (c) {
-            c.classList.remove("is-on");
-          });
-          chip.classList.add("is-on");
-          subAtual = String(chip.getAttribute("data-sub") || "");
-          aplicarFiltros();
+      gradeSubs.innerHTML = html || '<p class="col-span-2 text-sm text-slate-500 py-8 text-center">Sem subcategorias.</p>';
+      gradeSubs.querySelectorAll(".sub-home-card").forEach(function (card) {
+        card.addEventListener("click", function () {
+          abrirSubcategoria(
+            String(card.getAttribute("data-sub") || ""),
+            String(card.getAttribute("data-nome") || "")
+          );
         });
       });
     }
@@ -201,14 +242,51 @@
       if (listaVazia) listaVazia.classList.toggle("hidden", algum);
     }
 
+    function abrirProdutosFiltrados(titulo) {
+      modoBusca = false;
+      mostrarProdutos(titulo);
+      aplicarFiltros();
+    }
+
+    function abrirSubcategoria(slugSub, nomeSub) {
+      subAtual = slugSub || "";
+      veioDeSubs = true;
+      var titulo =
+        (catNomeAtual || "") +
+        (nomeSub ? " · " + nomeSub : "");
+      abrirProdutosFiltrados(titulo || "Produtos");
+    }
+
     function abrirCategoria(slug, nome) {
       modoBusca = false;
       catAtual = slug || "";
+      catNomeAtual = nome || "";
       subAtual = "";
+      veioDeSubs = false;
       if (busca) busca.value = "";
-      mostrarProdutos(nome || "Produtos");
-      montarSubsDaCategoria(catAtual);
-      aplicarFiltros();
+      var subs = opcoesSubDaCategoria(catAtual);
+      if (subs.length > 0) {
+        renderCardsSub(subs);
+        mostrarSubs();
+        return;
+      }
+      // Sem subcategoria cadastrada: vai direto aos produtos da categoria
+      abrirProdutosFiltrados(catNomeAtual || "Produtos");
+    }
+
+    function voltarDoProdutos() {
+      if (modoBusca) {
+        mostrarHome();
+        return;
+      }
+      if (veioDeSubs && catAtual) {
+        subAtual = "";
+        var subs = opcoesSubDaCategoria(catAtual);
+        renderCardsSub(subs);
+        mostrarSubs();
+        return;
+      }
+      mostrarHome();
     }
 
     document.querySelectorAll(".cat-home-card").forEach(function (card) {
@@ -220,8 +298,11 @@
       });
     });
 
+    var btnVoltarHome = document.getElementById("btn-voltar-home");
+    if (btnVoltarHome) btnVoltarHome.addEventListener("click", mostrarHome);
+
     var btnVoltar = document.getElementById("btn-voltar-cats");
-    if (btnVoltar) btnVoltar.addEventListener("click", mostrarHome);
+    if (btnVoltar) btnVoltar.addEventListener("click", voltarDoProdutos);
 
     if (busca) {
       busca.addEventListener("input", function () {
@@ -229,21 +310,16 @@
           .toLowerCase()
           .trim();
         if (q) {
-          if (!modoBusca && (!viewProd || viewProd.classList.contains("hidden"))) {
-            modoBusca = true;
-            catAtual = "";
-            subAtual = "";
-            if (navSubs) navSubs.classList.add("hidden");
-            mostrarProdutos("Busca");
-          }
-          if (modoBusca) {
-            catAtual = "";
-            subAtual = "";
-          }
+          modoBusca = true;
+          catAtual = "";
+          catNomeAtual = "";
+          subAtual = "";
+          veioDeSubs = false;
+          mostrarProdutos("Busca");
           aplicarFiltros();
         } else if (modoBusca) {
           mostrarHome();
-        } else if (catAtual) {
+        } else if (catAtual && (subAtual || !opcoesSubDaCategoria(catAtual).length)) {
           aplicarFiltros();
         }
       });

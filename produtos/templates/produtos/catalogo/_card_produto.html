@@ -1,6 +1,6 @@
 <article class="card-prod p-3 flex gap-3 produto-linha"
   data-nome="{{ p.nome|lower }} {{ p.marca|lower }} {{ p.peso_texto|lower }}"
-  data-cat="{{ p.categoria_slug }}">
+  data-cat="{{ p.categoria_slug|default:'_sem' }}">
   <div class="w-[4.75rem] h-[4.75rem] shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center text-xl font-black text-emerald-700">
     {% if p.imagem %}
     <img src="{{ p.imagem }}" alt="" class="w-full h-full object-cover">

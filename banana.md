@@ -1228,15 +1228,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.21** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.22** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **Fluxo** | Home categoria → **subcategoria** (se existir) → produtos filtrados · Voltar em cascata |
+| **Sem sub** | Categoria sem filhos → vai direto aos produtos |
+| **Renan testar** | Cães → Adulto/Filhote → lista · Voltar volta às subs · Ctrl+F5 |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.21** (18/07/2026) *(histórico — ver v10.22)*
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ push `teste` · migrate `0059` foto categoria |
 | **Home `/catalogo/`** | Cards grandes de categoria com foto → clique abre produtos · Voltar |
 | **Gestão** | Em cada categoria raiz: upload **Foto card** (máx. ~700 KB) |
-| **API** | `POST /catalogo/api/categorias/foto/` |
-| **Renan testar** | Gestão → foto em Cães/Gatos → vitrine home cards → entrar na cat · Ctrl+F5 |
 | **Produção** | **Não** |
 
 ### WIP — Catálogo delivery GM Agro **v10.16** (18/07/2026) *(histórico — ver v10.21)*
