@@ -1171,15 +1171,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Arquivos** | `views.py` · `compras_ultimas_compras_util.py` · `entrada_nota.html` |
 | **Validar** | Abrir NF 320 (ou qualquer) → etapa 8 → C1–C3 sem a nota atual · NF só à direita |
 
-### ✨ Compras — etapa 1 UI (reorganização visual) (18/07 · **teste v9.95**)
+### 📦 PACOTE PRONTO LOJA — Compras etapa 1 UI (18/07 · **teste v9.95+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · validar no Render staging (Ctrl+F5) |
+| **Status** | ✅ **teste** · 📦 **pronto para envio à produção** (frase + senha) |
 | **Escopo** | Só visual/organização — **sem** mudança de regra, API, Mongo, cálculo de sugestão |
 | **Feito** | Painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · filtros limpos · lista + detalhe expandido em blocos |
 | **Arquivo** | `produtos/templates/produtos/compras.html` |
-| **Validar** | Ctrl+F5 `/compras/` · buscar produto · expandir linha · mudar horizonte/checkbox · Folha/F10/lista iguais de antes |
+| **Risco** | Baixo — só layout; comportamento igual ao de antes |
+| **Validar na loja** | Ctrl+F5 `/compras/` · buscar · expandir linha · horizonte/checkbox · Folha/F10/lista |
+| **Autorizar** | *«pode subir Compras UI etapa 1»* + **99738595** |
 | **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
 
 ### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
