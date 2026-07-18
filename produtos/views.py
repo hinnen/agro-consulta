@@ -9984,6 +9984,7 @@ def api_caixa_retiradas_export_xlsx(request):
 @login_required(login_url="/admin/login/")
 def caixa_relatorio(request):
     from produtos.caixa_relatorio_util import montar_relatorio_caixa
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
 
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     filtro_sessao = None
@@ -9991,14 +9992,26 @@ def caixa_relatorio(request):
     if raw_sess.isdigit():
         filtro_sessao = int(raw_sess)
     filtro_forma = (request.GET.get("forma") or "").strip()
+    raw_loja = (request.GET.get("loja") or request.GET.get("deposito") or "").strip().lower()
+    if raw_loja in ("todas", "todos", "all"):
+        dep_rel = "todas"
+    elif raw_loja in ("centro", "vila", "1", "2"):
+        dep_rel = normalizar_deposito(raw_loja)
+    else:
+        dep_rel = deposito_caixa_browser(request)
     rel = montar_relatorio_caixa(
-        di, df, sessao_id=filtro_sessao, forma_pagamento=filtro_forma or None
+        di,
+        df,
+        sessao_id=filtro_sessao,
+        forma_pagamento=filtro_forma or None,
+        deposito=None if dep_rel == "todas" else dep_rel,
     )
     from produtos.caixa_relatorio_util import rotulo_filtro_sessao_caixa
 
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
+    filtro_loja = rel.get("filtro_loja") or dep_rel
     return render(
         request,
         "produtos/caixa_relatorio.html",
@@ -10012,6 +10025,13 @@ def caixa_relatorio(request):
                 rel["sessoes_opts"], filtro_sessao
             ),
             "filtro_forma": filtro_forma,
+            "filtro_loja": filtro_loja,
+            "filtro_loja_label": rel.get("filtro_loja_label")
+            or (
+                "Todas as lojas"
+                if filtro_loja == "todas"
+                else ROTULO_DEPOSITO.get(filtro_loja, "Centro")
+            ),
             "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
             "secoes": rel["secoes"],
             "tot_entrada": rel["tot_entrada"],
@@ -10026,6 +10046,7 @@ def caixa_relatorio(request):
 @login_required(login_url="/admin/login/")
 def caixa_relatorio_conferencias(request):
     from produtos.caixa_relatorio_util import montar_relatorio_conferencias_caixa
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
 
     di, df, label = _periodo_vendas_from_request(request, default_preset="7d")
     filtro_sessao = None
@@ -10038,20 +10059,31 @@ def caixa_relatorio_conferencias(request):
         "sim",
         "on",
     )
+    raw_loja = (request.GET.get("loja") or request.GET.get("deposito") or "").strip().lower()
+    if raw_loja in ("todas", "todos", "all"):
+        dep_rel = "todas"
+    elif raw_loja in ("centro", "vila", "1", "2"):
+        dep_rel = normalizar_deposito(raw_loja)
+    else:
+        dep_rel = deposito_caixa_browser(request)
     rel = montar_relatorio_conferencias_caixa(
         di,
         df,
         sessao_id=filtro_sessao,
         somente_com_diferenca=somente_diff,
+        deposito=None if dep_rel == "todas" else dep_rel,
     )
     from produtos.caixa_relatorio_util import rotulo_filtro_sessao_caixa
 
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "7d")
+    filtro_loja = rel.get("filtro_loja") or dep_rel
 
     def _url_conf(**extra):
         q = request.GET.copy()
+        if "loja" not in q and "deposito" not in q:
+            q["loja"] = filtro_loja
         for k, v in extra.items():
             if v is None:
                 q.pop(k, None)
@@ -10070,6 +10102,13 @@ def caixa_relatorio_conferencias(request):
             "filtro_sessao": filtro_sessao,
             "filtro_sessao_rotulo": rotulo_filtro_sessao_caixa(
                 rel["sessoes_opts"], filtro_sessao
+            ),
+            "filtro_loja": filtro_loja,
+            "filtro_loja_label": rel.get("filtro_loja_label")
+            or (
+                "Todas as lojas"
+                if filtro_loja == "todas"
+                else ROTULO_DEPOSITO.get(filtro_loja, "Centro")
             ),
             "somente_diff": somente_diff,
             "url_toggle_diff": _url_conf(
