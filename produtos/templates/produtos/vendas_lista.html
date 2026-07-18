@@ -53,13 +53,21 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido · <span class="text-slate-500 normal-case font-bold">/ foca “De”</span></p>
           <div class="flex flex-wrap gap-1.5">
-            <a href="?preset=hoje" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
-            <a href="?preset=7d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
-            <a href="?preset=30d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
-            <a href="?fiado=1" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_fiado %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
+            <a href="?preset=hoje&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
+            <a href="?preset=7d&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
+            <a href="?preset=30d&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+            <a href="?fiado=1&loja={{ filtro_loja }}{% if preset_ativo %}&preset={{ preset_ativo }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_fiado %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
           </div>
         </div>
+        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+          <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide mr-1">Loja</span>
+          <a href="?loja=centro{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Centro</a>
+          <a href="?loja=vila{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Vila Elias</a>
+          <a href="?loja=todas{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Todas</a>
+          <span class="text-[10px] font-bold text-slate-400 ml-1">agora: {{ filtro_loja_label }}</span>
+        </div>
         <div class="flex flex-wrap items-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
+          <input type="hidden" name="loja" value="{{ filtro_loja }}">
           <div>
             <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
             <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
@@ -69,13 +77,13 @@
             <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
           </div>
           <button type="submit" class="min-h-[42px] px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
-          <p class="w-full xl:w-auto xl:ml-auto text-[10px] text-slate-400 self-center">CSV usa o mesmo período da URL.</p>
+          <p class="w-full xl:w-auto xl:ml-auto text-[10px] text-slate-400 self-center">CSV usa o mesmo período e loja da URL.</p>
         </div>
       </form>
 
       <div class="grid grid-cols-2 gap-2 sm:gap-3 xl:min-w-[18rem]">
         <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex flex-col justify-center">
-          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
+          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas · {{ filtro_loja_label }}</p>
           <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-slate-900 tabular-nums leading-none mt-1">{{ quantidade_vendas }}</p>
           {% if quantidade_devolvidas %}
           <p class="text-[10px] font-semibold text-slate-400 mt-1" title="Vendas do período já marcadas devolvida — não entram no total nem no BI">+ {{ quantidade_devolvidas }} devolvida{{ quantidade_devolvidas|pluralize }} no período</p>
@@ -102,6 +110,7 @@
               <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">#</th>
               <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap min-w-[13.5rem]">Ações</th>
               <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Data</th>
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Loja</th>
               <th class="px-3 sm:px-4 py-2.5">Cliente</th>
               <th class="px-3 sm:px-4 py-2.5">Pagamento</th>
               <th class="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">Total</th>
@@ -140,6 +149,13 @@
                 </div>
               </td>
               <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
+              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                {% if v.lista_loja_dep == 'vila' %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-300">{{ v.lista_loja_label }}</span>
+                {% else %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-900 border border-emerald-200">{{ v.lista_loja_label }}</span>
+                {% endif %}
+              </td>
               <td class="px-3 sm:px-4 py-2.5 max-w-[12rem] xl:max-w-[16rem] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
               <td class="px-3 sm:px-4 py-2.5 text-xs max-w-[10rem] xl:max-w-none truncate" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
               <td class="px-3 sm:px-4 py-2.5 text-right tabular-nums font-black text-slate-900 whitespace-nowrap">
