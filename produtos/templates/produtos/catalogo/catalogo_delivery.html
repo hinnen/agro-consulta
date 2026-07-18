@@ -261,19 +261,19 @@
   </div>
 </section>
 
-{# —— SUBCATEGORIAS (passo 2) —— #}
+{# —— SUBCATEGORIAS / SUB-SUB (passos 2 e 3) —— #}
 <section id="view-subcategorias" class="hidden">
   <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
     <button type="button" id="btn-voltar-home" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
     <h2 id="titulo-sub-passo" class="font-black text-slate-900 text-base truncate flex-1">Subcategoria</h2>
   </div>
   <div class="px-3 pt-4 pb-2">
-    <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a subcategoria</h2>
+    <h2 id="titulo-sub-ajuda" class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a subcategoria</h2>
     <div id="grade-subcategorias" class="grid grid-cols-2 gap-3"></div>
   </div>
 </section>
 
-{# —— LISTA de produtos (após cat + sub, ou busca) —— #}
+{# —— LISTA de produtos —— #}
 <section id="view-produtos" class="hidden">
   <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
     <button type="button" id="btn-voltar-cats" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
@@ -283,19 +283,32 @@
     {% for secao in secoes %}
     <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">
       {% for sub in secao.subs %}
-      <div class="mb-4 bloco-sub" data-sub="{{ sub.slug }}">
-        <div class="space-y-2.5">
-          {% for p in sub.produtos %}
+      <div class="bloco-sub" data-sub="{{ sub.slug }}">
+        {% for s2 in sub.subs2 %}
+        <div class="mb-4 bloco-sub2" data-sub2="{{ s2.slug }}">
+          <div class="space-y-2.5">
+            {% for p in s2.produtos %}
+            {% include "produtos/catalogo/_card_produto.html" with p=p %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        {% if sub.produtos_sem_sub2 %}
+        <div class="space-y-2.5 bloco-sub2" data-sub2="_geral">
+          {% for p in sub.produtos_sem_sub2 %}
           {% include "produtos/catalogo/_card_produto.html" with p=p %}
           {% endfor %}
         </div>
+        {% endif %}
       </div>
       {% endfor %}
       {% if secao.produtos_sem_sub %}
       <div class="space-y-2.5 bloco-sub" data-sub="_geral">
-        {% for p in secao.produtos_sem_sub %}
-        {% include "produtos/catalogo/_card_produto.html" with p=p %}
-        {% endfor %}
+        <div class="bloco-sub2" data-sub2="_geral">
+          {% for p in secao.produtos_sem_sub %}
+          {% include "produtos/catalogo/_card_produto.html" with p=p %}
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
     </section>

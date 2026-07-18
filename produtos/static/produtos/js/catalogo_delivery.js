@@ -108,6 +108,7 @@
     var viewProd = document.getElementById("view-produtos");
     var gradeSubs = document.getElementById("grade-subcategorias");
     var tituloSubPasso = document.getElementById("titulo-sub-passo");
+    var tituloSubAjuda = document.getElementById("titulo-sub-ajuda");
     var tituloCat = document.getElementById("titulo-cat-atual");
     var listaVazia = document.getElementById("lista-vazia-cat");
     var arvore = Array.isArray(opts.arvore) ? opts.arvore : [];
@@ -118,7 +119,9 @@
     var catAtual = "";
     var catNomeAtual = "";
     var subAtual = "";
-    var veioDeSubs = false;
+    var subNomeAtual = "";
+    var sub2Atual = "";
+    var nivelPasso = 0; // 0 home · 1 cat·subs · 2 sub·subs2 · 3 produtos
     var modoBusca = false;
 
     function esconderTodasViews() {
@@ -131,7 +134,9 @@
       catAtual = "";
       catNomeAtual = "";
       subAtual = "";
-      veioDeSubs = false;
+      subNomeAtual = "";
+      sub2Atual = "";
+      nivelPasso = 0;
       modoBusca = false;
       esconderTodasViews();
       if (homeEl) homeEl.classList.remove("hidden");
@@ -139,10 +144,11 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function mostrarSubs() {
+    function mostrarGradeNivel(titulo, ajuda) {
       esconderTodasViews();
       if (viewSubs) viewSubs.classList.remove("hidden");
-      if (tituloSubPasso) tituloSubPasso.textContent = catNomeAtual || "Subcategoria";
+      if (tituloSubPasso) tituloSubPasso.textContent = titulo || "";
+      if (tituloSubAjuda) tituloSubAjuda.textContent = ajuda || "Escolha";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -162,6 +168,8 @@
           slug: f.slug,
           nome: f.nome,
           qtd: f.qtd || 0,
+          filhos: f.filhos || [],
+          qtd_sem_sub2: f.qtd_sem_sub2 || 0,
         });
       });
       if (info.qtd_sem_sub > 0) {
@@ -169,18 +177,42 @@
           slug: "_geral",
           nome: "Geral",
           qtd: info.qtd_sem_sub,
+          filhos: [],
+          qtd_sem_sub2: 0,
         });
       }
       return optsSub;
     }
 
-    function renderCardsSub(lista) {
+    function opcoesSub2(slugCat, slugSub) {
+      var info = arvoreBySlug[slugCat];
+      if (!info) return [];
+      var sub = null;
+      (info.filhos || []).forEach(function (f) {
+        if (f.slug === slugSub) sub = f;
+      });
+      if (!sub) return [];
+      var opts2 = [];
+      (sub.filhos || []).forEach(function (n) {
+        opts2.push({ slug: n.slug, nome: n.nome, qtd: n.qtd || 0 });
+      });
+      if (sub.qtd_sem_sub2 > 0) {
+        opts2.push({
+          slug: "_geral",
+          nome: "Geral",
+          qtd: sub.qtd_sem_sub2,
+        });
+      }
+      return opts2;
+    }
+
+    function renderCardsNivel(lista, onPick) {
       if (!gradeSubs) return;
       var html = "";
       lista.forEach(function (s) {
         var letra = (s.nome || "?").charAt(0).toUpperCase();
         html +=
-          '<button type="button" class="card-cat sub-home-card" data-sub="' +
+          '<button type="button" class="card-cat sub-home-card" data-slug="' +
           s.slug +
           '" data-nome="' +
           String(s.nome || "").replace(/"/g, "&quot;") +
@@ -198,11 +230,12 @@
             : "Em breve") +
           "</p></div></button>";
       });
-      gradeSubs.innerHTML = html || '<p class="col-span-2 text-sm text-slate-500 py-8 text-center">Sem subcategorias.</p>';
+      gradeSubs.innerHTML =
+        html || '<p class="col-span-2 text-sm text-slate-500 py-8 text-center">Nenhuma opção.</p>';
       gradeSubs.querySelectorAll(".sub-home-card").forEach(function (card) {
         card.addEventListener("click", function () {
-          abrirSubcategoria(
-            String(card.getAttribute("data-sub") || ""),
+          onPick(
+            String(card.getAttribute("data-slug") || ""),
             String(card.getAttribute("data-nome") || "")
           );
         });
@@ -220,12 +253,18 @@
         var matchQ = !q || nome.indexOf(q) >= 0;
         var matchCat = !catAtual || pc === catAtual;
         var matchSub = true;
+        var matchSub2 = true;
         if (subAtual) {
           var bloco = el.closest(".bloco-sub");
           var bs = bloco ? String(bloco.getAttribute("data-sub") || "") : "";
           matchSub = bs === subAtual;
         }
-        var ok = matchQ && matchCat && matchSub;
+        if (sub2Atual) {
+          var b2 = el.closest(".bloco-sub2");
+          var bs2 = b2 ? String(b2.getAttribute("data-sub2") || "") : "";
+          matchSub2 = bs2 === sub2Atual;
+        }
+        var ok = matchQ && matchCat && matchSub && matchSub2;
         el.classList.toggle("hidden", !ok);
         if (ok) algum = true;
       });
@@ -239,22 +278,52 @@
         var visible = b.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
         b.classList.toggle("hidden", !visible);
       });
+      document.querySelectorAll(".bloco-sub2").forEach(function (b) {
+        var visible = b.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
+        b.classList.toggle("hidden", !visible);
+      });
       if (listaVazia) listaVazia.classList.toggle("hidden", algum);
     }
 
     function abrirProdutosFiltrados(titulo) {
       modoBusca = false;
+      nivelPasso = 3;
       mostrarProdutos(titulo);
       aplicarFiltros();
     }
 
-    function abrirSubcategoria(slugSub, nomeSub) {
-      subAtual = slugSub || "";
-      veioDeSubs = true;
+    function abrirSub2(slug2, nome2) {
+      sub2Atual = slug2 || "";
       var titulo =
         (catNomeAtual || "") +
-        (nomeSub ? " · " + nomeSub : "");
+        (subNomeAtual ? " · " + subNomeAtual : "") +
+        (nome2 ? " · " + nome2 : "");
       abrirProdutosFiltrados(titulo || "Produtos");
+    }
+
+    function abrirSubcategoria(slugSub, nomeSub) {
+      subAtual = slugSub || "";
+      subNomeAtual = nomeSub || "";
+      sub2Atual = "";
+      if (slugSub === "_geral") {
+        abrirProdutosFiltrados(
+          (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : "")
+        );
+        return;
+      }
+      var netos = opcoesSub2(catAtual, subAtual);
+      if (netos.length > 0) {
+        nivelPasso = 2;
+        renderCardsNivel(netos, abrirSub2);
+        mostrarGradeNivel(
+          (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : ""),
+          "Escolha a sub-subcategoria"
+        );
+        return;
+      }
+      abrirProdutosFiltrados(
+        (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : "")
+      );
     }
 
     function abrirCategoria(slug, nome) {
@@ -262,15 +331,16 @@
       catAtual = slug || "";
       catNomeAtual = nome || "";
       subAtual = "";
-      veioDeSubs = false;
+      subNomeAtual = "";
+      sub2Atual = "";
       if (busca) busca.value = "";
       var subs = opcoesSubDaCategoria(catAtual);
       if (subs.length > 0) {
-        renderCardsSub(subs);
-        mostrarSubs();
+        nivelPasso = 1;
+        renderCardsNivel(subs, abrirSubcategoria);
+        mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
         return;
       }
-      // Sem subcategoria cadastrada: vai direto aos produtos da categoria
       abrirProdutosFiltrados(catNomeAtual || "Produtos");
     }
 
@@ -279,11 +349,42 @@
         mostrarHome();
         return;
       }
-      if (veioDeSubs && catAtual) {
+      if (sub2Atual && subAtual && catAtual) {
+        sub2Atual = "";
+        var netos = opcoesSub2(catAtual, subAtual);
+        if (netos.length > 0) {
+          nivelPasso = 2;
+          renderCardsNivel(netos, abrirSub2);
+          mostrarGradeNivel(
+            (catNomeAtual || "") + (subNomeAtual ? " · " + subNomeAtual : ""),
+            "Escolha a sub-subcategoria"
+          );
+          return;
+        }
+      }
+      if (subAtual && catAtual) {
         subAtual = "";
+        subNomeAtual = "";
+        sub2Atual = "";
         var subs = opcoesSubDaCategoria(catAtual);
-        renderCardsSub(subs);
-        mostrarSubs();
+        if (subs.length > 0) {
+          nivelPasso = 1;
+          renderCardsNivel(subs, abrirSubcategoria);
+          mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
+          return;
+        }
+      }
+      mostrarHome();
+    }
+
+    function voltarGrade() {
+      if (nivelPasso === 2 && catAtual) {
+        subAtual = "";
+        subNomeAtual = "";
+        sub2Atual = "";
+        nivelPasso = 1;
+        renderCardsNivel(opcoesSubDaCategoria(catAtual), abrirSubcategoria);
+        mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
         return;
       }
       mostrarHome();
@@ -299,7 +400,7 @@
     });
 
     var btnVoltarHome = document.getElementById("btn-voltar-home");
-    if (btnVoltarHome) btnVoltarHome.addEventListener("click", mostrarHome);
+    if (btnVoltarHome) btnVoltarHome.addEventListener("click", voltarGrade);
 
     var btnVoltar = document.getElementById("btn-voltar-cats");
     if (btnVoltar) btnVoltar.addEventListener("click", voltarDoProdutos);
@@ -314,12 +415,14 @@
           catAtual = "";
           catNomeAtual = "";
           subAtual = "";
-          veioDeSubs = false;
+          subNomeAtual = "";
+          sub2Atual = "";
+          nivelPasso = 0;
           mostrarProdutos("Busca");
           aplicarFiltros();
         } else if (modoBusca) {
           mostrarHome();
-        } else if (catAtual && (subAtual || !opcoesSubDaCategoria(catAtual).length)) {
+        } else if (nivelPasso === 3) {
           aplicarFiltros();
         }
       });
