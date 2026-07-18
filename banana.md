@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.23** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.26** · **loja v9.91**
+
+### feat — PDV maquininha Mercado Pago Renan (18/07 · **teste v10.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Opção **Mercado Pago Renan** no seletor de máquina (cartão + Pix) |
+| **Comportamento** | Manual (não dispara Point automático) · aparece no notebook também |
+| **Validar** | PDV → pagar cartão/Pix → Selecionar máquina → 3ª opção Renan |
 
 ### 🩹 Cadastro — saldo busca ficava velho após venda (18/07 · **teste v10.23**)
 
