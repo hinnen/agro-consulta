@@ -920,7 +920,7 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v4"
+    _fac_cache_key = "agro_gestao_facetas_v5"
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
@@ -1010,6 +1010,10 @@ def api_produtos_gestao_facetas(request):
             ],
             limite=300,
         )
+        unidades = cat_agro._faceta_valores_distintos(
+            [x for x in ov_qs.exclude(unidade="").values_list("unidade", flat=True).distinct()[:250]],
+            limite=200,
+        )
     except Exception as e:
         logger.warning("api_produtos_gestao_facetas: %s", e, exc_info=True)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
@@ -1019,6 +1023,7 @@ def api_produtos_gestao_facetas(request):
         "categorias": categorias,
         "subcategorias": subcategorias,
         "fornecedores": fornecedores,
+        "unidades": unidades,
     }
     cache.set(_fac_cache_key, payload, 900)
     return JsonResponse({"ok": True, **payload})
@@ -19754,15 +19759,19 @@ def api_produtos_cadastro_faceta_nova(request):
         "fornecedor": "Novo fornecedor",
         "categoria": "Nova categoria",
         "subcategoria": "Nova subcategoria",
+        "unidade": "Nova unidade",
     }
     if tipo not in mapa:
         return JsonResponse({"ok": False, "erro": "Tipo inválido."}, status=400)
-    if len(valor) < 2:
-        return JsonResponse({"ok": False, "erro": "Informe o nome (mínimo 2 caracteres)."}, status=400)
+    min_len = 1 if tipo == "unidade" else 2
+    if len(valor) < min_len:
+        return JsonResponse({"ok": False, "erro": "Informe o nome."}, status=400)
 
     ok_pin, err_pin = validar_pin_operador(pin)
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+
+    from django.core.cache import cache
 
     from produtos.models import ProdutoCadastroAlteracaoAgro
 
@@ -19779,6 +19788,12 @@ def api_produtos_cadastro_faceta_nova(request):
         )
     except Exception:
         logger.exception("falha ao gravar log faceta nova tipo=%s", tipo)
+
+    try:
+        cache.delete("agro_gestao_facetas_v5")
+        cache.delete("agro_gestao_facetas_v4")
+    except Exception:
+        pass
 
     return JsonResponse({"ok": True, "valor": valor, "tipo": tipo, "operador": operador})
 

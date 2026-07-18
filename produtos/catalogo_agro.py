@@ -975,11 +975,17 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
         + [x for x in ov_qs.exclude(fornecedor_texto="").values_list("fornecedor_texto", flat=True).distinct()],
         limite=lim_cat + 200,
     )
+    unidades = _faceta_valores_distintos(
+        list(qs.exclude(unidade="").values_list("unidade", flat=True).distinct())
+        + [x for x in ov_qs.exclude(unidade="").values_list("unidade", flat=True).distinct()],
+        limite=lim_cat,
+    )
     return {
         "marcas": marcas,
         "categorias": categorias,
         "subcategorias": subcategorias,
         "fornecedores": fornecedores,
+        "unidades": unidades,
     }
 
 

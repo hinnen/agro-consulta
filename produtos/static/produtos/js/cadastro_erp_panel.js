@@ -16,6 +16,7 @@
   var URL_OVERLAY_SALVAR = C.URL_OVERLAY_SALVAR || '';
   var URL_AJUSTE_ESTOQUE = C.URL_AJUSTE_ESTOQUE || '';
   var URL_FACETAS = C.URL_FACETAS || '';
+  var URL_FACETA_NOVA = C.URL_FACETA_NOVA || '';
   var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
   var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
@@ -256,6 +257,32 @@
     return h;
   }
 
+  function pickFieldHtml(label, id, val, required, maisId, resId) {
+    return (
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">' +
+      label +
+      (required ? ' <span class="text-red-600 font-black">*</span>' : '') +
+      '</span>' +
+      '<div class="flex gap-1 relative">' +
+      '<input type="text" id="' +
+      id +
+      '" class="' +
+      icPick +
+      '" maxlength="200" value="' +
+      escapeHtml(val || '') +
+      '" autocomplete="off" placeholder="Buscar..." />' +
+      '<button type="button" id="' +
+      maisId +
+      '" class="w-11 h-11 shrink-0 rounded-xl border-2 border-emerald-400 bg-white text-lg font-black text-slate-700" title="Cadastrar novo">+</button>' +
+      '<div id="' +
+      resId +
+      '" class="hidden absolute top-full left-0 right-12 z-30 max-h-40 overflow-y-auto rounded-b-xl border border-slate-200 bg-white shadow-xl [scrollbar-width:thin]"></div>' +
+      '</div></label>'
+    );
+  }
+
+  var icPick = 'flex-1 min-h-[44px] px-3 rounded-xl border-2 border-emerald-400 text-base font-bold text-slate-900 bg-white';
+
   function buildOverlayFormHtml(p) {
     var pv = (p.preco_venda != null && isFinite(Number(p.preco_venda))) ? String(Number(p.preco_venda)).replace('.', ',') : '';
     var pc = (p.preco_custo != null && isFinite(Number(p.preco_custo))) ? String(Number(p.preco_custo)).replace('.', ',') : '';
@@ -271,30 +298,28 @@
       (ERP_SYNC_HABILITADO
         ? ' <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser.'
         : ' Sincronização com a API do ERP está desligada neste ambiente.') +
-      ' Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir catálogo» remove o forçamento de ativo/inativo.</p>' +
+      ' Marca/categoria/etc.: escolha da lista ou + com PIN.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Marca <span class="text-red-600 font-black">*</span></span>' +
-      '<input type="text" id="cad-ov-marca" class="' + ic + '" maxlength="120" value="' + escapeHtml(p.marca || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Categoria <span class="text-red-600 font-black">*</span></span>' +
-      '<input type="text" id="cad-ov-cat" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.categoria || '') + '" autocomplete="off" /></label>' +
-      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Fornecedor (texto)</span>' +
-      '<input type="text" id="cad-ov-forn" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.fornecedor || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Marca', 'cad-ov-marca', p.marca, true, 'cad-ov-marca-mais', 'cad-ov-marca-res') +
+      pickFieldHtml('Categoria', 'cad-ov-cat', p.categoria, true, 'cad-ov-cat-mais', 'cad-ov-cat-res') +
+      pickFieldHtml('Fornecedor', 'cad-ov-forn', p.fornecedor, false, 'cad-ov-forn-mais', 'cad-ov-forn-res').replace(
+        'class="block"',
+        'class="block sm:col-span-2"'
+      ) +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código NFe / GM</span>' +
       '<input type="text" id="cad-ov-codnfe" class="' + ic + ' font-mono text-sm" maxlength="64" value="' + escapeHtml(String(p.codigo_nfe || p.codigo || '')) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código de barras <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-cb" class="' + ic + ' font-mono text-sm" maxlength="80" value="' + escapeHtml(String(p.codigo_barras || '')) + '" inputmode="numeric" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria</span>' +
-      '<input type="text" id="cad-ov-sub" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Subcategoria', 'cad-ov-sub', p.subcategoria, false, 'cad-ov-sub-mais', 'cad-ov-sub-res') +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 2</span>' +
       '<input type="text" id="cad-ov-sub2" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_2 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 3</span>' +
       '<input type="text" id="cad-ov-sub3" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_3 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 4</span>' +
       '<input type="text" id="cad-ov-sub4" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_4 || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Unidade</span>' +
-      '<input type="text" id="cad-ov-un" class="' + ic + '" maxlength="20" value="' + escapeHtml(p.unidade || '') + '" autocomplete="off" /></label>' +
+      pickFieldHtml('Unidade', 'cad-ov-un', p.unidade, false, 'cad-ov-un-mais', 'cad-ov-un-res') +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Custo unit. (R$) <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-custo" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pc) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$) <span class="text-red-600 font-black">*</span></span>' +
@@ -317,6 +342,33 @@
       '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
       '</div>'
     );
+  }
+
+  function wireCadastroOverlayPicks() {
+    if (!window.AgroPickList) return;
+    var cfg = { urlNova: URL_FACETA_NOVA, csrf: csrfTokErp() };
+    [
+      ['cad-ov-marca', 'cad-ov-marca-res', 'cad-ov-marca-mais', 'marca', 'Nova marca'],
+      ['cad-ov-cat', 'cad-ov-cat-res', 'cad-ov-cat-mais', 'categoria', 'Nova categoria'],
+      ['cad-ov-forn', 'cad-ov-forn-res', 'cad-ov-forn-mais', 'fornecedor', 'Novo fornecedor'],
+      ['cad-ov-sub', 'cad-ov-sub-res', 'cad-ov-sub-mais', 'subcategoria', 'Nova subcategoria'],
+      ['cad-ov-un', 'cad-ov-un-res', 'cad-ov-un-mais', 'unidade', 'Nova unidade'],
+    ].forEach(function (row) {
+      var el = document.getElementById(row[0]);
+      if (el) el._agroPickWired = false;
+      window.AgroPickList.wire(
+        Object.assign(
+          {
+            input: row[0],
+            box: row[1],
+            plusBtn: row[2],
+            tipo: row[3],
+            tituloNovo: row[4],
+          },
+          cfg
+        )
+      );
+    });
   }
 
   function buildOverlayOuLoginHtml(p) {
@@ -405,6 +457,18 @@
       if (!gvLoc('cad-ov-cat')) {
         showMsg('Preencha a Categoria (obrigatório).', false);
         return;
+      }
+      if (window.AgroPickList) {
+        var errPick =
+          window.AgroPickList.assertField('cad-ov-marca', 'marcas', 'Marca', true) ||
+          window.AgroPickList.assertField('cad-ov-cat', 'categorias', 'Categoria', true) ||
+          window.AgroPickList.assertField('cad-ov-forn', 'fornecedores', 'Fornecedor', false) ||
+          window.AgroPickList.assertField('cad-ov-sub', 'subcategorias', 'Subcategoria', false) ||
+          window.AgroPickList.assertField('cad-ov-un', 'unidades', 'Unidade', false);
+        if (errPick) {
+          showMsg(errPick, false);
+          return;
+        }
       }
       if (!gvLoc('cad-ov-cb')) {
         showMsg('Preencha o Código de barras (obrigatório).', false);
@@ -587,6 +651,15 @@
       '</p>' +
       '</div>';
     bindCadastroOverlaySalvar(p);
+    if (PODE_EDITAR_OVERLAY && window.AgroPickList) {
+      if (URL_FACETAS) {
+        window.AgroPickList.loadFacetas(URL_FACETAS).then(function () {
+          wireCadastroOverlayPicks();
+        });
+      } else {
+        wireCadastroOverlayPicks();
+      }
+    }
   }
 
   function renderDetalheResumido(p) {

@@ -346,10 +346,14 @@
           <input type="text" id="edit-modelo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
         </label>
 
-        <label class="block">
+        <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Unidade</span>
-          <input type="text" id="edit-unidade" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Ex: Un, Kg, Sc" />
-        </label>
+          <div class="flex gap-1 relative">
+            <input type="text" id="edit-unidade" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <button type="button" id="btn-unidade-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Unidade">+</button>
+            <div id="unidade-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+        </div>
 
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Categoria <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
@@ -1389,7 +1393,7 @@
     el.value = fmtPctInput(Number(n));
   }
 
-  window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [] };
+  window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [], unidades: [] };
 
   function atualizarMargemLivre() {
     var el = document.getElementById('edit-margem-livre');
@@ -1640,6 +1644,7 @@
     wireFacetAutocomplete('edit-fornecedor', 'fornecedor-resultados', 'fornecedores');
     wireFacetAutocomplete('edit-categoria', 'categoria-resultados', 'categorias');
     wireFacetAutocomplete('edit-subcategoria', 'subcategoria-resultados', 'subcategorias');
+    wireFacetAutocomplete('edit-unidade', 'unidade-resultados', 'unidades');
     wireFacetAutocomplete('var-marca', 'var-marca-resultados', 'marcas');
     bindDelegacaoMarcaNasVariacoes();
   }
@@ -1760,6 +1765,10 @@
         window._agroFacetas.fornecedores = Array.isArray(d.fornecedores) ? d.fornecedores.slice() : [];
         window._agroFacetas.categorias = Array.isArray(d.categorias) ? d.categorias.slice() : [];
         window._agroFacetas.subcategorias = Array.isArray(d.subcategorias) ? d.subcategorias.slice() : [];
+        window._agroFacetas.unidades = Array.isArray(d.unidades) ? d.unidades.slice() : [];
+        if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
+          window.AgroPickList.mergeFacetas(d);
+        }
         var dm = document.getElementById('dl-marcas-agro');
         var df = document.getElementById('dl-forns-agro');
         var dc = document.getElementById('dl-cats-agro');
@@ -2501,7 +2510,8 @@
       assertPickField('edit-marca', 'marcas', 'Marca', true) ||
       assertPickField('edit-categoria', 'categorias', 'Categoria', true) ||
       assertPickField('edit-fornecedor', 'fornecedores', 'Fornecedor', false) ||
-      assertPickField('edit-subcategoria', 'subcategorias', 'Subcategoria', false);
+      assertPickField('edit-subcategoria', 'subcategorias', 'Subcategoria', false) ||
+      assertPickField('edit-unidade', 'unidades', 'Unidade', false);
     if (errPick) {
       ativarTabPorId('tab-gerais');
       if (typeof alert !== 'undefined') alert(errPick);
@@ -3202,7 +3212,7 @@
   }
 
   function appendFacetToList(facetKey, val) {
-    if (!window._agroFacetas) window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [] };
+    if (!window._agroFacetas) window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [], unidades: [] };
     var arr = window._agroFacetas[facetKey];
     if (!Array.isArray(arr)) {
       window._agroFacetas[facetKey] = [];
@@ -3229,9 +3239,10 @@
         miniErro.classList.add('hidden');
         miniErro.textContent = '';
       }
-      if (v.length < 2) {
+      var minLen = miniTipo === 'unidade' ? 1 : 2;
+      if (v.length < minLen) {
         if (miniErro) {
-          miniErro.textContent = 'Informe o nome (mínimo 2 caracteres).';
+          miniErro.textContent = 'Informe o nome.';
           miniErro.classList.remove('hidden');
         }
         return;
@@ -3377,6 +3388,12 @@
     abrirMiniAgro('Nova subcategoria', 'subcategorias', 'subcategoria', 'edit-subcategoria', function (v) {
       if (!v) return;
       setVal('edit-subcategoria', v);
+    });
+  });
+  bindClick('btn-unidade-nova', function () {
+    abrirMiniAgro('Nova unidade', 'unidades', 'unidade', 'edit-unidade', function (v) {
+      if (!v) return;
+      setVal('edit-unidade', v);
     });
   });
   bindClick('btn-gerar-cb-loja', function () {
