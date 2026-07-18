@@ -1158,7 +1158,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.01** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.02** · **loja v9.91**
+
+### 🏪 Vila Elias — PDV baixa estoque por loja do aparelho (18/07 · **teste v10.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no Render · 📦 produção só com frase + senha |
+| **Problema** | Seletor «Vila Elias» na home não baixava estoque Vila — venda sempre usava env `PDV_VENDA_ESTOQUE_DEPOSITO` (Centro) |
+| **Feito** | Sessão/cookie `pdv_deposito` · API `/api/pdv/deposito/` · seletor no **BI** + atalhos · badge no PDV · `VendaAgro.deposito` + migration **0055** · baixa/estorno usam depósito da venda |
+| **Arquivos** | `pdv_deposito_util.py` · `views.py` · `pdv/views.py` · `models.py` · `0055_*` · `dashboard_gerencial.html` · `home.html` · topbar/wizard JS |
+| **Validar teste** | BI → Loja **Vila Elias** → badge «Estoque: Vila Elias» → PDV venda R$ 0,01 → saldo **Vila** cai · devolução repõe Vila |
+| **Ops abertura** | 1) Injetar estoque Vila (NF depósito Vila / transferência / PIN) 2) Conferir sync 3) PC Vila = Loja Vila no BI 4) Caixa só naquele PC 5) **Sem NFC-e Vila** até cert CNPJ `0323…` (PIX/cartão ainda = CNPJ Centro) |
+| **Autorizar loja** | *«pode subir Vila Elias PDV depósito»* + **99738595** |
+| **Backup no envio** | `producao-backup-pre-v1002-vila-pdv-YYYYMMDD` @ HEAD loja |
 
 ### 🩹 Entrada NF — histórico C1–C3 não duplica a própria nota (18/07 · **teste v9.97**)
 

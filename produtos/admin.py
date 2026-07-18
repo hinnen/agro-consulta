@@ -92,6 +92,7 @@ class VendaAgroAdmin(admin.ModelAdmin):
         "criado_em",
         "cliente_nome",
         "total",
+        "deposito",
         "sessao_caixa",
         "erp_sync_status",
         "enviado_erp",
@@ -99,13 +100,14 @@ class VendaAgroAdmin(admin.ModelAdmin):
         "forma_pagamento",
         "usuario_registro",
     )
-    list_filter = ("enviado_erp", "erp_sync_status", "estoque_baixa_agro_aplicada")
+    list_filter = ("enviado_erp", "erp_sync_status", "estoque_baixa_agro_aplicada", "deposito")
     search_fields = ("cliente_nome", "cliente_id_erp", "cliente_documento")
     readonly_fields = (
         "cliente_nome",
         "cliente_id_erp",
         "cliente_documento",
         "total",
+        "deposito",
         "forma_pagamento",
         "erp_sync_status",
         "enviado_erp",

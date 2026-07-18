@@ -2042,6 +2042,17 @@ async function pdvEnviarOrcamentoErpCarrinho() {
     }
     const fp = document.getElementById('forma-pagamento-pdv');
     if (fp && fp.value) payload.forma_pagamento = fp.value;
+    try {
+        var depBoot = (AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.pdvDeposito) || {};
+        var dep = String(depBoot.deposito || '').trim().toLowerCase();
+        if (dep !== 'vila' && dep !== 'centro') {
+            var lid = localStorage.getItem('agro_pdv_loja_id');
+            dep = String(lid) === '2' ? 'vila' : 'centro';
+        }
+        payload.deposito = dep;
+    } catch (eDep) {
+        payload.deposito = 'centro';
+    }
     payload.client_request_id =
         typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
@@ -5337,6 +5348,44 @@ document.addEventListener('DOMContentLoaded', function () {
     if (fp && typeof window.recalcularPrecosFormaCarrinho === 'function') {
         fp.addEventListener('change', window.recalcularPrecosFormaCarrinho);
     }
+    try {
+        var urlDep = AGRO_PDV_URLS && AGRO_PDV_URLS.apiPdvDeposito;
+        if (!urlDep) return;
+        var lojaId = String(localStorage.getItem('agro_pdv_loja_id') || '1');
+        var bootDep = ((AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.pdvDeposito) || {}).deposito || 'centro';
+        var want = lojaId === '2' ? 'vila' : 'centro';
+        if (String(bootDep).toLowerCase() === want) return;
+        fetch(urlDep, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': (AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.csrfToken) || '',
+            },
+            body: JSON.stringify({ loja_id: lojaId }),
+        })
+            .then(function (r) {
+                return r.json().catch(function () {
+                    return {};
+                });
+            })
+            .then(function (j) {
+                if (!j || !j.ok) return;
+                if (AGRO_PDV_BOOTSTRAP) {
+                    AGRO_PDV_BOOTSTRAP.pdvDeposito = {
+                        deposito: j.deposito,
+                        depositoLabel: j.depositoLabel,
+                        lojaId: j.lojaId,
+                        estoqueAtivoLabel: j.estoqueAtivoLabel,
+                    };
+                }
+                var badge = document.getElementById('pdv-deposito-badge');
+                if (badge && j.estoqueAtivoLabel) {
+                    badge.textContent = j.estoqueAtivoLabel;
+                }
+            })
+            .catch(function () {});
+    } catch (eSync) {}
 });
 
 

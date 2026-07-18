@@ -13,6 +13,7 @@ from produtos.caixa_util import (
     navegador_pode_mp_point_automatico,
     obter_sessao_caixa_aberta_request,
     ponto_operacao_browser,
+    rotulo_caixa_browser,
 )
 from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
@@ -95,14 +96,22 @@ def pdv_home(request):
             "link_loja": (getattr(settings, "LOJA_MAPS_LINK_VILA", None) or "").strip(),
         },
     ]
+    from produtos.pdv_deposito_util import bootstrap_deposito
+
+    dep_boot = bootstrap_deposito(request)
     ctx = {
         "caixa_aberto": caixa_aberto,
+        "caixa_rotulo": rotulo_caixa_browser(request, caixa_aberto) if caixa_aberto else "Caixa fechado",
+        "pdv_deposito": dep_boot.get("deposito") or "centro",
+        "pdv_deposito_label": dep_boot.get("depositoLabel") or "Centro",
+        "pdv_estoque_ativo_label": dep_boot.get("estoqueAtivoLabel") or "Estoque: Centro",
         "pdv_bootstrap": {
             "csrfToken": get_token(request),
             "usuarioSalvamento": u_pdv,
             "clientePadraoNome": "CONSUMIDOR NÃO IDENTIFICADO...",
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
             "origensMaps": origens_maps,
+            "pdvDeposito": dep_boot,
             "urls": {
                 "apiBuscarProdutos": reverse("api_buscar_mobile"),
                 "apiBuscarClientes": reverse("api_buscar_clientes"),
@@ -160,6 +169,7 @@ def pdv_home(request):
                 "apiPdvProdutoAjusteEstoque": reverse("api_pdv_produto_ajuste_estoque"),
                 "apiProdutosGestaoOverlaySalvar": reverse("api_produtos_gestao_overlay_salvar"),
                 "apiComprasRelatorioDim": reverse("api_compras_relatorio_dim_sugestao"),
+                "apiPdvDeposito": reverse("api_pdv_deposito"),
             },
             "search": {
                 "mode": "wizard",

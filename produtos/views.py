@@ -7394,6 +7394,26 @@ def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
     else:
         loja_acc = [round(total, 2), 0.0]
 
+    # Preferir depósito gravado na venda (Centro × Vila Elias); vazio = legado Centro.
+    try:
+        qs_dep = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        agg_c = (
+            qs_dep.exclude(deposito__iexact="vila")
+            .aggregate(soma=Sum("total"))
+            .get("soma")
+        )
+        agg_v = (
+            qs_dep.filter(deposito__iexact="vila")
+            .aggregate(soma=Sum("total"))
+            .get("soma")
+        )
+        loja_acc = [
+            round(_dashboard_float(agg_c), 2),
+            round(_dashboard_float(agg_v), 2),
+        ]
+    except Exception:
+        pass
+
     out = {
         "ok": True,
         "erro": "",
@@ -8701,6 +8721,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     )
     gasto_pack = gastos_cache.get(gasto_por) or _dashboard_gastos_plano_pack({})
 
+    from produtos.pdv_deposito_util import bootstrap_deposito
+
     return {
         "periodo_label": periodo_label,
         "periodo_key": periodo_key,
@@ -8761,6 +8783,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
         "periodo_cal_ini": data_ini.isoformat(),
         "periodo_cal_fim": data_fim.isoformat(),
+        "pdv_deposito_boot": bootstrap_deposito(request),
+        "api_pdv_deposito_url": reverse("api_pdv_deposito"),
     }
 
 
@@ -8773,9 +8797,12 @@ def home(request):
         u = (request.user.get_full_name() or "").strip() or (
             request.user.get_username() if hasattr(request.user, "get_username") else ""
         )
+    from produtos.pdv_deposito_util import bootstrap_deposito
+
     home_pdv_bootstrap = {
         "csrfToken": get_token(request),
         "usuarioSalvamento": u,
+        "pdvDeposito": bootstrap_deposito(request),
         "urls": {
             "apiPdvSaldos": reverse("api_pdv_saldos"),
             "apiTodosProdutosDelta": reverse("api_todos_produtos_delta"),
@@ -8783,6 +8810,7 @@ def home(request):
             "consultaPdv": reverse("consulta_produtos"),
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvWizardHome": reverse("pdv_home"),
+            "apiPdvDeposito": reverse("api_pdv_deposito"),
         },
     }
     stats = _home_quick_stats(request)
@@ -8993,10 +9021,18 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
     except Exception:
         nfce_boot = {"ativo": False}
 
+    from produtos.pdv_deposito_util import bootstrap_deposito
+
+    dep_boot = bootstrap_deposito(request)
+    ctx["pdv_deposito"] = dep_boot.get("deposito") or "centro"
+    ctx["pdv_deposito_label"] = dep_boot.get("depositoLabel") or "Centro"
+    ctx["pdv_estoque_ativo_label"] = dep_boot.get("estoqueAtivoLabel") or "Estoque: Centro"
+
     ctx["pdv_bootstrap"] = {
         "csrfToken": get_token(request),
         "usuarioSalvamento": u_pdv,
         "nfce": nfce_boot,
+        "pdvDeposito": dep_boot,
         "urls": {
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvCheckout": reverse("pdv_checkout"),
@@ -9017,6 +9053,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),
             "fiadoGestao": reverse("fiado_gestao"),
             "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
+            "apiPdvDeposito": reverse("api_pdv_deposito"),
             "pdvRootUrl": pdv_root_url,
         },
         "assets": {
@@ -10561,7 +10598,9 @@ def api_venda_agro_devolver(request, pk):
                 cm, dbe = None, None
                 logger.exception("devolucao venda mongo: %s", exc)
             if cm is not None and dbe is not None:
-                dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
+                from produtos.pdv_deposito_util import deposito_da_venda
+
+                dep_v = deposito_da_venda(venda)
                 if dep_v not in ("centro", "vila"):
                     dep_v = "centro"
                 r_est = aplicar_estorno_estoque_venda_agro(
@@ -20824,11 +20863,61 @@ def api_login_mobile(request):
 
 @login_required(login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
+def api_pdv_deposito(request):
+    """GET/POST depósito operacional do PDV neste aparelho (Centro × Vila Elias)."""
+    from produtos.pdv_deposito_util import (
+        anexar_cookie_deposito,
+        bootstrap_deposito,
+        deposito_de_loja_id,
+        gravar_deposito_request,
+        normalizar_deposito,
+        resolver_deposito_request,
+        rotulo_deposito,
+    )
+
+    if request.method == "GET":
+        boot = bootstrap_deposito(request)
+        return JsonResponse({"ok": True, **boot})
+
+    if request.method not in ("POST", "PUT", "PATCH"):
+        return JsonResponse({"ok": False, "erro": "Método não permitido"}, status=405)
+
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        data = {}
+    if not data and request.POST:
+        data = {
+            "deposito": request.POST.get("deposito"),
+            "loja_id": request.POST.get("loja_id") or request.POST.get("lojaId"),
+        }
+
+    if data.get("deposito") is not None and str(data.get("deposito") or "").strip():
+        dep = normalizar_deposito(data.get("deposito"))
+    elif data.get("loja_id") is not None or data.get("lojaId") is not None:
+        dep = deposito_de_loja_id(data.get("loja_id") if data.get("loja_id") is not None else data.get("lojaId"))
+    else:
+        dep = resolver_deposito_request(request)
+
+    dep = gravar_deposito_request(request, dep)
+    resp = JsonResponse(
+        {
+            "ok": True,
+            "deposito": dep,
+            "depositoLabel": rotulo_deposito(dep),
+            "lojaId": "2" if dep == "vila" else "1",
+            "estoqueAtivoLabel": f"Estoque: {rotulo_deposito(dep)}",
+        }
+    )
+    return anexar_cookie_deposito(resp, dep)
+
+
 def api_pdv_registrar_operador(request):
     """Sessão do operador PDV: GET lê; POST limpa ou grava após validar PIN no RH."""
     if request.method == "GET":
         op = str(request.session.get("pdv_operador_nome") or "").strip()
         return JsonResponse({"ok": True, "operador": op})
+
 
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
@@ -22189,6 +22278,24 @@ def _persistir_venda_agro(
         nfce_solicitada = False
 
     with transaction.atomic():
+        from produtos.pdv_deposito_util import (
+            deposito_de_loja_id,
+            normalizar_deposito,
+            resolver_deposito_request,
+        )
+
+        dep_payload = data.get("deposito") or data.get("pdv_deposito") or data.get("loja_id")
+        if dep_payload is not None and str(dep_payload).strip() != "":
+            raw_dep = str(dep_payload).strip().lower()
+            if raw_dep in ("1", "2"):
+                dep_v = deposito_de_loja_id(raw_dep)
+            else:
+                dep_v = normalizar_deposito(raw_dep)
+        else:
+            dep_v = resolver_deposito_request(request)
+        if dep_v not in ("centro", "vila"):
+            dep_v = "centro"
+
         v = VendaAgro.objects.create(
             cliente_nome=cliente[:300],
             cliente_id_erp=cid[:32],
@@ -22206,15 +22313,13 @@ def _persistir_venda_agro(
             sessao_caixa=sessao,
             estoque_baixa_agro_aplicada=False,
             nfce_solicitada=nfce_solicitada,
+            deposito=dep_v,
         )
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
 
         if getattr(settings, "PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", True):
             cm, dbe = obter_conexao_mongo_pdv()
-            dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
-            if dep_v not in ("centro", "vila"):
-                dep_v = "centro"
             try:
                 r_baixa = aplicar_baixa_estoque_venda_agro(
                     db=dbe,

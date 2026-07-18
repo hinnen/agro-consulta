@@ -8708,7 +8708,25 @@
         if (state.entrega && state.entrega.pedidoEntregaPendenteId) {
             payload.pedido_entrega_pendente_id = state.entrega.pedidoEntregaPendenteId;
         }
+        injetarDepositoNoPayload(payload);
         return injetarOperadorNoPayload(payload);
+    }
+
+    function depositoPdvAtivo() {
+        var d = (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || '';
+        d = String(d || '').trim().toLowerCase();
+        if (d === 'vila' || d === 'centro') return d;
+        try {
+            var lid = localStorage.getItem('agro_pdv_loja_id');
+            if (String(lid) === '2') return 'vila';
+        } catch (e0) {}
+        return 'centro';
+    }
+
+    function injetarDepositoNoPayload(payload) {
+        if (!payload) return payload;
+        payload.deposito = depositoPdvAtivo();
+        return payload;
     }
 
     function buildEntregaPayload(state, computed, extras) {
@@ -13015,6 +13033,52 @@
         }
         return tryAddProductFromSearch({}, { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true });
     };
+
+    (function syncDepositoPdvBoot() {
+        var url = urls.apiPdvDeposito;
+        if (!url) return;
+        var lojaId = '1';
+        try {
+            lojaId = String(localStorage.getItem('agro_pdv_loja_id') || '1');
+        } catch (e0) {
+            lojaId = '1';
+        }
+        var bootDep = (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || 'centro';
+        var want = lojaId === '2' ? 'vila' : 'centro';
+        if (String(bootDep).toLowerCase() === want) return;
+        fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': bootstrap.csrfToken || '',
+            },
+            body: JSON.stringify({ loja_id: lojaId }),
+        })
+            .then(function (r) {
+                return r.json().catch(function () {
+                    return {};
+                });
+            })
+            .then(function (j) {
+                if (!j || !j.ok) return;
+                bootstrap.pdvDeposito = {
+                    deposito: j.deposito,
+                    depositoLabel: j.depositoLabel,
+                    lojaId: j.lojaId,
+                    estoqueAtivoLabel: j.estoqueAtivoLabel,
+                };
+                var badge = document.getElementById('pdv-deposito-badge');
+                if (badge && j.estoqueAtivoLabel) {
+                    badge.textContent = j.estoqueAtivoLabel;
+                    var isVila = String(j.deposito || '') === 'vila';
+                    badge.className = isVila
+                        ? 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-slate-400 bg-slate-100 text-slate-800'
+                        : 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-emerald-300 bg-emerald-50 text-emerald-900';
+                }
+            })
+            .catch(function () {});
+    })();
 
     var currentState = State.getState();
     if (!hydratedFromConsulta && (!currentState.clienteMode || currentState.clienteMode === 'unset')) {
