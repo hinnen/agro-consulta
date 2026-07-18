@@ -1162,7 +1162,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.20** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.23** · **loja v9.91**
+
+### 🩹 Cadastro — saldo busca ficava velho após venda (18/07 · **teste v10.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Venda baixava Vila 10→9 no banco, Cadastro busca ainda mostrava C10·V10 |
+| **Causa** | `/api/buscar/` pegava ajuste **qualquer** (às vezes o antigo), não o mais recente |
+| **Fix** | Mesma regra de `ajustes_mais_recentes` + Cadastro recalcula saldo no envelope |
+| **Validar local** | Reinicia servidor · busca «teste divisão» → **V 9** |
 
 ### 🩹 Cadastro — fase 2 picklist (gestão / overlay / unidade / PDV) (18/07 · **teste v10.20**)
 
