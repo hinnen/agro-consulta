@@ -124,6 +124,76 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     return out
 
 
+def snapshot_efetivo_catalogo(produto_id: str) -> dict[str, Any]:
+    """
+    Valores que a loja já via (Produto PG), mesmo com overlay vazio.
+    Usado no «antes» do histórico para não gravar — → valor em todo campo no 1º save PDV.
+    """
+    pid = str(produto_id or "").strip()[:64]
+    if not pid:
+        return {}
+    out: dict[str, Any] = {}
+    try:
+        from produtos.catalogo_agro import obter_produto_model, produto_agro_para_row
+
+        p = obter_produto_model(pid)
+        if p is None:
+            return out
+        row = produto_agro_para_row(p) or {}
+    except Exception:
+        return out
+
+    def _pick(*keys):
+        for k in keys:
+            v = row.get(k)
+            if v is None:
+                continue
+            if isinstance(v, str) and not v.strip():
+                continue
+            return v
+        return None
+
+    out["nome"] = _pick("nome")
+    out["unidade"] = _pick("unidade")
+    out["codigo_barras"] = _pick("codigo_barras")
+    out["codigo_nfe"] = _pick("codigo_nfe", "codigo_gm")
+    out["marca"] = _pick("marca")
+    out["categoria"] = _pick("categoria")
+    pv = _pick("preco_venda")
+    if pv is not None:
+        try:
+            out["preco_venda"] = Decimal(str(pv))
+        except Exception:
+            out["preco_venda"] = pv
+    pc = _pick("preco_custo", "preco_custo_final", "custo")
+    if pc is not None:
+        try:
+            out["preco_custo"] = Decimal(str(pc))
+        except Exception:
+            out["preco_custo"] = pc
+    return out
+
+
+def enriquecer_snapshot_antes_com_catalogo(produto_id: str, snap: dict[str, Any]) -> dict[str, Any]:
+    """
+    Onde o overlay ainda está vazio, usa o valor efetivo do catálogo como «antes».
+    Assim o lápis PDV só registra o que de fato mudou (ex. 28 → 28,01).
+    """
+    if not isinstance(snap, dict):
+        return {}
+    efetivo = snapshot_efetivo_catalogo(produto_id)
+    if not efetivo:
+        return dict(snap)
+    out = dict(snap)
+    for k, v in list(out.items()):
+        if _norm_cmp(v) != "":
+            continue
+        ev = efetivo.get(k)
+        if _norm_cmp(ev) != "":
+            out[k] = ev
+    return out
+
+
 def snapshot_variacoes_resumo(rows) -> str:
     """Resumo texto das variações marca/código (cadastro, não saldo)."""
     if not rows:

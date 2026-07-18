@@ -2140,6 +2140,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         defaults={"usuario": request.user if request.user.is_authenticated else None},
     )
     from produtos.cadastro_alteracao_historico_util import (
+        enriquecer_snapshot_antes_com_catalogo,
         inferir_origem_payload,
         registrar_diffs_cadastro,
         snapshot_overlay,
@@ -2147,7 +2148,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     )
     from produtos.models import ProdutoMarcaVariacaoAgro as _PMVA_hist
 
-    hist_antes = snapshot_overlay(ov)
+    # «Antes» = overlay + o que a loja já via no catálogo (evita — → nome/preço no 1º lápis).
+    hist_antes = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
     hist_antes["variacoes"] = snapshot_variacoes_resumo(
         list(_PMVA_hist.objects.filter(produto_externo_id=pid[:64]).order_by("ordem", "id")[:200])
     )
@@ -2348,7 +2350,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 "sim",
                 "s",
             )
-    else:
+    elif payload.get("validar_cadastro_minimo") or payload.get("novo_produto"):
+        # Só no cadastro novo/modal completo — não no lápis PDV (poluía histórico — → Sim).
         ex.setdefault("permite_venda_estoque_negativo", True)
     if "precos_por_forma" in payload:
         ppf = normalizar_precos_por_forma_payload(payload.get("precos_por_forma"))

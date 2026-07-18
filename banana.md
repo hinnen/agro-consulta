@@ -1184,6 +1184,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Autorizar** | *«pode subir Compras UI etapa 1»* + **99738595** |
 | **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
 
+### 🩹 Cadastro — aba 9 histórico só o que mudou (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Lápis PDV (1 centavo) gerava várias linhas com **DE = —** (nome, GM, barras…) · preço sem valor anterior |
+| **Causa** | Overlay vazio no 1º save · «antes» vazio · permite_venda forçado True em todo save |
+| **Fix** | «Antes» completa com catálogo · não força permite_venda no lápis |
+| **Arquivos** | cadastro_alteracao_historico_util.py · iews.py |
+| **Você** | Ctrl+F5 teste · lápis muda só preço · aba 9 = **1 linha** · DE = preço antigo · PARA = novo |
+
 ### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
 
 | Item | Detalhe |
