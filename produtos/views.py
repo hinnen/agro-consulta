@@ -17986,15 +17986,11 @@ def api_buscar_produtos(request):
         if not busca_lite:
             try:
                 if p_ids:
-                    # SQLite (e outros) limitam variáveis por query; catálogo wizard pode ter ~25k ids.
-                    _chunk = 400
-                    for _i in range(0, len(p_ids), _chunk):
-                        _slice = p_ids[_i : _i + _chunk]
-                        _ajqs = AjusteRapidoEstoque.objects.filter(
-                            produto_externo_id__in=_slice
-                        ).only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
-                        for aj in _ajqs:
-                            ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+                    # Sempre o ajuste mais recente por (produto, depósito). Sem order_by
+                    # o último da query podia ser o antigo → Cadastro/PDV com saldo velho.
+                    from produtos.estoque_saldo_agro_util import ajustes_mais_recentes_por_produtos
+
+                    ajustes_map = ajustes_mais_recentes_por_produtos(p_ids)
             except Exception:
                 logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
 
@@ -20043,19 +20039,14 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
             continue
         out.append(r)
 
-    # api_buscar já montou saldo operacional; re-enriquecer aqui dobrava Mongo+ajuste.
+    # Sempre recalcula saldo operacional (evita saldo velho vindo do montagem da busca).
     if incluir_saldo:
-        precisa_saldo = any(
-            r.get("saldo_centro") is None and r.get("saldo_vila") is None for r in out
-        )
-        if precisa_saldo:
-            out = _cadastro_enriquecer_saldo_nas_rows(out)
-        else:
-            for r in out:
-                if r.get("saldo_total") is None:
-                    sc = _float_api_json(r.get("saldo_centro") or 0)
-                    sv = _float_api_json(r.get("saldo_vila") or 0)
-                    r["saldo_total"] = round(sc + sv, 2)
+        out = _cadastro_enriquecer_saldo_nas_rows(out)
+        for r in out:
+            if r.get("saldo_total") is None:
+                sc = _float_api_json(r.get("saldo_centro") or 0)
+                sv = _float_api_json(r.get("saldo_vila") or 0)
+                r["saldo_total"] = round(sc + sv, 2)
     _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
 
     return JsonResponse(
