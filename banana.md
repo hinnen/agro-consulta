@@ -1162,7 +1162,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.28** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.35** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+
+### 📦 Deploy loja **v10.28** — pacote Vila Elias / Centro (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` **eacbe2c** · Render migrate 0055/0056 · aguardar Live + smoke |
+| **Inclui** | Depósito Centro×Vila · caixa separado · antiburro · bloqueio sem caixa · badge/aviso · filtro vendas/relatório · MP Renan · saldo cadastro recente |
+| **NÃO inclui** | Catálogo delivery · FL-024 picklist · Compras UI · resto só no teste |
+| **Método** | cherry-pick 12 commits · **não** merge inteiro |
+| **Base** | `c0620af` (loja v9.91) |
+| **Backup / reverter** | `rollback/pre-vila-v9.91` (= `producao-backup-pre-v1028-vila-20260718` @ **c0620af**) |
+| **Env** | var estoque **ausente** ✅ |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.28** · smoke Gaveta: abrir → vender 1 → fechar → relatório **Centro** |
 
 ### 🔍 Revisão risco pacote Vila → CENTRO (18/07 · agente Opus)
 
@@ -1262,7 +1276,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.35** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.36** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **Hero** | Logo **maior** · sem nome texto (já na arte) · «Delivery · rações» + boas-vindas **embaixo** |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.35** (18/07/2026) *(histórico — ver v10.36)*
 
 | Item | Detalhe |
 | ---- | ------- |
