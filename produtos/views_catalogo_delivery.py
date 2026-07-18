@@ -20,6 +20,7 @@ from produtos.catalogo_delivery_util import (
     listar_itens_catalogo,
     obter_config_catalogo,
     salvar_foto_categoria,
+    salvar_logo_loja,
     slugify_categoria,
 )
 from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp, extrair_whatsapp_digits
@@ -282,7 +283,23 @@ def catalogo_gestao_view(request):
             cfg.cor_secundaria = _hex_cor(request.POST.get("cor_secundaria"), "#fff7ed")
             cfg.publicado = request.POST.get("publicado") in ("1", "on", "true", "True")
             cfg.save()
-            return redirect("/catalogo/gestao/?msg=loja")
+            if request.POST.get("remover_logo"):
+                salvar_logo_loja(cfg, "", "")
+            else:
+                f = request.FILES.get("logo_loja")
+                if f:
+                    if f.size > 700 * 1024:
+                        erro = "Logo muito grande (máx. ~700 KB)."
+                    else:
+                        import base64
+
+                        raw = f.read()
+                        mime = (getattr(f, "content_type", None) or "image/png")[:40]
+                        salvar_logo_loja(cfg, base64.b64encode(raw).decode("ascii"), mime)
+            if erro:
+                pass
+            else:
+                return redirect("/catalogo/gestao/?msg=loja")
 
         if acao == "nova_categoria":
             nome = (request.POST.get("cat_nome") or "").strip()[:80]

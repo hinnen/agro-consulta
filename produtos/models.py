@@ -1894,6 +1894,12 @@ class CatalogoDeliveryConfig(models.Model):
     endereco_loja_2 = models.CharField(max_length=320, blank=True, default="")
     cor_primaria = models.CharField(max_length=7, default="#059669")
     cor_secundaria = models.CharField(max_length=7, default="#fff7ed")
+    logo_base64 = models.TextField(
+        blank=True,
+        default="",
+        help_text="Logotipo da loja no topo do catálogo (antes do nome).",
+    )
+    logo_mime = models.CharField(max_length=40, blank=True, default="image/png")
     publicado = models.BooleanField(
         default=False,
         help_text="Se desligado, o link público mostra «em breve» (staff ainda vê).",
@@ -1906,6 +1912,13 @@ class CatalogoDeliveryConfig(models.Model):
 
     def __str__(self):
         return self.nome_loja
+
+    def logo_url(self) -> str:
+        b64 = (self.logo_base64 or "").strip()
+        if not b64:
+            return ""
+        mime = (self.logo_mime or "image/png").strip() or "image/png"
+        return f"data:{mime};base64,{b64}"
 
     def enderecos_exibir(self) -> list[dict]:
         """Lista de lojas com rótulo + endereço (até 2)."""
