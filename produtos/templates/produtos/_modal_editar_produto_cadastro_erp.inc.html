@@ -745,66 +745,77 @@
         </div>
       </div>
 
-      <div id="tab-delivery" class="tab-content hidden flex flex-col gap-4">
-        <div class="p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/80">
-          <label class="flex items-center gap-3 cursor-pointer select-none">
-            <input type="checkbox" id="edit-delivery-ativo" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-            <span class="text-base font-black text-emerald-900">Aparecer no catálogo delivery</span>
-          </label>
-          <p class="text-xs text-emerald-800 mt-2 font-semibold leading-snug">Marque só produtos que a loja quer vender por delivery (ex.: rações). Link público: <a href="/catalogo/" target="_blank" class="underline">/catalogo/</a> · gestão: <a href="/catalogo/gestao/" target="_blank" class="underline">/catalogo/gestao/</a></p>
+      <div id="tab-delivery" class="tab-content hidden flex flex-col gap-2.5">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+          <div class="p-3 rounded-xl border-2 border-emerald-200 bg-emerald-50/80">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" id="edit-delivery-ativo" class="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+              <span class="text-sm font-black text-emerald-900 leading-tight">Aparecer no catálogo delivery</span>
+            </label>
+            <p class="text-[0.65rem] text-emerald-800 mt-1.5 font-semibold leading-snug">Só rações etc. · <a href="/catalogo/" target="_blank" class="underline">/catalogo/</a> · <a href="/catalogo/gestao/" target="_blank" class="underline">gestão</a></p>
+          </div>
+          <div id="edit-delivery-saldo-box" class="p-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 flex items-center">
+            Saldo: <span id="edit-delivery-saldo-txt" class="ml-1 font-black text-slate-900">—</span>
+          </div>
         </div>
-        <div id="edit-delivery-saldo-box" class="p-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700">
-          Saldo operacional: <span id="edit-delivery-saldo-txt" class="font-black text-slate-900">—</span>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <label class="block min-w-0">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Categoria</span>
+            <select id="edit-delivery-categoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+              <option value="">— Sem categoria —</option>
+            </select>
+          </label>
+          <label class="block min-w-0">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Subcategoria</span>
+            <select id="edit-delivery-subcategoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+              <option value="">— Sem subcategoria —</option>
+            </select>
+            <p class="text-[0.6rem] text-slate-500 mt-0.5 font-semibold truncate">Criar em <a href="/catalogo/gestao/" target="_blank" class="underline text-emerald-700">gestão</a></p>
+          </label>
+          <label class="block min-w-0 sm:col-span-2 lg:col-span-1">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Estoque negativo</span>
+            <select id="edit-delivery-estoque-regra" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+              <option value="positivo">Só se estoque positivo</option>
+              <option value="forcar">Forçar mesmo negativo</option>
+            </select>
+          </label>
         </div>
-        <label class="block">
-          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Categoria no catálogo</span>
-          <select id="edit-delivery-categoria" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
-            <option value="">— Sem categoria —</option>
-          </select>
-        </label>
-        <label class="block">
-          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Subcategoria</span>
-          <select id="edit-delivery-subcategoria" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
-            <option value="">— Sem subcategoria —</option>
-          </select>
-          <p class="text-[0.65rem] text-slate-500 mt-1 font-semibold">Crie categorias em <a href="/catalogo/gestao/" target="_blank" class="underline text-emerald-700">/catalogo/gestao/</a> (ex.: Cães → Adulto).</p>
-        </label>
-        <label class="block">
-          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Estoque negativo</span>
-          <select id="edit-delivery-estoque-regra" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
-            <option value="positivo">Só manda ao catálogo se estoque positivo</option>
-            <option value="forcar">Forçar no catálogo mesmo com estoque negativo</option>
-          </select>
-        </label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="block sm:col-span-2">
-            <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Título na vitrine (opcional)</span>
-            <input type="text" id="edit-delivery-titulo" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold" placeholder="Deixe vazio = usa o nome do produto" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-2.5">
+          <label class="block min-w-0 sm:col-span-3">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Título na vitrine (opcional)</span>
+            <input type="text" id="edit-delivery-titulo" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold" placeholder="Vazio = nome do produto" />
           </label>
-          <label class="block sm:col-span-2">
-            <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Texto / descrição na vitrine</span>
-            <textarea id="edit-delivery-desc" rows="2" class="w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-sm font-semibold" placeholder="Ex.: adulto raças pequenas · fórmula premium"></textarea>
+          <label class="block min-w-0 sm:col-span-2">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Peso / embalagem</span>
+            <input type="text" id="edit-delivery-peso" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold" placeholder="15 kg" />
           </label>
-          <label class="block">
-            <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Peso / embalagem</span>
-            <input type="text" id="edit-delivery-peso" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold" placeholder="15 kg" />
+          <label class="block min-w-0 sm:col-span-1">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Ordem</span>
+            <input type="number" id="edit-delivery-ordem" min="0" max="9999" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold" value="0" title="Menor = primeiro" />
           </label>
-          <label class="block">
-            <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Ordem (menor = primeiro)</span>
-            <input type="number" id="edit-delivery-ordem" min="0" max="9999" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-sm font-bold" value="0" />
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
+          <label class="block min-w-0 lg:col-span-2">
+            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Texto / descrição na vitrine</span>
+            <textarea id="edit-delivery-desc" rows="2" class="w-full px-2.5 py-2 rounded-lg border-2 border-slate-200 text-sm font-semibold" placeholder="Ex.: adulto raças pequenas · fórmula premium"></textarea>
           </label>
-          <label class="flex items-center gap-3 cursor-pointer select-none sm:col-span-2 p-3 rounded-lg border border-orange-200 bg-orange-50">
-            <input type="checkbox" id="edit-delivery-destaque" class="w-5 h-5 rounded text-orange-600" />
-            <span class="text-sm font-bold text-orange-900">Destaque na vitrine</span>
-          </label>
-          <label class="block sm:col-span-2">
-            <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Foto do catálogo (opcional)</span>
-            <input type="file" id="edit-delivery-foto" accept="image/*" class="w-full text-sm" />
-            <input type="hidden" id="edit-delivery-imagem-b64" value="" />
-            <input type="hidden" id="edit-delivery-imagem-mime" value="image/jpeg" />
-            <img id="edit-delivery-foto-preview" alt="" class="mt-2 max-h-28 rounded-lg border border-slate-200 hidden object-contain bg-slate-50" />
-            <button type="button" id="edit-delivery-foto-limpar" class="mt-2 text-xs font-bold text-red-700 underline hidden">Remover foto</button>
-          </label>
+          <div class="flex flex-col gap-2 min-w-0">
+            <label class="flex items-center gap-2 cursor-pointer select-none p-2.5 rounded-lg border border-orange-200 bg-orange-50 min-h-[40px]">
+              <input type="checkbox" id="edit-delivery-destaque" class="w-5 h-5 rounded text-orange-600 shrink-0" />
+              <span class="text-sm font-bold text-orange-900 leading-tight">Destaque</span>
+            </label>
+            <label class="block min-w-0 flex-1">
+              <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Foto (opcional)</span>
+              <input type="file" id="edit-delivery-foto" accept="image/*" class="w-full text-xs" />
+              <input type="hidden" id="edit-delivery-imagem-b64" value="" />
+              <input type="hidden" id="edit-delivery-imagem-mime" value="image/jpeg" />
+              <img id="edit-delivery-foto-preview" alt="" class="mt-1 max-h-16 rounded-lg border border-slate-200 hidden object-contain bg-slate-50" />
+              <button type="button" id="edit-delivery-foto-limpar" class="mt-1 text-[0.65rem] font-bold text-red-700 underline hidden">Remover foto</button>
+            </label>
+          </div>
         </div>
       </div>
 
