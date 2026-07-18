@@ -162,7 +162,9 @@
        aria-label="Abrir rota até {{ end.rotulo }}">
       <span class="flex items-center justify-between gap-1">
         <span class="uppercase tracking-wide opacity-80 truncate">{{ end.rotulo }}</span>
-        <span class="text-[0.55rem] font-black uppercase tracking-wide opacity-90 shrink-0">🗺</span>
+        <svg class="w-3.5 h-3.5 shrink-0 opacity-95" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
       </span>
       <span class="block mt-0.5 line-clamp-2">{{ end.endereco }}</span>
     </a>
