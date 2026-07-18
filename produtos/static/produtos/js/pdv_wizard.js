@@ -7679,11 +7679,11 @@
                     escapeHtml(query) +
                     '" data-nova="1">Cadastrar «' +
                     escapeHtml(query) +
-                    '»</button>';
+                    '» (PIN)</button>';
             }
             if (!html) {
                 html =
-                    '<p class="px-3 py-2 text-xs font-semibold text-slate-500">Digite para buscar ou cadastrar.</p>';
+                    '<p class="px-3 py-2 text-xs font-semibold text-slate-500">Nenhum resultado. Use Cadastrar com PIN.</p>';
             }
             lista.innerHTML = html;
             lista.classList.remove('hidden');
@@ -7691,9 +7691,16 @@
         });
     }
 
-    function pickQuickProductUnidade(val) {
+    function pickQuickProductUnidade(val, opts) {
+        opts = opts || {};
         if (dom.quickProductEditUnidade) {
             dom.quickProductEditUnidade.value = String(val || '').trim();
+            if (window.AgroPickList) {
+                window.AgroPickList.markCommitted(dom.quickProductEditUnidade, dom.quickProductEditUnidade.value);
+            } else {
+                dom.quickProductEditUnidade._agroPickOk = true;
+                dom.quickProductEditUnidade._agroPickCanon = String(val || '').trim();
+            }
         }
         closeQuickProductUnidadeLista();
         var raw = String(val || '').trim();
@@ -7702,13 +7709,44 @@
             var exists = quickProductUnidadesCache.some(function (u) {
                 return stripAccents(u) === fold;
             });
-            if (!exists) {
+            if (!exists && !opts.skipCachePush) {
                 quickProductUnidadesCache.push(raw);
                 quickProductUnidadesCache.sort(function (a, b) {
                     return stripAccents(a).localeCompare(stripAccents(b), 'pt');
                 });
             }
         }
+        if (window.AgroPickList && raw) {
+            window.AgroPickList.appendFacet('unidades', raw);
+        }
+    }
+
+    function pickQuickProductUnidadeMaybeNova(val, isNova) {
+        var raw = String(val || '').trim();
+        if (!raw) return;
+        if (!isNova) {
+            pickQuickProductUnidade(raw);
+            return;
+        }
+        var urlNova = String(urls.apiProdutosCadastroFacetaNova || '').trim();
+        if (!window.AgroPickList || !urlNova) {
+            showPdvAviso('Para cadastrar unidade nova, recarregue o PDV (Ctrl+F5).', {
+                title: 'Unidade',
+                tone: 'error',
+            });
+            return;
+        }
+        window.AgroPickList.setFacetList('unidades', quickProductUnidadesCache || []);
+        window.AgroPickList.pedirNova({
+            tipo: 'unidade',
+            facetKey: 'unidades',
+            titulo: 'Nova unidade',
+            valorInicial: raw,
+            urlNova: urlNova,
+        }).then(function (res) {
+            if (!res || !res.valor) return;
+            pickQuickProductUnidade(res.valor);
+        });
     }
 
     function fillQuickProductEditForm(prod) {
@@ -7732,6 +7770,12 @@
         if (dom.quickProductEditUnidade) {
             var un = String(prod.unidade || '').trim();
             dom.quickProductEditUnidade.value = un === 'UN / KG / SC' ? '' : un;
+            if (window.AgroPickList) {
+                window.AgroPickList.markCommitted(
+                    dom.quickProductEditUnidade,
+                    dom.quickProductEditUnidade.value
+                );
+            }
         }
         if (dom.quickProductEditCusto) {
             var custoN = Number(prod.preco_custo);
@@ -7942,14 +7986,42 @@
                   formas_b: formas.formas_b || []
               }
             : null;
+        var unidadeVal = dom.quickProductEditUnidade
+            ? String(dom.quickProductEditUnidade.value || '').trim()
+            : '';
+        if (unidadeVal) {
+            var unOk = false;
+            if (window.AgroPickList) {
+                window.AgroPickList.setFacetList('unidades', quickProductUnidadesCache || []);
+                unOk = !window.AgroPickList.assertField(
+                    dom.quickProductEditUnidade,
+                    'unidades',
+                    'Unidade',
+                    false
+                );
+            } else {
+                var foldU = stripAccents(unidadeVal);
+                unOk = (quickProductUnidadesCache || []).some(function (u) {
+                    return stripAccents(u) === foldU;
+                });
+            }
+            if (!unOk) {
+                if (dom.quickProductEditErro) {
+                    dom.quickProductEditErro.textContent =
+                        'Unidade «' +
+                        unidadeVal +
+                        '» não está na lista. Selecione ou use Cadastrar (PIN).';
+                    dom.quickProductEditErro.classList.remove('hidden');
+                }
+                return;
+            }
+        }
         var payload = {
             produto_id: quickProductEditProdutoId,
             nome: nome,
             codigo_nfe: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
             codigo_barras: dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '',
-            unidade: dom.quickProductEditUnidade
-                ? String(dom.quickProductEditUnidade.value || '').trim()
-                : '',
+            unidade: unidadeVal,
             precos_modo: temGrupo ? 'grupos' : 'por_forma',
             sincronizar_erp: false,
             origem_historico: 'pdv',
@@ -11406,6 +11478,10 @@
                 renderQuickProductUnidadeLista(dom.quickProductEditUnidade.value);
             });
             dom.quickProductEditUnidade.addEventListener('input', function () {
+                if (dom.quickProductEditUnidade) {
+                    dom.quickProductEditUnidade._agroPickOk = false;
+                    dom.quickProductEditUnidade.classList.add('border-amber-500');
+                }
                 renderQuickProductUnidadeLista(dom.quickProductEditUnidade.value);
             });
             dom.quickProductEditUnidade.addEventListener('keydown', function (event) {
@@ -11425,7 +11501,10 @@
                         listaEnt.querySelector('.pdv-quick-un-opt');
                     if (first) {
                         event.preventDefault();
-                        pickQuickProductUnidade(first.getAttribute('data-un') || '');
+                        pickQuickProductUnidadeMaybeNova(
+                            first.getAttribute('data-un') || '',
+                            first.getAttribute('data-nova') === '1'
+                        );
                     }
                 }
             });
@@ -11435,7 +11514,10 @@
                 var btn = event.target && event.target.closest && event.target.closest('.pdv-quick-un-opt');
                 if (!btn) return;
                 event.preventDefault();
-                pickQuickProductUnidade(btn.getAttribute('data-un') || '');
+                pickQuickProductUnidadeMaybeNova(
+                    btn.getAttribute('data-un') || '',
+                    btn.getAttribute('data-nova') === '1'
+                );
             });
         }
         if (dom.quickProductEditOverlay) {
