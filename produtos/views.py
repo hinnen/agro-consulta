@@ -10204,6 +10204,19 @@ def caixa_abrir(request):
                 messages.error(request, "O Caixa Teste já está aberto.")
                 return redirect("caixa_abrir")
 
+        if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA):
+            from produtos.pdv_deposito_util import confirmacao_loja_bate, palavra_confirmacao_loja
+
+            dep_esp = "vila" if ponto == PONTO_CAIXA_VILA else "centro"
+            palavra = palavra_confirmacao_loja(dep_esp)
+            if not confirmacao_loja_bate(request.POST.get("confirmacao_loja"), dep_esp):
+                messages.error(
+                    request,
+                    f'Digite "{palavra}" no campo de confirmação para abrir este caixa '
+                    f"(evita abrir a loja errada).",
+                )
+                return redirect("caixa_abrir")
+
         raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
         try:
             va = Decimal(raw)
@@ -20860,11 +20873,14 @@ def api_pdv_deposito(request):
     from produtos.pdv_deposito_util import (
         anexar_cookie_deposito,
         bootstrap_deposito,
+        confirmacao_loja_bate,
         deposito_de_loja_id,
         gravar_deposito_request,
         normalizar_deposito,
+        palavra_confirmacao_loja,
         resolver_deposito_request,
         rotulo_deposito,
+        trava_loja_por_caixa,
     )
 
     if request.method == "GET":
@@ -20882,25 +20898,55 @@ def api_pdv_deposito(request):
         data = {
             "deposito": request.POST.get("deposito"),
             "loja_id": request.POST.get("loja_id") or request.POST.get("lojaId"),
+            "confirmacao": request.POST.get("confirmacao")
+            or request.POST.get("confirmacao_loja"),
         }
 
     if data.get("deposito") is not None and str(data.get("deposito") or "").strip():
         dep = normalizar_deposito(data.get("deposito"))
     elif data.get("loja_id") is not None or data.get("lojaId") is not None:
-        dep = deposito_de_loja_id(data.get("loja_id") if data.get("loja_id") is not None else data.get("lojaId"))
+        dep = deposito_de_loja_id(
+            data.get("loja_id") if data.get("loja_id") is not None else data.get("lojaId")
+        )
     else:
         dep = resolver_deposito_request(request)
 
+    trava = trava_loja_por_caixa(request)
+    if trava and trava.get("deposito") and dep != trava["deposito"]:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    f"Loja travada pelo caixa #{trava.get('sessaoPk')}. "
+                    "Feche o caixa para trocar Centro × Vila."
+                ),
+                "caixaTravado": True,
+                "trava": trava,
+                **bootstrap_deposito(request),
+            },
+            status=400,
+        )
+
+    atual = resolver_deposito_request(request)
+    if dep != atual:
+        conf = data.get("confirmacao") or data.get("confirmacao_loja") or ""
+        if not confirmacao_loja_bate(conf, dep):
+            palavra = palavra_confirmacao_loja(dep)
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": f'Digite "{palavra}" para confirmar a troca de loja.',
+                    "precisa_confirmacao": True,
+                    "palavra": palavra,
+                    "depositoAlvo": dep,
+                    "depositoLabel": rotulo_deposito(dep),
+                },
+                status=400,
+            )
+
     dep = gravar_deposito_request(request, dep)
-    resp = JsonResponse(
-        {
-            "ok": True,
-            "deposito": dep,
-            "depositoLabel": rotulo_deposito(dep),
-            "lojaId": "2" if dep == "vila" else "1",
-            "estoqueAtivoLabel": f"Estoque: {rotulo_deposito(dep)}",
-        }
-    )
+    boot = bootstrap_deposito(request)
+    resp = JsonResponse({"ok": True, **boot})
     return anexar_cookie_deposito(resp, dep)
 
 

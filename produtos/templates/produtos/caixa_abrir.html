@@ -174,13 +174,18 @@
             <span class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta (fundo de troco)</span>
             <input type="text" name="valor_abertura" id="valor_abertura" value="{% if deposito_browser == 'vila' and sugestao_fechamento_vila %}{{ sugestao_fechamento_vila.dinheiro_contado_br }}{% elif sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br }}{% else %}0{% endif %}" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00" autocomplete="off">
           </label>
+          <label class="block sm:col-span-2" id="bloco-confirm-loja">
+            <span class="text-[10px] font-black uppercase text-amber-800">Para abrir, digite <strong id="confirm-loja-palavra" class="text-emerald-800">centro</strong></span>
+            <input type="text" name="confirmacao_loja" id="confirmacao_loja" value="" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide" placeholder="digite aqui" inputmode="text">
+            <span class="mt-1 block text-[11px] font-bold text-slate-600" id="confirm-loja-ajuda">Escrevendo a loja você confirma que não abriu a errada.</span>
+          </label>
           <label class="block sm:col-span-2">
             <span class="text-[10px] font-black uppercase text-slate-500">Observação (opcional)</span>
             <textarea name="observacao_abertura" id="observacao_abertura" rows="2" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm"></textarea>
           </label>
         </div>
         <p class="mt-2 text-[11px] font-bold text-slate-500" id="caixa-abertura-ajuda">Turno da loja — dinheiro separado Centro × Vila.</p>
-        <button type="submit" id="btn-caixa-abrir" class="mt-4 w-full min-h-[58px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg">
+        <button type="submit" id="btn-caixa-abrir" class="mt-4 w-full min-h-[58px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg" disabled>
           Abrir caixa
         </button>
       </form>
@@ -200,6 +205,9 @@
   var ajuda = document.getElementById('caixa-abertura-ajuda');
   var cards = document.querySelectorAll('.caixa-ponto-card');
   var valorAbertura = document.getElementById('valor_abertura');
+  var blocoConfirm = document.getElementById('bloco-confirm-loja');
+  var confirmInput = document.getElementById('confirmacao_loja');
+  var confirmPalavra = document.getElementById('confirm-loja-palavra');
   var sugCentro = '{% if sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br|escapejs }}{% else %}0{% endif %}';
   var sugVila = '{% if sugestao_fechamento_vila %}{{ sugestao_fechamento_vila.dinheiro_contado_br|escapejs }}{% else %}0{% endif %}';
 
@@ -210,9 +218,40 @@
     teste: ['border-violet-500', 'bg-violet-50']
   };
 
+  function normConfirm(t) {
+    return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+  }
+  function confirmBate(texto, esperado) {
+    var n = normConfirm(texto);
+    if (esperado === 'vila') return n === 'vila' || n === 'vila elias' || n === 'vilas' || n === 'vilaelias';
+    return n === 'centro' || n === 'central' || n === 'loja centro';
+  }
+
   function pontoAtivo() {
     var r = document.querySelector('input[name="ponto_caixa_ui"]:checked');
     return r ? r.value : 'gaveta';
+  }
+
+  function palavraEsperada(p) {
+    return p === 'vila' ? 'vila' : 'centro';
+  }
+
+  function syncConfirm() {
+    var p = pontoAtivo();
+    var precisa = (p === 'gaveta' || p === 'vila');
+    if (blocoConfirm) blocoConfirm.classList.toggle('hidden', !precisa);
+    if (confirmPalavra) confirmPalavra.textContent = palavraEsperada(p);
+    if (confirmInput) {
+      confirmInput.required = precisa;
+      if (!precisa) confirmInput.value = '';
+    }
+    if (btnAbrir) {
+      if (!precisa) {
+        btnAbrir.disabled = false;
+      } else {
+        btnAbrir.disabled = !confirmBate(confirmInput && confirmInput.value, palavraEsperada(p));
+      }
+    }
   }
 
   function syncUi() {
@@ -256,11 +295,29 @@
       if (formAbrir) formAbrir.classList.add('border-emerald-500');
       if (valorAbertura) valorAbertura.value = sugCentro || '0';
     }
+    if (confirmInput) confirmInput.value = '';
+    syncConfirm();
   }
 
   radios.forEach(function (r) {
     r.addEventListener('change', syncUi);
   });
+  if (confirmInput) {
+    confirmInput.addEventListener('input', syncConfirm);
+  }
+  if (formAbrir) {
+    formAbrir.addEventListener('submit', function (ev) {
+      var p = pontoAtivo();
+      if (p === 'gaveta' || p === 'vila') {
+        if (!confirmBate(confirmInput && confirmInput.value, palavraEsperada(p))) {
+          ev.preventDefault();
+          alert('Digite "' + palavraEsperada(p) + '" para abrir este caixa.');
+          if (confirmInput) confirmInput.focus();
+          return false;
+        }
+      }
+    });
+  }
   syncUi();
 })();
 </script>

@@ -1,0 +1,99 @@
+{# Modal: digitar centro ou vila para confirmar troca de loja #}
+<div id="agro-loja-confirm-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-900/70 p-4" role="dialog" aria-modal="true" aria-labelledby="agro-loja-confirm-title">
+  <div class="w-full max-w-md rounded-2xl border-2 border-amber-400 bg-white p-5 shadow-2xl">
+    <p id="agro-loja-confirm-title" class="text-[11px] font-black uppercase text-amber-800">Confirmar loja</p>
+    <p id="agro-loja-confirm-msg" class="mt-2 text-base font-bold text-slate-900 leading-snug">Digite a loja para confirmar.</p>
+    <label class="mt-4 block">
+      <span class="text-[10px] font-black uppercase text-slate-600">Digite exatamente: <span id="agro-loja-confirm-palavra" class="text-emerald-700">centro</span></span>
+      <input type="text" id="agro-loja-confirm-input" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-400 bg-amber-50/40 px-4 text-lg font-black tracking-wide" placeholder="centro ou vila">
+    </label>
+    <p id="agro-loja-confirm-erro" class="mt-2 hidden text-sm font-bold text-red-700">Palavra incorreta. Digite de novo.</p>
+    <div class="mt-4 flex flex-col sm:flex-row gap-2">
+      <button type="button" id="agro-loja-confirm-ok" class="flex-1 min-h-[52px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700" disabled>Confirmar</button>
+      <button type="button" id="agro-loja-confirm-cancel" class="flex-1 min-h-[52px] rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase text-sm hover:bg-slate-50">Cancelar</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  if (window.AgroLojaConfirm) return;
+  function norm(t) {
+    return String(t || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+  }
+  function bate(texto, esperado) {
+    var n = norm(texto);
+    var esp = String(esperado || 'centro').toLowerCase();
+    if (esp === 'vila') return n === 'vila' || n === 'vila elias' || n === 'vilas' || n === 'vilaelias';
+    return n === 'centro' || n === 'central' || n === 'loja centro';
+  }
+  function el(id) { return document.getElementById(id); }
+  window.AgroLojaConfirm = {
+    bate: bate,
+    pedir: function (opts) {
+      opts = opts || {};
+      var esperado = String(opts.esperado || 'centro').toLowerCase() === 'vila' ? 'vila' : 'centro';
+      var modal = el('agro-loja-confirm-modal');
+      var inp = el('agro-loja-confirm-input');
+      var ok = el('agro-loja-confirm-ok');
+      var cancel = el('agro-loja-confirm-cancel');
+      var err = el('agro-loja-confirm-erro');
+      var palavra = el('agro-loja-confirm-palavra');
+      var msg = el('agro-loja-confirm-msg');
+      if (!modal || !inp || !ok) {
+        if (typeof opts.onCancel === 'function') opts.onCancel();
+        return;
+      }
+      if (palavra) palavra.textContent = esperado;
+      if (msg) {
+        msg.textContent = opts.mensagem || (
+          esperado === 'vila'
+            ? 'Vai usar estoque e vendas da VILA ELIAS. Digite vila para confirmar.'
+            : 'Vai usar estoque e vendas do CENTRO. Digite centro para confirmar.'
+        );
+      }
+      inp.value = '';
+      if (err) err.classList.add('hidden');
+      ok.disabled = true;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(function () { try { inp.focus(); } catch (e0) {} }, 50);
+
+      function limpar() {
+        ok.onclick = null;
+        cancel.onclick = null;
+        inp.oninput = null;
+        inp.onkeydown = null;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      function syncOk() {
+        ok.disabled = !bate(inp.value, esperado);
+        if (err) err.classList.add('hidden');
+      }
+      inp.oninput = syncOk;
+      inp.onkeydown = function (ev) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          if (!ok.disabled) ok.click();
+        } else if (ev.key === 'Escape') {
+          ev.preventDefault();
+          cancel.click();
+        }
+      };
+      ok.onclick = function () {
+        if (!bate(inp.value, esperado)) {
+          if (err) err.classList.remove('hidden');
+          return;
+        }
+        var texto = inp.value;
+        limpar();
+        if (typeof opts.onOk === 'function') opts.onOk(texto);
+      };
+      cancel.onclick = function () {
+        limpar();
+        if (typeof opts.onCancel === 'function') opts.onCancel();
+      };
+    }
+  };
+})();
+</script>
