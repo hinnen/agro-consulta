@@ -836,6 +836,14 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-1.5 mr-1 min-w-0" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
+                <label class="text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
+                <select id="dash-agro-loja" class="min-w-[8.5rem] max-w-[11rem] rounded-lg border border-white/15 bg-slate-800 px-1.5 py-1.5 text-[10px] font-bold text-white">
+                    <option value="1" {% if pdv_deposito_boot.deposito != 'vila' %}selected{% endif %}>Centro</option>
+                    <option value="2" {% if pdv_deposito_boot.deposito == 'vila' %}selected{% endif %}>Vila Elias</option>
+                </select>
+                <span id="dash-agro-loja-badge" class="hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase {% if pdv_deposito_boot.deposito == 'vila' %}border-slate-400 bg-slate-700 text-slate-100{% else %}border-emerald-500/50 bg-emerald-950/40 text-emerald-200{% endif %}">{{ pdv_deposito_boot.estoqueAtivoLabel|default:"Estoque: Centro" }}</span>
+            </div>
             <button type="button" id="dash-btn-pdv-top"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
                 class="btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
@@ -1512,6 +1520,64 @@ document.addEventListener("keydown", function (e) {
       }
     });
     window.agroNovaSaidaOnSuccess = function () { /* permanece no BI após Nova saída */ };
+</script>
+<script>
+(function () {
+  var LS_LOJA = 'agro_pdv_loja_id';
+  var COOKIE_DEP = 'agro_pdv_deposito';
+  var API = '{{ api_pdv_deposito_url|default:"/api/pdv/deposito/"|escapejs }}';
+  function csrf() {
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el && el.value) return el.value;
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function setCookie(dep) {
+    try {
+      document.cookie = COOKIE_DEP + '=' + encodeURIComponent(dep) + ';path=/;max-age=34560000;SameSite=Lax';
+    } catch (e0) {}
+  }
+  function updateBadge(label, isVila) {
+    var b = document.getElementById('dash-agro-loja-badge');
+    if (!b) return;
+    b.textContent = label || 'Estoque: Centro';
+    b.className = isVila
+      ? 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-slate-400 bg-slate-700 text-slate-100'
+      : 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-emerald-500/50 bg-emerald-950/40 text-emerald-200';
+  }
+  function sync(lojaId) {
+    fetch(API, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ loja_id: String(lojaId || '1') }),
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j || !j.ok) return;
+        setCookie(j.deposito || 'centro');
+        updateBadge(j.estoqueAtivoLabel, String(j.deposito) === 'vila');
+      })
+      .catch(function () {});
+  }
+  function boot() {
+    var sel = document.getElementById('dash-agro-loja');
+    if (!sel) return;
+    try {
+      var v = localStorage.getItem(LS_LOJA);
+      if (v === '1' || v === '2') sel.value = v;
+    } catch (e1) {}
+    updateBadge(sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro', sel.value === '2');
+    sync(sel.value);
+    sel.addEventListener('change', function () {
+      try { localStorage.setItem(LS_LOJA, sel.value); } catch (e2) {}
+      updateBadge(sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro', sel.value === '2');
+      sync(sel.value);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
 </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}

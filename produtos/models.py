@@ -409,6 +409,13 @@ class VendaAgro(models.Model):
         db_index=True,
         help_text="Se True, já foi registrada baixa de estoque na camada Agro (AjusteRapidoEstoque) para esta venda.",
     )
+    deposito = models.CharField(
+        max_length=16,
+        blank=True,
+        default="centro",
+        db_index=True,
+        help_text="Depósito da baixa de estoque nesta venda: centro | vila (Vila Elias).",
+    )
     devolvida_em = models.DateTimeField(
         null=True,
         blank=True,
