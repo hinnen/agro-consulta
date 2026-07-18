@@ -28,7 +28,7 @@
     <div class="cx-shell px-3 sm:px-5 py-2 flex flex-wrap justify-between items-center gap-2">
       <div class="min-w-0">
         <h1 class="text-[clamp(1rem,0.7vw+0.9rem,1.35rem)] font-black uppercase text-slate-900 leading-tight">Conferências · diferenças</h1>
-        <p class="text-xs font-bold text-slate-500 truncate">{{ periodo_label }}{% if filtro_sessao_rotulo %} · {{ filtro_sessao_rotulo }}{% elif filtro_sessao %} · turno #{{ filtro_sessao }}{% endif %}{% if somente_diff %} · só com diferença{% endif %}</p>
+        <p class="text-xs font-bold text-slate-500 truncate">{{ periodo_label }} · {{ filtro_loja_label }}{% if filtro_sessao_rotulo %} · {{ filtro_sessao_rotulo }}{% elif filtro_sessao %} · turno #{{ filtro_sessao }}{% endif %}{% if somente_diff %} · só com diferença{% endif %}</p>
         <p class="text-[10px] font-semibold text-slate-400 hidden sm:block">O número do turno (#11, #12…) muda a cada abertura/fechamento; o ponto (Gaveta, Teste) é o caixa físico.</p>
       </div>
       <div class="flex flex-wrap gap-1.5 shrink-0">
@@ -40,11 +40,18 @@
 
   <main class="cx-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 gap-2 overflow-hidden">
     <form method="get" class="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm flex flex-wrap items-end gap-2">
-      <div class="flex flex-wrap gap-1 items-center">
-        <a href="?preset=hoje{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">Hoje</a>
-        <a href="?preset=7d{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">7d</a>
-        <a href="?preset=30d{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">30d</a>
+      <div class="flex flex-wrap gap-1 items-center w-full">
+        <span class="text-[10px] font-black uppercase text-slate-400">Loja</span>
+        <a href="?loja=centro{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">Centro</a>
+        <a href="?loja=vila{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600{% endif %}">Vila</a>
+        <a href="?loja=todas{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600{% endif %}">Todas</a>
       </div>
+      <div class="flex flex-wrap gap-1 items-center">
+        <a href="?preset=hoje&loja={{ filtro_loja }}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">Hoje</a>
+        <a href="?preset=7d&loja={{ filtro_loja }}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">7d</a>
+        <a href="?preset=30d&loja={{ filtro_loja }}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">30d</a>
+      </div>
+      <input type="hidden" name="loja" value="{{ filtro_loja }}">
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-de">De</label>
         <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1 text-sm font-bold min-h-[38px]">
