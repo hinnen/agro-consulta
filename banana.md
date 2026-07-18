@@ -1253,12 +1253,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.27** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.29** (18/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ push `teste` |
-| **UX** | Logo maior no topo · WhatsApp = **balão flutuante** (canto inferior direito) |
+| **Endereço** | Card clicável → Google Maps rota (origem = local do cliente → loja) |
+| **UX** | Logo maior · WhatsApp FAB (v10.27) |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.27** (18/07/2026) *(histórico — ver v10.29)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **UX** | Logo maior · WhatsApp balão flutuante |
 | **Produção** | **Não** |
 
 ### WIP — Catálogo delivery GM Agro **v10.24** (18/07/2026) *(histórico — ver v10.27)*
