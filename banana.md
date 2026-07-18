@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.08** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.10** · **loja v9.91**
+
+### 🩹 Caixa no PDV — não abrir BI no overlay (18/07 · **teste v10.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Após abrir caixa, `redirect(home)` carregava o BI dentro do painel do PDV |
+| **Fix** | No overlay (`agro_pdv_overlay`) → volta ao **menu caixa** com os params; fora do PDV continua home |
+| **Validar local** | PDV → abrir caixa Vila → fica no menu caixa, **não** no BI |
 
 ### 🩹 Abrir caixa — seleção + digitar loja (18/07 · **teste v10.08**)
 
