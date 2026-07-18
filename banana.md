@@ -1158,7 +1158,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.97** · **loja v9.91**
+**Versão app (VERSION):** **teste v9.98** · **loja v9.91**
 
 ### 🩹 Entrada NF — histórico C1–C3 não duplica a própria nota (18/07 · **teste v9.97**)
 
