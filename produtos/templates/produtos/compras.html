@@ -60,8 +60,77 @@
       background: #fff;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
     }
+    .compras-page .compra-resumo-painel {
+      background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, #fff 45%, rgba(255, 247, 237, 0.55) 100%);
+      border-color: rgba(16, 185, 129, 0.28);
+    }
+    .compras-page .compra-kpi-tile {
+      border-radius: 0.85rem;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      background: rgba(255, 255, 255, 0.92);
+      padding: 0.55rem 0.75rem;
+      min-width: 0;
+    }
+    .compras-page .compra-kpi-label {
+      display: block;
+      font-size: 0.625rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
+      line-height: 1.2;
+      margin-bottom: 0.2rem;
+    }
+    .compras-page .compra-kpi-value {
+      display: block;
+      font-size: clamp(1rem, 1.1vw + 0.75rem, 1.35rem);
+      font-weight: 900;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
+    .compras-page .compra-kpi-value.is-accent { color: #047857; }
+    .compras-page .compra-kpi-value.is-muted { color: #94a3b8; }
+    .compras-page .compra-bloco-titulo {
+      font-size: 0.625rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 0.45rem;
+    }
+    .compras-page .compra-bloco {
+      border-radius: 0.85rem;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      padding: 0.7rem 0.8rem;
+    }
+    .compras-page .compra-bloco + .compra-bloco { margin-top: 0.55rem; }
+    .compras-page .compra-linha-row {
+      border-bottom: 1px solid transparent;
+    }
+    .compras-page .compra-item-wrap {
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .compras-page .compra-item-wrap:hover {
+      border-color: #fdba74;
+      box-shadow: 0 2px 10px -4px rgba(234, 88, 12, 0.18);
+    }
+    .compras-page .compra-item-wrap.is-selected .compra-linha-row,
+    .compras-page .compra-item-wrap:focus-within .compra-linha-row {
+      background: rgba(255, 247, 237, 0.55);
+    }
+    .compras-page #compra-resultados-colheader {
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .compras-page #resultados {
+      gap: 0.35rem;
+    }
     .compras-page #busca { font-size: 16px; }
-    @media (min-width: 640px) { .compras-page #busca { font-size: 0.9375rem; } }
+    @media (min-width: 640px) { .compras-page #busca { font-size: 1rem; } }
+    @media (max-width: 1365px) {
+      .compras-page .compra-kpi-value { font-size: 1.05rem; }
+    }
     @media (max-width: 1023px) {
       .compras-page .gm-kbd { display: none !important; }
       #compra-page-wrap {
@@ -228,111 +297,137 @@
     <div id="compra-mobile-backdrop" class="hidden lg:hidden fixed inset-0 bg-slate-900/45 z-[60]" aria-hidden="true"></div>
     <main id="compra-main-shell" class="compra-mob-tab-busca flex-1 min-h-0 flex flex-col lg:flex-row lg:items-stretch gap-3 overflow-visible" aria-label="Pedido de compra">
       <div id="compra-main-conteudo" class="flex-1 lg:basis-0 min-h-0 h-full flex flex-col gap-2 min-w-0 min-h-0 overflow-hidden">
-        <div class="shrink-0 flex flex-col gap-2 min-w-0 relative z-10">
-          <div class="compra-card p-2.5 sm:p-3">
+        <div class="shrink-0 flex flex-col gap-2.5 min-w-0 relative z-10">
+          <section class="compra-card compra-resumo-painel p-3 sm:p-3.5" aria-label="Resumo da sugestão de compra">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <h2 class="text-xs sm:text-sm font-black uppercase tracking-wide text-emerald-950">Painel de compra</h2>
+              <button type="button" id="btn-compra-ajuda-sugestao" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-800 font-black text-sm hover:bg-emerald-100" title="Ajuda: sugestão de compra" aria-label="Ajuda: sugestão de compra">?</button>
+            </div>
+            <div class="flex flex-col xl:flex-row xl:items-stretch gap-3">
+              <div class="flex flex-col sm:flex-row sm:items-end gap-2.5 sm:gap-3 min-w-0 xl:flex-1">
+                <div class="min-w-0 flex-1 max-w-xs">
+                  <label class="compra-kpi-label mb-1" for="compra-dias-sugestao">Horizonte da compra</label>
+                  <select id="compra-dias-sugestao" class="w-full text-sm font-black border-2 border-emerald-300 rounded-xl px-3 py-2.5 bg-white text-emerald-950 min-h-[48px]" title="Por quantos dias de venda você quer planejar a compra">
+                    <option value="7">7 dias</option>
+                    <option value="14">14 dias</option>
+                    <option value="21">21 dias</option>
+                    <option value="28">28 dias</option>
+                    <option value="30" selected>30 dias</option>
+                    <option value="45">45 dias</option>
+                    <option value="60">60 dias</option>
+                    <option value="90">90 dias</option>
+                  </select>
+                </div>
+                <label class="flex items-start gap-2.5 min-h-[48px] cursor-pointer rounded-xl border border-emerald-200 bg-white/90 px-3 py-2.5 sm:flex-1 sm:max-w-md">
+                  <input type="checkbox" id="compra-sugestao-desconta-estoque" checked class="mt-0.5 w-5 h-5 shrink-0 rounded border-2 border-emerald-600 text-emerald-600 focus:ring-orange-500">
+                  <span class="text-sm font-bold text-slate-900 leading-snug">Descontar estoque total <span class="text-emerald-800">(C + V)</span></span>
+                </label>
+              </div>
+              <div class="grid grid-cols-3 gap-2 min-w-0 xl:w-[min(28rem,42%)]">
+                <div class="compra-kpi-tile">
+                  <span class="compra-kpi-label">Produtos</span>
+                  <span id="compra-kpi-produtos" class="compra-kpi-value is-muted">0</span>
+                </div>
+                <div class="compra-kpi-tile">
+                  <span class="compra-kpi-label">Qtd sugerida</span>
+                  <span id="compra-kpi-qtd-sugerida" class="compra-kpi-value is-accent is-muted">0</span>
+                </div>
+                <div class="compra-kpi-tile">
+                  <span class="compra-kpi-label">Valor do pedido</span>
+                  <span id="compra-kpi-valor-pedido" class="compra-kpi-value is-accent is-muted">R$ 0,00</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="compra-card p-2.5 sm:p-3.5 border-orange-200/80">
             <label for="busca" class="sr-only">Buscar produto</label>
             <div class="relative flex-1 min-w-0">
+              <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-orange-500" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </span>
               <input
                 type="text"
                 id="busca"
-                placeholder="Buscar por nome, GM, EAN ou marca…"
+                placeholder="Buscar produto, código ou fornecedor..."
                 autocomplete="off"
-                class="w-full px-4 py-2.5 pr-12 rounded-xl bg-slate-50 border-2 border-slate-200 text-sm sm:text-base font-bold outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 text-slate-800 placeholder:text-slate-400 transition-all min-h-[48px]"
+                class="w-full pl-11 pr-14 py-3 rounded-xl bg-white border-2 border-orange-200 text-sm sm:text-base font-bold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-slate-800 placeholder:text-slate-400 transition-all min-h-[52px] shadow-sm"
                 title="F2 foca aqui de qualquer lugar. / também (fora de campos de texto). ↑↓ destaca · Enter adiciona."
               >
-              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="F2 foca a busca">F2</kbd>
+              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-slate-50 text-slate-500" title="F2 foca a busca">F2</kbd>
             </div>
           </div>
-        <div class="compra-card overflow-hidden flex flex-col">
-          <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 bg-gradient-to-r from-orange-50/95 to-slate-50/90 border-b border-slate-100">
-            <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Filtros avançados, alertas, sugestão de compra e métricas opcionais">
-              <span id="compra-gaveta-icon" class="text-white font-black text-sm w-5 text-center" aria-hidden="true">▾</span>
-              <span class="text-[11px] sm:text-xs font-black uppercase text-white tracking-wide">Filtros e alertas</span>
-            </button>
-            <span id="compra-gaveta-resumo" class="text-[10px] sm:text-[11px] font-bold text-slate-600 min-w-0 flex-1 text-right leading-tight truncate"></span>
-          </div>
-          <div id="compra-gaveta-body" class="p-3 space-y-2">
-            <button type="button" id="btn-busca-avancada-compra" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-white border-2 border-orange-200 text-orange-700 font-black text-xs uppercase tracking-wide hover:bg-orange-50 hover:border-orange-400 transition-colors shadow-sm min-h-[44px]" title="Filtros avançados (F6).">
-              <span>Filtros avançados</span>
-              <kbd class="gm-kbd border border-orange-200 bg-orange-50 text-orange-800">F6</kbd>
-            </button>
-          <div id="ca-banner-ativo" class="hidden flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-2">
-            <span class="text-[11px] font-bold text-orange-900">Filtro avançado ativo — resultados limitados ao conjunto filtrado.</span>
-            <button type="button" id="btn-ca-limpar" class="text-[10px] font-black uppercase text-orange-700 hover:text-orange-900 underline decoration-orange-300">Limpar filtro</button>
-          </div>
-          <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2 sm:py-2.5 shadow-sm space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-[10px] font-black uppercase text-slate-500 shrink-0" title="Com base na média de vendas/dia do período acima">Alerta de estoque</span>
-              <span id="compra-indicador-alerta" class="text-[10px] font-bold text-slate-500 min-w-0 flex-1 text-right leading-tight"></span>
-              <button type="button" id="btn-compra-ajuda-alertas" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 font-black text-xs hover:bg-orange-50 hover:border-orange-300 hover:text-orange-800" title="Ajuda: alertas de estoque" aria-label="Ajuda sobre alertas de estoque">?</button>
+
+          <div class="compra-card overflow-hidden flex flex-col">
+            <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 bg-gradient-to-r from-orange-50/95 to-slate-50/90 border-b border-slate-100">
+              <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Filtros avançados, alertas e métricas opcionais">
+                <span id="compra-gaveta-icon" class="text-white font-black text-sm w-5 text-center" aria-hidden="true">▾</span>
+                <span class="text-[11px] sm:text-xs font-black uppercase text-white tracking-wide">Filtros e alertas</span>
+              </button>
+              <span id="compra-gaveta-resumo" class="text-[10px] sm:text-[11px] font-bold text-slate-600 min-w-0 flex-1 text-right leading-tight truncate"></span>
             </div>
-            <div class="flex flex-wrap gap-1.5" role="toolbar" aria-label="Filtro por nível de estoque">
-              <button type="button" data-compra-filtro="TODOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50" title="Buscar em todo o catálogo — digite pelo menos 2 letras">Todos</button>
-              <button type="button" data-compra-filtro="ZERADO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-red-600 text-white border-red-700" title="Saldo total (Centro + Vila) = 0">Zerados</button>
-              <button type="button" data-compra-filtro="LARANJA" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-orange-800 border-slate-200 hover:bg-orange-50" title="Estoque abaixo da média de 7 dias de venda">Estoque baixo · 7d</button>
-              <button type="button" data-compra-filtro="AMARELO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-amber-900 border-slate-200 hover:bg-amber-50" title="Abaixo de média/dia × 15 dias de giro (já acima do crítico 7d)">Atenção · 15d</button>
-              <button type="button" data-compra-filtro="RISCO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-700 border-slate-200 hover:bg-slate-50" title="Zerados + crítico + atenção">Em risco</button>
-              <button type="button" data-compra-filtro="OCULTOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-violet-800 border-slate-200 hover:bg-violet-50" title="Itens que você ocultou (não comprar agora / produção na loja)">Ocultos</button>
+            <div id="compra-gaveta-body" class="p-3 sm:p-3.5 space-y-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="btn-busca-avancada-compra" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-white border-2 border-orange-200 text-orange-700 font-black text-xs uppercase tracking-wide hover:bg-orange-50 hover:border-orange-400 transition-colors shadow-sm min-h-[44px]" title="Filtros avançados (F6).">
+                  <span>Filtros avançados</span>
+                  <kbd class="gm-kbd border border-orange-200 bg-orange-50 text-orange-800">F6</kbd>
+                </button>
+              </div>
+              <div id="ca-banner-ativo" class="hidden flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-2.5">
+                <span class="text-[11px] font-bold text-orange-900">Filtro avançado ativo — resultados limitados ao conjunto filtrado.</span>
+                <button type="button" id="btn-ca-limpar" class="text-[10px] font-black uppercase text-orange-700 hover:text-orange-900 underline decoration-orange-300">Limpar filtro</button>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm space-y-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-[10px] font-black uppercase text-slate-500 shrink-0" title="Com base na média de vendas/dia do período acima">Alerta de estoque</span>
+                  <span id="compra-indicador-alerta" class="text-[10px] font-bold text-slate-500 min-w-0 flex-1 text-right leading-tight"></span>
+                  <button type="button" id="btn-compra-ajuda-alertas" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 font-black text-xs hover:bg-orange-50 hover:border-orange-300 hover:text-orange-800" title="Ajuda: alertas de estoque" aria-label="Ajuda sobre alertas de estoque">?</button>
+                </div>
+                <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Filtro por nível de estoque">
+                  <button type="button" data-compra-filtro="TODOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-50" title="Buscar em todo o catálogo — digite pelo menos 2 letras">Todos</button>
+                  <button type="button" data-compra-filtro="ZERADO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-red-600 text-white border-red-700" title="Saldo total (Centro + Vila) = 0">Zerados</button>
+                  <button type="button" data-compra-filtro="LARANJA" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-orange-800 border-slate-200 hover:bg-orange-50" title="Estoque abaixo da média de 7 dias de venda">Estoque baixo · 7d</button>
+                  <button type="button" data-compra-filtro="AMARELO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-amber-900 border-slate-200 hover:bg-amber-50" title="Abaixo de média/dia × 15 dias de giro (já acima do crítico 7d)">Atenção · 15d</button>
+                  <button type="button" data-compra-filtro="RISCO" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-slate-700 border-slate-200 hover:bg-slate-50" title="Zerados + crítico + atenção">Em risco</button>
+                  <button type="button" data-compra-filtro="OCULTOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-violet-800 border-slate-200 hover:bg-violet-50" title="Itens que você ocultou (não comprar agora / produção na loja)">Ocultos</button>
+                </div>
+              </div>
+              <details class="rounded-xl border border-slate-200 bg-slate-50/70 group">
+                <summary class="list-none px-3 py-2.5 min-h-[44px] flex items-center gap-2 cursor-pointer select-none text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100/80 rounded-xl [&::-webkit-details-marker]:hidden">
+                  <span class="text-slate-400 group-open:rotate-90 transition-transform inline-block w-4 text-center" aria-hidden="true">▸</span>
+                  <span>Métricas avançadas (pouco uso)</span>
+                </summary>
+                <div class="px-3 pb-3 pt-0 border-t border-slate-200/80 space-y-2">
+                  <p class="text-[9px] font-semibold text-slate-500 leading-snug pt-2">Período para <strong>média/dia</strong>, gráfico de 4 semanas, variação semanal e última entrada — <em>não</em> altera o horizonte da sugestão no painel.</p>
+                  <label class="text-[9px] font-black uppercase text-slate-500 block" for="compra-dias-media-vendas">Período da média</label>
+                  <select id="compra-dias-media-vendas" class="w-full max-w-xs text-xs font-bold border-2 border-slate-200 rounded-lg px-2 py-2 bg-white text-slate-800 min-h-[44px]" title="Só para gráfico e etiquetas de média nos cards">
+                    <option value="7">7 dias</option>
+                    <option value="14">14 dias</option>
+                    <option value="21">21 dias</option>
+                    <option value="28">28 dias</option>
+                    <option value="30" selected>30 dias</option>
+                    <option value="45">45 dias</option>
+                    <option value="60">60 dias</option>
+                    <option value="90">90 dias</option>
+                  </select>
+                </div>
+              </details>
+              <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5 pt-0.5">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                  <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
+                </span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> atualiza métricas</span>
+              </div>
+              <div id="compra-loading-tip" class="hidden rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-bold text-sky-900">
+                Atualizando resultados online...
+              </div>
             </div>
           </div>
-          <div class="rounded-xl border-2 border-emerald-400/90 bg-gradient-to-br from-emerald-50 to-white px-3 py-2.5 shadow-sm space-y-2.5">
-            <div class="flex flex-wrap items-center gap-2 justify-between">
-              <span class="text-xs font-black uppercase text-emerald-900 tracking-wide">Sugestão de compra</span>
-              <button type="button" id="btn-compra-ajuda-sugestao" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-800 font-black text-sm hover:bg-emerald-100" title="Ajuda: sugestão de compra" aria-label="Ajuda: sugestão de compra">?</button>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-              <label class="text-[10px] font-black uppercase text-emerald-900 shrink-0" for="compra-dias-sugestao">Horizonte (dias)</label>
-              <select id="compra-dias-sugestao" class="flex-1 min-w-[8rem] text-sm font-black border-2 border-emerald-300 rounded-xl px-3 py-2.5 bg-white text-emerald-950 min-h-[48px] max-w-[220px]" title="Por quantos dias de venda você quer planejar a compra">
-                <option value="7">7 dias</option>
-                <option value="14">14 dias</option>
-                <option value="21">21 dias</option>
-                <option value="28">28 dias</option>
-                <option value="30" selected>30 dias</option>
-                <option value="45">45 dias</option>
-                <option value="60">60 dias</option>
-                <option value="90">90 dias</option>
-              </select>
-            </div>
-            <label class="flex items-start gap-3 min-h-[48px] cursor-pointer rounded-lg border border-emerald-200/80 bg-white/80 px-2.5 py-2">
-              <input type="checkbox" id="compra-sugestao-desconta-estoque" checked class="mt-0.5 w-5 h-5 shrink-0 rounded border-2 border-emerald-600 text-emerald-600 focus:ring-orange-500">
-              <span class="text-sm font-bold text-slate-900 leading-snug">Descontar estoque total <span class="text-emerald-800">(C + V)</span> da sugestão</span>
-            </label>
-          </div>
-          <details class="rounded-lg border border-slate-200 bg-slate-50/70 group">
-            <summary class="list-none px-3 py-2.5 min-h-[44px] flex items-center gap-2 cursor-pointer select-none text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100/80 rounded-lg [&::-webkit-details-marker]:hidden">
-              <span class="text-slate-400 group-open:rotate-90 transition-transform inline-block w-4 text-center" aria-hidden="true">▸</span>
-              <span>Métricas avançadas (pouco uso)</span>
-            </summary>
-            <div class="px-3 pb-3 pt-0 border-t border-slate-200/80 space-y-2">
-              <p class="text-[9px] font-semibold text-slate-500 leading-snug pt-2">Período para <strong>média/dia</strong>, gráfico de 4 semanas, variação semanal e última entrada — <em>não</em> altera o horizonte da sugestão acima.</p>
-              <label class="text-[9px] font-black uppercase text-slate-500 block" for="compra-dias-media-vendas">Período da média</label>
-              <select id="compra-dias-media-vendas" class="w-full max-w-xs text-xs font-bold border-2 border-slate-200 rounded-lg px-2 py-2 bg-white text-slate-800 min-h-[44px]" title="Só para gráfico e etiquetas de média nos cards">
-                <option value="7">7 dias</option>
-                <option value="14">14 dias</option>
-                <option value="21">21 dias</option>
-                <option value="28">28 dias</option>
-                <option value="30" selected>30 dias</option>
-                <option value="45">45 dias</option>
-                <option value="60">60 dias</option>
-                <option value="90">90 dias</option>
-              </select>
-            </div>
-          </details>
-          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-              <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
-            </span>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> atualiza métricas</span>
-          </div>
-          <div id="compra-loading-tip" class="hidden rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-bold text-sky-900">
-            Atualizando resultados online...
-          </div>
-        </div>
         </div>
         <div class="scroll-compras-resultados compra-card flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative z-0">
           <div id="compra-resultados-colheader" class="hidden shrink-0 border-b border-slate-200 bg-slate-100 px-3 pt-2 pb-0" aria-hidden="true"></div>
           <div id="compra-resultados-scroll" class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-2">
-            <div id="resultados" class="flex flex-col gap-1 min-h-0 min-w-0">
+            <div id="resultados" class="flex flex-col gap-1.5 min-h-0 min-w-0">
               <div class="text-slate-400 py-12 text-center font-bold text-sm rounded-xl border border-dashed border-slate-200 bg-slate-50/80">Carregando produtos…</div>
             </div>
           </div>
@@ -2081,8 +2176,8 @@ function compraMostrarCabecalhoListaResultados() {
   const head = document.getElementById('compra-resultados-colheader');
   if (!head) return;
   head.innerHTML =
-    '<div class="grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_2.25rem_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_2.25rem_1.75rem] gap-x-2 gap-y-0.5 px-2 sm:px-3 py-2 text-[9px] sm:text-[10px] font-black uppercase text-slate-600 tracking-wide">' +
-    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums" title="Quantidade sugerida para comprar (horizonte em dias nos filtros; desconta estoque Centro+Vila se ligado). F5 só atualiza vendas/média.">Comprar</span><span class="text-right tabular-nums" title="Estoque Centro + Vila">Estoque</span><span class="text-right" title="Custo de compra">Custo</span><span class="text-center" title="Adicionar 1 ao pedido">+</span><span class="sr-only">Detalhe</span></div>';
+    '<div class="grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_2.25rem_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_2.25rem_1.75rem] gap-x-2.5 gap-y-0.5 px-2.5 sm:px-3 py-2.5 text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-wide">' +
+    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums text-emerald-800" title="Quantidade sugerida para comprar (horizonte em dias no painel; desconta estoque Centro+Vila se ligado). F5 só atualiza vendas/média.">Comprar</span><span class="text-right tabular-nums" title="Estoque Centro + Vila">Estoque</span><span class="text-right" title="Custo de compra">Custo</span><span class="text-center" title="Adicionar 1 ao pedido">+</span><span class="sr-only">Detalhe</span></div>';
   head.classList.remove('hidden');
   head.setAttribute('aria-hidden', 'false');
 }
@@ -2111,6 +2206,42 @@ function compraToggleExpandir(idx) {
   }
 }
 
+function atualizarKpiValorPedidoCompra(somaPedido) {
+  const elValor = document.getElementById('compra-kpi-valor-pedido');
+  if (!elValor) return;
+  const soma = Number(somaPedido) || 0;
+  elValor.textContent = formatarMoeda(soma);
+  elValor.classList.toggle('is-muted', !(soma > 0));
+}
+
+function atualizarPainelResumoCompra(resultados) {
+  const elProd = document.getElementById('compra-kpi-produtos');
+  const elQtd = document.getElementById('compra-kpi-qtd-sugerida');
+  const listaRes = Array.isArray(resultados) ? resultados : ultimosResultadosCompra;
+  const nProd = listaRes.length;
+  let qtdSug = 0;
+  listaRes.forEach((p) => {
+    const sug = compraCalcularSugestaoCompra(p);
+    if (sug && sug.qtd > 0) qtdSug += Number(sug.qtd) || 0;
+  });
+  if (elProd) {
+    elProd.textContent = String(nProd);
+    elProd.classList.toggle('is-muted', nProd === 0);
+    elProd.classList.toggle('is-accent', nProd > 0);
+  }
+  if (elQtd) {
+    elQtd.textContent = qtdSug.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+    elQtd.classList.toggle('is-muted', qtdSug <= 0);
+  }
+  let somaPedido = 0;
+  if (Array.isArray(lista)) {
+    lista.forEach((item) => {
+      somaPedido += Number(item.qtd || 0) * Number(item.precoFinal || 0);
+    });
+  }
+  atualizarKpiValorPedidoCompra(somaPedido);
+}
+
 function renderizarListaResultadosCompra(resultados) {
   const div = document.getElementById('resultados');
   if (!div) return;
@@ -2119,10 +2250,12 @@ function renderizarListaResultadosCompra(resultados) {
     div.innerHTML = '';
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
+    atualizarPainelResumoCompra([]);
     return;
   }
   compraMostrarCabecalhoListaResultados();
   let html = '';
+  let qtdSugTotalLista = 0;
   resultados.forEach((p, idx) => {
     const nomeReal = p.nome || 'PRODUTO SEM NOME';
     const nomeSeguro = nomeReal.replace(/'/g, "\\'");
@@ -2191,6 +2324,7 @@ function renderizarListaResultadosCompra(resultados) {
       ala === 'ZERADO' ? 'text-red-800 font-black' : 'text-slate-800 font-bold';
 
     const sug = compraCalcularSugestaoCompra(p);
+    if (sug.qtd > 0) qtdSugTotalLista += Number(sug.qtd) || 0;
     const sugCls =
       sug.qtd > 0
         ? 'text-emerald-900 font-black'
@@ -2209,122 +2343,123 @@ function renderizarListaResultadosCompra(resultados) {
     const ultimasComprasHtml = compraMontarHtmlUltimasComprasResumo(p, idx);
     const historicoPedLocalHtml = compraMontarHtmlHistoricoPedidoLocal(p.id);
 
-    const sugCardHtml =
-      '<div class="mt-2.5 rounded-xl border-2 border-emerald-400/90 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 px-3 py-2.5 shadow-sm" title="' +
-      escapeHtml(sug.titulo) +
-      '">' +
-      '<div class="text-[10px] sm:text-[11px] font-black uppercase text-emerald-900 tracking-wide leading-tight">Sugestão de compra · ' +
-      String(sug.diasS) +
-      ' dias</div>' +
-      '<div class="mt-1 text-2xl sm:text-[1.7rem] font-black tabular-nums leading-none tracking-tight ' +
-      (sug.qtd > 0 ? 'text-emerald-950' : 'text-slate-400') +
-      '">' +
-      sugValorCard +
-      '</div>' +
-      '<div class="mt-1.5">' +
-      sugLegendaEstoque +
-      '</div>' +
-      '</div>';
+    const fornNome = String(p.fornecedor_nome || p.fornecedor || p.nome_fornecedor || '').trim();
 
     html += `
-      <article class="compra-item-wrap rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm" data-compra-idx="${idx}">
-        <div class="compra-linha-row grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_2.25rem_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_2.25rem_1.75rem] gap-x-2 items-stretch min-h-[48px]">
-          <button type="button" class="compra-linha-main group col-span-5 grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)] gap-x-2 items-center text-left px-2 sm:px-3 py-2.5 min-h-[48px] hover:bg-orange-50/50 transition-colors rounded-none"
+      <article class="compra-item-wrap rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm" data-compra-idx="${idx}">
+        <div class="compra-linha-row grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_2.25rem_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_2.25rem_1.75rem] gap-x-2.5 items-stretch min-h-[52px]">
+          <button type="button" class="compra-linha-main group col-span-5 grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)] gap-x-2.5 items-center text-left px-2.5 sm:px-3 py-2.5 min-h-[52px] hover:bg-orange-50/60 transition-colors rounded-none"
             data-compra-idx="${idx}"
             aria-expanded="false"
             onclick="compraToggleExpandir(${idx})"
             title="Ver detalhes e gráfico">
-            <span class="text-[11px] sm:text-xs font-black text-slate-700 tabular-nums truncate">${escapeHtml(gmCode)}</span>
-            <span class="text-[11px] sm:text-sm font-bold text-slate-900 truncate min-w-0" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</span>
-            <span class="text-[11px] sm:text-sm tabular-nums text-right ${sugCls}" title="${escapeHtml(sug.titulo)}">${escapeHtml(sug.textoLinha)}</span>
-            <span class="text-[11px] sm:text-sm tabular-nums text-right ${saldoCls}">${saldoTot}${pedSuf}</span>
-            <span class="text-[11px] sm:text-sm font-black text-slate-900 tabular-nums text-right">${formatarMoeda(custoFin)}</span>
+            <span class="text-[11px] sm:text-xs font-black text-slate-600 tabular-nums truncate">${escapeHtml(gmCode)}</span>
+            <span class="text-[12px] sm:text-sm font-black text-slate-900 truncate min-w-0" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</span>
+            <span class="text-[12px] sm:text-sm tabular-nums text-right ${sugCls}" title="${escapeHtml(sug.titulo)}">${escapeHtml(sug.textoLinha)}</span>
+            <span class="text-[12px] sm:text-sm tabular-nums text-right ${saldoCls}">${saldoTot}${pedSuf}</span>
+            <span class="text-[12px] sm:text-sm font-black text-slate-900 tabular-nums text-right">${formatarMoeda(custoFin)}</span>
           </button>
-          <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 bg-emerald-50 text-emerald-700 font-black text-lg leading-none hover:bg-emerald-100 active:bg-emerald-200 shrink-0 px-0.5" title="Adicionar 1 ao pedido" aria-label="Adicionar ao pedido" onclick="event.stopPropagation(); adicionarProdutoResultadoCompra(${idx}, event);">+</button>
-          <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 text-slate-500 font-black text-sm hover:bg-slate-50 shrink-0 w-full" onclick="event.stopPropagation(); compraToggleExpandir(${idx});" aria-label="Expandir ou recolher detalhe" title="Expandir detalhe"><span class="compra-linha-chevron" aria-hidden="true">▸</span></button>
+          <button type="button" class="flex items-center justify-center min-h-[52px] border-l border-slate-100 bg-emerald-50 text-emerald-700 font-black text-lg leading-none hover:bg-emerald-100 active:bg-emerald-200 shrink-0 px-0.5" title="Adicionar 1 ao pedido" aria-label="Adicionar ao pedido" onclick="event.stopPropagation(); adicionarProdutoResultadoCompra(${idx}, event);">+</button>
+          <button type="button" class="flex items-center justify-center min-h-[52px] border-l border-slate-100 text-slate-500 font-black text-sm hover:bg-slate-50 shrink-0 w-full" onclick="event.stopPropagation(); compraToggleExpandir(${idx});" aria-label="Expandir ou recolher detalhe" title="Expandir detalhe"><span class="compra-linha-chevron" aria-hidden="true">▸</span></button>
         </div>
-        <div class="compra-detalhe hidden border-t border-slate-100 bg-slate-50/60">
-          <div class="px-3 pt-3 pb-2 flex flex-wrap gap-2 justify-between items-center border-b border-slate-100/80 bg-white/80">
-            <span class="text-[10px] font-black uppercase text-slate-500">Detalhe do produto</span>
+        <div class="compra-detalhe hidden border-t border-slate-200 bg-slate-50/70">
+          <div class="px-3 pt-3 pb-2.5 flex flex-wrap gap-2 justify-between items-center border-b border-slate-200/80 bg-white/90">
+            <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Detalhe do produto</span>
             <button type="button" class="inline-flex items-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black uppercase tracking-wide px-4 py-2.5 shadow-sm min-h-[44px]"
               onclick="adicionarProdutoResultadoCompra(${idx}, event);">Adicionar ao pedido</button>
           </div>
-          <div class="p-3 sm:p-3.5">
-      ${historicoPedLocalHtml}
-      <div class="compra-card bg-white p-3 sm:p-3.5 rounded-2xl border ${barraAlerta ? barraAlerta + ' border-slate-200' : 'border-slate-200'} grid grid-cols-1 sm:grid-cols-[minmax(0,1.62fr)_minmax(0,1.18fr)_minmax(8rem,0.82fr)] gap-2.5 sm:gap-3 items-stretch">
+          <div class="p-3 sm:p-3.5 space-y-2.5">
+            ${historicoPedLocalHtml}
 
-        <div class="flex items-start gap-3 min-w-0">
-          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-14 h-14 sm:w-[4.25rem] sm:h-[4.25rem] object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-1">
-
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap items-center gap-2 mb-1">
-              ${badgeAlerta}
-              <span class="text-[11px] sm:text-xs font-bold text-slate-600 uppercase tracking-wide truncate">${escapeHtml(marcaSegura)}</span>
-              <span class="text-[10px] sm:text-[11px] font-black text-slate-700 uppercase bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">GM ${escapeHtml(gmCode)}</span>
+            <div class="compra-bloco ${barraAlerta}">
+              <div class="compra-bloco-titulo">Identificação</div>
+              <div class="flex items-start gap-3 min-w-0">
+                <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-14 h-14 sm:w-[4.25rem] sm:h-[4.25rem] object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-1">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    ${badgeAlerta}
+                    <span class="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wide truncate">${escapeHtml(marcaSegura)}</span>
+                    <span class="text-[10px] sm:text-[11px] font-black text-slate-700 uppercase bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">GM ${escapeHtml(gmCode)}</span>
+                  </div>
+                  <div class="font-black text-sm sm:text-base uppercase text-slate-900 leading-tight" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</div>
+                  ${fornNome ? `<div class="mt-1.5 text-xs font-semibold text-slate-500">Fornecedor: <span class="font-bold text-slate-800">${escapeHtml(fornNome)}</span></div>` : ''}
+                </div>
+              </div>
             </div>
 
-            <div class="font-black text-sm sm:text-[15px] uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-tight overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</div>
-
-            <div class="flex flex-wrap items-center gap-2 mt-2.5">
-              <span class="${ala === 'ZERADO' ? 'text-red-950 bg-red-50 border-red-300' : 'text-emerald-900 bg-emerald-50 border-emerald-200/90'} px-2.5 py-1 rounded-lg border font-black text-xs uppercase tracking-wide" title="Soma do estoque Centro e Vila">
-                Estoque ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}${pedQtd > 0 ? ` <span class="text-sky-900 normal-case">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ped.)</span>` : ''}
-              </span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Centro — clique para ajustar">Centro ${Number(p.saldo_centro || 0).toFixed(1)}</span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Vila — clique para ajustar">Vila ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+            <div class="compra-bloco">
+              <div class="compra-bloco-titulo">Estoque</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="${ala === 'ZERADO' ? 'text-red-950 bg-red-50 border-red-300' : 'text-emerald-900 bg-emerald-50 border-emerald-200/90'} px-2.5 py-1.5 rounded-lg border font-black text-xs uppercase tracking-wide" title="Soma do estoque Centro e Vila">
+                  Total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}${pedQtd > 0 ? ` <span class="text-sky-900 normal-case">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ped.)</span>` : ''}
+                </span>
+                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Centro — clique para ajustar">Centro ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Estoque Vila — clique para ajustar">Vila ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                <button type="button" class="inline-flex items-center justify-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide px-3 py-2 shadow-sm border border-emerald-700/30" title="Ajuste com PIN (Centro ou Vila)" onclick="compraAbrirAjusteProduto('${String(p.id)}'); event.stopPropagation();">Ajustar estoque</button>
+                ${
+                  oculto
+                    ? `<button type="button" class="inline-flex items-center justify-center rounded-xl bg-violet-100 hover:bg-violet-200 text-violet-900 text-[10px] sm:text-[11px] font-black uppercase px-3 py-2 border border-violet-300" title="Voltar a aparecer nos alertas" onclick="compraRestaurarItem('${String(p.id)}'); event.stopPropagation();">Restaurar</button>`
+                    : `<button type="button" class="inline-flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10px] sm:text-[11px] font-black uppercase px-3 py-2 border border-slate-300" title="Não mostrar nos filtros de alerta (compra depois / produção na loja)" onclick="compraOcultarItem('${String(p.id)}'); event.stopPropagation();">Ocultar</button>`
+                }
+              </div>
             </div>
-            ${sugCardHtml}
-            <div class="flex flex-wrap items-center gap-2 mt-2.5">
-              <button type="button" class="inline-flex items-center justify-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide px-3 py-2 shadow-sm border border-emerald-700/30" title="Ajuste com PIN (Centro ou Vila)" onclick="compraAbrirAjusteProduto('${String(p.id)}'); event.stopPropagation();">Ajustar estoque</button>
-              ${
-                oculto
-                  ? `<button type="button" class="inline-flex items-center justify-center rounded-xl bg-violet-100 hover:bg-violet-200 text-violet-900 text-[10px] sm:text-[11px] font-black uppercase px-3 py-2 border border-violet-300" title="Voltar a aparecer nos alertas" onclick="compraRestaurarItem('${String(p.id)}'); event.stopPropagation();">Restaurar</button>`
-                  : `<button type="button" class="inline-flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10px] sm:text-[11px] font-black uppercase px-3 py-2 border border-slate-300" title="Não mostrar nos filtros de alerta (compra depois / produção na loja)" onclick="compraOcultarItem('${String(p.id)}'); event.stopPropagation();">Ocultar</button>`
-              }
+
+            <div class="compra-bloco">
+              <div class="compra-bloco-titulo">Histórico</div>
+              <div class="flex flex-wrap items-center gap-2 text-xs font-bold leading-snug">
+                <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2.5 py-1.5 ring-1 ring-sky-200" title="Média de vendas por dia no PDV (período nos filtros)">Vendas ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+                <span class="inline-flex items-center rounded-lg px-2.5 py-1.5 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 dias anteriores">Var. semana <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
+                <span class="text-slate-600 font-semibold text-[11px] sm:text-xs rounded-lg bg-white px-2.5 py-1.5 border border-slate-200" title="Última entrada NF Agro concluída">Últ. NF: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong> un.</span>
+              </div>
+              <div class="mt-2.5 rounded-lg border border-slate-100 bg-slate-50/80 p-2" title="${escapeHtml(sparkTip)}">
+                <div class="text-[10px] font-black uppercase text-slate-500 tracking-wide mb-1">Vendas · 4 semanas</div>
+                <div class="flex items-end justify-start w-full">${compraSparklineSvg4(spark)}</div>
+                <div class="grid grid-cols-4 gap-1 mt-1 w-full">
+                  <span class="text-[10px] font-black text-slate-600 bg-white border border-slate-200 rounded px-1 py-0.5 text-center">S1 ${escapeHtml(sparkValsFmt[0])}</span>
+                  <span class="text-[10px] font-black text-slate-600 bg-white border border-slate-200 rounded px-1 py-0.5 text-center">S2 ${escapeHtml(sparkValsFmt[1])}</span>
+                  <span class="text-[10px] font-black text-slate-600 bg-white border border-slate-200 rounded px-1 py-0.5 text-center">S3 ${escapeHtml(sparkValsFmt[2])}</span>
+                  <span class="text-[10px] font-black text-slate-600 bg-white border border-slate-200 rounded px-1 py-0.5 text-center">S4 ${escapeHtml(sparkValsFmt[3])}</span>
+                </div>
+                <div class="flex justify-between text-[9px] font-bold text-slate-400 mt-0.5 px-0.5 w-full">
+                  <span>−28d</span><span>hoje</span>
+                </div>
+              </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2 mt-2 text-xs font-bold leading-snug border-t border-slate-100 pt-2">
-              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de vendas por dia no PDV (período nos filtros)">Vendas ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
-              <span class="inline-flex items-center rounded-lg px-2 py-1 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 dias anteriores">Var. semana <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
-              <span class="text-slate-600 font-semibold text-[11px] sm:text-xs" title="Última entrada NF Agro concluída">Últ. NF: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong> un.</span>
+
+            <div class="compra-bloco border-2 border-emerald-300/90 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30" title="${escapeHtml(sug.titulo)}">
+              <div class="compra-bloco-titulo text-emerald-800">Sugestão</div>
+              <div class="text-[10px] sm:text-[11px] font-black uppercase text-emerald-900 tracking-wide leading-tight">Horizonte · ${String(sug.diasS)} dias</div>
+              <div class="mt-1 text-2xl sm:text-[1.7rem] font-black tabular-nums leading-none tracking-tight ${sug.qtd > 0 ? 'text-emerald-950' : 'text-slate-400'}">${sugValorCard}</div>
+              <div class="mt-1.5">${sugLegendaEstoque}</div>
             </div>
-          </div>
-        </div>
 
-        <div class="flex flex-col justify-center sm:border-l sm:border-slate-100 sm:pl-2.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0" title="${escapeHtml(sparkTip)}">
-          <div class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wide mb-0.5">Vendas · 4 semanas</div>
-          <div class="flex items-end justify-center sm:justify-start w-full">${compraSparklineSvg4(spark)}</div>
-          <div class="grid grid-cols-4 gap-1 mt-0.5 w-full">
-            <span class="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-center">S1 ${escapeHtml(sparkValsFmt[0])}</span>
-            <span class="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-center">S2 ${escapeHtml(sparkValsFmt[1])}</span>
-            <span class="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-center">S3 ${escapeHtml(sparkValsFmt[2])}</span>
-            <span class="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-center">S4 ${escapeHtml(sparkValsFmt[3])}</span>
-          </div>
-          <div class="flex justify-between text-[9px] font-bold text-slate-400 mt-0.5 px-0.5 w-full">
-            <span>−28d</span><span>hoje</span>
-          </div>
-        </div>
+            <div class="compra-bloco">
+              <div class="compra-bloco-titulo">Custos</div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <div class="text-[10px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
+                  <div class="text-[10px] text-slate-400 font-semibold">c/ taxas e imp.</div>
+                  <div class="text-xl font-black text-slate-900 tabular-nums leading-tight mt-0.5">${formatarMoeda(custoFin)}</div>
+                  ${mostrarBase ? `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1">Base ${formatarMoeda(custoBase)}</div>` : ''}
+                </div>
+                <div>
+                  <div class="text-[10px] text-slate-400 font-bold uppercase">Preço de venda</div>
+                  <div class="text-lg font-black text-orange-600 tabular-nums leading-tight mt-0.5">R$ ${precoVenda}</div>
+                </div>
+                <div class="col-span-2 sm:col-span-1">
+                  <div class="text-[10px] text-slate-400 font-bold uppercase">Margem</div>
+                  ${
+                    custoOk
+                      ? `<div class="text-base font-black ${corLucro} tabular-nums leading-tight mt-0.5">R$ ${lucroReais} <span class="text-sm">(${lucroPerc}%)</span></div>`
+                      : `<div class="text-sm font-bold text-slate-400 leading-tight mt-0.5">Sem custo cadastrado</div>`
+                  }
+                </div>
+              </div>
+            </div>
 
-        <div class="text-right shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-2.5 flex flex-col justify-between">
-          <div class="text-[10px] sm:text-[11px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
-          <div class="text-xs text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
-          <div class="text-xl sm:text-2xl font-black text-slate-900 tabular-nums leading-tight">${formatarMoeda(custoFin)}</div>
-
-          ${mostrarBase ? `
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Custo base</div>
-          <div class="text-sm font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
-
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Preço de venda</div>
-          <div class="text-base sm:text-lg font-black text-orange-600 tabular-nums leading-tight">R$ ${precoVenda}</div>
-
-          ${
-            custoOk
-              ? `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro estimado</div>
-          <div class="text-sm sm:text-base font-black ${corLucro} tabular-nums leading-tight">R$ ${lucroReais} (${lucroPerc}%)</div>`
-              : `<div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro</div>
-          <div class="text-sm font-bold text-slate-400 leading-tight">Sem custo cadastrado</div>`
-          }
-        </div>
-      </div>
-      ${ultimasComprasHtml}
+            ${ultimasComprasHtml}
           </div>
         </div>
       </article>
@@ -2334,6 +2469,24 @@ function renderizarListaResultadosCompra(resultados) {
 
   ultimosResultadosCompra = resultados;
   indiceSelecionadoCompra = resultados.length ? 0 : -1;
+  const elProd = document.getElementById('compra-kpi-produtos');
+  const elQtd = document.getElementById('compra-kpi-qtd-sugerida');
+  if (elProd) {
+    elProd.textContent = String(resultados.length);
+    elProd.classList.toggle('is-muted', !resultados.length);
+    elProd.classList.toggle('is-accent', !!resultados.length);
+  }
+  if (elQtd) {
+    elQtd.textContent = qtdSugTotalLista.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+    elQtd.classList.toggle('is-muted', qtdSugTotalLista <= 0);
+  }
+  let somaPedido = 0;
+  if (Array.isArray(lista)) {
+    lista.forEach((item) => {
+      somaPedido += Number(item.qtd || 0) * Number(item.precoFinal || 0);
+    });
+  }
+  atualizarKpiValorPedidoCompra(somaPedido);
   requestAnimationFrame(() => destacarLinhaCompra());
   if (Date.now() < compraPreservarScrollAteMs && compraScrollTopPreservado !== null) {
     requestAnimationFrame(() => {
@@ -2396,6 +2549,7 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
           ultimosResultadosCompra = [];
           indiceSelecionadoCompra = -1;
           compraOcultarCabecalhoListaResultados();
+          atualizarPainelResumoCompra([]);
           if (divRes) {
             divRes.innerHTML = `<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
           }
@@ -2483,6 +2637,7 @@ function atualizarCarrinho() {
   badge.textContent = `${itensDistintos} ${itensDistintos === 1 ? 'item' : 'itens'} · qtd ${qtdFmt}`;
   badge.title = `Itens distintos: ${itensDistintos} | Quantidade total: ${qtdFmt}`;
   total.textContent = formatarMoeda(soma);
+  atualizarKpiValorPedidoCompra(soma);
   const mini = document.getElementById('compra-carrinho-badge-mini');
   if (mini) mini.textContent = `${itensDistintos}/${qtdFmt}`;
   compraAtualizarMobileNavBadge();
@@ -3663,6 +3818,7 @@ function buscar(q) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     compraOcultarCabecalhoListaResultados();
+    atualizarPainelResumoCompra([]);
     div.innerHTML = `<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">${mensagemListaCompraVazia('TODOS')}</div>`;
     return;
   }
@@ -3671,6 +3827,7 @@ function buscar(q) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     compraOcultarCabecalhoListaResultados();
+    atualizarPainelResumoCompra([]);
     div.innerHTML = `<div class="bg-white text-amber-700 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Catálogo vazio ou indisponível. Recarregue a página ou verifique a API de produtos.</div>`;
     return;
   }
@@ -3772,6 +3929,7 @@ function buscar(q) {
       msg = `Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".`;
     }
     compraOcultarCabecalhoListaResultados();
+    atualizarPainelResumoCompra([]);
     div.innerHTML = `<div class="bg-white text-slate-600 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">${msg}</div>`;
     return;
   }

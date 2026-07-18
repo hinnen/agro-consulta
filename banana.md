@@ -1156,7 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.92** · **loja v9.91**
+**Versão app (VERSION):** **teste v9.93** · **loja v9.91**
+
+### ✨ Compras — etapa 1 UI (reorganização visual) (18/07 · **teste v9.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ código · push `teste` · validar no Render staging |
+| **Escopo** | Só visual/organização — **sem** mudança de regra, API, Mongo, cálculo de sugestão |
+| **Feito** | Painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · filtros limpos · lista + detalhe expandido em blocos |
+| **Arquivo** | `produtos/templates/produtos/compras.html` |
+| **Validar** | Ctrl+F5 `/compras/` · buscar produto · expandir linha · mudar horizonte/checkbox · Folha/F10/lista iguais de antes |
+| **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
 
 ### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
 
