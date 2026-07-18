@@ -151,7 +151,12 @@ def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
     if str(row.get("mpBalcaoModo") or "").strip().lower() == "point":
         return True
     mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
-    if mid in ("mp_balcao", "pix_mp_qr") or mid.startswith("mp_") or mid.startswith("pix_mp"):
+    # Point automático + maquininhas manuais Mercado Pago (ex.: Renan)
+    if mid in ("mp_balcao", "pix_mp_qr", "mp_renan", "pix_mp_renan") or mid.startswith(
+        "pix_mp"
+    ):
+        return True
+    if mid.startswith("mp_") and mid not in ("mp_loja",):
         return True
     rede = str(row.get("rede") or row.get("maquinaRede") or "").strip().lower()
     return rede == "mp"
@@ -1088,6 +1093,10 @@ def limpar_navegador_host_mp_point(request) -> None:
         request.session.modified = True
 
 
+# Só Point/Pix automático — maquininha manual «Mercado Pago Renan» permanece no notebook.
+_MAQUININHAS_MP_POINT_AUTO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+
+
 def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
     """Remove opções MP automático (notebook / 2º computador)."""
     out: list = []
@@ -1095,8 +1104,7 @@ def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
         if not isinstance(m, dict):
             continue
         mid = str(m.get("id") or "").strip().lower()
-        rede = str(m.get("rede") or "").strip().lower()
-        if rede == "mp" or mid.startswith("mp_") or mid.startswith("pix_mp"):
+        if mid in _MAQUININHAS_MP_POINT_AUTO_IDS:
             continue
         out.append(m)
     return out
