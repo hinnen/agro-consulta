@@ -9534,6 +9534,34 @@ def _caixa_request_embed(request) -> bool:
     return (request.GET.get("embed") or "").strip().lower() in ("1", "true", "sim", "yes")
 
 
+def _caixa_em_overlay_pdv(request) -> bool:
+    """Caixa aberto dentro do painel do PDV (iframe overlay)."""
+    for src in (request.GET, request.POST):
+        if (src.get("agro_pdv_overlay") or "").strip() == "1":
+            return True
+    return False
+
+
+def _caixa_url_com_overlay(request, name: str) -> str:
+    """Mantém agro_pdv_overlay nos redirects (senão cai no BI dentro do overlay)."""
+    url = reverse(name)
+    if not _caixa_em_overlay_pdv(request):
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}agro_pdv_overlay=1&agro_inapp_embed=1"
+
+
+def _redirect_caixa(request, name: str):
+    return redirect(_caixa_url_com_overlay(request, name))
+
+
+def _redirect_apos_abrir_caixa(request):
+    """Após abrir/vincular caixa: no overlay PDV → menu caixa; fora → home (BI)."""
+    if _caixa_em_overlay_pdv(request):
+        return _redirect_caixa(request, "caixa_painel")
+    return redirect("home")
+
+
 def _entrada_nfe_request_embed(request) -> str:
     raw = (request.GET.get("embed") or "").strip().lower()
     if raw in ("lancamentos", "contas_pagar", "cp"):
@@ -10170,7 +10198,7 @@ def caixa_saida_view(request):
 def caixa_abrir(request):
     if _obter_sessao_caixa_aberta(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
-        return redirect("caixa_painel")
+        return _redirect_caixa(request, "caixa_painel")
     gaveta_aberta = obter_caixa_gaveta_aberto()
     vila_aberta = obter_caixa_vila_aberto()
     teste_aberto = obter_caixa_teste_aberto()
@@ -10190,12 +10218,12 @@ def caixa_abrir(request):
                     request,
                     f"Abra o Caixa {rot} primeiro. O notebook usa o mesmo turno dessa loja.",
                 )
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
             pin = (request.POST.get("pin_vincular") or "").strip()
             ok_pin, err_pin = validar_pin_operador(pin)
             if not ok_pin:
                 messages.error(request, err_pin)
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
             definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, pai.pk)
             sincronizar_deposito_com_ponto_caixa(request, getattr(pai, "ponto_caixa", PONTO_CAIXA_GAVETA))
             limpar_navegador_host_mp_point(request)
@@ -10207,7 +10235,7 @@ def caixa_abrir(request):
                 request,
                 f"Caixa Notebook vinculado a {rotulo_ponto_caixa(pai.ponto_caixa)} #{pai.pk}.",
             )
-            return redirect("home")
+            return _redirect_apos_abrir_caixa(request)
 
         if ponto == PONTO_CAIXA_GAVETA:
             if gaveta_aberta or obter_caixa_gaveta_aberto():
@@ -10215,18 +10243,18 @@ def caixa_abrir(request):
                     request,
                     "O Caixa Gaveta (Centro) já está aberto. Use o Notebook para outro computador do Centro.",
                 )
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
         elif ponto == PONTO_CAIXA_VILA:
             if vila_aberta or obter_caixa_vila_aberto():
                 messages.error(
                     request,
                     "O Caixa Vila Elias já está aberto. Use o Notebook para outro computador da Vila.",
                 )
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
         elif ponto == PONTO_CAIXA_TESTE:
             if teste_aberto or obter_caixa_teste_aberto():
                 messages.error(request, "O Caixa Teste já está aberto.")
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
 
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA):
             from produtos.pdv_deposito_util import confirmacao_loja_bate, palavra_confirmacao_loja
@@ -10239,7 +10267,7 @@ def caixa_abrir(request):
                     f'Digite "{palavra}" no campo de confirmação para abrir este caixa '
                     f"(evita abrir a loja errada).",
                 )
-                return redirect("caixa_abrir")
+                return _redirect_caixa(request, "caixa_abrir")
 
         raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
         try:
@@ -10266,7 +10294,7 @@ def caixa_abrir(request):
             request,
             f"{rotulo} #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}",
         )
-        return redirect("home")
+        return _redirect_apos_abrir_caixa(request)
 
     gaveta_aberta = obter_caixa_gaveta_aberto()
     vila_aberta = obter_caixa_vila_aberto()

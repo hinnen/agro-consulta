@@ -147,6 +147,10 @@
 
       <form method="post" id="form-caixa-notebook" class="caixa-ponto-panel flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-5 shadow-md" data-ponto-panel="notebook"{% if not pode_abrir_notebook %} hidden{% endif %} onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
         {% csrf_token %}
+        {% if request.GET.agro_pdv_overlay == '1' %}
+        <input type="hidden" name="agro_pdv_overlay" value="1">
+        <input type="hidden" name="agro_inapp_embed" value="1">
+        {% endif %}
         <input type="hidden" name="ponto_caixa" value="notebook">
         <input type="hidden" name="deposito_notebook" value="{{ deposito_browser|default:'centro' }}">
         <p class="text-[10px] font-black uppercase text-sky-800">Passo 2 — notebook</p>
