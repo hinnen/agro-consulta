@@ -1158,7 +1158,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.91** · **loja v9.91**
 
-### 🩹 Cadastro — kardex e-mail + Entrada NF Δcamada (18/07 · **teste**)
+### 🩹 Cadastro — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.91**)
 
 | Item | Detalhe |
 | ---- | ------- |
