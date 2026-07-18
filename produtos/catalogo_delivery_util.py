@@ -305,10 +305,10 @@ def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: st
 
 
 def salvar_logo_loja(cfg: CatalogoDeliveryConfig, raw_b64: str, mime: str = "") -> None:
-    """Grava logotipo da loja (limite ~700 KB)."""
+    """Grava logotipo da loja (limite ~1,2 MB de arquivo ≈ ~1,6 MB base64)."""
     b64, mime_guess = _strip_data_url(raw_b64 or "")
     mime_final = (mime or mime_guess or "image/png").strip()[:40] or "image/png"
-    if len(b64) > 900_000:
+    if len(b64) > 1_700_000:
         b64 = ""
         mime_final = "image/png"
     cfg.logo_base64 = b64
