@@ -1162,7 +1162,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.05** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.06** · **loja v9.91**
+
+### 🩹 Caixa fechar — 500 (fiado_baixas_wizard) (18/07 · **teste v10.06**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
+| **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
+| **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
 ### WIP — Catálogo delivery GM Agro **v10.05** (18/07/2026)
 
