@@ -19347,6 +19347,15 @@ def api_produtos_cadastro_estoque_movimentos(request):
                             "fornecedor": str(r.get("fornecedor") or "—")[:200],
                             "preco_pago": pp,
                             "data": str(det.get("data") or ""),
+                            # Número da NF pra casar o kardex (não só a data)
+                            "numero_doc": str(
+                                r.get("numero_doc")
+                                or det.get("documento")
+                                or det.get("numero_doc")
+                                or det.get("numero")
+                                or det.get("numero_nf")
+                                or ""
+                            )[:120],
                         }
                     )
             compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
