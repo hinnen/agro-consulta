@@ -264,7 +264,8 @@ class SessaoCaixa(models.Model):
     """Turno de caixa: abertura com fundo de troco; vendas podem ser vinculadas até o fechamento."""
 
     class PontoCaixa(models.TextChoices):
-        GAVETA = "gaveta", "Caixa Gaveta"
+        GAVETA = "gaveta", "Caixa Gaveta (Centro)"
+        VILA = "vila", "Caixa Vila Elias"
         NOTEBOOK = "notebook", "Caixa Notebook"
         TESTE = "teste", "Caixa Teste"
 
@@ -293,7 +294,7 @@ class SessaoCaixa(models.Model):
         choices=PontoCaixa.choices,
         default=PontoCaixa.GAVETA,
         db_index=True,
-        help_text="Ponto físico do turno: gaveta (principal), notebook (satélite) ou teste.",
+        help_text="Ponto físico do turno: gaveta Centro, Vila Elias, notebook (satélite) ou teste.",
     )
     sessao_principal = models.ForeignKey(
         "self",

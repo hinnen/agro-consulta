@@ -70,6 +70,7 @@ from .caixa_util import (
     ultimo_fechamento_sugestao_abertura,
     obter_caixa_pai_aberto,
     obter_caixa_gaveta_aberto,
+    obter_caixa_vila_aberto,
     obter_caixa_teste_aberto,
     normalizar_ponto_caixa,
     rotulo_ponto_caixa,
@@ -81,12 +82,17 @@ from .caixa_util import (
     PONTO_CAIXA_GAVETA,
     PONTO_CAIXA_NOTEBOOK,
     PONTO_CAIXA_TESTE,
+    PONTO_CAIXA_VILA,
     PONTOS_CAIXA_ABERTURA,
     qtd_caixas_abertos,
     qtd_caixas_operacional_abertos,
     qtd_caixas_teste_abertos,
     filtrar_sessoes_operacional,
     filtrar_sessoes_teste,
+    filtrar_sessoes_por_deposito,
+    deposito_caixa_browser,
+    sincronizar_deposito_com_ponto_caixa,
+    ponto_pai_de_deposito,
     CEDULAS_DENOMINACOES_CAIXA,
     listar_fiado_vendas_conferencia_caixa,
     listar_fiado_baixas_conferencia_caixa,
@@ -9759,7 +9765,10 @@ def caixa_painel(request):
         else:
             ctx["sessoes_abertas"] = montar_cards_caixas_abertos(sessoes_todos)
             ctx["sessao_local"] = _obter_sessao_caixa_aberta(request)
-            sessoes_op = filtrar_sessoes_operacional(sessoes_todos)
+            dep_painel = deposito_caixa_browser(request)
+            sessoes_op = filtrar_sessoes_por_deposito(sessoes_todos, dep_painel)
+            ctx["loja_painel_label"] = "Vila Elias" if dep_painel == "vila" else "Centro"
+            ctx["deposito_painel"] = dep_painel
             linhas_agg = linhas_conferencia_agregada(
                 sessoes_op or [], todas_formas=False
             )
@@ -10139,16 +10148,23 @@ def caixa_abrir(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
         return redirect("caixa_painel")
     gaveta_aberta = obter_caixa_gaveta_aberto()
+    vila_aberta = obter_caixa_vila_aberto()
     teste_aberto = obter_caixa_teste_aberto()
+    dep_browser = deposito_caixa_browser(request)
     if request.method == "POST":
         ponto = normalizar_ponto_caixa(request.POST.get("ponto_caixa"))
 
         if ponto == PONTO_CAIXA_NOTEBOOK:
-            gaveta = gaveta_aberta or obter_caixa_gaveta_aberto()
-            if not gaveta:
+            # Notebook satélite do caixa pai da loja deste aparelho (Centro ou Vila)
+            dep_nb = (request.POST.get("deposito_notebook") or dep_browser or "centro").strip().lower()
+            if dep_nb not in ("centro", "vila"):
+                dep_nb = dep_browser if dep_browser in ("centro", "vila") else "centro"
+            pai = obter_caixa_pai_aberto(dep_nb)
+            if not pai:
+                rot = "Vila Elias" if dep_nb == "vila" else "Gaveta (Centro)"
                 messages.error(
                     request,
-                    "Abra o Caixa Gaveta primeiro. O notebook usa o mesmo turno da gaveta.",
+                    f"Abra o Caixa {rot} primeiro. O notebook usa o mesmo turno dessa loja.",
                 )
                 return redirect("caixa_abrir")
             pin = (request.POST.get("pin_vincular") or "").strip()
@@ -10156,7 +10172,8 @@ def caixa_abrir(request):
             if not ok_pin:
                 messages.error(request, err_pin)
                 return redirect("caixa_abrir")
-            definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, gaveta.pk)
+            definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, pai.pk)
+            sincronizar_deposito_com_ponto_caixa(request, getattr(pai, "ponto_caixa", PONTO_CAIXA_GAVETA))
             limpar_navegador_host_mp_point(request)
             op = rotulo_operador_pin(pin)
             if op:
@@ -10164,7 +10181,7 @@ def caixa_abrir(request):
                 request.session.modified = True
             messages.success(
                 request,
-                f"Caixa Notebook vinculado à Gaveta #{gaveta.pk}.",
+                f"Caixa Notebook vinculado a {rotulo_ponto_caixa(pai.ponto_caixa)} #{pai.pk}.",
             )
             return redirect("home")
 
@@ -10172,7 +10189,14 @@ def caixa_abrir(request):
             if gaveta_aberta or obter_caixa_gaveta_aberto():
                 messages.error(
                     request,
-                    "O Caixa Gaveta já está aberto. Use o Notebook para outro computador.",
+                    "O Caixa Gaveta (Centro) já está aberto. Use o Notebook para outro computador do Centro.",
+                )
+                return redirect("caixa_abrir")
+        elif ponto == PONTO_CAIXA_VILA:
+            if vila_aberta or obter_caixa_vila_aberto():
+                messages.error(
+                    request,
+                    "O Caixa Vila Elias já está aberto. Use o Notebook para outro computador da Vila.",
                 )
                 return redirect("caixa_abrir")
         elif ponto == PONTO_CAIXA_TESTE:
@@ -10193,9 +10217,12 @@ def caixa_abrir(request):
             ponto_caixa=ponto,
         )
         definir_ponto_operacao_browser(request, ponto, s.pk)
+        sincronizar_deposito_com_ponto_caixa(request, ponto)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
             marcar_navegador_host_mp_point(request)
-        if ponto == PONTO_CAIXA_GAVETA:
+        else:
+            limpar_navegador_host_mp_point(request)
+        if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA):
             _limpar_rascunho_conferencia_caixa(request)
         rotulo = rotulo_ponto_caixa(ponto)
         messages.success(
@@ -10205,18 +10232,25 @@ def caixa_abrir(request):
         return redirect("home")
 
     gaveta_aberta = obter_caixa_gaveta_aberto()
+    vila_aberta = obter_caixa_vila_aberto()
     teste_aberto = obter_caixa_teste_aberto()
+    pai_browser = obter_caixa_pai_aberto(dep_browser)
     return render(
         request,
         "produtos/caixa_abrir.html",
         {
             "sugestao_fechamento": ultimo_fechamento_sugestao_abertura(ponto=PONTO_CAIXA_GAVETA),
+            "sugestao_fechamento_vila": ultimo_fechamento_sugestao_abertura(ponto=PONTO_CAIXA_VILA),
             "gaveta_aberta": gaveta_aberta,
             "gaveta_usuario": usuario_label_sessao_caixa(gaveta_aberta) if gaveta_aberta else "",
+            "vila_aberta": vila_aberta,
+            "vila_usuario": usuario_label_sessao_caixa(vila_aberta) if vila_aberta else "",
             "teste_aberto": teste_aberto,
             "pode_abrir_gaveta": not gaveta_aberta,
-            "pode_abrir_notebook": bool(gaveta_aberta),
+            "pode_abrir_vila": not vila_aberta,
+            "pode_abrir_notebook": bool(pai_browser),
             "pode_abrir_teste": not teste_aberto,
+            "deposito_browser": dep_browser,
             "qtd_caixas_operacional": qtd_caixas_operacional_abertos(),
             "qtd_caixas_teste": qtd_caixas_teste_abertos(),
             "pontos_caixa": PONTOS_CAIXA_ABERTURA,
@@ -10270,6 +10304,13 @@ def caixa_fechar(request):
 
     sessoes_operacional = filtrar_sessoes_operacional(sessoes)
     sessoes_teste = filtrar_sessoes_teste(sessoes)
+    dep_fechar = deposito_caixa_browser(request)
+    # Fechar em lote só a loja deste aparelho (Centro ou Vila) — não mistura as duas
+    sessoes_lote = filtrar_sessoes_por_deposito(sessoes, dep_fechar)
+    if not sessoes_lote and sessoes_operacional:
+        # Fallback: se não há sessão do depósito atual, mantém lista vazia no lote
+        # (operador fecha a outra loja trocando Loja no BI ou fecha um a um)
+        pass
     cards = montar_cards_caixas_abertos(sessoes)
 
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
@@ -10315,25 +10356,26 @@ def caixa_fechar(request):
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
             return redirect("caixa_fechar")
-        # Fechar todos — só turno operacional (gaveta; notebooks no mesmo PK)
-        if not sessoes_operacional:
+        # Fechar todos — só a loja deste aparelho (Centro ou Vila Elias)
+        if not sessoes_lote:
             messages.error(
                 request,
-                "Nenhum caixa operacional aberto. Feche o Caixa Teste pelo bloco lateral, se for o caso.",
+                "Nenhum caixa desta loja aberto para fechar em lote. "
+                "Confira o seletor Loja no BI (Centro × Vila) ou feche um a um nos cartões.",
             )
             return redirect("caixa_fechar")
         pin_f = (request.POST.get("pin") or "").strip()
-        precisa_pin_lote = len(sessoes_operacional) > 1 or any(
-            not sessao_caixa_e_do_browser(request, s) for s in sessoes_operacional
+        precisa_pin_lote = len(sessoes_lote) > 1 or any(
+            not sessao_caixa_e_do_browser(request, s) for s in sessoes_lote
         )
         if precisa_pin_lote:
             ok_pin, err_pin = validar_pin_operador(pin_f)
             if not ok_pin:
                 messages.error(request, err_pin)
                 return redirect("caixa_fechar")
-        linhas = linhas_conferencia_agregada(sessoes_operacional, todas_formas=True)
-        fiado_vendas = listar_fiado_vendas_conferencia_caixa(sessoes_operacional)
-        fiado_baixas = listar_fiado_baixas_conferencia_caixa(sessoes_operacional)
+        linhas = linhas_conferencia_agregada(sessoes_lote, todas_formas=True)
+        fiado_vendas = listar_fiado_vendas_conferencia_caixa(sessoes_lote)
+        fiado_baixas = listar_fiado_baixas_conferencia_caixa(sessoes_lote)
         err_fiado = validar_conferencia_fiado_caixa(request.POST, fiado_vendas, fiado_baixas)
         if err_fiado:
             messages.error(request, err_fiado)
@@ -10345,7 +10387,7 @@ def caixa_fechar(request):
             obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
         agora = timezone.now()
         n = 0
-        for sessao in sessoes_operacional:
+        for sessao in sessoes_lote:
             ind = linhas_conferencia_fechar(sessao)
             conf_ind = {}
             for L in ind:
@@ -10363,17 +10405,18 @@ def caixa_fechar(request):
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
             n += 1
-        finalizar_entregas_pagas_pendentes_ao_fechar_caixa([s.pk for s in sessoes_operacional])
+        finalizar_entregas_pagas_pendentes_ao_fechar_caixa([s.pk for s in sessoes_lote])
         _limpar_rascunho_conferencia(request)
         request.session[CAIXA_LIMPAR_CONTAGEM_LS_SESSION_KEY] = True
         request.session.modified = True
-        messages.success(request, f"{n} caixa operacional fechado(s) de uma vez.")
+        loja_lbl = "Vila Elias" if dep_fechar == "vila" else "Centro"
+        messages.success(request, f"{n} caixa(s) da loja {loja_lbl} fechado(s).")
         return redirect("caixa_painel")
 
-    _sincronizar_turno_conferencia_caixa(request, sessoes_operacional)
+    _sincronizar_turno_conferencia_caixa(request, sessoes_lote)
 
     estado_conf = serializar_estado_conferencia_fechar(
-        sessoes_operacional if sessoes_operacional else []
+        sessoes_lote if sessoes_lote else []
     )
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
     linhas_com_movimento = []
@@ -10391,10 +10434,9 @@ def caixa_fechar(request):
     raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
     cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
     fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes)
-    fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes)
     fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
-        listar_fiado_vendas_conferencia_caixa(sessoes_operacional),
-        listar_fiado_baixas_conferencia_caixa(sessoes_operacional),
+        listar_fiado_vendas_conferencia_caixa(sessoes_lote),
+        listar_fiado_baixas_conferencia_caixa(sessoes_lote),
     )
 
     return render(
@@ -10402,12 +10444,15 @@ def caixa_fechar(request):
         "produtos/caixa_fechar.html",
         {
             "sessoes_abertas": cards,
-            "sessoes_operacional": sessoes_operacional,
+            "sessoes_operacional": sessoes_lote,
+            "sessoes_operacional_todas": sessoes_operacional,
             "sessoes_teste": sessoes_teste,
+            "deposito_fechar": dep_fechar,
+            "loja_fechar_label": "Vila Elias" if dep_fechar == "vila" else "Centro",
             "qtd_caixas": len(sessoes),
-            "qtd_caixas_operacional": len(sessoes_operacional),
+            "qtd_caixas_operacional": len(sessoes_lote),
             "qtd_caixas_teste": len(sessoes_teste),
-            "tem_caixa_operacional": bool(sessoes_operacional),
+            "tem_caixa_operacional": bool(sessoes_lote),
             "linhas_com_movimento": linhas_com_movimento,
             "linhas_sem_movimento": linhas_sem_movimento,
             "tot_esperado_dinheiro": str(tot_esperado_din),
@@ -10418,7 +10463,7 @@ def caixa_fechar(request):
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
             "conferencia_turno_json": json.dumps(
-                _turno_sessoes_operacional_key(sessoes_operacional), ensure_ascii=False
+                _turno_sessoes_operacional_key(sessoes_lote), ensure_ascii=False
             ),
             "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
             "fiado_vendas_wizard": fiado_vendas_wizard,
@@ -22240,6 +22285,16 @@ def _persistir_venda_agro(
                 dep_v = normalizar_deposito(raw_dep)
         else:
             dep_v = resolver_deposito_request(request)
+        # Sessão de caixa manda no depósito (evita venda Vila no caixa Centro)
+        if sessao is not None:
+            try:
+                from produtos.caixa_util import deposito_de_ponto_caixa
+
+                dep_sess = deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
+                if dep_sess in ("centro", "vila"):
+                    dep_v = dep_sess
+            except Exception:
+                pass
         if dep_v not in ("centro", "vila"):
             dep_v = "centro"
 
