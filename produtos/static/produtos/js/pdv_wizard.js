@@ -36,19 +36,38 @@
         }
         if (link) {
             if (aberto) {
-                link.textContent = 'Caixa ' + bootstrap.caixa.id;
+                var cid = bootstrap.caixa && bootstrap.caixa.id;
+                link.textContent = cid ? 'Caixa ' + cid : 'Caixa aberto';
                 link.title = 'Painel do caixa — turno aberto';
+                link.classList.remove('bg-amber-100', 'text-amber-950', 'border-amber-400', 'border-2');
+                link.classList.add('bg-emerald-100', 'text-emerald-900', 'border', 'border-emerald-200');
             } else {
                 link.textContent = 'Caixa fechado';
                 link.title = 'Caixa fechado — abra o turno para vender';
+                link.classList.remove('bg-emerald-100', 'text-emerald-900', 'border-emerald-200');
+                link.classList.add('bg-amber-100', 'text-amber-950', 'border-2', 'border-amber-400');
             }
         }
+    }
+
+    function atualizarBadgeDeposito(depBoot) {
+        if (!depBoot || typeof depBoot !== 'object') return;
+        bootstrap.pdvDeposito = depBoot;
+        var badge = document.getElementById('pdv-deposito-badge');
+        if (!badge) return;
+        var label = depBoot.estoqueAtivoLabel || ('Estoque: ' + (depBoot.depositoLabel || 'Centro'));
+        badge.textContent = label;
+        var isVila = String(depBoot.deposito || '') === 'vila';
+        badge.className = isVila
+            ? 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-slate-400 bg-slate-100 text-slate-800'
+            : 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-emerald-300 bg-emerald-50 text-emerald-900';
+        badge.title = 'Depósito que este PDV baixa no estoque. Troque na home (Loja).';
     }
 
     function refreshCaixaBootstrap() {
         var home = String(urls.pdvWizardHome || '').trim();
         if (!home) return Promise.resolve(caixaAbertoParaVenda());
-        return fetch(home, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
+        return fetch(home, { credentials: 'same-origin', headers: { Accept: 'text/html' }, cache: 'no-store' })
             .then(function (r) {
                 return r.ok ? r.text() : '';
             })
@@ -60,8 +79,11 @@
                 var data = JSON.parse(el.textContent || '{}');
                 if (data && data.caixa) {
                     bootstrap.caixa = data.caixa;
-                    atualizarUiAvisoCaixa();
                 }
+                if (data && data.pdvDeposito) {
+                    atualizarBadgeDeposito(data.pdvDeposito);
+                }
+                atualizarUiAvisoCaixa();
                 return caixaAbertoParaVenda();
             })
             .catch(function () {
@@ -929,6 +951,11 @@
 
     function tryAddProductFromSearch(produto, opts) {
         opts = opts || {};
+        if (!caixaAbertoParaVenda()) {
+            showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
+            atualizarUiAvisoCaixa();
+            return false;
+        }
         invalidatePendingProductSearch();
         var qty = opts.qty != null ? opts.qty : 1;
         var explicitPick = !!opts.explicitPick;
@@ -2657,6 +2684,9 @@
     }
 
     function canAdvance(state, computed) {
+        if (!caixaAbertoParaVenda()) {
+            return MSG_CAIXA_FECHADO_VENDA;
+        }
         if (isFiadoCobrancaAtiva(state)) {
             if (state.currentStep === 'pagamento') {
                 var epFi = erroValidacaoPagamento(state, computed);
@@ -11265,22 +11295,25 @@
         });
 
         dom.btnNext.addEventListener('click', function () {
-            var state = State.getState();
-            var computed = State.getComputed();
-            if (state.currentStep === 'entrega') {
-                onEntregaBtnNext();
-                return;
-            }
-            var validation = canAdvance(state, computed);
-            if (validation) {
-                alert(validation);
-                return;
-            }
-            var target = nextStep(state, computed);
-            if (target === 'pagamento' && state.currentStep === 'produtos') {
-                marcarVendaBalcaoSemEntrega();
-            }
-            if (target) State.setCurrentStep(target);
+            ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+                if (!caixaOk) return;
+                var state = State.getState();
+                var computed = State.getComputed();
+                if (state.currentStep === 'entrega') {
+                    onEntregaBtnNext();
+                    return;
+                }
+                var validation = canAdvance(state, computed);
+                if (validation) {
+                    alert(validation);
+                    return;
+                }
+                var target = nextStep(state, computed);
+                if (target === 'pagamento' && state.currentStep === 'produtos') {
+                    marcarVendaBalcaoSemEntrega();
+                }
+                if (target) State.setCurrentStep(target);
+            });
         });
 
         dom.quickClientChange.addEventListener('click', function () {

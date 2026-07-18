@@ -84,6 +84,8 @@
         },
         location.origin
       );
+      // Avisa o PDV pai para atualizar badge estoque + aviso caixa fechado
+      window.top.postMessage({ type: 'agro-pdv-caixa-changed' }, location.origin);
     } catch (_) {}
   }
 

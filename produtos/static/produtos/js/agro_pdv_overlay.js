@@ -247,6 +247,14 @@
           applyMeta(d);
           return;
         }
+        if (d.type === 'agro-pdv-caixa-changed') {
+          try {
+            if (typeof window.AgroPdvRefreshCaixa === 'function') {
+              window.AgroPdvRefreshCaixa();
+            }
+          } catch (_) {}
+          return;
+        }
         if (d.type === 'agro-open-inapp-tab' && d.href && openFlag) {
           try {
             var p = new URL(d.href, location.origin).pathname.toLowerCase();
