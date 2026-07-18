@@ -297,8 +297,8 @@ def catalogo_gestao_view(request):
             else:
                 f = request.FILES.get("logo_loja")
                 if f:
-                    if f.size > 700 * 1024:
-                        erro = "Logo muito grande (máx. ~700 KB)."
+                    if f.size > 1200 * 1024:
+                        erro = "Logo muito grande (máx. ~1,2 MB)."
                     else:
                         import base64
 

@@ -27,13 +27,13 @@
       <p class="text-xs font-black uppercase text-slate-500">Logotipo (topo do catálogo)</p>
       <div class="flex items-center gap-3">
         {% if config.logo_url %}
-        <img src="{{ config.logo_url }}" alt="" class="w-14 h-14 rounded-xl object-contain bg-white border border-slate-200">
+        <img src="{{ config.logo_url }}" alt="" class="h-12 max-w-[11rem] rounded-xl object-contain bg-white border border-slate-200 p-1">
         {% else %}
         <div class="w-14 h-14 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-black text-lg">?</div>
         {% endif %}
         <div class="min-w-0 flex-1 space-y-1.5">
           <input type="file" name="logo_loja" accept="image/*" class="w-full text-xs">
-          <p class="text-[0.65rem] text-slate-500 font-semibold">PNG/JPG · máx. ~700 KB · aparece antes do nome</p>
+          <p class="text-[0.65rem] text-slate-500 font-semibold">PNG/JPG · máx. ~1,2 MB · formato largo (paisagem)</p>
           {% if config.logo_url %}
           <label class="flex items-center gap-2 text-xs font-bold text-red-700">
             <input type="checkbox" name="remover_logo" value="1" class="w-4 h-4"> Remover logo

@@ -103,14 +103,17 @@
     .fab-wa:active { transform: scale(0.94); }
     .fab-wa svg { width: 1.85rem; height: 1.85rem; display: block; }
     .logo-loja {
-      width: 5.25rem;
-      height: 5.25rem;
-      border-radius: 1.25rem;
+      width: auto;
+      max-width: min(12.5rem, 48vw);
+      height: 3.35rem;
+      border-radius: 0.85rem;
       object-fit: contain;
+      object-position: left center;
       background: rgba(255, 255, 255, 0.97);
       border: 2px solid rgba(255, 255, 255, 0.55);
       box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
       flex-shrink: 0;
+      padding: 0.2rem 0.35rem;
     }
     .card-rota {
       display: flex;
