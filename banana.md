@@ -1158,7 +1158,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v9.98** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.01** · **loja v9.91**
 
 ### 🩹 Entrada NF — histórico C1–C3 não duplica a própria nota (18/07 · **teste v9.97**)
 
@@ -1184,7 +1184,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Autorizar** | *«pode subir Compras UI etapa 1»* + **99738595** |
 | **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
 
-### 🩹 Cadastro — aba 9 histórico só o que mudou (18/07 · **teste**)
+### 🩹 Cadastro — aba 9 histórico só o que mudou (18/07 · **teste v10.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
