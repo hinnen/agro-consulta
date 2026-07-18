@@ -1204,14 +1204,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.15** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.16** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · migrate `0058` (local OK; Render aplica no deploy) |
+| **UX aba 10** | Grade compacta + **botão +** cria categoria/sub **dentro do modal** (sem nova aba) |
+| **API** | `POST /catalogo/api/categorias/criar/` (staff) |
+| **Erro gestão** | `rotulo_loja_1` = falta migrate 0058 — rodou local; teste Render após deploy |
+| **Renan testar** | Aba Delivery → **+** em Categoria/Sub → criar → já seleciona · Ctrl+F5 |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.15** (18/07/2026) *(histórico — ver v10.16)*
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ push `teste` |
-| **UX aba 10** | Grade compacta no modal: cat+sub+estoque · título+peso+ordem · desc+destaque+foto (menos scroll) |
-| **Base** | v10.12 categorias · 2 endereços · WhatsApp no fluxo |
-| **Renan testar** | Cadastro → aba Delivery: campos lado a lado · gestão cat/endereços · vitrine celular |
+| **UX aba 10** | Grade compacta no modal: cat+sub+estoque · título+peso+ordem · desc+destaque+foto |
 | **Produção** | **Não** |
 
 ### WIP — Catálogo delivery GM Agro **v10.12** (18/07/2026) *(histórico — ver v10.13)*

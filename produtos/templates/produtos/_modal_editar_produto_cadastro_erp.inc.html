@@ -760,19 +760,42 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          <label class="block min-w-0">
-            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Categoria</span>
-            <select id="edit-delivery-categoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
-              <option value="">— Sem categoria —</option>
-            </select>
-          </label>
-          <label class="block min-w-0">
-            <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Subcategoria</span>
-            <select id="edit-delivery-subcategoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
-              <option value="">— Sem subcategoria —</option>
-            </select>
-            <p class="text-[0.6rem] text-slate-500 mt-0.5 font-semibold truncate">Criar em <a href="/catalogo/gestao/" target="_blank" class="underline text-emerald-700">gestão</a></p>
-          </label>
+          <div class="min-w-0">
+            <div class="flex items-end gap-1.5">
+              <label class="block min-w-0 flex-1">
+                <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Categoria</span>
+                <select id="edit-delivery-categoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+                  <option value="">— Sem categoria —</option>
+                </select>
+              </label>
+              <button type="button" id="btn-delivery-nova-cat" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Nova categoria">+</button>
+            </div>
+            <div id="panel-delivery-nova-cat" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
+              <input type="text" id="input-delivery-nova-cat" maxlength="80" placeholder="Ex.: Cães" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
+              <div class="flex gap-1.5">
+                <button type="button" id="btn-delivery-salvar-cat" class="flex-1 min-h-[32px] rounded-lg bg-emerald-600 text-white text-xs font-black">Criar</button>
+                <button type="button" id="btn-delivery-cancelar-cat" class="px-2 min-h-[32px] rounded-lg border text-xs font-bold">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-end gap-1.5">
+              <label class="block min-w-0 flex-1">
+                <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Subcategoria</span>
+                <select id="edit-delivery-subcategoria" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
+                  <option value="">— Sem subcategoria —</option>
+                </select>
+              </label>
+              <button type="button" id="btn-delivery-nova-sub" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Nova subcategoria">+</button>
+            </div>
+            <div id="panel-delivery-nova-sub" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
+              <input type="text" id="input-delivery-nova-sub" maxlength="80" placeholder="Ex.: Adulto" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
+              <div class="flex gap-1.5">
+                <button type="button" id="btn-delivery-salvar-sub" class="flex-1 min-h-[32px] rounded-lg bg-emerald-600 text-white text-xs font-black">Criar</button>
+                <button type="button" id="btn-delivery-cancelar-sub" class="px-2 min-h-[32px] rounded-lg border text-xs font-bold">Cancelar</button>
+              </div>
+            </div>
+          </div>
           <label class="block min-w-0 sm:col-span-2 lg:col-span-1">
             <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Estoque negativo</span>
             <select id="edit-delivery-estoque-regra" class="w-full min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white">
@@ -2637,6 +2660,10 @@
   })();
 
   var _deliveryCatsCache = null;
+  function csrfDeliveryTok() {
+    var ck = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+    return ck ? decodeURIComponent(ck[1]) : '';
+  }
   function preencherSubsDelivery(catId, subIdSel) {
     var sub = document.getElementById('edit-delivery-subcategoria');
     if (!sub) return;
@@ -2653,28 +2680,53 @@
     }
     sub.innerHTML = opts;
   }
-  function carregarDeliveryCategorias(catId, subId) {
+  function aplicarListaDeliveryCats(list, catId, subId) {
     var sel = document.getElementById('edit-delivery-categoria');
     if (!sel) return;
-    function apply(list) {
-      _deliveryCatsCache = list || [];
-      var html = '<option value="">— Sem categoria —</option>';
-      _deliveryCatsCache.forEach(function (c) {
-        html += '<option value="' + c.id + '"' + (String(c.id) === String(catId || '') ? ' selected' : '') + '>' + (c.nome || '') + '</option>';
-      });
-      sel.innerHTML = html;
-      preencherSubsDelivery(catId || sel.value, subId);
-    }
-    if (_deliveryCatsCache) {
-      apply(_deliveryCatsCache);
+    _deliveryCatsCache = list || [];
+    var html = '<option value="">— Sem categoria —</option>';
+    _deliveryCatsCache.forEach(function (c) {
+      html += '<option value="' + c.id + '"' + (String(c.id) === String(catId || '') ? ' selected' : '') + '>' + (c.nome || '') + '</option>';
+    });
+    sel.innerHTML = html;
+    preencherSubsDelivery(catId || sel.value, subId);
+  }
+  function carregarDeliveryCategorias(catId, subId, force) {
+    var sel = document.getElementById('edit-delivery-categoria');
+    if (!sel) return;
+    if (_deliveryCatsCache && !force) {
+      aplicarListaDeliveryCats(_deliveryCatsCache, catId, subId);
       return;
     }
     fetch('/catalogo/api/categorias/', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        apply((j && j.categorias) || []);
+        aplicarListaDeliveryCats((j && j.categorias) || [], catId, subId);
       })
-      .catch(function () { apply([]); });
+      .catch(function () { aplicarListaDeliveryCats([], catId, subId); });
+  }
+  function criarDeliveryCategoriaInline(nome, parentId, onOk, onDone) {
+    fetch('/catalogo/api/categorias/criar/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfDeliveryTok() },
+      body: JSON.stringify({ nome: nome, parent_id: parentId || null })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.j || !res.j.ok) {
+          if (typeof alert !== 'undefined') alert((res.j && res.j.erro) || 'Não foi possível criar.');
+          return;
+        }
+        _deliveryCatsCache = res.j.categorias || [];
+        if (typeof onOk === 'function') onOk(res.j.categoria || {});
+      })
+      .catch(function () {
+        if (typeof alert !== 'undefined') alert('Falha de rede ao criar categoria.');
+      })
+      .finally(function () {
+        if (typeof onDone === 'function') onDone();
+      });
   }
   (function bindDeliveryCats() {
     var sel = document.getElementById('edit-delivery-categoria');
@@ -2683,6 +2735,81 @@
     sel.addEventListener('change', function () {
       preencherSubsDelivery(sel.value, '');
     });
+
+    function togglePanel(panelId, show) {
+      var p = document.getElementById(panelId);
+      if (!p) return;
+      p.classList.toggle('hidden', !show);
+    }
+
+    var btnCat = document.getElementById('btn-delivery-nova-cat');
+    var btnSub = document.getElementById('btn-delivery-nova-sub');
+    var panCat = document.getElementById('panel-delivery-nova-cat');
+    var panSub = document.getElementById('panel-delivery-nova-sub');
+    var inpCat = document.getElementById('input-delivery-nova-cat');
+    var inpSub = document.getElementById('input-delivery-nova-sub');
+
+    if (btnCat) {
+      btnCat.addEventListener('click', function () {
+        togglePanel('panel-delivery-nova-sub', false);
+        var open = panCat && panCat.classList.contains('hidden');
+        togglePanel('panel-delivery-nova-cat', open);
+        if (open && inpCat) { inpCat.value = ''; inpCat.focus(); }
+      });
+    }
+    if (btnSub) {
+      btnSub.addEventListener('click', function () {
+        if (!sel.value) {
+          if (typeof alert !== 'undefined') alert('Escolha ou crie a categoria primeiro.');
+          return;
+        }
+        togglePanel('panel-delivery-nova-cat', false);
+        var open = panSub && panSub.classList.contains('hidden');
+        togglePanel('panel-delivery-nova-sub', open);
+        if (open && inpSub) { inpSub.value = ''; inpSub.focus(); }
+      });
+    }
+    var cancelCat = document.getElementById('btn-delivery-cancelar-cat');
+    var cancelSub = document.getElementById('btn-delivery-cancelar-sub');
+    if (cancelCat) cancelCat.addEventListener('click', function () { togglePanel('panel-delivery-nova-cat', false); });
+    if (cancelSub) cancelSub.addEventListener('click', function () { togglePanel('panel-delivery-nova-sub', false); });
+
+    var salvarCat = document.getElementById('btn-delivery-salvar-cat');
+    if (salvarCat) {
+      salvarCat.addEventListener('click', function () {
+        var nome = (inpCat && inpCat.value || '').trim();
+        if (!nome) { if (typeof alert !== 'undefined') alert('Digite o nome da categoria.'); return; }
+        salvarCat.disabled = true;
+        criarDeliveryCategoriaInline(nome, null, function (cat) {
+          togglePanel('panel-delivery-nova-cat', false);
+          aplicarListaDeliveryCats(_deliveryCatsCache, cat.id, '');
+        }, function () { salvarCat.disabled = false; });
+      });
+    }
+    var salvarSub = document.getElementById('btn-delivery-salvar-sub');
+    if (salvarSub) {
+      salvarSub.addEventListener('click', function () {
+        var nome = (inpSub && inpSub.value || '').trim();
+        var parentId = sel.value;
+        if (!parentId) { if (typeof alert !== 'undefined') alert('Escolha a categoria primeiro.'); return; }
+        if (!nome) { if (typeof alert !== 'undefined') alert('Digite o nome da subcategoria.'); return; }
+        salvarSub.disabled = true;
+        criarDeliveryCategoriaInline(nome, parentId, function (cat) {
+          togglePanel('panel-delivery-nova-sub', false);
+          aplicarListaDeliveryCats(_deliveryCatsCache, parentId, cat.id);
+        }, function () { salvarSub.disabled = false; });
+      });
+    }
+    if (inpCat) {
+      inpCat.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); if (salvarCat) salvarCat.click(); }
+      });
+    }
+    if (inpSub) {
+      inpSub.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); if (salvarSub) salvarSub.click(); }
+      });
+    }
   })();
 
   bindClick('btn-excluir-somente-agro', function () {

@@ -173,6 +173,59 @@ def api_catalogo_categorias(request):
 
 @login_required(login_url="/admin/login/")
 @user_passes_test(_staff, login_url="/admin/login/")
+@require_POST
+def api_catalogo_categoria_criar(request):
+    """Cria categoria ou subcategoria sem sair do modal de produto (estilo iFood)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    nome = (payload.get("nome") or request.POST.get("nome") or "").strip()[:80]
+    if not nome:
+        return JsonResponse({"ok": False, "erro": "Informe o nome."}, status=400)
+    parent = None
+    parent_raw = payload.get("parent_id") if "parent_id" in payload else request.POST.get("parent_id")
+    if parent_raw not in (None, "", 0, "0"):
+        try:
+            parent = CatalogoDeliveryCategoria.objects.filter(
+                pk=int(parent_raw), parent__isnull=True, ativo=True
+            ).first()
+        except (TypeError, ValueError):
+            parent = None
+        if parent is None:
+            return JsonResponse(
+                {"ok": False, "erro": "Categoria pai inválida. Escolha a categoria principal primeiro."},
+                status=400,
+            )
+    try:
+        ordem = int(payload.get("ordem") or request.POST.get("ordem") or 0)
+    except (TypeError, ValueError):
+        ordem = 0
+    cat = CatalogoDeliveryCategoria.objects.create(
+        nome=nome,
+        slug=slugify_categoria(nome),
+        ordem=max(0, min(ordem, 9999)),
+        ativo=True,
+        parent=parent,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "categoria": {
+                "id": cat.pk,
+                "nome": cat.nome,
+                "slug": cat.slug,
+                "parent_id": cat.parent_id,
+            },
+            "categorias": listar_categorias_arvore(so_ativas=True),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_staff, login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def catalogo_gestao_view(request):
     cfg = obter_config_catalogo()
