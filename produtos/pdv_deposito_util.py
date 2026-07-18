@@ -105,11 +105,85 @@ def deposito_da_venda(venda) -> str:
     return deposito_padrao_env()
 
 
+def normalizar_confirmacao_loja(texto) -> str | None:
+    """Texto digitado pelo operador → centro | vila | None."""
+    import re
+
+    t = str(texto or "").strip().lower()
+    t = re.sub(r"[^a-z0-9\s]", "", t)
+    t = " ".join(t.split())
+    if t in ("centro", "central", "loja centro"):
+        return DEPOSITO_CENTRO
+    if t in ("vila", "vila elias", "vilas", "vilaelias"):
+        return DEPOSITO_VILA
+    return None
+
+
+def confirmacao_loja_bate(texto, deposito_esperado: str) -> bool:
+    got = normalizar_confirmacao_loja(texto)
+    return got is not None and got == normalizar_deposito(deposito_esperado)
+
+
+def palavra_confirmacao_loja(deposito: str) -> str:
+    return "vila" if normalizar_deposito(deposito) == DEPOSITO_VILA else "centro"
+
+
+def trava_loja_por_caixa(request: HttpRequest | None) -> dict | None:
+    """
+    Com caixa operacional aberto neste navegador, a loja fica travada no depósito do turno.
+    Caixa Teste não trava (turno isolado).
+    """
+    if request is None:
+        return None
+    try:
+        from produtos.caixa_util import (
+            PONTO_CAIXA_GAVETA,
+            PONTO_CAIXA_NOTEBOOK,
+            PONTO_CAIXA_TESTE,
+            PONTO_CAIXA_VILA,
+            normalizar_ponto_caixa,
+            obter_sessao_caixa_aberta_request,
+        )
+    except Exception:
+        return None
+    s = obter_sessao_caixa_aberta_request(request)
+    if not s:
+        return None
+    p = normalizar_ponto_caixa(getattr(s, "ponto_caixa", None))
+    if p == PONTO_CAIXA_TESTE:
+        return None
+    if p == PONTO_CAIXA_VILA:
+        dep = DEPOSITO_VILA
+    elif p == PONTO_CAIXA_GAVETA:
+        dep = DEPOSITO_CENTRO
+    elif p == PONTO_CAIXA_NOTEBOOK:
+        dep = resolver_deposito_request(request)
+    else:
+        dep = DEPOSITO_CENTRO
+    return {
+        "travado": True,
+        "deposito": dep,
+        "depositoLabel": rotulo_deposito(dep),
+        "lojaId": loja_id_de_deposito(dep),
+        "sessaoPk": int(s.pk),
+        "rotulo": f"Travado pelo caixa #{s.pk}",
+        "estoqueAtivoLabel": f"Travado: {rotulo_deposito(dep)} · caixa #{s.pk}",
+    }
+
+
 def bootstrap_deposito(request: HttpRequest | None) -> dict:
     dep = resolver_deposito_request(request)
-    return {
+    trava = trava_loja_por_caixa(request)
+    if trava and trava.get("deposito") in DEPOSITOS_VALIDOS:
+        dep = trava["deposito"]
+    out = {
         "deposito": dep,
         "depositoLabel": rotulo_deposito(dep),
         "lojaId": loja_id_de_deposito(dep),
         "estoqueAtivoLabel": f"Estoque: {rotulo_deposito(dep)}",
+        "caixaTravado": bool(trava),
+        "trava": trava,
     }
+    if trava:
+        out["estoqueAtivoLabel"] = trava.get("estoqueAtivoLabel") or out["estoqueAtivoLabel"]
+    return out

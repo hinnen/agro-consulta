@@ -599,6 +599,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Gaveta (Centro)** = turno principal do Centro · **Vila Elias** (`ponto_caixa=vila`) = turno próprio da Vila · **Notebook** = satélite do pai da loja do aparelho · **Teste** = isolado, fora do lote.
 - Painel «todos» e fechamento em lote: **só a loja do seletor** (Centro × Vila) — não misturam.
 - Abrir caixa alinha o seletor de loja do PDV; venda usa depósito do `ponto_caixa` da sessão.
+- **Antiburro (v10.04):** abrir Gaveta/Vila e trocar Loja no BI exige digitar `centro` ou `vila`; com caixa aberto o seletor fica travado.
 - MP Point automático: só Gaveta Centro / Teste (não Vila).
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
@@ -1161,7 +1162,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.03** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.04** · **loja v9.91**
+
+### 🔒 Vila Elias — antiburro digitar loja (18/07 · **teste v10.04**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no Render |
+| **Feito** | Abrir Gaveta/Vila: digitar **centro** ou **vila** · trocar Loja no BI/atalhos: mesmo digitar · com caixa aberto seletor **travado** |
+| **Arquivos** | `pdv_deposito_util.py` · `views.py` · `caixa_abrir.html` · `agro_loja_confirm.html` · `dashboard_gerencial.html` · `home.html` |
+| **Validar** | Abrir caixa Vila digitando `vila` · tentar trocar BI sem digitar → bloqueia · com caixa aberto seletor desabilitado |
 
 ### 💰 Vila Elias — Caixa separado Centro × Vila (18/07 · **teste v10.03**)
 

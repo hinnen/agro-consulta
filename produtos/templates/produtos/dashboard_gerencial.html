@@ -1521,11 +1521,18 @@ document.addEventListener("keydown", function (e) {
     });
     window.agroNovaSaidaOnSuccess = function () { /* permanece no BI após Nova saída */ };
 </script>
+{% include "produtos/includes/agro_loja_confirm.html" %}
+{{ pdv_deposito_boot|json_script:"dash-pdv-deposito-boot" }}
 <script>
 (function () {
   var LS_LOJA = 'agro_pdv_loja_id';
   var COOKIE_DEP = 'agro_pdv_deposito';
   var API = '{{ api_pdv_deposito_url|default:"/api/pdv/deposito/"|escapejs }}';
+  var BOOT = {};
+  try {
+    var bootEl = document.getElementById('dash-pdv-deposito-boot');
+    if (bootEl) BOOT = JSON.parse(bootEl.textContent || '{}') || {};
+  } catch (eBoot) { BOOT = {}; }
   function csrf() {
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
     if (el && el.value) return el.value;
@@ -1537,42 +1544,104 @@ document.addEventListener("keydown", function (e) {
       document.cookie = COOKIE_DEP + '=' + encodeURIComponent(dep) + ';path=/;max-age=34560000;SameSite=Lax';
     } catch (e0) {}
   }
-  function updateBadge(label, isVila) {
+  function updateBadge(label, isVila, travado) {
     var b = document.getElementById('dash-agro-loja-badge');
     if (!b) return;
     b.textContent = label || 'Estoque: Centro';
+    if (travado) {
+      b.className = 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-amber-400 bg-amber-950/50 text-amber-100';
+      return;
+    }
     b.className = isVila
       ? 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-slate-400 bg-slate-700 text-slate-100'
       : 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-emerald-500/50 bg-emerald-950/40 text-emerald-200';
   }
-  function sync(lojaId) {
+  function aplicarTrava(sel, j) {
+    var travado = !!(j && (j.caixaTravado || (j.trava && j.trava.travado)));
+    var lojaId = String((j && j.lojaId) || (j && j.trava && j.trava.lojaId) || sel.value || '1');
+    sel.value = lojaId === '2' ? '2' : '1';
+    sel.disabled = travado;
+    sel.title = travado
+      ? ((j.trava && j.trava.rotulo) || 'Travado pelo caixa — feche o caixa para trocar')
+      : 'Unidade deste aparelho — Centro ou Vila Elias';
+    var label = (j && j.estoqueAtivoLabel) || (sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro');
+    updateBadge(label, sel.value === '2', travado);
+    try { localStorage.setItem(LS_LOJA, sel.value); } catch (e1) {}
+    setCookie(sel.value === '2' ? 'vila' : 'centro');
+  }
+  function sync(lojaId, confirmacao, done) {
+    var body = { loja_id: String(lojaId || '1') };
+    if (confirmacao) body.confirmacao = confirmacao;
     fetch(API, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ loja_id: String(lojaId || '1') }),
+      body: JSON.stringify(body),
     })
-      .then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (j) {
-        if (!j || !j.ok) return;
-        setCookie(j.deposito || 'centro');
-        updateBadge(j.estoqueAtivoLabel, String(j.deposito) === 'vila');
+      .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j || {} }; }); })
+      .then(function (pack) {
+        if (typeof done === 'function') done(pack.j, pack.status);
       })
-      .catch(function () {});
+      .catch(function () {
+        if (typeof done === 'function') done(null, 0);
+      });
   }
   function boot() {
     var sel = document.getElementById('dash-agro-loja');
     if (!sel) return;
-    try {
-      var v = localStorage.getItem(LS_LOJA);
-      if (v === '1' || v === '2') sel.value = v;
-    } catch (e1) {}
-    updateBadge(sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro', sel.value === '2');
-    sync(sel.value);
+    var bootData = BOOT || {};
+    var prev = sel.value;
+    if (bootData.caixaTravado && bootData.lojaId) {
+      aplicarTrava(sel, bootData);
+      prev = sel.value;
+    } else {
+      if (bootData.lojaId === '1' || bootData.lojaId === '2') {
+        sel.value = bootData.lojaId;
+      } else {
+        try {
+          var v = localStorage.getItem(LS_LOJA);
+          if (v === '1' || v === '2') sel.value = v;
+        } catch (e2) {}
+      }
+      prev = sel.value;
+      updateBadge(bootData.estoqueAtivoLabel || (sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro'), sel.value === '2', false);
+      sync(sel.value, null, function (j) {
+        if (j && j.ok) {
+          aplicarTrava(sel, j);
+          prev = sel.value;
+        }
+      });
+    }
     sel.addEventListener('change', function () {
-      try { localStorage.setItem(LS_LOJA, sel.value); } catch (e2) {}
-      updateBadge(sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro', sel.value === '2');
-      sync(sel.value);
+      if (sel.disabled) {
+        sel.value = prev;
+        return;
+      }
+      var next = sel.value;
+      var esperado = next === '2' ? 'vila' : 'centro';
+      function reverter() {
+        sel.value = prev;
+      }
+      if (!window.AgroLojaConfirm) {
+        reverter();
+        return;
+      }
+      window.AgroLojaConfirm.pedir({
+        esperado: esperado,
+        onCancel: reverter,
+        onOk: function (texto) {
+          sync(next, texto, function (j) {
+            if (j && j.ok) {
+              prev = next;
+              aplicarTrava(sel, j);
+            } else {
+              alert((j && j.erro) || 'Não foi possível trocar a loja.');
+              reverter();
+              if (j && j.caixaTravado) aplicarTrava(sel, j);
+            }
+          });
+        }
+      });
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
