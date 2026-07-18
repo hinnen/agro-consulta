@@ -1018,6 +1018,13 @@ class PedidoEntrega(models.Model):
     )
     cliente_nome = models.CharField(max_length=300)
     telefone = models.CharField(max_length=40, blank=True, default="")
+    origem = models.CharField(
+        max_length=24,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Ex.: pdv, catalogo — vazio = legado PDV.",
+    )
     endereco_linha = models.CharField(max_length=500, blank=True, default="")
     plus_code = models.CharField(max_length=120, blank=True, default="")
     referencia_rural = models.CharField(
@@ -1861,3 +1868,32 @@ class OrcamentoPdvAgro(models.Model):
 
     def __str__(self):
         return f"GMORC{self.orc_local_id} · {self.cliente_nome[:40]}"
+
+
+class CatalogoDeliveryConfig(models.Model):
+    """Identidade do catálogo delivery público (uma loja — GM Agro)."""
+
+    nome_loja = models.CharField(max_length=100, default="GM Agro")
+    whatsapp_contato = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="DDI+DDD+número, só dígitos",
+    )
+    mensagem_boas_vindas = models.TextField(blank=True, default="")
+    area_entrega = models.CharField(max_length=300, blank=True, default="")
+    endereco_loja = models.CharField(max_length=320, blank=True, default="")
+    cor_primaria = models.CharField(max_length=7, default="#059669")
+    cor_secundaria = models.CharField(max_length=7, default="#fff7ed")
+    publicado = models.BooleanField(
+        default=False,
+        help_text="Se desligado, o link público mostra «em breve» (staff ainda vê).",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração catálogo delivery"
+        verbose_name_plural = "Configuração catálogo delivery"
+
+    def __str__(self):
+        return self.nome_loja

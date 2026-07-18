@@ -2359,6 +2359,24 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     elif payload.get("validar_cadastro_minimo") or payload.get("novo_produto"):
         # Só no cadastro novo/modal completo — não no lápis PDV (poluía histórico — → Sim).
         ex.setdefault("permite_venda_estoque_negativo", True)
+    if "delivery" in payload:
+        from produtos.catalogo_delivery_util import normalizar_delivery
+
+        d_del = normalizar_delivery(payload.get("delivery"))
+        if d_del.get("ativo") or any(
+            (
+                d_del.get("titulo"),
+                d_del.get("descricao"),
+                d_del.get("imagem_base64"),
+                d_del.get("peso_texto"),
+                d_del.get("permitir_estoque_negativo"),
+                d_del.get("destaque"),
+                int(d_del.get("ordem") or 0) > 0,
+            )
+        ):
+            ex["delivery"] = d_del
+        else:
+            ex.pop("delivery", None)
     if "precos_por_forma" in payload:
         ppf = normalizar_precos_por_forma_payload(payload.get("precos_por_forma"))
         if ppf:
@@ -26216,6 +26234,7 @@ def api_entregas_listar(request):
                 {
                     "id": e.pk,
                     "status": e.status,
+                    "origem": getattr(e, "origem", "") or "",
                     "cliente_agro_id": e.cliente_agro_id,
                     "cliente_nome": e.cliente_nome,
                     "telefone": e.telefone,

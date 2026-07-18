@@ -1430,6 +1430,7 @@
       '<td class="p-1.5 align-middle font-mono text-xs font-black text-slate-600">' + esc(e.id) + '</td>' +
       '<td class="p-1.5 align-middle min-w-[132px] max-w-[200px]">' +
         '<div class="font-black text-sm text-slate-900 leading-tight">' + esc(e.cliente_nome) + '</div>' +
+        (String(e.origem || '') === 'catalogo' ? '<span class="inline-block mt-0.5 text-[9px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">Catálogo</span>' : '') +
         '<div class="text-xs font-mono font-semibold text-slate-600 mt-0.5">' + esc(e.telefone || '') + '</div>' +
         (e.operador ? '<div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">Op. ' + esc(e.operador) + '</div>' : '') +
       '</td>' +

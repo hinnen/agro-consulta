@@ -1162,7 +1162,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.04** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.05** · **loja v9.91**
+
+### WIP — Catálogo delivery GM Agro **v10.05** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Catálogo público `/catalogo/` dentro do SisVale · aba **10. Delivery** no cadastro produto · pedidos → `/entregas/` (origem `catalogo`) |
+| **Gestão loja** | `/catalogo/gestao/` (staff) — publicar, WhatsApp, cores |
+| **Regra estoque** | Só positivo **ou** forçar negativo (por produto) |
+| **Visual** | Estilo ração (emerald/orange), cards marca + peso |
+| **Migrate** | `0057_catalogo_delivery` (config + `PedidoEntrega.origem`) |
+| **Renan testar** | Cadastro → aba Delivery → marcar 1 ração → `/catalogo/gestao/` publicar → pedir teste → ver em Entregas |
+| **Produção** | **Não** — só teste até Renan pedir + senha |
+
 
 ### 🔒 Vila Elias — antiburro digitar loja (18/07 · **teste v10.04**)
 
