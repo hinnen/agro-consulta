@@ -12,11 +12,13 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from produtos.catalogo_delivery_util import (
     ErroPedidoCatalogo,
     agrupar_itens_por_categoria,
+    cards_home_catalogo,
     cliente_catalogo_json,
     criar_pedido_catalogo_delivery,
     listar_categorias_arvore,
     listar_itens_catalogo,
     obter_config_catalogo,
+    salvar_foto_categoria,
     slugify_categoria,
 )
 from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp, extrair_whatsapp_digits
@@ -45,15 +47,7 @@ def catalogo_delivery_view(request):
         )
     itens = listar_itens_catalogo(incluir_ocultos_estoque=False)
     secoes = agrupar_itens_por_categoria(itens)
-    cats_nav = [
-        {"slug": s["slug"], "nome": s["nome"]}
-        for s in secoes
-        if s["slug"] != "_sem" or s["produtos_sem_sub"] or s["subs"]
-    ]
-    # Inclui categorias cadastradas mesmo sem produto (nav vazia ok)
-    for c in listar_categorias_arvore(so_ativas=True):
-        if not any(x["slug"] == c["slug"] for x in cats_nav):
-            cats_nav.append({"slug": c["slug"], "nome": c["nome"]})
+    home_cats = cards_home_catalogo(itens)
     catalogo_json = json.dumps(
         [
             {
@@ -80,11 +74,11 @@ def catalogo_delivery_view(request):
             "config": cfg,
             "itens": itens,
             "secoes": secoes,
-            "cats_nav": cats_nav,
+            "home_cats": home_cats,
             "enderecos": cfg.enderecos_exibir(),
             "whatsapp_digits": wa,
             "catalogo_json": catalogo_json,
-            "catalogo_vazio": not itens,
+            "catalogo_vazio": not itens and not home_cats,
             "eh_staff": _staff(request.user),
         },
     )
@@ -226,6 +220,38 @@ def api_catalogo_categoria_criar(request):
 
 @login_required(login_url="/admin/login/")
 @user_passes_test(_staff, login_url="/admin/login/")
+@require_POST
+def api_catalogo_categoria_foto(request):
+    """Foto do card da categoria (home do catálogo)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    try:
+        pk = int(payload.get("id") or 0)
+    except (TypeError, ValueError):
+        pk = 0
+    cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
+    if not cat:
+        return JsonResponse({"ok": False, "erro": "Categoria não encontrada."}, status=404)
+    if payload.get("remover"):
+        salvar_foto_categoria(cat, "", "")
+    else:
+        salvar_foto_categoria(
+            cat,
+            str(payload.get("imagem_base64") or ""),
+            str(payload.get("imagem_mime") or ""),
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "categorias": listar_categorias_arvore(so_ativas=True),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_staff, login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def catalogo_gestao_view(request):
     cfg = obter_config_catalogo()
@@ -295,10 +321,37 @@ def catalogo_gestao_view(request):
             CatalogoDeliveryCategoria.objects.filter(pk=pk).delete()
             return redirect("/catalogo/gestao/?msg=cat")
 
+        if acao == "foto_categoria":
+            try:
+                pk = int(request.POST.get("cat_id") or 0)
+            except (TypeError, ValueError):
+                pk = 0
+            cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
+            if not cat:
+                erro = "Categoria inválida para foto."
+            elif request.POST.get("remover_foto"):
+                salvar_foto_categoria(cat, "", "")
+                return redirect("/catalogo/gestao/?msg=foto")
+            else:
+                f = request.FILES.get("cat_foto")
+                if not f:
+                    erro = "Escolha uma imagem."
+                elif f.size > 700 * 1024:
+                    erro = "Foto muito grande (máx. ~700 KB)."
+                else:
+                    import base64
+
+                    raw = f.read()
+                    mime = (getattr(f, "content_type", None) or "image/jpeg")[:40]
+                    salvar_foto_categoria(cat, base64.b64encode(raw).decode("ascii"), mime)
+                    return redirect("/catalogo/gestao/?msg=foto")
+
     if msg == "loja":
         msg = "Dados da loja salvos."
     elif msg == "cat":
         msg = "Categorias atualizadas."
+    elif msg == "foto":
+        msg = "Foto da categoria salva."
     else:
         msg = ""
 

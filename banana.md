@@ -1228,15 +1228,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.16** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.21** (18/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · migrate `0058` (local OK; Render aplica no deploy) |
-| **UX aba 10** | Grade compacta + **botão +** cria categoria/sub **dentro do modal** (sem nova aba) |
-| **API** | `POST /catalogo/api/categorias/criar/` (staff) |
-| **Erro gestão** | `rotulo_loja_1` = falta migrate 0058 — rodou local; teste Render após deploy |
-| **Renan testar** | Aba Delivery → **+** em Categoria/Sub → criar → já seleciona · Ctrl+F5 |
+| **Status** | ✅ push `teste` · migrate `0059` foto categoria |
+| **Home `/catalogo/`** | Cards grandes de categoria com foto → clique abre produtos · Voltar |
+| **Gestão** | Em cada categoria raiz: upload **Foto card** (máx. ~700 KB) |
+| **API** | `POST /catalogo/api/categorias/foto/` |
+| **Renan testar** | Gestão → foto em Cães/Gatos → vitrine home cards → entrar na cat · Ctrl+F5 |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.16** (18/07/2026) *(histórico — ver v10.21)*
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · migrate `0058` |
+| **UX aba 10** | Grade compacta + **botão +** cria categoria/sub no modal |
 | **Produção** | **Não** |
 
 ### WIP — Catálogo delivery GM Agro **v10.15** (18/07/2026) *(histórico — ver v10.16)*

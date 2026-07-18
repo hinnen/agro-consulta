@@ -25,22 +25,34 @@
     .hero-mesh {
       background: linear-gradient(145deg, #064e3b 0%, var(--cat-primary) 60%, #047857 100%);
     }
-    .cat-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-    .cat-scroll::-webkit-scrollbar { display: none; }
-    .chip {
-      flex-shrink: 0;
-      padding: 0.55rem 1rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      background: #f1f5f9;
-      color: #334155;
-      border: 2px solid transparent;
+    .card-cat {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      border-radius: 1.1rem;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgb(15 23 42 / 0.08);
+      transition: transform 0.15s ease;
     }
-    .chip.is-on {
-      background: color-mix(in srgb, var(--cat-primary) 12%, white);
-      color: #065f46;
-      border-color: var(--cat-primary);
+    .card-cat:active { transform: scale(0.98); }
+    .card-cat-img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+    }
+    .card-cat-ph {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: #047857;
+      background: linear-gradient(145deg, #ecfdf5, #bbf7d0);
     }
     .card-prod {
       background: #fff;
@@ -72,6 +84,23 @@
       color: #fff;
       box-shadow: 0 4px 14px rgb(22 163 74 / 0.35);
     }
+    .chip-sub {
+      flex-shrink: 0;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: #334155;
+      border: 2px solid transparent;
+    }
+    .chip-sub.is-on {
+      background: color-mix(in srgb, var(--cat-primary) 12%, white);
+      color: #065f46;
+      border-color: var(--cat-primary);
+    }
+    .cat-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .cat-scroll::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body class="text-slate-800 antialiased">
@@ -86,7 +115,7 @@
   {% if config.mensagem_boas_vindas %}
   <p class="mt-2 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
   {% else %}
-  <p class="mt-2 text-sm opacity-90 leading-snug">Escolha a ração · peça pelo celular · entregamos</p>
+  <p class="mt-2 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
   {% endif %}
 
   {% if enderecos %}
@@ -116,49 +145,73 @@
     class="w-full p-3.5 rounded-2xl border border-slate-200 shadow-md text-base bg-white focus:outline-none focus:ring-2 ring-primary" />
 </div>
 
-{% if cats_nav %}
-<nav id="nav-cats" class="sticky top-0 z-30 mt-3 bg-white/95 backdrop-blur border-y border-slate-100">
-  <div class="flex gap-2 overflow-x-auto cat-scroll px-3 py-2.5">
-    <button type="button" class="chip is-on cat-chip" data-cat="">Todas</button>
-    {% for c in cats_nav %}
-    <button type="button" class="chip cat-chip" data-cat="{{ c.slug }}">{{ c.nome }}</button>
-    {% endfor %}
-  </div>
-</nav>
-{% endif %}
-
 {% if catalogo_vazio %}
 <main class="px-4 py-14 text-center text-slate-600">
   <p class="text-lg font-bold">Catálogo em montagem</p>
-  <p class="text-sm mt-2">Em breve produtos disponíveis para delivery.</p>
+  <p class="text-sm mt-2">Em breve categorias e produtos para delivery.</p>
 </main>
 {% else %}
-<main class="px-3 py-4 space-y-6" id="grade-produtos">
-  {% for secao in secoes %}
-  <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">
-    <h2 class="text-base font-black text-slate-900 mb-2 px-0.5">{{ secao.nome }}</h2>
 
-    {% for sub in secao.subs %}
-    <div class="mb-4">
-      <h3 class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2 px-0.5">{{ sub.nome }}</h3>
-      <div class="space-y-2.5">
-        {% for p in sub.produtos %}
+{# —— HOME: cards de categoria —— #}
+<section id="home-categorias" class="px-3 pt-4 pb-2">
+  <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a categoria</h2>
+  <div class="grid grid-cols-2 gap-3">
+    {% for c in home_cats %}
+    <button type="button" class="card-cat cat-home-card" data-cat="{{ c.slug }}" data-nome="{{ c.nome }}">
+      {% if c.imagem %}
+      <img class="card-cat-img" src="{{ c.imagem }}" alt="{{ c.nome }}">
+      {% else %}
+      <div class="card-cat-ph">{{ c.nome|slice:":1" }}</div>
+      {% endif %}
+      <div class="px-2.5 py-2.5">
+        <p class="font-black text-slate-900 text-[0.95rem] leading-tight">{{ c.nome }}</p>
+        <p class="text-[0.7rem] font-semibold text-slate-500 mt-0.5">
+          {% if c.qtd %}{{ c.qtd }} produto{% if c.qtd != 1 %}s{% endif %}{% else %}Em breve{% endif %}
+        </p>
+      </div>
+    </button>
+    {% empty %}
+    <p class="col-span-2 text-sm text-slate-500 py-8 text-center">Nenhuma categoria cadastrada ainda.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{# —— LISTA de produtos (após escolher categoria ou buscar) —— #}
+<section id="view-produtos" class="hidden">
+  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
+    <button type="button" id="btn-voltar-cats" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
+    <h2 id="titulo-cat-atual" class="font-black text-slate-900 text-base truncate flex-1">Produtos</h2>
+  </div>
+  <nav id="nav-subs" class="hidden border-b border-slate-100">
+    <div class="flex gap-2 overflow-x-auto cat-scroll px-3 py-2">
+      <button type="button" class="chip-sub is-on sub-chip" data-sub="">Todas</button>
+    </div>
+  </nav>
+  <main class="px-3 py-4 space-y-6" id="grade-produtos">
+    {% for secao in secoes %}
+    <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">
+      {% for sub in secao.subs %}
+      <div class="mb-4 bloco-sub" data-sub="{{ sub.slug }}">
+        <h3 class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2 px-0.5">{{ sub.nome }}</h3>
+        <div class="space-y-2.5">
+          {% for p in sub.produtos %}
+          {% include "produtos/catalogo/_card_produto.html" with p=p %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      {% if secao.produtos_sem_sub %}
+      <div class="space-y-2.5 bloco-sub" data-sub="">
+        {% for p in secao.produtos_sem_sub %}
         {% include "produtos/catalogo/_card_produto.html" with p=p %}
         {% endfor %}
       </div>
-    </div>
+      {% endif %}
+    </section>
     {% endfor %}
-
-    {% if secao.produtos_sem_sub %}
-    <div class="space-y-2.5">
-      {% for p in secao.produtos_sem_sub %}
-      {% include "produtos/catalogo/_card_produto.html" with p=p %}
-      {% endfor %}
-    </div>
-    {% endif %}
-  </section>
-  {% endfor %}
-</main>
+    <p id="lista-vazia-cat" class="hidden text-center text-sm text-slate-500 py-10 font-semibold">Nenhum produto nesta categoria ainda.</p>
+  </main>
+</section>
 
 <div id="barra-carrinho" class="fixed bottom-0 inset-x-0 p-3 z-40 hidden" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
   <div class="shell">

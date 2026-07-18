@@ -1947,6 +1947,12 @@ class CatalogoDeliveryCategoria(models.Model):
         related_name="filhos",
         verbose_name="Categoria pai (se for subcategoria)",
     )
+    imagem_base64 = models.TextField(
+        blank=True,
+        default="",
+        help_text="Foto do card na home do catálogo (só categorias principais).",
+    )
+    imagem_mime = models.CharField(max_length=40, blank=True, default="image/jpeg")
 
     class Meta:
         ordering = ["ordem", "nome"]

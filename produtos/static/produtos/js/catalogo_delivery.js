@@ -103,42 +103,150 @@
     });
 
     var busca = document.getElementById("busca-catalogo");
+    var homeEl = document.getElementById("home-categorias");
+    var viewProd = document.getElementById("view-produtos");
+    var tituloCat = document.getElementById("titulo-cat-atual");
+    var navSubs = document.getElementById("nav-subs");
+    var listaVazia = document.getElementById("lista-vazia-cat");
+    var catAtual = "";
+    var subAtual = "";
+    var modoBusca = false;
 
-    function catChipAtiva() {
-      var on = document.querySelector(".cat-chip.is-on");
-      return on ? String(on.getAttribute("data-cat") || "") : "";
+    function mostrarHome() {
+      catAtual = "";
+      subAtual = "";
+      modoBusca = false;
+      if (homeEl) homeEl.classList.remove("hidden");
+      if (viewProd) viewProd.classList.add("hidden");
+      if (busca) busca.value = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function mostrarProdutos(titulo) {
+      if (homeEl) homeEl.classList.add("hidden");
+      if (viewProd) viewProd.classList.remove("hidden");
+      if (tituloCat) tituloCat.textContent = titulo || "Produtos";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function montarSubsDaCategoria(slug) {
+      if (!navSubs) return;
+      var wrap = navSubs.querySelector(".cat-scroll") || navSubs;
+      var nomes = {};
+      document.querySelectorAll('.secao-cat[data-cat="' + slug + '"] .bloco-sub').forEach(function (b) {
+        var s = String(b.getAttribute("data-sub") || "");
+        if (!s) return;
+        var h = b.querySelector("h3");
+        nomes[s] = h ? h.textContent.trim() : s;
+      });
+      var keys = Object.keys(nomes);
+      if (!keys.length) {
+        navSubs.classList.add("hidden");
+        wrap.innerHTML = "";
+        return;
+      }
+      var html = '<button type="button" class="chip-sub is-on sub-chip" data-sub="">Todas</button>';
+      keys.forEach(function (k) {
+        html +=
+          '<button type="button" class="chip-sub sub-chip" data-sub="' +
+          k +
+          '">' +
+          nomes[k] +
+          "</button>";
+      });
+      wrap.innerHTML = html;
+      navSubs.classList.remove("hidden");
+      wrap.querySelectorAll(".sub-chip").forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          wrap.querySelectorAll(".sub-chip").forEach(function (c) {
+            c.classList.remove("is-on");
+          });
+          chip.classList.add("is-on");
+          subAtual = String(chip.getAttribute("data-sub") || "");
+          aplicarFiltros();
+        });
+      });
     }
 
     function aplicarFiltros() {
       var q = String((busca && busca.value) || "")
         .toLowerCase()
         .trim();
-      var cat = catChipAtiva();
+      var algum = false;
       document.querySelectorAll(".produto-linha").forEach(function (el) {
         var nome = el.getAttribute("data-nome") || "";
+        var pc = el.getAttribute("data-cat") || "";
         var matchQ = !q || nome.indexOf(q) >= 0;
-        el.classList.toggle("hidden", !matchQ);
+        var matchCat = !catAtual || pc === catAtual;
+        var matchSub = true;
+        if (subAtual) {
+          var bloco = el.closest(".bloco-sub");
+          var bs = bloco ? String(bloco.getAttribute("data-sub") || "") : "";
+          matchSub = bs === subAtual;
+        }
+        var ok = matchQ && matchCat && matchSub;
+        el.classList.toggle("hidden", !ok);
+        if (ok) algum = true;
       });
       document.querySelectorAll(".secao-cat").forEach(function (sec) {
         var sc = String(sec.getAttribute("data-cat") || "");
-        var matchCat = !cat || sc === cat;
+        var matchCat = !catAtual || sc === catAtual;
         var visible = sec.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
         sec.classList.toggle("hidden", !(matchCat && visible));
       });
+      document.querySelectorAll(".bloco-sub").forEach(function (b) {
+        var visible = b.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
+        b.classList.toggle("hidden", !visible);
+      });
+      if (listaVazia) listaVazia.classList.toggle("hidden", algum);
     }
 
-    document.querySelectorAll(".cat-chip").forEach(function (chip) {
-      chip.addEventListener("click", function () {
-        document.querySelectorAll(".cat-chip").forEach(function (c) {
-          c.classList.remove("is-on");
-        });
-        chip.classList.add("is-on");
-        aplicarFiltros();
+    function abrirCategoria(slug, nome) {
+      modoBusca = false;
+      catAtual = slug || "";
+      subAtual = "";
+      if (busca) busca.value = "";
+      mostrarProdutos(nome || "Produtos");
+      montarSubsDaCategoria(catAtual);
+      aplicarFiltros();
+    }
+
+    document.querySelectorAll(".cat-home-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        abrirCategoria(
+          String(card.getAttribute("data-cat") || ""),
+          String(card.getAttribute("data-nome") || "")
+        );
       });
     });
 
+    var btnVoltar = document.getElementById("btn-voltar-cats");
+    if (btnVoltar) btnVoltar.addEventListener("click", mostrarHome);
+
     if (busca) {
-      busca.addEventListener("input", aplicarFiltros);
+      busca.addEventListener("input", function () {
+        var q = String(busca.value || "")
+          .toLowerCase()
+          .trim();
+        if (q) {
+          if (!modoBusca && (!viewProd || viewProd.classList.contains("hidden"))) {
+            modoBusca = true;
+            catAtual = "";
+            subAtual = "";
+            if (navSubs) navSubs.classList.add("hidden");
+            mostrarProdutos("Busca");
+          }
+          if (modoBusca) {
+            catAtual = "";
+            subAtual = "";
+          }
+          aplicarFiltros();
+        } else if (modoBusca) {
+          mostrarHome();
+        } else if (catAtual) {
+          aplicarFiltros();
+        }
+      });
     }
 
     var btnOpen = document.getElementById("btn-abrir-checkout");
