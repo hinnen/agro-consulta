@@ -22,12 +22,14 @@ _DEFAULT_MAQUININHAS_CARTAO_PDV = [
     {"id": "mp_balcao", "nome": "Mercado Pago — Balcão (automático)", "rede": "mp"},
     {"id": "cielo_1", "nome": "Cielo", "rede": "cielo"},
     {"id": "sicredi_1", "nome": "Sicredi", "rede": "sicredi"},
+    {"id": "mp_renan", "nome": "Mercado Pago Renan", "rede": "mp"},
 ]
 
 _DEFAULT_MAQUININHAS_PIX_PDV = [
     {"id": "pix_mp_qr", "nome": "Mercado Pago — Pix (automático)", "rede": "mp"},
     {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo"},
     {"id": "pix_sicoob_chave", "nome": "Sicoob — Chave Pix", "rede": "sicoob"},
+    {"id": "pix_mp_renan", "nome": "Mercado Pago Renan", "rede": "mp"},
 ]
 
 
