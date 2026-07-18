@@ -176,23 +176,29 @@
   </div>
 </section>
 
-{# —— LISTA de produtos (após escolher categoria ou buscar) —— #}
+{# —— SUBCATEGORIAS (passo 2) —— #}
+<section id="view-subcategorias" class="hidden">
+  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
+    <button type="button" id="btn-voltar-home" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
+    <h2 id="titulo-sub-passo" class="font-black text-slate-900 text-base truncate flex-1">Subcategoria</h2>
+  </div>
+  <div class="px-3 pt-4 pb-2">
+    <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a subcategoria</h2>
+    <div id="grade-subcategorias" class="grid grid-cols-2 gap-3"></div>
+  </div>
+</section>
+
+{# —— LISTA de produtos (após cat + sub, ou busca) —— #}
 <section id="view-produtos" class="hidden">
   <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
     <button type="button" id="btn-voltar-cats" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
     <h2 id="titulo-cat-atual" class="font-black text-slate-900 text-base truncate flex-1">Produtos</h2>
   </div>
-  <nav id="nav-subs" class="hidden border-b border-slate-100">
-    <div class="flex gap-2 overflow-x-auto cat-scroll px-3 py-2">
-      <button type="button" class="chip-sub is-on sub-chip" data-sub="">Todas</button>
-    </div>
-  </nav>
   <main class="px-3 py-4 space-y-6" id="grade-produtos">
     {% for secao in secoes %}
     <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">
       {% for sub in secao.subs %}
       <div class="mb-4 bloco-sub" data-sub="{{ sub.slug }}">
-        <h3 class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2 px-0.5">{{ sub.nome }}</h3>
         <div class="space-y-2.5">
           {% for p in sub.produtos %}
           {% include "produtos/catalogo/_card_produto.html" with p=p %}
@@ -201,7 +207,7 @@
       </div>
       {% endfor %}
       {% if secao.produtos_sem_sub %}
-      <div class="space-y-2.5 bloco-sub" data-sub="">
+      <div class="space-y-2.5 bloco-sub" data-sub="_geral">
         {% for p in secao.produtos_sem_sub %}
         {% include "produtos/catalogo/_card_produto.html" with p=p %}
         {% endfor %}
@@ -209,7 +215,7 @@
       {% endif %}
     </section>
     {% endfor %}
-    <p id="lista-vazia-cat" class="hidden text-center text-sm text-slate-500 py-10 font-semibold">Nenhum produto nesta categoria ainda.</p>
+    <p id="lista-vazia-cat" class="hidden text-center text-sm text-slate-500 py-10 font-semibold">Nenhum produto nesta seleção.</p>
   </main>
 </section>
 
@@ -270,6 +276,7 @@
 <script>
   initCatalogoDelivery({
     catalogo: {{ catalogo_json|safe }},
+    arvore: {{ arvore_json|safe }},
     apiPedido: "{% url 'api_catalogo_pedido' %}",
     apiCliente: "{% url 'api_catalogo_cliente' %}"
   });

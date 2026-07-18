@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from produtos.catalogo_delivery_util import (
     ErroPedidoCatalogo,
     agrupar_itens_por_categoria,
+    arvore_navegacao_catalogo,
     cards_home_catalogo,
     cliente_catalogo_json,
     criar_pedido_catalogo_delivery,
@@ -48,6 +49,7 @@ def catalogo_delivery_view(request):
     itens = listar_itens_catalogo(incluir_ocultos_estoque=False)
     secoes = agrupar_itens_por_categoria(itens)
     home_cats = cards_home_catalogo(itens)
+    arvore = arvore_navegacao_catalogo(itens)
     catalogo_json = json.dumps(
         [
             {
@@ -66,6 +68,7 @@ def catalogo_delivery_view(request):
         ],
         ensure_ascii=False,
     )
+    arvore_json = json.dumps(arvore, ensure_ascii=False)
     wa = "".join(c for c in (cfg.whatsapp_contato or "") if c.isdigit())
     return render(
         request,
@@ -78,6 +81,7 @@ def catalogo_delivery_view(request):
             "enderecos": cfg.enderecos_exibir(),
             "whatsapp_digits": wa,
             "catalogo_json": catalogo_json,
+            "arvore_json": arvore_json,
             "catalogo_vazio": not itens and not home_cats,
             "eh_staff": _staff(request.user),
         },
