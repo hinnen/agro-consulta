@@ -1158,6 +1158,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v9.90** · **loja v9.90**
 
+### 🩹 Cadastro — kardex Quem + Entrada NF (17/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | 1) Coluna **Quem** quase sempre «Geraldo Hinnen» · 2) **Entrada NF** aparecia como **saída** (~170) e fornecedor **RBS** errado (NF 398454 era outro fornecedor / +20 milho) |
+| **Causa** | Quem: priorizava usuário Django da sessão Chrome. Qtd: misturava saldo de IDs variantes no mesmo depósito. Fornecedor: casava só por data + fallback 1ª compra |
+| **Fix** | Operador do PIN/venda; delta por produto+depósito; casa NF por número; sem fallback cego; rótulo «NF» sem duplicar |
+| **Arquivos** | estoque_movimentos_cadastro_util.py · iews.py (compras enrich) |
+| **Você** | Ctrl+F5 teste · milho grande · aba Estoque · confere Quem nas vendas · Entrada NF 398454 = **entrada** (não saída) e fornecedor certo |
+
 ### 📦 Deploy loja **v9.90** — Fecha PDV+Cadastro+NFC-e+Relatórios (17/07 · Renan frase+senha)
 
 | Item | Detalhe |
