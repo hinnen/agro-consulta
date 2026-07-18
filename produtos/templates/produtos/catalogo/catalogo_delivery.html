@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{ config.nome_loja }} · Delivery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --cat-primary: {{ config.cor_primaria|default:"#059669" }};
+      --cat-secondary: {{ config.cor_secundaria|default:"#fff7ed" }};
+    }
+    body { background: linear-gradient(180deg, var(--cat-secondary) 0%, #f8fafc 40%, #f1f5f9 100%); min-height: 100dvh; }
+    .bg-primary { background-color: var(--cat-primary) !important; }
+    .text-primary { color: var(--cat-primary) !important; }
+    .border-primary { border-color: var(--cat-primary) !important; }
+    .ring-primary { --tw-ring-color: var(--cat-primary); }
+    .card-prod {
+      background: #fff;
+      border-radius: 1rem;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card-prod:active { transform: scale(0.98); }
+    .badge-peso {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      border-radius: 999px;
+      padding: .2rem .55rem;
+    }
+    .hero-mesh {
+      background:
+        radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--cat-primary) 35%, transparent), transparent 55%),
+        linear-gradient(135deg, #064e3b 0%, var(--cat-primary) 55%, #047857 100%);
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased pb-28">
+<header class="hero-mesh text-white px-4 pt-6 pb-8 relative overflow-hidden">
+  <div class="max-w-3xl mx-auto relative z-10">
+    {% if eh_staff %}
+    <a href="{% url 'catalogo_gestao' %}" class="absolute right-0 top-0 text-[0.65rem] font-bold uppercase tracking-wide bg-white/20 px-2 py-1 rounded-lg">Gestão</a>
+    {% endif %}
+    <p class="text-[0.65rem] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Catálogo · Delivery</p>
+    <h1 class="text-2xl sm:text-3xl font-black tracking-tight">{{ config.nome_loja }}</h1>
+    {% if config.mensagem_boas_vindas %}
+    <p class="mt-2 text-sm opacity-95 leading-snug max-w-md">{{ config.mensagem_boas_vindas }}</p>
+    {% else %}
+    <p class="mt-2 text-sm opacity-90">Rações e produtos selecionados · peça e receba em casa</p>
+    {% endif %}
+    {% if config.area_entrega %}
+    <p class="mt-3 text-xs font-semibold bg-white/15 inline-block px-3 py-1.5 rounded-full">Área: {{ config.area_entrega }}</p>
+    {% endif %}
+  </div>
+</header>
+
+<div class="max-w-3xl mx-auto px-3 -mt-4 relative z-20">
+  <input type="search" id="busca-catalogo" placeholder="Buscar ração, marca, peso…"
+    class="w-full p-3.5 rounded-2xl border border-slate-200 shadow-md text-base bg-white focus:outline-none focus:ring-2 ring-primary" />
+</div>
+
+{% if catalogo_vazio %}
+<main class="max-w-3xl mx-auto px-4 py-16 text-center text-slate-600">
+  <p class="text-lg font-bold">Catálogo em montagem</p>
+  <p class="text-sm mt-2">Em breve produtos disponíveis para delivery.</p>
+</main>
+{% else %}
+<main class="max-w-3xl mx-auto px-3 py-5 grid grid-cols-1 sm:grid-cols-2 gap-3" id="grade-produtos">
+  {% for p in itens %}
+  <article class="card-prod p-3 flex gap-3 produto-linha" data-nome="{{ p.nome|lower }} {{ p.marca|lower }} {{ p.peso_texto|lower }}">
+    <div class="w-24 h-24 shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center text-2xl font-black text-emerald-700">
+      {% if p.imagem %}
+      <img src="{{ p.imagem }}" alt="" class="w-full h-full object-cover">
+      {% else %}
+      {{ p.marca|default:p.nome|slice:":1" }}
+      {% endif %}
+    </div>
+    <div class="flex-1 min-w-0 flex flex-col">
+      {% if p.marca %}<p class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500 truncate">{{ p.marca }}</p>{% endif %}
+      <h2 class="font-bold text-slate-900 leading-snug text-[0.95rem]">{{ p.nome }}</h2>
+      <div class="flex flex-wrap gap-1.5 mt-1.5">
+        {% if p.peso_texto %}<span class="badge-peso">{{ p.peso_texto }}</span>{% endif %}
+        {% if p.destaque %}<span class="badge-peso" style="background:#fff7ed;color:#c2410c;border-color:#fdba74">Destaque</span>{% endif %}
+      </div>
+      {% if p.descricao %}<p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ p.descricao }}</p>{% endif %}
+      <div class="mt-auto pt-2 flex items-end justify-between gap-2">
+        <p class="text-primary font-black text-xl leading-none">R$ {{ p.preco|floatformat:2 }}</p>
+        <button type="button" class="btn-add bg-primary text-white text-sm font-black px-3 py-2.5 rounded-xl shadow min-h-[2.75rem]" data-id="{{ p.id }}">+ Add</button>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</main>
+
+<div id="barra-carrinho" class="fixed bottom-0 inset-x-0 p-3 z-40 hidden">
+  <div class="max-w-3xl mx-auto">
+    <button type="button" id="btn-abrir-checkout" class="w-full bg-primary text-white py-4 rounded-2xl font-black flex justify-between px-5 shadow-2xl text-base">
+      <span id="carrinho-qtd">0 itens</span>
+      <span>Finalizar</span>
+      <span id="carrinho-total">R$ 0,00</span>
+    </button>
+  </div>
+</div>
+
+<div id="modal-checkout" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
+  <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[92dvh] overflow-y-auto p-5">
+    <h2 class="text-xl font-black mb-3">Finalizar pedido</h2>
+    <div id="checkout-itens" class="text-sm space-y-2 mb-4 max-h-36 overflow-y-auto border-b pb-3"></div>
+    <form id="form-pedido" class="space-y-3">
+      <label class="block"><span class="text-sm font-bold">Nome *</span>
+        <input id="checkout-nome" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+      <label class="block"><span class="text-sm font-bold">WhatsApp *</span>
+        <input id="checkout-telefone" inputmode="tel" required placeholder="13999999999" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="tel">
+        <span id="checkout-cliente-hint" class="hidden text-xs text-emerald-700 font-medium mt-1 block">Cadastro encontrado.</span></label>
+      <label class="block"><span class="text-sm font-bold">Cidade *</span>
+        <input id="checkout-cidade" list="checkout-cidades" value="Jacupiranga" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base">
+        <datalist id="checkout-cidades">
+          <option value="Jacupiranga"><option value="Registro"><option value="Cajati"><option value="Pariquera-açu">
+        </datalist></label>
+      <label class="block"><span class="text-sm font-bold">Rua / avenida *</span>
+        <input id="checkout-logradouro" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block"><span class="text-sm font-bold">Número *</span>
+          <input id="checkout-numero" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+        <label class="block"><span class="text-sm font-bold">Bairro</span>
+          <input id="checkout-bairro" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+      </div>
+      <label class="block"><span class="text-sm font-bold">Pagamento *</span>
+        <select id="checkout-forma" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base font-semibold">
+          <option value="">Escolha…</option>
+          <option value="PIX">PIX</option>
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Cartão">Cartão na entrega</option>
+        </select></label>
+      <div id="checkout-troco-wrap" class="hidden">
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" id="checkout-troco" class="w-5 h-5"> Preciso de troco
+        </label>
+      </div>
+      <label class="block"><span class="text-sm font-bold">Observações</span>
+        <textarea id="checkout-obs" rows="2" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" placeholder="Ponto de referência, horário…"></textarea></label>
+      <button type="submit" id="btn-enviar-pedido" class="w-full bg-primary text-white py-4 rounded-xl font-black text-base shadow-lg">Enviar pedido</button>
+    </form>
+    <button type="button" id="btn-fechar-checkout" class="w-full mt-2 py-3 border-2 rounded-xl font-bold">Voltar</button>
+  </div>
+</div>
+
+<script src="{% static 'produtos/js/catalogo_delivery.js' %}"></script>
+<script>
+  initCatalogoDelivery({
+    catalogo: {{ catalogo_json|safe }},
+    apiPedido: "{% url 'api_catalogo_pedido' %}",
+    apiCliente: "{% url 'api_catalogo_cliente' %}"
+  });
+</script>
+{% endif %}
+</body>
+</html>

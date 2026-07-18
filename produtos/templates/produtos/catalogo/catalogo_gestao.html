@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão · Catálogo delivery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-dvh">
+<div class="max-w-xl mx-auto p-4 sm:p-6">
+  <div class="flex items-center justify-between gap-2 mb-4">
+    <h1 class="text-xl font-black text-slate-900">Catálogo delivery</h1>
+    <a href="{% url 'catalogo_delivery' %}" class="text-sm font-bold text-emerald-700 underline" target="_blank">Ver vitrine</a>
+  </div>
+  <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+    Marque produtos na aba <strong>Delivery</strong> do cadastro SisVale.
+    Hoje há <strong>{{ qtd_produtos_marcados }}</strong> produto(s) com a opção ligada.
+  </p>
+  {% if msg %}<p class="mb-3 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{{ msg }}</p>{% endif %}
+  <form method="post" class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3 shadow-sm">
+    {% csrf_token %}
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Nome na vitrine</span>
+      <input name="nome_loja" value="{{ config.nome_loja }}" class="w-full mt-1 p-3 border-2 rounded-xl font-bold"></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">WhatsApp (só números)</span>
+      <input name="whatsapp_contato" value="{{ config.whatsapp_contato }}" inputmode="tel" class="w-full mt-1 p-3 border-2 rounded-xl"></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Mensagem de boas-vindas</span>
+      <textarea name="mensagem_boas_vindas" rows="2" class="w-full mt-1 p-3 border-2 rounded-xl">{{ config.mensagem_boas_vindas }}</textarea></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Área de entrega</span>
+      <input name="area_entrega" value="{{ config.area_entrega }}" class="w-full mt-1 p-3 border-2 rounded-xl" placeholder="Jacupiranga e região"></label>
+    <label class="block"><span class="text-xs font-black uppercase text-slate-500">Endereço da loja</span>
+      <input name="endereco_loja" value="{{ config.endereco_loja }}" class="w-full mt-1 p-3 border-2 rounded-xl"></label>
+    <div class="grid grid-cols-2 gap-2">
+      <label class="block"><span class="text-xs font-black uppercase text-slate-500">Cor principal</span>
+        <input type="color" name="cor_primaria" value="{{ config.cor_primaria }}" class="w-full mt-1 h-12 rounded-xl border-2"></label>
+      <label class="block"><span class="text-xs font-black uppercase text-slate-500">Cor fundo</span>
+        <input type="color" name="cor_secundaria" value="{{ config.cor_secundaria }}" class="w-full mt-1 h-12 rounded-xl border-2"></label>
+    </div>
+    <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 cursor-pointer">
+      <input type="checkbox" name="publicado" value="1" class="w-6 h-6" {% if config.publicado %}checked{% endif %}>
+      <span class="font-bold text-emerald-900">Catálogo publicado (visível ao público)</span>
+    </label>
+    <button type="submit" class="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl">Salvar</button>
+  </form>
+  <p class="mt-4 text-xs text-slate-500">Pedidos caem em <a class="underline font-bold" href="{% url 'entregas_painel' %}">/entregas/</a> com origem «catalogo».</p>
+</div>
+</body>
+</html>

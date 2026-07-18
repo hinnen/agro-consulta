@@ -9,6 +9,7 @@ from financeiro.views import (
 from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_views
 from . import fiado_gestao_views as fiado_views
 from . import relatorios_central_views as relatorios_views
+from . import views_catalogo_delivery
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -21,6 +22,12 @@ urlpatterns = [
     path('entregas/api/registrar/', views.api_entrega_registrar, name='api_entrega_registrar'),
     path('entregas/api/listar/', views.api_entregas_listar, name='api_entregas_listar'),
     path('entregas/api/atualizar/', views.api_entrega_atualizar, name='api_entrega_atualizar'),
+    path("catalogo/", views_catalogo_delivery.catalogo_delivery_view, name="catalogo_delivery"),
+    path("catalogo/pedido-ok/", views_catalogo_delivery.catalogo_pedido_ok_view, name="catalogo_pedido_ok"),
+    path("catalogo/gestao/", views_catalogo_delivery.catalogo_gestao_view, name="catalogo_gestao"),
+    path("catalogo/api/pedido/", views_catalogo_delivery.api_catalogo_pedido, name="api_catalogo_pedido"),
+    path("catalogo/api/cliente/", views_catalogo_delivery.api_catalogo_cliente, name="api_catalogo_cliente"),
+    path("catalogo/api/saldo/", views_catalogo_delivery.api_catalogo_saldo_produto, name="api_catalogo_saldo"),
     path(
         'api/pdv/cliente-credito-fiado/',
         views.api_pdv_cliente_credito_fiado,
