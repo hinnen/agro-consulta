@@ -1162,7 +1162,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.06** · **loja v9.91**
+**Versão app (VERSION):** **teste v10.08** · **loja v9.91**
+
+### 🩹 Abrir caixa — seleção + digitar loja (18/07 · **teste v10.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Feito** | Cartão selecionado com anel + «Selecionado» · digitação errada = borda vermelha + texto |
+| **Validar local** | Clicar Vila → só Vila destacada · digitar `vil` → aviso vermelho |
 
 ### 🩹 Caixa fechar — 500 (fiado_baixas_wizard) (18/07 · **teste v10.06**)
 
