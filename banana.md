@@ -1169,7 +1169,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Veredito** | **SEGURO para o Centro** — venda segue o caixa aberto, não o cookie |
-| **Antes de abrir** | Env loja `PDV_VENDA_ESTOQUE_DEPOSITO=centro` (ou ausente) · migrate 0055/0056 · smoke Gaveta |
+| **Antes de abrir** | Env loja: var **ausente** ✅ (padrão centro) · migrate 0055/0056 no deploy · smoke Gaveta pendente |
 | **Atenção Centro** | Agora **exige caixa aberto** pra vender · relatório default = loja do PC (usar chip Centro/Todas) |
 | **Vila** | Volume baixo OK · Point auto **não** · NFC-e ainda CNPJ Centro |
 
