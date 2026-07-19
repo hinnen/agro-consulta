@@ -1903,18 +1903,18 @@ async function salvarOrcamentoManual() {
 
 function pdvGerarTextoWhatsappOrcamentoCarrinho() {
     const nome = nomeClientePdv();
-    let msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
+    const sep = '────────────────';
+    let msg = '🐴🌾 *ORÇAMENTO AGROMAIS* 🌾🐔\n\n';
     msg += '👤 *Cliente:* ' + nome + '\n';
+    msg += sep + '\n';
     msg += '🛒 *Itens:*\n';
-    msg += '━━━━━━━━━━━━━━━━━━\n';
     carrinho.forEach(function (i) {
-        msg += '🔸 ' + i.qtd + 'x ' + i.nome + '\n';
-        msg += '   💰 ' + formatarMoeda(i.preco * i.qtd) + '\n';
+        msg += i.qtd + 'x - ' + i.nome + '  ' + formatarMoeda(i.preco * i.qtd) + '\n';
     });
-    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += sep + '\n';
     const tot = document.getElementById('total-geral');
     msg += '💵 *TOTAL: ' + (tot ? tot.innerText : '') + '*\n\n';
-    msg += '✨ Obrigado por escolher a *SisVale*!';
+    msg += '✨ Obrigado por escolher a *AGROMAIS*!';
     return msg;
 }
 

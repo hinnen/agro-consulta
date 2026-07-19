@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 _CODIGO_SISTEMA_4D = re.compile(r"^\d{4}$")
 _CODIGO_SISTEMA_MAX = 9999
 _CODIGO_SEQ_PISO = 4010
+# Sequência automática da loja (~4–5 mil). Códigos 6xxx–9xxx (ERP/legado) não avançam o contador.
 _CODIGO_SEQ_TETO_AUTO = 5999
 
 
