@@ -1276,7 +1276,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.44** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.45** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **Hero** | Degradê tipo ref.: **topo quase branco** (½) → teal suave |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.44** (18/07/2026) *(histórico — ver v10.45)*
 
 | Item | Detalhe |
 | ---- | ------- |
