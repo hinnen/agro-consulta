@@ -1156,13 +1156,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.35** · **loja v10.28** (pacote Vila — subindo)
+**Versão app (VERSION):** **teste v10.48** · **loja v10.48** (BI+retiradas — subindo)
+
+### 📦 Deploy loja **v10.48** — BI + retiradas por loja (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **Inclui** | BI filtra números pela loja do aparelho + reload · Retiradas/saídas filtram Centro/Vila/Todas |
+| **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
+| **Método** | cherry-pick `74fce4c` + `f85ba4a` · **não** merge inteiro |
+| **Base** | `eacbe2c` (loja v10.28 Vila) |
+| **Backup / reverter** | `rollback/pre-bi-retiradas-v10.28` (= `producao-backup-pre-v1048-bi-retiradas-20260718` @ **eacbe2c**) |
+| **Risco Centro** | Baixo — só filtro/leitura; venda/caixa inalterados neste pacote |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.48** · BI Vila → Performance ~0 · Retiradas chip Vila → sem saídas do Centro |
 
 ### 📦 Deploy loja **v10.28** — pacote Vila Elias / Centro (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` · Render migrate 0055/0056 · aguardar Live |
+| **Status** | ✅ Live · `eacbe2c` · base do pacote v10.48 |
 | **Inclui** | Depósito Centro×Vila · caixa separado · antiburro · bloqueio sem caixa · badge/aviso · filtro vendas/relatório · MP Renan · saldo cadastro recente |
 | **NÃO inclui** | Catálogo delivery · FL-024 picklist · Compras UI · resto só no teste |
 | **Método** | cherry-pick 12 commits do `teste` · **não** merge inteiro |
