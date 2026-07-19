@@ -1163,16 +1163,42 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.59** · **loja v10.58** (push 1e211ae)
+**Versão app (VERSION):** **teste v10.59** · **loja v10.61**
+
+### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push e38df10 · rollback 
+ollback/pre-aba9-historico-v10.60 @ c88ce66 |
+| **Você** | Ctrl+F5 · lápis 1 centavo · aba 9 = 1 linha |
+
+### 📦 Deploy loja **v10.60** — Compras UI etapa 1 (18/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push c88ce66 · rollback 
+ollback/pre-compras-ui-v10.59 @ c352575 |
+| **Você** | Ctrl+F5 /compras/ |
+
+### 📦 Deploy loja **v10.59** — BI mensagem + validade + faturamento 2 barras (18/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push c352575 · rollback 
+ollback/pre-bi-validade-msg-v10.58 @ 1e211ae |
+| **Print 1** | Frase amigável (sem .env) |
+| **Print 2** | Conf. zera na loja · filtro Loja na validade |
+| **Print 3** | Faturamento mostra Centro + Vila |
+| **Você** | Ctrl+F5 BI Vila |
 
 ### 🩹 BI Vila — top clientes + validade + faturamento (18/07 · **teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Print 1** | Mensagem vazia amigável (sem texto de .env/JSON) |
-| **Print 2** | Conf. venc./mês zera na loja filtrada · relatório validade com filtro Centro/Vila |
-| **Print 3** | Faturamento por unidade de novo mostra **as duas** lojas |
-| **Você** | Ctrl+F5 · Vila → Conf.=0 · gráfico com Centro+Vila · Top clientes frase simples |
+| **Print 1** | Mensagem vazia amigável |
+| **Print 2** | Conf. só com saldo da loja · tela validade com filtro |
+| **Print 3** | Faturamento sempre as duas lojas |
 
 
 ### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
