@@ -1162,7 +1162,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.48** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.53** · **loja v10.48** (push `a79831c`)
+
+### 🩹 BI Vila — zerar cards que vazavam Centro (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Vila com Vendas R$ 0 ainda mostrava ticket, ranking vendedor, top clientes, entregas, novos clientes, barra Centro no faturamento, validade |
+| **Fix** | Sem fallback Mongo/ERP com loja filtrada · ticket/ranking/top/entregas/validade por depósito · novos clientes = 0 na Vila · gráfico unidade só a loja |
+| **CP/CR** | Continuam da **empresa** (financeiro compartilhado) — não mudou |
+| **Você** | Ctrl+F5 no **teste** · Loja **Vila Elias** → ranking vazio · ticket 0 · top clientes vazio · entregas 0 · novos 0 · sem barra Centro |
 
 ### 📦 Deploy loja **v10.48** — BI + retiradas por loja (18/07 · Renan frase+senha)
 

@@ -7866,9 +7866,10 @@ def _dashboard_top_produtos_capri(
     """
     Ordem na abertura (rápido → lento): Mongo (espelho) → PDV local (SQLite) → opcional ERP v3 HTTP
     (``AGRO_DASHBOARD_ERP_V3_REPORTS``; só se ainda não houver linhas).
+    Com filtro de loja: não cai no Mongo/ERP (Vila vazia não puxa Centro).
     """
     dep_key = _dashboard_deposito_filtro_key(deposito)
-    ck = f"dash:tp:v3:{_dashboard_vendas_fonte_modo()}:{dep_key}:{data_ini}:{data_fim}:{limite}"
+    ck = f"dash:tp:v5:{_dashboard_vendas_fonte_modo()}:{dep_key}:{data_ini}:{data_fim}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
@@ -7877,9 +7878,12 @@ def _dashboard_top_produtos_capri(
         out = _dashboard_top_produtos_sqlite(
             data_ini, data_fim, limite=limite, deposito=deposito
         )
-        if out:
+        if out or deposito in ("centro", "vila"):
             cache.set(ck, out, timeout=180)
-        return out
+            return out
+    if deposito in ("centro", "vila"):
+        cache.set(ck, [], timeout=180)
+        return []
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
@@ -7914,10 +7918,11 @@ def _dashboard_ranking_vendedores_capri(
     data_ini, data_fim, limite=8, deposito: str | None = None
 ):
     """
-    Operador = PIN do PDV (``usuario_registro``). Mongo/ERP só se não houver venda local no período.
+    Operador = PIN do PDV (``usuario_registro``). Mongo/ERP só se não houver venda local no período
+    e **sem** filtro de loja (senão Vila vazia puxava ranking do Centro).
     """
     dep_key = _dashboard_deposito_filtro_key(deposito)
-    ck = f"dash:rv:v4:operador:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
+    ck = f"dash:rv:v5:operador:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
@@ -7928,6 +7933,10 @@ def _dashboard_ranking_vendedores_capri(
     if out:
         cache.set(ck, out, timeout=180)
         return out
+    # Com loja específica: lista vazia = sem venda nessa loja (não misturar Centro/Mongo).
+    if deposito in ("centro", "vila"):
+        cache.set(ck, [], timeout=180)
+        return []
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
@@ -7989,17 +7998,13 @@ def _dashboard_top_clientes_manual_json() -> list[dict] | None:
 
 
 def _dashboard_top_clientes_sqlite(
-    data_ini, data_fim, limite=8, *, incluir_consumidor: bool = False
+    data_ini, data_fim, limite=8, *, incluir_consumidor: bool = False, deposito: str | None = None
 ):
     """Top clientes PDV local no mês civil: nome preenchido ou só ``cliente_id_erp``."""
     from produtos.mongo_vendas_util import _nome_cliente_excluir_top_ranking
 
     acc: dict[str, float] = {}
-    qs_base = VendaAgro.objects.filter(
-        criado_em__date__gte=data_ini,
-        criado_em__date__lte=data_fim,
-        devolvida_em__isnull=True,
-    )
+    qs_base = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=deposito)
     for row in (
         qs_base.exclude(cliente_nome__exact="")
         .values("cliente_nome")
@@ -8117,22 +8122,43 @@ def _dashboard_top_clientes_hibrido(data_ini: date, data_fim: date, limite: int 
     return [{"nome": k[:200], "total": round(v, 2)} for k, v in ranked]
 
 
-def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
+def _dashboard_top_clientes_mes_anterior_capri(
+    hoje: date, deposito: str | None = None
+) -> dict:
     """
     Top 20 do mês civil anterior a ``hoje`` (independente do filtro de período do gráfico).
-    Alinha à Curva ABC / ReportOperacoesPDV: ``DtoVenda`` com ``DataFaturamento`` válida no mês (sem PDV nem pedido em aberto).
-    Ordem: JSON manual (env) → Mongo → PDV local se espelho vazio.
+    Com filtro de loja: só PDV daquela loja (não puxa Mongo/JSON da empresa).
     """
     limite = _DASHBOARD_TOP_CLIENTES_MES_ANT_LIMITE
     mes_ini, mes_fim = _dashboard_bounds_mes_anterior_para_dia(hoje)
+    dep_key = _dashboard_deposito_filtro_key(deposito)
     raw_manual = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
     ck_suffix = hashlib.sha256(raw_manual.encode("utf-8")).hexdigest()[:12] if raw_manual else "fat20"
-    ck = f"dash:tcma:v6:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
+    ck = f"dash:tcma:v7:{dep_key}:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and hit.get("_t") == "tcma":
         return hit["payload"]
 
     mes_label = mes_ini.strftime("%m/%Y")
+
+    if deposito in ("centro", "vila"):
+        out = _dashboard_top_clientes_sqlite(
+            mes_ini,
+            mes_fim,
+            limite=limite,
+            incluir_consumidor=True,
+            deposito=deposito,
+        )
+        payload = {
+            "mes_label": mes_label,
+            "mes_ini": mes_ini,
+            "mes_fim": mes_fim,
+            "fonte": "pdv" if out else "",
+            "itens": out,
+        }
+        cache.set(ck, {"_t": "tcma", "payload": payload}, timeout=1800)
+        return payload
+
     manual = _dashboard_top_clientes_manual_json()
     if manual:
         payload = {
@@ -8160,7 +8186,7 @@ def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
             logger.exception("top_clientes_mes_anterior: mongo")
     if not out:
         out = _dashboard_top_clientes_sqlite(
-            mes_ini, mes_fim, limite=limite, incluir_consumidor=True
+            mes_ini, mes_fim, limite=limite, incluir_consumidor=True, deposito=None
         )
         fonte = "pdv" if out else ""
 
@@ -8175,24 +8201,63 @@ def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
     return payload
 
 
-def _dashboard_entregas_pendentes_count() -> int:
-    """Pedidos de entrega ainda não entregues nem cancelados."""
-    return PedidoEntrega.objects.exclude(
+def _dashboard_entregas_pendentes_count(deposito: str | None = None) -> int:
+    """Pedidos de entrega ainda não entregues nem cancelados (opcional: loja do aparelho)."""
+    from produtos.caixa_util import ponto_pai_de_deposito
+
+    qs = PedidoEntrega.objects.exclude(
         status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
-    ).count()
+    )
+    if deposito in ("centro", "vila"):
+        ponto = ponto_pai_de_deposito(deposito)
+        if deposito == "vila":
+            qs = qs.filter(
+                Q(venda_agro__deposito__iexact="vila")
+                | Q(sessao_caixa__ponto_caixa=ponto)
+            )
+        else:
+            qs = qs.filter(
+                Q(venda_agro__deposito__iexact="centro")
+                | Q(venda_agro__deposito="")
+                | Q(venda_agro__deposito__isnull=True)
+                | Q(sessao_caixa__ponto_caixa=ponto)
+                | (Q(venda_agro__isnull=True) & Q(sessao_caixa__isnull=True))
+            )
+    return qs.count()
 
 
-def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
+def _dashboard_entregas_criadas_por_dia_ultimos(
+    n_dias: int = 7, deposito: str | None = None
+) -> list[int]:
     """
     Uma contagem por dia (mais antigo → mais recente) para o sparkline de entregas.
     Base: pedidos criados naquele dia (volume operacional).
     """
+    from produtos.caixa_util import ponto_pai_de_deposito
+
     hoje = timezone.localdate()
     n = max(1, min(int(n_dias or 7), 31))
     primeiro = hoje - timedelta(days=n - 1)
+    qs = PedidoEntrega.objects.filter(
+        criado_em__date__gte=primeiro, criado_em__date__lte=hoje
+    )
+    if deposito in ("centro", "vila"):
+        ponto = ponto_pai_de_deposito(deposito)
+        if deposito == "vila":
+            qs = qs.filter(
+                Q(venda_agro__deposito__iexact="vila")
+                | Q(sessao_caixa__ponto_caixa=ponto)
+            )
+        else:
+            qs = qs.filter(
+                Q(venda_agro__deposito__iexact="centro")
+                | Q(venda_agro__deposito="")
+                | Q(venda_agro__deposito__isnull=True)
+                | Q(sessao_caixa__ponto_caixa=ponto)
+                | (Q(venda_agro__isnull=True) & Q(sessao_caixa__isnull=True))
+            )
     qs = (
-        PedidoEntrega.objects.filter(criado_em__date__gte=primeiro, criado_em__date__lte=hoje)
-        .annotate(day=TruncDate("criado_em"))
+        qs.annotate(day=TruncDate("criado_em"))
         .values("day")
         .annotate(c=Count("id"))
     )
@@ -8509,7 +8574,12 @@ def _dashboard_worker(fn, *args, **kwargs):
 _DASH_CLIENTES_MEDIA_START = date(2026, 4, 20)
 
 
-def _dashboard_capri_novos_clientes_counts(hoje: date) -> tuple[int, int]:
+def _dashboard_capri_novos_clientes_counts(
+    hoje: date, deposito: str | None = None
+) -> tuple[int, int]:
+    # Cadastro de clientes é da empresa — na vista Vila (sem vendas próprias) zera o card.
+    if deposito == "vila":
+        return 0, 0
     novos_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
     # Referência = média diária dos últimos até 90 dias, começando em 20/04/2026.
     # Enquanto não houver 90 dias completos, usa a amostra disponível (autoajuste).
@@ -8645,7 +8715,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             deposito_filtro,
         )
         fut["alertas_validade"] = ex.submit(
-            _dashboard_worker, _contagem_validade_dashboard_lotes_agro
+            _dashboard_worker,
+            _contagem_validade_dashboard_lotes_agro,
+            deposito_filtro,
         )
         fut["vendas_ontem"] = ex.submit(
             _dashboard_worker,
@@ -8653,9 +8725,18 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             ontem,
             deposito_filtro,
         )
-        fut["novos_clientes"] = ex.submit(_dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje)
-        fut["entregas_pen"] = ex.submit(_dashboard_worker, _dashboard_entregas_pendentes_count)
-        fut["entregas_7d"] = ex.submit(_dashboard_worker, _dashboard_entregas_criadas_por_dia_ultimos, 7)
+        fut["novos_clientes"] = ex.submit(
+            _dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje, deposito_filtro
+        )
+        fut["entregas_pen"] = ex.submit(
+            _dashboard_worker, _dashboard_entregas_pendentes_count, deposito_filtro
+        )
+        fut["entregas_7d"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_entregas_criadas_por_dia_ultimos,
+            7,
+            deposito_filtro,
+        )
         fut["tkt_mes_ant"] = ex.submit(
             _dashboard_worker,
             _dashboard_ticket_medio_intervalo,
@@ -8679,7 +8760,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             8,
             deposito_filtro,
         )
-        fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
+        fut["top_cli_mes_ant"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_top_clientes_mes_anterior_capri,
+            hoje,
+            deposito_filtro,
+        )
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
         gastos_plano_ligado = (
             bool(force_gastos_plano)
@@ -8755,11 +8841,28 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
     total_ticket = _dashboard_float(atual.get("total"))
     if qtd_total_periodo <= 0 and _dashboard_vendas_fonte_pdv():
-        ticket_qs = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        ticket_qs = _dashboard_vendas_qs_pdv_periodo(
+            data_ini, data_fim, deposito=deposito_filtro
+        )
         ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
         total_ticket = _dashboard_float(ticket_agg.get("total"))
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
+
+    # Gráfico por unidade: na loja filtrada, mostra só ela (não a barra do Centro na Vila).
+    if deposito_filtro in ("centro", "vila") and isinstance(vendas_por_loja, list):
+        alvo = "Vila Elias" if deposito_filtro == "vila" else "Centro"
+        vendas_por_loja = [
+            x
+            for x in vendas_por_loja
+            if alvo.lower() in str(x.get("loja") or "").lower()
+        ] or [
+            {
+                "loja": alvo,
+                "total": round(_dashboard_float(atual.get("total")), 2),
+                "color": "#64748b" if deposito_filtro == "vila" else "#00BFFF",
+            }
+        ]
 
     tendencia_clientes = (
         ((novos_clientes_30 / ref_clientes_media_90) - 1) * 100
@@ -26787,25 +26890,38 @@ VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v3"
 VALIDADE_DASHBOARD_CACHE_TTL = 180
 
 
-def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
+def _contagem_validade_dashboard_lotes_agro(
+    deposito: str | None = None,
+) -> dict[str, int]:
     """
     Produtos distintos (overlay) com validade no prazo:
     - com saldo (lote qtd>0 ou centro+vila>0): vencidos / vencendo_mes
     - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
 
+    Com filtro de loja: só conta produto com saldo naquela loja (saldo_centro / saldo_vila).
+
     Cache curto (3 min) + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
     """
     hoje = timezone.localdate()
-    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}"
+    dep_key = deposito if deposito in ("centro", "vila") else "all"
+    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:{dep_key}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and "vencidos" in cached:
         return cached
-    out = _contagem_validade_dashboard_lotes_agro_compute(hoje)
+    out = _contagem_validade_dashboard_lotes_agro_compute(hoje, deposito=deposito)
     cache.set(ck, out, timeout=VALIDADE_DASHBOARD_CACHE_TTL)
     return out
 
 
-def _contagem_validade_dashboard_lotes_agro_compute(hoje: date) -> dict[str, int]:
+def _contagem_validade_dashboard_lotes_agro_compute(
+    hoje: date, deposito: str | None = None
+) -> dict[str, int]:
+    if deposito in ("centro", "vila"):
+        return _contagem_validade_dashboard_por_loja(hoje, deposito)
+    return _contagem_validade_dashboard_empresa(hoje)
+
+
+def _contagem_validade_dashboard_empresa(hoje: date) -> dict[str, int]:
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
@@ -26878,6 +26994,85 @@ def _contagem_validade_dashboard_lotes_agro_compute(hoje: date) -> dict[str, int
                     overlay_mes.add(oid)
                 else:
                     overlay_m_conf.add(oid)
+
+    return {
+        "vencidos": len(overlay_vencidos),
+        "vencendo_mes": len(overlay_mes),
+        "vencidos_conferir": len(overlay_v_conf),
+        "vencendo_mes_conferir": len(overlay_m_conf),
+    }
+
+
+def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str, int]:
+    """Validade só com saldo operacional da loja filtrada (Centro ou Vila)."""
+    _, fim_mes = _bounds_mes_atual(hoje)
+    overlay_vencidos: set[int] = set()
+    overlay_mes: set[int] = set()
+    overlay_v_conf: set[int] = set()
+    overlay_m_conf: set[int] = set()
+
+    candidatos: list[tuple[int, str, date]] = []
+    for el in EstoqueLote.objects.all().values(
+        "overlay_id", "data_validade", "overlay__produto_externo_id"
+    ):
+        oid = int(el["overlay_id"])
+        pid = str(el["overlay__produto_externo_id"] or "").strip()
+        dv = el["data_validade"]
+        if pid and dv is not None:
+            candidatos.append((oid, pid, dv))
+
+    overlays_com_lote = {c[0] for c in candidatos}
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(
+        cadastro_extras__has_key="validade"
+    ).only("pk", "produto_externo_id", "cadastro_extras"):
+        if ov.pk in overlays_com_lote:
+            continue
+        ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+        raw_v = ex.get("validade")
+        if not raw_v:
+            continue
+        try:
+            dv = datetime.strptime(str(raw_v)[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        pid = str(ov.produto_externo_id or "").strip()
+        if pid:
+            candidatos.append((ov.pk, pid, dv))
+
+    if not candidatos:
+        return {
+            "vencidos": 0,
+            "vencendo_mes": 0,
+            "vencidos_conferir": 0,
+            "vencendo_mes_conferir": 0,
+        }
+
+    pids = list({e[1] for e in candidatos})
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    client, db = obter_conexao_mongo()
+    saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+    chave = "saldo_vila" if deposito == "vila" else "saldo_centro"
+
+    vistos: set[int] = set()
+    for oid, pid, dv in candidatos:
+        if oid in vistos or dv is None:
+            continue
+        vistos.add(oid)
+        s = saldos.get(pid) or {}
+        saldo_loja = float(s.get(chave) or 0)
+        sc = float(s.get("saldo_centro") or 0)
+        sv = float(s.get("saldo_vila") or 0)
+        if saldo_loja > 0:
+            if dv < hoje:
+                overlay_vencidos.add(oid)
+            elif hoje <= dv <= fim_mes:
+                overlay_mes.add(oid)
+        elif sc <= 0 and sv <= 0:
+            if dv < hoje:
+                overlay_v_conf.add(oid)
+            elif hoje <= dv <= fim_mes:
+                overlay_m_conf.add(oid)
 
     return {
         "vencidos": len(overlay_vencidos),
