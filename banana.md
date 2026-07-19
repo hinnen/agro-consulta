@@ -1165,16 +1165,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste v10.89** · loja v10.64
 
-### 🩹 PDV — MP automático atrasava após abrir caixa (19/07 · **teste v10.89**)
+### 📦 PACOTE PRONTO LOJA — MP automático após abrir caixa (19/07 · **teste v10.89**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push 	este · validar no Render |
+| **Status** | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** |
+| **Obs.** | **testar em produção após subir** (abrir Gaveta → cartão → MP automático sem F5) |
 | **Sintoma** | Após abrir Gaveta, mensagem «Abra o Caixa Gaveta…» por minutos até F5 |
-| **Causa** | Refresh do caixa atualizava turno, **não** mpPointEnabled / lista de maquininhas |
-| **Fix** | 
-efreshCaixaBootstrap também puxa pagamentoUi |
-| **Você** | Ctrl+F5 · fechar/abrir Gaveta no overlay · cartão → MP automático já disponível **sem** F5 |
+| **Causa** | Refresh do caixa atualizava turno, **não** `mpPointEnabled` / lista de maquininhas |
+| **Fix** | `refreshCaixaBootstrap` também puxa `pagamentoUi` |
+| **Arquivo** | `produtos/static/produtos/js/pdv_wizard.js` |
+| **Risco** | Baixo — só atualiza flag/lista no refresh pós-abrir caixa |
+| **Autorizar** | *«pode subir MP automático após abrir caixa»* + **99738595** |
+| **Após enviar** | Obrigatório testar na loja: abrir Gaveta no overlay → pagar cartão → MP Balcão já disponível **sem** Ctrl+F5 |
 
 
 ### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
@@ -2618,12 +2621,14 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
+| **Fecha** | **MP automático após abrir caixa** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v10.89** · **Obs.: testar em produção após subir** |
+| **Autorizar MP refresh** | *«pode subir MP automático após abrir caixa»* + **99738595** |
 | **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
 | **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **ainda NÃO na loja** (conferido 18/07 noite) |
 | **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
 | **✅ Loja v10.60** | **Compras UI etapa 1** — enviado 18/07 · validar `/compras/` |
 | **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
-| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
+| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260717:producao` |
 
 #### Fila aberta (por prioridade)
 
