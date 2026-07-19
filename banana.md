@@ -1156,7 +1156,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja v10.63** (Live push 1e6fe3c) · teste alinhado
+**Versão app (VERSION):** **loja v10.64** (push pendente) · teste
+
+### 📦 Deploy loja **v10.64** — Renan sem NFC-e auto + fechar ordem formas (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | 1) MP Renan sem cupom fiscal automático · 2) Fechar caixa ordem fixa + sem Fiado na contagem |
+| **NÃO inclui** | merge inteiro · cadastro código novo · resto do teste |
+| **Base** | 3667759 (loja v10.63) |
+| **Backup / reverter** | 
+ollback/pre-renan-nfce-fechar-ordem-v10.63 @ **3667759** |
+| **Como reverter** | git push origin rollback/pre-renan-nfce-fechar-ordem-v10.63:producao |
+| **Risco** | Baixo — NFC-e só Renan · layout/ordem fechar |
+| **Autorização** | *pode subir para produção* + **99738595** |
+
 
 ### 📦 Deploy loja **v10.63** — kardex + C1–C3 + Zap legado (18/07 · Renan frase+senha)
 

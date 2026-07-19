@@ -10870,14 +10870,14 @@ def caixa_fechar(request):
         sessoes_lote if sessoes_lote else []
     )
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
-    linhas_com_movimento = []
-    linhas_sem_movimento = []
+    # Ordem fixa FORMAS_CONFERENCIA_CAIXA — não sobe «com movimento» pro topo.
+    linhas_conferencia = []
     for row in estado_conf.get("linhas") or []:
+        if str(row.get("forma") or "").strip() == "Fiado":
+            continue
         r = {k: v for k, v in row.items() if k != "com_movimento"}
-        if row.get("com_movimento"):
-            linhas_com_movimento.append(r)
-        else:
-            linhas_sem_movimento.append(r)
+        r["com_movimento"] = bool(row.get("com_movimento"))
+        linhas_conferencia.append(r)
 
     rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     if not isinstance(rasc, dict):
@@ -10905,8 +10905,9 @@ def caixa_fechar(request):
             "qtd_caixas_operacional": len(sessoes_lote),
             "qtd_caixas_teste": len(sessoes_teste),
             "tem_caixa_operacional": bool(sessoes_lote),
-            "linhas_com_movimento": linhas_com_movimento,
-            "linhas_sem_movimento": linhas_sem_movimento,
+            "linhas_conferencia": linhas_conferencia,
+            "linhas_com_movimento": [L for L in linhas_conferencia if L.get("com_movimento")],
+            "linhas_sem_movimento": [L for L in linhas_conferencia if not L.get("com_movimento")],
             "tot_esperado_dinheiro": str(tot_esperado_din),
             "sessao_local": _obter_sessao_caixa_aberta(request),
             "entregas_pendentes_fechar": entregas_pendentes_fechar,
