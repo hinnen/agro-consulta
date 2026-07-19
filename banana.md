@@ -1709,7 +1709,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · 📦 **pronto para envio à produção** (frase + senha) |
+| **Status** | ✅ **enviado loja v10.60** (`c88ce66`) · 18/07 |
 | **Escopo** | Só visual/organização — **sem** mudança de regra, API, Mongo, cálculo de sugestão |
 | **Feito** | Painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · filtros limpos · lista + detalhe expandido em blocos |
 | **Arquivo** | `produtos/templates/produtos/compras.html` |
@@ -1722,7 +1722,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **Status** | ✅ **enviado loja v10.61** (`e38df10`) · 18/07 |
 | **Sintoma** | Lápis PDV (1 centavo) gerava várias linhas com **DE = —** (nome, GM, barras…) · preço sem valor anterior |
 | **Causa** | Overlay vazio no 1º save · «antes» vazio · `permite_venda` forçado True em todo save |
 | **Fix** | «Antes» completa com catálogo · não força permite_venda no lápis |
@@ -2390,11 +2390,10 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fecha** | **Aba 9 histórico** (só o que mudou no lápis) — 📦 **pronto pra envio** · teste **v10.01** · **após loja: testar de novo** (1 centavo → 1 linha · DE = preço antigo) |
-| **Autorizar aba 9** | *«pode subir aba 9 histórico»* + **99738595** |
-| **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **após loja: testar de novo** (Quem sem @ · NF 399636 = entrada) |
+| **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
+| **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **ainda NÃO na loja** (conferido 18/07 noite) |
 | **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
-| **Fecha** | **Compras UI etapa 1** — 📦 **pronto pra envio** · teste **v9.95+** · validar `/compras/` na loja |
+| **✅ Loja v10.60** | **Compras UI etapa 1** — enviado 18/07 · validar `/compras/` |
 | **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
 | **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
 
