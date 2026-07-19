@@ -96,28 +96,57 @@ def montar_imagem_og_preview(
     logo_bytes: bytes,
     *,
     cor_fundo: str = "#ecfdf5",
+    faixa_texto: str = "Delivery de ração",
 ) -> bytes | None:
     """
-    Cartão 1200×630 (WhatsApp/Facebook): logo centralizada sem cortar (contain).
-    Evita crop lateral da logo panorâmica no preview.
+    Cartão 1200×630 (WhatsApp/Facebook): logo centralizada sem cortar (contain)
+    + faixa inferior com texto (ex.: Delivery de ração) para ficar óbvio no preview.
     """
     if not logo_bytes:
         return None
     try:
         from io import BytesIO
+        from pathlib import Path
 
-        from PIL import Image
+        from PIL import Image, ImageDraw, ImageFont
 
         w, h = 1200, 630
+        faixa_h = 110
         canvas = Image.new("RGB", (w, h), _hex_rgb(cor_fundo))
         logo = Image.open(BytesIO(logo_bytes)).convert("RGBA")
-        pad_x, pad_y = 96, 72
-        max_w, max_h = w - 2 * pad_x, h - 2 * pad_y
+        pad_x, pad_top = 96, 48
+        max_w = w - 2 * pad_x
+        max_h = h - faixa_h - pad_top - 36
         logo_fit = logo.copy()
         logo_fit.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
         x = (w - logo_fit.width) // 2
-        y = (h - logo_fit.height) // 2
+        y = pad_top + (max_h - logo_fit.height) // 2
         canvas.paste(logo_fit, (x, y), logo_fit)
+
+        # Faixa inferior escura/esmeralda — texto grande legível no Zap
+        draw = ImageDraw.Draw(canvas)
+        draw.rectangle((0, h - faixa_h, w, h), fill=(4, 120, 87))  # emerald-700
+        texto = (faixa_texto or "Delivery de ração").strip()[:48] or "Delivery de ração"
+        font = None
+        for fp in (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            str(Path("C:/Windows/Fonts/arialbd.ttf")),
+            str(Path("C:/Windows/Fonts/segoeuib.ttf")),
+        ):
+            try:
+                font = ImageFont.truetype(fp, 52)
+                break
+            except OSError:
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+        bbox = draw.textbbox((0, 0), texto, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        tx = (w - tw) // 2
+        ty = h - faixa_h + (faixa_h - th) // 2 - 4
+        draw.text((tx, ty), texto, fill=(255, 255, 255), font=font)
+
         buf = BytesIO()
         canvas.save(buf, format="JPEG", quality=88, optimize=True)
         return buf.getvalue()

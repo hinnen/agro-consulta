@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.75** · **loja v10.66**
+**Versão app (VERSION):** **teste v10.77** · **loja v10.66**
 
 ### 📦 Deploy loja **v10.66** — OG card 1200×630 sem cortar logo (18/07 · Renan frase+senha)
 
@@ -1510,6 +1510,14 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
+
+### WIP — Catálogo · OG «Delivery de ração» **v10.77** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este |
+| **O quê** | Título/desc + faixa no cartão: *Delivery de ração* · cache card3 |
+| **Produção** | **Não** |
 
 ### WIP — Catálogo · OG card 1200x630 sem cortar logo **v10.74** (18/07/2026)
 

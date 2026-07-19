@@ -47,12 +47,17 @@ def _hex_cor(valor: str, padrao: str) -> str:
 
 def _catalogo_og_context(request, cfg) -> dict:
     """Meta Open Graph para preview no WhatsApp (og:image = URL https da logo)."""
-    nome = (cfg.nome_loja or "Delivery").strip() or "Delivery"
-    desc = (
-        (cfg.mensagem_boas_vindas or "").strip()
-        or (cfg.area_entrega or "").strip()
-        or f"Peça pelo catálogo delivery da {nome}."
-    )
+    nome = (cfg.nome_loja or "GM Agro").strip() or "GM Agro"
+    area = (cfg.area_entrega or "").strip()
+    boas = (cfg.mensagem_boas_vindas or "").strip()
+    # Título/desc deixam óbvio: delivery de ração (não só «Delivery»)
+    og_title = f"Delivery de ração · {nome}"
+    partes_desc = ["Catálogo online de rações — peça e receba em casa."]
+    if area:
+        partes_desc.append(area)
+    elif boas:
+        partes_desc.append(boas[:120])
+    og_description = " ".join(partes_desc)[:220]
     og_url = request.build_absolute_uri("/catalogo/")
     if og_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
         og_url = "https://" + og_url[len("http://") :]
@@ -61,13 +66,13 @@ def _catalogo_og_context(request, cfg) -> dict:
     if (cfg.logo_base64 or "").strip():
         path = reverse("catalogo_og_image")
         # ?v= muda a URL → força Facebook/WhatsApp a baixar de novo (cache)
-        bust = f"card2-{len(cfg.logo_base64)}"
+        bust = f"card3-{len(cfg.logo_base64)}"
         og_image_url = request.build_absolute_uri(f"{path}?v={bust}")
         if og_image_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
             og_image_url = "https://" + og_image_url[len("http://") :]
     return {
-        "og_title": f"{nome} · Delivery",
-        "og_description": desc[:220],
+        "og_title": og_title,
+        "og_description": og_description,
         "og_url": og_url,
         "og_image_url": og_image_url,
         "og_image_type": og_image_type,
@@ -143,7 +148,11 @@ def catalogo_og_image_view(request):
     if not raw:
         return HttpResponse(status=404)
     cor = (cfg.cor_secundaria or "").strip() or "#ecfdf5"
-    card = montar_imagem_og_preview(raw, cor_fundo=cor)
+    card = montar_imagem_og_preview(
+        raw,
+        cor_fundo=cor,
+        faixa_texto="Delivery de ração",
+    )
     if not card:
         # Fallback: logo crua (pior no crop, mas melhor que 404)
         mime = (cfg.logo_mime or "image/png").strip() or "image/png"
