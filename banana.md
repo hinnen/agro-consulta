@@ -1163,18 +1163,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push `c030d07`)
+
+### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` **c030d07** · aguardar Live + smoke |
+| **Inclui** | BI Vila sem vazamento Centro · saída/reforço/devolução/fiado exigem caixa aberto · sem Centro×Vila cruzado |
+| **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
+| **Método** | cherry-pick 3 commits · **não** merge inteiro |
+| **Base** | `a79831c` (loja v10.48) |
+| **Backup / reverter** | `rollback/pre-bi-caixa-lock-v10.48` @ **a79831c** |
+| **Risco Centro** | Baixo — só filtra BI e endurece regras de caixa |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.56** · BI Vila limpo · caixa fechado → sem saída/reforço/devolver |
 
 ### 🔍 Pré-produção — revisão catálogo + divergência (18/07 · este chat)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Loja hoje** | **v10.48** — BI + retiradas por loja (outro chat · cherry-pick · **não** merge) |
-| **Teste hoje** | **v10.56** — catálogo delivery + BI Vila zeros + trava caixa fechado |
-| **Veredito catálogo** | Código **ok para pacote isolado** · foto AJAX OK · **não** merge `teste`→`producao` |
-| **Riscos** | Migrações **0057–0060** · **Pillow** no build · `views.py`/`modal` grandes no diff · URL pública `/catalogo/` |
-| **Pendentes no teste (fora catálogo)** | Caixa fechado/cruzado · BI Vila zerar cards — **pacotes separados** se quiser na loja |
-| **Subir loja?** | Só com frase + senha · preferir **cherry-pick catálogo** (ou pacote combinado explícito) |
+| **Loja hoje** | **v10.56** — BI Vila + trava caixa (**sem** catálogo) |
+| **Teste hoje** | **v10.56** — catálogo delivery ainda **só no teste** |
+| **Veredito catálogo** | Continua **fora** da loja · cherry-pick separado se pedir |
+| **Riscos catálogo** | Migrações **0057–0060** · Pillow · URL `/catalogo/` |
+| **Subir catálogo?** | Só com frase + senha · pacote isolado |
 
 ### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
 
