@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.57** · **loja v10.58** (push 1e211ae)
+**Versão app (VERSION):** **teste v10.59** · **loja v10.59** (push pendente)
+
+### 📦 Deploy loja **v10.59** — BI mensagem + validade loja + faturamento 2 barras (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Top 20 frase amigável · Conf. validade zera na loja filtrada · filtro Loja na tela validade · faturamento Centro+Vila nos dois BI |
+| **NÃO inclui** | Compras UI · Entrada NF · merge inteiro |
+| **Base** | 1e211ae (loja v10.58) |
+| **Backup / reverter** | 
+ollback/pre-bi-validade-msg-v10.58 @ **1e211ae** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.59** · Vila Conf.=0 · gráfico 2 lojas · Top clientes sem texto técnico |
+
 
 ### 🩹 BI Vila — top clientes + validade + faturamento (18/07 · **teste**)
 
