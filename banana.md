@@ -1174,6 +1174,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Você** | Ctrl+F5 no **teste** · PIN na tela + pedido catálogo → digita PIN → modal abre · Assumir ok |
 | **Loja** | Ainda v10.81 — sobe com frase+senha (hotfix pequeno) |
 
+### 🩹 PDV — popup Imprimir atrás do overlay entregas (19/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | «Imprimir» no overlay abria escolha de vias **atrás** do dialog Entregas (top layer) |
+| **Fix** | Modal «O que imprimir?» virou `<dialog showModal>` — fica na frente do overlay |
+| **Você** | Ctrl+F5 · Entregas → Imprimir → escolher vias na frente |
+
 ### 📦 Deploy loja **v10.81** — Assumir entrega catálogo Centro×Vila (19/07 · Renan frase+senha)
 
 | Item | Detalhe |
