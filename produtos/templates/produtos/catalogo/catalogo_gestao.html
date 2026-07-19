@@ -17,7 +17,7 @@
     Hoje: <strong>{{ qtd_produtos_marcados }}</strong> produto(s) ligados.
   </p>
   {% if msg %}<p class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{{ msg }}</p>{% endif %}
-  {% if erro %}<p class="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ erro }}</p>{% endif %}
+  {% if erro %}<p id="gestao-erro" class="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ erro }}</p>{% endif %}
 
   <form method="post" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
     {% csrf_token %}
@@ -108,16 +108,17 @@
             <div class="min-w-0">
               <p class="font-black text-slate-900">{{ c.nome }}{% if not c.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}</p>
               <p class="text-[0.65rem] font-mono text-slate-400">{{ c.slug }}</p>
-              <form method="post" enctype="multipart/form-data" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <form method="post" enctype="multipart/form-data" class="mt-1.5 flex flex-wrap items-center gap-1.5 js-foto-cat-form">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="foto_categoria">
                 <input type="hidden" name="cat_id" value="{{ c.id }}">
-                <input type="file" name="cat_foto" accept="image/*" class="text-[0.65rem] max-w-[9rem]">
+                <input type="file" name="cat_foto" accept="image/*" class="text-[0.65rem] max-w-[9rem] js-foto-cat-input">
                 <button type="submit" class="text-[0.65rem] font-black px-2 py-1 rounded-lg bg-emerald-600 text-white">Foto card</button>
                 {% if c.imagem %}
                 <button type="submit" name="remover_foto" value="1" class="text-[0.65rem] font-bold px-2 py-1 rounded-lg border border-red-300 text-red-700">Tirar foto</button>
                 {% endif %}
               </form>
+              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">JPG/PNG · máx. ~1,2 MB · ideal 800×600 (4:3)</p>
             </div>
           </div>
           <div class="flex gap-1 shrink-0">
@@ -162,5 +163,30 @@
 
   <p class="text-xs text-slate-500">Pedidos → <a class="underline font-bold" href="{% url 'entregas_painel' %}">/entregas/</a></p>
 </div>
+<script>
+(function () {
+  var err = document.getElementById('gestao-erro');
+  if (err) {
+    err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  var maxBytes = 1200 * 1024;
+  document.querySelectorAll('.js-foto-cat-form').forEach(function (form) {
+    form.addEventListener('submit', function (ev) {
+      if (ev.submitter && ev.submitter.name === 'remover_foto') return;
+      var inp = form.querySelector('.js-foto-cat-input');
+      var f = inp && inp.files && inp.files[0];
+      if (!f) {
+        ev.preventDefault();
+        alert('Escolha uma imagem antes de salvar a foto.');
+        return;
+      }
+      if (f.size > maxBytes) {
+        ev.preventDefault();
+        alert('Foto muito grande (máx. ~1,2 MB).\nAgora: ' + (f.size / 1024).toFixed(0) + ' KB.\nReduza ou salve em JPG.');
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>

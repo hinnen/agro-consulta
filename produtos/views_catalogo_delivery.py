@@ -270,7 +270,7 @@ def api_catalogo_categoria_foto(request):
 def catalogo_gestao_view(request):
     cfg = obter_config_catalogo()
     msg = request.GET.get("msg") or ""
-    erro = ""
+    erro = (request.GET.get("erro") or "").strip()[:200]
 
     if request.method == "POST":
         acao = (request.POST.get("acao") or "salvar_loja").strip()
@@ -357,29 +357,37 @@ def catalogo_gestao_view(request):
             return redirect("/catalogo/gestao/?msg=cat")
 
         if acao == "foto_categoria":
+            from urllib.parse import quote
+
             try:
                 pk = int(request.POST.get("cat_id") or 0)
             except (TypeError, ValueError):
                 pk = 0
             cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
             if not cat:
-                erro = "Categoria inválida para foto."
-            elif request.POST.get("remover_foto"):
+                return redirect("/catalogo/gestao/?erro=" + quote("Categoria inválida para foto."))
+            if request.POST.get("remover_foto"):
                 salvar_foto_categoria(cat, "", "")
                 return redirect("/catalogo/gestao/?msg=foto")
-            else:
-                f = request.FILES.get("cat_foto")
-                if not f:
-                    erro = "Escolha uma imagem."
-                elif f.size > 700 * 1024:
-                    erro = "Foto muito grande (máx. ~700 KB)."
-                else:
-                    import base64
+            f = request.FILES.get("cat_foto")
+            if not f:
+                return redirect("/catalogo/gestao/?erro=" + quote("Escolha uma imagem."))
+            if f.size > 1200 * 1024:
+                return redirect(
+                    "/catalogo/gestao/?erro="
+                    + quote("Foto muito grande (máx. ~1,2 MB). Reduza ou salve em JPG.")
+                )
+            import base64
 
-                    raw = f.read()
-                    mime = (getattr(f, "content_type", None) or "image/jpeg")[:40]
-                    salvar_foto_categoria(cat, base64.b64encode(raw).decode("ascii"), mime)
-                    return redirect("/catalogo/gestao/?msg=foto")
+            raw = f.read()
+            mime = (getattr(f, "content_type", None) or "image/jpeg")[:40]
+            salvar_foto_categoria(cat, base64.b64encode(raw).decode("ascii"), mime)
+            if not (cat.imagem_base64 or "").strip():
+                return redirect(
+                    "/catalogo/gestao/?erro="
+                    + quote("Não gravou a foto (arquivo ainda grande demais após conversão).")
+                )
+            return redirect("/catalogo/gestao/?msg=foto")
 
     if msg == "loja":
         msg = "Dados da loja salvos."
