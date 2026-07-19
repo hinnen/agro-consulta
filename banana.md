@@ -1156,13 +1156,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push pendente)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push `23c4b84`)
 
 ### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` · aguardar Live |
+| **Status** | ✅ push `producao` **23c4b84** · aguardar Live + smoke |
 | **Inclui** | BI Vila sem vazamento Centro · saída/reforço/devolução/fiado exigem caixa aberto · sem Centro×Vila cruzado |
 | **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
 | **Método** | cherry-pick `38633a6` + `b99337c` + `ed91d0a` · **não** merge inteiro |
