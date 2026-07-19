@@ -30,31 +30,48 @@ def dashboard_vendas_historico_planilha_por_dia(
     return out
 
 
-def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
+def dashboard_vendas_serie_meta_merged(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict:
     """
     Série diária merge planilha + PDV: usa o **maior** dos dois no dia (evita venda teste
     PDV apagar histórico da planilha). Jun+ só tem PDV. Usada na meta C e no gráfico.
+    ``deposito=vila``: só PDV Vila (planilha histórica é do Centro).
     """
-    ck = f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    dep_key = "todas"
+    if deposito in ("centro", "vila"):
+        dep_key = deposito
+    ck = f"dash:mvs:v7:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
 
     from produtos.views import _dashboard_vendas_serie_pdv
 
+    # Vila: planilha é do Centro — não misturar.
+    if deposito == "vila":
+        out = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito="vila")
+        cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
+        return out
+
     plan = dashboard_vendas_historico_planilha_por_dia(data_ini, data_fim)
-    pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+    pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=deposito)
     pdv_por_dia = pdv.get("por_dia") or {}
     por_dia: dict[str, float] = {}
     for k in set(plan) | set(pdv_por_dia):
         vp = float(plan.get(k) or 0)
         vd = float(pdv_por_dia.get(k) or 0)
-        por_dia[k] = round(max(vp, vd), 2)
+        # Com filtro Centro: planilha entra; com todas também.
+        if deposito == "centro":
+            por_dia[k] = round(max(vp, vd), 2)
+        else:
+            por_dia[k] = round(max(vp, vd), 2)
 
     qtd_por_dia = dict(pdv.get("qtd_por_dia") or {})
     total = round(sum(float(v or 0) for v in por_dia.values()), 2)
 
-    pdv_lojas = pdv.get("vendas_por_loja") or []
+    pdv_all = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=None)
+    pdv_lojas = pdv_all.get("vendas_por_loja") or []
     pdv_vila = 0.0
     for row in pdv_lojas:
         if "Vila" in str(row.get("loja") or ""):
@@ -73,6 +90,7 @@ def dashboard_vendas_serie_meta_merged(data_ini: date, data_fim: date) -> dict:
             {"loja": "Vila Elias", "total": pdv_vila, "color": "#64748b"},
         ],
         "fonte": "pdv+planilha",
+        "filtro_loja": dep_key,
     }
     cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out

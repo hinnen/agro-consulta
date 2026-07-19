@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.35** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+**Versão app (VERSION):** **teste v10.36** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+
+### 🩹 BI — seletor loja filtra números + recarrega (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Trocar Loja no BI só mudava badge/estoque; Performance/Vendas continuavam do Centro |
+| **Fix** | KPI/série/ticket/ranking filtrados pelo depósito do aparelho · ao confirmar loja → **reload** · gráfico «por unidade» continua comparando as duas |
+| **Você** | No **teste**: Loja → Vila Elias → digitar `vila` → tela recarrega · Performance ~R$ 0 se ainda sem venda Vila |
 
 ### 📦 Deploy loja **v10.28** — pacote Vila Elias / Centro (18/07 · Renan frase+senha)
 
