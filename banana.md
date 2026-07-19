@@ -600,6 +600,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Painel «todos» e fechamento em lote: **só a loja do seletor** (Centro × Vila) — não misturam.
 - Abrir caixa alinha o seletor de loja do PDV; venda usa depósito do `ponto_caixa` da sessão.
 - **Antiburro (v10.04):** abrir Gaveta/Vila e trocar Loja no BI exige digitar `centro` ou `vila`; com caixa aberto o seletor fica travado.
+- **Trava loja (v10.56):** reforço, retirada/saída, devolução, fiado, assumir sessão e venda **só** no turno da loja do aparelho; caixa fechado = bloqueia.
 - MP Point automático: só Gaveta Centro / Teste (não Vila).
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
@@ -1163,6 +1164,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 **Versão app (VERSION):** **teste v10.56** · **loja v10.48** (push `a79831c`)
+
+### 🔍 Pré-produção — revisão catálogo + divergência (18/07 · este chat)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Loja hoje** | **v10.48** — BI + retiradas por loja (outro chat · cherry-pick · **não** merge) |
+| **Teste hoje** | **v10.56** — catálogo delivery + BI Vila zeros + trava caixa fechado |
+| **Veredito catálogo** | Código **ok para pacote isolado** · foto AJAX OK · **não** merge `teste`→`producao` |
+| **Riscos** | Migrações **0057–0060** · **Pillow** no build · `views.py`/`modal` grandes no diff · URL pública `/catalogo/` |
+| **Pendentes no teste (fora catálogo)** | Caixa fechado/cruzado · BI Vila zerar cards — **pacotes separados** se quiser na loja |
+| **Subir loja?** | Só com frase + senha · preferir **cherry-pick catálogo** (ou pacote combinado explícito) |
 
 ### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
 
