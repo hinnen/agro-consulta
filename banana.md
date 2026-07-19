@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.61** · **loja v10.61** (catálogo GPS ainda só no teste até deploy)
+**Versão app (VERSION):** **teste v10.63** · **loja v10.61**
 
 ### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07)
 
@@ -1409,6 +1409,13 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
+
+### WIP — Catálogo · esconder Plus Code no checkout **v10.63** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este |
+| **UX** | Cliente vê só ✓ localização OK — Plus Code fica oculto (grava no pedido) |
 
 ### WIP — Catálogo delivery · GPS checkout **v10.61** (18/07/2026)
 

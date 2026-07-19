@@ -520,11 +520,6 @@
       ["checkout-plus-code", "checkout-lat", "checkout-lng", "checkout-maps-url"].forEach(function (id) {
         setVal(id, "");
       });
-      var vis = document.getElementById("checkout-plus-visivel");
-      if (vis) {
-        vis.textContent = "";
-        vis.classList.add("hidden");
-      }
       setGeoStatus("", true);
     }
 
@@ -534,11 +529,6 @@
       setVal("checkout-lng", data.lng);
       setVal("checkout-maps-url", data.maps_url);
       preencherCamposEndereco(data);
-      var vis = document.getElementById("checkout-plus-visivel");
-      if (vis && data.plus_code) {
-        vis.textContent = "Plus Code: " + data.plus_code;
-        vis.classList.remove("hidden");
-      }
       if (data.plus_code) setEnderecoModo("geo");
     }
 
@@ -582,7 +572,7 @@
               .then(function (data) {
                 if (!data || !data.ok) throw new Error((data && data.erro) || "Erro ao localizar");
                 preencherLocalizacao(data);
-                setGeoStatus("Localização OK — Plus Code preenchido para a entrega.", true);
+                setGeoStatus("Localização OK para a entrega.", true);
               })
               .catch(function (ex) {
                 setGeoStatus((ex && ex.message) || "Falha ao obter endereço.", false);
@@ -641,11 +631,6 @@
               if (c.cep) setVal("checkout-cep", c.cep);
               if (c.plus_code) {
                 setVal("checkout-plus-code", c.plus_code);
-                var vis = document.getElementById("checkout-plus-visivel");
-                if (vis) {
-                  vis.textContent = "Plus Code: " + c.plus_code;
-                  vis.classList.remove("hidden");
-                }
                 setEnderecoModo("geo");
               }
               if (c.maps_url) setVal("checkout-maps-url", c.maps_url);
