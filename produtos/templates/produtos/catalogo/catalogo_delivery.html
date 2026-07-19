@@ -27,13 +27,14 @@
       background: linear-gradient(
         180deg,
         color-mix(in srgb, var(--cat-primary) 7%, #fffbeb) 0%,
-        color-mix(in srgb, var(--cat-primary) 11%, #ffedd5) 10%,
-        color-mix(in srgb, #ea580c 14%, #ecfdf5) 18%,
-        color-mix(in srgb, var(--cat-primary) 28%, #fed7aa) 26%,
-        color-mix(in srgb, var(--cat-primary) 48%, #fb923c) 32%,
-        color-mix(in srgb, #064e3b 72%, var(--cat-primary)) 38%,
-        #064e3b 44%,
-        var(--cat-primary) 72%,
+        color-mix(in srgb, var(--cat-primary) 11%, #ffedd5) 12%,
+        color-mix(in srgb, #ea580c 14%, #ecfdf5) 22%,
+        color-mix(in srgb, var(--cat-primary) 28%, #fed7aa) 32%,
+        color-mix(in srgb, var(--cat-primary) 48%, #fb923c) 40%,
+        color-mix(in srgb, #064e3b 55%, var(--cat-primary)) 48%,
+        color-mix(in srgb, #064e3b 82%, var(--cat-primary)) 54%,
+        #064e3b 58%,
+        var(--cat-primary) 78%,
         #047857 100%
       );
     }
@@ -138,11 +139,12 @@
     .hero-brand { display: flex; flex-direction: column; gap: 0; }
     .hero-brand-body {
       padding: 0.65rem 1rem 0;
-      /* garante contraste cheio a partir de Delivery · rações */
+      /* contraste chega cheio um pouco mais abaixo (após Delivery) */
       background: linear-gradient(
         180deg,
-        color-mix(in srgb, #064e3b 88%, transparent) 0%,
-        #064e3b 28%,
+        color-mix(in srgb, #064e3b 35%, transparent) 0%,
+        color-mix(in srgb, #064e3b 78%, transparent) 42%,
+        #064e3b 72%,
         transparent 100%
       );
     }
