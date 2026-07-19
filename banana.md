@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.55** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.48** (push `a79831c`)
+
+### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Saída/reforço/devolução/fiado/assumir podiam rodar com caixa fechado ou bater no turno da **outra** loja |
+| **Fix** | Regra única: turno só da loja do aparelho · reforço/movimento/assumir/venda/entrega sem ID cruzado · devolução exige caixa da **mesma loja da venda** · fiado não aceita «sem caixa» |
+| **Você** | Ctrl+F5 · caixa fechado → reforço/saída/devolver/fiado recusam · BI Vila + tentar Centro = bloqueio |
 
 ### 🚨 Retiradas — bloqueio com caixa fechado (18/07 · **teste**)
 

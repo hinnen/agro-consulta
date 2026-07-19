@@ -173,9 +173,9 @@ def api_fiado_baixa(request):
         return JsonResponse({"ok": False, "erro": "Informe um valor maior que zero."}, status=400)
     forma = str(data.get("forma_pagamento") or data.get("forma") or "Dinheiro").strip()
     obs = str(data.get("observacao") or "").strip()
-    registrar_caixa = data.get("registrar_caixa", True) is not False
+    registrar_caixa = True
     sessao = _sessao_caixa_para_fiado(request)
-    if registrar_caixa and not sessao:
+    if not sessao:
         return JsonResponse(
             {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
             status=400,
@@ -267,9 +267,9 @@ def api_fiado_baixa_cliente(request):
             cliente_pk = None
     cliente_nome = str(data.get("cliente_nome") or "").strip()
     cliente_codigo = str(data.get("cliente_codigo") or "").strip()
-    registrar_caixa = data.get("registrar_caixa", True) is not False
+    registrar_caixa = True
     sessao = _sessao_caixa_para_fiado(request)
-    if registrar_caixa and not sessao:
+    if not sessao:
         return JsonResponse(
             {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
             status=400,
@@ -340,9 +340,9 @@ def api_fiado_baixa_selecionados(request):
     valor = parse_valor_moeda_br(valor_raw) if valor_raw not in (None, "") else None
     forma = str(data.get("forma_pagamento") or data.get("forma") or "Dinheiro").strip()
     obs = str(data.get("observacao") or "").strip()
-    registrar_caixa = data.get("registrar_caixa", True) is not False
+    registrar_caixa = True
     sessao = _sessao_caixa_para_fiado(request)
-    if registrar_caixa and not sessao:
+    if not sessao:
         return JsonResponse(
             {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
             status=400,
