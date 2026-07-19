@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.57** · **loja v10.58** (push 1e211ae)
+**Versão app (VERSION):** **teste v10.59** · **loja v10.58** (push 1e211ae)
 
 ### 🩹 BI Vila — top clientes + validade + faturamento (18/07 · **teste**)
 
