@@ -185,13 +185,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = config('FILE_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)
+
 # --- Idempotência HTTP (duplo clique / retry) — ver base/middleware.py ---
 AGRO_IDEMPOTENCY_ENABLED = config('AGRO_IDEMPOTENCY_ENABLED', default=True, cast=bool)
 AGRO_IDEMPOTENCY_EXEMPT_PREFIXES = tuple(
     p.strip()
     for p in config(
         'AGRO_IDEMPOTENCY_EXEMPT_PREFIXES',
-        default='/admin/,/static/,/media/,/healthz',
+        default='/admin/,/static/,/media/,/healthz,/catalogo/gestao/,/catalogo/api/categorias/',
     ).split(',')
     if p.strip()
 )
