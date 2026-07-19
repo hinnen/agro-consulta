@@ -1156,7 +1156,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja v10.64** (push pendente) · teste
+**Versão app (VERSION):** **loja v10.64** (Live) · teste
 
 ### 📦 Deploy loja **v10.64** — Renan sem NFC-e auto + fechar ordem formas (18/07 · Renan frase+senha)
 
