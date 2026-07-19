@@ -1205,11 +1205,10 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Loja hoje** | **v10.56** — BI Vila + trava caixa (**sem** catálogo) |
-| **Teste hoje** | **v10.56** — catálogo delivery ainda **só no teste** |
-| **Veredito catálogo** | Continua **fora** da loja · cherry-pick separado se pedir |
-| **Riscos catálogo** | Migrações **0057–0060** · Pillow · URL `/catalogo/` |
-| **Subir catálogo?** | Só com frase + senha · pacote isolado |
+| **Loja hoje** | **v10.58** — catálogo delivery **no ar** (push `96e157a`) |
+| **Teste hoje** | **v10.56+** — alinhado no módulo catálogo |
+| **Veredito** | Pacote isolado ✅ · migrate 0057–0060 no deploy · `publicado` começa off |
+| **Rollback** | `rollback/pre-catalogo-delivery-v10.57` @ **55231f0** |
 
 ### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
 
