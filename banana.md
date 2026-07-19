@@ -1163,7 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.83** · **loja v10.81**
+**Versão app (VERSION):** **teste v10.85** · **loja v10.81**
+
+### 🩹 PDV — Entregas não clicáveis sob Modo descanso/PIN (19/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Alerta do catálogo abria o modal **por cima** do PIN; `sspin-locked` zera `pointer-events` → Assumir/Imprimir sem clique |
+| **Fix** | Com PIN ativo: **não** abre o modal (só toast + badge); após desbloquear PIN, abre sozinho · CSS libera clique se o dialog já estiver aberto |
+| **Você** | Ctrl+F5 no **teste** · PIN na tela + pedido catálogo → digita PIN → modal abre · Assumir ok |
+| **Loja** | Ainda v10.81 — sobe com frase+senha (hotfix pequeno) |
 
 ### 📦 Deploy loja **v10.81** — Assumir entrega catálogo Centro×Vila (19/07 · Renan frase+senha)
 

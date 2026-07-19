@@ -656,6 +656,15 @@
     var entregasPendentesPollTimer = null;
     var entregasPendentesCache = { total: 0, itens: [] };
     var entregasPendentesOpening = false;
+    var entregasPendentesAbrirAposUnlock = false;
+
+    function pdvSspinLocked() {
+        try {
+            return !!(document.body && document.body.classList.contains('sspin-locked'));
+        } catch (e0) {
+            return false;
+        }
+    }
     var creditoFiadoCliente = null;
     var creditoFiadoClienteId = '';
     var fiadoVencidosAlertShownKey = '';
@@ -4093,16 +4102,22 @@
                 (novos.length > 1 ? ' (' + novos.length + ')' : '') +
                 ': ' +
                 nomes +
-                '. Assuma nesta loja.',
+                (pdvSspinLocked()
+                    ? '. Digite o PIN e assuma nesta loja.'
+                    : '. Assuma nesta loja.'),
             'warn'
         );
         var modalOpen =
             dom.entregasPendentesModal &&
             (dom.entregasPendentesModal.open ||
                 dom.entregasPendentesModal.hasAttribute('open'));
-        if (!modalOpen && !entregasPendentesOpening) {
-            openEntregasPendentesModal();
+        if (modalOpen || entregasPendentesOpening) return;
+        /* Com Modo descanso/PIN ativo o body bloqueia pointer-events — não abrir por cima. */
+        if (pdvSspinLocked()) {
+            entregasPendentesAbrirAposUnlock = true;
+            return;
         }
+        openEntregasPendentesModal();
     }
 
     function wizardPrintPayloadFromEntregaRow(row) {
@@ -4257,7 +4272,16 @@
 
     function openEntregasPendentesModal() {
         if (entregasPendentesOpening) return;
+        if (pdvSspinLocked()) {
+            entregasPendentesAbrirAposUnlock = true;
+            showSaleDoneFeedback(
+                'Digite o PIN do modo descanso para abrir as entregas pendentes.',
+                'warn'
+            );
+            return;
+        }
         entregasPendentesOpening = true;
+        entregasPendentesAbrirAposUnlock = false;
         refreshEntregasPendentesUi(false, true)
             .then(function () {
                 if (!dom.entregasPendentesModal) return;
@@ -13305,6 +13329,12 @@
     window.addEventListener('gm-sspin-operador', function (ev) {
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
         State.setPagamentoField('operadorPdv', nome);
+        if (entregasPendentesAbrirAposUnlock) {
+            entregasPendentesAbrirAposUnlock = false;
+            setTimeout(function () {
+                if (!pdvSspinLocked()) openEntregasPendentesModal();
+            }, 80);
+        }
     });
     window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
 
