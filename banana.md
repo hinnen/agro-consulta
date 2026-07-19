@@ -1156,7 +1156,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push `23c4b84`)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.57** (push pendente)
+
+### 📦 Deploy loja **v10.57** — FL-024 picklist cadastro (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push producao · aguardar Live |
+| **Inclui** | Marca/cat/fornecedor/unidade só lista + PIN · fase 2 gestão/overlay/PDV · gro_picklist.js |
+| **NÃO inclui** | Catálogo delivery · Compras · Entrada NF grande |
+| **Método** | cherry-pick 752384c + cfb640 · **não** merge inteiro |
+| **Base** | c030d07 (loja v10.56) |
+| **Backup / reverter** | 
+ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
+| **Risco Centro** | Baixo — só UX cadastro anti-duplicata |
+| **Autorização** | *pode enviar* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.57** · Cadastro: digitar marca inventada não grava · + com PIN cria |
+
 ### 🩹 Cadastro — marca/cat só lista + PIN (FL-024) (18/07 · **teste v10.18**)
 
 | Item | Detalhe |
