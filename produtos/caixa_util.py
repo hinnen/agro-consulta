@@ -22,7 +22,8 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
     "Outro",
 )
 
-# Fechar caixa: MP separado por forma (conferência com extrato Mercado Pago).
+# Fechar caixa: ordem fixa de conferência (não reordenar por «com movimento»).
+# Fiado não entra — conferência operacional é outra (wizard de notas), não por valor.
 FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
     "Dinheiro",
     "Pix — Mercado Pago",
@@ -31,11 +32,13 @@ FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
     "Cartão de débito",
     "Cartão de crédito — Mercado Pago",
     "Cartão de crédito",
-    "Fiado",
     "Vale crédito",
     "Cashback",
     "Outro",
 )
+
+# Formas que existem no caixa mas não pedem contagem na tela Fechar.
+FORMAS_CONFERENCIA_OCULTAS: frozenset[str] = frozenset({"Fiado"})
 
 _FORMAS_SPLIT_MP_CONFERENCIA = frozenset(
     {"PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"}
@@ -421,7 +424,7 @@ def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
                 "abertura_dinheiro": abertura if fn == "Dinheiro" else Decimal("0"),
             }
         )
-    extras = sorted(formas - set(FORMAS_CONFERENCIA_CAIXA))
+    extras = sorted((formas - set(FORMAS_CONFERENCIA_CAIXA)) - FORMAS_CONFERENCIA_OCULTAS)
     for fn in extras:
         linhas.append(
             {
@@ -501,11 +504,17 @@ def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[
         for fn in FORMAS_CONFERENCIA_CAIXA:
             out.append(_row(fn, merged.get(fn)))
         for fn in sorted(set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)):
+            if fn in FORMAS_CONFERENCIA_OCULTAS:
+                continue
             out.append(_row(fn, merged[fn]))
         return out
 
     ordem = [fn for fn in FORMAS_CONFERENCIA_CAIXA if fn in merged]
-    ordem.extend(sorted(set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)))
+    ordem.extend(
+        sorted(
+            (set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)) - FORMAS_CONFERENCIA_OCULTAS
+        )
+    )
     for fn in ordem:
         out.append(_row(fn, merged[fn]))
     return out

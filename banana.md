@@ -1163,7 +1163,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.68** · loja v10.63
+**Versão app (VERSION):** **teste v10.69** · loja v10.63
+
+### 🩹 Fechar caixa — ordem fixa das formas + sem Fiado (18/07 · **teste v10.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este · validar no Render |
+| **Ordem** | Dinheiro → Pix MP → PIX → Débito MP → Débito → Crédito MP → Crédito → Vale → Cashback → Outro |
+| **Fiado** | Fora da conferência por valor (wizard de notas continua) |
+| **Antes** | Formas com movimento subiam pro topo |
+| **Você** | Ctrl+F5 /caixa/fechar/ · lista nessa ordem · sem linha Fiado |
+
+### 🩹 PDV — Mercado Pago Renan sem NFC-e automática (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no teste · validar · loja sobe com senha |
+| **Regra** | Só Renan sem cupom fiscal automático |
+
 
 ### 🩹 PDV — Mercado Pago Renan sem NFC-e automática (18/07 · **teste v10.68**)
 
