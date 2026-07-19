@@ -23,7 +23,19 @@
     .border-primary { border-color: var(--cat-primary) !important; }
     .ring-primary { --tw-ring-color: var(--cat-primary); }
     .hero-mesh {
-      background: linear-gradient(145deg, #064e3b 0%, var(--cat-primary) 60%, #047857 100%);
+      /* Topo (logo): verde+laranja bem fraquinhos → sobe contraste → 100% no bloco Delivery */
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--cat-primary) 7%, #fffbeb) 0%,
+        color-mix(in srgb, var(--cat-primary) 11%, #ffedd5) 10%,
+        color-mix(in srgb, #ea580c 14%, #ecfdf5) 18%,
+        color-mix(in srgb, var(--cat-primary) 28%, #fed7aa) 26%,
+        color-mix(in srgb, var(--cat-primary) 48%, #fb923c) 32%,
+        color-mix(in srgb, #064e3b 72%, var(--cat-primary)) 38%,
+        #064e3b 44%,
+        var(--cat-primary) 72%,
+        #047857 100%
+      );
     }
     .card-cat {
       display: block;
@@ -106,7 +118,7 @@
       width: 100%;
       aspect-ratio: 3.75 / 1;
       overflow: hidden;
-      background: #fff;
+      background: transparent;
       line-height: 0;
     }
     .logo-loja {
@@ -115,14 +127,25 @@
       height: 100%;
       object-fit: cover;
       object-position: center;
-      background: #fff;
+      background: transparent;
       border: none;
       padding: 0;
       margin: 0;
       box-shadow: none;
+      /* branco do PNG some e deixa o degradê verde/laranja aparecer */
+      mix-blend-mode: multiply;
     }
     .hero-brand { display: flex; flex-direction: column; gap: 0; }
-    .hero-brand-body { padding: 0.65rem 1rem 0; }
+    .hero-brand-body {
+      padding: 0.65rem 1rem 0;
+      /* garante contraste cheio a partir de Delivery · rações */
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, #064e3b 88%, transparent) 0%,
+        #064e3b 28%,
+        transparent 100%
+      );
+    }
     .hero-brand-meta { min-width: 0; flex: 1; }
     .gestao-btn {
       flex-shrink: 0;
