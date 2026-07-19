@@ -1163,7 +1163,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja v10.63** (Live 1e6fe3c) · teste
+**Versão app (VERSION):** **teste v10.68** · loja v10.63
+
+### 🩹 PDV — Mercado Pago Renan sem NFC-e automática (18/07 · **teste v10.68**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este · validar no Render |
+| **Regra** | Só **Mercado Pago Renan** (mp_renan / pix_mp_renan) — débito, crédito, parcelado, Pix **sem** cupom fiscal automático |
+| **Não muda** | Cielo · Sicredi · MP Balcão/Pix automático |
+| **Depois** | Se precisar NFC-e: Consultar vendas → Reemitir |
+| **Arquivos** | 
+fce_config_util.py · pdv_wizard.js |
+| **Você** | Ctrl+F5 · pagar na Renan → venda OK · **sem** NFC-e · Cielo continua emitindo |
+
 
 ### 📦 Deploy loja **v10.63** — kardex + C1–C3 + Zap legado (18/07 · Renan frase+senha)
 

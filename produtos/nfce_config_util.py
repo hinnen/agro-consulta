@@ -24,9 +24,47 @@ NFCE_FORMAS_PAGAMENTO_AUTO: frozenset[str] = frozenset(
     }
 )
 
+# Maquininha manual «Mercado Pago Renan» — nunca dispara NFC-e automática
+# (débito/crédito/parcelado/Pix). Demais máquinas e Point automático não mudam.
+NFCE_MAQUINAS_SEM_EMISSAO_AUTO: frozenset[str] = frozenset(
+    {
+        "mp_renan",
+        "pix_mp_renan",
+    }
+)
+
 
 def nfce_formas_pagamento_auto() -> list[str]:
     return sorted(NFCE_FORMAS_PAGAMENTO_AUTO)
+
+
+def nfce_maquina_ids_no_payload(data: dict | None) -> list[str]:
+    """IDs de maquininha nos lançamentos do payload PDV."""
+    if not isinstance(data, dict):
+        return []
+    out: list[str] = []
+    pag = data.get("pagamentos")
+    if isinstance(pag, list):
+        for row in pag:
+            if not isinstance(row, dict):
+                continue
+            mid = str(
+                row.get("maquinaId") or row.get("maquina_id") or row.get("maquina") or ""
+            ).strip()
+            if mid:
+                out.append(mid)
+    mid_top = str(
+        data.get("maquinaId") or data.get("maquina_id") or data.get("maquina") or ""
+    ).strip()
+    if mid_top:
+        out.append(mid_top)
+    return out
+
+
+def nfce_venda_usa_maquina_sem_auto(data: dict | None) -> bool:
+    """True se a venda usou Mercado Pago Renan (cartão ou Pix)."""
+    sem = NFCE_MAQUINAS_SEM_EMISSAO_AUTO
+    return any(mid in sem for mid in nfce_maquina_ids_no_payload(data))
 
 
 def _cfg(name: str, default: str = "") -> str:
@@ -106,12 +144,7 @@ def nfce_emissao_automatica() -> bool:
     return modo in ("auto", "automatico", "automatica", "automatic")
 
 
-def nfce_emissao_solicitada(data: dict | None) -> bool:
-    """True se a NFC-e deve ser emitida nesta venda (global auto, forma auto ou checkbox PDV)."""
-    if nfce_emissao_automatica():
-        return True
-    if nfce_venda_tem_forma_pagamento_auto(data):
-        return True
+def _nfce_emitir_explicito(data: dict | None) -> bool:
     if not isinstance(data, dict):
         return False
     raw = data.get("nfce_emitir")
@@ -120,6 +153,21 @@ def nfce_emissao_solicitada(data: dict | None) -> bool:
     if isinstance(raw, str):
         return raw.strip().lower() in ("1", "true", "sim", "yes", "on")
     return bool(raw)
+
+
+def nfce_emissao_solicitada(data: dict | None) -> bool:
+    """True se a NFC-e deve ser emitida nesta venda (global auto, forma auto ou checkbox PDV).
+
+    Mercado Pago Renan: **nunca** emite na finalização da venda (débito/crédito/parcelado/Pix).
+    Se precisar de cupom fiscal depois: Consultar vendas → Reemitir NFC-e.
+    """
+    if nfce_venda_usa_maquina_sem_auto(data):
+        return False
+    if nfce_emissao_automatica():
+        return True
+    if nfce_venda_tem_forma_pagamento_auto(data):
+        return True
+    return _nfce_emitir_explicito(data)
 
 
 def nfce_cfg() -> dict[str, Any]:

@@ -2207,6 +2207,23 @@
         return false;
     }
 
+    /** Mercado Pago Renan (manual) — sem NFC-e automática em débito/crédito/parcelado/Pix. */
+    function isMaquinaMpRenan(maquinaId) {
+        var mid = String(maquinaId || '').trim();
+        return mid === 'mp_renan' || mid === 'pix_mp_renan';
+    }
+
+    function nfceVendaUsaMaquinaMpRenan(state) {
+        state = state || State.getState();
+        var pag = (state && state.pagamento) || {};
+        if (isMaquinaMpRenan(pag.maquinaId)) return true;
+        var arr = pag.lancamentos || [];
+        for (var i = 0; i < arr.length; i++) {
+            if (isMaquinaMpRenan(arr[i] && arr[i].maquinaId)) return true;
+        }
+        return false;
+    }
+
     function finishMaquinaSelection(id, nome) {
         var st = State.getState();
         var formaM = st.pagamento.forma || '';
@@ -9186,8 +9203,16 @@
 
     function nfceUsuarioQuerEmitir(state) {
         if (!nfceAtivoNoPdv()) return false;
-        if (nfceModoGlobalAuto()) return true;
         state = state || State.getState();
+        // Renan: nunca automático (modo global / forma PIX-cartão). Só se o operador
+        // escolheu cupom fiscal na impressão (nfceEmitir + cupomImpressao=nfce).
+        if (nfceVendaUsaMaquinaMpRenan(state)) {
+            var pagR = state.pagamento || {};
+            return (
+                pagR.nfceEmitir === true && String(pagR.cupomImpressao || '').trim() === 'nfce'
+            );
+        }
+        if (nfceModoGlobalAuto()) return true;
         if (state.pagamento && state.pagamento.nfceEmitir === true) return true;
         if (state.pagamento && state.pagamento.nfceEmitir === false) return false;
         return nfceVendaTemFormaAuto(state);
@@ -9195,6 +9220,11 @@
 
     function prepararNfceSemImpressao() {
         State.setPagamentoField('cupomImpressao', '');
+        if (nfceVendaUsaMaquinaMpRenan()) {
+            State.setPagamentoField('nfceEmitir', false);
+            State.setPagamentoField('nfceOpts', {});
+            return;
+        }
         if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto()) {
             State.setPagamentoField('nfceEmitir', true);
         } else {
@@ -9726,6 +9756,12 @@
         ensureCaixaAbertoParaVenda().then(function (caixaOk) {
             if (!caixaOk) return;
             if (withPrint && nfceAtivoNoPdv()) {
+                // Mercado Pago Renan: imprime cupom de venda, sem NFC-e automática.
+                if (nfceVendaUsaMaquinaMpRenan(state)) {
+                    prepararNfceComImpressao('venda');
+                    resolverNfceAntesConfirmar(true);
+                    return;
+                }
                 if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
                     prepararNfceComImpressao('nfce');
                     resolverNfceAntesConfirmar(true);
