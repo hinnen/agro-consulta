@@ -1163,7 +1163,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.80** · **loja v10.80**
+**Versão app (VERSION):** **teste v10.82** · **loja v10.80**
+
+### 🚀 PDV — Assumir entrega catálogo Centro×Vila (19/07 · **teste v10.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no Render |
+| **O quê** | Pedido catálogo sem dono nas **duas** lojas · badge/alerta forte · **Assumir** = depósito PDV · some da outra · **imprime 3 vias** · botão **Imprimir** no overlay |
+| **Migrate** | `0061_pedido_entrega_loja` (`loja_entrega`, `loja_assumida_em/por`) — Render apply no deploy |
+| **API** | `POST /api/pdv/entrega-pendente/<pk>/assumir/` · lista `?loja=` |
+| **Você** | Pedido no `/catalogo/` → PDV Centro e Vila veem · Assumir na Vila → some no Centro · 3 vias · Imprimir de novo · Retomar PDV legado ok |
 
 ### 📦 Deploy loja **v10.80** — Catálogo sem texto extra do WhatsApp (18/07 · Renan frase+senha)
 

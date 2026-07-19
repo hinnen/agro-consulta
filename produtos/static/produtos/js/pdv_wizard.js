@@ -655,6 +655,7 @@
     var prevStepCache = '';
     var entregasPendentesPollTimer = null;
     var entregasPendentesCache = { total: 0, itens: [] };
+    var entregasPendentesOpening = false;
     var creditoFiadoCliente = null;
     var creditoFiadoClienteId = '';
     var fiadoVencidosAlertShownKey = '';
@@ -3895,10 +3896,23 @@
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--entregas-pendente relative';
+        var catalogoSemDono = itens.some(function (row) {
+            return row && row.eh_catalogo && row.pode_assumir;
+        });
+        if (catalogoSemDono) {
+            alertTop += ' pdv-wiz-topbar-btn--entregas-catalogo';
+        }
 
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.hidden = !apiOk;
             dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
+            if (catalogoSemDono) {
+                dom.topbarEntregasBtn.title = 'Catálogo sem loja — Assumir entrega';
+            } else if (n > 0) {
+                dom.topbarEntregasBtn.title = 'Pagamento na entrega — pendências';
+            } else {
+                dom.topbarEntregasBtn.title = 'Entregas pendentes';
+            }
         }
         if (dom.topbarEntregasCount) {
             if (n > 0) {
@@ -3908,6 +3922,13 @@
                 dom.topbarEntregasCount.classList.add('hidden');
             }
         }
+    }
+
+    function lojaEntregaLabelUi(loja) {
+        var v = String(loja || '').toLowerCase();
+        if (v === 'centro') return 'Centro';
+        if (v === 'vila') return 'Vila';
+        return '';
     }
 
     function renderEntregasPendentesList() {
@@ -3927,8 +3948,60 @@
                 var forma = escapeHtml(row.forma_pagamento || '');
                 var cod = escapeHtml(row.retomar_codigo || '');
                 var caixaLbl = escapeHtml(row.sessao_caixa_label || '');
+                var end = escapeHtml(row.endereco_linha || '');
+                var badges = [];
+                if (row.eh_catalogo) {
+                    badges.push(
+                        '<span class="rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Catálogo</span>'
+                    );
+                }
+                if (row.pode_assumir) {
+                    badges.push(
+                        '<span class="rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase text-white animate-pulse">Sem dono</span>'
+                    );
+                } else {
+                    var lojaLbl = lojaEntregaLabelUi(row.loja_entrega);
+                    if (lojaLbl) {
+                        badges.push(
+                            '<span class="rounded-md bg-sky-700 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">' +
+                                escapeHtml(lojaLbl) +
+                                '</span>'
+                        );
+                    }
+                }
+                var borderCls = row.eh_catalogo && row.pode_assumir
+                    ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-300'
+                    : 'border-orange-200 bg-orange-50/40';
+                var btns = '';
+                if (row.pode_assumir) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-assumir rounded-lg bg-amber-600 px-3 py-2 text-[10px] font-black uppercase text-white shadow" data-entrega-id="' +
+                        id +
+                        '">Assumir</button>';
+                }
+                if (row.pode_imprimir) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-imprimir rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-800" data-entrega-id="' +
+                        id +
+                        '">Imprimir</button>';
+                }
+                if (row.pode_retomar) {
+                    btns +=
+                        '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                        id +
+                        '">Retomar pagamento</button>';
+                }
+                btns +=
+                    '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
+                    id +
+                    '">Cancelar</button>';
                 return (
-                    '<article class="mb-2 rounded-xl border-2 border-orange-200 bg-orange-50/40 p-3">' +
+                    '<article class="mb-2 rounded-xl border-2 p-3 ' +
+                    borderCls +
+                    '">' +
+                    (badges.length
+                        ? '<div class="mb-1.5 flex flex-wrap gap-1">' + badges.join('') + '</div>'
+                        : '') +
                     '<div class="font-black text-slate-900">' +
                     nome +
                     '</div>' +
@@ -3936,6 +4009,11 @@
                     total +
                     (forma ? ' · ' + forma : '') +
                     '</div>' +
+                    (end
+                        ? '<div class="mt-0.5 text-[10px] font-semibold leading-snug text-slate-600">' +
+                          end +
+                          '</div>'
+                        : '') +
                     (caixaLbl
                         ? '<div class="mt-0.5 text-[10px] font-bold uppercase text-orange-800">' +
                           caixaLbl +
@@ -3943,17 +4021,24 @@
                         : '') +
                     (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
                     '<div class="mt-3 flex flex-wrap gap-2">' +
-                    '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase text-white" data-entrega-id="' +
-                    id +
-                    '">Retomar pagamento</button>' +
-                    '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
-                    id +
-                    '">Cancelar</button>' +
+                    btns +
                     '</div>' +
                     '</article>'
                 );
             })
             .join('');
+        el.querySelectorAll('.pdv-entrega-assumir').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) assumirEntregaPendente(pk);
+            });
+        });
+        el.querySelectorAll('.pdv-entrega-imprimir').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) imprimirEntregaPendentePorId(pk);
+            });
+        });
         el.querySelectorAll('.pdv-entrega-retomar').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var pk = btn.getAttribute('data-entrega-id');
@@ -3968,17 +4053,227 @@
         });
     }
 
-    function openEntregasPendentesModal() {
-        refreshEntregasPendentesUi(false, true).then(function () {
-            if (!dom.entregasPendentesModal) return;
-            renderEntregasPendentesList();
-            if (typeof dom.entregasPendentesModal.showModal === 'function') {
-                dom.entregasPendentesModal.showModal();
-            } else {
-                dom.entregasPendentesModal.setAttribute('open', 'open');
-            }
-            syncPdvSspinIdlePause();
+    function findEntregaPendenteCache(pk) {
+        var id = String(pk || '');
+        var itens = entregasPendentesCache.itens || [];
+        for (var i = 0; i < itens.length; i++) {
+            if (String(itens[i].id) === id) return itens[i];
+        }
+        return null;
+    }
+
+    function maybeAlertNewCatalogoEntregas(itens) {
+        var key = 'agro_pdv_catalogo_alert_ids_v1';
+        var seen = {};
+        try {
+            seen = JSON.parse(sessionStorage.getItem(key) || '{}') || {};
+        } catch (e0) {
+            seen = {};
+        }
+        var novos = [];
+        (itens || []).forEach(function (row) {
+            if (!row || !row.eh_catalogo || !row.pode_assumir) return;
+            var sid = String(row.id);
+            if (seen[sid]) return;
+            novos.push(row);
+            seen[sid] = 1;
         });
+        if (!novos.length) return;
+        try {
+            sessionStorage.setItem(key, JSON.stringify(seen));
+        } catch (e1) {}
+        var nomes = novos
+            .slice(0, 3)
+            .map(function (r) {
+                return r.cliente_nome || '#' + r.id;
+            })
+            .join(', ');
+        showSaleDoneFeedback(
+            'Novo pedido do catálogo' +
+                (novos.length > 1 ? ' (' + novos.length + ')' : '') +
+                ': ' +
+                nomes +
+                '. Assuma nesta loja.',
+            'warn'
+        );
+        var modalOpen =
+            dom.entregasPendentesModal &&
+            (dom.entregasPendentesModal.open ||
+                dom.entregasPendentesModal.hasAttribute('open'));
+        if (!modalOpen && !entregasPendentesOpening) {
+            openEntregasPendentesModal();
+        }
+    }
+
+    function wizardPrintPayloadFromEntregaRow(row) {
+        row = row || {};
+        var itensSrc = Array.isArray(row.itens) ? row.itens : [];
+        var itensJson = itensSrc.map(function (it) {
+            return {
+                codigo_gm: String(it.codigo_gm || it.codigo || it.produto_id || ''),
+                codigo: String(it.codigo || ''),
+                nome: String(it.nome || ''),
+                qtd: it.qtd,
+                preco: Number(it.preco || 0),
+                prateleira: String(it.prateleira || '')
+            };
+        });
+        return {
+            id: row.id,
+            orc_local_id: row.id,
+            retomar_codigo: String(row.retomar_codigo || ('ENT' + String(row.id || ''))),
+            criado_em: String(row.criado_em || '').replace('T', ' ').slice(0, 19) ||
+                new Date().toISOString().replace('T', ' ').slice(0, 19),
+            cliente_nome: row.cliente_nome || '',
+            telefone: row.telefone || '',
+            plus_code: String(row.plus_code || '').trim(),
+            endereco_linha: String(row.endereco_linha || '').trim(),
+            referencia_rural: String(row.referencia_rural || '').trim(),
+            forma_pagamento: String(row.forma_pagamento || ''),
+            troco_precisa: row.troco_precisa === true || row.troco_precisa === false ? row.troco_precisa : null,
+            maps_url_manual: String(row.maps_url_manual || '').trim(),
+            itens_json: itensJson,
+            total_texto: row.total_texto || '',
+            frete: 0,
+            frete_texto: ''
+        };
+    }
+
+    function wizardImprimirPacoteEntregaPayload(e, opt) {
+        opt = opt || { sep: true, ent: true, cup: true };
+        var parts = [];
+        if (opt.sep) parts.push(wizardPrintHtmlSeparacao(e));
+        if (opt.ent) parts.push(wizardPrintHtmlEntregador(e));
+        if (opt.cup) parts.push(wizardPrintHtmlCupom(e));
+        if (!parts.length) return;
+        var barcodeVal = wizardPrintCodigoBarrasEntrega(e);
+        var packStyles =
+            typeof window.agroCupomStyles === 'function'
+                ? window.agroCupomStyles()
+                : '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}body{font-family:system-ui,sans-serif}.pg{width:80mm;margin:0 auto;padding:0;page-break-inside:avoid;break-inside:avoid-page;overflow:visible;box-sizing:border-box}.pg + .pg{page-break-before:always;break-before:page}.pg-avanco-corte{display:block;height:14mm;min-height:14mm;line-height:14mm;font-size:1px;color:transparent;overflow:hidden}.cupom-cabecalho,.cupom-logo{width:100%}.cupom-logo img{width:100%;max-width:100%;height:auto;display:block;margin:0}.cupom-zap{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:900}.nome-cliente{font-weight:900;font-size:32px;line-height:1.15;word-break:break-word;overflow-wrap:break-word;text-align:center;white-space:pre-wrap;margin:8px 0 6px;letter-spacing:-0.01em}.rodape-sistvale{text-align:center;font-size:11px;font-weight:900;letter-spacing:.16em;margin-top:10px;padding:5px 4px 4px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+
+        var pages = [];
+        if (opt.sep) pages.push({ html: wizardPrintHtmlSeparacao(e), barcodeVal: barcodeVal });
+        if (opt.ent) pages.push({ html: wizardPrintHtmlEntregador(e) });
+        if (opt.cup) pages.push({ html: wizardPrintHtmlCupom(e) });
+
+        if (typeof window.agroCupomImprimirPaginasSequencial === 'function') {
+            window.agroCupomImprimirPaginasSequencial(pages, {
+                iframeId: 'agro-print-iframe-entregas-pdv',
+                title: 'Entrega PDV',
+                styles: packStyles,
+                gapMs: 420,
+                readyDelay: 80
+            });
+            return;
+        }
+
+        if (typeof window.agroCupomPrintBodyInIframe === 'function') {
+            window.agroCupomPrintBodyInIframe({
+                iframeId: 'agro-print-iframe-entregas-pdv',
+                title: 'Entrega PDV',
+                styles: packStyles,
+                bodyHtml: parts.join(''),
+                barcodeVal: opt.sep ? barcodeVal : '',
+                readyDelay: 80
+            });
+        }
+    }
+
+    function imprimirEntregaPendentePorId(pk, opt) {
+        var row = findEntregaPendenteCache(pk);
+        if (!row || !row.pode_imprimir) {
+            showSaleDoneFeedback('Sem itens para imprimir nesta entrega.', 'warn');
+            return;
+        }
+        var payload = wizardPrintPayloadFromEntregaRow(row);
+        var doPrint = function (choice) {
+            if (!choice) return;
+            wizardImprimirPacoteEntregaPayload(payload, choice);
+        };
+        if (opt && (opt.sep || opt.ent || opt.cup)) {
+            doPrint(opt);
+            return;
+        }
+        wizardModalEscolhaImpressaoEntrega().then(doPrint);
+    }
+
+    function assumirEntregaPendente(pk) {
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteAssumir, pk);
+        if (!url) return;
+        var loja = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
+        if (loja !== 'centro' && loja !== 'vila') {
+            showSaleDoneFeedback('Defina o depósito do PDV (Centro ou Vila) antes de assumir.', 'warn');
+            return;
+        }
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        jsonPost(url, { loja: loja })
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    var st = res.status || 0;
+                    var msg =
+                        (res.data && (res.data.erro || res.data.mensagem)) ||
+                        (st === 409 ? 'Já assumida por outra loja.' : 'Não foi possível assumir.');
+                    throw new Error(msg);
+                }
+                var ent = res.data.entrega || {};
+                if (ent.id != null) {
+                    var itens = entregasPendentesCache.itens || [];
+                    var found = false;
+                    for (var i = 0; i < itens.length; i++) {
+                        if (String(itens[i].id) === String(ent.id)) {
+                            itens[i] = Object.assign({}, itens[i], ent);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) itens.unshift(ent);
+                    entregasPendentesCache.itens = itens;
+                }
+                showSaleDoneFeedback(
+                    'Entrega #' +
+                        pk +
+                        ' assumida (' +
+                        lojaEntregaLabelUi(loja) +
+                        '). Imprimindo 3 vias…',
+                    'ok'
+                );
+                imprimirEntregaPendentePorId(pk, { sep: true, ent: true, cup: true });
+                invalidateEntregasPendentesCache();
+                return refreshEntregasPendentesUi(false, true);
+            })
+            .catch(function (err) {
+                showSaleDoneFeedback(
+                    err && err.message ? err.message : 'Falha ao assumir entrega.',
+                    'warn'
+                );
+                invalidateEntregasPendentesCache();
+                return refreshEntregasPendentesUi(true, true);
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function openEntregasPendentesModal() {
+        if (entregasPendentesOpening) return;
+        entregasPendentesOpening = true;
+        refreshEntregasPendentesUi(false, true)
+            .then(function () {
+                if (!dom.entregasPendentesModal) return;
+                renderEntregasPendentesList();
+                if (typeof dom.entregasPendentesModal.showModal === 'function') {
+                    if (!dom.entregasPendentesModal.open) {
+                        dom.entregasPendentesModal.showModal();
+                    }
+                } else {
+                    dom.entregasPendentesModal.setAttribute('open', 'open');
+                }
+                syncPdvSspinIdlePause();
+            })
+            .finally(function () {
+                entregasPendentesOpening = false;
+            });
     }
 
     function closeEntregasPendentesModal() {
@@ -3994,6 +4289,11 @@
     function refreshEntregasPendentesUi(silent, forceRefresh) {
         var url = urls.apiPdvEntregasPendentes;
         if (!url) return Promise.resolve();
+        var loja =
+            typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : '';
+        if (loja === 'centro' || loja === 'vila') {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') + 'loja=' + encodeURIComponent(loja);
+        }
         if (!forceRefresh && window.AgroPdvOfflineCache) {
             var cached = window.AgroPdvOfflineCache.readPayload(ENTREGAS_PENDENTES_LS_KEY);
             if (cached && Array.isArray(cached.itens)) {
@@ -4024,6 +4324,7 @@
                     });
                 }
                 applyEntregasPendentesButton();
+                maybeAlertNewCatalogoEntregas(entregasPendentesCache.itens);
                 if (
                     !silent &&
                     dom.entregasPendentesModal &&
@@ -11158,43 +11459,7 @@
         var state = State.getState();
         var computed = State.getComputed();
         var e = wizardPrintPayloadEntrega(state, computed, orcId);
-        var parts = [];
-        if (opt.sep) parts.push(wizardPrintHtmlSeparacao(e));
-        if (opt.ent) parts.push(wizardPrintHtmlEntregador(e));
-        if (opt.cup) parts.push(wizardPrintHtmlCupom(e));
-        if (!parts.length) return;
-        var barcodeVal = wizardPrintCodigoBarrasEntrega(e);
-        var packStyles =
-            typeof window.agroCupomStyles === 'function'
-                ? window.agroCupomStyles()
-                : '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}body{font-family:system-ui,sans-serif}.pg{width:80mm;margin:0 auto;padding:0;page-break-inside:avoid;break-inside:avoid-page;overflow:visible;box-sizing:border-box}.pg + .pg{page-break-before:always;break-before:page}.pg-avanco-corte{display:block;height:14mm;min-height:14mm;line-height:14mm;font-size:1px;color:transparent;overflow:hidden}.cupom-cabecalho,.cupom-logo{width:100%}.cupom-logo img{width:100%;max-width:100%;height:auto;display:block;margin:0}.cupom-zap{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:900}.nome-cliente{font-weight:900;font-size:32px;line-height:1.15;word-break:break-word;overflow-wrap:break-word;text-align:center;white-space:pre-wrap;margin:8px 0 6px;letter-spacing:-0.01em}.rodape-sistvale{text-align:center;font-size:11px;font-weight:900;letter-spacing:.16em;margin-top:10px;padding:5px 4px 4px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
-
-        var pages = [];
-        if (opt.sep) pages.push({ html: wizardPrintHtmlSeparacao(e), barcodeVal: barcodeVal });
-        if (opt.ent) pages.push({ html: wizardPrintHtmlEntregador(e) });
-        if (opt.cup) pages.push({ html: wizardPrintHtmlCupom(e) });
-
-        if (typeof window.agroCupomImprimirPaginasSequencial === 'function') {
-            window.agroCupomImprimirPaginasSequencial(pages, {
-                iframeId: 'agro-print-iframe-entregas-pdv',
-                title: 'Entrega PDV',
-                styles: packStyles,
-                gapMs: 420,
-                readyDelay: 80
-            });
-            return;
-        }
-
-        if (typeof window.agroCupomPrintBodyInIframe === 'function') {
-            window.agroCupomPrintBodyInIframe({
-                iframeId: 'agro-print-iframe-entregas-pdv',
-                title: 'Entrega PDV',
-                styles: packStyles,
-                bodyHtml: parts.join(''),
-                barcodeVal: opt.sep ? barcodeVal : '',
-                readyDelay: 80
-            });
-        }
+        wizardImprimirPacoteEntregaPayload(e, opt);
     }
 
     function wizardModalEscolhaImpressaoEntrega() {
