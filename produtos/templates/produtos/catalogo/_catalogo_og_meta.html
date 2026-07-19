@@ -1,0 +1,19 @@
+{# Meta Open Graph / WhatsApp — og:image precisa ser URL https pública (não data:). #}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ config.nome_loja }}">
+<meta property="og:url" content="{{ og_url }}">
+<meta property="og:title" content="{{ og_title }}">
+<meta property="og:description" content="{{ og_description }}">
+{% if og_image_url %}
+<meta property="og:image" content="{{ og_image_url }}">
+<meta property="og:image:secure_url" content="{{ og_image_url }}">
+<meta property="og:image:type" content="{{ og_image_type|default:'image/png' }}">
+<meta property="og:image:alt" content="{{ config.nome_loja }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ og_image_url }}">
+{% else %}
+<meta name="twitter:card" content="summary">
+{% endif %}
+<meta name="twitter:title" content="{{ og_title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+<link rel="canonical" href="{{ og_url }}">

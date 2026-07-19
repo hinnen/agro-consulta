@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja v10.64** (Live) · teste
+**Versão app (VERSION):** **teste v10.72** · **loja v10.65** (push OG WhatsApp)
+
+### 📦 Deploy loja **v10.65** — Catálogo preview WhatsApp / OG (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | Meta Open Graph + /catalogo/og-image/ (logo da gestão) |
+| **NÃO inclui** | Merge inteiro teste · demais WIP |
+| **Base** | e0471d0 (loja v10.64) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-og-v10.64 @ **e0471d0** |
+| **Autorização** | *pode subir para produção* + **99738595** · checkpoint pedido |
+| **Risco** | Baixo — só meta + endpoint imagem no /catalogo/ · sem migrate · PDV intacto |
+| **Você** | Ctrl+F5 · badge **v10.65** · colar link no Zap · se cache: Facebook Debugger «Raspar novamente» |
 
 ### 📦 Deploy loja **v10.64** — Renan sem NFC-e auto + fechar ordem formas (18/07 · Renan frase+senha)
 
