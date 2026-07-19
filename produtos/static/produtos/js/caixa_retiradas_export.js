@@ -31,6 +31,7 @@
   var telaAte = document.getElementById('id-ate');
   var telaPlano = document.getElementById('id-plano');
   var telaQuem = document.getElementById('id-quem');
+  var telaLoja = document.getElementById('crh-loja');
 
   var exportColsDef = [
     { key: 'data', label: 'Data', fixa: true },
@@ -114,7 +115,14 @@
         quem = '';
       }
     }
-    return { de: de, ate: ate, plano: plano, quem: quem, completo: completo };
+    return {
+      de: de,
+      ate: ate,
+      plano: plano,
+      quem: quem,
+      completo: completo,
+      loja: (telaLoja && telaLoja.value) || 'centro',
+    };
   }
 
   function atualizarStatus() {
@@ -235,6 +243,7 @@
       if (f.ate) params.set('ate', f.ate);
       if (f.plano) params.set('plano', f.plano);
       if (f.quem) params.set('quem', f.quem);
+      if (f.loja) params.set('loja', f.loja);
       if (f.completo) params.set('completo', '1');
       params.set('cols', cols.join(','));
       fecharExport();

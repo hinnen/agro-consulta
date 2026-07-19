@@ -54,6 +54,7 @@
         <h1 class="text-[clamp(1.1rem,0.9vw+1rem,1.5rem)] font-black uppercase text-slate-900">Retiradas / saídas</h1>
         <p class="text-xs sm:text-sm font-bold text-slate-500">
           {{ data_de|date:"d/m/Y" }}{% if data_ate != data_de %} — {{ data_ate|date:"d/m/Y" }}{% endif %}
+          · {{ filtro_loja_label|default:"Centro" }}
           · {{ qtd }} registro(s)
         </p>
       </div>
@@ -70,6 +71,13 @@
     </a>
 
     <form method="get" id="crh-filtros" class="crh-filtros shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm flex flex-wrap items-end gap-2">
+      <input type="hidden" name="loja" id="crh-loja" value="{{ filtro_loja|default:'centro' }}">
+      <div class="w-full flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 mb-1">
+        <span class="text-[10px] font-black uppercase text-slate-500">Loja</span>
+        <button type="button" data-crh-loja="centro" class="crh-loja-chip px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">Centro</button>
+        <button type="button" data-crh-loja="vila" class="crh-loja-chip px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600{% endif %}">Vila Elias</button>
+        <button type="button" data-crh-loja="todas" class="crh-loja-chip px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600{% endif %}">Todas</button>
+      </div>
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-de">De</label>
         <input type="date" name="de" id="id-de" value="{{ data_de|date:'Y-m-d' }}" class="agro-date-picker crh-touch mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1.5 font-bold w-full min-w-[10rem]">
@@ -100,7 +108,7 @@
       </div>
       <button type="submit" class="crh-touch px-4 rounded-lg bg-slate-900 text-white text-xs font-black uppercase">Filtrar</button>
       <button type="button" id="crh-btn-export-xlsx" class="crh-touch px-4 rounded-lg bg-emerald-600 text-white text-xs font-black uppercase border-2 border-emerald-800 hover:bg-emerald-700" title="Exportar para Excel">Excel ↓</button>
-      <a href="{% url 'caixa_retiradas_historico' %}" class="crh-touch inline-flex items-center px-3 rounded-lg border border-slate-200 text-xs font-black uppercase text-slate-600">Hoje</a>
+      <a href="{% url 'caixa_retiradas_historico' %}?loja={{ filtro_loja|default:'centro' }}" class="crh-touch inline-flex items-center px-3 rounded-lg border border-slate-200 text-xs font-black uppercase text-slate-600">Hoje</a>
     </form>
 
     <div class="shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
@@ -254,6 +262,16 @@
         accentSoft: '#fff7ed'
       });
     }
+
+    var form = document.getElementById('crh-filtros');
+    var lojaHid = document.getElementById('crh-loja');
+    document.querySelectorAll('[data-crh-loja]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var v = btn.getAttribute('data-crh-loja') || 'centro';
+        if (lojaHid) lojaHid.value = v;
+        if (form) form.submit();
+      });
+    });
 
     fetch(API_QUEM, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })

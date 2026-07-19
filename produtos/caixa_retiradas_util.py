@@ -141,12 +141,98 @@ def listar_retiradas_historico(
     quem: str = "",
     limite: int = 300,
     exportar: bool = False,
+    deposito: str | None = None,
 ) -> dict[str, Any]:
+    """
+    ``deposito``: ``centro`` | ``vila`` | ``None`` (todas).
+    Filtra pelo ponto do turno (Gaveta=Centro · Vila Elias).
+    """
+    from produtos.caixa_util import (
+        PONTO_CAIXA_GAVETA,
+        normalizar_ponto_caixa,
+        ponto_pai_de_deposito,
+    )
+    from produtos.models import SessaoCaixa
+    from produtos.pdv_deposito_util import normalizar_deposito
+
     plano_f = (plano or "").strip()
     quem_f = (quem or "").strip().lower()
     cap = 10000 if exportar else 500
     default_lim = 5000 if exportar else 300
     limite = max(1, min(int(limite or default_lim), cap))
+
+    dep_filtro: str | None = None
+    raw_dep = str(deposito or "").strip().lower()
+    if raw_dep in ("todas", "todos", "all"):
+        dep_filtro = None
+    elif raw_dep:
+        dep_filtro = normalizar_deposito(raw_dep)
+
+    ponto_filtro = ponto_pai_de_deposito(dep_filtro) if dep_filtro else None
+    sessoes_ok: set[int] | None = None
+    mov_ids_loja: set[int] = set()
+    if ponto_filtro:
+        sessoes_ok = set(
+            SessaoCaixa.objects.filter(ponto_caixa=ponto_filtro).values_list("pk", flat=True)
+        )
+        mov_ids_loja = set(
+            MovimentoCaixa.objects.filter(
+                tipo=MovimentoCaixa.Tipo.RETIRADA,
+                criado_em__date__gte=data_de,
+                criado_em__date__lte=data_ate,
+                sessao_caixa_id__in=sessoes_ok,
+            ).values_list("pk", flat=True)
+        )
+
+    def _sessao_ok(sid) -> bool:
+        if sessoes_ok is None:
+            return True
+        try:
+            return int(sid) in sessoes_ok
+        except (TypeError, ValueError):
+            return False
+
+    def _titulo_bate_loja(snap: dict, mov_id) -> bool:
+        if sessoes_ok is None:
+            return True
+        sid = snap.get("sessao_caixa_id")
+        if sid is not None and str(sid).strip() != "":
+            return _sessao_ok(sid)
+        if mov_id is not None and str(mov_id).strip() != "":
+            try:
+                mid = int(mov_id)
+            except (TypeError, ValueError):
+                mid = 0
+            if mid and mid in mov_ids_loja:
+                return True
+            m = (
+                MovimentoCaixa.objects.filter(pk=mid)
+                .select_related("sessao_caixa")
+                .first()
+            )
+            if m and m.sessao_caixa_id:
+                return _sessao_ok(m.sessao_caixa_id)
+            return False
+        # Legado sem vínculo de turno → só conta no Centro (padrão histórico).
+        return dep_filtro == "centro"
+
+    def _vale_bate_loja(v) -> bool:
+        if sessoes_ok is None:
+            return True
+        ref = (getattr(v, "referencia_externa_id", None) or "").strip()
+        if ref.isdigit():
+            mid = int(ref)
+            if mid in mov_ids_loja:
+                return True
+            m = (
+                MovimentoCaixa.objects.filter(pk=mid)
+                .select_related("sessao_caixa")
+                .first()
+            )
+            if m and m.sessao_caixa_id:
+                return _sessao_ok(m.sessao_caixa_id)
+        # Vale sem vínculo: legado Centro; Vila não lista (evita misturar).
+        return dep_filtro == "centro"
 
     linhas: list[dict[str, Any]] = []
     ids_mov_vistos: set[int] = set()
@@ -177,6 +263,8 @@ def listar_retiradas_historico(
             continue
         snap = t.dados_snapshot_json if isinstance(t.dados_snapshot_json, dict) else {}
         mov_id = snap.get("movimento_caixa_id")
+        if not _titulo_bate_loja(snap, mov_id):
+            continue
         if mov_id:
             try:
                 ids_mov_vistos.add(int(mov_id))
@@ -220,6 +308,8 @@ def listar_retiradas_historico(
             )
 
         for v in vq.order_by("-data", "-criado_em")[:limite]:
+            if not _vale_bate_loja(v):
+                continue
             nome_quem = (v.funcionario.nome_exibicao if v.funcionario else "").strip()
             if quem_f and quem_f not in nome_quem.lower():
                 continue
@@ -253,6 +343,8 @@ def listar_retiradas_historico(
         criado_em__date__gte=data_de,
         criado_em__date__lte=data_ate,
     ).select_related("sessao_caixa", "usuario")
+    if sessoes_ok is not None:
+        mov_qs = mov_qs.filter(sessao_caixa_id__in=sessoes_ok)
     if quem_f:
         mov_qs = mov_qs.filter(observacao__icontains=quem_f)
     if plano_f:
@@ -266,6 +358,8 @@ def listar_retiradas_historico(
 
     for m in mov_qs.order_by("-criado_em")[:limite]:
         if m.pk in ids_mov_vistos:
+            continue
+        if sessoes_ok is not None and not _sessao_ok(m.sessao_caixa_id):
             continue
         obs = (m.observacao or "").strip()
         if plano_f and not _texto_match_plano_filtro(plano_f, obs):
@@ -282,6 +376,9 @@ def listar_retiradas_historico(
         ):
             continue
         op_mov = _rotulo_usuario_django(m.usuario) if m.usuario else ""
+        ponto = normalizar_ponto_caixa(
+            getattr(m.sessao_caixa, "ponto_caixa", None) if m.sessao_caixa_id else None
+        )
         linhas.append(
             {
                 "id": f"m-{m.pk}",
@@ -299,6 +396,7 @@ def listar_retiradas_historico(
                 "operador_pin": _op_exib(op_mov),
                 "sessao_id": m.sessao_caixa_id,
                 "mongo_id": "",
+                "ponto_caixa": ponto or PONTO_CAIXA_GAVETA,
             }
         )
 
@@ -306,10 +404,20 @@ def listar_retiradas_historico(
     linhas = linhas[:limite]
     total = sum((_dec(r["valor"]) for r in linhas), Decimal("0.00"))
 
+    filtro_loja = dep_filtro or "todas"
+    if filtro_loja == "vila":
+        filtro_loja_label = "Vila Elias"
+    elif filtro_loja == "centro":
+        filtro_loja_label = "Centro"
+    else:
+        filtro_loja_label = "Todas"
+
     return {
         "linhas": linhas,
         "qtd": len(linhas),
         "total": total,
+        "filtro_loja": filtro_loja,
+        "filtro_loja_label": filtro_loja_label,
     }
 
 
