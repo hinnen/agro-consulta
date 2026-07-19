@@ -10056,6 +10056,7 @@ def caixa_painel(request):
 @login_required(login_url="/admin/login/")
 def caixa_retiradas_historico(request):
     from produtos.caixa_retiradas_util import listar_quem_retiradas_distintas, listar_retiradas_historico
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
     from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
 
     hoje = timezone.localdate()
@@ -10066,11 +10067,14 @@ def caixa_retiradas_historico(request):
     plano_filtro = (request.GET.get("plano") or "").strip()
     quem_filtro = (request.GET.get("quem") or "").strip()
 
+    filtro_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
+
     resultado = listar_retiradas_historico(
         data_de=data_de,
         data_ate=data_ate,
         plano=plano_filtro,
         quem=quem_filtro,
+        deposito=dep_filtro if filtro_loja != "todas" else "todas",
     )
     total = resultado["total"]
     total_str = f"{total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -10088,6 +10092,13 @@ def caixa_retiradas_historico(request):
     if embed:
         url_nova += "&embed=1"
 
+    fl = resultado.get("filtro_loja") or filtro_loja or "centro"
+    fl_label = resultado.get("filtro_loja_label") or (
+        "Todas"
+        if fl == "todas"
+        else ROTULO_DEPOSITO.get(normalizar_deposito(fl), "Centro")
+    )
+
     return render(
         request,
         "produtos/caixa_retiradas_historico.html",
@@ -10096,6 +10107,8 @@ def caixa_retiradas_historico(request):
             "data_ate": data_ate,
             "plano_filtro": plano_filtro,
             "quem_filtro": quem_filtro,
+            "filtro_loja": fl,
+            "filtro_loja_label": fl_label,
             "linhas": linhas_fmt,
             "qtd": resultado["qtd"],
             "total_str": total_str,
@@ -10135,6 +10148,8 @@ def api_caixa_retiradas_export_xlsx(request):
         plano_filtro = ""
         quem_filtro = ""
 
+    filtro_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
+
     colunas = normalizar_colunas_export(request.GET.get("cols"))
     resultado = listar_retiradas_historico(
         data_de=data_de,
@@ -10142,6 +10157,7 @@ def api_caixa_retiradas_export_xlsx(request):
         plano=plano_filtro,
         quem=quem_filtro,
         exportar=True,
+        deposito=dep_filtro if filtro_loja != "todas" else "todas",
     )
     linhas = resultado["linhas"]
     truncado = resultado["qtd"] >= 5000

@@ -1162,7 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.46** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+**Versão app (VERSION):** **teste v10.47** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+
+### 🩹 Retiradas/saídas — filtro por loja Centro/Vila (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Com aparelho em Vila Elias, histórico de saídas ainda listava Centro |
+| **Fix** | Filtra pelo turno (Gaveta×Vila) · chips Centro/Vila/Todas · padrão = loja do aparelho |
+| **Você** | Ctrl+F5 · Retiradas → chip **Vila Elias** → lista vazia/só Vila · **Centro** → saídas do dia |
 
 ### 🩹 BI — seletor loja filtra números + recarrega (18/07 · **teste**)
 
