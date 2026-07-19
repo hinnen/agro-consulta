@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.72** · **loja v10.65**
+**Versão app (VERSION):** **teste v10.74** · **loja v10.65**
 
 ### 📦 Deploy loja **v10.65** — Catálogo preview WhatsApp / OG (18/07 · Renan frase+senha)
 
@@ -1499,6 +1499,15 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
+
+### WIP — Catálogo · OG card 1200x630 sem cortar logo **v10.74** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este |
+| **O quê** | /catalogo/og-image/ gera cartão 1200×630 · logo contain · ?v=card2-… quebra cache |
+| **fb:app_id** | Aviso Facebook cosmético — **não** impede preview Zap |
+| **Produção** | **Não** |
 
 ### WIP — Catálogo · preview WhatsApp (og:image) **v10.71** (18/07/2026)
 

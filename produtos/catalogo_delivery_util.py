@@ -82,6 +82,49 @@ def comprimir_imagem_upload(
         return raw, "image/jpeg"
 
 
+def _hex_rgb(valor: str, padrao: tuple[int, int, int] = (236, 253, 245)) -> tuple[int, int, int]:
+    v = (valor or "").strip()
+    if len(v) == 7 and v.startswith("#"):
+        try:
+            return int(v[1:3], 16), int(v[3:5], 16), int(v[5:7], 16)
+        except ValueError:
+            return padrao
+    return padrao
+
+
+def montar_imagem_og_preview(
+    logo_bytes: bytes,
+    *,
+    cor_fundo: str = "#ecfdf5",
+) -> bytes | None:
+    """
+    Cartão 1200×630 (WhatsApp/Facebook): logo centralizada sem cortar (contain).
+    Evita crop lateral da logo panorâmica no preview.
+    """
+    if not logo_bytes:
+        return None
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        w, h = 1200, 630
+        canvas = Image.new("RGB", (w, h), _hex_rgb(cor_fundo))
+        logo = Image.open(BytesIO(logo_bytes)).convert("RGBA")
+        pad_x, pad_y = 96, 72
+        max_w, max_h = w - 2 * pad_x, h - 2 * pad_y
+        logo_fit = logo.copy()
+        logo_fit.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        x = (w - logo_fit.width) // 2
+        y = (h - logo_fit.height) // 2
+        canvas.paste(logo_fit, (x, y), logo_fit)
+        buf = BytesIO()
+        canvas.save(buf, format="JPEG", quality=88, optimize=True)
+        return buf.getvalue()
+    except Exception:
+        return None
+
+
 def normalizar_delivery(raw: Any) -> dict:
     d = raw if isinstance(raw, dict) else {}
     titulo = str(d.get("titulo") or "").strip()[:200]

@@ -22,6 +22,7 @@ from produtos.catalogo_delivery_util import (
     criar_pedido_catalogo_delivery,
     listar_categorias_arvore,
     listar_itens_catalogo,
+    montar_imagem_og_preview,
     obter_config_catalogo,
     opcoes_pai_categoria,
     salvar_foto_categoria,
@@ -56,10 +57,12 @@ def _catalogo_og_context(request, cfg) -> dict:
     if og_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
         og_url = "https://" + og_url[len("http://") :]
     og_image_url = ""
-    og_image_type = (cfg.logo_mime or "image/png").strip() or "image/png"
+    og_image_type = "image/jpeg"
     if (cfg.logo_base64 or "").strip():
         path = reverse("catalogo_og_image")
-        og_image_url = request.build_absolute_uri(f"{path}?v={len(cfg.logo_base64)}")
+        # ?v= muda a URL → força Facebook/WhatsApp a baixar de novo (cache)
+        bust = f"card2-{len(cfg.logo_base64)}"
+        og_image_url = request.build_absolute_uri(f"{path}?v={bust}")
         if og_image_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
             og_image_url = "https://" + og_image_url[len("http://") :]
     return {
@@ -68,6 +71,8 @@ def _catalogo_og_context(request, cfg) -> dict:
         "og_url": og_url,
         "og_image_url": og_image_url,
         "og_image_type": og_image_type,
+        "og_image_width": 1200,
+        "og_image_height": 630,
     }
 
 
@@ -126,7 +131,7 @@ def catalogo_delivery_view(request):
 
 @require_GET
 def catalogo_og_image_view(request):
-    """Logo da loja em bytes — WhatsApp / Facebook leem og:image nesta URL."""
+    """Cartão 1200×630 com logo centralizada (sem cortar) — preview WhatsApp/Facebook."""
     cfg = obter_config_catalogo()
     b64 = (cfg.logo_base64 or "").strip()
     if not b64:
@@ -137,13 +142,18 @@ def catalogo_og_image_view(request):
         return HttpResponse(status=404)
     if not raw:
         return HttpResponse(status=404)
-    mime = (cfg.logo_mime or "image/png").strip() or "image/png"
-    if mime not in ("image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"):
-        mime = "image/png"
-    if mime == "image/jpg":
-        mime = "image/jpeg"
-    resp = HttpResponse(raw, content_type=mime)
-    resp["Cache-Control"] = "public, max-age=86400"
+    cor = (cfg.cor_secundaria or "").strip() or "#ecfdf5"
+    card = montar_imagem_og_preview(raw, cor_fundo=cor)
+    if not card:
+        # Fallback: logo crua (pior no crop, mas melhor que 404)
+        mime = (cfg.logo_mime or "image/png").strip() or "image/png"
+        if mime == "image/jpg":
+            mime = "image/jpeg"
+        resp = HttpResponse(raw, content_type=mime)
+        resp["Cache-Control"] = "public, max-age=3600"
+        return resp
+    resp = HttpResponse(card, content_type="image/jpeg")
+    resp["Cache-Control"] = "public, max-age=3600"
     return resp
 
 
