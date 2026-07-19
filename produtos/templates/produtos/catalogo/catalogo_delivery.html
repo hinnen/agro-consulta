@@ -104,21 +104,37 @@
     .fab-wa svg { width: 1.85rem; height: 1.85rem; display: block; }
     .logo-loja {
       display: block;
-      align-self: stretch;
       width: 100%;
       max-width: 100%;
       height: auto;
-      max-height: 8.75rem;
-      border-radius: 1rem;
+      max-height: none;
+      border-radius: 0;
       object-fit: contain;
       object-position: center;
-      background: rgba(255, 255, 255, 0.97);
-      border: 2px solid rgba(255, 255, 255, 0.55);
-      box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
-      padding: 0.25rem 0.4rem;
+      background: #fff;
+      border: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: none;
+      padding: 0.12rem 0;
     }
-    .hero-brand { display: flex; flex-direction: column; gap: 0.55rem; padding-right: 3.25rem; }
-    .hero-brand-meta { min-width: 0; }
+    .hero-brand { display: flex; flex-direction: column; gap: 0; }
+    .hero-brand-body { padding: 0.65rem 1rem 0; }
+    .hero-brand-meta { min-width: 0; flex: 1; }
+    .gestao-btn {
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 0.15rem;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(255, 255, 255, 0.22);
+      padding: 0.35rem 0.55rem;
+      border-radius: 0.5rem;
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+    }
     .card-rota {
       display: flex;
       flex-direction: column;
@@ -185,25 +201,27 @@
 <body class="text-slate-800 antialiased">
 <div class="shell">
 
-<header class="hero-mesh text-white px-4 pt-5 pb-5 relative">
-  {% if eh_staff %}
-  <a href="{% url 'catalogo_gestao' %}" class="absolute right-3 top-3 text-[0.65rem] font-bold uppercase tracking-wide bg-white/20 px-2 py-1 rounded-lg z-10">Gestão</a>
-  {% endif %}
+<header class="hero-mesh text-white pb-5 relative overflow-hidden">
   <div class="hero-brand">
     {% if config.logo_url %}
     <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
     {% else %}
-    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight">{{ config.nome_loja }}</h1>
+    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5">{{ config.nome_loja }}</h1>
     {% endif %}
-    <div class="hero-brand-meta">
-      <p class="text-[0.65rem] font-black uppercase tracking-[0.18em] opacity-80">Delivery · rações</p>
-      {% if config.mensagem_boas_vindas %}
-      <p class="mt-1 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
-      {% else %}
-      <p class="mt-1 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
-      {% endif %}
-    </div>
-  </div>
+    <div class="hero-brand-body">
+      <div class="flex items-start justify-between gap-2">
+        <div class="hero-brand-meta">
+          <p class="text-[0.65rem] font-black uppercase tracking-[0.18em] opacity-80">Delivery · rações</p>
+          {% if config.mensagem_boas_vindas %}
+          <p class="mt-1 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
+          {% else %}
+          <p class="mt-1 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
+          {% endif %}
+        </div>
+        {% if eh_staff %}
+        <a href="{% url 'catalogo_gestao' %}" class="gestao-btn">Gestão</a>
+        {% endif %}
+      </div>
 
   {% if enderecos %}
   <div class="mt-3 grid grid-cols-2 gap-1.5">
@@ -227,9 +245,11 @@
     {% endfor %}
   </div>
   {% endif %}
+    </div>
+  </div>
 
   {% if config.area_entrega %}
-  <p class="mt-2 text-[0.7rem] font-bold opacity-90">Entrega: {{ config.area_entrega }}</p>
+  <p class="mt-2 px-4 text-[0.7rem] font-bold opacity-90">Entrega: {{ config.area_entrega }}</p>
   {% endif %}
 </header>
 
