@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.59** · **loja v10.59** (push pendente)
+**Versão app (VERSION):** **teste v10.59** · **loja v10.60** (Compras UI)
+
+### 📦 Deploy loja **v10.60** — Compras UI etapa 1 (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Só layout /compras/ (painel resumo, busca, filtros) |
+| **NÃO inclui** | Entrada NF · aba 9 · merge inteiro |
+| **Base** | c352575 (loja v10.59) |
+| **Backup / reverter** | 
+ollback/pre-compras-ui-v10.59 @ **c352575** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 /compras/ · buscar · expandir linha |
+
 
 ### 📦 Deploy loja **v10.59** — BI mensagem + validade loja + faturamento 2 barras (18/07 · Renan frase+senha)
 
