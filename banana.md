@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.59** · **loja v10.60** (Compras UI)
+**Versão app (VERSION):** **teste v10.59** · **loja v10.61** (aba 9)
+
+### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Lápis PDV: histórico só o que mudou · não força permite_venda |
+| **NÃO inclui** | Entrada NF grande · merge inteiro |
+| **Base** | c88ce66 (loja v10.60) |
+| **Backup / reverter** | 
+ollback/pre-aba9-historico-v10.60 @ **c88ce66** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 · lápis 1 centavo · aba 9 = 1 linha com DE = preço antigo |
+
 
 ### 📦 Deploy loja **v10.60** — Compras UI etapa 1 (18/07 · Renan frase+senha)
 
