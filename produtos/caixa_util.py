@@ -1270,14 +1270,10 @@ def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
 
 def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observacao: str = ""):
     """Após saída financeira (plano de conta), registra retirada na sessão aberta."""
-    from produtos.models import MovimentoCaixa, SessaoCaixa
+    from produtos.models import MovimentoCaixa
 
-    sid = request.session.get("pdv_sessao_caixa_id")
-    if not sid:
-        return None
-    try:
-        sessao = SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
-    except Exception:
+    sessao = obter_sessao_caixa_aberta_request(request)
+    if not sessao:
         return None
     v = _dec(valor)
     if v <= 0:

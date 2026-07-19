@@ -1156,7 +1156,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.53** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.54** · **loja v10.48** (push `a79831c`)
+
+### 🚨 Retiradas — bloqueio com caixa fechado (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Com BI em Vila, aba Centro no histórico + **Nova saída** gravava no financeiro **sem caixa aberto**; legado caía na lista Centro |
+| **Fix** | API exige caixa aberto da loja do aparelho · formulário/botão travados se fechado · chips Centro/Vila = **só filtro da lista** |
+| **Você** | Ctrl+F5 · caixa fechado → **Nova saída** cinza · tentar URL direta → volta pro histórico · abrir caixa → aí registra |
 
 ### 🩹 BI Vila — zerar cards que vazavam Centro (18/07 · **teste**)
 
