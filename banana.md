@@ -1163,7 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.74** · **loja v10.65**
+**Versão app (VERSION):** **teste v10.75** · **loja v10.66**
+
+### 📦 Deploy loja **v10.66** — OG card 1200×630 sem cortar logo (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **237a2b8** · aguardar Live |
+| **Backup / reverter** | 
+ollback/pre-catalogo-og-card-v10.65 @ **bdb1749** |
+| **Você** | Debugger «Raspar novamente» · Zap conversa nova |
 
 ### 📦 Deploy loja **v10.65** — Catálogo preview WhatsApp / OG (18/07 · Renan frase+senha)
 
@@ -1509,7 +1518,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Status** | ✅ push 	este |
 | **O quê** | /catalogo/og-image/ gera cartão 1200×630 · logo contain · ?v=card2-… quebra cache |
 | **fb:app_id** | Aviso Facebook cosmético — **não** impede preview Zap |
-| **Produção** | **Não** |
+| **Produção** | ✅ loja **v10.66** |
 
 ### WIP — Catálogo · preview WhatsApp (og:image) **v10.71** (18/07/2026)
 
