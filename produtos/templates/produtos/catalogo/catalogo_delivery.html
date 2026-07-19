@@ -23,18 +23,23 @@
     .border-primary { border-color: var(--cat-primary) !important; }
     .ring-primary { --tw-ring-color: var(--cat-primary); }
     .hero-mesh {
-      /* Topo (logo): verde+laranja bem fraquinhos → sobe contraste → 100% no bloco Delivery */
+      /* Degradê longo e suave: logo claro → verde 100% mais abaixo */
       background: linear-gradient(
         180deg,
-        color-mix(in srgb, var(--cat-primary) 7%, #fffbeb) 0%,
-        color-mix(in srgb, var(--cat-primary) 11%, #ffedd5) 12%,
-        color-mix(in srgb, #ea580c 14%, #ecfdf5) 22%,
-        color-mix(in srgb, var(--cat-primary) 28%, #fed7aa) 32%,
-        color-mix(in srgb, var(--cat-primary) 48%, #fb923c) 40%,
-        color-mix(in srgb, #064e3b 55%, var(--cat-primary)) 48%,
-        color-mix(in srgb, #064e3b 82%, var(--cat-primary)) 54%,
-        #064e3b 58%,
-        var(--cat-primary) 78%,
+        color-mix(in srgb, var(--cat-primary) 5%, #fffbeb) 0%,
+        color-mix(in srgb, var(--cat-primary) 8%, #fff7ed) 6%,
+        color-mix(in srgb, #ea580c 9%, #f0fdf4) 12%,
+        color-mix(in srgb, var(--cat-primary) 14%, #ffedd5) 18%,
+        color-mix(in srgb, var(--cat-primary) 20%, #fed7aa) 24%,
+        color-mix(in srgb, var(--cat-primary) 28%, #fdba74) 30%,
+        color-mix(in srgb, var(--cat-primary) 36%, #86efac) 36%,
+        color-mix(in srgb, #047857 42%, #a7f3d0) 42%,
+        color-mix(in srgb, #064e3b 48%, #6ee7b7) 48%,
+        color-mix(in srgb, #064e3b 58%, var(--cat-primary)) 54%,
+        color-mix(in srgb, #064e3b 72%, var(--cat-primary)) 60%,
+        color-mix(in srgb, #064e3b 88%, var(--cat-primary)) 66%,
+        #064e3b 72%,
+        var(--cat-primary) 88%,
         #047857 100%
       );
     }
@@ -139,16 +144,13 @@
     .hero-brand { display: flex; flex-direction: column; gap: 0; }
     .hero-brand-body {
       padding: 0.65rem 1rem 0;
-      /* contraste chega cheio um pouco mais abaixo (após Delivery) */
-      background: linear-gradient(
-        180deg,
-        color-mix(in srgb, #064e3b 35%, transparent) 0%,
-        color-mix(in srgb, #064e3b 78%, transparent) 42%,
-        #064e3b 72%,
-        transparent 100%
-      );
+      background: transparent;
     }
-    .hero-brand-meta { min-width: 0; flex: 1; }
+    .hero-brand-meta {
+      min-width: 0;
+      flex: 1;
+      text-shadow: 0 1px 3px rgb(0 0 0 / 0.28);
+    }
     .gestao-btn {
       flex-shrink: 0;
       align-self: flex-start;
