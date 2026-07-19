@@ -606,17 +606,22 @@ def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
 
 
 def obter_sessao_caixa_aberta_request(request):
-    """Sessão de caixa gravada no cookie de sessão do navegador."""
+    """Sessão de caixa gravada no cookie — só se ainda aberta e da mesma loja do aparelho."""
     from produtos.models import SessaoCaixa
 
     sid = request.session.get("pdv_sessao_caixa_id")
     if not sid:
         return None
     try:
-        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
+        sessao = SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
     except Exception:
         request.session.pop("pdv_sessao_caixa_id", None)
         return None
+    if not sessao_caixa_compativel_loja_browser(request, sessao):
+        request.session.pop("pdv_sessao_caixa_id", None)
+        request.session.modified = True
+        return None
+    return sessao
 
 
 def adotar_sessao_caixa_unica_aberta(request):
@@ -677,6 +682,33 @@ def adotar_sessao_caixa_unica_aberta(request):
 
 MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
 MSG_CAIXA_PIN_ALHEIO = "Informe seu PIN para gerenciar outro caixa."
+MSG_CAIXA_LOJA_ERRADA = (
+    "Este caixa é de outra loja. Fique na loja certa no BI (Centro ou Vila Elias) "
+    "e use o caixa dessa loja."
+)
+MSG_CAIXA_FECHADO_OPERACAO = "Abra o caixa desta loja antes de continuar."
+
+
+def sessao_caixa_compativel_loja_browser(request, sessao) -> bool:
+    """
+    Turno pode operar neste aparelho?
+    Vila ↔ ponto vila · Centro ↔ gaveta/notebook Centro · Teste ↔ só ponto teste.
+    """
+    if sessao is None:
+        return False
+    ponto = normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None))
+    ponto_nav = ponto_operacao_browser(request)
+    if ponto == PONTO_CAIXA_TESTE:
+        return ponto_nav == PONTO_CAIXA_TESTE
+    return deposito_de_ponto_caixa(ponto) == deposito_caixa_browser(request)
+
+
+def validar_sessao_loja_browser(request, sessao) -> tuple[bool, str]:
+    if not sessao:
+        return False, MSG_CAIXA_FECHADO_OPERACAO
+    if not sessao_caixa_compativel_loja_browser(request, sessao):
+        return False, MSG_CAIXA_LOJA_ERRADA
+    return True, ""
 
 
 def _perfil_usuario_por_pin(pin: str):
@@ -1149,8 +1181,9 @@ def resolver_sessao_caixa_operacao(
     request, data: dict | None = None, *, permitir_adotar_unico: bool = True
 ) -> tuple[Any | None, str | None, int]:
     """
-  Sessão para movimentos no caixa: turno deste navegador ou outro turno aberto com PIN.
-  Retorna (sessao, mensagem_erro, status_http).
+    Sessão para movimentos no caixa: turno deste navegador (mesma loja) ou outro
+    turno aberto da **mesma loja** com PIN. Nunca Centro↔Vila cruzado.
+    Retorna (sessao, mensagem_erro, status_http).
     """
     data = data if isinstance(data, dict) else {}
     pin = str(data.get("pin") or "").strip()
@@ -1168,6 +1201,9 @@ def resolver_sessao_caixa_operacao(
         alvo = obter_sessao_caixa_aberta_por_id(sid)
         if not alvo:
             return None, "Caixa não encontrado ou já fechado.", 400
+        ok_loja, err_loja = validar_sessao_loja_browser(request, alvo)
+        if not ok_loja:
+            return None, err_loja, 403
         if local and int(local.pk) == sid:
             return local, None, 200
         ok, err = validar_pin_operador(pin)
@@ -1181,7 +1217,7 @@ def resolver_sessao_caixa_operacao(
         adotado = adotar_sessao_caixa_unica_aberta(request)
         if adotado:
             return adotado, None, 200
-    return None, "Nenhum caixa aberto neste navegador.", 400
+    return None, MSG_CAIXA_FECHADO_OPERACAO, 400
 
 
 def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
@@ -1244,27 +1280,12 @@ def exigir_sessao_caixa_para_venda(request, data: dict | None = None):
 
 def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
     """
-    Vincula venda ao caixa: sessão do navegador → id enviado pelo PDV → único caixa aberto.
+    Vincula venda ao caixa do aparelho: sessão do navegador → único caixa aberto da loja.
+    Não aceita ``sessao_caixa_id`` solto do cliente (evita bater na loja errada).
     """
-    from produtos.models import SessaoCaixa
-
     sessao = obter_sessao_caixa_aberta_request(request)
     if sessao:
         return sessao
-    raw_id = None
-    if isinstance(data, dict):
-        raw_id = data.get("sessao_caixa_id") or data.get("sessaoCaixaId")
-    if raw_id is not None and str(raw_id).strip() != "":
-        try:
-            sid = int(raw_id)
-        except (TypeError, ValueError):
-            sid = 0
-        if sid > 0:
-            sessao = SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
-            if sessao:
-                request.session["pdv_sessao_caixa_id"] = sessao.pk
-                request.session.modified = True
-                return sessao
     return adotar_sessao_caixa_unica_aberta(request)
 
 

@@ -1156,7 +1156,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.54** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push pendente)
+
+### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **Inclui** | BI Vila sem vazamento Centro · saída/reforço/devolução/fiado exigem caixa aberto · sem Centro×Vila cruzado |
+| **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
+| **Método** | cherry-pick `38633a6` + `b99337c` + `ed91d0a` · **não** merge inteiro |
+| **Base** | `a79831c` (loja v10.48) |
+| **Backup / reverter** | `rollback/pre-bi-caixa-lock-v10.48` @ **a79831c** |
+| **Risco Centro** | Baixo — só filtra BI e endurece regras de caixa (não muda venda normal com caixa aberto) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.56** · BI Vila limpo · caixa fechado → sem saída/reforço/devolver |
+
+### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Saída/reforço/devolução/fiado/assumir podiam rodar com caixa fechado ou bater no turno da **outra** loja |
+| **Fix** | Regra única: turno só da loja do aparelho · reforço/movimento/assumir/venda/entrega sem ID cruzado · devolução exige caixa da **mesma loja da venda** · fiado não aceita «sem caixa» |
+| **Você** | Ctrl+F5 · caixa fechado → reforço/saída/devolver/fiado recusam · BI Vila + tentar Centro = bloqueio |
 
 ### 🚨 Retiradas — bloqueio com caixa fechado (18/07 · **teste**)
 

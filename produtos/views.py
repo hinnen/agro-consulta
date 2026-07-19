@@ -91,8 +91,12 @@ from .caixa_util import (
     filtrar_sessoes_teste,
     filtrar_sessoes_por_deposito,
     deposito_caixa_browser,
+    deposito_de_ponto_caixa,
     sincronizar_deposito_com_ponto_caixa,
     ponto_pai_de_deposito,
+    validar_sessao_loja_browser,
+    MSG_CAIXA_FECHADO_OPERACAO,
+    MSG_CAIXA_LOJA_ERRADA,
     CEDULAS_DENOMINACOES_CAIXA,
     listar_fiado_vendas_conferencia_caixa,
     listar_fiado_baixas_conferencia_caixa,
@@ -10432,11 +10436,15 @@ def api_caixa_assumir_sessao(request):
     alvo = obter_sessao_caixa_aberta_por_id(sid)
     if not alvo:
         return JsonResponse({"ok": False, "erro": "Caixa não encontrado ou já fechado."}, status=400)
+    ok_loja, err_loja = validar_sessao_loja_browser(request, alvo)
+    if not ok_loja:
+        return JsonResponse({"ok": False, "erro": err_loja}, status=403)
     if not sessao_caixa_e_do_browser(request, alvo):
         ok_pin, err_pin = validar_pin_operador(pin)
         if not ok_pin:
             return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     vincular_sessao_caixa_browser(request, alvo)
+    sincronizar_deposito_com_ponto_caixa(request, getattr(alvo, "ponto_caixa", None))
     operador = rotulo_operador_pin(pin) if pin else ""
     if not operador and request.user.is_authenticated:
         operador = (request.user.get_full_name() or request.user.get_username() or "").strip()
@@ -11028,17 +11036,43 @@ def api_venda_agro_devolver(request, pk):
     soma_caixa = sum(Dec(str(p["valor"])) for p in pags_caixa)
     soma_fiado = sum(Dec(str(p["valor"])) for p in pags_fiado)
 
-    sessao = None
-    if soma_caixa > Dec("0.009"):
-        sessao = _obter_sessao_caixa_aberta(request)
-        if not sessao:
-            return JsonResponse(
-                {
-                    "ok": False,
-                    "erro": "Abra o caixa neste navegador para registrar a saída do valor devolvido ao cliente.",
-                },
-                status=400,
-            )
+    from produtos.pdv_deposito_util import deposito_da_venda, ROTULO_DEPOSITO
+
+    dep_venda = deposito_da_venda(venda)
+    if dep_venda not in ("centro", "vila"):
+        dep_venda = "centro"
+    dep_browser = deposito_caixa_browser(request)
+    if dep_browser != dep_venda:
+        rot = ROTULO_DEPOSITO.get(dep_venda, dep_venda)
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    f"Esta venda é da loja {rot}. Troque a Loja no BI para {rot} "
+                    "e abra o caixa dessa loja antes de devolver."
+                ),
+            },
+            status=400,
+        )
+
+    sessao = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(request)
+    if not sessao:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": MSG_CAIXA_FECHADO_OPERACAO,
+            },
+            status=400,
+        )
+    if deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None)) != dep_venda:
+        rot = ROTULO_DEPOSITO.get(dep_venda, dep_venda)
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": f"Abra o caixa da loja {rot} (mesma loja da venda) para devolver.",
+            },
+            status=400,
+        )
 
     user_label = rotulo_usuario_django(request.user) if request.user.is_authenticated else ""
 

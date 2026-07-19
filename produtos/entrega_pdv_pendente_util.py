@@ -79,23 +79,19 @@ def listar_entregas_bloqueando_fechamento_caixa(*, limite: int = 50) -> list[dic
 
 
 def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> SessaoCaixa | None:
-    from produtos.caixa_util import obter_sessao_caixa_aberta_request
+    from produtos.caixa_util import (
+        adotar_sessao_caixa_unica_aberta,
+        obter_sessao_caixa_aberta_request,
+        sessao_caixa_compativel_loja_browser,
+    )
 
-    raw = None
-    if body and body.get("sessao_caixa_id") is not None:
-        raw = body.get("sessao_caixa_id")
-    if raw is None and request is not None:
-        try:
-            raw = request.session.get("pdv_sessao_caixa_id")
-        except Exception:
-            raw = None
-    if raw is not None and str(raw).strip() != "":
-        try:
-            return SessaoCaixa.objects.filter(pk=int(raw), fechado_em__isnull=True).first()
-        except (TypeError, ValueError):
-            pass
+    # Só o turno deste aparelho/loja — ignora sessao_caixa_id de outra loja no body.
     if request is not None:
-        return obter_sessao_caixa_aberta_request(request)
+        s = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+            request
+        )
+        if s and sessao_caixa_compativel_loja_browser(request, s):
+            return s
     return None
 
 
