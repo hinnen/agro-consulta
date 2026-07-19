@@ -404,11 +404,14 @@
     <h2 class="text-xl font-black mb-3">Finalizar pedido</h2>
     <div id="checkout-itens" class="text-sm space-y-2 mb-4 max-h-36 overflow-y-auto border-b pb-3"></div>
     <form id="form-pedido" class="space-y-3">
+      <label class="block">
+        <span class="text-sm font-bold">WhatsApp *</span>
+        <span class="block text-xs text-slate-500 font-medium mt-0.5 mb-1">Informe primeiro — se já for cliente da loja, preenchemos nome e endereço.</span>
+        <input id="checkout-telefone" inputmode="tel" required placeholder="13999999999" class="w-full p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="tel" enterkeyhint="next">
+        <span id="checkout-cliente-hint" class="hidden text-xs font-medium mt-1 block"></span>
+      </label>
       <label class="block"><span class="text-sm font-bold">Nome *</span>
-        <input id="checkout-nome" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
-      <label class="block"><span class="text-sm font-bold">WhatsApp *</span>
-        <input id="checkout-telefone" inputmode="tel" required placeholder="13999999999" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="tel">
-        <span id="checkout-cliente-hint" class="hidden text-xs text-emerald-700 font-medium mt-1 block">Cadastro encontrado.</span></label>
+        <input id="checkout-nome" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="name"></label>
       <div class="block space-y-2">
         <span class="text-sm font-bold">Endereço de entrega *</span>
         <button type="button" id="btn-usar-localizacao" class="w-full py-3 px-4 rounded-xl border-2 border-primary text-primary font-bold text-sm bg-primary/5">
