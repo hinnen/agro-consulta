@@ -1162,7 +1162,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.48** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+**Versão app (VERSION):** **teste v10.48** · **loja v10.48** (push `a79831c`)
+
+### 📦 Deploy loja **v10.48** — BI + retiradas por loja (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` **a79831c** · aguardar Live + smoke |
+| **Inclui** | BI filtra pela loja · Retiradas chips Centro/Vila/Todas |
+| **Base** | `eacbe2c` (v10.28) |
+| **Backup / reverter** | `rollback/pre-bi-retiradas-v10.28` @ **eacbe2c** |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.48** · BI Vila → ~R$ 0 · Retiradas Vila → sem Centro |
 
 ### 🩹 Retiradas/saídas — filtro por loja Centro/Vila (18/07 · **teste**)
 
