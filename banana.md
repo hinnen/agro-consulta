@@ -1186,6 +1186,8 @@ ollback/pre-renan-nfce-fechar-ordem-v10.63 @ **3667759** |
 | **Como reverter** | git push origin rollback/pre-renan-nfce-fechar-ordem-v10.63:producao |
 | **Você** | Ctrl+F5 · badge **v10.64** · checklist manhã |
 
+| **Smoke 18/07 noite** | ✅ abrir caixa loja · venda R\$ 0,01 dinheiro · saída com caixa fechado bloqueia |
+
 
 ### 🩹 Fechar caixa — ordem fixa das formas + sem Fiado (18/07 · **teste v10.69**)
 
