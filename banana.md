@@ -1163,7 +1163,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.64** · **loja v10.62**
+**Versão app (VERSION):** **teste** · **loja v10.62** · **pacote v10.63 pronto** (commit 1e6fe3c · aguarda senha)
+
+### 📦 PACOTE PRONTO LOJA — v10.63 kardex + C1–C3 + Zap legado (18/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **commit pronto** 1e6fe3c · tag rollback 
+ollback/pre-kardex-c1c3-zap-v10.62 @ bc911d5 · **faltando senha p/ push** |
+| **Inclui** | Kardex e-mail+Δcamada · Entrada NF C1–C3 · Zap AGROMAIS no /consulta/ · abas cadastro null-safe |
+| **Conferido** | Já na loja = Compras UI, aba 9, catálogo, BI — **não** reenviados |
+| **Autorizar** | *«pode subir pacote v10.63»* + **99738595** |
+| **Você** | Ctrl+F5 · badge v10.63 · Quem sem @ · NF etapa 8 · Enviar Zap AGROMAIS |
+
 
 ### 📦 Deploy loja **v10.62** — Catálogo GPS checkout (18/07 · Renan frase+senha)
 
