@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from produtos.catalogo_delivery_util import (
     ErroPedidoCatalogo,
+    _strip_data_url,
     agrupar_itens_por_categoria,
     arvore_navegacao_catalogo,
     cards_home_catalogo,
@@ -237,32 +238,85 @@ def api_catalogo_categoria_criar(request):
 @user_passes_test(_staff, login_url="/admin/login/")
 @require_POST
 def api_catalogo_categoria_foto(request):
-    """Foto do card da categoria (home do catálogo)."""
-    try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
-    try:
-        pk = int(payload.get("id") or 0)
-    except (TypeError, ValueError):
-        pk = 0
+    """Foto do card da categoria (home do catálogo). Aceita JSON base64 ou multipart."""
+    import base64
+
+    pk = 0
+    remover = False
+    raw = b""
+    mime_in = "image/jpeg"
+
+    ct = (request.content_type or "").split(";")[0].strip().lower()
+    if ct == "multipart/form-data" or request.FILES:
+        try:
+            pk = int(request.POST.get("id") or request.POST.get("cat_id") or 0)
+        except (TypeError, ValueError):
+            pk = 0
+        remover = request.POST.get("remover") in ("1", "true", "True", "on")
+        f = request.FILES.get("cat_foto") or request.FILES.get("foto") or request.FILES.get("file")
+        if f and not remover:
+            raw = f.read()
+            mime_in = (getattr(f, "content_type", None) or "image/jpeg")[:40]
+    else:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+        try:
+            pk = int(payload.get("id") or 0)
+        except (TypeError, ValueError):
+            pk = 0
+        remover = bool(payload.get("remover"))
+        if not remover:
+            b64_in = str(payload.get("imagem_base64") or "")
+            b64_clean, mime_guess = _strip_data_url(b64_in)
+            mime_in = str(payload.get("imagem_mime") or mime_guess or "image/jpeg")[:40]
+            try:
+                raw = base64.b64decode(b64_clean, validate=False)
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "Base64 inválido."}, status=400)
+
     cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
     if not cat:
-        return JsonResponse({"ok": False, "erro": "Categoria não encontrada."}, status=404)
-    if payload.get("remover"):
-        salvar_foto_categoria(cat, "", "")
-    else:
-        salvar_foto_categoria(
-            cat,
-            str(payload.get("imagem_base64") or ""),
-            str(payload.get("imagem_mime") or ""),
+        return JsonResponse(
+            {"ok": False, "erro": "Categoria não encontrada (foto só na principal)."},
+            status=404,
         )
-    return JsonResponse(
-        {
-            "ok": True,
-            "categorias": listar_categorias_arvore(so_ativas=True),
-        }
-    )
+    try:
+        if remover:
+            salvar_foto_categoria(cat, "", "")
+            return JsonResponse({"ok": True, "imagem": "", "cat_id": cat.pk})
+
+        if not raw:
+            return JsonResponse({"ok": False, "erro": "Nenhuma imagem recebida."}, status=400)
+        if len(raw) > 6 * 1024 * 1024:
+            return JsonResponse({"ok": False, "erro": "Arquivo acima de 6 MB."}, status=400)
+
+        raw_ok, mime = comprimir_imagem_upload(raw, max_lado=1000, qualidade=80)
+        if not raw_ok or len(raw_ok) > 900 * 1024:
+            return JsonResponse(
+                {"ok": False, "erro": "Não deu para comprimir. Use JPG 800×600."},
+                status=400,
+            )
+        b64 = base64.b64encode(raw_ok).decode("ascii")
+        salvar_foto_categoria(cat, b64, mime)
+        cat.refresh_from_db(fields=["imagem_base64", "imagem_mime"])
+        if not (cat.imagem_base64 or "").strip():
+            return JsonResponse({"ok": False, "erro": "Gravou vazio no banco."}, status=500)
+        mime_out = (cat.imagem_mime or "image/jpeg").strip() or "image/jpeg"
+        return JsonResponse(
+            {
+                "ok": True,
+                "cat_id": cat.pk,
+                "imagem": f"data:{mime_out};base64,{cat.imagem_base64}",
+                "bytes": len(raw_ok),
+            }
+        )
+    except Exception as exc:
+        return JsonResponse(
+            {"ok": False, "erro": f"{type(exc).__name__}: {exc}"[:200]},
+            status=500,
+        )
 
 
 @login_required(login_url="/admin/login/")
