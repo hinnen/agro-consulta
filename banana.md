@@ -1163,7 +1163,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.71** · **loja v10.62**
+**Versão app (VERSION):** **loja v10.64** (Live) · teste
+
+### 📦 Deploy loja **v10.64** — Renan sem NFC-e auto + fechar ordem (18/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao |
+| **Backup / reverter** | 
+ollback/pre-renan-nfce-fechar-ordem-v10.63 @ **3667759** |
+| **Como reverter** | git push origin rollback/pre-renan-nfce-fechar-ordem-v10.63:producao |
+| **Você** | Ctrl+F5 · badge **v10.64** · checklist manhã |
+
 
 ### 🩹 Fechar caixa — ordem fixa das formas + sem Fiado (18/07 · **teste v10.69**)
 
