@@ -1908,6 +1908,30 @@
     background: linear-gradient(90deg, #0369a1, #0e7490) !important;
     color: #fff !important;
   }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo {
+    border-color: #f59e0b !important;
+    background: linear-gradient(90deg, #d97706, #ea580c) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.45), 0 6px 18px rgba(234, 88, 12, 0.4) !important;
+    animation: pdv-entregas-catalogo-pulse 1.1s ease-in-out infinite;
+    font-size: 0.95em !important;
+    min-height: 2.6rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo:hover {
+    border-color: #b45309 !important;
+    background: linear-gradient(90deg, #b45309, #c2410c) !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-catalogo .pdv-topbar-entregas-count {
+    background: #fff !important;
+    color: #c2410c !important;
+  }
+  @keyframes pdv-entregas-catalogo-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.06); filter: brightness(1.08); }
+  }
   #pdv-topbar-compact #pdv-topbar-entregas-btn.pdv-wiz-topbar-btn--entregas-pendente .pdv-topbar-entregas-count {
     background: #fff !important;
     color: #0369a1 !important;

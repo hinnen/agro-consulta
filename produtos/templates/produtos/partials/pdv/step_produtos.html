@@ -169,9 +169,10 @@
           <details class="pdv-entregas-help relative">
             <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas pendentes">?</summary>
             <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
-              <p>Retome a venda para registrar o pagamento depois que o entregador voltar.</p>
+              <p>Pedidos do <strong>catálogo</strong> aparecem nas duas lojas até alguém clicar <strong>Assumir</strong> (usa o depósito ativo do PDV: Centro ou Vila). Ao assumir, as 3 vias imprimem e o pedido some da outra loja.</p>
+              <p class="mt-2"><strong>Imprimir</strong> reimprime as vias (separação / entregador / cupom).</p>
+              <p class="mt-2"><strong>Retomar pagamento</strong> só em entregas do PDV com estado da venda. Pedidos do catálogo não têm retomar — finalize o pagamento no fluxo da loja.</p>
               <p class="mt-2"><strong>Cancelar</strong> remove a pendência do PDV (não apaga o registro no painel Entregas).</p>
-              <p class="mt-2">Só aparecem entregas enviadas pelo PDV com <strong>pagamento na entrega</strong> (etapa Entrega → Enviar entrega). Entregas antigas só do painel <em>/entregas/</em> não entram nesta lista.</p>
             </div>
           </details>
           <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>

@@ -148,11 +148,15 @@ from .venda_erp_envio_util import (
     venda_payload_de_venda_agro,
 )
 from .entrega_pdv_pendente_util import (
+    _sessao_caixa_label_entrega,
+    assumir_entrega_loja,
     cancelar_entrega_pendente_pdv,
+    filtrar_qs_por_loja,
     finalizar_entregas_pagas_pendentes_ao_fechar_caixa,
     listar_entregas_bloqueando_fechamento_caixa,
     listar_entregas_pendentes_pdv,
     marcar_entrega_pendente_fechada,
+    normalizar_loja_entrega,
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
 )
@@ -26640,12 +26644,14 @@ def api_entrega_registrar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_pdv_entregas_pendentes(request):
-    itens = listar_entregas_pendentes_pdv()
+    loja = normalizar_loja_entrega(request.GET.get("loja"))
+    itens = listar_entregas_pendentes_pdv(loja=loja or None)
     return JsonResponse(
         {
             "ok": True,
             "total": len(itens),
             "itens": itens,
+            "loja": loja or "",
         }
     )
 
@@ -26662,6 +26668,30 @@ def api_pdv_entrega_pendente_detalhe(request, pk):
             "entrega": serializar_entrega_pendente_pdv(ent, incluir_estado=True),
         }
     )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_entrega_pendente_assumir(request, pk):
+    """Loja (Centro/Vila) assume a entrega — some da outra loja."""
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    loja = normalizar_loja_entrega(body.get("loja"))
+    user = request.user
+    username = ""
+    if user and getattr(user, "is_authenticated", False):
+        username = (user.get_full_name() or "").strip() or user.get_username() or ""
+    ent, erro = assumir_entrega_loja(pk, loja=loja, username=username)
+    if erro and not ent:
+        status = 409 if "Já assumida" in erro else 400
+        return JsonResponse({"ok": False, "erro": erro}, status=status)
+    if not ent:
+        return JsonResponse({"ok": False, "erro": "Entrega não encontrada."}, status=404)
+    row = serializar_entrega_pendente_pdv(ent)
+    row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent) if ent.sessao_caixa_id else "Sem caixa vinculado"
+    return JsonResponse({"ok": True, "entrega": row, "ja_sua": (ent.loja_entrega or "") == loja})
 
 
 @login_required(login_url="/admin/login/")
@@ -26719,6 +26749,7 @@ def api_pdv_entrega_pendente_cancelar(request, pk):
 @require_GET
 def api_entregas_listar(request):
     st = (request.GET.get("status") or "").strip()
+    loja = normalizar_loja_entrega(request.GET.get("loja"))
     try:
         lim = min(max(int(request.GET.get("lim") or 200), 1), 500)
     except (TypeError, ValueError):
@@ -26728,6 +26759,8 @@ def api_entregas_listar(request):
         qs = PedidoEntrega.objects.select_related("venda_agro").order_by("-criado_em")
         if st:
             qs = qs.filter(status=st)
+        if loja:
+            qs = filtrar_qs_por_loja(qs, loja)
         qs = qs[:lim]
         rows = []
         for e in qs:
@@ -26747,6 +26780,7 @@ def api_entregas_listar(request):
                     "id": e.pk,
                     "status": e.status,
                     "origem": getattr(e, "origem", "") or "",
+                    "loja_entrega": getattr(e, "loja_entrega", "") or "",
                     "cliente_agro_id": e.cliente_agro_id,
                     "cliente_nome": e.cliente_nome,
                     "telefone": e.telefone,

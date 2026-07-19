@@ -1025,6 +1025,15 @@ class PedidoEntrega(models.Model):
         db_index=True,
         help_text="Ex.: pdv, catalogo — vazio = legado PDV.",
     )
+    loja_entrega = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Dono da entrega: centro | vila. Vazio = ainda sem loja (as duas veem).",
+    )
+    loja_assumida_em = models.DateTimeField(null=True, blank=True)
+    loja_assumida_por = models.CharField(max_length=120, blank=True, default="")
     endereco_linha = models.CharField(max_length=500, blank=True, default="")
     plus_code = models.CharField(max_length=120, blank=True, default="")
     referencia_rural = models.CharField(

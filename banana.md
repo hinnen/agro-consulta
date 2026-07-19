@@ -1156,7 +1156,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.80** · **loja v10.80**
+**Versão app (VERSION):** **teste v10.83** · **loja v10.81**
+
+### 📦 Deploy loja **v10.81** — Assumir entrega catálogo Centro×Vila (19/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` · aguardar Live |
+| **Inclui** | Assumir entrega · filtro loja · imprint 3 vias · migrate `0061` |
+| **NÃO inclui** | Merge inteiro `teste` |
+| **Base** | `cbe97cb` (loja v10.80) |
+| **Cherry** | `bce06da` → pacote v10.81 |
+| **Backup / reverter** | `rollback/pre-assumir-entrega-v10.80` @ **cbe97cb** |
+| **Como reverter** | `git push origin rollback/pre-assumir-entrega-v10.80:producao` |
+| **Autorização** | *pode subir para produção* + **99738595** · seguro + checkpoint |
+| **Risco** | Baixo — PDV overlay + API + migrate additive (campos novos blank) |
+| **Você** | Ctrl+F5 PDV · badge **v10.81** · pedido catálogo · Assumir numa loja · conferir migrate no Render |
+
+### 🚀 PDV — Assumir entrega catálogo Centro×Vila (19/07 · **teste v10.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no teste · **loja v10.81** sobe agora |
+| **O quê** | Pedido catálogo sem dono nas **duas** lojas · badge/alerta forte · **Assumir** = depósito PDV · some da outra · **imprime 3 vias** · botão **Imprimir** no overlay |
+| **Migrate** | `0061_pedido_entrega_loja` (`loja_entrega`, `loja_assumida_em/por`) — Render apply no deploy |
+| **API** | `POST /api/pdv/entrega-pendente/<pk>/assumir/` · lista `?loja=` |
+| **Você** | Pedido no `/catalogo/` → PDV Centro e Vila veem · Assumir na Vila → some no Centro · 3 vias · Imprimir de novo · Retomar PDV legado ok |
 
 ### 📦 Deploy loja **v10.80** — Catálogo sem texto extra do WhatsApp (18/07 · Renan frase+senha)
 

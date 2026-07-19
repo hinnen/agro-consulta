@@ -137,17 +137,19 @@ def pdv_home(request):
                 "apiPdvRelacionamentoClienteExtras": reverse("api_pdv_relacionamento_cliente_extras"),
                 "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),
                 "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
-                "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
+                "apiPdvEntregaPendenteDetalhe": reverse("api_pdv_entrega_pendente_detalhe", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
-                "vendasLista": reverse("vendas_lista"),
-                "apiPdvEntregaPendenteDetalhe": reverse("api_pdv_entrega_pendente_detalhe", args=[0]).replace(
+                "apiPdvEntregaPendenteAssumir": reverse("api_pdv_entrega_pendente_assumir", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
                 "apiPdvEntregaPendenteFinalizar": reverse("api_pdv_entrega_pendente_finalizar", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
                 "apiPdvEntregaPendenteCancelar": reverse("api_pdv_entrega_pendente_cancelar", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
                 "apiLoginMobile": reverse("api_login_mobile"),
