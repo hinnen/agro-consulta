@@ -7027,16 +7027,20 @@ def _dashboard_float(value):
         return 0.0
 
 
-def _dashboard_ticket_medio_intervalo(data_ini: date, data_fim: date) -> float:
+def _dashboard_ticket_medio_intervalo(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> float:
     """Ticket médio no intervalo — VendaAgro (PDV) com fallback histórico Mongo."""
     if _dashboard_vendas_fonte_pdv():
-        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=deposito)
     else:
-        ser = _dashboard_mongo_vendas_serie(data_ini, data_fim)
+        ser = _dashboard_mongo_vendas_serie(data_ini, data_fim, deposito=deposito)
     qtd = sum(int(v or 0) for v in (ser.get("qtd_por_dia") or {}).values())
     total = _dashboard_float(ser.get("total"))
     if qtd <= 0:
-        ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+        ticket_qs = _dashboard_vendas_qs_pdv_periodo(
+            data_ini, data_fim, deposito=deposito
+        )
         ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
         total = _dashboard_float(ticket_agg.get("total"))
         qtd = int(ticket_agg.get("n") or 0)
@@ -7386,18 +7390,31 @@ def _dashboard_dto_ja_contado_no_pdv_fiado(doc: dict, chaves_fiado: set[tuple[st
     return (cid, tot) in chaves_fiado
 
 
-def _dashboard_vendas_qs_pdv_periodo(data_ini: date, data_fim: date):
-    """Vendas PDV no intervalo (exclui devoluções)."""
-    return VendaAgro.objects.filter(
+def _dashboard_deposito_filtro_key(deposito: str | None) -> str:
+    """Chave de cache / log: centro | vila | todas."""
+    if deposito in ("centro", "vila"):
+        return deposito
+    return "todas"
+
+
+def _dashboard_vendas_qs_pdv_periodo(
+    data_ini: date, data_fim: date, deposito: str | None = None
+):
+    """Vendas PDV no intervalo (exclui devoluções). ``deposito`` filtra Centro/Vila do BI."""
+    qs = VendaAgro.objects.filter(
         criado_em__date__gte=data_ini,
         criado_em__date__lte=data_fim,
         devolvida_em__isnull=True,
     )
+    return _vendas_aplicar_filtro_loja(qs, deposito)
 
 
-def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
+def _dashboard_vendas_serie_pdv(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict:
     """Série diária e faturamento por unidade só a partir do PDV (``VendaAgro``)."""
-    ck = f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    dep_key = _dashboard_deposito_filtro_key(deposito)
+    ck = f"dash:mvs:v5:pdv:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -7406,7 +7423,7 @@ def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
     qtd_por_dia: dict[str, int] = {}
     total = 0.0
     for row in (
-        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=deposito)
         .values("criado_em__date")
         .annotate(soma=Sum("total"), n=Count("id"))
     ):
@@ -7419,15 +7436,10 @@ def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
         qtd_por_dia[chave] = int(row.get("n") or 0)
         total += v
 
-    dep = (getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro").strip().lower()
-    if dep == "vila":
-        loja_acc = [0.0, round(total, 2)]
-    else:
-        loja_acc = [round(total, 2), 0.0]
-
-    # Preferir depósito gravado na venda (Centro × Vila Elias); vazio = legado Centro.
+    # Comparativo Centro × Vila sempre com o total (sem filtro de loja do aparelho).
+    loja_acc = [0.0, 0.0]
     try:
-        qs_dep = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        qs_dep = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=None)
         agg_c = (
             qs_dep.exclude(deposito__iexact="vila")
             .aggregate(soma=Sum("total"))
@@ -7443,7 +7455,10 @@ def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
             round(_dashboard_float(agg_v), 2),
         ]
     except Exception:
-        pass
+        if dep_key == "vila":
+            loja_acc = [0.0, round(total, 2)]
+        else:
+            loja_acc = [round(total, 2), 0.0]
 
     out = {
         "ok": True,
@@ -7456,25 +7471,35 @@ def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
             {"loja": "Vila Elias", "total": loja_acc[1], "color": "#64748b"},
         ],
         "fonte": "pdv",
+        "filtro_loja": dep_key,
     }
     cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out
 
 
-def _dashboard_mongo_vendas_serie_hibrido(data_ini: date, data_fim: date) -> dict:
+def _dashboard_mongo_vendas_serie_hibrido(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict:
     """
     PDV no dia da venda (``criado_em``) + DtoVenda faturado que não tem par no Agro (sem duplicar fiado).
     """
-    ck = f"dash:mvs:v8:hibrido:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    dep_key = _dashboard_deposito_filtro_key(deposito)
+    ck = f"dash:mvs:v9:hibrido:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
 
-    pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+    pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=deposito)
     por_dia = dict(pdv.get("por_dia") or {})
     qtd_por_dia = {k: int(v or 0) for k, v in (pdv.get("qtd_por_dia") or {}).items()}
     total = _dashboard_float(pdv.get("total"))
-    vpl = pdv.get("vendas_por_loja")
+    # Comparativo unidades: sempre sem filtro de aparelho.
+    pdv_all = (
+        pdv
+        if dep_key == "todas"
+        else _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=None)
+    )
+    vpl = pdv_all.get("vendas_por_loja")
     if isinstance(vpl, list) and len(vpl) >= 2:
         loja_acc = [
             _dashboard_float(vpl[0].get("total")),
@@ -7527,10 +7552,20 @@ def _dashboard_mongo_vendas_serie_hibrido(data_ini: date, data_fim: date) -> dic
                     continue
                 chave = dia.isoformat()
                 v = _dashboard_doc_total(doc)
+                idx_loja = _dashboard_idx_loja_doc(client, doc)
+                # Comparativo unidades (sempre).
+                if idx_loja == 0:
+                    loja_acc[0] += v
+                elif idx_loja == 1:
+                    loja_acc[1] += v
+                # KPIs / série: respeita filtro da loja do aparelho.
+                if deposito == "vila" and idx_loja != 1:
+                    continue
+                if deposito == "centro" and idx_loja == 1:
+                    continue
                 por_dia[chave] = por_dia.get(chave, 0.0) + v
                 qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
                 total += v
-                _dashboard_acum_venda_por_loja(client, doc, v, loja_acc)
         except Exception as exc:
             logger.warning("dashboard_mongo_vendas_serie_hibrido: %s", exc, exc_info=True)
 
@@ -7546,27 +7581,39 @@ def _dashboard_mongo_vendas_serie_hibrido(data_ini: date, data_fim: date) -> dic
         "qtd_por_dia": qtd_por_dia,
         "vendas_por_loja": vendas_por_loja,
         "fonte": "hibrido",
+        "filtro_loja": dep_key,
     }
     cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out
 
 
-def _dashboard_acum_venda_por_loja(client, doc: dict, valor: float, loja_acc: list[float]) -> None:
-    """``loja_acc`` = [Centro, Vila Elias] (mutável), mesma regra que o gráfico por unidade."""
+def _dashboard_idx_loja_doc(client, doc: dict) -> int | None:
+    """0=Centro · 1=Vila · None=não classificado."""
     if client is None or not doc:
-        return
+        return None
     dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
     dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
     dep_id = str(doc.get("DepositoID") or "")
     dep_nome = str(doc.get("Deposito") or "").lower()
     empresa_nome = str(doc.get("Empresa") or "").lower()
     if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
-        loja_acc[0] += valor
-    elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
-        loja_acc[1] += valor
+        return 0
+    if dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
+        return 1
+    return None
 
 
-def _dashboard_mongo_vendas_serie(data_ini, data_fim):
+def _dashboard_acum_venda_por_loja(client, doc: dict, valor: float, loja_acc: list[float]) -> None:
+    """``loja_acc`` = [Centro, Vila Elias] (mutável), mesma regra que o gráfico por unidade."""
+    idx = _dashboard_idx_loja_doc(client, doc)
+    if idx is None:
+        return
+    loja_acc[idx] += valor
+
+
+def _dashboard_mongo_vendas_serie(
+    data_ini, data_fim, deposito: str | None = None
+):
     """
     Agregação por dia em DtoVenda (com fallbacks). Na mesma leitura acumula faturamento
     Centro × Vila quando possível (evita um segundo ``find`` no dashboard).
@@ -7584,19 +7631,26 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
                     dashboard_vendas_serie_meta_merged,
                 )
 
-                return dashboard_vendas_serie_meta_merged(data_ini, data_fim)
+                return dashboard_vendas_serie_meta_merged(
+                    data_ini, data_fim, deposito=deposito
+                )
         except Exception:
             pass
     if _dashboard_vendas_fonte_pdv():
-        return _dashboard_vendas_serie_pdv(data_ini, data_fim)
+        return _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=deposito)
     if _dashboard_vendas_fonte_hibrido():
-        return _dashboard_mongo_vendas_serie_hibrido(data_ini, data_fim)
-    return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
+        return _dashboard_mongo_vendas_serie_hibrido(
+            data_ini, data_fim, deposito=deposito
+        )
+    return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim, deposito=deposito)
 
 
-def _dashboard_vendas_serie_erp_mongo(data_ini, data_fim):
+def _dashboard_vendas_serie_erp_mongo(
+    data_ini, data_fim, deposito: str | None = None
+):
     """Série diária só DtoVenda faturado (Mongo espelho ERP)."""
-    ck = f"dash:mvs:v7:erp:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    dep_key = _dashboard_deposito_filtro_key(deposito)
+    ck = f"dash:mvs:v8:erp:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -7642,16 +7696,24 @@ def _dashboard_vendas_serie_erp_mongo(data_ini, data_fim):
                 continue
             chave = dia.isoformat()
             v = _dashboard_doc_total(doc)
+            idx_loja = _dashboard_idx_loja_doc(client, doc)
+            if idx_loja == 0:
+                loja_acc[0] += v
+            elif idx_loja == 1:
+                loja_acc[1] += v
+            if deposito == "vila" and idx_loja != 1:
+                continue
+            if deposito == "centro" and idx_loja == 1:
+                continue
             por_dia[chave] = por_dia.get(chave, 0.0) + v
             qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
             total += v
-            _dashboard_acum_venda_por_loja(client, doc, v, loja_acc)
     except Exception as exc:
         logger.warning("dashboard_mongo_vendas_serie: %s", exc, exc_info=True)
         return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
 
     vendas_por_loja: list | None = None
-    if total > 0:
+    if loja_acc[0] > 0 or loja_acc[1] > 0 or total > 0:
         vendas_por_loja = [
             {"loja": "Centro", "total": round(loja_acc[0], 2), "color": "#00BFFF"},
             {"loja": "Vila Elias", "total": round(loja_acc[1], 2), "color": "#64748b"},
@@ -7664,6 +7726,7 @@ def _dashboard_vendas_serie_erp_mongo(data_ini, data_fim):
         "por_dia": por_dia,
         "qtd_por_dia": qtd_por_dia,
         "vendas_por_loja": vendas_por_loja,
+        "filtro_loja": dep_key,
     }
     cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out
@@ -7704,10 +7767,22 @@ def _dashboard_perdas_validade_hoje():
     return total
 
 
-def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8):
+def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8, deposito: str | None = None):
+    qs = ItemVendaAgro.objects.filter(
+        venda__criado_em__date__gte=data_ini,
+        venda__criado_em__date__lte=data_fim,
+        venda__devolvida_em__isnull=True,
+    )
+    if deposito == "vila":
+        qs = qs.filter(venda__deposito__iexact="vila")
+    elif deposito == "centro":
+        qs = qs.filter(
+            Q(venda__deposito__iexact="centro")
+            | Q(venda__deposito="")
+            | Q(venda__deposito__isnull=True)
+        )
     rows = (
-        ItemVendaAgro.objects.filter(venda__criado_em__date__gte=data_ini, venda__criado_em__date__lte=data_fim)
-        .values("descricao")
+        qs.values("descricao")
         .annotate(total=Sum("valor_total"), qtd_total=Sum("quantidade"))
         .order_by("-total")[:limite]
     )
@@ -7724,12 +7799,14 @@ def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8):
     return out
 
 
-def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
+def _dashboard_ranking_vendedores_sqlite(
+    data_ini, data_fim, limite=8, deposito: str | None = None
+):
     """Ranking por operador do PDV (PIN / ``usuario_registro``), igual à lista Consulta → Vendas."""
     from produtos.mongo_vendas_util import _nome_vendedor_erp_e_rotulo_generico
 
     rows = (
-        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=deposito)
         .values("usuario_registro")
         .annotate(total=Sum("total"), n_vendas=Count("id"))
         .order_by("-total")
@@ -7751,18 +7828,23 @@ def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
     return out
 
 
-def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
+def _dashboard_top_produtos_capri(
+    data_ini, data_fim, limite=8, deposito: str | None = None
+):
     """
     Ordem na abertura (rápido → lento): Mongo (espelho) → PDV local (SQLite) → opcional ERP v3 HTTP
     (``AGRO_DASHBOARD_ERP_V3_REPORTS``; só se ainda não houver linhas).
     """
-    ck = f"dash:tp:v2:{_dashboard_vendas_fonte_modo()}:{data_ini}:{data_fim}:{limite}"
+    dep_key = _dashboard_deposito_filtro_key(deposito)
+    ck = f"dash:tp:v3:{_dashboard_vendas_fonte_modo()}:{dep_key}:{data_ini}:{data_fim}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
     out: list[dict] = []
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
-        out = _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=limite)
+        out = _dashboard_top_produtos_sqlite(
+            data_ini, data_fim, limite=limite, deposito=deposito
+        )
         if out:
             cache.set(ck, out, timeout=180)
         return out
@@ -7778,7 +7860,9 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
             except Exception:
                 logger.exception("dashboard_top_produtos_capri: mongo")
     if not out:
-        out = _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=limite)
+        out = _dashboard_top_produtos_sqlite(
+            data_ini, data_fim, limite=limite, deposito=deposito
+        )
     if not out and getattr(settings, "AGRO_DASHBOARD_ERP_V3_REPORTS", False):
         try:
             api = VendaERPAPIClient()
@@ -7794,16 +7878,21 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
     return out
 
 
-def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
+def _dashboard_ranking_vendedores_capri(
+    data_ini, data_fim, limite=8, deposito: str | None = None
+):
     """
     Operador = PIN do PDV (``usuario_registro``). Mongo/ERP só se não houver venda local no período.
     """
-    ck = f"dash:rv:v3:operador:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
+    dep_key = _dashboard_deposito_filtro_key(deposito)
+    ck = f"dash:rv:v4:operador:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
     out: list[dict] = []
-    out = _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
+    out = _dashboard_ranking_vendedores_sqlite(
+        data_ini, data_fim, limite=limite, deposito=deposito
+    )
     if out:
         cache.set(ck, out, timeout=180)
         return out
@@ -8186,21 +8275,40 @@ def _dashboard_contexto_dinamico(request):
     }
 
 
-def _dashboard_mongo_total_por_dia_vendas_agro(alvo: date) -> float:
+def _dashboard_mongo_total_por_dia_vendas_agro(
+    alvo: date, deposito: str | None = None
+) -> float:
     """
     Soma do dia no BI. Modo ``erp`` (padrão): só espelho DtoVenda faturado — sem PDV local,
     para não antecipar venda que ainda é orçamento no ERP. Modo ``pdv``: só VendaAgro.
     """
     if _dashboard_vendas_fonte_pdv():
         return _dashboard_float(
-            _dashboard_vendas_qs_pdv_periodo(alvo, alvo).aggregate(soma=Sum("total")).get("soma")
+            _dashboard_vendas_qs_pdv_periodo(alvo, alvo, deposito=deposito)
+            .aggregate(soma=Sum("total"))
+            .get("soma")
         )
-    return _dashboard_float(_dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0))
+    return _dashboard_float(
+        _dashboard_mongo_vendas_serie(alvo, alvo, deposito=deposito).get("total", 0.0)
+    )
 
 
 def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> None:
-    for ver in ("v6", "v7"):
+    for ver in ("v6", "v7", "v8"):
         cache.delete(f"dash:mvs:{ver}:erp:{data_ini.isoformat()}:{data_fim.isoformat()}")
+    for dep in ("todas", "centro", "vila"):
+        cache.delete(
+            f"dash:mvs:v8:erp:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
+        cache.delete(
+            f"dash:mvs:v9:hibrido:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
+        cache.delete(
+            f"dash:mvs:v5:pdv:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
+        cache.delete(
+            f"dash:mvs:v7:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
     cache.delete(f"dash:mvs:v8:hibrido:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
@@ -8208,6 +8316,10 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
     cache.delete(f"dash:mvs:v7:erp:{hoje.isoformat()}:{hoje.isoformat()}")
     cache.delete(f"dash:mvs:v8:hibrido:{hoje.isoformat()}:{hoje.isoformat()}")
     cache.delete(f"dash:mvs:v4:pdv:{hoje.isoformat()}:{hoje.isoformat()}")
+    for dep in ("todas", "centro", "vila"):
+        cache.delete(f"dash:mvs:v5:pdv:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
+        cache.delete(f"dash:mvs:v9:hibrido:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
+        cache.delete(f"dash:mvs:v8:erp:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
 
 
 def _dashboard_invalidar_cache_apos_venda_agro(venda: VendaAgro | None = None) -> None:
@@ -8224,10 +8336,10 @@ def _dashboard_invalidar_cache_apos_venda_agro(venda: VendaAgro | None = None) -
             _dashboard_invalidar_cache_vendas_serie(dv, dv)
 
 
-def _dashboard_vendas_hoje_pdv() -> tuple[float, int]:
+def _dashboard_vendas_hoje_pdv(deposito: str | None = None) -> tuple[float, int]:
     """Faturamento e quantidade de hoje direto do Postgres (sem cache)."""
     hoje = timezone.localdate()
-    qs = _dashboard_vendas_qs_pdv_periodo(hoje, hoje)
+    qs = _dashboard_vendas_qs_pdv_periodo(hoje, hoje, deposito=deposito)
     agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
     return (
         round(_dashboard_float(agg.get("soma")), 2),
@@ -8478,21 +8590,63 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     ontem = hoje - timedelta(days=1)
     mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
 
+    from produtos.pdv_deposito_util import bootstrap_deposito, normalizar_deposito
+
+    dep_boot = bootstrap_deposito(request)
+    deposito_filtro = normalizar_deposito(dep_boot.get("deposito"))
+
     max_workers = min(14, (os.cpu_count() or 2) + 6)
     fut = {}
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        fut["atual"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, data_ini, data_fim)
-        fut["anterior"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, prev_ini, prev_fim)
+        fut["atual"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_mongo_vendas_serie,
+            data_ini,
+            data_fim,
+            deposito_filtro,
+        )
+        fut["anterior"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_mongo_vendas_serie,
+            prev_ini,
+            prev_fim,
+            deposito_filtro,
+        )
         fut["alertas_validade"] = ex.submit(
             _dashboard_worker, _contagem_validade_dashboard_lotes_agro
         )
-        fut["vendas_ontem"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, ontem)
+        fut["vendas_ontem"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_mongo_total_por_dia_vendas_agro,
+            ontem,
+            deposito_filtro,
+        )
         fut["novos_clientes"] = ex.submit(_dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje)
         fut["entregas_pen"] = ex.submit(_dashboard_worker, _dashboard_entregas_pendentes_count)
         fut["entregas_7d"] = ex.submit(_dashboard_worker, _dashboard_entregas_criadas_por_dia_ultimos, 7)
-        fut["tkt_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_ticket_medio_intervalo, mes_ant_ini, mes_ant_fim)
-        fut["top_prod"] = ex.submit(_dashboard_worker, _dashboard_top_produtos_capri, data_ini, data_fim)
-        fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
+        fut["tkt_mes_ant"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_ticket_medio_intervalo,
+            mes_ant_ini,
+            mes_ant_fim,
+            deposito_filtro,
+        )
+        fut["top_prod"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_top_produtos_capri,
+            data_ini,
+            data_fim,
+            8,
+            deposito_filtro,
+        )
+        fut["rank_vend"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_ranking_vendedores_capri,
+            data_ini,
+            data_fim,
+            8,
+            deposito_filtro,
+        )
         fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
         gastos_plano_ligado = (
@@ -8519,7 +8673,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
-        vendas_hoje, qtd_vendas_hoje_live = _dashboard_vendas_hoje_pdv()
+        vendas_hoje, qtd_vendas_hoje_live = _dashboard_vendas_hoje_pdv(deposito_filtro)
     else:
         qtd_vendas_hoje_live = None
     devolucoes_hoje = _dashboard_devolucoes_periodo(hoje, hoje)
@@ -8605,7 +8759,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     if qtd_vendas_hoje_live is not None:
         qtd_vendas_hoje = qtd_vendas_hoje_live
     elif qtd_vendas_hoje <= 0 and _dashboard_vendas_fonte_pdv():
-        qtd_vendas_hoje = _dashboard_vendas_qs_pdv_periodo(hoje, hoje).count()
+        qtd_vendas_hoje = _dashboard_vendas_qs_pdv_periodo(
+            hoje, hoje, deposito=deposito_filtro
+        ).count()
     ticket_hoje = (vendas_hoje / qtd_vendas_hoje) if qtd_vendas_hoje > 0 else 0.0
     if ticket_medio_mes_civil_anterior > 0 and ticket_hoje > 0:
         tkt_hoje_var = ((ticket_hoje / ticket_medio_mes_civil_anterior) - 1) * 100
@@ -8752,8 +8908,6 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     )
     gasto_pack = gastos_cache.get(gasto_por) or _dashboard_gastos_plano_pack({})
 
-    from produtos.pdv_deposito_util import bootstrap_deposito
-
     return {
         "periodo_label": periodo_label,
         "periodo_key": periodo_key,
@@ -8814,7 +8968,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
         "periodo_cal_ini": data_ini.isoformat(),
         "periodo_cal_fim": data_fim.isoformat(),
-        "pdv_deposito_boot": bootstrap_deposito(request),
+        "pdv_deposito_boot": dep_boot,
         "api_pdv_deposito_url": reverse("api_pdv_deposito"),
     }
 

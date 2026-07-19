@@ -1634,6 +1634,7 @@ document.addEventListener("keydown", function (e) {
             if (j && j.ok) {
               prev = next;
               aplicarTrava(sel, j);
+              try { window.location.reload(); } catch (eRel) {}
             } else {
               alert((j && j.erro) || 'Não foi possível trocar a loja.');
               reverter();
