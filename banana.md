@@ -1312,7 +1312,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
 
-### WIP — Catálogo delivery GM Agro **v10.51** (18/07/2026)
+### WIP — Catálogo delivery GM Agro **v10.53** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **UX** | Botão **«Salvar foto»** (antes «Foto card») + texto: não usar «Salvar loja» |
+| **Produção** | **Não** |
+
+### WIP — Catálogo delivery GM Agro **v10.51** (18/07/2026) *(histórico — ver v10.53)*
 
 | Item | Detalhe |
 | ---- | ------- |
