@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.54** · **loja v10.48** (push `a79831c`)
+**Versão app (VERSION):** **teste v10.55** · **loja v10.48** (push `a79831c`)
 
 ### 🚨 Retiradas — bloqueio com caixa fechado (18/07 · **teste**)
 
