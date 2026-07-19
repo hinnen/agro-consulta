@@ -293,10 +293,10 @@ def opcoes_pai_categoria(*, so_ativas: bool = True) -> list[dict]:
 
 
 def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: str = "") -> None:
-    """Grava foto do card (limite ~700 KB de base64)."""
+    """Grava foto do card (limite ~1,2 MB de arquivo ≈ ~1,6 MB base64)."""
     b64, mime_guess = _strip_data_url(raw_b64 or "")
     mime_final = (mime or mime_guess or "image/jpeg").strip()[:40] or "image/jpeg"
-    if len(b64) > 900_000:
+    if len(b64) > 1_700_000:
         b64 = ""
         mime_final = "image/jpeg"
     cat.imagem_base64 = b64
