@@ -1163,7 +1163,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste** · **loja v10.62** · **pacote v10.63 pronto** (commit 1e6fe3c · aguarda senha)
+**Versão app (VERSION):** **loja v10.63** (Live 1e6fe3c) · teste
+
+### 📦 Deploy loja **v10.63** — kardex + C1–C3 + Zap legado (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **1e6fe3c** |
+| **Backup / reverter** | 
+ollback/pre-kardex-c1c3-zap-v10.62 @ **bc911d5** |
+| **Como reverter** | git push origin rollback/pre-kardex-c1c3-zap-v10.62:producao |
+| **Você** | Ctrl+F5 · badge **v10.63** · Quem sem @ · NF etapa 8 · Zap AGROMAIS |
+
 
 ### 📦 PACOTE PRONTO LOJA — v10.63 kardex + C1–C3 + Zap legado (18/07)
 
