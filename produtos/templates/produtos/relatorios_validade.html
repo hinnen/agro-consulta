@@ -45,7 +45,7 @@
         class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
         <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
       </button>
-      <a href="?print=80mm&amp;status={{ filtros.status|urlencode }}&amp;periodo={{ filtros.periodo|urlencode }}&amp;ref_mes_ano={{ filtros.ref_mes_ano|urlencode }}{% if filtros.somente_com_estoque %}&amp;somente_com_estoque=1{% endif %}"
+      <a href="?print=80mm&amp;loja={{ filtros.loja|default:'todas'|urlencode }}&amp;status={{ filtros.status|urlencode }}&amp;periodo={{ filtros.periodo|urlencode }}&amp;ref_mes_ano={{ filtros.ref_mes_ano|urlencode }}{% if filtros.somente_com_estoque %}&amp;somente_com_estoque=1{% endif %}"
         class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-amber-500 bg-amber-500 px-4 py-2 text-xs font-black uppercase text-slate-900 hover:bg-amber-400">
         <i class="fas fa-receipt" aria-hidden="true"></i>Cupom 80mm
       </a>
@@ -59,6 +59,14 @@
 {% block pdv_content %}
 <div class="print-root min-w-0 p-1 sm:p-2">
   <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4" id="form-relatorio-validade">
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Loja</label>
+      <select name="loja" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" title="Filtra pelo saldo da loja">
+        <option value="todas" {% if filtros.loja == 'todas' %}selected{% endif %}>Todas (C+V)</option>
+        <option value="centro" {% if filtros.loja == 'centro' %}selected{% endif %}>Centro</option>
+        <option value="vila" {% if filtros.loja == 'vila' %}selected{% endif %}>Vila Elias</option>
+      </select>
+    </div>
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Prazo (validade)</label>
       <select name="periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" id="filtro-periodo" title="Filtra pela data de vencimento no calendário">
@@ -86,7 +94,7 @@
       <label class="inline-flex max-w-xs cursor-pointer items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm text-slate-200" title="Se marcado, remove linhas com estoque C+V = 0 (conectado ao Mongo)">
         <input type="checkbox" name="somente_com_estoque" value="1" class="h-4 w-4 rounded border-slate-500"
           {% if filtros.somente_com_estoque %}checked{% endif %} />
-        <span class="text-xs font-bold leading-tight">Só com estoque (C+V &gt; 0)</span>
+        <span class="text-xs font-bold leading-tight">{% if filtros.loja == 'vila' or filtros.loja == 'centro' %}Só com estoque desta loja{% else %}Só com estoque (C+V &gt; 0){% endif %}</span>
       </label>
     </div>
     <button type="submit" class="min-h-[44px] rounded-xl border-2 border-cyan-600 bg-cyan-600 px-4 text-xs font-black uppercase text-white hover:bg-cyan-500">Filtrar</button>

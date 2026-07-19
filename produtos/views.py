@@ -8853,20 +8853,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
-    # Gráfico por unidade: na loja filtrada, mostra só ela (não a barra do Centro na Vila).
-    if deposito_filtro in ("centro", "vila") and isinstance(vendas_por_loja, list):
-        alvo = "Vila Elias" if deposito_filtro == "vila" else "Centro"
-        vendas_por_loja = [
-            x
-            for x in vendas_por_loja
-            if alvo.lower() in str(x.get("loja") or "").lower()
-        ] or [
-            {
-                "loja": alvo,
-                "total": round(_dashboard_float(atual.get("total")), 2),
-                "color": "#64748b" if deposito_filtro == "vila" else "#00BFFF",
-            }
-        ]
+    # Faturamento por unidade: sempre Centro + Vila (comparativo), mesmo com loja filtrada nos KPIs.
 
     tendencia_clientes = (
         ((novos_clientes_30 / ref_clientes_media_90) - 1) * 100
@@ -9090,7 +9077,14 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "lancamentos_receber_url": reverse("lancamentos_contas_receber"),
         "lancamentos_pagar_url": reverse("lancamentos_contas_pagar"),
         "entregas_painel_url": reverse("entregas_painel"),
-        "relatorios_validade_url": reverse("relatorios_validade"),
+        "relatorios_validade_url": (
+            reverse("relatorios_validade")
+            + (
+                f"?loja={deposito_filtro}"
+                if deposito_filtro in ("centro", "vila")
+                else ""
+            )
+        ),
         "total_entregas_pendentes": total_entregas_pendentes,
         "ultima_sinc_estoque": _dashboard_estoque_sync_label(),
         "dashboard_vendas_fonte": _dashboard_vendas_fonte_modo(),
@@ -27073,8 +27067,6 @@ def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str
     _, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
-    overlay_v_conf: set[int] = set()
-    overlay_m_conf: set[int] = set()
 
     candidatos: list[tuple[int, str, date]] = []
     for el in EstoqueLote.objects.all().values(
@@ -27126,24 +27118,18 @@ def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str
         vistos.add(oid)
         s = saldos.get(pid) or {}
         saldo_loja = float(s.get(chave) or 0)
-        sc = float(s.get("saldo_centro") or 0)
-        sv = float(s.get("saldo_vila") or 0)
+        # Só o que tem saldo nesta loja. «Conferir» (estoque furado) fica na visão empresa.
         if saldo_loja > 0:
             if dv < hoje:
                 overlay_vencidos.add(oid)
             elif hoje <= dv <= fim_mes:
                 overlay_mes.add(oid)
-        elif sc <= 0 and sv <= 0:
-            if dv < hoje:
-                overlay_v_conf.add(oid)
-            elif hoje <= dv <= fim_mes:
-                overlay_m_conf.add(oid)
 
     return {
         "vencidos": len(overlay_vencidos),
         "vencendo_mes": len(overlay_mes),
-        "vencidos_conferir": len(overlay_v_conf),
-        "vencendo_mes_conferir": len(overlay_m_conf),
+        "vencidos_conferir": 0,
+        "vencendo_mes_conferir": 0,
     }
 
 
@@ -27203,6 +27189,25 @@ def relatorios_validade(request):
         "yes",
         "sim",
     )
+    from produtos.pdv_deposito_util import ROTULO_DEPOSITO, bootstrap_deposito, normalizar_deposito
+
+    raw_loja = (request.GET.get("loja") or request.GET.get("deposito") or "").strip().lower()
+    if raw_loja in ("todas", "todos", "all", "empresa"):
+        deposito_filtro = None
+        filtro_loja = "todas"
+    elif raw_loja in ("centro", "vila"):
+        deposito_filtro = normalizar_deposito(raw_loja)
+        filtro_loja = deposito_filtro
+    else:
+        boot = bootstrap_deposito(request)
+        deposito_filtro = normalizar_deposito(boot.get("deposito"))
+        filtro_loja = deposito_filtro if deposito_filtro in ("centro", "vila") else "todas"
+        if filtro_loja == "todas":
+            deposito_filtro = None
+    # Com loja específica, lista só o que tem saldo nessa loja (como o card do BI).
+    if deposito_filtro in ("centro", "vila"):
+        somente_com_estoque = True
+
 
     overlays = list(
         ProdutoGestaoOverlayAgro.objects.filter(
@@ -27268,21 +27273,34 @@ def relatorios_validade(request):
                     stf,
                     saldo_lote_local=lq,
                 )
-        row["saldo_c_v"] = scv
-        row["saldo_vencido"] = sv
-        if (
-            somente_com_estoque
-            and estoque_mongo_ok
-            and scv is not None
-            and scv <= 0
-        ):
-            return
-        if somente_com_estoque and (not estoque_mongo_ok) and saldo_lote_local is not None:
+        # Filtro por loja: usa saldo daquela unidade (não C+V).
+        if deposito_filtro in ("centro", "vila") and estoque_mongo_ok and saldos_map:
+            s = saldos_map.get(pid) or {}
+            chave = "saldo_vila" if deposito_filtro == "vila" else "saldo_centro"
             try:
-                if float(saldo_lote_local) <= 0:
-                    return
+                saldo_loja = float(s.get(chave) or 0)
             except (TypeError, ValueError):
+                saldo_loja = 0.0
+            row["saldo_c_v"] = saldo_loja
+            row["saldo_vencido"] = saldo_loja if stf == "vencido" else 0.0
+            if saldo_loja <= 0:
                 return
+        else:
+            row["saldo_c_v"] = scv
+            row["saldo_vencido"] = sv
+            if (
+                somente_com_estoque
+                and estoque_mongo_ok
+                and scv is not None
+                and scv <= 0
+            ):
+                return
+            if somente_com_estoque and (not estoque_mongo_ok) and saldo_lote_local is not None:
+                try:
+                    if float(saldo_lote_local) <= 0:
+                        return
+                except (TypeError, ValueError):
+                    return
         lista_validade.append(row)
 
     for ov in overlays:
@@ -27489,6 +27507,12 @@ def relatorios_validade(request):
             "periodo": periodo,
             "ref_mes_ano": ref_mes_ano,
             "somente_com_estoque": somente_com_estoque,
+            "loja": filtro_loja,
+            "loja_label": (
+                "Todas"
+                if filtro_loja == "todas"
+                else ROTULO_DEPOSITO.get(filtro_loja, "Centro")
+            ),
         },
         "pode_editar_validade": getattr(request, "user", None) and request.user.is_authenticated,
         "url_api_overlay_salvar": reverse("api_produtos_gestao_overlay_salvar"),

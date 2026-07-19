@@ -1163,7 +1163,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.58** (push 96e157a)
+**Versão app (VERSION):** **teste v10.57** · **loja v10.58** (push 1e211ae)
+
+### 🩹 BI Vila — top clientes + validade + faturamento (18/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Print 1** | Mensagem vazia amigável (sem texto de .env/JSON) |
+| **Print 2** | Conf. venc./mês zera na loja filtrada · relatório validade com filtro Centro/Vila |
+| **Print 3** | Faturamento por unidade de novo mostra **as duas** lojas |
+| **Você** | Ctrl+F5 · Vila → Conf.=0 · gráfico com Centro+Vila · Top clientes frase simples |
+
 
 ### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
 

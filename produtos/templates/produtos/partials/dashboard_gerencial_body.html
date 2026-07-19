@@ -318,7 +318,11 @@
       </div>
       {% empty %}
       <div class="text-xs font-semibold text-slate-600 col-span-full py-2 px-1 rounded-lg border border-dashed border-slate-300 bg-slate-50/80">
-        Sem clientes no período {{ top_clientes_mes_anterior_label }}. Atualize <code class="text-[9px]">AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON</code> com o print da Curva ABC ou aguarde o espelho Mongo (DtoVenda) para esse mês.
+        {% if top_clientes_mes_anterior_fonte == "pdv" or top_clientes_mes_anterior_label %}
+        Sem vendas de cliente identificado em {{ top_clientes_mes_anterior_label|default:"o mês anterior" }} nesta loja.
+        {% else %}
+        Sem clientes no período {{ top_clientes_mes_anterior_label }}.
+        {% endif %}
       </div>
       {% endfor %}
     </div>
