@@ -1163,7 +1163,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.78** · **loja v10.67**
+**Versão app (VERSION):** **teste v10.80** · **loja v10.80**
+
+### 📦 Deploy loja **v10.80** — Catálogo sem texto extra do WhatsApp (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **cbe97cb** · aguardar Live |
+| **Backup / reverter** | 
+ollback/pre-catalogo-texto-wa-v10.67 @ **6e78f8b** |
 
 ### 📦 Deploy loja **v10.67** — Catálogo WA 1º + OG delivery ração (18/07 · Renan frase+senha)
 
