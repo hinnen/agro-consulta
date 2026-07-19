@@ -15,6 +15,7 @@ from produtos.catalogo_delivery_util import (
     arvore_navegacao_catalogo,
     cards_home_catalogo,
     cliente_catalogo_json,
+    comprimir_imagem_upload,
     criar_pedido_catalogo_delivery,
     listar_categorias_arvore,
     listar_itens_catalogo,
@@ -365,27 +366,46 @@ def catalogo_gestao_view(request):
                 pk = 0
             cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
             if not cat:
-                return redirect("/catalogo/gestao/?erro=" + quote("Categoria inválida para foto."))
+                return redirect("/catalogo/gestao/?erro=" + quote("Categoria inválida para foto (só principal)."))
             if request.POST.get("remover_foto"):
                 salvar_foto_categoria(cat, "", "")
                 return redirect("/catalogo/gestao/?msg=foto")
             f = request.FILES.get("cat_foto")
             if not f:
-                return redirect("/catalogo/gestao/?erro=" + quote("Escolha uma imagem."))
-            if f.size > 1200 * 1024:
                 return redirect(
                     "/catalogo/gestao/?erro="
-                    + quote("Foto muito grande (máx. ~1,2 MB). Reduza ou salve em JPG.")
+                    + quote("Nenhuma imagem chegou ao servidor. Escolha o arquivo e toque em «Foto card».")
                 )
-            import base64
+            try:
+                import base64
 
-            raw = f.read()
-            mime = (getattr(f, "content_type", None) or "image/jpeg")[:40]
-            salvar_foto_categoria(cat, base64.b64encode(raw).decode("ascii"), mime)
-            if not (cat.imagem_base64 or "").strip():
+                raw = f.read()
+                if not raw:
+                    return redirect("/catalogo/gestao/?erro=" + quote("Arquivo de imagem vazio."))
+                # Aceita até ~4 MB bruto; comprime para JPEG leve antes de gravar
+                if len(raw) > 4 * 1024 * 1024:
+                    return redirect(
+                        "/catalogo/gestao/?erro="
+                        + quote("Foto muito grande (máx. ~4 MB). Reduza e tente de novo.")
+                    )
+                raw_ok, mime = comprimir_imagem_upload(raw, max_lado=1000, qualidade=80)
+                if len(raw_ok) > 1200 * 1024:
+                    return redirect(
+                        "/catalogo/gestao/?erro="
+                        + quote("Mesmo comprimida a foto ficou grande. Use JPG 800×600.")
+                    )
+                b64 = base64.b64encode(raw_ok).decode("ascii")
+                salvar_foto_categoria(cat, b64, mime)
+                cat.refresh_from_db(fields=["imagem_base64", "imagem_mime"])
+                if not (cat.imagem_base64 or "").strip():
+                    return redirect(
+                        "/catalogo/gestao/?erro="
+                        + quote("Gravação falhou (campo vazio). Tente JPG menor.")
+                    )
+            except Exception as exc:
                 return redirect(
                     "/catalogo/gestao/?erro="
-                    + quote("Não gravou a foto (arquivo ainda grande demais após conversão).")
+                    + quote(f"Erro ao salvar foto: {type(exc).__name__}: {exc}"[:180])
                 )
             return redirect("/catalogo/gestao/?msg=foto")
 

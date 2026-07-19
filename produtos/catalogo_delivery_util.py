@@ -45,6 +45,43 @@ def _strip_data_url(raw: str) -> tuple[str, str]:
     return s, mime
 
 
+def comprimir_imagem_upload(
+    raw: bytes,
+    *,
+    max_lado: int = 1200,
+    qualidade: int = 82,
+) -> tuple[bytes, str]:
+    """
+    Redimensiona e grava JPEG (mais leve no Postgres).
+    Sem Pillow: devolve o original.
+    """
+    if not raw:
+        return b"", "image/jpeg"
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        im = Image.open(BytesIO(raw))
+        if im.mode in ("RGBA", "P", "LA"):
+            fundo = Image.new("RGB", im.size, (255, 255, 255))
+            if im.mode == "P":
+                im = im.convert("RGBA")
+            if im.mode in ("RGBA", "LA"):
+                fundo.paste(im, mask=im.split()[-1])
+            else:
+                fundo.paste(im)
+            im = fundo
+        else:
+            im = im.convert("RGB")
+        im.thumbnail((max_lado, max_lado), Image.Resampling.LANCZOS)
+        buf = BytesIO()
+        im.save(buf, format="JPEG", quality=qualidade, optimize=True)
+        return buf.getvalue(), "image/jpeg"
+    except Exception:
+        return raw, "image/jpeg"
+
+
 def normalizar_delivery(raw: Any) -> dict:
     d = raw if isinstance(raw, dict) else {}
     titulo = str(d.get("titulo") or "").strip()[:200]

@@ -118,7 +118,7 @@
                 <button type="submit" name="remover_foto" value="1" class="text-[0.65rem] font-bold px-2 py-1 rounded-lg border border-red-300 text-red-700">Tirar foto</button>
                 {% endif %}
               </form>
-              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">JPG/PNG · máx. ~1,2 MB · ideal 800×600 (4:3)</p>
+              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">JPG/PNG · até ~4 MB (o sistema comprime) · ideal 800×600</p>
             </div>
           </div>
           <div class="flex gap-1 shrink-0">
@@ -169,7 +169,7 @@
   if (err) {
     err.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-  var maxBytes = 1200 * 1024;
+  var maxBytes = 4 * 1024 * 1024;
   document.querySelectorAll('.js-foto-cat-form').forEach(function (form) {
     form.addEventListener('submit', function (ev) {
       if (ev.submitter && ev.submitter.name === 'remover_foto') return;
@@ -182,10 +182,11 @@
       }
       if (f.size > maxBytes) {
         ev.preventDefault();
-        alert('Foto muito grande (máx. ~1,2 MB).\nAgora: ' + (f.size / 1024).toFixed(0) + ' KB.\nReduza ou salve em JPG.');
+        alert('Foto muito grande (máx. ~4 MB).\nAgora: ' + (f.size / 1024).toFixed(0) + ' KB.');
       }
     });
   });
+  if (err) alert(err.textContent || 'Erro ao salvar.');
 })();
 </script>
 </body>
