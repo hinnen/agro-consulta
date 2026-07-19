@@ -1163,7 +1163,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja v10.64** (Live) · teste
+**Versão app (VERSION):** **teste v10.72** · **loja v10.65**
+
+### 📦 Deploy loja **v10.65** — Catálogo preview WhatsApp / OG (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **bdb1749** · aguardar Live |
+| **Inclui** | Meta Open Graph + /catalogo/og-image/ (logo da gestão) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-og-v10.64 @ **e0471d0** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | badge **v10.65** · colar link · Debugger se cache |
 
 ### 📦 Deploy loja **v10.64** — Renan sem NFC-e auto + fechar ordem (18/07)
 
@@ -1496,7 +1507,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Status** | ✅ push 	este |
 | **O quê** | Meta Open Graph + /catalogo/og-image/ (logo da gestão) |
 | **Você** | Colar link no Zap · se cache antigo: Facebook Sharing Debugger «Raspar novamente» |
-| **Produção** | **Não** |
+| **Produção** | ✅ loja **v10.65** |
 
 ### WIP — Catálogo · esconder Plus Code no checkout **v10.63** (18/07/2026)
 
