@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.72** · **loja v10.65** (push OG WhatsApp)
+**Versão app (VERSION):** **teste v10.75** · **loja v10.66** (push OG card 1200x630)
+
+### 📦 Deploy loja **v10.66** — OG card 1200×630 sem cortar logo (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | /catalogo/og-image/ cartão 1200×630 · logo contain · cache-bust card2 |
+| **NÃO inclui** | Merge inteiro teste · fb:app_id (aviso cosmético) |
+| **Base** | bdb1749 (loja v10.65 OG) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-og-card-v10.65 @ **bdb1749** |
+| **Autorização** | *pode subir para produção* + **99738595** · checkpoint pedido |
+| **Risco** | Baixo — só imagem/meta do /catalogo/ · sem migrate · PDV intacto |
+| **Você** | Live → Debugger «Raspar novamente» → testar Zap em conversa nova |
 
 ### 📦 Deploy loja **v10.65** — Catálogo preview WhatsApp / OG (18/07 · Renan frase+senha)
 
