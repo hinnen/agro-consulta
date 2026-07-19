@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.36** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+**Versão app (VERSION):** **teste v10.46** · **loja v10.28** (pacote Vila — push `eacbe2c`)
 
 ### 🩹 BI — seletor loja filtra números + recarrega (18/07 · **teste**)
 
