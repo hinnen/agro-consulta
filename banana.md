@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.75** · **loja v10.66** (push OG card 1200x630)
+**Versão app (VERSION):** **teste v10.78** · **loja v10.67** (push WA+OG ração)
+
+### 📦 Deploy loja **v10.67** — Catálogo WA 1º + OG delivery ração (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | WhatsApp primeiro + autofill · título/faixa «Delivery de ração» no Zap |
+| **NÃO inclui** | Merge inteiro teste |
+| **Base** | 237a2b8 (loja v10.66) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-wa-og-v10.66 @ **237a2b8** |
+| **Autorização** | *pode subir para produção* + **99738595** · checkpoint pedido |
+| **Risco** | Baixo — só /catalogo/ checkout + OG · sem migrate · PDV intacto |
+| **Você** | Ctrl+F5 · badge **v10.67** · Extrair novamente no Debugger · testar WA no checkout |
 
 ### 📦 Deploy loja **v10.66** — OG card 1200×630 sem cortar logo (18/07 · Renan frase+senha)
 

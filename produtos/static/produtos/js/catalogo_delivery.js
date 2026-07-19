@@ -84,6 +84,18 @@
       renderCheckoutItens();
       m.classList.remove("hidden");
       m.classList.add("flex");
+      setTimeout(function () {
+        var tel = document.getElementById("checkout-telefone");
+        if (!tel) return;
+        try {
+          var salvo = localStorage.getItem("catalogo_checkout_wa_v1") || "";
+          if (!digitsTel(tel.value) && salvo.length >= 10) {
+            tel.value = salvo;
+            tel.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        } catch (e) {}
+        tel.focus();
+      }, 80);
     }
 
     function fecharCheckout() {
@@ -599,17 +611,33 @@
     }
 
     var tel = document.getElementById("checkout-telefone");
-    var hint = document.getElementById("checkout-cliente-hint");
     var telTimer = null;
+
+    function setClienteHint(msg, ok) {
+      var hint = document.getElementById("checkout-cliente-hint");
+      if (!hint) return;
+      if (!msg) {
+        hint.classList.add("hidden");
+        hint.textContent = "";
+        return;
+      }
+      hint.textContent = msg;
+      hint.classList.remove("hidden");
+      hint.className =
+        "text-xs font-medium mt-1 block " +
+        (ok === true ? "text-emerald-700" : ok === false ? "text-slate-500" : "text-slate-600");
+    }
+
     if (tel && opts.apiCliente) {
       tel.addEventListener("input", function () {
         clearTimeout(telTimer);
         telTimer = setTimeout(function () {
           var d = digitsTel(tel.value);
           if (d.length < 10) {
-            if (hint) hint.classList.add("hidden");
+            setClienteHint("", true);
             return;
           }
+          setClienteHint("Buscando cadastro…", null);
           fetch(opts.apiCliente + "?telefone=" + encodeURIComponent(d), {
             credentials: "same-origin",
           })
@@ -618,7 +646,7 @@
             })
             .then(function (j) {
               if (!j || !j.encontrado || !j.cliente) {
-                if (hint) hint.classList.add("hidden");
+                setClienteHint("WhatsApp novo — preencha nome e endereço abaixo.", false);
                 return;
               }
               var c = j.cliente;
@@ -635,9 +663,14 @@
               }
               if (c.maps_url) setVal("checkout-maps-url", c.maps_url);
               syncEnderecoHidden();
-              if (hint) hint.classList.remove("hidden");
+              try {
+                localStorage.setItem("catalogo_checkout_wa_v1", d);
+              } catch (e) {}
+              setClienteHint("Cadastro encontrado — nome e endereço preenchidos. Confira se está certo.", true);
             })
-            .catch(function () {});
+            .catch(function () {
+              setClienteHint("", true);
+            });
         }, 400);
       });
     }
