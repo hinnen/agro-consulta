@@ -1156,7 +1156,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.57** (push pendente)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.58** (push pendente)
+
+### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push producao · aguardar Live + migrate 0057–0060 |
+| **Inclui** | Vitrine /catalogo/ · gestão · categorias/foto/logo · WhatsApp · Pillow |
+| **NÃO inclui** | Compras UI · Entrada NF grande · merge inteiro |
+| **Método** | cherry-pick 31 commits catálogo · **não** merge inteiro |
+| **Base** | 55231f0 (loja v10.57 FL-024) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-delivery-v10.57 @ **55231f0** |
+| **Risco** | Médio — migrate + URL pública · não mexe venda Centro se não abrir /catalogo/ |
+| **Autorização** | *pode enviar* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.58** · abrir /catalogo/ · gestão foto OK |
+
+### 📦 Deploy loja **v10.57** — FL-024 picklist cadastro (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **55231f0** · Live/smoke |
+| **Inclui** | Marca/cat/fornecedor/unidade só lista + PIN · fase 2 · gro_picklist.js |
+| **Backup / reverter** | 
+ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
+
 
 ### 📦 Deploy loja **v10.57** — FL-024 picklist cadastro (18/07 · Renan frase+senha)
 
