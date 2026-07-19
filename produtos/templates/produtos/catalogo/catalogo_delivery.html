@@ -102,20 +102,24 @@
     }
     .fab-wa:active { transform: scale(0.94); }
     .fab-wa svg { width: 1.85rem; height: 1.85rem; display: block; }
+    .logo-loja-wrap {
+      width: 100%;
+      aspect-ratio: 3.75 / 1;
+      overflow: hidden;
+      background: #fff;
+      line-height: 0;
+    }
     .logo-loja {
       display: block;
       width: 100%;
-      max-width: 100%;
-      height: auto;
-      max-height: none;
-      border-radius: 0;
-      object-fit: contain;
+      height: 100%;
+      object-fit: cover;
       object-position: center;
       background: #fff;
       border: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 0;
+      margin: 0;
       box-shadow: none;
-      padding: 0.12rem 0;
     }
     .hero-brand { display: flex; flex-direction: column; gap: 0; }
     .hero-brand-body { padding: 0.65rem 1rem 0; }
@@ -204,7 +208,9 @@
 <header class="hero-mesh text-white pb-5 relative overflow-hidden">
   <div class="hero-brand">
     {% if config.logo_url %}
-    <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
+    <div class="logo-loja-wrap">
+      <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
+    </div>
     {% else %}
     <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5">{{ config.nome_loja }}</h1>
     {% endif %}
