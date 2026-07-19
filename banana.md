@@ -1162,7 +1162,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.47** · **loja v10.28** (pacote Vila — push `eacbe2c`)
+**Versão app (VERSION):** **teste v10.48** · **loja v10.28** (pacote Vila — push `eacbe2c`)
 
 ### 🩹 Retiradas/saídas — filtro por loja Centro/Vila (18/07 · **teste**)
 
