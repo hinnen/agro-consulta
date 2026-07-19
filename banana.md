@@ -1163,7 +1163,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.87** · **loja v10.82**
+**Versão app (VERSION):** **teste v10.89** · loja v10.64
+
+### 🩹 PDV — MP automático atrasava após abrir caixa (19/07 · **teste v10.89**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este · validar no Render |
+| **Sintoma** | Após abrir Gaveta, mensagem «Abra o Caixa Gaveta…» por minutos até F5 |
+| **Causa** | Refresh do caixa atualizava turno, **não** mpPointEnabled / lista de maquininhas |
+| **Fix** | 
+efreshCaixaBootstrap também puxa pagamentoUi |
+| **Você** | Ctrl+F5 · fechar/abrir Gaveta no overlay · cartão → MP automático já disponível **sem** F5 |
+
 
 ### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
 

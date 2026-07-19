@@ -80,6 +80,12 @@
                 if (data && data.caixa) {
                     bootstrap.caixa = data.caixa;
                 }
+                // Após abrir Gaveta, a sessão já marca host MP — sem isto o PDV fica
+                // com mpPointEnabled=false até F5 (mensagem «Abra o Caixa Gaveta…»).
+                if (data && data.pagamentoUi && typeof data.pagamentoUi === 'object') {
+                    bootstrap.pagamentoUi = data.pagamentoUi;
+                    pagamentoUi = data.pagamentoUi;
+                }
                 if (data && data.pdvDeposito) {
                     atualizarBadgeDeposito(data.pdvDeposito);
                 }
