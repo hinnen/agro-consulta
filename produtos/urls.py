@@ -23,6 +23,7 @@ urlpatterns = [
     path('entregas/api/listar/', views.api_entregas_listar, name='api_entregas_listar'),
     path('entregas/api/atualizar/', views.api_entrega_atualizar, name='api_entrega_atualizar'),
     path("catalogo/", views_catalogo_delivery.catalogo_delivery_view, name="catalogo_delivery"),
+    path("catalogo/og-image/", views_catalogo_delivery.catalogo_og_image_view, name="catalogo_og_image"),
     path("catalogo/pedido-ok/", views_catalogo_delivery.catalogo_pedido_ok_view, name="catalogo_pedido_ok"),
     path("catalogo/gestao/", views_catalogo_delivery.catalogo_gestao_view, name="catalogo_gestao"),
     path("catalogo/api/pedido/", views_catalogo_delivery.api_catalogo_pedido, name="api_catalogo_pedido"),

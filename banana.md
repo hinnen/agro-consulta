@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.69** · loja v10.63
+**Versão app (VERSION):** **teste v10.71** · **loja v10.62**
 
 ### 🩹 Fechar caixa — ordem fixa das formas + sem Fiado (18/07 · **teste v10.69**)
 
@@ -1477,6 +1477,15 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
+
+### WIP — Catálogo · preview WhatsApp (og:image) **v10.71** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este |
+| **O quê** | Meta Open Graph + /catalogo/og-image/ (logo da gestão) |
+| **Você** | Colar link no Zap · se cache antigo: Facebook Sharing Debugger «Raspar novamente» |
+| **Produção** | **Não** |
 
 ### WIP — Catálogo · esconder Plus Code no checkout **v10.63** (18/07/2026)
 

@@ -1,11 +1,13 @@
 """Views públicas e gestão do catálogo delivery GM Agro."""
 from __future__ import annotations
 
+import base64
 import json
 
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -42,14 +44,42 @@ def _hex_cor(valor: str, padrao: str) -> str:
     return padrao
 
 
+def _catalogo_og_context(request, cfg) -> dict:
+    """Meta Open Graph para preview no WhatsApp (og:image = URL https da logo)."""
+    nome = (cfg.nome_loja or "Delivery").strip() or "Delivery"
+    desc = (
+        (cfg.mensagem_boas_vindas or "").strip()
+        or (cfg.area_entrega or "").strip()
+        or f"Peça pelo catálogo delivery da {nome}."
+    )
+    og_url = request.build_absolute_uri("/catalogo/")
+    if og_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
+        og_url = "https://" + og_url[len("http://") :]
+    og_image_url = ""
+    og_image_type = (cfg.logo_mime or "image/png").strip() or "image/png"
+    if (cfg.logo_base64 or "").strip():
+        path = reverse("catalogo_og_image")
+        og_image_url = request.build_absolute_uri(f"{path}?v={len(cfg.logo_base64)}")
+        if og_image_url.startswith("http://") and request.META.get("HTTP_X_FORWARDED_PROTO") == "https":
+            og_image_url = "https://" + og_image_url[len("http://") :]
+    return {
+        "og_title": f"{nome} · Delivery",
+        "og_description": desc[:220],
+        "og_url": og_url,
+        "og_image_url": og_image_url,
+        "og_image_type": og_image_type,
+    }
+
+
 @ensure_csrf_cookie
 def catalogo_delivery_view(request):
     cfg = obter_config_catalogo()
+    og = _catalogo_og_context(request, cfg)
     if not cfg.publicado and not _staff(request.user):
         return render(
             request,
             "produtos/catalogo/catalogo_indisponivel.html",
-            {"config": cfg},
+            {"config": cfg, **og},
         )
     itens = listar_itens_catalogo(incluir_ocultos_estoque=False)
     secoes = agrupar_itens_por_categoria(itens)
@@ -89,8 +119,32 @@ def catalogo_delivery_view(request):
             "arvore_json": arvore_json,
             "catalogo_vazio": not itens and not home_cats,
             "eh_staff": _staff(request.user),
+            **og,
         },
     )
+
+
+@require_GET
+def catalogo_og_image_view(request):
+    """Logo da loja em bytes — WhatsApp / Facebook leem og:image nesta URL."""
+    cfg = obter_config_catalogo()
+    b64 = (cfg.logo_base64 or "").strip()
+    if not b64:
+        return HttpResponse(status=404)
+    try:
+        raw = base64.b64decode(b64, validate=False)
+    except Exception:
+        return HttpResponse(status=404)
+    if not raw:
+        return HttpResponse(status=404)
+    mime = (cfg.logo_mime or "image/png").strip() or "image/png"
+    if mime not in ("image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"):
+        mime = "image/png"
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    resp = HttpResponse(raw, content_type=mime)
+    resp["Cache-Control"] = "public, max-age=86400"
+    return resp
 
 
 @ensure_csrf_cookie
