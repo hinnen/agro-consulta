@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.85** · **loja v10.81**
+**Versão app (VERSION):** **teste v10.86** · **loja v10.81**
 
 ### 🩹 PDV — Entregas não clicáveis sob Modo descanso/PIN (19/07 · **teste**)
 
