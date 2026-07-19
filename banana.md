@@ -562,7 +562,6 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
-- **Histórico C1–C3 + NF (18/07):** C1–C3 = só compras **anteriores**; a NF aberta **não** entra (evitava parecer 2 notas: data entrada vs emissão).
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
@@ -575,7 +574,6 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 ### 4.9 Compras
 
 - `/compras/` — sugestão, horizonte em dias, métricas avançadas em `<details>`.
-- **UI etapa 1 (18/07 · v9.95):** painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · detalhe expandido em blocos — **só visual**, regras/cálculos iguais.
 - **Fontes (Renan 08/07):** média/gráfico/sugestão = **vendas PDV Agro**; última compra/chips/planilha = **só Entrada NF Agro** (ERP cortado). Rótulos na tela alinhados.
 - **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
@@ -596,12 +594,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 
 ### 4.11 Caixa
 
-- **Gaveta (Centro)** = turno principal do Centro · **Vila Elias** (`ponto_caixa=vila`) = turno próprio da Vila · **Notebook** = satélite do pai da loja do aparelho · **Teste** = isolado, fora do lote.
-- Painel «todos» e fechamento em lote: **só a loja do seletor** (Centro × Vila) — não misturam.
-- Abrir caixa alinha o seletor de loja do PDV; venda usa depósito do `ponto_caixa` da sessão.
-- **Antiburro (v10.04):** abrir Gaveta/Vila e trocar Loja no BI exige digitar `centro` ou `vila`; com caixa aberto o seletor fica travado.
-- **Trava loja (v10.56):** reforço, retirada/saída, devolução, fiado, assumir sessão e venda **só** no turno da loja do aparelho; caixa fechado = bloqueia.
-- MP Point automático: só Gaveta Centro / Teste (não Vila).
+- **Gaveta** = turno principal · **Notebook** = vínculo sem sessão própria · **Teste** = isolado (`ponto_caixa=teste`), fora do fechamento em lote.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
@@ -1163,42 +1156,72 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.63** · **loja v10.61**
+**Versão app (VERSION):** **teste v10.63** · **loja v10.62**
 
-### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push e38df10 · rollback 
-ollback/pre-aba9-historico-v10.60 @ c88ce66 |
-| **Você** | Ctrl+F5 · lápis 1 centavo · aba 9 = 1 linha |
-
-### 📦 Deploy loja **v10.60** — Compras UI etapa 1 (18/07)
+### 📦 Deploy loja **v10.62** — Catálogo GPS checkout (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push c88ce66 · rollback 
-ollback/pre-compras-ui-v10.59 @ c352575 |
-| **Você** | Ctrl+F5 /compras/ |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | GPS/Plus Code no finalizar pedido · esconde Plus do cliente · API /catalogo/api/localizacao/ |
+| **NÃO inclui** | Compras UI · merge inteiro teste · horário/agendamento FOOD |
+| **Base** | e38df10 (loja v10.61 aba 9) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-gps-v10.61 @ **e38df10** |
+| **Autorização** | *pode subir para produção* + **99738595** · pedido de checkpoint |
+| **Risco** | Baixo — só checkout /catalogo/ · sem migrate · PDV/caixa intactos |
+| **Você** | Ctrl+F5 · badge **v10.62** · testar GPS no finalizar · entregas com Plus |
 
-### 📦 Deploy loja **v10.59** — BI mensagem + validade + faturamento 2 barras (18/07)
+### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push c352575 · rollback 
-ollback/pre-bi-validade-msg-v10.58 @ 1e211ae |
-| **Print 1** | Frase amigável (sem .env) |
-| **Print 2** | Conf. zera na loja · filtro Loja na validade |
-| **Print 3** | Faturamento mostra Centro + Vila |
-| **Você** | Ctrl+F5 BI Vila |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Lápis PDV: histórico só o que mudou · não força permite_venda |
+| **NÃO inclui** | Entrada NF grande · merge inteiro |
+| **Base** | c88ce66 (loja v10.60) |
+| **Backup / reverter** | 
+ollback/pre-aba9-historico-v10.60 @ **c88ce66** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 · lápis 1 centavo · aba 9 = 1 linha com DE = preço antigo |
+
+
+### 📦 Deploy loja **v10.60** — Compras UI etapa 1 (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Só layout /compras/ (painel resumo, busca, filtros) |
+| **NÃO inclui** | Entrada NF · aba 9 · merge inteiro |
+| **Base** | c352575 (loja v10.59) |
+| **Backup / reverter** | 
+ollback/pre-compras-ui-v10.59 @ **c352575** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 /compras/ · buscar · expandir linha |
+
+
+### 📦 Deploy loja **v10.59** — BI mensagem + validade loja + faturamento 2 barras (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este pacote) |
+| **Inclui** | Top 20 frase amigável · Conf. validade zera na loja filtrada · filtro Loja na tela validade · faturamento Centro+Vila nos dois BI |
+| **NÃO inclui** | Compras UI · Entrada NF · merge inteiro |
+| **Base** | 1e211ae (loja v10.58) |
+| **Backup / reverter** | 
+ollback/pre-bi-validade-msg-v10.58 @ **1e211ae** |
+| **Autorização** | *pode subir* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.59** · Vila Conf.=0 · gráfico 2 lojas · Top clientes sem texto técnico |
+
 
 ### 🩹 BI Vila — top clientes + validade + faturamento (18/07 · **teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Print 1** | Mensagem vazia amigável |
-| **Print 2** | Conf. só com saldo da loja · tela validade com filtro |
-| **Print 3** | Faturamento sempre as duas lojas |
+| **Print 1** | Mensagem vazia amigável (sem texto de .env/JSON) |
+| **Print 2** | Conf. venc./mês zera na loja filtrada · relatório validade com filtro Centro/Vila |
+| **Print 3** | Faturamento por unidade de novo mostra **as duas** lojas |
+| **Você** | Ctrl+F5 · Vila → Conf.=0 · gráfico com Centro+Vila · Top clientes frase simples |
 
 
 ### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
@@ -1208,43 +1231,60 @@ ollback/pre-bi-validade-msg-v10.58 @ 1e211ae |
 | **Status** | ✅ push producao **96e157a** · aguardar Live + migrate 0057–0060 |
 | **Inclui** | Vitrine /catalogo/ · gestão · categorias/foto/logo · WhatsApp · Pillow |
 | **NÃO inclui** | Compras UI · Entrada NF grande · merge inteiro |
+| **Método** | cherry-pick 31 commits catálogo · **não** merge inteiro |
 | **Base** | 55231f0 (loja v10.57 FL-024) |
 | **Backup / reverter** | 
 ollback/pre-catalogo-delivery-v10.57 @ **55231f0** |
+| **Risco** | Médio — migrate + URL pública · não mexe venda Centro se não abrir /catalogo/ |
 | **Autorização** | *pode enviar* + **99738595** |
-| **Você** | Ctrl+F5 · badge **v10.58** · /catalogo/ |
+| **Você** | Ctrl+F5 · badge **v10.58** · abrir /catalogo/ · gestão foto OK |
 
-### 📦 Deploy loja **v10.57** — FL-024 picklist (18/07 · Renan frase+senha)
+### 📦 Deploy loja **v10.57** — FL-024 picklist cadastro (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push producao **55231f0** |
+| **Status** | ✅ push producao **55231f0** · Live/smoke |
+| **Inclui** | Marca/cat/fornecedor/unidade só lista + PIN · fase 2 · gro_picklist.js |
 | **Backup / reverter** | 
 ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
+
+### 📦 Deploy loja **v10.57** — FL-024 picklist cadastro (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push producao · aguardar Live |
+| **Inclui** | Marca/cat/fornecedor/unidade só lista + PIN · fase 2 gestão/overlay/PDV · gro_picklist.js |
+| **NÃO inclui** | Catálogo delivery · Compras · Entrada NF grande |
+| **Método** | cherry-pick 752384c + cfb640 · **não** merge inteiro |
+| **Base** | c030d07 (loja v10.56) |
+| **Backup / reverter** | 
+ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
+| **Risco Centro** | Baixo — só UX cadastro anti-duplicata |
+| **Autorização** | *pode enviar* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.57** · Cadastro: digitar marca inventada não grava · + com PIN cria |
+
+### 🩹 Cadastro — marca/cat só lista + PIN (FL-024) (18/07 · **teste v10.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Marca / fornecedor / categoria / sub: buscar e **só selecionar**; digitar solto **não** grava; **+** abre popup com parecidos + **PIN** + log |
+| **Busca** | Sem acento / caixa |
+| **Validar** | Digitar marca inventada → Salvar barra · escolher da lista OK · + com PIN cria |
 
 ### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **c030d07** · aguardar Live + smoke |
+| **Status** | ✅ push `producao` **23c4b84** · aguardar Live + smoke |
 | **Inclui** | BI Vila sem vazamento Centro · saída/reforço/devolução/fiado exigem caixa aberto · sem Centro×Vila cruzado |
 | **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
-| **Método** | cherry-pick 3 commits · **não** merge inteiro |
+| **Método** | cherry-pick `38633a6` + `b99337c` + `ed91d0a` · **não** merge inteiro |
 | **Base** | `a79831c` (loja v10.48) |
 | **Backup / reverter** | `rollback/pre-bi-caixa-lock-v10.48` @ **a79831c** |
-| **Risco Centro** | Baixo — só filtra BI e endurece regras de caixa |
+| **Risco Centro** | Baixo — só filtra BI e endurece regras de caixa (não muda venda normal com caixa aberto) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **Você** | Ctrl+F5 · badge **v10.56** · BI Vila limpo · caixa fechado → sem saída/reforço/devolver |
-
-### 🔍 Pré-produção — revisão catálogo + divergência (18/07 · este chat)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Loja hoje** | **v10.58** — catálogo delivery **no ar** (push `96e157a`) |
-| **Teste hoje** | **v10.56+** — alinhado no módulo catálogo |
-| **Veredito** | Pacote isolado ✅ · migrate 0057–0060 no deploy · `publicado` começa off |
-| **Rollback** | `rollback/pre-catalogo-delivery-v10.57` @ **55231f0** |
 
 ### 🚨 Caixa — trava fechado + loja cruzada (18/07 · **teste**)
 
@@ -1271,487 +1311,35 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **CP/CR** | Continuam da **empresa** (financeiro compartilhado) — não mudou |
 | **Você** | Ctrl+F5 no **teste** · Loja **Vila Elias** → ranking vazio · ticket 0 · top clientes vazio · entregas 0 · novos 0 · sem barra Centro |
 
+
 ### 📦 Deploy loja **v10.48** — BI + retiradas por loja (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **a79831c** · aguardar Live + smoke |
-| **Inclui** | BI filtra pela loja · Retiradas chips Centro/Vila/Todas |
-| **Base** | `eacbe2c` (v10.28) |
-| **Backup / reverter** | `rollback/pre-bi-retiradas-v10.28` @ **eacbe2c** |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **Inclui** | BI filtra números pela loja do aparelho + reload · Retiradas/saídas filtram Centro/Vila/Todas |
+| **NÃO inclui** | Catálogo delivery · FL-024 · Compras UI · resto só no teste |
+| **Método** | cherry-pick `74fce4c` + `f85ba4a` · **não** merge inteiro |
+| **Base** | `eacbe2c` (loja v10.28 Vila) |
+| **Backup / reverter** | `rollback/pre-bi-retiradas-v10.28` (= `producao-backup-pre-v1048-bi-retiradas-20260718` @ **eacbe2c**) |
+| **Risco Centro** | Baixo — só filtro/leitura; venda/caixa inalterados neste pacote |
 | **Autorização** | *pode subir para produção* + **99738595** |
-| **Você** | Ctrl+F5 · badge **v10.48** · BI Vila → ~R$ 0 · Retiradas Vila → sem Centro |
-
-### 🩹 Retiradas/saídas — filtro por loja Centro/Vila (18/07 · **teste**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Com aparelho em Vila Elias, histórico de saídas ainda listava Centro |
-| **Fix** | Filtra pelo turno (Gaveta×Vila) · chips Centro/Vila/Todas · padrão = loja do aparelho |
-| **Você** | Ctrl+F5 · Retiradas → chip **Vila Elias** → lista vazia/só Vila · **Centro** → saídas do dia |
-
-### 🩹 BI — seletor loja filtra números + recarrega (18/07 · **teste**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Trocar Loja no BI só mudava badge/estoque; Performance/Vendas continuavam do Centro |
-| **Fix** | KPI/série/ticket/ranking filtrados pelo depósito do aparelho · ao confirmar loja → **reload** · gráfico «por unidade» continua comparando as duas |
-| **Você** | No **teste**: Loja → Vila Elias → digitar `vila` → tela recarrega · Performance ~R$ 0 se ainda sem venda Vila |
+| **Você** | Ctrl+F5 · badge **v10.48** · BI Vila → Performance ~0 · Retiradas chip Vila → sem saídas do Centro |
 
 ### 📦 Deploy loja **v10.28** — pacote Vila Elias / Centro (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **eacbe2c** · Render migrate 0055/0056 · aguardar Live + smoke |
+| **Status** | ✅ Live · `eacbe2c` · base do pacote v10.48 |
 | **Inclui** | Depósito Centro×Vila · caixa separado · antiburro · bloqueio sem caixa · badge/aviso · filtro vendas/relatório · MP Renan · saldo cadastro recente |
 | **NÃO inclui** | Catálogo delivery · FL-024 picklist · Compras UI · resto só no teste |
-| **Método** | cherry-pick 12 commits · **não** merge inteiro |
+| **Método** | cherry-pick 12 commits do `teste` · **não** merge inteiro |
 | **Base** | `c0620af` (loja v9.91) |
-| **Backup / reverter** | `rollback/pre-vila-v9.91` (= `producao-backup-pre-v1028-vila-20260718` @ **c0620af**) |
-| **Env** | var estoque **ausente** ✅ |
+| **Backup / reverter** | tag `rollback/pre-vila-v9.91` (= `producao-backup-pre-v1028-vila-20260718` @ **c0620af**) → `git push origin rollback/pre-vila-v9.91:producao` (**só** com nova frase+senha) |
+| **Env** | `PDV_VENDA_ESTOQUE_DEPOSITO` **ausente** ✅ (= centro) |
+| **Risco Centro** | Baixo (venda segue caixa Gaveta) · **exige caixa aberto** pra vender |
 | **Autorização** | *pode subir para produção* + **99738595** |
-| **Você** | Ctrl+F5 · badge **v10.28** · smoke Gaveta: abrir → vender 1 → fechar → relatório **Centro** |
-
-### 🔍 Revisão risco pacote Vila → CENTRO (18/07 · agente Opus)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Veredito** | **SEGURO para o Centro** — venda segue o caixa aberto, não o cookie |
-| **Antes de abrir** | Env loja: var **ausente** ✅ · migrate no deploy · **loja v10.28** push · smoke Gaveta pendente |
-| **Atenção Centro** | Agora **exige caixa aberto** pra vender · relatório default = loja do PC (usar chip Centro/Todas) |
-| **Vila** | Volume baixo OK · Point auto **não** · NFC-e ainda CNPJ Centro |
-
-### feat — Caixa relatório/conferências por loja (18/07 · **teste v10.28**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Achado** | Saldo / reforço / retirada / fechar já usavam o turno da loja · relatório e conferências misturavam Centro+Vila |
-| **Fix** | Filtro Centro / Vila / Todas (padrão = loja do PC) · MP Renan já soma nas linhas «— Mercado Pago» |
-| **Validar** | Relatório e Conferências → chips Loja · saldo do turno aberto |
-
-### feat — PDV maquininha Mercado Pago Renan (18/07 · **teste v10.26**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Opção **Mercado Pago Renan** no seletor de máquina (cartão + Pix) |
-| **Comportamento** | Manual (não dispara Point automático) · aparece no notebook também |
-| **Validar** | PDV → pagar cartão/Pix → Selecionar máquina → 3ª opção Renan |
-
-### 🩹 Cadastro — saldo busca ficava velho após venda (18/07 · **teste v10.23**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Venda baixava Vila 10→9 no banco, Cadastro busca ainda mostrava C10·V10 |
-| **Causa** | `/api/buscar/` pegava ajuste **qualquer** (às vezes o antigo), não o mais recente |
-| **Fix** | Mesma regra de `ajustes_mais_recentes` + Cadastro recalcula saldo no envelope |
-| **Validar local** | Reinicia servidor · busca «teste divisão» → **V 9** |
-
-### 🩹 Cadastro — fase 2 picklist (gestão / overlay / unidade / PDV) (18/07 · **teste v10.20**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Mesmo padrão FL-024 em: cadastro **unidade**, **gestão** drawer, **overlay** lista ERP, **PDV lápis** unidade (Cadastrar exige PIN) |
-| **JS** | `agro_picklist.js` compartilhado · facetas incluem `unidades` |
-| **Validar** | Gestão: digitar marca inventada → barra · PDV lápis: Cadastrar unidade → PIN |
-
-### 🩹 Cadastro — marca/cat só lista + PIN (FL-024) (18/07 · **teste v10.19**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Marca / fornecedor / categoria / sub: buscar e **só selecionar**; digitar solto **não** grava; **+** abre popup com parecidos + **PIN** + log |
-| **Busca** | Sem acento / caixa |
-| **Validar** | Digitar marca inventada → Salvar barra · escolher da lista OK · + com PIN cria |
-
-### 🩹 Cadastro — código sistema+GM no produto novo sem agro_pg (18/07 · **teste v10.17**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Local (catálogo Mongo): Novo produto → Fiscal sem código sistema/GM; loja `agro_pg` preenchia OK |
-| **Fix** | Detalhe `__novo__` no caminho Mongo também aloca sequência 4010+ / `GM####` |
-| **Validar** | Local: Novo produto → aba Fiscal → código + GM preenchidos |
-
-### 🩹 PDV — badge estoque + aviso caixa sem F5 (18/07 · **teste v10.14**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Abrir Centro: badge ficava «Vila Elias» até F5 · Fechar Centro no overlay: sumia o painel mas sem faixa «Caixa fechado» e dava pra montar venda até o fim |
-| **Fix** | Aviso sempre no HTML (só some/aparece) · refresh puxa `pdvDeposito` + badge · iframe avisa `agro-pdv-caixa-changed` · bloqueia item/avançar com caixa fechado |
-| **Validar** | Abrir Centro no PDV → badge **Centro** na hora · Fechar → faixa âmbar + não deixa adicionar item |
-
-### 🩹 Caixa fechado — bloqueia venda + refresh no PDV (18/07 · **teste v10.11**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | Após fechar caixa no overlay, PDV ainda vendia (bootstrap velho) e servidor aceitava venda sem turno |
-| **Fix** | API exige caixa aberto · PDV revalida caixa antes de cada venda · ao fechar overlay atualiza status · redirects do Fechar mantêm overlay |
-| **Validar local** | Abrir caixa → fechar → tentar vender → deve barrar · abrir de novo → vende |
-
-### 🩹 Caixa no PDV — não abrir BI no overlay (18/07 · **teste v10.10**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Causa** | Após abrir caixa, `redirect(home)` carregava o BI dentro do painel do PDV |
-| **Fix** | No overlay (`agro_pdv_overlay`) → volta ao **menu caixa** com os params; fora do PDV continua home |
-| **Validar local** | PDV → abrir caixa Vila → fica no menu caixa, **não** no BI |
-
-### 🩹 Abrir caixa — seleção + digitar loja (18/07 · **teste v10.08**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Feito** | Cartão selecionado com anel + «Selecionado» · digitação errada = borda vermelha + texto |
-| **Validar local** | Clicar Vila → só Vila destacada · digitar `vil` → aviso vermelho |
-
-### 🩹 Caixa fechar — 500 (fiado_baixas_wizard) (18/07 · **teste v10.06**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
-| **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
-| **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
-
-### WIP — Catálogo · esconder Plus Code no checkout **v10.63** (18/07/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push 	este |
-| **UX** | Cliente vê só ✓ localização OK — Plus Code fica oculto (grava no pedido) |
-
-### WIP — Catálogo delivery · GPS checkout **v10.61** (18/07/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Origem** | FOOD `food.md` §8.1 — GPS → Plus Code no fechamento |
-| **O quê** | Botão «Usar minha localização» · some endereço manual · «Digitar manualmente» · API `/catalogo/api/localizacao/` · grava plus/maps no pedido/cliente |
-| **Produção** | **Não** (só teste) |
-
-### WIP — Catálogo delivery GM Agro **v10.53** (18/07/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **UX** | Botão **«Salvar foto»** (antes «Foto card») + texto: não usar «Salvar loja» |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.51** (18/07/2026) *(histórico — ver v10.53)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Foto cat.** | Upload **AJAX** (comprime no celular) · alerta OK/erro · isento idempotência |
-| **UI** | «Desi….png» = nome abreviado do arquivo (normal); não é erro |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.50** (18/07/2026) *(histórico — ver v10.51)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Foto cat.** | Comprime no servidor (Pillow→JPG) · até ~4 MB bruto · erro em **alerta** |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.49** (18/07/2026) *(histórico — ver v10.50)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Foto cat.** | Limite **~1,2 MB** · erro visível no topo + alerta no navegador |
-| **Causa** | PNG 860 KB > 700 KB antigo · rejeitava sem aviso claro |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.48** (18/07/2026) *(histórico — ver v10.49)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Degradê mais branco na faixa Delivery · cards endereço **#fff** |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.47** (18/07/2026) *(histórico — ver v10.48)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Textos **escuros** no degradê claro · cards brancos · CTA verde |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.46** (18/07/2026) *(histórico — ver v10.47)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Base do degradê um pouco mais **verde claro** (topo igual) |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.45** (18/07/2026) *(histórico — ver v10.46)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Degradê tipo ref.: **topo quase branco** (½) → teal suave |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.44** (18/07/2026) *(histórico — ver v10.45)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | **Um** `linear-gradient` limpo (creme→verde) · sem véu/faixa |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.43** (18/07/2026) *(histórico — ver v10.44)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Fade em **véu** + faixa `hero-fade` · transição bem mais suave |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.42** (18/07/2026) *(histórico — ver v10.43)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Degradê **longo/suave** (sem faixa dura) · 100% mais abaixo |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.41** (18/07/2026) *(histórico — ver v10.42)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Degradê desce mais antes do verde 100% |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.40** (18/07/2026) *(histórico — ver v10.41)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Fundo logo: degradê verde/laranja **fraco** → contraste sobe → **100%** em Delivery |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.39** (18/07/2026) *(histórico — ver v10.40)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Logo** | Corta sobra branca cima/baixo (`cover` + aspect mais baixo) |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.38** (18/07/2026) *(histórico — ver v10.39)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Logo **largura total** · faixa branca fina · **Gestão** ao lado das boas-vindas |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.37** (18/07/2026) *(histórico — ver v10.38)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Logo** | Largura **100%** do hero (sem caixa vazia) · altura auto |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.36** (18/07/2026) *(histórico — ver v10.37)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Hero** | Logo **maior** · sem nome texto (já na arte) · «Delivery · rações» + boas-vindas **embaixo** |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.35** (18/07/2026) *(histórico — ver v10.36)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Logo** | Formato **paisagem** na vitrine · limite upload **~1,2 MB** |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.34** (18/07/2026) *(histórico — ver v10.35)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Níveis** | Categoria → sub → **sub-sub** → produtos (máx. 3) |
-| **Cadastro** | Aba Delivery: 3 selects + **+** em cada · gestão cria sob raiz ou sob sub |
-| **Vitrine** | Passos em cascata; Voltar sobe um nível |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.33** (18/07/2026) *(histórico — ver v10.35)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **UX** | CTA «Como chegar» nos endereços |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.29** (18/07/2026) *(histórico — ver v10.30)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Endereço** | Card clicável → Google Maps rota |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.27** (18/07/2026) *(histórico — ver v10.29)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **UX** | Logo maior · WhatsApp balão flutuante |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.24** (18/07/2026) *(histórico — ver v10.27)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · migrate `0060` logo loja |
-| **Logo** | Upload em `/catalogo/gestao/` · aparece antes do nome |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.22** (18/07/2026) *(histórico — ver v10.24)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **Fluxo** | Home categoria → **subcategoria** (se existir) → produtos filtrados · Voltar em cascata |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.21** (18/07/2026) *(histórico — ver v10.22)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · migrate `0059` foto categoria |
-| **Home `/catalogo/`** | Cards grandes de categoria com foto → clique abre produtos · Voltar |
-| **Gestão** | Em cada categoria raiz: upload **Foto card** (máx. ~700 KB) |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.16** (18/07/2026) *(histórico — ver v10.21)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · migrate `0058` |
-| **UX aba 10** | Grade compacta + **botão +** cria categoria/sub no modal |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.15** (18/07/2026) *(histórico — ver v10.16)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` |
-| **UX aba 10** | Grade compacta no modal: cat+sub+estoque · título+peso+ordem · desc+destaque+foto |
-| **Produção** | **Não** |
-
-### WIP — Catálogo delivery GM Agro **v10.12** (18/07/2026) *(histórico — ver v10.13)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · migrate `0058` no deploy |
-| **O quê** | `/catalogo/` público · aba **10. Delivery** · pedidos → `/entregas/` (`origem=catalogo`) |
-| **Gestão** | `/catalogo/gestao/` — publicar, WhatsApp, **2 endereços** (rótulo+rua), **CRUD categorias/sub** |
-| **Categorias** | Padrão apps ração: Cães/Gatos/… + sub (Adulto/Filhote) · seed na migrate · select na aba Delivery |
-| **Vitrine** | Mobile-first · chips categoria · 2 endereços no hero · botão WhatsApp **fixo** (não FAB) |
-| **Migrate** | `0057` config · `0058` categorias + endereços 1/2 |
-| **Renan testar** | Gestão: 2 endereços + criar cat/sub → produto aba Delivery (cat+sub) → vitrine celular chips + Zap |
-| **Produção** | **Não** — só teste até Renan pedir + senha |
-
-### WIP — Catálogo delivery GM Agro **v10.05** (18/07/2026) *(histórico — ver v10.12)*
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Catálogo público `/catalogo/` · aba **10. Delivery** · pedidos → entregas |
-| **Gestão loja** | `/catalogo/gestao/` — publicar, WhatsApp, cores (sem cat/endereços 2 ainda) |
-
-
-### 🔒 Vila Elias — antiburro digitar loja (18/07 · **teste v10.04**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · validar no Render |
-| **Feito** | Abrir Gaveta/Vila: digitar **centro** ou **vila** · trocar Loja no BI/atalhos: mesmo digitar · com caixa aberto seletor **travado** |
-| **Arquivos** | `pdv_deposito_util.py` · `views.py` · `caixa_abrir.html` · `agro_loja_confirm.html` · `dashboard_gerencial.html` · `home.html` |
-| **Validar** | Abrir caixa Vila digitando `vila` · tentar trocar BI sem digitar → bloqueia · com caixa aberto seletor desabilitado |
-
-### 💰 Vila Elias — Caixa separado Centro × Vila (18/07 · **teste v10.03**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · validar no Render · 📦 produção só com frase + senha |
-| **Feito** | `ponto_caixa=vila` (turno próprio) · abrir 4 cartões (Gaveta Centro / Vila / Notebook / Teste) · painel «todos» e fechamento em lote **só da loja do aparelho** · venda herda depósito do ponto do caixa · MP Point **não** na Vila · migration **0056** |
-| **Arquivos** | `caixa_util.py` · `views.py` · `models.py` · `0056_*` · `caixa_abrir.html` · `caixa_fechar.html` · `caixa_painel.html` |
-| **Validar teste** | BI → Loja **Vila** → Abrir **Caixa Vila** → vender → painel soma só Vila · Centro aberto no outro PC não mistura · fechar lote = só Vila |
-| **Ops** | PC Vila: seletor Loja Vila + abrir Caixa Vila. Centro continua Gaveta. Notebook satélite da loja do aparelho. |
-| **Autorizar loja** | *«pode subir Vila Elias caixa separado»* + **99738595** |
-
-### 🏪 Vila Elias — PDV baixa estoque por loja do aparelho (18/07 · **teste v10.02**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · validar no Render · 📦 produção só com frase + senha |
-| **Problema** | Seletor «Vila Elias» na home não baixava estoque Vila — venda sempre usava env `PDV_VENDA_ESTOQUE_DEPOSITO` (Centro) |
-| **Feito** | Sessão/cookie `pdv_deposito` · API `/api/pdv/deposito/` · seletor no **BI** + atalhos · badge no PDV · `VendaAgro.deposito` + migration **0055** · baixa/estorno usam depósito da venda |
-| **Arquivos** | `pdv_deposito_util.py` · `views.py` · `pdv/views.py` · `models.py` · `0055_*` · `dashboard_gerencial.html` · `home.html` · topbar/wizard JS |
-| **Validar teste** | BI → Loja **Vila Elias** → badge «Estoque: Vila Elias» → PDV venda R$ 0,01 → saldo **Vila** cai · devolução repõe Vila |
-| **Ops abertura** | 1) Injetar estoque Vila (NF depósito Vila / transferência / PIN) 2) Conferir sync 3) PC Vila = Loja Vila no BI 4) Caixa só naquele PC 5) **Sem NFC-e Vila** até cert CNPJ `0323…` (PIX/cartão ainda = CNPJ Centro) |
-| **Autorizar loja** | *«pode subir Vila Elias PDV depósito»* + **99738595** |
-| **Backup no envio** | `producao-backup-pre-v1002-vila-pdv-YYYYMMDD` @ HEAD loja |
-
-### 🩹 Entrada NF — histórico C1–C3 não duplica a própria nota (18/07 · **teste v9.97**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · validar no Render (Ctrl+F5 etapa 8) |
-| **Sintoma** | C3 e NF com mesmo preço e datas diferentes (entrada 14/07 vs emissão 30/06) — parecia 2 notas |
-| **Causa** | Após estoque, a NF aberta entrava em «últimas compras» (data entrada) e de novo na coluna NF (emissão) |
-| **Fix** | Prévia exclui o rascunho atual do histórico; filtro extra por nº+custo; rótulo «Compras anteriores + NF» |
-| **Arquivos** | `views.py` · `compras_ultimas_compras_util.py` · `entrada_nota.html` |
-| **Validar** | Abrir NF 320 (ou qualquer) → etapa 8 → C1–C3 sem a nota atual · NF só à direita |
-
-### 📦 PACOTE PRONTO LOJA — Compras etapa 1 UI (18/07 · **teste v9.95+**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **enviado loja v10.60** (`c88ce66`) · 18/07 |
-| **Escopo** | Só visual/organização — **sem** mudança de regra, API, Mongo, cálculo de sugestão |
-| **Feito** | Painel resumo (horizonte + descontar estoque + KPIs) · busca em destaque · filtros limpos · lista + detalhe expandido em blocos |
-| **Arquivo** | `produtos/templates/produtos/compras.html` |
-| **Risco** | Baixo — só layout; comportamento igual ao de antes |
-| **Validar na loja** | Ctrl+F5 `/compras/` · buscar · expandir linha · horizonte/checkbox · Folha/F10/lista |
-| **Autorizar** | *«pode subir Compras UI etapa 1»* + **99738595** |
-| **Próximo** | Etapas seguintes de evolução Compras (quando Renan pedir) |
-
-### 📦 PACOTE PRONTO LOJA — aba 9 histórico só o que mudou (18/07 · **teste v10.01**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **enviado loja v10.61** (`e38df10`) · 18/07 |
-| **Sintoma** | Lápis PDV (1 centavo) gerava várias linhas com **DE = —** (nome, GM, barras…) · preço sem valor anterior |
-| **Causa** | Overlay vazio no 1º save · «antes» vazio · `permite_venda` forçado True em todo save |
-| **Fix** | «Antes» completa com catálogo · não força permite_venda no lápis |
-| **Arquivos** | `cadastro_alteracao_historico_util.py` · `views.py` |
-| **Risco** | Baixo — só histórico de cadastro; não mexe estoque/venda |
-| **Backup no envio** | `producao-backup-pre-v1001-aba9-YYYYMMDD` @ HEAD loja |
-| **Após enviar** | **Obrigatório testar na loja** (Ctrl+F5 · lápis muda 1 centavo · aba 9 = **1 linha** · DE = preço antigo) |
-| **Autorizar** | *«pode subir aba 9 histórico»* + **99738595** |
-
-### 📦 PACOTE PRONTO LOJA — kardex e-mail + Entrada NF Δcamada (18/07 · **teste v9.92**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
-| **Sintoma** | Quem ainda com e-mail (`agromaisgm@…`) · Entrada NF (ex. 399636) ainda como **saída ~172** |
-| **Causa** | Label da NF era e-mail do login · qty usava Δ `saldo_informado` bruto (mistura salto ERP) |
-| **Fix** | Resolve e-mail→nome · movimento = Δ(camada Agro = informado−ERP ref) · saldo recomposto |
-| **Arquivo** | `estoque_movimentos_cadastro_util.py` |
-| **Risco** | Baixo — só leitura/exibição do histórico |
-| **Backup no envio** | `producao-backup-pre-v992-kardex-YYYYMMDD` @ HEAD loja |
-| **Após enviar** | **Obrigatório testar na loja** (Ctrl+F5 · badge · milho · Estoque · Quem sem @ · NF 399636 = entrada) |
-| **Autorizar** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.28** · smoke Gaveta: abrir → vender 1 → fechar → relatório chip **Centro** |
 
 ### 📦 Deploy loja **v9.91** — kardex Quem + Entrada NF (18/07 · Renan frase+senha)
 
@@ -2397,19 +1985,14 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
-| **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
-| **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **ainda NÃO na loja** (conferido 18/07 noite) |
-| **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
-| **✅ Loja v10.60** | **Compras UI etapa 1** — enviado 18/07 · validar `/compras/` |
-| **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
-| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260718:producao` |
+| **✅ Loja v9.90** | **PDV Enviar WhatsApp** · **Cadastro modal** · **PDV lápis/aba 9** · **FL-056** · **Relatórios ?** — enviados 17/07 |
+| **Validar loja** | Ctrl+F5 · badge **v9.90** · Zap · lápis→aba 9 · modal · Relatórios **?** · reemitir **#2812**/**#3347** |
+| **Reverter** | `git push origin producao-backup-pre-v990-fecha-pdv-cadastro-nfce-20260717:producao` |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
-| **P1** | Aba 9 | Histórico lápis PDV: várias linhas DE=— · sem preço antigo | 📦 **pronto pra envio** · teste **v10.01** · **validar na loja após envio** |
 | **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
 | **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
 | **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
@@ -4905,7 +4488,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
-| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | ✅ teste v10.19 | 18/07 |
+| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | 📋 Pendente | 16/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | ✅ 12/07 | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | XML forma boleto → **Boleto Bancário CN** | ✅ 12/07 | 29/06 16:20 |
