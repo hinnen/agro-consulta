@@ -10042,6 +10042,15 @@ def caixa_painel(request):
     painel = painel_raw if painel_raw in paineis_ok else "menu"
 
     aberto = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(request)
+    if painel in ("retirada", "reforco") and not aberto:
+        messages.error(
+            request,
+            "Abra o caixa desta loja antes de registrar saída ou reforço.",
+        )
+        return _redirect_caixa(
+            request, "caixa_retiradas_historico" if painel == "retirada" else "caixa_painel"
+        )
+
     empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
     ctx = {
         "sessao_aberta": aberto,
@@ -10191,9 +10200,13 @@ def caixa_retiradas_historico(request):
         linhas_fmt.append({**row, "hora_txt": hora_txt, "valor_str": val_str})
 
     embed = _caixa_request_embed(request)
+    sessao_aberta = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(
+        request
+    )
     url_nova = reverse("caixa_painel") + "?painel=retirada"
     if embed:
         url_nova += "&embed=1"
+    pode_nova_saida = bool(sessao_aberta)
 
     fl = resultado.get("filtro_loja") or filtro_loja or "centro"
     fl_label = resultado.get("filtro_loja_label") or (
@@ -10218,6 +10231,7 @@ def caixa_retiradas_historico(request):
             "planos_opts": SAIDA_CAIXA_PLANOS,
             "quem_opts": listar_quem_retiradas_distintas(),
             "url_nova_saida": url_nova,
+            "pode_nova_saida": pode_nova_saida,
             "caixa_embed": embed,
         },
     )
@@ -16175,8 +16189,8 @@ def _anexar_retirada_turno_caixa_saida(
     plano: str,
     motivo: str,
     desc_linha: str,
-) -> None:
-    """Se houver caixa aberto, registra retirada no turno após saída financeira."""
+) -> bool:
+    """Registra retirada no turno aberto. Retorna False se o caixa não estiver aberto."""
     try:
         obs_parts: list[str] = []
         if plano_id_req and plano_id_req in plan_map:
@@ -16194,8 +16208,11 @@ def _anexar_retirada_turno_caixa_saida(
         )
         if mov:
             out["movimento_caixa_id"] = mov.pk
+            return True
+        return False
     except Exception:
         logger.exception("Caixa: retirada no turno após saída financeira")
+        return False
 
 
 @login_required(login_url="/admin/login/")
@@ -16208,6 +16225,20 @@ def api_lancamentos_saida_caixa(request):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    # Exige caixa aberto deste aparelho (não usa sessão de outra loja via ID no JSON).
+    sessao_turno, err_cx, st_cx = resolver_sessao_caixa_operacao(
+        request, {}, permitir_adotar_unico=True
+    )
+    if not sessao_turno:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": err_cx
+                or "Abra o caixa desta loja antes de registrar saída.",
+            },
+            status=st_cx or 400,
+        )
 
     try:
         valor = float(str(payload.get("valor", "")).replace(",", ".").strip())
