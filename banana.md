@@ -1156,7 +1156,37 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.83** · **loja v10.81**
+**Versão app (VERSION):** **teste v10.87** · **loja v10.82**
+
+### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` · aguardar Live |
+| **Inclui** | (1) não abrir overlay sob Modo descanso · abre após PIN · (2) popup Imprimir em `<dialog>` na frente |
+| **NÃO inclui** | Merge inteiro `teste` · sem migrate nova |
+| **Base** | `73215fc` (loja v10.81) |
+| **Backup / reverter** | `rollback/pre-pdv-entregas-pin-print-v10.81` @ **73215fc** |
+| **Como reverter** | `git push origin rollback/pre-pdv-entregas-pin-print-v10.81:producao` |
+| **Autorização** | *pode subir para produção* + **99738595** · seguro + checkpoint |
+| **Risco** | Mínimo — só JS/HTML do PDV overlay |
+| **Você** | Ctrl+F5 · badge **v10.82** · PIN → Assumir · Imprimir por cima do overlay |
+
+### 🩹 PDV — Entregas não clicáveis sob Modo descanso/PIN (19/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Alerta do catálogo abria o modal **por cima** do PIN; `sspin-locked` zera `pointer-events` → Assumir/Imprimir sem clique |
+| **Fix** | Com PIN ativo: **não** abre o modal (só toast + badge); após desbloquear PIN, abre sozinho · CSS libera clique se o dialog já estiver aberto |
+| **Loja** | **v10.82** |
+
+### 🩹 PDV — popup Imprimir atrás do overlay entregas (19/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | «Imprimir» no overlay abria escolha de vias **atrás** do dialog Entregas (top layer) |
+| **Fix** | Modal «O que imprimir?» virou `<dialog showModal>` — fica na frente do overlay |
+| **Loja** | **v10.82** |
 
 ### 📦 Deploy loja **v10.81** — Assumir entrega catálogo Centro×Vila (19/07 · Renan frase+senha)
 

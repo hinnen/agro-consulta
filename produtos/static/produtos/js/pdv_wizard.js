@@ -656,6 +656,15 @@
     var entregasPendentesPollTimer = null;
     var entregasPendentesCache = { total: 0, itens: [] };
     var entregasPendentesOpening = false;
+    var entregasPendentesAbrirAposUnlock = false;
+
+    function pdvSspinLocked() {
+        try {
+            return !!(document.body && document.body.classList.contains('sspin-locked'));
+        } catch (e0) {
+            return false;
+        }
+    }
     var creditoFiadoCliente = null;
     var creditoFiadoClienteId = '';
     var fiadoVencidosAlertShownKey = '';
@@ -4093,16 +4102,22 @@
                 (novos.length > 1 ? ' (' + novos.length + ')' : '') +
                 ': ' +
                 nomes +
-                '. Assuma nesta loja.',
+                (pdvSspinLocked()
+                    ? '. Digite o PIN e assuma nesta loja.'
+                    : '. Assuma nesta loja.'),
             'warn'
         );
         var modalOpen =
             dom.entregasPendentesModal &&
             (dom.entregasPendentesModal.open ||
                 dom.entregasPendentesModal.hasAttribute('open'));
-        if (!modalOpen && !entregasPendentesOpening) {
-            openEntregasPendentesModal();
+        if (modalOpen || entregasPendentesOpening) return;
+        /* Com Modo descanso/PIN ativo o body bloqueia pointer-events — não abrir por cima. */
+        if (pdvSspinLocked()) {
+            entregasPendentesAbrirAposUnlock = true;
+            return;
         }
+        openEntregasPendentesModal();
     }
 
     function wizardPrintPayloadFromEntregaRow(row) {
@@ -4257,7 +4272,16 @@
 
     function openEntregasPendentesModal() {
         if (entregasPendentesOpening) return;
+        if (pdvSspinLocked()) {
+            entregasPendentesAbrirAposUnlock = true;
+            showSaleDoneFeedback(
+                'Digite o PIN do modo descanso para abrir as entregas pendentes.',
+                'warn'
+            );
+            return;
+        }
         entregasPendentesOpening = true;
+        entregasPendentesAbrirAposUnlock = false;
         refreshEntregasPendentesUi(false, true)
             .then(function () {
                 if (!dom.entregasPendentesModal) return;
@@ -7140,7 +7164,7 @@
     function pdvTryRemoveModalOpenBody() {
         var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
         var mei = document.getElementById('modal-pdv-entrega-impressao');
-        var meiOpen = mei && !mei.classList.contains('hidden');
+        var meiOpen = meiImpressaoEntregaAberto(mei);
         var escOpen = mdEsc && !mdEsc.classList.contains('hidden');
         var cliOpen = isQuickClientModalOpen();
         var startOpen = dom.modalStart && !dom.modalStart.classList.contains('hidden');
@@ -11462,6 +11486,14 @@
         wizardImprimirPacoteEntregaPayload(e, opt);
     }
 
+    function meiImpressaoEntregaAberto(mei) {
+        if (!mei) return false;
+        if (String(mei.tagName || '').toUpperCase() === 'DIALOG') {
+            return !!(mei.open || mei.hasAttribute('open'));
+        }
+        return !mei.classList.contains('hidden');
+    }
+
     function wizardModalEscolhaImpressaoEntrega() {
         return new Promise(function (resolve) {
             var root = document.getElementById('modal-pdv-entrega-impressao');
@@ -11472,11 +11504,21 @@
             var btnImp = document.getElementById('mei-imprimir');
             var btnCan = document.getElementById('mei-cancelar');
             var done = false;
+            var isDialog = String(root.tagName || '').toUpperCase() === 'DIALOG';
             function finish(v) {
                 if (done) return;
                 done = true;
-                root.classList.add('hidden');
-                root.classList.remove('flex');
+                try {
+                    if (isDialog && typeof root.close === 'function') {
+                        if (root.open) root.close();
+                    } else {
+                        root.classList.add('hidden');
+                        root.classList.remove('flex');
+                    }
+                } catch (eClose) {
+                    root.classList.add('hidden');
+                    root.classList.remove('flex');
+                }
                 root.onclick = null;
                 if (btnImp) btnImp.onclick = null;
                 if (btnCan) btnCan.onclick = null;
@@ -11504,9 +11546,19 @@
             root.onclick = function (ev) {
                 if (ev.target === root) finish(null);
             };
-            root.classList.remove('hidden');
-            root.classList.add('flex');
+            try {
+                if (isDialog && typeof root.showModal === 'function') {
+                    if (!root.open) root.showModal();
+                } else {
+                    root.classList.remove('hidden');
+                    root.classList.add('flex');
+                }
+            } catch (eOpen) {
+                root.classList.remove('hidden');
+                root.classList.add('flex');
+            }
             pdvEnsureModalOpenBody();
+            syncPdvSspinIdlePause();
         });
     }
 
@@ -13058,7 +13110,7 @@
             var stProdutos = State.getState();
             var startModalOpen = dom.modalStart && !dom.modalStart.classList.contains('hidden');
             var mdEntregaImp = document.getElementById('modal-pdv-entrega-impressao');
-            var modalEntregaImpOpen = mdEntregaImp && !mdEntregaImp.classList.contains('hidden');
+            var modalEntregaImpOpen = meiImpressaoEntregaAberto(mdEntregaImp);
             if (
                 stProdutos.currentStep === 'entrega' &&
                 event.code === 'F1' &&
@@ -13305,6 +13357,12 @@
     window.addEventListener('gm-sspin-operador', function (ev) {
         var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
         State.setPagamentoField('operadorPdv', nome);
+        if (entregasPendentesAbrirAposUnlock) {
+            entregasPendentesAbrirAposUnlock = false;
+            setTimeout(function () {
+                if (!pdvSspinLocked()) openEntregasPendentesModal();
+            }, 80);
+        }
     });
     window.addEventListener('gm-sspin-before-lock', fecharModaisPdvAntesDescanso);
 
