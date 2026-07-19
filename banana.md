@@ -1156,7 +1156,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.78** · **loja v10.67** (push WA+OG ração)
+**Versão app (VERSION):** **teste v10.80** · **loja v10.80**
+
+### 📦 Deploy loja **v10.80** — Catálogo sem texto extra do WhatsApp (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | Só remove a frase sob WhatsApp no checkout (autofill igual) |
+| **NÃO inclui** | Merge inteiro teste |
+| **Base** | 6e78f8b (loja v10.67) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-texto-wa-v10.67 @ **6e78f8b** |
+| **Autorização** | *pode subir* + **99738595** · pediu 10.80 + checkpoint |
+| **Risco** | Mínimo — 1 linha de template |
 
 ### 📦 Deploy loja **v10.67** — Catálogo WA 1º + OG delivery ração (18/07 · Renan frase+senha)
 
