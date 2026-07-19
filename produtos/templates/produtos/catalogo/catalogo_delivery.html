@@ -408,18 +408,36 @@
       <label class="block"><span class="text-sm font-bold">WhatsApp *</span>
         <input id="checkout-telefone" inputmode="tel" required placeholder="13999999999" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" autocomplete="tel">
         <span id="checkout-cliente-hint" class="hidden text-xs text-emerald-700 font-medium mt-1 block">Cadastro encontrado.</span></label>
-      <label class="block"><span class="text-sm font-bold">Cidade *</span>
-        <input id="checkout-cidade" list="checkout-cidades" value="Jacupiranga" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base">
-        <datalist id="checkout-cidades">
-          <option value="Jacupiranga"><option value="Registro"><option value="Cajati"><option value="Pariquera-açu">
-        </datalist></label>
-      <label class="block"><span class="text-sm font-bold">Rua / avenida *</span>
-        <input id="checkout-logradouro" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
-      <div class="grid grid-cols-2 gap-2">
-        <label class="block"><span class="text-sm font-bold">Número *</span>
-          <input id="checkout-numero" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
-        <label class="block"><span class="text-sm font-bold">Bairro</span>
-          <input id="checkout-bairro" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+      <div class="block space-y-2">
+        <span class="text-sm font-bold">Endereço de entrega *</span>
+        <button type="button" id="btn-usar-localizacao" class="w-full py-3 px-4 rounded-xl border-2 border-primary text-primary font-bold text-sm bg-primary/5">
+          📍 Usar minha localização (Plus Code automático)
+        </button>
+        <p id="checkout-geo-status" class="hidden text-xs font-medium"></p>
+        <div id="checkout-endereco-manual" class="space-y-2">
+          <p class="text-xs text-slate-500 font-medium pt-1">Ou preencha manualmente:</p>
+          <label class="block"><span class="text-sm font-bold">Cidade *</span>
+            <input id="checkout-cidade" list="checkout-cidades" value="Jacupiranga" autocomplete="address-level2" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base">
+            <datalist id="checkout-cidades">
+              <option value="Jacupiranga"><option value="Registro"><option value="Cajati"><option value="Pariquera-açu">
+            </datalist></label>
+          <label class="block"><span class="text-sm font-bold">Rua / avenida *</span>
+            <input id="checkout-logradouro" autocomplete="street-address" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block"><span class="text-sm font-bold">Número *</span>
+              <input id="checkout-numero" inputmode="numeric" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+            <label class="block"><span class="text-sm font-bold">Bairro</span>
+              <input id="checkout-bairro" autocomplete="address-level3" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base"></label>
+          </div>
+        </div>
+        <button type="button" id="checkout-trocar-manual" class="hidden text-xs font-bold text-slate-600 underline mt-1">Digitar endereço manualmente</button>
+        <input type="hidden" id="checkout-uf" value="SP">
+        <input type="hidden" id="checkout-plus-code">
+        <input type="hidden" id="checkout-lat">
+        <input type="hidden" id="checkout-lng">
+        <input type="hidden" id="checkout-maps-url">
+        <input type="hidden" id="checkout-cep">
+        <input type="hidden" id="checkout-endereco">
       </div>
       <label class="block"><span class="text-sm font-bold">Pagamento *</span>
         <select id="checkout-forma" required class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base font-semibold">
@@ -435,6 +453,7 @@
       </div>
       <label class="block"><span class="text-sm font-bold">Observações</span>
         <textarea id="checkout-obs" rows="2" class="w-full mt-1 p-3 border-2 border-slate-200 rounded-xl text-base" placeholder="Ponto de referência…"></textarea></label>
+      <p id="checkout-erro" class="hidden text-red-600 text-sm font-medium"></p>
       <button type="submit" id="btn-enviar-pedido" class="w-full bg-primary text-white py-4 rounded-xl font-black text-base shadow-lg">Enviar pedido</button>
     </form>
     <button type="button" id="btn-fechar-checkout" class="w-full mt-2 py-3 border-2 rounded-xl font-bold">Voltar</button>
@@ -447,6 +466,7 @@
     catalogo: {{ catalogo_json|safe }},
     arvore: {{ arvore_json|safe }},
     apiPedido: "{% url 'api_catalogo_pedido' %}",
+    apiLocalizacao: "{% url 'api_catalogo_localizacao' %}",
     apiCliente: "{% url 'api_catalogo_cliente' %}"
   });
 </script>

@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.59** · **loja v10.61** (aba 9)
+**Versão app (VERSION):** **teste v10.63** · **loja v10.62** (push GPS checkout)
+
+### 📦 Deploy loja **v10.62** — Catálogo GPS checkout (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao (este commit) · aguardar Live |
+| **Inclui** | GPS/Plus Code no finalizar pedido · esconde Plus do cliente · API /catalogo/api/localizacao/ |
+| **NÃO inclui** | Compras UI · merge inteiro teste · horário/agendamento FOOD |
+| **Base** | e38df10 (loja v10.61 aba 9) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-gps-v10.61 @ **e38df10** |
+| **Autorização** | *pode subir para produção* + **99738595** · pedido de checkpoint |
+| **Risco** | Baixo — só checkout /catalogo/ · sem migrate · PDV/caixa intactos |
+| **Você** | Ctrl+F5 · badge **v10.62** · testar GPS no finalizar · entregas com Plus |
 
 ### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07 · Renan frase+senha)
 
