@@ -146,7 +146,16 @@
     .hero-brand-meta {
       min-width: 0;
       flex: 1;
-      text-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+      color: #064e3b;
+      text-shadow: none;
+    }
+    .hero-brand-meta .hero-kicker {
+      color: #047857;
+      opacity: 1;
+    }
+    .hero-brand-meta .hero-msg {
+      color: #14532d;
+      opacity: 1;
     }
     .gestao-btn {
       flex-shrink: 0;
@@ -156,12 +165,14 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      background: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.75);
+      border: 1.5px solid #059669;
       padding: 0.35rem 0.55rem;
       border-radius: 0.5rem;
-      color: #fff;
+      color: #047857;
       text-decoration: none;
       white-space: nowrap;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
     }
     .card-rota {
       display: flex;
@@ -170,14 +181,16 @@
       min-width: 0;
       padding: 0.55rem 0.6rem 0.5rem;
       border-radius: 0.85rem;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1.5px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1.5px solid rgba(6, 78, 59, 0.18);
+      box-shadow: 0 2px 8px rgb(15 23 42 / 0.08);
       transition: transform 0.12s ease, background 0.12s ease;
       text-decoration: none;
-      color: inherit;
+      color: #14532d;
     }
-    .card-rota:active { transform: scale(0.97); background: rgba(255, 255, 255, 0.28); }
+    .card-rota:active { transform: scale(0.97); background: rgba(255, 255, 255, 0.9); }
+    .card-rota .card-rota-rotulo { color: #047857; opacity: 1; }
+    .card-rota .card-rota-end { color: #1e293b; opacity: 1; }
     .card-rota-cta {
       display: inline-flex;
       align-items: center;
@@ -186,8 +199,8 @@
       margin-top: 0.1rem;
       padding: 0.28rem 0.55rem 0.28rem 0.4rem;
       border-radius: 999px;
-      background: #fff;
-      color: #047857;
+      background: #059669;
+      color: #fff;
       font-size: 0.62rem;
       font-weight: 900;
       letter-spacing: 0.02em;
@@ -229,23 +242,23 @@
 <body class="text-slate-800 antialiased">
 <div class="shell">
 
-<header class="hero-mesh text-white pb-5 relative overflow-hidden">
+<header class="hero-mesh pb-5 relative overflow-hidden">
   <div class="hero-brand">
     {% if config.logo_url %}
     <div class="logo-loja-wrap">
       <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
     </div>
     {% else %}
-    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5">{{ config.nome_loja }}</h1>
+    <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5 text-emerald-950">{{ config.nome_loja }}</h1>
     {% endif %}
     <div class="hero-brand-body">
       <div class="flex items-start justify-between gap-2">
         <div class="hero-brand-meta">
-          <p class="text-[0.65rem] font-black uppercase tracking-[0.18em] opacity-80">Delivery · rações</p>
+          <p class="hero-kicker text-[0.65rem] font-black uppercase tracking-[0.18em]">Delivery · rações</p>
           {% if config.mensagem_boas_vindas %}
-          <p class="mt-1 text-sm opacity-95 leading-snug">{{ config.mensagem_boas_vindas }}</p>
+          <p class="hero-msg mt-1 text-sm font-semibold leading-snug">{{ config.mensagem_boas_vindas }}</p>
           {% else %}
-          <p class="mt-1 text-sm opacity-90 leading-snug">Escolha a categoria · peça pelo celular</p>
+          <p class="hero-msg mt-1 text-sm font-semibold leading-snug">Escolha a categoria · peça pelo celular</p>
           {% endif %}
         </div>
         {% if eh_staff %}
@@ -260,8 +273,8 @@
        href="https://www.google.com/maps/dir/?api=1&destination={{ end.endereco|urlencode }}&travelmode=driving"
        target="_blank" rel="noopener"
        aria-label="Como chegar em {{ end.rotulo }}">
-      <span class="uppercase tracking-wide opacity-85 truncate">{{ end.rotulo }}</span>
-      <span class="block opacity-95 line-clamp-2 font-semibold">{{ end.endereco }}</span>
+      <span class="card-rota-rotulo uppercase tracking-wide truncate">{{ end.rotulo }}</span>
+      <span class="card-rota-end block line-clamp-2 font-semibold">{{ end.endereco }}</span>
       <span class="card-rota-cta">
         <svg class="pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
@@ -279,7 +292,7 @@
   </div>
 
   {% if config.area_entrega %}
-  <p class="mt-2 px-4 text-[0.7rem] font-bold opacity-90">Entrega: {{ config.area_entrega }}</p>
+  <p class="mt-2 px-4 text-[0.7rem] font-bold text-emerald-900">Entrega: {{ config.area_entrega }}</p>
   {% endif %}
 </header>
 
