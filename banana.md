@@ -1163,7 +1163,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.56** (push `c030d07`)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.58** (push 96e157a)
+
+### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **96e157a** · aguardar Live + migrate 0057–0060 |
+| **Inclui** | Vitrine /catalogo/ · gestão · categorias/foto/logo · WhatsApp · Pillow |
+| **NÃO inclui** | Compras UI · Entrada NF grande · merge inteiro |
+| **Base** | 55231f0 (loja v10.57 FL-024) |
+| **Backup / reverter** | 
+ollback/pre-catalogo-delivery-v10.57 @ **55231f0** |
+| **Autorização** | *pode enviar* + **99738595** |
+| **Você** | Ctrl+F5 · badge **v10.58** · /catalogo/ |
+
+### 📦 Deploy loja **v10.57** — FL-024 picklist (18/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push producao **55231f0** |
+| **Backup / reverter** | 
+ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
+
 
 ### 📦 Deploy loja **v10.56** — BI Vila zeros + trava caixa (18/07 · Renan frase+senha)
 
