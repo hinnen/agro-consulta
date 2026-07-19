@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.59** · **loja v10.61**
+**Versão app (VERSION):** **teste v10.61** · **loja v10.61** (catálogo GPS ainda só no teste até deploy)
 
 ### 📦 Deploy loja **v10.61** — aba 9 histórico só o que mudou (18/07)
 
@@ -1409,6 +1409,15 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa** | Variável `fiado_baixas_wizard` sumiu no pacote Vila → NameError na tela Fechar |
 | **Fix** | Restaurar `listar_fiado_baixas_conferencia_caixa(sessoes)` |
 | **Validar** | Ctrl+F5 → Fechar caixa (sessão antiga Centro) abre · fechar libera seletor Loja no BI |
+
+### WIP — Catálogo delivery · GPS checkout **v10.61** (18/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` |
+| **Origem** | FOOD `food.md` §8.1 — GPS → Plus Code no fechamento |
+| **O quê** | Botão «Usar minha localização» · some endereço manual · «Digitar manualmente» · API `/catalogo/api/localizacao/` · grava plus/maps no pedido/cliente |
+| **Produção** | **Não** (só teste) |
 
 ### WIP — Catálogo delivery GM Agro **v10.53** (18/07/2026)
 

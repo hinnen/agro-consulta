@@ -26,6 +26,7 @@ from produtos.catalogo_delivery_util import (
     salvar_logo_loja,
     slugify_categoria,
 )
+from produtos.catalogo_geo_util import localizacao_de_latlng
 from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp, extrair_whatsapp_digits
 from produtos.models import CatalogoDeliveryCategoria, PedidoEntrega
 
@@ -129,6 +130,30 @@ def api_catalogo_pedido(request):
             "redirect": f"/catalogo/pedido-ok/?id={pedido.pk}",
         }
     )
+
+
+@require_POST
+def api_catalogo_localizacao(request):
+    """GPS do cliente → Plus Code + endereço para entregas (igual cardápio FOOD)."""
+    cfg = obter_config_catalogo()
+    if not cfg.publicado and not _staff(request.user):
+        return JsonResponse({"ok": False, "erro": "Catálogo indisponível."}, status=503)
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "Dados inválidos."}, status=400)
+    try:
+        lat = float(body.get("lat"))
+        lng = float(body.get("lng"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Coordenadas inválidas."}, status=400)
+    try:
+        loc = localizacao_de_latlng(lat, lng)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Não foi possível obter o endereço."}, status=502)
+    return JsonResponse({"ok": True, **loc})
 
 
 @require_GET

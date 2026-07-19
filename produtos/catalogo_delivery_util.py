@@ -613,6 +613,7 @@ def _upsert_cliente_catalogo(
     cidade: str,
     uf: str,
     cep: str,
+    maps_url: str = "",
 ) -> ClienteAgro | None:
     digits = extrair_whatsapp_digits(telefone)
     if len(digits) < 10:
@@ -637,6 +638,8 @@ def _upsert_cliente_catalogo(
         cli.cep = cep[:12]
     if plus_code:
         cli.plus_code = plus_code[:120]
+    if maps_url:
+        cli.maps_url_manual = maps_url[:600]
     if endereco:
         cli.endereco = endereco[:500]
     cli.save()
@@ -673,9 +676,9 @@ def criar_pedido_catalogo_delivery(payload: dict[str, Any]) -> PedidoEntrega:
     if not telefone or len("".join(c for c in telefone if c.isdigit())) < 10:
         raise ErroPedidoCatalogo("Informe um telefone com DDD.")
     if not plus_code and not (cidade and logradouro and numero):
-        raise ErroPedidoCatalogo("Informe cidade, logradouro e número.")
+        raise ErroPedidoCatalogo("Informe cidade, logradouro e número — ou use a localização.")
     if not endereco and not plus_code:
-        raise ErroPedidoCatalogo("Informe o endereço de entrega.")
+        raise ErroPedidoCatalogo("Informe o endereço ou use a localização do celular.")
     if not forma:
         raise ErroPedidoCatalogo("Escolha a forma de pagamento.")
     if not isinstance(raw_itens, list) or not raw_itens:
@@ -745,7 +748,13 @@ def criar_pedido_catalogo_delivery(payload: dict[str, Any]) -> PedidoEntrega:
             cidade=cidade,
             uf=uf,
             cep=cep,
+            maps_url=maps_url,
         )
+        if cli is not None:
+            if not plus_code and cli.plus_code:
+                plus_code = cli.plus_code[:120]
+            if not maps_url and getattr(cli, "maps_url_manual", None):
+                maps_url = (cli.maps_url_manual or "")[:600]
         pedido = PedidoEntrega.objects.create(
             status=PedidoEntrega.Status.PENDENTE,
             origem="catalogo",
@@ -775,6 +784,7 @@ def cliente_catalogo_json(cli: ClienteAgro) -> dict:
         "telefone": cli.whatsapp,
         "endereco_linha": end,
         "plus_code": (cli.plus_code or "").strip(),
+        "maps_url": (cli.maps_url_manual or "").strip(),
         "logradouro": (cli.logradouro or "").strip(),
         "numero": (cli.numero or "").strip(),
         "bairro": (cli.bairro or "").strip(),

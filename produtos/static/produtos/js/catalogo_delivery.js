@@ -441,6 +441,173 @@
       });
     }
 
+    function val(id) {
+      var el = document.getElementById(id);
+      return el ? String(el.value || "").trim() : "";
+    }
+
+    function setVal(id, v) {
+      var el = document.getElementById(id);
+      if (el) el.value = v != null ? String(v) : "";
+    }
+
+    function setGeoStatus(msg, ok) {
+      var el = document.getElementById("checkout-geo-status");
+      if (!el) return;
+      if (!msg) {
+        el.classList.add("hidden");
+        el.textContent = "";
+        return;
+      }
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      el.className =
+        "text-xs font-medium " + (ok ? "text-emerald-700" : "text-rose-700");
+    }
+
+    function setCheckoutErro(msg) {
+      var el = document.getElementById("checkout-erro");
+      if (!el) return;
+      if (!msg) {
+        el.classList.add("hidden");
+        el.textContent = "";
+        return;
+      }
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
+
+    function syncEnderecoHidden() {
+      var parts = [val("checkout-logradouro"), val("checkout-numero"), val("checkout-bairro"), val("checkout-cidade"), val("checkout-uf")];
+      var linha = parts.filter(Boolean).join(", ");
+      setVal("checkout-endereco", linha);
+    }
+
+    function preencherCamposEndereco(data) {
+      if (!data) return;
+      var map = {
+        "checkout-cidade": data.cidade,
+        "checkout-logradouro": data.logradouro,
+        "checkout-numero": data.numero,
+        "checkout-bairro": data.bairro,
+        "checkout-uf": data.uf,
+        "checkout-cep": data.cep,
+        "checkout-endereco": data.endereco_linha,
+      };
+      Object.keys(map).forEach(function (id) {
+        if (map[id] != null && String(map[id]).trim()) setVal(id, map[id]);
+      });
+      syncEnderecoHidden();
+    }
+
+    function setEnderecoModo(modo) {
+      var manual = document.getElementById("checkout-endereco-manual");
+      var trocar = document.getElementById("checkout-trocar-manual");
+      var btnGeo = document.getElementById("btn-usar-localizacao");
+      var geo = modo === "geo";
+      if (manual) manual.classList.toggle("hidden", geo);
+      if (trocar) trocar.classList.toggle("hidden", !geo);
+      if (btnGeo && geo) {
+        btnGeo.textContent = "✓ Localização definida";
+        btnGeo.classList.add("opacity-80");
+      } else if (btnGeo) {
+        btnGeo.textContent = "📍 Usar minha localização (Plus Code automático)";
+        btnGeo.classList.remove("opacity-80");
+      }
+    }
+
+    function limparLocalizacao() {
+      ["checkout-plus-code", "checkout-lat", "checkout-lng", "checkout-maps-url"].forEach(function (id) {
+        setVal(id, "");
+      });
+      var vis = document.getElementById("checkout-plus-visivel");
+      if (vis) {
+        vis.textContent = "";
+        vis.classList.add("hidden");
+      }
+      setGeoStatus("", true);
+    }
+
+    function preencherLocalizacao(data) {
+      setVal("checkout-plus-code", data.plus_code);
+      setVal("checkout-lat", data.lat);
+      setVal("checkout-lng", data.lng);
+      setVal("checkout-maps-url", data.maps_url);
+      preencherCamposEndereco(data);
+      var vis = document.getElementById("checkout-plus-visivel");
+      if (vis && data.plus_code) {
+        vis.textContent = "Plus Code: " + data.plus_code;
+        vis.classList.remove("hidden");
+      }
+      if (data.plus_code) setEnderecoModo("geo");
+    }
+
+    var btnTrocarManual = document.getElementById("checkout-trocar-manual");
+    if (btnTrocarManual) {
+      btnTrocarManual.addEventListener("click", function () {
+        limparLocalizacao();
+        setEnderecoModo("manual");
+      });
+    }
+
+    if (val("checkout-plus-code")) setEnderecoModo("geo");
+
+    var btnGeo = document.getElementById("btn-usar-localizacao");
+    if (btnGeo && opts.apiLocalizacao) {
+      btnGeo.addEventListener("click", function () {
+        if (!navigator.geolocation) {
+          setGeoStatus("Seu aparelho não suporta GPS.", false);
+          return;
+        }
+        btnGeo.disabled = true;
+        btnGeo.textContent = "Obtendo localização…";
+        setGeoStatus("Aguarde — pedindo permissão do GPS.", true);
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            fetch(opts.apiLocalizacao, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken"),
+              },
+              body: JSON.stringify({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              }),
+            })
+              .then(function (r) {
+                return r.json();
+              })
+              .then(function (data) {
+                if (!data || !data.ok) throw new Error((data && data.erro) || "Erro ao localizar");
+                preencherLocalizacao(data);
+                setGeoStatus("Localização OK — Plus Code preenchido para a entrega.", true);
+              })
+              .catch(function (ex) {
+                setGeoStatus((ex && ex.message) || "Falha ao obter endereço.", false);
+              })
+              .finally(function () {
+                btnGeo.disabled = false;
+                if (!val("checkout-plus-code")) {
+                  btnGeo.textContent = "📍 Usar minha localização (Plus Code automático)";
+                } else {
+                  btnGeo.textContent = "✓ Localização definida";
+                }
+              });
+          },
+          function (err) {
+            btnGeo.disabled = false;
+            btnGeo.textContent = "📍 Usar minha localização (Plus Code automático)";
+            var msg = "Não foi possível usar o GPS.";
+            if (err && err.code === 1) msg = "Permita o acesso à localização no navegador.";
+            setGeoStatus(msg, false);
+          },
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+        );
+      });
+    }
+
     var tel = document.getElementById("checkout-telefone");
     var hint = document.getElementById("checkout-cliente-hint");
     var telTimer = null;
@@ -465,16 +632,24 @@
                 return;
               }
               var c = j.cliente;
-              var nome = document.getElementById("checkout-nome");
-              if (nome && c.nome) nome.value = c.nome;
-              var cid = document.getElementById("checkout-cidade");
-              if (cid && c.cidade) cid.value = c.cidade;
-              var log = document.getElementById("checkout-logradouro");
-              if (log && c.logradouro) log.value = c.logradouro;
-              var num = document.getElementById("checkout-numero");
-              if (num && c.numero) num.value = c.numero;
-              var bai = document.getElementById("checkout-bairro");
-              if (bai && c.bairro) bai.value = c.bairro;
+              if (c.nome) setVal("checkout-nome", c.nome);
+              if (c.cidade) setVal("checkout-cidade", c.cidade);
+              if (c.logradouro) setVal("checkout-logradouro", c.logradouro);
+              if (c.numero) setVal("checkout-numero", c.numero);
+              if (c.bairro) setVal("checkout-bairro", c.bairro);
+              if (c.uf) setVal("checkout-uf", c.uf);
+              if (c.cep) setVal("checkout-cep", c.cep);
+              if (c.plus_code) {
+                setVal("checkout-plus-code", c.plus_code);
+                var vis = document.getElementById("checkout-plus-visivel");
+                if (vis) {
+                  vis.textContent = "Plus Code: " + c.plus_code;
+                  vis.classList.remove("hidden");
+                }
+                setEnderecoModo("geo");
+              }
+              if (c.maps_url) setVal("checkout-maps-url", c.maps_url);
+              syncEnderecoHidden();
               if (hint) hint.classList.remove("hidden");
             })
             .catch(function () {});
@@ -486,8 +661,15 @@
     if (form) {
       form.addEventListener("submit", function (ev) {
         ev.preventDefault();
+        setCheckoutErro("");
         if (totalQtd() <= 0) {
-          alert("Carrinho vazio.");
+          setCheckoutErro("Carrinho vazio.");
+          return;
+        }
+        syncEnderecoHidden();
+        var plus = val("checkout-plus-code");
+        if (!plus && !(val("checkout-cidade") && val("checkout-logradouro") && val("checkout-numero"))) {
+          setCheckoutErro("Informe cidade, logradouro e número — ou use a localização.");
           return;
         }
         var btn = document.getElementById("btn-enviar-pedido");
@@ -500,16 +682,20 @@
         });
         var trocoEl = document.getElementById("checkout-troco");
         var payload = {
-          cliente_nome: (document.getElementById("checkout-nome") || {}).value || "",
-          telefone: (document.getElementById("checkout-telefone") || {}).value || "",
-          cidade: (document.getElementById("checkout-cidade") || {}).value || "",
-          logradouro: (document.getElementById("checkout-logradouro") || {}).value || "",
-          numero: (document.getElementById("checkout-numero") || {}).value || "",
-          bairro: (document.getElementById("checkout-bairro") || {}).value || "",
-          uf: "SP",
-          forma_pagamento: (document.getElementById("checkout-forma") || {}).value || "",
+          cliente_nome: val("checkout-nome"),
+          telefone: val("checkout-telefone"),
+          cidade: val("checkout-cidade"),
+          logradouro: val("checkout-logradouro"),
+          numero: val("checkout-numero"),
+          bairro: val("checkout-bairro"),
+          uf: val("checkout-uf") || "SP",
+          cep: val("checkout-cep"),
+          plus_code: plus,
+          maps_url: val("checkout-maps-url"),
+          endereco_linha: val("checkout-endereco"),
+          forma_pagamento: val("checkout-forma"),
           troco_precisa: !!(trocoEl && trocoEl.checked),
-          observacoes: (document.getElementById("checkout-obs") || {}).value || "",
+          observacoes: val("checkout-obs"),
           itens: itens,
         };
         fetch(opts.apiPedido, {
@@ -533,7 +719,7 @@
             window.location.href = res.j.redirect || "/catalogo/pedido-ok/?id=" + res.j.id;
           })
           .catch(function (err) {
-            alert(err.message || "Erro ao enviar");
+            setCheckoutErro(err.message || "Erro ao enviar");
             if (btn) {
               btn.disabled = false;
               btn.textContent = "Enviar pedido";
