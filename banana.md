@@ -1156,13 +1156,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.56** · **loja v10.58** (push pendente)
+**Versão app (VERSION):** **teste v10.56** · **loja v10.58** (push 96e157a)
 
 ### 📦 Deploy loja **v10.58** — Catálogo delivery (18/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push producao · aguardar Live + migrate 0057–0060 |
+| **Status** | ✅ push producao **96e157a** · aguardar Live + migrate 0057–0060 |
 | **Inclui** | Vitrine /catalogo/ · gestão · categorias/foto/logo · WhatsApp · Pillow |
 | **NÃO inclui** | Compras UI · Entrada NF grande · merge inteiro |
 | **Método** | cherry-pick 31 commits catálogo · **não** merge inteiro |
