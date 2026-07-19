@@ -23,30 +23,20 @@
     .border-primary { border-color: var(--cat-primary) !important; }
     .ring-primary { --tw-ring-color: var(--cat-primary); }
     .hero-mesh {
-      position: relative;
-      isolation: isolate;
-      /* Base 100% — a véu ::before faz o fade suave por cima */
-      background: linear-gradient(160deg, #064e3b 0%, var(--cat-primary) 55%, #047857 100%);
-    }
-    .hero-mesh::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+      /* Um único degradê vertical — sem véu, sem faixa extra */
       background: linear-gradient(
         180deg,
-        color-mix(in srgb, var(--cat-primary) 6%, #fffbeb) 0%,
-        color-mix(in srgb, var(--cat-primary) 9%, #fff7ed) 10%,
-        color-mix(in srgb, #ea580c 11%, #f0fdf4) 18%,
-        color-mix(in srgb, var(--cat-primary) 16%, #ffedd5) 28%,
-        color-mix(in srgb, var(--cat-primary) 22%, #fed7aa) 38%,
-        color-mix(in srgb, var(--cat-primary) 30%, #fdba74) 46%,
-        color-mix(in srgb, var(--cat-primary) 38%, transparent) 54%,
-        color-mix(in srgb, #064e3b 28%, transparent) 62%,
-        color-mix(in srgb, #064e3b 14%, transparent) 72%,
-        color-mix(in srgb, #064e3b 6%, transparent) 82%,
-        transparent 92%
+        #fff7ed 0%,
+        #ffedd5 6%,
+        #ecfdf5 14%,
+        #d1fae5 28%,
+        #a7f3d0 40%,
+        #6ee7b7 52%,
+        #34d399 62%,
+        #10b981 72%,
+        #059669 82%,
+        #047857 92%,
+        #064e3b 100%
       );
     }
     .card-cat {
@@ -144,30 +134,18 @@
       padding: 0;
       margin: 0;
       box-shadow: none;
-      /* branco do PNG some e deixa o degradê verde/laranja aparecer */
+      /* fundo branco do PNG some no degradê claro */
       mix-blend-mode: multiply;
     }
-    .hero-brand { display: flex; flex-direction: column; gap: 0; position: relative; z-index: 1; }
-    .hero-fade {
-      height: 2.75rem;
-      margin-top: -0.35rem;
-      pointer-events: none;
-      background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--cat-primary) 12%, #fff7ed) 0%,
-        color-mix(in srgb, var(--cat-primary) 22%, transparent) 35%,
-        color-mix(in srgb, #064e3b 18%, transparent) 70%,
-        transparent 100%
-      );
-    }
+    .hero-brand { display: flex; flex-direction: column; gap: 0; }
     .hero-brand-body {
-      padding: 0.15rem 1rem 0;
+      padding: 0.85rem 1rem 0;
       background: transparent;
     }
     .hero-brand-meta {
       min-width: 0;
       flex: 1;
-      text-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+      text-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
     }
     .gestao-btn {
       flex-shrink: 0;
@@ -256,7 +234,6 @@
     <div class="logo-loja-wrap">
       <img src="{{ config.logo_url }}" alt="{{ config.nome_loja }}" class="logo-loja">
     </div>
-    <div class="hero-fade" aria-hidden="true"></div>
     {% else %}
     <h1 class="text-[1.55rem] font-black tracking-tight leading-tight px-4 pt-5">{{ config.nome_loja }}</h1>
     {% endif %}
