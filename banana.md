@@ -1156,7 +1156,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.87** · **loja v10.82**
+**Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.86**
+
+### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO** — aguardando frase + senha |
+| **Branch** | prep/loja-caixa-vila-centro (1 commit limpo) |
+| **VERSION loja** | **10.86** |
+| **Backup** | rollback/pre-caixa-vila-centro-v10.82 |
+| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO/Assumir · (4) Quem PIN · (5) rótulo Caixa Centro/Vila · (6) sem TRAVADO duplicado · (7) wizard fiado só da própria loja |
+| **NÃO inclui** | Dispenser · MP automático · merge inteiro teste |
+| **Smoke** | ✅ fechar Vila / entrega Centro · ⏳ fiado wizard (Ctrl+F5) |
+| **Autorizar** | *pode subir caixa Vila Centro* + **99738595** |
+
 
 ### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
 

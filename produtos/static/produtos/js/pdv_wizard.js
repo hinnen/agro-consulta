@@ -36,8 +36,10 @@
         }
         if (link) {
             if (aberto) {
-                var cid = bootstrap.caixa && bootstrap.caixa.id;
-                link.textContent = cid ? 'Caixa ' + cid : 'Caixa aberto';
+                var rot =
+                    (bootstrap.caixa && bootstrap.caixa.rotulo) ||
+                    (bootstrap.caixa && bootstrap.caixa.id ? 'Caixa aberto' : '');
+                link.textContent = rot || 'Caixa aberto';
                 link.title = 'Painel do caixa — turno aberto';
                 link.classList.remove('bg-amber-100', 'text-amber-950', 'border-amber-400', 'border-2');
                 link.classList.add('bg-emerald-100', 'text-emerald-900', 'border', 'border-emerald-200');
@@ -48,6 +50,15 @@
                 link.classList.add('bg-amber-100', 'text-amber-950', 'border-2', 'border-amber-400');
             }
         }
+        if (bootstrap.pdvDeposito) {
+            atualizarBadgeDeposito(bootstrap.pdvDeposito);
+        } else {
+            var badge = document.getElementById('pdv-deposito-badge');
+            if (badge) {
+                if (aberto) badge.classList.add('hidden');
+                else badge.classList.remove('hidden');
+            }
+        }
     }
 
     function atualizarBadgeDeposito(depBoot) {
@@ -55,6 +66,12 @@
         bootstrap.pdvDeposito = depBoot;
         var badge = document.getElementById('pdv-deposito-badge');
         if (!badge) return;
+        // Com caixa aberto o botão da direita já diz a loja — badge TRAVADO fica redundante.
+        if (caixaAbertoParaVenda() || depBoot.caixaTravado) {
+            badge.classList.add('hidden');
+            return;
+        }
+        badge.classList.remove('hidden');
         var label = depBoot.estoqueAtivoLabel || ('Estoque: ' + (depBoot.depositoLabel || 'Centro'));
         badge.textContent = label;
         var isVila = String(depBoot.deposito || '') === 'vila';
@@ -79,6 +96,12 @@
                 var data = JSON.parse(el.textContent || '{}');
                 if (data && data.caixa) {
                     bootstrap.caixa = data.caixa;
+                }
+                // Após abrir Gaveta, a sessão já marca host MP — sem isto o PDV fica
+                // com mpPointEnabled=false até F5 (mensagem «Abra o Caixa Gaveta…»).
+                if (data && data.pagamentoUi && typeof data.pagamentoUi === 'object') {
+                    bootstrap.pagamentoUi = data.pagamentoUi;
+                    pagamentoUi = data.pagamentoUi;
                 }
                 if (data && data.pdvDeposito) {
                     atualizarBadgeDeposito(data.pdvDeposito);

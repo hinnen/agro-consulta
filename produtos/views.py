@@ -103,6 +103,7 @@ from .caixa_util import (
     fiado_conferencia_operacional,
     validar_conferencia_fiado_caixa,
     usuario_label_sessao_caixa,
+    operador_label_request,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
     parse_valor_moeda_br,
@@ -9213,6 +9214,13 @@ def dashboard_interno_preview_view(request):
     )
 
 
+@login_required(login_url="/admin/login/")
+@require_GET
+def dispenser_a6_studio_view(request):
+    """Studio visual do cartaz A6 de dispenser (ainda sem cadastro/preço do sistema)."""
+    return render(request, "produtos/dispenser_a6_studio.html")
+
+
 @never_cache
 @_dashboard_interno_preview_required
 @require_GET
@@ -10768,17 +10776,14 @@ def caixa_fechar(request):
         pass
     cards = montar_cards_caixas_abertos(sessoes)
 
-    entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
+    ids_lote = [s.pk for s in sessoes_lote]
+    entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
+        sessao_ids=ids_lote,
+        loja=dep_fechar,
+    )
     fechar_bloqueado = len(entregas_pendentes_fechar) > 0
 
     if request.method == "POST":
-        if fechar_bloqueado:
-            messages.error(
-                request,
-                "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
-                "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
-            )
-            return _redirect_caixa(request, "caixa_fechar")
         acao = (request.POST.get("acao") or "fechar_todos").strip()
         if acao == "fechar_um":
             try:
@@ -10788,6 +10793,17 @@ def caixa_fechar(request):
             sessao = next((s for s in sessoes if s.pk == sid), None)
             if not sessao:
                 messages.error(request, "Caixa não encontrado ou já fechado.")
+                return _redirect_caixa(request, "caixa_fechar")
+            bloq_um = listar_entregas_bloqueando_fechamento_caixa(
+                sessao_ids=[sessao.pk],
+                loja=deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None)),
+            )
+            if bloq_um:
+                messages.error(
+                    request,
+                    "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
+                    "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
+                )
                 return _redirect_caixa(request, "caixa_fechar")
             pin_f = (request.POST.get("pin") or "").strip()
             ok_pin, err_pin = exigir_pin_gerir_caixa(request, sessao, pin_f)
@@ -10810,6 +10826,13 @@ def caixa_fechar(request):
             _limpar_sessao_browser(request, sessao.pk)
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
+            return _redirect_caixa(request, "caixa_fechar")
+        if fechar_bloqueado:
+            messages.error(
+                request,
+                "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
+                "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
+            )
             return _redirect_caixa(request, "caixa_fechar")
         # Fechar todos — só a loja deste aparelho (Centro ou Vila Elias)
         if not sessoes_lote:
@@ -10888,11 +10911,11 @@ def caixa_fechar(request):
         rasc = {}
     raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
     cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
-    fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes)
-    fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes)
+    fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes_lote)
+    fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes_lote)
     fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
-        listar_fiado_vendas_conferencia_caixa(sessoes_lote),
-        listar_fiado_baixas_conferencia_caixa(sessoes_lote),
+        fiado_vendas_wizard,
+        fiado_baixas_wizard,
     )
 
     return render(
@@ -13481,6 +13504,8 @@ def api_entrada_nota_estoque_agro(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
+    # Quem no kardex: PIN / nome — não e-mail cru (evita «geraldo hinnen» fantasma)
+    usuario_op = operador_label_request(request) or usuario
 
     client, db = obter_conexao_mongo()
     if db is None or client is None:
@@ -13576,7 +13601,7 @@ def api_entrada_nota_estoque_agro(request):
         client_m=client,
         linhas=linhas,
         deposito=deposito,
-        usuario_label=usuario,
+        usuario_label=usuario_op,
         cabecalho=cab,
         usuario_django=request.user if request.user.is_authenticated else None,
         empresa_faturada_id=empresa_fat_id,
@@ -14134,6 +14159,7 @@ def _entrada_nfe_spark_row_eh_esta_nota(
     except (TypeError, ValueError):
         return False
     return abs(pf - float(custo_nf)) < 0.02
+
 
 def _entrada_nfe_custo_spark_quatro_pontos(
     *,
@@ -20103,12 +20129,16 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     if pid.lower() in ("__novo__", "novo", "_novo"):
+        # Mesma regra da loja (agro_pg): sugerir próximo código sistema + GM
+        err_al, c_sys, c_gm = _mongo_alocar_codigo_sequencial_novo_agro(db, client.col_p)
+        if err_al is not None:
+            return err_al
         stub = {
             "Id": "__novo__",
             "Nome": "",
             "Marca": "",
-            "Codigo": "",
-            "CodigoNFe": "",
+            "Codigo": str(c_sys or "").strip(),
+            "CodigoNFe": str(c_gm or "").strip(),
             "CodigoBarras": "",
             "ValorVenda": 0,
             "PrecoCusto": 0,
@@ -21500,7 +21530,7 @@ def api_pdv_deposito(request):
             {
                 "ok": False,
                 "erro": (
-                    f"Loja travada pelo caixa #{trava.get('sessaoPk')}. "
+                    f"Loja travada ({trava.get('depositoLabel') or 'caixa aberto'}). "
                     "Feche o caixa para trocar Centro × Vila."
                 ),
                 "caixaTravado": True,
@@ -26557,7 +26587,11 @@ def api_entrega_registrar(request):
         "itens_json": itens,
         "total_texto": (body.get("total_texto") or "")[:48].strip(),
         "retomar_codigo": (body.get("retomar_codigo") or "")[:40].strip(),
-        "operador": (body.get("operador") or "")[:120].strip(),
+        "operador": (
+            (body.get("operador") or "").strip()
+            or operador_label_request(request)
+            or ""
+        )[:120].strip(),
         "hora_prevista": _parse_hhmm_entrega(body.get("hora_prevista")),
         "forma_pagamento": (body.get("forma_pagamento") or "")[:40].strip(),
         "troco_precisa": _parse_troco_precisa_val(body.get("troco_precisa")),

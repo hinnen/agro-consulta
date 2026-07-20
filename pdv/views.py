@@ -189,6 +189,9 @@ def pdv_home(request):
                 "aberto": bool(caixa_aberto),
                 "id": caixa_aberto.pk if caixa_aberto else None,
                 "pontoOperacao": ponto_nav,
+                "rotulo": rotulo_caixa_browser(request, caixa_aberto)
+                if caixa_aberto
+                else "Caixa fechado",
             },
             "bairrosEntrega": {
                 "urbanos": list(BAIRROS_JACUPI_URBANOS),

@@ -635,8 +635,9 @@ def obter_sessao_caixa_aberta_request(request):
 
 def adotar_sessao_caixa_unica_aberta(request):
     """
-    Quando há um único caixa aberto (ou um do usuário logado), associa ao navegador.
-    Respeita o depósito do aparelho (Centro × Vila) e o ponto do navegador (teste/notebook).
+    Quando há um único caixa aberto da loja deste aparelho, associa ao navegador.
+    A loja (Centro × Vila) vem do depósito do BI — nunca adota caixa da outra loja
+    mesmo se o cookie do ponto ainda disser «gaveta» no PC da Vila.
     """
     from produtos.models import SessaoCaixa
 
@@ -648,25 +649,9 @@ def adotar_sessao_caixa_unica_aberta(request):
     qs = SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("-aberto_em")
     if ponto_nav == PONTO_CAIXA_TESTE:
         qs = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
-    elif ponto_nav == PONTO_CAIXA_NOTEBOOK:
-        pai = ponto_pai_de_deposito(dep)
-        qs = qs.filter(ponto_caixa=pai)
-    elif ponto_nav == PONTO_CAIXA_VILA:
-        qs = qs.filter(ponto_caixa=PONTO_CAIXA_VILA)
-    elif ponto_nav == PONTO_CAIXA_GAVETA:
-        qs = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
     else:
-        pai = ponto_pai_de_deposito(dep)
-        qs_op = qs.filter(ponto_caixa=pai)
-        qs_te = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
-        if qs_op.count() == 1 and qs_te.count() == 0:
-            qs = qs_op
-        elif qs_te.count() == 1 and qs_op.count() == 0:
-            qs = qs_te
-        elif qs_op.count() == 1:
-            qs = qs_op
-        elif qs.count() != 1:
-            return None
+        # Depósito do aparelho manda: Vila só vê vila; Centro só vê gaveta.
+        qs = qs.filter(ponto_caixa=ponto_pai_de_deposito(dep))
     usuario = getattr(request, "user", None)
     if usuario is not None and getattr(usuario, "is_authenticated", False):
         su = qs.filter(usuario=usuario).first()
@@ -769,6 +754,22 @@ def rotulo_usuario_django(user) -> str:
         return email.split("@", 1)[0].strip()[:150]
     pk = getattr(user, "pk", None)
     return str(pk)[:150] if pk is not None else ""
+
+
+def operador_label_request(request) -> str:
+    """
+    Quem está operando agora: PIN do caixa gerido, senão nome do login.
+    Não usa e-mail cru (evita «geraldo.hinnen@…» virar rótulo de Quem).
+    """
+    if request is None:
+        return ""
+    try:
+        gerido = (request.session.get("pdv_caixa_gerido_operador") or "").strip()
+    except Exception:
+        gerido = ""
+    if gerido:
+        return gerido[:120]
+    return rotulo_usuario_django(getattr(request, "user", None))[:120]
 
 
 def normalizar_rotulo_operador_exibicao(raw: str) -> str:
@@ -1165,6 +1166,18 @@ def limpar_ponto_operacao_browser(request) -> None:
     limpar_navegador_host_mp_point(request)
 
 
+def rotulo_caixa_loja_fixo(ponto: str | None) -> str:
+    """Nome fixo da loja no PDV — sem número do turno (muda todo dia)."""
+    p = normalizar_ponto_caixa(ponto)
+    if p == PONTO_CAIXA_VILA:
+        return "Caixa Vila Elias"
+    if p == PONTO_CAIXA_TESTE:
+        return "Caixa Teste"
+    if p == PONTO_CAIXA_NOTEBOOK:
+        return "Caixa Notebook"
+    return "Caixa Centro"
+
+
 def rotulo_caixa_browser(request, sessao=None) -> str:
     from produtos.models import SessaoCaixa
 
@@ -1174,16 +1187,8 @@ def rotulo_caixa_browser(request, sessao=None) -> str:
         return "Caixa fechado"
     ponto_nav = ponto_operacao_browser(request)
     if ponto_nav == PONTO_CAIXA_NOTEBOOK:
-        pai = sessao
-        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa not in PONTOS_CAIXA_PAI:
-            pai = obter_caixa_pai_aberto(deposito_caixa_browser(request)) or sessao
-        elif isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa in PONTOS_CAIXA_PAI:
-            pai = sessao
-        pk = getattr(pai, "pk", sessao.pk)
-        rot_pai = rotulo_ponto_caixa(getattr(pai, "ponto_caixa", PONTO_CAIXA_GAVETA))
-        return f"Caixa Notebook · {rot_pai} #{pk}"
-    rotulo = rotulo_ponto_caixa(getattr(sessao, "ponto_caixa", None) or ponto_nav)
-    return f"{rotulo} #{sessao.pk}"
+        return "Caixa Notebook"
+    return rotulo_caixa_loja_fixo(getattr(sessao, "ponto_caixa", None) or ponto_nav)
 
 
 def resolver_sessao_caixa_operacao(
