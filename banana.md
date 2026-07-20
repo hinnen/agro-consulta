@@ -1163,20 +1163,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja** · teste **v10.97**
+**Versão app (VERSION):** **loja** · teste **v10.98**
 
-### WIP — Dispenser A6 (visual) **v10.97** (20/07/2026)
+### WIP — Dispenser A6 (visual) **v10.98** (20/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Decisão** | Acertar **template visual** primeiro; **depois** ligar no sistema |
-| **URL teste** | `/interno/dispenser-a6/` (login) |
-| **v10.97** | Layout alinhado à arte **foto exemplo granel** (Robustus): cabeçalho curva · pet · sabores · benefícios · bolha proteína |
-| **v10.96** | Sem preço · bolha = % proteína · sem rodapé loja |
-| **Painel** | categoria/cor · marca · sabores · proteína % · imprimir |
-| **Demo** | `demo-pet.png` + `demo-ingredientes.png` (recortes do exemplo) |
-| **Você** | Ctrl+F5 · comparar com a arte · dizer o que ainda falta |
-| **Status** | ⏳ validar visual com Renan |
+| **Decisão** | Visual primeiro; sistema depois |
+| **URL** | `/interno/dispenser-a6/` |
+| **v10.98** | Biblioteca **7 pets** + **5 ingredientes** (galeria clicável) · fontes maiores · sem faixa benefícios · fotos limpas (não recorte da arte) |
+| **Painel** | categoria · marca · sabores · proteína · galerias · imprimir |
+| **Você** | Ctrl+F5 · escolher pet/ingrediente · dizer o que ainda falta |
+| **Status** | ⏳ validar com Renan |
 
 ### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.93**)
 
