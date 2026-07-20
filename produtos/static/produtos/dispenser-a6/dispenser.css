@@ -641,8 +641,8 @@ html, body {
 
 .dsp-ing-handle {
   position: absolute;
-  right: 2mm;
-  bottom: 2mm;
+  left: 2mm;
+  top: 2mm;
   width: 4.2mm;
   height: 4.2mm;
   border-radius: 50%;
@@ -672,51 +672,46 @@ html, body {
 }
 
 .dsp-protein {
-  width: 27mm;
-  height: 27mm;
+  width: 23mm;
+  height: 23mm;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--dsp-protein) 68%, #fff), var(--dsp-protein));
   color: #fff;
   display: grid;
   place-content: center;
   text-align: center;
-  border: 1.4mm solid #fff;
+  border: 1.2mm solid #fff;
   box-shadow:
-    0 0 0 0.55mm var(--dsp-cat-deep),
-    0 2.2mm 4mm rgba(0, 0, 0, 0.28);
-  line-height: 1.05;
+    0 0 0 0.5mm var(--dsp-cat-deep),
+    0 2mm 3.5mm rgba(0, 0, 0, 0.26);
+  line-height: 1;
 }
 
 .dsp-protein .dsp-protein-label {
-  font-size: 2.05mm;
+  font-size: 1.85mm;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  max-width: 22mm;
+  max-width: 19mm;
   margin: 0 auto;
 }
 
 .dsp-protein .dsp-protein-main {
-  font-size: 7.4mm;
+  font-size: 9.2mm;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  margin: 0.35mm 0;
-}
-
-.dsp-protein .dsp-protein-stars {
-  font-size: 2.4mm;
-  letter-spacing: 0.85mm;
+  letter-spacing: -0.04em;
+  margin: 0.15mm 0 0;
+  line-height: 0.95;
 }
 
 .dsp-protein.is-empty {
   background: #f8fafc;
-  border: 1.4mm dashed #94a3b8;
+  border: 1.2mm dashed #94a3b8;
   color: #64748b;
   box-shadow: none;
 }
 
-.dsp-protein.is-empty .dsp-protein-label,
-.dsp-protein.is-empty .dsp-protein-stars { display: none; }
+.dsp-protein.is-empty .dsp-protein-label { display: none; }
 
 .dsp-flavor-list {
   list-style: none;

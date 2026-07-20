@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Ingredientes com **arrastar / zoom** (+/− / alça / scroll) como o pet |
-| **Você** | Ctrl+F5 · encaixar foto dos ingredientes |
-| **Status** | ⏳ validar fit ingredientes |
+| **Agora** | Balão proteína **−15%** · sem estrelas · % maior · alça ingredientes no canto superior |
+| **Você** | Ctrl+F5 |
+| **Status** | ⏳ validar balão |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
