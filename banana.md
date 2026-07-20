@@ -1187,8 +1187,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **3 Quem** | Overlay entrega + Entrada NF usam **PIN/operador**, não login Django (fim do «geraldo hinnen» fantasma em lançamentos novos) |
 | **Arquivos** | `caixa_util.py` · `entrega_pdv_pendente_util.py` · `views.py` |
 | **Você** | Ctrl+F5 no **teste** · Vila: Fechar caixa sem bloqueio da entrega Centro · overlay sem Geraldo Hinnen se PIN Queila · Entrada NF nova com nome certo |
-| **Status** | ⏳ validar no Render teste · **não** subir loja sem frase+senha |
-| **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem |
+| **Status** | ✅ smoke Renan 20/07: fechar Vila OK com entrega pendente no Centro (2º Chrome + Abrir caixa Vila) · **não** subir loja sem frase+senha |
+| **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem · smoke: 2 navegadores (trava BI) |
 
 
 ### 🚨 Vila Elias — adotava caixa Centro (20/07 abertura oficial)
