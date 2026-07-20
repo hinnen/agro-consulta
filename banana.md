@@ -1163,17 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja** · teste **v11.00**
+**Versão app (VERSION):** **loja** · teste
 
-### WIP — Dispenser A6 (visual) **v11.00** (20/07/2026)
+### WIP — Dispenser A6 (visual) (20/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Decisão** | Visual primeiro; sistema depois |
+| **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
 | **URL** | `/interno/dispenser-a6/` |
-| **v11.00** | Biblioteca **7 pets** + **5 ingredientes** (galeria clicável) · fontes maiores · sem faixa benefícios · fotos limpas (não recorte da arte) |
-| **Painel** | categoria · marca · sabores · proteína · galerias · imprimir |
-| **Você** | Ctrl+F5 · escolher pet/ingrediente · dizer o que ainda falta |
+| **Agora** | Cabeçalho: **sem ícone** · categoria fonte bem maior |
+| **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 
 ### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.93**)

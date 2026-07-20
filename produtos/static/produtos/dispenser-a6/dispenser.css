@@ -204,43 +204,33 @@ html, body {
   z-index: 2;
   background: linear-gradient(135deg, var(--dsp-cat), var(--dsp-cat-deep));
   color: #fff;
-  min-height: 30mm;
-  padding: 5mm 6mm 7mm;
+  min-height: 28mm;
+  padding: 5mm 5mm 8mm;
   display: flex;
   align-items: center;
-  gap: 3.5mm;
   clip-path: ellipse(115% 100% at 50% 0%);
 }
 
-.dsp-header-icon {
-  width: 12mm;
-  height: 12mm;
-  border-radius: 50%;
-  background: #fff;
+.dsp-header-text {
   display: grid;
-  place-items: center;
-  flex-shrink: 0;
+  gap: 0.8mm;
+  width: 100%;
 }
 
-.dsp-header-icon svg {
-  width: 7.5mm;
-  height: 7.5mm;
-  fill: var(--dsp-cat-deep);
-}
-
-.dsp-header-text { display: grid; gap: 0.6mm; }
 .dsp-header-text .dsp-line1 {
-  font-weight: 300;
-  font-size: 4mm;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.dsp-header-text .dsp-line2 {
-  font-weight: 800;
-  font-size: 5.4mm;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: 5.6mm;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.05;
+}
+
+.dsp-header-text .dsp-line2 {
+  font-weight: 800;
+  font-size: 7.2mm;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 1.02;
 }
 
 .dsp-hero {
