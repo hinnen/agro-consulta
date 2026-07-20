@@ -36,8 +36,10 @@
         }
         if (link) {
             if (aberto) {
-                var cid = bootstrap.caixa && bootstrap.caixa.id;
-                link.textContent = cid ? 'Caixa ' + cid : 'Caixa aberto';
+                var rot =
+                    (bootstrap.caixa && bootstrap.caixa.rotulo) ||
+                    (bootstrap.caixa && bootstrap.caixa.id ? 'Caixa aberto' : '');
+                link.textContent = rot || 'Caixa aberto';
                 link.title = 'Painel do caixa — turno aberto';
                 link.classList.remove('bg-amber-100', 'text-amber-950', 'border-amber-400', 'border-2');
                 link.classList.add('bg-emerald-100', 'text-emerald-900', 'border', 'border-emerald-200');

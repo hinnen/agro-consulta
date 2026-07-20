@@ -166,8 +166,8 @@ def trava_loja_por_caixa(request: HttpRequest | None) -> dict | None:
         "depositoLabel": rotulo_deposito(dep),
         "lojaId": loja_id_de_deposito(dep),
         "sessaoPk": int(s.pk),
-        "rotulo": f"Travado pelo caixa #{s.pk}",
-        "estoqueAtivoLabel": f"Travado: {rotulo_deposito(dep)} · caixa #{s.pk}",
+        "rotulo": f"Travado: {rotulo_deposito(dep)}",
+        "estoqueAtivoLabel": f"Travado: {rotulo_deposito(dep)}",
     }
 
 

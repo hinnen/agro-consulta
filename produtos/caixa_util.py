@@ -1166,6 +1166,18 @@ def limpar_ponto_operacao_browser(request) -> None:
     limpar_navegador_host_mp_point(request)
 
 
+def rotulo_caixa_loja_fixo(ponto: str | None) -> str:
+    """Nome fixo da loja no PDV — sem número do turno (muda todo dia)."""
+    p = normalizar_ponto_caixa(ponto)
+    if p == PONTO_CAIXA_VILA:
+        return "Caixa Vila Elias"
+    if p == PONTO_CAIXA_TESTE:
+        return "Caixa Teste"
+    if p == PONTO_CAIXA_NOTEBOOK:
+        return "Caixa Notebook"
+    return "Caixa Centro"
+
+
 def rotulo_caixa_browser(request, sessao=None) -> str:
     from produtos.models import SessaoCaixa
 
@@ -1175,16 +1187,8 @@ def rotulo_caixa_browser(request, sessao=None) -> str:
         return "Caixa fechado"
     ponto_nav = ponto_operacao_browser(request)
     if ponto_nav == PONTO_CAIXA_NOTEBOOK:
-        pai = sessao
-        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa not in PONTOS_CAIXA_PAI:
-            pai = obter_caixa_pai_aberto(deposito_caixa_browser(request)) or sessao
-        elif isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa in PONTOS_CAIXA_PAI:
-            pai = sessao
-        pk = getattr(pai, "pk", sessao.pk)
-        rot_pai = rotulo_ponto_caixa(getattr(pai, "ponto_caixa", PONTO_CAIXA_GAVETA))
-        return f"Caixa Notebook · {rot_pai} #{pk}"
-    rotulo = rotulo_ponto_caixa(getattr(sessao, "ponto_caixa", None) or ponto_nav)
-    return f"{rotulo} #{sessao.pk}"
+        return "Caixa Notebook"
+    return rotulo_caixa_loja_fixo(getattr(sessao, "ponto_caixa", None) or ponto_nav)
 
 
 def resolver_sessao_caixa_operacao(
