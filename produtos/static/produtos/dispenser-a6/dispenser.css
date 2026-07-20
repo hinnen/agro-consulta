@@ -752,13 +752,15 @@ html, body {
 
 .dsp-flavor-name {
   font-weight: 800;
-  font-size: 4.4mm;
+  font-size: 5mm;
   text-transform: none;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1.05;
   color: #1a2330;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .dsp-flavor-desc {
