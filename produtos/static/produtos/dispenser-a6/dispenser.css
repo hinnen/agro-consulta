@@ -773,21 +773,33 @@ html, body {
 }
 
 .dsp-flavor-ico {
-  width: 9mm;
-  height: 9mm;
+  width: 10mm;
+  height: 10mm;
   border-radius: 50%;
-  border: 0.45mm solid var(--dsp-cat-deep);
+  border: 0.5mm solid var(--dsp-cat-deep);
   background: #fff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
   box-shadow: none;
+  overflow: hidden;
+  padding: 1.1mm;
+  box-sizing: border-box;
 }
 
 .dsp-flavor-ico svg {
-  width: 5.6mm;
-  height: 5.6mm;
+  width: 100%;
+  height: 100%;
   overflow: visible;
+}
+
+.dsp-flavor-ico-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
 }
 
 @media (max-width: 980px) {

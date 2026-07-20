@@ -43,8 +43,9 @@
 
       <div class="dsp-field">
         <label for="dspFlavors">Sabores (um por linha)</label>
-        <textarea id="dspFlavors">Frango
-Carne</textarea>
+        <textarea id="dspFlavors">Carne
+Frango
+Batata doce</textarea>
       </div>
 
       <div class="dsp-field">
@@ -737,8 +738,20 @@ Carne</textarea>
       lines.forEach(function (name) {
         var meta = flavorMeta(name);
         var li = document.createElement("li");
+        var icoHtml;
+        if (meta.img) {
+          icoHtml =
+            '<span class="dsp-flavor-ico"><img class="dsp-flavor-ico-img" src="' +
+            STATIC + meta.img +
+            '" alt="" draggable="false" /></span>';
+        } else {
+          icoHtml =
+            '<span class="dsp-flavor-ico"><svg viewBox="0 0 24 24"><use href="#' +
+            meta.ico +
+            '"></use></svg></span>';
+        }
         li.innerHTML =
-          '<span class="dsp-flavor-ico"><svg viewBox="0 0 24 24"><use href="#' + meta.ico + '"></use></svg></span>' +
+          icoHtml +
           '<span class="dsp-flavor-text">' +
             '<strong class="dsp-flavor-name"></strong>' +
             '<span class="dsp-flavor-desc"></span>' +
@@ -860,7 +873,7 @@ Carne</textarea>
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
       brandEl.value = "Robustus";
-      flavorsEl.value = "Frango\nCarne";
+      flavorsEl.value = "Carne\nFrango\nBatata doce";
       proteinEl.value = "32";
       petId = "chihuahua";
       logoId = "";

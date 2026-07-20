@@ -11,9 +11,9 @@ window.DspFlavorLib = (function () {
   }
 
   var META = {
-    frango: { ico: "ico-frango", desc: "Proteína leve e de fácil digestão" },
-    carne: { ico: "ico-carne", desc: "Fonte de proteína de alta qualidade" },
-    "carne bovina": { ico: "ico-carne", desc: "Fonte de proteína de alta qualidade" },
+    frango: { ico: "ico-frango", img: "icons/frango.png", desc: "Proteína leve e de fácil digestão" },
+    carne: { ico: "ico-carne", img: "icons/carne.png", desc: "Fonte de proteína de alta qualidade" },
+    "carne bovina": { ico: "ico-carne", img: "icons/carne.png", desc: "Fonte de proteína de alta qualidade" },
     cordeiro: { ico: "ico-cordeiro", desc: "Proteína nobre e sabor marcante" },
     ovelha: { ico: "ico-cordeiro", desc: "Proteína nobre e sabor marcante" },
     salmao: { ico: "ico-salmao", desc: "Rico em ômega-3 e sabor suave" },
@@ -29,7 +29,7 @@ window.DspFlavorLib = (function () {
     "arroz integral": { ico: "ico-arroz", desc: "Carboidrato com fibras" },
     "arroz branco": { ico: "ico-arroz", desc: "Energia de fácil absorção" },
     arroz: { ico: "ico-arroz", desc: "Energia equilibrada" },
-    "batata doce": { ico: "ico-batata", desc: "Carboidrato de qualidade e energia equilibrada" },
+    "batata doce": { ico: "ico-batata", img: "icons/batata.png", desc: "Carboidrato de qualidade e energia equilibrada" },
     cenoura: { ico: "ico-cenoura", desc: "Beta-caroteno e fibras" },
     abobora: { ico: "ico-abobora", desc: "Fibras e vitaminas naturais" },
     ervilha: { ico: "ico-ervilha", desc: "Proteína vegetal e fibras" },
@@ -54,18 +54,28 @@ window.DspFlavorLib = (function () {
     var key = norm(name);
     var hit = META[key];
     if (hit) {
-      return { title: String(name || "").trim(), desc: hit.desc, ico: hit.ico };
+      return {
+        title: String(name || "").trim(),
+        desc: hit.desc,
+        ico: hit.ico,
+        img: hit.img || ""
+      };
     }
-    // tenta 1ª palavra (ex.: "Carne bovina" já coberto; "Batata D..." não)
     var first = key.split(" ")[0];
     hit = META[first];
     if (hit) {
-      return { title: String(name || "").trim(), desc: hit.desc, ico: hit.ico };
+      return {
+        title: String(name || "").trim(),
+        desc: hit.desc,
+        ico: hit.ico,
+        img: hit.img || ""
+      };
     }
     return {
       title: String(name || "").trim(),
       desc: "Ingrediente selecionado",
-      ico: "ico-generico"
+      ico: "ico-generico",
+      img: ""
     };
   }
 

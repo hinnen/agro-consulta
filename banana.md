@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Fix UTF-8 no include dos ícones (erro Proteínas) |
-| **Você** | Recarregar `/interno/dispenser-a6/` |
-| **Status** | ⏳ validar após fix encoding |
+| **Agora** | Ícones **redesenhados** (traço fino = exemplo) · lista sem barra lateral · título+desc |
+| **Você** | Ctrl+F5 · conferir Carne / Frango / Batata doce |
+| **Status** | ⏳ validar ícones novos |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
