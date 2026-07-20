@@ -10778,7 +10778,8 @@ def caixa_fechar(request):
 
     ids_lote = [s.pk for s in sessoes_lote]
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
-        sessao_ids=ids_lote
+        sessao_ids=ids_lote,
+        loja=dep_fechar,
     )
     fechar_bloqueado = len(entregas_pendentes_fechar) > 0
 
@@ -10793,7 +10794,10 @@ def caixa_fechar(request):
             if not sessao:
                 messages.error(request, "Caixa não encontrado ou já fechado.")
                 return _redirect_caixa(request, "caixa_fechar")
-            bloq_um = listar_entregas_bloqueando_fechamento_caixa(sessao_ids=[sessao.pk])
+            bloq_um = listar_entregas_bloqueando_fechamento_caixa(
+                sessao_ids=[sessao.pk],
+                loja=deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None)),
+            )
             if bloq_um:
                 messages.error(
                     request,

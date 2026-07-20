@@ -1171,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Cabeçalho: **sem ícone** · categoria fonte bem maior |
+| **Agora** | Categoria **1 linha** · tamanho baseado em «Cão filhote · médias e grandes» |
 | **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 
@@ -1180,11 +1180,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **1 Adotar** | PC Vila **não** puxa mais Gaveta Centro — `adotar` filtra pelo depósito do BI |
-| **2 Fechar** | Entrega SEM DONO do **Centro (#104)** **não** bloqueia fechar **Vila** — só entregas dos caixas do lote |
+| **2 Fechar** | Entrega SEM DONO / catálogo sem Assumir **não** trava · Assumida pela loja **trava essa loja** · caixa #104 Centro não trava Vila |
 | **3 Quem** | Overlay entrega + Entrada NF usam **PIN/operador**, não login Django (fim do «geraldo hinnen» fantasma em lançamentos novos) |
 | **Arquivos** | `caixa_util.py` · `entrega_pdv_pendente_util.py` · `views.py` |
 | **Você** | Ctrl+F5 no **teste** · Vila: Fechar caixa sem bloqueio da entrega Centro · overlay sem Geraldo Hinnen se PIN Queila · Entrada NF nova com nome certo |
-| **Status** | ✅ smoke Renan 20/07: fechar Vila OK com entrega pendente no Centro (2º Chrome + Abrir caixa Vila) · **não** subir loja sem frase+senha |
+| **Status** | ✅ smoke Renan 20/07 fechar Vila · catálogo: SEM DONO livre / Assumir trava loja (ajuste 20/07) · **não** subir loja sem frase+senha |
 | **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem · smoke: 2 navegadores (trava BI) |
 
 

@@ -152,11 +152,14 @@ def listar_entregas_bloqueando_fechamento_caixa(
     *,
     limite: int = 50,
     sessao_ids: list[int] | None = None,
+    loja: str | None = None,
 ) -> list[dict]:
     """
     Pendências que impedem fechar caixa.
-    Se ``sessao_ids`` for passado, só as daqueles turnos (ex.: lote Vila)
-    — entrega do Centro com caixa #104 não bloqueia fechar a Vila.
+    Com ``sessao_ids``: só o lote que está fechando —
+    · entrega com caixa #104 (Centro) não trava a Vila;
+    · catálogo SEM DONO (sem loja) não trava ninguém;
+    · catálogo já Assumido pela loja (sem sessão) trava essa loja.
     """
     if sessao_ids is not None:
         ids: list[int] = []
@@ -167,9 +170,11 @@ def listar_entregas_bloqueando_fechamento_caixa(
                 continue
         if not ids:
             return []
-        qs = queryset_entregas_bloqueando_fechamento_caixa().filter(
-            sessao_caixa_id__in=ids
-        )
+        loja_n = normalizar_loja_entrega(loja)
+        q = Q(sessao_caixa_id__in=ids)
+        if loja_n:
+            q |= Q(sessao_caixa_id__isnull=True, loja_entrega=loja_n)
+        qs = queryset_entregas_bloqueando_fechamento_caixa().filter(q)
         qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by(
             "criado_em"
         )
