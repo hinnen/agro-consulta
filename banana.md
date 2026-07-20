@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Moldura **oval** · sombra forte · invade faixa · **arrastar / zoom** (+/− / alça / scroll) |
-| **Você** | Ctrl+F5 · validar pet ancorado · próximo ajuste |
-| **Status** | ⏳ validar com Renan |
+| **Agora** | Moldura oval OK · **margem direita** (não corta no papel) |
+| **Você** | Ctrl+F5 · conferir oval inteiro na borda direita |
+| **Status** | ⏳ validar margem com Renan |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
