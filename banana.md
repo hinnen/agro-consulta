@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Baixo: **foto | lista | balão** (proteína não cobre sabores) |
-| **Você** | Ctrl+F5 · conferir 3–4 sabores legíveis + balão |
-| **Status** | ⏳ validar baixo com Renan |
+| **Agora** | Baixo criativo: **foto grande + selo proteína na foto** · lista livre à direita · tools fora do papel |
+| **Você** | Ctrl+F5 · dizer se curtiu o selo na foto |
+| **Status** | ⏳ validar composição baixo |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
