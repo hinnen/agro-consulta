@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.54** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.55** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Print = prévia: cores forçadas + borda real (sem depender só de sombra) |
-| **Você** | Ctrl+F5 · Imprimir · margens **Nenhuma** + marcar **Gráficos de segundo plano** |
-| **Status** | ⏳ validar impressão |
+| **Agora** | Abas: Folha · Bicho · Ingredientes · Sabores |
+| **Você** | Ctrl+F5 |
+| **Status** | ok |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
