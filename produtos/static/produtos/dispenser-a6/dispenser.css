@@ -73,10 +73,10 @@ html, body {
 }
 
 .dsp-hint {
-  margin: 0 0 0.55rem;
-  font-size: 0.78rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
   color: var(--dsp-muted);
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .dsp-tabs {
@@ -139,8 +139,8 @@ html, body {
 
 .dsp-field {
   display: grid;
-  gap: 0.28rem;
-  margin-bottom: 0.7rem;
+  gap: 0.2rem;
+  margin-bottom: 0.45rem;
 }
 
 .dsp-field label {
@@ -194,8 +194,8 @@ html, body {
 }
 
 .dsp-gal-label {
-  margin: 0.35rem 0 0.25rem;
-  font-size: 0.68rem;
+  margin: 0.2rem 0 0.2rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -204,21 +204,21 @@ html, body {
 
 .dsp-gal {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.28rem;
-  margin-bottom: 0.4rem;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.2rem;
+  margin-bottom: 0.3rem;
 }
 
 .dsp-gal--ings {
   max-height: none;
   overflow: visible;
   padding-right: 0.1rem;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(8, 1fr);
 }
 
 .dsp-gal--ings .dsp-gal-item img {
   object-fit: contain;
-  padding: 4%;
+  padding: 3%;
   box-sizing: border-box;
 }
 
@@ -256,7 +256,7 @@ html, body {
 }
 
 .dsp-gal--flavor-icos {
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   max-height: none;
   overflow: visible;
 }
@@ -268,58 +268,48 @@ html, body {
 
 .dsp-gal--flavor-icos .dsp-gal-item img {
   object-fit: contain;
-  padding: 0.2rem;
+  padding: 0.12rem;
 }
 
 .dsp-gal--flavor-icos .dsp-gal-cap {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  font-size: 0.48rem;
-  font-weight: 700;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.05rem 0.1rem;
-  line-height: 1.1;
-  color: #334155;
+  display: none; /* thumbs menores: nome no title do botão */
 }
 
 .dsp-gal--logos {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .dsp-gal--logos .dsp-gal-item {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 5 / 3;
   background: #fff;
 }
 
 .dsp-gal--logos .dsp-gal-item img {
   object-fit: contain;
-  padding: 0.15rem;
+  padding: 0.1rem;
 }
 
 .dsp-gal-item.is-text {
   display: grid;
   place-items: center;
-  font-size: 0.68rem;
+  font-size: 0.55rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #334155;
-  line-height: 1.15;
+  line-height: 1.1;
   text-align: center;
-  padding: 0.35rem;
+  padding: 0.2rem;
 }
 
 .dsp-gal-item {
-  border: 1.5px solid #e2e8f0;
-  border-radius: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.3rem;
   background:
-    linear-gradient(45deg, #f1f5f9 25%, transparent 25%) -3px 0 / 6px 6px,
-    linear-gradient(-45deg, #f1f5f9 25%, transparent 25%) -3px 0 / 6px 6px,
+    linear-gradient(45deg, #f1f5f9 25%, transparent 25%) -2px 0 / 5px 5px,
+    linear-gradient(-45deg, #f1f5f9 25%, transparent 25%) -2px 0 / 5px 5px,
     #fff;
-  padding: 0.08rem;
+  padding: 0.05rem;
   cursor: pointer;
   aspect-ratio: 1;
   overflow: hidden;
@@ -365,8 +355,8 @@ html, body {
 
 .dsp-gal-add {
   display: grid;
-  gap: 0.25rem;
-  margin: 0 0 0.75rem;
+  gap: 0.2rem;
+  margin: 0 0 0.4rem;
   position: relative;
 }
 
@@ -375,9 +365,9 @@ html, body {
   align-items: center;
   justify-content: center;
   border: 1px dashed #94a3b8;
-  border-radius: 0.55rem;
-  padding: 0.55rem 0.7rem;
-  font-size: 0.86rem;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #0f172a;
   background: #f8fafc;
