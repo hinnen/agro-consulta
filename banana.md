@@ -1171,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Pet colado à **direita** + um pouco **mais alto** (sem invadir faixa) · marca com mais espaço |
+| **Agora** | Upload de **logo PNG** da marca (+ biblioteca neste PC · opção «Só texto») |
 | **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 

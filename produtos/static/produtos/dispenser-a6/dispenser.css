@@ -110,8 +110,31 @@ html, body {
   margin-bottom: 0.55rem;
 }
 
-.dsp-gal--ings {
+.dsp-gal--logos {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.dsp-gal--logos .dsp-gal-item {
+  aspect-ratio: 4 / 3;
+  background: #fff;
+}
+
+.dsp-gal--logos .dsp-gal-item img {
+  object-fit: contain;
+  padding: 0.15rem;
+}
+
+.dsp-gal-item.is-text {
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #334155;
+  line-height: 1.15;
+  text-align: center;
+  padding: 0.35rem;
 }
 
 .dsp-gal-item {
@@ -316,6 +339,10 @@ html, body {
   z-index: 3;
 }
 
+.dsp-brand.is-logo {
+  place-items: center start;
+}
+
 .dsp-brand-name {
   font-weight: 800;
   font-size: 9mm;
@@ -335,6 +362,25 @@ html, body {
   width: 85%;
   height: 0.7mm;
   background: var(--dsp-brand);
+}
+
+.dsp-brand.is-logo .dsp-brand-name {
+  display: none;
+}
+
+.dsp-brand-logo {
+  display: none;
+  max-width: 48mm;
+  max-height: 28mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 0.6mm 1mm rgba(0, 0, 0, 0.08));
+}
+
+.dsp-brand.is-logo .dsp-brand-logo {
+  display: block;
 }
 
 .dsp-pet {

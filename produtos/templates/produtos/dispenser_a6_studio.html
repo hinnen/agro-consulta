@@ -28,8 +28,16 @@
       </div>
 
       <div class="dsp-field">
-        <label for="dspBrand">Marca</label>
+        <label for="dspBrand">Marca (texto, se não usar logo)</label>
         <input id="dspBrand" type="text" value="Robustus" maxlength="40" />
+      </div>
+
+      <div class="dsp-gal-label">Logos da marca</div>
+      <div class="dsp-gal dsp-gal--logos" id="dspLogoGal" role="listbox" aria-label="Escolher logo"></div>
+      <div class="dsp-gal-add no-print">
+        <label class="dsp-gal-add-btn" for="dspLogoFile">+ Adicionar logo PNG</label>
+        <input id="dspLogoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+        <span class="dsp-gal-add-hint">Prefira PNG com fundo transparente. Fica neste computador.</span>
       </div>
 
       <div class="dsp-field">
@@ -73,8 +81,9 @@ Batata doce</textarea>
         </header>
 
         <section class="dsp-hero">
-          <div class="dsp-brand">
+          <div class="dsp-brand" id="dspBrandBox">
             <div class="dsp-brand-name" id="dspBrandOut">Robustus</div>
+            <img class="dsp-brand-logo" id="dspBrandLogo" alt="" hidden />
           </div>
           <div class="dsp-pet">
             <img id="dspPetImg" src="{% static 'produtos/dispenser-a6/lib/pets/chihuahua.png' %}" alt="" />
@@ -138,6 +147,8 @@ Batata doce</textarea>
     ];
     var PET_LS_KEY = "dsp_pets_custom_v1";
     var PET_MAX_CUSTOM = 24;
+    var LOGO_LS_KEY = "dsp_logos_custom_v1";
+    var LOGO_MAX_CUSTOM = 24;
 
     var INGS = [
       { id: "carne-frango-batata", file: "ings/carne-frango-batata.jpg", flavors: "Carne\nFrango\nBatata doce" },
@@ -162,14 +173,18 @@ Batata doce</textarea>
     var line1El = document.getElementById("dspLine1");
     var line2El = document.getElementById("dspLine2");
     var brandOut = document.getElementById("dspBrandOut");
+    var brandLogo = document.getElementById("dspBrandLogo");
+    var brandBox = document.getElementById("dspBrandBox");
     var flavorList = document.getElementById("dspFlavorList");
     var proteinOut = document.getElementById("dspProteinOut");
     var proteinBubble = document.getElementById("dspProteinBubble");
     var petImg = document.getElementById("dspPetImg");
     var ingImg = document.getElementById("dspIngImg");
     var petGal = document.getElementById("dspPetGal");
+    var logoGal = document.getElementById("dspLogoGal");
     var ingGal = document.getElementById("dspIngGal");
     var petId = "chihuahua";
+    var logoId = ""; // vazio = só texto
     var ingId = "carne-frango-batata";
     var LINE2_MAX_MM = 6.8;
     var LINE2_MIN_MM = 3.6;
@@ -186,6 +201,110 @@ Batata doce</textarea>
         line2El.style.fontSize = size + "mm";
         guard += 1;
       }
+    }
+
+    function loadCustomLogos() {
+      try {
+        var raw = localStorage.getItem(LOGO_LS_KEY);
+        var list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCustomLogos(list) {
+      localStorage.setItem(LOGO_LS_KEY, JSON.stringify(list));
+    }
+
+    function resizeImageToDataUrl(img, maxSide, cb) {
+      var w = img.naturalWidth || img.width;
+      var h = img.naturalHeight || img.height;
+      var scale = Math.min(1, maxSide / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * scale));
+      var ch = Math.max(1, Math.round(h * scale));
+      var canvas = document.createElement("canvas");
+      canvas.width = cw;
+      canvas.height = ch;
+      var ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(img, 0, 0, cw, ch);
+      cb(canvas.toDataURL("image/png"));
+    }
+
+    function applyBrandVisual() {
+      var text = String(brandEl.value || "").trim() || "Sua marca";
+      brandOut.textContent = text;
+      var logos = loadCustomLogos();
+      var chosen = null;
+      for (var i = 0; i < logos.length; i++) {
+        if (logos[i].id === logoId) { chosen = logos[i]; break; }
+      }
+      if (chosen && chosen.dataUrl) {
+        brandBox.classList.add("is-logo");
+        brandLogo.hidden = false;
+        brandLogo.src = chosen.dataUrl;
+        brandLogo.alt = chosen.label || text;
+      } else {
+        logoId = "";
+        brandBox.classList.remove("is-logo");
+        brandLogo.hidden = true;
+        brandLogo.removeAttribute("src");
+        brandLogo.alt = "";
+      }
+      syncLogoGal();
+    }
+
+    function buildLogoGal() {
+      var logos = loadCustomLogos();
+      logoGal.innerHTML = "";
+
+      var textBtn = document.createElement("button");
+      textBtn.type = "button";
+      textBtn.className = "dsp-gal-item is-text";
+      textBtn.dataset.id = "";
+      textBtn.title = "Usar só o texto da marca";
+      textBtn.textContent = "Só texto";
+      textBtn.addEventListener("click", function () {
+        logoId = "";
+        applyBrandVisual();
+      });
+      logoGal.appendChild(textBtn);
+
+      logos.forEach(function (it) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dsp-gal-item is-custom";
+        btn.dataset.id = it.id;
+        btn.title = it.label || "Logo";
+        btn.innerHTML = '<img src="' + it.dataUrl + '" alt="" />';
+        btn.addEventListener("click", function () {
+          logoId = it.id;
+          applyBrandVisual();
+        });
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "dsp-gal-del";
+        del.title = "Remover";
+        del.textContent = "×";
+        del.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          var next = loadCustomLogos().filter(function (p) { return p.id !== it.id; });
+          saveCustomLogos(next);
+          if (logoId === it.id) logoId = "";
+          buildLogoGal();
+          applyBrandVisual();
+        });
+        btn.appendChild(del);
+        logoGal.appendChild(btn);
+      });
+      syncLogoGal();
+    }
+
+    function syncLogoGal() {
+      Array.prototype.forEach.call(logoGal.children, function (b) {
+        b.classList.toggle("is-on", (b.dataset.id || "") === (logoId || ""));
+      });
     }
 
     function loadCustomPets() {
@@ -330,6 +449,7 @@ Batata doce</textarea>
       Array.prototype.forEach.call(ingGal.children, function (b) {
         b.classList.toggle("is-on", b.dataset.id === ingId);
       });
+      syncLogoGal();
     }
 
     function renderFlavors() {
@@ -373,14 +493,48 @@ Batata doce</textarea>
         line2El.textContent = "";
         line2El.style.display = "none";
       }
-      brandOut.textContent = String(brandEl.value || "").trim() || "Sua marca";
+      applyBrandVisual();
       renderFlavors();
       renderProtein();
       syncGal();
     }
 
     buildPetGal();
+    buildLogoGal();
     buildGal(ingGal, INGS, "ing");
+
+    document.getElementById("dspLogoFile").addEventListener("change", function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (!file) return;
+      var customs = loadCustomLogos();
+      if (customs.length >= LOGO_MAX_CUSTOM) {
+        window.alert("Limite de " + LOGO_MAX_CUSTOM + " logos neste computador.");
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          resizeImageToDataUrl(img, 900, function (dataUrl) {
+            var item = {
+              id: "logo-" + Date.now(),
+              label: (file.name || "Logo").replace(/\.[^.]+$/, "").slice(0, 24) || "Logo",
+              dataUrl: dataUrl
+            };
+            customs.push(item);
+            saveCustomLogos(customs);
+            logoId = item.id;
+            buildLogoGal();
+            applyBrandVisual();
+          });
+        };
+        img.onerror = function () { window.alert("Não consegui ler esse logo."); };
+        img.src = String(reader.result || "");
+      };
+      reader.onerror = function () { window.alert("Falha ao abrir o arquivo."); };
+      reader.readAsDataURL(file);
+    });
 
     document.getElementById("dspPetFile").addEventListener("change", function (ev) {
       var file = ev.target.files && ev.target.files[0];
@@ -425,9 +579,11 @@ Batata doce</textarea>
       flavorsEl.value = "Carne\nFrango\nBatata doce";
       proteinEl.value = "32";
       petId = "chihuahua";
+      logoId = "";
       ingId = "carne-frango-batata";
       petImg.src = STATIC + "pets/chihuahua.png";
       ingImg.src = STATIC + "ings/carne-frango-batata.jpg";
+      buildLogoGal();
       renderAll();
       syncGal();
     });
