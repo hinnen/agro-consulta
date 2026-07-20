@@ -1165,7 +1165,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **loja** · teste
 
-### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste**)
+### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.92**)
 
 | Item | Detalhe |
 | ---- | ------- |
