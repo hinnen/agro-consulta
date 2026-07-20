@@ -46,25 +46,84 @@ html, body {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
-  padding: 1rem;
+  padding: 0.85rem 1rem 1rem;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   max-height: calc(100dvh - 2rem);
-  overflow: auto;
+  overflow: hidden;
   position: sticky;
   top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 0;
+}
+
+.dsp-panel-top {
+  flex: 0 0 auto;
 }
 
 .dsp-panel h1 {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.15rem;
   font-size: 1.1rem;
   font-weight: 800;
 }
 
 .dsp-hint {
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.55rem;
   font-size: 0.78rem;
   color: var(--dsp-muted);
   line-height: 1.35;
+}
+
+.dsp-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+}
+
+.dsp-tab {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  background: #f8fafc;
+  padding: 0.42rem 0.15rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+  line-height: 1.15;
+}
+
+.dsp-tab:hover {
+  background: #f1f5f9;
+}
+
+.dsp-tab.is-on {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+.dsp-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.dsp-tab-panel {
+  display: none;
+}
+
+.dsp-tab-panel.is-on {
+  display: block;
+}
+
+.dsp-panel .dsp-actions {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .dsp-field {
@@ -140,8 +199,8 @@ html, body {
 }
 
 .dsp-gal--ings {
-  max-height: 18rem;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   padding-right: 0.2rem;
 }
 
@@ -186,8 +245,8 @@ html, body {
 
 .dsp-gal--flavor-icos {
   grid-template-columns: repeat(4, 1fr);
-  max-height: 11rem;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .dsp-gal--flavor-icos .dsp-gal-item {

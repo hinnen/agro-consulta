@@ -5,87 +5,105 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.50" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.50"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.51" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.51"></script>
 </head>
 <body>
   <div class="dsp-studio">
     <aside class="dsp-panel no-print">
-      <h1>Dispenser A6</h1>
-      <p class="dsp-hint">Escolha categoria, pet, ingredientes e imprima. No pet: arraste a foto, +/− ou a bolinha para o tamanho.</p>
-
-      <div class="dsp-field">
-        <label for="dspCat">Categoria (cor)</label>
-        <select id="dspCat">
-          <option value="cao-adulto-pequeno">Cão adulto · raças pequenas</option>
-          <option value="cao-adulto-medio">Cão adulto · médias e grandes</option>
-          <option value="cao-filhote-pequeno">Cão filhote · raças pequenas</option>
-          <option value="cao-filhote-medio">Cão filhote · médias e grandes</option>
-          <option value="cao-senior">Cão sênior</option>
-          <option value="gato-castrado">Gato castrado</option>
-          <option value="gato-adulto">Gato adulto (sem castrar)</option>
-          <option value="gato-filhote">Gato filhote</option>
-        </select>
+      <div class="dsp-panel-top">
+        <h1>Dispenser A6</h1>
+        <p class="dsp-hint">Abas embaixo · na prévia: arraste a foto, +/− ou a bolinha.</p>
+        <div class="dsp-tabs" id="dspTabs" role="tablist" aria-label="Menu do dispenser">
+          <button type="button" class="dsp-tab is-on" role="tab" aria-selected="true" data-tab="folha">Folha</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="sabores">Sabores</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="pet">Pet</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="ings">Ingredientes</button>
+        </div>
       </div>
 
-      <div class="dsp-field">
-        <label for="dspBrand">Marca (texto, se não usar logo)</label>
-        <input id="dspBrand" type="text" value="Robustus" maxlength="40" />
-      </div>
+      <div class="dsp-panel-body">
+        <div class="dsp-tab-panel is-on" id="dspTab-folha" role="tabpanel" data-tab="folha">
+          <div class="dsp-field">
+            <label for="dspCat">Categoria (cor)</label>
+            <select id="dspCat">
+              <option value="cao-adulto-pequeno">Cão adulto · raças pequenas</option>
+              <option value="cao-adulto-medio">Cão adulto · médias e grandes</option>
+              <option value="cao-filhote-pequeno">Cão filhote · raças pequenas</option>
+              <option value="cao-filhote-medio">Cão filhote · médias e grandes</option>
+              <option value="cao-senior">Cão sênior</option>
+              <option value="gato-castrado">Gato castrado</option>
+              <option value="gato-adulto">Gato adulto (sem castrar)</option>
+              <option value="gato-filhote">Gato filhote</option>
+            </select>
+          </div>
 
-      <div class="dsp-gal-label">Logos da marca</div>
-      <div class="dsp-gal dsp-gal--logos" id="dspLogoGal" role="listbox" aria-label="Escolher logo"></div>
-      <div class="dsp-gal-add no-print">
-        <label class="dsp-gal-add-btn" for="dspLogoFile">+ Adicionar logo PNG</label>
-        <input id="dspLogoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-        <span class="dsp-gal-add-hint">Prefira PNG com fundo transparente. Fica neste computador.</span>
-      </div>
+          <div class="dsp-field">
+            <label for="dspBrand">Marca (texto, se não usar logo)</label>
+            <input id="dspBrand" type="text" value="Robustus" maxlength="40" />
+          </div>
 
-      <div class="dsp-gal-label">Sabores na folha (clique no ícone · máx. 5)</div>
-      <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
-      <div class="dsp-gal-add no-print">
-        <label class="dsp-field" style="margin:0 0 0.35rem">
-          <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
-          <select id="dspFlavorIcoTarget"></select>
-        </label>
-        <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
-        <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-        <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
-      </div>
-      <textarea id="dspFlavors" hidden>Carne Bovina
+          <div class="dsp-gal-label">Logos da marca</div>
+          <div class="dsp-gal dsp-gal--logos" id="dspLogoGal" role="listbox" aria-label="Escolher logo"></div>
+          <div class="dsp-gal-add no-print">
+            <label class="dsp-gal-add-btn" for="dspLogoFile">+ Adicionar logo PNG</label>
+            <input id="dspLogoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+            <span class="dsp-gal-add-hint">Prefira PNG com fundo transparente. Fica neste computador.</span>
+          </div>
+
+          <div class="dsp-field">
+            <label for="dspProtein">Proteína (%)</label>
+            <input id="dspProtein" type="text" value="32" maxlength="6" inputmode="decimal" />
+          </div>
+
+          <div class="dsp-field">
+            <label>Posição do balão</label>
+            <div class="dsp-seg" id="dspProteinPosSeg" role="group" aria-label="Posição do balão de proteína">
+              <button type="button" data-pos="foto" class="is-on">Na foto</button>
+              <button type="button" data-pos="borda">Borda</button>
+              <button type="button" data-pos="meio">Meio</button>
+              <button type="button" data-pos="lista">Sob a lista</button>
+            </div>
+            <p class="dsp-gal-add-hint" style="margin:0.3rem 0 0">Pouco sabor → «Sob a lista». Muitos → «Na foto».</p>
+          </div>
+        </div>
+
+        <div class="dsp-tab-panel" id="dspTab-sabores" role="tabpanel" data-tab="sabores" hidden>
+          <div class="dsp-gal-label">Sabores na folha (clique · máx. 5)</div>
+          <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
+          <div class="dsp-gal-add no-print">
+            <label class="dsp-field" style="margin:0 0 0.35rem">
+              <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
+              <select id="dspFlavorIcoTarget"></select>
+            </label>
+            <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
+            <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+            <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
+          </div>
+          <textarea id="dspFlavors" hidden>Carne Bovina
 Frango
 Batata-Doce</textarea>
-
-      <div class="dsp-field">
-        <label for="dspProtein">Proteína (%)</label>
-        <input id="dspProtein" type="text" value="32" maxlength="6" inputmode="decimal" />
-      </div>
-
-      <div class="dsp-field">
-        <label>Posição do balão</label>
-        <div class="dsp-seg" id="dspProteinPosSeg" role="group" aria-label="Posição do balão de proteína">
-          <button type="button" data-pos="foto" class="is-on">Na foto</button>
-          <button type="button" data-pos="borda">Borda</button>
-          <button type="button" data-pos="meio">Meio</button>
-          <button type="button" data-pos="lista">Sob a lista</button>
         </div>
-        <p class="dsp-gal-add-hint" style="margin:0.3rem 0 0">Pouco sabor → «Sob a lista». Muitos → «Na foto».</p>
-      </div>
 
-      <div class="dsp-gal-label">Biblioteca de cães e gatos</div>
-      <div class="dsp-gal" id="dspPetGal" role="listbox" aria-label="Escolher pet"></div>
-      <div class="dsp-gal-add no-print">
-        <label class="dsp-gal-add-btn" for="dspPetFile">+ Adicionar pet</label>
-        <input id="dspPetFile" type="file" accept="image/*" hidden />
-        <span class="dsp-gal-add-hint">Fundo claro some sozinho. Fica neste computador.</span>
-      </div>
+        <div class="dsp-tab-panel" id="dspTab-pet" role="tabpanel" data-tab="pet" hidden>
+          <div class="dsp-gal-label">Biblioteca de cães e gatos</div>
+          <div class="dsp-gal" id="dspPetGal" role="listbox" aria-label="Escolher pet"></div>
+          <div class="dsp-gal-add no-print">
+            <label class="dsp-gal-add-btn" for="dspPetFile">+ Adicionar pet</label>
+            <input id="dspPetFile" type="file" accept="image/*" hidden />
+            <span class="dsp-gal-add-hint">Fundo claro some sozinho. Fica neste computador.</span>
+          </div>
+        </div>
 
-      <div class="dsp-gal-label">Biblioteca de ingredientes</div>
-      <div class="dsp-gal dsp-gal--ings" id="dspIngGal" role="listbox" aria-label="Escolher ingredientes"></div>
-      <div class="dsp-gal-add no-print">
-        <button type="button" class="dsp-gal-add-btn" id="dspIngFileBtn">+ Adicionar foto de ingredientes</button>
-        <input id="dspIngFile" type="file" accept="image/jpeg,image/png,image/webp,image/*" class="dsp-file-input" />
-        <p class="dsp-gal-add-hint" id="dspIngUploadStatus">JPG ou PNG. Fica neste computador.</p>
+        <div class="dsp-tab-panel" id="dspTab-ings" role="tabpanel" data-tab="ings" hidden>
+          <div class="dsp-gal-label">Biblioteca de ingredientes</div>
+          <div class="dsp-gal dsp-gal--ings" id="dspIngGal" role="listbox" aria-label="Escolher ingredientes"></div>
+          <div class="dsp-gal-add no-print">
+            <button type="button" class="dsp-gal-add-btn" id="dspIngFileBtn">+ Adicionar foto de ingredientes</button>
+            <input id="dspIngFile" type="file" accept="image/jpeg,image/png,image/webp,image/*" class="dsp-file-input" />
+            <p class="dsp-gal-add-hint" id="dspIngUploadStatus">JPG ou PNG. Fica neste computador.</p>
+          </div>
+        </div>
       </div>
 
       <div class="dsp-actions">
@@ -1128,6 +1146,42 @@ Batata-Doce</textarea>
       applyProteinPos(loadProteinPos());
     }
 
+    function bindPanelTabs() {
+      var tabs = document.getElementById("dspTabs");
+      if (!tabs) return;
+      var TAB_KEY = "dsp_panel_tab_v1";
+      var allowed = ["folha", "sabores", "pet", "ings"];
+
+      function showTab(id) {
+        if (allowed.indexOf(id) < 0) id = "folha";
+        tabs.querySelectorAll(".dsp-tab").forEach(function (btn) {
+          var on = btn.getAttribute("data-tab") === id;
+          btn.classList.toggle("is-on", on);
+          btn.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        document.querySelectorAll(".dsp-tab-panel").forEach(function (panel) {
+          var on = panel.getAttribute("data-tab") === id;
+          panel.classList.toggle("is-on", on);
+          panel.hidden = !on;
+        });
+        try {
+          localStorage.setItem(TAB_KEY, id);
+        } catch (e) {}
+      }
+
+      tabs.addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".dsp-tab[data-tab]");
+        if (!btn) return;
+        showTab(btn.getAttribute("data-tab"));
+      });
+
+      var saved = "folha";
+      try {
+        saved = localStorage.getItem(TAB_KEY) || "folha";
+      } catch (e2) {}
+      showTab(saved);
+    }
+
     function renderAll() {
       var cat = catEl.value;
       root.setAttribute("data-cat", cat);
@@ -1351,6 +1405,7 @@ Batata-Doce</textarea>
     flavorsEl.addEventListener("input", renderAll);
     proteinEl.addEventListener("input", renderAll);
     bindProteinPos();
+    bindPanelTabs();
     document.getElementById("dspPrint").addEventListener("click", function () { window.print(); });
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
