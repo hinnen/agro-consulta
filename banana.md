@@ -1165,14 +1165,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **loja** · teste
 
+### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **1 Adotar** | PC Vila **não** puxa mais Gaveta Centro — `adotar` filtra pelo depósito do BI |
+| **2 Fechar** | Entrega SEM DONO do **Centro (#104)** **não** bloqueia fechar **Vila** — só entregas dos caixas do lote |
+| **3 Quem** | Overlay entrega + Entrada NF usam **PIN/operador**, não login Django (fim do «geraldo hinnen» fantasma em lançamentos novos) |
+| **Arquivos** | `caixa_util.py` · `entrega_pdv_pendente_util.py` · `views.py` |
+| **Você** | Ctrl+F5 no **teste** · Vila: Fechar caixa sem bloqueio da entrega Centro · overlay sem Geraldo Hinnen se PIN Queila · Entrada NF nova com nome certo |
+| **Status** | ⏳ validar no Render teste · **não** subir loja sem frase+senha |
+| **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem |
+
+
 ### 🚨 Vila Elias — adotava caixa Centro (20/07 abertura oficial)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | PC Vila + estoque Vila ainda mostrava **Gaveta Centro #104**; sumia Abrir caixa |
-| **Causa (provável)** | dotar_sessao_caixa_unica_aberta pega gaveta Centro quando ponto_nav=gaveta; painel chama adotar; /caixa/abrir/ não |
+| **Causa (provável)** | adotar_sessao_caixa_unica_aberta pega gaveta Centro quando ponto_nav=gaveta; painel chama adotar; /caixa/abrir/ não |
 | **Workaround OK** | Renan 20/07: ir em /caixa/abrir/ · abrir **Vila Elias** (#105) · Centro #104 intacto |
-| **Status** | ⏳ fix código pendente (não adotar caixa de outra loja) · **não** subir sem frase+senha |
+| **Status** | ✅ fix no teste (bloco acima) · loja ainda pendente autorização |
 | **Atenção** | Nunca «Fechar caixa» na Vila se o resumo disser **Centro** |
 
 

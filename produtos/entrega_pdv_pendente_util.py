@@ -39,15 +39,17 @@ def filtrar_qs_por_loja(qs, loja: str | None):
 
 
 def _sessao_caixa_label_entrega(ent: PedidoEntrega) -> str:
+    """Caixa #N + operador do PIN/venda — não o login Django que abriu o turno."""
+    op = (getattr(ent, "operador", None) or "").strip()
+    if not op:
+        op = (getattr(ent, "loja_assumida_por", None) or "").strip()
     if ent.sessao_caixa_id:
-        u = ent.sessao_caixa.usuario if ent.sessao_caixa else None
         label = f"Caixa #{ent.sessao_caixa_id}"
-        if u:
-            label += (
-                " — "
-                + ((u.get_full_name() or "").strip() or u.get_username() or "")
-            )
+        if op:
+            label += f" — {op[:40]}"
         return label
+    if op:
+        return op[:40]
     return "Sem caixa vinculado"
 
 
@@ -146,7 +148,37 @@ def listar_entregas_pendentes_pdv(
     return out
 
 
-def listar_entregas_bloqueando_fechamento_caixa(*, limite: int = 50) -> list[dict]:
+def listar_entregas_bloqueando_fechamento_caixa(
+    *,
+    limite: int = 50,
+    sessao_ids: list[int] | None = None,
+) -> list[dict]:
+    """
+    Pendências que impedem fechar caixa.
+    Se ``sessao_ids`` for passado, só as daqueles turnos (ex.: lote Vila)
+    — entrega do Centro com caixa #104 não bloqueia fechar a Vila.
+    """
+    if sessao_ids is not None:
+        ids: list[int] = []
+        for x in sessao_ids:
+            try:
+                ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        if not ids:
+            return []
+        qs = queryset_entregas_bloqueando_fechamento_caixa().filter(
+            sessao_caixa_id__in=ids
+        )
+        qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by(
+            "criado_em"
+        )
+        out = []
+        for ent in qs[:limite]:
+            row = serializar_entrega_pendente_pdv(ent)
+            row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
+            out.append(row)
+        return out
     return listar_entregas_pendentes_pdv(limite=limite, apenas_caixas_abertos=True)
 
 

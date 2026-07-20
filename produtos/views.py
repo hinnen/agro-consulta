@@ -103,6 +103,7 @@ from .caixa_util import (
     fiado_conferencia_operacional,
     validar_conferencia_fiado_caixa,
     usuario_label_sessao_caixa,
+    operador_label_request,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
     parse_valor_moeda_br,
@@ -10768,17 +10769,13 @@ def caixa_fechar(request):
         pass
     cards = montar_cards_caixas_abertos(sessoes)
 
-    entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
+    ids_lote = [s.pk for s in sessoes_lote]
+    entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa(
+        sessao_ids=ids_lote
+    )
     fechar_bloqueado = len(entregas_pendentes_fechar) > 0
 
     if request.method == "POST":
-        if fechar_bloqueado:
-            messages.error(
-                request,
-                "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
-                "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
-            )
-            return _redirect_caixa(request, "caixa_fechar")
         acao = (request.POST.get("acao") or "fechar_todos").strip()
         if acao == "fechar_um":
             try:
@@ -10788,6 +10785,14 @@ def caixa_fechar(request):
             sessao = next((s for s in sessoes if s.pk == sid), None)
             if not sessao:
                 messages.error(request, "Caixa não encontrado ou já fechado.")
+                return _redirect_caixa(request, "caixa_fechar")
+            bloq_um = listar_entregas_bloqueando_fechamento_caixa(sessao_ids=[sessao.pk])
+            if bloq_um:
+                messages.error(
+                    request,
+                    "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
+                    "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
+                )
                 return _redirect_caixa(request, "caixa_fechar")
             pin_f = (request.POST.get("pin") or "").strip()
             ok_pin, err_pin = exigir_pin_gerir_caixa(request, sessao, pin_f)
@@ -10810,6 +10815,13 @@ def caixa_fechar(request):
             _limpar_sessao_browser(request, sessao.pk)
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
+            return _redirect_caixa(request, "caixa_fechar")
+        if fechar_bloqueado:
+            messages.error(
+                request,
+                "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
+                "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
+            )
             return _redirect_caixa(request, "caixa_fechar")
         # Fechar todos — só a loja deste aparelho (Centro ou Vila Elias)
         if not sessoes_lote:
@@ -13481,6 +13493,8 @@ def api_entrada_nota_estoque_agro(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
+    # Quem no kardex: PIN / nome — não e-mail cru (evita «geraldo hinnen» fantasma)
+    usuario_op = operador_label_request(request) or usuario
 
     client, db = obter_conexao_mongo()
     if db is None or client is None:
@@ -13576,7 +13590,7 @@ def api_entrada_nota_estoque_agro(request):
         client_m=client,
         linhas=linhas,
         deposito=deposito,
-        usuario_label=usuario,
+        usuario_label=usuario_op,
         cabecalho=cab,
         usuario_django=request.user if request.user.is_authenticated else None,
         empresa_faturada_id=empresa_fat_id,
@@ -26562,7 +26576,11 @@ def api_entrega_registrar(request):
         "itens_json": itens,
         "total_texto": (body.get("total_texto") or "")[:48].strip(),
         "retomar_codigo": (body.get("retomar_codigo") or "")[:40].strip(),
-        "operador": (body.get("operador") or "")[:120].strip(),
+        "operador": (
+            (body.get("operador") or "").strip()
+            or operador_label_request(request)
+            or ""
+        )[:120].strip(),
         "hora_prevista": _parse_hhmm_entrega(body.get("hora_prevista")),
         "forma_pagamento": (body.get("forma_pagamento") or "")[:40].strip(),
         "troco_precisa": _parse_troco_precisa_val(body.get("troco_precisa")),
