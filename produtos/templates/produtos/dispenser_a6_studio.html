@@ -11,7 +11,7 @@
   <div class="dsp-studio">
     <aside class="dsp-panel no-print">
       <h1>Dispenser A6</h1>
-      <p class="dsp-hint">Escolha categoria, pet, ingredientes e imprima. Depois ligamos no sistema.</p>
+      <p class="dsp-hint">Escolha categoria, pet, ingredientes e imprima. No pet: arraste a foto, +/− ou a bolinha para o tamanho.</p>
 
       <div class="dsp-field">
         <label for="dspCat">Categoria (cor)</label>
@@ -85,9 +85,19 @@ Batata doce</textarea>
             <div class="dsp-brand-name" id="dspBrandOut">Robustus</div>
             <img class="dsp-brand-logo" id="dspBrandLogo" alt="" hidden />
           </div>
-          <div class="dsp-pet">
+          <div class="dsp-pet-wrap" id="dspPetWrap">
             <span class="dsp-pet-ground" aria-hidden="true"></span>
-            <img id="dspPetImg" src="{% static 'produtos/dispenser-a6/lib/pets/chihuahua.png' %}" alt="" />
+            <div class="dsp-pet" id="dspPetFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
+              <div class="dsp-pet-viewport" id="dspPetViewport">
+                <img id="dspPetImg" class="dsp-pet-img" src="{% static 'produtos/dispenser-a6/lib/pets/chihuahua.png' %}" alt="" draggable="false" />
+              </div>
+              <div class="dsp-pet-handle no-print" id="dspPetHandle" title="Arraste para tamanho"></div>
+            </div>
+            <div class="dsp-pet-tools no-print">
+              <button type="button" id="dspPetZoomOut" title="Menor">−</button>
+              <button type="button" id="dspPetZoomIn" title="Maior">+</button>
+              <button type="button" id="dspPetFitReset" title="Resetar">↺</button>
+            </div>
           </div>
         </section>
 
@@ -180,6 +190,8 @@ Batata doce</textarea>
     var proteinOut = document.getElementById("dspProteinOut");
     var proteinBubble = document.getElementById("dspProteinBubble");
     var petImg = document.getElementById("dspPetImg");
+    var petViewport = document.getElementById("dspPetViewport");
+    var petHandle = document.getElementById("dspPetHandle");
     var ingImg = document.getElementById("dspIngImg");
     var petGal = document.getElementById("dspPetGal");
     var logoGal = document.getElementById("dspLogoGal");
@@ -187,6 +199,8 @@ Batata doce</textarea>
     var petId = "chihuahua";
     var logoId = ""; // vazio = só texto
     var ingId = "carne-frango-batata";
+    var PET_FIT_KEY = "dsp_pet_fit_v1";
+    var petFit = { x: 0, y: 0, s: 1.08 };
     var LINE2_MAX_MM = 6.8;
     var LINE2_MIN_MM = 3.6;
 
@@ -330,10 +344,137 @@ Batata doce</textarea>
       return it.dataUrl || (STATIC + it.file);
     }
 
+    function loadPetFits() {
+      try {
+        var raw = localStorage.getItem(PET_FIT_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === "object" ? obj : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function savePetFit() {
+      var all = loadPetFits();
+      all[petId] = { x: petFit.x, y: petFit.y, s: petFit.s };
+      localStorage.setItem(PET_FIT_KEY, JSON.stringify(all));
+    }
+
+    function clampPetFit() {
+      petFit.s = Math.max(0.7, Math.min(2.6, petFit.s));
+      petFit.x = Math.max(-120, Math.min(120, petFit.x));
+      petFit.y = Math.max(-120, Math.min(120, petFit.y));
+    }
+
+    function applyPetFit() {
+      clampPetFit();
+      petImg.style.transform =
+        "translate(calc(-50% + " + petFit.x + "px), calc(-50% + " + petFit.y + "px)) scale(" + petFit.s + ")";
+    }
+
+    function loadFitForPet(id) {
+      var saved = loadPetFits()[id];
+      if (saved && typeof saved === "object") {
+        petFit = {
+          x: Number(saved.x) || 0,
+          y: Number(saved.y) || 0,
+          s: Number(saved.s) || 1.08
+        };
+      } else {
+        petFit = { x: 0, y: 0, s: 1.08 };
+      }
+      applyPetFit();
+    }
+
     function selectPet(it) {
       petId = it.id;
       petImg.src = petSrc(it);
+      loadFitForPet(petId);
       syncGal();
+    }
+
+    function bindPetFitControls() {
+      var dragging = false;
+      var resizing = false;
+      var lastX = 0;
+      var lastY = 0;
+
+      petViewport.addEventListener("pointerdown", function (ev) {
+        if (ev.button !== undefined && ev.button !== 0) return;
+        dragging = true;
+        resizing = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        petViewport.classList.add("is-dragging");
+        petViewport.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+      });
+
+      petHandle.addEventListener("pointerdown", function (ev) {
+        if (ev.button !== undefined && ev.button !== 0) return;
+        resizing = true;
+        dragging = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        petHandle.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+        ev.stopPropagation();
+      });
+
+      function onMove(ev) {
+        if (!dragging && !resizing) return;
+        var dx = ev.clientX - lastX;
+        var dy = ev.clientY - lastY;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        if (dragging) {
+          petFit.x += dx;
+          petFit.y += dy;
+        } else if (resizing) {
+          petFit.s += (dx - dy) * 0.008;
+        }
+        applyPetFit();
+      }
+
+      function onUp(ev) {
+        if (!dragging && !resizing) return;
+        dragging = false;
+        resizing = false;
+        petViewport.classList.remove("is-dragging");
+        try { petViewport.releasePointerCapture(ev.pointerId); } catch (e) {}
+        try { petHandle.releasePointerCapture(ev.pointerId); } catch (e2) {}
+        savePetFit();
+      }
+
+      petViewport.addEventListener("pointermove", onMove);
+      petHandle.addEventListener("pointermove", onMove);
+      petViewport.addEventListener("pointerup", onUp);
+      petViewport.addEventListener("pointercancel", onUp);
+      petHandle.addEventListener("pointerup", onUp);
+      petHandle.addEventListener("pointercancel", onUp);
+
+      petViewport.addEventListener("wheel", function (ev) {
+        ev.preventDefault();
+        petFit.s += (ev.deltaY < 0 ? 0.06 : -0.06);
+        applyPetFit();
+        savePetFit();
+      }, { passive: false });
+
+      document.getElementById("dspPetZoomIn").addEventListener("click", function () {
+        petFit.s += 0.08;
+        applyPetFit();
+        savePetFit();
+      });
+      document.getElementById("dspPetZoomOut").addEventListener("click", function () {
+        petFit.s -= 0.08;
+        applyPetFit();
+        savePetFit();
+      });
+      document.getElementById("dspPetFitReset").addEventListener("click", function () {
+        petFit = { x: 0, y: 0, s: 1.08 };
+        applyPetFit();
+        savePetFit();
+      });
     }
 
     function knockWhiteToDataUrl(img, maxSide, cb) {
@@ -584,11 +725,14 @@ Batata doce</textarea>
       ingId = "carne-frango-batata";
       petImg.src = STATIC + "pets/chihuahua.png";
       ingImg.src = STATIC + "ings/carne-frango-batata.jpg";
+      loadFitForPet(petId);
       buildLogoGal();
       renderAll();
       syncGal();
     });
 
+    bindPetFitControls();
+    loadFitForPet(petId);
     renderAll();
   })();
   </script>

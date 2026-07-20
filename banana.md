@@ -1170,7 +1170,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Pet: **sombra de chão** + invade um pouco a **faixa** da categoria |
+| **Agora** | Moldura **oval** · sombra forte · invade faixa · **arrastar / zoom** (+/− / alça / scroll) |
 | **Você** | Ctrl+F5 · validar pet ancorado · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 

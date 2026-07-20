@@ -325,14 +325,14 @@ html, body {
   z-index: 3;
   display: grid;
   /* Zonas fixas: logo | pet — um não empurra o outro */
-  grid-template-columns: 58mm 42mm;
+  grid-template-columns: 56mm 46mm;
   column-gap: 1.5mm;
-  padding: 0 0.5mm 1mm 2mm;
-  height: 54mm;
-  min-height: 54mm;
-  max-height: 54mm;
-  align-items: stretch;
-  overflow: visible; /* pet pode invadir a faixa */
+  padding: 0 0.5mm 2mm 2mm;
+  height: 52mm;
+  min-height: 52mm;
+  max-height: 52mm;
+  align-items: end;
+  overflow: visible;
 }
 
 .dsp-brand {
@@ -341,8 +341,8 @@ html, body {
   text-align: left;
   width: 100%;
   height: 100%;
-  max-width: 58mm;
-  max-height: 54mm;
+  max-width: 56mm;
+  max-height: 52mm;
   min-width: 0;
   min-height: 0;
   padding: 1mm 0.5mm 0 0;
@@ -396,56 +396,136 @@ html, body {
   display: block;
 }
 
-.dsp-pet {
+.dsp-pet-wrap {
   position: relative;
-  width: 100%;
-  height: 100%;
-  max-width: 42mm;
-  max-height: 58mm;
-  min-width: 0;
-  min-height: 0;
-  margin: -7mm 0 0; /* sobe e invade um pouco a faixa */
-  display: grid;
-  place-items: end end;
+  width: 44mm;
+  height: 50mm;
+  margin-top: -16mm; /* invade a faixa da categoria */
   justify-self: end;
-  align-content: end;
-  background: transparent;
+  z-index: 6;
   overflow: visible;
-  z-index: 4;
-  box-sizing: border-box;
 }
 
 .dsp-pet-ground {
   position: absolute;
-  left: 8%;
-  right: 2%;
-  bottom: 0.8mm;
-  height: 5.5mm;
+  left: 6%;
+  right: 6%;
+  bottom: -1.5mm;
+  height: 9mm;
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
-    rgba(15, 23, 42, 0.28) 0%,
-    rgba(15, 23, 42, 0.12) 42%,
-    transparent 72%
+    rgba(15, 23, 42, 0.45) 0%,
+    rgba(15, 23, 42, 0.22) 38%,
+    rgba(15, 23, 42, 0.06) 62%,
+    transparent 78%
   );
   pointer-events: none;
   z-index: 0;
 }
 
-.dsp-pet img {
+.dsp-pet {
   position: relative;
   z-index: 1;
-  max-width: 100%;
-  max-height: 56mm;
-  width: auto;
+  width: 42mm;
+  height: 48mm;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(160deg, #f3f6f8, #dbe4ee);
+  border: 1.5mm solid #fff;
+  box-shadow:
+    0 0 0 0.85mm var(--dsp-cat-deep),
+    0 2.5mm 5mm rgba(15, 23, 42, 0.32),
+    0 0.8mm 1.5mm rgba(15, 23, 42, 0.18);
+  box-sizing: border-box;
+  touch-action: none;
+}
+
+.dsp-pet-viewport {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dsp-pet-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.dsp-pet-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 145%;
   height: auto;
-  object-fit: contain;
-  object-position: right bottom;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  filter: drop-shadow(0 0.8mm 1.2mm rgba(0, 0, 0, 0.1));
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  filter: none;
+}
+
+.dsp-pet-handle {
+  position: absolute;
+  right: 1.5mm;
+  bottom: 1.5mm;
+  width: 4.2mm;
+  height: 4.2mm;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.55mm solid var(--dsp-cat-deep);
+  box-shadow: 0 0.6mm 1.2mm rgba(0, 0, 0, 0.25);
+  cursor: nwse-resize;
+  z-index: 3;
+  touch-action: none;
+}
+
+.dsp-pet-handle::after {
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border-right: 0.45mm solid var(--dsp-cat-deep);
+  border-bottom: 0.45mm solid var(--dsp-cat-deep);
+}
+
+.dsp-pet-tools {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 1.5mm;
+}
+
+.dsp-pet-tools button {
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.4rem;
+  background: #fff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #0f172a;
+  padding: 0;
+}
+
+.dsp-pet-tools button:hover {
+  background: #f1f5f9;
+}
+
+@media print {
+  .dsp-pet-tools,
+  .dsp-pet-handle {
+    display: none !important;
+  }
 }
 
 .dsp-sabores {
