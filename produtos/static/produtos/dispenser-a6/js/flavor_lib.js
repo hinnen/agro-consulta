@@ -11,7 +11,7 @@ window.DspFlavorLib = (function () {
   }
 
   var META = {
-    frango: { ico: "ico-frango", desc: "Proteína leve de fácil digestão" },
+    frango: { ico: "ico-frango", desc: "Proteína leve e de fácil digestão" },
     carne: { ico: "ico-carne", desc: "Fonte de proteína de alta qualidade" },
     "carne bovina": { ico: "ico-carne", desc: "Fonte de proteína de alta qualidade" },
     cordeiro: { ico: "ico-cordeiro", desc: "Proteína nobre e sabor marcante" },
@@ -29,7 +29,7 @@ window.DspFlavorLib = (function () {
     "arroz integral": { ico: "ico-arroz", desc: "Carboidrato com fibras" },
     "arroz branco": { ico: "ico-arroz", desc: "Energia de fácil absorção" },
     arroz: { ico: "ico-arroz", desc: "Energia equilibrada" },
-    "batata doce": { ico: "ico-batata", desc: "Carboidrato e energia equilibrada" },
+    "batata doce": { ico: "ico-batata", desc: "Carboidrato de qualidade e energia equilibrada" },
     cenoura: { ico: "ico-cenoura", desc: "Beta-caroteno e fibras" },
     abobora: { ico: "ico-abobora", desc: "Fibras e vitaminas naturais" },
     ervilha: { ico: "ico-ervilha", desc: "Proteína vegetal e fibras" },
