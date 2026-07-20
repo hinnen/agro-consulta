@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Ícones **redesenhados** (traço fino = exemplo) · lista sem barra lateral · título+desc |
-| **Você** | Ctrl+F5 · conferir Carne / Frango / Batata doce |
-| **Status** | ⏳ validar ícones novos |
+| **Agora** | Ícones Carne/Frango/Batata = **PNG no padrão do exemplo** (SVG antigo descartado nesses 3) |
+| **Você** | Ctrl+F5 · conferir os 3 ícones |
+| **Status** | ⏳ validar ícones PNG |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
