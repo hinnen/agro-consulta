@@ -1165,6 +1165,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.85**
 
+### WIP — Dispenser A6 (visual)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **URL** | `/interno/dispenser-a6/` |
+| **Agora** | Pet: **sombra de chão** + invade um pouco a **faixa** da categoria |
+| **Você** | Ctrl+F5 · validar pet ancorado · próximo ajuste |
+| **Status** | ⏳ validar com Renan |
+
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
 | Item | Detalhe |
