@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.48** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.50** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Ingredientes: sem cortar laterais (contain) + zoom − até ~35% |
-| **Você** | Ctrl+F5 · ↺ em Ingredientes · − deve mostrar a foto inteira |
-| **Status** | ⏳ validar zoom / corte |
+| **Agora** | Fundo das fotos da lib estendido ao retângulo; moldura acompanha cor da foto |
+| **Você** | Ctrl+F5 · ↺ ingredientes · moldura deve preencher sem faixa branca |
+| **Status** | ⏳ validar fundo |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

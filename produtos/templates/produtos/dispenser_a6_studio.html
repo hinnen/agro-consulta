@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.49" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.49"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.50" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.50"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -127,7 +127,7 @@ Batata-Doce</textarea>
             <div class="dsp-ing-stage">
               <div class="dsp-ing-photo" id="dspIngFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
                 <div class="dsp-ing-viewport" id="dspIngViewport">
-                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.jpg' %}" alt="" draggable="false" />
+                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.jpg' %}?v=11.50" alt="" draggable="false" />
                 </div>
                 <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
               </div>
@@ -164,6 +164,7 @@ Batata-Doce</textarea>
   <script>
   (function () {
     var STATIC = "{% static 'produtos/dispenser-a6/lib/' %}";
+    var ING_ASSET_V = "11.50"; /* força reload após pad do fundo */
 
     var CAT_LABELS = {
       "cao-adulto-pequeno": ["Cão adulto", "Raças pequenas"],
@@ -275,28 +276,88 @@ Batata-Doce</textarea>
       var scale = Math.min(1, maxSide / Math.max(w, h));
       var cw = Math.max(1, Math.round(w * scale));
       var ch = Math.max(1, Math.round(h * scale));
+      var target = opts.portraitRatio; /* ex.: 40/58 para moldura ingredientes */
+      var outW = cw;
+      var outH = ch;
+      var ox = 0;
+      var oy = 0;
+      var bg = "#ffffff";
+      if (target && target > 0) {
+        var aspect = cw / ch;
+        if (aspect > target) {
+          outW = cw;
+          outH = Math.max(1, Math.round(cw / target));
+          oy = Math.round((outH - ch) / 2);
+        } else if (aspect < target) {
+          outH = ch;
+          outW = Math.max(1, Math.round(ch * target));
+          ox = Math.round((outW - cw) / 2);
+        }
+        try {
+          var tmp = document.createElement("canvas");
+          tmp.width = Math.min(cw, 8);
+          tmp.height = Math.min(ch, 8);
+          var tctx = tmp.getContext("2d");
+          if (tctx) {
+            tctx.drawImage(img, 0, 0, cw, ch, 0, 0, tmp.width, tmp.height);
+            var d = tctx.getImageData(0, 0, 1, 1).data;
+            bg = "rgb(" + d[0] + "," + d[1] + "," + d[2] + ")";
+          }
+        } catch (eBg) {}
+      }
       var canvas = document.createElement("canvas");
-      canvas.width = cw;
-      canvas.height = ch;
+      canvas.width = outW;
+      canvas.height = outH;
       var ctx = canvas.getContext("2d");
       if (!ctx) {
         cb("");
         return;
       }
       // JPEG precisa de fundo (não tem transparência)
-      if ((opts.type || "image/png") !== "image/png") {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, cw, ch);
+      if ((opts.type || "image/png") !== "image/png" || target) {
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, outW, outH);
       } else {
-        ctx.clearRect(0, 0, cw, ch);
+        ctx.clearRect(0, 0, outW, outH);
       }
-      ctx.drawImage(img, 0, 0, cw, ch);
+      ctx.drawImage(img, 0, 0, w, h, ox, oy, cw, ch);
       var type = opts.type || "image/png";
       var quality = opts.quality != null ? opts.quality : 0.85;
       try {
         cb(type === "image/png" ? canvas.toDataURL("image/png") : canvas.toDataURL(type, quality));
       } catch (e) {
         cb("");
+      }
+    }
+
+    function syncIngFrameBg() {
+      if (!ingImg || !ingViewport) return;
+      try {
+        var w = ingImg.naturalWidth;
+        var h = ingImg.naturalHeight;
+        if (!w || !h) return;
+        var c = document.createElement("canvas");
+        c.width = 8;
+        c.height = 8;
+        var ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(ingImg, 0, 0, w, h, 0, 0, 8, 8);
+        var samples = [
+          ctx.getImageData(0, 0, 1, 1).data,
+          ctx.getImageData(7, 0, 1, 1).data,
+          ctx.getImageData(0, 7, 1, 1).data,
+          ctx.getImageData(7, 7, 1, 1).data
+        ];
+        var r = 0, g = 0, b = 0;
+        samples.forEach(function (d) {
+          r += d[0];
+          g += d[1];
+          b += d[2];
+        });
+        ingViewport.style.backgroundColor =
+          "rgb(" + Math.round(r / 4) + "," + Math.round(g / 4) + "," + Math.round(b / 4) + ")";
+      } catch (e) {
+        /* CORS / canvas — mantém cinza do CSS */
       }
     }
 
@@ -587,12 +648,16 @@ Batata-Doce</textarea>
       applyIngFit();
     }
 
+    function ingAssetUrl(file) {
+      return STATIC + file + (file.indexOf("?") >= 0 ? "&" : "?") + "v=" + ING_ASSET_V;
+    }
+
     function selectIng(it) {
       ingId = it.id;
       if (it.dataUrl) {
         ingImg.src = it.dataUrl;
       } else {
-        ingImg.src = STATIC + it.file;
+        ingImg.src = ingAssetUrl(it.file);
       }
       if (it.flavors) {
         flavorsEl.value = it.flavors;
@@ -640,7 +705,7 @@ Batata-Doce</textarea>
         btn.setAttribute("role", "option");
         btn.title = it.label || it.id;
         btn.dataset.id = it.id;
-        var src = it.dataUrl || (STATIC + it.file);
+        var src = it.dataUrl || ingAssetUrl(it.file);
         btn.innerHTML = '<img src="' + src + '" alt="" />';
         btn.addEventListener("click", function () { selectIng(it); });
         if (it.dataUrl) {
@@ -1091,6 +1156,10 @@ Batata-Doce</textarea>
     buildIngGal();
     fillFlavorIcoTarget();
     buildFlavorIcoGal();
+    if (ingImg) {
+      ingImg.addEventListener("load", syncIngFrameBg);
+      if (ingImg.complete) syncIngFrameBg();
+    }
 
     (function bindIngUpload() {
       var ingFileBtn = document.getElementById("dspIngFileBtn");
@@ -1148,7 +1217,7 @@ Batata-Doce</textarea>
               selectIng(item);
               setIngUploadStatus("OK — foto adicionada: " + item.label, "ok");
               window.alert("Foto adicionada na biblioteca.");
-            }, { type: "image/jpeg", quality: 0.78 });
+            }, { type: "image/jpeg", quality: 0.78, portraitRatio: 40 / 58 });
           };
           img.onerror = function () {
             setIngUploadStatus("Não consegui ler essa imagem.", "err");
@@ -1292,7 +1361,7 @@ Batata-Doce</textarea>
       logoId = "";
       ingId = "frango-carne";
       petImg.src = STATIC + "pets/chihuahua.png";
-      ingImg.src = STATIC + "ings/combo-frango-carne.jpg";
+      ingImg.src = ingAssetUrl("ings/combo-frango-carne.jpg");
       loadFitForPet(petId);
       loadFitForIng(ingId);
       buildLogoGal();

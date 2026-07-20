@@ -755,6 +755,7 @@ html, body {
   border-radius: 1.9mm;
   cursor: grab;
   touch-action: none;
+  background: #ececeb; /* preenchido pela cor das bordas da foto */
 }
 
 .dsp-ing-viewport.is-dragging {
