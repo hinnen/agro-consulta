@@ -582,8 +582,8 @@ html, body {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  gap: 3.5mm;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 3mm;
   align-items: stretch;
 }
 
@@ -733,18 +733,21 @@ html, body {
   border-left: 1.1mm solid var(--dsp-cat);
   border-bottom: 0.35mm solid rgba(30, 58, 110, 0.12);
   font-weight: 800;
-  font-size: 3.9mm;
+  font-size: 3.7mm;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: #1f2a3a;
   min-width: 0;
-  line-height: 1.1;
+  line-height: 1.12;
 }
 
 .dsp-flavor-list li span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .dsp-flavor-list li:last-child { border-bottom: 0; }
