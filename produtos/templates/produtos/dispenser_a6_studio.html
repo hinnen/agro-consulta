@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.51" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.51"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.52" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.52"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -145,7 +145,7 @@ Batata-Doce</textarea>
             <div class="dsp-ing-stage">
               <div class="dsp-ing-photo" id="dspIngFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
                 <div class="dsp-ing-viewport" id="dspIngViewport">
-                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.jpg' %}?v=11.50" alt="" draggable="false" />
+                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.png' %}?v=11.52" alt="" draggable="false" />
                 </div>
                 <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
               </div>
@@ -182,7 +182,7 @@ Batata-Doce</textarea>
   <script>
   (function () {
     var STATIC = "{% static 'produtos/dispenser-a6/lib/' %}";
-    var ING_ASSET_V = "11.50"; /* força reload após pad do fundo */
+    var ING_ASSET_V = "11.52"; /* PNG transparente */
 
     var CAT_LABELS = {
       "cao-adulto-pequeno": ["Cão adulto", "Raças pequenas"],
@@ -366,16 +366,22 @@ Batata-Doce</textarea>
           ctx.getImageData(0, 7, 1, 1).data,
           ctx.getImageData(7, 7, 1, 1).data
         ];
-        var r = 0, g = 0, b = 0;
+        var r = 0, g = 0, b = 0, opaque = 0;
         samples.forEach(function (d) {
+          if (d[3] < 40) return; /* canto transparente → ignora */
           r += d[0];
           g += d[1];
           b += d[2];
+          opaque += 1;
         });
+        if (!opaque) {
+          ingViewport.style.backgroundColor = "#ffffff";
+          return;
+        }
         ingViewport.style.backgroundColor =
-          "rgb(" + Math.round(r / 4) + "," + Math.round(g / 4) + "," + Math.round(b / 4) + ")";
+          "rgb(" + Math.round(r / opaque) + "," + Math.round(g / opaque) + "," + Math.round(b / opaque) + ")";
       } catch (e) {
-        /* CORS / canvas — mantém cinza do CSS */
+        ingViewport.style.backgroundColor = "#ffffff";
       }
     }
 
@@ -1416,7 +1422,7 @@ Batata-Doce</textarea>
       logoId = "";
       ingId = "frango-carne";
       petImg.src = STATIC + "pets/chihuahua.png";
-      ingImg.src = ingAssetUrl("ings/combo-frango-carne.jpg");
+      ingImg.src = ingAssetUrl("ings/combo-frango-carne.png");
       loadFitForPet(petId);
       loadFitForIng(ingId);
       buildLogoGal();

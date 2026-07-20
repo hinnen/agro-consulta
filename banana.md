@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.51** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.52** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Menu em abas: Folha · Sabores · Pet · Ingredientes |
-| **Você** | Ctrl+F5 · trocar abas sem scroll longo |
-| **Status** | ⏳ validar abas |
+| **Agora** | Fotos ingredientes da lib em PNG **sem fundo** (transparente) |
+| **Você** | Ctrl+F5 · aba Ingredientes · carne deve flutuar sem cinza |
+| **Status** | ⏳ validar PNG transparente |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
