@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Foto ingredientes menor · sabores com **quebra de linha** (sem abreviação) |
-| **Você** | Ctrl+F5 · conferir «Batata doce» completo |
-| **Status** | ⏳ validar lista sabores |
+| **Agora** | Sem **card** branco atrás da foto dos ingredientes |
+| **Você** | Ctrl+F5 |
+| **Status** | ⏳ validar foto sem card |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
