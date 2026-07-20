@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR" data-cat="cao-adulto-pequeno">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dispenser A6 · GM Agro Mais</title>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}" />
+</head>
+<body>
+  <div class="dsp-studio">
+    <aside class="dsp-panel no-print">
+      <h1>Dispenser A6</h1>
+      <p class="dsp-hint">Só visual por enquanto. Troca aqui e imprime. Depois ligamos no sistema.</p>
+
+      <div class="dsp-field">
+        <label for="dspCat">Categoria (cor)</label>
+        <select id="dspCat">
+          <option value="cao-adulto-pequeno">Cão adulto · raças pequenas</option>
+          <option value="cao-adulto-medio">Cão adulto · médias e grandes</option>
+          <option value="cao-filhote-pequeno">Cão filhote · raças pequenas</option>
+          <option value="cao-filhote-medio">Cão filhote · médias e grandes</option>
+          <option value="cao-senior">Cão sênior</option>
+          <option value="gato-castrado">Gato castrado</option>
+          <option value="gato-adulto">Gato adulto (sem castrar)</option>
+          <option value="gato-filhote">Gato filhote</option>
+        </select>
+      </div>
+
+      <div class="dsp-field">
+        <label for="dspBrand">Marca</label>
+        <input id="dspBrand" type="text" value="Robustus" maxlength="40" />
+      </div>
+
+      <div class="dsp-field">
+        <label for="dspFlavors">Sabores (um por linha)</label>
+        <textarea id="dspFlavors">Carne
+Frango
+Batata doce</textarea>
+      </div>
+
+      <div class="dsp-field">
+        <label for="dspPrice">Preço / oferta</label>
+        <input id="dspPrice" type="text" value="32% OFF" maxlength="24" placeholder="vazio = só espaço" />
+      </div>
+
+      <label class="dsp-check">
+        <input id="dspShowPrice" type="checkbox" checked />
+        Mostrar bolha de preço
+      </label>
+
+      <div class="dsp-actions">
+        <button type="button" id="dspPrint">Imprimir A6</button>
+        <button type="button" class="secondary" id="dspReset">Exemplo</button>
+      </div>
+    </aside>
+
+    <main class="dsp-stage">
+      <div class="dsp-stage-label no-print">Prévia · 105 × 148 mm</div>
+
+      <article class="dsp-a6" id="dspCard" aria-label="Cartaz dispenser A6">
+        <header class="dsp-header">
+          <div class="dsp-header-icon" aria-hidden="true">
+            <svg id="dspSpeciesIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 13c-2.8 0-5.2 2.4-5.2 5.4 0 .9.2 1.7.6 2.4h9.2c.4-.7.6-1.5.6-2.4C17.2 15.4 14.8 13 12 13zm-6.4-3.2c1.3 0 2.4 1.3 2.4 2.8S7 15.4 5.6 15.4 3.2 14.1 3.2 12.6s1.1-2.8 2.4-2.8zm12.8 0c1.3 0 2.4 1.3 2.4 2.8s-1.1 2.8-2.4 2.8-2.4-1.3-2.4-2.8 1.1-2.8 2.4-2.8zM8.2 6.4c1.2 0 2.2 1.2 2.2 2.6S9.4 11.6 8.2 11.6 6 10.4 6 9s1-2.6 2.2-2.6zm7.6 0c1.2 0 2.2 1.2 2.2 2.6s-1 2.6-2.2 2.6S13.6 10.4 13.6 9s1-2.6 2.2-2.6z"/>
+            </svg>
+          </div>
+          <div class="dsp-header-text" id="dspHeaderText">
+            <span>Cão adulto</span>
+            <span>Raças pequenas</span>
+          </div>
+        </header>
+
+        <section class="dsp-hero">
+          <div class="dsp-brand" id="dspBrandBox">
+            <div class="dsp-brand-name" id="dspBrandOut">Robustus</div>
+          </div>
+          <div class="dsp-pet" id="dspPetBox">
+            <div class="dsp-pet-placeholder">Foto do pet<br />(trocar depois)</div>
+          </div>
+        </section>
+
+        <section class="dsp-flavors">
+          <h2 class="dsp-flavors-title">Sabores</h2>
+          <div class="dsp-ing-photo">
+            <div class="dsp-ing-photo-placeholder">Foto dos<br />ingredientes</div>
+          </div>
+          <ul class="dsp-flavor-list" id="dspFlavorList"></ul>
+        </section>
+
+        <div class="dsp-price-row">
+          <div class="dsp-price" id="dspPriceBubble">
+            <span class="dsp-price-main" id="dspPriceOut">32%</span>
+            <span class="dsp-price-sub" id="dspPriceSub">OFF</span>
+          </div>
+        </div>
+
+        <footer class="dsp-footer">
+          <div class="dsp-footer-brand">
+            <span class="dsp-footer-mark">GM</span>
+            <span>GM Agro Mais</span>
+          </div>
+          <div class="dsp-footer-slogan">Mais qualidade,<br />mais cuidado, mais você.</div>
+        </footer>
+      </article>
+    </main>
+  </div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="ico-carne" viewBox="0 0 24 24">
+      <path fill="#8B3A2F" d="M7 8c0-2.2 2.2-4 5-4s5 1.8 5 4c0 1-.4 1.9-1 2.6V18a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-7.4c-.6-.7-1-1.6-1-2.6z"/>
+      <circle fill="#F2C3B0" cx="12" cy="9" r="2.2"/>
+    </symbol>
+    <symbol id="ico-frango" viewBox="0 0 24 24">
+      <path fill="#E8A54B" d="M6.5 11.5c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5c0 2.2-1.2 4-3 5v3.2a1.8 1.8 0 0 1-1.8 1.8h-1.4A1.8 1.8 0 0 1 9.5 19.7V16.5c-1.8-1-3-2.8-3-5z"/>
+      <path fill="#F6D29A" d="M10 8.5c.6-.8 1.5-1.3 2.5-1.3.6 0 1.1.1 1.6.4l1.2-1.6c.3-.4.9-.4 1.2 0 .2.3.2.7 0 1l-1.1 1.5c.4.5.6 1.1.6 1.8 0 1.7-1.3 3-3 3s-3-1.3-3-3c0-.7.2-1.3.5-1.8z"/>
+    </symbol>
+    <symbol id="ico-batata" viewBox="0 0 24 24">
+      <ellipse fill="#E07A2F" cx="12" cy="13" rx="6.5" ry="7"/>
+      <ellipse fill="#F0A45A" cx="12" cy="12.2" rx="4.8" ry="5.2"/>
+      <circle fill="#C45E1C" cx="9.5" cy="11" r=".7"/>
+      <circle fill="#C45E1C" cx="14" cy="14" r=".6"/>
+      <circle fill="#C45E1C" cx="11.5" cy="15.5" r=".5"/>
+    </symbol>
+    <symbol id="ico-peixe" viewBox="0 0 24 24">
+      <path fill="#4F8FBF" d="M3 12s4-5 9-5 9 5 9 5-4 5-9 5-9-5-9-5z"/>
+      <circle fill="#1E3A5F" cx="16.5" cy="11.2" r="1"/>
+      <path fill="#3A6F98" d="M3 12l4-2.5V14.5z"/>
+    </symbol>
+    <symbol id="ico-abobora" viewBox="0 0 24 24">
+      <path fill="#E67E22" d="M7 10c0-3 2.2-5.5 5-5.5S17 7 17 10c1.7.5 3 2.2 3 4.2 0 2.6-2.5 4.8-5.5 4.8h-5C6.5 19 4 16.8 4 14.2c0-2 1.3-3.7 3-4.2z"/>
+      <path fill="#2E7D32" d="M11.2 4.5c.3-1 .9-1.8 1.8-2.2.2 1.1-.1 2.2-.8 3.1z"/>
+    </symbol>
+    <symbol id="ico-folha" viewBox="0 0 24 24">
+      <path fill="#4CAF50" d="M12 3c5 2 8 6.5 8 11.5S15.5 21 12 21 4 18.5 4 14.5 7 5 12 3z"/>
+      <path fill="#2E7D32" d="M12 5.5v13.2" stroke="#2E7D32" stroke-width="1.4"/>
+    </symbol>
+    <symbol id="ico-generico" viewBox="0 0 24 24">
+      <circle fill="#94A3B8" cx="12" cy="12" r="8"/>
+      <circle fill="#fff" cx="12" cy="12" r="3.2"/>
+    </symbol>
+  </svg>
+
+  <script>
+  (function () {
+    var CAT_LABELS = {
+      "cao-adulto-pequeno": ["Cão adulto", "Raças pequenas"],
+      "cao-adulto-medio": ["Cão adulto", "Raças médias e grandes"],
+      "cao-filhote-pequeno": ["Cão filhote", "Raças pequenas"],
+      "cao-filhote-medio": ["Cão filhote", "Raças médias e grandes"],
+      "cao-senior": ["Cão sênior", "Todas as raças"],
+      "gato-castrado": ["Gato castrado", "Adulto"],
+      "gato-adulto": ["Gato adulto", "Sem castrar"],
+      "gato-filhote": ["Gato filhote", ""]
+    };
+
+    var FLAVOR_ICON = {
+      carne: "ico-carne",
+      frango: "ico-frango",
+      "batata doce": "ico-batata",
+      "batata-doce": "ico-batata",
+      peixe: "ico-peixe",
+      salmao: "ico-peixe",
+      salmão: "ico-peixe",
+      abobora: "ico-abobora",
+      abóbora: "ico-abobora",
+      graos: "ico-folha",
+      grãos: "ico-folha",
+      arroz: "ico-folha"
+    };
+
+    var root = document.documentElement;
+    var catEl = document.getElementById("dspCat");
+    var brandEl = document.getElementById("dspBrand");
+    var flavorsEl = document.getElementById("dspFlavors");
+    var priceEl = document.getElementById("dspPrice");
+    var showPriceEl = document.getElementById("dspShowPrice");
+    var headerText = document.getElementById("dspHeaderText");
+    var brandOut = document.getElementById("dspBrandOut");
+    var flavorList = document.getElementById("dspFlavorList");
+    var priceBubble = document.getElementById("dspPriceBubble");
+    var priceOut = document.getElementById("dspPriceOut");
+    var priceSub = document.getElementById("dspPriceSub");
+
+    function iconFor(name) {
+      var key = String(name || "").trim().toLowerCase();
+      return FLAVOR_ICON[key] || "ico-generico";
+    }
+
+    function renderFlavors() {
+      var lines = String(flavorsEl.value || "")
+        .split(/\r?\n/)
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean)
+        .slice(0, 5);
+      flavorList.innerHTML = "";
+      lines.forEach(function (name) {
+        var li = document.createElement("li");
+        var ico = document.createElement("span");
+        ico.className = "dsp-flavor-ico";
+        ico.innerHTML = '<svg viewBox="0 0 24 24"><use href="#' + iconFor(name) + '"></use></svg>';
+        var span = document.createElement("span");
+        span.textContent = name;
+        li.appendChild(ico);
+        li.appendChild(span);
+        flavorList.appendChild(li);
+      });
+    }
+
+    function renderPrice() {
+      var show = showPriceEl.checked;
+      var raw = String(priceEl.value || "").trim();
+      priceBubble.classList.toggle("is-hidden", !show);
+      if (!show) return;
+      if (!raw) {
+        priceBubble.classList.add("is-empty");
+        priceOut.textContent = "Espaço do preço";
+        priceSub.textContent = "";
+        return;
+      }
+      priceBubble.classList.remove("is-empty");
+      var m = raw.match(/^(\d+)\s*%\s*(.*)$/i);
+      if (m) {
+        priceOut.textContent = m[1] + "%";
+        priceSub.textContent = (m[2] || "OFF").toUpperCase();
+        return;
+      }
+      priceOut.textContent = raw;
+      priceSub.textContent = "";
+    }
+
+    function renderAll() {
+      var cat = catEl.value;
+      root.setAttribute("data-cat", cat);
+      var labels = CAT_LABELS[cat] || ["Categoria", ""];
+      headerText.innerHTML =
+        "<span>" + labels[0] + "</span>" +
+        (labels[1] ? "<span>" + labels[1] + "</span>" : "");
+      var brand = String(brandEl.value || "").trim() || "Sua marca";
+      brandOut.textContent = brand;
+      renderFlavors();
+      renderPrice();
+    }
+
+    catEl.addEventListener("change", renderAll);
+    brandEl.addEventListener("input", renderAll);
+    flavorsEl.addEventListener("input", renderAll);
+    priceEl.addEventListener("input", renderAll);
+    showPriceEl.addEventListener("change", renderAll);
+
+    document.getElementById("dspPrint").addEventListener("click", function () {
+      window.print();
+    });
+
+    document.getElementById("dspReset").addEventListener("click", function () {
+      catEl.value = "cao-adulto-pequeno";
+      brandEl.value = "Robustus";
+      flavorsEl.value = "Carne\nFrango\nBatata doce";
+      priceEl.value = "32% OFF";
+      showPriceEl.checked = true;
+      renderAll();
+    });
+
+    renderAll();
+  })();
+  </script>
+</body>
+</html>

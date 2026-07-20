@@ -9214,6 +9214,13 @@ def dashboard_interno_preview_view(request):
     )
 
 
+@login_required(login_url="/admin/login/")
+@require_GET
+def dispenser_a6_studio_view(request):
+    """Studio visual do cartaz A6 de dispenser (ainda sem cadastro/preço do sistema)."""
+    return render(request, "produtos/dispenser_a6_studio.html")
+
+
 @never_cache
 @_dashboard_interno_preview_required
 @require_GET

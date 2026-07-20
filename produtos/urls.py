@@ -216,6 +216,11 @@ urlpatterns = [
         name='dashboard_interno_preview',
     ),
     path(
+        'interno/dispenser-a6/',
+        views.dispenser_a6_studio_view,
+        name='dispenser_a6_studio',
+    ),
+    path(
         'interno/teste-busca/',
         views.interno_teste_busca_view,
         name='interno_teste_busca',

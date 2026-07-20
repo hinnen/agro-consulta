@@ -1163,7 +1163,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja** · teste
+**Versão app (VERSION):** **loja** · teste **v10.95**
+
+### WIP — Dispenser A6 (visual) **v10.95** (20/07/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Decisão** | Acertar **template visual** primeiro; **depois** ligar no sistema (cadastro/preço) |
+| **URL teste** | `/interno/dispenser-a6/` (login) |
+| **O quê** | Cartaz A6 + painel: categoria/cor · marca · sabores · bolha preço · imprimir |
+| **Arquivos** | `dispenser_a6_studio.html` · `static/.../dispenser-a6/dispenser.css` · rota + view |
+| **Ainda não** | Fotos reais pet/ingredientes · upload · Canva export · vínculo produto |
+| **Você** | Abrir URL no **teste** · Ctrl+F5 · trocar categoria · Imprimir A6 · dizer o que ajustar |
+| **Status** | ⏳ validar visual com Renan |
 
 ### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.93**)
 

@@ -1,0 +1,542 @@
+/* GM Agro Mais — Dispenser A6 (design visual; sem cadastro ainda) */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap");
+
+:root {
+  --dsp-font-title: "Poppins", system-ui, sans-serif;
+  --dsp-font-body: "Poppins", system-ui, sans-serif;
+  --dsp-bg: #f7f8f6;
+  --dsp-card: #ffffff;
+  --dsp-ink: #1a2330;
+  --dsp-muted: #5b6675;
+  --dsp-footer: #1f4d3a;
+  --dsp-cat: #2f6b45;
+  --dsp-cat-deep: #1f4d3a;
+  --dsp-radius: 1.1rem;
+  --dsp-a6-w: 105mm;
+  --dsp-a6-h: 148mm;
+}
+
+/* Paleta oficial por categoria */
+[data-cat="cao-adulto-pequeno"] {
+  --dsp-cat: #2f6b45;
+  --dsp-cat-deep: #1f4d3a;
+}
+[data-cat="cao-adulto-medio"] {
+  --dsp-cat: #2878d8;
+  --dsp-cat-deep: #1a4f96;
+}
+[data-cat="cao-filhote-pequeno"] {
+  --dsp-cat: #f6921e;
+  --dsp-cat-deep: #c46e0c;
+}
+[data-cat="cao-filhote-medio"] {
+  --dsp-cat: #e6b800;
+  --dsp-cat-deep: #b38a00;
+}
+[data-cat="cao-senior"] {
+  --dsp-cat: #7b4ccb;
+  --dsp-cat-deep: #5a3299;
+}
+[data-cat="gato-castrado"] {
+  --dsp-cat: #d94343;
+  --dsp-cat-deep: #a82c2c;
+}
+[data-cat="gato-adulto"] {
+  --dsp-cat: #3eb8d9;
+  --dsp-cat-deep: #2489a6;
+}
+[data-cat="gato-filhote"] {
+  --dsp-cat: #29c3a7;
+  --dsp-cat-deep: #1a8f7a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--dsp-font-body);
+  background: var(--dsp-bg);
+  color: var(--dsp-ink);
+}
+
+.dsp-studio {
+  display: grid;
+  grid-template-columns: minmax(16rem, 20rem) 1fr;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  min-height: 100dvh;
+}
+
+.dsp-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+}
+
+.dsp-panel h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.dsp-panel .dsp-hint {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--dsp-muted);
+  line-height: 1.35;
+}
+
+.dsp-field {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.dsp-field label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsp-muted);
+}
+
+.dsp-field input,
+.dsp-field select,
+.dsp-field textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+  font-size: 0.92rem;
+  background: #fff;
+}
+
+.dsp-field textarea {
+  min-height: 4.2rem;
+  resize: vertical;
+}
+
+.dsp-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  margin: 0.4rem 0 0.9rem;
+}
+
+.dsp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dsp-actions button {
+  border: 0;
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--dsp-footer);
+  color: #fff;
+}
+
+.dsp-actions button.secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.dsp-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.dsp-stage-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dsp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ===== Cartaz A6 ===== */
+.dsp-a6 {
+  width: var(--dsp-a6-w);
+  height: var(--dsp-a6-h);
+  background: var(--dsp-card);
+  border-radius: 0.35rem;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 12px 40px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+}
+
+.dsp-a6::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath fill='%23000' d='M18 10c1.8 0 3.2 1.8 3.2 3.8S19.8 17.6 18 17.6 14.8 15.8 14.8 13.8 16.2 10 18 10zm12 0c1.8 0 3.2 1.8 3.2 3.8S31.8 17.6 30 17.6 26.8 15.8 26.8 13.8 28.2 10 30 10zM12 22c2 0 3.6 1.9 3.6 4.1S14 30.2 12 30.2 8.4 28.3 8.4 26.1 10 22 12 22zm24 0c2 0 3.6 1.9 3.6 4.1S38 30.2 36 30.2 32.4 28.3 32.4 26.1 34 22 36 22zM24 26c3.4 0 6.2 3.1 6.2 6.8S27.4 39.6 24 39.6 17.8 36.5 17.8 32.8 20.6 26 24 26z'/%3E%3C/svg%3E");
+  background-size: 28px 28px;
+  z-index: 0;
+}
+
+.dsp-a6 > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dsp-header {
+  background: linear-gradient(180deg, var(--dsp-cat) 0%, var(--dsp-cat-deep) 100%);
+  color: #fff;
+  padding: 7mm 6mm 8mm;
+  clip-path: ellipse(120% 100% at 50% 0%);
+  min-height: 26mm;
+  display: flex;
+  align-items: center;
+  gap: 3.5mm;
+}
+
+.dsp-header-icon {
+  width: 11mm;
+  height: 11mm;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.dsp-header-icon svg {
+  width: 7mm;
+  height: 7mm;
+  fill: #fff;
+}
+
+.dsp-header-text {
+  font-family: var(--dsp-font-title);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  font-size: 4.2mm;
+}
+
+.dsp-header-text span {
+  display: block;
+}
+
+.dsp-hero {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 3mm;
+  padding: 4mm 6mm 2mm;
+  align-items: center;
+  min-height: 42mm;
+}
+
+.dsp-brand {
+  min-height: 22mm;
+  border: 1.5px dashed #94a3b8;
+  border-radius: var(--dsp-radius);
+  background: #f8fafc;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 3mm;
+}
+
+.dsp-brand img {
+  max-width: 100%;
+  max-height: 18mm;
+  object-fit: contain;
+}
+
+.dsp-brand-placeholder {
+  font-size: 2.6mm;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+}
+
+.dsp-brand-name {
+  font-family: var(--dsp-font-title);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 5mm;
+  letter-spacing: 0.04em;
+  color: var(--dsp-ink);
+  line-height: 1.1;
+}
+
+.dsp-pet {
+  height: 38mm;
+  border-radius: calc(var(--dsp-radius) + 0.2rem);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.75), transparent 55%),
+    linear-gradient(160deg, #eef2f7, #dbe4ee);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.dsp-pet img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.dsp-pet-placeholder {
+  font-size: 2.5mm;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3mm;
+}
+
+.dsp-flavors {
+  padding: 1mm 6mm 2mm;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 3.5mm;
+  align-items: center;
+}
+
+.dsp-flavors-title {
+  grid-column: 1 / -1;
+  font-family: var(--dsp-font-title);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 3.2mm;
+  color: var(--dsp-cat-deep);
+  margin: 0 0 1mm;
+}
+
+.dsp-ing-photo {
+  height: 28mm;
+  border-radius: var(--dsp-radius);
+  border: 1.5px dashed #94a3b8;
+  background: #f8fafc;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.dsp-ing-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dsp-ing-photo-placeholder {
+  font-size: 2.3mm;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2mm;
+  line-height: 1.3;
+}
+
+.dsp-flavor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2.2mm;
+}
+
+.dsp-flavor-list li {
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+  font-family: var(--dsp-font-body);
+  font-weight: 600;
+  font-size: 3.1mm;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--dsp-ink);
+}
+
+.dsp-flavor-ico {
+  width: 6.2mm;
+  height: 6.2mm;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dsp-cat) 18%, white);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.dsp-flavor-ico svg {
+  width: 4mm;
+  height: 4mm;
+}
+
+.dsp-price-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 6mm 3mm;
+  min-height: 18mm;
+  align-items: center;
+}
+
+.dsp-price {
+  width: 22mm;
+  height: 22mm;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e53935, #b71c1c);
+  color: #fff;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  box-shadow: 0 3mm 6mm rgba(183, 28, 28, 0.28);
+  font-family: var(--dsp-font-title);
+  font-weight: 800;
+  line-height: 1.05;
+  transform: rotate(-6deg);
+}
+
+.dsp-price.is-empty {
+  background: transparent;
+  box-shadow: none;
+  border: 1.5px dashed #94a3b8;
+  color: #64748b;
+  transform: none;
+  font-weight: 600;
+  font-size: 2.4mm;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2mm;
+}
+
+.dsp-price .dsp-price-main {
+  font-size: 5.2mm;
+  letter-spacing: -0.02em;
+}
+
+.dsp-price .dsp-price-sub {
+  font-size: 2.6mm;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.dsp-price.is-hidden {
+  display: none;
+}
+
+.dsp-footer {
+  background: var(--dsp-footer);
+  color: #fff;
+  padding: 3.2mm 5mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3mm;
+  min-height: 14mm;
+}
+
+.dsp-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  font-family: var(--dsp-font-title);
+  font-weight: 800;
+  font-size: 3.4mm;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dsp-footer-mark {
+  width: 7mm;
+  height: 7mm;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--dsp-footer);
+  display: grid;
+  place-items: center;
+  font-size: 2.6mm;
+  font-weight: 800;
+}
+
+.dsp-footer-slogan {
+  font-size: 2.3mm;
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.25;
+  max-width: 42mm;
+  opacity: 0.95;
+}
+
+@media (max-width: 900px) {
+  .dsp-studio {
+    grid-template-columns: 1fr;
+  }
+  .dsp-panel {
+    position: static;
+  }
+}
+
+@media print {
+  @page {
+    size: 105mm 148mm;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .dsp-panel,
+  .dsp-stage-label,
+  .dsp-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .dsp-studio {
+    display: block;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .dsp-stage {
+    padding: 0;
+  }
+
+  .dsp-a6 {
+    box-shadow: none;
+    border-radius: 0;
+    width: 105mm;
+    height: 148mm;
+  }
+}
