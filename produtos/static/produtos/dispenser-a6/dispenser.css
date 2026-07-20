@@ -299,18 +299,21 @@ html, body {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1fr 1.05fr;
-  gap: 2mm;
-  padding: 3mm 5mm 1mm;
-  min-height: 48mm;
-  align-items: center;
+  grid-template-columns: 1.55fr 0.9fr;
+  gap: 1mm;
+  padding: 1.5mm 0 1mm 5mm;
+  min-height: 52mm;
+  align-items: start;
 }
 
 .dsp-brand {
   display: grid;
-  place-items: center;
-  text-align: center;
+  place-items: center start;
+  text-align: left;
   min-height: 28mm;
+  padding-top: 3mm;
+  padding-right: 2mm;
+  z-index: 3;
 }
 
 .dsp-brand-name {
@@ -321,32 +324,39 @@ html, body {
   text-transform: uppercase;
   color: var(--dsp-brand);
   max-width: 100%;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .dsp-brand-name::after {
   content: "";
   display: block;
-  margin: 2mm auto 0;
+  margin: 2mm 0 0;
   width: 85%;
   height: 0.7mm;
   background: var(--dsp-brand);
 }
 
 .dsp-pet {
-  height: 50mm;
+  height: 54mm;
+  width: 100%;
+  margin-top: -2mm; /* sobe um pouco; fica abaixo da faixa */
+  margin-right: -1mm;
   display: grid;
-  place-items: end center;
+  place-items: start end;
+  justify-self: end;
   background: transparent;
   overflow: visible;
+  z-index: 2;
 }
 
 .dsp-pet img {
-  max-width: 100%;
-  max-height: 50mm;
+  max-width: 54mm;
+  max-height: 54mm;
   width: auto;
   height: auto;
   object-fit: contain;
+  object-position: right top;
   background: transparent;
   border: 0;
   border-radius: 0;
