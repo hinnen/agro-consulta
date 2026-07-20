@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Baixo criativo: **foto grande + selo proteína na foto** · lista livre à direita · tools fora do papel |
-| **Você** | Ctrl+F5 · dizer se curtiu o selo na foto |
-| **Status** | ⏳ validar composição baixo |
+| **Agora** | Ingredientes com **arrastar / zoom** (+/− / alça / scroll) como o pet |
+| **Você** | Ctrl+F5 · encaixar foto dos ingredientes |
+| **Status** | ⏳ validar fit ingredientes |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

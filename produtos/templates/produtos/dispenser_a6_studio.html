@@ -100,8 +100,11 @@ Batata doce</textarea>
           <h2 class="dsp-sabores-title">Sabores</h2>
           <div class="dsp-sabores-body">
             <div class="dsp-ing-stage">
-              <div class="dsp-ing-photo">
-                <img id="dspIngImg" src="{% static 'produtos/dispenser-a6/lib/ings/carne-frango-batata.jpg' %}" alt="" />
+              <div class="dsp-ing-photo" id="dspIngFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
+                <div class="dsp-ing-viewport" id="dspIngViewport">
+                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/carne-frango-batata.jpg' %}" alt="" draggable="false" />
+                </div>
+                <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
               </div>
               <div class="dsp-protein-row">
                 <div class="dsp-protein" id="dspProteinBubble">
@@ -115,10 +118,19 @@ Batata doce</textarea>
           </div>
         </section>
       </article>
-      <div class="dsp-pet-tools no-print">
-        <button type="button" id="dspPetZoomOut" title="Menor">−</button>
-        <button type="button" id="dspPetZoomIn" title="Maior">+</button>
-        <button type="button" id="dspPetFitReset" title="Resetar">↺</button>
+      <div class="dsp-fit-tools no-print">
+        <div class="dsp-fit-group">
+          <span>Pet</span>
+          <button type="button" id="dspPetZoomOut" title="Menor">−</button>
+          <button type="button" id="dspPetZoomIn" title="Maior">+</button>
+          <button type="button" id="dspPetFitReset" title="Resetar">↺</button>
+        </div>
+        <div class="dsp-fit-group">
+          <span>Ingredientes</span>
+          <button type="button" id="dspIngZoomOut" title="Menor">−</button>
+          <button type="button" id="dspIngZoomIn" title="Maior">+</button>
+          <button type="button" id="dspIngFitReset" title="Resetar">↺</button>
+        </div>
       </div>
     </main>
   </div>
@@ -194,6 +206,8 @@ Batata doce</textarea>
     var petViewport = document.getElementById("dspPetViewport");
     var petHandle = document.getElementById("dspPetHandle");
     var ingImg = document.getElementById("dspIngImg");
+    var ingViewport = document.getElementById("dspIngViewport");
+    var ingHandle = document.getElementById("dspIngHandle");
     var petGal = document.getElementById("dspPetGal");
     var logoGal = document.getElementById("dspLogoGal");
     var ingGal = document.getElementById("dspIngGal");
@@ -201,7 +215,9 @@ Batata doce</textarea>
     var logoId = ""; // vazio = só texto
     var ingId = "carne-frango-batata";
     var PET_FIT_KEY = "dsp_pet_fit_v1";
+    var ING_FIT_KEY = "dsp_ing_fit_v1";
     var petFit = { x: 0, y: 0, s: 1.08 };
+    var ingFit = { x: 0, y: 0, s: 1.12 };
     var LINE2_MAX_MM = 6.8;
     var LINE2_MIN_MM = 3.6;
 
@@ -478,6 +494,141 @@ Batata doce</textarea>
       });
     }
 
+    function loadIngFits() {
+      try {
+        var raw = localStorage.getItem(ING_FIT_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === "object" ? obj : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveIngFit() {
+      var all = loadIngFits();
+      all[ingId] = { x: ingFit.x, y: ingFit.y, s: ingFit.s };
+      localStorage.setItem(ING_FIT_KEY, JSON.stringify(all));
+    }
+
+    function clampIngFit() {
+      ingFit.s = Math.max(0.7, Math.min(2.6, ingFit.s));
+      ingFit.x = Math.max(-160, Math.min(160, ingFit.x));
+      ingFit.y = Math.max(-160, Math.min(160, ingFit.y));
+    }
+
+    function applyIngFit() {
+      clampIngFit();
+      ingImg.style.transform =
+        "translate(calc(-50% + " + ingFit.x + "px), calc(-50% + " + ingFit.y + "px)) scale(" + ingFit.s + ")";
+    }
+
+    function loadFitForIng(id) {
+      var saved = loadIngFits()[id];
+      if (saved && typeof saved === "object") {
+        ingFit = {
+          x: Number(saved.x) || 0,
+          y: Number(saved.y) || 0,
+          s: Number(saved.s) || 1.12
+        };
+      } else {
+        ingFit = { x: 0, y: 0, s: 1.12 };
+      }
+      applyIngFit();
+    }
+
+    function selectIng(it) {
+      ingId = it.id;
+      ingImg.src = STATIC + it.file;
+      if (it.flavors) flavorsEl.value = it.flavors;
+      loadFitForIng(ingId);
+      renderFlavors();
+      syncGal();
+    }
+
+    function bindIngFitControls() {
+      var dragging = false;
+      var resizing = false;
+      var lastX = 0;
+      var lastY = 0;
+
+      ingViewport.addEventListener("pointerdown", function (ev) {
+        if (ev.button !== undefined && ev.button !== 0) return;
+        dragging = true;
+        resizing = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        ingViewport.classList.add("is-dragging");
+        ingViewport.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+      });
+
+      ingHandle.addEventListener("pointerdown", function (ev) {
+        if (ev.button !== undefined && ev.button !== 0) return;
+        resizing = true;
+        dragging = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        ingHandle.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+        ev.stopPropagation();
+      });
+
+      function onMove(ev) {
+        if (!dragging && !resizing) return;
+        var dx = ev.clientX - lastX;
+        var dy = ev.clientY - lastY;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        if (dragging) {
+          ingFit.x += dx;
+          ingFit.y += dy;
+        } else if (resizing) {
+          ingFit.s += (dx - dy) * 0.008;
+        }
+        applyIngFit();
+      }
+
+      function onUp(ev) {
+        if (!dragging && !resizing) return;
+        dragging = false;
+        resizing = false;
+        ingViewport.classList.remove("is-dragging");
+        try { ingViewport.releasePointerCapture(ev.pointerId); } catch (e) {}
+        try { ingHandle.releasePointerCapture(ev.pointerId); } catch (e2) {}
+        saveIngFit();
+      }
+
+      ingViewport.addEventListener("pointermove", onMove);
+      ingHandle.addEventListener("pointermove", onMove);
+      ingViewport.addEventListener("pointerup", onUp);
+      ingViewport.addEventListener("pointercancel", onUp);
+      ingHandle.addEventListener("pointerup", onUp);
+      ingHandle.addEventListener("pointercancel", onUp);
+
+      ingViewport.addEventListener("wheel", function (ev) {
+        ev.preventDefault();
+        ingFit.s += (ev.deltaY < 0 ? 0.06 : -0.06);
+        applyIngFit();
+        saveIngFit();
+      }, { passive: false });
+
+      document.getElementById("dspIngZoomIn").addEventListener("click", function () {
+        ingFit.s += 0.08;
+        applyIngFit();
+        saveIngFit();
+      });
+      document.getElementById("dspIngZoomOut").addEventListener("click", function () {
+        ingFit.s -= 0.08;
+        applyIngFit();
+        saveIngFit();
+      });
+      document.getElementById("dspIngFitReset").addEventListener("click", function () {
+        ingFit = { x: 0, y: 0, s: 1.12 };
+        applyIngFit();
+        saveIngFit();
+      });
+    }
+
     function knockWhiteToDataUrl(img, maxSide, cb) {
       var w = img.naturalWidth || img.width;
       var h = img.naturalHeight || img.height;
@@ -574,11 +725,7 @@ Batata doce</textarea>
           if (kind === "pet") {
             selectPet(it);
           } else {
-            ingId = it.id;
-            ingImg.src = STATIC + it.file;
-            if (it.flavors) flavorsEl.value = it.flavors;
-            renderFlavors();
-            syncGal();
+            selectIng(it);
           }
         });
         el.appendChild(btn);
@@ -727,13 +874,16 @@ Batata doce</textarea>
       petImg.src = STATIC + "pets/chihuahua.png";
       ingImg.src = STATIC + "ings/carne-frango-batata.jpg";
       loadFitForPet(petId);
+      loadFitForIng(ingId);
       buildLogoGal();
       renderAll();
       syncGal();
     });
 
     bindPetFitControls();
+    bindIngFitControls();
     loadFitForPet(petId);
+    loadFitForIng(ingId);
     renderAll();
   })();
   </script>

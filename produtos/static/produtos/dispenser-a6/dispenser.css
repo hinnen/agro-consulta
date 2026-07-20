@@ -503,14 +503,32 @@ html, body {
   border-bottom: 0.45mm solid var(--dsp-cat-deep);
 }
 
-.dsp-pet-tools {
+.dsp-pet-tools,
+.dsp-fit-tools {
   display: flex;
   justify-content: center;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
   margin-top: 0.35rem;
 }
 
-.dsp-pet-tools button {
+.dsp-fit-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dsp-fit-group > span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.15rem;
+}
+
+.dsp-pet-tools button,
+.dsp-fit-tools button {
   width: 1.7rem;
   height: 1.7rem;
   border: 1px solid #cbd5e1;
@@ -524,13 +542,16 @@ html, body {
   padding: 0;
 }
 
-.dsp-pet-tools button:hover {
+.dsp-pet-tools button:hover,
+.dsp-fit-tools button:hover {
   background: #f1f5f9;
 }
 
 @media print {
   .dsp-pet-tools,
-  .dsp-pet-handle {
+  .dsp-fit-tools,
+  .dsp-pet-handle,
+  .dsp-ing-handle {
     display: none !important;
   }
 }
@@ -575,26 +596,70 @@ html, body {
 }
 
 .dsp-ing-photo {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  place-items: center;
   overflow: hidden;
   border-radius: 3.2mm;
   background: linear-gradient(160deg, #fff, #eef2f6);
   box-shadow:
     0 1.5mm 4mm rgba(15, 23, 42, 0.12),
     0 0 0 0.45mm rgba(15, 23, 42, 0.06);
-  padding: 1.5mm;
+  touch-action: none;
 }
 
-.dsp-ing-photo img {
+.dsp-ing-viewport {
   width: 100%;
   height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3.2mm;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dsp-ing-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.dsp-ing-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 130%;
+  height: auto;
+  max-width: none;
+  max-height: none;
   object-fit: cover;
-  object-position: center;
-  border-radius: 2mm;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
   filter: none;
+}
+
+.dsp-ing-handle {
+  position: absolute;
+  right: 2mm;
+  bottom: 2mm;
+  width: 4.2mm;
+  height: 4.2mm;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.55mm solid var(--dsp-cat-deep);
+  box-shadow: 0 0.6mm 1.2mm rgba(0, 0, 0, 0.25);
+  cursor: nwse-resize;
+  z-index: 5;
+  touch-action: none;
+}
+
+.dsp-ing-handle::after {
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border-right: 0.45mm solid var(--dsp-cat-deep);
+  border-bottom: 0.45mm solid var(--dsp-cat-deep);
 }
 
 /* Selo na foto — não invade a lista */
