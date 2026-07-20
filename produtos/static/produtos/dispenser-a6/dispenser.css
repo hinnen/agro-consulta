@@ -35,11 +35,14 @@ html, body {
 
 .dsp-studio {
   display: grid;
-  grid-template-columns: minmax(18rem, 24rem) 1fr;
-  gap: 1.25rem;
-  padding: 1rem 1.25rem 2rem;
-  min-height: 100dvh;
-  align-items: start;
+  grid-template-columns: minmax(30rem, 42rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.75rem 1rem 1rem;
+  height: 100dvh;
+  max-height: 100dvh;
+  box-sizing: border-box;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .dsp-panel {
@@ -48,10 +51,11 @@ html, body {
   border-radius: 1rem;
   padding: 0.85rem 1rem 1rem;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  max-height: calc(100dvh - 2rem);
+  max-height: none;
+  height: 100%;
   overflow: hidden;
-  position: sticky;
-  top: 1rem;
+  position: relative;
+  top: auto;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -434,9 +438,14 @@ html, body {
 .dsp-stage {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: flex-start;
   gap: 0.65rem;
-  padding-top: 0.35rem;
+  padding: 0.35rem 1.25rem 0.5rem 0.5rem;
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
 }
 
 .dsp-stage-label {
@@ -445,6 +454,7 @@ html, body {
   color: var(--dsp-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  align-self: flex-end;
 }
 
 /* ===== A6 ===== */
@@ -1027,8 +1037,25 @@ html, body {
 }
 
 @media (max-width: 980px) {
-  .dsp-studio { grid-template-columns: 1fr; }
-  .dsp-panel { position: static; max-height: none; }
+  .dsp-studio {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .dsp-panel {
+    position: static;
+    max-height: none;
+    height: auto;
+  }
+  .dsp-stage {
+    align-items: center;
+    height: auto;
+    padding-right: 0.5rem;
+  }
+  .dsp-stage-label {
+    align-self: center;
+  }
 }
 
 @media print {
