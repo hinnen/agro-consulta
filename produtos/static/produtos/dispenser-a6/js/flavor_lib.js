@@ -111,5 +111,60 @@ window.DspFlavorLib = (function () {
     { id: "carne-legumes", file: "ings/carne-legumes.jpg", label: "Carne, Batata e Legumes", flavors: "Carne\nBatata doce\nLegumes" }
   ];
 
-  return { norm: norm, lookup: lookup, META: META, COMBOS: COMBOS };
+  /** Lista canônica — proteínas e bases */
+  var PROTEINS = [
+    { key: "frango", label: "Frango" },
+    { key: "carne bovina", label: "Carne Bovina" },
+    { key: "cordeiro", label: "Cordeiro" },
+    { key: "salmao", label: "Salmão" },
+    { key: "atum", label: "Atum" },
+    { key: "peixe branco", label: "Peixe Branco" },
+    { key: "sardinha", label: "Sardinha" },
+    { key: "carne suina", label: "Carne Suína" },
+    { key: "peru", label: "Peru" },
+    { key: "pato", label: "Pato" },
+    { key: "coelho", label: "Coelho" },
+    { key: "figado", label: "Fígado" },
+    { key: "ovelha", label: "Ovelha" }
+  ];
+
+  /** Lista canônica — acompanhamentos */
+  var SIDES = [
+    { key: "arroz integral", label: "Arroz Integral" },
+    { key: "arroz branco", label: "Arroz Branco" },
+    { key: "batata doce", label: "Batata-Doce" },
+    { key: "cenoura", label: "Cenoura" },
+    { key: "abobora", label: "Abóbora" },
+    { key: "ervilha", label: "Ervilha" },
+    { key: "maca", label: "Maçã" },
+    { key: "mirtilo", label: "Blueberry (Mirtilo)" },
+    { key: "brocolis", label: "Brócolis" },
+    { key: "espinafre", label: "Espinafre" },
+    { key: "beterraba", label: "Beterraba" },
+    { key: "polpa de beterraba", label: "Polpa de Beterraba" },
+    { key: "mandioca", label: "Mandioca" },
+    { key: "quinoa", label: "Quinoa" },
+    { key: "aveia", label: "Aveia" },
+    { key: "erva doce", label: "Erva-Doce" },
+    { key: "hortela", label: "Hortelã" },
+    { key: "legumes", label: "Legumes" },
+    { key: "vegetais", label: "Vegetais" }
+  ];
+
+  var INDIVIDUALS = PROTEINS.concat(SIDES);
+
+  function individuals() {
+    return INDIVIDUALS.slice();
+  }
+
+  return {
+    norm: norm,
+    lookup: lookup,
+    META: META,
+    COMBOS: COMBOS,
+    PROTEINS: PROTEINS,
+    SIDES: SIDES,
+    INDIVIDUALS: INDIVIDUALS,
+    individuals: individuals
+  };
 })();

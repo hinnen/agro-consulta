@@ -42,10 +42,29 @@
       </div>
 
       <div class="dsp-field">
-        <label for="dspFlavors">Sabores (um por linha)</label>
-        <textarea id="dspFlavors">Carne
+        <label for="dspFlavors">Sabores na folha (um por linha · máx. 5)</label>
+        <textarea id="dspFlavors">Carne Bovina
 Frango
-Batata doce</textarea>
+Batata-Doce</textarea>
+        <span class="dsp-gal-add-hint">Ou clique abaixo para montar a lista.</span>
+      </div>
+
+      <div class="dsp-gal-label">Proteínas e bases</div>
+      <div class="dsp-flavor-pick" id="dspFlavorPickProt" role="group" aria-label="Proteínas"></div>
+
+      <div class="dsp-gal-label">Acompanhamentos</div>
+      <div class="dsp-flavor-pick" id="dspFlavorPickSide" role="group" aria-label="Acompanhamentos"></div>
+
+      <div class="dsp-gal-label">Ícones PNG dos sabores</div>
+      <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Ícones de sabor"></div>
+      <div class="dsp-gal-add no-print">
+        <label class="dsp-field" style="margin:0 0 0.35rem">
+          <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Sabor do ícone</span>
+          <select id="dspFlavorIcoTarget"></select>
+        </label>
+        <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Adicionar / trocar PNG</label>
+        <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+        <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador. Vale para o nome escolhido.</span>
       </div>
 
       <div class="dsp-field">
@@ -165,6 +184,8 @@ Batata doce</textarea>
     var PET_MAX_CUSTOM = 24;
     var LOGO_LS_KEY = "dsp_logos_custom_v1";
     var LOGO_MAX_CUSTOM = 24;
+    var FLAVOR_ICO_LS_KEY = "dsp_flavor_icos_v1";
+    var FLAVOR_MAX = 5;
 
     var INGS = (window.DspFlavorLib && window.DspFlavorLib.COMBOS) ? window.DspFlavorLib.COMBOS.slice() : [];
 
@@ -191,6 +212,11 @@ Batata doce</textarea>
     var petGal = document.getElementById("dspPetGal");
     var logoGal = document.getElementById("dspLogoGal");
     var ingGal = document.getElementById("dspIngGal");
+    var flavorPickProt = document.getElementById("dspFlavorPickProt");
+    var flavorPickSide = document.getElementById("dspFlavorPickSide");
+    var flavorIcoGal = document.getElementById("dspFlavorIcoGal");
+    var flavorIcoTarget = document.getElementById("dspFlavorIcoTarget");
+    var flavorIcoFile = document.getElementById("dspFlavorIcoFile");
     var petId = "chihuahua";
     var logoId = ""; // vazio = só texto
     var ingId = "frango-carne";
@@ -659,11 +685,153 @@ Batata doce</textarea>
       return "ico-generico";
     }
 
-    function flavorMeta(name) {
-      if (window.DspFlavorLib && window.DspFlavorLib.lookup) {
-        return window.DspFlavorLib.lookup(name);
+    function loadCustomFlavorIcos() {
+      try {
+        var raw = localStorage.getItem(FLAVOR_ICO_LS_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === "object" ? obj : {};
+      } catch (e) {
+        return {};
       }
-      return { title: String(name || "").trim(), desc: "", ico: "ico-generico" };
+    }
+
+    function saveCustomFlavorIcos(obj) {
+      localStorage.setItem(FLAVOR_ICO_LS_KEY, JSON.stringify(obj));
+    }
+
+    function flavorLines() {
+      return String(flavorsEl.value || "").split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
+    function setFlavorLines(lines) {
+      flavorsEl.value = lines.slice(0, FLAVOR_MAX).join("\n");
+      renderAll();
+      syncFlavorPick();
+    }
+
+    function toggleFlavorLabel(label) {
+      var normFn = window.DspFlavorLib ? window.DspFlavorLib.norm : function (s) { return String(s || "").toLowerCase(); };
+      var lines = flavorLines();
+      var key = normFn(label);
+      var idx = -1;
+      for (var i = 0; i < lines.length; i++) {
+        if (normFn(lines[i]) === key) { idx = i; break; }
+      }
+      if (idx >= 0) {
+        lines.splice(idx, 1);
+      } else {
+        if (lines.length >= FLAVOR_MAX) {
+          window.alert("Máximo de " + FLAVOR_MAX + " sabores na folha.");
+          return;
+        }
+        lines.push(label);
+      }
+      setFlavorLines(lines);
+    }
+
+    function buildFlavorPick() {
+      function fill(el, items) {
+        if (!el) return;
+        el.innerHTML = "";
+        items.forEach(function (it) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "dsp-flavor-chip";
+          btn.dataset.key = it.key;
+          btn.textContent = it.label;
+          btn.title = "Adicionar / remover da lista";
+          btn.addEventListener("click", function () { toggleFlavorLabel(it.label); });
+          el.appendChild(btn);
+        });
+      }
+      var lib = window.DspFlavorLib || {};
+      fill(flavorPickProt, lib.PROTEINS || []);
+      fill(flavorPickSide, lib.SIDES || []);
+      syncFlavorPick();
+    }
+
+    function syncFlavorPick() {
+      var normFn = window.DspFlavorLib ? window.DspFlavorLib.norm : function (s) { return String(s || "").toLowerCase(); };
+      var on = {};
+      flavorLines().forEach(function (n) { on[normFn(n)] = true; });
+      [flavorPickProt, flavorPickSide].forEach(function (box) {
+        if (!box) return;
+        Array.prototype.forEach.call(box.children, function (b) {
+          b.classList.toggle("is-on", !!on[b.dataset.key]);
+        });
+      });
+    }
+
+    function fillFlavorIcoTarget() {
+      if (!flavorIcoTarget) return;
+      var lib = window.DspFlavorLib || {};
+      var list = lib.INDIVIDUALS || [];
+      var cur = flavorIcoTarget.value;
+      flavorIcoTarget.innerHTML = "";
+      list.forEach(function (it) {
+        var opt = document.createElement("option");
+        opt.value = it.label;
+        opt.textContent = it.label;
+        flavorIcoTarget.appendChild(opt);
+      });
+      if (cur) flavorIcoTarget.value = cur;
+    }
+
+    function buildFlavorIcoGal() {
+      if (!flavorIcoGal) return;
+      var lib = window.DspFlavorLib || {};
+      var list = lib.INDIVIDUALS || [];
+      var customs = loadCustomFlavorIcos();
+      flavorIcoGal.innerHTML = "";
+      list.forEach(function (it) {
+        var meta = lib.lookup ? lib.lookup(it.label) : {};
+        var custom = customs[lib.norm ? lib.norm(it.label) : it.key];
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dsp-gal-item" + (custom ? " is-custom" : "");
+        btn.title = it.label + (custom ? " (PNG próprio)" : "");
+        btn.dataset.label = it.label;
+        var src = custom || (meta.img ? STATIC + meta.img : "");
+        if (src) {
+          btn.innerHTML = '<img src="' + src + '" alt="" /><span class="dsp-gal-cap"></span>';
+          btn.querySelector(".dsp-gal-cap").textContent = it.label;
+        } else {
+          btn.innerHTML = '<span class="dsp-gal-cap" style="position:static">' + it.label + "</span>";
+        }
+        btn.addEventListener("click", function () {
+          if (flavorIcoTarget) flavorIcoTarget.value = it.label;
+          toggleFlavorLabel(it.label);
+        });
+        if (custom) {
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "dsp-gal-del";
+          del.title = "Remover PNG próprio";
+          del.textContent = "×";
+          del.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var all = loadCustomFlavorIcos();
+            delete all[lib.norm(it.label)];
+            saveCustomFlavorIcos(all);
+            buildFlavorIcoGal();
+            renderFlavors();
+          });
+          btn.appendChild(del);
+        }
+        flavorIcoGal.appendChild(btn);
+      });
+    }
+
+    function flavorMeta(name) {
+      var meta = (window.DspFlavorLib && window.DspFlavorLib.lookup)
+        ? window.DspFlavorLib.lookup(name)
+        : { title: String(name || "").trim(), desc: "", ico: "ico-generico", img: "" };
+      var customs = loadCustomFlavorIcos();
+      var key = window.DspFlavorLib ? window.DspFlavorLib.norm(name) : String(name || "").toLowerCase();
+      if (customs[key]) {
+        meta = Object.assign({}, meta, { dataUrl: customs[key], img: "" });
+      }
+      return meta;
     }
 
     function buildPetGal() {
@@ -733,13 +901,18 @@ Batata doce</textarea>
     }
 
     function renderFlavors() {
-      var lines = String(flavorsEl.value || "").split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 5);
+      var lines = String(flavorsEl.value || "").split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, FLAVOR_MAX);
       flavorList.innerHTML = "";
       lines.forEach(function (name) {
         var meta = flavorMeta(name);
         var li = document.createElement("li");
         var icoHtml;
-        if (meta.img) {
+        if (meta.dataUrl) {
+          icoHtml =
+            '<span class="dsp-flavor-ico"><img class="dsp-flavor-ico-img" src="' +
+            meta.dataUrl +
+            '" alt="" draggable="false" /></span>';
+        } else if (meta.img) {
           icoHtml =
             '<span class="dsp-flavor-ico"><img class="dsp-flavor-ico-img" src="' +
             STATIC + meta.img +
@@ -760,6 +933,7 @@ Batata doce</textarea>
         li.querySelector(".dsp-flavor-desc").textContent = meta.desc || "";
         flavorList.appendChild(li);
       });
+      syncFlavorPick();
     }
 
     function renderProtein() {
@@ -799,6 +973,40 @@ Batata doce</textarea>
     buildPetGal();
     buildLogoGal();
     buildGal(ingGal, INGS, "ing");
+    buildFlavorPick();
+    fillFlavorIcoTarget();
+    buildFlavorIcoGal();
+
+    if (flavorIcoFile) {
+      flavorIcoFile.addEventListener("change", function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!file) return;
+        var label = flavorIcoTarget && flavorIcoTarget.value;
+        if (!label) {
+          window.alert("Escolha o sabor do ícone.");
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var img = new Image();
+          img.onload = function () {
+            resizeImageToDataUrl(img, 512, function (dataUrl) {
+              var all = loadCustomFlavorIcos();
+              var key = window.DspFlavorLib.norm(label);
+              all[key] = dataUrl;
+              saveCustomFlavorIcos(all);
+              buildFlavorIcoGal();
+              renderFlavors();
+            });
+          };
+          img.onerror = function () { window.alert("Não deu para ler a imagem."); };
+          img.src = String(reader.result || "");
+        };
+        reader.onerror = function () { window.alert("Não deu para ler o arquivo."); };
+        reader.readAsDataURL(file);
+      });
+    }
 
     document.getElementById("dspLogoFile").addEventListener("change", function (ev) {
       var file = ev.target.files && ev.target.files[0];
@@ -873,7 +1081,7 @@ Batata doce</textarea>
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
       brandEl.value = "Robustus";
-      flavorsEl.value = "Carne\nFrango\nBatata doce";
+      flavorsEl.value = "Carne Bovina\nFrango\nBatata-Doce";
       proteinEl.value = "32";
       petId = "chihuahua";
       logoId = "";
@@ -883,8 +1091,10 @@ Batata doce</textarea>
       loadFitForPet(petId);
       loadFitForIng(ingId);
       buildLogoGal();
+      buildFlavorIcoGal();
       renderAll();
       syncGal();
+      syncFlavorPick();
     });
 
     bindPetFitControls();

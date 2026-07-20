@@ -116,6 +116,69 @@ html, body {
   padding-right: 0.2rem;
 }
 
+.dsp-flavor-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0 0 0.75rem;
+  max-height: 9.5rem;
+  overflow: auto;
+}
+
+.dsp-flavor-chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.dsp-flavor-chip:hover {
+  border-color: #64748b;
+  background: #f8fafc;
+}
+
+.dsp-flavor-chip.is-on {
+  border-color: var(--dsp-cat-deep, #2d6b34);
+  background: color-mix(in srgb, var(--dsp-cat, #3f8f45) 18%, #fff);
+  color: #0f172a;
+}
+
+.dsp-gal--flavor-icos {
+  grid-template-columns: repeat(4, 1fr);
+  max-height: 11rem;
+  overflow: auto;
+}
+
+.dsp-gal--flavor-icos .dsp-gal-item {
+  aspect-ratio: 1;
+  background: #fff;
+}
+
+.dsp-gal--flavor-icos .dsp-gal-item img {
+  object-fit: contain;
+  padding: 0.35rem;
+}
+
+.dsp-gal--flavor-icos .dsp-gal-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.1rem 0.15rem;
+  line-height: 1.15;
+  color: #334155;
+}
+
 .dsp-gal--logos {
   grid-template-columns: repeat(3, 1fr);
 }
