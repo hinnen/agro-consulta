@@ -1171,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Logo e pet com **limites fixos** (54×54 mm / 44×54 mm) — um não empurra o outro |
+| **Agora** | Marca: margem esq. menor · zona **58×54 mm** · pet **42×54 mm** (limites fixos) |
 | **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 

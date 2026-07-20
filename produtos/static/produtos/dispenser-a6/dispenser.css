@@ -323,9 +323,9 @@ html, body {
   z-index: 2;
   display: grid;
   /* Zonas fixas: logo | pet — um não empurra o outro */
-  grid-template-columns: 54mm 44mm;
-  column-gap: 2mm;
-  padding: 1.5mm 1mm 1mm 5mm;
+  grid-template-columns: 58mm 42mm;
+  column-gap: 1.5mm;
+  padding: 1.5mm 0.5mm 1mm 2mm;
   height: 54mm;
   min-height: 54mm;
   max-height: 54mm;
@@ -339,14 +339,15 @@ html, body {
   text-align: left;
   width: 100%;
   height: 100%;
-  max-width: 54mm;
+  max-width: 58mm;
   max-height: 54mm;
   min-width: 0;
   min-height: 0;
-  padding: 1mm 1mm 0 0;
+  padding: 1mm 0.5mm 0 0;
   overflow: hidden;
   z-index: 3;
   box-sizing: border-box;
+  background: transparent;
 }
 
 .dsp-brand.is-logo {
@@ -396,7 +397,7 @@ html, body {
 .dsp-pet {
   width: 100%;
   height: 100%;
-  max-width: 44mm;
+  max-width: 42mm;
   max-height: 54mm;
   min-width: 0;
   min-height: 0;
