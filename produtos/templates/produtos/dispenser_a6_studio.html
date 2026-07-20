@@ -62,8 +62,7 @@ Batata doce</textarea>
       <article class="dsp-a6" id="dspCard">
         <header class="dsp-header">
           <div class="dsp-header-text" id="dspHeaderText">
-            <span class="dsp-line1">Cão adulto</span>
-            <span class="dsp-line2">Raças pequenas</span>
+            <span class="dsp-cat-one" id="dspCatOne">Cão adulto raças pequenas</span>
           </div>
         </header>
 
@@ -152,6 +151,7 @@ Batata doce</textarea>
     var flavorsEl = document.getElementById("dspFlavors");
     var proteinEl = document.getElementById("dspProtein");
     var headerText = document.getElementById("dspHeaderText");
+    var catOne = document.getElementById("dspCatOne");
     var brandOut = document.getElementById("dspBrandOut");
     var flavorList = document.getElementById("dspFlavorList");
     var proteinOut = document.getElementById("dspProteinOut");
@@ -162,6 +162,27 @@ Batata doce</textarea>
     var ingGal = document.getElementById("dspIngGal");
     var petId = "chihuahua";
     var ingId = "carne-frango-batata";
+    var HEADER_MAX_MM = 5.8;
+    var HEADER_MIN_MM = 3.4;
+
+    function catFullLabel(parts) {
+      return [parts[0], parts[1]].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    }
+
+    function fitHeaderOneLine() {
+      if (!catOne || !headerText) return;
+      var box = headerText.clientWidth;
+      if (box < 8) return;
+      var size = HEADER_MAX_MM;
+      catOne.style.fontSize = size + "mm";
+      // Encolhe até caber (base: categoria mais longa)
+      var guard = 0;
+      while (catOne.scrollWidth > box && size > HEADER_MIN_MM && guard < 40) {
+        size -= 0.12;
+        catOne.style.fontSize = size + "mm";
+        guard += 1;
+      }
+    }
 
     function iconFor(name) {
       return FLAVOR_ICON[String(name || "").trim().toLowerCase()] || "ico-generico";
@@ -230,8 +251,11 @@ Batata doce</textarea>
       var cat = catEl.value;
       root.setAttribute("data-cat", cat);
       var labels = CAT_LABELS[cat] || ["Categoria", ""];
-      headerText.innerHTML = '<span class="dsp-line1">' + labels[0] + '</span>' +
-        (labels[1] ? '<span class="dsp-line2">' + labels[1] + '</span>' : '');
+      var shown = catFullLabel(labels);
+      // Calibra o tamanho na categoria mais longa; aplica em todas
+      catOne.textContent = catFullLabel(CAT_LABELS["cao-filhote-medio"]);
+      fitHeaderOneLine();
+      catOne.textContent = shown;
       brandOut.textContent = String(brandEl.value || "").trim() || "Sua marca";
       renderFlavors();
       renderProtein();
