@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **Todos** os sabores com ícone PNG no padrão (linha fina) |
-| **Você** | Ctrl+F5 · testar nomes: Salmão, Cenoura, Quinoa… |
-| **Status** | ⏳ validar biblioteca completa de ícones |
+| **Agora** | Fonte do **nome do sabor** maior (descrição igual) |
+| **Você** | Ctrl+F5 |
+| **Status** | ⏳ validar tamanho do título |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
