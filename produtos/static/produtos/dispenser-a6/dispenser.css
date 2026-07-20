@@ -261,6 +261,7 @@ html, body {
   display: grid;
   gap: 0.25rem;
   margin: 0 0 0.75rem;
+  position: relative;
 }
 
 .dsp-gal-add-btn {
@@ -275,6 +276,9 @@ html, body {
   color: #0f172a;
   background: #f8fafc;
   cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .dsp-gal-add-btn:hover {
@@ -282,10 +286,32 @@ html, body {
   background: #f1f5f9;
 }
 
+.dsp-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .dsp-gal-add-hint {
   font-size: 0.72rem;
   color: var(--dsp-muted);
   line-height: 1.3;
+}
+
+.dsp-upload-ok {
+  color: #166534 !important;
+  font-weight: 700;
+}
+
+.dsp-upload-err {
+  color: #b91c1c !important;
+  font-weight: 700;
 }
 
 .dsp-actions {

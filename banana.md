@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.42** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **+ Adicionar foto** na biblioteca de ingredientes (localStorage) |
-| **Você** | Ctrl+F5 · testar upload de ingredientes |
-| **Status** | ⏳ validar |
+| **Agora** | **v11.42** — botão + texto de status (OK / erro) + alerta ao adicionar foto de ingredientes |
+| **Você** | Ctrl+F5 · «+ Adicionar foto» → deve abrir pasta → escolher JPG/PNG → aviso verde ou vermelho + popup |
+| **Status** | ⏳ validar feedback do upload |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

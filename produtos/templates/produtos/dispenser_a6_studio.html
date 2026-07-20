@@ -72,9 +72,9 @@ Batata-Doce</textarea>
       <div class="dsp-gal-label">Biblioteca de ingredientes</div>
       <div class="dsp-gal dsp-gal--ings" id="dspIngGal" role="listbox" aria-label="Escolher ingredientes"></div>
       <div class="dsp-gal-add no-print">
-        <label class="dsp-gal-add-btn" for="dspIngFile">+ Adicionar foto de ingredientes</label>
-        <input id="dspIngFile" type="file" accept="image/*" hidden />
-        <span class="dsp-gal-add-hint">JPG ou PNG. Fica neste computador.</span>
+        <button type="button" class="dsp-gal-add-btn" id="dspIngFileBtn">+ Adicionar foto de ingredientes</button>
+        <input id="dspIngFile" type="file" accept="image/jpeg,image/png,image/webp,image/*" class="dsp-file-input" />
+        <p class="dsp-gal-add-hint" id="dspIngUploadStatus">JPG ou PNG. Fica neste computador.</p>
       </div>
 
       <div class="dsp-actions">
@@ -601,7 +601,16 @@ Batata-Doce</textarea>
     }
 
     function allIngs() {
-      return INGS.concat(loadCustomIngs());
+      return loadCustomIngs().concat(INGS);
+    }
+
+    function setIngUploadStatus(msg, kind) {
+      var el = document.getElementById("dspIngUploadStatus");
+      if (!el) return;
+      el.textContent = msg || "JPG ou PNG. Fica neste computador.";
+      el.classList.remove("dsp-upload-ok", "dsp-upload-err");
+      if (kind === "ok") el.classList.add("dsp-upload-ok");
+      if (kind === "err") el.classList.add("dsp-upload-err");
     }
 
     function buildIngGal() {
@@ -1034,6 +1043,83 @@ Batata-Doce</textarea>
     fillFlavorIcoTarget();
     buildFlavorIcoGal();
 
+    (function bindIngUpload() {
+      var ingFileBtn = document.getElementById("dspIngFileBtn");
+      var ingFile = document.getElementById("dspIngFile");
+      if (!ingFile) {
+        setIngUploadStatus("Erro: campo de arquivo não encontrado.", "err");
+        return;
+      }
+      if (ingFileBtn) {
+        ingFileBtn.addEventListener("click", function () {
+          setIngUploadStatus("Escolha a foto…");
+          try {
+            ingFile.click();
+          } catch (e) {
+            setIngUploadStatus("Não abriu a janela de arquivo.", "err");
+            window.alert("Não abriu a janela de arquivo. Tente de novo.");
+          }
+        });
+      }
+      ingFile.addEventListener("change", function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!file) {
+          setIngUploadStatus("Nenhum arquivo escolhido.", "err");
+          return;
+        }
+        setIngUploadStatus("Processando «" + (file.name || "imagem") + "»…");
+        var customs = loadCustomIngs();
+        if (customs.length >= ING_MAX_CUSTOM) {
+          setIngUploadStatus("Limite de " + ING_MAX_CUSTOM + " fotos atingido.", "err");
+          window.alert("Limite de " + ING_MAX_CUSTOM + " fotos de ingredientes neste computador.");
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var img = new Image();
+          img.onload = function () {
+            resizeImageToDataUrl(img, 800, function (dataUrl) {
+              if (!dataUrl) {
+                setIngUploadStatus("Falha ao processar a imagem.", "err");
+                window.alert("Não deu para processar essa imagem. Tente JPG ou PNG.");
+                return;
+              }
+              var item = {
+                id: "ing-custom-" + Date.now(),
+                label: (file.name || "Ingredientes").replace(/\.[^.]+$/, "").slice(0, 28) || "Ingredientes",
+                dataUrl: dataUrl
+              };
+              var next = customs.concat([item]);
+              if (!saveCustomIngs(next)) {
+                setIngUploadStatus("Não salvou (memória do navegador cheia).", "err");
+                return;
+              }
+              buildIngGal();
+              selectIng(item);
+              setIngUploadStatus("OK — foto adicionada: " + item.label, "ok");
+              window.alert("Foto adicionada na biblioteca.");
+            }, { type: "image/jpeg", quality: 0.78 });
+          };
+          img.onerror = function () {
+            setIngUploadStatus("Não consegui ler essa imagem.", "err");
+            window.alert("Não consegui ler essa imagem. Use JPG ou PNG (não HEIC do iPhone).");
+          };
+          img.src = String(reader.result || "");
+        };
+        reader.onerror = function () {
+          setIngUploadStatus("Falha ao abrir o arquivo.", "err");
+          window.alert("Falha ao abrir o arquivo.");
+        };
+        try {
+          reader.readAsDataURL(file);
+        } catch (e2) {
+          setIngUploadStatus("Erro ao ler o arquivo.", "err");
+          window.alert("Erro ao ler o arquivo.");
+        }
+      });
+    })();
+
     if (flavorIcoFile) {
       flavorIcoFile.addEventListener("change", function (ev) {
         var file = ev.target.files && ev.target.files[0];
@@ -1136,49 +1222,6 @@ Batata-Doce</textarea>
           });
         };
         img.onerror = function () { window.alert("Não consegui ler essa imagem."); };
-        img.src = String(reader.result || "");
-      };
-      reader.onerror = function () { window.alert("Falha ao abrir o arquivo."); };
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById("dspIngFile").addEventListener("change", function (ev) {
-      var file = ev.target.files && ev.target.files[0];
-      ev.target.value = "";
-      if (!file) return;
-      if (!String(file.type || "").match(/^image\//i) && !/\.(jpe?g|png|webp|gif|bmp)$/i.test(file.name || "")) {
-        window.alert("Escolha um arquivo de imagem (JPG ou PNG).");
-        return;
-      }
-      var customs = loadCustomIngs();
-      if (customs.length >= ING_MAX_CUSTOM) {
-        window.alert("Limite de " + ING_MAX_CUSTOM + " fotos de ingredientes neste computador.");
-        return;
-      }
-      var reader = new FileReader();
-      reader.onload = function () {
-        var img = new Image();
-        img.onload = function () {
-          // JPEG menor: cabe no localStorage (PNG 1200px estourava sem aviso)
-          resizeImageToDataUrl(img, 900, function (dataUrl) {
-            if (!dataUrl) {
-              window.alert("Não deu para processar essa imagem. Tente outro arquivo JPG/PNG.");
-              return;
-            }
-            var item = {
-              id: "ing-custom-" + Date.now(),
-              label: (file.name || "Ingredientes").replace(/\.[^.]+$/, "").slice(0, 28) || "Ingredientes",
-              dataUrl: dataUrl
-            };
-            var next = customs.concat([item]);
-            if (!saveCustomIngs(next)) return;
-            buildIngGal();
-            selectIng(item);
-          }, { type: "image/jpeg", quality: 0.82 });
-        };
-        img.onerror = function () {
-          window.alert("Não consegui ler essa imagem. Use JPG ou PNG.");
-        };
         img.src = String(reader.result || "");
       };
       reader.onerror = function () { window.alert("Falha ao abrir o arquivo."); };
