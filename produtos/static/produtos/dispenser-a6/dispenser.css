@@ -204,26 +204,35 @@ html, body {
   z-index: 2;
   background: linear-gradient(135deg, var(--dsp-cat), var(--dsp-cat-deep));
   color: #fff;
-  min-height: 24mm;
-  padding: 5mm 4.5mm 7mm;
+  min-height: 28mm;
+  padding: 5mm 4.5mm 8mm;
   display: flex;
   align-items: center;
   clip-path: ellipse(115% 100% at 50% 0%);
 }
 
 .dsp-header-text {
+  display: grid;
+  gap: 0.8mm;
   width: 100%;
   min-width: 0;
 }
 
-.dsp-header-text .dsp-cat-one {
-  display: block;
-  width: 100%;
-  font-weight: 800;
-  font-size: 5.2mm; /* base; JS ajusta pela categoria mais longa */
-  letter-spacing: 0.02em;
+.dsp-header-text .dsp-line1 {
+  font-weight: 600;
+  font-size: 5.6mm;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  line-height: 1.1;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.dsp-header-text .dsp-line2 {
+  font-weight: 800;
+  font-size: 6.2mm; /* JS ajusta pela linha de baixo mais longa */
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
 }

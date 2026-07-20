@@ -1171,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Categoria **1 linha** · tamanho baseado em «Cão filhote · médias e grandes» |
+| **Agora** | 2 linhas no cabeçalho · **só a de baixo** sem quebra (tamanho pela mais longa) |
 | **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
 | **Status** | ⏳ validar com Renan |
 
