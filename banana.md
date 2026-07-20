@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.43** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.45** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.43** — botão + texto OK/erro + alerta no upload de ingredientes |
-| **Você** | Ctrl+F5 · «+ Adicionar foto» → pasta → JPG/PNG → texto verde/vermelho **e** popup |
-| **Status** | ⏳ validar feedback do upload |
+| **Agora** | Moldura fixa ingredientes: retângulo em pé (borda/sombra igual ao pet) |
+| **Você** | Ctrl+F5 · conferir moldura à esquerda de Sabores |
+| **Status** | ⏳ validar tamanho da moldura |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

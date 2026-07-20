@@ -679,7 +679,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1.15fr;
   gap: 3mm;
-  align-items: stretch;
+  align-items: start;
 }
 
 .dsp-ing-stage {
@@ -687,17 +687,26 @@ html, body {
   min-width: 0;
   min-height: 0;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: visible;
 }
 
+/* Moldura fixa — mesmo padrão do pet (borda branca + anel da categoria + sombra), retrato */
 .dsp-ing-photo {
   position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  flex: 0 0 auto;
+  width: 40mm;
+  height: 58mm;
+  overflow: visible; /* selo de proteína pode sair um pouco da moldura */
+  border-radius: 3.2mm;
+  background: linear-gradient(160deg, #f3f6f8, #dbe4ee);
+  border: 1.35mm solid #fff;
+  box-shadow:
+    0 0 0 0.7mm var(--dsp-cat-deep),
+    0 2.2mm 4mm rgba(15, 23, 42, 0.3),
+    0 0.7mm 1.2mm rgba(15, 23, 42, 0.16);
+  box-sizing: border-box;
   touch-action: none;
 }
 
@@ -706,7 +715,7 @@ html, body {
   height: 100%;
   position: relative;
   overflow: hidden;
-  border-radius: 2.5mm;
+  border-radius: 1.9mm;
   cursor: grab;
   touch-action: none;
 }
