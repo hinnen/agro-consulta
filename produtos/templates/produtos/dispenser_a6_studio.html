@@ -246,12 +246,17 @@ Batata-Doce</textarea>
     }
 
     function saveCustomLogos(list) {
-      localStorage.setItem(LOGO_LS_KEY, JSON.stringify(list));
+      return trySaveLocal(LOGO_LS_KEY, JSON.stringify(list));
     }
 
-    function resizeImageToDataUrl(img, maxSide, cb) {
+    function resizeImageToDataUrl(img, maxSide, cb, opts) {
+      opts = opts || {};
       var w = img.naturalWidth || img.width;
       var h = img.naturalHeight || img.height;
+      if (!w || !h) {
+        cb("");
+        return;
+      }
       var scale = Math.min(1, maxSide / Math.max(w, h));
       var cw = Math.max(1, Math.round(w * scale));
       var ch = Math.max(1, Math.round(h * scale));
@@ -259,9 +264,38 @@ Batata-Doce</textarea>
       canvas.width = cw;
       canvas.height = ch;
       var ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, cw, ch);
+      if (!ctx) {
+        cb("");
+        return;
+      }
+      // JPEG precisa de fundo (não tem transparência)
+      if ((opts.type || "image/png") !== "image/png") {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, cw, ch);
+      } else {
+        ctx.clearRect(0, 0, cw, ch);
+      }
       ctx.drawImage(img, 0, 0, cw, ch);
-      cb(canvas.toDataURL("image/png"));
+      var type = opts.type || "image/png";
+      var quality = opts.quality != null ? opts.quality : 0.85;
+      try {
+        cb(type === "image/png" ? canvas.toDataURL("image/png") : canvas.toDataURL(type, quality));
+      } catch (e) {
+        cb("");
+      }
+    }
+
+    function trySaveLocal(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        window.alert(
+          "Não deu para salvar neste computador (memória cheia ou bloqueada).\n" +
+          "Tente uma foto menor ou remova itens antigos da biblioteca."
+        );
+        return false;
+      }
     }
 
     function applyBrandVisual() {
@@ -350,7 +384,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomPets(list) {
-      localStorage.setItem(PET_LS_KEY, JSON.stringify(list));
+      return trySaveLocal(PET_LS_KEY, JSON.stringify(list));
     }
 
     function allPets() {
@@ -563,7 +597,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomIngs(list) {
-      localStorage.setItem(ING_LS_KEY, JSON.stringify(list));
+      return trySaveLocal(ING_LS_KEY, JSON.stringify(list));
     }
 
     function allIngs() {
@@ -751,7 +785,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomFlavorIcos(obj) {
-      localStorage.setItem(FLAVOR_ICO_LS_KEY, JSON.stringify(obj));
+      return trySaveLocal(FLAVOR_ICO_LS_KEY, JSON.stringify(obj));
     }
 
     function flavorLines() {
@@ -1014,11 +1048,15 @@ Batata-Doce</textarea>
         reader.onload = function () {
           var img = new Image();
           img.onload = function () {
-            resizeImageToDataUrl(img, 512, function (dataUrl) {
+          resizeImageToDataUrl(img, 512, function (dataUrl) {
+              if (!dataUrl) {
+                window.alert("Não deu para processar essa imagem.");
+                return;
+              }
               var all = loadCustomFlavorIcos();
               var key = window.DspFlavorLib.norm(label);
               all[key] = dataUrl;
-              saveCustomFlavorIcos(all);
+              if (!saveCustomFlavorIcos(all)) return;
               buildFlavorIcoGal();
               renderFlavors();
             });
@@ -1045,13 +1083,17 @@ Batata-Doce</textarea>
         var img = new Image();
         img.onload = function () {
           resizeImageToDataUrl(img, 900, function (dataUrl) {
+            if (!dataUrl) {
+              window.alert("Não deu para processar esse logo.");
+              return;
+            }
             var item = {
               id: "logo-" + Date.now(),
               label: (file.name || "Logo").replace(/\.[^.]+$/, "").slice(0, 24) || "Logo",
               dataUrl: dataUrl
             };
-            customs.push(item);
-            saveCustomLogos(customs);
+            var next = customs.concat([item]);
+            if (!saveCustomLogos(next)) return;
             logoId = item.id;
             buildLogoGal();
             applyBrandVisual();
@@ -1078,13 +1120,17 @@ Batata-Doce</textarea>
         var img = new Image();
         img.onload = function () {
           knockWhiteToDataUrl(img, 720, function (dataUrl) {
+            if (!dataUrl) {
+              window.alert("Não deu para processar essa imagem.");
+              return;
+            }
             var item = {
               id: "custom-" + Date.now(),
               label: (file.name || "Pet").replace(/\.[^.]+$/, "").slice(0, 24) || "Pet",
               dataUrl: dataUrl
             };
-            customs.push(item);
-            saveCustomPets(customs);
+            var next = customs.concat([item]);
+            if (!saveCustomPets(next)) return;
             buildPetGal();
             selectPet(item);
           });
@@ -1100,6 +1146,10 @@ Batata-Doce</textarea>
       var file = ev.target.files && ev.target.files[0];
       ev.target.value = "";
       if (!file) return;
+      if (!String(file.type || "").match(/^image\//i) && !/\.(jpe?g|png|webp|gif|bmp)$/i.test(file.name || "")) {
+        window.alert("Escolha um arquivo de imagem (JPG ou PNG).");
+        return;
+      }
       var customs = loadCustomIngs();
       if (customs.length >= ING_MAX_CUSTOM) {
         window.alert("Limite de " + ING_MAX_CUSTOM + " fotos de ingredientes neste computador.");
@@ -1109,19 +1159,26 @@ Batata-Doce</textarea>
       reader.onload = function () {
         var img = new Image();
         img.onload = function () {
-          resizeImageToDataUrl(img, 1200, function (dataUrl) {
+          // JPEG menor: cabe no localStorage (PNG 1200px estourava sem aviso)
+          resizeImageToDataUrl(img, 900, function (dataUrl) {
+            if (!dataUrl) {
+              window.alert("Não deu para processar essa imagem. Tente outro arquivo JPG/PNG.");
+              return;
+            }
             var item = {
               id: "ing-custom-" + Date.now(),
               label: (file.name || "Ingredientes").replace(/\.[^.]+$/, "").slice(0, 28) || "Ingredientes",
               dataUrl: dataUrl
             };
-            customs.push(item);
-            saveCustomIngs(customs);
+            var next = customs.concat([item]);
+            if (!saveCustomIngs(next)) return;
             buildIngGal();
             selectIng(item);
-          });
+          }, { type: "image/jpeg", quality: 0.82 });
         };
-        img.onerror = function () { window.alert("Não consegui ler essa imagem."); };
+        img.onerror = function () {
+          window.alert("Não consegui ler essa imagem. Use JPG ou PNG.");
+        };
         img.src = String(reader.result || "");
       };
       reader.onerror = function () { window.alert("Falha ao abrir o arquivo."); };
