@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.55** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.58** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Abas: Folha · Bicho · Ingredientes · Sabores |
-| **Você** | Ctrl+F5 |
-| **Status** | ok |
+| **Agora** | Moldura impressão fina (0,85 mm) igual à prévia — era 2 mm |
+| **Você** | Ctrl+F5 · imprimir e conferir borda do bicho/ingredientes |
+| **Status** | ⏳ validar espessura print |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

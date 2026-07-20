@@ -1150,23 +1150,21 @@ html, body {
     color: #fff !important;
   }
 
-  /* box-shadow some na impressão → borda real */
-  .dsp-pet {
-    box-shadow: none !important;
-    border: 2mm solid var(--dsp-cat-deep) !important;
-    background: #fff !important;
-  }
-
+  /* Espessura fina como na prévia (~0,7–0,9 mm). 2 mm ficava grosso na impressão. */
+  .dsp-pet,
   .dsp-ing-photo {
+    border: 0.85mm solid var(--dsp-cat-deep) !important;
     box-shadow: none !important;
-    border: 2mm solid var(--dsp-cat-deep) !important;
     background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .dsp-protein {
     box-shadow: none !important;
-    border: 1.6mm solid #fff !important;
-    outline: 0.7mm solid var(--dsp-cat-deep);
+    border: 1.2mm solid #fff !important;
+    outline: 0.55mm solid var(--dsp-cat-deep);
+    outline-offset: 0;
     background: var(--dsp-protein) !important;
     color: #fff !important;
     -webkit-print-color-adjust: exact !important;
