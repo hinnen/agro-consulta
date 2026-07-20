@@ -3392,7 +3392,7 @@
           <div class="pdv-wiz-topbar-row">
             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
               <span class="pdv-wiz-topbar-brand">PDV</span>
-              <span id="pdv-deposito-badge" class="inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 {% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Estoque: Centro" }}</span>
+              <span id="pdv-deposito-badge" class="inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 {% if caixa_aberto %}hidden {% endif %}{% if pdv_deposito == 'vila' %}border-slate-400 bg-slate-100 text-slate-800{% else %}border-emerald-300 bg-emerald-50 text-emerald-900{% endif %}" title="Depósito que este PDV baixa no estoque. Troque na home (Loja).">{{ pdv_estoque_ativo_label|default:"Estoque: Centro" }}</span>
               <nav class="pdv-wiz-stepper" id="pdv-stepper" aria-label="Etapas da venda">
                 <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
                   <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>

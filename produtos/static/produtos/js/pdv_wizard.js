@@ -50,6 +50,15 @@
                 link.classList.add('bg-amber-100', 'text-amber-950', 'border-2', 'border-amber-400');
             }
         }
+        if (bootstrap.pdvDeposito) {
+            atualizarBadgeDeposito(bootstrap.pdvDeposito);
+        } else {
+            var badge = document.getElementById('pdv-deposito-badge');
+            if (badge) {
+                if (aberto) badge.classList.add('hidden');
+                else badge.classList.remove('hidden');
+            }
+        }
     }
 
     function atualizarBadgeDeposito(depBoot) {
@@ -57,6 +66,12 @@
         bootstrap.pdvDeposito = depBoot;
         var badge = document.getElementById('pdv-deposito-badge');
         if (!badge) return;
+        // Com caixa aberto o botão da direita já diz a loja — badge TRAVADO fica redundante.
+        if (caixaAbertoParaVenda() || depBoot.caixaTravado) {
+            badge.classList.add('hidden');
+            return;
+        }
+        badge.classList.remove('hidden');
         var label = depBoot.estoqueAtivoLabel || ('Estoque: ' + (depBoot.depositoLabel || 'Centro'));
         badge.textContent = label;
         var isVila = String(depBoot.deposito || '') === 'vila';
