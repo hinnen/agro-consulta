@@ -41,31 +41,20 @@
         <span class="dsp-gal-add-hint">Prefira PNG com fundo transparente. Fica neste computador.</span>
       </div>
 
-      <div class="dsp-field">
-        <label for="dspFlavors">Sabores na folha (um por linha · máx. 5)</label>
-        <textarea id="dspFlavors">Carne Bovina
-Frango
-Batata-Doce</textarea>
-        <span class="dsp-gal-add-hint">Ou clique abaixo para montar a lista.</span>
-      </div>
-
-      <div class="dsp-gal-label">Proteínas e bases</div>
-      <div class="dsp-flavor-pick" id="dspFlavorPickProt" role="group" aria-label="Proteínas"></div>
-
-      <div class="dsp-gal-label">Acompanhamentos</div>
-      <div class="dsp-flavor-pick" id="dspFlavorPickSide" role="group" aria-label="Acompanhamentos"></div>
-
-      <div class="dsp-gal-label">Ícones PNG dos sabores</div>
-      <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Ícones de sabor"></div>
+      <div class="dsp-gal-label">Sabores na folha (clique no ícone · máx. 5)</div>
+      <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
       <div class="dsp-gal-add no-print">
         <label class="dsp-field" style="margin:0 0 0.35rem">
-          <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Sabor do ícone</span>
+          <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
           <select id="dspFlavorIcoTarget"></select>
         </label>
-        <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Adicionar / trocar PNG</label>
+        <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
         <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-        <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador. Vale para o nome escolhido.</span>
+        <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
       </div>
+      <textarea id="dspFlavors" hidden>Carne Bovina
+Frango
+Batata-Doce</textarea>
 
       <div class="dsp-field">
         <label for="dspProtein">Proteína (%)</label>
@@ -212,8 +201,6 @@ Batata-Doce</textarea>
     var petGal = document.getElementById("dspPetGal");
     var logoGal = document.getElementById("dspLogoGal");
     var ingGal = document.getElementById("dspIngGal");
-    var flavorPickProt = document.getElementById("dspFlavorPickProt");
-    var flavorPickSide = document.getElementById("dspFlavorPickSide");
     var flavorIcoGal = document.getElementById("dspFlavorIcoGal");
     var flavorIcoTarget = document.getElementById("dspFlavorIcoTarget");
     var flavorIcoFile = document.getElementById("dspFlavorIcoFile");
@@ -706,7 +693,7 @@ Batata-Doce</textarea>
     function setFlavorLines(lines) {
       flavorsEl.value = lines.slice(0, FLAVOR_MAX).join("\n");
       renderAll();
-      syncFlavorPick();
+      buildFlavorIcoGal();
     }
 
     function toggleFlavorLabel(label) {
@@ -729,39 +716,6 @@ Batata-Doce</textarea>
       setFlavorLines(lines);
     }
 
-    function buildFlavorPick() {
-      function fill(el, items) {
-        if (!el) return;
-        el.innerHTML = "";
-        items.forEach(function (it) {
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "dsp-flavor-chip";
-          btn.dataset.key = it.key;
-          btn.textContent = it.label;
-          btn.title = "Adicionar / remover da lista";
-          btn.addEventListener("click", function () { toggleFlavorLabel(it.label); });
-          el.appendChild(btn);
-        });
-      }
-      var lib = window.DspFlavorLib || {};
-      fill(flavorPickProt, lib.PROTEINS || []);
-      fill(flavorPickSide, lib.SIDES || []);
-      syncFlavorPick();
-    }
-
-    function syncFlavorPick() {
-      var normFn = window.DspFlavorLib ? window.DspFlavorLib.norm : function (s) { return String(s || "").toLowerCase(); };
-      var on = {};
-      flavorLines().forEach(function (n) { on[normFn(n)] = true; });
-      [flavorPickProt, flavorPickSide].forEach(function (box) {
-        if (!box) return;
-        Array.prototype.forEach.call(box.children, function (b) {
-          b.classList.toggle("is-on", !!on[b.dataset.key]);
-        });
-      });
-    }
-
     function fillFlavorIcoTarget() {
       if (!flavorIcoTarget) return;
       var lib = window.DspFlavorLib || {};
@@ -782,14 +736,17 @@ Batata-Doce</textarea>
       var lib = window.DspFlavorLib || {};
       var list = lib.INDIVIDUALS || [];
       var customs = loadCustomFlavorIcos();
+      var normFn = lib.norm || function (s) { return String(s || "").toLowerCase(); };
+      var on = {};
+      flavorLines().forEach(function (n) { on[normFn(n)] = true; });
       flavorIcoGal.innerHTML = "";
       list.forEach(function (it) {
         var meta = lib.lookup ? lib.lookup(it.label) : {};
-        var custom = customs[lib.norm ? lib.norm(it.label) : it.key];
+        var custom = customs[normFn(it.label)];
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "dsp-gal-item" + (custom ? " is-custom" : "");
-        btn.title = it.label + (custom ? " (PNG próprio)" : "");
+        btn.className = "dsp-gal-item" + (custom ? " is-custom" : "") + (on[it.key] || on[normFn(it.label)] ? " is-on" : "");
+        btn.title = it.label + (custom ? " (PNG próprio)" : "") + " — clique para incluir na folha";
         btn.dataset.label = it.label;
         var src = custom || (meta.img ? STATIC + meta.img : "");
         if (src) {
@@ -811,7 +768,7 @@ Batata-Doce</textarea>
           del.addEventListener("click", function (ev) {
             ev.stopPropagation();
             var all = loadCustomFlavorIcos();
-            delete all[lib.norm(it.label)];
+            delete all[normFn(it.label)];
             saveCustomFlavorIcos(all);
             buildFlavorIcoGal();
             renderFlavors();
@@ -933,7 +890,6 @@ Batata-Doce</textarea>
         li.querySelector(".dsp-flavor-desc").textContent = meta.desc || "";
         flavorList.appendChild(li);
       });
-      syncFlavorPick();
     }
 
     function renderProtein() {
@@ -973,7 +929,6 @@ Batata-Doce</textarea>
     buildPetGal();
     buildLogoGal();
     buildGal(ingGal, INGS, "ing");
-    buildFlavorPick();
     fillFlavorIcoTarget();
     buildFlavorIcoGal();
 
@@ -1094,7 +1049,6 @@ Batata-Doce</textarea>
       buildFlavorIcoGal();
       renderAll();
       syncGal();
-      syncFlavorPick();
     });
 
     bindPetFitControls();

@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Lista completa de sabores individuais (clique) · **upload PNG** do ícone por sabor |
-| **Você** | Ctrl+F5 · montar lista + testar + PNG |
-| **Status** | ⏳ validar picker + upload ícone |
+| **Agora** | Menu limpo (só grade de ícones) · **fotos individuais** na biblioteca de ingredientes |
+| **Você** | Ctrl+F5 · escolher sabor na grade · ver solos na biblioteca |
+| **Status** | ⏳ validar |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

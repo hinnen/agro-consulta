@@ -79,6 +79,39 @@ window.DspFlavorLib = (function () {
     };
   }
 
+  /** Fotos individuais (biblioteca de ingredientes) */
+  var SINGLES = [
+    { id: "solo-frango", file: "ings/solo-frango.jpg", label: "Frango", flavors: "Frango" },
+    { id: "solo-carne", file: "ings/solo-carne.jpg", label: "Carne Bovina", flavors: "Carne Bovina" },
+    { id: "solo-cordeiro", file: "ings/solo-cordeiro.jpg", label: "Cordeiro", flavors: "Cordeiro" },
+    { id: "solo-salmao", file: "ings/solo-salmao.jpg", label: "Salmão", flavors: "Salmão" },
+    { id: "solo-atum", file: "ings/solo-atum.jpg", label: "Atum", flavors: "Atum" },
+    { id: "solo-peixe", file: "ings/solo-peixe.jpg", label: "Peixe Branco", flavors: "Peixe Branco" },
+    { id: "solo-sardinha", file: "ings/solo-sardinha.jpg", label: "Sardinha", flavors: "Sardinha" },
+    { id: "solo-suina", file: "ings/solo-suina.jpg", label: "Carne Suína", flavors: "Carne Suína" },
+    { id: "solo-peru", file: "ings/solo-peru.jpg", label: "Peru", flavors: "Peru" },
+    { id: "solo-pato", file: "ings/solo-pato.jpg", label: "Pato", flavors: "Pato" },
+    { id: "solo-coelho", file: "ings/solo-coelho.jpg", label: "Coelho", flavors: "Coelho" },
+    { id: "solo-figado", file: "ings/solo-figado.jpg", label: "Fígado", flavors: "Fígado" },
+    { id: "solo-ovelha", file: "ings/solo-ovelha.jpg", label: "Ovelha", flavors: "Ovelha" },
+    { id: "solo-arroz", file: "ings/solo-arroz.jpg", label: "Arroz", flavors: "Arroz" },
+    { id: "solo-batata", file: "ings/solo-batata.jpg", label: "Batata-Doce", flavors: "Batata-Doce" },
+    { id: "solo-cenoura", file: "ings/solo-cenoura.jpg", label: "Cenoura", flavors: "Cenoura" },
+    { id: "solo-abobora", file: "ings/solo-abobora.jpg", label: "Abóbora", flavors: "Abóbora" },
+    { id: "solo-ervilha", file: "ings/solo-ervilha.jpg", label: "Ervilha", flavors: "Ervilha" },
+    { id: "solo-maca", file: "ings/solo-maca.jpg", label: "Maçã", flavors: "Maçã" },
+    { id: "solo-mirtilo", file: "ings/solo-mirtilo.jpg", label: "Blueberry (Mirtilo)", flavors: "Blueberry (Mirtilo)" },
+    { id: "solo-brocolis", file: "ings/solo-brocolis.jpg", label: "Brócolis", flavors: "Brócolis" },
+    { id: "solo-espinafre", file: "ings/solo-espinafre.jpg", label: "Espinafre", flavors: "Espinafre" },
+    { id: "solo-beterraba", file: "ings/solo-beterraba.jpg", label: "Beterraba", flavors: "Beterraba" },
+    { id: "solo-mandioca", file: "ings/solo-mandioca.jpg", label: "Mandioca", flavors: "Mandioca" },
+    { id: "solo-quinoa", file: "ings/solo-quinoa.jpg", label: "Quinoa", flavors: "Quinoa" },
+    { id: "solo-aveia", file: "ings/solo-aveia.jpg", label: "Aveia", flavors: "Aveia" },
+    { id: "solo-erva", file: "ings/solo-erva.jpg", label: "Erva-Doce", flavors: "Erva-Doce" },
+    { id: "solo-hortela", file: "ings/solo-hortela.jpg", label: "Hortelã", flavors: "Hortelã" },
+    { id: "solo-legumes", file: "ings/solo-legumes.jpg", label: "Legumes", flavors: "Legumes" }
+  ];
+
   /** Combinações prontas → arquivo de foto + linhas de sabor */
   var COMBOS = [
     { id: "frango-carne", file: "ings/combo-frango-carne.jpg", label: "Frango e Carne", flavors: "Frango\nCarne" },
@@ -161,7 +194,8 @@ window.DspFlavorLib = (function () {
     norm: norm,
     lookup: lookup,
     META: META,
-    COMBOS: COMBOS,
+    SINGLES: SINGLES,
+    COMBOS: SINGLES.concat(COMBOS),
     PROTEINS: PROTEINS,
     SIDES: SIDES,
     INDIVIDUALS: INDIVIDUALS,
