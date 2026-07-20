@@ -1163,55 +1163,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja** · teste
+**Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.85**
 
-### WIP — Dispenser A6 (visual) (20/07/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Decisão** | Visual primeiro; sistema depois · **1 ajuste por vez** |
-| **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Marca: margem esq. menor · zona **58×54 mm** · pet **42×54 mm** (limites fixos) |
-| **Você** | Ctrl+F5 · validar só o cabeçalho · próximo ajuste |
-| **Status** | ⏳ validar com Renan |
-
-### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.93**)
+### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **1 Adotar** | PC Vila **não** puxa mais Gaveta Centro — `adotar` filtra pelo depósito do BI |
-| **2 Fechar** | Entrega SEM DONO / catálogo sem Assumir **não** trava · Assumida pela loja **trava essa loja** · caixa #104 Centro não trava Vila |
-| **3 Quem** | Overlay entrega + Entrada NF usam **PIN/operador**, não login Django (fim do «geraldo hinnen» fantasma em lançamentos novos) |
-| **Arquivos** | `caixa_util.py` · `entrega_pdv_pendente_util.py` · `views.py` |
-| **Você** | Ctrl+F5 no **teste** · Vila: Fechar caixa sem bloqueio da entrega Centro · overlay sem Geraldo Hinnen se PIN Queila · Entrada NF nova com nome certo |
-| **Status** | ✅ smoke Renan 20/07 fechar Vila · catálogo SEM DONO/Assumir · rótulo PDV fixo Caixa Centro/Vila (sem #turno) · **cherry pronto** `prep/loja-caixa-vila-centro` · rollback `rollback/pre-caixa-vila-centro-v10.82` · aguarda frase+senha |
-| **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem · smoke: 2 navegadores (trava BI) |
-
-
-### 🚨 Vila Elias — adotava caixa Centro (20/07 abertura oficial)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | PC Vila + estoque Vila ainda mostrava **Gaveta Centro #104**; sumia Abrir caixa |
-| **Causa (provável)** | adotar_sessao_caixa_unica_aberta pega gaveta Centro quando ponto_nav=gaveta; painel chama adotar; /caixa/abrir/ não |
-| **Workaround OK** | Renan 20/07: ir em /caixa/abrir/ · abrir **Vila Elias** (#105) · Centro #104 intacto |
-| **Status** | ✅ fix no teste (bloco acima) · loja ainda pendente autorização |
-| **Atenção** | Nunca «Fechar caixa» na Vila se o resumo disser **Centro** |
-
-
-### 📦 PACOTE PRONTO LOJA — MP automático após abrir caixa (19/07 · **teste v10.89**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** |
-| **Obs.** | **testar em produção após subir** (abrir Gaveta → cartão → MP automático sem F5) |
-| **Sintoma** | Após abrir Gaveta, mensagem «Abra o Caixa Gaveta…» por minutos até F5 |
-| **Causa** | Refresh do caixa atualizava turno, **não** `mpPointEnabled` / lista de maquininhas |
-| **Fix** | `refreshCaixaBootstrap` também puxa `pagamentoUi` |
-| **Arquivo** | `produtos/static/produtos/js/pdv_wizard.js` |
-| **Risco** | Baixo — só atualiza flag/lista no refresh pós-abrir caixa |
-| **Autorizar** | *«pode subir MP automático após abrir caixa»* + **99738595** |
-| **Após enviar** | Obrigatório testar na loja: abrir Gaveta no overlay → pagar cartão → MP Balcão já disponível **sem** Ctrl+F5 |
+| **Status** | 📦 **PRONTO PARA ENVIO** — aguardando frase + senha na mesma mensagem |
+| **Branch** | \prep/loja-caixa-vila-centro\ @ *89b5d\ (1 commit limpo) |
+| **VERSION loja** | **10.85** |
+| **Backup** | ollback/pre-caixa-vila-centro-v10.82\ |
+| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO livre / Assumir trava · (4) Quem=PIN · (5) rótulo Caixa Centro/Vila Elias · (6) sem badge TRAVADO redundante |
+| **NÃO inclui** | Dispenser · MP automático · merge inteiro teste |
+| **Smoke** | ✅ fechar Vila com entrega Centro (20/07) |
+| **Autorizar** | *«pode subir caixa Vila Centro»* + **99738595** |
+| **Após Live** | Ctrl+F5 Vila: Caixa sem # · sem TRAVADO duplicado · fechar livre da entrega Centro |
 
 
 ### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
