@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Sem **card** branco atrás da foto dos ingredientes |
-| **Você** | Ctrl+F5 |
-| **Status** | ⏳ validar foto sem card |
+| **Agora** | Ícones no padrão (círculo + traço colorido) · título+descrição · **12 fotos** de combinação novas |
+| **Você** | Ctrl+F5 · clicar combinações na galeria |
+| **Status** | ⏳ validar biblioteca sabores |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

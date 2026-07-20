@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
   <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -42,9 +43,8 @@
 
       <div class="dsp-field">
         <label for="dspFlavors">Sabores (um por linha)</label>
-        <textarea id="dspFlavors">Carne
-Frango
-Batata doce</textarea>
+        <textarea id="dspFlavors">Frango
+Carne</textarea>
       </div>
 
       <div class="dsp-field">
@@ -102,7 +102,7 @@ Batata doce</textarea>
             <div class="dsp-ing-stage">
               <div class="dsp-ing-photo" id="dspIngFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
                 <div class="dsp-ing-viewport" id="dspIngViewport">
-                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/carne-frango-batata.jpg' %}" alt="" draggable="false" />
+                  <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.jpg' %}" alt="" draggable="false" />
                 </div>
                 <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
               </div>
@@ -134,15 +134,7 @@ Batata doce</textarea>
     </main>
   </div>
 
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
-    <symbol id="ico-carne" viewBox="0 0 24 24"><path fill="none" stroke="#5a3a2a" stroke-width="1.6" d="M7.5 9.5c0-2 2-3.5 4.5-3.5s4.5 1.5 4.5 3.5c0 .9-.4 1.7-1 2.3V17a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2v-5.2c-.6-.6-1-1.4-1-2.3z"/><circle fill="none" stroke="#5a3a2a" stroke-width="1.4" cx="12" cy="9.5" r="1.6"/></symbol>
-    <symbol id="ico-frango" viewBox="0 0 24 24"><path fill="none" stroke="#b45309" stroke-width="1.6" d="M9 10c0-2.2 1.8-4 4-4 1.5 0 2.8.8 3.5 2L19 7.2c.4-.5 1.2-.4 1.5.2.2.4.1.9-.3 1.2l-2.2 1.6c.2.5.3 1 .3 1.5 0 2.5-2 4.5-4.5 4.5S9.3 14.7 9.3 12.2c0-.7.2-1.4.5-2L8 9.2"/><path fill="none" stroke="#b45309" stroke-width="1.6" d="M10.5 15.5V19a1.5 1.5 0 0 0 1.5 1.5h1A1.5 1.5 0 0 0 14.5 19v-3.2"/></symbol>
-    <symbol id="ico-batata" viewBox="0 0 24 24"><ellipse fill="none" stroke="#c2410c" stroke-width="1.6" cx="12" cy="13" rx="5.5" ry="6"/><circle fill="#c2410c" cx="10" cy="11.5" r=".7"/><circle fill="#c2410c" cx="14" cy="14" r=".6"/></symbol>
-    <symbol id="ico-peixe" viewBox="0 0 24 24"><path fill="none" stroke="#0369a1" stroke-width="1.6" d="M4 12s3.5-4.5 8-4.5S20 12 20 12s-3.5 4.5-8 4.5S4 12 4 12z"/><circle fill="#0369a1" cx="16.2" cy="11.3" r=".9"/><path fill="none" stroke="#0369a1" stroke-width="1.6" d="M4 12l3.2-2v4z"/></symbol>
-    <symbol id="ico-abobora" viewBox="0 0 24 24"><path fill="none" stroke="#c2410c" stroke-width="1.6" d="M7.5 10.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5c1.4.4 2.5 1.8 2.5 3.4 0 2.2-2.2 4-5 4h-4c-2.8 0-5-1.8-5-4 0-1.6 1.1-3 2.5-3.4z"/></symbol>
-    <symbol id="ico-folha" viewBox="0 0 24 24"><path fill="none" stroke="#15803d" stroke-width="1.6" d="M12 4c4 1.5 6.5 5 6.5 9.2S15.8 20 12 20 5.5 17.4 5.5 13.2 8 5.5 12 4z"/><path fill="none" stroke="#15803d" stroke-width="1.5" d="M12 6.5v11"/></symbol>
-    <symbol id="ico-generico" viewBox="0 0 24 24"><circle fill="none" stroke="#64748b" stroke-width="1.6" cx="12" cy="12" r="6.5"/><circle fill="#64748b" cx="12" cy="12" r="2"/></symbol>
-  </svg>
+  {% include "produtos/includes/dispenser_flavor_icons.html" %}
 
   <script>
   (function () {
@@ -173,19 +165,7 @@ Batata doce</textarea>
     var LOGO_LS_KEY = "dsp_logos_custom_v1";
     var LOGO_MAX_CUSTOM = 24;
 
-    var INGS = [
-      { id: "carne-frango-batata", file: "ings/carne-frango-batata.jpg", flavors: "Carne\nFrango\nBatata doce" },
-      { id: "peixe", file: "ings/peixe.jpg", flavors: "Peixe\nSalmão" },
-      { id: "carne-abobora", file: "ings/carne-abobora.jpg", flavors: "Carne\nAbóbora" },
-      { id: "frango-cenoura", file: "ings/frango-cenoura.jpg", flavors: "Frango\nCenoura\nArroz" },
-      { id: "carne-legumes", file: "ings/carne-legumes.jpg", flavors: "Carne\nBatata doce\nLegumes" }
-    ];
-
-    var FLAVOR_ICON = {
-      carne: "ico-carne", frango: "ico-frango", "batata doce": "ico-batata", "batata-doce": "ico-batata",
-      peixe: "ico-peixe", salmao: "ico-peixe", salmão: "ico-peixe", abobora: "ico-abobora", abóbora: "ico-abobora",
-      arroz: "ico-folha", cenoura: "ico-folha", legumes: "ico-folha", graos: "ico-folha", grãos: "ico-folha"
-    };
+    var INGS = (window.DspFlavorLib && window.DspFlavorLib.COMBOS) ? window.DspFlavorLib.COMBOS.slice() : [];
 
     var root = document.documentElement;
     var catEl = document.getElementById("dspCat");
@@ -212,7 +192,7 @@ Batata doce</textarea>
     var ingGal = document.getElementById("dspIngGal");
     var petId = "chihuahua";
     var logoId = ""; // vazio = só texto
-    var ingId = "carne-frango-batata";
+    var ingId = "frango-carne";
     var PET_FIT_KEY = "dsp_pet_fit_v1";
     var ING_FIT_KEY = "dsp_ing_fit_v1";
     var petFit = { x: 0, y: 0, s: 1.08 };
@@ -672,7 +652,17 @@ Batata doce</textarea>
     }
 
     function iconFor(name) {
-      return FLAVOR_ICON[String(name || "").trim().toLowerCase()] || "ico-generico";
+      if (window.DspFlavorLib && window.DspFlavorLib.lookup) {
+        return window.DspFlavorLib.lookup(name).ico;
+      }
+      return "ico-generico";
+    }
+
+    function flavorMeta(name) {
+      if (window.DspFlavorLib && window.DspFlavorLib.lookup) {
+        return window.DspFlavorLib.lookup(name);
+      }
+      return { title: String(name || "").trim(), desc: "", ico: "ico-generico" };
     }
 
     function buildPetGal() {
@@ -745,11 +735,16 @@ Batata doce</textarea>
       var lines = String(flavorsEl.value || "").split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 5);
       flavorList.innerHTML = "";
       lines.forEach(function (name) {
+        var meta = flavorMeta(name);
         var li = document.createElement("li");
-        li.innerHTML = '<span class="dsp-flavor-ico"><svg viewBox="0 0 24 24"><use href="#' + iconFor(name) + '"></use></svg></span>';
-        var span = document.createElement("span");
-        span.textContent = name;
-        li.appendChild(span);
+        li.innerHTML =
+          '<span class="dsp-flavor-ico"><svg viewBox="0 0 24 24"><use href="#' + meta.ico + '"></use></svg></span>' +
+          '<span class="dsp-flavor-text">' +
+            '<strong class="dsp-flavor-name"></strong>' +
+            '<span class="dsp-flavor-desc"></span>' +
+          "</span>";
+        li.querySelector(".dsp-flavor-name").textContent = meta.title;
+        li.querySelector(".dsp-flavor-desc").textContent = meta.desc || "";
         flavorList.appendChild(li);
       });
     }
@@ -865,13 +860,13 @@ Batata doce</textarea>
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
       brandEl.value = "Robustus";
-      flavorsEl.value = "Carne\nFrango\nBatata doce";
+      flavorsEl.value = "Frango\nCarne";
       proteinEl.value = "32";
       petId = "chihuahua";
       logoId = "";
-      ingId = "carne-frango-batata";
+      ingId = "frango-carne";
       petImg.src = STATIC + "pets/chihuahua.png";
-      ingImg.src = STATIC + "ings/carne-frango-batata.jpg";
+      ingImg.src = STATIC + "ings/combo-frango-carne.jpg";
       loadFitForPet(petId);
       loadFitForIng(ingId);
       buildLogoGal();
