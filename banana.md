@@ -1163,18 +1163,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **loja** · teste **v10.95**
+**Versão app (VERSION):** **loja** · teste **v10.96**
 
-### WIP — Dispenser A6 (visual) **v10.95** (20/07/2026)
+### WIP — Dispenser A6 (visual) **v10.96** (20/07/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Decisão** | Acertar **template visual** primeiro; **depois** ligar no sistema (cadastro/preço) |
+| **Decisão** | Acertar **template visual** primeiro; **depois** ligar no sistema |
 | **URL teste** | `/interno/dispenser-a6/` (login) |
-| **O quê** | Cartaz A6 + painel: categoria/cor · marca · sabores · bolha preço · imprimir |
-| **Arquivos** | `dispenser_a6_studio.html` · `static/.../dispenser-a6/dispenser.css` · rota + view |
-| **Ainda não** | Fotos reais pet/ingredientes · upload · Canva export · vínculo produto |
-| **Você** | Abrir URL no **teste** · Ctrl+F5 · trocar categoria · Imprimir A6 · dizer o que ajustar |
+| **v10.96** | Sem preço · bolha = **% proteína** · **sem** rodapé loja |
+| **Painel** | categoria/cor · marca · sabores · proteína % · imprimir |
+| **Arquivos** | `dispenser_a6_studio.html` · `dispenser.css` |
+| **Ainda não** | Fotos reais pet/ingredientes · upload · vínculo produto |
+| **Você** | Ctrl+F5 · `/interno/dispenser-a6/` · validar bolha proteína + sem rodapé |
 | **Status** | ⏳ validar visual com Renan |
 
 ### 🚨 Vila Elias — 3 fixes caixa/entrega/Quem (20/07 · **teste v10.93**)

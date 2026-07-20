@@ -186,7 +186,7 @@ body {
     0 12px 40px rgba(15, 23, 42, 0.14),
     0 0 0 1px rgba(15, 23, 42, 0.06);
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto auto 1fr auto;
 }
 
 .dsp-a6::before {
@@ -291,7 +291,7 @@ body {
 }
 
 .dsp-pet {
-  height: 38mm;
+  height: 42mm;
   border-radius: calc(var(--dsp-radius) + 0.2rem);
   background:
     radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.75), transparent 55%),
@@ -339,7 +339,7 @@ body {
 }
 
 .dsp-ing-photo {
-  height: 28mm;
+  height: 32mm;
   border-radius: var(--dsp-radius);
   border: 1.5px dashed #94a3b8;
   background: #f8fafc;
@@ -401,99 +401,57 @@ body {
   height: 4mm;
 }
 
-.dsp-price-row {
+.dsp-protein-row {
   display: flex;
   justify-content: flex-end;
-  padding: 0 6mm 3mm;
-  min-height: 18mm;
+  padding: 1mm 6mm 5mm;
+  min-height: 20mm;
   align-items: center;
 }
 
-.dsp-price {
-  width: 22mm;
-  height: 22mm;
+.dsp-protein {
+  width: 24mm;
+  height: 24mm;
   border-radius: 50%;
-  background: linear-gradient(145deg, #e53935, #b71c1c);
+  background: linear-gradient(145deg, var(--dsp-cat), var(--dsp-cat-deep));
   color: #fff;
   display: grid;
   place-content: center;
   text-align: center;
-  box-shadow: 0 3mm 6mm rgba(183, 28, 28, 0.28);
+  box-shadow: 0 2.5mm 5mm color-mix(in srgb, var(--dsp-cat-deep) 35%, transparent);
   font-family: var(--dsp-font-title);
   font-weight: 800;
   line-height: 1.05;
   transform: rotate(-6deg);
 }
 
-.dsp-price.is-empty {
+.dsp-protein.is-empty {
   background: transparent;
   box-shadow: none;
   border: 1.5px dashed #94a3b8;
   color: #64748b;
   transform: none;
-  font-weight: 600;
-  font-size: 2.4mm;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 2mm;
 }
 
-.dsp-price .dsp-price-main {
-  font-size: 5.2mm;
+.dsp-protein .dsp-protein-main {
+  font-size: 6mm;
   letter-spacing: -0.02em;
 }
 
-.dsp-price .dsp-price-sub {
-  font-size: 2.6mm;
+.dsp-protein .dsp-protein-sub {
+  font-size: 2.4mm;
   font-weight: 600;
-  opacity: 0.95;
-}
-
-.dsp-price.is-hidden {
-  display: none;
-}
-
-.dsp-footer {
-  background: var(--dsp-footer);
-  color: #fff;
-  padding: 3.2mm 5mm;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 3mm;
-  min-height: 14mm;
-}
-
-.dsp-footer-brand {
-  display: flex;
-  align-items: center;
-  gap: 2mm;
-  font-family: var(--dsp-font-title);
-  font-weight: 800;
-  font-size: 3.4mm;
-  letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.dsp-footer-mark {
-  width: 7mm;
-  height: 7mm;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--dsp-footer);
-  display: grid;
-  place-items: center;
-  font-size: 2.6mm;
-  font-weight: 800;
-}
-
-.dsp-footer-slogan {
-  font-size: 2.3mm;
-  font-weight: 600;
-  text-align: right;
-  line-height: 1.25;
-  max-width: 42mm;
+  letter-spacing: 0.04em;
   opacity: 0.95;
+}
+
+.dsp-protein.is-empty .dsp-protein-main {
+  font-size: 5mm;
+}
+
+.dsp-protein.is-empty .dsp-protein-sub {
+  display: none;
 }
 
 @media (max-width: 900px) {
