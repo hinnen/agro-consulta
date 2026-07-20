@@ -132,17 +132,10 @@ html, body {
   color: var(--dsp-muted);
 }
 
-.dsp-gal {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 0.55rem;
-}
-
-.dsp-gal--ings {
-  max-height: 18rem;
-  overflow: auto;
-  padding-right: 0.2rem;
+.dsp-gal--ings .dsp-gal-item img {
+  object-fit: contain;
+  padding: 6%;
+  box-sizing: border-box;
 }
 
 .dsp-flavor-pick {
@@ -763,7 +756,7 @@ html, body {
   height: 100%;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  object-fit: contain; /* não corta — mostra a imagem inteira */
   object-position: center center;
   user-select: none;
   -webkit-user-drag: none;

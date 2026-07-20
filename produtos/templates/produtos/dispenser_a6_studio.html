@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.47" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.47"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.48" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.48"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -561,8 +561,8 @@ Batata-Doce</textarea>
     }
 
     function clampIngFit() {
-      /* escala mínima 1 = foto sempre cobre a moldura (sem fundo sobrando) */
-      ingFit.s = Math.max(1, Math.min(2.6, ingFit.s));
+      /* permite afastar bastante; contain já evita cortar no zoom 1 */
+      ingFit.s = Math.max(0.35, Math.min(2.6, ingFit.s));
       ingFit.x = Math.max(-160, Math.min(160, ingFit.x));
       ingFit.y = Math.max(-160, Math.min(160, ingFit.y));
     }
