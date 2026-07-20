@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Ícones Carne/Frango/Batata = **PNG no padrão do exemplo** (SVG antigo descartado nesses 3) |
-| **Você** | Ctrl+F5 · conferir os 3 ícones |
-| **Status** | ⏳ validar ícones PNG |
+| **Agora** | **Todos** os sabores com ícone PNG no padrão (linha fina) |
+| **Você** | Ctrl+F5 · testar nomes: Salmão, Cenoura, Quinoa… |
+| **Status** | ⏳ validar biblioteca completa de ícones |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
