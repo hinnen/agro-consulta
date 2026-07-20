@@ -1163,26 +1163,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.58** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.59** · **loja v10.82** → pacote pronto **v10.86**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Moldura impressão fina (0,85 mm) igual à prévia — era 2 mm |
-| **Você** | Ctrl+F5 · imprimir e conferir borda do bicho/ingredientes |
-| **Status** | ⏳ validar espessura print |
+| **Agora** | Thumbs ainda menores (8 colunas / logos 5) p/ menos scroll |
+| **Você** | Ctrl+F5 |
+| **Status** | ⏳ validar |
 
-### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
+### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **PRONTO PARA ENVIO** — aguardando frase + senha na mesma mensagem |
 | **Branch** | \prep/loja-caixa-vila-centro\ @ *89b5d\ (1 commit limpo) |
-| **VERSION loja** | **10.85** |
+| **VERSION loja** | **10.86** |
 | **Backup** | ollback/pre-caixa-vila-centro-v10.82\ |
-| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO livre / Assumir trava · (4) Quem=PIN · (5) rótulo Caixa Centro/Vila Elias · (6) sem badge TRAVADO redundante |
+| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO livre / Assumir trava · (4) Quem=PIN · (5) rótulo Caixa Centro/Vila Elias · (6) sem badge TRAVADO · (7) wizard fiado só da própria loja |
 | **NÃO inclui** | Dispenser · MP automático · merge inteiro teste |
 | **Smoke** | ✅ fechar Vila com entrega Centro (20/07) |
 | **Autorizar** | *«pode subir caixa Vila Centro»* + **99738595** |
