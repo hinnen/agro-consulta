@@ -322,10 +322,10 @@ html, body {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1.55fr 0.9fr;
-  gap: 1mm;
+  grid-template-columns: 1.75fr 0.8fr;
+  gap: 1.5mm;
   padding: 1.5mm 0 1mm 5mm;
-  min-height: 52mm;
+  min-height: 58mm;
   align-items: start;
 }
 
@@ -333,14 +333,16 @@ html, body {
   display: grid;
   place-items: center start;
   text-align: left;
-  min-height: 28mm;
-  padding-top: 3mm;
+  min-height: 52mm;
+  padding-top: 2mm;
   padding-right: 2mm;
   z-index: 3;
 }
 
 .dsp-brand.is-logo {
   place-items: center start;
+  align-content: center;
+  min-height: 56mm;
 }
 
 .dsp-brand-name {
@@ -370,8 +372,8 @@ html, body {
 
 .dsp-brand-logo {
   display: none;
-  max-width: 48mm;
-  max-height: 28mm;
+  max-width: 56mm;
+  max-height: 56mm;
   width: auto;
   height: auto;
   object-fit: contain;
