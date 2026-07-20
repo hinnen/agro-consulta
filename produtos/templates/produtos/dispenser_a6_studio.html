@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.54" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.54"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.55" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.55"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -16,9 +16,9 @@
         <p class="dsp-hint">Abas embaixo · na prévia: arraste a foto, +/− ou a bolinha.</p>
         <div class="dsp-tabs" id="dspTabs" role="tablist" aria-label="Menu do dispenser">
           <button type="button" class="dsp-tab is-on" role="tab" aria-selected="true" data-tab="folha">Folha</button>
-          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="sabores">Sabores</button>
-          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="pet">Pet</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="pet">Bicho</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="ings">Ingredientes</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="sabores">Sabores</button>
         </div>
       </div>
 
@@ -68,23 +68,6 @@
           </div>
         </div>
 
-        <div class="dsp-tab-panel" id="dspTab-sabores" role="tabpanel" data-tab="sabores" hidden>
-          <div class="dsp-gal-label">Sabores na folha (clique · máx. 5)</div>
-          <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
-          <div class="dsp-gal-add no-print">
-            <label class="dsp-field" style="margin:0 0 0.35rem">
-              <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
-              <select id="dspFlavorIcoTarget"></select>
-            </label>
-            <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
-            <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-            <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
-          </div>
-          <textarea id="dspFlavors" hidden>Carne Bovina
-Frango
-Batata-Doce</textarea>
-        </div>
-
         <div class="dsp-tab-panel" id="dspTab-pet" role="tabpanel" data-tab="pet" hidden>
           <div class="dsp-gal-label">Biblioteca de cães e gatos</div>
           <div class="dsp-gal" id="dspPetGal" role="listbox" aria-label="Escolher pet"></div>
@@ -103,6 +86,23 @@ Batata-Doce</textarea>
             <input id="dspIngFile" type="file" accept="image/jpeg,image/png,image/webp,image/*" class="dsp-file-input" />
             <p class="dsp-gal-add-hint" id="dspIngUploadStatus">JPG ou PNG. Fica neste computador.</p>
           </div>
+        </div>
+
+        <div class="dsp-tab-panel" id="dspTab-sabores" role="tabpanel" data-tab="sabores" hidden>
+          <div class="dsp-gal-label">Sabores na folha (clique · máx. 5)</div>
+          <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
+          <div class="dsp-gal-add no-print">
+            <label class="dsp-field" style="margin:0 0 0.35rem">
+              <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
+              <select id="dspFlavorIcoTarget"></select>
+            </label>
+            <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
+            <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+            <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
+          </div>
+          <textarea id="dspFlavors" hidden>Carne Bovina
+Frango
+Batata-Doce</textarea>
         </div>
       </div>
 
@@ -1157,7 +1157,7 @@ Batata-Doce</textarea>
       var tabs = document.getElementById("dspTabs");
       if (!tabs) return;
       var TAB_KEY = "dsp_panel_tab_v1";
-      var allowed = ["folha", "sabores", "pet", "ings"];
+      var allowed = ["folha", "pet", "ings", "sabores"];
 
       function showTab(id) {
         if (allowed.indexOf(id) < 0) id = "folha";
