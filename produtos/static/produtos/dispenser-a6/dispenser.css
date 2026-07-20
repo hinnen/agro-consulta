@@ -535,11 +535,12 @@ html, body {
 .dsp-sabores {
   position: relative;
   z-index: 2;
-  padding: 1mm 5mm 0;
+  padding: 1mm 4mm 3.5mm;
+  box-sizing: border-box;
 }
 
 .dsp-sabores-title {
-  margin: 0 0 2mm;
+  margin: 0 0 1.8mm;
   font-weight: 800;
   font-size: 4.2mm;
   letter-spacing: 0.12em;
@@ -547,20 +548,22 @@ html, body {
   color: var(--dsp-cat-deep);
 }
 
+/* foto | lista | balão — sem sobrepor */
 .dsp-sabores-grid {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 3.5mm;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) 26mm;
+  gap: 2.2mm 2.5mm;
   align-items: center;
 }
 
 .dsp-ing-photo {
-  height: 34mm;
+  height: 32mm;
   display: grid;
   place-items: center;
   overflow: hidden;
   border-radius: 2.5mm;
   background: transparent;
+  min-width: 0;
 }
 
 .dsp-ing-photo img {
@@ -576,73 +579,81 @@ html, body {
   padding: 0;
   display: grid;
   gap: 0;
+  min-width: 0;
 }
 
 .dsp-flavor-list li {
   display: flex;
   align-items: center;
-  gap: 2.8mm;
-  padding: 2.6mm 0;
+  gap: 2mm;
+  padding: 1.7mm 0;
   border-bottom: 0.4mm solid rgba(30, 58, 110, 0.16);
   font-weight: 700;
-  font-size: 4.2mm;
+  font-size: 3.6mm;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: #1f2a3a;
+  min-width: 0;
+}
+
+.dsp-flavor-list li span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dsp-flavor-list li:last-child { border-bottom: 0; }
 
 .dsp-flavor-ico {
-  width: 8mm;
-  height: 8mm;
+  width: 7mm;
+  height: 7mm;
   border-radius: 50%;
-  border: 0.5mm solid color-mix(in srgb, var(--dsp-cat-deep) 50%, #94a3b8);
+  border: 0.45mm solid color-mix(in srgb, var(--dsp-cat-deep) 50%, #94a3b8);
   background: #fff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 
-.dsp-flavor-ico svg { width: 4.8mm; height: 4.8mm; }
+.dsp-flavor-ico svg { width: 4.2mm; height: 4.2mm; }
 
 .dsp-protein-row {
-  position: absolute;
-  right: 4mm;
-  bottom: 4mm;
-  z-index: 4;
+  position: relative;
+  z-index: 2;
+  justify-self: end;
+  align-self: center;
 }
 
 .dsp-protein {
-  width: 28mm;
-  height: 28mm;
+  width: 25mm;
+  height: 25mm;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--dsp-protein) 72%, #fff), var(--dsp-protein));
   color: #fff;
   display: grid;
   place-content: center;
   text-align: center;
-  box-shadow: 0 2.2mm 4mm rgba(0,0,0,0.22);
+  box-shadow: 0 2mm 3.5mm rgba(0,0,0,0.22);
   line-height: 1.05;
 }
 
 .dsp-protein .dsp-protein-label {
-  font-size: 2.2mm;
+  font-size: 2mm;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .dsp-protein .dsp-protein-main {
-  font-size: 8mm;
+  font-size: 7mm;
   font-weight: 800;
   letter-spacing: -0.03em;
-  margin: 0.5mm 0;
+  margin: 0.4mm 0;
 }
 
 .dsp-protein .dsp-protein-stars {
-  font-size: 2.6mm;
-  letter-spacing: 0.9mm;
+  font-size: 2.3mm;
+  letter-spacing: 0.8mm;
 }
 
 .dsp-protein.is-empty {

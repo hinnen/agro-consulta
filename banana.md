@@ -1170,9 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Moldura oval OK · **margem direita** (não corta no papel) |
-| **Você** | Ctrl+F5 · conferir oval inteiro na borda direita |
-| **Status** | ⏳ validar margem com Renan |
+| **Agora** | Baixo: **foto | lista | balão** (proteína não cobre sabores) |
+| **Você** | Ctrl+F5 · conferir 3–4 sabores legíveis + balão |
+| **Status** | ⏳ validar baixo com Renan |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 
