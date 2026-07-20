@@ -1163,16 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.46** · **loja v10.82** → pacote pronto **v10.85**
+**Versão app (VERSION):** **teste v11.47** · **loja v10.82** → pacote pronto **v10.85**
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Foto cobre a moldura sempre (sem faixa cinza); zoom mínimo = preenchido |
-| **Você** | Ctrl+F5 · − nos ingredientes/pet não deve abrir fundo estranho · ↺ se ainda ficar velho |
-| **Status** | ⏳ validar cobertura da foto |
+| **Agora** | Posição do balão proteína: Na foto / Borda / Meio / Sob a lista |
+| **Você** | Ctrl+F5 · testar os 4 botões com 1 sabor e com vários |
+| **Status** | ⏳ validar posições |
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.85**)
 

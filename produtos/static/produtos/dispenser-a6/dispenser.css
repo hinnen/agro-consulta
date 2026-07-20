@@ -94,6 +94,35 @@ html, body {
 
 .dsp-field textarea { min-height: 3.8rem; resize: vertical; }
 
+.dsp-seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+}
+
+.dsp-seg button {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  background: #fff;
+  padding: 0.45rem 0.2rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.15;
+}
+
+.dsp-seg button:hover {
+  background: #f1f5f9;
+}
+
+.dsp-seg button.is-on {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
 .dsp-gal-label {
   margin: 0.85rem 0 0.4rem;
   font-size: 0.7rem;
@@ -681,6 +710,7 @@ html, body {
   grid-template-columns: 1fr 1.15fr;
   gap: 3mm;
   align-items: start;
+  position: relative;
 }
 
 .dsp-ing-stage {
@@ -699,7 +729,7 @@ html, body {
   flex: 0 0 auto;
   width: 40mm;
   height: 58mm;
-  overflow: visible; /* selo de proteína pode sair um pouco da moldura */
+  overflow: hidden;
   border-radius: 3.2mm;
   background: #fff;
   border: 1.35mm solid #fff;
@@ -766,13 +796,39 @@ html, body {
   border-bottom: 0.45mm solid var(--dsp-cat-deep);
 }
 
-/* Selo na foto — não invade a lista */
+/* Balão proteína — posições laterais (foto → lista) */
 .dsp-protein-row {
   position: absolute;
-  right: -2mm;
-  bottom: -2.5mm;
-  z-index: 3;
+  z-index: 5;
   pointer-events: none;
+  width: 23mm;
+  height: 23mm;
+}
+
+.dsp-protein-row[data-pos="foto"] {
+  left: 26%;
+  bottom: -1.5mm;
+  right: auto;
+}
+
+.dsp-protein-row[data-pos="borda"] {
+  left: 38%;
+  bottom: -0.5mm;
+  right: auto;
+}
+
+.dsp-protein-row[data-pos="meio"] {
+  left: 50%;
+  bottom: 1mm;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+.dsp-protein-row[data-pos="lista"] {
+  left: auto;
+  right: 0.5mm;
+  bottom: 0.5mm;
+  transform: none;
 }
 
 .dsp-protein {

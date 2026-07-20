@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.46" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.46"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.47" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.47"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -59,6 +59,17 @@ Batata-Doce</textarea>
       <div class="dsp-field">
         <label for="dspProtein">Proteína (%)</label>
         <input id="dspProtein" type="text" value="32" maxlength="6" inputmode="decimal" />
+      </div>
+
+      <div class="dsp-field">
+        <label>Posição do balão</label>
+        <div class="dsp-seg" id="dspProteinPosSeg" role="group" aria-label="Posição do balão de proteína">
+          <button type="button" data-pos="foto" class="is-on">Na foto</button>
+          <button type="button" data-pos="borda">Borda</button>
+          <button type="button" data-pos="meio">Meio</button>
+          <button type="button" data-pos="lista">Sob a lista</button>
+        </div>
+        <p class="dsp-gal-add-hint" style="margin:0.3rem 0 0">Pouco sabor → «Sob a lista». Muitos → «Na foto».</p>
       </div>
 
       <div class="dsp-gal-label">Biblioteca de cães e gatos</div>
@@ -119,15 +130,15 @@ Batata-Doce</textarea>
                   <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.jpg' %}" alt="" draggable="false" />
                 </div>
                 <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
-                <div class="dsp-protein-row">
-                  <div class="dsp-protein" id="dspProteinBubble">
-                    <span class="dsp-protein-label">Proteína bruta</span>
-                    <span class="dsp-protein-main" id="dspProteinOut">32%</span>
-                  </div>
-                </div>
               </div>
             </div>
             <ul class="dsp-flavor-list" id="dspFlavorList"></ul>
+            <div class="dsp-protein-row" id="dspProteinRow" data-pos="foto">
+              <div class="dsp-protein" id="dspProteinBubble">
+                <span class="dsp-protein-label">Proteína bruta</span>
+                <span class="dsp-protein-main" id="dspProteinOut">32%</span>
+              </div>
+            </div>
           </div>
         </section>
       </article>
@@ -199,6 +210,10 @@ Batata-Doce</textarea>
     var flavorList = document.getElementById("dspFlavorList");
     var proteinOut = document.getElementById("dspProteinOut");
     var proteinBubble = document.getElementById("dspProteinBubble");
+    var proteinRow = document.getElementById("dspProteinRow");
+    var proteinPosSeg = document.getElementById("dspProteinPosSeg");
+    var PROTEIN_POS_KEY = "dsp_protein_pos_v1";
+    var PROTEIN_POS = ["foto", "borda", "meio", "lista"];
     var petImg = document.getElementById("dspPetImg");
     var petViewport = document.getElementById("dspPetViewport");
     var petHandle = document.getElementById("dspPetHandle");
@@ -1016,6 +1031,38 @@ Batata-Doce</textarea>
       proteinOut.textContent = (Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10)) + "%";
     }
 
+    function loadProteinPos() {
+      try {
+        var v = localStorage.getItem(PROTEIN_POS_KEY) || "foto";
+        return PROTEIN_POS.indexOf(v) >= 0 ? v : "foto";
+      } catch (e) {
+        return "foto";
+      }
+    }
+
+    function applyProteinPos(pos) {
+      if (PROTEIN_POS.indexOf(pos) < 0) pos = "foto";
+      if (proteinRow) proteinRow.setAttribute("data-pos", pos);
+      if (proteinPosSeg) {
+        proteinPosSeg.querySelectorAll("button[data-pos]").forEach(function (btn) {
+          btn.classList.toggle("is-on", btn.getAttribute("data-pos") === pos);
+        });
+      }
+      try {
+        localStorage.setItem(PROTEIN_POS_KEY, pos);
+      } catch (e2) {}
+    }
+
+    function bindProteinPos() {
+      if (!proteinPosSeg) return;
+      proteinPosSeg.addEventListener("click", function (ev) {
+        var btn = ev.target.closest("button[data-pos]");
+        if (!btn) return;
+        applyProteinPos(btn.getAttribute("data-pos"));
+      });
+      applyProteinPos(loadProteinPos());
+    }
+
     function renderAll() {
       var cat = catEl.value;
       root.setAttribute("data-cat", cat);
@@ -1234,6 +1281,7 @@ Batata-Doce</textarea>
     brandEl.addEventListener("input", renderAll);
     flavorsEl.addEventListener("input", renderAll);
     proteinEl.addEventListener("input", renderAll);
+    bindProteinPos();
     document.getElementById("dspPrint").addEventListener("click", function () { window.print(); });
     document.getElementById("dspReset").addEventListener("click", function () {
       catEl.value = "cao-adulto-pequeno";
