@@ -1184,7 +1184,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **3 Quem** | Overlay entrega + Entrada NF usam **PIN/operador**, não login Django (fim do «geraldo hinnen» fantasma em lançamentos novos) |
 | **Arquivos** | `caixa_util.py` · `entrega_pdv_pendente_util.py` · `views.py` |
 | **Você** | Ctrl+F5 no **teste** · Vila: Fechar caixa sem bloqueio da entrega Centro · overlay sem Geraldo Hinnen se PIN Queila · Entrada NF nova com nome certo |
-| **Status** | ✅ smoke Renan 20/07 fechar Vila · catálogo: SEM DONO livre / Assumir trava loja (ajuste 20/07) · **não** subir loja sem frase+senha |
+| **Status** | ✅ smoke Renan 20/07 fechar Vila · catálogo: SEM DONO livre / Assumir trava loja · **cherry pronto** `prep/loja-caixa-vila-centro` (v10.83) · rollback `rollback/pre-caixa-vila-centro-v10.82` · aguarda frase+senha |
 | **Obs.** | Histórico antigo (NF 13/07) pode continuar com nome errado — só lançamentos novos corrigem · smoke: 2 navegadores (trava BI) |
 
 
