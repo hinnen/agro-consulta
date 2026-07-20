@@ -93,31 +93,33 @@ Batata doce</textarea>
               </div>
               <div class="dsp-pet-handle no-print" id="dspPetHandle" title="Arraste para tamanho"></div>
             </div>
-            <div class="dsp-pet-tools no-print">
-              <button type="button" id="dspPetZoomOut" title="Menor">−</button>
-              <button type="button" id="dspPetZoomIn" title="Maior">+</button>
-              <button type="button" id="dspPetFitReset" title="Resetar">↺</button>
-            </div>
           </div>
         </section>
 
         <section class="dsp-sabores">
           <h2 class="dsp-sabores-title">Sabores</h2>
-          <div class="dsp-sabores-grid">
-            <div class="dsp-ing-photo">
-              <img id="dspIngImg" src="{% static 'produtos/dispenser-a6/lib/ings/carne-frango-batata.jpg' %}" alt="" />
-            </div>
-            <ul class="dsp-flavor-list" id="dspFlavorList"></ul>
-            <div class="dsp-protein-row">
-              <div class="dsp-protein" id="dspProteinBubble">
-                <span class="dsp-protein-label">Proteína bruta</span>
-                <span class="dsp-protein-main" id="dspProteinOut">32%</span>
-                <span class="dsp-protein-stars" aria-hidden="true">★★★</span>
+          <div class="dsp-sabores-body">
+            <div class="dsp-ing-stage">
+              <div class="dsp-ing-photo">
+                <img id="dspIngImg" src="{% static 'produtos/dispenser-a6/lib/ings/carne-frango-batata.jpg' %}" alt="" />
+              </div>
+              <div class="dsp-protein-row">
+                <div class="dsp-protein" id="dspProteinBubble">
+                  <span class="dsp-protein-label">Proteína bruta</span>
+                  <span class="dsp-protein-main" id="dspProteinOut">32%</span>
+                  <span class="dsp-protein-stars" aria-hidden="true">★★★</span>
+                </div>
               </div>
             </div>
+            <ul class="dsp-flavor-list" id="dspFlavorList"></ul>
           </div>
         </section>
       </article>
+      <div class="dsp-pet-tools no-print">
+        <button type="button" id="dspPetZoomOut" title="Menor">−</button>
+        <button type="button" id="dspPetZoomIn" title="Maior">+</button>
+        <button type="button" id="dspPetFitReset" title="Resetar">↺</button>
+      </div>
     </main>
   </div>
 

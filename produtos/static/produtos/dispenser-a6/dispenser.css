@@ -267,6 +267,8 @@ html, body {
   overflow: hidden;
   border-radius: 0.15rem;
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
 }
 
 .dsp-a6::before {
@@ -328,10 +330,11 @@ html, body {
   grid-template-columns: 54mm 42mm;
   column-gap: 2mm;
   /* direita ≥4mm: oval + borda + sombra cabem no A6 (105mm) */
-  padding: 0 4mm 2mm 2.5mm;
-  height: 52mm;
-  min-height: 52mm;
-  max-height: 52mm;
+  padding: 0 4mm 1mm 2.5mm;
+  height: 48mm;
+  min-height: 48mm;
+  max-height: 48mm;
+  flex: 0 0 auto;
   align-items: end;
   overflow: visible;
   box-sizing: border-box;
@@ -344,7 +347,7 @@ html, body {
   width: 100%;
   height: 100%;
   max-width: 54mm;
-  max-height: 52mm;
+  max-height: 48mm;
   min-width: 0;
   min-height: 0;
   padding: 1mm 0.5mm 0 0;
@@ -503,18 +506,18 @@ html, body {
 .dsp-pet-tools {
   display: flex;
   justify-content: center;
-  gap: 0.25rem;
-  margin-top: 1.5mm;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
 }
 
 .dsp-pet-tools button {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.7rem;
+  height: 1.7rem;
   border: 1px solid #cbd5e1;
   border-radius: 0.4rem;
   background: #fff;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1;
   cursor: pointer;
   color: #0f172a;
@@ -532,68 +535,150 @@ html, body {
   }
 }
 
+/* ===== Baixo: foto dominante + selo proteína + lista livre ===== */
 .dsp-sabores {
   position: relative;
   z-index: 2;
-  padding: 1mm 4mm 3.5mm;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2mm 4.5mm 4mm;
   box-sizing: border-box;
 }
 
 .dsp-sabores-title {
-  margin: 0 0 1.8mm;
+  margin: 0 0 2mm;
+  flex: 0 0 auto;
   font-weight: 800;
-  font-size: 4.2mm;
-  letter-spacing: 0.12em;
+  font-size: 4.4mm;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--dsp-cat-deep);
 }
 
-/* foto | lista | balão — sem sobrepor */
-.dsp-sabores-grid {
+.dsp-sabores-body {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) 26mm;
-  gap: 2.2mm 2.5mm;
-  align-items: center;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 3.5mm;
+  align-items: stretch;
+}
+
+.dsp-ing-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .dsp-ing-photo {
-  height: 32mm;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-radius: 2.5mm;
-  background: transparent;
-  min-width: 0;
+  border-radius: 3.2mm;
+  background: linear-gradient(160deg, #fff, #eef2f6);
+  box-shadow:
+    0 1.5mm 4mm rgba(15, 23, 42, 0.12),
+    0 0 0 0.45mm rgba(15, 23, 42, 0.06);
+  padding: 1.5mm;
 }
 
 .dsp-ing-photo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 1.2mm 2mm rgba(0,0,0,0.1));
+  object-fit: cover;
+  object-position: center;
+  border-radius: 2mm;
+  filter: none;
 }
+
+/* Selo na foto — não invade a lista */
+.dsp-protein-row {
+  position: absolute;
+  right: -2mm;
+  bottom: -2.5mm;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.dsp-protein {
+  width: 27mm;
+  height: 27mm;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--dsp-protein) 68%, #fff), var(--dsp-protein));
+  color: #fff;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border: 1.4mm solid #fff;
+  box-shadow:
+    0 0 0 0.55mm var(--dsp-cat-deep),
+    0 2.2mm 4mm rgba(0, 0, 0, 0.28);
+  line-height: 1.05;
+}
+
+.dsp-protein .dsp-protein-label {
+  font-size: 2.05mm;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  max-width: 22mm;
+  margin: 0 auto;
+}
+
+.dsp-protein .dsp-protein-main {
+  font-size: 7.4mm;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0.35mm 0;
+}
+
+.dsp-protein .dsp-protein-stars {
+  font-size: 2.4mm;
+  letter-spacing: 0.85mm;
+}
+
+.dsp-protein.is-empty {
+  background: #f8fafc;
+  border: 1.4mm dashed #94a3b8;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.dsp-protein.is-empty .dsp-protein-label,
+.dsp-protein.is-empty .dsp-protein-stars { display: none; }
 
 .dsp-flavor-list {
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
+  padding: 1mm 0 6mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
   gap: 0;
   min-width: 0;
+  min-height: 0;
 }
 
 .dsp-flavor-list li {
   display: flex;
   align-items: center;
-  gap: 2mm;
-  padding: 1.7mm 0;
-  border-bottom: 0.4mm solid rgba(30, 58, 110, 0.16);
-  font-weight: 700;
-  font-size: 3.6mm;
+  gap: 2.4mm;
+  padding: 2.2mm 0 2.2mm 2mm;
+  border-left: 1.1mm solid var(--dsp-cat);
+  border-bottom: 0.35mm solid rgba(30, 58, 110, 0.12);
+  font-weight: 800;
+  font-size: 3.9mm;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   color: #1f2a3a;
   min-width: 0;
+  line-height: 1.1;
 }
 
 .dsp-flavor-list li span:last-child {
@@ -605,66 +690,18 @@ html, body {
 .dsp-flavor-list li:last-child { border-bottom: 0; }
 
 .dsp-flavor-ico {
-  width: 7mm;
-  height: 7mm;
+  width: 8mm;
+  height: 8mm;
   border-radius: 50%;
-  border: 0.45mm solid color-mix(in srgb, var(--dsp-cat-deep) 50%, #94a3b8);
+  border: 0.5mm solid color-mix(in srgb, var(--dsp-cat-deep) 45%, #94a3b8);
   background: #fff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  box-shadow: 0 0.5mm 1mm rgba(15, 23, 42, 0.08);
 }
 
-.dsp-flavor-ico svg { width: 4.2mm; height: 4.2mm; }
-
-.dsp-protein-row {
-  position: relative;
-  z-index: 2;
-  justify-self: end;
-  align-self: center;
-}
-
-.dsp-protein {
-  width: 25mm;
-  height: 25mm;
-  border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--dsp-protein) 72%, #fff), var(--dsp-protein));
-  color: #fff;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  box-shadow: 0 2mm 3.5mm rgba(0,0,0,0.22);
-  line-height: 1.05;
-}
-
-.dsp-protein .dsp-protein-label {
-  font-size: 2mm;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.dsp-protein .dsp-protein-main {
-  font-size: 7mm;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin: 0.4mm 0;
-}
-
-.dsp-protein .dsp-protein-stars {
-  font-size: 2.3mm;
-  letter-spacing: 0.8mm;
-}
-
-.dsp-protein.is-empty {
-  background: transparent;
-  border: 1.5px dashed #94a3b8;
-  color: #64748b;
-  box-shadow: none;
-}
-
-.dsp-protein.is-empty .dsp-protein-label,
-.dsp-protein.is-empty .dsp-protein-stars { display: none; }
+.dsp-flavor-ico svg { width: 4.6mm; height: 4.6mm; }
 
 @media (max-width: 980px) {
   .dsp-studio { grid-template-columns: 1fr; }
