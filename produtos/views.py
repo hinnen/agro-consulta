@@ -21530,7 +21530,7 @@ def api_pdv_deposito(request):
             {
                 "ok": False,
                 "erro": (
-                    f"Loja travada pelo caixa #{trava.get('sessaoPk')}. "
+                    f"Loja travada ({trava.get('depositoLabel') or 'caixa aberto'}). "
                     "Feche o caixa para trocar Centro × Vila."
                 ),
                 "caixaTravado": True,
