@@ -1163,7 +1163,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v10.89** · loja v10.64
+**Versão app (VERSION):** **loja** · teste
+
+### 🚨 Vila Elias — adotava caixa Centro (20/07 abertura oficial)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | PC Vila + estoque Vila ainda mostrava **Gaveta Centro #104**; sumia Abrir caixa |
+| **Causa (provável)** | dotar_sessao_caixa_unica_aberta pega gaveta Centro quando ponto_nav=gaveta; painel chama adotar; /caixa/abrir/ não |
+| **Workaround OK** | Renan 20/07: ir em /caixa/abrir/ · abrir **Vila Elias** (#105) · Centro #104 intacto |
+| **Status** | ⏳ fix código pendente (não adotar caixa de outra loja) · **não** subir sem frase+senha |
+| **Atenção** | Nunca «Fechar caixa» na Vila se o resumo disser **Centro** |
+
 
 ### 📦 PACOTE PRONTO LOJA — MP automático após abrir caixa (19/07 · **teste v10.89**)
 
