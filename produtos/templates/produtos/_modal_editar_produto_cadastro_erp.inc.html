@@ -866,6 +866,22 @@
             </label>
           </div>
         </div>
+
+        <div class="p-3 rounded-xl border-2 border-violet-200 bg-violet-50/70 space-y-2">
+          <div>
+            <p class="text-xs font-black uppercase text-violet-900">Embalagens no card</p>
+            <p class="text-[0.65rem] font-semibold text-violet-800 leading-snug mt-0.5">Mesma ração, cadastros diferentes (granel / sacos). O cliente escolhe no + Add. Máx. 6.</p>
+          </div>
+          <div id="edit-delivery-embalagens-list" class="space-y-1.5"></div>
+          <div class="flex flex-wrap gap-1.5 items-end">
+            <label class="block min-w-0 flex-1">
+              <span class="text-[0.65rem] font-black uppercase text-slate-500 mb-0.5 block">Buscar produto Delivery</span>
+              <input type="text" id="edit-delivery-emb-busca" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" placeholder="Nome ou ID…" autocomplete="off" />
+            </label>
+            <button type="button" id="edit-delivery-emb-buscar-btn" class="min-h-[36px] px-3 rounded-lg bg-violet-600 text-white text-xs font-black uppercase">Buscar</button>
+          </div>
+          <div id="edit-delivery-emb-resultados" class="hidden space-y-1 max-h-36 overflow-y-auto"></div>
+        </div>
       </div>
 
       <div id="tab-variacoes" class="tab-content tab-fill-stack hidden flex flex-col gap-4">
@@ -2371,6 +2387,26 @@
     if (typeof carregarDeliveryCategorias === 'function') {
       carregarDeliveryCategorias(modalEdit._deliveryCatId, modalEdit._deliverySubId, false, modalEdit._deliverySub2Id);
     }
+    modalEdit._deliveryEmbalagens = Array.isArray(del.embalagens)
+      ? del.embalagens.map(function (e) {
+          return {
+            produto_id: String(e.produto_id || e.id || '').trim(),
+            rotulo: String(e.rotulo || '').trim(),
+            nome: String(e.nome || '').trim()
+          };
+        }).filter(function (e) { return !!e.produto_id; })
+      : [];
+    if (!modalEdit._deliveryEmbalagens.length && produto && (produto.id || produto.produto_externo_id)) {
+      var selfId = String(produto.id || produto.produto_externo_id || '').trim();
+      if (selfId) {
+        modalEdit._deliveryEmbalagens = [{
+          produto_id: selfId,
+          rotulo: del.peso_texto || '',
+          nome: (produto.nome || '').trim()
+        }];
+      }
+    }
+    if (typeof renderDeliveryEmbalagens === 'function') renderDeliveryEmbalagens();
     var b64El = document.getElementById('edit-delivery-imagem-b64');
     var mimeEl = document.getElementById('edit-delivery-imagem-mime');
     var prevEl = document.getElementById('edit-delivery-foto-preview');
@@ -2682,7 +2718,10 @@
         subcategoria_id: gv('edit-delivery-subcategoria') || '0',
         subcategoria2_id: gv('edit-delivery-subcategoria2') || '0',
         imagem_base64: gv('edit-delivery-imagem-b64'),
-        imagem_mime: gv('edit-delivery-imagem-mime') || 'image/jpeg'
+        imagem_mime: gv('edit-delivery-imagem-mime') || 'image/jpeg',
+        embalagens: (typeof coletarDeliveryEmbalagens === 'function'
+          ? coletarDeliveryEmbalagens()
+          : (modalEdit._deliveryEmbalagens || [])).slice(0, 6)
       },
       variacoes: (modalEdit._variacoes || []).map(function (v) {
         return {
@@ -2919,6 +2958,176 @@
     sel.innerHTML = html;
     preencherSubsDelivery(catId || sel.value, subId, sub2Id);
   }
+
+  function coletarDeliveryEmbalagens() {
+    var list = document.getElementById('edit-delivery-embalagens-list');
+    var out = [];
+    if (!list) return modalEdit._deliveryEmbalagens || [];
+    list.querySelectorAll('[data-emb-pid]').forEach(function (row) {
+      var pid = String(row.getAttribute('data-emb-pid') || '').trim();
+      if (!pid) return;
+      var rot = row.querySelector('.emb-rotulo');
+      out.push({
+        produto_id: pid,
+        rotulo: rot ? String(rot.value || '').trim() : ''
+      });
+    });
+    modalEdit._deliveryEmbalagens = out;
+    return out;
+  }
+
+  function renderDeliveryEmbalagens() {
+    var list = document.getElementById('edit-delivery-embalagens-list');
+    if (!list) return;
+    var rows = Array.isArray(modalEdit._deliveryEmbalagens) ? modalEdit._deliveryEmbalagens : [];
+    if (!rows.length) {
+      list.innerHTML = '<p class="text-[0.65rem] font-semibold text-slate-500">Nenhuma embalagem — o próprio produto vale como preço único.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(function (e, idx) {
+      var pid = String(e.produto_id || '').trim();
+      var nome = String(e.nome || '').trim();
+      return (
+        '<div class="flex flex-wrap items-center gap-1.5 p-1.5 rounded-lg border border-violet-200 bg-white" data-emb-pid="' +
+        pid.replace(/"/g, '') +
+        '">' +
+        '<span class="text-[0.65rem] font-black text-violet-800 w-4">' + (idx + 1) + '</span>' +
+        '<span class="text-xs font-bold text-slate-800 min-w-0 flex-1 truncate" title="' + pid + '">' +
+        (nome || pid) +
+        '</span>' +
+        '<input type="text" class="emb-rotulo w-28 min-h-[32px] px-1.5 rounded border border-slate-200 text-xs font-bold" placeholder="Rótulo" value="' +
+        String(e.rotulo || '').replace(/"/g, '&quot;') +
+        '" />' +
+        '<button type="button" class="emb-up px-1.5 min-h-[32px] rounded border text-xs font-black" title="Subir">↑</button>' +
+        '<button type="button" class="emb-down px-1.5 min-h-[32px] rounded border text-xs font-black" title="Descer">↓</button>' +
+        '<button type="button" class="emb-rm px-1.5 min-h-[32px] rounded border border-red-300 text-red-700 text-xs font-black" title="Remover">×</button>' +
+        '</div>'
+      );
+    }).join('');
+    list.querySelectorAll('.emb-rm').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('[data-emb-pid]');
+        var pid = row && row.getAttribute('data-emb-pid');
+        modalEdit._deliveryEmbalagens = coletarDeliveryEmbalagens().filter(function (e) {
+          return e.produto_id !== pid;
+        });
+        renderDeliveryEmbalagens();
+      });
+    });
+    list.querySelectorAll('.emb-up').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var arr = coletarDeliveryEmbalagens();
+        var row = btn.closest('[data-emb-pid]');
+        var pid = row && row.getAttribute('data-emb-pid');
+        var i = arr.findIndex(function (e) { return e.produto_id === pid; });
+        if (i > 0) {
+          var t = arr[i - 1];
+          arr[i - 1] = arr[i];
+          arr[i] = t;
+          modalEdit._deliveryEmbalagens = arr;
+          renderDeliveryEmbalagens();
+        }
+      });
+    });
+    list.querySelectorAll('.emb-down').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var arr = coletarDeliveryEmbalagens();
+        var row = btn.closest('[data-emb-pid]');
+        var pid = row && row.getAttribute('data-emb-pid');
+        var i = arr.findIndex(function (e) { return e.produto_id === pid; });
+        if (i >= 0 && i < arr.length - 1) {
+          var t = arr[i + 1];
+          arr[i + 1] = arr[i];
+          arr[i] = t;
+          modalEdit._deliveryEmbalagens = arr;
+          renderDeliveryEmbalagens();
+        }
+      });
+    });
+  }
+
+  function adicionarDeliveryEmbalagem(item) {
+    if (!item || !item.id) return;
+    var arr = coletarDeliveryEmbalagens();
+    if (arr.length >= 6) {
+      if (typeof alert !== 'undefined') alert('Máximo 6 embalagens no card.');
+      return;
+    }
+    var pid = String(item.id);
+    if (arr.some(function (e) { return e.produto_id === pid; })) return;
+    arr.push({
+      produto_id: pid,
+      rotulo: item.peso_texto || '',
+      nome: item.nome || pid
+    });
+    modalEdit._deliveryEmbalagens = arr;
+    renderDeliveryEmbalagens();
+  }
+
+  function buscarDeliveryEmbalagens() {
+    var inp = document.getElementById('edit-delivery-emb-busca');
+    var box = document.getElementById('edit-delivery-emb-resultados');
+    if (!box) return;
+    var q = inp ? String(inp.value || '').trim() : '';
+    box.classList.remove('hidden');
+    box.innerHTML = '<p class="text-[0.65rem] font-semibold text-slate-500">Buscando…</p>';
+    fetch('/catalogo/api/embalagens-busca/?q=' + encodeURIComponent(q), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok || !Array.isArray(data.itens) || !data.itens.length) {
+          box.innerHTML = '<p class="text-[0.65rem] font-semibold text-slate-500">Nenhum produto Delivery encontrado.</p>';
+          return;
+        }
+        box.innerHTML = data.itens.map(function (it) {
+          return (
+            '<button type="button" class="emb-pick w-full text-left px-2 py-1.5 rounded-lg border border-violet-100 bg-white hover:bg-violet-50 text-xs font-bold" data-id="' +
+            String(it.id).replace(/"/g, '') +
+            '" data-nome="' +
+            String(it.nome || '').replace(/"/g, '&quot;') +
+            '" data-peso="' +
+            String(it.peso_texto || '').replace(/"/g, '&quot;') +
+            '">' +
+            (it.nome || it.id) +
+            (it.peso_texto ? ' · ' + it.peso_texto : '') +
+            ' · R$ ' +
+            Number(it.preco || 0).toFixed(2).replace('.', ',') +
+            '</button>'
+          );
+        }).join('');
+        box.querySelectorAll('.emb-pick').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            adicionarDeliveryEmbalagem({
+              id: btn.getAttribute('data-id'),
+              nome: btn.getAttribute('data-nome'),
+              peso_texto: btn.getAttribute('data-peso')
+            });
+            box.classList.add('hidden');
+            box.innerHTML = '';
+          });
+        });
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="text-[0.65rem] font-semibold text-red-600">Falha na busca.</p>';
+      });
+  }
+
+  (function bindDeliveryEmbalagensUi() {
+    var btn = document.getElementById('edit-delivery-emb-buscar-btn');
+    var inp = document.getElementById('edit-delivery-emb-busca');
+    if (btn) btn.addEventListener('click', buscarDeliveryEmbalagens);
+    if (inp) {
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          buscarDeliveryEmbalagens();
+        }
+      });
+    }
+  })();
+
   function carregarDeliveryCategorias(catId, subId, force, sub2Id) {
     var sel = document.getElementById('edit-delivery-categoria');
     if (!sel) return;

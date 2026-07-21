@@ -154,6 +154,46 @@ def montar_imagem_og_preview(
         return None
 
 
+def normalizar_embalagens(raw: Any) -> list[dict]:
+    """Lista de {produto_id, rotulo} — máx. 6, sem duplicar id."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    if not isinstance(raw, list):
+        return out
+    for row in raw[:8]:
+        if not isinstance(row, dict):
+            continue
+        pid = str(row.get("produto_id") or row.get("id") or "").strip()
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        rotulo = str(row.get("rotulo") or "").strip()[:40]
+        out.append({"produto_id": pid, "rotulo": rotulo})
+        if len(out) >= 6:
+            break
+    return out
+
+
+def rotulo_embalagem_padrao(
+    *,
+    rotulo: str = "",
+    peso_texto: str = "",
+    unidade: str = "",
+    nome: str = "",
+) -> str:
+    r = (rotulo or "").strip()
+    if r:
+        return r[:40]
+    peso = (peso_texto or "").strip()
+    if peso:
+        return peso[:40]
+    un = (unidade or "").strip().upper()
+    nome_u = (nome or "").upper()
+    if un in ("KG", "G", "GR") or "GRANEL" in nome_u or un == "GRANEL":
+        return "Granel"
+    return (un or "UN")[:40]
+
+
 def normalizar_delivery(raw: Any) -> dict:
     d = raw if isinstance(raw, dict) else {}
     titulo = str(d.get("titulo") or "").strip()[:200]
@@ -185,6 +225,7 @@ def normalizar_delivery(raw: Any) -> dict:
         sub2_id = int(d.get("subcategoria2_id") or 0)
     except (TypeError, ValueError):
         sub2_id = 0
+    embalagens = normalizar_embalagens(d.get("embalagens"))
     return {
         "ativo": _bool(d.get("ativo")),
         "titulo": titulo,
@@ -198,6 +239,7 @@ def normalizar_delivery(raw: Any) -> dict:
         "categoria_id": cat_id if cat_id > 0 else 0,
         "subcategoria_id": sub_id if sub_id > 0 else 0,
         "subcategoria2_id": sub2_id if sub2_id > 0 else 0,
+        "embalagens": embalagens,
     }
 
 
@@ -225,17 +267,22 @@ def _imagem_data_url(d: dict) -> str:
 
 
 def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict]:
-    """Produtos com delivery.ativo no overlay; aplica regra de estoque."""
+    """Produtos com delivery.ativo no overlay; aplica regra de estoque + famílias de embalagem."""
     overlays = list(
         ProdutoGestaoOverlayAgro.objects.exclude(cadastro_extras={})[:5000]
     )
     ativos: list[tuple[ProdutoGestaoOverlayAgro, dict]] = []
+    emb_ids_extra: set[str] = set()
     for ov in overlays:
         ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
         d = delivery_de_extras(ex)
         if not d.get("ativo"):
             continue
         ativos.append((ov, d))
+        for emb in d.get("embalagens") or []:
+            pid_e = str(emb.get("produto_id") or "").strip()
+            if pid_e:
+                emb_ids_extra.add(pid_e)
 
     if not ativos:
         return []
@@ -247,36 +294,71 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         )
     }
 
-    pids = [ov.produto_externo_id for ov, _ in ativos]
+    pids_ativos = [str(ov.produto_externo_id) for ov, _ in ativos]
+    pids_all = list({*pids_ativos, *emb_ids_extra})
+    overlays_by_pid = {
+        str(ov.produto_externo_id): ov
+        for ov, _ in ativos
+    }
+    # Overlays dos irmãos que não estão em ativos
+    missing = [p for p in emb_ids_extra if p not in overlays_by_pid]
+    if missing:
+        for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=missing):
+            overlays_by_pid[str(ov.produto_externo_id)] = ov
+
     produtos_pg = {
         str(p.produto_externo_id): p
-        for p in Produto.objects.filter(produto_externo_id__in=pids)
+        for p in Produto.objects.filter(produto_externo_id__in=pids_all)
     }
     try:
-        saldos = mapa_saldos_operacionais_agro(pids)
+        saldos = mapa_saldos_operacionais_agro(pids_all)
     except Exception:
         saldos = {}
 
-    itens: list[dict] = []
-    for ov, d in ativos:
-        pid = str(ov.produto_externo_id)
+    def _meta_produto(pid: str) -> dict:
+        ov = overlays_by_pid.get(pid)
         pg = produtos_pg.get(pid)
-        nome = (d.get("titulo") or ov.nome or (pg.nome if pg else "") or "Produto").strip()
-        desc = (d.get("descricao") or ov.descricao or (pg.descricao if pg else "") or "").strip()
-        marca = (ov.marca or (pg.marca if pg else "") or "").strip()
-        unidade = (ov.unidade or (pg.unidade if pg else "") or "UN").strip() or "UN"
-        preco = ov.preco_venda
+        d_ov = delivery_de_extras(ov.cadastro_extras if ov else {})
+        nome = (
+            (d_ov.get("titulo") or "")
+            or (ov.nome if ov else "")
+            or (pg.nome if pg else "")
+            or "Produto"
+        ).strip()
+        unidade = (
+            (ov.unidade if ov else "") or (pg.unidade if pg else "") or "UN"
+        ).strip() or "UN"
+        preco = ov.preco_venda if ov is not None else None
         if preco is None and pg is not None:
             preco = pg.preco_venda
         try:
             preco_f = float(preco or 0)
         except (TypeError, ValueError):
             preco_f = 0.0
-
         saldo_map = saldos.get(pid) or {}
         centro = float(saldo_map.get("centro") or 0)
         vila = float(saldo_map.get("vila") or 0)
-        saldo_total = centro + vila
+        return {
+            "id": pid,
+            "nome": nome,
+            "preco": round(preco_f, 2),
+            "unidade": unidade,
+            "peso_texto": (d_ov.get("peso_texto") or "").strip(),
+            "saldo_total": round(centro + vila, 3),
+        }
+
+    itens: list[dict] = []
+    for ov, d in ativos:
+        pid = str(ov.produto_externo_id)
+        meta = _meta_produto(pid)
+        pg = produtos_pg.get(pid)
+        nome = meta["nome"]
+        desc = (d.get("descricao") or ov.descricao or (pg.descricao if pg else "") or "").strip()
+        marca = (ov.marca or (pg.marca if pg else "") or "").strip()
+        unidade = meta["unidade"]
+        preco_f = meta["preco"]
+
+        saldo_total = meta["saldo_total"]
         forcar = bool(d.get("permitir_estoque_negativo"))
         if not incluir_ocultos_estoque and not forcar and saldo_total <= 0:
             continue
@@ -287,7 +369,6 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         cat = cats.get(cat_id) if cat_id else None
         sub = cats.get(sub_id) if sub_id else None
         sub2 = cats.get(sub2_id) if sub2_id else None
-        # Normaliza árvore: sub2 → sub → cat
         if sub2:
             if sub2.parent_id:
                 if not sub or sub.pk != sub2.parent_id:
@@ -301,7 +382,6 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
                 cat = cats.get(sub.parent_id)
                 cat_id = cat.pk if cat else 0
         elif sub and not sub.parent_id:
-            # sub sem pai = tratar como categoria
             if not cat:
                 cat = sub
                 cat_id = sub.pk
@@ -310,6 +390,58 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         if sub2 and sub and sub2.parent_id != sub.pk:
             sub2 = None
             sub2_id = 0
+
+        emb_raw = list(d.get("embalagens") or [])
+        if not emb_raw:
+            emb_raw = [{"produto_id": pid, "rotulo": ""}]
+        elif not any(str(e.get("produto_id") or "") == pid for e in emb_raw):
+            emb_raw = [{"produto_id": pid, "rotulo": ""}] + emb_raw
+            emb_raw = emb_raw[:6]
+
+        embalagens: list[dict] = []
+        seen_e: set[str] = set()
+        for e in emb_raw:
+            eid = str(e.get("produto_id") or "").strip()
+            if not eid or eid in seen_e:
+                continue
+            seen_e.add(eid)
+            m = _meta_produto(eid)
+            rotulo = rotulo_embalagem_padrao(
+                rotulo=str(e.get("rotulo") or ""),
+                peso_texto=m["peso_texto"] or (d.get("peso_texto") if eid == pid else ""),
+                unidade=m["unidade"],
+                nome=m["nome"],
+            )
+            embalagens.append(
+                {
+                    "id": eid,
+                    "produto_id": eid,
+                    "rotulo": rotulo,
+                    "preco": m["preco"],
+                    "nome": m["nome"],
+                    "unidade": m["unidade"],
+                    "peso_texto": m["peso_texto"],
+                    "saldo_total": m["saldo_total"],
+                }
+            )
+
+        if not embalagens:
+            embalagens = [
+                {
+                    "id": pid,
+                    "produto_id": pid,
+                    "rotulo": rotulo_embalagem_padrao(
+                        peso_texto=d.get("peso_texto") or "",
+                        unidade=unidade,
+                        nome=nome,
+                    ),
+                    "preco": preco_f,
+                    "nome": nome,
+                    "unidade": unidade,
+                    "peso_texto": d.get("peso_texto") or "",
+                    "saldo_total": saldo_total,
+                }
+            ]
 
         itens.append(
             {
@@ -331,13 +463,35 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
                 "destaque": bool(d.get("destaque")),
                 "ordem": int(d.get("ordem") or 0),
                 "saldo_total": round(saldo_total, 3),
-                "saldo_centro": round(centro, 3),
-                "saldo_vila": round(vila, 3),
+                "saldo_centro": round(float((saldos.get(pid) or {}).get("centro") or 0), 3),
+                "saldo_vila": round(float((saldos.get(pid) or {}).get("vila") or 0), 3),
                 "permitir_estoque_negativo": forcar,
                 "imagem": _imagem_data_url(d),
                 "unidade": unidade,
+                "embalagens": embalagens,
             }
         )
+
+    # Dedupe: irmãos listados em família de outro âncora não geram card próprio
+    itens.sort(
+        key=lambda x: (
+            not x["destaque"],
+            x["ordem"],
+            x["nome"].lower(),
+        )
+    )
+    hide_ids: set[str] = set()
+    for item in itens:
+        emb = item.get("embalagens") or []
+        others = [e["id"] for e in emb if e.get("id") and e["id"] != item["id"]]
+        if not others:
+            continue
+        if item["id"] in hide_ids:
+            continue
+        for oid in others:
+            hide_ids.add(oid)
+
+    itens = [i for i in itens if i["id"] not in hide_ids]
 
     itens.sort(
         key=lambda x: (
@@ -350,6 +504,41 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         )
     )
     return itens
+
+
+def listar_produtos_delivery_para_vinculo(*, q: str = "", limite: int = 40) -> list[dict]:
+    """Busca produtos com delivery.ativo para montar família de embalagens (gestão)."""
+    termo = (q or "").strip().lower()
+    overlays = list(
+        ProdutoGestaoOverlayAgro.objects.exclude(cadastro_extras={})[:5000]
+    )
+    out: list[dict] = []
+    for ov in overlays:
+        d = delivery_de_extras(ov.cadastro_extras)
+        if not d.get("ativo"):
+            continue
+        pid = str(ov.produto_externo_id)
+        nome = (d.get("titulo") or ov.nome or "").strip() or pid
+        if termo and termo not in nome.lower() and termo not in pid.lower():
+            continue
+        preco = ov.preco_venda
+        try:
+            preco_f = float(preco or 0)
+        except (TypeError, ValueError):
+            preco_f = 0.0
+        out.append(
+            {
+                "id": pid,
+                "nome": nome,
+                "preco": round(preco_f, 2),
+                "peso_texto": (d.get("peso_texto") or "").strip(),
+                "unidade": (ov.unidade or "UN").strip() or "UN",
+            }
+        )
+        if len(out) >= max(1, min(int(limite or 40), 80)):
+            break
+    out.sort(key=lambda x: x["nome"].lower())
+    return out
 
 
 def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:

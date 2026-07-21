@@ -2451,6 +2451,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 int(d_del.get("categoria_id") or 0) > 0,
                 int(d_del.get("subcategoria_id") or 0) > 0,
                 int(d_del.get("subcategoria2_id") or 0) > 0,
+                bool(d_del.get("embalagens")),
             )
         ):
             ex["delivery"] = d_del

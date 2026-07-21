@@ -1162,6 +1162,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🚀 Catálogo — família de embalagens (23/07 · **local** · restauro 2×)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ de novo no branch `limpeza/entrada-nf-pg-only` (`2357d12` / v11.43 — tinha saído do HEAD) |
+| **O quê** | Card com vários preços (Granel / Saco XXkg / …) · vínculo manual na aba Delivery · `+ Add` abre escolha |
+| **Dados** | `delivery.embalagens[]` no overlay (sem migrate) · irmãos não duplicam card |
+| **Você** | Cadastro → Delivery → rolar até o bloco violeta **Embalagens no card** · Ctrl+F5 |
+
 ### 🩹 Entrada NF — prévia Finalizar ainda timeout na loja (23/07 · **v11.74**)
 
 | Item | Detalhe |
@@ -1173,6 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Commit** | `ffa1dae` + hotfix transfer |
 | **VERSION** | **11.74** |
 | **Loja** | 📦 aguarda frase + senha |
+
 
 ### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
 
