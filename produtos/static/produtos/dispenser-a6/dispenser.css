@@ -886,6 +886,17 @@ html, body {
   touch-action: none;
 }
 
+/* No ajuste de layout: só move moldura — some bolinha de zoom da foto */
+.dsp-a6.is-layout-edit .dsp-pet-handle,
+.dsp-a6.is-layout-edit .dsp-ing-handle {
+  display: none !important;
+}
+
+.dsp-a6.is-layout-edit .dsp-pet-viewport,
+.dsp-a6.is-layout-edit .dsp-ing-viewport {
+  cursor: move;
+}
+
 .dsp-a6.is-layout-edit .dsp-layout-item.is-layout-on {
   outline: 2px solid #0f172a;
   z-index: 20 !important;

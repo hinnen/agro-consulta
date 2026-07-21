@@ -349,13 +349,43 @@
     if (!card) return;
     var state = null;
 
+    function onMove(ev) {
+      if (!state) return;
+      if (!state.cw || !state.ch) return;
+      var dx = ((ev.clientX - state.startX) / state.cw) * 100;
+      var dy = ((ev.clientY - state.startY) / state.ch) * 100;
+      var box = Object.assign({}, state.box);
+      if (state.mode === "resize") {
+        box.w = state.box.w + dx;
+        box.h = state.box.h + dy;
+      } else {
+        box.x = state.box.x + dx;
+        box.y = state.box.y + dy;
+      }
+      box = clampBox(state.id, box);
+      applyBox(state.el, box);
+      state.live = box;
+    }
+
+    function endDrag(ev) {
+      if (!state) return;
+      if (state.live) updateWorkingItem(state.id, state.live);
+      state.el.classList.remove("is-layout-on");
+      try {
+        if (ev && ev.pointerId != null) state.el.releasePointerCapture(ev.pointerId);
+      } catch (e) {}
+      state = null;
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", endDrag, true);
+      window.removeEventListener("pointercancel", endDrag, true);
+    }
+
     function onDown(ev) {
       if (!card.classList.contains("is-layout-edit")) return;
+      if (ev.button !== undefined && ev.button !== 0) return;
       var handle = ev.target.closest(".dsp-layout-handle");
       var el = ev.target.closest(".dsp-layout-item[data-layout]");
       if (!el || !card.contains(el)) return;
-      /* não atrapalhar alças de zoom da foto */
-      if (ev.target.closest(".dsp-pet-handle, .dsp-ing-handle")) return;
       var id = el.getAttribute("data-layout");
       var working = loadWorking();
       if (!working || !working.items || !working.items[id]) {
@@ -363,6 +393,7 @@
         if (!working) return;
         saveWorking(working);
       }
+      if (!working.items[id]) return;
       pushHistory();
       var box = Object.assign({}, working.items[id]);
       var cr = card.getBoundingClientRect();
@@ -377,45 +408,19 @@
         ch: cr.height
       };
       el.classList.add("is-layout-on");
+      /* move/up no window (capture): senão a peça “gruda” ou não anda */
+      window.addEventListener("pointermove", onMove, true);
+      window.addEventListener("pointerup", endDrag, true);
+      window.addEventListener("pointercancel", endDrag, true);
       try {
         el.setPointerCapture(ev.pointerId);
-      } catch (e) {}
+      } catch (e2) {}
       ev.preventDefault();
       ev.stopPropagation();
     }
 
-    function onMove(ev) {
-      if (!state) return;
-      var dx = ((ev.clientX - state.startX) / state.cw) * 100;
-      var dy = ((ev.clientY - state.startY) / state.ch) * 100;
-      var box = Object.assign({}, state.box);
-      if (state.mode === "move") {
-        box.x = state.box.x + dx;
-        box.y = state.box.y + dy;
-      } else {
-        box.w = state.box.w + dx;
-        box.h = state.box.h + dy;
-      }
-      box = clampBox(state.id, box);
-      applyBox(state.el, box);
-      state.live = box;
-    }
-
-    function onUp(ev) {
-      if (!state) return;
-      if (state.live) updateWorkingItem(state.id, state.live);
-      state.el.classList.remove("is-layout-on");
-      try {
-        state.el.releasePointerCapture(ev.pointerId);
-      } catch (e) {}
-      state = null;
-    }
-
     /* capture=true: pega o clique antes do pan da foto */
     card.addEventListener("pointerdown", onDown, true);
-    card.addEventListener("pointermove", onMove);
-    card.addEventListener("pointerup", onUp);
-    card.addEventListener("pointercancel", onUp);
   }
 
   function bindUndoKeys() {

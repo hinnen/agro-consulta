@@ -1170,7 +1170,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **O quê** | Cédulas na abertura · texto no **?** (ao lado do Menu) · modal quase tela cheia |
 | **Arquivos** | `caixa_abrir.html` · `caixa_cedulas_abertura_modal.html` · `agro_pdv_overlay.js` · `caixa_pdv_overlay_mode.html` |
-| **Você** | Ctrl+F5 (PDV+abrir) · **?** · **Cédulas** grande |
+| **Você** | Ctrl+F5 (PDV+abrir) · **?** · **Cédulas** grande · hitbox do botão só no botão (v10.99) |
 
 ### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn (21/07 · Renan)
 
@@ -1189,8 +1189,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v10.97** · Ctrl+Z desfaz · no Layout arrastar move moldura (não a foto) |
-| **Você** | Ctrl+F5 · testar arraste + Ctrl+Z |
+| **Agora** | **v11.00** · arraste Layout consertado (não gruda / posição volta) + Ctrl+Z |
+| **Você** | Ctrl+F5 · Layout → Ajustar → arrastar peça → Ctrl+Z |
 | **Status** | ⏳ validar |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
