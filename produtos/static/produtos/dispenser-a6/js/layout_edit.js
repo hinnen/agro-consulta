@@ -1,7 +1,7 @@
 /* Dispenser A6 — ajuste de layout (posição/tamanho) + modelos salvos */
 (function (global) {
   var KEY_MODELS = "dsp_layouts_v1";
-  var KEY_WORKING = "dsp_layout_working_v1";
+  var KEY_WORKING = "dsp_layout_working_v2";
   var KEY_ACTIVE = "dsp_layout_active_name_v1";
   var MARGIN = { x: 1.6, y: 1.2 }; /* % da folha — não sai da margem */
   var MIN = {
@@ -52,11 +52,27 @@
     if (snap.layout && snap.layout.items) {
       saveWorking(snap.layout);
       applyLayout(snap.layout);
+      var card = cardEl();
+      var edit = $("dspLayoutEdit");
+      if (card && edit && edit.checked) {
+        card.classList.add("is-layout-edit");
+        ensureHandles();
+      }
     } else {
       resetToFlow();
-      var edit = $("dspLayoutEdit");
-      if (edit) edit.checked = false;
+      var editOff = $("dspLayoutEdit");
+      if (editOff) editOff.checked = false;
     }
+  }
+
+  function boxChanged(a, b) {
+    if (!a || !b) return !!b;
+    return (
+      Math.abs(a.x - b.x) > 0.05 ||
+      Math.abs(a.y - b.y) > 0.05 ||
+      Math.abs(a.w - b.w) > 0.05 ||
+      Math.abs(a.h - b.h) > 0.05
+    );
   }
 
   function pushHistory() {
@@ -302,7 +318,10 @@
     if (chk) chk.checked = !!on;
     if (!card) return;
     if (on) {
-      var working = loadWorking() || snapshotFromDom();
+      /* se ainda está no fluxo normal, captura posição visual atual (inclui balão) */
+      var working = card.classList.contains("is-free-layout")
+        ? loadWorking() || snapshotFromDom()
+        : snapshotFromDom() || loadWorking();
       if (!working) return;
       saveWorking(working);
       applyLayout(working);
@@ -373,7 +392,13 @@
 
     function endDrag(ev) {
       if (!state) return;
-      if (state.live) updateWorkingItem(state.id, state.live);
+      if (state.live && boxChanged(state.box, state.live)) {
+        /* working ainda tem a posição antiga → histórico certo para Ctrl+Z */
+        pushHistory();
+        updateWorkingItem(state.id, state.live);
+      } else if (state.live) {
+        applyBox(state.el, state.box);
+      }
       state.el.classList.remove("is-layout-on");
       try {
         if (ev && ev.pointerId != null) state.el.releasePointerCapture(ev.pointerId);
@@ -398,7 +423,6 @@
         saveWorking(working);
       }
       if (!working.items[id]) return;
-      pushHistory();
       var box = Object.assign({}, working.items[id]);
       var cr = card.getBoundingClientRect();
       state = {
