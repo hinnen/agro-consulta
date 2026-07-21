@@ -1156,6 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn_max_age (21/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push producao agora · aguardar Live |
+| **Base** | v10.86 (7c11ad8) + hotfix conexões Postgres |
+| **Inclui** | pacote caixa Vila×Centro + conn_max_age 60s (antes 600) |
+| **Backup** | rollback/pre-caixa-vila-centro-v10.82 @ 1aa95dc |
+| **Motivo hotfix** | deploy v10.86 falhou / site 500 por slots Postgres cheios |
+
+
+
 **Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.86**
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
