@@ -170,13 +170,13 @@
         <input type="hidden" name="ponto_caixa" id="ponto_caixa_post" value="{% if deposito_browser == 'vila' and pode_abrir_vila %}vila{% elif pode_abrir_gaveta %}gaveta{% elif pode_abrir_vila %}vila{% elif pode_abrir_teste %}teste{% else %}gaveta{% endif %}">
         <p class="text-[10px] font-black uppercase text-slate-500" id="caixa-abertura-titulo">Abrir caixa</p>
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-h-0">
-          <label class="block sm:col-span-2">
-            <span class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta</span>
+          <div class="block sm:col-span-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label for="valor_abertura" class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta</label>
               <button type="button" id="ca-cedulas-abrir" class="inline-flex items-center min-h-[36px] px-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100" aria-haspopup="dialog" aria-controls="ca-cedulas-modal" title="Cédulas">Cédulas</button>
-            </span>
+            </div>
             <input type="text" name="valor_abertura" id="valor_abertura" value="" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00" autocomplete="off">
-          </label>
+          </div>
           <label class="block sm:col-span-2" id="bloco-confirm-loja">
             <span class="text-[10px] font-black uppercase text-amber-800">Digite <strong id="confirm-loja-palavra" class="text-emerald-800">centro</strong></span>
             <input type="text" name="confirmacao_loja" id="confirmacao_loja" value="" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-amber-400 bg-amber-50/50 px-4 font-black text-[clamp(1.1rem,0.8vw+0.9rem,1.4rem)] tracking-wide" placeholder="centro ou vila" inputmode="text">
