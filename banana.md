@@ -1189,7 +1189,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.00** · arraste Layout consertado (não gruda / posição volta) + Ctrl+Z |
+| **Agora** | **v11.04** · arraste Layout consertado (não gruda / posição volta) + Ctrl+Z |
 | **Você** | Ctrl+F5 · Layout → Ajustar → arrastar peça → Ctrl+Z |
 | **Status** | ⏳ validar |
 
