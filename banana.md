@@ -1210,7 +1210,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Causa raiz** | BI `ThreadPoolExecutor` (~14) + `close_old_connections` **não** fecha conexão nova → slots vazam |
 | **Fix** | `connections.close_all()` no worker BI / ERP / NFC-e · teto **4** workers no BI · `conn_max_age=60` (rede) |
-| **Ops loja** | Após validar: Render agro-db → PgBouncer (URL porta **6432**) |
+| **Ops loja** | **FL-057 P0,1** — Render agro-db → PgBouncer (URL porta **6432**) · ver CHECKLIST ÚNICO |
 | **Você** | Ctrl+F5 · abrir BI em 2–3 abas · sem 500 |
 
 ### 🔍 Incidente manhã 21/07 — site não abria **antes** do deploy (confirmação Renan)
@@ -2719,6 +2719,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
+| **P0,1 agora** | **FL-057** — Render loja: ligar **PgBouncer** no `agro-db` + `DATABASE_URL` porta **6432** + restart web (cinto pós-incidente slots) |
 | **Fecha** | **MP automático após abrir caixa** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v10.89** · **Obs.: testar em produção após subir** |
 | **Autorizar MP refresh** | *«pode subir MP automático após abrir caixa»* + **99738595** |
 | **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
@@ -2732,6 +2733,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** · pós v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
 | **P1** | Aba 9 | Histórico lápis PDV: várias linhas DE=— · sem preço antigo | 📦 **pronto pra envio** · teste **v10.01** · **validar na loja após envio** |
 | **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
@@ -5245,6 +5247,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
 | **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** | 17/07 |
+| **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web (reforço slots; código v10.88 já fecha leak) | 📋 Pendente · Renan no painel | 21/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
@@ -5303,6 +5306,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressão separação / entregador / cliente no painel entregas |
 | FL-055 | `nfce-frete-vfrete-itens-535` | **#23:** `det/prod/vFrete` = `ICMSTot/vFrete` (535) |
 | FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 · **225:** NCM/CFOP/CEST só dígitos |
+| FL-057 | `render-pgbouncer-agro-db-6432` | Render: Info do Postgres → Connection pooling · web loja `DATABASE_URL` pooled **:6432** · redeploy · conferir healthz |
 | FL-034 | `pdv-historico-cliente-filtro` | Histórico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | Devolução por itens / parcial — hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opção 2) |
