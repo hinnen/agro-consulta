@@ -562,6 +562,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
+- **Mudar produto (21/07):** trocar vínculo no «Mudar» **não** troca o V. unit da NF (nem o rateio); só cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Histórico C1–C3 + NF (18/07):** C1–C3 = só compras **anteriores**; a NF aberta **não** entra (evitava parecer 2 notas: data entrada vs emissão).
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
@@ -1165,6 +1166,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Entrada NF — Mudar produto baixava V. unit com acréscimos (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Box acréscimos OK (ex. 75,77 → 90,42); ao **Mudar** vínculo, V. unit caía (ex. ~87,9 = custo do cadastro) |
+| **Causa** | `entradaNfeAplicarProdutoNaLinha` apagava `nfeCustNfPreservado` e sobrescrevia com custo do catálogo |
+| **Fix** | Linha com custo da NF mantém V. unit + reaplica rateio; só linha manual sem base NF puxa cadastro |
+| **Arquivo** | `entrada_nota.html` |
+| **Você** | Ctrl+F5 · XML + acréscimos · Mudar 1 item · V. unit deve ficar igual ao pós-checkbox |
+
 ### ⚡ Ajuste mobile — barra carregando sem parar (21/07 · **teste**)
 
 | Item | Detalhe |
@@ -1259,11 +1270,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Layout auto na aba · botões numa linha · cores + vivas · textos no «?» · **sem push teste** |
-| **Você** | F5 local · Layout liga sozinho · sair da aba pausa |
-| **Status** | ⏸ push teste pausado nesta tela |
-| **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
-| **Você** | Validar local / pedir push quando quiser |
+| **Agora** | ings **sem moldura** na impressão · cor do balão % · **sem push teste** |
+| **Você** | F5 · Folha → Cor do balão · imprimir sem borda nos ings |
 | **Status** | ⏸ push teste pausado nesta tela |
 | **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
 

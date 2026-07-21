@@ -9318,6 +9318,31 @@
     } catch (_) {}
   }
 
+  /** Reaplica V. unit a partir do custo puro da NF (± rateio do checkbox) — 1 linha. */
+  function entradaNfeReaplicarRateioAcrescimosNaLinha(tr) {
+    if (!tr || entradaNfeEditorCongeladoAtivo()) return;
+    if (tr.dataset.nfeLinhaModo === 'compact') return;
+    const base = Number(tr.dataset.nfeVunBaseNf);
+    if (!Number.isFinite(base) || base < 0) return;
+    const nota = ultimaNotaParse;
+    const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    const acresc = incluir ? entradaNfeNotaAcrescimosCusto(nota) : 0;
+    let somaProd = entradaNfeNotaSomaVProd(nota);
+    if (!(somaProd > 0)) {
+      somaProd = [...document.querySelectorAll('#tbody-itens tr')].reduce(
+        (s, row) => s + (Number(row.dataset.nfeVprodNf) || 0),
+        0
+      );
+    }
+    const q = Number(tr.dataset.nfeQComNf) || Number(tr.querySelector('.in-qtd')?.value) || 0;
+    const vp = Number(tr.dataset.nfeVprodNf) || 0;
+    let unit = base;
+    if (acresc > 0 && somaProd > 0 && vp > 0 && q > 0) {
+      unit = entradaNfeRoundHalfUp(base + (acresc * (vp / somaProd)) / q, 6);
+    }
+    entradaNfeAplicarVUnNaLinhaTr(tr, unit);
+  }
+
   /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
@@ -9327,7 +9352,12 @@
       }
       return;
     }
-    delete tr.dataset.nfeCustNfPreservado;
+    /* Linha da NF: manter V. unit (e rateio). Só linha manual sem base NF usa custo do cadastro. */
+    const temCustoNf =
+      tr.dataset.nfeCustNfPreservado === '1'
+      || (tr.dataset.nfeVunBaseNf != null && tr.dataset.nfeVunBaseNf !== '');
+    if (temCustoNf) tr.dataset.nfeCustNfPreservado = '1';
+    else delete tr.dataset.nfeCustNfPreservado;
     const eanNfLinha =
       entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
       entradaNfeCatalogOnlyDigits(tr.querySelector('.in-ean')?.value || '').slice(0, 20);
@@ -9366,6 +9396,7 @@
       delete tr.dataset.bipSimilarCodigos;
     }
     entradaNfeAplicarPrecosCatalogoNaLinha(tr, p);
+    if (temCustoNf) entradaNfeReaplicarRateioAcrescimosNaLinha(tr);
     void entradaNfeEnriquecerLinhaAposEscolherCatalogo(tr, p);
     const bi = entradaNfeBipIxDeTr(tr);
     if (bi >= 0) delete entradaNfeBipDraftPorLinha[String(bi)];
