@@ -5,16 +5,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.69" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.69"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.69"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.70" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.70"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.70"></script>
 </head>
 <body>
   <div class="dsp-studio">
     <aside class="dsp-panel no-print">
       <div class="dsp-panel-top">
-        <h1>Dispenser A6</h1>
-        <p class="dsp-hint">Abas embaixo · na prévia: arraste a foto, +/− ou a bolinha.</p>
+        <div class="dsp-panel-title-row">
+          <h1>Dispenser A6</h1>
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span><span class="dsp-sr">Ajuda geral</span></summary>
+            <div class="dsp-help-body">Abas embaixo. Na prévia: arraste a foto, use +/− ou a bolinha. Impressão no Chrome: margens <b>Nenhuma</b> e marque <b>Gráficos de segundo plano</b>.</div>
+          </details>
+        </div>
         <div class="dsp-tabs" id="dspTabs" role="tablist" aria-label="Menu do dispenser">
           <button type="button" class="dsp-tab is-on" role="tab" aria-selected="true" data-tab="folha">Folha</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="pet">Bicho</button>
@@ -27,6 +32,10 @@
 
       <div class="dsp-panel-body">
         <div class="dsp-tab-panel is-on" id="dspTab-folha" role="tabpanel" data-tab="folha">
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Folha</summary>
+            <div class="dsp-help-body">Categoria muda a cor. Logo PNG com fundo transparente fica neste computador. Pouco sabor → balão «Sob a lista»; muitos → «Na foto».</div>
+          </details>
           <div class="dsp-field">
             <label for="dspCat">Categoria (cor)</label>
             <select id="dspCat">
@@ -51,7 +60,6 @@
           <div class="dsp-gal-add no-print">
             <label class="dsp-gal-add-btn" for="dspLogoFile">+ Adicionar logo PNG</label>
             <input id="dspLogoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-            <span class="dsp-gal-add-hint">Prefira PNG com fundo transparente. Fica neste computador.</span>
           </div>
 
           <div class="dsp-field">
@@ -67,41 +75,50 @@
               <button type="button" data-pos="meio">Meio</button>
               <button type="button" data-pos="lista">Sob a lista</button>
             </div>
-            <p class="dsp-gal-add-hint" style="margin:0.3rem 0 0">Pouco sabor → «Sob a lista». Muitos → «Na foto».</p>
           </div>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-pet" role="tabpanel" data-tab="pet" hidden>
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Bicho</summary>
+            <div class="dsp-help-body">Fundo claro some sozinho. A foto fica salva neste computador.</div>
+          </details>
           <div class="dsp-gal-label">Biblioteca de cães e gatos</div>
           <div class="dsp-gal" id="dspPetGal" role="listbox" aria-label="Escolher pet"></div>
           <div class="dsp-gal-add no-print">
             <label class="dsp-gal-add-btn" for="dspPetFile">+ Adicionar pet</label>
             <input id="dspPetFile" type="file" accept="image/*" hidden />
-            <span class="dsp-gal-add-hint">Fundo claro some sozinho. Fica neste computador.</span>
           </div>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-ings" role="tabpanel" data-tab="ings" hidden>
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Ingredientes</summary>
+            <div class="dsp-help-body">JPG ou PNG. A foto fica neste computador.</div>
+          </details>
           <div class="dsp-gal-label">Biblioteca de ingredientes</div>
           <div class="dsp-gal dsp-gal--ings" id="dspIngGal" role="listbox" aria-label="Escolher ingredientes"></div>
           <div class="dsp-gal-add no-print">
             <button type="button" class="dsp-gal-add-btn" id="dspIngFileBtn">+ Adicionar foto de ingredientes</button>
             <input id="dspIngFile" type="file" accept="image/jpeg,image/png,image/webp,image/*" class="dsp-file-input" />
-            <p class="dsp-gal-add-hint" id="dspIngUploadStatus">JPG ou PNG. Fica neste computador.</p>
+            <p class="dsp-gal-add-hint" id="dspIngUploadStatus" hidden></p>
           </div>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-sabores" role="tabpanel" data-tab="sabores" hidden>
-          <div class="dsp-gal-label">Sabores na folha (clique · máx. 5)</div>
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Sabores</summary>
+            <div class="dsp-help-body">Clique para ligar/desligar (máx. 5). PNG do ícone com fundo transparente fica neste computador.</div>
+          </details>
+          <div class="dsp-gal-label">Sabores na folha (máx. 5)</div>
           <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
           <div class="dsp-gal-add no-print">
             <label class="dsp-field" style="margin:0 0 0.35rem">
-              <span class="dsp-gal-add-hint" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
+              <span class="dsp-gal-label" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
               <select id="dspFlavorIcoTarget"></select>
             </label>
             <label class="dsp-gal-add-btn" for="dspFlavorIcoFile">+ Subir / trocar PNG do ícone</label>
             <input id="dspFlavorIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
-            <span class="dsp-gal-add-hint">PNG com fundo transparente. Fica neste computador.</span>
           </div>
           <textarea id="dspFlavors" hidden>Carne Bovina
 Frango
@@ -109,36 +126,36 @@ Batata-Doce</textarea>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-layout" role="tabpanel" data-tab="layout" hidden>
-          <p class="dsp-gal-add-hint" style="margin:0 0 0.55rem">Arraste na prévia e use o cantinho para o tamanho. Não passa da margem. <b>Ctrl+Z</b> desfaz.</p>
-          <label class="dsp-layout-toggle">
-            <input type="checkbox" id="dspLayoutEdit" />
-            <span>Ajustar layout na prévia</span>
-          </label>
-          <div class="dsp-field" style="margin-top:0.75rem">
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Layout</summary>
+            <div class="dsp-help-body">Nesta aba o ajuste fica ligado: arraste as peças e use o cantinho para o tamanho (não passa da margem). <b>Ctrl+Z</b> desfaz. Só posição/tamanho — a folha completa fica em <b>Prontas</b>. Tamanho das letras entra na folha pronta ao salvar.</div>
+          </details>
+          <div class="dsp-field">
             <label for="dspLayoutSelect">Modelos de layout</label>
             <select id="dspLayoutSelect"></select>
           </div>
-          <p class="dsp-gal-add-hint" style="margin:0 0 0.45rem">Só posição e tamanho das peças. A folha completa fica na aba <b>Prontas</b>.</p>
           <div class="dsp-layout-btns">
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar modelo</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar layout como…</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar modelo</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Voltar ao padrão</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Padrão</button>
           </div>
           <div class="dsp-font-box" id="dspFontBox">
             <div class="dsp-gal-label">Tamanho das letras</div>
-            <p class="dsp-gal-add-hint" style="margin:0 0 0.45rem">Ajuste fino na prévia. Entra na folha pronta ao salvar.</p>
             <div id="dspFontControls"></div>
             <button type="button" class="dsp-gal-add-btn" id="dspFontReset" style="margin-top:0.35rem">Letras no padrão</button>
           </div>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-prontas" role="tabpanel" data-tab="prontas" hidden>
-          <div class="dsp-gal-label">Folhas prontas (prévia completa)</div>
+          <details class="dsp-help">
+            <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Prontas</summary>
+            <div class="dsp-help-body">Salva a prévia inteira (categoria, marca, fotos, sabores, proteína, letras e layout). Clique na miniatura para usar. Fica neste computador.</div>
+          </details>
+          <div class="dsp-gal-label">Folhas prontas</div>
           <div class="dsp-gal dsp-gal--folhas" id="dspFolhaGal" role="listbox" aria-label="Folhas salvas"></div>
           <div class="dsp-gal-add no-print">
             <button type="button" class="dsp-gal-add-btn" id="dspFolhaSave">+ Salvar folha atual</button>
-            <span class="dsp-gal-add-hint">Guarda tudo: categoria, marca, fotos, sabores, proteína e layout. Clique na miniatura para usar.</span>
           </div>
         </div>
       </div>
@@ -147,7 +164,6 @@ Batata-Doce</textarea>
         <button type="button" id="dspPrint">Imprimir A6</button>
         <button type="button" class="secondary" id="dspReset">Exemplo</button>
       </div>
-      <p class="dsp-gal-add-hint dsp-print-hint">Na impressão do Chrome: margens <b>Nenhuma</b> e marque <b>Gráficos de segundo plano</b>.</p>
     </aside>
 
     <main class="dsp-stage">
@@ -894,7 +910,9 @@ Batata-Doce</textarea>
     function setIngUploadStatus(msg, kind) {
       var el = document.getElementById("dspIngUploadStatus");
       if (!el) return;
-      el.textContent = msg || "JPG ou PNG. Fica neste computador.";
+      var text = String(msg || "").trim();
+      el.textContent = text;
+      el.hidden = !text;
       el.classList.remove("dsp-upload-ok", "dsp-upload-err");
       if (kind === "ok") el.classList.add("dsp-upload-ok");
       if (kind === "err") el.classList.add("dsp-upload-err");
@@ -1363,6 +1381,10 @@ Batata-Doce</textarea>
         try {
           localStorage.setItem(TAB_KEY, id);
         } catch (e) {}
+        /* Layout: ajusta só enquanto a aba estiver aberta */
+        if (window.DspLayoutEdit && window.DspLayoutEdit.setEditMode) {
+          window.DspLayoutEdit.setEditMode(id === "layout");
+        }
       }
 
       tabs.addEventListener("click", function (ev) {
@@ -2188,6 +2210,8 @@ Batata-Doce</textarea>
       );
       window.DspLayoutEdit.setSheetHooks(snapshotSheet, applySheet);
       window.DspLayoutEdit.init();
+      var layoutTabOn = !!document.querySelector('.dsp-tab.is-on[data-tab="layout"]');
+      window.DspLayoutEdit.setEditMode(layoutTabOn);
     }
   })();
   </script>

@@ -1259,7 +1259,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Aba **Prontas** corrigida (faltava na lista de abas) · **sem push teste** até Renan pedir |
+| **Agora** | Layout auto na aba · botões numa linha · cores + vivas · textos no «?» · **sem push teste** |
+| **Você** | F5 local · Layout liga sozinho · sair da aba pausa |
+| **Status** | ⏸ push teste pausado nesta tela |
+| **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
 | **Você** | Validar local / pedir push quando quiser |
 | **Status** | ⏸ push teste pausado nesta tela |
 | **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |

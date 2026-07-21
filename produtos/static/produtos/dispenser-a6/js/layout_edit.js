@@ -57,15 +57,11 @@
       saveWorking(snap.layout);
       applyLayout(snap.layout);
       var card = cardEl();
-      var edit = $("dspLayoutEdit");
-      if (card && edit && edit.checked) {
-        card.classList.add("is-layout-edit");
+      if (card && card.classList.contains("is-layout-edit")) {
         ensureHandles();
       }
     } else {
       resetToFlow();
-      var editOff = $("dspLayoutEdit");
-      if (editOff) editOff.checked = false;
     }
   }
 
@@ -323,8 +319,6 @@
 
   function setEditMode(on) {
     var card = cardEl();
-    var chk = $("dspLayoutEdit");
-    if (chk) chk.checked = !!on;
     if (!card) return;
     if (on) {
       /* se ainda está no fluxo normal, captura posição visual atual (inclui balão) */
@@ -485,19 +479,12 @@
   }
 
   function bindUi() {
-    var edit = $("dspLayoutEdit");
     var loadBtn = $("dspLayoutLoad");
     var saveBtn = $("dspLayoutSave");
     var delBtn = $("dspLayoutDelete");
     var resetBtn = $("dspLayoutReset");
 
     fillSelect();
-
-    if (edit) {
-      edit.addEventListener("change", function () {
-        setEditMode(edit.checked);
-      });
-    }
 
     if (loadBtn) {
       loadBtn.addEventListener("click", function () {
@@ -524,8 +511,9 @@
           localStorage.setItem(KEY_ACTIVE, name);
         } catch (e) {}
         applyLayout(layout);
-        if (edit) {
-          edit.checked = true;
+        if (cardEl() && cardEl().classList.contains("is-layout-edit")) {
+          ensureHandles();
+        } else {
           setEditMode(true);
         }
         window.alert("Modelo de layout «" + name + "» aplicado.");
@@ -583,8 +571,10 @@
         if (!window.confirm("Voltar ao layout padrão da folha?")) return;
         pushHistory();
         resetToFlow();
-        if (edit) edit.checked = false;
         fillSelect();
+        if (cardEl() && document.querySelector('.dsp-tab.is-on[data-tab="layout"]')) {
+          setEditMode(true);
+        }
       });
     }
 
@@ -605,9 +595,10 @@
     } else {
       resetToFlow();
     }
-    var edit = $("dspLayoutEdit");
-    if (edit) {
-      edit.checked = false;
+    /* se ainda estiver na aba Layout, mantém ajuste ligado */
+    if (document.querySelector('.dsp-tab.is-on[data-tab="layout"]')) {
+      setEditMode(true);
+    } else {
       setEditMode(false);
     }
   }
@@ -627,6 +618,7 @@
     resetToFlow: resetToFlow,
     fillSelect: fillSelect,
     layoutEditOn: layoutEditOn,
+    setEditMode: setEditMode,
     pushHistory: pushHistory,
     undo: undo,
     redo: redo,
