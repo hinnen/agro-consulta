@@ -6973,6 +6973,111 @@
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
   }
 
+  /** Zera editor para «Nova» — sem herdar XML, financeiro nem cabeçalho da nota anterior. */
+  function entradaNfeResetEditorParaNovaNota() {
+    clearTimeout(entradaNfeAutosaveTimer);
+    entradaNfeAutosaveTimer = null;
+    entradaNfeAutosaveDirty = false;
+    entradaNfeAutosaveLastSig = '';
+    entradaNfeLimparAutosaveHint();
+    try {
+      entradaNfeXmlMergeFechar();
+    } catch (_) {
+      entradaNfeXmlMergeCtx = null;
+      document.getElementById('modal-xml-merge')?.classList.add('hidden');
+    }
+    const xmlFile = document.getElementById('xml-file');
+    if (xmlFile) xmlFile.value = '';
+    entradaNfeRascunhoAplicandoGrade = true;
+    try {
+      ultimaNotaParse = null;
+      entradaNfeExtraUltimo = null;
+      setEntradaNfeRascunhoEdit(null);
+      const limparVal = (id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      };
+      [
+        'm-emit-nome',
+        'm-emit-cnpj',
+        'm-emit-forn-id',
+        'm-nf',
+        'm-serie',
+        'm-chave',
+        'm-dh',
+        'm-data-entrada',
+        'm-plano-conta',
+        'm-plano-conta-id',
+        'fin-dc',
+        'fin-dv',
+        'fin-forma-nome',
+        'fin-forma-id',
+        'fin-banco-nome',
+        'fin-banco-id',
+        'fin-grupo-nome',
+        'fin-grupo-id',
+        'fin-imposto-extra',
+        'fin-empresa-nome',
+        'fin-empresa-id',
+        'nfe-wiz-pin',
+        'nfe-wiz-pin-estoque',
+      ].forEach(limparVal);
+      const selEmpFat = document.getElementById('m-empresa-faturada');
+      if (selEmpFat) selEmpFat.selectedIndex = 0;
+      const selFinEmp = document.getElementById('fin-empresa-loja');
+      if (selFinEmp) selFinEmp.value = '';
+      const finNP = document.getElementById('fin-n-parc');
+      if (finNP) finNP.value = '1';
+      const finQuit = document.getElementById('fin-quitar-ao-salvar');
+      if (finQuit) finQuit.checked = false;
+      const finParcTbody = document.getElementById('fin-parcelas-preview-tbody');
+      if (finParcTbody) finParcTbody.innerHTML = '';
+      const finParcWrap = document.getElementById('fin-parcelas-preview-table');
+      if (finParcWrap) finParcWrap.classList.add('hidden');
+      const finParcWarn = document.getElementById('fin-parcelas-sum-warn');
+      if (finParcWarn) {
+        finParcWarn.textContent = '';
+        finParcWarn.classList.add('hidden');
+      }
+      const tipoCompras = document.getElementById('nfe-tipo-compras');
+      if (tipoCompras) tipoCompras.checked = true;
+      const tipoBon = document.getElementById('nfe-tipo-bonificacao');
+      if (tipoBon) tipoBon.checked = false;
+      const chkRateio = document.getElementById('nfe-chk-rateio-acrescimos');
+      if (chkRateio) {
+        chkRateio.checked = false;
+        chkRateio.disabled = true;
+      }
+      entradaNfeDepositoDefinir('', true);
+      tbodyClear();
+      try {
+        entradaNfeFinDefaultsHoje();
+      } catch (_) {}
+      try {
+        entradaNfeFinParcelasIntervaloUiSync();
+      } catch (_) {}
+      try {
+        entradaNfeAtualizarPreviewParcelas();
+      } catch (_) {}
+      try {
+        entradaNfeAtualizarUiRateioAcrescimos(null);
+      } catch (_) {}
+      atualizarPainelTotalNfe();
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      entradaNfeAtualizarAvisoFinanceiroPendente();
+      entradaNfeAtualizarBarraContextoNota();
+    } finally {
+      queueMicrotask(() => {
+        requestAnimationFrame(() => {
+          entradaNfeRascunhoAplicandoGrade = false;
+        });
+      });
+    }
+  }
+
   /** Exibe Qtd est. só quando Un/emb &gt; 1 (como R$ pacote); moldura azul; somente leitura. */
   function entradaNfeLinhaAtualizarQtdEstTd(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
@@ -10673,20 +10778,9 @@
 
   document.getElementById('btn-entrada-nfe-nova')?.addEventListener('click', () => {
     entradaNfeAbrirEditor();
-    entradaNfeExtraUltimo = null;
-    setEntradaNfeRascunhoEdit(null);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-    fornHid.value = '';
-    fornInp.value = '';
-    document.getElementById('m-emit-cnpj').value = '';
-    document.getElementById('m-nf').value = '';
-    document.getElementById('m-serie').value = '';
-    document.getElementById('m-chave').value = '';
-    document.getElementById('m-dh').value = '';
-    entradaNfeDepositoDefinir('', true);
-    tbodyClear();
-    atualizarPainelTotalNfe();
-    showMsg('Nova entrada.', true);
+    entradaNfeResetEditorParaNovaNota();
+    showMsg('Nova entrada — campos limpos.', true);
   });
 
   document.getElementById('btn-refresh-rasc')?.addEventListener('click', carregarRascunhos);

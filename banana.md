@@ -563,6 +563,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Mudar produto (21/07):** trocar vínculo no «Mudar» **não** troca o V. unit da NF (nem o rateio); só cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
+- **Nova nota (21/07):** botão «Nova» zera XML/cabeçalho/financeiro/rateio — não herda a nota anterior (autosave também).
 - **Histórico C1–C3 + NF (18/07):** C1–C3 = só compras **anteriores**; a NF aberta **não** entra (evitava parecer 2 notas: data entrada vs emissão).
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
@@ -1270,8 +1271,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | ings **sem moldura** na impressão · cor do balão % · **sem push teste** |
-| **Você** | F5 · Folha → Cor do balão · imprimir sem borda nos ings |
+| **Agora** | impressão: Chrome **não** define qualidade/papel · ? com passo Windows · **sem push teste** |
+| **Você** | Preferências da L4260 no Windows (1×) · Chrome: margens Nenhuma + gráficos de fundo |
 | **Status** | ⏸ push teste pausado nesta tela |
 | **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
 
