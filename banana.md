@@ -1243,9 +1243,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.18** · aba **Prontas** (miniaturas) · Layout volta a salvar só layout |
-| **Você** | Ctrl+F5 · Layout = só peças · Prontas = folha completa com miniatura |
-| **Status** | ⏳ validar |
+| **Agora** | Aba **Prontas** corrigida (faltava na lista de abas) · **sem push teste** até Renan pedir |
+| **Você** | Validar local / pedir push quando quiser |
+| **Status** | ⏸ push teste pausado nesta tela |
+| **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
