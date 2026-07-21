@@ -1167,6 +1167,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Entrada NF «Nova» limpa (**v10.90**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** |
+| **Teste** | **v11.38** · commit **`46add26`** |
+| **VERSION loja alvo** | **10.90** (base loja **v10.89**) |
+| **Inclui** | Só `entrada_nota.html` — botão **Nova** zera XML/cabeçalho/financeiro/rateio (não herda nota anterior) |
+| **Já na loja** | V. unit no Mudar + acréscimos (**v10.89**) |
+| **NÃO inclui** | Dispenser · merge inteiro do `teste` |
+| **Backup no push** | `rollback/pre-entrada-nf-nova-limpa-v10.89` |
+| **Autorizar** | *pode subir para produção* + **99738595** |
+| **Validar após Live** | Ctrl+F5 · abrir nota · **Nova** · em branco · puxar XML novo |
+
+### 🩹 Entrada NF — Nova herdava XML/dados da nota anterior (21/07 · **teste v11.38**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Ao abrir **Nova**, campos e XML da nota anterior vinham preenchidos / gravavam no rascunho novo |
+| **Causa** | Botão Nova limpava só parte do cabeçalho; `ultimaNotaParse` + financeiro + rateio ficavam |
+| **Fix** | `entradaNfeResetEditorParaNovaNota` — zera tudo + cancela autosave pendente |
+| **Arquivo** | `entrada_nota.html` |
+| **Status** | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · pacote **v10.90** |
+| **Você** | Ctrl+F5 · abrir nota · **Nova** · deve nascer em branco · puxar XML novo sem rastro da anterior |
+
 ### 🩹 Entrada NF — Mudar produto baixava V. unit com acréscimos (21/07 · **teste**)
 
 | Item | Detalhe |
@@ -2731,9 +2756,12 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
+| **Entrada NF** | **«Nova» limpa XML/dados** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja alvo **v10.90** · commit `46add26` |
+| **Autorizar NF Nova** | *«pode subir para produção»* + **99738595** |
 | **P0,1 agora** | **FL-057** — Render loja: ligar **PgBouncer** no `agro-db` + `DATABASE_URL` porta **6432** + restart web (cinto pós-incidente slots) |
 | **Fecha** | **MP automático após abrir caixa** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v10.89** · **Obs.: testar em produção após subir** |
 | **Autorizar MP refresh** | *«pode subir MP automático após abrir caixa»* + **99738595** |
+| **✅ Loja v10.89** | Entrada NF V. unit no Mudar (21/07) |
 | **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
 | **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **ainda NÃO na loja** (conferido 18/07 noite) |
 | **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
@@ -2745,6 +2773,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja **v10.90** |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** · pós v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
 | **P1** | Aba 9 | Histórico lápis PDV: várias linhas DE=— · sem preço antigo | 📦 **pronto pra envio** · teste **v10.01** · **validar na loja após envio** |
