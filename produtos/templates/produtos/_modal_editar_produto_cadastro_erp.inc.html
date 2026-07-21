@@ -2835,28 +2835,78 @@
     var prev = document.getElementById('edit-delivery-foto-preview');
     var limpar = document.getElementById('edit-delivery-foto-limpar');
     if (!inp) return;
+
+    function aplicarDataUrl(dataUrl) {
+      var m = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/);
+      if (!m) return;
+      if (mime) mime.value = m[1] || 'image/jpeg';
+      if (b64) b64.value = m[2] || '';
+      if (prev) {
+        prev.src = dataUrl;
+        prev.classList.remove('hidden');
+      }
+      if (limpar) limpar.classList.remove('hidden');
+    }
+
+    function comprimirParaJpeg(file, cb) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var maxLado = 900;
+          var w = img.naturalWidth || img.width || 1;
+          var h = img.naturalHeight || img.height || 1;
+          if (w > maxLado || h > maxLado) {
+            if (w >= h) {
+              h = Math.round((h * maxLado) / w);
+              w = maxLado;
+            } else {
+              w = Math.round((w * maxLado) / h);
+              h = maxLado;
+            }
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, w);
+          canvas.height = Math.max(1, h);
+          var ctx = canvas.getContext('2d');
+          if (!ctx) {
+            cb(null);
+            return;
+          }
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          cb(canvas.toDataURL('image/jpeg', 0.78));
+        } catch (e) {
+          cb(null);
+        } finally {
+          try { URL.revokeObjectURL(url); } catch (e2) {}
+        }
+      };
+      img.onerror = function () {
+        try { URL.revokeObjectURL(url); } catch (e3) {}
+        cb(null);
+      };
+      img.src = url;
+    }
+
     inp.addEventListener('change', function () {
       var f = inp.files && inp.files[0];
       if (!f) return;
-      if (f.size > 700 * 1024) {
-        if (typeof alert !== 'undefined') alert('Foto muito grande (máx. ~700 KB).');
+      if (f.size > 5 * 1024 * 1024) {
+        if (typeof alert !== 'undefined') alert('Foto muito grande (máx. ~5 MB).');
         inp.value = '';
         return;
       }
-      var reader = new FileReader();
-      reader.onload = function () {
-        var dataUrl = String(reader.result || '');
-        var m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (!m) return;
-        if (mime) mime.value = m[1] || 'image/jpeg';
-        if (b64) b64.value = m[2] || '';
-        if (prev) {
-          prev.src = dataUrl;
-          prev.classList.remove('hidden');
+      comprimirParaJpeg(f, function (dataUrl) {
+        if (dataUrl) {
+          aplicarDataUrl(dataUrl);
+          return;
         }
-        if (limpar) limpar.classList.remove('hidden');
-      };
-      reader.readAsDataURL(f);
+        var reader = new FileReader();
+        reader.onload = function () { aplicarDataUrl(String(reader.result || '')); };
+        reader.readAsDataURL(f);
+      });
     });
     if (limpar) {
       limpar.addEventListener('click', function () {

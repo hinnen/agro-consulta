@@ -194,7 +194,56 @@ def rotulo_embalagem_padrao(
     return (un or "UN")[:40]
 
 
-def normalizar_delivery(raw: Any) -> dict:
+def _comprimir_imagem_base64_delivery(b64: str, mime: str) -> tuple[str, str]:
+    """Reencoda JPEG compacto para caber no JSON do overlay (e no PDV)."""
+    import base64
+
+    b64 = str(b64 or "").strip().replace("\n", "").replace(" ", "")
+    mime = str(mime or "image/jpeg").strip()[:80] or "image/jpeg"
+    if not b64:
+        return "", "image/jpeg"
+    try:
+        raw = base64.b64decode(b64, validate=False)
+    except Exception:
+        return "", "image/jpeg"
+    if not raw:
+        return "", "image/jpeg"
+
+    # Já leve — mantém (PNG transparente etc.).
+    if len(raw) <= 180_000 and len(b64) <= 240_000:
+        return b64, mime
+
+    for lado, qual in ((900, 78), (720, 72), (560, 68)):
+        out, mime_out = comprimir_imagem_upload(raw, max_lado=lado, qualidade=qual)
+        if not out:
+            continue
+        b64_out = base64.b64encode(out).decode("ascii")
+        if len(b64_out) <= 900_000:
+            return b64_out, str(mime_out or "image/jpeg")
+    return "", "image/jpeg"
+
+
+def data_url_imagem_delivery_de_overlay(ov) -> str:
+    """URL data: da foto Delivery no overlay (PDV / catálogo / APIs)."""
+    if ov is None:
+        return ""
+    return _imagem_data_url(delivery_de_extras(getattr(ov, "cadastro_extras", None) or {}))
+
+
+def aplicar_imagem_delivery_no_row(row: dict, ov) -> None:
+    """Se o overlay tiver foto Delivery, usa no campo ``imagem`` do produto."""
+    if not isinstance(row, dict):
+        return
+    url = data_url_imagem_delivery_de_overlay(ov)
+    if url:
+        row["imagem"] = url
+
+
+def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
+    """Sanitiza delivery do overlay.
+
+    ``processar_imagem=True`` só no save (comprime). Na leitura não apaga foto grande.
+    """
     d = raw if isinstance(raw, dict) else {}
     titulo = str(d.get("titulo") or "").strip()[:200]
     descricao = str(d.get("descricao") or "").strip()[:2000]
@@ -207,9 +256,8 @@ def normalizar_delivery(raw: Any) -> dict:
     b64_in = str(d.get("imagem_base64") or "").strip()
     b64, mime_guess = _strip_data_url(b64_in)
     mime = str(d.get("imagem_mime") or mime_guess or "image/jpeg").strip()[:40] or "image/jpeg"
-    if len(b64) > 900_000:
-        b64 = ""
-        mime = "image/jpeg"
+    if processar_imagem and b64:
+        b64, mime = _comprimir_imagem_base64_delivery(b64, mime)
     cat_id = 0
     sub_id = 0
     sub2_id = 0
