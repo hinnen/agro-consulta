@@ -1228,7 +1228,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.15** · aba **Prontas** (miniaturas) · Layout volta a salvar só layout |
+| **Agora** | **v11.18** · aba **Prontas** (miniaturas) · Layout volta a salvar só layout |
 | **Você** | Ctrl+F5 · Layout = só peças · Prontas = folha completa com miniatura |
 | **Status** | ⏳ validar |
 
