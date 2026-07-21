@@ -8114,8 +8114,37 @@
         });
     }
 
-    function fillQuickProductEditForm(prod) {
+    function setQuickProductEditSaldoAgoraLoading() {
+        quickProductEditSaldoOrig = { centro: null, vila: null };
+        var spin =
+            '<span class="inline-flex h-[1.1em] w-[1.1em] shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-60" title="Atualizando saldo" aria-label="Carregando saldo"></span>';
+        if (dom.quickProductEditSaldoCentroAtual) {
+            dom.quickProductEditSaldoCentroAtual.innerHTML = spin;
+            dom.quickProductEditSaldoCentroAtual.setAttribute('data-saldo-pending', '1');
+        }
+        if (dom.quickProductEditSaldoVilaAtual) {
+            dom.quickProductEditSaldoVilaAtual.innerHTML = spin;
+            dom.quickProductEditSaldoVilaAtual.setAttribute('data-saldo-pending', '1');
+        }
+    }
+
+    function setQuickProductEditSaldoAgora(sc, sv) {
+        var c = isFinite(Number(sc)) ? Number(sc) : 0;
+        var v = isFinite(Number(sv)) ? Number(sv) : 0;
+        quickProductEditSaldoOrig = { centro: c, vila: v };
+        if (dom.quickProductEditSaldoCentroAtual) {
+            dom.quickProductEditSaldoCentroAtual.textContent = fmtQtyEdit(c);
+            dom.quickProductEditSaldoCentroAtual.removeAttribute('data-saldo-pending');
+        }
+        if (dom.quickProductEditSaldoVilaAtual) {
+            dom.quickProductEditSaldoVilaAtual.textContent = fmtQtyEdit(v);
+            dom.quickProductEditSaldoVilaAtual.removeAttribute('data-saldo-pending');
+        }
+    }
+
+    function fillQuickProductEditForm(prod, opts) {
         prod = prod || {};
+        opts = opts || {};
         if (dom.quickProductEditTitle) {
             dom.quickProductEditTitle.textContent = String(prod.nome || 'Produto');
         }
@@ -8152,17 +8181,10 @@
         if (dom.quickProductEditPrecoA) dom.quickProductEditPrecoA.value = fmtMoneyEdit(pg.preco_a);
         if (dom.quickProductEditPrecoB) dom.quickProductEditPrecoB.value = fmtMoneyEdit(pg.preco_b);
         renderQuickProductFormas(pg);
-        var sc = Number(prod.saldo_centro);
-        var sv = Number(prod.saldo_vila);
-        quickProductEditSaldoOrig = {
-            centro: isFinite(sc) ? sc : 0,
-            vila: isFinite(sv) ? sv : 0
-        };
-        if (dom.quickProductEditSaldoCentroAtual) {
-            dom.quickProductEditSaldoCentroAtual.textContent = fmtQtyEdit(quickProductEditSaldoOrig.centro);
-        }
-        if (dom.quickProductEditSaldoVilaAtual) {
-            dom.quickProductEditSaldoVilaAtual.textContent = fmtQtyEdit(quickProductEditSaldoOrig.vila);
+        if (opts.saldosPending) {
+            setQuickProductEditSaldoAgoraLoading();
+        } else {
+            setQuickProductEditSaldoAgora(prod.saldo_centro, prod.saldo_vila);
         }
         if (dom.quickProductEditSaldoCentro) dom.quickProductEditSaldoCentro.value = '';
         if (dom.quickProductEditSaldoVila) dom.quickProductEditSaldoVila.value = '';
@@ -8194,7 +8216,7 @@
         if (!produtoId) return;
         quickProductEditItemId = String(itemId);
         quickProductEditProdutoId = produtoId;
-        fillQuickProductEditForm({
+        var baseForm = {
             nome: item.nome,
             codigo_gm: item.codigoGm || item.codigo_nfe,
             codigo_nfe: item.codigoGm || item.codigo_nfe,
@@ -8205,36 +8227,35 @@
             preco_custo: item.preco_custo,
             preco_venda: item.preco_padrao != null ? item.preco_padrao : item.preco,
             precos_modo: item.precos_modo,
-            precos_grupos: item.precos_grupos,
-            saldo_centro: item.saldo_centro,
-            saldo_vila: item.saldo_vila
-        });
-        // Completa barras/custo/GM a partir do catálogo em memória (carrinho costuma não ter).
+            precos_grupos: item.precos_grupos
+        };
+        /* Não mostra saldo do cache (pode estar velho) — spinner até a API. */
+        fillQuickProductEditForm(baseForm, { saldosPending: true });
         try {
             for (var ci = 0; ci < wizardProductCatalog.length; ci++) {
                 var crow = wizardProductCatalog[ci];
                 if (String(crow.id || crow.Id || '') === produtoId) {
-                    fillQuickProductEditForm({
-                        nome: item.nome || crow.nome,
-                        codigo_gm: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
-                        codigo_nfe: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
-                        codigo_sistema: crow.codigo || item.codigo,
-                        codigo: crow.codigo || item.codigo,
-                        codigo_barras: crow.codigo_barras || item.codigo_barras,
-                        unidade: crow.unidade || item.unidade,
-                        preco_custo: crow.preco_custo != null ? crow.preco_custo : item.preco_custo,
-                        preco_venda:
-                            item.preco_padrao != null
-                                ? item.preco_padrao
-                                : crow.preco_venda != null
-                                  ? crow.preco_venda
-                                  : item.preco,
-                        precos_modo: item.precos_modo || crow.precos_modo,
-                        precos_grupos: item.precos_grupos || crow.precos_grupos,
-                        saldo_centro:
-                            crow.saldo_centro != null ? crow.saldo_centro : item.saldo_centro,
-                        saldo_vila: crow.saldo_vila != null ? crow.saldo_vila : item.saldo_vila
-                    });
+                    fillQuickProductEditForm(
+                        {
+                            nome: item.nome || crow.nome,
+                            codigo_gm: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
+                            codigo_nfe: crow.codigo_nfe || crow.codigo_gm || item.codigoGm,
+                            codigo_sistema: crow.codigo || item.codigo,
+                            codigo: crow.codigo || item.codigo,
+                            codigo_barras: crow.codigo_barras || item.codigo_barras,
+                            unidade: crow.unidade || item.unidade,
+                            preco_custo: crow.preco_custo != null ? crow.preco_custo : item.preco_custo,
+                            preco_venda:
+                                item.preco_padrao != null
+                                    ? item.preco_padrao
+                                    : crow.preco_venda != null
+                                      ? crow.preco_venda
+                                      : item.preco,
+                            precos_modo: item.precos_modo || crow.precos_modo,
+                            precos_grupos: item.precos_grupos || crow.precos_grupos
+                        },
+                        { saldosPending: true }
+                    );
                     break;
                 }
             }
@@ -8242,12 +8263,15 @@
         dom.quickProductEditOverlay.classList.remove('hidden');
         dom.quickProductEditOverlay.classList.add('flex');
         var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
-        if (!pattern) return;
+        if (!pattern) {
+            setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
+            return;
+        }
         var url = pattern.replace('__PID__', encodeURIComponent(produtoId));
         jsonGet(url)
             .then(function (res) {
+                if (String(quickProductEditProdutoId) !== produtoId) return;
                 if (!res.ok || !res.data || !res.data.ok || !res.data.produto) {
-                    // Já preencheu do carrinho/catálogo — não assusta com vermelho.
                     var temNome =
                         dom.quickProductEditNome &&
                         String(dom.quickProductEditNome.value || '').trim();
@@ -8256,18 +8280,21 @@
                             (res.data && res.data.erro) || 'Não deu para carregar o produto.';
                         dom.quickProductEditErro.classList.remove('hidden');
                     }
+                    /* API falhou: cai no saldo do carrinho/catálogo (melhor que spinner eterno). */
+                    setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
                     return;
                 }
-                if (String(quickProductEditProdutoId) !== produtoId) return;
                 fillQuickProductEditForm(res.data.produto);
             })
             .catch(function () {
+                if (String(quickProductEditProdutoId) !== produtoId) return;
                 var temNome =
                     dom.quickProductEditNome && String(dom.quickProductEditNome.value || '').trim();
                 if (!temNome && dom.quickProductEditErro) {
                     dom.quickProductEditErro.textContent = 'Falha de rede ao carregar o produto.';
                     dom.quickProductEditErro.classList.remove('hidden');
                 }
+                setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
             });
         window.setTimeout(function () {
             if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
@@ -8333,6 +8360,22 @@
                 dom.quickProductEditErro.classList.remove('hidden');
             }
             if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
+            return;
+        }
+        var saldoAindaCarregando =
+            (dom.quickProductEditSaldoCentroAtual &&
+                dom.quickProductEditSaldoCentroAtual.getAttribute('data-saldo-pending') === '1') ||
+            (dom.quickProductEditSaldoVilaAtual &&
+                dom.quickProductEditSaldoVilaAtual.getAttribute('data-saldo-pending') === '1');
+        var querAjustarEstoque =
+            (dom.quickProductEditSaldoCentro && String(dom.quickProductEditSaldoCentro.value || '').trim()) ||
+            (dom.quickProductEditSaldoVila && String(dom.quickProductEditSaldoVila.value || '').trim());
+        if (saldoAindaCarregando && querAjustarEstoque) {
+            if (dom.quickProductEditErro) {
+                dom.quickProductEditErro.textContent =
+                    'Aguarde o saldo atual carregar antes de ajustar o estoque.';
+                dom.quickProductEditErro.classList.remove('hidden');
+            }
             return;
         }
         var precoA = parseMoneyEdit(dom.quickProductEditPrecoA && dom.quickProductEditPrecoA.value);

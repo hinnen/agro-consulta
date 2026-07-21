@@ -275,9 +275,32 @@ class SessaoCaixa(models.Model):
         null=True,
         blank=True,
         related_name="sessoes_caixa",
+        help_text="Login Django de quem abriu o turno.",
+    )
+    usuario_fechamento = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sessoes_caixa_fechadas",
+        help_text="Login Django de quem fechou o turno.",
     )
     aberto_em = models.DateTimeField(auto_now_add=True)
     valor_abertura = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_abertura_sugerido = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Dinheiro contado no último fechamento do mesmo ponto (sugestão na abertura).",
+    )
+    diferenca_abertura = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="valor_abertura − valor_abertura_sugerido (só quando havia sugestão).",
+    )
     observacao_abertura = models.CharField(max_length=500, blank=True, default="")
     fechado_em = models.DateTimeField(null=True, blank=True)
     valor_fechamento = models.DecimalField(

@@ -65,6 +65,7 @@
       if (window.top === window.self) return;
       var path = (location.pathname || '').replace(/\/+$/, '') || '/';
       var isCaixa = path === '/caixa' || path.indexOf('/caixa/') === 0;
+      var isAbrir = path.indexOf('/caixa/abrir') === 0;
       var menuHref = MENU_URL + overlayEmbedParams();
       if (!pathIsCaixaMenu()) {
         try {
@@ -74,13 +75,24 @@
           menuHref = mu.pathname + embed;
         } catch (_) {}
       }
+      var helpHtml = '';
+      if (isAbrir) {
+        helpHtml =
+          '<p><strong>Gaveta Centro</strong> e <strong>Vila Elias</strong> são turnos separados — cada loja o seu.</p>' +
+          '<p><strong>Notebook</strong> entra no turno da loja do BI. <strong>Teste</strong> é isolado.</p>' +
+          '<p>Digite <strong>centro</strong> ou <strong>vila</strong> para confirmar a loja.</p>' +
+          '<p>Use <strong>Cédulas</strong> para contar o troco. O card azul mostra o último fechamento — confira na gaveta.</p>' +
+          '<p>Diferença na abertura (vs último fechamento) fica em <strong>Conferências · diferenças</strong>, com quem abriu e quem fechou.</p>';
+      }
       window.top.postMessage(
         {
           type: 'agro-pdv-overlay-meta',
           title: pageTitle(),
-          subtitle: readHeaderText('header p, header .cf-t-sub'),
+          subtitle: readHeaderText('header .cf-t-sub, header .caixa-abrir-sub'),
           menuHref: menuHref,
           showMenu: isCaixa && !pathIsCaixaMenu(),
+          showHelp: !!helpHtml,
+          helpHtml: helpHtml,
         },
         location.origin
       );

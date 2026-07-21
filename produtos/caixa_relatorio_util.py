@@ -14,12 +14,14 @@ from produtos.caixa_util import (
     eh_movimento_retirada_devolucao,
     extrair_linhas_conferencia_sessao,
     formatar_opcao_sessao_caixa,
+    linha_diferenca_abertura_sessao,
     normalizar_forma_pagamento_caixa,
     normalizar_ponto_caixa,
     pagamentos_por_forma_venda,
     ponto_pai_de_deposito,
     rotulo_ponto_caixa,
     rotulo_sessao_caixa,
+    rotulo_usuarios_sessao_caixa,
     usuario_label_sessao_caixa,
 )
 from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
@@ -471,7 +473,7 @@ def montar_relatorio_conferencias_caixa(
     dep_filtro = _filtro_loja_relatorio(deposito)
     qs = SessaoCaixa.objects.filter(
         fechado_em__isnull=False, fechado_em__gte=ini, fechado_em__lte=fim
-    ).select_related("usuario")
+    ).select_related("usuario", "usuario_fechamento")
     if sessao_id is not None:
         qs = qs.filter(pk=sessao_id)
     if dep_filtro is not None:
@@ -499,7 +501,10 @@ def montar_relatorio_conferencias_caixa(
 
     qtd_com_diff = 0
     for s in qs:
-        linhas_raw = extrair_linhas_conferencia_sessao(s)
+        linhas_raw = list(extrair_linhas_conferencia_sessao(s))
+        ab_line = linha_diferenca_abertura_sessao(s)
+        if ab_line:
+            linhas_raw.insert(0, ab_line)
         linhas_fmt: list[dict[str, Any]] = []
         sess_diff = False
         for L in linhas_raw:
@@ -524,6 +529,7 @@ def montar_relatorio_conferencias_caixa(
                     "tem_diff": dif is not None and abs(_dec(dif)) >= Decimal("0.01"),
                     "diff_positivo": dif is not None and _dec(dif) > 0,
                     "diff_negativo": dif is not None and _dec(dif) < 0,
+                    "eh_abertura": L["forma"].startswith("Abertura"),
                 }
             )
         if somente_com_diferenca and not linhas_fmt:
@@ -539,7 +545,7 @@ def montar_relatorio_conferencias_caixa(
                 "rotulo": rotulo_sessao_caixa(s),
                 "fechado_em": s.fechado_em,
                 "aberto_em": s.aberto_em,
-                "usuario": usuario_label_sessao_caixa(s),
+                "usuario": rotulo_usuarios_sessao_caixa(s),
                 "valor_fechamento": str(_dec(s.valor_fechamento))
                 if s.valor_fechamento is not None
                 else "",

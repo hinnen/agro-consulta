@@ -527,6 +527,44 @@ def usuario_label_sessao_caixa(sessao) -> str:
     return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
 
 
+def usuario_fechamento_label_sessao_caixa(sessao) -> str:
+    if not getattr(sessao, "usuario_fechamento_id", None):
+        return ""
+    u = sessao.usuario_fechamento
+    return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
+
+
+def rotulo_usuarios_sessao_caixa(sessao) -> str:
+    """Texto curto: abriu / fechou para relatório e conferências."""
+    abriu = usuario_label_sessao_caixa(sessao)
+    fechou = usuario_fechamento_label_sessao_caixa(sessao)
+    if fechou:
+        return f"Abriu: {abriu} · Fechou: {fechou}"
+    return f"Abriu: {abriu}"
+
+
+def linha_diferenca_abertura_sessao(sessao) -> dict[str, Any] | None:
+    """Linha para Conferências quando abertura ≠ sugestão do último fechamento."""
+    sug = getattr(sessao, "valor_abertura_sugerido", None)
+    dif = getattr(sessao, "diferenca_abertura", None)
+    if sug is None or dif is None:
+        return None
+    dif_d = _dec(dif).quantize(Decimal("0.01"))
+    if abs(dif_d) < Decimal("0.01"):
+        return None
+    esp = _dec(sug).quantize(Decimal("0.01"))
+    cont = _dec(getattr(sessao, "valor_abertura", 0)).quantize(Decimal("0.01"))
+    return {
+        "forma": "Abertura · Dinheiro",
+        "esperado": esp,
+        "contado": cont,
+        "diferenca": dif_d,
+        "esperado_str": str(esp),
+        "contado_str": str(cont),
+        "diferenca_str": str(dif_d),
+    }
+
+
 def fmt_linhas_caixa_template(linhas) -> list[dict[str, str]]:
     return [
         {

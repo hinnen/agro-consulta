@@ -54,11 +54,19 @@
         </button>
       </div>
     </div>
+    {% if ajuste_operador %}
+    <div class="px-3 py-1.5 border-t border-emerald-100/80 bg-emerald-50/90 flex items-center justify-between gap-2">
+      <span class="text-[9px] font-black uppercase text-emerald-800 tracking-wide truncate" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
+      <a href="{% url 'ajuste_mobile' %}" class="text-[9px] font-black uppercase text-slate-600 underline shrink-0" title="Trocar operador (pede PIN de novo)">Trocar</a>
+    </div>
+    {% endif %}
     <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-emerald-100/90 bg-gradient-to-r from-emerald-50/95 via-white to-slate-50/80">
-      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0">Saldos</span>
+      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0 truncate" title="Depósito igual ao PDV deste aparelho">
+        Estoque: {% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}{% if ajuste_deposito_travado %} · travado{% endif %}
+      </span>
       <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
         <span id="ma-saldos-ultima" class="text-[9px] font-bold text-slate-800 tabular-nums truncate max-w-[min(52vw,11rem)]" title="Última leitura dos saldos na lista">—</span>
-        <button type="button" id="ma-btn-saldos" class="relative inline-flex items-center gap-1.5 rounded-xl border-2 border-emerald-500/45 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[9px] font-black uppercase tracking-wide pl-1.5 pr-2.5 py-1.5 shadow-md active:scale-[0.98] transition-transform shrink-0 overflow-hidden" title="Atualizar saldos agora (ERP + PIN)">
+        <button type="button" id="ma-btn-saldos" class="relative inline-flex items-center gap-1.5 rounded-xl border-2 border-emerald-500/45 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[9px] font-black uppercase tracking-wide pl-1.5 pr-2.5 py-1.5 shadow-md active:scale-[0.98] transition-transform shrink-0 overflow-hidden" title="Baixar lista completa + saldos (Postgres)">
           <span class="agro-termo-track flex flex-col justify-end w-1.5 h-7 rounded-full bg-black/20 border border-white/25 overflow-hidden shadow-inner" aria-hidden="true">
             <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
           </span>
@@ -99,9 +107,9 @@
     <div id="f-drawer" class="hidden mt-1.5 grid grid-cols-2 gap-1.5">
       <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
         <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Depósito</span>
-        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
-          <option value="centro">Centro</option>
-          <option value="vila">Vila Elias</option>
+        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none"{% if ajuste_deposito_travado %} disabled title="Loja travada pelo caixa do PDV"{% endif %}>
+          <option value="centro"{% if ajuste_deposito_inicial != 'vila' %} selected{% endif %}>Centro</option>
+          <option value="vila"{% if ajuste_deposito_inicial == 'vila' %} selected{% endif %}>Vila Elias</option>
         </select>
       </label>
       <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
@@ -192,7 +200,10 @@ let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
-const MOBILE_POLL_SALDOS_MS = 2200;
+const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
+const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
+const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
+const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -206,17 +217,24 @@ function mobileLerProdutosDoCacheUnificado() {
   }
   return null;
 }
-let mobilePollSaldosTimer = null;
 let maThermoTimer = null;
+let maListaInFlight = false;
+let maUltimosIdsExibidos = [];
 let scanningActive = false;
 let filtrosAplicados = {
-  deposito: 'centro',
+  deposito: MA_DEPOSITO_INICIAL,
   saldo: 'all',
   ordem: 'nome',
   extra: 'all',
   categoria: 'all',
   fornecedor: 'all',
 };
+
+function maResetLoading() {
+  if (window.gmLoadingBar && typeof window.gmLoadingBar.reset === 'function') {
+    window.gmLoadingBar.reset();
+  }
+}
 
 function normalizar(texto) {
   return String(texto || '')
@@ -319,8 +337,8 @@ function atualizarOpcoesFiltros() {
 }
 
 function aplicarFiltrosDaUI() {
-  filtrosAplicados = {
-    deposito: document.getElementById('f-deposito')?.value || 'centro',
+    filtrosAplicados = {
+    deposito: document.getElementById('f-deposito')?.value || MA_DEPOSITO_INICIAL,
     saldo: document.getElementById('f-saldo')?.value || 'all',
     ordem: document.getElementById('f-ordem')?.value || 'nome',
     extra: document.getElementById('f-extra')?.value || 'all',
@@ -352,63 +370,105 @@ function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
     if (deposito === 'vila') x.saldo_vila = novoSaldo;
     else x.saldo_centro = novoSaldo;
   });
+  /* Espelha no cache do PDV deste aparelho — home/consulta veem o saldo novo sem F5 estoque. */
+  try {
+    MA_CAT_KEYS.forEach((key) => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const pack = JSON.parse(raw);
+      if (!pack || !Array.isArray(pack.produtos)) return;
+      let mudou = false;
+      pack.produtos.forEach((row) => {
+        if (String(row.id) !== id) return;
+        if (deposito === 'vila') row.saldo_vila = novoSaldo;
+        else row.saldo_centro = novoSaldo;
+        mudou = true;
+      });
+      if (mudou) localStorage.setItem(key, JSON.stringify(pack));
+    });
+  } catch (_) {}
 }
 
-function pollSaldosMobileUmaVez() {
-  if (!baseProdutos.length || document.visibilityState !== 'visible') return;
-  fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+function pollSaldosMobileUmaVez(idsOpcionais) {
+  if (!baseProdutos.length || document.visibilityState !== 'visible') return Promise.resolve(false);
+  let ids = Array.isArray(idsOpcionais) ? idsOpcionais.filter(Boolean).map(String) : [];
+  if (!ids.length) {
+    ids = (maUltimosIdsExibidos || []).slice(0, 80);
+  }
+  if (!ids.length) return Promise.resolve(false);
+  const url = MA_API_SALDOS + '?ids=' + encodeURIComponent(ids.join(','));
+  return fetch(url, { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows) {
         aplicarSaldosMobile(d.rows);
         marcarMobileSaldosFresh();
+        return true;
       }
+      return false;
     })
-    .catch(() => {});
+    .catch(() => false);
 }
-
-function iniciarPollSaldosMobile() {
-  if (window.AGRO_MANUAL_SYNC_ONLY) return;
-  if (mobilePollSaldosTimer) clearInterval(mobilePollSaldosTimer);
-  mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
-  setTimeout(pollSaldosMobileUmaVez, 450);
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') pollSaldosMobileUmaVez();
-});
 
 function mobileAjusteAplicarProdutosDaLista(produtos) {
   baseProdutos = produtos || [];
   atualizarOpcoesFiltros();
   aplicarFiltrosDaUI();
-  buscar('');
+  buscar(document.getElementById('busca')?.value || '');
 }
 
+/** Baixa catálogo completo (só sob demanda / 1ª abertura sem cache). Sem poll automático. */
 function mobileAjusteBaixarListaApi() {
+  if (maListaInFlight) return Promise.resolve(0);
+  maListaInFlight = true;
   const listaDiv = document.getElementById('lista');
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  fetch("{% url 'api_todos_produtos_local' %}")
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 90000);
+  return fetch(MA_API_CATALOGO, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
     .then((res) => res.json())
     .then((data) => {
-      mobileAjusteAplicarProdutosDaLista(data.produtos || []);
-      iniciarPollSaldosMobile();
+      const produtos = data.produtos || [];
+      if (!produtos.length && data.erro) {
+        throw new Error(data.erro);
+      }
+      mobileAjusteAplicarProdutosDaLista(produtos);
+      marcarMobileSaldosFresh();
+      return produtos.length;
     })
     .catch(() => {
-      listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
+      if (!baseProdutos.length) {
+        listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
+      } else {
+        alert('Não deu para baixar a lista completa. Mantive o que já estava na tela.');
+      }
+      return 0;
     })
-    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+    .finally(() => {
+      clearTimeout(to);
+      maListaInFlight = false;
+      maResetLoading();
+    });
 }
 
-/* Com AGRO_MANUAL_SYNC_ONLY: sem polling; lista vem do cache do PDV ou botão. */
+/** Atualizar = só saldos dos itens na tela (leve). Sem baixar catálogo de novo. */
+function mobileAjusteAtualizarSaldosVisiveis() {
+  if (maListaInFlight) return;
+  if (!maUltimosIdsExibidos.length && !baseProdutos.length) {
+    mobileAjusteBaixarListaApi();
+    return;
+  }
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  pollSaldosMobileUmaVez(maUltimosIdsExibidos)
+    .finally(() => { maResetLoading(); });
+}
 
 document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
-  pollSaldosMobileUmaVez();
+  mobileAjusteAtualizarSaldosVisiveis();
 });
 
 window.addEventListener('load', () => {
-  const listaDiv = document.getElementById('lista');
-
+  maResetLoading();
   if (maThermoTimer) clearInterval(maThermoTimer);
   maThermoTimer = setInterval(() => {
     const lab = document.getElementById('ma-saldos-ultima');
@@ -418,33 +478,14 @@ window.addEventListener('load', () => {
     }
   }, 15000);
 
-  if (window.AGRO_MANUAL_SYNC_ONLY) {
-    const fromLs = mobileLerProdutosDoCacheUnificado();
-    if (fromLs) {
-      mobileAjusteAplicarProdutosDaLista(fromLs);
-      return;
-    }
-    listaDiv.innerHTML = `
-      <div class="text-center px-4 py-8 space-y-3">
-        <p class="text-amber-800 font-black text-sm leading-snug">Sem catálogo em cache neste aparelho.</p>
-        <p class="text-slate-500 text-xs font-bold">Sincronize no <strong>PDV</strong> (botão «Estoque» no topo) ou baixe aqui.</p>
-        <button type="button" id="ma-btn-baixar-lista" class="min-h-[48px] px-5 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black uppercase shadow-md active:scale-[0.99]">Baixar produtos (API)</button>
-      </div>`;
-    document.getElementById('ma-btn-baixar-lista')?.addEventListener('click', () => mobileAjusteBaixarListaApi());
-    return;
+  const fromLs = mobileLerProdutosDoCacheUnificado();
+  if (fromLs && fromLs.length >= 50) {
+    /* Cache do PDV já tem catálogo — usa e não trava o worker com download + poll. */
+    mobileAjusteAplicarProdutosDaLista(fromLs);
+    marcarMobileSaldosFresh();
+  } else {
+    mobileAjusteBaixarListaApi();
   }
-
-  if (window.gmLoadingBar) window.gmLoadingBar.show();
-  fetch("{% url 'api_todos_produtos_local' %}")
-    .then(res => res.json())
-    .then(data => {
-      mobileAjusteAplicarProdutosDaLista(data.produtos || []);
-      iniciarPollSaldosMobile();
-    })
-    .catch(() => {
-      listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
-    })
-    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 });
 
 function startScan() {
@@ -501,7 +542,7 @@ function buscar(q) {
   const origem = termoN.length >= 2
     ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal')
     : baseProdutos.slice();
-  const resultados = origem
+  const filtrados = origem
     .filter((p) => {
       const saldo = getSaldoAtual(p);
       if (saldoFiltro === 'gt0' && !(saldo > 0)) return false;
@@ -516,14 +557,19 @@ function buscar(q) {
       if (ordem === 'saldo-asc') return getSaldoAtual(a) - getSaldoAtual(b);
       if (ordem === 'saldo-desc') return getSaldoAtual(b) - getSaldoAtual(a);
       return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
-    })
-    .slice(0, termoN.length >= 2 ? 40 : 80);
+    });
+  const limite = termoN.length >= 2 ? 80 : 400;
+  const resultados = filtrados.slice(0, limite);
+  maUltimosIdsExibidos = resultados.map((p) => String(p.id || '')).filter(Boolean);
 
   l.innerHTML = '';
   const resumo = document.getElementById('f-resumo');
   if (resumo) {
     const modoBusca = termoN.length >= 2 ? 'busca ativa' : 'somente filtros';
-    resumo.innerText = `${modoBusca} · ${resultados.length} itens exibidos`;
+    const trunc = filtrados.length > resultados.length
+      ? ` · mostrando ${resultados.length} (digite p/ achar)`
+      : '';
+    resumo.innerText = `${modoBusca} · ${filtrados.length} itens · catálogo ${baseProdutos.length}${trunc}`;
   }
 
   if (!resultados.length) {
@@ -532,6 +578,8 @@ function buscar(q) {
   }
 
   resultados.forEach(p => {
+    const saldoN = getSaldoAtual(p);
+    const corSaldo = saldoN < 0 ? 'text-rose-600' : 'text-emerald-600';
     const d = document.createElement('div');
     d.className = "bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center gap-3 active:bg-slate-50 min-h-[3.25rem]";
     d.innerHTML = `
@@ -540,7 +588,7 @@ function buscar(q) {
         <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
         <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
       </div>
-      <div class="text-emerald-600 font-black text-lg tabular-nums shrink-0">${getSaldoAtual(p).toFixed(1)}</div>
+      <div class="${corSaldo} font-black text-lg tabular-nums shrink-0">${saldoN.toFixed(1)}</div>
     `;
     d.onclick = () => {
       pSel = p;
@@ -559,7 +607,7 @@ document.getElementById('btn-aplicar-filtros').addEventListener('click', () => {
   buscar(document.getElementById('busca').value);
 });
 document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-  document.getElementById('f-deposito').value = 'centro';
+  document.getElementById('f-deposito').value = MA_DEPOSITO_INICIAL;
   document.getElementById('f-saldo').value = 'all';
   document.getElementById('f-ordem').value = 'nome';
   document.getElementById('f-extra').value = 'all';
@@ -663,27 +711,34 @@ function salvar() {
   fd.append('pin', 'SESSAO');
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
   fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd,
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    signal: ctrl ? ctrl.signal : undefined,
   })
   .then(res => res.json())
   .then(d => {
     if (d.ok) {
-      const dep = getDepositoSelecionado();
-      const novo = parseDecimalBr(document.getElementById('m-novo').value);
+      const dep = d.deposito || getDepositoSelecionado();
+      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
+        ? Number(d.novo_saldo)
+        : parseDecimalBr(document.getElementById('m-novo').value);
       aplicarSaldoLocalAposPin(pSel, dep, novo);
       fechar();
       buscar(document.getElementById('busca').value);
-      pollSaldosMobileUmaVez();
-      setTimeout(pollSaldosMobileUmaVez, 400);
+      marcarMobileSaldosFresh();
     } else {
       alert(d.erro || 'Erro ao salvar ajuste.');
     }
   })
   .catch(() => alert('Falha na comunicação com o servidor.'))
-  .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+  .finally(() => {
+    clearTimeout(to);
+    maResetLoading();
+  });
 }
 </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}

@@ -5,7 +5,7 @@
   'use strict';
 
   var ROOT_ID = 'agro-pdv-overlay';
-  var STYLE_ID = 'agro-pdv-overlay-styles';
+  var STYLE_ID = 'agro-pdv-overlay-styles-v2';
   var openFlag = false;
 
   function titleFromUrl(url) {
@@ -67,6 +67,8 @@
   }
 
   function ensureStyles() {
+    var old = document.getElementById('agro-pdv-overlay-styles');
+    if (old) old.remove();
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -85,7 +87,14 @@
       '.agro-pdv-overlay-titles{flex:1;min-width:0;display:flex;flex-direction:column;gap:.1rem}' +
       '#agro-pdv-overlay-title-text{font-size:clamp(.78rem,1.4vw,.98rem);font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#0f172a;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '#agro-pdv-overlay-subtitle-text{font-size:clamp(.65rem,1.1vw,.78rem);font-weight:700;color:#047857;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.agro-pdv-overlay-actions{display:flex;align-items:center;gap:.45rem;flex-shrink:0}' +
+      '.agro-pdv-overlay-actions{display:flex;align-items:center;gap:.45rem;flex-shrink:0;position:relative}' +
+      '#agro-pdv-overlay-help{flex-shrink:0;width:2.65rem;height:2.65rem;border-radius:999px;border:2px solid #cbd5e1;background:#fff;color:#0f172a;font-size:1rem;font-weight:900;cursor:pointer;touch-action:manipulation;display:none;align-items:center;justify-content:center;padding:0}' +
+      '#agro-pdv-overlay-help:hover{background:#f8fafc;border-color:#94a3b8}' +
+      '#agro-pdv-overlay-help.is-visible{display:inline-flex}' +
+      '#agro-pdv-overlay-help-panel{display:none;position:absolute;right:0;top:calc(100% + .35rem);z-index:5;width:min(92vw,22rem);max-height:min(70vh,24rem);overflow:auto;padding:.75rem .9rem;border-radius:.85rem;border:2px solid #cbd5e1;background:#fff;box-shadow:0 16px 40px rgba(15,23,42,.22);font-size:.85rem;font-weight:600;line-height:1.35;color:#1e293b}' +
+      '#agro-pdv-overlay-help-panel.is-open{display:block}' +
+      '#agro-pdv-overlay-help-panel p{margin:0 0 .55rem}' +
+      '#agro-pdv-overlay-help-panel p:last-child{margin-bottom:0}' +
       '#agro-pdv-overlay-menu{flex-shrink:0;min-height:2.65rem;padding:0 .85rem;border-radius:.75rem;border:2px solid #cbd5e1;background:#fff;color:#0f172a;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer;touch-action:manipulation}' +
       '#agro-pdv-overlay-menu:hover{background:#f8fafc;border-color:#94a3b8}' +
       '#agro-pdv-overlay-menu[hidden]{display:none!important}' +
@@ -96,10 +105,61 @@
     document.head.appendChild(st);
   }
 
+  function wireHelp(root) {
+    var helpBtn = root.querySelector('#agro-pdv-overlay-help');
+    var helpPanel = root.querySelector('#agro-pdv-overlay-help-panel');
+    if (!helpBtn || !helpPanel || helpBtn.getAttribute('data-wired') === '1') return;
+    helpBtn.setAttribute('data-wired', '1');
+    helpBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var openNow = !helpPanel.classList.contains('is-open');
+      helpPanel.classList.toggle('is-open', openNow);
+      helpBtn.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (ev) {
+      if (!helpPanel.classList.contains('is-open')) return;
+      if (helpPanel.contains(ev.target) || helpBtn.contains(ev.target)) return;
+      helpPanel.classList.remove('is-open');
+      helpBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function ensureHelpUi(root) {
+    if (!root) return;
+    var actions = root.querySelector('.agro-pdv-overlay-actions');
+    if (!actions) return;
+    if (!root.querySelector('#agro-pdv-overlay-help')) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'agro-pdv-overlay-help';
+      btn.setAttribute('aria-label', 'Ajuda');
+      btn.setAttribute('title', 'Ajuda');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = '?';
+      var panel = document.createElement('div');
+      panel.id = 'agro-pdv-overlay-help-panel';
+      panel.setAttribute('role', 'region');
+      panel.setAttribute('aria-label', 'Orientação');
+      var menu = root.querySelector('#agro-pdv-overlay-menu');
+      if (menu) {
+        actions.insertBefore(btn, menu);
+        actions.insertBefore(panel, menu);
+      } else {
+        actions.insertBefore(btn, actions.firstChild);
+        actions.insertBefore(panel, actions.firstChild ? actions.firstChild.nextSibling : null);
+      }
+    }
+    wireHelp(root);
+  }
+
   function ensureRoot() {
     ensureStyles();
     var root = document.getElementById(ROOT_ID);
-    if (root) return root;
+    if (root) {
+      ensureHelpUi(root);
+      return root;
+    }
     root = document.createElement('div');
     root.id = ROOT_ID;
     root.setAttribute('hidden', '');
@@ -115,6 +175,8 @@
       '<span id="agro-pdv-overlay-subtitle-text"></span>' +
       '</div>' +
       '<div class="agro-pdv-overlay-actions">' +
+      '<button type="button" id="agro-pdv-overlay-help" aria-label="Ajuda" title="Ajuda" aria-expanded="false">?</button>' +
+      '<div id="agro-pdv-overlay-help-panel" role="region" aria-label="Orientação"></div>' +
       '<a href="#" id="agro-pdv-overlay-menu" hidden>← Menu</a>' +
       '<button type="button" id="agro-pdv-overlay-close">Fechar</button>' +
       '</div>' +
@@ -124,6 +186,7 @@
     document.body.appendChild(root);
     root.querySelector('#agro-pdv-overlay-close').addEventListener('click', close);
     root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', close);
+    wireHelp(root);
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     if (menuBtn) {
       menuBtn.addEventListener('click', function (e) {
@@ -142,6 +205,8 @@
     var titleEl = root.querySelector('#agro-pdv-overlay-title-text');
     var subEl = root.querySelector('#agro-pdv-overlay-subtitle-text');
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
+    var helpBtn = root.querySelector('#agro-pdv-overlay-help');
+    var helpPanel = root.querySelector('#agro-pdv-overlay-help-panel');
     if (titleEl) titleEl.textContent = String(d.title || titleEl.textContent || '');
     if (subEl) {
       subEl.textContent = String(d.subtitle || '');
@@ -156,10 +221,22 @@
         menuBtn.removeAttribute('data-href');
       }
     }
+    if (helpBtn && helpPanel) {
+      var helpHtml = String(d.helpHtml || '').trim();
+      if (d.showHelp && helpHtml) {
+        helpPanel.innerHTML = helpHtml;
+        helpBtn.classList.add('is-visible');
+      } else {
+        helpPanel.innerHTML = '';
+        helpPanel.classList.remove('is-open');
+        helpBtn.classList.remove('is-visible');
+        helpBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
   }
 
   function resetMeta(title) {
-    applyMeta({ title: title || 'Consulta no balcão', subtitle: '', showMenu: false });
+    applyMeta({ title: title || 'Consulta no balcão', subtitle: '', showMenu: false, showHelp: false, helpHtml: '' });
   }
 
   function open(rawUrl, title, options) {

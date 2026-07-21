@@ -3008,10 +3008,52 @@ def _invalidar_cache_metricas_pdv():
 
 
 def _invalidar_caches_apos_ajuste_pin():
+    """Só invalida snapshot de saldos — ajuste de estoque não muda catálogo/métricas."""
     _invalidar_cache_saldos_pdv()
-    cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
-    cache.delete(_CACHE_MEDIAS_VENDA_ENTRY)
-    _invalidar_cache_metricas_pdv()
+
+
+def _patch_catalogo_pdv_saldo_apos_ajuste(produto_id: str, deposito: str, novo_saldo) -> None:
+    """Atualiza saldo no cache do catálogo PDV sem rebuild completo (teste/loja mais rápido)."""
+    pid = str(produto_id or "").strip()
+    if not pid:
+        return
+    dep = str(deposito or "centro").strip().lower()
+    try:
+        val = float(novo_saldo)
+    except (TypeError, ValueError):
+        return
+    entry = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    if not isinstance(entry, dict):
+        return
+    body = entry.get("body")
+    if not isinstance(body, dict):
+        return
+    produtos = body.get("produtos")
+    if not isinstance(produtos, list):
+        return
+    mudou = False
+    for p in produtos:
+        if not isinstance(p, dict):
+            continue
+        if str(p.get("id") or "").strip() != pid:
+            continue
+        if dep == "vila":
+            p["saldo_vila"] = val
+        else:
+            p["saldo_centro"] = val
+        mudou = True
+        break
+    if mudou:
+        cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, entry, timeout=86400 * 2)
+
+
+def _decimal_br_post(raw, default: str = "0") -> Decimal:
+    s = str(raw if raw is not None else default).strip().replace(" ", "")
+    if not s:
+        s = default
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return Decimal(s)
 
 
 def _indice_semana_4(dt, now) -> int | None:
@@ -8570,14 +8612,14 @@ def _dashboard_estoque_sync_label() -> str:
 
 
 def _dashboard_worker(fn, *args, **kwargs):
-    """ORM + Mongo em worker: uma conexão por thread (Django)."""
-    from django.db import close_old_connections
+    """ORM + Mongo em worker: uma conexão por thread (Django) — fecha ao sair."""
+    from django.db import connections
 
-    close_old_connections()
+    connections.close_all()
     try:
         return fn(*args, **kwargs)
     finally:
-        close_old_connections()
+        connections.close_all()
 
 
 _DASH_CLIENTES_MEDIA_START = date(2026, 4, 20)
@@ -8706,7 +8748,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     dep_boot = bootstrap_deposito(request)
     deposito_filtro = normalizar_deposito(dep_boot.get("deposito"))
 
-    max_workers = min(14, (os.cpu_count() or 2) + 6)
+    max_workers = 4
     fut = {}
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         fut["atual"] = ex.submit(
@@ -10672,10 +10714,23 @@ def caixa_abrir(request):
             va = Decimal(raw)
         except Exception:
             va = Decimal("0")
+        va = va.quantize(Decimal("0.01"))
         obs = (request.POST.get("observacao_abertura") or "").strip()[:500]
+        sug_map = ultimo_fechamento_sugestao_abertura(ponto=ponto)
+        sug_val = None
+        dif_ab = None
+        if sug_map and sug_map.get("dinheiro_contado") is not None:
+            try:
+                sug_val = Decimal(str(sug_map["dinheiro_contado"])).quantize(Decimal("0.01"))
+                dif_ab = (va - sug_val).quantize(Decimal("0.01"))
+            except Exception:
+                sug_val = None
+                dif_ab = None
         s = SessaoCaixa.objects.create(
-            usuario=request.user,
-            valor_abertura=va.quantize(Decimal("0.01")),
+            usuario=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+            valor_abertura=va,
+            valor_abertura_sugerido=sug_val,
+            diferenca_abertura=dif_ab,
             observacao_abertura=obs,
             ponto_caixa=ponto,
         )
@@ -10717,6 +10772,7 @@ def caixa_abrir(request):
             "qtd_caixas_operacional": qtd_caixas_operacional_abertos(),
             "qtd_caixas_teste": qtd_caixas_teste_abertos(),
             "pontos_caixa": PONTOS_CAIXA_ABERTURA,
+            "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
         },
     )
 
@@ -10819,6 +10875,9 @@ def caixa_fechar(request):
             sessao.fechado_em = timezone.now()
             sessao.conferencia_fechamento = conferencia
             sessao.observacao_fechamento = obs
+            sessao.usuario_fechamento = (
+                request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+            )
             if cont_din is not None:
                 sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
             sessao.save()
@@ -10865,6 +10924,9 @@ def caixa_fechar(request):
             obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
         agora = timezone.now()
         n = 0
+        user_fecha = (
+            request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+        )
         for sessao in sessoes_lote:
             ind = linhas_conferencia_fechar(sessao)
             conf_ind = {}
@@ -10878,6 +10940,7 @@ def caixa_fechar(request):
             sessao.fechado_em = agora
             sessao.conferencia_fechamento = conf_ind
             sessao.observacao_fechamento = obs
+            sessao.usuario_fechamento = user_fecha
             if cont_din_lote is not None:
                 sessao.valor_fechamento = cont_din_lote.quantize(Decimal("0.01"))
             sessao.save()
@@ -17512,9 +17575,33 @@ def api_lancamentos_definir_recorrente(request):
 
 
 def ajuste_mobile_view(request):
-    if not request.session.get("mobile_auth"):
+    """
+    PIN obrigatório a cada abertura desta tela (não reaproveita o PIN do PDV/descanso).
+    O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
+    Depósito inicial = loja/estoque travado no PDV deste aparelho (Centro × Vila).
+    """
+    from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
+
+    dep_boot = bootstrap_deposito(request)
+    dep = str(dep_boot.get("deposito") or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    if not request.session.pop("ajuste_mobile_gate", None):
+        request.session.pop("ajuste_mobile_operador", None)
+        request.session.pop("ajuste_mobile_user_id", None)
+        request.session.modified = True
         return render(request, "produtos/ajuste_mobile_login.html")
-    return render(request, "produtos/mobile_ajuste.html")
+    operador = str(request.session.get("ajuste_mobile_operador") or "").strip()
+    return render(
+        request,
+        "produtos/mobile_ajuste.html",
+        {
+            "ajuste_operador": operador,
+            "ajuste_deposito_inicial": dep,
+            "ajuste_deposito_inicial_label": rotulo_deposito(dep),
+            "ajuste_deposito_travado": bool(dep_boot.get("caixaTravado")),
+        },
+    )
 
 
 # --- MOTOR DE BUSCA ÚNICO ---
@@ -21471,8 +21558,25 @@ def api_login_mobile(request):
     ok_pin, err_pin = validar_pin_operador(pin)
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-    request.session["mobile_auth"] = True
     operador = rotulo_operador_pin(pin)
+    origem = str(request.POST.get("origem") or "").strip().lower()
+    if origem == "ajuste_mobile":
+        # Gate de uma abertura: o GET da tela consome e libera a lista.
+        request.session["ajuste_mobile_gate"] = True
+        request.session["ajuste_mobile_operador"] = (operador or "")[:120]
+        perfil = (
+            PerfilUsuario.objects.select_related("user")
+            .filter(senha_rapida=pin)
+            .first()
+        )
+        uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
+        if uid:
+            request.session["ajuste_mobile_user_id"] = int(uid)
+        else:
+            request.session.pop("ajuste_mobile_user_id", None)
+        request.session.modified = True
+        return JsonResponse({"ok": True, "operador": operador})
+    request.session["mobile_auth"] = True
     if operador:
         request.session["pdv_operador_nome"] = operador[:120]
         request.session.modified = True
@@ -21610,37 +21714,74 @@ def api_ajustar_estoque(request):
             .filter(senha_rapida=pin)
             .first()
         )
-    if (pin == "SESSAO" and request.session.get("mobile_auth")) or perfil_pin is not None:
+    sessao_ajuste = bool(
+        str(request.session.get("ajuste_mobile_operador") or "").strip()
+        or request.session.get("ajuste_mobile_user_id")
+    )
+    if (pin == "SESSAO" and sessao_ajuste) or perfil_pin is not None:
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
             user_op = None
-            if request.user.is_authenticated:
-                user_op = request.user
+            rotulo = ""
+            if pin == "SESSAO":
+                # Operador = quem abriu a tela com PIN (não o login Django do Chrome).
+                rotulo = str(request.session.get("ajuste_mobile_operador") or "").strip()
+                uid = request.session.get("ajuste_mobile_user_id")
+                if uid:
+                    from django.contrib.auth import get_user_model
+
+                    user_op = get_user_model().objects.filter(pk=uid).first()
+                if not rotulo and user_op is not None:
+                    rotulo = (
+                        (user_op.get_full_name() or "").strip()
+                        or (getattr(user_op, "username", None) or "").strip()
+                    )
             elif perfil_pin is not None:
                 user_op = getattr(perfil_pin, "user", None)
+                if user_op is not None:
+                    rotulo = (
+                        (user_op.get_full_name() or "").strip()
+                        or (getattr(user_op, "username", None) or "").strip()
+                    )
             nome_base = str(request.POST.get("nome_produto") or "").strip()
             # Grava nome do operador no texto — nunca o PIN
-            if user_op is not None:
-                rotulo = (
-                    (user_op.get_full_name() or "").strip()
-                    or (getattr(user_op, "username", None) or "").strip()
-                )
-                if rotulo and rotulo not in nome_base:
-                    nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
+            if rotulo and rotulo not in nome_base:
+                nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
+            novo_saldo = _decimal_br_post(request.POST.get("novo_saldo", "0"))
+            saldo_ref = _decimal_br_post(request.POST.get("saldo_atual", "0"))
+            pid = str(request.POST.get("produto_id") or "").strip()
+            dep = str(request.POST.get("deposito") or "centro").strip().lower() or "centro"
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
-                produto_externo_id=request.POST.get("produto_id"),
-                deposito=request.POST.get("deposito", "centro"),
+                produto_externo_id=pid,
+                deposito=dep,
                 nome_produto=nome_base[:255],
-                saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
-                saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
+                saldo_erp_referencia=saldo_ref,
+                saldo_informado=novo_saldo,
                 origem=OrigemAjusteEstoque.AJUSTE_PIN,
                 usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
-            return JsonResponse({"ok": True})
+            try:
+                _patch_catalogo_pdv_saldo_apos_ajuste(pid, dep, novo_saldo)
+            except Exception:
+                pass
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "operador": rotulo,
+                    "produto_id": pid,
+                    "deposito": dep,
+                    "novo_saldo": float(novo_saldo),
+                }
+            )
         except Exception as e:
             return JsonResponse({"ok": False, "erro": str(e)})
+    if pin == "SESSAO":
+        return JsonResponse(
+            {"ok": False, "erro": "Sessão de ajuste expirada. Entre com o PIN de novo."},
+            status=403,
+        )
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
 
 
@@ -23506,10 +23647,10 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
 
 def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
     """Thread: conclui Pedidos/Salvar e atualiza ``VendaAgro`` (não bloqueia o PDV)."""
-    from django.db import close_old_connections
+    from django.db import connections
 
     payload = copy.deepcopy(data)
-    close_old_connections()
+    connections.close_all()
     try:
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(None, payload, client_m=client_m, db=db)
@@ -23538,7 +23679,7 @@ def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
         except Exception:
             pass
     finally:
-        close_old_connections()
+        connections.close_all()
 
 
 def _disparar_envio_erp_venda_background(venda_id: int, data: dict):
@@ -24386,7 +24527,8 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
 
     rows = cat_agro.listar_todos_rows_ativos()
     p_ids = [str(r.get("id") or "") for r in rows if r.get("id")]
-    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+    # Ledger/PG: saldos vêm do ajuste mesmo sem Mongo (db/client podem ser None).
+    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if p_ids else {}
     medias_venda = _obter_mapa_medias_venda_cache(db) if db is not None else {}
     res: list[dict] = []
     for row in rows:
@@ -24925,19 +25067,40 @@ def api_cron_copiar_snapshot_pdv_loja(request):
 @require_GET
 def api_pdv_saldos_compacto(request):
     """
-    Saldos atuais (espelho Mongo + camada Agro / ajustes) para todos os produtos ativos — payload compacto.
-    Com Redis: usa snapshot TTL (AGRO_PDV_SALDOS_CACHE_SECONDS), compartilhado entre workers.
-    Sem Redis: cada GET consulta o Mongo (LocMem por worker não cacheia saldos).
-    Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
+    Saldos atuais (espelho Mongo + camada Agro / ajustes) — payload compacto.
+    ``?ids=id1,id2``: só esses produtos (rápido; não usa cache cheio).
+    Com catálogo/ledger Postgres: lista IDs no PG e não exige Mongo.
     """
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_estoque_operacional_sem_mongo_erp,
+        agro_pdv_catalogo_somente_postgres,
+    )
+
+    ids_raw = str(request.GET.get("ids") or "").strip()
+    p_ids_filtro: list[str] | None = None
+    if ids_raw:
+        p_ids_filtro = []
+        seen = set()
+        for part in ids_raw.split(","):
+            pid = str(part or "").strip()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            p_ids_filtro.append(pid)
+            if len(p_ids_filtro) >= 400:
+                break
+
     ttl = int(getattr(settings, "AGRO_PDV_SALDOS_CACHE_SECONDS", 0) or 0)
-    if ttl > 0:
+    if p_ids_filtro is None and ttl > 0:
         cached = cache.get(_SALDOS_PDV_CACHE_KEY)
         if cached is not None and isinstance(cached, dict) and "rows" in cached:
             return JsonResponse(cached)
 
+    usa_pg = agro_pdv_catalogo_somente_postgres() or agro_catalogo_usa_postgres()
+    sem_mongo_ok = agro_estoque_operacional_sem_mongo_erp()
     client, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not (usa_pg and sem_mongo_ok):
         try:
             from estoque.sync_health import registrar_ping_mongo
 
@@ -24946,9 +25109,20 @@ def api_pdv_saldos_compacto(request):
             pass
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        query = {"CadastroInativo": {"$ne": True}}
-        produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
-        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        if p_ids_filtro is not None:
+            p_ids = p_ids_filtro
+        elif usa_pg:
+            from produtos.catalogo_agro import queryset_catalogo_ativos
+
+            p_ids = [
+                str(x).strip()
+                for x in queryset_catalogo_ativos().values_list("produto_externo_id", flat=True)
+                if x
+            ]
+        else:
+            query = {"CadastroInativo": {"$ne": True}}
+            produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
+            p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
         saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
         rows = []
         for pid in p_ids:
@@ -24963,12 +25137,12 @@ def api_pdv_saldos_compacto(request):
                 ]
             )
         payload = {"v": 1, "rows": rows}
-        if ttl > 0:
+        if p_ids_filtro is None and ttl > 0:
             cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=ttl)
         try:
             from estoque.sync_health import registrar_ping_mongo
 
-            registrar_ping_mongo(True)
+            registrar_ping_mongo(db is not None)
         except Exception:
             pass
         return JsonResponse(payload)

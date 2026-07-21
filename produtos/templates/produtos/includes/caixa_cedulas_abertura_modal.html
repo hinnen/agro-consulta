@@ -1,0 +1,65 @@
+{% load static %}
+{# Modal cédulas/moedas — abertura. Quase tela cheia (overlay PDV). IDs: ca-cedulas-* #}
+<style>
+  .ca-cedulas-modal.cf-modal-overlay {
+    position: fixed; inset: 0; z-index: 80;
+    display: flex; align-items: stretch; justify-content: center;
+    padding: 0.35rem; background: rgba(15, 23, 42, 0.55);
+  }
+  .ca-cedulas-modal.hidden { display: none !important; }
+  .ca-cedulas-modal-panel {
+    width: 100%;
+    max-width: min(96rem, 100%);
+    height: 100%;
+    max-height: min(98dvh, 100%);
+    display: flex; flex-direction: column;
+    border-radius: 0.85rem; border: 2px solid #94a3b8; background: #fff;
+    box-shadow: 0 25px 50px rgba(15, 23, 42, 0.35); overflow: hidden;
+  }
+  .ca-cedulas-modal-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0.5rem; padding: 0.65rem 1rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+  }
+  .ca-cedulas-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem;
+  }
+  @media (min-width: 640px) {
+    .ca-cedulas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .ca-cedulas-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  }
+  .ca-cedula-item {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+    padding: 0.55rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #fff;
+  }
+  .ca-cedula-img { height: clamp(4.5rem, 12vh, 7rem); width: auto; max-width: 100%; object-fit: contain; }
+  .ca-cedula-qty {
+    width: 100%; min-height: 3rem; text-align: center; font-weight: 900;
+    border: 2px solid #94a3b8; border-radius: 0.5rem; font-size: 1.15rem;
+  }
+  .ca-cedula-sub { font-size: 0.75rem; font-weight: 800; color: #475569; }
+</style>
+<div id="ca-cedulas-modal" class="ca-cedulas-modal cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ca-cedulas-modal-title">
+  <div class="ca-cedulas-modal-panel">
+    <div class="ca-cedulas-modal-head">
+      <h3 id="ca-cedulas-modal-title" class="text-sm sm:text-base font-black uppercase text-slate-900">Cédulas</h3>
+      <button type="button" id="ca-cedulas-fechar-x" class="shrink-0 min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-900 hover:bg-slate-50">Fechar</button>
+    </div>
+    <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
+      <div class="ca-cedulas-grid" aria-label="Cédulas">
+        {% for d in denominacoes_cedulas %}
+        <div class="ca-cedula-item" data-valor="{{ d.valor }}">
+          <img src="{% static d.img %}" alt="{{ d.label }}" class="ca-cedula-img" loading="lazy" decoding="async">
+          <input type="number" min="0" step="1" inputmode="numeric" class="ca-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" aria-label="{{ d.label }}">
+          <span class="ca-cedula-sub tabular-nums" data-sub>R$ 0,00</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 sm:px-5 py-3 bg-slate-50">
+      <p class="text-base sm:text-lg font-black uppercase text-slate-800 mb-0"><span id="ca-cedulas-total" class="tabular-nums text-emerald-800">R$ 0,00</span></p>
+      <button type="button" id="ca-cedulas-concluir" class="min-h-[52px] px-6 rounded-xl bg-slate-900 text-white text-xs font-black uppercase hover:bg-slate-800">Usar total</button>
+    </div>
+  </div>
+</div>

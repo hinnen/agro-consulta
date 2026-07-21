@@ -146,8 +146,8 @@
             </thead>
             <tbody class="divide-y divide-slate-50">
               {% for L in s.linhas %}
-              <tr class="{% if L.tem_diff %}bg-amber-50{% endif %}">
-                <td class="px-3 py-2">{{ L.forma }}</td>
+              <tr class="{% if L.tem_diff %}bg-amber-50{% endif %}{% if L.eh_abertura %} ring-1 ring-inset ring-sky-200{% endif %}">
+                <td class="px-3 py-2">{% if L.eh_abertura %}<span class="text-sky-800">{{ L.forma }}</span>{% else %}{{ L.forma }}{% endif %}</td>
                 <td class="px-2 py-2 text-right tabular-nums">{% if L.esperado %}R$ {{ L.esperado }}{% else %}—{% endif %}</td>
                 <td class="px-2 py-2 text-right tabular-nums">{% if L.contado != '—' %}R$ {{ L.contado }}{% else %}—{% endif %}</td>
                 <td class="px-3 py-2 text-right tabular-nums font-black {% if L.diff_positivo %}text-sky-800{% elif L.diff_negativo %}text-red-700{% else %}text-emerald-700{% endif %}">{% if L.diferenca != '—' %}R$ {{ L.diferenca }}{% else %}—{% endif %}</td>

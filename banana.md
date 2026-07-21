@@ -1156,19 +1156,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Deploy loja **v10.88** — Postgres + Caixa cédulas/abertura + Ajuste Mobile (21/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **VERSION** | **loja v10.88** (antes v10.87 / `8b802c1`) |
+| **Inclui** | (1) `close_all` + teto 4 workers BI/ERP/NFC-e · (2) Cédulas abertura + `?` · (3) diferença abertura + quem abriu/fechou (mig **0062**) · (4) Ajuste Mobile PIN/lista/depósito + spinner «Agora» no PDV |
+| **Já na loja** | MP automático pós-abrir (v10.86+) · `conn_max_age=60` (v10.87) |
+| **NÃO inclui** | Dispenser A6 · merge inteiro do `teste` |
+| **Backup / reverter** | `rollback/pre-pacote-caixa-ajuste-pg-v10.87` @ **8b802c1** |
+| **Como reverter** | `git push origin rollback/pre-pacote-caixa-ajuste-pg-v10.87:producao` |
+| **Autorização** | *pode subir para produção* + **99738595** (seguro + checkpoint) |
+| **Após Live** | Ctrl+F5 · BI 2–3 abas · abrir caixa Cédulas · Conferências · `/ajuste-mobile/` PIN + lista cheia |
+
+**Versão app (VERSION):** **teste v11.33** · **loja v10.88** · rollback `pre-pacote-caixa-ajuste-pg-v10.87`
+
 ### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn_max_age (21/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push producao agora · aguardar Live |
+| **Status** | ✅ Live (base deste pacote v10.88) |
 | **Base** | v10.86 (7c11ad8) + hotfix conexões Postgres |
 | **Inclui** | pacote caixa Vila×Centro + conn_max_age 60s (antes 600) |
 | **Backup** | rollback/pre-caixa-vila-centro-v10.82 @ 1aa95dc |
 | **Motivo hotfix** | deploy v10.86 falhou / site 500 por slots Postgres cheios |
-
-
-
-**Versão app (VERSION):** **teste** · **loja v10.82** → pacote pronto **v10.86**
 
 ### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
 

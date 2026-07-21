@@ -22,12 +22,24 @@
     </div>
 <script>
 function entrar() {
-    const fd = new FormData(); fd.append('pin', document.getElementById('pin').value);
+    const fd = new FormData();
+    fd.append('pin', document.getElementById('pin').value);
+    fd.append('origem', 'ajuste_mobile');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch("{% url 'api_login_mobile' %}", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
-    .then(res => res.ok ? location.reload() : alert("PIN ERRADO"))
+    .then(async (res) => {
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) {
+        location.reload();
+        return;
+      }
+      alert(d.erro || 'PIN ERRADO');
+    })
     .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
+document.getElementById('pin')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') entrar();
+});
 </script>
 </body>
 </html>
