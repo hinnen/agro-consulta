@@ -562,6 +562,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
+- **Mudar produto (21/07 · loja v10.89):** trocar vínculo no «Mudar» **não** troca o V. unit da NF (nem o rateio); só cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Financeiro desync (2026-06-19):** título já em Contas a pagar mas etapa 7 «Falta a pagar» + «Falha ao salvar» — rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + «Salvar + a pagar» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround até deploy:** F5 na nota ou ir etapa 8 (título já existe).
 
 ### 4.8 Estoque Agro
@@ -1155,6 +1156,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO LOJA — Entrada NF V. unit no Mudar (**v10.89**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** — cherry local ok · **sem push** até frase + senha |
+| **Commit teste** | `3ee6f29` |
+| **Branch prep** | `producao-deploy-entrada-nf-vunit` |
+| **VERSION loja** | **10.89** (base v10.88) |
+| **Inclui** | Só `entrada_nota.html` — Mudar produto mantém V. unit + rateio acréscimos |
+| **NÃO inclui** | Dispenser · merge inteiro do `teste` · PDV · CP |
+| **Risco deploy** | Restart Render curto · loja deve segurar vendas no instante do push |
+| **Backup** | `rollback/pre-entrada-nf-vunit-v10.88` @ **20c008b** (criar no push) |
+| **Autorizar** | *pode subir para produção* + **99738595** |
 
 ### 📦 Deploy loja **v10.88** — Postgres + Caixa cédulas/abertura + Ajuste Mobile (21/07 · Renan frase+senha)
 
