@@ -10717,6 +10717,7 @@ def caixa_abrir(request):
             "qtd_caixas_operacional": qtd_caixas_operacional_abertos(),
             "qtd_caixas_teste": qtd_caixas_teste_abertos(),
             "pontos_caixa": PONTOS_CAIXA_ABERTURA,
+            "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
         },
     )
 

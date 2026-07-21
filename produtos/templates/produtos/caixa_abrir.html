@@ -193,8 +193,12 @@
         <p class="text-[10px] font-black uppercase text-slate-500" id="caixa-abertura-titulo">Passo 2 — abrir caixa</p>
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-h-0">
           <label class="block sm:col-span-2">
-            <span class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta (fundo de troco)</span>
-            <input type="text" name="valor_abertura" id="valor_abertura" value="{% if deposito_browser == 'vila' and sugestao_fechamento_vila %}{{ sugestao_fechamento_vila.dinheiro_contado_br }}{% elif sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br }}{% else %}0{% endif %}" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00" autocomplete="off">
+            <span class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-[10px] font-black uppercase text-slate-500">Valor em gaveta (fundo de troco)</span>
+              <button type="button" id="ca-cedulas-abrir" class="inline-flex items-center min-h-[36px] px-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100" aria-haspopup="dialog" aria-controls="ca-cedulas-modal" title="Contar cédulas e moedas">Cédulas</button>
+            </span>
+            <input type="text" name="valor_abertura" id="valor_abertura" value="" inputmode="decimal" class="mt-1 w-full min-h-[56px] rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 font-black text-[clamp(1.35rem,1vw+1.1rem,1.75rem)] tabular-nums" placeholder="0,00 — conte com Cédulas ou digite" autocomplete="off">
+            <span class="mt-1 block text-[11px] font-bold text-slate-500">Sugestão do último fechamento fica no card azul — confira contando na gaveta.</span>
           </label>
           <label class="block sm:col-span-2" id="bloco-confirm-loja">
             <span class="text-[10px] font-black uppercase text-amber-800">Para abrir, digite <strong id="confirm-loja-palavra" class="text-emerald-800">centro</strong></span>
@@ -216,6 +220,7 @@
     </div>
   </main>
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/includes/caixa_cedulas_abertura_modal.html" %}
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -359,22 +364,91 @@
       if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Teste';
       if (ajuda) ajuda.textContent = 'Turno de teste separado da operação da loja.';
       if (formAbrir) formAbrir.classList.add('border-violet-500');
-      if (valorAbertura) valorAbertura.value = sugCentro || '0';
     } else if (p === 'vila') {
       if (titulo) titulo.textContent = 'Passo 2 — abrir Vila Elias';
       if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Vila Elias';
       if (ajuda) ajuda.textContent = 'Dinheiro e vendas só da Vila — não mistura com o Centro.';
       if (formAbrir) formAbrir.classList.add('border-slate-800');
-      if (valorAbertura) valorAbertura.value = sugVila || '0';
     } else if (p === 'gaveta') {
       if (titulo) titulo.textContent = 'Passo 2 — abrir gaveta Centro';
       if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Gaveta (Centro)';
       if (ajuda) ajuda.textContent = 'Turno principal do Centro — abra antes dos notebooks do Centro.';
       if (formAbrir) formAbrir.classList.add('border-emerald-500');
-      if (valorAbertura) valorAbertura.value = sugCentro || '0';
     }
+    if (valorAbertura) {
+      var sug = (p === 'vila') ? sugVila : sugCentro;
+      valorAbertura.value = '';
+      valorAbertura.placeholder = (sug && sug !== '0')
+        ? ('Sugestão ' + sug + ' — conte com Cédulas ou digite')
+        : '0,00 — conte com Cédulas ou digite';
+    }
+    limparCedulas();
     if (confirmInput) confirmInput.value = '';
     syncConfirm();
+  }
+
+  function fmtBr(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  var cedulasModal = document.getElementById('ca-cedulas-modal');
+  var cedulasAbrirBtn = document.getElementById('ca-cedulas-abrir');
+  var cedulasFecharX = document.getElementById('ca-cedulas-fechar-x');
+  var cedulasConcluir = document.getElementById('ca-cedulas-concluir');
+  var cedulasTotalEl = document.getElementById('ca-cedulas-total');
+  var cedulaQtyNodes = document.querySelectorAll('.ca-cedula-qty');
+  function limparCedulas() {
+    cedulaQtyNodes.forEach(function (inp) { inp.value = ''; });
+    recalcularCedulas();
+  }
+  function recalcularCedulas() {
+    var total = 0;
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      var sub = (Number.isFinite(denom) ? denom : 0) * qtd;
+      total += sub;
+      var wrap = inp.closest('.ca-cedula-item');
+      if (wrap) {
+        var s = wrap.querySelector('[data-sub]');
+        if (s) s.textContent = 'R$ ' + fmtBr(Math.round(sub * 100) / 100);
+      }
+    });
+    total = Math.round(total * 100) / 100;
+    if (cedulasTotalEl) cedulasTotalEl.textContent = 'R$ ' + fmtBr(total);
+    return total;
+  }
+  function abrirCedulas() {
+    if (!cedulasModal) return;
+    cedulasModal.classList.remove('hidden');
+    var first = cedulaQtyNodes[0];
+    if (first) first.focus();
+  }
+  function fecharCedulas() {
+    if (cedulasModal) cedulasModal.classList.add('hidden');
+  }
+  if (cedulasAbrirBtn) cedulasAbrirBtn.addEventListener('click', abrirCedulas);
+  if (cedulasFecharX) cedulasFecharX.addEventListener('click', fecharCedulas);
+  if (cedulasConcluir) {
+    cedulasConcluir.addEventListener('click', function () {
+      var total = recalcularCedulas();
+      if (valorAbertura) valorAbertura.value = fmtBr(total);
+      fecharCedulas();
+    });
+  }
+  cedulaQtyNodes.forEach(function (inp) {
+    inp.addEventListener('input', recalcularCedulas);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && cedulasModal && !cedulasModal.classList.contains('hidden')) {
+      ev.preventDefault();
+      fecharCedulas();
+    }
+  });
+  if (cedulasModal) {
+    cedulasModal.addEventListener('click', function (ev) {
+      if (ev.target === cedulasModal) fecharCedulas();
+    });
   }
 
   radios.forEach(function (r) {

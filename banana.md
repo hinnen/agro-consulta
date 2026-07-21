@@ -604,6 +604,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - MP Point automático: só Gaveta Centro / Teste (não Vila).
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
+- **Abrir — Cédulas (21/07):** botão **Cédulas** na abertura (igual fechar) · campo valor começa vazio · sugestão só no card azul / placeholder · modal `includes/caixa_cedulas_abertura_modal.html`.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
 
@@ -1162,6 +1163,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🩹 Abrir caixa — botão Cédulas (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Contagem nota a nota na **abertura** (igual fechar) · valor não vem mais pré-preenchido |
+| **Por quê** | Renan: gostou da ideia; a «conferência» que sumiu era o valor já preenchido do último fechamento (não havia modal de cédulas no abrir) |
+| **Arquivos** | `caixa_abrir.html` · `includes/caixa_cedulas_abertura_modal.html` · `views.py` (denominacoes) |
+| **Você** | Ctrl+F5 · Abrir caixa → **Cédulas** → contar → **Usar este total** |
 
 ### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn (21/07 · Renan)
 
