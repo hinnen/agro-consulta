@@ -1,4 +1,4 @@
-/* Dispenser A6 — ajuste de layout (posição/tamanho) + modelos salvos */
+/* Dispenser A6 — layout + folhas prontas (prévia completa) */
 (function (global) {
   var KEY_MODELS = "dsp_layouts_v1";
   var KEY_WORKING = "dsp_layout_working_v2";
@@ -19,6 +19,8 @@
   var redoStack = [];
   var fitSnapshotFn = null;
   var fitRestoreFn = null;
+  var sheetSnapshotFn = null;
+  var sheetRestoreFn = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -42,12 +44,14 @@
     return {
       layout: cloneLayout(loadWorking()),
       free: !!(cardEl() && cardEl().classList.contains("is-free-layout")),
-      fit: fitSnapshotFn ? fitSnapshotFn() : null
+      fit: fitSnapshotFn ? fitSnapshotFn() : null,
+      sheet: sheetSnapshotFn ? sheetSnapshotFn() : null
     };
   }
 
   function restoreSnapshot(snap) {
     if (!snap) return;
+    if (snap.sheet && sheetRestoreFn) sheetRestoreFn(snap.sheet);
     if (snap.fit && fitRestoreFn) fitRestoreFn(snap.fit);
     if (snap.layout && snap.layout.items) {
       saveWorking(snap.layout);
@@ -98,6 +102,11 @@
   function setFitHooks(snapFn, restoreFn) {
     fitSnapshotFn = snapFn;
     fitRestoreFn = restoreFn;
+  }
+
+  function setSheetHooks(snapFn, restoreFn) {
+    sheetSnapshotFn = snapFn;
+    sheetRestoreFn = restoreFn;
   }
 
   function cardEl() {
@@ -356,7 +365,7 @@
     sel.innerHTML = "";
     var opt0 = document.createElement("option");
     opt0.value = "";
-    opt0.textContent = names.length ? "— escolher —" : "Nenhum modelo ainda";
+    opt0.textContent = names.length ? "— escolher —" : "Nenhuma folha ainda";
     sel.appendChild(opt0);
     names.forEach(function (n) {
       var o = document.createElement("option");
@@ -490,53 +499,78 @@
         var sel = $("dspLayoutSelect");
         var name = sel && sel.value;
         if (!name) {
-          window.alert("Escolha um modelo na lista.");
+          window.alert("Escolha uma folha na lista.");
           return;
         }
         var models = loadModels();
-        var layout = models[name];
-        if (!layout || !layout.items) {
-          window.alert("Modelo não encontrado.");
+        var model = models[name];
+        if (!model) {
+          window.alert("Folha não encontrada.");
           return;
         }
+        var layout = model.items ? { v: model.v || 1, items: model.items } : model;
+        if (!layout || !layout.items) {
+          /* folha só com conteúdo, sem layout livre */
+          if (!model.sheet) {
+            window.alert("Folha sem dados.");
+            return;
+          }
+        }
         pushHistory();
-        saveWorking(layout);
         try {
           localStorage.setItem(KEY_ACTIVE, name);
         } catch (e) {}
-        applyLayout(layout);
-        if (edit) {
-          edit.checked = true;
-          setEditMode(true);
+        if (model.sheet && sheetRestoreFn) {
+          sheetRestoreFn(model.sheet);
         }
-        window.alert("Modelo «" + name + "» aplicado.");
+        if (layout && layout.items) {
+          saveWorking(layout);
+          applyLayout(layout);
+        } else {
+          resetToFlow();
+        }
+        if (edit) {
+          edit.checked = false;
+          setEditMode(false);
+        }
+        window.alert("Folha «" + name + "» aplicada.");
       });
     }
 
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
+        var card = cardEl();
         var working = loadWorking();
         if (!working || !working.items) {
           working = snapshotFromDom();
-          if (!working) {
-            window.alert("Não consegui ler o layout da prévia.");
-            return;
-          }
-          applyLayout(working);
+        }
+        if (!working || !working.items) {
+          window.alert("Não consegui ler o layout da prévia.");
+          return;
+        }
+        if (card && card.classList.contains("is-free-layout")) {
           saveWorking(working);
         }
-        var name = window.prompt("Nome do modelo:", "");
+        var sheet = sheetSnapshotFn ? sheetSnapshotFn() : null;
+        var name = window.prompt("Nome da folha pronta:", "");
         if (!name) return;
         name = String(name).trim().slice(0, 40);
         if (!name) return;
         var models = loadModels();
-        models[name] = { v: 1, items: working.items, savedAt: Date.now() };
+        models[name] = {
+          v: 2,
+          kind: "folha",
+          items: working.items,
+          sheet: sheet,
+          free: !!(card && card.classList.contains("is-free-layout")),
+          savedAt: Date.now()
+        };
         if (!saveModels(models)) return;
         try {
           localStorage.setItem(KEY_ACTIVE, name);
         } catch (e2) {}
         fillSelect();
-        window.alert("Modelo «" + name + "» salvo neste computador.");
+        window.alert("Folha «" + name + "» salva neste computador.");
       });
     }
 
@@ -545,10 +579,10 @@
         var sel = $("dspLayoutSelect");
         var name = sel && sel.value;
         if (!name) {
-          window.alert("Escolha um modelo para apagar.");
+          window.alert("Escolha uma folha para apagar.");
           return;
         }
-        if (!window.confirm("Apagar o modelo «" + name + "»?")) return;
+        if (!window.confirm("Apagar a folha «" + name + "»?")) return;
         var models = loadModels();
         delete models[name];
         saveModels(models);
@@ -561,7 +595,7 @@
 
     if (resetBtn) {
       resetBtn.addEventListener("click", function () {
-        if (!window.confirm("Voltar ao layout padrão da folha?")) return;
+        if (!window.confirm("Voltar só o layout ao padrão? (conteúdo da prévia fica)")) return;
         pushHistory();
         resetToFlow();
         if (edit) edit.checked = false;
@@ -595,6 +629,7 @@
     pushHistory: pushHistory,
     undo: undo,
     redo: redo,
-    setFitHooks: setFitHooks
+    setFitHooks: setFitHooks,
+    setSheetHooks: setSheetHooks
   };
 })(window);

@@ -1220,7 +1220,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.08** · Ctrl+Z desfaz o último arraste · balão proteína não trava na esquerda |
+| **Agora** | **v11.12** · Ctrl+Z desfaz o último arraste · balão proteína não trava na esquerda |
 | **Você** | Ctrl+F5 · Layout → Ajustar · mover peça → Ctrl+Z · olhar balão |
 | **Status** | ⏳ validar |
 

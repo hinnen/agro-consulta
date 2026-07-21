@@ -5,9 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.64" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.64"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.64"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.65" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.65"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.65"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -114,14 +114,15 @@ Batata-Doce</textarea>
             <span>Ajustar layout na prévia</span>
           </label>
           <div class="dsp-field" style="margin-top:0.75rem">
-            <label for="dspLayoutSelect">Modelos salvos</label>
+            <label for="dspLayoutSelect">Folhas prontas</label>
             <select id="dspLayoutSelect"></select>
           </div>
+          <p class="dsp-gal-add-hint" style="margin:0 0 0.45rem">Salva a prévia inteira: categoria, marca, fotos, sabores, proteína e layout.</p>
           <div class="dsp-layout-btns">
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar modelo</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar como…</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar modelo</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Voltar ao padrão</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar folha</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar folha como…</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar folha</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Só layout padrão</button>
           </div>
         </div>
       </div>
@@ -1264,6 +1265,181 @@ Batata-Doce</textarea>
       syncGal();
     }
 
+    function findById(list, id) {
+      if (!id || !list) return null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) return list[i];
+      }
+      return null;
+    }
+
+    function ensureCustomInList(loadFn, saveFn, item, maxN) {
+      if (!item || !item.dataUrl) return item && item.id;
+      var list = loadFn();
+      var found = findById(list, item.id);
+      if (found) {
+        if (item.dataUrl && found.dataUrl !== item.dataUrl) {
+          found.dataUrl = item.dataUrl;
+          if (item.label) found.label = item.label;
+          saveFn(list);
+        }
+        return found.id;
+      }
+      var id = item.id || ("folha_" + Date.now());
+      if (list.length >= maxN) {
+        list.shift();
+      }
+      list.push({
+        id: id,
+        label: item.label || "Folha",
+        dataUrl: item.dataUrl
+      });
+      saveFn(list);
+      return id;
+    }
+
+    function snapshotSheet() {
+      var pet = findById(allPets(), petId);
+      var ing = findById(allIngs(), ingId);
+      var logo = findById(loadCustomLogos(), logoId);
+      var card = document.getElementById("dspCard");
+      var pos = proteinRow ? proteinRow.getAttribute("data-pos") : "";
+      if (!pos) pos = loadProteinPos();
+      var flavorIcos = {};
+      try {
+        var allIco = loadCustomFlavorIcos();
+        var normFn = window.DspFlavorLib && window.DspFlavorLib.norm
+          ? window.DspFlavorLib.norm
+          : function (s) { return String(s || "").toLowerCase(); };
+        flavorLines().forEach(function (name) {
+          var k = normFn(name);
+          if (allIco[k]) flavorIcos[k] = allIco[k];
+        });
+      } catch (e) {}
+      return {
+        cat: catEl.value,
+        brand: brandEl.value,
+        logoId: logoId || "",
+        logoDataUrl: logo && logo.dataUrl ? logo.dataUrl : "",
+        logoLabel: logo && logo.label ? logo.label : "",
+        petId: petId,
+        petDataUrl: pet && pet.dataUrl ? pet.dataUrl : "",
+        petFile: pet && pet.file ? pet.file : "",
+        petLabel: pet && pet.label ? pet.label : "",
+        petFit: { x: petFit.x, y: petFit.y, s: petFit.s },
+        ingId: ingId,
+        ingDataUrl: ing && ing.dataUrl ? ing.dataUrl : "",
+        ingFile: ing && ing.file ? ing.file : "",
+        ingLabel: ing && ing.label ? ing.label : "",
+        ingFit: { x: ingFit.x, y: ingFit.y, s: ingFit.s },
+        flavors: flavorsEl.value,
+        flavorIcos: flavorIcos,
+        protein: proteinEl.value,
+        proteinPos: pos || "foto",
+        freeLayout: !!(card && card.classList.contains("is-free-layout"))
+      };
+    }
+
+    function applySheet(sheet) {
+      if (!sheet || typeof sheet !== "object") return;
+      if (sheet.cat && CAT_LABELS[sheet.cat]) catEl.value = sheet.cat;
+      if (sheet.brand != null) brandEl.value = String(sheet.brand);
+
+      if (sheet.logoDataUrl) {
+        logoId = ensureCustomInList(
+          loadCustomLogos,
+          saveCustomLogos,
+          { id: sheet.logoId, label: sheet.logoLabel || "Logo", dataUrl: sheet.logoDataUrl },
+          LOGO_MAX_CUSTOM
+        ) || "";
+      } else {
+        logoId = "";
+      }
+
+      if (sheet.petDataUrl) {
+        petId = ensureCustomInList(
+          loadCustomPets,
+          saveCustomPets,
+          { id: sheet.petId, label: sheet.petLabel || "Pet", dataUrl: sheet.petDataUrl },
+          PET_MAX_CUSTOM
+        ) || sheet.petId || petId;
+        petImg.src = sheet.petDataUrl;
+      } else if (sheet.petFile) {
+        petId = sheet.petId || petId;
+        petImg.src = STATIC + sheet.petFile;
+      } else if (sheet.petId) {
+        var p = findById(allPets(), sheet.petId) || PETS_BASE[0];
+        petId = p.id;
+        petImg.src = petSrc(p);
+      }
+
+      if (sheet.petFit) {
+        petFit = {
+          x: Number(sheet.petFit.x) || 0,
+          y: Number(sheet.petFit.y) || 0,
+          s: Number(sheet.petFit.s) || 1.05
+        };
+        applyPetFit();
+        savePetFit();
+      }
+
+      if (sheet.ingDataUrl) {
+        ingId = ensureCustomInList(
+          loadCustomIngs,
+          saveCustomIngs,
+          { id: sheet.ingId, label: sheet.ingLabel || "Ingredientes", dataUrl: sheet.ingDataUrl },
+          ING_MAX_CUSTOM
+        ) || sheet.ingId || ingId;
+        ingImg.src = sheet.ingDataUrl;
+      } else if (sheet.ingFile) {
+        ingId = sheet.ingId || ingId;
+        ingImg.src = ingAssetUrl(sheet.ingFile);
+      } else if (sheet.ingId) {
+        var ig = findById(allIngs(), sheet.ingId);
+        if (ig) {
+          ingId = ig.id;
+          ingImg.src = ig.dataUrl || ingAssetUrl(ig.file);
+        }
+      }
+
+      if (sheet.ingFit) {
+        ingFit = {
+          x: Number(sheet.ingFit.x) || 0,
+          y: Number(sheet.ingFit.y) || 0,
+          s: Number(sheet.ingFit.s) || 1.05
+        };
+        applyIngFit();
+        saveIngFit();
+      }
+
+      if (sheet.flavors != null) flavorsEl.value = String(sheet.flavors);
+      if (sheet.protein != null) proteinEl.value = String(sheet.protein);
+
+      if (sheet.flavorIcos && typeof sheet.flavorIcos === "object") {
+        var icos = loadCustomFlavorIcos();
+        Object.keys(sheet.flavorIcos).forEach(function (k) {
+          if (sheet.flavorIcos[k]) icos[k] = sheet.flavorIcos[k];
+        });
+        saveCustomFlavorIcos(icos);
+      }
+
+      buildLogoGal();
+      buildPetGal();
+      buildIngGal();
+      fillFlavorIcoTarget();
+      buildFlavorIcoGal();
+      renderAll();
+
+      if (!sheet.freeLayout && sheet.proteinPos) {
+        applyProteinPos(sheet.proteinPos);
+      } else if (sheet.proteinPos) {
+        try {
+          localStorage.setItem(PROTEIN_POS_KEY, sheet.proteinPos);
+        } catch (e3) {}
+      }
+      if (ingImg && ingImg.complete) syncIngFrameBg();
+    }
+
     buildPetGal();
     buildLogoGal();
     buildIngGal();
@@ -1512,6 +1688,7 @@ Batata-Doce</textarea>
           }
         }
       );
+      window.DspLayoutEdit.setSheetHooks(snapshotSheet, applySheet);
       window.DspLayoutEdit.init();
     }
   })();
