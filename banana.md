@@ -1189,8 +1189,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | Thumbs ainda menores (8 colunas / logos 5) p/ menos scroll |
-| **Você** | Ctrl+F5 |
+| **Agora** | **v10.95** · aba Layout: arrastar/tamanho (com margem) + salvar modelos |
+| **Você** | Ctrl+F5 · Layout → marcar «Ajustar» → mover → «Salvar como…» |
 | **Status** | ⏳ validar |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
