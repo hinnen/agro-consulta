@@ -200,9 +200,10 @@ let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
-const MOBILE_POLL_SALDOS_MS = 2200;
+const MOBILE_POLL_SALDOS_MS = 15000;
 const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
 const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
+const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -364,9 +365,13 @@ function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
   });
 }
 
-function pollSaldosMobileUmaVez() {
+function pollSaldosMobileUmaVez(idsOpcionais) {
   if (!baseProdutos.length || document.visibilityState !== 'visible') return;
-  fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+  let url = MA_API_SALDOS;
+  if (Array.isArray(idsOpcionais) && idsOpcionais.length) {
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'ids=' + encodeURIComponent(idsOpcionais.join(','));
+  }
+  fetch(url, { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows) {
@@ -675,13 +680,15 @@ function salvar() {
   .then(res => res.json())
   .then(d => {
     if (d.ok) {
-      const dep = getDepositoSelecionado();
-      const novo = parseDecimalBr(document.getElementById('m-novo').value);
+      const dep = d.deposito || getDepositoSelecionado();
+      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
+        ? Number(d.novo_saldo)
+        : parseDecimalBr(document.getElementById('m-novo').value);
       aplicarSaldoLocalAposPin(pSel, dep, novo);
       fechar();
       buscar(document.getElementById('busca').value);
-      pollSaldosMobileUmaVez();
-      setTimeout(pollSaldosMobileUmaVez, 400);
+      marcarMobileSaldosFresh();
+      /* Não dispara refresh de todos os saldos — trava o worker no teste. */
     } else {
       alert(d.erro || 'Erro ao salvar ajuste.');
     }

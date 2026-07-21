@@ -3008,10 +3008,17 @@ def _invalidar_cache_metricas_pdv():
 
 
 def _invalidar_caches_apos_ajuste_pin():
+    """Só invalida snapshot de saldos — ajuste de estoque não muda catálogo/métricas."""
     _invalidar_cache_saldos_pdv()
-    cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
-    cache.delete(_CACHE_MEDIAS_VENDA_ENTRY)
-    _invalidar_cache_metricas_pdv()
+
+
+def _decimal_br_post(raw, default: str = "0") -> Decimal:
+    s = str(raw if raw is not None else default).strip().replace(" ", "")
+    if not s:
+        s = default
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    return Decimal(s)
 
 
 def _indice_semana_4(dt, now) -> int | None:
@@ -21705,18 +21712,30 @@ def api_ajustar_estoque(request):
             # Grava nome do operador no texto — nunca o PIN
             if rotulo and rotulo not in nome_base:
                 nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
+            novo_saldo = _decimal_br_post(request.POST.get("novo_saldo", "0"))
+            saldo_ref = _decimal_br_post(request.POST.get("saldo_atual", "0"))
+            pid = str(request.POST.get("produto_id") or "").strip()
+            dep = str(request.POST.get("deposito") or "centro").strip().lower() or "centro"
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
-                produto_externo_id=request.POST.get("produto_id"),
-                deposito=request.POST.get("deposito", "centro"),
+                produto_externo_id=pid,
+                deposito=dep,
                 nome_produto=nome_base[:255],
-                saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
-                saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
+                saldo_erp_referencia=saldo_ref,
+                saldo_informado=novo_saldo,
                 origem=OrigemAjusteEstoque.AJUSTE_PIN,
                 usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
-            return JsonResponse({"ok": True, "operador": rotulo})
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "operador": rotulo,
+                    "produto_id": pid,
+                    "deposito": dep,
+                    "novo_saldo": float(novo_saldo),
+                }
+            )
         except Exception as e:
             return JsonResponse({"ok": False, "erro": str(e)})
     if pin == "SESSAO":
@@ -25009,11 +25028,9 @@ def api_cron_copiar_snapshot_pdv_loja(request):
 @require_GET
 def api_pdv_saldos_compacto(request):
     """
-    Saldos atuais (espelho Mongo + camada Agro / ajustes) para todos os produtos ativos — payload compacto.
-    Com Redis: usa snapshot TTL (AGRO_PDV_SALDOS_CACHE_SECONDS), compartilhado entre workers.
-    Sem Redis: cada GET consulta o Mongo (LocMem por worker não cacheia saldos).
+    Saldos atuais (espelho Mongo + camada Agro / ajustes) — payload compacto.
+    ``?ids=id1,id2``: só esses produtos (rápido; não usa cache cheio).
     Com catálogo/ledger Postgres: lista IDs no PG e não exige Mongo.
-    Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
     """
     from produtos.agro_fonte_config import (
         agro_catalogo_usa_postgres,
@@ -25021,8 +25038,22 @@ def api_pdv_saldos_compacto(request):
         agro_pdv_catalogo_somente_postgres,
     )
 
+    ids_raw = str(request.GET.get("ids") or "").strip()
+    p_ids_filtro: list[str] | None = None
+    if ids_raw:
+        p_ids_filtro = []
+        seen = set()
+        for part in ids_raw.split(","):
+            pid = str(part or "").strip()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            p_ids_filtro.append(pid)
+            if len(p_ids_filtro) >= 400:
+                break
+
     ttl = int(getattr(settings, "AGRO_PDV_SALDOS_CACHE_SECONDS", 0) or 0)
-    if ttl > 0:
+    if p_ids_filtro is None and ttl > 0:
         cached = cache.get(_SALDOS_PDV_CACHE_KEY)
         if cached is not None and isinstance(cached, dict) and "rows" in cached:
             return JsonResponse(cached)
@@ -25039,11 +25070,16 @@ def api_pdv_saldos_compacto(request):
             pass
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        if usa_pg:
-            from produtos import catalogo_agro as cat_agro
+        if p_ids_filtro is not None:
+            p_ids = p_ids_filtro
+        elif usa_pg:
+            from produtos.catalogo_agro import queryset_catalogo_ativos
 
-            rows_pg = cat_agro.listar_todos_rows_ativos()
-            p_ids = [str(r.get("id") or "").strip() for r in rows_pg if r.get("id")]
+            p_ids = [
+                str(x).strip()
+                for x in queryset_catalogo_ativos().values_list("produto_externo_id", flat=True)
+                if x
+            ]
         else:
             query = {"CadastroInativo": {"$ne": True}}
             produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
@@ -25062,7 +25098,7 @@ def api_pdv_saldos_compacto(request):
                 ]
             )
         payload = {"v": 1, "rows": rows}
-        if ttl > 0:
+        if p_ids_filtro is None and ttl > 0:
             cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=ttl)
         try:
             from estoque.sync_health import registrar_ping_mongo
