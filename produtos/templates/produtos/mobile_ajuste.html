@@ -54,6 +54,12 @@
         </button>
       </div>
     </div>
+    {% if ajuste_operador %}
+    <div class="px-3 py-1.5 border-t border-emerald-100/80 bg-emerald-50/90 flex items-center justify-between gap-2">
+      <span class="text-[9px] font-black uppercase text-emerald-800 tracking-wide truncate" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
+      <a href="{% url 'ajuste_mobile' %}" class="text-[9px] font-black uppercase text-slate-600 underline shrink-0" title="Trocar operador (pede PIN de novo)">Trocar</a>
+    </div>
+    {% endif %}
     <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-emerald-100/90 bg-gradient-to-r from-emerald-50/95 via-white to-slate-50/80">
       <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0">Saldos</span>
       <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">

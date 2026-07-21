@@ -17533,9 +17533,21 @@ def api_lancamentos_definir_recorrente(request):
 
 
 def ajuste_mobile_view(request):
-    if not request.session.get("mobile_auth"):
+    """
+    PIN obrigatório a cada abertura desta tela (não reaproveita o PIN do PDV/descanso).
+    O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
+    """
+    if not request.session.pop("ajuste_mobile_gate", None):
+        request.session.pop("ajuste_mobile_operador", None)
+        request.session.pop("ajuste_mobile_user_id", None)
+        request.session.modified = True
         return render(request, "produtos/ajuste_mobile_login.html")
-    return render(request, "produtos/mobile_ajuste.html")
+    operador = str(request.session.get("ajuste_mobile_operador") or "").strip()
+    return render(
+        request,
+        "produtos/mobile_ajuste.html",
+        {"ajuste_operador": operador},
+    )
 
 
 # --- MOTOR DE BUSCA ÚNICO ---
@@ -21492,8 +21504,25 @@ def api_login_mobile(request):
     ok_pin, err_pin = validar_pin_operador(pin)
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-    request.session["mobile_auth"] = True
     operador = rotulo_operador_pin(pin)
+    origem = str(request.POST.get("origem") or "").strip().lower()
+    if origem == "ajuste_mobile":
+        # Gate de uma abertura: o GET da tela consome e libera a lista.
+        request.session["ajuste_mobile_gate"] = True
+        request.session["ajuste_mobile_operador"] = (operador or "")[:120]
+        perfil = (
+            PerfilUsuario.objects.select_related("user")
+            .filter(senha_rapida=pin)
+            .first()
+        )
+        uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
+        if uid:
+            request.session["ajuste_mobile_user_id"] = int(uid)
+        else:
+            request.session.pop("ajuste_mobile_user_id", None)
+        request.session.modified = True
+        return JsonResponse({"ok": True, "operador": operador})
+    request.session["mobile_auth"] = True
     if operador:
         request.session["pdv_operador_nome"] = operador[:120]
         request.session.modified = True
@@ -21631,23 +21660,39 @@ def api_ajustar_estoque(request):
             .filter(senha_rapida=pin)
             .first()
         )
-    if (pin == "SESSAO" and request.session.get("mobile_auth")) or perfil_pin is not None:
+    sessao_ajuste = bool(
+        str(request.session.get("ajuste_mobile_operador") or "").strip()
+        or request.session.get("ajuste_mobile_user_id")
+    )
+    if (pin == "SESSAO" and sessao_ajuste) or perfil_pin is not None:
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
             user_op = None
-            if request.user.is_authenticated:
-                user_op = request.user
+            rotulo = ""
+            if pin == "SESSAO":
+                # Operador = quem abriu a tela com PIN (não o login Django do Chrome).
+                rotulo = str(request.session.get("ajuste_mobile_operador") or "").strip()
+                uid = request.session.get("ajuste_mobile_user_id")
+                if uid:
+                    from django.contrib.auth import get_user_model
+
+                    user_op = get_user_model().objects.filter(pk=uid).first()
+                if not rotulo and user_op is not None:
+                    rotulo = (
+                        (user_op.get_full_name() or "").strip()
+                        or (getattr(user_op, "username", None) or "").strip()
+                    )
             elif perfil_pin is not None:
                 user_op = getattr(perfil_pin, "user", None)
+                if user_op is not None:
+                    rotulo = (
+                        (user_op.get_full_name() or "").strip()
+                        or (getattr(user_op, "username", None) or "").strip()
+                    )
             nome_base = str(request.POST.get("nome_produto") or "").strip()
             # Grava nome do operador no texto — nunca o PIN
-            if user_op is not None:
-                rotulo = (
-                    (user_op.get_full_name() or "").strip()
-                    or (getattr(user_op, "username", None) or "").strip()
-                )
-                if rotulo and rotulo not in nome_base:
-                    nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
+            if rotulo and rotulo not in nome_base:
+                nome_base = (f"{nome_base} · {rotulo}" if nome_base else rotulo)[:255]
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 produto_externo_id=request.POST.get("produto_id"),
@@ -21659,9 +21704,14 @@ def api_ajustar_estoque(request):
                 usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
-            return JsonResponse({"ok": True})
+            return JsonResponse({"ok": True, "operador": rotulo})
         except Exception as e:
             return JsonResponse({"ok": False, "erro": str(e)})
+    if pin == "SESSAO":
+        return JsonResponse(
+            {"ok": False, "erro": "Sessão de ajuste expirada. Entre com o PIN de novo."},
+            status=403,
+        )
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
 
 
