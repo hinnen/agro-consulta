@@ -5,8 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.59" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.59"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.60" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.60"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.60"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -19,6 +20,7 @@
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="pet">Bicho</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="ings">Ingredientes</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="sabores">Sabores</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="layout">Layout</button>
         </div>
       </div>
 
@@ -104,6 +106,24 @@
 Frango
 Batata-Doce</textarea>
         </div>
+
+        <div class="dsp-tab-panel" id="dspTab-layout" role="tabpanel" data-tab="layout" hidden>
+          <p class="dsp-gal-add-hint" style="margin:0 0 0.55rem">Arraste na prévia e use o cantinho para o tamanho. Não passa da margem da folha.</p>
+          <label class="dsp-layout-toggle">
+            <input type="checkbox" id="dspLayoutEdit" />
+            <span>Ajustar layout na prévia</span>
+          </label>
+          <div class="dsp-field" style="margin-top:0.75rem">
+            <label for="dspLayoutSelect">Modelos salvos</label>
+            <select id="dspLayoutSelect"></select>
+          </div>
+          <div class="dsp-layout-btns">
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar modelo</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar como…</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar modelo</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Voltar ao padrão</button>
+          </div>
+        </div>
       </div>
 
       <div class="dsp-actions">
@@ -118,18 +138,18 @@ Batata-Doce</textarea>
 
       <article class="dsp-a6" id="dspCard">
         <header class="dsp-header">
-          <div class="dsp-header-text" id="dspHeaderText">
+          <div class="dsp-header-text dsp-layout-item" id="dspHeaderText" data-layout="title" title="Título">
             <span class="dsp-line1" id="dspLine1">Cão adulto</span>
             <span class="dsp-line2" id="dspLine2">Raças pequenas</span>
           </div>
         </header>
 
         <section class="dsp-hero">
-          <div class="dsp-brand" id="dspBrandBox">
+          <div class="dsp-brand dsp-layout-item" id="dspBrandBox" data-layout="brand" title="Marca / logo">
             <div class="dsp-brand-name" id="dspBrandOut">Robustus</div>
             <img class="dsp-brand-logo" id="dspBrandLogo" alt="" hidden />
           </div>
-          <div class="dsp-pet-wrap" id="dspPetWrap">
+          <div class="dsp-pet-wrap dsp-layout-item" id="dspPetWrap" data-layout="pet" title="Foto do bicho">
             <span class="dsp-pet-ground" aria-hidden="true"></span>
             <div class="dsp-pet" id="dspPetFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
               <div class="dsp-pet-viewport" id="dspPetViewport">
@@ -141,9 +161,9 @@ Batata-Doce</textarea>
         </section>
 
         <section class="dsp-sabores">
-          <h2 class="dsp-sabores-title">Sabores</h2>
+          <h2 class="dsp-sabores-title dsp-layout-item" id="dspSaboresTitle" data-layout="flavorsTitle" title="Título Sabores">Sabores</h2>
           <div class="dsp-sabores-body">
-            <div class="dsp-ing-stage">
+            <div class="dsp-ing-stage dsp-layout-item" id="dspIngStage" data-layout="ings" title="Foto ingredientes">
               <div class="dsp-ing-photo" id="dspIngFrame" title="Arraste a foto · use +/− ou a alça para o tamanho">
                 <div class="dsp-ing-viewport" id="dspIngViewport">
                   <img id="dspIngImg" class="dsp-ing-img" src="{% static 'produtos/dispenser-a6/lib/ings/combo-frango-carne.png' %}?v=11.52" alt="" draggable="false" />
@@ -151,8 +171,8 @@ Batata-Doce</textarea>
                 <div class="dsp-ing-handle no-print" id="dspIngHandle" title="Arraste para tamanho"></div>
               </div>
             </div>
-            <ul class="dsp-flavor-list" id="dspFlavorList"></ul>
-            <div class="dsp-protein-row" id="dspProteinRow" data-pos="foto">
+            <ul class="dsp-flavor-list dsp-layout-item" id="dspFlavorList" data-layout="flavors" title="Lista de sabores"></ul>
+            <div class="dsp-protein-row dsp-layout-item" id="dspProteinRow" data-layout="protein" data-pos="foto" title="Balão proteína">
               <div class="dsp-protein" id="dspProteinBubble">
                 <span class="dsp-protein-label">Proteína bruta</span>
                 <span class="dsp-protein-main" id="dspProteinOut">32%</span>
@@ -1157,7 +1177,7 @@ Batata-Doce</textarea>
       var tabs = document.getElementById("dspTabs");
       if (!tabs) return;
       var TAB_KEY = "dsp_panel_tab_v1";
-      var allowed = ["folha", "pet", "ings", "sabores"];
+      var allowed = ["folha", "pet", "ings", "sabores", "layout"];
 
       function showTab(id) {
         if (allowed.indexOf(id) < 0) id = "folha";
@@ -1438,6 +1458,7 @@ Batata-Doce</textarea>
     loadFitForPet(petId);
     loadFitForIng(ingId);
     renderAll();
+    if (window.DspLayoutEdit) window.DspLayoutEdit.init();
   })();
   </script>
 </body>
