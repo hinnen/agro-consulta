@@ -64,13 +64,16 @@ class SessaoCaixaAdmin(admin.ModelAdmin):
         "id",
         "ponto_caixa",
         "usuario",
+        "usuario_fechamento",
         "aberto_em",
         "valor_abertura",
+        "diferenca_abertura",
         "fechado_em",
         "valor_fechamento",
     )
     list_filter = ("fechado_em", "ponto_caixa")
     readonly_fields = ("aberto_em", "conferencia_fechamento")
+    raw_id_fields = ("usuario", "usuario_fechamento", "sessao_principal")
 
 
 class MovimentoCaixaInline(admin.TabularInline):

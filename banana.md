@@ -605,6 +605,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` — não coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Abrir — Cédulas (21/07):** botão **Cédulas** na abertura (igual fechar) · campo valor começa vazio · sugestão só no card azul / placeholder · modal `includes/caixa_cedulas_abertura_modal.html`.
+- **Diferença abertura (21/07):** se contagem ≠ último fechamento → grava `diferenca_abertura` · aparece em **Conferências · diferenças** como «Abertura · Dinheiro» · `usuario` (abriu) + `usuario_fechamento` (fechou) sempre.
 - **Retirada / saída (2026-06-24):** botão do painel → **`/caixa/retiradas/`** (histórico com filtros data · plano · quem levou; padrão **hoje**; calendário Agro Date Picker). Botão laranja **Nova saída** → formulário existente (`?painel=retirada`). Popup fechar caixa também abre o histórico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil único / iframe pai).
 - **Retiradas — vales RH (01/07):** histórico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferência mensal · filtro plano aceita **label ou código** · vale no caixa não gera «Saída caixa» no financeiro (baixa parcial no salário) · **loja v5.64** cherry-pick `2207fd6`.
 
@@ -1163,6 +1164,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🩹 Caixa — diferença abertura + quem abriu/fechou (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Antes** | Diferença só no fechamento; abertura não ia pra Conferências; fechamento sem usuário gravado |
+| **Agora** | Abertura grava sugestão + diferença · linha **Abertura · Dinheiro** em Conferências · `usuario` + `usuario_fechamento` |
+| **Migration** | `0062_sessaocaixa_diferenca_abertura_usuario_fechamento` |
+| **Você** | Ctrl+F5 · abrir com valor ≠ card azul · fechar · Conferências · ver linha + «Abriu / Fechou» |
 
 ### 🩹 Abrir caixa — botão Cédulas (21/07 · **teste**)
 

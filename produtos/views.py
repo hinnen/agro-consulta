@@ -10672,10 +10672,23 @@ def caixa_abrir(request):
             va = Decimal(raw)
         except Exception:
             va = Decimal("0")
+        va = va.quantize(Decimal("0.01"))
         obs = (request.POST.get("observacao_abertura") or "").strip()[:500]
+        sug_map = ultimo_fechamento_sugestao_abertura(ponto=ponto)
+        sug_val = None
+        dif_ab = None
+        if sug_map and sug_map.get("dinheiro_contado") is not None:
+            try:
+                sug_val = Decimal(str(sug_map["dinheiro_contado"])).quantize(Decimal("0.01"))
+                dif_ab = (va - sug_val).quantize(Decimal("0.01"))
+            except Exception:
+                sug_val = None
+                dif_ab = None
         s = SessaoCaixa.objects.create(
-            usuario=request.user,
-            valor_abertura=va.quantize(Decimal("0.01")),
+            usuario=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+            valor_abertura=va,
+            valor_abertura_sugerido=sug_val,
+            diferenca_abertura=dif_ab,
             observacao_abertura=obs,
             ponto_caixa=ponto,
         )
@@ -10820,6 +10833,9 @@ def caixa_fechar(request):
             sessao.fechado_em = timezone.now()
             sessao.conferencia_fechamento = conferencia
             sessao.observacao_fechamento = obs
+            sessao.usuario_fechamento = (
+                request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+            )
             if cont_din is not None:
                 sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
             sessao.save()
@@ -10866,6 +10882,9 @@ def caixa_fechar(request):
             obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
         agora = timezone.now()
         n = 0
+        user_fecha = (
+            request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+        )
         for sessao in sessoes_lote:
             ind = linhas_conferencia_fechar(sessao)
             conf_ind = {}
@@ -10879,6 +10898,7 @@ def caixa_fechar(request):
             sessao.fechado_em = agora
             sessao.conferencia_fechamento = conf_ind
             sessao.observacao_fechamento = obs
+            sessao.usuario_fechamento = user_fecha
             if cont_din_lote is not None:
                 sessao.valor_fechamento = cont_din_lote.quantize(Decimal("0.01"))
             sessao.save()
