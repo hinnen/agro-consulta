@@ -24407,7 +24407,8 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
 
     rows = cat_agro.listar_todos_rows_ativos()
     p_ids = [str(r.get("id") or "") for r in rows if r.get("id")]
-    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if db is not None else {}
+    # Ledger/PG: saldos vêm do ajuste mesmo sem Mongo (db/client podem ser None).
+    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if p_ids else {}
     medias_venda = _obter_mapa_medias_venda_cache(db) if db is not None else {}
     res: list[dict] = []
     for row in rows:
@@ -24949,16 +24950,25 @@ def api_pdv_saldos_compacto(request):
     Saldos atuais (espelho Mongo + camada Agro / ajustes) para todos os produtos ativos — payload compacto.
     Com Redis: usa snapshot TTL (AGRO_PDV_SALDOS_CACHE_SECONDS), compartilhado entre workers.
     Sem Redis: cada GET consulta o Mongo (LocMem por worker não cacheia saldos).
+    Com catálogo/ledger Postgres: lista IDs no PG e não exige Mongo.
     Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
     """
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_estoque_operacional_sem_mongo_erp,
+        agro_pdv_catalogo_somente_postgres,
+    )
+
     ttl = int(getattr(settings, "AGRO_PDV_SALDOS_CACHE_SECONDS", 0) or 0)
     if ttl > 0:
         cached = cache.get(_SALDOS_PDV_CACHE_KEY)
         if cached is not None and isinstance(cached, dict) and "rows" in cached:
             return JsonResponse(cached)
 
+    usa_pg = agro_pdv_catalogo_somente_postgres() or agro_catalogo_usa_postgres()
+    sem_mongo_ok = agro_estoque_operacional_sem_mongo_erp()
     client, db = obter_conexao_mongo()
-    if db is None:
+    if db is None and not (usa_pg and sem_mongo_ok):
         try:
             from estoque.sync_health import registrar_ping_mongo
 
@@ -24967,9 +24977,15 @@ def api_pdv_saldos_compacto(request):
             pass
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        query = {"CadastroInativo": {"$ne": True}}
-        produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
-        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        if usa_pg:
+            from produtos import catalogo_agro as cat_agro
+
+            rows_pg = cat_agro.listar_todos_rows_ativos()
+            p_ids = [str(r.get("id") or "").strip() for r in rows_pg if r.get("id")]
+        else:
+            query = {"CadastroInativo": {"$ne": True}}
+            produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
+            p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
         saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
         rows = []
         for pid in p_ids:
@@ -24989,7 +25005,7 @@ def api_pdv_saldos_compacto(request):
         try:
             from estoque.sync_health import registrar_ping_mongo
 
-            registrar_ping_mongo(True)
+            registrar_ping_mongo(db is not None)
         except Exception:
             pass
         return JsonResponse(payload)

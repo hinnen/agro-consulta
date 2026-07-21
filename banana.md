@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Ajuste mobile — lista só 7 produtos (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | `AGRO_MANUAL_SYNC_ONLY` lia cache curto do PDV e **não** baixava catálogo da API |
+| **Fix** | Sempre baixa `/api/todos-produtos/` · **Atualizar** = lista + saldos · saldos API em PG/ledger sem exigir Mongo |
+| **Você** | Ctrl+F5 em `/ajuste-mobile/` · resumo deve mostrar **catálogo** com milhares · digite nome/GM se a lista truncar em 400 |
+
 ### 🩹 Postgres slots — leak BI threads (21/07 · **teste**)
 
 | Item | Detalhe |
@@ -1220,8 +1228,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.12** · Ctrl+Z desfaz o último arraste · balão proteína não trava na esquerda |
-| **Você** | Ctrl+F5 · Layout → Ajustar · mover peça → Ctrl+Z · olhar balão |
+| **Agora** | **v11.14** · Folha pronta: salva prévia inteira (conteúdo + layout) |
+| **Você** | Ctrl+F5 · Layout → Salvar folha como… · mudar algo → Usar folha |
 | **Status** | ⏳ validar |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
