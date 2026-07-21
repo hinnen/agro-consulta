@@ -1163,7 +1163,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-**Versão app (VERSION):** **teste v11.59** · **loja v10.82** → pacote pronto **v10.86**
+**Versão app (VERSION):** **teste v11.59** · **loja v10.82** · **loja v10.86** Live (push 7c11ad8)
 
 ### WIP — Dispenser A6 (visual)
 
@@ -1174,19 +1174,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Você** | Ctrl+F5 |
 | **Status** | ⏳ validar |
 
-### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
+### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO** — aguardando frase + senha na mesma mensagem |
-| **Branch** | \prep/loja-caixa-vila-centro\ @ *89b5d\ (1 commit limpo) |
-| **VERSION loja** | **10.86** |
-| **Backup** | ollback/pre-caixa-vila-centro-v10.82\ |
-| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO livre / Assumir trava · (4) Quem=PIN · (5) rótulo Caixa Centro/Vila Elias · (6) sem badge TRAVADO · (7) wizard fiado só da própria loja |
+| **Status** | ✅ push \producao\ **7c11ad8** · aguardar Live no Render |
+| **VERSION** | **loja v10.86** (antes v10.82) |
+| **Inclui** | (1) Vila não adota Centro · (2) fechar só trava própria loja · (3) catálogo SEM DONO/Assumir · (4) Quem PIN · (5) rótulo Caixa Centro/Vila · (6) sem TRAVADO duplicado · (7) wizard fiado só da própria loja |
 | **NÃO inclui** | Dispenser · MP automático · merge inteiro teste |
-| **Smoke** | ✅ fechar Vila com entrega Centro (20/07) |
-| **Autorizar** | *«pode subir caixa Vila Centro»* + **99738595** |
-| **Após Live** | Ctrl+F5 Vila: Caixa sem # · sem TRAVADO duplicado · fechar livre da entrega Centro |
+| **Backup / reverter** | ollback/pre-caixa-vila-centro-v10.82\ @ **1aa95dc** |
+| **Como reverter** | \git push origin rollback/pre-caixa-vila-centro-v10.82:producao\ |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Após Live** | Ctrl+F5 Vila: Caixa sem # · sem TRAVADO · fechar livre entrega Centro · fiado só da Vila |
 
 
 ### 📦 Deploy loja **v10.82** — Hotfix entregas PIN + Imprimir (19/07 · Renan frase+senha)
