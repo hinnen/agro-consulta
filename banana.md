@@ -1167,6 +1167,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Contagem — data último AJUSTE PIN no mobile + PDV (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Ajuste mobile: coluna com data da última contagem PIN · PDV edição rápida: data acima do «Novo» (Centro/Vila) |
+| **Fonte** | Último `AjusteRapidoEstoque` com origem **AJUSTE PIN** · formato `dd/mm/aa` · sem data = **Conferir** |
+| **Extra** | Salvar estoque no lápis do PDV agora grava como AJUSTE PIN (passa a contar na data) |
+| **Você** | Ctrl+F5 · `/ajuste-mobile/` e lápis do PDV · confira data / Conferir |
+
 ### 📦 PACOTE PRONTO LOJA — Entrada NF «Nova» limpa (**v10.90**)
 
 | Item | Detalhe |

@@ -1443,6 +1443,9 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
 
     saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
     sinfo = saldos.get(pid_out) or {}
+    contagem = (_ultimos_ajuste_pin_datas_por_produtos([pid_out]).get(pid_out) or {})
+    cont_c = str(contagem.get("centro") or "").strip() or "Conferir"
+    cont_v = str(contagem.get("vila") or "").strip() or "Conferir"
     pg = extrair_precos_grupos_overlay(ov)
     if not pg and isinstance(row.get("precos_grupos"), dict):
         pg = row.get("precos_grupos")
@@ -1467,6 +1470,8 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
                 "saldo_vila": round(float(sinfo.get("saldo_vila") or 0), 2),
                 "saldo_erp_centro": round(float(sinfo.get("saldo_erp_centro") or 0), 2),
                 "saldo_erp_vila": round(float(sinfo.get("saldo_erp_vila") or 0), 2),
+                "contagem_centro": cont_c,
+                "contagem_vila": cont_v,
             },
         }
     )
@@ -1553,7 +1558,7 @@ def api_pdv_produto_ajuste_estoque(request):
                     deposito="centro",
                     saldo_erp_referencia=erp_c,
                     saldo_informado=novo_c,
-                    origem=OrigemAjusteEstoque.OUTRO,
+                    origem=OrigemAjusteEstoque.AJUSTE_PIN,
                     observacao="PDV — edição rápida centro",
                     usuario=request.user if request.user.is_authenticated else None,
                 )
@@ -1566,7 +1571,7 @@ def api_pdv_produto_ajuste_estoque(request):
                     deposito="vila",
                     saldo_erp_referencia=erp_v,
                     saldo_informado=novo_v,
-                    origem=OrigemAjusteEstoque.OUTRO,
+                    origem=OrigemAjusteEstoque.AJUSTE_PIN,
                     observacao="PDV — edição rápida vila",
                     usuario=request.user if request.user.is_authenticated else None,
                 )
@@ -1577,12 +1582,15 @@ def api_pdv_produto_ajuste_estoque(request):
 
     saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
     s2 = saldos.get(pid_out) or {}
+    contagem = (_ultimos_ajuste_pin_datas_por_produtos([pid_out]).get(pid_out) or {})
     return JsonResponse(
         {
             "ok": True,
             "produto_id": pid_out,
             "saldo_centro": round(float(s2.get("saldo_centro") or 0), 2),
             "saldo_vila": round(float(s2.get("saldo_vila") or 0), 2),
+            "contagem_centro": str(contagem.get("centro") or "").strip() or "Conferir",
+            "contagem_vila": str(contagem.get("vila") or "").strip() or "Conferir",
         }
     )
 
@@ -9257,6 +9265,7 @@ def dashboard_interno_preview_view(request):
 
 
 @login_required(login_url="/admin/login/")
+@ensure_csrf_cookie
 @require_GET
 def dispenser_a6_studio_view(request):
     """Studio visual do cartaz A6 de dispenser (ainda sem cadastro/preço do sistema)."""
@@ -13030,6 +13039,62 @@ def _pin_ajustes_latest_por_produtos_depositos(pids_ord: list[str]) -> dict[tupl
         key = (str(aj.produto_externo_id).strip(), str(aj.deposito).strip())
         if key not in out:
             out[key] = aj
+    return out
+
+
+def _fmt_data_ajuste_pin_curta(dt) -> str:
+    """Data da contagem manual no formato ``dd/mm/aa`` (fuso local)."""
+    if dt is None:
+        return ""
+    try:
+        local = timezone.localtime(dt)
+    except Exception:
+        local = dt
+    try:
+        return local.strftime("%d/%m/%y")
+    except Exception:
+        return ""
+
+
+def _ultimos_ajuste_pin_datas_por_produtos(pids_ord: list[str]) -> dict[str, dict[str, str]]:
+    """
+    Último ajuste PIN (contagem manual) por depósito.
+    Retorna ``{pid: {"centro": "dd/mm/aa"|'', "vila": ...}}``.
+    """
+    out: dict[str, dict[str, str]] = {}
+    uniq: list[str] = []
+    seen: set[str] = set()
+    for raw in pids_ord:
+        p = str(raw or "").strip()
+        if not p or p.lower().startswith("local:") or p in seen:
+            continue
+        seen.add(p)
+        uniq.append(p)
+        out[p] = {"centro": "", "vila": ""}
+    if not uniq:
+        return out
+    qs = (
+        AjusteRapidoEstoque.objects.filter(
+            produto_externo_id__in=uniq,
+            deposito__in=["centro", "vila"],
+            origem=OrigemAjusteEstoque.AJUSTE_PIN,
+        )
+        .order_by("produto_externo_id", "deposito", "-criado_em")
+        .only("produto_externo_id", "deposito", "criado_em")
+    )
+    filled: set[tuple[str, str]] = set()
+    for aj in qs:
+        pid = str(aj.produto_externo_id).strip()
+        dep = str(aj.deposito or "").strip().lower()
+        if dep not in ("centro", "vila"):
+            continue
+        key = (pid, dep)
+        if key in filled:
+            continue
+        filled.add(key)
+        if pid not in out:
+            out[pid] = {"centro": "", "vila": ""}
+        out[pid][dep] = _fmt_data_ajuste_pin_curta(getattr(aj, "criado_em", None))
     return out
 
 
@@ -25124,19 +25189,32 @@ def api_pdv_saldos_compacto(request):
             produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
             p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
         saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+        quer_contagem = str(request.GET.get("contagem") or "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "sim",
+        )
+        # Com lista filtrada por ids, sempre inclui data do último AJUSTE PIN (leve).
+        if p_ids_filtro is not None:
+            quer_contagem = True
+        datas_pin = _ultimos_ajuste_pin_datas_por_produtos(p_ids) if quer_contagem else {}
         rows = []
         for pid in p_ids:
             sp = saldos.get(pid) or {}
-            rows.append(
-                [
-                    pid,
-                    sp.get("saldo_centro", 0.0),
-                    sp.get("saldo_vila", 0.0),
-                    sp.get("saldo_erp_centro", 0.0),
-                    sp.get("saldo_erp_vila", 0.0),
-                ]
-            )
-        payload = {"v": 1, "rows": rows}
+            row = [
+                pid,
+                sp.get("saldo_centro", 0.0),
+                sp.get("saldo_vila", 0.0),
+                sp.get("saldo_erp_centro", 0.0),
+                sp.get("saldo_erp_vila", 0.0),
+            ]
+            if quer_contagem:
+                dp = datas_pin.get(pid) or {}
+                row.append(str(dp.get("centro") or ""))
+                row.append(str(dp.get("vila") or ""))
+            rows.append(row)
+        payload = {"v": 1, "rows": rows, "contagem": bool(quer_contagem)}
         if p_ids_filtro is None and ttl > 0:
             cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=ttl)
         try:

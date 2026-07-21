@@ -220,6 +220,8 @@ function mobileLerProdutosDoCacheUnificado() {
 let maThermoTimer = null;
 let maListaInFlight = false;
 let maUltimosIdsExibidos = [];
+let maContagemTimer = null;
+let maContagemSkipAgendar = false;
 let scanningActive = false;
 let filtrosAplicados = {
   deposito: MA_DEPOSITO_INICIAL,
@@ -260,11 +262,15 @@ function aplicarSaldosMobile(rows) {
     const nv = Number(row[2]);
     const nec = Number(row[3]);
     const nev = Number(row[4]);
+    const dc = row.length >= 7 ? String(row[5] || '').trim() : '';
+    const dv = row.length >= 7 ? String(row[6] || '').trim() : '';
     if (
       Number(p.saldo_centro) !== nc ||
       Number(p.saldo_vila) !== nv ||
       Number(p.saldo_erp_centro) !== nec ||
-      Number(p.saldo_erp_vila) !== nev
+      Number(p.saldo_erp_vila) !== nev ||
+      String(p.contagem_centro || '') !== dc ||
+      String(p.contagem_vila || '') !== dv
     ) {
       mudou = true;
     }
@@ -272,6 +278,11 @@ function aplicarSaldosMobile(rows) {
     p.saldo_vila = nv;
     p.saldo_erp_centro = nec;
     p.saldo_erp_vila = nev;
+    if (row.length >= 7) {
+      p.contagem_centro = dc;
+      p.contagem_vila = dv;
+      p._contagemOk = true;
+    }
   });
   if (mudou && pSel) {
     const u = baseProdutos.find((x) => String(x.id) === String(pSel.id));
@@ -279,13 +290,31 @@ function aplicarSaldosMobile(rows) {
   }
   if (mudou) {
     const q = document.getElementById('busca').value;
+    maContagemSkipAgendar = true;
     buscar(q);
+    maContagemSkipAgendar = false;
     const modal = document.getElementById('modal');
     if (pSel && modal && !modal.classList.contains('hidden')) {
       document.getElementById('m-saldo').innerText = Number(getSaldoAtual(pSel)).toFixed(1);
     }
   }
   return mudou;
+}
+
+function getContagemAtual(p) {
+  if (!p) return 'Conferir';
+  const raw = getDepositoSelecionado() === 'vila'
+    ? String(p.contagem_vila || '').trim()
+    : String(p.contagem_centro || '').trim();
+  return raw || 'Conferir';
+}
+
+function hojeContagemCurta() {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return dd + '/' + mm + '/' + yy;
 }
 
 function getDepositoSelecionado() {
@@ -365,10 +394,16 @@ function parseDecimalBr(s) {
 function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
   if (!p || !Number.isFinite(novoSaldo)) return;
   const id = String(p.id);
+  const hoje = hojeContagemCurta();
   baseProdutos.forEach((x) => {
     if (String(x.id) !== id) return;
-    if (deposito === 'vila') x.saldo_vila = novoSaldo;
-    else x.saldo_centro = novoSaldo;
+    if (deposito === 'vila') {
+      x.saldo_vila = novoSaldo;
+      x.contagem_vila = hoje;
+    } else {
+      x.saldo_centro = novoSaldo;
+      x.contagem_centro = hoje;
+    }
   });
   /* Espelha no cache do PDV deste aparelho — home/consulta veem o saldo novo sem F5 estoque. */
   try {
@@ -380,8 +415,13 @@ function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
       let mudou = false;
       pack.produtos.forEach((row) => {
         if (String(row.id) !== id) return;
-        if (deposito === 'vila') row.saldo_vila = novoSaldo;
-        else row.saldo_centro = novoSaldo;
+        if (deposito === 'vila') {
+          row.saldo_vila = novoSaldo;
+          row.contagem_vila = hoje;
+        } else {
+          row.saldo_centro = novoSaldo;
+          row.contagem_centro = hoje;
+        }
         mudou = true;
       });
       if (mudou) localStorage.setItem(key, JSON.stringify(pack));
@@ -396,7 +436,7 @@ function pollSaldosMobileUmaVez(idsOpcionais) {
     ids = (maUltimosIdsExibidos || []).slice(0, 80);
   }
   if (!ids.length) return Promise.resolve(false);
-  const url = MA_API_SALDOS + '?ids=' + encodeURIComponent(ids.join(','));
+  const url = MA_API_SALDOS + '?ids=' + encodeURIComponent(ids.join(',')) + '&contagem=1';
   return fetch(url, { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
@@ -408,6 +448,22 @@ function pollSaldosMobileUmaVez(idsOpcionais) {
       return false;
     })
     .catch(() => false);
+}
+
+/** Após pintar a lista: busca saldos + data da última contagem PIN dos itens visíveis. */
+function agendarFetchContagemVisivel() {
+  if (maContagemSkipAgendar) return;
+  clearTimeout(maContagemTimer);
+  maContagemTimer = setTimeout(() => {
+    const ids = (maUltimosIdsExibidos || []).slice(0, 80);
+    if (!ids.length) return;
+    const precisa = ids.some((id) => {
+      const p = baseProdutos.find((x) => String(x.id) === String(id));
+      return p && !p._contagemOk;
+    });
+    if (!precisa) return;
+    pollSaldosMobileUmaVez(ids);
+  }, 320);
 }
 
 function mobileAjusteAplicarProdutosDaLista(produtos) {
@@ -580,15 +636,18 @@ function buscar(q) {
   resultados.forEach(p => {
     const saldoN = getSaldoAtual(p);
     const corSaldo = saldoN < 0 ? 'text-rose-600' : 'text-emerald-600';
+    const contagem = getContagemAtual(p);
+    const corContagem = contagem === 'Conferir' ? 'text-amber-700' : 'text-slate-600';
     const d = document.createElement('div');
     d.className = "bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center gap-3 active:bg-slate-50 min-h-[3.25rem]";
     d.innerHTML = `
-      <div class="min-w-0 pr-3">
+      <div class="min-w-0 flex-1 pr-2">
         <div class="font-black text-xs uppercase truncate">${p.nome || ''}</div>
         <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
         <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
       </div>
-      <div class="${corSaldo} font-black text-lg tabular-nums shrink-0">${saldoN.toFixed(1)}</div>
+      <div class="${corContagem} text-[10px] font-black tabular-nums shrink-0 w-[3.6rem] text-right" title="Última contagem (ajuste PIN)">${contagem}</div>
+      <div class="${corSaldo} font-black text-lg tabular-nums shrink-0 w-[3.25rem] text-right">${saldoN.toFixed(1)}</div>
     `;
     d.onclick = () => {
       pSel = p;
@@ -596,6 +655,7 @@ function buscar(q) {
     };
     l.appendChild(d);
   });
+  agendarFetchContagemVisivel();
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
