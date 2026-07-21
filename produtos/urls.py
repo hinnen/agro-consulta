@@ -10,7 +10,6 @@ from . import promocoes_views, views, views_mp_point, views_nfce, pg_backup_view
 from . import fiado_gestao_views as fiado_views
 from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
-from . import views_dispenser_a6
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -225,26 +224,6 @@ urlpatterns = [
         'interno/dispenser-a6/',
         views.dispenser_a6_studio_view,
         name='dispenser_a6_studio',
-    ),
-    path(
-        'interno/dispenser-a6/api/biblioteca/',
-        views_dispenser_a6.api_dispenser_biblioteca,
-        name='api_dispenser_biblioteca',
-    ),
-    path(
-        'interno/dispenser-a6/api/midia/',
-        views_dispenser_a6.api_dispenser_midia,
-        name='api_dispenser_midia',
-    ),
-    path(
-        'interno/dispenser-a6/api/documento/',
-        views_dispenser_a6.api_dispenser_documento,
-        name='api_dispenser_documento',
-    ),
-    path(
-        'interno/dispenser-a6/api/migrar/',
-        views_dispenser_a6.api_dispenser_migrar,
-        name='api_dispenser_migrar',
     ),
     path(
         'interno/teste-busca/',
