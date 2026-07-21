@@ -55,23 +55,9 @@ def _normalizar_decimal(valor):
 
 
 def _buscar_ajustes_mais_recentes(produto_ids=None):
-    # Trava de segurança para não explodir o limite do banco SQLite
-    if produto_ids is not None and len(produto_ids) <= 900:
-        ajustes = (
-            AjusteRapidoEstoque.objects
-            .filter(produto_externo_id__in=produto_ids)
-            .order_by('produto_externo_id', 'deposito', '-criado_em')
-        )
-    else:
-        ajustes = AjusteRapidoEstoque.objects.all().order_by('produto_externo_id', 'deposito', '-criado_em')
+    from produtos.estoque_saldo_agro_util import ajustes_mais_recentes_por_produtos
 
-    mapa = {}
-    for ajuste in ajustes:
-        chave = (ajuste.produto_externo_id, ajuste.deposito)
-        if chave not in mapa:
-            mapa[chave] = ajuste
-
-    return mapa
+    return ajustes_mais_recentes_por_produtos(produto_ids)
 
 
 def _pedido_transferencia_extra(pedido):
@@ -1302,10 +1288,19 @@ def api_atualizar_medias(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao calcular médias: {exc}'}, status=500)
 
-def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, ajustes, *, saldos_map=None):
+def _montar_sugestoes_transferencia(
+    mapa_produtos,
+    mapa_regras,
+    mapa_pedidos,
+    ajustes,
+    *,
+    saldos_map=None,
+    limpar_pedidos_ok=True,
+):
     from produtos.estoque_saldo_agro_util import saldos_transferencia_de_mapa
 
     sugestoes = []
+    pedidos_ok_pks = []
 
     for pid, p_info in mapa_produtos.items():
         if saldos_map is not None:
@@ -1323,6 +1318,7 @@ def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, aj
 
         regra = mapa_regras.get(pid)
         pedido = mapa_pedidos.get(pid)
+        pedido_extra = pedido
 
         if regra:
             qtde_transferir = Decimal("0")
@@ -1365,7 +1361,8 @@ def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, aj
                             )
             else:
                 if pedido:
-                    pedido.delete()
+                    pedidos_ok_pks.append(pedido.pk)
+                    pedido_extra = None
                     status = "OK"
 
             sugestoes.append(
@@ -1386,7 +1383,7 @@ def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, aj
                     "capacidade_minima": float(regra.capacidade_minima),
                     "configurado": True,
                     "prioridade": 3 if status != "SEPARANDO" else 4,
-                    **_pedido_transferencia_extra(pedido),
+                    **_pedido_transferencia_extra(pedido_extra),
                 }
             )
         else:
@@ -1415,6 +1412,9 @@ def _montar_sugestoes_transferencia(mapa_produtos, mapa_regras, mapa_pedidos, aj
                     **_pedido_transferencia_extra(pedido),
                 }
             )
+
+    if limpar_pedidos_ok and pedidos_ok_pks:
+        PedidoTransferencia.objects.filter(pk__in=pedidos_ok_pks).delete()
 
     sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
     return sugestoes
@@ -1461,13 +1461,18 @@ def _api_sugestoes_transferencia_agro(request):
             "nome": info.get("nome") or (regra.nome_produto if regra else f"Produto {pid}"),
             "codigo": info.get("codigo") or pid,
             "codigo_barras": info.get("codigo_barras") or "",
-            "saldo_c": float(saldo_info.get("saldo_erp_centro", 0.0)),
-            "saldo_v": float(saldo_info.get("saldo_erp_vila", 0.0)),
+            "saldo_c": float(saldo_info.get("saldo_centro", saldo_info.get("saldo_erp_centro", 0.0))),
+            "saldo_v": float(saldo_info.get("saldo_vila", saldo_info.get("saldo_erp_vila", 0.0))),
         }
 
-    ajustes = _buscar_ajustes_mais_recentes(list(mapa_produtos.keys()))
+    # Saldos já vêm prontos em saldos_map — sem 2ª/3ª busca de ajustes.
     sugestoes = _montar_sugestoes_transferencia(
-        mapa_produtos, mapa_regras, mapa_pedidos, ajustes, saldos_map=saldos_map
+        mapa_produtos,
+        mapa_regras,
+        mapa_pedidos,
+        {},
+        saldos_map=saldos_map,
+        limpar_pedidos_ok=True,
     )
     return _resposta_sugestoes_transferencia(sugestoes)
 

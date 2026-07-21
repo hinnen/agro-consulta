@@ -1298,7 +1298,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 
-**Versão app (VERSION):** **teste v11.16** · **loja v10.87** (push 8b802c1) · rollback `pre-caixa-vila-centro-v10.82`
+**Versão app (VERSION):** **teste v11.42** · **loja v10.87** (push 8b802c1) · rollback `pre-caixa-vila-centro-v10.82`
+
+### 🩹 Logística/Transferências — abertura lenta (21/07 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | `/transferencias/` demorava em «carregando sugestões» |
+| **Causa** | API: N+1 overlay · varria histórico inteiro de ajustes Vila · buscava ajustes 2–3× · DELETE pedido um a um no GET |
+| **Feito** | info leve + overlay em lote · DISTINCT ON Vila · saldos reutilizados · limpeza de pedido em lote |
+| **Arquivos** | `produtos/estoque_saldo_agro_util.py` · `estoque/views.py` |
+| **Você** | Abrir Logística no **teste** — deve abrir bem mais rápido |
+| **Status** | ⏳ push `teste` |
 
 ### WIP — Dispenser A6 (visual)
 

@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.db import connection
+
 from produtos.estoque_agro_util import agro_estoque_ledger_ativo, calcular_saldo_operacional_deposito
+
+_AJUSTES_IN_CHUNK = 800
 
 
 def _mapear_estoques_mongo_por_produto(estoques, client) -> dict[str, dict[str, float]]:
@@ -24,21 +28,40 @@ def _mapear_estoques_mongo_por_produto(estoques, client) -> dict[str, dict[str, 
 def ajustes_mais_recentes_por_produtos(produto_ids: list[str] | None = None) -> dict:
     from estoque.models import AjusteRapidoEstoque
 
-    if produto_ids is not None and len(produto_ids) <= 900:
-        ajustes = (
-            AjusteRapidoEstoque.objects.filter(produto_externo_id__in=produto_ids)
-            .order_by("produto_externo_id", "deposito", "-criado_em")
-        )
-    else:
+    mapa = {}
+    if produto_ids is None:
         ajustes = AjusteRapidoEstoque.objects.all().order_by(
             "produto_externo_id", "deposito", "-criado_em"
         )
+        for ajuste in ajustes:
+            chave = (ajuste.produto_externo_id, ajuste.deposito)
+            if chave not in mapa:
+                mapa[chave] = ajuste
+        return mapa
 
-    mapa = {}
-    for ajuste in ajustes:
-        chave = (ajuste.produto_externo_id, ajuste.deposito)
-        if chave not in mapa:
-            mapa[chave] = ajuste
+    p_ids = [str(x) for x in produto_ids if x is not None and str(x).strip()]
+    if not p_ids:
+        return {}
+
+    # Nunca carregar a tabela inteira: filtra em fatias (Postgres/SQLite).
+    for i in range(0, len(p_ids), _AJUSTES_IN_CHUNK):
+        slice_ids = p_ids[i : i + _AJUSTES_IN_CHUNK]
+        ajustes = (
+            AjusteRapidoEstoque.objects.filter(produto_externo_id__in=slice_ids)
+            .order_by("produto_externo_id", "deposito", "-criado_em")
+            .only(
+                "produto_externo_id",
+                "deposito",
+                "saldo_informado",
+                "saldo_erp_referencia",
+                "diferenca_saldo",
+                "criado_em",
+            )
+        )
+        for ajuste in ajustes:
+            chave = (ajuste.produto_externo_id, ajuste.deposito)
+            if chave not in mapa:
+                mapa[chave] = ajuste
     return mapa
 
 
@@ -103,11 +126,35 @@ def produto_ids_saldo_deposito_positivo(deposito: str = "vila") -> list[str]:
 
     dep = (deposito or "vila").strip().lower()
     ledger = agro_estoque_ledger_ativo()
+
+    # Postgres: só o ajuste mais recente por produto (DISTINCT ON) — não o histórico.
+    if connection.vendor == "postgresql":
+        latest = (
+            AjusteRapidoEstoque.objects.filter(deposito=dep)
+            .order_by("produto_externo_id", "-criado_em")
+            .distinct("produto_externo_id")
+            .only("produto_externo_id", "saldo_informado", "saldo_erp_referencia", "diferenca_saldo")
+        )
+        out: list[str] = []
+        for aj in latest:
+            pid = str(aj.produto_externo_id or "").strip()
+            if not pid:
+                continue
+            saldo = calcular_saldo_operacional_deposito(aj, 0.0, ledger=ledger)
+            if saldo > 0:
+                out.append(pid)
+        return out
+
     ajustes = AjusteRapidoEstoque.objects.filter(deposito=dep).order_by(
         "produto_externo_id", "-criado_em"
+    ).only(
+        "produto_externo_id",
+        "saldo_informado",
+        "saldo_erp_referencia",
+        "diferenca_saldo",
     )
     seen: set[str] = set()
-    out: list[str] = []
+    out = []
     for aj in ajustes:
         pid = str(aj.produto_externo_id or "").strip()
         if not pid or pid in seen:
@@ -120,22 +167,42 @@ def produto_ids_saldo_deposito_positivo(deposito: str = "vila") -> list[str]:
 
 
 def mapa_produtos_info_por_externo_ids(p_ids: list[str]) -> dict[str, dict]:
-    from produtos.catalogo_agro import produto_agro_para_row
+    """Nome / código / barras leves — overlay em lote (sem N+1 nem row completa do catálogo)."""
+    from produtos.catalogo_agro import _overlay_mapa_por_ids
     from produtos.models import Produto
 
     out: dict[str, dict] = {}
     chunk = 500
     for i in range(0, len(p_ids), chunk):
-        slice_ids = p_ids[i : i + chunk]
-        for p in Produto.objects.filter(produto_externo_id__in=slice_ids):
+        slice_ids = [str(x).strip() for x in p_ids[i : i + chunk] if x is not None and str(x).strip()]
+        if not slice_ids:
+            continue
+        ov_map = _overlay_mapa_por_ids(slice_ids)
+        for p in Produto.objects.filter(produto_externo_id__in=slice_ids).only(
+            "produto_externo_id",
+            "nome",
+            "codigo_interno",
+            "codigo_nfe",
+            "codigo_barras",
+        ):
             pid = str(p.produto_externo_id or "").strip()
             if not pid:
                 continue
-            row = produto_agro_para_row(p)
+            ov = ov_map.get(pid[:64]) or ov_map.get(pid)
+            nome = (p.nome or "").strip()
+            codigo = (p.codigo_nfe or p.codigo_interno or pid).strip()
+            barras = (p.codigo_barras or "").strip()
+            if ov:
+                if (ov.nome or "").strip():
+                    nome = ov.nome.strip()
+                if (ov.codigo_nfe or "").strip():
+                    codigo = ov.codigo_nfe.strip()
+                if (ov.codigo_barras or "").strip():
+                    barras = ov.codigo_barras.strip()
             out[pid] = {
-                "nome": row.get("nome") or f"Produto {pid}",
-                "codigo": row.get("codigo_nfe") or row.get("codigo") or pid,
-                "codigo_barras": row.get("codigo_barras") or "",
+                "nome": nome or f"Produto {pid}",
+                "codigo": codigo or pid,
+                "codigo_barras": barras,
             }
     return out
 
@@ -146,8 +213,17 @@ def saldos_transferencia_de_mapa(
     ajustes: dict,
 ) -> tuple[Decimal, Decimal, Decimal, Decimal]:
     """Retorna (saldo_centro, saldo_vila, saldo_centro_erp, saldo_vila_erp)."""
-    ledger = agro_estoque_ledger_ativo()
     info = saldos_map.get(pid) or {}
+    # Já calculado por mapa_saldos_operacionais_agro — não recalcular.
+    if "saldo_centro" in info and "saldo_vila" in info:
+        return (
+            Decimal(str(info.get("saldo_centro", 0.0))),
+            Decimal(str(info.get("saldo_vila", 0.0))),
+            Decimal(str(info.get("saldo_erp_centro", 0.0))),
+            Decimal(str(info.get("saldo_erp_vila", 0.0))),
+        )
+
+    ledger = agro_estoque_ledger_ativo()
     saldo_centro_erp = Decimal(str(info.get("saldo_erp_centro", 0.0)))
     saldo_vila_erp = Decimal(str(info.get("saldo_erp_vila", 0.0)))
     ajuste_centro = ajustes.get((pid, "centro"))
