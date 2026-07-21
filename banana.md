@@ -1165,6 +1165,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🔍 Incidente manhã 21/07 — site não abria **antes** do deploy (confirmação Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Loja 500 / deploy v10.86 falhou no `migrate` · `FATAL: remaining connection slots are reserved for SUPERUSER` |
+| **Não foi** | Bug do pacote Caixa Vila×Centro |
+| **Foi** | Postgres (`agro-db`) **já sem slot livre** — site já falhava; o deploy só **revelou** (migrate precisa de 1 conexão) |
+| **Por quê enche** | `conn_max_age=600` (10 min) · Gunicorn 1 worker + threads/preload · pico de abas/loja · restart/deploy dobra processo antigo+novo · plano Postgres com poucos slots |
+| **Recuperação** | Restart Database no PG + Restart web |
+| **Mitigação loja** | **v10.87** `conn_max_age` padrão **60s** (`DJANGO_CONN_MAX_AGE`) |
+| **Teste** | alinhar mesmo `conn_max_age` 60s (evita regressão no merge) |
+
 ### 🩹 Caixa — diferença abertura + quem abriu/fechou (21/07 · **teste**)
 
 | Item | Detalhe |
