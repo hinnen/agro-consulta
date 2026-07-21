@@ -1167,7 +1167,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 Contagem — data último AJUSTE PIN no mobile + PDV (21/07 · **teste**)
+### 📦 Contagem — data último AJUSTE PIN no mobile + PDV (21/07 · **teste v11.40**)
 
 | Item | Detalhe |
 | ---- | ------- |
