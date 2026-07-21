@@ -80,7 +80,7 @@
           <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_gaveta %}is-disabled{% endif %}" data-ponto="gaveta">
             <input type="radio" name="ponto_caixa_ui" value="gaveta" class="sr-only" {% if pode_abrir_gaveta and deposito_browser != 'vila' %}checked{% endif %} {% if not pode_abrir_gaveta %}disabled{% endif %}>
             <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-emerald-800">Selecionado</span>
-            <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Gaveta Centro</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Gaveta Centro</span>
             {% if gaveta_aberta %}
             <span class="mt-2 block text-[11px] font-black uppercase text-emerald-800">Aberto</span>
             {% endif %}
@@ -88,7 +88,7 @@
           <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_vila %}is-disabled{% endif %}" data-ponto="vila">
             <input type="radio" name="ponto_caixa_ui" value="vila" class="sr-only" {% if pode_abrir_vila and deposito_browser == 'vila' %}checked{% endif %} {% if not pode_abrir_vila %}disabled{% endif %}>
             <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-slate-800">Selecionado</span>
-            <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Vila Elias</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Vila Elias</span>
             {% if vila_aberta %}
             <span class="mt-2 block text-[11px] font-black uppercase text-slate-800">Aberto</span>
             {% endif %}
@@ -96,7 +96,7 @@
           <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_notebook %}is-disabled{% endif %}" data-ponto="notebook">
             <input type="radio" name="ponto_caixa_ui" value="notebook" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and pode_abrir_notebook %}checked{% endif %} {% if not pode_abrir_notebook %}disabled{% endif %}>
             <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-sky-800">Selecionado</span>
-            <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Notebook</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Notebook</span>
             {% if not pode_abrir_notebook %}
             <span class="mt-2 block text-[11px] font-black uppercase text-amber-800">Abra o caixa antes</span>
             {% endif %}
@@ -104,7 +104,7 @@
           <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 border-slate-300 bg-white px-3 py-3 cursor-pointer {% if not pode_abrir_teste %}is-disabled{% endif %}" data-ponto="teste">
             <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_vila and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
             <span class="caixa-ponto-sel hidden mb-1 text-[10px] font-black uppercase tracking-wide text-violet-800">Selecionado</span>
-            <span class="block text-[clamp(0.95rem,0.4vw+0.85rem,1.15rem)] font-black text-slate-900">Teste</span>
+            <span class="block text-[clamp(1.35rem,1.1vw+1.1rem,1.85rem)] font-black text-slate-900">Teste</span>
             {% if teste_aberto %}
             <span class="mt-2 block text-[11px] font-black uppercase text-violet-800">Aberto</span>
             {% endif %}
