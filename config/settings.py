@@ -243,10 +243,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 # Produção (Render, SaveinCloud, Docker): injete DATABASE_URL (PostgreSQL) pelo painel; sem ela, fallback SQLite local.
 
+# conn_max_age baixo: evita esgotar slots no Postgres (incidente loja 21/07).
+# Override: DJANGO_CONN_MAX_AGE no painel Render.
+_db_conn_max_age = int(os.environ.get("DJANGO_CONN_MAX_AGE", "60") or "60")
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        conn_max_age=_db_conn_max_age,
         conn_health_checks=True,
     )
 }
