@@ -5,9 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.67" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.67"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.67"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.68" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.68"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.68"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -1311,39 +1311,29 @@ Batata-Doce</textarea>
     function snapshotSheet() {
       var pet = findById(allPets(), petId);
       var ing = findById(allIngs(), ingId);
-      var logo = findById(loadCustomLogos(), logoId);
       var card = document.getElementById("dspCard");
       var pos = proteinRow ? proteinRow.getAttribute("data-pos") : "";
       if (!pos) pos = loadProteinPos();
-      var flavorIcos = {};
-      try {
-        var allIco = loadCustomFlavorIcos();
-        var normFn = window.DspFlavorLib && window.DspFlavorLib.norm
-          ? window.DspFlavorLib.norm
-          : function (s) { return String(s || "").toLowerCase(); };
-        flavorLines().forEach(function (name) {
-          var k = normFn(name);
-          if (allIco[k]) flavorIcos[k] = allIco[k];
-        });
-      } catch (e) {}
+      /* só IDs/caminhos — fotos grandes ficam nas bibliotecas (não duplicar no localStorage) */
       return {
         cat: catEl.value,
         brand: brandEl.value,
         logoId: logoId || "",
-        logoDataUrl: logo && logo.dataUrl ? logo.dataUrl : "",
-        logoLabel: logo && logo.label ? logo.label : "",
         petId: petId,
-        petDataUrl: pet && pet.dataUrl ? pet.dataUrl : "",
         petFile: pet && pet.file ? pet.file : "",
-        petLabel: pet && pet.label ? pet.label : "",
-        petFit: { x: petFit.x, y: petFit.y, s: petFit.s },
+        petFit: {
+          x: Math.round((petFit.x || 0) * 10) / 10,
+          y: Math.round((petFit.y || 0) * 10) / 10,
+          s: Math.round((petFit.s || 1.05) * 1000) / 1000
+        },
         ingId: ingId,
-        ingDataUrl: ing && ing.dataUrl ? ing.dataUrl : "",
         ingFile: ing && ing.file ? ing.file : "",
-        ingLabel: ing && ing.label ? ing.label : "",
-        ingFit: { x: ingFit.x, y: ingFit.y, s: ingFit.s },
+        ingFit: {
+          x: Math.round((ingFit.x || 0) * 10) / 10,
+          y: Math.round((ingFit.y || 0) * 10) / 10,
+          s: Math.round((ingFit.s || 1.05) * 1000) / 1000
+        },
         flavors: flavorsEl.value,
-        flavorIcos: flavorIcos,
         protein: proteinEl.value,
         proteinPos: pos || "foto",
         freeLayout: !!(card && card.classList.contains("is-free-layout"))
@@ -1362,6 +1352,9 @@ Batata-Doce</textarea>
           { id: sheet.logoId, label: sheet.logoLabel || "Logo", dataUrl: sheet.logoDataUrl },
           LOGO_MAX_CUSTOM
         ) || "";
+      } else if (sheet.logoId) {
+        var logoHit = findById(loadCustomLogos(), sheet.logoId);
+        logoId = logoHit ? logoHit.id : "";
       } else {
         logoId = "";
       }
@@ -1374,13 +1367,18 @@ Batata-Doce</textarea>
           PET_MAX_CUSTOM
         ) || sheet.petId || petId;
         petImg.src = sheet.petDataUrl;
+      } else if (sheet.petId) {
+        var p = findById(allPets(), sheet.petId);
+        if (p) {
+          petId = p.id;
+          petImg.src = petSrc(p);
+        } else if (sheet.petFile) {
+          petId = sheet.petId;
+          petImg.src = STATIC + sheet.petFile;
+        }
       } else if (sheet.petFile) {
         petId = sheet.petId || petId;
         petImg.src = STATIC + sheet.petFile;
-      } else if (sheet.petId) {
-        var p = findById(allPets(), sheet.petId) || PETS_BASE[0];
-        petId = p.id;
-        petImg.src = petSrc(p);
       }
 
       if (sheet.petFit) {
@@ -1401,15 +1399,18 @@ Batata-Doce</textarea>
           ING_MAX_CUSTOM
         ) || sheet.ingId || ingId;
         ingImg.src = sheet.ingDataUrl;
-      } else if (sheet.ingFile) {
-        ingId = sheet.ingId || ingId;
-        ingImg.src = ingAssetUrl(sheet.ingFile);
       } else if (sheet.ingId) {
         var ig = findById(allIngs(), sheet.ingId);
         if (ig) {
           ingId = ig.id;
           ingImg.src = ig.dataUrl || ingAssetUrl(ig.file);
+        } else if (sheet.ingFile) {
+          ingId = sheet.ingId;
+          ingImg.src = ingAssetUrl(sheet.ingFile);
         }
+      } else if (sheet.ingFile) {
+        ingId = sheet.ingId || ingId;
+        ingImg.src = ingAssetUrl(sheet.ingFile);
       }
 
       if (sheet.ingFit) {
@@ -1482,7 +1483,69 @@ Batata-Doce</textarea>
     }
 
     function saveFolhas(obj) {
-      return trySaveLocal(FOLHA_KEY, JSON.stringify(obj));
+      try {
+        localStorage.setItem(FOLHA_KEY, JSON.stringify(obj));
+        return true;
+      } catch (e) {
+        window.alert(
+          "Não deu para salvar a folha (memória do navegador cheia).\n" +
+          "Apague folhas ou fotos antigas em Bicho / Logos / Ingredientes e tente de novo."
+        );
+        return false;
+      }
+    }
+
+    function leanFolhaModel(model) {
+      if (!model || typeof model !== "object") return model;
+      var sheet = model.sheet;
+      if (sheet) {
+        sheet = {
+          cat: sheet.cat,
+          brand: sheet.brand,
+          logoId: sheet.logoId || "",
+          petId: sheet.petId,
+          petFile: sheet.petFile || "",
+          petFit: sheet.petFit,
+          ingId: sheet.ingId,
+          ingFile: sheet.ingFile || "",
+          ingFit: sheet.ingFit,
+          flavors: sheet.flavors,
+          protein: sheet.protein,
+          proteinPos: sheet.proteinPos,
+          freeLayout: !!sheet.freeLayout
+        };
+      }
+      return {
+        v: 2,
+        kind: "folha",
+        sheet: sheet,
+        items: model.items || null,
+        free: !!model.free,
+        thumb: model.thumb || "",
+        savedAt: model.savedAt || Date.now()
+      };
+    }
+
+    function scrubStoredFolhas() {
+      var all = loadFolhas();
+      var names = Object.keys(all);
+      if (!names.length) return;
+      var next = {};
+      var changed = false;
+      names.forEach(function (n) {
+        var lean = leanFolhaModel(all[n]);
+        next[n] = lean;
+        try {
+          if (JSON.stringify(lean).length < JSON.stringify(all[n]).length) changed = true;
+        } catch (e) {
+          changed = true;
+        }
+      });
+      if (changed) {
+        try {
+          localStorage.setItem(FOLHA_KEY, JSON.stringify(next));
+        } catch (e2) {}
+      }
     }
 
     function migrateFolhasFromLayouts() {
@@ -1512,8 +1575,8 @@ Batata-Doce</textarea>
     }
 
     function makeFolhaThumb(sheet, done) {
-      var w = 140;
-      var h = Math.round((140 * 148) / 105);
+      var w = 96;
+      var h = Math.round((96 * 148) / 105);
       var canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
@@ -1528,41 +1591,44 @@ Batata-Doce</textarea>
       ctx.fillStyle = catColor;
       ctx.fillRect(0, 0, w, Math.round(h * 0.15));
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+      ctx.font = "bold 7px Poppins, system-ui, sans-serif";
       var title = (CAT_LABELS[(sheet && sheet.cat) || ""] || ["", ""])[0] || "";
-      ctx.fillText(String(title).toUpperCase().slice(0, 16), 6, 14);
+      ctx.fillText(String(title).toUpperCase().slice(0, 14), 4, 11);
 
       ctx.fillStyle = "#1e3a6e";
-      ctx.font = "bold 12px Poppins, system-ui, sans-serif";
-      ctx.fillText(String((sheet && sheet.brand) || "Marca").slice(0, 14), 6, Math.round(h * 0.26));
+      ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+      ctx.fillText(String((sheet && sheet.brand) || "Marca").slice(0, 12), 4, Math.round(h * 0.26));
 
       function paintExtras() {
         var prot = String((sheet && sheet.protein) || "").replace("%", "");
         if (prot) {
           var cx = w * 0.78;
           var cy = h * 0.78;
-          var r = 16;
+          var r = 11;
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.fillStyle = CAT_THUMB_COLOR[(sheet && sheet.cat) || ""] || "#1e3d28";
+          ctx.fillStyle = catColor;
           ctx.fill();
           ctx.fillStyle = "#fff";
-          ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+          ctx.font = "bold 7px Poppins, system-ui, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText(prot + "%", cx, cy + 3);
+          ctx.fillText(prot + "%", cx, cy + 2);
           ctx.textAlign = "left";
         }
         try {
-          done(canvas.toDataURL("image/jpeg", 0.78));
+          done(canvas.toDataURL("image/jpeg", 0.55));
         } catch (e2) {
           done("");
         }
       }
 
-      var petSrcUrl =
-        (sheet && sheet.petDataUrl) ||
-        (petImg && petImg.src) ||
-        (sheet && sheet.petFile ? STATIC + sheet.petFile : "");
+      var petSrcUrl = "";
+      if (sheet && sheet.petId) {
+        var petHit = findById(allPets(), sheet.petId);
+        if (petHit) petSrcUrl = petSrc(petHit);
+      }
+      if (!petSrcUrl && sheet && sheet.petFile) petSrcUrl = STATIC + sheet.petFile;
+      if (!petSrcUrl && petImg && petImg.src) petSrcUrl = petImg.src;
       if (!petSrcUrl) {
         paintExtras();
         return;
@@ -1618,6 +1684,7 @@ Batata-Doce</textarea>
     function buildFolhaGal() {
       if (!folhaGal) return;
       migrateFolhasFromLayouts();
+      scrubStoredFolhas();
       var folhas = loadFolhas();
       var names = Object.keys(folhas).sort(function (a, b) {
         return (folhas[b].savedAt || 0) - (folhas[a].savedAt || 0);
@@ -1679,14 +1746,12 @@ Batata-Doce</textarea>
       if (!name) return;
       name = String(name).trim().slice(0, 40);
       if (!name) return;
+      scrubStoredFolhas();
       var sheet = snapshotSheet();
-      if (petImg && petImg.src && !sheet.petDataUrl && String(petImg.src).indexOf("data:") === 0) {
-        sheet.petDataUrl = petImg.src;
-      }
       var items = null;
       var free = false;
       var card = document.getElementById("dspCard");
-      if (card && card.classList.contains("is-free-layout") && window.DspLayoutEdit) {
+      if (card && card.classList.contains("is-free-layout")) {
         free = true;
       }
       if (window.DspLayoutEdit && window.DspLayoutEdit.snapshotFromDom) {
@@ -1700,16 +1765,20 @@ Batata-Doce</textarea>
           window.alert("Limite de " + FOLHA_MAX + " folhas neste computador. Apague alguma.");
           return;
         }
-        all[name] = {
-          v: 2,
-          kind: "folha",
+        var entry = leanFolhaModel({
           sheet: sheet,
           items: items,
           free: free,
           thumb: thumb || "",
           savedAt: Date.now()
-        };
-        if (!saveFolhas(all)) return;
+        });
+        all[name] = entry;
+        if (!saveFolhas(all)) {
+          /* tenta sem miniatura */
+          entry.thumb = "";
+          all[name] = entry;
+          if (!saveFolhas(all)) return;
+        }
         folhaActive = name;
         try {
           localStorage.setItem(FOLHA_ACTIVE_KEY, name);

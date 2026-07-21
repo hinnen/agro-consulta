@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ⚡ Ajuste mobile — salvar lento no teste (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Pós-salvar: invalidava catálogo + 2× refresh de **todos** os saldos; poll a cada 2 s engolia o worker |
+| **Fix** | Salvar só grava PG · atualiza lista local · poll 15 s · saldos `?ids=` · vírgula decimal BR |
+| **Você** | Ctrl+F5 · salvar um item deve fechar rápido |
+
 ### 🏪 Ajuste mobile — depósito inicial = loja do PDV (21/07 · **teste**)
 
 | Item | Detalhe |
