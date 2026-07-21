@@ -1165,6 +1165,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🏪 Ajuste mobile — depósito inicial = loja do PDV (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Abre no estoque Centro/Vila do aparelho (mesmo do PDV; se caixa aberto, trava o select) |
+| **Você** | Ctrl+F5 · confira filtro Depósito e faixa «Estoque: …» |
+
 ### 🔐 Ajuste mobile — PIN a cada abertura + operador nos ajustes (21/07 · **teste**)
 
 | Item | Detalhe |

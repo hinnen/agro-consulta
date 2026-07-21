@@ -17536,7 +17536,14 @@ def ajuste_mobile_view(request):
     """
     PIN obrigatório a cada abertura desta tela (não reaproveita o PIN do PDV/descanso).
     O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
+    Depósito inicial = loja/estoque travado no PDV deste aparelho (Centro × Vila).
     """
+    from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
+
+    dep_boot = bootstrap_deposito(request)
+    dep = str(dep_boot.get("deposito") or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
     if not request.session.pop("ajuste_mobile_gate", None):
         request.session.pop("ajuste_mobile_operador", None)
         request.session.pop("ajuste_mobile_user_id", None)
@@ -17546,7 +17553,12 @@ def ajuste_mobile_view(request):
     return render(
         request,
         "produtos/mobile_ajuste.html",
-        {"ajuste_operador": operador},
+        {
+            "ajuste_operador": operador,
+            "ajuste_deposito_inicial": dep,
+            "ajuste_deposito_inicial_label": rotulo_deposito(dep),
+            "ajuste_deposito_travado": bool(dep_boot.get("caixaTravado")),
+        },
     )
 
 

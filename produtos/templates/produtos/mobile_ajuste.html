@@ -61,7 +61,9 @@
     </div>
     {% endif %}
     <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-emerald-100/90 bg-gradient-to-r from-emerald-50/95 via-white to-slate-50/80">
-      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0">Saldos</span>
+      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0 truncate" title="Depósito igual ao PDV deste aparelho">
+        Estoque: {% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}{% if ajuste_deposito_travado %} · travado{% endif %}
+      </span>
       <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
         <span id="ma-saldos-ultima" class="text-[9px] font-bold text-slate-800 tabular-nums truncate max-w-[min(52vw,11rem)]" title="Última leitura dos saldos na lista">—</span>
         <button type="button" id="ma-btn-saldos" class="relative inline-flex items-center gap-1.5 rounded-xl border-2 border-emerald-500/45 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[9px] font-black uppercase tracking-wide pl-1.5 pr-2.5 py-1.5 shadow-md active:scale-[0.98] transition-transform shrink-0 overflow-hidden" title="Baixar lista completa + saldos (Postgres)">
@@ -105,9 +107,9 @@
     <div id="f-drawer" class="hidden mt-1.5 grid grid-cols-2 gap-1.5">
       <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
         <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Depósito</span>
-        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
-          <option value="centro">Centro</option>
-          <option value="vila">Vila Elias</option>
+        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none"{% if ajuste_deposito_travado %} disabled title="Loja travada pelo caixa do PDV"{% endif %}>
+          <option value="centro"{% if ajuste_deposito_inicial != 'vila' %} selected{% endif %}>Centro</option>
+          <option value="vila"{% if ajuste_deposito_inicial == 'vila' %} selected{% endif %}>Vila Elias</option>
         </select>
       </label>
       <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
@@ -199,6 +201,8 @@ let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
 const MOBILE_POLL_SALDOS_MS = 2200;
+const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
+const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -216,7 +220,7 @@ let mobilePollSaldosTimer = null;
 let maThermoTimer = null;
 let scanningActive = false;
 let filtrosAplicados = {
-  deposito: 'centro',
+  deposito: MA_DEPOSITO_INICIAL,
   saldo: 'all',
   ordem: 'nome',
   extra: 'all',
@@ -325,8 +329,8 @@ function atualizarOpcoesFiltros() {
 }
 
 function aplicarFiltrosDaUI() {
-  filtrosAplicados = {
-    deposito: document.getElementById('f-deposito')?.value || 'centro',
+    filtrosAplicados = {
+    deposito: document.getElementById('f-deposito')?.value || MA_DEPOSITO_INICIAL,
     saldo: document.getElementById('f-saldo')?.value || 'all',
     ordem: document.getElementById('f-ordem')?.value || 'nome',
     extra: document.getElementById('f-extra')?.value || 'all',
@@ -559,7 +563,7 @@ document.getElementById('btn-aplicar-filtros').addEventListener('click', () => {
   buscar(document.getElementById('busca').value);
 });
 document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-  document.getElementById('f-deposito').value = 'centro';
+  document.getElementById('f-deposito').value = MA_DEPOSITO_INICIAL;
   document.getElementById('f-saldo').value = 'all';
   document.getElementById('f-ordem').value = 'nome';
   document.getElementById('f-extra').value = 'all';
