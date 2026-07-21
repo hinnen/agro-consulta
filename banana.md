@@ -1157,19 +1157,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO LOJA — Entrada NF V. unit no Mudar (**v10.89**)
+### 📦 Deploy loja **v10.89** — Entrada NF V. unit no Mudar (21/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** — cherry local ok · **sem push** até frase + senha |
-| **Commit teste** | `3ee6f29` |
-| **Branch prep** | `producao-deploy-entrada-nf-vunit` |
-| **VERSION loja** | **10.89** (base v10.88) |
-| **Inclui** | Só `entrada_nota.html` — Mudar produto mantém V. unit + rateio acréscimos |
+| **Status** | ✅ push `producao` **d70a694** · aguardar Live no Render |
+| **VERSION** | **loja v10.89** (antes v10.88) |
+| **Inclui** | Só `entrada_nota.html` — Mudar mantém V. unit + rateio acréscimos |
 | **NÃO inclui** | Dispenser · merge inteiro do `teste` · PDV · CP |
-| **Risco deploy** | Restart Render curto · loja deve segurar vendas no instante do push |
-| **Backup** | `rollback/pre-entrada-nf-vunit-v10.88` @ **20c008b** (criar no push) |
-| **Autorizar** | *pode subir para produção* + **99738595** |
+| **Backup / reverter** | `rollback/pre-entrada-nf-vunit-v10.88` @ **20c008b** |
+| **Como reverter** | `git push origin rollback/pre-entrada-nf-vunit-v10.88:producao` |
+| **Autorização** | *pode subir para produção* + **99738595** (seguro + checkpoint) |
+| **Após Live** | Ctrl+F5 Entrada NF · XML + acréscimos · Mudar 1 item · V. unit igual |
+
+**Versão app (VERSION):** **teste v11.37** · **loja v10.89** · rollback `pre-entrada-nf-vunit-v10.88`
 
 ### 📦 Deploy loja **v10.88** — Postgres + Caixa cédulas/abertura + Ajuste Mobile (21/07 · Renan frase+senha)
 
