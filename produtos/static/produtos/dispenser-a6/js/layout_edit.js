@@ -20,6 +20,10 @@
   var fitSnapshotFn = null;
   var fitRestoreFn = null;
 
+  function $(id) {
+    return document.getElementById(id);
+  }
+
   function layoutEditOn() {
     var c = cardEl();
     return !!(c && c.classList.contains("is-layout-edit"));
