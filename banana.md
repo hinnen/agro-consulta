@@ -1167,7 +1167,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🩹 Cadastro — foto Delivery sumia + PDV (21/07 · **teste**)
+### 🩹 Cadastro — foto Delivery sumia + PDV (21/07 · **teste v11.45**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1175,6 +1175,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Causa** | Server apagava `imagem_base64` > ~900k (arquivo ~700 KB → base64 estoura) |
 | **Fix** | Comprime no save (Pillow) + no browser (canvas JPEG) · leitura não descarta foto |
 | **PDV** | Foto Delivery vira `imagem` do produto (busca / gestão / catálogo PG) |
+| **Commit** | `2ca4347` |
 | **Você** | Ctrl+F5 · Delivery → escolher foto → Salvar → fechar → reabrir · conferir PDV |
 
 ### 🚀 Catálogo — família de embalagens granel+sacos (21/07 · **teste**)
