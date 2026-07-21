@@ -1168,10 +1168,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Contagem nota a nota na **abertura** (igual fechar) · valor não vem mais pré-preenchido |
-| **Por quê** | Renan: gostou da ideia; a «conferência» que sumiu era o valor já preenchido do último fechamento (não havia modal de cédulas no abrir) |
-| **Arquivos** | `caixa_abrir.html` · `includes/caixa_cedulas_abertura_modal.html` · `views.py` (denominacoes) |
-| **Você** | Ctrl+F5 · Abrir caixa → **Cédulas** → contar → **Usar este total** |
+| **O quê** | Contagem nota a nota na **abertura** (igual fechar) · valor não vem pré-preenchido · **texto limpo** (sem frases longas no overlay) |
+| **Arquivos** | `caixa_abrir.html` · `includes/caixa_cedulas_abertura_modal.html` · `views.py` |
+| **Você** | Ctrl+F5 · Abrir caixa → **Cédulas** |
 
 ### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn (21/07 · Renan)
 
