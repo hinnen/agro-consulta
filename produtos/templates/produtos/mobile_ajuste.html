@@ -200,10 +200,10 @@ let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
-const MOBILE_POLL_SALDOS_MS = 15000;
 const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
 const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
 const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
+const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -217,8 +217,9 @@ function mobileLerProdutosDoCacheUnificado() {
   }
   return null;
 }
-let mobilePollSaldosTimer = null;
 let maThermoTimer = null;
+let maListaInFlight = false;
+let maUltimosIdsExibidos = [];
 let scanningActive = false;
 let filtrosAplicados = {
   deposito: MA_DEPOSITO_INICIAL,
@@ -228,6 +229,12 @@ let filtrosAplicados = {
   categoria: 'all',
   fornecedor: 'all',
 };
+
+function maResetLoading() {
+  if (window.gmLoadingBar && typeof window.gmLoadingBar.reset === 'function') {
+    window.gmLoadingBar.reset();
+  }
+}
 
 function normalizar(texto) {
   return String(texto || '')
@@ -363,35 +370,45 @@ function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
     if (deposito === 'vila') x.saldo_vila = novoSaldo;
     else x.saldo_centro = novoSaldo;
   });
+  /* Espelha no cache do PDV deste aparelho — home/consulta veem o saldo novo sem F5 estoque. */
+  try {
+    MA_CAT_KEYS.forEach((key) => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const pack = JSON.parse(raw);
+      if (!pack || !Array.isArray(pack.produtos)) return;
+      let mudou = false;
+      pack.produtos.forEach((row) => {
+        if (String(row.id) !== id) return;
+        if (deposito === 'vila') row.saldo_vila = novoSaldo;
+        else row.saldo_centro = novoSaldo;
+        mudou = true;
+      });
+      if (mudou) localStorage.setItem(key, JSON.stringify(pack));
+    });
+  } catch (_) {}
 }
 
 function pollSaldosMobileUmaVez(idsOpcionais) {
-  if (!baseProdutos.length || document.visibilityState !== 'visible') return;
-  let url = MA_API_SALDOS;
-  if (Array.isArray(idsOpcionais) && idsOpcionais.length) {
-    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'ids=' + encodeURIComponent(idsOpcionais.join(','));
+  if (!baseProdutos.length || document.visibilityState !== 'visible') return Promise.resolve(false);
+  let ids = Array.isArray(idsOpcionais) ? idsOpcionais.filter(Boolean).map(String) : [];
+  if (!ids.length) {
+    ids = (maUltimosIdsExibidos || []).slice(0, 80);
   }
-  fetch(url, { cache: 'no-store' })
+  if (!ids.length) return Promise.resolve(false);
+  const url = MA_API_SALDOS + '?ids=' + encodeURIComponent(ids.join(','));
+  return fetch(url, { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows) {
         aplicarSaldosMobile(d.rows);
         marcarMobileSaldosFresh();
+        return true;
       }
+      return false;
     })
-    .catch(() => {});
+    .catch(() => false);
 }
-
-function iniciarPollSaldosMobile() {
-  /* Nesta tela o ATUALIZAR já baixa a lista; poll leve de saldos pode rodar mesmo com sync manual do PDV. */
-  if (mobilePollSaldosTimer) clearInterval(mobilePollSaldosTimer);
-  mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
-  setTimeout(pollSaldosMobileUmaVez, 450);
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') pollSaldosMobileUmaVez();
-});
 
 function mobileAjusteAplicarProdutosDaLista(produtos) {
   baseProdutos = produtos || [];
@@ -400,11 +417,15 @@ function mobileAjusteAplicarProdutosDaLista(produtos) {
   buscar(document.getElementById('busca')?.value || '');
 }
 
-/** Ajuste mobile precisa da lista completa — não fica só no cache curto do PDV. */
+/** Baixa catálogo completo (só sob demanda / 1ª abertura sem cache). Sem poll automático. */
 function mobileAjusteBaixarListaApi() {
+  if (maListaInFlight) return Promise.resolve(0);
+  maListaInFlight = true;
   const listaDiv = document.getElementById('lista');
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  return fetch("{% url 'api_todos_produtos_local' %}", { cache: 'no-store' })
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 90000);
+  return fetch(MA_API_CATALOGO, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
     .then((res) => res.json())
     .then((data) => {
       const produtos = data.produtos || [];
@@ -412,8 +433,6 @@ function mobileAjusteBaixarListaApi() {
         throw new Error(data.erro);
       }
       mobileAjusteAplicarProdutosDaLista(produtos);
-      iniciarPollSaldosMobile();
-      pollSaldosMobileUmaVez();
       marcarMobileSaldosFresh();
       return produtos.length;
     })
@@ -425,14 +444,31 @@ function mobileAjusteBaixarListaApi() {
       }
       return 0;
     })
-    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+    .finally(() => {
+      clearTimeout(to);
+      maListaInFlight = false;
+      maResetLoading();
+    });
+}
+
+/** Atualizar = só saldos dos itens na tela (leve). Sem baixar catálogo de novo. */
+function mobileAjusteAtualizarSaldosVisiveis() {
+  if (maListaInFlight) return;
+  if (!maUltimosIdsExibidos.length && !baseProdutos.length) {
+    mobileAjusteBaixarListaApi();
+    return;
+  }
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  pollSaldosMobileUmaVez(maUltimosIdsExibidos)
+    .finally(() => { maResetLoading(); });
 }
 
 document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
-  mobileAjusteBaixarListaApi();
+  mobileAjusteAtualizarSaldosVisiveis();
 });
 
 window.addEventListener('load', () => {
+  maResetLoading();
   if (maThermoTimer) clearInterval(maThermoTimer);
   maThermoTimer = setInterval(() => {
     const lab = document.getElementById('ma-saldos-ultima');
@@ -442,12 +478,14 @@ window.addEventListener('load', () => {
     }
   }, 15000);
 
-  /* Cache do PDV só pinta rápido; em seguida baixa o catálogo inteiro da API. */
   const fromLs = mobileLerProdutosDoCacheUnificado();
-  if (fromLs && fromLs.length) {
+  if (fromLs && fromLs.length >= 50) {
+    /* Cache do PDV já tem catálogo — usa e não trava o worker com download + poll. */
     mobileAjusteAplicarProdutosDaLista(fromLs);
+    marcarMobileSaldosFresh();
+  } else {
+    mobileAjusteBaixarListaApi();
   }
-  mobileAjusteBaixarListaApi();
 });
 
 function startScan() {
@@ -522,6 +560,7 @@ function buscar(q) {
     });
   const limite = termoN.length >= 2 ? 80 : 400;
   const resultados = filtrados.slice(0, limite);
+  maUltimosIdsExibidos = resultados.map((p) => String(p.id || '')).filter(Boolean);
 
   l.innerHTML = '';
   const resumo = document.getElementById('f-resumo');
@@ -672,10 +711,13 @@ function salvar() {
   fd.append('pin', 'SESSAO');
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
   fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd,
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    signal: ctrl ? ctrl.signal : undefined,
   })
   .then(res => res.json())
   .then(d => {
@@ -688,13 +730,15 @@ function salvar() {
       fechar();
       buscar(document.getElementById('busca').value);
       marcarMobileSaldosFresh();
-      /* Não dispara refresh de todos os saldos — trava o worker no teste. */
     } else {
       alert(d.erro || 'Erro ao salvar ajuste.');
     }
   })
   .catch(() => alert('Falha na comunicação com o servidor.'))
-  .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+  .finally(() => {
+    clearTimeout(to);
+    maResetLoading();
+  });
 }
 </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}

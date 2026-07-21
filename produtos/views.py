@@ -3012,6 +3012,41 @@ def _invalidar_caches_apos_ajuste_pin():
     _invalidar_cache_saldos_pdv()
 
 
+def _patch_catalogo_pdv_saldo_apos_ajuste(produto_id: str, deposito: str, novo_saldo) -> None:
+    """Atualiza saldo no cache do catálogo PDV sem rebuild completo (teste/loja mais rápido)."""
+    pid = str(produto_id or "").strip()
+    if not pid:
+        return
+    dep = str(deposito or "centro").strip().lower()
+    try:
+        val = float(novo_saldo)
+    except (TypeError, ValueError):
+        return
+    entry = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    if not isinstance(entry, dict):
+        return
+    body = entry.get("body")
+    if not isinstance(body, dict):
+        return
+    produtos = body.get("produtos")
+    if not isinstance(produtos, list):
+        return
+    mudou = False
+    for p in produtos:
+        if not isinstance(p, dict):
+            continue
+        if str(p.get("id") or "").strip() != pid:
+            continue
+        if dep == "vila":
+            p["saldo_vila"] = val
+        else:
+            p["saldo_centro"] = val
+        mudou = True
+        break
+    if mudou:
+        cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, entry, timeout=86400 * 2)
+
+
 def _decimal_br_post(raw, default: str = "0") -> Decimal:
     s = str(raw if raw is not None else default).strip().replace(" ", "")
     if not s:
@@ -21727,6 +21762,10 @@ def api_ajustar_estoque(request):
                 usuario=user_op,
             )
             _invalidar_caches_apos_ajuste_pin()
+            try:
+                _patch_catalogo_pdv_saldo_apos_ajuste(pid, dep, novo_saldo)
+            except Exception:
+                pass
             return JsonResponse(
                 {
                     "ok": True,

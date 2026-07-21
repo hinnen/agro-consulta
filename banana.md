@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ⚡ Ajuste mobile — barra carregando sem parar (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Download catálogo + poll de **todos** os saldos engolia o worker; barra podia ficar presa (show duplo) |
+| **Fix** | Sem poll automático · ATUALIZAR = só itens na tela · cache PDV se já tiver · patch saldo no cache · reset da barra |
+| **Você** | Ctrl+F5 · barra some · salvar rápido · lista atualiza na hora |
+
 ### ⚡ Ajuste mobile — salvar lento no teste (21/07 · **teste**)
 
 | Item | Detalhe |
