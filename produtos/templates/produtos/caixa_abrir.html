@@ -50,6 +50,15 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <details class="relative shrink-0">
+          <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white text-base font-black text-slate-700 hover:bg-slate-50 hover:border-emerald-400 [&::-webkit-details-marker]:hidden" title="Ajuda" aria-label="Ajuda">?</summary>
+          <div class="absolute right-0 top-full z-40 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-lg font-semibold leading-snug space-y-2">
+            <p><strong>Gaveta Centro</strong> e <strong>Vila Elias</strong> são turnos separados — cada loja o seu.</p>
+            <p><strong>Notebook</strong> entra no turno da loja do BI. <strong>Teste</strong> é isolado.</p>
+            <p>Digite <strong>centro</strong> ou <strong>vila</strong> para confirmar a loja.</p>
+            <p>Use <strong>Cédulas</strong> para contar o troco. O card azul mostra o último fechamento — confira na gaveta.</p>
+          </div>
+        </details>
         <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">← Menu</a>
       </div>
     </div>

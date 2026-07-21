@@ -1168,9 +1168,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Contagem nota a nota na **abertura** (igual fechar) · valor não vem pré-preenchido · **texto limpo** (sem frases longas no overlay) |
-| **Arquivos** | `caixa_abrir.html` · `includes/caixa_cedulas_abertura_modal.html` · `views.py` |
-| **Você** | Ctrl+F5 · Abrir caixa → **Cédulas** |
+| **O quê** | Cédulas na abertura · texto no **?** (ao lado do Menu) · modal quase tela cheia |
+| **Arquivos** | `caixa_abrir.html` · `caixa_cedulas_abertura_modal.html` · `agro_pdv_overlay.js` · `caixa_pdv_overlay_mode.html` |
+| **Você** | Ctrl+F5 (PDV+abrir) · **?** · **Cédulas** grande |
 
 ### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn (21/07 · Renan)
 
