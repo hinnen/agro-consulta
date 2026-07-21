@@ -1167,6 +1167,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 Catálogo — família de embalagens granel+sacos (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Card com vários preços (Granel / Saco XXkg / …) · vínculo manual na aba Delivery · `+ Add` abre escolha |
+| **Dados** | `delivery.embalagens[]` no overlay (sem migrate) · irmãos não duplicam card |
+| **Você** | Cadastro → Delivery → Embalagens no card · vincular granel+sacos · `/catalogo/` · + Add escolhe SKU |
+
 ### 📦 Contagem — data último AJUSTE PIN no mobile + PDV (21/07 · **teste v11.40**)
 
 | Item | Detalhe |

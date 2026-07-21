@@ -22,6 +22,7 @@ from produtos.catalogo_delivery_util import (
     criar_pedido_catalogo_delivery,
     listar_categorias_arvore,
     listar_itens_catalogo,
+    listar_produtos_delivery_para_vinculo,
     montar_imagem_og_preview,
     obter_config_catalogo,
     opcoes_pai_categoria,
@@ -108,6 +109,7 @@ def catalogo_delivery_view(request):
                 "imagem": i["imagem"],
                 "categoria_slug": i.get("categoria_slug") or "",
                 "subcategoria_slug": i.get("subcategoria_slug") or "",
+                "embalagens": i.get("embalagens") or [],
             }
             for i in itens
         ],
@@ -252,6 +254,16 @@ def api_catalogo_saldo_produto(request):
         )
     except Exception:
         return JsonResponse({"ok": False, "erro": "Falha ao ler saldo"}, status=500)
+
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_staff)
+@require_GET
+def api_catalogo_embalagens_busca(request):
+    """Staff: busca produtos Delivery para vincular embalagens no card."""
+    q = str(request.GET.get("q") or "").strip()
+    itens = listar_produtos_delivery_para_vinculo(q=q, limite=40)
+    return JsonResponse({"ok": True, "itens": itens})
 
 
 @require_GET

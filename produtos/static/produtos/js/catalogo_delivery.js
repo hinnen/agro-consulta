@@ -23,6 +23,21 @@
     var byId = {};
     catalogo.forEach(function (p) {
       byId[String(p.id)] = p;
+      var embs = Array.isArray(p.embalagens) ? p.embalagens : [];
+      embs.forEach(function (e) {
+        var eid = String(e.id || e.produto_id || "");
+        if (!eid) return;
+        if (!byId[eid]) {
+          byId[eid] = {
+            id: eid,
+            nome: e.nome || p.nome || eid,
+            preco: e.preco,
+            marca: p.marca || "",
+            peso_texto: e.peso_texto || e.rotulo || "",
+            imagem: p.imagem || "",
+          };
+        }
+      });
     });
     var carrinho = {};
 
@@ -105,14 +120,81 @@
       m.classList.remove("flex");
     }
 
+    function addToCart(id) {
+      id = String(id || "");
+      if (!byId[id]) return;
+      carrinho[id] = (carrinho[id] || 0) + 1;
+      renderBarra();
+    }
+
+    function fecharModalEmbalagem() {
+      var m = document.getElementById("modal-embalagem");
+      if (!m) return;
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+      m.removeAttribute("data-card-id");
+    }
+
+    function abrirModalEmbalagem(cardId) {
+      var p = byId[String(cardId)];
+      if (!p) return;
+      var embs = Array.isArray(p.embalagens) ? p.embalagens : [];
+      if (embs.length <= 1) {
+        addToCart(embs.length === 1 ? embs[0].id || embs[0].produto_id || p.id : p.id);
+        return;
+      }
+      var m = document.getElementById("modal-embalagem");
+      var list = document.getElementById("modal-embalagem-opcoes");
+      var tit = document.getElementById("modal-embalagem-titulo");
+      if (!m || !list) {
+        addToCart(p.id);
+        return;
+      }
+      if (tit) tit.textContent = p.nome || "Escolha a embalagem";
+      list.innerHTML = embs
+        .map(function (e) {
+          var eid = String(e.id || e.produto_id || "");
+          return (
+            '<button type="button" class="emb-opt w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border-2 border-emerald-200 bg-white hover:bg-emerald-50 text-left" data-id="' +
+            eid +
+            '">' +
+            '<span class="font-black text-slate-900">' +
+            (e.rotulo || e.peso_texto || "Opção") +
+            "</span>" +
+            '<span class="font-black text-emerald-700 tabular-nums">' +
+            fmt(Number(e.preco || 0)) +
+            "</span>" +
+            "</button>"
+          );
+        })
+        .join("");
+      list.querySelectorAll(".emb-opt").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          addToCart(btn.getAttribute("data-id"));
+          fecharModalEmbalagem();
+        });
+      });
+      m.setAttribute("data-card-id", String(cardId));
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
     document.querySelectorAll(".btn-add").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id = String(btn.getAttribute("data-id") || "");
         if (!byId[id]) return;
-        carrinho[id] = (carrinho[id] || 0) + 1;
-        renderBarra();
+        abrirModalEmbalagem(id);
       });
     });
+
+    var embClose = document.getElementById("modal-embalagem-fechar");
+    if (embClose) embClose.addEventListener("click", fecharModalEmbalagem);
+    var embRoot = document.getElementById("modal-embalagem");
+    if (embRoot) {
+      embRoot.addEventListener("click", function (ev) {
+        if (ev.target === embRoot) fecharModalEmbalagem();
+      });
+    }
 
     var busca = document.getElementById("busca-catalogo");
     var homeEl = document.getElementById("home-categorias");

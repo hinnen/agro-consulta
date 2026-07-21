@@ -17,8 +17,21 @@
     </div>
     {% if p.descricao %}<p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ p.descricao }}</p>{% endif %}
     <div class="mt-auto pt-2 flex items-end justify-between gap-2">
-      <p class="text-primary font-black text-lg leading-none">R$ {{ p.preco|floatformat:2 }}</p>
-      <button type="button" class="btn-add bg-primary text-white text-sm font-black px-3.5 py-2.5 rounded-xl shadow min-h-[2.75rem]" data-id="{{ p.id }}">+ Add</button>
+      <div class="min-w-0 flex-1">
+        {% if p.embalagens and p.embalagens|length > 1 %}
+        <ul class="space-y-0.5">
+          {% for e in p.embalagens %}
+          <li class="flex items-baseline justify-between gap-2 text-[0.72rem] leading-tight">
+            <span class="font-bold text-slate-600 truncate">{{ e.rotulo }}</span>
+            <span class="text-primary font-black tabular-nums shrink-0">R$ {{ e.preco|floatformat:2 }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-primary font-black text-lg leading-none">R$ {{ p.preco|floatformat:2 }}</p>
+        {% endif %}
+      </div>
+      <button type="button" class="btn-add bg-primary text-white text-sm font-black px-3.5 py-2.5 rounded-xl shadow min-h-[2.75rem] shrink-0" data-id="{{ p.id }}">+ Add</button>
     </div>
   </div>
 </article>
