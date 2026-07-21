@@ -1189,8 +1189,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.04** · arraste Layout consertado (não gruda / posição volta) + Ctrl+Z |
-| **Você** | Ctrl+F5 · Layout → Ajustar → arrastar peça → Ctrl+Z |
+| **Agora** | **v11.06** · Layout quebrado: faltava `$` no JS — arraste + Ctrl+Z voltam |
+| **Você** | Ctrl+F5 forte · Layout → Ajustar → arrastar · Ctrl+Z |
 | **Status** | ⏳ validar |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
