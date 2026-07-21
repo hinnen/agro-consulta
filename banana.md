@@ -1163,6 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Deploy loja **v10.87** — Caixa Vila×Centro + conn (21/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push \producao\ **8b802c1** · aguardar Live |
+| **Inclui** | pacote caixa v10.86 + conn_max_age 60s |
+| **Backup** | rollback/pre-caixa-vila-centro-v10.82 |
+
+
+
 **Versão app (VERSION):** **teste v11.59** · **loja v10.82** · **loja v10.86** Live (push 7c11ad8)
 
 ### WIP — Dispenser A6 (visual)
