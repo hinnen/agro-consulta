@@ -1228,8 +1228,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **v11.14** · Folha pronta: salva prévia inteira (conteúdo + layout) |
-| **Você** | Ctrl+F5 · Layout → Salvar folha como… · mudar algo → Usar folha |
+| **Agora** | **v11.15** · aba **Prontas** (miniaturas) · Layout volta a salvar só layout |
+| **Você** | Ctrl+F5 · Layout = só peças · Prontas = folha completa com miniatura |
 | **Status** | ⏳ validar |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)

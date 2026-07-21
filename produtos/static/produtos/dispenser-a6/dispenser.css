@@ -81,17 +81,17 @@ html, body {
 
 .dsp-tabs {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.25rem;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.2rem;
 }
 
 .dsp-tab {
   border: 1px solid #cbd5e1;
   border-radius: 0.45rem;
   background: #f8fafc;
-  padding: 0.42rem 0.1rem;
+  padding: 0.42rem 0.05rem;
   font: inherit;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 800;
   color: #475569;
   cursor: pointer;
@@ -328,6 +328,30 @@ html, body {
 .dsp-gal-item.is-on {
   border-color: var(--dsp-cat-deep, #2d6b34);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--dsp-cat) 35%, transparent);
+}
+
+.dsp-gal--folhas .dsp-gal-item {
+  aspect-ratio: 105 / 148;
+  background: #f8fafc;
+}
+
+.dsp-gal--folhas .dsp-gal-item img {
+  object-fit: cover;
+}
+
+.dsp-gal--folhas .dsp-folha-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.15rem 0.2rem;
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(15, 23, 42, 0.82));
+  text-align: center;
+  pointer-events: none;
 }
 
 .dsp-gal-item .dsp-gal-del {

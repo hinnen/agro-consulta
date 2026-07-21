@@ -5,9 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.65" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.65"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.65"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.66" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.66"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.66"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -21,6 +21,7 @@
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="ings">Ingredientes</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="sabores">Sabores</button>
           <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="layout">Layout</button>
+          <button type="button" class="dsp-tab" role="tab" aria-selected="false" data-tab="prontas">Prontas</button>
         </div>
       </div>
 
@@ -114,15 +115,24 @@ Batata-Doce</textarea>
             <span>Ajustar layout na prévia</span>
           </label>
           <div class="dsp-field" style="margin-top:0.75rem">
-            <label for="dspLayoutSelect">Folhas prontas</label>
+            <label for="dspLayoutSelect">Modelos de layout</label>
             <select id="dspLayoutSelect"></select>
           </div>
-          <p class="dsp-gal-add-hint" style="margin:0 0 0.45rem">Salva a prévia inteira: categoria, marca, fotos, sabores, proteína e layout.</p>
+          <p class="dsp-gal-add-hint" style="margin:0 0 0.45rem">Só posição e tamanho das peças. A folha completa fica na aba <b>Prontas</b>.</p>
           <div class="dsp-layout-btns">
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar folha</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar folha como…</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar folha</button>
-            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Só layout padrão</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutLoad">Usar modelo</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar layout como…</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar modelo</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Voltar ao padrão</button>
+          </div>
+        </div>
+
+        <div class="dsp-tab-panel" id="dspTab-prontas" role="tabpanel" data-tab="prontas" hidden>
+          <div class="dsp-gal-label">Folhas prontas (prévia completa)</div>
+          <div class="dsp-gal dsp-gal--folhas" id="dspFolhaGal" role="listbox" aria-label="Folhas salvas"></div>
+          <div class="dsp-gal-add no-print">
+            <button type="button" class="dsp-gal-add-btn" id="dspFolhaSave">+ Salvar folha atual</button>
+            <span class="dsp-gal-add-hint">Guarda tudo: categoria, marca, fotos, sabores, proteína e layout. Clique na miniatura para usar.</span>
           </div>
         </div>
       </div>
@@ -1439,6 +1449,281 @@ Batata-Doce</textarea>
       }
       if (ingImg && ingImg.complete) syncIngFrameBg();
     }
+
+    /* ===== Folhas prontas (aba própria · miniaturas) ===== */
+    var FOLHA_KEY = "dsp_folhas_v1";
+    var FOLHA_ACTIVE_KEY = "dsp_folha_active_v1";
+    var FOLHA_MAX = 40;
+    var folhaGal = document.getElementById("dspFolhaGal");
+    var folhaActive = "";
+    try {
+      folhaActive = localStorage.getItem(FOLHA_ACTIVE_KEY) || "";
+    } catch (eF0) {}
+
+    var CAT_THUMB_COLOR = {
+      "cao-adulto-pequeno": "#3f8f45",
+      "cao-adulto-medio": "#2f6fc7",
+      "cao-filhote-pequeno": "#f08a1a",
+      "cao-filhote-medio": "#e0b000",
+      "cao-senior": "#7c4ec4",
+      "gato-castrado": "#d93d3d",
+      "gato-adulto": "#2eb5d6",
+      "gato-filhote": "#22b89c"
+    };
+
+    function loadFolhas() {
+      try {
+        var raw = localStorage.getItem(FOLHA_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === "object" ? obj : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveFolhas(obj) {
+      return trySaveLocal(FOLHA_KEY, JSON.stringify(obj));
+    }
+
+    function migrateFolhasFromLayouts() {
+      try {
+        var raw = localStorage.getItem("dsp_layouts_v1");
+        var layouts = raw ? JSON.parse(raw) : {};
+        if (!layouts || typeof layouts !== "object") return;
+        var folhas = loadFolhas();
+        var changed = false;
+        Object.keys(layouts).forEach(function (n) {
+          var m = layouts[n];
+          if (!m || m.kind !== "folha") return;
+          if (!folhas[n]) {
+            folhas[n] = m;
+            changed = true;
+          }
+          delete layouts[n];
+        });
+        if (changed) {
+          saveFolhas(folhas);
+          localStorage.setItem("dsp_layouts_v1", JSON.stringify(layouts));
+          if (window.DspLayoutEdit && window.DspLayoutEdit.fillSelect) {
+            window.DspLayoutEdit.fillSelect();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function makeFolhaThumb(sheet, done) {
+      var w = 140;
+      var h = Math.round((140 * 148) / 105);
+      var canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext("2d");
+      if (!ctx) {
+        done("");
+        return;
+      }
+      ctx.fillStyle = "#fbfaf7";
+      ctx.fillRect(0, 0, w, h);
+      var catColor = CAT_THUMB_COLOR[(sheet && sheet.cat) || ""] || "#3f8f45";
+      ctx.fillStyle = catColor;
+      ctx.fillRect(0, 0, w, Math.round(h * 0.15));
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+      var title = (CAT_LABELS[(sheet && sheet.cat) || ""] || ["", ""])[0] || "";
+      ctx.fillText(String(title).toUpperCase().slice(0, 16), 6, 14);
+
+      ctx.fillStyle = "#1e3a6e";
+      ctx.font = "bold 12px Poppins, system-ui, sans-serif";
+      ctx.fillText(String((sheet && sheet.brand) || "Marca").slice(0, 14), 6, Math.round(h * 0.26));
+
+      function paintExtras() {
+        var prot = String((sheet && sheet.protein) || "").replace("%", "");
+        if (prot) {
+          var cx = w * 0.78;
+          var cy = h * 0.78;
+          var r = 16;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = CAT_THUMB_COLOR[(sheet && sheet.cat) || ""] || "#1e3d28";
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(prot + "%", cx, cy + 3);
+          ctx.textAlign = "left";
+        }
+        try {
+          done(canvas.toDataURL("image/jpeg", 0.78));
+        } catch (e2) {
+          done("");
+        }
+      }
+
+      var petSrcUrl =
+        (sheet && sheet.petDataUrl) ||
+        (petImg && petImg.src) ||
+        (sheet && sheet.petFile ? STATIC + sheet.petFile : "");
+      if (!petSrcUrl) {
+        paintExtras();
+        return;
+      }
+      var img = new Image();
+      img.onload = function () {
+        var cx = w * 0.7;
+        var cy = h * 0.42;
+        var r = w * 0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = catColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        paintExtras();
+      };
+      img.onerror = function () {
+        paintExtras();
+      };
+      try {
+        img.src = petSrcUrl;
+      } catch (e3) {
+        paintExtras();
+      }
+    }
+
+    function applyFolhaModel(name, model) {
+      if (!model) return;
+      if (window.DspLayoutEdit && window.DspLayoutEdit.pushHistory) {
+        window.DspLayoutEdit.pushHistory();
+      }
+      if (model.sheet) applySheet(model.sheet);
+      if (window.DspLayoutEdit && window.DspLayoutEdit.applySavedLayout) {
+        window.DspLayoutEdit.applySavedLayout(model);
+      } else if (model.items && window.DspLayoutEdit && window.DspLayoutEdit.applyLayout) {
+        window.DspLayoutEdit.applyLayout({ v: 1, items: model.items });
+      }
+      folhaActive = name || "";
+      try {
+        if (folhaActive) localStorage.setItem(FOLHA_ACTIVE_KEY, folhaActive);
+        else localStorage.removeItem(FOLHA_ACTIVE_KEY);
+      } catch (e4) {}
+      buildFolhaGal();
+    }
+
+    function buildFolhaGal() {
+      if (!folhaGal) return;
+      migrateFolhasFromLayouts();
+      var folhas = loadFolhas();
+      var names = Object.keys(folhas).sort(function (a, b) {
+        return (folhas[b].savedAt || 0) - (folhas[a].savedAt || 0);
+      });
+      folhaGal.innerHTML = "";
+      if (!names.length) {
+        var empty = document.createElement("p");
+        empty.className = "dsp-gal-add-hint";
+        empty.textContent = "Nenhuma folha salva ainda.";
+        folhaGal.appendChild(empty);
+        return;
+      }
+      names.forEach(function (n) {
+        var m = folhas[n];
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dsp-gal-item is-custom" + (n === folhaActive ? " is-on" : "");
+        btn.title = n;
+        btn.setAttribute("role", "option");
+        if (m.thumb) {
+          btn.innerHTML = '<img src="' + m.thumb + '" alt="" />';
+        } else {
+          btn.innerHTML = '<span class="dsp-folha-cap"></span>';
+          btn.querySelector(".dsp-folha-cap").textContent = n;
+        }
+        var cap = document.createElement("span");
+        cap.className = "dsp-folha-cap";
+        cap.textContent = n;
+        btn.appendChild(cap);
+        btn.addEventListener("click", function () {
+          applyFolhaModel(n, m);
+        });
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "dsp-gal-del";
+        del.title = "Apagar";
+        del.textContent = "×";
+        del.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          if (!window.confirm("Apagar a folha «" + n + "»?")) return;
+          var all = loadFolhas();
+          delete all[n];
+          saveFolhas(all);
+          if (folhaActive === n) {
+            folhaActive = "";
+            try {
+              localStorage.removeItem(FOLHA_ACTIVE_KEY);
+            } catch (e5) {}
+          }
+          buildFolhaGal();
+        });
+        btn.appendChild(del);
+        folhaGal.appendChild(btn);
+      });
+    }
+
+    function saveCurrentFolha() {
+      var name = window.prompt("Nome da folha pronta:", folhaActive || "");
+      if (!name) return;
+      name = String(name).trim().slice(0, 40);
+      if (!name) return;
+      var sheet = snapshotSheet();
+      if (petImg && petImg.src && !sheet.petDataUrl && String(petImg.src).indexOf("data:") === 0) {
+        sheet.petDataUrl = petImg.src;
+      }
+      var items = null;
+      var free = false;
+      var card = document.getElementById("dspCard");
+      if (card && card.classList.contains("is-free-layout") && window.DspLayoutEdit) {
+        free = true;
+      }
+      if (window.DspLayoutEdit && window.DspLayoutEdit.snapshotFromDom) {
+        var snap = window.DspLayoutEdit.snapshotFromDom();
+        if (snap && snap.items) items = snap.items;
+      }
+      makeFolhaThumb(sheet, function (thumb) {
+        var all = loadFolhas();
+        var keys = Object.keys(all);
+        if (!all[name] && keys.length >= FOLHA_MAX) {
+          window.alert("Limite de " + FOLHA_MAX + " folhas neste computador. Apague alguma.");
+          return;
+        }
+        all[name] = {
+          v: 2,
+          kind: "folha",
+          sheet: sheet,
+          items: items,
+          free: free,
+          thumb: thumb || "",
+          savedAt: Date.now()
+        };
+        if (!saveFolhas(all)) return;
+        folhaActive = name;
+        try {
+          localStorage.setItem(FOLHA_ACTIVE_KEY, name);
+        } catch (e6) {}
+        buildFolhaGal();
+        window.alert("Folha «" + name + "» salva.");
+      });
+    }
+
+    var folhaSaveBtn = document.getElementById("dspFolhaSave");
+    if (folhaSaveBtn) {
+      folhaSaveBtn.addEventListener("click", saveCurrentFolha);
+    }
+    buildFolhaGal();
 
     buildPetGal();
     buildLogoGal();
