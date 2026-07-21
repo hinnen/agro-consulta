@@ -1160,7 +1160,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` · aguardar Live |
+| **Status** | ✅ push `producao` **cd75337** · aguardar Live no Render |
 | **VERSION** | **loja v10.88** (antes v10.87 / `8b802c1`) |
 | **Inclui** | (1) `close_all` + teto 4 workers BI/ERP/NFC-e · (2) Cédulas abertura + `?` · (3) diferença abertura + quem abriu/fechou (mig **0062**) · (4) Ajuste Mobile PIN/lista/depósito + spinner «Agora» no PDV |
 | **Já na loja** | MP automático pós-abrir (v10.86+) · `conn_max_age=60` (v10.87) |
