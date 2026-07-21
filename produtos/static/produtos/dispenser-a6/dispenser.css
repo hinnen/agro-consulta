@@ -526,7 +526,7 @@ html, body {
 
 .dsp-header-text .dsp-line1 {
   font-weight: 600;
-  font-size: 5.6mm;
+  font-size: var(--dsp-fs-line1, 5.6mm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.05;
@@ -535,7 +535,7 @@ html, body {
 
 .dsp-header-text .dsp-line2 {
   font-weight: 800;
-  font-size: 6.2mm; /* JS ajusta pela linha de baixo mais longa */
+  font-size: var(--dsp-fs-line2, 6.2mm); /* JS ajusta pela linha de baixo mais longa */
   letter-spacing: 0.01em;
   text-transform: uppercase;
   line-height: 1.05;
@@ -584,7 +584,7 @@ html, body {
 
 .dsp-brand-name {
   font-weight: 800;
-  font-size: 8.2mm;
+  font-size: var(--dsp-fs-brand, 8.2mm);
   line-height: 0.95;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -810,6 +810,58 @@ html, body {
   gap: 0.35rem;
 }
 
+.dsp-font-box {
+  margin-top: 0.75rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dsp-font-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem;
+}
+
+.dsp-font-row span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.2;
+}
+
+.dsp-font-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.dsp-font-step button {
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  background: #f8fafc;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  color: #0f172a;
+}
+
+.dsp-font-step button:hover {
+  background: #f1f5f9;
+}
+
+.dsp-font-step b {
+  min-width: 2.4rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 /* Layout livre — peças absolutas na folha A6 */
 .dsp-a6.is-free-layout {
   position: relative;
@@ -954,7 +1006,7 @@ html, body {
   margin: 0 0 2mm;
   flex: 0 0 auto;
   font-weight: 800;
-  font-size: 4.4mm;
+  font-size: var(--dsp-fs-sabores-title, 4.4mm);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--dsp-cat-deep);
@@ -1106,7 +1158,7 @@ html, body {
 }
 
 .dsp-protein .dsp-protein-label {
-  font-size: 1.85mm;
+  font-size: var(--dsp-fs-protein-label, 1.85mm);
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -1115,7 +1167,7 @@ html, body {
 }
 
 .dsp-protein .dsp-protein-main {
-  font-size: 9.2mm;
+  font-size: var(--dsp-fs-protein-main, 9.2mm);
   font-weight: 800;
   letter-spacing: -0.04em;
   margin: 0.15mm 0 0;
@@ -1166,7 +1218,7 @@ html, body {
 
 .dsp-flavor-name {
   font-weight: 800;
-  font-size: 5mm;
+  font-size: var(--dsp-fs-flavor-name, 5mm);
   text-transform: none;
   letter-spacing: 0;
   line-height: 1.05;
@@ -1179,7 +1231,7 @@ html, body {
 
 .dsp-flavor-desc {
   font-weight: 500;
-  font-size: 2.25mm;
+  font-size: var(--dsp-fs-flavor-desc, 2.25mm);
   line-height: 1.25;
   color: #5b6775;
   text-transform: none;
