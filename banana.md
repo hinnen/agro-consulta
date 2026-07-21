@@ -1183,7 +1183,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 
-**Versão app (VERSION):** **teste v10.90** · **loja v10.87** (push 8b802c1) · rollback `pre-caixa-vila-centro-v10.82`
+**Versão app (VERSION):** **teste v10.91** · **loja v10.87** (push 8b802c1) · rollback `pre-caixa-vila-centro-v10.82`
 
 ### WIP — Dispenser A6 (visual)
 
