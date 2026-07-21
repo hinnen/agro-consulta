@@ -8570,14 +8570,14 @@ def _dashboard_estoque_sync_label() -> str:
 
 
 def _dashboard_worker(fn, *args, **kwargs):
-    """ORM + Mongo em worker: uma conexão por thread (Django)."""
-    from django.db import close_old_connections
+    """ORM + Mongo em worker: uma conexão por thread (Django) — fecha ao sair."""
+    from django.db import connections
 
-    close_old_connections()
+    connections.close_all()
     try:
         return fn(*args, **kwargs)
     finally:
-        close_old_connections()
+        connections.close_all()
 
 
 _DASH_CLIENTES_MEDIA_START = date(2026, 4, 20)
@@ -8706,7 +8706,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     dep_boot = bootstrap_deposito(request)
     deposito_filtro = normalizar_deposito(dep_boot.get("deposito"))
 
-    max_workers = min(14, (os.cpu_count() or 2) + 6)
+    max_workers = 4
     fut = {}
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         fut["atual"] = ex.submit(
@@ -23527,10 +23527,10 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
 
 def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
     """Thread: conclui Pedidos/Salvar e atualiza ``VendaAgro`` (não bloqueia o PDV)."""
-    from django.db import close_old_connections
+    from django.db import connections
 
     payload = copy.deepcopy(data)
-    close_old_connections()
+    connections.close_all()
     try:
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(None, payload, client_m=client_m, db=db)
@@ -23559,7 +23559,7 @@ def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
         except Exception:
             pass
     finally:
-        close_old_connections()
+        connections.close_all()
 
 
 def _disparar_envio_erp_venda_background(venda_id: int, data: dict):

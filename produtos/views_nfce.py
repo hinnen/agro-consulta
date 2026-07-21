@@ -128,14 +128,14 @@ def _emitir_nfce_pos_venda_sync(
 
 def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
     """Retry NFC-e após cold start / certificado ainda não pronto no Render."""
-    from django.db import close_old_connections
+    from django.db import connections
 
     payload = copy.deepcopy(data)
-    close_old_connections()
+    connections.close_all()
     try:
         for wait_s in _NFCE_RETRY_DELAYS_S:
             time.sleep(wait_s)
-            close_old_connections()
+            connections.close_all()
             try:
                 venda = VendaAgro.objects.get(pk=venda_id)
             except VendaAgro.DoesNotExist:
@@ -161,7 +161,7 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
                 continue
             if erro != _ERRO_NFCE_CFG and "não configurada" not in erro.lower():
                 return
-        close_old_connections()
+        connections.close_all()
         try:
             venda = VendaAgro.objects.get(pk=venda_id)
         except VendaAgro.DoesNotExist:
@@ -187,7 +187,7 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
     except Exception:
         logger.exception("NFC-e retry background falhou (venda %s)", venda_id)
     finally:
-        close_old_connections()
+        connections.close_all()
 
 
 def _disparar_nfce_pos_venda_background(venda_id: int, data: dict) -> None:
