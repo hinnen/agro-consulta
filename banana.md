@@ -1165,6 +1165,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🔐 Ajuste mobile — PIN a cada abertura + operador nos ajustes (21/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Antes** | PIN do PDV/descanso liberava a tela; ajuste podia gravar usuário do login Django |
+| **Agora** | PIN **sempre** ao abrir · operador do PIN nos ajustes · chip «Operador» + Trocar |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · deve pedir PIN · Hist. mostra o nome |
+
 ### 🩹 Ajuste mobile — lista só 7 produtos (21/07 · **teste**)
 
 | Item | Detalhe |
