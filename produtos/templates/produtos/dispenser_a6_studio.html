@@ -5,9 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.60" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.60"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.60"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.61" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.61"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.61"></script>
 </head>
 <body>
   <div class="dsp-studio">
@@ -108,7 +108,7 @@ Batata-Doce</textarea>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-layout" role="tabpanel" data-tab="layout" hidden>
-          <p class="dsp-gal-add-hint" style="margin:0 0 0.55rem">Arraste na prévia e use o cantinho para o tamanho. Não passa da margem da folha.</p>
+          <p class="dsp-gal-add-hint" style="margin:0 0 0.55rem">Arraste na prévia e use o cantinho para o tamanho. Não passa da margem. <b>Ctrl+Z</b> desfaz.</p>
           <label class="dsp-layout-toggle">
             <input type="checkbox" id="dspLayoutEdit" />
             <span>Ajustar layout na prévia</span>
@@ -566,14 +566,28 @@ Batata-Doce</textarea>
       syncGal();
     }
 
+    function layoutEditOn() {
+      return window.DspLayoutEdit && window.DspLayoutEdit.layoutEditOn && window.DspLayoutEdit.layoutEditOn();
+    }
+
+    function pushFitHistory() {
+      if (window.DspLayoutEdit && window.DspLayoutEdit.pushHistory) {
+        window.DspLayoutEdit.pushHistory();
+      }
+    }
+
     function bindPetFitControls() {
       var dragging = false;
       var resizing = false;
       var lastX = 0;
       var lastY = 0;
+      var started = false;
 
       petViewport.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return; /* modo layout: move a moldura, não a foto */
         if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
+        started = true;
         dragging = true;
         resizing = false;
         lastX = ev.clientX;
@@ -584,7 +598,10 @@ Batata-Doce</textarea>
       });
 
       petHandle.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return;
         if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
+        started = true;
         resizing = true;
         dragging = false;
         lastX = ev.clientX;
@@ -613,6 +630,7 @@ Batata-Doce</textarea>
         if (!dragging && !resizing) return;
         dragging = false;
         resizing = false;
+        started = false;
         petViewport.classList.remove("is-dragging");
         try { petViewport.releasePointerCapture(ev.pointerId); } catch (e) {}
         try { petHandle.releasePointerCapture(ev.pointerId); } catch (e2) {}
@@ -627,23 +645,28 @@ Batata-Doce</textarea>
       petHandle.addEventListener("pointercancel", onUp);
 
       petViewport.addEventListener("wheel", function (ev) {
+        if (layoutEditOn()) return;
         ev.preventDefault();
+        pushFitHistory();
         petFit.s += (ev.deltaY < 0 ? 0.06 : -0.06);
         applyPetFit();
         savePetFit();
       }, { passive: false });
 
       document.getElementById("dspPetZoomIn").addEventListener("click", function () {
+        pushFitHistory();
         petFit.s += 0.08;
         applyPetFit();
         savePetFit();
       });
       document.getElementById("dspPetZoomOut").addEventListener("click", function () {
+        pushFitHistory();
         petFit.s -= 0.08;
         applyPetFit();
         savePetFit();
       });
       document.getElementById("dspPetFitReset").addEventListener("click", function () {
+        pushFitHistory();
         petFit = { x: 0, y: 0, s: 1.05 };
         applyPetFit();
         savePetFit();
@@ -783,7 +806,9 @@ Batata-Doce</textarea>
       var lastY = 0;
 
       ingViewport.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return; /* modo layout: move a moldura, não a foto */
         if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
         dragging = true;
         resizing = false;
         lastX = ev.clientX;
@@ -794,7 +819,9 @@ Batata-Doce</textarea>
       });
 
       ingHandle.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return;
         if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
         resizing = true;
         dragging = false;
         lastX = ev.clientX;
@@ -837,23 +864,28 @@ Batata-Doce</textarea>
       ingHandle.addEventListener("pointercancel", onUp);
 
       ingViewport.addEventListener("wheel", function (ev) {
+        if (layoutEditOn()) return;
         ev.preventDefault();
+        pushFitHistory();
         ingFit.s += (ev.deltaY < 0 ? 0.06 : -0.06);
         applyIngFit();
         saveIngFit();
       }, { passive: false });
 
       document.getElementById("dspIngZoomIn").addEventListener("click", function () {
+        pushFitHistory();
         ingFit.s += 0.08;
         applyIngFit();
         saveIngFit();
       });
       document.getElementById("dspIngZoomOut").addEventListener("click", function () {
+        pushFitHistory();
         ingFit.s -= 0.08;
         applyIngFit();
         saveIngFit();
       });
       document.getElementById("dspIngFitReset").addEventListener("click", function () {
+        pushFitHistory();
         ingFit = { x: 0, y: 0, s: 1.05 };
         applyIngFit();
         saveIngFit();
@@ -1458,7 +1490,30 @@ Batata-Doce</textarea>
     loadFitForPet(petId);
     loadFitForIng(ingId);
     renderAll();
-    if (window.DspLayoutEdit) window.DspLayoutEdit.init();
+    if (window.DspLayoutEdit) {
+      window.DspLayoutEdit.setFitHooks(
+        function () {
+          return {
+            pet: { x: petFit.x, y: petFit.y, s: petFit.s, id: petId },
+            ing: { x: ingFit.x, y: ingFit.y, s: ingFit.s, id: ingId }
+          };
+        },
+        function (fit) {
+          if (!fit) return;
+          if (fit.pet) {
+            petFit = { x: fit.pet.x || 0, y: fit.pet.y || 0, s: fit.pet.s || 1.05 };
+            applyPetFit();
+            savePetFit();
+          }
+          if (fit.ing) {
+            ingFit = { x: fit.ing.x || 0, y: fit.ing.y || 0, s: fit.ing.s || 1.05 };
+            applyIngFit();
+            saveIngFit();
+          }
+        }
+      );
+      window.DspLayoutEdit.init();
+    }
   })();
   </script>
 </body>

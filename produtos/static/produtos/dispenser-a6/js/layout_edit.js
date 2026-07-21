@@ -15,8 +15,69 @@
   };
   var IDS = ["title", "brand", "pet", "ings", "flavorsTitle", "flavors", "protein"];
 
-  function $(id) {
-    return document.getElementById(id);
+  var undoStack = [];
+  var redoStack = [];
+  var fitSnapshotFn = null;
+  var fitRestoreFn = null;
+
+  function layoutEditOn() {
+    var c = cardEl();
+    return !!(c && c.classList.contains("is-layout-edit"));
+  }
+
+  function cloneLayout(layout) {
+    if (!layout) return null;
+    try {
+      return JSON.parse(JSON.stringify(layout));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function takeSnapshot() {
+    return {
+      layout: cloneLayout(loadWorking()),
+      free: !!(cardEl() && cardEl().classList.contains("is-free-layout")),
+      fit: fitSnapshotFn ? fitSnapshotFn() : null
+    };
+  }
+
+  function restoreSnapshot(snap) {
+    if (!snap) return;
+    if (snap.fit && fitRestoreFn) fitRestoreFn(snap.fit);
+    if (snap.layout && snap.layout.items) {
+      saveWorking(snap.layout);
+      applyLayout(snap.layout);
+    } else {
+      resetToFlow();
+      var edit = $("dspLayoutEdit");
+      if (edit) edit.checked = false;
+    }
+  }
+
+  function pushHistory() {
+    undoStack.push(takeSnapshot());
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack = [];
+  }
+
+  function undo() {
+    if (!undoStack.length) return false;
+    redoStack.push(takeSnapshot());
+    restoreSnapshot(undoStack.pop());
+    return true;
+  }
+
+  function redo() {
+    if (!redoStack.length) return false;
+    undoStack.push(takeSnapshot());
+    restoreSnapshot(redoStack.pop());
+    return true;
+  }
+
+  function setFitHooks(snapFn, restoreFn) {
+    fitSnapshotFn = snapFn;
+    fitRestoreFn = restoreFn;
   }
 
   function cardEl() {
@@ -302,6 +363,7 @@
         if (!working) return;
         saveWorking(working);
       }
+      pushHistory();
       var box = Object.assign({}, working.items[id]);
       var cr = card.getBoundingClientRect();
       state = {
@@ -349,10 +411,30 @@
       state = null;
     }
 
-    card.addEventListener("pointerdown", onDown);
+    /* capture=true: pega o clique antes do pan da foto */
+    card.addEventListener("pointerdown", onDown, true);
     card.addEventListener("pointermove", onMove);
     card.addEventListener("pointerup", onUp);
     card.addEventListener("pointercancel", onUp);
+  }
+
+  function bindUndoKeys() {
+    document.addEventListener("keydown", function (ev) {
+      var tag = (ev.target && ev.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      var mod = ev.ctrlKey || ev.metaKey;
+      if (!mod) return;
+      var key = String(ev.key || "").toLowerCase();
+      if (key === "z" && !ev.shiftKey) {
+        if (undo()) {
+          ev.preventDefault();
+        }
+      } else if (key === "y" || (key === "z" && ev.shiftKey)) {
+        if (redo()) {
+          ev.preventDefault();
+        }
+      }
+    });
   }
 
   function bindUi() {
@@ -384,6 +466,7 @@
           window.alert("Modelo não encontrado.");
           return;
         }
+        pushHistory();
         saveWorking(layout);
         try {
           localStorage.setItem(KEY_ACTIVE, name);
@@ -446,6 +529,7 @@
     if (resetBtn) {
       resetBtn.addEventListener("click", function () {
         if (!window.confirm("Voltar ao layout padrão da folha?")) return;
+        pushHistory();
         resetToFlow();
         if (edit) edit.checked = false;
         fillSelect();
@@ -455,7 +539,6 @@
     /* restaura working ao abrir */
     var working = loadWorking();
     if (working) {
-      /* espera layout estabilizar */
       requestAnimationFrame(function () {
         applyLayout(working);
       });
@@ -466,6 +549,7 @@
     if (!cardEl()) return;
     bindDrag();
     bindUi();
+    bindUndoKeys();
   }
 
   global.DspLayoutEdit = {
@@ -473,6 +557,11 @@
     snapshotFromDom: snapshotFromDom,
     applyLayout: applyLayout,
     resetToFlow: resetToFlow,
-    fillSelect: fillSelect
+    fillSelect: fillSelect,
+    layoutEditOn: layoutEditOn,
+    pushHistory: pushHistory,
+    undo: undo,
+    redo: redo,
+    setFitHooks: setFitHooks
   };
 })(window);
