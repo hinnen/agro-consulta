@@ -40,24 +40,23 @@
 <div id="ca-cedulas-modal" class="ca-cedulas-modal cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ca-cedulas-modal-title">
   <div class="ca-cedulas-modal-panel">
     <div class="ca-cedulas-modal-head">
-      <h3 id="ca-cedulas-modal-title" class="text-sm sm:text-base font-black uppercase text-slate-900">Contar troco na gaveta</h3>
-      <button type="button" id="ca-cedulas-fechar-x" class="shrink-0 min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-900 hover:bg-slate-50">Fechar · Esc</button>
+      <h3 id="ca-cedulas-modal-title" class="text-sm sm:text-base font-black uppercase text-slate-900">Cédulas</h3>
+      <button type="button" id="ca-cedulas-fechar-x" class="shrink-0 min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-900 hover:bg-slate-50">Fechar</button>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
-      <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Informe a quantidade de cada nota e moeda</p>
-      <div class="ca-cedulas-grid" aria-label="Quantidade por denominação">
+      <div class="ca-cedulas-grid" aria-label="Cédulas">
         {% for d in denominacoes_cedulas %}
         <div class="ca-cedula-item" data-valor="{{ d.valor }}">
           <img src="{% static d.img %}" alt="{{ d.label }}" class="ca-cedula-img" loading="lazy" decoding="async">
-          <input type="number" min="0" step="1" inputmode="numeric" class="ca-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" aria-label="Quantidade de {{ d.label }}">
+          <input type="number" min="0" step="1" inputmode="numeric" class="ca-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" aria-label="{{ d.label }}">
           <span class="ca-cedula-sub tabular-nums" data-sub>R$ 0,00</span>
         </div>
         {% endfor %}
       </div>
     </div>
     <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 sm:px-4 py-3 bg-slate-50">
-      <p class="text-sm font-black uppercase text-slate-800 mb-0">Soma: <span id="ca-cedulas-total" class="tabular-nums text-emerald-800">R$ 0,00</span></p>
-      <button type="button" id="ca-cedulas-concluir" class="min-h-[48px] px-5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase hover:bg-slate-800">Usar este total</button>
+      <p class="text-sm font-black uppercase text-slate-800 mb-0"><span id="ca-cedulas-total" class="tabular-nums text-emerald-800">R$ 0,00</span></p>
+      <button type="button" id="ca-cedulas-concluir" class="min-h-[48px] px-5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase hover:bg-slate-800">Usar total</button>
     </div>
   </div>
 </div>
