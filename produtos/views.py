@@ -18496,19 +18496,38 @@ def api_buscar_produtos(request):
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
-    # Cadastro / Entrada NF: projeção slim; família GM ainda precisa complementar Mongo
-    # (ex. GM0008-1 no PG e GM0008-10 / GM0008-2,5 só no índice Mongo) — igual PDV/cadastro.
-    skip_mongo_complemento = busca_lite or contexto_cadastro
+    # agro_pg / loja: BCA só Postgres (Mongo ERP cancelado — 22/07). Evita timeout 10–30s.
+    skip_mongo_complemento = True if (usa_pg_cat or pdv_somente_pg) else (busca_lite or contexto_cadastro)
     client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
 
+    from django.core.cache import cache
+    from produtos.bca_busca_cache_util import (
+        bca_busca_cache_get,
+        bca_busca_cache_key,
+        bca_busca_cache_set,
+    )
+
+    # Cache BCA (todas as telas que usam /api/buscar).
+    bca_cache_key: str | None = None
+    if q and not wizard_catalog and (usa_pg_cat or pdv_somente_pg):
+        bca_cache_key = bca_busca_cache_key(
+            q,
+            limit=lim_busca_req,
+            wizard=wizard_mode,
+            entrada_nfe=entrada_nfe_mode,
+            cadastro=contexto_cadastro,
+            compras=compras,
+        )
+        _bca_hit = bca_busca_cache_get(bca_cache_key)
+        if _bca_hit is not None:
+            return JsonResponse(_bca_hit)
+
     entrada_nfe_cache_key: str | None = None
     if entrada_nfe_mode and q:
-        from django.core.cache import cache
-
         # v2: não cachear resposta sem complemento Mongo da família GM
         entrada_nfe_cache_key = f"entrada_nfe_busca_v2:{q.lower()[:80]}:{lim_busca_req}"
         _enf_hit = cache.get(entrada_nfe_cache_key)
@@ -18972,6 +18991,11 @@ def api_buscar_produtos(request):
             payload["motor"] = "v2"
         elif use_motor_unificado:
             payload["motor"] = "unificado"
+        if bca_cache_key:
+            try:
+                bca_busca_cache_set(bca_cache_key, payload)
+            except Exception:
+                pass
         if entrada_nfe_cache_key:
             try:
                 from django.core.cache import cache

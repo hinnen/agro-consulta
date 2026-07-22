@@ -297,14 +297,23 @@ def buscar_documentos_unificado(
 
     from produtos.cadastro_busca_codigo_util import gm_base_familia
 
-    # Família GM: NÃO pular Mongo só porque o PG trouxe 1 item (ex. GM0024-1 no PG
-    # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
+    # Mongo ERP cancelado (22/07): com catálogo Postgres, NUNCA complemento Mongo.
+    # Família GM fica só no que já está no PG (sem timeout de auth/regex).
     _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
-    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
-    if _familia_gm:
-        _pg_suficiente = False
-    if db is not None and client is not None and not somente_pg and not _pg_suficiente:
+    if usa_pg or somente_pg:
+        _pg_suficiente = True
+    else:
+        _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
+        if _familia_gm:
+            _pg_suficiente = False
+    if (
+        db is not None
+        and client is not None
+        and not somente_pg
+        and not usa_pg
+        and not _pg_suficiente
+    ):
         try:
             from produtos.views import (
                 _CADASTRO_LISTA_MONGO_PROJ,
