@@ -358,6 +358,9 @@ AGRO_FINANCEIRO_PG_LEITURA_STAGING = config(
 )
 # Staging: URL interna do Postgres da loja — só leitura para snapshot PDV (ver copiar_snapshot_pdv_loja).
 AGRO_SNAPSHOT_FONTE_DATABASE_URL = (config('AGRO_SNAPSHOT_FONTE_DATABASE_URL', default='') or '').strip()
+# Reparo códigos: fonte (staging) → destino (loja). Ver reparar_codigos_catalogo_fonte_destino.
+AGRO_CATALOGO_FONTE_DATABASE_URL = (config('AGRO_CATALOGO_FONTE_DATABASE_URL', default='') or '').strip()
+AGRO_CATALOGO_DEST_DATABASE_URL = (config('AGRO_CATALOGO_DEST_DATABASE_URL', default='') or '').strip()
 # Staging (após snapshot): PDV lê catálogo só do Postgres; estoque/médias ainda podem usar Mongo.
 AGRO_PDV_CATALOGO_SOMENTE_POSTGRES = config(
     'AGRO_PDV_CATALOGO_SOMENTE_POSTGRES', default=False, cast=bool
