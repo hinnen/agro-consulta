@@ -281,7 +281,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
         _append_overlay_modelo_matches(termo)
-        if len(found) < min(8, lim):
+        # Fallback icontains largo: só se quase vazio (OR em 8 colunas é caro).
+        if len(found) < min(3, lim):
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,

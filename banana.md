@@ -1167,6 +1167,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ⚡ BCA cache + sem Mongo no motor (22/07 · **teste v11.51**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Escopo** | `/api/buscar` (PDV · gestão · cadastro · compras · NF · ajuste) — **não** só PDV |
+| **Cache** | `bca_busca_cache_util` · TTL 90s · chave `bca_busca_v2:` |
+| **Mongo** | Com `agro_pg`: motor **não** chama Mongo (ERP cancelado) |
+| **PG** | Fallback `icontains` largo só se &lt;3 hits (antes &lt;8) |
+| **Loja** | Aguarda frase + senha · console: digitar `allow pasting` antes de colar limpeza cache |
+
 ### 🚑 Import Mongo→PG só faltantes (22/07 · **loja v11.04**)
 
 | Item | Detalhe |
