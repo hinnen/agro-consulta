@@ -1252,6 +1252,23 @@
             });
     }
 
+    function fetchWizardCatalogSlim() {
+        /* Plano B: catálogo leve PG (nome/GM/EAN) — restaura busca local de barras. */
+        return fetch('/api/pdv/catalogo-slim/', { credentials: 'same-origin' })
+            .then(function (res) {
+                if (!res.ok) throw new Error('slim HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (d) {
+                if (d && Array.isArray(d.produtos) && d.produtos.length) {
+                    aplicarWizardCatalogRows(d.produtos, false);
+                    salvarWizardCatalogSharedCache(d);
+                    return true;
+                }
+                return false;
+            });
+    }
+
     function pdvCatalogBootShow() {
         if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.show();
         else if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
@@ -1314,10 +1331,19 @@
                     salvarWizardCatalogSharedCache(d);
                     return;
                 }
+                // Freio catalogo-full-off / delta vazio → slim PG (EAN/GM local).
+                var ver = String((d && d.catalog_version) || '');
+                if (ver === 'catalogo-full-off' || !(d && d.produtos && d.produtos.length)) {
+                    return fetchWizardCatalogSlim().then(function (ok) {
+                        if (!ok) return fetchWizardCatalogFallback();
+                    });
+                }
                 return fetchWizardCatalogFallback();
             })
             .catch(function () {
-                return fetchWizardCatalogFallback();
+                return fetchWizardCatalogSlim().then(function (ok) {
+                    if (!ok) return fetchWizardCatalogFallback();
+                });
             })
             .finally(function () {
                 catalogLoadPromise = null;
@@ -1529,6 +1555,10 @@
     function tryAutoAddBarcodeHit(product, message) {
         if (!product) return false;
         if (!String(product.nome || '').trim()) return false;
+        /* Sem caixa aberto: não engole o resultado — a lista mostra o produto. */
+        if (typeof caixaAbertoParaVenda === 'function' && !caixaAbertoParaVenda()) {
+            return false;
+        }
         invalidatePendingProductSearch();
         marcarWizardScannerAtivo(1500);
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
@@ -8772,12 +8802,20 @@
                 var remote = payload.remote;
                 // Ordem do cache local; servidor atualiza preço / grupos no mesmo id.
                 var merged = mergeProductsById(payload.localList || [], remote);
-                if (payload.mode === 'barcode' && merged.length === 1) {
-                    tryAutoAddBarcodeHit(merged[0]);
-                    return;
-                }
-                if (payload.mode === 'barcode' && payload.exactBarcode && merged.length >= 1) {
-                    tryAutoAddBarcodeHit(merged[0]);
+                // Código de barras: tenta incluir na venda; se falhar (caixa fechado,
+                // produto incompleto), MOSTRA na lista — antes sumia e parecia "não achou".
+                if (payload.mode === 'barcode' && merged.length >= 1) {
+                    var hitBc =
+                        payload.exactBarcode || merged.length === 1 ? merged[0] : null;
+                    if (hitBc && tryAutoAddBarcodeHit(hitBc)) {
+                        return;
+                    }
+                    productSearchMayHaveMore = merged.length > AUTOCOMPLETE_PAGE_SIZE;
+                    if (remote.length) aplicarWizardPatchesProdutos(remote);
+                    renderProductResults(merged);
+                    dom.productSearchFeedback.textContent = hitBc
+                        ? 'Código encontrado — toque para adicionar (ou abra o caixa).'
+                        : merged.length + ' encontrado(s) para este código.';
                     return;
                 }
                 if (merged.length) {

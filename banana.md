@@ -1157,6 +1157,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚑 v10.97 — código de barras de volta + catálogo slim (22/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Nome/GM ok · **EAN/barras** parecia não achar |
+| **Causa** | API achava; PDV auto-add falhava e **sumia** com o resultado |
+| **Fix** | Se auto-add falha → **mostra na lista**; catálogo **slim** PG p/ EAN local |
+| **VERSION** | **loja v10.97** |
+
 ### 🚑 v10.96 — base ONTEM (v10.89) + freio catálogo + busca PG (22/07 · loja vender)
 
 | Item | Detalhe |

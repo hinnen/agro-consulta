@@ -1033,6 +1033,99 @@ def listar_todos_rows_ativos() -> list[dict]:
     return _rows_de_produtos(list(qs))
 
 
+def listar_slim_rows_pdv() -> list[dict]:
+    """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
+
+    Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos, busca_texto.
+    Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
+    """
+    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+    qs = (
+        queryset_catalogo_ativos(inativos=False)
+        .order_by("nome", "pk")
+        .values(
+            "pk",
+            "produto_externo_id",
+            "erp_produto_id",
+            "nome",
+            "marca",
+            "modelo",
+            "codigo_interno",
+            "codigo_nfe",
+            "codigo_barras",
+            "preco_venda",
+        )
+    )
+    rows_raw = list(qs)
+    if not rows_raw:
+        return []
+
+    ids = [
+        str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()[:64]
+        for r in rows_raw
+    ]
+    ids = [i for i in ids if i]
+    ov_map: dict[str, dict] = {}
+    if ids:
+        # batch em fatias (evita IN gigante)
+        for i in range(0, len(ids), 900):
+            fatia = ids[i : i + 900]
+            for o in ProdutoGestaoOverlayAgro.objects.filter(
+                produto_externo_id__in=fatia
+            ).values(
+                "produto_externo_id",
+                "nome",
+                "codigo_nfe",
+                "codigo_barras",
+                "preco_venda",
+            ):
+                pid = str(o.get("produto_externo_id") or "").strip()[:64]
+                if pid:
+                    ov_map[pid] = o
+
+    out: list[dict] = []
+    for r in rows_raw:
+        pid = str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()
+        if not pid:
+            continue
+        ov = ov_map.get(pid[:64]) or {}
+        nome = (ov.get("nome") or r.get("nome") or "").strip() or pid
+        codigo = (r.get("codigo_interno") or "").strip()
+        codigo_nfe = (ov.get("codigo_nfe") or r.get("codigo_nfe") or codigo or "").strip()
+        codigo_barras = (ov.get("codigo_barras") or r.get("codigo_barras") or "").strip()
+        preco = ov.get("preco_venda")
+        if preco is None:
+            preco = r.get("preco_venda")
+        marca = (r.get("marca") or "").strip()
+        modelo = (r.get("modelo") or "").strip()
+        ix = index_codigos_de_campos(
+            codigo=codigo,
+            codigo_nfe=codigo_nfe,
+            codigo_barras=codigo_barras,
+        )
+        busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
+        out.append(
+            {
+                "id": pid,
+                "nome": nome,
+                "codigo": codigo,
+                "codigo_nfe": codigo_nfe,
+                "codigo_barras": codigo_barras,
+                "preco_venda": _dec(preco),
+                "index_codigos": ix if isinstance(ix, list) else [],
+                "busca_texto": busca,
+                # campos mínimos que o PDV espera em normalize
+                "marca": marca,
+                "preco_custo": 0.0,
+                "preco_custo_final": 0.0,
+                "saldo_centro": 0.0,
+                "saldo_vila": 0.0,
+            }
+        )
+    return out
+
+
 def row_para_doc_busca_pdv(row: dict) -> dict:
     """Documento estilo Mongo para o loop ``api_buscar_produtos``."""
     from produtos.mongo_index_codigos import INDEX_CODIGOS_CAMPO
