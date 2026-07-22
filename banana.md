@@ -1167,6 +1167,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Pacote local BCA — ordem A (**teste v11.52**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lista no PC: **hoje → último bom → servidor**; se servidor &lt;2s usa servidor; **nunca** apaga last good |
+| **Arquivos** | `agro_busca_catalogo.js` · PDV (`pdv_wizard` + chip) · cadastro ERP |
+| **UI** | Chip verde «lista de hoje» / amarelo «lista antiga» / vermelho «só servidor» |
+| **Produção** | **NÃO** — só `teste`. Renan pediu medo de loja; zero push `producao` |
+| **Testar** | Ctrl+F5 no teste · PDV + cadastro · chip · desligar rede mental: busca ainda acha se já tiver lista |
+
 ### ⚡ BCA cache + sem Mongo no motor (22/07 · **teste v11.51**)
 
 | Item | Detalhe |

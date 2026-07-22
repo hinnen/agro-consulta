@@ -1062,13 +1062,30 @@
     }
 
     function lerWizardCatalogSharedCache() {
+        /* Ordem A: pacote BCA (hoje → último bom) — nunca descartar só por TTL. */
+        try {
+            if (window.AgroPacoteCatalogo && typeof window.AgroPacoteCatalogo.getPacote === 'function') {
+                var pac = window.AgroPacoteCatalogo.getPacote();
+                if (pac && Array.isArray(pac.produtos) && pac.produtos.length) {
+                    return {
+                        saved_at: pac.saved_at || Date.now(),
+                        catalog_version: pac.catalog_version || '',
+                        catalog_updated_at: pac.catalog_updated_at || '',
+                        produtos: pac.produtos,
+                        pacote_fonte: pac.fonte || '',
+                        stale: pac.fonte !== 'hoje',
+                    };
+                }
+            }
+        } catch (ePac) {}
         try {
             var raw = localStorage.getItem(PDV_SHARED_CATALOG_LS_KEY);
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return null;
+            /* TTL só marca stale — ainda usa como last good (amarelo). */
             var age = Date.now() - Number(parsed.saved_at || 0);
-            if (age > WIZARD_CATALOG_TTL_MS) return null;
+            parsed.stale = age > WIZARD_CATALOG_TTL_MS;
             return parsed;
         } catch (err) {
             return null;
@@ -1076,6 +1093,7 @@
     }
 
     function salvarWizardCatalogSharedCache(payload) {
+        var rows = Array.isArray(payload.produtos) ? payload.produtos : wizardProductCatalog;
         try {
             localStorage.setItem(
                 PDV_SHARED_CATALOG_LS_KEY,
@@ -1083,10 +1101,19 @@
                     saved_at: Date.now(),
                     catalog_version: payload.catalog_version || '',
                     catalog_updated_at: payload.catalog_updated_at || '',
-                    produtos: Array.isArray(payload.produtos) ? payload.produtos : wizardProductCatalog,
+                    produtos: rows,
                 })
             );
         } catch (err2) {}
+        try {
+            if (window.AgroPacoteCatalogo && typeof window.AgroPacoteCatalogo.saveFromServer === 'function') {
+                window.AgroPacoteCatalogo.saveFromServer({
+                    produtos: rows,
+                    catalog_version: payload.catalog_version || '',
+                    catalog_updated_at: payload.catalog_updated_at || '',
+                });
+            }
+        } catch (eSave) {}
         try {
             sessionStorage.setItem(
                 CATALOG_STORAGE_KEY,
