@@ -17,11 +17,11 @@ class VendaERPMongoClient:
     def __init__(self):
         self.uri = config("VENDA_ERP_MONGO_URL")
 
-        # Padrões mais tolerantes para nuvem (Render → Mongo ERP). Sobrescreva no .env se precisar.
-        # AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS, AGRO_MONGO_CONNECT_TIMEOUT_MS, AGRO_MONGO_SOCKET_TIMEOUT_MS
-        sel_ms = _mongo_timeout_ms("AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS", 30_000)
-        conn_ms = _mongo_timeout_ms("AGRO_MONGO_CONNECT_TIMEOUT_MS", 20_000)
-        sock_ms = _mongo_timeout_ms("AGRO_MONGO_SOCKET_TIMEOUT_MS", 120_000)
+        # Padrões CURTOS (emergência loja 22/07): ERP Mongo lento não pode segurar worker 2 min.
+        # Sobrescreva no Render se precisar: AGRO_MONGO_*_TIMEOUT_MS
+        sel_ms = _mongo_timeout_ms("AGRO_MONGO_SERVER_SELECTION_TIMEOUT_MS", 5_000)
+        conn_ms = _mongo_timeout_ms("AGRO_MONGO_CONNECT_TIMEOUT_MS", 5_000)
+        sock_ms = _mongo_timeout_ms("AGRO_MONGO_SOCKET_TIMEOUT_MS", 8_000)
 
         self.client = MongoClient(
             self.uri,

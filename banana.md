@@ -1157,6 +1157,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚑 v10.98 — EMERGÊNCIA lentidão BCA (22/07 · loja operar HOJE)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Busca/PDV/gestão/CP minutos · kitekat só 2 sabores |
+| **Fix velocidade** | BCA agro_pg: **sem** Mongo texto/estoque · timeouts Mongo 5–8s · cache busca 30s |
+| **Kitekat** | No PG/slim **só** cordeiro+peixe — frango/carne **não existem** no catálogo SisVale (recriar ou reimportar ERP) |
+| **Definitivo** | pacote madrugada / checklist — **depois** |
+| **VERSION** | **loja v10.98** |
+
 ### 📌 Causa raiz 22/07 — amanheceu quebrado SEM deploy (leigo)
 
 | | |

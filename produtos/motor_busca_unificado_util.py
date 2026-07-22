@@ -301,15 +301,15 @@ def buscar_documentos_unificado(
     # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
     _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
+    # EMERGÊNCIA: agro_pg + texto comum → NUNCA Mongo (satura loja). Só família GM.
+    if usa_pg and not _familia_gm:
+        skip_mongo_complemento = True
     # PDV/wizard (skip_mongo_complemento): com agro_pg, 1+ hit no Postgres BASTA.
-    # Antes exigia 8 hits → "milho" ia pro Mongo regex e estourava 30s (loja via 0 itens).
     _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and (
         len(pg_docs) >= 1 if usa_pg else len(pg_docs) >= min(8, lim)
     )
     if _familia_gm:
         _pg_suficiente = False
-    # PDV + agro_pg sem família GM: NUNCA complemento Mongo (catálogo já está no PG).
-    # Mongo em termo curto satura e a busca do caixa fica inutilizável.
     if skip_mongo_complemento and usa_pg and not _familia_gm:
         _pg_suficiente = True
         mongo_docs = []

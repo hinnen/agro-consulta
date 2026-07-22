@@ -18430,19 +18430,31 @@ def api_buscar_produtos(request):
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_merge_pg = agro_pdv_merge_catalogo_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
-    # Cadastro / Entrada NF: projeção slim; família GM ainda precisa complementar Mongo
-    # (ex. GM0008-1 no PG e GM0008-10 / GM0008-2,5 só no índice Mongo) — igual PDV/cadastro.
-    skip_mongo_complemento = busca_lite or contexto_cadastro
+    # EMERGÊNCIA loja (22/07): com agro_pg, BCA NÃO complementa Mongo em texto.
+    # Mongo regex + estoque em toda tecla saturava o servidor (PDV/gestão/CP minutos).
+    # Família GM ainda pode complementar (motor trata).
+    skip_mongo_complemento = True if (usa_pg_cat or pdv_somente_pg) else (busca_lite or contexto_cadastro)
     client, db = obter_conexao_mongo()
     if db is None and not usa_pg_cat and not pdv_somente_pg:
         return JsonResponse({"produtos": []})
     if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
 
+    from django.core.cache import cache
+
+    # Cache curto da busca BCA (todas as telas) — alivia rush na loja.
+    bca_cache_key: str | None = None
+    if q and not wizard_catalog and (usa_pg_cat or pdv_somente_pg):
+        bca_cache_key = (
+            f"bca_busca_v1:{q.lower()[:80]}:{lim_busca_req}:"
+            f"{int(wizard_mode)}:{int(entrada_nfe_mode)}:{int(contexto_cadastro)}:{int(compras)}"
+        )
+        _bca_hit = cache.get(bca_cache_key)
+        if _bca_hit is not None:
+            return JsonResponse(_bca_hit)
+
     entrada_nfe_cache_key: str | None = None
     if entrada_nfe_mode and q:
-        from django.core.cache import cache
-
         # v2: não cachear resposta sem complemento Mongo da família GM
         entrada_nfe_cache_key = f"entrada_nfe_busca_v2:{q.lower()[:80]}:{lim_busca_req}"
         _enf_hit = cache.get(entrada_nfe_cache_key)
@@ -18582,7 +18594,9 @@ def api_buscar_produtos(request):
 
         estoque_map = {}
         try:
-            if p_ids and db is not None and not entrada_nfe_mode:
+            # agro_pg: NÃO varrer Mongo estoque em toda busca BCA (matava a loja).
+            _pular_estoque_mongo = bool(usa_pg_cat or pdv_somente_pg or busca_lite)
+            if p_ids and db is not None and not entrada_nfe_mode and not _pular_estoque_mongo:
                 _emax = 2000
                 if len(p_ids) > _emax:
                     for _ej in range(0, len(p_ids), _emax):
@@ -18908,9 +18922,12 @@ def api_buscar_produtos(request):
             payload["motor"] = "unificado"
         if entrada_nfe_cache_key:
             try:
-                from django.core.cache import cache
-
                 cache.set(entrada_nfe_cache_key, payload, 45)
+            except Exception:
+                pass
+        if bca_cache_key:
+            try:
+                cache.set(bca_cache_key, payload, 30)
             except Exception:
                 pass
         if contexto_cadastro:
