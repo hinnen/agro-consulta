@@ -206,10 +206,12 @@ def agro_financeiro_mongo_congelado() -> bool:
 
 
 def agro_entrada_nota_rascunho_postgres() -> bool:
-    """Rascunho Entrada NF (etapas 1–6) no Postgres. Default: ligado quando financeiro PG está ativo."""
+    """Rascunho Entrada NF (etapas 1–6) no Postgres. Default: ligado quando financeiro PG ou Mongo ERP off."""
     raw = getattr(settings, "AGRO_ENTRADA_NF_RASCUNHO_PG", None)
     if raw is not None:
         return bool(raw)
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
+        return True
     return agro_financeiro_usa_postgres()
 
 

@@ -208,6 +208,7 @@ from .nfe_entrada_util import (
     atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
+    casar_produtos_entrada_nfe,
     claim_rascunho_para_estoque_agro,
     excluir_rascunho_entrada,
     gravar_ult_nsu,
@@ -349,6 +350,8 @@ def _token_cron_alerta_valido(request) -> bool:
 
 # --- CONEXÃO MONGO ---
 _cached_mongo_client = None
+_mongo_circuit_open = False
+_mongo_circuit_reason = ""
 
 
 def invalidar_cache_conexao_mongo():
@@ -357,14 +360,42 @@ def invalidar_cache_conexao_mongo():
 
 
 def obter_conexao_mongo():
-    global _cached_mongo_client
+    """
+    Mongo ERP. Com assinatura cancelada / auth fail: retorna (None, None) sem segurar o worker.
+    Circuit breaker: após falha de auth/timeout, não tenta de novo até restart do processo
+    (ou até limpar via invalidar + flag).
+    """
+    global _cached_mongo_client, _mongo_circuit_open, _mongo_circuit_reason
+    from produtos.agro_fonte_config import agro_mongo_erp_desligado
+
+    if agro_mongo_erp_desligado() or _mongo_circuit_open:
+        return None, None
     try:
         if _cached_mongo_client is None:
-            _cached_mongo_client = VendaERPMongoClient()
+            cli = VendaERPMongoClient()
+            # Força handshake/auth agora (não na 1ª query lenta no meio do request).
+            cli.client.admin.command("ping")
+            _cached_mongo_client = cli
         db = _cached_mongo_client.db if _cached_mongo_client else None
         return _cached_mongo_client, db
-    except Exception:
+    except Exception as exc:
         invalidar_cache_conexao_mongo()
+        msg = str(exc or "")
+        low = msg.lower()
+        if (
+            "auth" in low
+            or "authentication" in low
+            or "serverselection" in low
+            or "timed out" in low
+            or "timeout" in low
+            or "replica set" in low
+        ):
+            _mongo_circuit_open = True
+            _mongo_circuit_reason = msg[:240]
+            logging.getLogger(__name__).error(
+                "Mongo ERP circuit OPEN (não tenta de novo neste worker): %s",
+                _mongo_circuit_reason,
+            )
         return None, None
 
 
@@ -12586,14 +12617,15 @@ def api_entrada_nota_parse_xml(request):
             {"ok": False, "erro": parsed.get("erro") or "Não foi possível ler a NF-e."},
             status=400,
         )
+    # ERP/Mongo morto: casa no Postgres. Não chamar Mongo (Authentication failed trava o worker).
     client, db = obter_conexao_mongo()
-    if db is not None and client is not None:
-        parsed["itens"] = casar_produtos_mongo(
-            db,
-            client.col_p,
-            parsed.get("itens") or [],
-            emit_cnpj=str(parsed.get("emit_cnpj") or ""),
-        )
+    col_p = getattr(client, "col_p", None) or "DtoProduto"
+    parsed["itens"] = casar_produtos_entrada_nfe(
+        parsed.get("itens") or [],
+        emit_cnpj=str(parsed.get("emit_cnpj") or ""),
+        db=db,
+        col_p=col_p,
+    )
     return JsonResponse({"ok": True, "nota": parsed})
 
 
@@ -12617,9 +12649,13 @@ def api_entrada_nota_salvar(request):
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
     client, db = obter_conexao_mongo()
-    if db is None:
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    if db is None and not agro_entrada_nota_rascunho_postgres():
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    col_pessoa = None
+    if client is not None:
+        col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     r = salvar_rascunho_entrada(
         db,
         usuario=usuario,
@@ -15434,13 +15470,12 @@ def api_entrada_nota_dist_dfe(request):
     for xml_txt in res.get("notas_xml") or []:
         p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
         if p.get("ok"):
-            if db is not None and client is not None:
-                p["itens"] = casar_produtos_mongo(
-                    db,
-                    client.col_p,
-                    p.get("itens") or [],
-                    emit_cnpj=str(p.get("emit_cnpj") or ""),
-                )
+            p["itens"] = casar_produtos_entrada_nfe(
+                p.get("itens") or [],
+                emit_cnpj=str(p.get("emit_cnpj") or ""),
+                db=db,
+                col_p=getattr(client, "col_p", None) or "DtoProduto",
+            )
             previews.append(
                 {
                     "chave": p.get("chave"),
