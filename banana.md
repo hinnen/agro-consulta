@@ -1167,15 +1167,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚑 Import Mongo→PG só faltantes (22/07 · **loja v11.01** · teste v11.50)
+### 🚑 Import Mongo→PG só faltantes (22/07 · **loja v11.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Autorização** | Renan *pode subir para produção* + `99738595` |
-| **Loja** | **v10.99** comando+cron · **v11.00/11.01** URL superuser `/interno/importar-catalogo-faltantes/` |
-| **Backup git** | `producao-backup-pre-v1099-import-faltantes-20260722` @ `f7b6892` |
-| **Como rodar** | Logado **superuser** abrir a URL (pode demorar) · ou Render Shell: `python manage.py importar_catalogo_mongo_produto --somente-faltantes` |
-| **Segurança** | só cria ID ausente · preço existente intacto · saldo intacto |
+| **Mongo** | **Encerrado** — Renan: ERP cancelado, sem acesso. Não há import Mongo. Catálogo = **só Postgres** |
+| **Achado** | Recuperação vendas: kitekat frango/carne **já existiam** (`ja_existe`) — busca não achava (nome/código PG quebrado) |
+| **v11.04** | `/interno/recuperar-produtos-vendas/?dias=90` **repara** nome/código a partir da venda |
+| **Inspecionar** | /interno/inspecionar-produto/?nome=kitekat |
+| **OK loja** | v11.04: reparados=71 · busca `sache kitekat` = **4 sabores** |
 
 ### ⚠️ Assistente — produção sem senha (22/07 · Renan cobrou)
 
