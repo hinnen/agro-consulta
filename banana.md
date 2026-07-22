@@ -1161,6 +1161,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | ✅ push `producao` **af25d8d** (Renan 99738595) · aguardar Live |
 | **Sintoma** | Digita produto (ex. milho) → nada; splash sumiu mas busca morta |
 | **Prova loja** | `/api/buscar/?wizard=1&q=milho` → **200 ~2s 1 produto**; `/api/todos-produtos/delta/` → **500 ~30s** |
 | **Causa** | Busca tecla esperava catálogo completo; delta morria com N+1 overlay PG |
