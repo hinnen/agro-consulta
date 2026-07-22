@@ -1270,7 +1270,7 @@
         if (catalogReady) return Promise.resolve();
         if (!wizardCatalogBootAt) wizardCatalogBootAt = Date.now();
         if (catalogLoadPromise) {
-            pdvCatalogBootShow();
+            /* Já carregando: não reabrir o splash «primeira abertura» no meio da venda/busca. */
             return catalogLoadPromise;
         }
 
