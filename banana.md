@@ -1157,6 +1157,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📌 Causa raiz 22/07 — amanheceu quebrado SEM deploy (leigo)
+
+| | |
+| -- | -- |
+| **O que parecia** | «Ninguém atualizou ontem à tarde / noite — por que quebrou de manhã?» |
+| **Verdade** | Não precisava de deploy. Todo **dia novo** o PDV monta de novo um **catálogo gigante** (1ª abertura). |
+| **Ontem à tarde** | Catálogo do dia **já estava pronto** → loja voava. |
+| **Hoje cedo** | 1º PDV do dia tentou remontar tudo → banco/CPU estouraram → caixa branco, busca morta. |
+| **Lição** | Nunca montar catálogo inteiro na hora que o caixa abre. Usar busca leve / catálogo slim (v10.93–10.97). |
+| **Arquivo roteiro** | `banana-roteiro.md` vive em **agro-consulta** (não no Food). Chat da loja: pasta agro-consulta + `@banana-roteiro`. |
+
 ### 🚑 v10.97 — código de barras de volta + catálogo slim (22/07)
 
 | Item | Detalhe |
