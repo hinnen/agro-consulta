@@ -1167,6 +1167,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚨 URGENTE — Mongo ERP Authentication failed (**teste v11.53**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa raiz** | Logs loja: `Authentication failed` + timeout em `aprondaerp.com.br` — assinatura ERP morta; cada tela que tocava Mongo **travava o 1 worker** |
+| **Fix** | `agro_mongo_erp_desligado()` auto com `agro_pg` · circuit breaker · timeouts 3s · parse/salvar XML **sem Mongo** (casa PG) · rascunho NF em PG |
+| **Loja** | **Aguarda** *«pode subir para produção»* + `99738595` — lojas reclamando; pacote pronto no teste |
+
 ### 📦 Pacote local BCA — ordem A (**teste v11.52**)
 
 | Item | Detalhe |
