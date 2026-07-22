@@ -226,6 +226,11 @@ urlpatterns = [
         name='pg_backup_painel',
     ),
     path(
+        'interno/importar-catalogo-faltantes/',
+        pg_backup_views.importar_catalogo_faltantes,
+        name='interno_importar_catalogo_faltantes',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
