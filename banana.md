@@ -1113,11 +1113,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
-7. **Commits / teste:** push `**teste` automático** quando entregar fix (Renan valida no Render teste). Bump de `VERSION` (hook ou `python scripts/bump_version.py`). **Produção:** só quando Renan pedir (item 8).
-8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explícita **+ senha** (topo do banana). **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
+7. **Commits / teste:** commit na branch `teste`; **não** push automático no Render. Renan valida no **PC local** (`docs/TESTE-LOCAL.md`). Bump de `VERSION` no commit. Push `origin teste` **só se Renan pedir**. **Produção:** só item 8, **depois** do teste local.
+8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explícita **+ senha** (topo do banana) **e** sem Renan ter testado local. **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
 9. **Modo econômico:** permanente — rule `modo-economico.mdc`; detalhe só se Renan pedir.
-10. **Cliente:** Renan usa **Chrome** — não perguntar Electron vs browser; Electron não é ambiente de teste dele.
-11. **Retomar trabalho antigo:** módulo + este arquivo; chats anteriores não ficam na memória do assistente.
+10. **Cliente:** Renan usa **Chrome** (loja e local) — não perguntar Electron vs browser.
+11. **Retomar trabalho antigo:** `@banana-roteiro` + este arquivo; chats anteriores não ficam na memória do assistente.
 
 ---
 
