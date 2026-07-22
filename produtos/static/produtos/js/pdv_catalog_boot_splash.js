@@ -6,6 +6,8 @@
     var showDelayTimer = null;
     var visible = false;
     var shownAt = 0;
+    /** Depois da 1ª carga desta página, nunca mais o splash (evita no meio da venda). */
+    var finishedOnce = false;
     /** Só mostra o splash se o carregamento passar disso (ms) — cache rápido = operador não vê nada. */
     var SHOW_DELAY_MS = 400;
     /** Se apareceu, tempo mínimo para não “piscar”. */
@@ -17,7 +19,7 @@
 
     function showNow() {
         var node = el();
-        if (!node) return;
+        if (!node || finishedOnce) return;
         visible = true;
         shownAt = Date.now();
         node.classList.remove('hidden');
@@ -27,6 +29,7 @@
 
     window.AgroPdvCatalogSplash = {
         show: function () {
+            if (finishedOnce) return;
             clearTimeout(hideTimer);
             if (visible) return;
             if (showDelayTimer) return;
@@ -38,6 +41,8 @@
         hide: function (delayMs) {
             clearTimeout(showDelayTimer);
             showDelayTimer = null;
+            /* Marca encerrado mesmo se o splash nunca chegou a aparecer (carga rápida). */
+            finishedOnce = true;
             if (!visible) return;
             var extra = delayMs == null ? 0 : Math.max(0, Number(delayMs) || 0);
             var elapsed = shownAt ? Date.now() - shownAt : MIN_VISIBLE_MS;
