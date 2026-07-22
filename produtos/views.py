@@ -24522,24 +24522,21 @@ _CATALOGO_PDV_MONGO_PROJECTION = {
 
 
 def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
-    """Cache PDV inteiro a partir do Postgres (staging após snapshot da loja)."""
+    """Cache PDV inteiro a partir do Postgres (staging após snapshot da loja).
+
+    Saldos **não** entram no snapshot diário — o cliente atualiza via ``/api/pdv/saldos/``.
+    Montar saldo de todos os produtos aqui (ajuste PG + Mongo) era o pico de CPU no
+    agro-db e OOM do worker na 1ª abertura do dia.
+    """
     from produtos import catalogo_agro as cat_agro
 
     rows = cat_agro.listar_todos_rows_ativos()
-    p_ids = [str(r.get("id") or "") for r in rows if r.get("id")]
-    # Ledger/PG: saldos vêm do ajuste mesmo sem Mongo (db/client podem ser None).
-    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids) if p_ids else {}
     medias_venda = _obter_mapa_medias_venda_cache(db) if db is not None else {}
     res: list[dict] = []
     for row in rows:
         pid = str(row.get("id") or "").strip()
         if not pid:
             continue
-        sp = saldos_por_pid.get(pid) or {}
-        saldo_f_c = float(sp.get("saldo_centro", 0.0))
-        saldo_f_v = float(sp.get("saldo_vila", 0.0))
-        s_c = float(sp.get("saldo_erp_centro", 0.0))
-        s_v = float(sp.get("saldo_erp_vila", 0.0))
         ix = row.get("index_codigos") or []
         ix_list = (
             [str(x) for x in ix[:260] if x is not None and str(x).strip()]
@@ -24567,10 +24564,10 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
                 "preco_custo": pc,
                 "preco_custo_acrescimo": pc,
                 "preco_custo_final": pc,
-                "saldo_centro": round(saldo_f_c, 2),
-                "saldo_vila": round(saldo_f_v, 2),
-                "saldo_erp_centro": s_c,
-                "saldo_erp_vila": s_v,
+                "saldo_centro": 0.0,
+                "saldo_vila": 0.0,
+                "saldo_erp_centro": 0.0,
+                "saldo_erp_vila": 0.0,
                 "busca_texto": row.get("busca_texto") or "",
                 "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
                 "index_codigos": ix_list,
@@ -24587,17 +24584,15 @@ def _catalogo_pdv_montar_produtos(db, client):
 
     query = {"CadastroInativo": {"$ne": True}}
     produtos = list(db[client.col_p].find(query, _CATALOGO_PDV_MONGO_PROJECTION))
-    p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
-    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+    # Saldos ficam em /api/pdv/saldos/ — não recalcular todos os ajustes PG aqui.
     medias_venda = _obter_mapa_medias_venda_cache(db)
     res = []
     for p in produtos:
         pid = str(p.get("Id") or p["_id"])
-        sp = saldos_por_pid.get(pid) or {}
-        saldo_f_c = float(sp.get("saldo_centro", 0.0))
-        saldo_f_v = float(sp.get("saldo_vila", 0.0))
-        s_c = float(sp.get("saldo_erp_centro", 0.0))
-        s_v = float(sp.get("saldo_erp_vila", 0.0))
+        saldo_f_c = 0.0
+        saldo_f_v = 0.0
+        s_c = 0.0
+        s_v = 0.0
 
         prateleira_raw = (
             p.get("Prateleira")
@@ -24735,26 +24730,47 @@ def _catalogo_pdv_entry_atual(db, client):
     ):
         return entry_cat
 
-    produtos = _catalogo_pdv_montar_produtos(db, client)
-    now_iso = timezone.now().isoformat()
-    version = _catalogo_pdv_version(produtos)
-    body = {
-        "produtos": produtos,
-        "catalog_version": version,
-        "catalog_updated_at": now_iso,
-    }
-    prev = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
-    if prev and isinstance(prev, dict):
-        cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, prev, timeout=86400 * 3)
-    new_entry = {"day": hoje_cat, "version": version, "updated_at": now_iso, "body": body}
-    cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, new_entry, timeout=86400 * 2)
-    try:
-        from estoque.sync_health import registrar_catalogo_built
+    # Single-flight: evita 2 abas/instâncias remontando o catálogo juntos (pico CPU).
+    lock_key = "pdv_catalogo_build_lock_v1"
+    got_lock = cache.add(lock_key, "1", timeout=180)
+    if not got_lock:
+        for _ in range(40):
+            time.sleep(0.5)
+            entry_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+            if (
+                entry_cat
+                and isinstance(entry_cat, dict)
+                and entry_cat.get("day") == hoje_cat
+                and isinstance(entry_cat.get("body"), dict)
+                and "produtos" in entry_cat["body"]
+                and entry_cat.get("version")
+            ):
+                return entry_cat
 
-        registrar_catalogo_built(version)
-    except Exception:
-        pass
-    return new_entry
+    try:
+        produtos = _catalogo_pdv_montar_produtos(db, client)
+        now_iso = timezone.now().isoformat()
+        version = _catalogo_pdv_version(produtos)
+        body = {
+            "produtos": produtos,
+            "catalog_version": version,
+            "catalog_updated_at": now_iso,
+        }
+        prev = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        if prev and isinstance(prev, dict):
+            cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, prev, timeout=86400 * 3)
+        new_entry = {"day": hoje_cat, "version": version, "updated_at": now_iso, "body": body}
+        cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, new_entry, timeout=86400 * 2)
+        try:
+            from estoque.sync_health import registrar_catalogo_built
+
+            registrar_catalogo_built(version)
+        except Exception:
+            pass
+        return new_entry
+    finally:
+        if got_lock:
+            cache.delete(lock_key)
 
 
 @require_GET

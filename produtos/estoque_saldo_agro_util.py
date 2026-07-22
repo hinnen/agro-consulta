@@ -22,23 +22,35 @@ def _mapear_estoques_mongo_por_produto(estoques, client) -> dict[str, dict[str, 
 
 
 def ajustes_mais_recentes_por_produtos(produto_ids: list[str] | None = None) -> dict:
+    """Último ajuste por (produto, depósito).
+
+    Com lista grande (>900 IDs) **não** faz ``.all()`` — isso varria a tabela inteira
+    no Postgres e derrubava o PDV (pico CPU + worker OOM). Em vez disso, busca em
+    fatias de 900.
+    """
     from estoque.models import AjusteRapidoEstoque
 
-    if produto_ids is not None and len(produto_ids) <= 900:
-        ajustes = (
-            AjusteRapidoEstoque.objects.filter(produto_externo_id__in=produto_ids)
-            .order_by("produto_externo_id", "deposito", "-criado_em")
-        )
-    else:
-        ajustes = AjusteRapidoEstoque.objects.all().order_by(
-            "produto_externo_id", "deposito", "-criado_em"
-        )
-
     mapa = {}
-    for ajuste in ajustes:
-        chave = (ajuste.produto_externo_id, ajuste.deposito)
-        if chave not in mapa:
-            mapa[chave] = ajuste
+    order = ("produto_externo_id", "deposito", "-criado_em")
+
+    def _absorver(qs) -> None:
+        for ajuste in qs.order_by(*order).iterator(chunk_size=2000):
+            chave = (ajuste.produto_externo_id, ajuste.deposito)
+            if chave not in mapa:
+                mapa[chave] = ajuste
+
+    if produto_ids is None:
+        _absorver(AjusteRapidoEstoque.objects.all())
+        return mapa
+
+    ids = [str(x).strip() for x in produto_ids if x is not None and str(x).strip()]
+    if not ids:
+        return mapa
+
+    _chunk = 900
+    for i in range(0, len(ids), _chunk):
+        fatia = ids[i : i + _chunk]
+        _absorver(AjusteRapidoEstoque.objects.filter(produto_externo_id__in=fatia))
     return mapa
 
 

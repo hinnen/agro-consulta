@@ -55,23 +55,10 @@ def _normalizar_decimal(valor):
 
 
 def _buscar_ajustes_mais_recentes(produto_ids=None):
-    # Trava de segurança para não explodir o limite do banco SQLite
-    if produto_ids is not None and len(produto_ids) <= 900:
-        ajustes = (
-            AjusteRapidoEstoque.objects
-            .filter(produto_externo_id__in=produto_ids)
-            .order_by('produto_externo_id', 'deposito', '-criado_em')
-        )
-    else:
-        ajustes = AjusteRapidoEstoque.objects.all().order_by('produto_externo_id', 'deposito', '-criado_em')
+    """Delega ao helper em fatias — evita ``AjusteRapidoEstoque.objects.all()`` no PDV."""
+    from produtos.estoque_saldo_agro_util import ajustes_mais_recentes_por_produtos
 
-    mapa = {}
-    for ajuste in ajustes:
-        chave = (ajuste.produto_externo_id, ajuste.deposito)
-        if chave not in mapa:
-            mapa[chave] = ajuste
-
-    return mapa
+    return ajustes_mais_recentes_por_produtos(produto_ids)
 
 
 def _pedido_transferencia_extra(pedido):

@@ -110,18 +110,34 @@ def agro_financeiro_usa_postgres() -> bool:
 
 def _producao_financeiro_cp_pg_pronto() -> bool:
     try:
+        from django.core.cache import cache
+
+        ck = "agro_fin_pg_loja_pronto_v1"
+        hit = cache.get(ck)
+        if hit is not None:
+            return bool(hit)
         from produtos.models import TituloFinanceiroAgro
 
-        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        ok = TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        cache.set(ck, ok, timeout=600)
+        return ok
     except Exception:
         return False
 
 
 def _staging_financeiro_cp_pg_pronto() -> bool:
     try:
+        from django.core.cache import cache
+
+        ck = "agro_fin_pg_staging_pronto_v1"
+        hit = cache.get(ck)
+        if hit is not None:
+            return bool(hit)
         from produtos.models import TituloFinanceiroAgro
 
-        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        ok = TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        cache.set(ck, ok, timeout=600)
+        return ok
     except Exception:
         return False
 

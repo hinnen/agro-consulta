@@ -990,16 +990,13 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
 
 
 def listar_todos_rows_ativos() -> list[dict]:
-    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``)."""
-    out: list[dict] = []
-    pagina = 1
-    while True:
-        chunk, has_more = listar_paginado(pagina=pagina, por_pagina=500, sort_key="nome", sort_direction=1)
-        out.extend(chunk)
-        if not has_more:
-            break
-        pagina += 1
-    return out
+    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``).
+
+    Uma query (sem OFFSET paginado) — montar o cache diário do PDV com N páginas
+    ``ORDER BY … OFFSET`` sobrecarregava o agro-db na 1ª abertura do dia.
+    """
+    qs = queryset_catalogo_ativos(inativos=False).order_by("nome", "pk")
+    return _rows_de_produtos(list(qs))
 
 
 def row_para_doc_busca_pdv(row: dict) -> dict:
