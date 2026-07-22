@@ -122,3 +122,24 @@ def pg_backup_painel(request):
         return render(request, "produtos/pg_backup_painel.html", ctx)
 
     return render(request, "produtos/pg_backup_painel.html", ctx)
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@require_GET
+def importar_catalogo_faltantes(request):
+    """
+    Emergência loja: Mongo → PG só IDs ausentes. Não altera preço dos existentes.
+    Só superuser. ?dry_run=1 só simula.
+    """
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+    from produtos.management.commands.importar_catalogo_mongo_produto import (
+        executar_importar_catalogo_mongo_produto,
+    )
+
+    out = executar_importar_catalogo_mongo_produto(
+        somente_faltantes=True,
+        dry_run=dry,
+    )
+    out["usuario"] = request.user.get_username()
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
