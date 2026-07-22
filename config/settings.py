@@ -245,10 +245,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # conn_max_age baixo: evita esgotar slots no Postgres (incidente loja 21/07).
 # Override: DJANGO_CONN_MAX_AGE no painel Render.
+# Local: python-decouple lê .env; dj_database_url só olha os.environ — passar via default.
 _db_conn_max_age = int(os.environ.get("DJANGO_CONN_MAX_AGE", "60") or "60")
+_db_url = (config("DATABASE_URL", default="") or "").strip() or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.config(
+        default=_db_url,
         conn_max_age=_db_conn_max_age,
         conn_health_checks=True,
     )
