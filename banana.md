@@ -1161,7 +1161,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` em curso · aguardar Live no Render |
+| **Status** | ✅ push `producao` **c3fc5fe** · aguardar Live no Render |
 | **VERSION** | **loja v11.64** (antes v11.04 / `241782c`) |
 | **Inclui** | (1) Devolução sem travar no Mongo («Falha de rede») · (2) BCA Cadastro sempre servidor · PDV lista estável + preço confirma ≤2s · delta ≤5 min · (3) Custo NF no cadastro + `nf_forn`/`nf_custo` no kardex · (4) middleware sem menção «Mongo» |
 | **NÃO inclui** | Merge inteiro do `teste` · freio catálogo full removido (mantido na loja) |
