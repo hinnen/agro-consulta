@@ -238,6 +238,7 @@ def recuperar_produtos_vendas(request):
             nome_contem=nome,
             dias=dias,
             dry_run=dry,
+            reparar=True,
         )
     except Exception as exc:
         out = {
@@ -261,11 +262,53 @@ def recuperar_produtos_vendas(request):
         f"<body style='font-family:sans-serif;padding:1.5rem'>"
         f"<h1>{html.escape(status_txt)}</h1>"
         f"<p>dias={dias} · candidatos={out.get('candidatos')} · "
-        f"<b>criados={out.get('criados')}</b> · reativados={out.get('reativados')} · "
+        f"<b>criados={out.get('criados')}</b> · reparados={out.get('reparados')} · "
+        f"reativados={out.get('reativados')} · "
         f"já existiam={out.get('ja_existem')} · erros={out.get('erros')}</p>"
-        f"<p>Depois: Ctrl+F5 no PDV.</p>"
+        f"<p>Depois: Ctrl+F5 no PDV. Busque «sache kitekat».</p>"
         f"<pre style='background:#f4f4f4;padding:1rem;overflow:auto'>"
         f"{html.escape(json.dumps(out, ensure_ascii=False, indent=2, default=str))}</pre>"
         f"</body></html>"
     )
     return HttpResponse(body, content_type="text/html; charset=utf-8")
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@require_GET
+def inspecionar_produto_pg(request):
+    """Debug superuser: ?pid=...&pid=... ou ?nome=kitekat"""
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    pids = request.GET.getlist("pid") or []
+    if not pids:
+        one = str(request.GET.get("pid") or "").strip()
+        if one:
+            pids = [one]
+    nome = str(request.GET.get("nome") or "").strip()
+    rows = []
+    qs = Produto.objects.all()
+    if pids:
+        qs = qs.filter(produto_externo_id__in=pids)
+    elif nome:
+        qs = qs.filter(nome__icontains=nome)[:30]
+    else:
+        return JsonResponse({"ok": False, "erro": "pid ou nome"}, status=400)
+    for p in qs[:40]:
+        pid = str(p.produto_externo_id or "")
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first() if pid else None
+        rows.append(
+            {
+                "pk": p.pk,
+                "produto_externo_id": pid,
+                "nome": p.nome,
+                "codigo_interno": p.codigo_interno,
+                "codigo_nfe": p.codigo_nfe,
+                "marca": p.marca,
+                "ativo": p.ativo,
+                "cadastro_inativo": p.cadastro_inativo,
+                "preco_venda": str(p.preco_venda),
+                "overlay": bool(ov),
+                "overlay_ativo": getattr(ov, "ativo_exibicao", None) if ov else None,
+            }
+        )
+    return JsonResponse({"ok": True, "n": len(rows), "produtos": rows})

@@ -236,6 +236,11 @@ urlpatterns = [
         name='interno_recuperar_produtos_vendas',
     ),
     path(
+        'interno/inspecionar-produto/',
+        pg_backup_views.inspecionar_produto_pg,
+        name='interno_inspecionar_produto',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
