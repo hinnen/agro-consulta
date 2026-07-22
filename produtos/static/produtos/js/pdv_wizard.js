@@ -423,8 +423,6 @@
         quickProductEditFormasTbody: document.getElementById('pdv-quick-product-edit-formas-tbody'),
         quickProductEditSaldoCentroAtual: document.getElementById('pdv-quick-product-edit-saldo-centro-atual'),
         quickProductEditSaldoVilaAtual: document.getElementById('pdv-quick-product-edit-saldo-vila-atual'),
-        quickProductEditContagemCentro: document.getElementById('pdv-quick-product-edit-contagem-centro'),
-        quickProductEditContagemVila: document.getElementById('pdv-quick-product-edit-contagem-vila'),
         quickProductEditSaldoCentro: document.getElementById('pdv-quick-product-edit-saldo-centro'),
         quickProductEditSaldoVila: document.getElementById('pdv-quick-product-edit-saldo-vila'),
         quickProductEditErro: document.getElementById('pdv-quick-product-edit-erro'),
@@ -8128,22 +8126,6 @@
             dom.quickProductEditSaldoVilaAtual.innerHTML = spin;
             dom.quickProductEditSaldoVilaAtual.setAttribute('data-saldo-pending', '1');
         }
-        setQuickProductEditContagem('…', '…');
-    }
-
-    function fmtContagemPinLabel(raw) {
-        var s = String(raw || '').trim();
-        if (!s || s === '—' || s === '…') return s || 'Conferir';
-        return s;
-    }
-
-    function setQuickProductEditContagem(cc, cv) {
-        if (dom.quickProductEditContagemCentro) {
-            dom.quickProductEditContagemCentro.textContent = fmtContagemPinLabel(cc);
-        }
-        if (dom.quickProductEditContagemVila) {
-            dom.quickProductEditContagemVila.textContent = fmtContagemPinLabel(cv);
-        }
     }
 
     function setQuickProductEditSaldoAgora(sc, sv) {
@@ -8203,7 +8185,6 @@
             setQuickProductEditSaldoAgoraLoading();
         } else {
             setQuickProductEditSaldoAgora(prod.saldo_centro, prod.saldo_vila);
-            setQuickProductEditContagem(prod.contagem_centro, prod.contagem_vila);
         }
         if (dom.quickProductEditSaldoCentro) dom.quickProductEditSaldoCentro.value = '';
         if (dom.quickProductEditSaldoVila) dom.quickProductEditSaldoVila.value = '';
@@ -8284,7 +8265,6 @@
         var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
         if (!pattern) {
             setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
-            setQuickProductEditContagem('Conferir', 'Conferir');
             return;
         }
         var url = pattern.replace('__PID__', encodeURIComponent(produtoId));
@@ -8302,7 +8282,6 @@
                     }
                     /* API falhou: cai no saldo do carrinho/catálogo (melhor que spinner eterno). */
                     setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
-                    setQuickProductEditContagem('Conferir', 'Conferir');
                     return;
                 }
                 fillQuickProductEditForm(res.data.produto);
@@ -8316,7 +8295,6 @@
                     dom.quickProductEditErro.classList.remove('hidden');
                 }
                 setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
-                setQuickProductEditContagem('Conferir', 'Conferir');
             });
         window.setTimeout(function () {
             if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
@@ -8729,60 +8707,63 @@
         var seq = ++filterSeq;
         productSearchAwaitingServer = true;
         productSearchMayHaveMore = false;
-        dom.productSearchFeedback.textContent = catalogReady ? 'Filtrando…' : 'Carregando catálogo local…';
-        loadWizardCatalog()
-            .then(function () {
-                if (seq !== filterSeq) return;
-                var r = filterCatalogLocal(query, mode);
-                if (r.barcodeHit) {
-                    productSearchAwaitingServer = false;
-                    tryAddProductFromSearch(r.barcodeHit, {
-                        okMsg: 'Item adicionado pela leitura do código.',
-                        query: query,
-                        forceServer: true,
-                    });
-                    return Promise.resolve();
-                }
-                var localList = normalizeWizardCatalogList(r.list || []);
-                var skuCode = looksLikeSkuCode(query);
-                var qlSku = String(query).trim().toLowerCase();
-                if (mode === 'barcode' && localList.length === 1) {
-                    productSearchAwaitingServer = false;
-                    tryAutoAddBarcodeHit(localList[0]);
-                    return null;
-                }
-                // Sempre confirma no servidor: cache local não traz precos_grupos atualizados.
-                if (localList.length >= AUTOCOMPLETE_PAGE_SIZE) {
-                    productSearchMayHaveMore = true;
-                }
-                if (localList.length) {
-                    renderProductResults(localList);
-                }
-                dom.productSearchFeedback.textContent = localList.length
-                    ? 'Cache local · conferindo servidor…'
-                    : skuCode
-                      ? 'Buscando variantes do código…'
-                      : 'Buscando no servidor…';
-                return fetchWizardServerSearch(query)
-                    .then(function (srv) {
-                        return {
-                            remote: srv.produtos,
-                            exactBarcode: srv.exactBarcode,
-                            provaUnificada: srv.provaUnificada,
-                            localList: localList,
-                            skuCode: skuCode,
-                            mode: mode,
-                        };
-                    })
-                    .catch(function () {
-                        return {
-                            remote: [],
-                            exactBarcode: false,
-                            localList: localList,
-                            skuCode: skuCode,
-                            mode: mode,
-                        };
-                    });
+        /* Catálogo completo (delta) pode travar/500 — NÃO bloquear a busca por tecla.
+           Aquecimento em background; servidor (/api/buscar) responde sozinho (~2s). */
+        try {
+            loadWizardCatalog();
+        } catch (eWarm) {}
+
+        var localList = [];
+        var skuCode = looksLikeSkuCode(query);
+        if (catalogReady) {
+            var rLocal = filterCatalogLocal(query, mode);
+            if (rLocal.barcodeHit) {
+                productSearchAwaitingServer = false;
+                tryAddProductFromSearch(rLocal.barcodeHit, {
+                    okMsg: 'Item adicionado pela leitura do código.',
+                    query: query,
+                    forceServer: true,
+                });
+                return;
+            }
+            localList = normalizeWizardCatalogList(rLocal.list || []);
+            if (mode === 'barcode' && localList.length === 1) {
+                productSearchAwaitingServer = false;
+                tryAutoAddBarcodeHit(localList[0]);
+                return;
+            }
+            if (localList.length >= AUTOCOMPLETE_PAGE_SIZE) {
+                productSearchMayHaveMore = true;
+            }
+            if (localList.length) {
+                renderProductResults(localList);
+            }
+        }
+        dom.productSearchFeedback.textContent = localList.length
+            ? 'Cache local · conferindo servidor…'
+            : skuCode
+              ? 'Buscando variantes do código…'
+              : 'Buscando no servidor…';
+
+        fetchWizardServerSearch(query)
+            .then(function (srv) {
+                return {
+                    remote: srv.produtos,
+                    exactBarcode: srv.exactBarcode,
+                    provaUnificada: srv.provaUnificada,
+                    localList: localList,
+                    skuCode: skuCode,
+                    mode: mode,
+                };
+            })
+            .catch(function () {
+                return {
+                    remote: [],
+                    exactBarcode: false,
+                    localList: localList,
+                    skuCode: skuCode,
+                    mode: mode,
+                };
             })
             .then(function (payload) {
                 if (seq !== filterSeq) return;
@@ -8827,14 +8808,6 @@
                     dom.productSearchFeedback.textContent =
                         'Nenhum produto para este termo (cache e servidor).';
                 }
-            })
-            .catch(function () {
-                if (seq !== filterSeq) return;
-                productSearchAwaitingServer = false;
-                productSearchMayHaveMore = false;
-                dom.productSearchFeedback.textContent =
-                    'Não foi possível carregar o catálogo. Atualize a página.';
-                renderProductResults([]);
             });
     }
 

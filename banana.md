@@ -1,4 +1,4 @@
-﻿# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
@@ -1166,6 +1166,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### fix PDV busca v11.48 (= loja v10.92) — 22/07
+
+Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: buscar milho ok / delta 500 na loja.
 
 ### 🩹 Cadastro — foto Delivery sumia + PDV (21/07 · **teste v11.45**)
 
