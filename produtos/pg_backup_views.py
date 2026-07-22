@@ -128,18 +128,82 @@ def pg_backup_painel(request):
 @require_GET
 def importar_catalogo_faltantes(request):
     """
-    Emergência loja: Mongo → PG só IDs ausentes. Não altera preço dos existentes.
-    Só superuser. ?dry_run=1 só simula.
+    Emergência loja: Mongo → PG só IDs ausentes (fatias, evita timeout 500).
+    Só superuser. Abre no browser — se ``continuar``, a página recarrega sozinha.
+    ``?dry_run=1`` · ``?skip=N`` · ``?limit=300`` · ``?json=1``
     """
-    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
-    from produtos.management.commands.importar_catalogo_mongo_produto import (
-        executar_importar_catalogo_mongo_produto,
-    )
+    import html
+    import traceback
 
-    out = executar_importar_catalogo_mongo_produto(
-        somente_faltantes=True,
-        dry_run=dry,
-    )
+    try:
+        skip = int(str(request.GET.get("skip") or "0").strip() or "0")
+    except ValueError:
+        skip = 0
+    try:
+        # Fatia pequena: proxy Render costuma matar request longo → 500 HTML.
+        lim = int(str(request.GET.get("limit") or "300").strip() or "300")
+    except ValueError:
+        lim = 300
+    lim = max(50, min(lim, 800))
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+    want_json = str(request.GET.get("json") or "").strip().lower() in ("1", "true", "yes")
+
+    try:
+        from produtos.management.commands.importar_catalogo_mongo_produto import (
+            executar_importar_catalogo_mongo_produto,
+        )
+
+        out = executar_importar_catalogo_mongo_produto(
+            somente_faltantes=True,
+            dry_run=dry,
+            skip=skip,
+            limit=lim,
+        )
+    except Exception as exc:
+        out = {
+            "ok": False,
+            "erro": str(exc)[:500],
+            "traceback": traceback.format_exc()[-1500:],
+            "skip": skip,
+            "limit": lim,
+        }
+
     out["usuario"] = request.user.get_username()
-    st = 200 if out.get("ok") else 503
-    return JsonResponse(out, status=st)
+    # Acumula criados via querystring para o usuário ver o total da sessão
+    try:
+        acum = int(str(request.GET.get("acum_criados") or "0").strip() or "0")
+    except ValueError:
+        acum = 0
+    acum += int(out.get("criados") or 0)
+    out["acum_criados"] = acum
+
+    if want_json or not out.get("ok"):
+        st = 200 if out.get("ok") else 500
+        return JsonResponse(out, status=st)
+
+    continuar = bool(out.get("continuar"))
+    prox = int(out.get("proximo_skip") or (skip + lim))
+    meta = ""
+    if continuar:
+        meta = (
+            f'<meta http-equiv="refresh" content="1;url='
+            f'?skip={prox}&limit={lim}&acum_criados={acum}'
+            f'{"&dry_run=1" if dry else ""}">'
+        )
+        status_txt = "CONTINUANDO… não feche esta aba"
+    else:
+        status_txt = "CONCLUÍDO — pode fechar e dar Ctrl+F5 no PDV"
+
+    body = (
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>{meta}"
+        f"<title>Import faltantes</title></head><body style='font-family:sans-serif;padding:1.5rem'>"
+        f"<h1>{html.escape(status_txt)}</h1>"
+        f"<p>skip={skip} · lidos={out.get('lidos')} · criados nesta fatia="
+        f"<b>{out.get('criados')}</b> · já existiam={out.get('ja_existem')} · "
+        f"erros={out.get('erros')} · <b>criados total sessão={acum}</b></p>"
+        f"<p>total_pg={out.get('total_pg')} · total_mongo={out.get('total_mongo')}</p>"
+        f"<pre style='background:#f4f4f4;padding:1rem;overflow:auto'>"
+        f"{html.escape(json.dumps(out, ensure_ascii=False, indent=2, default=str))}</pre>"
+        f"</body></html>"
+    )
+    return HttpResponse(body, content_type="text/html; charset=utf-8")
