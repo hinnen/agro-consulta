@@ -1228,6 +1228,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Menu caixa / fechar venda dinheiro “engasgando” 1–2 s (antes era na hora) |
 | **Causa** | `ensurePacote` baixava catálogo **inteiro a cada busca** → worker Django ocupado → demais cliques na fila |
 | **Fix** | Delta no máx. **a cada 5 min** (ou pacote fraco / 1ª abertura); busca continua leve |
+| **Commit** | `3f9683e` · branch `teste` · **aguarda** frase + senha produção (lojas fecharem) |
 | **Arquivos** | `agro_busca_catalogo.js` |
 
 ### 🐛 Devolução loja — «Falha de rede» (#3798 Centro) (**teste v11.58**)
