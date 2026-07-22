@@ -1167,15 +1167,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚑 Import Mongo→PG só faltantes (22/07 · **teste v11.50** — loja aguarda senha)
+### 🚑 Import Mongo→PG só faltantes (22/07 · **loja v11.01** · teste v11.50)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Pedido Renan** | Puxar produtos do Mongo pro PG **sem** religar busca Mongo · medo de trocar preço milho↔sachê |
-| **Modo** | `--somente-faltantes` / cron `somente_faltantes=1` — **cria** ID ausente; **não atualiza** quem já existe (preço/custo intactos) |
-| **Casamento** | por `produto_externo_id` (Id ERP) — milho não recebe preço de sachê |
-| **Saldo** | não tocado |
-| **Loja** | precisa frase + `99738595` → cherry `producao` → rodar cron/shell |
+| **Autorização** | Renan *pode subir para produção* + `99738595` |
+| **Loja** | **v10.99** comando+cron · **v11.00/11.01** URL superuser `/interno/importar-catalogo-faltantes/` |
+| **Backup git** | `producao-backup-pre-v1099-import-faltantes-20260722` @ `f7b6892` |
+| **Como rodar** | Logado **superuser** abrir a URL (pode demorar) · ou Render Shell: `python manage.py importar_catalogo_mongo_produto --somente-faltantes` |
+| **Segurança** | só cria ID ausente · preço existente intacto · saldo intacto |
 
 ### ⚠️ Assistente — produção sem senha (22/07 · Renan cobrou)
 
