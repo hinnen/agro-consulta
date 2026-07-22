@@ -1226,10 +1226,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | # | Sintoma | Achado |
 | - | ------- | ------ |
-| E1 | «sache kitekat» só 2 sabores | **Não perdeu o catálogo.** Slim loja = **3364**. Só **frango/carne** sumiram do `Produto` PG; **venda #3751** (21/07) prova que existiam. Recuperar de `ItemVendaAgro` (cmd + cron `/api/cron/recuperar-produtos-itens-venda/`) — **sem Mongo** |
+| E1 | «produtos sumindo» (kitekat = 1 exemplo) | **Não apagou os 3000.** Slim = **3364**. Ontem a busca ainda olhava **Mongo**; hoje (hotfix) só **Postgres** → o que não está completo no PG «some» na busca. **Voltar normal:** (1) reimport Mongo→`Produto` em lote **ou** (2) restore ZIP em `/interno/pg-backup/` **ou** (3) temporário religar complemento Mongo na busca. **Não** caçar SKU a SKU |
 | E2 | Busca lenta / fechar venda lento | `/api/buscar` ainda ~8–25s em vários termos — banco sob carga; pacote local + BCA leve é o caminho |
 
-**Próximo:** Renan autoriza loja (frase+senha) → recuperar kitekat (+ faltantes recentes) · checklist A1–D3 depois.
+**Próximo:** Renan autoriza loja (frase+senha) → **reimport catálogo Mongo→PG** (ou restore backup) · checklist A1–D3 depois.
 
 ### 🩹 Recuperar produtos de itens de venda (22/07 · **teste**)
 
