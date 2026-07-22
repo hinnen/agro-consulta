@@ -1157,6 +1157,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚑 v10.93 — CATÁLOGO COMPLETO OFF (freio) · loja inutilizável (22/07 · Renan 99738595)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Caixa abre em branco · busca leva minutos · «inutilizável» |
+| **Causa real** | Montar catálogo inteiro na request → **timeout worker ~30s** → /api/todos-produtos/delta/ **500** + satura agro-db → tudo trava. **NÃO** é a tela Ajuste Rápido |
+| **Prova** | /api/buscar?q=milho **200 ~1,6s** · delta **500 ~31s** |
+| **Fix** | gro_pdv_catalogo_full_desligado() (default ON): delta/local/wizard_catalog → **vazio rápido**; PDV vende por /api/buscar |
+| **Reativar catálogo** | env AGRO_PDV_CATALOGO_FULL_OFF=false no Render |
+| **VERSION** | **loja v10.93** · rollback 933de8 / tag ollback-pre-v10.93-catalogo-off |
+| **Pendência** | Depois: reconstruir catálogo em background/cron (não na request) p/ voltar cache local |
+
 ### 🚨 PDV busca vazia pós-v10.91 + fix **v10.92** (22/07)
 
 | Item | Detalhe |
