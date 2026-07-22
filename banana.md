@@ -1167,6 +1167,91 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ⚠️ Assistente — produção sem senha (22/07 · Renan cobrou)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fato** | Push `producao` **v10.98** (`f7b6892`) **sem** frase+senha `99738595` na mensagem |
+| **Erro** | Violou regra dura do banana (topo) — loja no meio da venda, sem aviso |
+| **Combinado** | **Nunca mais** push `producao` sem frase explícita + senha na **mesma** mensagem |
+| **Mongo** | Desvinculação: catálogo/BCA = **Postgres**. Código legado ainda chamava Mongo na busca — isso era **bug**, não política; v10.98 corta. **Não** voltar a depender do Mongo |
+
+### 📋 CHECKLIST decisão — pacote/BCA definitivo (22/07 · conversa Renan)
+
+
+**Decisão parcial já tomada:** ordem **A** (hoje → último pacote local → servidor) **+** se servidor <~2s, atualiza preço por cima.
+
+**Escopo BCA (obrigatório):** melhorias de busca/pacote valem para o motor **BCA** (`/api/buscar` / unificado), usado por: **PDV · ajuste rápido · Entrada NF · cadastro · gestão · compras** — não só PDV.
+
+#### A. Pacote (lista pra busca)
+
+| # | Decidir | Opções / nota |
+| - | ------- | ------------- |
+| A1 | Conteúdo do pacote | nome, marca, GM, EAN, preço venda, index_codigos, busca_texto — **sem saldo** |
+| A2 | Quem monta | Cron madrugada + botão «Atualizar lista» + após Entrada NF / mudança preço (opcional) |
+| A3 | Onde guarda no servidor | cache Redis/disco + endpoint slim (já existe `/api/pdv/catalogo-slim/`) |
+| A4 | Onde guarda no PC | localStorage/IndexedDB — **último pacote bom** (nunca apagar no fail) |
+| A5 | Ordem no PDV | **1** pacote hoje · **2** último local · **3** servidor; se servidor <2s → patch preço |
+| A6 | Se madrugada falhar | retry 2× · alarme · PDV segue com A5 · **nunca** bloquear venda |
+| A7 | Timeout montagem | ex. 20–30s no slim; estoura → aborta, mantém pacote anterior |
+| A8 | Sinal na UI | verde «lista de hoje» / amarelo «lista antiga» / vermelho «só servidor» |
+
+#### B. Preço e saldo
+
+| # | Decidir | Opções / nota |
+| - | ------- | ------------- |
+| B1 | Preço na venda | lista local pra achar; **confirmar servidor se <2s**; senão vende com preço da lista |
+| B2 | Saldo | **só sob demanda** (ajuste rápido / ids=…) — não no pacote |
+| B3 | Centro×Vila | mesma API de saldo ao vivo do produto aberto |
+
+#### C. Motor BCA (todas as telas)
+
+| # | Decidir | Opções / nota |
+| - | ------- | ------------- |
+| C1 | Uma API | `/api/buscar` (BCA) = fonte única; telas só consomem |
+| C2 | PG primeiro | loja `agro_pg`: texto/código no Postgres; Mongo só exceção (ex. família GM) |
+| C3 | Frase longa | AND + fallback token (já no 10.95) — revisar se ainda corta sabor |
+| C4 | Limite resultados | wizard 24/48 — pode esconder irmãos? calibrar |
+| C5 | Inativos | gestão «somente ativos» vs PDV — alinhar regra |
+
+#### D. Operação / nunca parar
+
+| # | Decidir | Opções / nota |
+| - | ------- | ------------- |
+| D1 | Fechar venda / entrega | não depender do pacote; investigar lentidão atual (DB ainda pressionado) |
+| D2 | Monitor | health: slim ok? buscar p95? alarme |
+| D3 | Não reverter | 10.87/10.88 fora de cogitação agora |
+
+#### E. Incidentes abertos loja (22/07 tarde)
+
+| # | Sintoma | Achado |
+| - | ------- | ------ |
+| E1 | «sache kitekat» só 2 sabores | **Não perdeu o catálogo.** Slim loja = **3364**. Só **frango/carne** sumiram do `Produto` PG; **venda #3751** (21/07) prova que existiam. Recuperar de `ItemVendaAgro` (cmd + cron `/api/cron/recuperar-produtos-itens-venda/`) — **sem Mongo** |
+| E2 | Busca lenta / fechar venda lento | `/api/buscar` ainda ~8–25s em vários termos — banco sob carga; pacote local + BCA leve é o caminho |
+
+**Próximo:** Renan autoriza loja (frase+senha) → recuperar kitekat (+ faltantes recentes) · checklist A1–D3 depois.
+
+### 🩹 Recuperar produtos de itens de venda (22/07 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Por quê** | Frango/carne Kitekat vendidos ontem, sumiram do PG ativo — loja assustou «perdemos 3000?» |
+| **Fato** | Catálogo slim = **3364** · faltam SKUs pontuais, não o cadastro inteiro |
+| **Ferramenta** | `manage.py recuperar_produtos_itens_venda` + cron GET `api/cron/recuperar-produtos-itens-venda/` (token alerta) |
+| **Loja** | Aguarda frase + senha `99738595` — **não** push `producao` sem isso |
+
+### ✅ Loja v10.97 — bipagem OK + causa do “amanheceu quebrado” (22/07 · Renan)
+
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bipagem** | ✅ loja: código de barras **vai direto pro carrinho** (normal) |
+| **Suspeito nº 1** | **v10.87 + v10.88** (21/07 manhã) — apertaram Postgres (`conn_max_age` 60s, menos slots/workers) |
+| **Por quê** | O “carregamentozinho” da 1ª abertura **já existia**; com menos folga no banco, hoje de manhã **não terminou** e travou tudo |
+| **Quase inocente** | **v10.89** Entrada NF V.unit (21/07 13:35) — só XML/Mudar; à tarde ainda vendia |
+| **Inocente** | **v10.82** (19/07) — dias estáveis depois |
+| **Defesa** | Não remontar catálogo gigante na abertura (slim / busca leve — v10.93–10.97) |
+
 ### fix PDV busca v11.48 (= loja v10.92) — 22/07
 
 Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: buscar milho ok / delta 500 na loja.

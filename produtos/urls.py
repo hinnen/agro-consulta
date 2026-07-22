@@ -758,6 +758,11 @@ urlpatterns = [
         name='api_cron_importar_catalogo_mongo',
     ),
     path(
+        'api/cron/recuperar-produtos-itens-venda/',
+        views.api_cron_recuperar_produtos_itens_venda,
+        name='api_cron_recuperar_produtos_itens_venda',
+    ),
+    path(
         'api/cron/importar-titulos-financeiro-mongo-pg/',
         views.api_cron_importar_titulos_financeiro_mongo_pg,
         name='api_cron_importar_titulos_financeiro_mongo_pg',

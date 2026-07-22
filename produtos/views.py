@@ -25002,6 +25002,51 @@ def api_cron_importar_catalogo_mongo(request):
 
 
 @require_GET
+def api_cron_recuperar_produtos_itens_venda(request):
+    """
+    Recria ``Produto`` ausentes a partir de ``ItemVendaAgro`` (só Postgres, sem Mongo).
+    Loja ou staging — token ``ALERTA_VENDAS_CRON_TOKEN``.
+
+    Ex.: ``?token=…&nome_contem=kitekat`` · ``&venda=3751`` · ``&dias=7`` · ``&dry_run=1``
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    nome = str(request.GET.get("nome_contem") or "").strip()
+    try:
+        venda_id = int(str(request.GET.get("venda") or "0").strip() or "0") or None
+    except ValueError:
+        venda_id = None
+    try:
+        dias = int(str(request.GET.get("dias") or "0").strip() or "0")
+    except ValueError:
+        dias = 0
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+
+    if not nome and not venda_id and not (dias and dias > 0):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Informe nome_contem, venda ou dias (>0).",
+            },
+            status=400,
+        )
+
+    from produtos.management.commands.recuperar_produtos_itens_venda import (
+        recuperar_produtos_de_itens,
+    )
+
+    out = recuperar_produtos_de_itens(
+        nome_contem=nome,
+        venda_id=venda_id,
+        dias=dias,
+        dry_run=dry,
+    )
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
+@require_GET
 def api_cron_importar_titulos_financeiro_mongo_pg(request):
     """
     Importa DtoLancamento → TituloFinanceiroAgro via HTTP (staging sem Shell).
