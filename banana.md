@@ -1165,6 +1165,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Verificação remota loja — abrir/vender amanhã (22/07 ~23:20 · Renan ausente AnyDesk)
+
+| Item | Resultado |
+| ---- | --------- |
+| **Loja Live** | **v11.64** em `https://sistvale.com.br/` (badge home) · commit **118acbc** |
+| **healthz** | **200 ok** (~0,7s) |
+| **PDV `/consulta/`** | HTML 200 · JS `consulta_produtos` + `agro_busca_catalogo` com `?v=118acbc…` (pacote novo) |
+| **Busca `/api/buscar/`** | OK ~0,5–1,4s · leite/cão/gato/ração/GM9503 retornam produtos |
+| **Freio catálogo full** | **ligado** — `/api/todos-produtos/` e `…/delta/` respondem vazio em &lt;1s (`catalogo-full-off`) → PDV vende pela busca servidor (não remonta catálogo gigante de manhã) |
+| **Freio no código** | `agro_pdv_catalogo_full_desligado` **mantido** na loja (não veio removido do teste) |
+| **AST Python** | views / fonte / settings / middleware OK |
+| **Rollback pronto** | `rollback/pre-v1164-devolucao-bca-custo` @ **241782c** → `git push origin rollback/pre-v1164-devolucao-bca-custo:producao` |
+| **NÃO testado** (sem login) | Abrir caixa · finalizar venda · fiado · devolução na loja · NFC-e |
+| **NÃO na loja ainda** | `--todas` reaplicar custos (só **teste v11.65**) — **não bloqueia vender** |
+| **Amanhã de manhã (loja)** | 1) Ctrl+F5 no PDV · 2) abrir caixa · 3) buscar produto + 1 venda rápida · se site morto: ver healthz / Render · se pacote ruim: rollback acima |
+
+**Veredito assistente:** site e busca da loja **saudáveis** para abrir e vender; risco residual = fluxos autenticados (caixa/venda) não exercitados daqui.
+
 ### 📌 Reaplicar custos NF em lote `--todas` (**teste v11.65** · 22/07)
 
 | Item | Detalhe |
