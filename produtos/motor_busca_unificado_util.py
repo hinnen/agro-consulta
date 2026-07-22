@@ -357,7 +357,15 @@ def buscar_documentos_unificado(
     prods = _filtrar_gm_estrito(termo, prods)
     from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv, score_relevancia_doc
 
-    prods = filtrar_documentos_estilo_pdv(prods, termo)
+    filtrados = filtrar_documentos_estilo_pdv(prods, termo)
+    # Frase tipo "ração estima carne": AND zera (produto = "estimacat…", sem "ração").
+    # Fallback: token mais longo ≥4 chars (marca/linha) — loja precisa achar o item.
+    if not filtrados and prods and " " in str(termo).strip():
+        partes = [p for p in str(termo).split() if len(p.strip()) >= 4]
+        if partes:
+            best = max(partes, key=len)
+            filtrados = filtrar_documentos_estilo_pdv(prods, best)
+    prods = filtrados
     prods = sorted(
         prods,
         key=lambda d: (
