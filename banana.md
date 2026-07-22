@@ -1157,6 +1157,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚨 PDV busca vazia pós-v10.91 + fix **v10.92** (22/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Digita produto (ex. milho) → nada; splash sumiu mas busca morta |
+| **Prova loja** | `/api/buscar/?wizard=1&q=milho` → **200 ~2s 1 produto**; `/api/todos-produtos/delta/` → **500 ~30s** |
+| **Causa** | Busca tecla esperava catálogo completo; delta morria com N+1 overlay PG |
+| **Fix** | (A) `pdv_wizard.js` busca servidor sem esperar delta · (B) `catalogo_agro` batch sem N+1 |
+| **VERSION** | **loja v10.92** · rollback `a6f7a70` / v10.91 |
+| **NÃO rollback** | v10.90 (pior — saldos de novo) |
+
 ### 📦 Deploy loja **v10.91** — splash PDV só na 1ª carga (22/07 · Renan 99738595)
 
 | Item | Detalhe |

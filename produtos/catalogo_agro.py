@@ -60,7 +60,12 @@ def _aplicar_overlay_em_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> d
     return row
 
 
-def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None) -> dict:
+def produto_agro_para_row(
+    p: Produto,
+    ov: ProdutoGestaoOverlayAgro | None = None,
+    *,
+    resolver_overlay_faltante: bool = True,
+) -> dict:
     pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
     row = {
         "id": pid,
@@ -91,7 +96,9 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
 
-    if ov is None and pid:
+    # Batch (_rows_de_produtos) já monta ov_map: NÃO reconsultar overlay por produto
+    # (N+1 derruba /api/todos-produtos/delta/ e trava o PDV).
+    if resolver_overlay_faltante and ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
     # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
@@ -137,7 +144,11 @@ def _rows_de_produtos(produtos: list[Produto]) -> list[dict]:
     out: list[dict] = []
     for p in produtos:
         pid = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
-        out.append(produto_agro_para_row(p, ov=ov_map.get(pid)))
+        out.append(
+            produto_agro_para_row(
+                p, ov=ov_map.get(pid), resolver_overlay_faltante=False
+            )
+        )
     return out
 
 
@@ -847,7 +858,11 @@ def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
     if p:
         pid_key = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
         ov_map = _overlay_mapa_por_ids([pid_key])
-        return row_para_doc_gestao_lista(produto_agro_para_row(p, ov=ov_map.get(pid_key)))
+        return row_para_doc_gestao_lista(
+            produto_agro_para_row(
+                p, ov=ov_map.get(pid_key), resolver_overlay_faltante=False
+            )
+        )
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=esc[:64]).first()
     if not ov:
         return None
