@@ -1,4 +1,4 @@
-﻿# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
@@ -1156,6 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 Deploy loja **v10.91** — splash PDV só na 1ª carga (22/07 · Renan 99738595)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` **02a24e6** · aguardar Live |
+| **VERSION** | **loja v10.91** |
+| **Fix** | Tela CARREGANDO não volta no meio da venda/carrinho |
+| **Rollback** | **5de79bb** (v10.90) / tag `rollback-pre-v10.91-splash` |
+| **Após Live** | Ctrl+F5 PDV nas duas lojas |
 
 ### 📦 Deploy loja **v10.89** — Entrada NF V. unit no Mudar (21/07 · Renan frase+senha)
 
