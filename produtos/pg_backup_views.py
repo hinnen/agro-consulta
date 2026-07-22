@@ -207,3 +207,65 @@ def importar_catalogo_faltantes(request):
         f"</body></html>"
     )
     return HttpResponse(body, content_type="text/html; charset=utf-8")
+
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@require_GET
+def recuperar_produtos_vendas(request):
+    """
+    Emergência sem Mongo: recria ``Produto`` a partir de itens de venda (Postgres).
+    ``?dias=90`` (padrão) · ``?dry_run=1`` · ``?json=1``
+    """
+    import html
+    import traceback
+
+    try:
+        dias = int(str(request.GET.get("dias") or "90").strip() or "90")
+    except ValueError:
+        dias = 90
+    dias = max(1, min(dias, 730))
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+    want_json = str(request.GET.get("json") or "").strip().lower() in ("1", "true", "yes")
+    nome = str(request.GET.get("nome_contem") or "").strip()
+
+    try:
+        from produtos.management.commands.recuperar_produtos_itens_venda import (
+            recuperar_produtos_de_itens,
+        )
+
+        out = recuperar_produtos_de_itens(
+            nome_contem=nome,
+            dias=dias,
+            dry_run=dry,
+        )
+    except Exception as exc:
+        out = {
+            "ok": False,
+            "erro": str(exc)[:500],
+            "traceback": traceback.format_exc()[-1500:],
+        }
+
+    out["usuario"] = request.user.get_username()
+    out["fonte"] = "itens_venda_postgres"
+    out["sem_mongo"] = True
+
+    if want_json or not out.get("ok"):
+        st = 200 if out.get("ok") else 500
+        return JsonResponse(out, status=st, json_dumps_params={"default": str})
+
+    status_txt = "CONCLUÍDO (recuperação por vendas — sem Mongo)"
+    body = (
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        f"<title>Recuperar de vendas</title></head>"
+        f"<body style='font-family:sans-serif;padding:1.5rem'>"
+        f"<h1>{html.escape(status_txt)}</h1>"
+        f"<p>dias={dias} · candidatos={out.get('candidatos')} · "
+        f"<b>criados={out.get('criados')}</b> · reativados={out.get('reativados')} · "
+        f"já existiam={out.get('ja_existem')} · erros={out.get('erros')}</p>"
+        f"<p>Depois: Ctrl+F5 no PDV.</p>"
+        f"<pre style='background:#f4f4f4;padding:1rem;overflow:auto'>"
+        f"{html.escape(json.dumps(out, ensure_ascii=False, indent=2, default=str))}</pre>"
+        f"</body></html>"
+    )
+    return HttpResponse(body, content_type="text/html; charset=utf-8")
