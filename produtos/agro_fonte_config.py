@@ -156,10 +156,12 @@ def agro_financeiro_mongo_congelado() -> bool:
 
 
 def agro_entrada_nota_rascunho_postgres() -> bool:
-    """Rascunho Entrada NF (etapas 1–6) no Postgres. Default: ligado quando financeiro PG está ativo."""
+    """Rascunho Entrada NF (etapas 1–6) no Postgres. Default: ligado quando financeiro PG ou Mongo ERP off."""
     raw = getattr(settings, "AGRO_ENTRADA_NF_RASCUNHO_PG", None)
     if raw is not None:
         return bool(raw)
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres():
+        return True
     return agro_financeiro_usa_postgres()
 
 
@@ -176,6 +178,21 @@ def agro_staging_readonly() -> bool:
 def agro_pdv_venda_sem_mongo_erp() -> bool:
     """PDV confirmar venda: não bloquear em DtoProduto/DtoEstoque Mongo (ERP fora)."""
     return bool(getattr(settings, "AGRO_PDV_VENDA_SEM_MONGO_ERP", True))
+
+
+def agro_mongo_erp_desligado() -> bool:
+    """
+    ERP/Mongo cancelado: não abrir conexão (evita Authentication failed + travar Gunicorn).
+
+    ``AGRO_MONGO_ERP_DESLIGADO``: ``true``/``false`` força; ``auto`` (default) = desliga
+    quando ``AGRO_FONTE_CATALOGO=agro_pg`` (política da loja).
+    """
+    raw = str(getattr(settings, "AGRO_MONGO_ERP_DESLIGADO", "auto") or "auto").strip().lower()
+    if raw in ("1", "true", "yes", "on", "sim"):
+        return True
+    if raw in ("0", "false", "no", "off", "nao", "não"):
+        return False
+    return agro_catalogo_usa_postgres()
 
 
 def agro_pdv_nfce_assincrona() -> bool:
@@ -208,6 +225,7 @@ def agro_fonte_status_dict() -> dict:
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "compras_metricas_postgres": agro_compras_metricas_postgres(),
         "pdv_venda_sem_mongo_erp": agro_pdv_venda_sem_mongo_erp(),
+        "mongo_erp_desligado": agro_mongo_erp_desligado(),
         "pdv_nfce_assincrona": agro_pdv_nfce_assincrona(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),

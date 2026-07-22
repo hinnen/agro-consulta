@@ -1107,6 +1107,134 @@ def casar_produtos_mongo(
     return itens
 
 
+def casar_produtos_postgres(
+    itens: list[dict],
+    *,
+    emit_cnpj: str = "",
+) -> list[dict]:
+    """Casa itens da NF no catálogo Postgres (ERP/Mongo morto)."""
+    if not itens:
+        return itens
+    from django.db.models import Q
+
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    for it in itens:
+        if not isinstance(it, dict):
+            continue
+        it["produto_id"] = None
+        it["nome_catalogo"] = None
+        it["match_tipo"] = None
+        ean = (it.get("ean") or "").strip()
+        cprod = (it.get("c_prod") or "").strip()
+        p = None
+        mtipo = None
+        try:
+            if ean:
+                p = (
+                    Produto.objects.filter(codigo_barras__iexact=ean)
+                    .order_by("pk")
+                    .first()
+                )
+                if p:
+                    mtipo = "ean_pg"
+                if not p:
+                    ov = (
+                        ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__iexact=ean)
+                        .order_by("pk")
+                        .first()
+                    )
+                    if ov and (ov.produto_externo_id or "").strip():
+                        p = (
+                            Produto.objects.filter(produto_externo_id=ov.produto_externo_id)
+                            .order_by("pk")
+                            .first()
+                        )
+                        if p:
+                            mtipo = "ean_overlay"
+            if not p and cprod:
+                p = (
+                    Produto.objects.filter(
+                        Q(codigo_interno__iexact=cprod)
+                        | Q(codigo_nfe__iexact=cprod)
+                        | Q(produto_externo_id__iexact=cprod)
+                    )
+                    .order_by("pk")
+                    .first()
+                )
+                if p:
+                    mtipo = "codigo_pg"
+                if not p:
+                    ov = (
+                        ProdutoGestaoOverlayAgro.objects.filter(codigo_nfe__iexact=cprod)
+                        .order_by("pk")
+                        .first()
+                    )
+                    if ov and (ov.produto_externo_id or "").strip():
+                        p = (
+                            Produto.objects.filter(produto_externo_id=ov.produto_externo_id)
+                            .order_by("pk")
+                            .first()
+                        )
+                        if p:
+                            mtipo = "codigo_overlay"
+        except Exception as exc:
+            logger.warning("casar_produtos_postgres: %s", exc)
+            continue
+        if not p:
+            continue
+        pid = str(
+            (getattr(p, "produto_externo_id", None) or "").strip()
+            or (getattr(p, "erp_produto_id", None) or "").strip()
+            or p.pk
+        )
+        it["produto_id"] = pid
+        it["nome_catalogo"] = str(p.nome or "")[:300]
+        it["match_tipo"] = mtipo or "pg"
+        try:
+            ov2 = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+        except Exception:
+            ov2 = None
+        gm = ""
+        if ov2 and (ov2.codigo_nfe or "").strip():
+            gm = str(ov2.codigo_nfe).strip()
+        elif (p.codigo_nfe or "").strip():
+            gm = str(p.codigo_nfe).strip()
+        elif (p.codigo_interno or "").strip():
+            gm = str(p.codigo_interno).strip()
+        if gm:
+            it["codigo_nfe"] = gm[:64]
+        pv = None
+        if ov2 and ov2.preco_venda is not None:
+            try:
+                pv = float(ov2.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        if pv is None and p.preco_venda is not None:
+            try:
+                pv = float(p.preco_venda)
+            except (TypeError, ValueError):
+                pv = None
+        if pv is not None and pv > 0:
+            it["preco_venda"] = pv
+    return itens
+
+
+def casar_produtos_entrada_nfe(
+    itens: list[dict],
+    *,
+    emit_cnpj: str = "",
+    db=None,
+    col_p: str = "DtoProduto",
+) -> list[dict]:
+    """Preferência Postgres quando catálogo agro_pg / Mongo desligado; senão Mongo."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
+
+    if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres() or db is None:
+        return casar_produtos_postgres(itens, emit_cnpj=emit_cnpj)
+    return casar_produtos_mongo(db, col_p, itens, emit_cnpj=emit_cnpj)
+
+
 def persistir_vinculos_c_prod_entrada_nfe_linhas(
     db,
     col_p: str,
