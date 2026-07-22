@@ -796,6 +796,7 @@ def inserir_lancamentos_manual_lote_dispatch(
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Mongo vs Postgres CP vs simulação staging."""
+    from produtos.agro_fonte_config import agro_mongo_erp_desligado
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
     from produtos.mongo_financeiro_util import (
         inserir_lancamentos_manual_lote,
@@ -804,6 +805,13 @@ def inserir_lancamentos_manual_lote_dispatch(
 
     if financeiro_grava_postgres(despesa):
         return inserir_lancamentos_manual_lote_pg(despesa=despesa, **kwargs)
+    # Mongo ERP morto / desligado: grava no Postgres (mesmo sem AGRO_FONTE_FINANCEIRO=agro_pg).
+    if agro_mongo_erp_desligado() or db is None:
+        try:
+            return inserir_lancamentos_manual_lote_pg(despesa=despesa, **kwargs)
+        except Exception:
+            logger.exception("inserir_lancamentos_manual_lote_dispatch fallback PG")
+            return simular_lancamentos_manual_lote_staging(linhas=kwargs.get("linhas", []))
     if agro_mongo_escrita_bloqueada():
         return simular_lancamentos_manual_lote_staging(linhas=kwargs.get("linhas", []))
     return inserir_lancamentos_manual_lote(db, despesa=despesa, **kwargs)

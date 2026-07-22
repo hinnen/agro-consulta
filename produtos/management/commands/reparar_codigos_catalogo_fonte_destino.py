@@ -2,18 +2,18 @@
 Repara nome/GM/EAN na loja a partir de um Postgres fonte (staging).
 NÃO mexe em preço nem estoque.
 
-Uso:
-  set AGRO_CATALOGO_FONTE_DATABASE_URL=<external URL agro-staging>
-  set AGRO_CATALOGO_DEST_DATABASE_URL=<external URL agro-db loja>
-  python manage.py reparar_codigos_catalogo_fonte_destino --aplicar
+.env:
+  DATABASE_URL=...agro-staging...   (fonte, se AGRO_CATALOGO_FONTE não setada)
+  AGRO_CATALOGO_DEST_DATABASE_URL=...agro-db loja...
 
-Sem --aplicar: só imprime quantos mudariam.
+  python manage.py reparar_codigos_catalogo_fonte_destino
+  python manage.py reparar_codigos_catalogo_fonte_destino --aplicar
 """
 from __future__ import annotations
 
+import dj_database_url
 from django.core.management.base import BaseCommand
 from django.db import connections
-import dj_database_url
 
 
 _CAMPOS = ("nome", "codigo_barras", "codigo_nfe", "codigo_interno")
@@ -24,6 +24,9 @@ def _cfg(url: str) -> dict:
     cfg.setdefault("TIME_ZONE", None)
     cfg.setdefault("ATOMIC_REQUESTS", False)
     cfg.setdefault("AUTOCOMMIT", True)
+    cfg.setdefault("OPTIONS", {})
+    cfg.setdefault("CONN_HEALTH_CHECKS", False)
+    cfg.setdefault("CONN_MAX_AGE", 0)
     return cfg
 
 
@@ -44,21 +47,17 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from decouple import config
         from django.conf import settings
         from produtos.models import Produto
 
         fonte_url = (getattr(settings, "AGRO_CATALOGO_FONTE_DATABASE_URL", "") or "").strip()
         dest_url = (getattr(settings, "AGRO_CATALOGO_DEST_DATABASE_URL", "") or "").strip()
         if not fonte_url:
-            from decouple import config
-
             fonte_url = (config("AGRO_CATALOGO_FONTE_DATABASE_URL", default="") or "").strip()
         if not fonte_url:
-            # Local já no staging: usa DATABASE_URL atual como fonte.
             fonte_url = (config("DATABASE_URL", default="") or "").strip()
         if not dest_url:
-            from decouple import config
-
             dest_url = (config("AGRO_CATALOGO_DEST_DATABASE_URL", default="") or "").strip()
 
         if not fonte_url or not dest_url:
@@ -67,7 +66,7 @@ class Command(BaseCommand):
                 "Fonte = DATABASE_URL atual (agro-staging) se AGRO_CATALOGO_FONTE não estiver setada."
             )
             return
-        if fonte_url == dest_url:
+        if fonte_url.strip() == dest_url.strip():
             self.stderr.write("Fonte e destino iguais — abortado.")
             return
 
@@ -77,74 +76,80 @@ class Command(BaseCommand):
         connections.databases["cat_dest"] = settings.DATABASES["cat_dest"]
         for alias in ("cat_fonte", "cat_dest"):
             if alias in connections:
-                connections[alias].close()
+                try:
+                    connections[alias].close()
+                except Exception:
+                    pass
 
         aplicar = bool(options.get("aplicar"))
         limite = int(options.get("limite") or 0)
 
-        fonte_qs = (
-            Produto.objects.using("cat_fonte")
+        self.stdout.write("Lendo destino…")
+        dest_map: dict[str, Produto] = {}
+        for d in (
+            Produto.objects.using("cat_dest")
             .exclude(produto_externo_id__isnull=True)
             .exclude(produto_externo_id="")
-            .only("produto_externo_id", *_CAMPOS)
-        )
+            .only("pk", "produto_externo_id", *_CAMPOS)
+            .iterator(chunk_size=800)
+        ):
+            dest_map[(d.produto_externo_id or "").strip()] = d
+        self.stdout.write(f"destino={len(dest_map)}")
 
+        self.stdout.write("Comparando fonte…")
         n_igual = 0
         n_mudaria = 0
         n_sem_dest = 0
         n_aplicado = 0
         exemplos: list[str] = []
+        to_save: list[tuple[Produto, list[str]]] = []
 
-        for src in fonte_qs.iterator(chunk_size=400):
+        for src in (
+            Produto.objects.using("cat_fonte")
+            .exclude(produto_externo_id__isnull=True)
+            .exclude(produto_externo_id="")
+            .only("produto_externo_id", *_CAMPOS)
+            .iterator(chunk_size=800)
+        ):
             ext = (src.produto_externo_id or "").strip()
             if not ext:
                 continue
-            dest = (
-                Produto.objects.using("cat_dest")
-                .filter(produto_externo_id=ext)
-                .only("pk", "produto_externo_id", *_CAMPOS)
-                .first()
-            )
+            dest = dest_map.get(ext)
             if not dest:
                 n_sem_dest += 1
                 continue
 
-            mudou = False
-            before = {}
+            fields: list[str] = []
+            before: dict[str, tuple[str, str]] = {}
             for c in _CAMPOS:
-                sv = (getattr(src, c, None) or "")
-                dv = (getattr(dest, c, None) or "")
-                if isinstance(sv, str):
-                    sv = sv.strip()
-                if isinstance(dv, str):
-                    dv = dv.strip()
-                # Fonte vazia não sobrescreve destino
+                sv = getattr(src, c, None)
+                dv = getattr(dest, c, None)
+                sv = (sv or "").strip() if isinstance(sv, str) else (str(sv) if sv is not None else "")
+                dv = (dv or "").strip() if isinstance(dv, str) else (str(dv) if dv is not None else "")
                 if not sv:
                     continue
-                if str(sv) != str(dv):
-                    mudou = True
+                if sv != dv:
                     before[c] = (dv, sv)
+                    setattr(dest, c, sv)
+                    fields.append(c)
 
-            if not mudou:
+            if not fields:
                 n_igual += 1
                 continue
 
             n_mudaria += 1
-            if len(exemplos) < 12:
+            if len(exemplos) < 15:
                 exemplos.append(
-                    f"{ext} | "
-                    + "; ".join(f"{k}: {a!r} → {b!r}" for k, (a, b) in before.items())
+                    f"{ext} | " + "; ".join(f"{k}: {a!r}->{b!r}" for k, (a, b) in before.items())
                 )
+            to_save.append((dest, fields))
 
-            if not aplicar:
-                continue
-            if limite and n_aplicado >= limite:
-                continue
-
-            for c, (_old, new) in before.items():
-                setattr(dest, c, new)
-            dest.save(using="cat_dest", update_fields=list(before.keys()))
-            n_aplicado += 1
+        if aplicar:
+            for dest, fields in to_save:
+                if limite and n_aplicado >= limite:
+                    break
+                dest.save(using="cat_dest", update_fields=fields)
+                n_aplicado += 1
 
         self.stdout.write(
             f"iguais={n_igual} mudaria={n_mudaria} sem_destino={n_sem_dest} "

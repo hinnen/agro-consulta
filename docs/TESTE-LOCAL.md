@@ -18,6 +18,7 @@ Arquivo `.env` (já existe aí): para espelhar a loja sem Mongo morto, confira:
 
 ```env
 AGRO_FONTE_CATALOGO=agro_pg
+AGRO_FONTE_FINANCEIRO=agro_pg
 AGRO_MONGO_ERP_DESLIGADO=true
 AGRO_PDV_VENDA_SEM_MONGO_ERP=true
 ```

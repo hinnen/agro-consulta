@@ -87,9 +87,12 @@ def executar_importar_catalogo_mongo_produto(
 
     criados = atualizados = erros = ignorados_sem_id = ignorados_fantasma = 0
     ja_existem = 0
+    lidos = 0
     amostras_criados: list[str] = []
+    ultimo_erro = ""
 
     for doc in cur:
+        lidos += 1
         try:
             raw_id = doc.get("Id")
             if raw_id is None or str(raw_id).strip() == "":
@@ -182,8 +185,9 @@ def executar_importar_catalogo_mongo_produto(
                         amostras_criados.append(f"{pid}|{nome[:60]}|{_obj.preco_venda}")
                 else:
                     atualizados += 1
-        except Exception:
+        except Exception as exc:
             erros += 1
+            ultimo_erro = str(exc)[:300]
 
     if not dry_run and criados:
         _invalidar_slim_pdv()
@@ -193,12 +197,16 @@ def executar_importar_catalogo_mongo_produto(
     except Exception:
         total_pg = -1
 
+    proximo_skip = skip + lidos
+    continuar = bool(limit and lidos >= limit)
+
     return {
         "ok": True,
         "criados": criados,
         "atualizados": atualizados,
         "ja_existem": ja_existem,
         "erros": erros,
+        "ultimo_erro": ultimo_erro,
         "ignorados_sem_id": ignorados_sem_id,
         "ignorados_fantasma": ignorados_fantasma,
         "total_mongo": total_mongo,
@@ -207,6 +215,9 @@ def executar_importar_catalogo_mongo_produto(
         "somente_faltantes": somente_faltantes,
         "limit": limit,
         "skip": skip,
+        "lidos": lidos,
+        "proximo_skip": proximo_skip,
+        "continuar": continuar,
         "amostras_criados": amostras_criados,
     }
 

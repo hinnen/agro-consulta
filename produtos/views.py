@@ -399,6 +399,22 @@ def obter_conexao_mongo():
         return None, None
 
 
+def _entrada_nfe_rascunho_db_ok(db) -> bool:
+    """True se dá para seguir Entrada NF sem Mongo (rascunho PG) ou com Mongo."""
+    if db is not None:
+        return True
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    return agro_entrada_nota_rascunho_postgres()
+
+
+def _json_entrada_nfe_sem_armazenamento():
+    return JsonResponse(
+        {"ok": False, "erro": "Armazenamento de rascunho indisponível"},
+        status=503,
+    )
+
+
 def obter_conexao_mongo_pdv():
     """Mongo para fluxos PDV venda — respeita ``AGRO_PDV_VENDA_SEM_MONGO_ERP``."""
     from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
@@ -11247,46 +11263,56 @@ def api_venda_agro_devolver(request, pk):
 
     with transaction.atomic():
         if venda.estoque_baixa_agro_aplicada and filtro_est:
-            try:
-                cm, dbe = obter_conexao_mongo()
-            except Exception as exc:
-                cm, dbe = None, None
-                logger.exception("devolucao venda mongo: %s", exc)
-            if cm is not None and dbe is not None:
-                from produtos.pdv_deposito_util import deposito_da_venda
+            # Igual à baixa na venda: não depender de Mongo (ledger / PG).
+            # Ping Mongo lento/travado gerava timeout → tela «Falha de rede».
+            from produtos.agro_fonte_config import (
+                agro_mongo_erp_desligado,
+                agro_pdv_venda_sem_mongo_erp,
+            )
+            from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+            from produtos.pdv_deposito_util import deposito_da_venda
 
-                dep_v = deposito_da_venda(venda)
-                if dep_v not in ("centro", "vila"):
-                    dep_v = "centro"
-                r_est = aplicar_estorno_estoque_venda_agro(
-                    db=dbe,
-                    client_m=cm,
-                    venda=venda,
-                    deposito=dep_v,
-                    usuario_label=user_label,
-                    usuario_django=request.user if request.user.is_authenticated else None,
-                    itens_filtro=filtro_est,
-                )
-                if r_est.get("erros"):
-                    estoque_ok = False
-                    msgs = "; ".join(
-                        str(e.get("erro") or e)[:120] for e in r_est["erros"][:3]
-                    )
-                    return JsonResponse(
-                        {
-                            "ok": False,
-                            "erro": "Falha ao repor estoque: " + (msgs or "erro desconhecido"),
-                        },
-                        status=400,
-                    )
-                if r_est.get("avisos"):
-                    for av in r_est["avisos"]:
-                        avisos.append(str(av.get("msg") or av))
-                if r_est.get("aplicados"):
-                    _invalidar_caches_apos_ajuste_pin()
-            else:
-                avisos.append("Mongo indisponível — estoque não foi reposto na camada Agro.")
+            cm, dbe = None, None
+            skip_mongo = (
+                agro_mongo_erp_desligado()
+                or agro_pdv_venda_sem_mongo_erp()
+                or agro_estoque_ledger_ativo()
+            )
+            if not skip_mongo:
+                try:
+                    cm, dbe = obter_conexao_mongo()
+                except Exception as exc:
+                    cm, dbe = None, None
+                    logger.exception("devolucao venda mongo: %s", exc)
+            dep_v = deposito_da_venda(venda)
+            if dep_v not in ("centro", "vila"):
+                dep_v = "centro"
+            r_est = aplicar_estorno_estoque_venda_agro(
+                db=dbe,
+                client_m=cm,
+                venda=venda,
+                deposito=dep_v,
+                usuario_label=user_label,
+                usuario_django=request.user if request.user.is_authenticated else None,
+                itens_filtro=filtro_est,
+            )
+            if r_est.get("erros"):
                 estoque_ok = False
+                msgs = "; ".join(
+                    str(e.get("erro") or e)[:120] for e in r_est["erros"][:3]
+                )
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Falha ao repor estoque: " + (msgs or "erro desconhecido"),
+                    },
+                    status=400,
+                )
+            if r_est.get("avisos"):
+                for av in r_est["avisos"]:
+                    avisos.append(str(av.get("msg") or av))
+            if r_est.get("aplicados"):
+                _invalidar_caches_apos_ajuste_pin()
         elif filtro_est and not venda.estoque_baixa_agro_aplicada:
             avisos.append("Venda sem baixa automática de estoque — nada a repor no Agro.")
 
@@ -11378,7 +11404,11 @@ def api_venda_agro_devolver(request, pk):
         if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
             from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
 
-            r_nfce = cancelar_nfce_autorizada(nfce)
+            try:
+                r_nfce = cancelar_nfce_autorizada(nfce)
+            except Exception as exc:
+                logger.exception("devolucao venda nfce cancel: %s", exc)
+                r_nfce = {"ok": False, "erro": str(exc)[:200]}
             if r_nfce.get("ok"):
                 nfce_cancelada = True
                 num = nfce.numero or "?"
@@ -12656,7 +12686,7 @@ def api_entrada_nota_salvar(request):
     from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
 
     if db is None and not agro_entrada_nota_rascunho_postgres():
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+        return _json_entrada_nfe_sem_armazenamento()
     col_pessoa = None
     if client is not None:
         col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
@@ -12686,11 +12716,9 @@ def api_entrada_nota_salvar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_rascunhos(request):
-    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
-
     _, db = obter_conexao_mongo()
-    if db is None and not agro_entrada_nota_rascunho_postgres():
-        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"erro": "Armazenamento de rascunho indisponível", "itens": []}, status=503)
     try:
         lim = min(int(request.GET.get("limit") or 25), 80)
     except ValueError:
@@ -12710,15 +12738,17 @@ def api_entrada_nota_auditoria_financeiro(request):
     **Concluída** na lista = PIN etapa 6; use ``filtro=concluida`` para revisar só as verdes.
     """
     client, db = obter_conexao_mongo()
-    if db is None and not agro_financeiro_usa_postgres():
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_entrada_nota_rascunho_postgres
+
+    if db is None and not agro_financeiro_usa_postgres() and not agro_entrada_nota_rascunho_postgres():
+        return _json_entrada_nfe_sem_armazenamento()
     filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
     busca = entrada_nfe_busca_params_from_request(request)
     try:
         lim = min(int(request.GET.get("limit") or 80), 200)
     except ValueError:
         lim = 80
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    col_pessoa = (getattr(client, "col_c", None) or "DtoPessoa") if client is not None else "DtoPessoa"
     try:
         out = auditar_entrada_nfe_financeiro_lote(
             db,
@@ -12742,12 +12772,12 @@ def api_entrada_nota_auditoria_financeiro(request):
 def api_entrada_nota_rascunho_obter(request):
     oid = (request.GET.get("id") or "").strip()
     client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return _json_entrada_nfe_sem_armazenamento()
     doc = obter_rascunho_entrada(
         db,
         oid,
-        col_pessoa=getattr(client, "col_c", None) or "DtoPessoa",
+        col_pessoa=(getattr(client, "col_c", None) or "DtoPessoa") if client is not None else "DtoPessoa",
     )
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado ou ID inválido."}, status=404)
@@ -12766,8 +12796,8 @@ def api_entrada_nota_rascunho_excluir(request):
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return _json_entrada_nfe_sem_armazenamento()
     r = excluir_rascunho_entrada(db, oid)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -12974,6 +13004,8 @@ def _empresa_loja_entrada_nfe(deposito: str, empresa_faturada_id: int | None) ->
 
 
 def _saldo_erp_produto_deposito_mongo(db, client_m, produto_id: str, deposito: str) -> Decimal:
+    if db is None or client_m is None:
+        return Decimal("0").quantize(Decimal("0.001"))
     dep_id = (
         client_m.DEPOSITO_VILA_ELIAS if deposito == "vila" else client_m.DEPOSITO_CENTRO
     )
@@ -13284,13 +13316,46 @@ def aplicar_entrada_nota_estoque_agro(
         saldo_final_antes = _saldo_final_agro_com_pin(pid, dep, saldo_erp)
         saldo_final_depois = (saldo_final_antes + qtd).quantize(Decimal("0.001"))
 
-        doc = _produto_mongo_por_id_externo(db, client_m, pid)
+        doc = _produto_mongo_por_id_externo(db, client_m, pid) if db is not None and client_m is not None else None
         nome_p = str((doc or {}).get("Nome") or ln.get("x_prod") or "")[:200]
         codigo = str((doc or {}).get("CodigoNFe") or (doc or {}).get("Codigo") or ln.get("c_prod") or "")[
             :100
         ]
+        if not nome_p or not codigo:
+            try:
+                from produtos.catalogo_agro import obter_produto_model
+
+                p_pg = obter_produto_model(pid)
+                if p_pg is not None:
+                    if not nome_p:
+                        nome_p = str(p_pg.nome or "")[:200]
+                    if not codigo:
+                        codigo = str(p_pg.codigo_nfe or p_pg.codigo_interno or "")[:100]
+            except Exception:
+                pass
 
         try:
+            custo_ln = None
+            for _ck in ("v_un_com", "custo_unitario_nota", "preco_custo", "v_unit"):
+                raw_c = ln.get(_ck)
+                if raw_c in (None, ""):
+                    continue
+                try:
+                    cv = float(str(raw_c).replace(",", ".").strip() or "0")
+                except (TypeError, ValueError):
+                    continue
+                if cv > 0:
+                    custo_ln = cv
+                    break
+            forn_cab = str(
+                cab.get("emit_nome") or cab.get("fornecedor_nome") or cab.get("fornecedor") or ""
+            ).strip()[:180]
+            obs_bits = []
+            if forn_cab:
+                obs_bits.append("nf_forn=" + forn_cab.replace("|", "/"))
+            if custo_ln is not None:
+                obs_bits.append(f"nf_custo={custo_ln:.4f}".rstrip("0").rstrip("."))
+            obs_txt = " | ".join(obs_bits)
             adj = AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 loja=loja,
@@ -13301,6 +13366,7 @@ def aplicar_entrada_nota_estoque_agro(
                 saldo_erp_referencia=saldo_erp,
                 saldo_informado=saldo_final_depois,
                 origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+                observacao=obs_txt[:2000],
                 usuario=usuario_django if usuario_django is not None else None,
             )
             aplicados.append(
@@ -13499,6 +13565,7 @@ def aplicar_estorno_estoque_venda_agro(
     """Entrada de estoque na camada Agro (estorno da baixa da venda).
 
     `itens_filtro`: lista opcional de `(ItemVendaAgro, Decimal qtd)` — se None, estorna todos os itens.
+    Mesmo caminho sem Mongo da baixa (`mapa_saldos_operacionais_agro` / ledger).
     """
     dep_sess = (deposito or "centro").strip().lower()
     if dep_sess not in ("centro", "vila"):
@@ -13506,6 +13573,30 @@ def aplicar_estorno_estoque_venda_agro(
     user = (usuario_label or "PDV")[:80]
     aplicados: list[dict] = []
     erros: list[dict] = []
+    from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+
+    sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _saldo_antes_estorno(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
+        """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
+        if sem_mongo:
+            if pid_loc not in saldos_op_cache:
+                from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+                saldos_op_cache.update(
+                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                )
+            info = saldos_op_cache.get(pid_loc) or {}
+            if dep_l == "vila":
+                antes = Decimal(str(info.get("saldo_vila", 0)))
+                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+            else:
+                antes = Decimal(str(info.get("saldo_centro", 0)))
+                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
+        return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 
     def _uma_entrada(
         pid_loc: str,
@@ -13518,8 +13609,7 @@ def aplicar_estorno_estoque_venda_agro(
         if dep_l not in ("centro", "vila"):
             dep_l = "centro"
         empresa, loja = _empresa_loja_padrao_agro_estoque(dep_l)
-        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
-        saldo_antes = _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp)
+        saldo_antes, saldo_erp = _saldo_antes_estorno(pid_loc, dep_l)
         saldo_depois = (saldo_antes + qtd_loc).quantize(Decimal("0.001"))
         try:
             AjusteRapidoEstoque.objects.create(
@@ -13579,7 +13669,11 @@ def aplicar_estorno_estoque_venda_agro(
         baixa_cmp = bool(kit_cfg.get("baixa_componentes"))
         dep_kit = _deposito_baixa_kit_componente(kit_cfg, dep_sess)
 
-        p_doc = _produto_mongo_por_id_externo(db, client_m, pid) if db is not None else None
+        p_doc = (
+            _produto_mongo_por_id_externo(db, client_m, pid)
+            if db is not None and not sem_mongo
+            else None
+        )
         comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
 
         if baixa_cmp and comp:
@@ -13679,9 +13773,16 @@ def api_entrada_nota_estoque_agro(request):
     usuario_op = operador_label_request(request) or usuario
 
     client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    # Estoque Agro + rascunho PG não dependem do Mongo ERP (assinatura morta / kill-switch).
+    col_rasc_chk = _entrada_nota_rascunho_store(db)
+    if col_rasc_chk is None and (db is None or client is None):
+        return JsonResponse(
+            {"ok": False, "erro": "Armazenamento de rascunho indisponível"},
+            status=503,
+        )
+    col_pessoa = (
+        (getattr(client, "col_c", None) or "DtoPessoa") if client is not None else "DtoPessoa"
+    )
     linhas_prev_est: list = []
     if rascunho_id_req:
         _oid_req = _object_id_rascunho(rascunho_id_req)
@@ -13743,7 +13844,7 @@ def api_entrada_nota_estoque_agro(request):
             if _oid_st is None:
                 raise ValueError("invalid")
             doc_st = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_st})
-            ex_st = doc_st.get("extra") if isinstance(doc_st.get("extra"), dict) else {}
+            ex_st = doc_st.get("extra") if isinstance(doc_st, dict) and isinstance(doc_st.get("extra"), dict) else {}
             if str(ex_st.get("aprovacao_wizard_em") or "").strip():
                 return JsonResponse(
                     {
@@ -13787,7 +13888,7 @@ def api_entrada_nota_estoque_agro(request):
         "estoque": resultado,
         "rascunho": r_rasc,
     }
-    if resultado.get("aplicados") and db is not None:
+    if resultado.get("aplicados"):
         rid_marcar = rascunho_id_req or (
             str(r_rasc.get("id") or "").strip() if isinstance(r_rasc, dict) and r_rasc.get("ok") else ""
         )
@@ -13925,7 +14026,8 @@ def api_entrada_nota_fornecedores(request):
             limit=lim,
         )
     elif not pg_rows:
-        return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
+        # Sem Mongo e sem hits PG: lista vazia (não bloqueia a etapa Fornecedor).
+        return JsonResponse({"itens": [], "fonte": "postgres"})
     extras: list[dict[str, str]] = []
     if q:
         if use_pg:
@@ -13998,17 +14100,36 @@ def api_entrada_nota_conferir_codigo(request):
         return JsonResponse({"ok": False, "erro": "Informe produto e o código bipado."}, status=400)
 
     client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col = db[client.col_p]
-    ors = [{"Id": produto_id}]
-    try:
-        ors.append({"Id": int(produto_id)})
-    except Exception:
-        pass
-    doc = col.find_one({"$or": ors})
+    col = None
+    doc = None
+    if db is not None and client is not None:
+        col = db[client.col_p]
+        ors = [{"Id": produto_id}]
+        try:
+            ors.append({"Id": int(produto_id)})
+        except Exception:
+            pass
+        doc = col.find_one({"$or": ors})
     if not doc:
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
+        from produtos.catalogo_agro import obter_produto_model
+
+        p = obter_produto_model(produto_id)
+        if p is None:
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
+        dig_p = "".join(ch for ch in str(p.codigo_barras or "") if ch.isdigit())
+        dig_c = "".join(ch for ch in codigo if ch.isdigit())
+        dig_a = "".join(ch for ch in codigo_alt if ch.isdigit()) if codigo_alt else ""
+        bate = bool(dig_p and dig_c and dig_p == dig_c)
+        if not bate and dig_a:
+            bate = bool(dig_p and dig_a and dig_p == dig_a)
+        return JsonResponse(
+            {
+                "ok": True,
+                "bate": bate,
+                "ignorado": False,
+                "nome": str(p.nome or "")[:300],
+            }
+        )
 
     tl = somente_alnum(codigo).lower()
     bate = bool(tl and produto_termo_bate_somente_codigo_barras(doc, tl))
@@ -14077,23 +14198,23 @@ def api_entrada_nota_aprovar_wizard(request):
         return JsonResponse({"ok": False, "erro": str(exc)[:500]}, status=500)
     client, db2 = obter_conexao_mongo()
     custo_out: dict[str, Any] = {"ok": False, "atualizados": 0, "erros": []}
-    if db2 is not None and client is not None:
-        try:
-            cab_ap = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-            linhas_ap = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
-            ex_ap = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
-            custo_out = _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
-                db=db2,
-                client_m=client,
-                linhas=linhas_ap,
-                cab=cab_ap,
-                extra=ex_ap,
-                user_pk=int(request.user.pk) if request.user.is_authenticated else None,
-                excluir_rascunho_id=oid,
-            )
-        except Exception as exc:
-            logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
-            custo_out = {"ok": False, "atualizados": 0, "erros": [{"erro": str(exc)[:300]}]}
+    # Custo no Cadastro SisVale (PG/overlay) não depende do Mongo — sempre tenta aplicar.
+    try:
+        cab_ap = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        linhas_ap = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        ex_ap = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        custo_out = _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
+            db=db2,
+            client_m=client,
+            linhas=linhas_ap,
+            cab=cab_ap,
+            extra=ex_ap,
+            user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            excluir_rascunho_id=oid,
+        )
+    except Exception as exc:
+        logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
+        custo_out = {"ok": False, "atualizados": 0, "erros": [{"erro": str(exc)[:300]}]}
     return JsonResponse({"ok": True, "id": oid, "custo_catalogo": custo_out})
 
 
@@ -14121,8 +14242,13 @@ def api_entrada_nota_reabrir_nota(request):
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    if db is None and not agro_entrada_nota_rascunho_postgres():
+        return JsonResponse(
+            {"ok": False, "erro": "Armazenamento de rascunho indisponível"},
+            status=503,
+        )
     rr = reverter_integracao_entrada_nota_para_reabertura(db, oid, usuario=usuario)
     if not rr.get("ok"):
         return JsonResponse(rr, status=400)
@@ -14466,6 +14592,10 @@ def _entrada_nfe_preview_custo_linha(
         c_prev = Decimal(str(float(custo_prev or 0))).quantize(Decimal("0.01"))
     except Exception:
         c_prev = Decimal("0")
+    if c_prev <= 0:
+        c_pg = _entrada_nfe_custo_prev_sisvale(pid)
+        if c_pg > 0:
+            c_prev = c_pg
 
     diverge_15 = False
     if custo_nota > 0 and c_prev > 0:
@@ -14523,6 +14653,53 @@ def _entrada_nfe_preview_custo_linha(
     }
 
 
+def _entrada_nfe_custo_prev_sisvale(pid: str) -> Decimal:
+    """Custo atual no Cadastro SisVale (overlay / Produto PG) — usado quando Mongo não tem espelho."""
+    pid64 = str(pid or "").strip()[:64]
+    if not pid64:
+        return Decimal("0")
+    try:
+        from produtos.catalogo_agro import obter_produto_model
+        from produtos.models import ProdutoGestaoOverlayAgro
+
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).first()
+        if ov is not None and isinstance(ov.cadastro_extras, dict):
+            raw = ov.cadastro_extras.get("preco_custo_overlay")
+            if raw is not None:
+                return Decimal(str(float(raw))).quantize(Decimal("0.01"))
+        p = obter_produto_model(pid64)
+        if p is not None and p.custo is not None:
+            return Decimal(str(p.custo)).quantize(Decimal("0.01"))
+    except Exception:
+        logger.warning("entrada_nfe custo_prev sisvale %s", pid64, exc_info=True)
+    return Decimal("0")
+
+
+def _entrada_nfe_gravar_custo_sisvale(pid: str, val: Decimal) -> bool:
+    """Grava custo no overlay + ``Produto.custo`` (fonte do Cadastro com agro_pg)."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.catalogo_agro import obter_produto_model, sincronizar_modelo_produto_de_overlay
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pid64 = str(pid or "").strip()[:64]
+    if not pid64:
+        return False
+    vf = float(val)
+    ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(produto_externo_id=pid64)
+    ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+    ex["preco_custo_overlay"] = vf
+    ov.cadastro_extras = ex
+    ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+    if agro_catalogo_usa_postgres():
+        sincronizar_modelo_produto_de_overlay(pid64, ov, custo_payload=val)
+    else:
+        p = obter_produto_model(pid64)
+        if p is not None:
+            p.custo = val
+            p.save(update_fields=["custo", "atualizado_em"])
+    return True
+
+
 def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     *,
     db,
@@ -14533,9 +14710,18 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     user_pk: int | None,
     excluir_rascunho_id: str | None = None,
 ) -> dict[str, Any]:
-    """Após PIN na etapa 6: grava custo no espelho Mongo conforme escolhas (média vs NF)."""
-    out: dict[str, Any] = {"ok": True, "atualizados": 0, "erros": []}
-    if db is None or client_m is None or not linhas:
+    """
+    Após PIN: grava custo no Cadastro SisVale (overlay + Produto) conforme escolhas (média vs NF).
+    Espelho Mongo é best-effort — se ERP estiver fora, o custo da loja ainda atualiza.
+    """
+    out: dict[str, Any] = {
+        "ok": True,
+        "atualizados": 0,
+        "atualizados_sisvale": 0,
+        "atualizados_mongo": 0,
+        "erros": [],
+    }
+    if not linhas:
         return out
     ex = extra if isinstance(extra, dict) else {}
     cab_d = cab if isinstance(cab, dict) else {}
@@ -14547,7 +14733,8 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             vs = str(v or "").strip().lower()
             if ks and vs in ("media", "nota"):
                 escolhas[ks] = vs
-    col = client_m.col_p
+    mongo_ok = db is not None and client_m is not None
+    col = client_m.col_p if mongo_ok else None
     ids_erp: list[str] = []
     uniq_pids: list[str] = []
     seen_u: set[str] = set()
@@ -14558,16 +14745,24 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         if p and not p.lower().startswith("local:") and p not in seen_u:
             seen_u.add(p)
             uniq_pids.append(p)
-    docs_map = _produtos_mongo_map_por_ids_externos_batch(db, client_m, uniq_pids)
-    saldos_map = _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids)
+    docs_map = (
+        _produtos_mongo_map_por_ids_externos_batch(db, client_m, uniq_pids) if mongo_ok else {}
+    )
+    saldos_map = (
+        _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids) if mongo_ok else {}
+    )
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
-    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db,
-        client_m,
-        linhas,
-        produtos_por_id=docs_map,
-        mongo_max_time_ms=70000,
-        excluir_rascunho_id=excluir_rascunho_id,
+    compras_mapa = (
+        _entrada_nfe_compras_mapa_batch_para_spark(
+            db,
+            client_m,
+            linhas,
+            produtos_por_id=docs_map,
+            mongo_max_time_ms=70000,
+            excluir_rascunho_id=excluir_rascunho_id,
+        )
+        if mongo_ok
+        else {}
     )
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
@@ -14575,6 +14770,15 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         pid = str(ln.get("produto_id") or "").strip()
         if not pid or pid.lower().startswith("local:"):
             continue
+        doc_ln = docs_map.get(pid) if isinstance(docs_map.get(pid), dict) else {}
+        if not doc_ln:
+            c_pg = _entrada_nfe_custo_prev_sisvale(pid)
+            doc_ln = {
+                "PrecoCusto": float(c_pg),
+                "ValorCusto": float(c_pg),
+                "Nome": str(ln.get("x_prod") or "")[:200],
+                "Id": pid,
+            }
         prev = _entrada_nfe_preview_custo_linha(
             db=db,
             client_m=client_m,
@@ -14583,7 +14787,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             extra=ex,
             linha_ix=ix,
             compras_mapa=compras_mapa,
-            produto_doc=docs_map.get(pid),
+            produto_doc=doc_ln,
             saldos_erp_batch=saldos_map,
             pin_latest=pin_map,
         )
@@ -14602,30 +14806,45 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         tipo = _entrada_nfe_tipo_entrada(ex)
         if tipo == "bonificacao" and modo == "nota":
             val = Decimal("0").quantize(Decimal("0.01"))
+        wrote = False
         try:
-            doc_ln = docs_map.get(pid)
-            if not isinstance(doc_ln, dict) or not doc_ln:
-                doc_ln = _produto_mongo_por_id_externo(db, client_m, pid) or {}
-            id_u = pid
-            if isinstance(doc_ln, dict):
-                id_u = str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
-            filt_u = _mongo_filtro_id_produto_externo(id_u)
-            vf = float(val)
-            r = db[col].update_one(filt_u, {"$set": {"PrecoCusto": vf, "ValorCusto": vf}})
-            if r.matched_count:
-                out["atualizados"] += 1
-                pid_erp = str((doc_ln or {}).get("Id") or "").strip() or str(id_u).strip()
-                if pid_erp:
-                    ids_erp.append(pid_erp[:64])
+            if _entrada_nfe_gravar_custo_sisvale(pid, val):
+                out["atualizados_sisvale"] += 1
+                wrote = True
         except Exception as exc:
-            out["erros"].append({"produto_id": pid, "erro": str(exc)[:300]})
-            logger.warning("entrada_nfe aplicar custo %s: %s", pid, exc)
+            out["erros"].append({"produto_id": pid, "erro": f"sisvale:{str(exc)[:280]}"})
+            logger.warning("entrada_nfe aplicar custo sisvale %s: %s", pid, exc)
+        if mongo_ok and col is not None:
+            try:
+                id_u = pid
+                if isinstance(doc_ln, dict):
+                    id_u = (
+                        str(doc_ln.get("Id") or "").strip()
+                        or str(doc_ln.get("_id") or "").strip()
+                        or pid
+                    )
+                filt_u = _mongo_filtro_id_produto_externo(id_u)
+                vf = float(val)
+                r = db[col].update_one(filt_u, {"$set": {"PrecoCusto": vf, "ValorCusto": vf}})
+                if r.matched_count:
+                    out["atualizados_mongo"] += 1
+                    wrote = True
+                    pid_erp = str((doc_ln or {}).get("Id") or "").strip() or str(id_u).strip()
+                    if pid_erp:
+                        ids_erp.append(pid_erp[:64])
+            except Exception as exc:
+                out["erros"].append({"produto_id": pid, "erro": f"mongo:{str(exc)[:280]}"})
+                logger.warning("entrada_nfe aplicar custo mongo %s: %s", pid, exc)
+        if wrote:
+            out["atualizados"] += 1
     uid = int(user_pk or 0)
     if uid and ids_erp:
         _erp_produto_pendentes_extend_batch(uid, sorted(set(ids_erp)))
     if out["atualizados"]:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    if out["atualizados"] == 0 and out["erros"]:
+        out["ok"] = False
     return out
 
 
@@ -14646,8 +14865,7 @@ def api_entrada_nota_preview_custo(request):
     doc = col_rasc.find_one({"_id": _oid})
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível para catálogo/estoque."}, status=503)
+    # Prévia de custo usa PG/overlay quando Mongo está desligado — não bloqueia.
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
     linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
@@ -14660,11 +14878,20 @@ def api_entrada_nota_preview_custo(request):
         if p and not p.lower().startswith("local:") and p not in seen_u:
             seen_u.add(p)
             uniq_pids.append(p)
-    docs_map = _produtos_mongo_map_por_ids_externos_batch(db, client, uniq_pids)
-    saldos_map = _saldos_erp_produtos_depositos_batch(db, client, uniq_pids)
+    mongo_ok = db is not None and client is not None
+    docs_map = (
+        _produtos_mongo_map_por_ids_externos_batch(db, client, uniq_pids) if mongo_ok else {}
+    )
+    saldos_map = (
+        _saldos_erp_produtos_depositos_batch(db, client, uniq_pids) if mongo_ok else {}
+    )
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
-    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000, excluir_rascunho_id=rid
+    compras_mapa = (
+        _entrada_nfe_compras_mapa_batch_para_spark(
+            db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000, excluir_rascunho_id=rid
+        )
+        if mongo_ok
+        else {}
     )
     itens = []
     for ix, ln in enumerate(linhas):
@@ -14734,9 +14961,14 @@ def api_entrada_nota_financeiro(request):
         )[:120]
 
     client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+    if db is None and not agro_entrada_nota_rascunho_postgres():
+        return JsonResponse(
+            {"ok": False, "erro": "Armazenamento de rascunho indisponível"},
+            status=503,
+        )
+    col_pessoa = (getattr(client, "col_c", None) or "DtoPessoa") if client is not None else "DtoPessoa"
     cab = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cab)
 
     rid_raw = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
@@ -15428,17 +15660,48 @@ def api_entrada_nota_produto_margem(request):
             pv = None
 
     client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-
     mround = round(margem, 2)
+    pvr = round(pv, 2) if pv is not None else None
+
+    # Sem Mongo ERP: grava margem/preço no overlay + Produto (SisVale).
+    if db is None or client is None:
+        try:
+            from produtos.catalogo_agro import obter_produto_model, sincronizar_modelo_produto_de_overlay
+            from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+            ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(produto_externo_id=pid[:64])
+            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+            ex["margem_percentual"] = mround
+            ov.cadastro_extras = ex
+            if pvr is not None:
+                ov.preco_venda = Decimal(str(pvr))
+            ov.save()
+            if agro_catalogo_usa_postgres():
+                sincronizar_modelo_produto_de_overlay(pid[:64], ov)
+            elif pvr is not None:
+                p = obter_produto_model(pid)
+                if p is not None:
+                    p.preco_venda = Decimal(str(pvr))
+                    p.save(update_fields=["preco_venda", "atualizado_em"])
+        except Exception as exc:
+            logger.exception("api_entrada_nota_produto_margem sisvale")
+            return JsonResponse({"ok": False, "erro": str(exc)[:400]}, status=500)
+        try:
+            cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+            cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+        except Exception:
+            pass
+        out = {"ok": True, "margem_percentual": mround, "fonte": "sisvale"}
+        if pvr is not None:
+            out["preco_venda"] = pvr
+        return JsonResponse(out)
+
     set_doc: dict[str, object] = {
         "PercentualLucro": mround,
         "MargemLucro": mround,
         "PercentualMargem": mround,
     }
     if pv is not None:
-        pvr = round(pv, 2)
         set_doc["ValorVenda"] = pvr
         set_doc["PrecoVenda"] = pvr
 
@@ -20195,11 +20458,12 @@ def api_produtos_cadastro_estoque_movimentos(request):
 
     compras_linhas: list[dict] = []
     client, db = obter_conexao_mongo()
+    pid_list = [x for x in pid_set if x][:120]
+    por_id: dict[str, dict] = {}
     if db is not None:
         try:
             pid_set.update(_mongo_produto_ids_por_codigos_cadastro(db, client, cbs, cfs, cis))
             pid_list = [x for x in pid_set if x][:120]
-            por_id: dict[str, dict] = {}
             for p in pid_list:
                 doc = _produto_mongo_por_id_externo(db, client, p)
                 if doc:
@@ -20228,11 +20492,52 @@ def api_produtos_cadastro_estoque_movimentos(request):
                             )[:120],
                         }
                     )
-            compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
         except Exception:
             logger.exception("api_produtos_cadastro_estoque_movimentos compras enrich")
-    else:
-        pid_list = [x for x in pid_set if x][:120]
+
+    # Entrada NF Agro (Postgres) — preenche Fornecedor/Preço mesmo sem Mongo
+    try:
+        from datetime import datetime, timedelta
+
+        from produtos.compras_ultimas_compras_util import append_eventos_entrada_nf_agro
+
+        eventos_nf: dict[str, list] = {}
+        append_eventos_entrada_nf_agro(
+            db,
+            eventos=eventos_nf,
+            pid_ok=set(pid_list),
+            since=datetime.utcnow() - timedelta(days=800),
+            produtos_por_id=por_id or None,
+            mongo_max_time_ms=None,
+        )
+        for _pid, rows in (eventos_nf or {}).items():
+            for r in rows or []:
+                if not isinstance(r, dict):
+                    continue
+                dt = r.get("dt")
+                data_s = ""
+                if dt is not None:
+                    try:
+                        data_s = dt.strftime("%Y-%m-%d")
+                    except Exception:
+                        data_s = str(dt)[:10]
+                try:
+                    pp = round(float(r.get("unit_base") or 0), 2)
+                except (TypeError, ValueError):
+                    pp = 0.0
+                compras_linhas.append(
+                    {
+                        "fornecedor": str(r.get("fornecedor") or "—")[:200],
+                        "preco_pago": pp,
+                        "data": data_s,
+                        "numero_doc": str(r.get("numero_doc") or "")[:120],
+                    }
+                )
+        compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
+    except Exception:
+        logger.exception("api_produtos_cadastro_estoque_movimentos entrada_nf_agro enrich")
+        if compras_linhas:
+            compras_linhas.sort(key=lambda x: x.get("data") or "", reverse=True)
 
     try:
         dias = int(request.GET.get("dias") if request.GET.get("dias") is not None else 90)

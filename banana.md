@@ -1174,6 +1174,103 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Produção** | Só após Renan testar local + frase + senha (ele não sobe sem testar) |
 | **Confiança** | Renan: não enviar à loja sem teste local; assistente respeita |
 
+### ✨ Kardex cadastro — Fornecedor/Preço na Entrada NF (**teste v11.59**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Aba Estoque do modal: coluna Fornecedor/Preço ficava `---` na Entrada NF (custo já ok na aba Preços) |
+| **Fix** | Grava `nf_forn`/`nf_custo` no `observacao` do ajuste · lê no kardex · enrich compras via rascunho Entrada NF Agro (PG, sem Mongo) |
+| **NFs antigas** | Preenche se achar a NF no rascunho Agro (nº) |
+| **Arquivos** | `estoque_movimentos_cadastro_util.py` · `views.py` · `compras_ultimas_compras_util.py` |
+
+### 🐛 Cadastro BCA — «lista local» incompleta (**teste v11.60**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Busca «teste» mostra só 2 (rodapé **LISTA LOCAL**); GM9503 some; às vezes volta 7 |
+| **Causa** | Fallback 2s do pacote local; servidor chegava depois e era **ignorado**; pacote não ganhava produtos novos |
+| **Fix** | Cadastro espera até 12s o servidor · resposta tardia atualiza a grade · merge de produtos novos no pacote local |
+| **Agora** | Ctrl+F5 no Cadastro · buscar «teste» de novo (pode demorar uns segundos) |
+| **Arquivos** | `agro_busca_catalogo.js` · `cadastro_erp_panel.js` |
+
+### 🔒 Cadastro BCA — só servidor (**teste v11.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan: em produção não pode oscilar 2 vs 10 produtos |
+| **Decisão** | **Cadastro** `skipLocal: true` — grade sempre `/api/buscar` (servidor). Pacote local fica pro **PDV** (velocidade) |
+| **Kardex NF 1111** | Sem rascunho Agro no PG (só 112 e 222) — coluna `---` correta; notas novas gravam forn/custo no ajuste |
+| **Por que 2 vs 7+** | Pacote Chrome **incompleto** (não é cadastro diferente). «Hoje» não rebaixava delta → local só achava 2 lixos; servidor lê os ~7–8 reais no PG. Fix: delta em background mesmo com pacote «hoje» |
+| **Arquivos** | `cadastro_erp_panel.js` · `agro_busca_catalogo.js` |
+
+### 🔒 PDV — lista não cresce depois (**teste v11.62**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Busca TESTE: 2 itens → 5 s depois aparecem mais (medo Renan) |
+| **Causa** | `mesclarBuscaLocalComOnline` pintava local e depois **acrescentava** hits do servidor |
+| **Fix** | Com lista local já na tela: servidor **não** muda a sugestão; só atualiza pacote em background |
+| **Arquivos** | `consulta_produtos.js` |
+
+### ✅ PDV — regra busca + preço no carrinho (**teste v11.63**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Busca** | Pacote «lista de hoje» bom + hits → local na hora. Pacote fraco/vazio → espera servidor **≤2s**, senão usa local. Sem pisca |
+| **Carrinho** | Confirma preço via `/api/buscar/` **≤2s**; se demorar/falhar → mantém cache. Atualiza silencioso (sem alert ERP) |
+| **Realidade loja** | 2–6 NF/dia · bip≈nome · PC abre todo dia |
+| **Arquivos** | `consulta_produtos.js` |
+
+### 🚑 PDV — lag 1–2s em tudo (**teste v11.64**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Menu caixa / fechar venda dinheiro “engasgando” 1–2 s (antes era na hora) |
+| **Causa** | `ensurePacote` baixava catálogo **inteiro a cada busca** → worker Django ocupado → demais cliques na fila |
+| **Fix** | Delta no máx. **a cada 5 min** (ou pacote fraco / 1ª abertura); busca continua leve |
+| **Arquivos** | `agro_busca_catalogo.js` |
+
+### 🐛 Devolução loja — «Falha de rede» (#3798 Centro) (**teste v11.58**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Quando** | 22/07 — print loja Centro, venda **#3798**, Pentabiótico, forma **Fiado** |
+| **Sintoma** | Modal «Falha de rede» ao confirmar devolução |
+| **Causa** | Estorno na devolução **exigia Mongo**; ping lento → timeout/HTML → front dizia «rede». Baixa na venda já rodava sem Mongo |
+| **Fix** | Estorno alinhado à baixa (skip Mongo se ledger/sem ERP) · NFC-e cancel try/except · mensagem front com HTTP |
+| **Loja agora** | Sem pacote: recarregar #3798; 2ª tentativa; se demorar ~30s = timeout. **Sobe** só com frase + `99738595` após teste local |
+| **Arquivos** | `produtos/views.py` · `venda_agro_detalhe.html` · `VERSION` 11.58 |
+
+### 🔪 Corte Mongo na Entrada NF (**teste v11.57**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Parar de apagar «Mongo indisponível» tela a tela — eliminar de uma vez no fluxo NF |
+| **O quê** | Wizard NF sem gate Mongo (rascunho/estoque/financeiro/margem/custo) · `agro_financeiro_usa_postgres` auto se ERP off · middleware `AgroSemMencaoMongoMiddleware` (não exibe a palavra) |
+| **Local** | `.env`: `AGRO_MONGO_ERP_DESLIGADO=true` · `AGRO_FONTE_FINANCEIRO=agro_pg` |
+| **Ainda legado** | Outras telas (BI/Compras antigo) podem ter código Mongo — middleware esconde a palavra; próximo corte módulo a módulo |
+
+### ✅ Reparar GM/EAN/nome staging→loja (22/07 · **aplicado**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Cmd** | `reparar_codigos_catalogo_fonte_destino --aplicar` |
+| **Resultado** | **96** gravados na loja · 3262 iguais · 2 sem destino · **preço/estoque não mexidos** |
+| **Conferência** | dry-run após apply: mudaria=0 |
+| **Deploy** | **não** precisou — grava direto no `agro-db` |
+
+### 🐛 Entrada NF — custo não atualiza no Cadastro (**teste v11.54**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | NF 77846 finalizada c/ PIN (estoque OK) · Cadastro ainda **75,58** (deveria ~**90,42**) |
+| **Causa** | Pós-PIN só gravava `PrecoCusto` no **Mongo**; Cadastro `agro_pg` lê **Produto/overlay**. Se Mongo fora → PIN OK + estoque OK + **custo ignorado** |
+| **Fix** | `_entrada_nfe_gravar_custo_sisvale` + apply sempre (sem exigir Mongo) · cmd `reaplicar_custos_entrada_nf --nf=77846` · **v11.55** estoque Agro sem gate «Mongo indisponível» |
+| **Loja agora** | Corrigir à mão no Cadastro **ou** checklist **P0** abaixo (pós-deploy) |
+| **Checklist** | **P0** — após subir pacote: `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` |
+| **Teste local** | Reiniciar `runserver` · **v11.57** corte Mongo na Entrada NF + middleware sem palavra «Mongo» + financeiro PG auto com ERP off |
+| **Histórico «—»** | Coluna Fornecedor/Preço vazia é match de compra (secundário) — não é a causa do custo errado |
+
 ### 🚨 URGENTE — Mongo ERP Authentication failed (**teste v11.53**)
 
 | Item | Detalhe |
@@ -2921,7 +3018,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Validou** | Valor progressivo (`234`…`234,78`) · parcela (`parcela 7` / `7/12` no texto) · sem lixo |
 | **Loja** | ⏳ aguarda frase + senha |
 
-### ✅ CHECKLIST ÚNICO — por prioridade · 17/07
+### ✅ CHECKLIST ÚNICO — por prioridade · 22/07
 
 **P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente (P1,1 antes de P1,5).  
 **Zap #** e **FL-** na mesma fila. Já na loja → só em **Checklist concluído** (abaixo).
@@ -2930,6 +3027,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
+| **P0 agora** | **Custo NF 77846** — **depois** de subir pacote **v11.54+** (fix custo pós-PIN): `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` · confere Cadastro GM0025 ~**90,42** (hoje **75,58**) |
 | **Entrada NF** | **«Nova» limpa XML/dados** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja alvo **v10.90** · commit `46add26` |
 | **Autorizar NF Nova** | *«pode subir para produção»* + **99738595** |
 | **P0,1 agora** | **FL-057** — Render loja: ligar **PgBouncer** no `agro-db` + `DATABASE_URL` porta **6432** + restart web (cinto pós-incidente slots) |
@@ -2947,6 +3045,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | 📋 **depois de subir pacote** · GM0025 75,58→~90,42 |
 | **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja **v10.90** |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** · pós v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |

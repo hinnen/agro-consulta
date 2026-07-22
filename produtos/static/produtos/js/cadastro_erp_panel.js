@@ -1103,10 +1103,13 @@
 
   function fetchBuscaCadastroApi(qRaw, sig) {
     var params = cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() });
+    /* Cadastro: SEMPRE servidor — lista local incompleta oscilava (2 vs 7). PDV mantém pacote. */
     var fetchFn = typeof fetchAgroBuscaCatalogo === 'function'
       ? fetchAgroBuscaCatalogo(qRaw, {
           limit: cadastroLimiteBuscaPdv(),
           contexto: 'cadastro',
+          skipLocal: true,
+          preferServer: true,
           compras: true,
           incluir_saldo: true,
           ativo: params.get('ativo') ? true : undefined,
@@ -1126,8 +1129,9 @@
         if (j && j.prova_unificada) cadastroMostrarProvaUnificada(j.prova_unificada);
         if (!j || j.ok === false) throw new Error((j && j.erro) || 'Falha na busca');
         var rows = Array.isArray(j.produtos) ? j.produtos : [];
-        rows._pacote_fallback = !!(j && j.pacote_fallback);
+        rows._pacote_fallback = false;
         rows._pacote_level = (j && j.pacote_level) || '';
+        /* Ainda assim mescla no pacote p/ PDV, mas a grade do cadastro é a do servidor. */
         return rows;
       });
   }
@@ -1173,6 +1177,7 @@
       modoLista = false;
       var base = (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.sigla ? AGRO_BUSCA_CATALOGO.sigla + ' · ' : 'BCA · ') + (produtos.length) + ' resultado(s)';
       if (data.pacote_fallback) base += ' · lista local';
+      else if (data.motor === 'pdv' || data.modo === 'busca') base += ' · servidor';
       else if (data.pacote_level === 'yellow') base += ' · lista antiga';
       else if (data.pacote_level === 'green') base += ' · lista hoje';
       metaEl.textContent = base;

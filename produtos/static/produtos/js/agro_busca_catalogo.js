@@ -20,9 +20,12 @@
     var SERVER_FAST_MS = 2000;
     var FETCH_TIMEOUT_MS = 25000;
     var MAX_LOCAL = 48;
+    /** Não baixar o catálogo inteiro a cada tecla — isso engasgava o PDV (caixa/fechar venda). */
+    var DELTA_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
     var _mem = null;
     var _ensurePromise = null;
+    var _lastDeltaAt = 0;
     var _statusListeners = [];
 
     w.AGRO_BUSCA_CATALOGO = AGRO_BUSCA_CATALOGO;
@@ -310,21 +313,24 @@
     }
 
     /**
-     * Garante pacote em memória/LS. Se já tem last good, libera na hora e atualiza em background.
+     * Garante pacote em memória/LS.
+     * Delta completo: no abrir / pacote fraco / no máx. a cada 5 min — NÃO a cada busca
+     * (senão o worker trava e caixa/fechar venda demoram 1–2 s).
      */
     function ensurePacote(opts) {
         opts = opts || {};
         var cur = getPacote();
-        if (cur.fonte === 'hoje' && cur.produtos.length && !opts.force) {
+        var agora = Date.now();
+        var temLista = !!(cur.produtos && cur.produtos.length);
+        if (temLista && !opts.force) {
             notifyStatus();
-            return Promise.resolve(cur);
-        }
-        if (cur.produtos.length && !opts.force) {
-            notifyStatus();
-            if (!_ensurePromise) {
+            var deltaRecente =
+                _lastDeltaAt > 0 && agora - _lastDeltaAt < DELTA_MIN_INTERVAL_MS;
+            var precisaDelta = !!opts.force || !deltaRecente;
+            if (precisaDelta && !_ensurePromise) {
+                _lastDeltaAt = agora;
                 _ensurePromise = fetchDeltaFull()
                     .catch(function () {
-                        /* Mantém last good — não apaga. */
                         return null;
                     })
                     .finally(function () {
@@ -334,9 +340,12 @@
             }
             return Promise.resolve(cur);
         }
-        if (_ensurePromise) return _ensurePromise.then(function () {
-            return getPacote();
-        });
+        if (_ensurePromise) {
+            return _ensurePromise.then(function () {
+                return getPacote();
+            });
+        }
+        _lastDeltaAt = agora;
         _ensurePromise = fetchDeltaFull()
             .catch(function () {
                 return null;
@@ -367,18 +376,55 @@
                 row.preco_venda = s.preco_venda;
                 changed = true;
             }
+            if (s.preco_custo != null && row.preco_custo !== s.preco_custo) {
+                row.preco_custo = s.preco_custo;
+                changed = true;
+            }
             if (s.nome && !row.nome) {
                 row.nome = s.nome;
                 changed = true;
             }
         });
-        if (changed && pac.fonte === 'hoje') {
+        if (changed) {
             savePacoteFromServer({
                 produtos: pac.produtos,
                 catalog_version: pac.catalog_version,
                 catalog_updated_at: pac.catalog_updated_at,
             });
         }
+    }
+
+    /** Inclui produtos novos do servidor no pacote local (evita «lista local» incompleta). */
+    function mergeProdutosNoPacote(serverRows) {
+        if (!serverRows || !serverRows.length) return 0;
+        var pac = getPacote();
+        var map = {};
+        var list = (pac.produtos || []).slice();
+        list.forEach(function (p) {
+            if (p && p.id != null) map[String(p.id)] = p;
+        });
+        var added = 0;
+        serverRows.forEach(function (s) {
+            if (!s || s.id == null) return;
+            var id = String(s.id);
+            if (map[id]) {
+                if (s.preco_venda != null) map[id].preco_venda = s.preco_venda;
+                if (s.preco_custo != null) map[id].preco_custo = s.preco_custo;
+                if (s.nome) map[id].nome = s.nome;
+                return;
+            }
+            list.push(s);
+            map[id] = s;
+            added++;
+        });
+        if (added || list.length) {
+            savePacoteFromServer({
+                produtos: list,
+                catalog_version: pac.catalog_version,
+                catalog_updated_at: pac.catalog_updated_at,
+            });
+        }
+        return added;
     }
 
     function buildBuscaUrl(q, opts) {
@@ -415,32 +461,56 @@
     /**
      * Ordem A na busca:
      * 1) pacote local (instantâneo)
-     * 2) se servidor <~2s → usa resposta do servidor (+ patch preço)
-     * 3) se servidor lento/falha → devolve local (não bloqueia)
+     * 2) se servidor < waitMs → usa resposta do servidor (+ merge no pacote)
+     * 3) se servidor lento → devolve local; quando o servidor chegar, atualiza pacote + callback
      * 4) sem local → espera servidor (com timeout)
+     * Cadastro: preferServer / serverWaitMs maior (lista completa > velocidade).
      */
     w.fetchAgroBuscaCatalogo = function (q, opts) {
         opts = opts || {};
         var termo = String(q || '').trim();
         var limit = opts.limit != null ? opts.limit : MAX_LOCAL;
         var skipLocal = !!opts.skipLocal;
+        var preferServer = !!opts.preferServer || String(opts.contexto || '') === 'cadastro';
+        var waitMs = preferServer
+            ? Math.max(SERVER_FAST_MS, Number(opts.serverWaitMs) || 12000)
+            : SERVER_FAST_MS;
 
         ensurePacote({ force: false });
 
         var localRows = skipLocal ? [] : searchLocal(termo, limit);
         var st = getStatus();
 
-        var serverP = fetchServidor(termo, opts).then(function (j) {
-            if (j && Array.isArray(j.produtos) && j.produtos.length) {
+        function applyServerRows(j) {
+            var srv = j && Array.isArray(j.produtos) ? j.produtos : [];
+            if (srv.length) {
+                mergeProdutosNoPacote(srv);
+            } else if (j && Array.isArray(j.produtos)) {
                 patchPrecosNoPacote(j.produtos);
             }
             if (j && j.ok === undefined) j.ok = true;
             if (j) {
                 j.pacote_fonte = st.fonte;
-                j.pacote_level = st.level;
+                j.pacote_level = getStatus().level;
+                j.pacote_fallback = false;
             }
             return j;
-        });
+        }
+
+        function notifyLate(j) {
+            try {
+                if (typeof opts.onServerLate === 'function') opts.onServerLate(j);
+            } catch (e1) {}
+            try {
+                w.dispatchEvent(
+                    new CustomEvent('agro-busca-catalogo-tardio', {
+                        detail: { q: termo, data: j, contexto: opts.contexto || '' },
+                    })
+                );
+            } catch (e2) {}
+        }
+
+        var serverP = fetchServidor(termo, opts).then(applyServerRows);
 
         if (!termo) return serverP;
 
@@ -470,19 +540,21 @@
                     pacote_level: st.level,
                     pacote_fallback: true,
                 });
-            }, SERVER_FAST_MS);
+            }, waitMs);
 
             serverP
                 .then(function (j) {
-                    if (settled) return;
+                    var srv = j && Array.isArray(j.produtos) ? j.produtos : [];
+                    if (settled) {
+                        if (srv.length) notifyLate(j);
+                        return;
+                    }
                     settled = true;
                     clearTimeout(timer);
-                    var srv = j && Array.isArray(j.produtos) ? j.produtos : [];
                     if (srv.length) {
                         resolve(j);
                         return;
                     }
-                    /* Servidor rápido mas vazio — mantém hits locais se houver. */
                     resolve({
                         ok: true,
                         produtos: localRows,

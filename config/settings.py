@@ -183,6 +183,8 @@ MIDDLEWARE = [
     'base.middleware.AgroIdempotencyMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Mongo ERP off: não exibir a palavra «Mongo» em erros/JSON (Entrada NF / PDV / etc.)
+    'base.agro_sem_mencao_mongo_middleware.AgroSemMencaoMongoMiddleware',
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)  # 10 MB

@@ -63,11 +63,17 @@ def _qtd_linha_entrada_nf_agro(ln: dict) -> float:
 def _preco_unit_linha_entrada_nf_agro(ln: dict) -> tuple[float, bool]:
     if not isinstance(ln, dict):
         return 0.0, False
-    try:
-        vu = float(Decimal(str(ln.get("v_un_com") or "0").replace(",", ".").strip() or "0"))
-    except Exception:
-        vu = 0.0
-    return vu, False
+    for k in ("v_un_com", "custo_unitario_nota", "preco_custo", "v_unit", "vUnCom"):
+        raw = ln.get(k)
+        if raw in (None, ""):
+            continue
+        try:
+            vu = float(Decimal(str(raw).replace(",", ".").strip() or "0"))
+        except Exception:
+            continue
+        if vu > 0:
+            return vu, False
+    return 0.0, False
 
 
 def _doc_conta_como_compra_entrada_nf(doc: dict) -> bool:

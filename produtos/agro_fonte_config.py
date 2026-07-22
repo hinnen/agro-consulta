@@ -91,6 +91,9 @@ def agro_estoque_usa_ledger() -> bool:
 def agro_financeiro_usa_postgres() -> bool:
     if agro_fonte_financeiro() == _FONTE_FINANCEIRO_AGRO:
         return True
+    # Mongo ERP desligado: CP/CR operacional é Postgres (sem whack-a-mole de «Mongo indisponível»).
+    if agro_mongo_erp_desligado():
+        return True
     # Staging teste: após bootstrap (import na build), CP lê Postgres sem env manual.
     if (
         getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False)
