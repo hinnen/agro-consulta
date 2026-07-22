@@ -1165,6 +1165,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📌 Reaplicar custos NF em lote `--todas` (**teste v11.65** · 22/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ `teste` **873d7fe** · **ainda NÃO na loja** (loja v11.64 = 1 NF por vez) |
+| **Uso** | dry-run: `python manage.py reaplicar_custos_entrada_nf --todas` · gravar: `… --todas --aplicar` |
+| **Opcional** | `--desde=2026-01-01` · `--limite=50` · ordem antiga→nova (última NF manda no custo) |
+| **Loja** | precisa frase + senha de novo |
+
 ### 🧭 Teste = LOCAL (22/07 · Renan · opção B)
 
 | Item | Detalhe |
