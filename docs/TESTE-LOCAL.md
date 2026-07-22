@@ -43,7 +43,41 @@ Login: usuário Django local (superuser). Se não tiver:
 python manage.py createsuperuser
 ```
 
-## 3. O que testar (checklist curto)
+## 3. Catálogo vazio / só 2 produtos «TESTE»
+
+Local usa **SQLite** (`db.sqlite3`) — **não** vem com os ~3000 da loja. Isso é esperado.
+
+### Jeito mais rápido (recomendado)
+
+1. No Render → serviço **Postgres do staging** (não o `agro-db` da loja) → **External Database URL**.
+2. No `.env` local, **temporário**:
+
+```env
+DATABASE_URL=postgres://...url-externa-do-STAGING...
+AGRO_FONTE_CATALOGO=agro_pg
+AGRO_MONGO_ERP_DESLIGADO=true
+```
+
+3. Pare o `runserver`, suba de novo, **Ctrl+F5**.  
+4. Busca deve achar milho/sache como no staging.
+
+**Proibido:** colar o `DATABASE_URL` da **loja** (`agro-db` produção) no local (risco de gravar na loja).
+
+### Alternativa sem Postgres staging
+
+Na **loja** (ou staging acordado): Cadastro → **Excel ↓** (todas colunas) → no local: **Excel ↑**.
+
+### Depois de popular
+
+Limpe o cache do pacote no Chrome (F12 → Application → Local Storage) se a busca ainda mostrar só «TESTE»:
+
+```javascript
+localStorage.removeItem('agro_bca_pacote_v1');
+localStorage.removeItem('agro_pdv_catalog_cache_v2');
+location.reload();
+```
+
+## 4. O que testar (checklist curto)
 
 | Tela | Ok se… |
 |------|--------|
@@ -52,13 +86,13 @@ python manage.py createsuperuser
 | Entrada NF | **Ler XML** não dá «Erro de rede» por Mongo |
 | `/api/agro/fonte-status/` | `mongo_erp_desligado: true`, `catalogo_postgres: true` |
 
-## 4. Fluxo com o assistente
+## 5. Fluxo com o assistente
 
 1. Assistente **implementa** e deixa commit na branch `teste` (ou worktree).  
 2. **Você** roda local e valida.  
 3. Só então: *«pode subir para produção»* + senha — se quiser loja.  
 4. Push no Render **teste** = **opcional** e **só se você pedir** (não é mais o gate padrão).
 
-## 5. Se o local «parecer ok» e a loja diferente
+## 6. Se o local «parecer ok» e a loja diferente
 
 Costuma ser: env diferente (`AGRO_FONTE_*`), banco vazio no SQLite, ou pacote que ainda não subiu na loja. Conferir `VERSION` e `/api/agro/fonte-status/` nos dois lados.
