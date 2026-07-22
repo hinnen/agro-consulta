@@ -1523,24 +1523,82 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     }
 }
 
-function validarItemCarrinhoSilencioso(id, precoLocal) {
-    fetch(`/api/buscar-produto-id/${id}/`)
-        .then(r => r.json())
-        .then(d => {
-            if (!d.erro && d.preco_venda !== precoLocal) {
-                alert(`⚠️ ATUALIZAÇÃO DE SISTEMA:\nO preço do produto "${d.nome}" sofreu alteração no ERP!\n\nDe: ${formatarMoeda(precoLocal)}\nPara: ${formatarMoeda(d.preco_venda)}\n\nO carrinho foi corrigido automaticamente para evitar perdas.`);
-                
-                const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === normalizarIdProdutoPdv(id));
-                if (item) {
-                    item.preco = d.preco_venda;
-                    atualizarCarrinho();
-                }
-                
-                // Atualiza a base em memória
-                const pLocal = baseProdutos.find((p) => normalizarIdProdutoPdv(p.id) === normalizarIdProdutoPdv(id));
-                if (pLocal) pLocal.preco_venda = d.preco_venda;
+function confirmarPrecoServidorPdv(id, precoLocal, opts) {
+    opts = opts || {};
+    const ms = opts.timeoutMs != null ? Number(opts.timeoutMs) : 2000;
+    const idNorm = normalizarIdProdutoPdv(id);
+    const precoCache = Number(precoLocal || 0);
+    if (!idNorm) {
+        return Promise.resolve({ ok: false, preco: precoCache, fonte: 'cache' });
+    }
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timer = null;
+    if (ctrl) {
+        timer = setTimeout(function () {
+            try { ctrl.abort(); } catch (e) {}
+        }, Math.max(400, ms));
+    }
+    const url =
+        ((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/') +
+        '?q=' + encodeURIComponent(idNorm) + '&limit=12';
+    return fetch(url, {
+        credentials: 'same-origin',
+        signal: ctrl ? ctrl.signal : undefined,
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            const prods = (d && d.produtos) || [];
+            let hit = prods.find(function (p) {
+                return normalizarIdProdutoPdv(p && p.id) === idNorm;
+            });
+            if (!hit && prods.length === 1) hit = prods[0];
+            if (hit && hit.preco_venda != null && isFinite(Number(hit.preco_venda))) {
+                return {
+                    ok: true,
+                    preco: Number(hit.preco_venda),
+                    nome: hit.nome || '',
+                    fonte: 'servidor',
+                };
             }
-        }).catch(e => console.log('Validação silenciosa falhou ou ignorada:', e));
+            return { ok: false, preco: precoCache, fonte: 'cache' };
+        })
+        .catch(function () {
+            return { ok: false, preco: precoCache, fonte: 'cache' };
+        })
+        .finally(function () {
+            if (timer) clearTimeout(timer);
+        });
+}
+
+function validarItemCarrinhoSilencioso(id, precoLocal) {
+    /* Confirma preço no servidor ao pôr no carrinho; se demorar >2s, mantém cache. Sem alert agressivo. */
+    confirmarPrecoServidorPdv(id, precoLocal, { timeoutMs: 2000 }).then(function (res) {
+        if (!res || !res.ok) return;
+        const novo = Number(res.preco);
+        const antigo = Number(precoLocal || 0);
+        if (!isFinite(novo) || Math.abs(novo - antigo) < 0.005) return;
+        const idNorm = normalizarIdProdutoPdv(id);
+        const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === idNorm);
+        if (item) {
+            if (item.preco_manual) return;
+            item.preco = novo;
+            item.preco_padrao = novo;
+            recalcularPromocoesCarrinho();
+            atualizarCarrinho();
+            mostrarStatusBusca(
+                'Preço atualizado: ' + (item.nome || '') + ' → ' + formatarMoeda(novo),
+                'emerald'
+            );
+            setTimeout(esconderStatusBusca, 2200);
+        }
+        const pLocal = baseProdutos.find((p) => normalizarIdProdutoPdv(p.id) === idNorm);
+        if (pLocal) pLocal.preco_venda = novo;
+        try {
+            if (window.AgroPacoteCatalogo && typeof AgroPacoteCatalogo.saveFromServer === 'function') {
+                /* noop leve — merge via busca já cobre; só espelha preço na base */
+            }
+        } catch (e) {}
+    });
 }
 
 function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
@@ -3368,6 +3426,16 @@ function extrairPalavrasParaHighlightDaBusca() {
     return t.split(/\s+/).filter(Boolean);
 }
 
+function pdvPacoteCatalogoConfiavel() {
+    try {
+        if (window.AgroPacoteCatalogo && typeof AgroPacoteCatalogo.getStatus === 'function') {
+            const st = AgroPacoteCatalogo.getStatus();
+            return !!(st && st.level === 'green' && Number(st.n || 0) > 50);
+        }
+    } catch (e) {}
+    return false;
+}
+
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     if (modo === 'scanner') {
@@ -3403,12 +3471,14 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
-    const map = new Map();
-    locaisOrdenados.forEach((p) => map.set(String(p.id), p));
-    const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
-    const idsLocal = new Set(ordemLocalIds);
     const hadLocal = locaisOrdenados.length > 0;
-    if (hadLocal) {
+    const pacoteOk = pdvPacoteCatalogoConfiavel();
+    /* Pacote bom + hits locais: mostra na hora (produtos do dia a dia). Servidor só atualiza cache. */
+    const pintarLocalNaHora = hadLocal && pacoteOk;
+    /* Pacote fraco / sem local: espera servidor até 2s; se demorar, usa local (ou vazio). */
+    const esperarServidor = !pintarLocalNaHora;
+
+    if (pintarLocalNaHora) {
         processarResultadosBusca(
             locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX),
             modo,
@@ -3416,34 +3486,39 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
             { preservarOrdem: true }
         );
     } else {
-        mostrarStatusBusca('Buscando no servidor…', 'slate');
+        mostrarStatusBusca('Buscando…', 'slate');
     }
+
+    const SERVER_WAIT_MS = 2000;
     mergeFetchTimer = setTimeout(() => {
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        if (window.gmLoadingBar && esperarServidor) window.gmLoadingBar.show();
+        var fetchOpts = {
+            limit: CONSULTA_BUSCA_LIMITE,
+            preferServer: !!esperarServidor,
+            serverWaitMs: SERVER_WAIT_MS,
+        };
         var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
-            ? fetchAgroBuscaCatalogo(termoBrutoOriginal, { limit: CONSULTA_BUSCA_LIMITE })
+            ? fetchAgroBuscaCatalogo(termoBrutoOriginal, fetchOpts)
             : fetch((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
         fetchBusca
             .then((data) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
                 agroMostrarProvaUnificadaBusca(data);
-                const api = data.produtos || [];
-                const apiById = new Map();
-                api.forEach((raw) => {
-                    const id = String(raw.id);
-                    apiById.set(id, raw);
-                    if (!map.has(id)) map.set(id, raw);
-                });
-                const locaisMesclados = ordemLocalIds.map((id) => {
-                    const base = map.get(id);
-                    const apiRow = apiById.get(id);
-                    return apiRow ? { ...base, ...apiRow } : base;
-                }).filter(Boolean);
-                const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
-                const extrasOrd = ordenarSugestoesPdv(extrasBrutos, termoNorm);
+                if (pintarLocalNaHora) {
+                    /* Já pintou local: não acrescenta itens (sem pisca). Cache já mergeia no BCA. */
+                    return;
+                }
+                const api = Array.isArray(data.produtos) ? data.produtos : [];
                 const selId = produtoEmDestaque ? String(produtoEmDestaque.id) : null;
-                const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_SUG_LIM_MAX);
+                let final;
+                if (api.length) {
+                    final = ordenarSugestoesPdv(api, termoNorm).slice(0, BUSCA_SUG_LIM_MAX);
+                } else if (hadLocal) {
+                    final = locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX);
+                } else {
+                    final = [];
+                }
                 processarResultadosBusca(final, modo, false, {
                     preservarOrdem: true,
                     manterSelecaoId: selId,
@@ -3452,14 +3527,23 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
             .catch((err) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 console.error('Busca online:', err);
-                if (!hadLocal) {
-                    processarResultadosBusca([], modo, false);
-                } else {
+                if (pintarLocalNaHora) {
                     esconderStatusBusca();
+                    return;
+                }
+                if (hadLocal) {
+                    processarResultadosBusca(
+                        locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX),
+                        modo,
+                        false,
+                        { preservarOrdem: true }
+                    );
+                } else {
+                    processarResultadosBusca([], modo, false);
                 }
             })
             .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
-    }, hadLocal ? 0 : 220);
+    }, pintarLocalNaHora ? 0 : 80);
 }
 
 function executarBuscaLocal(termo, modo) {
@@ -3553,7 +3637,11 @@ function executarBuscaAPI(termo, modo) {
     mostrarStatusBusca('BCA · buscando no servidor…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
-        ? fetchAgroBuscaCatalogo(termo, { limit: CONSULTA_BUSCA_LIMITE })
+        ? fetchAgroBuscaCatalogo(termo, {
+            limit: CONSULTA_BUSCA_LIMITE,
+            preferServer: true,
+            serverWaitMs: 2000,
+        })
         : fetch('/api/buscar/?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
     fetchBusca
         .then(data => {

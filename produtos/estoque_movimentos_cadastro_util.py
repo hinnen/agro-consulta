@@ -26,6 +26,8 @@ _RE_OPERADOR_PAREN = re.compile(r"\(([^)]{2,80})\)\s*$")
 _RE_PIN_SOLO = re.compile(r"^\d{3,6}$")
 _RE_NF_REF = re.compile(r"Entrada NF-e Agro\s*\(([^)]*)\)", re.I)
 _RE_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", re.I)
+_RE_OBS_NF_FORN = re.compile(r"nf_forn=([^|]+)", re.I)
+_RE_OBS_NF_CUSTO = re.compile(r"nf_custo=([0-9]+(?:[.,][0-9]+)?)", re.I)
 
 
 def _dec(v) -> Decimal:
@@ -169,6 +171,27 @@ def _operador_sem_pin(row: AjusteRapidoEstoque) -> str:
         if op:
             return op
     return "—"
+
+
+def _forn_preco_da_observacao(obs: str) -> tuple[str, float | None]:
+    """Lê ``nf_forn=… | nf_custo=…`` gravado no ajuste da Entrada NF Agro."""
+    texto = str(obs or "").strip()
+    if not texto:
+        return "", None
+    forn = ""
+    m = _RE_OBS_NF_FORN.search(texto)
+    if m:
+        forn = (m.group(1) or "").strip()[:200]
+    preco = None
+    m2 = _RE_OBS_NF_CUSTO.search(texto)
+    if m2:
+        try:
+            preco = float((m2.group(1) or "").replace(",", ".").strip() or "0")
+        except (TypeError, ValueError):
+            preco = None
+        if preco is not None and preco <= 0:
+            preco = None
+    return forn, preco
 
 
 def _numero_nf_digits(raw: str) -> str:
@@ -364,10 +387,16 @@ def montar_movimentos_produto(
             venda_ids.append(venda_id)
         forn = ""
         preco = None
-        if row.origem == OrigemAjusteEstoque.ENTRADA_NF_AGRO and compras:
-            forn, preco = _match_compra(
-                row.criado_em, compras, numero_nf_digits=nf_digits
-            )
+        if row.origem == OrigemAjusteEstoque.ENTRADA_NF_AGRO:
+            forn, preco = _forn_preco_da_observacao(getattr(row, "observacao", "") or "")
+            if (not forn or preco is None) and compras:
+                f2, p2 = _match_compra(
+                    row.criado_em, compras, numero_nf_digits=nf_digits
+                )
+                if not forn:
+                    forn = f2 or ""
+                if preco is None:
+                    preco = p2
 
         quando = row.criado_em
         if timezone.is_aware(quando):

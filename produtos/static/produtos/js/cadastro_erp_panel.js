@@ -1103,10 +1103,13 @@
 
   function fetchBuscaCadastroApi(qRaw, sig) {
     var params = cadastroQueryParamsBusca({ q: qRaw, limit: cadastroLimiteBuscaPdv() });
+    /* Cadastro: SEMPRE servidor — lista local incompleta oscilava (2 vs 7). PDV mantém pacote. */
     var fetchFn = typeof fetchAgroBuscaCatalogo === 'function'
       ? fetchAgroBuscaCatalogo(qRaw, {
           limit: cadastroLimiteBuscaPdv(),
           contexto: 'cadastro',
+          skipLocal: true,
+          preferServer: true,
           compras: true,
           incluir_saldo: true,
           ativo: params.get('ativo') ? true : undefined,
@@ -1124,8 +1127,12 @@
     return Promise.resolve(fetchFn)
       .then(function (j) {
         if (j && j.prova_unificada) cadastroMostrarProvaUnificada(j.prova_unificada);
-        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha na busca');
-        return Array.isArray(j.produtos) ? j.produtos : [];
+        if (!j || j.ok === false) throw new Error((j && j.erro) || 'Falha na busca');
+        var rows = Array.isArray(j.produtos) ? j.produtos : [];
+        rows._pacote_fallback = false;
+        rows._pacote_level = (j && j.pacote_level) || '';
+        /* Ainda assim mescla no pacote p/ PDV, mas a grade do cadastro é a do servidor. */
+        return rows;
       });
   }
 
@@ -1137,7 +1144,12 @@
     if (ordenacaoAtual.campo) {
       linhas = cadastroAplicarOrdenacaoCliente(linhas);
     }
-    atualizarMeta({ modo: 'busca', motor: 'pdv' }, linhas);
+    atualizarMeta({
+      modo: 'busca',
+      motor: 'pdv',
+      pacote_fallback: !!(apiRows && apiRows._pacote_fallback),
+      pacote_level: (apiRows && apiRows._pacote_level) || '',
+    }, linhas);
     renderLista(linhas);
   }
 
@@ -1163,7 +1175,12 @@
     var q = (buscaEl.value || '').trim();
     if (data.modo === 'busca') {
       modoLista = false;
-      metaEl.textContent = (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.sigla ? AGRO_BUSCA_CATALOGO.sigla + ' · ' : 'BCA · ') + (produtos.length) + ' resultado(s)';
+      var base = (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.sigla ? AGRO_BUSCA_CATALOGO.sigla + ' · ' : 'BCA · ') + (produtos.length) + ' resultado(s)';
+      if (data.pacote_fallback) base += ' · lista local';
+      else if (data.motor === 'pdv' || data.modo === 'busca') base += ' · servidor';
+      else if (data.pacote_level === 'yellow') base += ' · lista antiga';
+      else if (data.pacote_level === 'green') base += ' · lista hoje';
+      metaEl.textContent = base;
       pagWrap.classList.add('hidden');
     } else {
       modoLista = true;

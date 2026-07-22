@@ -69,6 +69,21 @@ def agro_pdv_catalogo_full_desligado() -> bool:
     return s not in ("0", "false", "nao", "não", "off", "no", "")
 
 
+def agro_mongo_erp_desligado() -> bool:
+    """
+    ERP/Mongo cancelado: não abrir conexão (evita Authentication failed + travar Gunicorn).
+
+    ``AGRO_MONGO_ERP_DESLIGADO``: ``true``/``false`` força; ``auto`` (default) = desliga
+    quando ``AGRO_FONTE_CATALOGO=agro_pg`` (política da loja).
+    """
+    raw = str(getattr(settings, "AGRO_MONGO_ERP_DESLIGADO", "auto") or "auto").strip().lower()
+    if raw in ("1", "true", "yes", "on", "sim"):
+        return True
+    if raw in ("0", "false", "no", "off", "nao", "não"):
+        return False
+    return agro_catalogo_usa_postgres()
+
+
 def agro_gestao_usa_postgres() -> bool:
     """Gestão operacional lista/facetas no Postgres (staging Fase B ou loja ``agro_pg``)."""
     if agro_pdv_catalogo_somente_postgres():
@@ -243,6 +258,7 @@ def agro_fonte_status_dict() -> dict:
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "compras_metricas_postgres": agro_compras_metricas_postgres(),
         "pdv_venda_sem_mongo_erp": agro_pdv_venda_sem_mongo_erp(),
+        "mongo_erp_desligado": agro_mongo_erp_desligado(),
         "pdv_nfce_assincrona": agro_pdv_nfce_assincrona(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "estoque_ledger_ativo": agro_estoque_ledger_ativo(),

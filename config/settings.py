@@ -183,6 +183,8 @@ MIDDLEWARE = [
     'base.middleware.AgroIdempotencyMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Mongo ERP off: não exibir a palavra «Mongo» em erros/JSON (Entrada NF / PDV / etc.)
+    'base.agro_sem_mencao_mongo_middleware.AgroSemMencaoMongoMiddleware',
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)  # 10 MB
@@ -243,12 +245,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 # Produção (Render, SaveinCloud, Docker): injete DATABASE_URL (PostgreSQL) pelo painel; sem ela, fallback SQLite local.
 
-# conn_max_age baixo: evita esgotar slots no Postgres (incidente 21/07).
+# conn_max_age baixo: evita esgotar slots no Postgres (incidente loja 21/07).
 # Override: DJANGO_CONN_MAX_AGE no painel Render.
+# Local: python-decouple lê .env; dj_database_url só olha os.environ — passar via default.
 _db_conn_max_age = int(os.environ.get("DJANGO_CONN_MAX_AGE", "60") or "60")
+_db_url = (config("DATABASE_URL", default="") or "").strip() or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.config(
+        default=_db_url,
         conn_max_age=_db_conn_max_age,
         conn_health_checks=True,
     )
@@ -356,6 +360,9 @@ AGRO_FINANCEIRO_PG_LEITURA_STAGING = config(
 )
 # Staging: URL interna do Postgres da loja — só leitura para snapshot PDV (ver copiar_snapshot_pdv_loja).
 AGRO_SNAPSHOT_FONTE_DATABASE_URL = (config('AGRO_SNAPSHOT_FONTE_DATABASE_URL', default='') or '').strip()
+# Reparo códigos: fonte (staging) → destino (loja). Ver reparar_codigos_catalogo_fonte_destino.
+AGRO_CATALOGO_FONTE_DATABASE_URL = (config('AGRO_CATALOGO_FONTE_DATABASE_URL', default='') or '').strip()
+AGRO_CATALOGO_DEST_DATABASE_URL = (config('AGRO_CATALOGO_DEST_DATABASE_URL', default='') or '').strip()
 # Staging (após snapshot): PDV lê catálogo só do Postgres; estoque/médias ainda podem usar Mongo.
 AGRO_PDV_CATALOGO_SOMENTE_POSTGRES = config(
     'AGRO_PDV_CATALOGO_SOMENTE_POSTGRES', default=False, cast=bool
@@ -507,6 +514,8 @@ PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast
 PDV_VENDA_ERP_ENVIO = config("PDV_VENDA_ERP_ENVIO", default=False, cast=bool)
 # Finalização PDV sem consultar Mongo espelho ERP (catálogo/estoque ref/fiscal usam Postgres + defaults).
 AGRO_PDV_VENDA_SEM_MONGO_ERP = config("AGRO_PDV_VENDA_SEM_MONGO_ERP", default=True, cast=bool)
+# auto = desliga Mongo quando AGRO_FONTE_CATALOGO=agro_pg (ERP cancelado).
+AGRO_MONGO_ERP_DESLIGADO = (config("AGRO_MONGO_ERP_DESLIGADO", default="auto") or "auto").strip().lower()
 # NFC-e após venda: não esperar SEFAZ na requisição HTTP (emite em thread).
 AGRO_PDV_NFCE_ASSINCRONA = config("AGRO_PDV_NFCE_ASSINCRONA", default=True, cast=bool)
 NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)

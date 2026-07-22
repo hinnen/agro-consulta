@@ -1157,6 +1157,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 Deploy loja **v11.64** — devolução + BCA PDV/Cadastro + custo NF/kardex (22/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` em curso · aguardar Live no Render |
+| **VERSION** | **loja v11.64** (antes v11.04 / `241782c`) |
+| **Inclui** | (1) Devolução sem travar no Mongo («Falha de rede») · (2) BCA Cadastro sempre servidor · PDV lista estável + preço confirma ≤2s · delta ≤5 min · (3) Custo NF no cadastro + `nf_forn`/`nf_custo` no kardex · (4) middleware sem menção «Mongo» |
+| **NÃO inclui** | Merge inteiro do `teste` · freio catálogo full removido (mantido na loja) |
+| **Origem teste** | `3f9683e` (pacote) — port seletivo p/ loja |
+| **Backup / reverter** | `rollback/pre-v1164-devolucao-bca-custo` @ **241782c** |
+| **Como reverter** | `git push origin rollback/pre-v1164-devolucao-bca-custo:producao` |
+| **Autorização** | *pode subir para producao* + **99738595** (checkpoint pedido) |
+| **Após Live** | Ctrl+F5 · testar devolução (ex. #3798) · busca Cadastro «teste» · Entrada NF custo se ainda errado: `reaplicar_custos_entrada_nf` |
+
+**Versão app (VERSION):** **teste v11.64** · **loja v11.64** · rollback `pre-v1164-devolucao-bca-custo`
+
 ### 🚑 v10.98 — EMERGÊNCIA lentidão BCA (22/07 · loja operar HOJE)
 
 | Item | Detalhe |

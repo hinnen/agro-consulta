@@ -726,7 +726,28 @@
       },
       body: JSON.stringify(payload),
     })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var j = null;
+          try {
+            j = t ? JSON.parse(t) : {};
+          } catch (e) {
+            var trecho = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+            return {
+              ok: false,
+              j: {
+                ok: false,
+                erro:
+                  'Servidor não respondeu JSON (HTTP ' +
+                  r.status +
+                  ').' +
+                  (trecho ? ' ' + trecho : ' Tente de novo; se repetir, anote o horário.'),
+              },
+            };
+          }
+          return { ok: r.ok, j: j || {} };
+        });
+      })
       .then(function (x) {
         if (x.j && x.j.ok) {
           var msg = x.j.mensagem || 'Devolução registrada.';
@@ -737,7 +758,14 @@
         }
         mostrarAviso((x.j && x.j.erro) || 'Falha ao devolver.');
       })
-      .catch(function () { mostrarAviso('Falha de rede.'); })
+      .catch(function (err) {
+        var m = (err && err.message) ? String(err.message) : '';
+        mostrarAviso(
+          m && m.indexOf('Failed to fetch') >= 0
+            ? 'Falha de rede ou tempo esgotado. Confira se a venda já foi devolvida e tente de novo.'
+            : (m || 'Falha de rede ou tempo esgotado. Tente de novo.')
+        );
+      })
       .finally(function () {
         btn.disabled = false;
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
