@@ -223,8 +223,11 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         if not partes:
             partes = [termo_txt]
         try:
-            ovs = ProdutoGestaoOverlayAgro.objects.all()
-            for pl in partes:
+            # Começa filtrado (não objects.all()) — JSON icontains no overlay inteiro era lento.
+            ovs = ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__modelo__icontains=partes[0][:120]
+            )
+            for pl in partes[1:]:
                 ovs = ovs.filter(cadastro_extras__modelo__icontains=pl[:120])
             pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
             if not pids:
@@ -280,7 +283,23 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        _append_overlay_modelo_matches(termo)
+        # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
+        # Fallback: token mais longo (≥4) — costuma ser a marca/linha (estima, milho…).
+        if not found:
+            partes_fb = [p.strip() for p in termo.split() if len(p.strip()) >= 4]
+            if len(partes_fb) >= 2:
+                best = max(partes_fb, key=len)
+                q_fb = q_nome_tokens_cadastro(best)
+                if q_fb is not None:
+                    _cadastro_pg_append_unicos(
+                        found,
+                        seen_pk,
+                        qs.filter(q_fb).order_by("nome", "pk")[:lim],
+                        lim,
+                    )
+        # Overlay modelo: só se ainda quase vazio (objects.all()+JSON icontains é caro).
+        if len(found) < 3:
+            _append_overlay_modelo_matches(termo)
         if len(found) < min(8, lim):
             _cadastro_pg_append_unicos(
                 found,

@@ -1157,6 +1157,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚑 v10.94 — busca PDV rápida só Postgres (22/07 · loja vendendo)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma pós-10.93** | Caixa abre · busca «milho»/«ração estima» → 0 itens / demora |
+| **Causa** | Termo curto disparava complemento **Mongo regex** (exigia 8 hits PG) → timeout 30s → UI 0 |
+| **Prova** | `estima` 24 em 1,8s · `milho` timeout 30s · `ração estima carne` 0 em 18s |
+| **Fix** | PDV+agro_pg: **sem** Mongo; fallback token longo; overlay sem `.all()` |
+| **VERSION** | **loja v10.94** · rollback `dae1276` (v10.93) |
+
 ### 🚑 v10.93 — CATÁLOGO COMPLETO OFF (freio) · loja inutilizável (22/07 · Renan 99738595)
 
 | Item | Detalhe |
