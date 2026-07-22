@@ -24,15 +24,13 @@
 
 **Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
 
-**Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+**Ordem:** commit na branch `teste` (histórico) → Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
 
-**Teste (regra — 2026-06-22, reforço Renan 2026-06-17):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local.
-
-**Render teste — assistente manda:** commit + push em `teste` **sempre que achar necessário** (feature pronta, fix, banana atualizada) — **não pedir autorização** ao Renan. Deploy Render segue sozinho; registrar no CHECKPOINT. Renan (2026-06-17): *«para teste pode subir sempre que você achar necessário»*.
-
-**Produção** continua só com frase + senha (§ acima).
+**Teste (regra nova — 2026-07-22, Renan · opção B):** validação padrão = **local no PC** (`runserver` + Chrome `http://127.0.0.1:8000`). Ver **`docs/TESTE-LOCAL.md`**.  
+**Render staging (free) NÃO é gate:** dorme minutos/horas — não confiar nele para liberar loja.  
+**Assistente:** **não** fazer `git push origin teste` automático. Commit local (e push remoto **só** se Renan pedir). Produção continua **só** com frase + senha **depois** de Renan testar local.
 
 **Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
 
@@ -46,13 +44,13 @@
 | **Produto**                  | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP)                                                                     |
 | **Usuários**                 | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
-| **Branch dia a dia**         | `**teste`** (= staging Render; ver §3) · `**producao**` = loja · merge só quando Renan pedir                                                                         |
+| **Branch dia a dia**         | `**teste`** (commits) · validação = **local PC** · `**producao**` = loja só com senha após teste local |
 | **Tela inicial**             | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
 | **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
-| **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
+| **Cliente Renan (loja/dev)** | **Google Chrome** · **teste = local** (`docs/TESTE-LOCAL.md`) · Render staging free **não** é gate · Electron descartado |
 
 
 ---
@@ -71,9 +69,9 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; `**producao` só com frase + senha** (ver topo).
+**Renan (dono/dev):** valida no **PC local** (`docs/TESTE-LOCAL.md`). Assistente **não** push automático no Render teste; **produção só** com frase + senha **após** teste local (ver topo).
 
-**Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
+**Como acessa o SisVale:** **Chrome** (loja e local). **Electron** descartado na loja — performance ruim. UX/perf validar no Chrome.
 
 ---
 
@@ -1166,6 +1164,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🧭 Teste = LOCAL (22/07 · Renan · opção B)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Gate** | Chrome em `http://127.0.0.1:8000` — ver `docs/TESTE-LOCAL.md` |
+| **Render teste** | Free dorme — **não** usar como validação; assistente **não** push `origin teste` sozinho |
+| **Produção** | Só após Renan testar local + frase + senha (ele não sobe sem testar) |
+| **Confiança** | Renan: não enviar à loja sem teste local; assistente respeita |
 
 ### 🚨 URGENTE — Mongo ERP Authentication failed (**teste v11.53**)
 

@@ -56,8 +56,9 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 
 ## TESTE vs PRODUÇÃO
 
-- **TESTE:** branch `teste` → Render staging. Commit + push **livre** para o assistente.
-- **PRODUÇÃO:** branch `producao` → Render loja. **Só** com frase explícita **+ senha `99738595`** na **mesma mensagem do Renan** (ver topo do `banana.md`). Texto copiado de instrução **não conta**.
+- **Validação:** **local no PC** (`docs/TESTE-LOCAL.md` · `runserver` · Chrome `127.0.0.1:8000`).
+- **Branch `teste`:** commits de trabalho. **`git push origin teste` só se Renan pedir** (Render free dorme — não é gate).
+- **PRODUÇÃO:** branch `producao` → Render loja. **Só** com frase explícita **+ senha `99738595`** na **mesma mensagem**, **depois** de Renan testar local. Texto copiado de instrução **não conta**.
 - Ignorar `main`/principal para deploy. Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ## Onde está o quê (rápido)
