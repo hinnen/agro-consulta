@@ -18402,6 +18402,12 @@ def api_buscar_produtos(request):
         "true",
         "yes",
     )
+    if wizard_catalog:
+        from produtos.agro_fonte_config import agro_pdv_catalogo_full_desligado
+
+        # Freio: não montar catálogo inteiro (trava worker/DB). PDV vende por ?q= (PG).
+        if agro_pdv_catalogo_full_desligado():
+            return JsonResponse({"produtos": []})
     q = request.GET.get("q", "").strip()
     if q.strip().lower() == "#prova":
         return _api_buscar_json_prova_unificada(
@@ -24757,10 +24763,26 @@ def _catalogo_pdv_entry_atual(db, client):
     return new_entry
 
 
+def _catalogo_pdv_body_vazio() -> dict:
+    """Resposta rápida quando o catálogo completo está desligado (freio de emergência)."""
+    return {
+        "produtos": [],
+        "catalog_version": "catalogo-full-off",
+        "catalog_updated_at": timezone.now().isoformat(),
+    }
+
+
 @require_GET
 def api_todos_produtos_local(request):
     from estoque.sync_health import registrar_ping_mongo
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_pdv_catalogo_full_desligado,
+        agro_pdv_catalogo_somente_postgres,
+    )
+
+    if agro_pdv_catalogo_full_desligado():
+        return JsonResponse(_catalogo_pdv_body_vazio())
 
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()
@@ -24780,7 +24802,24 @@ def api_todos_produtos_local(request):
 @require_GET
 def api_todos_produtos_delta(request):
     from estoque.sync_health import registrar_ping_mongo
-    from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_pdv_catalogo_full_desligado,
+        agro_pdv_catalogo_somente_postgres,
+    )
+
+    if agro_pdv_catalogo_full_desligado():
+        body = _catalogo_pdv_body_vazio()
+        return JsonResponse(
+            {
+                "ok": True,
+                "delta": False,
+                "full": True,
+                "catalog_version": body["catalog_version"],
+                "catalog_updated_at": body["catalog_updated_at"],
+                "produtos": [],
+            }
+        )
 
     usa_pg_cat = agro_catalogo_usa_postgres()
     pdv_somente_pg = agro_pdv_catalogo_somente_postgres()

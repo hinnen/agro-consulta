@@ -50,6 +50,25 @@ def agro_pdv_catalogo_somente_postgres() -> bool:
     return bool(getattr(settings, "AGRO_PDV_CATALOGO_SOMENTE_POSTGRES", False))
 
 
+def agro_pdv_catalogo_full_desligado() -> bool:
+    """Freio de emergência: NÃO montar o catálogo completo do PDV (delta/local/wizard_catalog).
+
+    Montar o catálogo inteiro numa request estoura o timeout do worker (~30s), satura o
+    banco e derruba caixa + busca. Com o freio ligado, o PDV vende só pela busca do
+    servidor (``/api/buscar/?q=``), que responde em ~2s.
+
+    Default: **ligado** (catálogo completo desligado) — vender sem depender do snapshot.
+    Reativar o catálogo completo: env ``AGRO_PDV_CATALOGO_FULL_OFF=false`` (ou ``0``).
+    """
+    import os
+
+    raw = os.environ.get("AGRO_PDV_CATALOGO_FULL_OFF")
+    if raw is None:
+        raw = getattr(settings, "AGRO_PDV_CATALOGO_FULL_OFF", "1")
+    s = str(raw).strip().lower()
+    return s not in ("0", "false", "nao", "não", "off", "no", "")
+
+
 def agro_gestao_usa_postgres() -> bool:
     """Gestão operacional lista/facetas no Postgres (staging Fase B ou loja ``agro_pg``)."""
     if agro_pdv_catalogo_somente_postgres():
@@ -110,18 +129,34 @@ def agro_financeiro_usa_postgres() -> bool:
 
 def _producao_financeiro_cp_pg_pronto() -> bool:
     try:
+        from django.core.cache import cache
+
+        ck = "agro_fin_pg_loja_pronto_v1"
+        hit = cache.get(ck)
+        if hit is not None:
+            return bool(hit)
         from produtos.models import TituloFinanceiroAgro
 
-        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        ok = TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        cache.set(ck, ok, timeout=600)
+        return ok
     except Exception:
         return False
 
 
 def _staging_financeiro_cp_pg_pronto() -> bool:
     try:
+        from django.core.cache import cache
+
+        ck = "agro_fin_pg_staging_pronto_v1"
+        hit = cache.get(ck)
+        if hit is not None:
+            return bool(hit)
         from produtos.models import TituloFinanceiroAgro
 
-        return TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        ok = TituloFinanceiroAgro.objects.filter(despesa=True).exists()
+        cache.set(ck, ok, timeout=600)
+        return ok
     except Exception:
         return False
 

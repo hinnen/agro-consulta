@@ -301,9 +301,18 @@ def buscar_documentos_unificado(
     # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
     _familia_gm = bool(gm_base_familia(termo))
     mongo_docs: list[dict] = []
-    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and len(pg_docs) >= min(8, lim)
+    # PDV/wizard (skip_mongo_complemento): com agro_pg, 1+ hit no Postgres BASTA.
+    # Antes exigia 8 hits → "milho" ia pro Mongo regex e estourava 30s (loja via 0 itens).
+    _pg_suficiente = skip_mongo_complemento and bool(pg_docs) and (
+        len(pg_docs) >= 1 if usa_pg else len(pg_docs) >= min(8, lim)
+    )
     if _familia_gm:
         _pg_suficiente = False
+    # PDV + agro_pg sem família GM: NUNCA complemento Mongo (catálogo já está no PG).
+    # Mongo em termo curto satura e a busca do caixa fica inutilizável.
+    if skip_mongo_complemento and usa_pg and not _familia_gm:
+        _pg_suficiente = True
+        mongo_docs = []
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
             from produtos.views import (
@@ -348,7 +357,15 @@ def buscar_documentos_unificado(
     prods = _filtrar_gm_estrito(termo, prods)
     from produtos.busca_filtro_pdv_util import filtrar_documentos_estilo_pdv, score_relevancia_doc
 
-    prods = filtrar_documentos_estilo_pdv(prods, termo)
+    filtrados = filtrar_documentos_estilo_pdv(prods, termo)
+    # Frase tipo "ração estima carne": AND zera (produto = "estimacat…", sem "ração").
+    # Fallback: token mais longo ≥4 chars (marca/linha) — loja precisa achar o item.
+    if not filtrados and prods and " " in str(termo).strip():
+        partes = [p for p in str(termo).split() if len(p.strip()) >= 4]
+        if partes:
+            best = max(partes, key=len)
+            filtrados = filtrar_documentos_estilo_pdv(prods, best)
+    prods = filtrados
     prods = sorted(
         prods,
         key=lambda d: (

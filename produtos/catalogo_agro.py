@@ -60,7 +60,12 @@ def _aplicar_overlay_em_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> d
     return row
 
 
-def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None) -> dict:
+def produto_agro_para_row(
+    p: Produto,
+    ov: ProdutoGestaoOverlayAgro | None = None,
+    *,
+    resolver_overlay_faltante: bool = True,
+) -> dict:
     pid = (p.produto_externo_id or p.erp_produto_id or str(p.pk)).strip()
     row = {
         "id": pid,
@@ -91,7 +96,9 @@ def produto_agro_para_row(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
 
-    if ov is None and pid:
+    # Batch (_rows_de_produtos) já monta ov_map: NÃO reconsultar overlay por produto
+    # (N+1 derruba /api/todos-produtos/delta/ e trava o PDV).
+    if resolver_overlay_faltante and ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
     # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
@@ -137,7 +144,11 @@ def _rows_de_produtos(produtos: list[Produto]) -> list[dict]:
     out: list[dict] = []
     for p in produtos:
         pid = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
-        out.append(produto_agro_para_row(p, ov=ov_map.get(pid)))
+        out.append(
+            produto_agro_para_row(
+                p, ov=ov_map.get(pid), resolver_overlay_faltante=False
+            )
+        )
     return out
 
 
@@ -212,8 +223,11 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         if not partes:
             partes = [termo_txt]
         try:
-            ovs = ProdutoGestaoOverlayAgro.objects.all()
-            for pl in partes:
+            # Começa filtrado (não objects.all()) — JSON icontains no overlay inteiro era lento.
+            ovs = ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__modelo__icontains=partes[0][:120]
+            )
+            for pl in partes[1:]:
                 ovs = ovs.filter(cadastro_extras__modelo__icontains=pl[:120])
             pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
             if not pids:
@@ -269,7 +283,23 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        _append_overlay_modelo_matches(termo)
+        # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
+        # Fallback: token mais longo (≥4) — costuma ser a marca/linha (estima, milho…).
+        if not found:
+            partes_fb = [p.strip() for p in termo.split() if len(p.strip()) >= 4]
+            if len(partes_fb) >= 2:
+                best = max(partes_fb, key=len)
+                q_fb = q_nome_tokens_cadastro(best)
+                if q_fb is not None:
+                    _cadastro_pg_append_unicos(
+                        found,
+                        seen_pk,
+                        qs.filter(q_fb).order_by("nome", "pk")[:lim],
+                        lim,
+                    )
+        # Overlay modelo: só se ainda quase vazio (objects.all()+JSON icontains é caro).
+        if len(found) < 3:
+            _append_overlay_modelo_matches(termo)
         if len(found) < min(8, lim):
             _cadastro_pg_append_unicos(
                 found,
@@ -847,7 +877,11 @@ def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
     if p:
         pid_key = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
         ov_map = _overlay_mapa_por_ids([pid_key])
-        return row_para_doc_gestao_lista(produto_agro_para_row(p, ov=ov_map.get(pid_key)))
+        return row_para_doc_gestao_lista(
+            produto_agro_para_row(
+                p, ov=ov_map.get(pid_key), resolver_overlay_faltante=False
+            )
+        )
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=esc[:64]).first()
     if not ov:
         return None
@@ -990,16 +1024,13 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
 
 
 def listar_todos_rows_ativos() -> list[dict]:
-    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``)."""
-    out: list[dict] = []
-    pagina = 1
-    while True:
-        chunk, has_more = listar_paginado(pagina=pagina, por_pagina=500, sort_key="nome", sort_direction=1)
-        out.extend(chunk)
-        if not has_more:
-            break
-        pagina += 1
-    return out
+    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``).
+
+    Uma query (sem OFFSET paginado) — montar o cache diário do PDV com N páginas
+    ``ORDER BY … OFFSET`` sobrecarregava o agro-db na 1ª abertura do dia.
+    """
+    qs = queryset_catalogo_ativos(inativos=False).order_by("nome", "pk")
+    return _rows_de_produtos(list(qs))
 
 
 def row_para_doc_busca_pdv(row: dict) -> dict:

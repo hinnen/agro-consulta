@@ -1,4 +1,4 @@
-﻿# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
@@ -1156,6 +1156,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🚑 v10.96 — base ONTEM (v10.89) + freio catálogo + busca PG (22/07 · loja vender)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido Renan** | Voltar como ontem (v10.89 `d851178`) · sem Mongo pesado · loja 2h parada |
+| **Por que não rollback puro** | 10.89 puro remonta catálogo e **trava de novo** na 1ª abertura |
+| **O que é** | Código de **ontem** + freio catálogo OFF + busca tecla no **Postgres** (GM/EAN inclusos) |
+| **Prova API** | GM1576-24 / EAN 7893750799767 → 1 hit · milho 18 |
+| **Rollback** | tag `rollback-from-v10.95-emergency` @ 436d2aa · ou `d851178` puro |
 
 ### 📦 Deploy loja **v10.89** — Entrada NF V. unit no Mudar (21/07 · Renan frase+senha)
 
