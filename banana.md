@@ -1162,49 +1162,40 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 🚑 23/07 ~17:25 — Fantasmas Ibiúna NF 14988 (dados loja reparados)
+### 📦 PACOTE LOJA **v11.76** — PRONTO · só falta frase + senha (23/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
+| **VERSION** | **11.76** (loja hoje **v11.75** / `910290f`) |
+| **Branch** | `hotfix/preview-custo-v1175` tip **`939a4e0`** |
+| **O que sobe** | (1) Gunicorn **2 workers** (`Procfile`) — alivia fila CPU · (2) Cadastro: timeout → msg clara (não «signal is aborted») · (3) banana CHECKPOINT |
+| **Já na loja (não precisa subir de novo)** | **v11.75** prévia Finalizar sem N+1 · **dados** fantasmas NF 14988 (`GM1542-5` etc.) já reparados no agro-db |
+| **Como subir (próximo chat)** | `git push origin hotfix/preview-custo-v1175:producao` (ff) · criar/atualizar rollback antes |
+| **Backup / reverter** | `rollback/pre-v1176-workers` @ **`910290f`** (tip atual `producao`) |
+| **Como reverter** | `git push origin rollback/pre-v1176-workers:producao` |
+| **Migrate** | nenhuma |
+| **Após Live** | Ctrl+F5 · badge **v11.76** · busca Cadastro se timeout · CPU menos engasgo com 2 workers |
+
+**Versão app (VERSION):** código **11.76** pronto · loja **v11.75** até autorizar
+
+### 🚑 23/07 ~17:25 — Fantasmas Ibiúna NF 14988 (dados loja ✅ reparados)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | `GM1542-5` / `GM1541-5` / `GM1546-5` sumiram do PDV e Cadastro; NF mostrava o GM |
-| **Causa** | Produtos **existiam** no PG com nome `—` e `codigo_nfe` = ObjectId Mongo (fantasma). Busca por GM/nome não acha. Rascunho NF ainda tinha o GM certo |
-| **Reparação** | **Dados loja** (agro-db) corrigidos agora: nomes + GM + overlay dos 4 pids da NF (`…6d39` `…6d2a` `…6d51` `…6d44`) |
-| **Validar** | Ctrl+F5 · Cadastro/PDV buscar **`GM1542-5`** · deve achar «ibiuna inicial 5kg» |
-| **CPU** | v11.75 remove N+1 da prévia; **v11.76** sobe Gunicorn **2 workers** + msg clara no abort da busca Cadastro — **aguarda senha** |
+| **Causa** | Fantasma import Mongo→PG: nome `—` + `codigo_nfe` = ObjectId |
+| **Reparação** | ✅ agro-db (pids `…6d39` `…6d2a` `…6d51` `…6d44`) — **não** depende do push v11.76 |
+| **Validar** | Ctrl+F5 · buscar **`GM1542-5`** |
 
-### 📦 Pacote **v11.76** — 2 workers + msg busca (23/07 · **aguarda senha**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 `hotfix/preview-custo-v1175` · **não** na loja ainda |
-| **VERSION** | **11.76** |
-| **O quê** | `Procfile` workers **2** · Cadastro: timeout ≠ «signal is aborted» |
-
-### 📦 Deploy loja **v11.75** — prévia Finalizar + CPU agro-db (23/07 · Renan frase+senha)
+### 📦 Deploy loja **v11.75** — prévia Finalizar + CPU (23/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`910290f`** · aguardar Live no Render |
-| **VERSION** | **loja v11.75** (antes **v11.74** / `fb7a30c`) |
-| **Autorização** | *pode subir para produção* + **99738595** |
-| **O que é** | Hotfix prévia Finalizar: sem N+1 em `AjusteRapidoEstoque`; catálogo batch; timeout UI 45s |
-| **Branch** | `hotfix/preview-custo-v1175` → `producao` |
-| **Commit** | tip **`910290f`** (fix `325b910`) |
-| **Backup / reverter** | `rollback/pre-v1175-preview-cpu` @ **`fb7a30c`** |
-| **Como reverter** | `git push origin rollback/pre-v1175-preview-cpu:producao` |
-| **Migrate** | nenhuma nova |
-| **Após Live** | Ctrl+F5 · NF 14988 Finalizar · CPU agro-db deve acalmar |
-
-### ⚠️ 23/07 ~17:12 — Cadastro «produtos sumiram» + abort (Relato Renan)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Cadastro busca `GM1542-5` / «ibiuna inicial 5kg» → 0 + *signal is aborted*; PDV acha ibiuna (`GM1542-S`) |
-| **Diagnóstico** | **Não apagou.** Cadastro BCA `skipLocal` + timeout **25s** sob pico CPU agro-db / 1 worker → abort vira «0 resultados». NF 14988 mostra GM **1542-5** (verde); PDV 5kg ensacado = **GM1542-S** (código diferente — busca `-5` não pega `-S`) |
-| **Ação loja** | Badge **v11.75** · Ctrl+F5 · fechar abas extras NF · buscar **`GM1542`** ou **ibiuna** · Network: `/api/buscar/?contexto=cadastro` |
-| **Fix UX (pendente)** | mensagem clara no abort (não «signal is aborted») |
-
-**Versão app (VERSION):** **loja v11.75** · rollback `pre-v1175-preview-cpu` @ fb7a30c
+| **Status** | ✅ na loja (`producao` **`910290f`**) |
+| **VERSION** | **loja v11.75** |
+| **Backup** | `rollback/pre-v1175-preview-cpu` @ **`fb7a30c`** |
+| **O quê** | Prévia Finalizar sem N+1 em ajuste · catálogo batch · timeout UI 45s |
 
 ### 📦 Deploy loja **v11.74** — Entrada NF + Transferências + DSP-NUVEM (23/07 · Renan frase+senha)
 
