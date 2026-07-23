@@ -1626,7 +1626,25 @@ def api_produtos_gestao_overlay_salvar(request):
         return _api_produtos_gestao_overlay_salvar_core(request)
     except Exception as exc:
         logger.exception("api_produtos_gestao_overlay_salvar não tratado")
-        out = {"ok": False, "erro": "Erro interno ao salvar o cadastro. Tente de novo.", "tipo": exc.__class__.__name__}
+        msg = "Erro interno ao salvar o cadastro. Tente de novo."
+        low = str(exc or "").lower()
+        if any(
+            x in low
+            for x in (
+                "auth",
+                "authentication",
+                "serverselection",
+                "timed out",
+                "timeout",
+                "replica set",
+                "mongo",
+            )
+        ):
+            msg = (
+                "Não foi possível falar com o ERP antigo. "
+                "O cadastro no SisVale deve salvar sem isso — atualize o sistema (v11.66+) e tente de novo."
+            )
+        out = {"ok": False, "erro": msg, "tipo": exc.__class__.__name__}
         try:
             if getattr(settings, "DEBUG", False):
                 out["detalhe"] = str(exc).strip()[:3000]
