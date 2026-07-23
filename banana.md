@@ -1162,31 +1162,29 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA pronto — **v11.74** + DSP-NUVEM (23/07 · aguarda frase+senha)
+### 📦 Deploy loja **v11.74** — Entrada NF + Transferências + DSP-NUVEM (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Branch** | `deploy/loja-v1174-dsp` (`b639d92`) |
-| **Inclui** | Entrada NF prévia Finalizar · Transferências rápidas · **DSP-NUVEM** (Dispenser A6 nuvem + Prontas) |
-| **Migrate** | **`0064_dispenser_a6_biblioteca_compartilhada`** (loja já tem Dist `0063`) |
-| **VERSION** | **11.74** |
-| **NÃO inclui** | Família embalagens Delivery · merge `teste` |
-| **Loja** | 📦 aguarda *pode subir para produção* + **99738595** |
+| **Status** | ✅ push `producao` **`cad7ffc`** · aguardar Live no Render |
+| **VERSION** | **loja v11.74** (antes **v11.73** / `3bf1c84`) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **O que é** | (1) prévia Finalizar sem timeout · (2) Transferências rápidas · (3) DSP-NUVEM Dispenser A6 + Prontas |
+| **Branch** | `deploy/loja-v1174-dsp` → `producao` |
+| **Backup / reverter** | `rollback/pre-v1174-entrada-transf-dsp` @ **`3bf1c84`** |
+| **Como reverter** | `git push origin rollback/pre-v1174-entrada-transf-dsp:producao` |
+| **Migrate** | **`0064_dispenser_a6_biblioteca_compartilhada`** (Render no deploy) |
+| **Após Live** | Ctrl+F5 · NF Finalizar · `/transferencias/` · `/interno/dispenser-a6/` |
+
+**Versão app (VERSION):** **loja v11.74** · rollback `pre-v1174-entrada-transf-dsp` @ 3bf1c84
 
 ### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`4b59f0f`** · aguardar Live no Render |
-| **VERSION** | **loja v11.73** (antes **v11.72** / `584913d`) |
-| **Autorização** | *pode subir para produção* + **99738595** |
-| **O que é** | (1) prévia Finalizar sem travar · PIN/CP/auditoria PG · timeouts UI · (2) Transferências sem furo Mongo |
-| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
+| **Status** | ✅ enviado (sucedido por **v11.74**) |
+| **VERSION** | foi **loja v11.73** · agora **v11.74** |
 | **Backup / reverter** | `rollback/pre-v1173-entrada-nf-transf` @ **`584913d`** |
-| **Como reverter** | `git push origin rollback/pre-v1173-entrada-nf-transf:producao` |
-| **Após Live** | Ctrl+F5 · NF Finalizar prévia rápida + PIN · `/transferencias/` carrega |
-
-**Versão app (VERSION):** **loja v11.73** · rollback `pre-v1173-entrada-nf-transf` @ 584913d
 
 ### 🩹 Entrada NF — Finalizar prévia de custo (incluso no **v11.73** · ✅ enviado)
 
