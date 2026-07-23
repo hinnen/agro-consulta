@@ -15,5 +15,6 @@ alwaysApply: true
 ## Lembretes (ação)
 
 - **Nunca subo nada na loja (produção)** sem você pedir na **mesma mensagem** com **frase explícita + senha**.
-- **Teste** = site Render branch `teste` — você valida lá; **não** conta máquina local.
-- Entreguei fix/feature/deploy → **registro no `banana.md`** (CHECKPOINT) **sem perguntar** se devo atualizar.
+- **Commit + push** em `teste`/feature = **autorizado** (backup GitHub) — **não** é loja.
+- **Prova** = PC local (Chrome); Render staging free **não** é gate.
+- Entreguei fix/feature → **registro no `banana.md`** (CHECKPOINT) **sem perguntar**.

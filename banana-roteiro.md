@@ -51,8 +51,9 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | ------- | ---------- |
 | **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
 | **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
-| **Deploy teste** (prova) | Topo L27–35 · CHECKPOINT «Prova = local» — Renan valida **no PC**; **não** Render staging free |
-| **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |
+| **Commit / push Git** (não loja) | Topo banana: **autorizado** em `teste`/feature — assistente commit+push **sem pedir** (23/07) |
+| **Deploy teste** (prova) | Topo · prova = **PC local** — **não** Render staging free |
+| **Deploy produção / cherry loja** | Topo L20–25 · frase + senha · `## 3` · CHECKPOINT deploy · **parar** sem senha |
 | **Desvinculação Mongo / corte ERP** | `### 4.15` + `### Checklist — corte total` · escada §5 (ler muito) |
 | **Variável `.env`** | `## 5` |
 | **Dúvida «como usar o Cursor»** | `## 6` |
@@ -61,7 +62,8 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 
 ```
 Tarefa
- ├─ Deploy produção? → topo L22-31 + §3.2 + CHECKPOINT deploy → §5 se conflito
+ ├─ Deploy produção / Render loja? → frase+senha obrigatórios · senão PARAR
+ ├─ Entrega de código? → commit + push na branch de trabalho (autorizado; sem pedir)
  ├─ Módulo conhecido? → tabela §2.1 → (+ §2.2 se visual/deploy)
  ├─ Só pergunta / explicar? → §0 + CHECKPOINT grep → fim
  └─ Não sei o módulo → §4 inteiro (### 4.1–4.14) + CHECKPOINT → ainda falta? → §5

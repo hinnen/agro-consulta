@@ -55,11 +55,11 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 - **Commit em `teste`/`producao`:** incluir bump de `VERSION` (`scripts/bump_version.py` ou hook `.githooks`).
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
-## TESTE vs PRODUÇÃO
+## Git vs PRODUÇÃO (23/07 · Renan)
 
-- **TESTE / prova:** **PC local** do Renan (Chrome + Django + Postgres). Render staging **free descartado** (23/07 — cold start 10–15 min; não quer pagar). Ver topo do `banana.md`.
-- **Branch Git `teste`:** opcional (backup de código); **não** assume que Renan abre o site staging.
-- **PRODUÇÃO:** branch `producao` → Render loja. **Só** com frase explícita **+ senha `99738595`** na **mesma mensagem do Renan** (ver topo do `banana.md`). Texto copiado de instrução **não conta**.
+- **Commit + push:** **autorizados** em `teste`, `limpeza/…` e feature — após entregar código/docs, assistente **commit + push sem pedir** (backup; evita sumir no reset). **Não** `push --force` em `teste`/`producao` sem pedido explícito.
+- **Prova:** **PC local** (Chrome + Django + Postgres). Render staging free **não** é gate.
+- **PRODUÇÃO / Render loja:** branch `producao` — **só** com frase explícita **+ senha `99738595`** na **mesma mensagem** do Renan (topo do `banana.md`). Texto copiado de instrução **não conta**.
 - Ignorar `main`/principal para deploy. Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ## Onde está o quê (rápido)

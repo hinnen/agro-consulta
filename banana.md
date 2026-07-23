@@ -24,17 +24,13 @@
 
 **Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
 
-**Ordem:** Renan valida **local** (máquina dele) → quando OK, sobe **produção** só com frase + senha. Branch Git `teste` pode existir para código; **Render staging gratuito = descartado** (ver regra Teste abaixo). Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+**Git commit + push (regra permanente — 2026-07-23, Renan):** após entregar código/docs na branch de trabalho (`teste`, `limpeza/…`, feature), o assistente **commit + `git push` no remoto dessa branch — autorizado, sem pedir**. Serve de backup (evita sumir no reset). **Não** é deploy da loja. **Não** `push --force` em `teste`/`producao` sem pedido explícito. **Não** push em `producao` (isso é loja — senha abaixo).
+
+**Prova / «teste»:** Renan valida **no PC local** (Chrome + `runserver`). Render staging free **descartado** no dia a dia. *«OK no teste»* = máquina local, **não** site staging.
+
+**Ordem:** commit+push na branch de trabalho → Renan valida **local** → **só então** loja/Render produção com frase + senha. Corrigir bug ≠ autorização para loja.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
-
-**Teste (regra nova — 2026-07-23, reforço Renan):** Renan **testa localmente** (Chrome + `runserver` / stack local + Postgres local ou dump). **Não** usa mais o **Render projeto «teste»** no dia a dia: plano free **inutilizável** (cold start **10–15 min**); **não quer pagar** web+DB só para staging. Quando fala *«teste»* / *«validei»* / *«OK no teste»* → **máquina local**, **não** o site Render staging.
-
-**Histórico (até ~22/07):** regra antiga era «não testa local / só Render teste» — **revogada**. Assistente **não** diga mais «valida no Render teste».
-
-**Branch Git `teste` / push:** assistente **pode** commit+push em `teste` se ajudar histórico/backup de código — **não** assumir que Renan vai abrir o Render staging. Preferir entregar patch que ele rode **local** (branch atual / instrução Ctrl+F5 local).
-
-**Produção** continua só com frase + senha (§ acima).
 
 **Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
 
@@ -48,13 +44,13 @@
 | **Produto**                  | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP)                                                                     |
 | **Usuários**                 | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
-| **Branch dia a dia**         | código em feature/`teste` · validação **local** · `**producao**` = loja (frase+senha)                                                                 |
+| **Branch dia a dia**         | feature/`teste` · **commit+push automático** · prova = **local** · `**producao**` = loja **só** frase+senha |
 | **Tela inicial**             | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
 | **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
-| **Cliente Renan (loja/dev)** | **Google Chrome** · **prova = local** (Render staging free descartado 23/07). **Não** Electron no dia a dia. Assistente: **não** mandar «abre o Render teste». |
+| **Cliente Renan (loja/dev)** | **Google Chrome** · **prova = local** (Render staging free descartado). Assistente: **não** mandar «abre o Render teste». |
 
 
 ---
@@ -73,7 +69,7 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** valida **local** (Chrome). **Render staging free = parado** (cold start 10–15 min; não quer pagar). Assistente: **não** pedir «teste no Render». `**producao` só** com frase + senha (ver topo).
+**Renan (dono/dev):** valida **local** (Chrome). Assistente: **commit+push** na branch de trabalho **sem pedir**; **produção/Render loja só** com frase + senha (ver topo).
 
 **Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf devem ser validados **no Chrome local** (e na loja após deploy autorizado).
 
@@ -1161,6 +1157,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
+
+### 📌 Git — commit+push livre; senha só loja (23/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Autorizado sempre** | `git commit` + `git push` em `teste` / feature / `limpeza/…` (backup; não é loja) |
+| **Senha `99738595` + frase** | Só `producao` / Render loja / cherry-pick na loja |
+| **Prova** | PC local — Render staging free não é gate |
 
 ### 🚀 Catálogo — família de embalagens (23/07 · **local** · restauro 2×)
 
