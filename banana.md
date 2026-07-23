@@ -1162,22 +1162,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.76** — PRONTO · só falta frase + senha (23/07)
+### 📦 Deploy loja **v11.76** — 2 workers + msg busca (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
-| **VERSION** | **11.76** (loja hoje **v11.75** / `910290f`) |
-| **Branch** | `hotfix/preview-custo-v1175` tip **`939a4e0`** |
-| **O que sobe** | (1) Gunicorn **2 workers** (`Procfile`) — alivia fila CPU · (2) Cadastro: timeout → msg clara (não «signal is aborted») · (3) banana CHECKPOINT |
-| **Já na loja (não precisa subir de novo)** | **v11.75** prévia Finalizar sem N+1 · **dados** fantasmas NF 14988 (`GM1542-5` etc.) já reparados no agro-db |
-| **Como subir (próximo chat)** | `git push origin hotfix/preview-custo-v1175:producao` (ff) · criar/atualizar rollback antes |
-| **Backup / reverter** | `rollback/pre-v1176-workers` @ **`910290f`** (tip atual `producao`) |
+| **Status** | ✅ push `producao` · aguardar Live no Render |
+| **VERSION** | **loja v11.76** (antes **v11.75** / `910290f`) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Branch** | `hotfix/preview-custo-v1175` → `producao` |
+| **Commit** | tip **`3e3b202`** (fix `939a4e0`) |
+| **O que é** | Gunicorn **2 workers** · Cadastro timeout com msg clara |
+| **Backup / reverter** | `rollback/pre-v1176-workers` @ **`910290f`** |
 | **Como reverter** | `git push origin rollback/pre-v1176-workers:producao` |
 | **Migrate** | nenhuma |
-| **Após Live** | Ctrl+F5 · badge **v11.76** · busca Cadastro se timeout · CPU menos engasgo com 2 workers |
+| **Após Live** | Ctrl+F5 · badge **v11.76** |
 
-**Versão app (VERSION):** código **11.76** pronto · loja **v11.75** até autorizar
+**Versão app (VERSION):** **loja v11.76** · rollback `pre-v1176-workers` @ 910290f
 
 ### 🚑 23/07 ~17:25 — Fantasmas Ibiúna NF 14988 (dados loja ✅ reparados)
 
@@ -1185,15 +1185,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | `GM1542-5` / `GM1541-5` / `GM1546-5` sumiram do PDV e Cadastro; NF mostrava o GM |
 | **Causa** | Fantasma import Mongo→PG: nome `—` + `codigo_nfe` = ObjectId |
-| **Reparação** | ✅ agro-db (pids `…6d39` `…6d2a` `…6d51` `…6d44`) — **não** depende do push v11.76 |
+| **Reparação** | ✅ agro-db (pids `…6d39` `…6d2a` `…6d51` `…6d44`) — **não** dependia do push v11.76 |
 | **Validar** | Ctrl+F5 · buscar **`GM1542-5`** |
 
 ### 📦 Deploy loja **v11.75** — prévia Finalizar + CPU (23/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ na loja (`producao` **`910290f`**) |
-| **VERSION** | **loja v11.75** |
+| **Status** | ✅ enviado (sucedido por **v11.76**) |
+| **VERSION** | foi **loja v11.75** · agora **v11.76** |
 | **Backup** | `rollback/pre-v1175-preview-cpu` @ **`fb7a30c`** |
 | **O quê** | Prévia Finalizar sem N+1 em ajuste · catálogo batch · timeout UI 45s |
 
