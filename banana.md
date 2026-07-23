@@ -1162,32 +1162,46 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 🩹 Entrada NF — Finalizar prévia de custo trava loja (23/07 · **v11.73**)
+### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `producao` **`4b59f0f`** · aguardar Live no Render |
+| **VERSION** | **loja v11.73** (antes **v11.72** / `584913d`) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **O que é** | (1) prévia Finalizar sem travar · PIN/CP/auditoria PG · timeouts UI · (2) Transferências sem furo Mongo |
+| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
+| **Backup / reverter** | `rollback/pre-v1173-entrada-nf-transf` @ **`584913d`** |
+| **Como reverter** | `git push origin rollback/pre-v1173-entrada-nf-transf:producao` |
+| **Após Live** | Ctrl+F5 · NF Finalizar prévia rápida + PIN · `/transferencias/` carrega |
+
+**Versão app (VERSION):** **loja v11.73** · rollback `pre-v1173-entrada-nf-transf` @ 584913d
+
+### 🩹 Entrada NF — Finalizar prévia de custo (incluso no **v11.73** · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Etapa 8 «Montando prévia de custo…» skeleton eterno · trava worker |
-| **Causa** | `append_eventos_entrada_nf_agro` usava `find($or $exists)` → adaptador PG expandia **tabela inteira 3×** (5000 ids) + scan 8000 |
-| **Fix P0 (mesmo pacote)** | (1) histórico ORM lim 400 · (2) prévia PG/ledger · (3) PIN pós-aprovação = mesma base da prévia (média C+V) · (4) títulos CP / excluir reabrir no PG com ERP off · (5) auditoria lista ORM sem `$exists` · (6) timeout UI nas ações críticas (prévia 25s, PIN/estoque/fin 90s) |
-| **+ Transferências** | Furo Mongo: flag Agro com ERP off · `get_mongo_client` no kill switch · sugestões/transferir/import/busca no Agro |
-| **VERSION** | **11.73** (um deploy — Entrada NF + Transferências) |
-| **Validar local** | Ctrl+F5 · NF 14988 Finalizar+PIN · `/transferencias/` lista carrega (0 itens ok se sem regra) |
-| **Loja** | 📦 aguarda frase + senha |
+| **Causa** | `append_eventos_entrada_nf_agro` usava `find($or $exists)` → adaptador PG expandia **tabela inteira 3×** |
+| **Fix P0** | histórico ORM · prévia PG/ledger · PIN = prévia · CP/reabrir PG · auditoria ORM · timeouts UI |
+| **Loja** | ✅ no ar com v11.73 (aguardar Live + Ctrl+F5) |
+
+### 🐛 Transferências — furo Mongo (incluso no **v11.73** · ✅ enviado)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `/transferencias/` «Carregando sugestões…» / lista vazia pós-corte Mongo |
+| **Causa** | Flag Agro não ligava só com Mongo off · `get_mongo_client` furava kill switch · transferir exigia Mongo (503) |
+| **Fix** | `agro_fonte_config` + `estoque/views.py` |
+| **Loja** | ✅ no ar com v11.73 (aguardar Live + Ctrl+F5) |
 
 ### 📦 Deploy loja **v11.72** — Entrada NF v11.71 + grupos A/B (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`12b1b9f`** · aguardar Live no Render |
-| **VERSION** | **loja v11.72** (antes **v11.70** / `01ff11d`) |
-| **Autorização** | *pode subir para produção* + **99738595** |
-| **O que é** | (1) v11.71 estoque falso + GM/EAN · (2) v11.72 grupos A/B no pagamento (slim/PG) |
-| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
-| **Backup / reverter** | `rollback/pre-v1172-entrada-nf-grupos` @ **`01ff11d`** |
-| **Como reverter** | `git push origin rollback/pre-v1172-entrada-nf-grupos:producao` |
-| **Após Live** | Ctrl+F5 · milho débito **87** / crédito **92** · NF 14988 Registrar + GM verde |
-
-**Versão app (VERSION):** **loja v11.72** · rollback `pre-v1172-entrada-nf-grupos` @ 01ff11d
+| **Status** | ✅ enviado (sucedido por **v11.73**) · push era **`12b1b9f`** |
+| **VERSION** | foi **loja v11.72** · agora **v11.73** |
+| **Backup / reverter** | `rollback/pre-v1172-entrada-nf-grupos` @ **`01ff11d`** (pré-v11.72) |
 
 ### 🩹 PDV — grupos A/B (incluso no **v11.72** · ✅ enviado)
 
@@ -1267,14 +1281,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
 | **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
 
-### 🐛 Transferências — furo Mongo (incluso no **v11.73**)
+### 🐛 Transferências — furo Mongo (incluso no **v11.73** · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | `/transferencias/` «Carregando sugestões…» / lista vazia pós-corte Mongo |
 | **Causa** | Flag Agro não ligava só com Mongo off · `get_mongo_client` furava kill switch · transferir exigia Mongo (503) |
 | **Fix** | `agro_fonte_config` + `estoque/views.py` |
-| **Loja** | 📦 no pacote **v11.73** (frase + senha) |
+| **Loja** | ✅ no ar com v11.73 |
 
 ### 🧪 Prova = **local** (23/07 · Renan reforçou)
 
