@@ -40,8 +40,8 @@ ENTRADA_NFE_STATUS_CONGELADOS = frozenset(
     {ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO}
 )
 
-# Lock anti-duplo POST em ``api_entrada_nota_estoque_agro`` (Mongo ``extra.estoque_agro_lock``).
-ESTOQUE_AGRO_LOCK_MAX_AGE = timedelta(minutes=15)
+# Lock anti-duplo POST em ``api_entrada_nota_estoque_agro`` (``extra.estoque_agro_lock`` no rascunho PG).
+ESTOQUE_AGRO_LOCK_MAX_AGE = timedelta(minutes=3)
 
 ENTRADA_NFE_STATUS_UI: dict[str, dict[str, str]] = {
     ENTRADA_NFE_STATUS_COM_PENDENCIAS: {"label": "Com pendências"},
