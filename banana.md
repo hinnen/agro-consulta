@@ -1157,18 +1157,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚑 Hotfix loja **v11.66** — XML Entrada NF + Mongo auth fail (23/07 · PRONTO, falta senha)
+### 📦 Deploy loja **v11.66** — corte Mongo morto (23/07 · Renan frase+senha · cuidado dados)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Ler XML não puxa · PDV lento · Salvar A/B «Erro interno» · Render: `Authentication failed` + WORKER TIMEOUT |
-| **Causa** | ERP Mongo **morto**; loja ainda abria conexão em dezenas de rotas |
-| **Corte raiz** | `AGRO_MONGO_ERP_DESLIGADO` **default=true** · `obter_conexao_mongo()` não conecta · circuit breaker · casar XML no PG · overlay salvar sem Mongo · cron ping no-op · boot sem import Mongo |
-| **Varredura** | ~105 chamadas em `views.py` (~98 funções) + RH/cadastro/BI/comandos — mapa no canvas `mongo-corte-loja` |
-| **Branch** | `hotfix/loja-mongo-auth-xml` · VERSION **11.66** |
-| **Backup** | `118acbc` (v11.64) — `git push origin 118acbc:producao` |
-| **Status** | ⏳ **aguardando** *pode subir para produção* + **99738595** |
-| **Após Live** | Ctrl+F5 · Ler XML · Salvar A/B · 1 venda · log sem auth fail em loop |
+| **Status** | ✅ push `producao` **2f50035** + docs checkpoint · aguardar Live no Render |
+| **VERSION** | **loja v11.66** (antes **v11.64** / `118acbc`) |
+| **Autorização** | *pode subir para produção* + **99738595** · pedido checkpoint bem feito |
+| **O que é** | Código: **não abre** Mongo ERP (`AGRO_MONGO_ERP_DESLIGADO` default **true**) · circuit breaker · XML casa no Postgres · Salvar A/B só Agro · cron ping no-op · boot sem import Mongo |
+| **O que NÃO é** | **Não** apaga produto · **não** migração destrutiva · **não** `DELETE`/`TRUNCATE` · **não** sobrescreve catálogo PG · preços/estoque/overlay **permanecem** no Postgres |
+| **Diff** | 9 arquivos · +259/−35 · sem `.delete()` em models |
+| **Branch deploy** | `hotfix/loja-mongo-auth-xml` → `producao` |
+| **Backup / reverter** | `rollback/pre-v1166-mongo-corte-auth` @ **118acbc** (v11.64) |
+| **Como reverter** | `git push origin rollback/pre-v1166-mongo-corte-auth:producao` |
+| **Se Render tiver env** | Se existir `AGRO_MONGO_ERP_DESLIGADO=false` no painel, **apague ou mude para true** (senão força Mongo de novo) |
+| **Após Live** | Ctrl+F5 · healthz ok · Ler XML · Salvar 1 preço A/B · 1 venda · conferir log sem Authentication failed em loop |
+| **Dados se B.O.** | Rollback = só código antigo; Postgres da loja **não** é revertido por esse push (produtos intactos) |
+
+**Versão app (VERSION):** **loja v11.66** · rollback `pre-v1166-mongo-corte-auth` @ 118acbc
 
 ### 📦 Deploy loja **v11.64** — devolução + BCA PDV/Cadastro + custo NF/kardex (22/07 · Renan frase+senha)
 
