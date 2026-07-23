@@ -1161,13 +1161,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Ler XML não puxa · PDV lento · Render: `Authentication failed` aprendaerp + WORKER TIMEOUT em `POST /api/entrada-nota/parse-xml/` + SIGKILL |
-| **Causa** | ERP Mongo **morto** (senha/auth); loja v11.64 ainda **abria** conexão Mongo no parse e o worker morria |
-| **Fix** | Não conectar se Mongo desligado · circuit breaker após auth fail · casar itens no **Postgres** · timeouts 3s |
-| **Branch** | `hotfix/loja-mongo-auth-xml` @ **ec71292** · VERSION **11.66** |
-| **Backup** | `origin/producao` atual = **118acbc** (v11.64) — rollback: `git push origin 118acbc:producao` |
-| **Status** | ⏳ código pronto · **aguardando** *pode subir para produção* + **99738595** |
-| **Após Live** | Ctrl+F5 Entrada NF · Ler XML de novo · PDV deve responder sem cair |
+| **Sintoma** | Ler XML não puxa · PDV lento · Salvar A/B «Erro interno» · Render: `Authentication failed` + WORKER TIMEOUT |
+| **Causa** | ERP Mongo **morto**; loja ainda abria conexão em dezenas de rotas |
+| **Corte raiz** | `AGRO_MONGO_ERP_DESLIGADO` **default=true** · `obter_conexao_mongo()` não conecta · circuit breaker · casar XML no PG · overlay salvar sem Mongo · cron ping no-op · boot sem import Mongo |
+| **Varredura** | ~105 chamadas em `views.py` (~98 funções) + RH/cadastro/BI/comandos — mapa no canvas `mongo-corte-loja` |
+| **Branch** | `hotfix/loja-mongo-auth-xml` · VERSION **11.66** |
+| **Backup** | `118acbc` (v11.64) — `git push origin 118acbc:producao` |
+| **Status** | ⏳ **aguardando** *pode subir para produção* + **99738595** |
+| **Após Live** | Ctrl+F5 · Ler XML · Salvar A/B · 1 venda · log sem auth fail em loop |
 
 ### 📦 Deploy loja **v11.64** — devolução + BCA PDV/Cadastro + custo NF/kardex (22/07 · Renan frase+senha)
 
