@@ -14678,7 +14678,13 @@ def _entrada_nfe_preview_custo_linha(
     else:
         saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
         saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
-    if pin_latest is not None:
+    if saldos_erp_batch is not None and pin_latest is None:
+        # Saldos do batch já são operacionais (ledger/ajuste) — NÃO chamar
+        # ``_saldo_final_agro_com_pin`` (1 query Django por depósito × linha →
+        # travava a prévia Finalizar e estourava CPU no agro-db).
+        sc = Decimal(str(saldo_erp_c)).quantize(Decimal("0.001"))
+        sv = Decimal(str(saldo_erp_v)).quantize(Decimal("0.001"))
+    elif pin_latest is not None:
         sc = _saldo_final_agro_com_pin_de_map(pin_latest, pid, "centro", saldo_erp_c)
         sv = _saldo_final_agro_com_pin_de_map(pin_latest, pid, "vila", saldo_erp_v)
     else:
@@ -14765,6 +14771,66 @@ def _entrada_nfe_preview_custo_linha(
         "custo_spark_vals": custo_spark_vals,
         "custo_spark_datas_iso": custo_spark_datas_iso,
     }
+
+
+def _entrada_nfe_docs_custo_batch(uniq_pids: list[str]) -> dict[str, dict]:
+    """Catálogo mínimo (nome + custo) em 2 queries — evita N× overlay/Produto na prévia Finalizar."""
+    docs_map: dict[str, dict] = {}
+    pids = [str(p or "").strip() for p in (uniq_pids or []) if str(p or "").strip()]
+    if not pids:
+        return docs_map
+    try:
+        from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+        ov_custo: dict[str, float] = {}
+        for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=pids).only(
+            "produto_externo_id", "cadastro_extras"
+        ):
+            pid_o = str(ov.produto_externo_id or "").strip()
+            ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+            raw = ex.get("preco_custo_overlay")
+            if pid_o and raw is not None:
+                try:
+                    ov_custo[pid_o] = float(raw)
+                except (TypeError, ValueError):
+                    pass
+        for p in Produto.objects.filter(produto_externo_id__in=pids).only(
+            "produto_externo_id", "nome", "custo"
+        ):
+            pid_p = str(p.produto_externo_id or "").strip()
+            if not pid_p:
+                continue
+            custo_f = ov_custo.get(pid_p)
+            if custo_f is None and p.custo is not None:
+                try:
+                    custo_f = float(p.custo)
+                except (TypeError, ValueError):
+                    custo_f = 0.0
+            docs_map[pid_p] = {
+                "Id": pid_p,
+                "Nome": (p.nome or "")[:200],
+                "PrecoCusto": float(custo_f or 0),
+                "ValorCusto": float(custo_f or 0),
+            }
+        for pid in pids:
+            if pid in docs_map:
+                continue
+            cf = float(ov_custo.get(pid) or 0)
+            docs_map[pid] = {
+                "Id": pid,
+                "Nome": "",
+                "PrecoCusto": cf,
+                "ValorCusto": cf,
+            }
+    except Exception:
+        logger.warning("entrada_nfe docs_custo_batch", exc_info=True)
+        for pid in pids:
+            try:
+                d = _produto_doc_por_id_externo(None, None, pid)
+                docs_map[pid] = d if isinstance(d, dict) else {}
+            except Exception:
+                docs_map[pid] = {}
+    return docs_map
 
 
 def _entrada_nfe_custo_prev_sisvale(pid: str) -> Decimal:
@@ -14860,13 +14926,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             seen_u.add(p)
             uniq_pids.append(p)
     # Mesma base da prévia (etapa Finalizar): catálogo + saldo operacional PG/ledger.
-    docs_map: dict[str, dict] = {}
-    for pid in uniq_pids:
-        try:
-            d = _produto_doc_por_id_externo(None, None, pid)
-            docs_map[pid] = d if isinstance(d, dict) else {}
-        except Exception:
-            docs_map[pid] = {}
+    docs_map = _entrada_nfe_docs_custo_batch(uniq_pids)
     saldos_map: dict[tuple[str, str], Decimal] = {}
     try:
         saldos_op = _mapa_saldos_finais_por_produtos(None, None, uniq_pids)
@@ -15003,13 +15063,7 @@ def api_entrada_nota_preview_custo(request):
             seen_u.add(p)
             uniq_pids.append(p)
     # Catálogo + saldo: Postgres / ledger (sem Mongo — evita hang).
-    docs_map: dict[str, dict] = {}
-    for pid in uniq_pids:
-        try:
-            d = _produto_doc_por_id_externo(None, None, pid)
-            docs_map[pid] = d if isinstance(d, dict) else {}
-        except Exception:
-            docs_map[pid] = {}
+    docs_map = _entrada_nfe_docs_custo_batch(uniq_pids)
     saldos_map: dict[tuple[str, str], Decimal] = {}
     try:
         saldos_op = _mapa_saldos_finais_por_produtos(None, None, uniq_pids)

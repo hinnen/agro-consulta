@@ -1162,11 +1162,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🩹 Hotfix **v11.75** — prévia Finalizar + pico CPU agro-db (23/07 · **aguarda senha**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 código em `hotfix/preview-custo-v1175` · **não** na loja ainda |
+| **VERSION** | **11.75** (loja ainda **v11.74**) |
+| **Sintoma** | NF Finalizar «Tempo esgotado ao carregar a prévia» + picos CPU agro-db (0.5) + churn conexão |
+| **Causa** | v11.74 passou `pin_latest=None` com saldos em batch → `_entrada_nfe_preview_custo_linha` reconsultava `AjusteRapidoEstoque` **por linha × 2 depósitos**; retries + Gunicorn 1 worker martelavam o PG |
+| **Fix** | se batch + `pin_latest is None` → usa saldo do batch; catálogo em 2 queries (`_entrada_nfe_docs_custo_batch`); timeout UI 45s |
+| **Prova** | **local** (Chrome) · depois frase+senha → `producao` |
+
+**Versão app (VERSION):** código **11.75** · loja **v11.74** até autorizar
+
 ### 📦 Deploy loja **v11.74** — Entrada NF + Transferências + DSP-NUVEM (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`cad7ffc`** · aguardar Live no Render |
+| **Status** | ✅ na loja · **regressão prévia** → hotfix **v11.75** |
 | **VERSION** | **loja v11.74** (antes **v11.73** / `3bf1c84`) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **O que é** | (1) prévia Finalizar sem timeout · (2) Transferências rápidas · (3) DSP-NUVEM Dispenser A6 + Prontas |
@@ -1175,8 +1188,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Como reverter** | `git push origin rollback/pre-v1174-entrada-transf-dsp:producao` |
 | **Migrate** | **`0064_dispenser_a6_biblioteca_compartilhada`** (Render no deploy) |
 | **Após Live** | Ctrl+F5 · NF Finalizar · `/transferencias/` · `/interno/dispenser-a6/` |
-
-**Versão app (VERSION):** **loja v11.74** · rollback `pre-v1174-entrada-transf-dsp` @ 3bf1c84
 
 ### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
 
