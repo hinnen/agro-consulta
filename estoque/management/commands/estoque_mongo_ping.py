@@ -12,7 +12,16 @@ class Command(BaseCommand):
     help = "Ping Mongo para health de estoque (sem rebuild de catálogo)."
 
     def handle(self, *args, **options):
+        from produtos.agro_fonte_config import agro_mongo_erp_desligado
         from produtos.views import obter_conexao_mongo
+
+        if agro_mongo_erp_desligado():
+            registrar_ping_mongo(False, "Mongo ERP desligado (AGRO_MONGO_ERP_DESLIGADO)")
+            self.stdout.write(
+                self.style.WARNING("Mongo ERP desligado — ping ignorado (OK para loja).")
+            )
+            self._keep_warm_staging()
+            return
 
         client, db = obter_conexao_mongo()
         if db is None:

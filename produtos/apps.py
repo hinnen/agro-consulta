@@ -24,9 +24,15 @@ class ProdutosConfig(AppConfig):
                     "agro_entrada_nf_rascunho_pg_boot_thread_v1", 1, timeout=3600
                 ):
                     return
+                from produtos.agro_fonte_config import agro_mongo_erp_desligado
                 from produtos.entrada_nota_rascunho_pg_util import (
                     ensure_rascunhos_entrada_nota_pg,
                 )
+
+                # Sem Mongo: só garante PG (já populado na loja). Não tenta import ERP.
+                if agro_mongo_erp_desligado():
+                    ensure_rascunhos_entrada_nota_pg(None, max_wait_s=5.0)
+                    return
                 from produtos.views import obter_conexao_mongo
 
                 _, db = obter_conexao_mongo()

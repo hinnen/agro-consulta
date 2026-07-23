@@ -514,8 +514,8 @@ PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast
 PDV_VENDA_ERP_ENVIO = config("PDV_VENDA_ERP_ENVIO", default=False, cast=bool)
 # Finalização PDV sem consultar Mongo espelho ERP (catálogo/estoque ref/fiscal usam Postgres + defaults).
 AGRO_PDV_VENDA_SEM_MONGO_ERP = config("AGRO_PDV_VENDA_SEM_MONGO_ERP", default=True, cast=bool)
-# auto = desliga Mongo quando AGRO_FONTE_CATALOGO=agro_pg (ERP cancelado).
-AGRO_MONGO_ERP_DESLIGADO = (config("AGRO_MONGO_ERP_DESLIGADO", default="auto") or "auto").strip().lower()
+# true = nunca abre Mongo ERP (loja sem assinatura). false = força tentar. auto = desliga se agro_pg.
+AGRO_MONGO_ERP_DESLIGADO = (config("AGRO_MONGO_ERP_DESLIGADO", default="true") or "true").strip().lower()
 # NFC-e após venda: não esperar SEFAZ na requisição HTTP (emite em thread).
 AGRO_PDV_NFCE_ASSINCRONA = config("AGRO_PDV_NFCE_ASSINCRONA", default=True, cast=bool)
 NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)

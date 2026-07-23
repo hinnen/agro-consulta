@@ -73,10 +73,12 @@ def agro_mongo_erp_desligado() -> bool:
     """
     ERP/Mongo cancelado: não abrir conexão (evita Authentication failed + travar Gunicorn).
 
-    ``AGRO_MONGO_ERP_DESLIGADO``: ``true``/``false`` força; ``auto`` (default) = desliga
-    quando ``AGRO_FONTE_CATALOGO=agro_pg`` (política da loja).
+    ``AGRO_MONGO_ERP_DESLIGADO``:
+    - ``true`` (default na loja) = nunca conecta;
+    - ``false`` = força tentar (só diagnóstico / import legado);
+    - ``auto`` = desliga quando ``AGRO_FONTE_CATALOGO=agro_pg``.
     """
-    raw = str(getattr(settings, "AGRO_MONGO_ERP_DESLIGADO", "auto") or "auto").strip().lower()
+    raw = str(getattr(settings, "AGRO_MONGO_ERP_DESLIGADO", "true") or "true").strip().lower()
     if raw in ("1", "true", "yes", "on", "sim"):
         return True
     if raw in ("0", "false", "no", "off", "nao", "não"):
