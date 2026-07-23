@@ -1124,24 +1124,40 @@ def listar_slim_rows_pdv() -> list[dict]:
             cadastro_extras=ce,
         )
         busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
-        out.append(
-            {
-                "id": pid,
-                "nome": nome,
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
-                "preco_venda": _dec(preco),
-                "index_codigos": ix if isinstance(ix, list) else [],
-                "busca_texto": busca,
-                # campos mínimos que o PDV espera em normalize
-                "marca": marca,
-                "preco_custo": 0.0,
-                "preco_custo_final": 0.0,
-                "saldo_centro": 0.0,
-                "saldo_vila": 0.0,
-            }
+        # Preços A/B / por forma — sem isso o PDV adiciona do cache slim e a forma não muda o valor.
+        from produtos.precos_forma_pagamento_util import (
+            extrair_precos_grupos_cadastro_extras,
+            extrair_precos_modo_cadastro_extras,
+            extrair_precos_por_forma_cadastro_extras,
         )
+
+        modo = extrair_precos_modo_cadastro_extras(ce)
+        pg = extrair_precos_grupos_cadastro_extras(ce)
+        ppf = extrair_precos_por_forma_cadastro_extras(ce)
+        if pg and modo != "grupos":
+            modo = "grupos"
+        row_slim: dict = {
+            "id": pid,
+            "nome": nome,
+            "codigo": codigo,
+            "codigo_nfe": codigo_nfe,
+            "codigo_barras": codigo_barras,
+            "preco_venda": _dec(preco),
+            "index_codigos": ix if isinstance(ix, list) else [],
+            "busca_texto": busca,
+            # campos mínimos que o PDV espera em normalize
+            "marca": marca,
+            "preco_custo": 0.0,
+            "preco_custo_final": 0.0,
+            "saldo_centro": 0.0,
+            "saldo_vila": 0.0,
+            "precos_modo": modo,
+        }
+        if pg:
+            row_slim["precos_grupos"] = pg
+        if ppf:
+            row_slim["precos_por_forma"] = ppf
+        out.append(row_slim)
     return out
 
 
@@ -1359,6 +1375,12 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
             ix = row.get("index_codigos") or []
             if isinstance(ix, list):
                 ex["index_codigos"] = [str(x) for x in ix[:260] if x is not None and str(x).strip()]
+            if row.get("precos_modo"):
+                ex["precos_modo"] = row.get("precos_modo")
+            if isinstance(row.get("precos_grupos"), dict):
+                ex["precos_grupos"] = row["precos_grupos"]
+            if isinstance(row.get("precos_por_forma"), dict):
+                ex["precos_por_forma"] = row["precos_por_forma"]
             partes = [
                 row.get("nome"),
                 row.get("marca"),
@@ -1407,6 +1429,12 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
                 "media_venda_diaria_30d": 0.0,
                 "index_codigos": ix_list,
             }
+            if row.get("precos_modo"):
+                novo["precos_modo"] = row.get("precos_modo")
+            if isinstance(row.get("precos_grupos"), dict):
+                novo["precos_grupos"] = row["precos_grupos"]
+            if isinstance(row.get("precos_por_forma"), dict):
+                novo["precos_por_forma"] = row["precos_por_forma"]
             itens.append(novo)
             por_id[pid] = novo
     return itens

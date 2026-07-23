@@ -114,7 +114,7 @@ let tempoUltimaAdicao = 0;
 let pdvScannerBloqueioTeclasAte = 0;
 
 let baseProdutos = [];
-const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v3';
 const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
 const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;

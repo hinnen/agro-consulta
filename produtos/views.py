@@ -25098,34 +25098,40 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
         )
         pv = float(row.get("preco_venda") or 0)
         pc = float(row.get("preco_custo") or 0)
-        res.append(
-            {
-                "id": pid,
-                "nome": row.get("nome"),
-                "marca": row.get("marca"),
-                "prateleira": "",
-                "fornecedor": row.get("fornecedor") or "",
-                "categoria": row.get("categoria") or "",
-                "subcategoria": row.get("subcategoria") or "",
-                "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
-                "codigo_barras": row.get("codigo_barras") or "",
-                "referencia": "",
-                "sku": "",
-                "codigo_interno": row.get("codigo") or "",
-                "codigo_fornecedor": "",
-                "preco_venda": pv,
-                "preco_custo": pc,
-                "preco_custo_acrescimo": pc,
-                "preco_custo_final": pc,
-                "saldo_centro": round(saldo_f_c, 2),
-                "saldo_vila": round(saldo_f_v, 2),
-                "saldo_erp_centro": s_c,
-                "saldo_erp_vila": s_v,
-                "busca_texto": row.get("busca_texto") or "",
-                "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
-                "index_codigos": ix_list,
-            }
-        )
+        item_cat = {
+            "id": pid,
+            "nome": row.get("nome"),
+            "marca": row.get("marca"),
+            "prateleira": "",
+            "fornecedor": row.get("fornecedor") or "",
+            "categoria": row.get("categoria") or "",
+            "subcategoria": row.get("subcategoria") or "",
+            "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
+            "codigo_barras": row.get("codigo_barras") or "",
+            "referencia": "",
+            "sku": "",
+            "codigo_interno": row.get("codigo") or "",
+            "codigo_fornecedor": "",
+            "preco_venda": pv,
+            "preco_custo": pc,
+            "preco_custo_acrescimo": pc,
+            "preco_custo_final": pc,
+            "saldo_centro": round(saldo_f_c, 2),
+            "saldo_vila": round(saldo_f_v, 2),
+            "saldo_erp_centro": s_c,
+            "saldo_erp_vila": s_v,
+            "busca_texto": row.get("busca_texto") or "",
+            "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
+            "index_codigos": ix_list,
+        }
+        # Overlay já veio em listar_todos_rows_ativos — não descartar grupos A/B.
+        if row.get("precos_modo"):
+            item_cat["precos_modo"] = row.get("precos_modo")
+        if isinstance(row.get("precos_grupos"), dict):
+            item_cat["precos_grupos"] = row["precos_grupos"]
+        if isinstance(row.get("precos_por_forma"), dict):
+            item_cat["precos_por_forma"] = row["precos_por_forma"]
+        res.append(item_cat)
     return res
 
 
@@ -25327,7 +25333,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    ck = f"pdv_catalogo_slim_v1:{hoje}"
+    # v2: inclui precos_grupos / precos_modo (PDV forma A/B).
+    ck = f"pdv_catalogo_slim_v2:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)
@@ -25341,7 +25348,7 @@ def api_pdv_catalogo_slim(request):
         "ok": True,
         "slim": True,
         "produtos": produtos,
-        "catalog_version": f"slim-{hoje}-{len(produtos)}",
+        "catalog_version": f"slim-v2-{hoje}-{len(produtos)}",
         "catalog_updated_at": timezone.now().isoformat(),
     }
     cache.set(ck, body, timeout=1800)

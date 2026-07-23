@@ -44,6 +44,7 @@ def _invalidar_slim_pdv() -> None:
     try:
         hoje = timezone.localdate().isoformat()
         cache.delete(f"pdv_catalogo_slim_v1:{hoje}")
+        cache.delete(f"pdv_catalogo_slim_v2:{hoje}")
     except Exception:
         pass
 

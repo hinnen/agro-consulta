@@ -448,9 +448,6 @@
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
-            if (produto.precos_modo) {
-                existing.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            }
             if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
                 existing.precos_grupos = Object.assign({}, produto.precos_grupos);
                 if (Array.isArray(produto.precos_grupos.formas_a)) {
@@ -459,6 +456,11 @@
                 if (Array.isArray(produto.precos_grupos.formas_b)) {
                     existing.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
                 }
+            }
+            if (produto.precos_modo) {
+                existing.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            } else if (existing.precos_grupos) {
+                existing.precos_modo = 'grupos';
             }
             if (!existing.preco_manual) recalcularTodasPromocoes();
         } else {
@@ -478,9 +480,6 @@
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
-            if (produto.precos_modo) {
-                novo.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            }
             if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
                 novo.precos_grupos = Object.assign({}, produto.precos_grupos);
                 if (Array.isArray(produto.precos_grupos.formas_a)) {
@@ -489,6 +488,11 @@
                 if (Array.isArray(produto.precos_grupos.formas_b)) {
                     novo.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
                 }
+            }
+            if (produto.precos_modo) {
+                novo.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            } else if (novo.precos_grupos) {
+                novo.precos_modo = 'grupos';
             }
             state.itens.push(novo);
             recalcularTodasPromocoes();
@@ -717,10 +721,11 @@
         state.itens = Array.isArray(entry.itens) ? entry.itens.map(function (item) {
             var cod = String(item.codigo || '');
             var gm = String(item.codigoGm || item.codigo_nfe || '').trim();
-            return {
+            var row = {
                 id: String(item.id || ''),
                 nome: String(item.nome || ''),
                 preco: toNumber(item.preco || 0),
+                preco_padrao: item.preco_padrao != null ? toNumber(item.preco_padrao) : toNumber(item.preco || 0),
                 qtd: normalizeQty(item.qtd || 1, 1),
                 codigo: cod,
                 codigoGm: gm || cod,
@@ -729,6 +734,23 @@
                 desconto: 0,
                 observacao: ''
             };
+            if (item.precos_modo) {
+                row.precos_modo = String(item.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            }
+            if (item.precos_grupos && typeof item.precos_grupos === 'object') {
+                row.precos_grupos = Object.assign({}, item.precos_grupos);
+                if (Array.isArray(item.precos_grupos.formas_a)) {
+                    row.precos_grupos.formas_a = item.precos_grupos.formas_a.slice();
+                }
+                if (Array.isArray(item.precos_grupos.formas_b)) {
+                    row.precos_grupos.formas_b = item.precos_grupos.formas_b.slice();
+                }
+                if (!row.precos_modo) row.precos_modo = 'grupos';
+            }
+            if (item.precos_por_forma && typeof item.precos_por_forma === 'object') {
+                row.precos_por_forma = Object.assign({}, item.precos_por_forma);
+            }
+            return row;
         }) : [];
         var nomeLinha = String(entry.cliente || '').trim();
         var ex = entry.cliente_extra;
@@ -788,18 +810,37 @@
         if (!itens.length) return false;
         state.itens = itens.map(function (i) {
             var cod = String((i && i.codigo) || '').trim();
-            return {
+            var gm = String((i && (i.codigoGm || i.codigo_nfe || i.codigo_gm)) || '').trim();
+            var row = {
                 id: String((i && i.id) || ''),
                 nome: String((i && i.nome) || ''),
                 preco: toNumber(i && i.preco),
+                preco_padrao: i && i.preco_padrao != null ? toNumber(i.preco_padrao) : toNumber(i && i.preco),
                 qtd: normalizeQty(i && i.qtd, 1),
                 codigo: cod,
-                codigoGm: cod || '—',
+                codigoGm: gm || cod || '—',
                 imagem: '',
                 marca: '',
                 desconto: 0,
                 observacao: ''
             };
+            if (i && i.precos_modo) {
+                row.precos_modo = String(i.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+            }
+            if (i && i.precos_grupos && typeof i.precos_grupos === 'object') {
+                row.precos_grupos = Object.assign({}, i.precos_grupos);
+                if (Array.isArray(i.precos_grupos.formas_a)) {
+                    row.precos_grupos.formas_a = i.precos_grupos.formas_a.slice();
+                }
+                if (Array.isArray(i.precos_grupos.formas_b)) {
+                    row.precos_grupos.formas_b = i.precos_grupos.formas_b.slice();
+                }
+                if (!row.precos_modo) row.precos_modo = 'grupos';
+            }
+            if (i && i.precos_por_forma && typeof i.precos_por_forma === 'object') {
+                row.precos_por_forma = Object.assign({}, i.precos_por_forma);
+            }
+            return row;
         });
         var nomeLinha = String(draft.cliente || '').trim();
         if (!nomeLinha) nomeLinha = 'CONSUMIDOR NÃO IDENTIFICADO...';

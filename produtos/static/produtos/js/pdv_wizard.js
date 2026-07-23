@@ -631,9 +631,9 @@
     var productSearchSuppressDismissUntil = 0;
     var productSearchDismissedSnapshot = null;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v11';
-    /** Mesma chave da Consulta — sobrevive fechar o navegador. */
-    var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v2';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v12';
+    /** Mesma chave da Consulta — sobrevive fechar o navegador. v3: inclui precos_grupos no slim. */
+    var PDV_SHARED_CATALOG_LS_KEY = 'agro_pdv_catalog_cache_v3';
     var PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 
     function agroPdvEnqueuePatchesRespostaVenda(data) {

@@ -22,18 +22,49 @@
         return obterFormaPagamentoAtual();
     }
 
+    /** Alinha com normalizar_forma_pagamento_caixa (sufixo máquina / parcelamento). */
+    function formaCanonKey(raw) {
+        var txt = String(raw || '').trim();
+        if (!txt) return '';
+        var lowFull = txt.toLowerCase();
+        if (lowFull.indexOf('pix') >= 0) return 'pix';
+        var base = txt
+            .replace(/\s+\d+x\s*$/i, '')
+            .replace(/\s*Mercado Pago.*$/i, '')
+            .replace(/\s*Cielo.*$/i, '')
+            .replace(/\s*Sicredi.*$/i, '')
+            .replace(/\s*Sicoob.*$/i, '')
+            .trim()
+            .toLowerCase();
+        return base
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
     function formaNaLista(lista, forma) {
         if (!Array.isArray(lista) || !forma) return false;
-        var f = String(forma).trim().toLowerCase();
+        var f = formaCanonKey(forma);
+        if (!f) return false;
         for (var i = 0; i < lista.length; i++) {
-            if (String(lista[i] || '').trim().toLowerCase() === f) return true;
+            if (formaCanonKey(lista[i]) === f) return true;
         }
         return false;
     }
 
+    function gruposTemDados(g) {
+        if (!g || typeof g !== 'object') return false;
+        if (toNum(g.preco_a, 0) > 0 || toNum(g.preco_b, 0) > 0) return true;
+        if (Array.isArray(g.formas_a) && g.formas_a.length) return true;
+        if (Array.isArray(g.formas_b) && g.formas_b.length) return true;
+        return false;
+    }
+
     function modoItem(item) {
-        var m = String((item && item.precos_modo) || 'por_forma').toLowerCase();
-        return m === 'grupos' ? 'grupos' : 'por_forma';
+        var m = String((item && item.precos_modo) || '').toLowerCase();
+        if (m === 'grupos') return 'grupos';
+        /* Cache slim antigo / rascunho sem modo: se tem tabela A/B, trata como grupos. */
+        if (gruposTemDados(precosGruposDoItem(item))) return 'grupos';
+        return 'por_forma';
     }
 
     function precosGruposDoItem(item) {
@@ -83,6 +114,15 @@
             var pf = toNum(map[formaTrim], 0);
             if (pf > 0) return pf;
         }
+        /* Chaves no map podem ser canônicas; tenta match flexível. */
+        var want = formaCanonKey(formaTrim);
+        var keys = Object.keys(map);
+        for (var ki = 0; ki < keys.length; ki++) {
+            if (formaCanonKey(keys[ki]) === want) {
+                var pf2 = toNum(map[keys[ki]], 0);
+                if (pf2 > 0) return pf2;
+            }
+        }
         return padrao;
     }
 
@@ -93,8 +133,6 @@
         } else if (produto.cadastro_extras && produto.cadastro_extras.precos_por_forma) {
             item.precos_por_forma = Object.assign({}, produto.cadastro_extras.precos_por_forma);
         }
-        var modo = String(produto.precos_modo || (produto.cadastro_extras && produto.cadastro_extras.precos_modo) || 'por_forma');
-        item.precos_modo = String(modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
         var pg = produto.precos_grupos || (produto.cadastro_extras && produto.cadastro_extras.precos_grupos);
         if (pg && typeof pg === 'object') {
             item.precos_grupos = {
@@ -103,6 +141,12 @@
                 formas_a: Array.isArray(pg.formas_a) ? pg.formas_a.slice() : [],
                 formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : []
             };
+        }
+        var modo = String(produto.precos_modo || (produto.cadastro_extras && produto.cadastro_extras.precos_modo) || '');
+        if (String(modo).toLowerCase() === 'grupos' || gruposTemDados(item.precos_grupos)) {
+            item.precos_modo = 'grupos';
+        } else {
+            item.precos_modo = 'por_forma';
         }
         var base = toNum(produto.preco_venda != null ? produto.preco_venda : produto.preco, 0);
         if (item.preco_padrao == null) item.preco_padrao = base;

@@ -1162,21 +1162,36 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 🚀 PRÓXIMO CHAT — só autorizar (**v11.71** · 23/07)
+### 🚀 PRÓXIMO CHAT — só autorizar (**v11.72** · 23/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **TUDO NO JEITO** — falta frase + senha |
 | **Frase** | *pode subir para produção* |
 | **Senha** | `99738595` |
-| **Branch** | `limpeza/entrada-nf-pg-only` · tip **`36462ed`** |
-| **VERSION** | **11.71** (loja hoje **v11.70**) |
-| **Rollback** | `rollback/pre-v1171-estoque-falso-gm` @ **`01ff11d`** (já no remote) |
+| **Branch** | `limpeza/entrada-nf-pg-only` |
+| **VERSION** | **11.72** (loja hoje **v11.70**) |
+| **Inclui** | **v11.71** (estoque falso + GM/EAN verde) **+** grupos A/B na forma de pagamento |
 | **Assistente** | push `limpeza/entrada-nf-pg-only:producao` · Live · limpar badge |
-| **O que corrige** | (1) «Estoque já registrado» **falso** — carimbo `estoque_agro_registrado_em` ia **antes** de aplicar · (2) GM/EAN verde sumiam ao reabrir nota (não vinham no load + enrich) |
-| **Após Live** | Ctrl+F5 · abrir NF 14988 · botão deve voltar a **Registrar** · verde GM/EAN de novo · registrar estoque · conferir kardex **hoje** no depósito **Vila** |
+| **Após Live** | Ctrl+F5 (limpa cache catálogo) · milho A=87 B=92 · débito → **87** · crédito → **92** · NF 14988 Registrar + GM verde |
 
-**Causa (Renan bravo com razão):** v11.70 arrumou o crash Mongo mas o carimbo prematuro + load sem `codigo_nfe` ficou — smoke incompleto de novo.
+### 🩹 PDV — grupos A/B pararam na forma de pagamento (23/07 · **v11.72**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Tabela A/B ok no lápis; ao escolher forma no pagamento o total **não** muda |
+| **Causa** | Freio `catalogo-full-off` → PDV usa **catálogo slim** / montagem PG **sem** `precos_grupos` · `addItem` do cache local «sucesso» sem buscar servidor |
+| **Fix** | slim + catálogo PG passam `precos_modo`/`precos_grupos` · cache keys v3/slim-v2 · JS infere modo grupos + hydrate preserva meta |
+| **Arquivos** | `catalogo_agro.py` · `views.py` (slim) · `precos_forma_pagamento.js` · `pdv_state.js` · `pdv_wizard.js` · `consulta_produtos.js` |
+| **Validar local** | Ctrl+F5 · milho · PAGAR · crédito (grupo B) → **R$ 92** · débito → **R$ 87** |
+| **Loja** | 📦 no pacote v11.72 (aguarda senha) |
+
+### 🩹 Entrada NF — estoque falso + GM/EAN (incluso no **v11.72** · era v11.71)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Não carimbar estoque antes de aplicar · UI só confia em `estoque_aplicado` · load com GM/EAN |
+| **Loja** | 📦 no pacote v11.72 |
 
 ### 📦 Deploy loja **v11.70** — Entrada NF estoque sem Mongo / lock (23/07 · Renan frase+senha)
 
