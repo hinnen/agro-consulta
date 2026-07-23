@@ -654,7 +654,7 @@ Marque na loja após deploy + Renan OK. **Não apagar Mongo** até item **12**.
 | **9** | **Motor busca GM** Compras/NF | UX `gm0050` | Quebrado | **Por último** |
 | **10** | **Backup PC** (CP/CR ZIP, cadastro Excel, vendas, NFC-e) | Seguro | Renan | Antes do 11 |
 | **11** | **Checkpoint Lançamentos** + conferência totais | Prova corte | Feito parcial | Renan + assistente |
-| **12** | **Cancelar assinatura ERP** | Fim espelho | — | Só após **1–11** estáveis |
+| **12** | **Cancelar assinatura ERP** | Fim espelho | **✅ já era (~jun/2026)** — Renan confirmou 23/07; Mongo auth morto pelo fornecedor **22/07** | Não repetir como pendência |
 
 **Regra deploy loja:** teste OK → Renan *«pode subir produção»* + senha **99738595** · pacote por pacote (não merge inteiro).
 
@@ -1156,6 +1156,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ⚠️ VERDADE dura — Mongo / ERP (23/07 · Renan)
+
+| | |
+| -- | -- |
+| **ERP** | **Já cancelado há ~1 mês** — Renan **não** tem mais acesso ao sistema antigo. Item «cancelar assinatura» do checklist §4.15 = **já era**. |
+| **Mongo** | A empresa do ERP **cortou o acesso ao Mongo ontem (22/07)** — autenticação morta. Até aí o SisVale ainda **tentava** conectar em dezenas de rotas. |
+| **Mentira útil do passado** | Falar «desvinculado / conexão cortada / loja sem Mongo» **sem** `obter_conexao_mongo()` retornar `(None,None)` em **100 %** dos caminhos = **falso**. Flags `agro_pg` + telas migradas ≠ cortar a porta. Mongo vivo mascarava o furo. |
+| **Prova 23/07** | XML / Salvar A-B / worker timeout + `Authentication failed` = código ainda abria Mongo. |
+| **v11.66** | Primeira vez que a **porta** fecha de verdade na loja (`AGRO_MONGO_ERP_DESLIGADO` default **true** + circuit). XML Renan testou OK. |
+| **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
+| **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
 
 ### 📦 Deploy loja **v11.66** — corte Mongo morto (23/07 · Renan frase+senha · cuidado dados)
 
