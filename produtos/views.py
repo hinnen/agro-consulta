@@ -2282,8 +2282,19 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ov.cashback_percentual = pct
     ov.usuario = request.user if request.user.is_authenticated else ov.usuario
 
-    client, db = obter_conexao_mongo()
-    p_doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
+    # Loja sem ERP/Mongo: não abrir conexão (auth fail derruba o worker no «Salvar»).
+    client, db = None, None
+    p_doc = None
+    try:
+        from produtos.agro_fonte_config import agro_mongo_erp_desligado
+
+        if not agro_mongo_erp_desligado():
+            client, db = obter_conexao_mongo()
+            p_doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
+    except Exception:
+        logger.warning("overlay salvar: Mongo indisponível — segue só Agro/Postgres", exc_info=True)
+        client, db = None, None
+        p_doc = None
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
 
     mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
