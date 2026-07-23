@@ -13877,7 +13877,10 @@ def api_entrada_nota_estoque_agro(request):
     modo = str(payload.get("modo") or "manual").strip()[:40]
     xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
     extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
-    extra = {**extra, "estoque_agro_registrado_em": timezone.now().isoformat()}
+    # NÃO carimbar estoque_agro_registrado_em antes de aplicar — senão a UI mostra
+    # «Estoque já registrado» mesmo com falha (lock / Mongo / 500).
+    extra = dict(extra)
+    extra.pop("estoque_agro_registrado_em", None)
     rascunho_id_req = str(payload.get("rascunho_id") or "").strip()
 
     empresa_fat_raw = cab.get("empresa_faturada_id") if isinstance(cab, dict) else None
@@ -14029,7 +14032,7 @@ def api_entrada_nota_estoque_agro(request):
                 db,
                 rid_marcar,
                 usuario=usuario,
-                patch_extra={"estoque_agro_registrado_em": extra.get("estoque_agro_registrado_em")},
+                patch_extra={"estoque_agro_registrado_em": timezone.now().isoformat()},
             )
             if mr.get("ok"):
                 ajuste_ids = [

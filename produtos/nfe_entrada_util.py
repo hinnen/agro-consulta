@@ -1411,7 +1411,120 @@ def _serialize_rascunho_leitura(doc: dict[str, Any]) -> dict[str, Any]:
             ser = _serialize_dt_mongo(d.get(k))
             if ser is not None:
                 d[k] = ser
+    linhas = d.get("linhas") if isinstance(d.get("linhas"), list) else None
+    if linhas:
+        d["linhas"] = _enriquecer_linhas_gm_ean_catalogo(linhas)
     return entrada_nfe_enriquecer_doc_serializado(d)
+
+
+def _rascunho_tem_estoque_agro_real(doc: dict[str, Any] | None) -> bool:
+    """True só se o estoque foi de fato aplicado (status / data / IDs de ajuste)."""
+    if not isinstance(doc, dict):
+        return False
+    st = str(doc.get("status") or "").strip().lower()
+    if st == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+        return True
+    if doc.get("estoque_aplicado_em"):
+        return True
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    ids = ex.get("estoque_agro_ajuste_ids")
+    if isinstance(ids, list) and any(x is not None and str(x).strip() for x in ids):
+        return True
+    return False
+
+
+def sanear_carimbo_estoque_falso_rascunho(db, doc: dict[str, Any] | None) -> dict[str, Any] | None:
+    """
+    Remove ``estoque_agro_registrado_em`` / lock se o estoque NÃO foi aplicado de verdade.
+    Bug v11.69/70: o carimbo ia no POST antes de aplicar → UI «Estoque já registrado» sem ajuste.
+    """
+    if not isinstance(doc, dict):
+        return doc
+    if _rascunho_tem_estoque_agro_real(doc):
+        return doc
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    if not ex:
+        return doc
+    if "estoque_agro_registrado_em" not in ex and "estoque_agro_lock" not in ex:
+        return doc
+    ex2 = dict(ex)
+    ex2.pop("estoque_agro_registrado_em", None)
+    ex2.pop("estoque_agro_lock", None)
+    out = dict(doc)
+    out["extra"] = ex2
+    col = _entrada_nota_rascunho_store(db)
+    _id = out.get("_id")
+    if col is not None and _id is not None:
+        try:
+            col.update_one({"_id": _id}, {"$set": {"extra": ex2}})
+        except Exception:
+            logger.exception("sanear_carimbo_estoque_falso_rascunho")
+    return out
+
+
+def _enriquecer_linhas_gm_ean_catalogo(linhas: list) -> list:
+    """Preenche GM / EAN / nome SisVale nas linhas com produto_id (grade verde após F5)."""
+    if not linhas:
+        return linhas
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pids: list[str] = []
+    seen: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:") or pid in seen:
+            continue
+        seen.add(pid)
+        pids.append(pid[:100])
+    if not pids:
+        return linhas
+    ov_map: dict[str, ProdutoGestaoOverlayAgro] = {}
+    try:
+        for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=pids):
+            ov_map[str(ov.produto_externo_id)] = ov
+    except Exception:
+        logger.exception("_enriquecer_linhas_gm_ean_catalogo overlay")
+    out: list = []
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            out.append(ln)
+            continue
+        row = dict(ln)
+        pid = str(row.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            out.append(row)
+            continue
+        ov = ov_map.get(pid)
+        p = None
+        try:
+            p = obter_produto_model(pid)
+        except Exception:
+            p = None
+        gm = str(row.get("codigo_nfe") or row.get("codigo_gm") or "").strip()
+        if not gm and ov is not None and str(ov.codigo_nfe or "").strip():
+            gm = str(ov.codigo_nfe).strip()
+        if not gm and p is not None:
+            gm = str(getattr(p, "codigo_nfe", None) or getattr(p, "codigo_interno", None) or "").strip()
+        if gm:
+            row["codigo_nfe"] = gm[:64]
+        ean = str(row.get("codigo_barras_catalogo") or row.get("ean_catalogo") or "").strip()
+        if not ean and ov is not None and str(ov.codigo_barras or "").strip():
+            ean = str(ov.codigo_barras).strip()
+        if not ean and p is not None and str(getattr(p, "codigo_barras", None) or "").strip():
+            ean = str(getattr(p, "codigo_barras", None) or "").strip()
+        if ean:
+            row["codigo_barras_catalogo"] = ean[:32]
+            row["ean_catalogo"] = ean[:32]
+        nome = str(row.get("nome_catalogo") or "").strip()
+        if (not nome or nome == str(row.get("x_prod") or "").strip()) and p is not None:
+            nm = str(getattr(p, "nome", None) or "").strip()
+            if nm:
+                row["nome_catalogo"] = nm[:300]
+        out.append(row)
+    return out
 
 
 def _entrada_nfe_tipo_entrada_extra(extra: dict | None) -> str:
@@ -2311,6 +2424,7 @@ def listar_rascunhos_entrada(
         for d in cur:
             if busca_ativa and not _entrada_nfe_rascunho_passa_busca(d, busca):
                 continue
+            d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
             out.append(_serialize_rascunho_leitura(d))
             if len(out) >= lim:
                 break
@@ -2617,6 +2731,7 @@ def obter_rascunho_entrada(
             d = lazy_import_rascunho_mongo(db, str(_id))
         if not d:
             return None
+        d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
         ex0 = d.get("extra") if isinstance(d.get("extra"), dict) else {}
         if sincronizar_financeiro and not entrada_nfe_extra_financeiro_ok(ex0):
             sincronizar_financeiro_rascunho_entrada_nfe(
@@ -2627,6 +2742,7 @@ def obter_rascunho_entrada(
             d = col.find_one({"_id": _id})
             if not d:
                 return None
+            d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
         return _serialize_rascunho_leitura(d)
     except Exception as exc:
         logger.exception("obter_rascunho_entrada: %s", exc)

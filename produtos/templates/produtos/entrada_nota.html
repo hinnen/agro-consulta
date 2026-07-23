@@ -3261,7 +3261,7 @@
     return false;
   }
 
-  /** Estoque Agro já registrado (status ou carimbo explícito — não confundir com PIN/financeiro). */
+  /** Estoque Agro já registrado de verdade (status / data / IDs) — NÃO usar só estoque_agro_registrado_em (carimbo prematuro). */
   function entradaNfeEstoqueJaRegistrado(rzOpt) {
     const rz = rzOpt && typeof rzOpt === 'object' ? rzOpt : null;
     const st = String(
@@ -3271,10 +3271,11 @@
     const ex = rz && rz.extra && typeof rz.extra === 'object'
       ? rz.extra
       : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
-    if (String(ex.estoque_agro_registrado_em || '').trim()) return true;
     const topEm = rz && rz.estoque_aplicado_em != null ? rz.estoque_aplicado_em : null;
     if (topEm && String(topEm).trim()) return true;
     if (String(ex.estoque_aplicado_em || '').trim()) return true;
+    const ids = ex.estoque_agro_ajuste_ids;
+    if (Array.isArray(ids) && ids.some((x) => x != null && String(x).trim() !== '')) return true;
     return false;
   }
 
@@ -7988,7 +7989,10 @@
           preco_venda: row.preco_venda != null ? row.preco_venda : 0,
           cfop: row.cfop || '',
           produto_id: row.produto_id || '',
-          nome_catalogo: row.nome_catalogo || row.x_prod || '',
+          nome_catalogo: row.nome_catalogo || '',
+          codigo_nfe: row.codigo_nfe || row.codigo_gm || '',
+          codigo_barras_catalogo: row.codigo_barras_catalogo || row.ean_catalogo || '',
+          ean_catalogo: row.ean_catalogo || row.codigo_barras_catalogo || '',
           match_tipo: row.match_tipo || '',
           catalogo_via: row.catalogo_via || '',
           bip_conf: row.bip_conf,

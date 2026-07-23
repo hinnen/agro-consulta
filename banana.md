@@ -1162,6 +1162,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🚀 PRÓXIMO CHAT — só autorizar (**v11.71** · 23/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **TUDO NO JEITO** — falta frase + senha |
+| **Frase** | *pode subir para produção* |
+| **Senha** | `99738595` |
+| **Branch** | `limpeza/entrada-nf-pg-only` |
+| **VERSION** | **11.71** (loja hoje **v11.70**) |
+| **Rollback** | `rollback/pre-v1171-estoque-falso-gm` (criar no commit) |
+| **O que corrige** | (1) «Estoque já registrado» **falso** — carimbo `estoque_agro_registrado_em` ia **antes** de aplicar · (2) GM/EAN verde sumiam ao reabrir nota (não vinham no load + enrich) |
+| **Após Live** | Ctrl+F5 · abrir NF 14988 · botão deve voltar a **Registrar** · verde GM/EAN de novo · registrar estoque · conferir kardex **hoje** no depósito **Vila** |
+
+**Causa (Renan bravo com razão):** v11.70 arrumou o crash Mongo mas o carimbo prematuro + load sem `codigo_nfe` ficou — smoke incompleto de novo.
+
 ### 📦 Deploy loja **v11.70** — Entrada NF estoque sem Mongo / lock (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
