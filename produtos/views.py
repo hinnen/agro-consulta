@@ -9998,6 +9998,41 @@ def _entrada_nfe_request_embed(request) -> str:
     return ""
 
 
+def _entrada_nfe_conexao():
+    """Entrada NF: ERP cancelado — nunca abre Mongo. Rascunho/casamento = Postgres."""
+    return None, None
+
+
+def _entrada_nfe_rascunho_db_ok(db) -> bool:
+    """True se o armazenamento de rascunho da entrada NF está disponível (Postgres ou Mongo legado)."""
+    return _entrada_nota_rascunho_store(db) is not None
+
+
+def _entrada_nfe_doc_produto_conferir_codigo(produto_id: str) -> dict | None:
+    """Espelho mínimo do produto (Postgres) para conferência de código de barras na entrada NF."""
+    from produtos.catalogo_agro import obter_produto_model
+
+    p = obter_produto_model(str(produto_id or "").strip())
+    if p is None:
+        return None
+    pid64 = str(p.produto_externo_id or produto_id or "").strip()[:64]
+    cb = str(p.codigo_barras or "").strip()
+    if pid64:
+        try:
+            ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).first()
+            if ov is not None and str(ov.codigo_barras or "").strip():
+                cb = str(ov.codigo_barras).strip()
+        except Exception:
+            pass
+    return {
+        "Nome": p.nome,
+        "EAN": cb,
+        "CodigoDeBarras": cb,
+        "CodigoBarrasProduto": cb,
+        "GTIN": cb,
+    }
+
+
 CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
 CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY = "caixa_conferencia_cedulas"
 CAIXA_CONFERENCIA_TURNO_SESSION_KEY = "caixa_conferencia_turno"
@@ -12602,7 +12637,7 @@ def _mascarar_cnpj(cnpj: str) -> str:
 def entrada_nota_view(request):
     """Entrada de NF-e: manual, XML e Distribuição DF-e (SEFAZ)."""
     empresas_entrada_nfe = listar_empresas_estoque_entrada_nfe()
-    _client, _db = obter_conexao_mongo()
+    _client, _db = _entrada_nfe_conexao()
     empresas_fin_entrada_nfe = listar_empresas_financeiro_entrada_nfe(_db)
     return render(
         request,
@@ -12647,7 +12682,7 @@ def api_entrada_nota_parse_xml(request):
             status=400,
         )
     # ERP/Mongo morto: casa no Postgres. Não chamar Mongo (Authentication failed trava o worker).
-    client, db = obter_conexao_mongo()
+    client, db = _entrada_nfe_conexao()
     col_p = getattr(client, "col_p", None) or "DtoProduto"
     parsed["itens"] = casar_produtos_entrada_nfe(
         parsed.get("itens") or [],
@@ -12677,11 +12712,9 @@ def api_entrada_nota_salvar(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    client, db = obter_conexao_mongo()
-    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
-
-    if db is None and not agro_entrada_nota_rascunho_postgres():
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    client, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     col_pessoa = None
     if client is not None:
         col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
@@ -12711,11 +12744,9 @@ def api_entrada_nota_salvar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_rascunhos(request):
-    from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
-
-    _, db = obter_conexao_mongo()
-    if db is None and not agro_entrada_nota_rascunho_postgres():
-        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
+    _, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"erro": "Armazenamento de rascunho indisponível", "itens": []}, status=503)
     try:
         lim = min(int(request.GET.get("limit") or 25), 80)
     except ValueError:
@@ -12734,16 +12765,16 @@ def api_entrada_nota_auditoria_financeiro(request):
     Auditoria em lote: verifica títulos CP vs. notas salvas (Postgres ou Mongo legado).
     **Concluída** na lista = PIN etapa 6; use ``filtro=concluida`` para revisar só as verdes.
     """
-    client, db = obter_conexao_mongo()
-    if db is None and not agro_financeiro_usa_postgres():
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    client, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
     busca = entrada_nfe_busca_params_from_request(request)
     try:
         lim = min(int(request.GET.get("limit") or 80), 200)
     except ValueError:
         lim = 80
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
     try:
         out = auditar_entrada_nfe_financeiro_lote(
             db,
@@ -12766,13 +12797,13 @@ def api_entrada_nota_auditoria_financeiro(request):
 @require_GET
 def api_entrada_nota_rascunho_obter(request):
     oid = (request.GET.get("id") or "").strip()
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    client, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     doc = obter_rascunho_entrada(
         db,
         oid,
-        col_pessoa=getattr(client, "col_c", None) or "DtoPessoa",
+        col_pessoa=getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None,
     )
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado ou ID inválido."}, status=404)
@@ -12790,9 +12821,9 @@ def api_entrada_nota_rascunho_excluir(request):
     ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    _, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     r = excluir_rascunho_entrada(db, oid)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -12816,7 +12847,7 @@ def api_entrada_nota_rascunho_atualizar(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    client, db = obter_conexao_mongo()
+    client, db = _entrada_nfe_conexao()
     col_rasc = _entrada_nota_rascunho_store(db)
     if col_rasc is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
@@ -12847,7 +12878,7 @@ def api_entrada_nota_rascunho_atualizar(request):
     if not isinstance(linhas, list) or not linhas:
         return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha."}, status=400)
     xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
     linhas_prev = doc_prev.get("linhas") if isinstance(doc_prev.get("linhas"), list) else []
     r = atualizar_rascunho_entrada(
         db,
@@ -12896,7 +12927,7 @@ def api_entrada_nota_rascunho_acao(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    _, db = obter_conexao_mongo()
+    _, db = _entrada_nfe_conexao()
     if _entrada_nota_rascunho_store(db) is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     r = pipeline_acao_rascunho_entrada(db, oid, acao, usuario=usuario, texto=texto)
@@ -13709,10 +13740,8 @@ def api_entrada_nota_estoque_agro(request):
     # Quem no kardex: PIN / nome — não e-mail cru (evita «geraldo hinnen» fantasma)
     usuario_op = operador_label_request(request) or usuario
 
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    client, db = _entrada_nfe_conexao()
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
     linhas_prev_est: list = []
     if rascunho_id_req:
         _oid_req = _object_id_rascunho(rascunho_id_req)
@@ -13941,7 +13970,7 @@ def api_entrada_nota_fornecedores(request):
     except ValueError:
         lim = 50
     use_pg = agro_financeiro_usa_postgres() or agro_catalogo_usa_postgres()
-    client, db = obter_conexao_mongo()
+    client, db = _entrada_nfe_conexao()
     mongo_rows: list[dict[str, str]] = []
     pg_rows: list[dict[str, str]] = []
     if use_pg:
@@ -13956,7 +13985,7 @@ def api_entrada_nota_fornecedores(request):
             limit=lim,
         )
     elif not pg_rows:
-        return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
+        return JsonResponse({"itens": [], "erro": "Fornecedores indisponíveis"}, status=503)
     extras: list[dict[str, str]] = []
     if q:
         if use_pg:
@@ -14028,16 +14057,18 @@ def api_entrada_nota_conferir_codigo(request):
     if not produto_id or not codigo:
         return JsonResponse({"ok": False, "erro": "Informe produto e o código bipado."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col = db[client.col_p]
-    ors = [{"Id": produto_id}]
-    try:
-        ors.append({"Id": int(produto_id)})
-    except Exception:
-        pass
-    doc = col.find_one({"$or": ors})
+    client, db = _entrada_nfe_conexao()
+    doc = None
+    if db is not None and client is not None:
+        col = db[client.col_p]
+        ors = [{"Id": produto_id}]
+        try:
+            ors.append({"Id": int(produto_id)})
+        except Exception:
+            pass
+        doc = col.find_one({"$or": ors})
+    if not doc:
+        doc = _entrada_nfe_doc_produto_conferir_codigo(produto_id)
     if not doc:
         return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
 
@@ -14080,7 +14111,7 @@ def api_entrada_nota_aprovar_wizard(request):
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
 
-    _, db = obter_conexao_mongo()
+    _, db = _entrada_nfe_conexao()
     col_rasc = _entrada_nota_rascunho_store(db)
     if col_rasc is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
@@ -14106,25 +14137,24 @@ def api_entrada_nota_aprovar_wizard(request):
     except Exception as exc:
         logger.exception("api_entrada_nota_aprovar_wizard")
         return JsonResponse({"ok": False, "erro": str(exc)[:500]}, status=500)
-    client, db2 = obter_conexao_mongo()
+    client, db2 = _entrada_nfe_conexao()
     custo_out: dict[str, Any] = {"ok": False, "atualizados": 0, "erros": []}
-    if db2 is not None and client is not None:
-        try:
-            cab_ap = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-            linhas_ap = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
-            ex_ap = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
-            custo_out = _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
-                db=db2,
-                client_m=client,
-                linhas=linhas_ap,
-                cab=cab_ap,
-                extra=ex_ap,
-                user_pk=int(request.user.pk) if request.user.is_authenticated else None,
-                excluir_rascunho_id=oid,
-            )
-        except Exception as exc:
-            logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
-            custo_out = {"ok": False, "atualizados": 0, "erros": [{"erro": str(exc)[:300]}]}
+    try:
+        cab_ap = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        linhas_ap = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        ex_ap = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        custo_out = _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
+            db=db2,
+            client_m=client,
+            linhas=linhas_ap,
+            cab=cab_ap,
+            extra=ex_ap,
+            user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            excluir_rascunho_id=oid,
+        )
+    except Exception as exc:
+        logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
+        custo_out = {"ok": False, "atualizados": 0, "erros": [{"erro": str(exc)[:300]}]}
     return JsonResponse({"ok": True, "id": oid, "custo_catalogo": custo_out})
 
 
@@ -14151,9 +14181,9 @@ def api_entrada_nota_reabrir_nota(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    _, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     rr = reverter_integracao_entrada_nota_para_reabertura(db, oid, usuario=usuario)
     if not rr.get("ok"):
         return JsonResponse(rr, status=400)
@@ -14763,15 +14793,13 @@ def api_entrada_nota_preview_custo(request):
     _oid = _object_id_rascunho(rid)
     if _oid is None:
         return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
-    client, db = obter_conexao_mongo()
+    client, db = _entrada_nfe_conexao()
     col_rasc = _entrada_nota_rascunho_store(db)
     if col_rasc is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
     doc = col_rasc.find_one({"_id": _oid})
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível para catálogo/estoque."}, status=503)
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
     linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
@@ -14857,10 +14885,10 @@ def api_entrada_nota_financeiro(request):
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    client, db = _entrada_nfe_conexao()
+    if not _entrada_nfe_rascunho_db_ok(db):
+        return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
     cab = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cab)
 
     rid_raw = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
@@ -15474,7 +15502,7 @@ def api_entrada_nota_dist_dfe(request):
         payload = {}
     cnpj_cfg = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
     ult_pedido = payload.get("ult_nsu")
-    client, db = obter_conexao_mongo()
+    client, db = _entrada_nfe_conexao()
     if ult_pedido is not None and str(ult_pedido).strip() != "":
         ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
     elif db is not None and len(cnpj_cfg) == 14:
@@ -15551,51 +15579,86 @@ def api_entrada_nota_produto_margem(request):
         if pv is not None and pv < 0:
             pv = None
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-
+    client, db = _entrada_nfe_conexao()
     mround = round(margem, 2)
-    set_doc: dict[str, object] = {
-        "PercentualLucro": mround,
-        "MargemLucro": mround,
-        "PercentualMargem": mround,
-    }
-    if pv is not None:
-        pvr = round(pv, 2)
-        set_doc["ValorVenda"] = pvr
-        set_doc["PrecoVenda"] = pvr
+    pvr = round(pv, 2) if pv is not None else None
 
-    codigo_cat = str(data.get("codigo_nfe") or data.get("codigo_catalogo") or data.get("c_prod") or "").strip()
-    ean_digits = "".join(ch for ch in str(data.get("ean") or "") if ch.isdigit())
-    doc_hit = _mongo_doc_produto_entrada_resolve(
-        db, client.col_p, pid, codigo_catalogo=codigo_cat, ean=ean_digits
-    )
+    doc_hit: dict | None = None
     id_para_filtro = pid
-    if isinstance(doc_hit, dict):
-        id_para_filtro = (
-            str(doc_hit.get("Id") or "").strip() or str(doc_hit.get("_id") or "").strip() or pid
+    if db is not None and client is not None:
+        set_doc: dict[str, object] = {
+            "PercentualLucro": mround,
+            "MargemLucro": mround,
+            "PercentualMargem": mround,
+        }
+        if pvr is not None:
+            set_doc["ValorVenda"] = pvr
+            set_doc["PrecoVenda"] = pvr
+        codigo_cat = str(
+            data.get("codigo_nfe") or data.get("codigo_catalogo") or data.get("c_prod") or ""
+        ).strip()
+        ean_digits = "".join(ch for ch in str(data.get("ean") or "") if ch.isdigit())
+        doc_hit = _mongo_doc_produto_entrada_resolve(
+            db, client.col_p, pid, codigo_catalogo=codigo_cat, ean=ean_digits
         )
-    filt_mongo = _mongo_filtro_id_produto_externo(id_para_filtro)
+        if isinstance(doc_hit, dict):
+            id_para_filtro = (
+                str(doc_hit.get("Id") or "").strip() or str(doc_hit.get("_id") or "").strip() or pid
+            )
+        filt_mongo = _mongo_filtro_id_produto_externo(id_para_filtro)
+        try:
+            res_u = db[client.col_p].update_one(filt_mongo, {"$set": set_doc})
+        except Exception as e:
+            logger.exception("api_entrada_nota_produto_margem")
+            return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=500)
+        if not getattr(res_u, "matched_count", 0):
+            pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        f"Produto não encontrado no espelho Mongo (id «{pid_ex}»). "
+                        "Recasou a linha com «Mudar» se o item existir no catálogo."
+                    ),
+                    "produto_id": pid[:64],
+                },
+                status=404,
+            )
+    else:
+        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+        from produtos.catalogo_agro import obter_produto_model, sincronizar_modelo_produto_de_overlay
 
-    try:
-        res_u = db[client.col_p].update_one(filt_mongo, {"$set": set_doc})
-    except Exception as e:
-        logger.exception("api_entrada_nota_produto_margem")
-        return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=500)
-    if not getattr(res_u, "matched_count", 0):
-        pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": (
-                    f"Produto não encontrado no espelho Mongo (id «{pid_ex}»). "
-                    "Recasou a linha com «Mudar» se o item existir no catálogo."
-                ),
-                "produto_id": pid[:64],
-            },
-            status=404,
-        )
+        p_pg = obter_produto_model(pid)
+        if p_pg is None:
+            pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        f"Produto não encontrado no catálogo (id «{pid_ex}»). "
+                        "Recasou a linha com «Mudar» se o item existir no cadastro."
+                    ),
+                    "produto_id": pid[:64],
+                },
+                status=404,
+            )
+        id_para_filtro = str(p_pg.produto_externo_id or pid).strip()[:64]
+        ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(produto_externo_id=id_para_filtro)
+        ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+        ex["margem_percentual_overlay"] = mround
+        ex["percentual_lucro_overlay"] = mround
+        ov.cadastro_extras = ex
+        upd_fields = ["cadastro_extras", "atualizado_em"]
+        if pvr is not None:
+            ov.preco_venda = Decimal(str(pvr))
+            upd_fields.append("preco_venda")
+        ov.save(update_fields=upd_fields)
+        if agro_catalogo_usa_postgres():
+            sincronizar_modelo_produto_de_overlay(id_para_filtro, ov)
+            if pvr is not None:
+                p_pg.preco_venda = Decimal(str(pvr))
+                p_pg.save(update_fields=["preco_venda", "atualizado_em"])
+        doc_hit = {"Id": id_para_filtro}
 
     uid_m = int(getattr(request.user, "pk", None) or 0)
     if uid_m:
@@ -15605,7 +15668,7 @@ def api_entrada_nota_produto_margem(request):
         if ep:
             _erp_produto_pendentes_add(uid_m, ep)
 
-    if pv is not None:
+    if pvr is not None and db is not None and client is not None:
         try:
             ov_id = _mongo_produto_externo_id_overlay(db, client.col_p, id_para_filtro)
             if ov_id:
