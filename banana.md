@@ -1215,16 +1215,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Risco residual** | Local ≠ Gunicorn/workers/cron/SEFAZ da loja — pacote grande: checklist curto + frase+senha; rollback pronto |
 | **Render teste pago** | Só se quiser staging sempre ligado sem frio — **opcional**, não bloqueia o fluxo local→loja |
 
-### Entrada NF slice 1 — incluso no **v11.69** (base commits `8555004` / `90f2711`)
+### Entrada NF slice 1 — incluso no **v11.69** (✅ loja `b13b996` / tip docs `77787d4`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ embutido no pacote **v11.69** (ver bloco «PRÓXIMO CHAT» no topo do CHECKPOINT) |
-| **Por quê** | Derrubou a loja ontem · loja v11.66 ainda «serviço legado» na Entrada NF |
+| **Status** | ✅ na loja com **v11.69** |
+| **Por quê** | Derrubou a loja · v11.66 «serviço legado» na Entrada NF |
 | **O que é** | Entrada NF **nunca** chama `obter_conexao_mongo()` (19 rotas → `_entrada_nfe_conexao`) |
 | **Risco** | Dist DF-e NSU em PG · prévia custo sem Mongo — **não apaga** produto/rascunho PG |
 
-**EAN «25» loja vs local (23/07 · confirmado XML):** mesmo arquivo NF **14988** (Ibiúna). XML `cEAN` = **SEM GTIN** (não é número). Loja v11.66 mistura **GM** na coluna Cód. (ex. GM1542-**25**) — o «25» é sufixo do GM, não EAN. Local (grade dual): Cód. em cima = `cProd` (R0151); GM no verde; EAN em cima vazio porque `SEM GTIN`. Quando v11.69 subir, loja deve ficar igual ao local.
+**EAN «25» loja vs local (23/07 · confirmado XML):** mesmo arquivo NF **14988** (Ibiúna). XML `cEAN` = **SEM GTIN** (não é número). Loja v11.66 mistura **GM** na coluna Cód. (ex. GM1542-**25**) — o «25» é sufixo do GM, não EAN. Local (grade dual): Cód. em cima = `cProd` (R0151); GM no verde; EAN em cima vazio porque `SEM GTIN`. Com v11.69 a loja deve ficar igual ao local.
 
 ### 📦 Deploy loja **v11.66** — corte Mongo morto (23/07 · Renan frase+senha · cuidado dados)
 
