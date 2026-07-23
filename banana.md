@@ -1166,11 +1166,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` · aguardar Live no Render |
+| **Status** | ✅ push `producao` **`4fbe9aa`** · aguardar Live no Render |
 | **VERSION** | **loja v11.76** (antes **v11.75** / `910290f`) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **Branch** | `hotfix/preview-custo-v1175` → `producao` |
-| **Commit** | tip **`3e3b202`** (fix `939a4e0`) |
+| **Commit** | tip **`4fbe9aa`** (fix `939a4e0`) |
 | **O que é** | Gunicorn **2 workers** · Cadastro timeout com msg clara |
 | **Backup / reverter** | `rollback/pre-v1176-workers` @ **`910290f`** |
 | **Como reverter** | `git push origin rollback/pre-v1176-workers:producao` |
