@@ -1162,18 +1162,39 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 🐛 Hotfix — Entrada NF estoque trava / «em andamento» (**v11.70** · 23/07)
+### 🚀 PRÓXIMO CHAT — só autorizar produção (**v11.70** · 23/07 · montado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** — espera frase + senha |
-| **Sintoma loja** | Etapa 5 «Registrar estoque» load minutos · 2º clique: *Registro de estoque em andamento ou repetido* (NF 14988) |
-| **Causa** | v11.69 cortou Mongo; aplicar estoque ainda lia `client_m.DEPOSITO_*` → 500 · lock no rascunho **não liberava**; e `db is None` **não marcava** `estoque_aplicado` |
-| **Fix** | Saldo snapshot/ledger (igual baixa venda) · marcar rascunho via store PG · release lock em falha · stale lock **3 min** (antes 15) |
-| **VERSION** | **11.70** |
-| **Arquivos** | `views.py` (`aplicar_entrada_nota_estoque_agro` · `api_entrada_nota_estoque_agro`) · `nfe_entrada_util.py` |
-| **Workaround agora** | Esperar **~3–15 min** (lock antigo) · F5 · tentar de novo **depois** do hotfix |
-| **Loja** | ⏳ frase + senha |
+| **Status** | 📦 **TUDO NO JEITO** — falta **só** frase + senha na **mesma mensagem** |
+| **Frase** | *pode subir para produção* |
+| **Senha** | `99738595` |
+| **Branch** | `limpeza/entrada-nf-pg-only` · tip **`9f4d7c0`** |
+| **VERSION** | **11.70** (loja hoje **v11.69**) |
+| **Rollback** | `rollback/pre-v1170-entrada-estoque-lock` @ **`82cec5b`** (já no remote) |
+| **Como reverter** | `git push origin rollback/pre-v1170-entrada-estoque-lock:producao` |
+| **Assistente** | (1) frase+senha · (2) `git push origin limpeza/entrada-nf-pg-only:producao` · (3) registrar Live · limpar badge pronto · **não** recriar rollback |
+| **Após Live** | Ctrl+F5 · NF 14988 (ou nova) · etapa 5 Registrar estoque · deve concluir em segundos · sem «em andamento» |
+
+#### Hotfix (o que sobe)
+
+| # | Item | Status |
+| - | ---- | ------ |
+| 1 | Entrada NF etapa 5 estoque **sem Mongo** (snapshot/ledger) | ✅ |
+| 2 | Libera lock se falhar · marca `estoque_aplicado` no PG | ✅ |
+| 3 | Stale lock **3 min** (antes 15) | ✅ |
+| 4 | Aguarda Renan frase + senha | ⏳ |
+
+**Lição (Renan 23/07):** corte Mongo na Entrada NF **sem** retestar o botão azul de estoque = rabo na loja. Próximo pacote PG-only: smoke **Registrar estoque** obrigatório antes de marcar pronto.
+
+### 🐛 Hotfix — Entrada NF estoque trava / «em andamento» (**v11.70** · incluso acima)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ embutido no bloco «PRÓXIMO CHAT» · tip `9f4d7c0` |
+| **Sintoma loja** | Etapa 5 load eterno · 2º clique «em andamento ou repetido» (NF 14988) |
+| **Causa** | v11.69: `client_m.DEPOSITO_*` com Mongo None + lock sem release + `db is None` não marcava status |
+| **Workaround até subir** | Esperar expirar lock (~3–15 min no código antigo) · F5 · **só** depois do v11.70 |
 
 ### 📦 Deploy loja **v11.69** — Entrada NF PG + Dist + fiscal + kardex (23/07 · Renan frase+senha)
 
