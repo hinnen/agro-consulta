@@ -13415,27 +13415,53 @@ def aplicar_baixa_estoque_venda_agro(
     aplicados: list[dict] = []
     erros: list[dict] = []
     from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
 
     sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    ledger = agro_estoque_ledger_ativo()
+    # Ledger: saldo operacional = último saldo_informado (não misturar fórmula Mongo+PIN).
+    usa_snapshot = sem_mongo or ledger
     saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _erp_ref_congelado(pid_loc: str, dep_l: str, erp_lido: Decimal) -> Decimal:
+        """Com ledger, congela erp_ref do ajuste anterior p/ o kardex não inventar Δ."""
+        if not ledger:
+            return erp_lido.quantize(Decimal("0.001"))
+        aj = (
+            AjusteRapidoEstoque.objects.filter(
+                produto_externo_id=pid_loc[:100], deposito=dep_l
+            )
+            .order_by("-criado_em", "-id")
+            .only("saldo_erp_referencia")
+            .first()
+        )
+        if aj is None:
+            return Decimal("0.000")
+        return Decimal(str(aj.saldo_erp_referencia or 0)).quantize(Decimal("0.001"))
 
     def _saldo_antes_baixa(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
         """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
-        if sem_mongo:
+        if usa_snapshot:
             if pid_loc not in saldos_op_cache:
                 from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
                 saldos_op_cache.update(
-                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                    mapa_saldos_operacionais_agro(
+                        [pid_loc],
+                        db=None if sem_mongo else db,
+                        client=None if sem_mongo else client_m,
+                    )
                 )
             info = saldos_op_cache.get(pid_loc) or {}
             if dep_l == "vila":
                 antes = Decimal(str(info.get("saldo_vila", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+                erp_lido = Decimal(str(info.get("saldo_erp_vila", 0)))
             else:
                 antes = Decimal(str(info.get("saldo_centro", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
-            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+                erp_lido = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), _erp_ref_congelado(
+                pid_loc, dep_l, erp_lido
+            )
         saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
         return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 
@@ -13574,27 +13600,52 @@ def aplicar_estorno_estoque_venda_agro(
     aplicados: list[dict] = []
     erros: list[dict] = []
     from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
 
     sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    ledger = agro_estoque_ledger_ativo()
+    usa_snapshot = sem_mongo or ledger
     saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _erp_ref_congelado(pid_loc: str, dep_l: str, erp_lido: Decimal) -> Decimal:
+        """Com ledger, congela erp_ref do ajuste anterior p/ o kardex não inventar Δ."""
+        if not ledger:
+            return erp_lido.quantize(Decimal("0.001"))
+        aj = (
+            AjusteRapidoEstoque.objects.filter(
+                produto_externo_id=pid_loc[:100], deposito=dep_l
+            )
+            .order_by("-criado_em", "-id")
+            .only("saldo_erp_referencia")
+            .first()
+        )
+        if aj is None:
+            return Decimal("0.000")
+        return Decimal(str(aj.saldo_erp_referencia or 0)).quantize(Decimal("0.001"))
 
     def _saldo_antes_estorno(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
         """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
-        if sem_mongo:
+        if usa_snapshot:
             if pid_loc not in saldos_op_cache:
                 from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
                 saldos_op_cache.update(
-                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                    mapa_saldos_operacionais_agro(
+                        [pid_loc],
+                        db=None if sem_mongo else db,
+                        client=None if sem_mongo else client_m,
+                    )
                 )
             info = saldos_op_cache.get(pid_loc) or {}
             if dep_l == "vila":
                 antes = Decimal(str(info.get("saldo_vila", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+                erp_lido = Decimal(str(info.get("saldo_erp_vila", 0)))
             else:
                 antes = Decimal(str(info.get("saldo_centro", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
-            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+                erp_lido = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), _erp_ref_congelado(
+                pid_loc, dep_l, erp_lido
+            )
         saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
         return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 

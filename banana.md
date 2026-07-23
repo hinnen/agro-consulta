@@ -1165,6 +1165,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🩹 Histórico estoque — venda 1 un. não mostra saída fantasma (**teste v11.68** · 23/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Caso** | Venda **#3747** · 1 un. ibiuna · aba Estoque mostrou saída **~39,463** (todos os produtos com ledger) |
+| **Fix** | Kardex com ledger = Δ `saldo_informado` (não Δ camada Mongo) · baixa/estorno venda usa snapshot ledger + congela `erp_ref` |
+| **Arquivos** | `estoque_movimentos_cadastro_util.py` · `views.py` (baixa/estorno) |
+| **Você** | Ctrl+F5 no **teste** · cadastro → mesmo produto → aba Estoque → venda #3747 deve sair **1** (não 39) · 1 venda nova de 1 un. = saída 1 |
+| **Loja** | só com frase + senha (ainda **não** subiu) |
+
 ### ✅ Verificação remota loja — abrir/vender amanhã (22/07 ~23:20 · Renan ausente AnyDesk)
 
 | Item | Resultado |
