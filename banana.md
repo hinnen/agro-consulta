@@ -1166,12 +1166,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` · aguardar Live no Render |
+| **Status** | ✅ push `producao` **`a4539ad`** · aguardar Live no Render |
 | **VERSION** | **loja v11.75** (antes **v11.74** / `fb7a30c`) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **O que é** | Hotfix prévia Finalizar: sem N+1 em `AjusteRapidoEstoque`; catálogo batch; timeout UI 45s |
 | **Branch** | `hotfix/preview-custo-v1175` → `producao` |
-| **Commit** | `325b910` (+ docs banana deploy) |
+| **Commit** | tip **`a4539ad`** (fix `325b910`) |
 | **Backup / reverter** | `rollback/pre-v1175-preview-cpu` @ **`fb7a30c`** |
 | **Como reverter** | `git push origin rollback/pre-v1175-preview-cpu:producao` |
 | **Migrate** | nenhuma nova |
