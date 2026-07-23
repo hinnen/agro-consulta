@@ -1169,9 +1169,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Status** | 📦 **TUDO NO JEITO** — falta frase + senha |
 | **Frase** | *pode subir para produção* |
 | **Senha** | `99738595` |
-| **Branch** | `limpeza/entrada-nf-pg-only` |
+| **Branch** | `limpeza/entrada-nf-pg-only` · tip **`36462ed`** |
 | **VERSION** | **11.71** (loja hoje **v11.70**) |
-| **Rollback** | `rollback/pre-v1171-estoque-falso-gm` (criar no commit) |
+| **Rollback** | `rollback/pre-v1171-estoque-falso-gm` @ **`01ff11d`** (já no remote) |
+| **Assistente** | push `limpeza/entrada-nf-pg-only:producao` · Live · limpar badge |
 | **O que corrige** | (1) «Estoque já registrado» **falso** — carimbo `estoque_agro_registrado_em` ia **antes** de aplicar · (2) GM/EAN verde sumiam ao reabrir nota (não vinham no load + enrich) |
 | **Após Live** | Ctrl+F5 · abrir NF 14988 · botão deve voltar a **Registrar** · verde GM/EAN de novo · registrar estoque · conferir kardex **hoje** no depósito **Vila** |
 
