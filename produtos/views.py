@@ -223,6 +223,7 @@ from .nfe_entrada_util import (
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
     persistir_vinculos_c_prod_entrada_nfe_linhas,
+    propagar_fiscal_nf_catalogo_entrada_nota,
     propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
@@ -2399,7 +2400,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     somente_agro_overlay = bool(
         p_doc is not None and _mongo_primeiro_bool(p_doc, ("CadastroSomenteAgro", "cadastroSomenteAgro"))
     )
-    if somente_agro_overlay:
+    # Completa fiscal vazio com padrão SP/SN (NFC-e). Só grava bloco se veio no payload ou cadastro Agro.
+    if ("fiscal" in payload and isinstance(payload.get("fiscal"), dict)) or somente_agro_overlay:
         mf = merge_fiscal_padrao_cadastro_manual_sp_sn(f_prev)
         ex["fiscal"] = {
             "ncm": mf["ncm"][:14],
@@ -2409,8 +2411,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             "origem": mf["origem"][:4],
             "cst_pis_cofins": mf.get("cst_pis_cofins", "")[:8],
         }
-    elif "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
-        ex["fiscal"] = f_prev
     if "kit" in payload and isinstance(payload.get("kit"), dict):
         k_in = payload["kit"]
         k_prev = dict(ex.get("kit") or {}) if isinstance(ex.get("kit"), dict) else {}
@@ -2518,7 +2518,27 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex.pop("entrada_nfe_ean_embalagem", None)
     desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
     c_prod_nf_payload: str | None = None
-    if "c_prod_nf" in payload:
+    if "c_prods_nf" in payload:
+        # Cadastro: campo único — substitui a lista (vírgula / espaço / ponto-e-vírgula).
+        raw_list = str(payload.get("c_prods_nf") or "").strip()
+        if not raw_list:
+            ex.pop("entrada_nfe_c_prods", None)
+            ex.pop("entrada_nfe_c_prod", None)
+        else:
+            novos: list[str] = []
+            seen_cp: set[str] = set()
+            for part in re.split(r"[,;\s]+", raw_list):
+                al_cp = normalizar_c_prod_nf_entrada(part)
+                if al_cp and al_cp not in seen_cp:
+                    seen_cp.add(al_cp)
+                    novos.append(al_cp)
+            if novos:
+                ex["entrada_nfe_c_prods"] = novos[:24]
+                ex.pop("entrada_nfe_c_prod", None)
+            else:
+                ex.pop("entrada_nfe_c_prods", None)
+                ex.pop("entrada_nfe_c_prod", None)
+    elif "c_prod_nf" in payload:
         raw_cp = str(payload.get("c_prod_nf") or "").strip()
         if not raw_cp:
             ex.pop("entrada_nfe_c_prods", None)
@@ -12653,15 +12673,27 @@ def entrada_nota_view(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_sefaz_status(request):
-    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        distribuicao_dfe_configurada,
+        dfe_status_limite,
+    )
 
-    cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cfg = _cfg_dist_dfe()
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    lim = dfe_status_limite(cnpj)
+    client, db = _entrada_nfe_conexao()
+    ult = obter_ult_nsu(db, cnpj) if len(cnpj) == 14 else "0"
     return JsonResponse(
         {
             "configurada": distribuicao_dfe_configurada(),
-            "uf": (config("NFE_DIST_DFE_UF", default="") or "").strip().upper()[:2],
-            "cnpj_mascarado": _mascarar_cnpj(cnpj),
-            "tp_amb": config("NFE_DIST_DFE_TP_AMB", default="2"),
+            "uf": cfg.get("uf") or "",
+            "cnpj_mascarado": _mascarar_cnpj(cfg.get("cnpj") or ""),
+            "tp_amb": str(cfg.get("tp_amb") or "2"),
+            "consulta_liberada": bool(lim.get("liberado")),
+            "aguardar_segundos": int(lim.get("aguardar_segundos") or 0),
+            "limite_motivo": str(lim.get("motivo") or ""),
+            "ult_nsu": ult,
         }
     )
 
@@ -12944,22 +12976,38 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     user_pk: int | None = None,
     emit_cnpj: str = "",
 ) -> None:
-    """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
-    if not linhas or db is None or client is None:
+    """P. venda + NCM da NF → overlay/Produto; invalida cache do catálogo PDV quando houver alteração."""
+    if not linhas:
         return
     try:
-        persistir_vinculos_c_prod_entrada_nfe_linhas(
-            db, client.col_p, linhas, emit_cnpj=emit_cnpj
-        )
+        if db is not None and client is not None:
+            persistir_vinculos_c_prod_entrada_nfe_linhas(
+                db, client.col_p, linhas, emit_cnpj=emit_cnpj
+            )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
-    if (pr.get("atualizados_mongo") or 0) > 0 or (pr.get("atualizados_overlay") or 0) > 0:
+    fis = {"ok": True, "atualizados_produto": 0, "atualizados_overlay": 0, "produto_ids": []}
+    try:
+        fis = propagar_fiscal_nf_catalogo_entrada_nota(linhas)
+    except Exception:
+        logger.warning("_entrada_nota_propagar: fiscal NF", exc_info=True)
+    mudou = (
+        (pr.get("atualizados_mongo") or 0) > 0
+        or (pr.get("atualizados_overlay") or 0) > 0
+        or (fis.get("atualizados_produto") or 0) > 0
+        or (fis.get("atualizados_overlay") or 0) > 0
+    )
+    if mudou:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
     uid = int(user_pk or 0)
     if uid:
         batch = [str(x or "").strip() for x in (pr.get("produto_ids") or []) if str(x or "").strip()]
+        for x in fis.get("produto_ids") or []:
+            s = str(x or "").strip()
+            if s and s not in batch:
+                batch.append(s)
         if batch:
             _erp_produto_pendentes_extend_batch(uid, batch)
 
@@ -13383,27 +13431,53 @@ def aplicar_baixa_estoque_venda_agro(
     aplicados: list[dict] = []
     erros: list[dict] = []
     from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
 
     sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    ledger = agro_estoque_ledger_ativo()
+    # Ledger: saldo operacional = último saldo_informado (não misturar fórmula Mongo+PIN).
+    usa_snapshot = sem_mongo or ledger
     saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _erp_ref_congelado(pid_loc: str, dep_l: str, erp_lido: Decimal) -> Decimal:
+        """Com ledger, congela erp_ref do ajuste anterior p/ o kardex não inventar Δ."""
+        if not ledger:
+            return erp_lido.quantize(Decimal("0.001"))
+        aj = (
+            AjusteRapidoEstoque.objects.filter(
+                produto_externo_id=pid_loc[:100], deposito=dep_l
+            )
+            .order_by("-criado_em", "-id")
+            .only("saldo_erp_referencia")
+            .first()
+        )
+        if aj is None:
+            return Decimal("0.000")
+        return Decimal(str(aj.saldo_erp_referencia or 0)).quantize(Decimal("0.001"))
 
     def _saldo_antes_baixa(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
         """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
-        if sem_mongo:
+        if usa_snapshot:
             if pid_loc not in saldos_op_cache:
                 from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
                 saldos_op_cache.update(
-                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                    mapa_saldos_operacionais_agro(
+                        [pid_loc],
+                        db=None if sem_mongo else db,
+                        client=None if sem_mongo else client_m,
+                    )
                 )
             info = saldos_op_cache.get(pid_loc) or {}
             if dep_l == "vila":
                 antes = Decimal(str(info.get("saldo_vila", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+                erp_lido = Decimal(str(info.get("saldo_erp_vila", 0)))
             else:
                 antes = Decimal(str(info.get("saldo_centro", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
-            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+                erp_lido = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), _erp_ref_congelado(
+                pid_loc, dep_l, erp_lido
+            )
         saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
         return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 
@@ -13542,27 +13616,52 @@ def aplicar_estorno_estoque_venda_agro(
     aplicados: list[dict] = []
     erros: list[dict] = []
     from produtos.agro_fonte_config import agro_pdv_venda_sem_mongo_erp
+    from produtos.estoque_agro_util import agro_estoque_ledger_ativo
 
     sem_mongo = agro_pdv_venda_sem_mongo_erp() or db is None
+    ledger = agro_estoque_ledger_ativo()
+    usa_snapshot = sem_mongo or ledger
     saldos_op_cache: dict[str, dict[str, float]] = {}
+
+    def _erp_ref_congelado(pid_loc: str, dep_l: str, erp_lido: Decimal) -> Decimal:
+        """Com ledger, congela erp_ref do ajuste anterior p/ o kardex não inventar Δ."""
+        if not ledger:
+            return erp_lido.quantize(Decimal("0.001"))
+        aj = (
+            AjusteRapidoEstoque.objects.filter(
+                produto_externo_id=pid_loc[:100], deposito=dep_l
+            )
+            .order_by("-criado_em", "-id")
+            .only("saldo_erp_referencia")
+            .first()
+        )
+        if aj is None:
+            return Decimal("0.000")
+        return Decimal(str(aj.saldo_erp_referencia or 0)).quantize(Decimal("0.001"))
 
     def _saldo_antes_estorno(pid_loc: str, dep_l: str) -> tuple[Decimal, Decimal]:
         """(saldo_agro_antes, saldo_erp_referencia) no depósito."""
-        if sem_mongo:
+        if usa_snapshot:
             if pid_loc not in saldos_op_cache:
                 from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
                 saldos_op_cache.update(
-                    mapa_saldos_operacionais_agro([pid_loc], db=None, client=None)
+                    mapa_saldos_operacionais_agro(
+                        [pid_loc],
+                        db=None if sem_mongo else db,
+                        client=None if sem_mongo else client_m,
+                    )
                 )
             info = saldos_op_cache.get(pid_loc) or {}
             if dep_l == "vila":
                 antes = Decimal(str(info.get("saldo_vila", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_vila", 0)))
+                erp_lido = Decimal(str(info.get("saldo_erp_vila", 0)))
             else:
                 antes = Decimal(str(info.get("saldo_centro", 0)))
-                erp_ref = Decimal(str(info.get("saldo_erp_centro", 0)))
-            return antes.quantize(Decimal("0.001")), erp_ref.quantize(Decimal("0.001"))
+                erp_lido = Decimal(str(info.get("saldo_erp_centro", 0)))
+            return antes.quantize(Decimal("0.001")), _erp_ref_congelado(
+                pid_loc, dep_l, erp_lido
+            )
         saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
         return _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp), saldo_erp
 
@@ -15494,18 +15593,23 @@ def api_entrada_nota_financeiro(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
-    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada, nfe_distribuicao_dfe_interesse
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        distribuicao_dfe_configurada,
+        nfe_distribuicao_dfe_interesse,
+    )
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    cnpj_cfg = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cfg = _cfg_dist_dfe()
+    cnpj_cfg = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
     ult_pedido = payload.get("ult_nsu")
     client, db = _entrada_nfe_conexao()
     if ult_pedido is not None and str(ult_pedido).strip() != "":
         ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
-    elif db is not None and len(cnpj_cfg) == 14:
+    elif len(cnpj_cfg) == 14:
         ult = obter_ult_nsu(db, cnpj_cfg)
     else:
         ult = "0"
@@ -15514,15 +15618,20 @@ def api_entrada_nota_dist_dfe(request):
         return JsonResponse(
             {
                 "ok": False,
-                "erro": "Distribuição DF-e não configurada. Defina no .env: NFE_DIST_DFE_CERT_PATH, "
-                "NFE_DIST_DFE_CERT_PASSWORD, NFE_DIST_DFE_CNPJ, NFE_DIST_DFE_UF e opcionalmente "
-                "NFE_DIST_DFE_TP_AMB (1=produção, 2=homologação). Instale: pip install cryptography lxml signxml",
+                "erro": (
+                    "Certificado DF-e/NFC-e incompleto no .env local. "
+                    "Precisa do mesmo A1 da NFC-e: NFC_E_CERT_PATH (arquivo .pfx no PC) "
+                    "ou NFC_E_CERT_BASE64, mais NFC_E_CERT_PASSWORD, NFC_E_CNPJ e NFC_E_UF. "
+                    "Opcional: NFE_DIST_DFE_*. Instale: pip install cryptography lxml signxml"
+                ),
                 "ult_nsu": ult,
             },
             status=400,
         )
 
     res = nfe_distribuicao_dfe_interesse(ult)
+    if res.get("ult_nsu") and len(cnpj_cfg) == 14:
+        gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
     previews: list[dict] = []
     for xml_txt in res.get("notas_xml") or []:
         p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
@@ -15544,12 +15653,9 @@ def api_entrada_nota_dist_dfe(request):
                 }
             )
 
-    if db is not None and len(cnpj_cfg) == 14 and res.get("ult_nsu"):
-        gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
-
     res["previews"] = previews
     if not res.get("ok") and res.get("erro"):
-        return JsonResponse(res, status=502)
+        return JsonResponse(res, status=429 if res.get("aguardar_segundos") else 502)
     return JsonResponse(res)
 
 
@@ -18714,7 +18820,9 @@ def api_buscar_produtos(request):
         lim_busca_req = int(request.GET.get("limit") or (48 if entrada_nfe_mode else 80))
     except (TypeError, ValueError):
         lim_busca_req = 48 if entrada_nfe_mode else 80
-    lim_busca_req = max(1, min(lim_busca_req, 160))
+    # Cadastro: «Carregar mais» pode pedir até 300; PDV/outras telas ficam no teto 160.
+    _cap_busca = 300 if contexto_cadastro else 160
+    lim_busca_req = max(1, min(lim_busca_req, _cap_busca))
     from produtos.agro_fonte_config import (
         agro_catalogo_usa_postgres,
         agro_pdv_catalogo_somente_postgres,
@@ -20027,6 +20135,9 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     }
     row.update(extra)
     _merge_fiscal_overlay_sobre_row_cadastro(row, ov_det)
+    from produtos.agro_produto_fiscal_defaults import aplicar_fiscal_padrao_em_row_detalhe
+
+    aplicar_fiscal_padrao_em_row_detalhe(row)
     ce_ov = (
         ov_det.cadastro_extras if ov_det and isinstance(ov_det.cadastro_extras, dict) else None
     )

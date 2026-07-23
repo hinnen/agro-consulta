@@ -101,12 +101,16 @@ def produto_agro_para_row(
     if resolver_overlay_faltante and ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
-    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
+    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay;
+    # inclui 2º código (EAN/cProd da NF) gravado em cadastro_extras.
+    ce = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else None
     row["index_codigos"] = index_codigos_de_campos(
         codigo=row.get("codigo"),
         codigo_nfe=row.get("codigo_nfe"),
         codigo_barras=row.get("codigo_barras"),
+        cadastro_extras=ce,
     )
+    ix_extra = " ".join(str(x) for x in (row.get("index_codigos") or []) if x)
     row["busca_texto"] = " ".join(
         x
         for x in (
@@ -119,6 +123,7 @@ def produto_agro_para_row(
             row.get("categoria"),
             row.get("subcategoria"),
             row.get("fornecedor"),
+            ix_extra,
         )
         if x
     ).strip()
@@ -389,14 +394,25 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
+    pid = str(row.get("id") or "").strip()[:64]
+    ov = None
+    if pid:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
     # Coluna Produto.modelo + overlay — nunca sumir ao reabrir o modal
     if not str(row.get("modelo") or "").strip():
-        ov = ProdutoGestaoOverlayAgro.objects.filter(
-            produto_externo_id=str(row.get("id") or "")[:64]
-        ).first()
         if ov and isinstance(ov.cadastro_extras, dict):
             row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
     row["modelo"] = str(row.get("modelo") or "").strip()[:200]
+    # Fiscal do overlay (NFC-e) + padrão SP/SN se ainda vazio (modal não fica em branco).
+    try:
+        from produtos.views import _merge_fiscal_overlay_sobre_row_cadastro
+
+        _merge_fiscal_overlay_sobre_row_cadastro(row, ov)
+    except Exception:
+        pass
+    from produtos.agro_produto_fiscal_defaults import aplicar_fiscal_padrao_em_row_detalhe
+
+    aplicar_fiscal_padrao_em_row_detalhe(row)
     return {
         **row,
         "preco_custo_com_acrescimos": pc,
@@ -1079,6 +1095,7 @@ def listar_slim_rows_pdv() -> list[dict]:
                 "codigo_nfe",
                 "codigo_barras",
                 "preco_venda",
+                "cadastro_extras",
             ):
                 pid = str(o.get("produto_externo_id") or "").strip()[:64]
                 if pid:
@@ -1099,10 +1116,12 @@ def listar_slim_rows_pdv() -> list[dict]:
             preco = r.get("preco_venda")
         marca = (r.get("marca") or "").strip()
         modelo = (r.get("modelo") or "").strip()
+        ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
         ix = index_codigos_de_campos(
             codigo=codigo,
             codigo_nfe=codigo_nfe,
             codigo_barras=codigo_barras,
+            cadastro_extras=ce,
         )
         busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
         out.append(

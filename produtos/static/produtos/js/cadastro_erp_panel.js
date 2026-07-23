@@ -89,6 +89,7 @@
   var filtrarEl = document.getElementById('cadastro-filtrar');
   var listaEl = document.getElementById('cadastro-lista');
   var metaEl = document.getElementById('cadastro-lista-meta');
+  var btnMaisEl = document.getElementById('cadastro-btn-mais');
   var detalheEl = document.getElementById('cadastro-detalhe');
   var erroEl = document.getElementById('cadastro-erro');
   var prevEl = document.getElementById('cadastro-prev');
@@ -103,6 +104,10 @@
   var CADASTRO_LISTA_COLSPAN = 9;
   var pagina = 1;
   var porPagina = 72;
+  var BUSCA_LIMITE_BASE = 60;
+  var BUSCA_LIMITE_PASSO = 60;
+  var BUSCA_LIMITE_MAX = 300;
+  var buscaLimitAtual = BUSCA_LIMITE_BASE;
   var debounceTimer = null;
   var carregarGen = 0;
   var carregarAbort = null;
@@ -1138,6 +1143,7 @@
 
   function finalizarBuscaPdvRows(apiRows, gen) {
     if (gen !== carregarGen) return;
+    var nApi = Array.isArray(apiRows) ? apiRows.length : 0;
     var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
     linhas = cadastroFiltrarDimensoesLista(linhas);
     linhas = cadastroFiltrarAtivosLocal(linhas);
@@ -1149,6 +1155,7 @@
       motor: 'pdv',
       pacote_fallback: !!(apiRows && apiRows._pacote_fallback),
       pacote_level: (apiRows && apiRows._pacote_level) || '',
+      n_api: nApi,
     }, linhas);
     renderLista(linhas);
   }
@@ -1165,9 +1172,33 @@
   }
 
   function cadastroLimiteBuscaPdv() {
-    return (typeof window.BUSCA_PDV_LIM_MAX === 'number' && window.BUSCA_PDV_LIM_MAX > 0)
+    var base = (typeof window.BUSCA_PDV_LIM_MAX === 'number' && window.BUSCA_PDV_LIM_MAX > 0)
       ? window.BUSCA_PDV_LIM_MAX
-      : 60;
+      : BUSCA_LIMITE_BASE;
+    return Math.min(Math.max(buscaLimitAtual || base, base), BUSCA_LIMITE_MAX);
+  }
+
+  function resetBuscaLimit() {
+    buscaLimitAtual = BUSCA_LIMITE_BASE;
+  }
+
+  function atualizarBtnCarregarMais(nApi) {
+    if (!btnMaisEl) return;
+    var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+    var lim = cadastroLimiteBuscaPdv();
+    var n = Math.max(0, Number(nApi) || 0);
+    /* Mostra se a busca encheu o lote atual (pode haver mais no servidor). */
+    var pode = !!q && !modoLista && n > 0 && n >= lim && lim < BUSCA_LIMITE_MAX;
+    if (pode) {
+      btnMaisEl.classList.remove('hidden');
+      btnMaisEl.disabled = false;
+      var prox = Math.min(lim + BUSCA_LIMITE_PASSO, BUSCA_LIMITE_MAX);
+      btnMaisEl.textContent = 'Carregar mais (' + prox + ')';
+    } else {
+      btnMaisEl.classList.add('hidden');
+      btnMaisEl.disabled = true;
+      btnMaisEl.textContent = 'Carregar mais';
+    }
   }
 
   function atualizarMeta(data, produtos) {
@@ -1182,11 +1213,13 @@
       else if (data.pacote_level === 'green') base += ' · lista hoje';
       metaEl.textContent = base;
       pagWrap.classList.add('hidden');
+      atualizarBtnCarregarMais(typeof data.n_api === 'number' ? data.n_api : produtos.length);
     } else {
       modoLista = true;
       metaEl.textContent = 'Lista A–Z · página ' + data.pagina + (data.has_more ? ' (há próxima)' : ' (fim)');
       pagWrap.classList.remove('hidden');
       prevEl.disabled = data.pagina <= 1;
+      atualizarBtnCarregarMais(0);
       nextEl.disabled = !data.has_more;
     }
   }
@@ -1524,8 +1557,10 @@
       .finally(function () { setLoading(false); });
   }
 
-  function carregar() {
+  function carregar(opts) {
+    opts = opts || {};
     if (!listaEl) return;
+    if (!opts.manterLimiteBusca) resetBuscaLimit();
     if (typeof resetLoading === 'function') resetLoading();
     var g = ++carregarGen;
     if (carregarAbort) {
@@ -1543,6 +1578,7 @@
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
+      atualizarBtnCarregarMais(0);
       return;
     }
 
@@ -1553,6 +1589,7 @@
       return;
     }
 
+    atualizarBtnCarregarMais(0);
     setLoading(true);
     carregarListaPaginada(g, sig)
       .catch(function (err) {
@@ -1571,6 +1608,7 @@
     if (!buscaEl) return;
     clearTimeout(debounceTimer);
     clearTimeout(buscaCodigoDebounceTimer);
+    resetBuscaLimit();
     var q = (buscaEl.value || '').trim();
     if (!q) {
       pagina = 1;
@@ -1589,6 +1627,7 @@
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
+      atualizarBtnCarregarMais(0);
       return;
     }
     mostrarErro('');
@@ -1640,6 +1679,18 @@
     filtrarEl.addEventListener('click', function () {
       pagina = 1;
       carregar();
+    });
+  }
+  if (btnMaisEl) {
+    btnMaisEl.addEventListener('click', function () {
+      var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+      if (!q || !buscaProntaParaCatalogo(q)) return;
+      buscaLimitAtual = Math.min(
+        Math.max(buscaLimitAtual, BUSCA_LIMITE_BASE) + BUSCA_LIMITE_PASSO,
+        BUSCA_LIMITE_MAX
+      );
+      btnMaisEl.disabled = true;
+      carregar({ manterLimiteBusca: true });
     });
   }
 

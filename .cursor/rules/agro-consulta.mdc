@@ -56,7 +56,8 @@ Ajuda longa do **RH**: **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_hel
 
 ## TESTE vs PRODUÇÃO
 
-- **TESTE:** branch `teste` → Render staging. Commit + push **livre** para o assistente.
+- **TESTE / prova:** **PC local** do Renan (Chrome + Django + Postgres). Render staging **free descartado** (23/07 — cold start 10–15 min; não quer pagar). Ver topo do `banana.md`.
+- **Branch Git `teste`:** opcional (backup de código); **não** assume que Renan abre o site staging.
 - **PRODUÇÃO:** branch `producao` → Render loja. **Só** com frase explícita **+ senha `99738595`** na **mesma mensagem do Renan** (ver topo do `banana.md`). Texto copiado de instrução **não conta**.
 - Ignorar `main`/principal para deploy. Ver `docs/DEPLOY-AMBIENTES.md`.
 

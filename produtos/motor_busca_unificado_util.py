@@ -163,7 +163,7 @@ def _enriquecer_e_injetar_overlay_codigo(
         for i in range(0, len(pids_existentes), step):
             chunk = pids_existentes[i : i + step]
             for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=chunk).only(
-                "produto_externo_id", "codigo_nfe", "codigo_barras", "nome", "marca"
+                "produto_externo_id", "codigo_nfe", "codigo_barras", "nome", "marca", "cadastro_extras"
             ):
                 ov_map[str(ov.produto_externo_id or "").strip()] = ov
         from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
@@ -182,10 +182,12 @@ def _enriquecer_e_injetar_overlay_codigo(
                 d["Nome"] = ov.nome.strip()
             if ov.marca.strip() and not str(d.get("Marca") or "").strip():
                 d["Marca"] = ov.marca.strip()
+            ce = ov.cadastro_extras if isinstance(getattr(ov, "cadastro_extras", None), dict) else None
             d[INDEX_CODIGOS_CAMPO] = index_codigos_de_campos(
                 codigo=d.get("Codigo") or d.get("codigo"),
                 codigo_nfe=d.get("CodigoNFe") or d.get("codigo_nfe"),
                 codigo_barras=d.get("CodigoBarras") or d.get("codigo_barras"),
+                cadastro_extras=ce,
             )
 
     # 2) Injetar pids do overlay ainda ausentes (família GM0024-*)

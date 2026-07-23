@@ -759,10 +759,24 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             if ln == "cProd":
                 item["c_prod"] = t[:60]
             elif ln == "cEAN":
-                item["ean"] = re.sub(r"\D", "", t)[:14]
+                # Mantém o que veio no XML (mesmo curto, ex. «25») — na grade fica «em cima»;
+                # só EAN ≥8 é memorizado no cadastro como 2º código (embalagem).
+                raw_ean = (t or "").strip()
+                digits = re.sub(r"\D", "", raw_ean)[:14]
+                if digits:
+                    item["ean"] = digits
+                elif raw_ean and re.sub(r"[\s_-]+", "", raw_ean).upper() != "SEMGTIN":
+                    item["ean"] = raw_ean[:20]
+                else:
+                    item["ean"] = ""
             elif ln == "cEANTrib":
                 if not item["ean"]:
-                    item["ean"] = re.sub(r"\D", "", t)[:14]
+                    raw_ean = (t or "").strip()
+                    digits = re.sub(r"\D", "", raw_ean)[:14]
+                    if digits:
+                        item["ean"] = digits
+                    elif raw_ean and re.sub(r"[\s_-]+", "", raw_ean).upper() != "SEMGTIN":
+                        item["ean"] = raw_ean[:20]
             elif ln == "xProd":
                 item["x_prod"] = t[:500]
             elif ln == "NCM":
@@ -1130,9 +1144,11 @@ def casar_produtos_postgres(
         p = None
         mtipo = None
         try:
-            if ean:
+            ean_dig = re.sub(r"\D", "", ean)
+            # EAN curto da NF (ex. «25») não casa produto — só GTIN ≥8.
+            if len(ean_dig) >= 8:
                 p = (
-                    Produto.objects.filter(codigo_barras__iexact=ean)
+                    Produto.objects.filter(codigo_barras__iexact=ean_dig)
                     .order_by("pk")
                     .first()
                 )
@@ -1140,7 +1156,7 @@ def casar_produtos_postgres(
                     mtipo = "ean_pg"
                 if not p:
                     ov = (
-                        ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__iexact=ean)
+                        ProdutoGestaoOverlayAgro.objects.filter(codigo_barras__iexact=ean_dig)
                         .order_by("pk")
                         .first()
                     )
@@ -1204,6 +1220,14 @@ def casar_produtos_postgres(
             gm = str(p.codigo_interno).strip()
         if gm:
             it["codigo_nfe"] = gm[:64]
+        ean_cat = ""
+        if ov2 and (getattr(ov2, "codigo_barras", None) or "").strip():
+            ean_cat = re.sub(r"\D", "", str(ov2.codigo_barras))[:14]
+        if not ean_cat and (getattr(p, "codigo_barras", None) or "").strip():
+            ean_cat = re.sub(r"\D", "", str(p.codigo_barras))[:14]
+        if len(ean_cat) >= 8:
+            it["codigo_barras_catalogo"] = ean_cat
+            it["ean_catalogo"] = ean_cat
         pv = None
         if ov2 and ov2.preco_venda is not None:
             try:
@@ -3555,15 +3579,64 @@ def pipeline_acao_rascunho_entrada(
 
 def obter_ult_nsu(db, cnpj: str) -> str:
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
+    if not cnpj:
         return "0"
+    # 1) Postgres (fonte estável — local e loja sem Mongo)
     try:
-        row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
-        if row and row.get("ult_nsu"):
-            return str(row["ult_nsu"]).zfill(15)
+        from produtos.models import AgroNfeDistDfeCursor
+
+        row = AgroNfeDistDfeCursor.objects.filter(cnpj=cnpj).only("ult_nsu").first()
+        if row and (row.ult_nsu or "").strip():
+            return str(row.ult_nsu).zfill(15)[:15]
+    except Exception as exc:
+        logger.warning("obter_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
+            if row and row.get("ult_nsu"):
+                return str(row["ult_nsu"]).zfill(15)
+        except Exception:
+            pass
+    try:
+        from django.core.cache import cache
+
+        v = cache.get(f"agro_dfe_ult_nsu:{cnpj}")
+        if v:
+            return str(v).zfill(15)[:15]
     except Exception:
         pass
     return "0"
+
+
+def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
+    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
+    if not cnpj:
+        return
+    ult = str(ult_nsu or "0").zfill(15)[:15]
+    try:
+        from produtos.models import AgroNfeDistDfeCursor
+
+        AgroNfeDistDfeCursor.objects.update_or_create(
+            cnpj=cnpj,
+            defaults={"ult_nsu": ult},
+        )
+    except Exception as exc:
+        logger.warning("gravar_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            db[COL_DFE_CURSOR].update_one(
+                {"cnpj": cnpj},
+                {"$set": {"ult_nsu": ult, "atualizado_em": datetime.now(timezone.utc)}},
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.warning("gravar_ult_nsu mongo: %s", exc)
+    try:
+        from django.core.cache import cache
+
+        cache.set(f"agro_dfe_ult_nsu:{cnpj}", ult, timeout=60 * 60 * 24 * 120)
+    except Exception as exc:
+        logger.warning("gravar_ult_nsu cache: %s", exc)
 
 
 def _entrada_nfe_chave_nome_fornecedor(nome) -> str:
@@ -3878,18 +3951,79 @@ def buscar_fornecedores_entrada_nfe(
     return out
 
 
-def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
-    cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
-        return
-    try:
-        db[COL_DFE_CURSOR].update_one(
-            {"cnpj": cnpj},
-            {"$set": {"ult_nsu": str(ult_nsu).zfill(15), "atualizado_em": datetime.now(timezone.utc)}},
-            upsert=True,
-        )
-    except Exception as exc:
-        logger.warning("gravar_ult_nsu: %s", exc)
+def propagar_fiscal_nf_catalogo_entrada_nota(linhas: list) -> dict[str, Any]:
+    """
+    Na Entrada NF: se a linha da nota trouxer NCM, grava no ``Produto`` + overlay fiscal
+    (substitui padrão genérico / NCM antigo). CFOP da NF de **compra** não vira CFOP padrão
+    de venda (NFC-e continua 5102 via merge).
+    """
+    from produtos.agro_produto_fiscal_defaults import (
+        merge_fiscal_padrao_cadastro_manual_sp_sn,
+        normalizar_ncm_somente_digitos,
+    )
+    from produtos.catalogo_agro import obter_produto_model
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "atualizados_produto": 0,
+        "atualizados_overlay": 0,
+        "produto_ids": [],
+    }
+    if not linhas:
+        return out
+    ids_ok: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        ncm = normalizar_ncm_somente_digitos(ln.get("ncm"))
+        if len(ncm) < 8:
+            continue
+        p = obter_produto_model(pid)
+        pid64 = ""
+        if p is not None:
+            pid64 = str(p.produto_externo_id or pid).strip()[:64]
+            try:
+                if str(p.ncm or "").strip() != ncm:
+                    p.ncm = ncm[:16]
+                    p.save(update_fields=["ncm"])
+                    out["atualizados_produto"] += 1
+            except Exception as exc:
+                logger.warning("propagar_fiscal produto %s: %s", pid, exc)
+        else:
+            pid64 = pid[:64]
+        if not pid64:
+            continue
+        try:
+            ov, _created = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid64,
+                defaults={},
+            )
+            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+            fis_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
+            fis_prev["ncm"] = ncm[:14]
+            mf = merge_fiscal_padrao_cadastro_manual_sp_sn(fis_prev)
+            # NCM da NF prevalece sobre o padrão (merge já manteve se veio preenchido).
+            mf["ncm"] = ncm[:14]
+            ex["fiscal"] = {
+                "ncm": mf["ncm"][:14],
+                "cest": str(mf.get("cest") or "").strip()[:10],
+                "cfop": mf["cfop"][:7],
+                "csosn": mf["csosn"][:7],
+                "origem": mf["origem"][:4],
+                "cst_pis_cofins": str(mf.get("cst_pis_cofins") or "")[:8],
+            }
+            ov.cadastro_extras = ex
+            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+            out["atualizados_overlay"] += 1
+            ids_ok.add(pid64)
+        except Exception as exc:
+            logger.warning("propagar_fiscal overlay %s: %s", pid, exc)
+    out["produto_ids"] = sorted(ids_ok)
+    return out
 
 
 def propagar_precos_venda_catalogo_entrada_nota(
@@ -3900,12 +4034,14 @@ def propagar_precos_venda_catalogo_entrada_nota(
     _usuario_label: str = "",
 ) -> dict[str, Any]:
     """
-    Copia o P. venda das linhas da NF para o espelho Mongo (``DtoProduto``) e para o overlay SQLite,
+    Copia o P. venda das linhas da NF para o espelho Mongo (``DtoProduto``) e para o overlay,
     para o PDV e a busca refletirem o preço após salvar / atualizar rascunho ou fluxos ligados.
     Ignora linhas sem ``produto_id`` de catálogo ou com preço ≤ 0.
+    Com Mongo desligado: ainda atualiza overlay + ``Produto`` no Postgres.
     """
     from bson import ObjectId
 
+    from produtos.catalogo_agro import obter_produto_model
     from produtos.models import ProdutoGestaoOverlayAgro
 
     try:
@@ -3925,9 +4061,9 @@ def propagar_precos_venda_catalogo_entrada_nota(
         "atualizados_overlay": 0,
         "produto_ids": [],
     }
-    if db is None or client_m is None or not linhas:
+    if not linhas:
         return out
-    col = client_m.col_p
+    col = getattr(client_m, "col_p", None) if client_m is not None else None
     ids_erp: set[str] = set()
     for ln in linhas:
         if not isinstance(ln, dict):
@@ -3945,47 +4081,62 @@ def propagar_precos_venda_catalogo_entrada_nota(
         c_prod = str(ln.get("c_prod") or "").strip()
         ean_d = "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit())
         doc_ln = None
-        if _doc_entrada_ln:
-            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d)
         id_u = pid
-        if isinstance(doc_ln, dict):
-            id_u = (
-                str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
-            )
-        if _filt_entrada_ln:
-            filt = _filt_entrada_ln(id_u)
-        else:
-            or_filt: list[dict[str, Any]] = [{"Id": pid}]
+        if db is not None and col and _doc_entrada_ln:
+            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d)
+            if isinstance(doc_ln, dict):
+                id_u = (
+                    str(doc_ln.get("Id") or "").strip()
+                    or str(doc_ln.get("_id") or "").strip()
+                    or pid
+                )
+            if _filt_entrada_ln:
+                filt = _filt_entrada_ln(id_u)
+            else:
+                or_filt: list[dict[str, Any]] = [{"Id": pid}]
+                try:
+                    or_filt.append({"Id": int(pid)})
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    or_filt.append({"_id": ObjectId(pid)})
+                except Exception:
+                    pass
+                filt = {"$or": or_filt}
             try:
-                or_filt.append({"Id": int(pid)})
-            except (TypeError, ValueError):
-                pass
-            try:
-                or_filt.append({"_id": ObjectId(pid)})
-            except Exception:
-                pass
-            filt = {"$or": or_filt}
+                r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
+                if r.matched_count:
+                    out["atualizados_mongo"] += 1
+                    pid_erp = ""
+                    if isinstance(doc_ln, dict) and str(doc_ln.get("Id") or "").strip():
+                        pid_erp = str(doc_ln.get("Id")).strip()[:64]
+                    elif str(id_u or "").strip():
+                        pid_erp = str(id_u).strip()[:64]
+                    if pid_erp:
+                        ids_erp.add(pid_erp)
+            except Exception as exc:
+                logger.warning("propagar_precos mongo %s: %s", pid, exc)
         try:
-            r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
-            if r.matched_count:
-                out["atualizados_mongo"] += 1
-                pid_erp = ""
-                if isinstance(doc_ln, dict) and str(doc_ln.get("Id") or "").strip():
-                    pid_erp = str(doc_ln.get("Id")).strip()[:64]
-                elif str(id_u or "").strip():
-                    pid_erp = str(id_u).strip()[:64]
-                if pid_erp:
-                    ids_erp.add(pid_erp)
-        except Exception as exc:
-            logger.warning("propagar_precos mongo %s: %s", pid, exc)
-        try:
-            ov_key = (_ov_id_entrada(db, col, id_u) if _ov_id_entrada else None) or id_u
+            ov_key = id_u
+            if db is not None and col and _ov_id_entrada:
+                ov_key = _ov_id_entrada(db, col, id_u) or id_u
+            p_mod = obter_produto_model(str(ov_key or pid))
+            if p_mod is not None:
+                ov_key = str(p_mod.produto_externo_id or ov_key or pid).strip()[:64]
+                try:
+                    from decimal import Decimal as _Dec
+
+                    p_mod.preco_venda = _Dec(str(pv))
+                    p_mod.save(update_fields=["preco_venda"])
+                except Exception:
+                    pass
             dec = Decimal(str(pv))
             ProdutoGestaoOverlayAgro.objects.update_or_create(
                 produto_externo_id=str(ov_key)[:64],
                 defaults={"preco_venda": dec},
             )
             out["atualizados_overlay"] += 1
+            ids_erp.add(str(ov_key)[:64])
         except Exception as exc:
             logger.warning("propagar_precos overlay %s: %s", pid, exc)
     if ids_erp:

@@ -404,9 +404,13 @@
             <button type="button" id="btn-gerar-cb-loja" class="w-12 min-h-[50px] shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black leading-tight px-1 border-0 cursor-pointer" title="Gerar código de barras da loja (230 + sequência)">230</button>
           </div>
         </div>
-        <label class="block sm:col-span-2 md:col-span-3">
+        <label class="block sm:col-span-2">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">EAN na NF (embalagem / caixa)</span>
-          <input type="text" id="edit-ean-embalagem-nf" maxlength="22" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" placeholder="Opcional — quando a nota traz outro EAN que o da unidade" />
+          <input type="text" id="edit-ean-embalagem-nf" maxlength="22" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" placeholder="Opcional — quando a nota traz outro EAN que o da unidade" title="GTIN da caixa/embalagem na NF (≥8 dígitos). Usado na Entrada NF e na busca." />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. produto na NF (fornecedor)</span>
+          <input type="text" id="edit-c-prod-nf" maxlength="60" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex.: R0151 — código do item no XML do fornecedor" title="cProd da nota (ex.: R0151). Vários códigos: separe por vírgula. Ajuda o próximo «Ler XML» e a busca." autocomplete="off" />
         </label>
         <label class="block">
           <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
@@ -2299,13 +2303,38 @@
         ? String(ce.entrada_nfe_ean_embalagem).trim()
         : ''
     );
+    (function () {
+      var cps = [];
+      if (ce && Array.isArray(ce.entrada_nfe_c_prods)) {
+        cps = ce.entrada_nfe_c_prods
+          .map(function (x) { return String(x || '').trim(); })
+          .filter(Boolean);
+      } else if (ce && ce.entrada_nfe_c_prod != null && String(ce.entrada_nfe_c_prod).trim()) {
+        cps = [String(ce.entrada_nfe_c_prod).trim()];
+      }
+      setVal('edit-c-prod-nf', cps.join(', '));
+    })();
     setVal('edit-cod-nfe', produto.codigo_nfe || '');
-    setVal('edit-ncm', produto.ncm || '');
-    setVal('edit-origem', produto.origem_mercadoria != null ? produto.origem_mercadoria : '');
-    setVal('edit-cfop', produto.cfop_padrao != null ? produto.cfop_padrao : '');
-    setVal('edit-csosn', produto.csosn != null ? produto.csosn : '');
-    setVal('edit-cest', produto.cest != null ? produto.cest : '');
-    setVal('edit-pis-cofins', produto.cst_pis_cofins != null ? produto.cst_pis_cofins : '');
+    (function () {
+      var pad = {
+        ncm: '23099020',
+        origem_mercadoria: '0',
+        cfop_padrao: '5102',
+        csosn: '102',
+        cst_pis_cofins: '49'
+      };
+      function pick(k, elId) {
+        var v = produto[k];
+        if (v == null || String(v).trim() === '') v = pad[k];
+        setVal(elId, v != null ? v : '');
+      }
+      pick('ncm', 'edit-ncm');
+      pick('origem_mercadoria', 'edit-origem');
+      pick('cfop_padrao', 'edit-cfop');
+      pick('csosn', 'edit-csosn');
+      setVal('edit-cest', produto.cest != null ? produto.cest : '');
+      pick('cst_pis_cofins', 'edit-pis-cofins');
+    })();
 
     setMoeda('edit-custo', produto.preco_custo);
     setMoeda('edit-custo-acrescimo', produto.preco_custo_com_acrescimos);
@@ -2616,6 +2645,7 @@
       codigo: gv('edit-codigo'),
       codigo_barras: gv('edit-cb'),
       ean_embalagem_nf: gv('edit-ean-embalagem-nf'),
+      c_prods_nf: gv('edit-c-prod-nf'),
       codigo_nfe: gv('edit-cod-nfe'),
       subcategoria: gv('edit-subcategoria'),
       subcategoria_2: gv('edit-subcategoria-2'),

@@ -240,7 +240,10 @@
       </div>
 
       <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-slate-200 bg-slate-50/80 shrink-0">
-        <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
+          <button type="button" id="cadastro-btn-mais" class="hidden min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-white border-2 border-emerald-500 text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:pointer-events-none" title="Pedir mais resultados desta busca ao servidor">Carregar mais</button>
+        </div>
         <div id="cadastro-paginacao" class="flex items-center gap-1 flex-wrap">
           <button type="button" id="cadastro-prev" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:border-emerald-500 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
           <button type="button" id="cadastro-next" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
@@ -511,7 +514,7 @@
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=1"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=23"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=24"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=4"></script>
 
 </body>

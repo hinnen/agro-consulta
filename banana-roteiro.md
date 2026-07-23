@@ -51,7 +51,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | ------- | ---------- |
 | **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
 | **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
-| **Deploy teste** (push `teste`) | Topo L33–35 · CHECKPOINT versão teste |
+| **Deploy teste** (prova) | Topo L27–35 · CHECKPOINT «Prova = local» — Renan valida **no PC**; **não** Render staging free |
 | **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan |
 | **Desvinculação Mongo / corte ERP** | `### 4.15` + `### Checklist — corte total` · escada §5 (ler muito) |
 | **Variável `.env`** | `## 5` |

@@ -292,7 +292,7 @@ def _match_compra(
 def _camada_agro(row: AjusteRapidoEstoque) -> Decimal:
     """
     Camada Agro no momento do ajuste: saldo_informado − saldo_erp_referencia.
-    A movimentação real entre dois ajustes = diferença desta camada
+    Modo clássico (sem ledger): a movimentação entre dois ajustes = Δ desta camada
     (ignora salto do Mongo ERP entre uma operação e outra).
     """
     try:
@@ -346,9 +346,18 @@ def montar_movimentos_produto(
     # Janela cronológica (ASC) para calcular deltas; teto de leitura.
     crono = list(qs.order_by("criado_em", "id")[:2500])
     # Chave por produto+depósito.
-    # Movimento = Δ(camada Agro), não Δ(saldo_informado bruto) — o bruto
-    # misturava salto do ERP e gerava «Entrada NF» como saída (~170).
-    prev_camada: dict[tuple[str, str], Decimal] = {}
+    # Ledger (loja): saldo = snapshot ``saldo_informado`` → movimento = Δ informado.
+    #   Usar Δ(camada) aqui inventava saída enorme (ex. venda 1 un. → «39,463»).
+    # Clássico: movimento = Δ(camada Agro) — Δ informado misturava salto do ERP
+    #   e gerava «Entrada NF» como saída (~170).
+    try:
+        from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+
+        ledger = bool(agro_estoque_ledger_ativo())
+    except Exception:
+        ledger = False
+
+    prev_marcador: dict[tuple[str, str], Decimal] = {}
     running_saldo: dict[tuple[str, str], Decimal] = {}
     enriched: list[dict] = []
     compras = list(compras_linhas or [])
@@ -358,13 +367,14 @@ def montar_movimentos_produto(
         dep_k = str(row.deposito or "centro").lower()
         pid_k = str(row.produto_externo_id or "").strip()
         chave = (pid_k, dep_k)
-        camada = _camada_agro(row)
-        antes = prev_camada.get(chave)
+        informado = _dec(row.saldo_informado)
+        marcador = informado if ledger else _camada_agro(row)
+        antes = prev_marcador.get(chave)
         if antes is None:
             delta = None
         else:
-            delta = camada - antes
-        prev_camada[chave] = camada
+            delta = marcador - antes
+        prev_marcador[chave] = marcador
 
         qtd_ent = 0.0
         qtd_sai = 0.0
@@ -374,13 +384,20 @@ def montar_movimentos_produto(
             elif delta < 0:
                 qtd_sai = float(-delta)
 
-        # Saldo exibido: recompõe a partir dos movimentos (coerente com entrada/saída).
-        # 1ª linha da cadeia usa o saldo_informado gravado como âncora.
-        if chave not in running_saldo:
-            running_saldo[chave] = _dec(row.saldo_informado)
-        elif delta is not None:
-            running_saldo[chave] = (running_saldo[chave] + delta).quantize(Decimal("0.001"))
-        saldo_exibe = running_saldo[chave]
+        # Ledger: saldo da linha = snapshot gravado (bate com PDV/gestão).
+        # Clássico: recompõe pela Δ camada (coerente com entrada/saída).
+        if ledger:
+            saldo_exibe = informado
+            running_saldo[chave] = informado
+        elif chave not in running_saldo:
+            running_saldo[chave] = informado
+            saldo_exibe = informado
+        else:
+            if delta is not None:
+                running_saldo[chave] = (running_saldo[chave] + delta).quantize(
+                    Decimal("0.001")
+                )
+            saldo_exibe = running_saldo[chave]
 
         doc, venda_id, nf_digits = _documento_e_venda(row)
         if venda_id:

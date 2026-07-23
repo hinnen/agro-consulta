@@ -1,6 +1,6 @@
 # BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
-**Loja principal GM Agro** — teste Render, produção, pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
+**Loja principal GM Agro** — prova **local**, produção Render (SistVale), pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
 **Este é o anexo de contexto da loja GM.** Leitura guiada: **`banana-roteiro.md`** (fluxograma — ler **antes** deste arquivo). O `AGENTS.md` é enciclopédia; regra Cursor em `.cursor/rules/agro-consulta.mdc` (**§0 = roteiro + trechos necessários**, não o banana inteiro salvo exceções no roteiro §5).
 
@@ -24,13 +24,15 @@
 
 **Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
 
-**Ordem:** commit + push em `**teste`** → Renan testa no Render **teste** → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+**Ordem:** Renan valida **local** (máquina dele) → quando OK, sobe **produção** só com frase + senha. Branch Git `teste` pode existir para código; **Render staging gratuito = descartado** (ver regra Teste abaixo). Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
 
-**Teste (regra — 2026-06-22, reforço Renan 2026-06-17):** Renan **não testa localmente** (parou de usar — local parecia OK e produção quebrava). **Sempre** valida no **Render projeto «teste»** (branch Git `teste`). Quando ele fala *«teste»*, *«staging»* ou *«homologação»*, é **sempre** esse site no Render — **não** máquina local.
+**Teste (regra nova — 2026-07-23, reforço Renan):** Renan **testa localmente** (Chrome + `runserver` / stack local + Postgres local ou dump). **Não** usa mais o **Render projeto «teste»** no dia a dia: plano free **inutilizável** (cold start **10–15 min**); **não quer pagar** web+DB só para staging. Quando fala *«teste»* / *«validei»* / *«OK no teste»* → **máquina local**, **não** o site Render staging.
 
-**Render teste — assistente manda:** commit + push em `teste` **sempre que achar necessário** (feature pronta, fix, banana atualizada) — **não pedir autorização** ao Renan. Deploy Render segue sozinho; registrar no CHECKPOINT. Renan (2026-06-17): *«para teste pode subir sempre que você achar necessário»*.
+**Histórico (até ~22/07):** regra antiga era «não testa local / só Render teste» — **revogada**. Assistente **não** diga mais «valida no Render teste».
+
+**Branch Git `teste` / push:** assistente **pode** commit+push em `teste` se ajudar histórico/backup de código — **não** assumir que Renan vai abrir o Render staging. Preferir entregar patch que ele rode **local** (branch atual / instrução Ctrl+F5 local).
 
 **Produção** continua só com frase + senha (§ acima).
 
@@ -46,13 +48,13 @@
 | **Produto**                  | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP)                                                                     |
 | **Usuários**                 | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
-| **Branch dia a dia**         | `**teste`** (= staging Render; ver §3) · `**producao**` = loja · merge só quando Renan pedir                                                                         |
+| **Branch dia a dia**         | código em feature/`teste` · validação **local** · `**producao**` = loja (frase+senha)                                                                 |
 | **Tela inicial**             | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
 | **Escala de tela**           | **Agro Display Scale** global (não zoom do Chrome) — ver AGENTS.md §11                                                                                               |
 | **Listagem loja (WhatsApp)** | **Completa** (CHECKPOINT) · enviar p/ loja **a cada 2 dias** desde **29/06** · próx.: **01/07**, **03/07**…                                                          |
-| **Cliente Renan (loja/dev)** | **Google Chrome** — navegação página a página (MPA). **Não** usar Electron no dia a dia (testou; **muito lento**). Assistente: **não perguntar** Chrome vs Electron. |
+| **Cliente Renan (loja/dev)** | **Google Chrome** · **prova = local** (Render staging free descartado 23/07). **Não** Electron no dia a dia. Assistente: **não** mandar «abre o Render teste». |
 
 
 ---
@@ -71,9 +73,9 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** testa **só no Render «teste»** (não local). Assistente: **commit + push automático em `teste`**; `**producao` só com frase + senha** (ver topo).
+**Renan (dono/dev):** valida **local** (Chrome). **Render staging free = parado** (cold start 10–15 min; não quer pagar). Assistente: **não** pedir «teste no Render». `**producao` só** com frase + senha (ver topo).
 
-**Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf (Lançamentos, BI, prefetch, bootstrap HTML) devem ser validados **no Chrome**, não no shell Electron/iframe.
+**Como acessa o SisVale:** **Chrome** (aba normal ou instalado). **Electron** foi testado e **descartado na loja** — performance ruim. UX e perf devem ser validados **no Chrome local** (e na loja após deploy autorizado).
 
 ---
 
@@ -117,26 +119,27 @@ Detalhes: `docs/DEPLOY-AMBIENTES.md`.
 
 ## 3. Deploy e Git
 
-**Renan — duas vertentes no Render (dois «sites»):**
+**Renan — ambientes (atualizado 23/07):**
 
 
-| Como o Renan fala                 | Branch Git | Projeto Render (Dashboard) | Papel                                |
-| --------------------------------- | ---------- | -------------------------- | ------------------------------------ |
-| **Teste / staging / homologação** | `teste`    | **teste**                  | Onde **sempre** valida antes da loja |
-| **Produção / loja / SistVale**    | `producao` | **SistVale**               | Loja de verdade                      |
+| Como o Renan fala                 | Branch Git | Onde valida / roda                         | Papel                                |
+| --------------------------------- | ---------- | ------------------------------------------ | ------------------------------------ |
+| **Teste / validei / OK**          | feature ou `teste` | **PC local** (Chrome + Django + PG)   | Prova antes da loja                  |
+| **Produção / loja / SistVale**    | `producao` | Render **SistVale**                        | Loja de verdade                      |
+| **Render projeto «teste»**        | `teste`    | **Descartado no dia a dia** (free lento)   | Opcional/pago no futuro — ver CHECKPOINT |
 
 
-**Não testa local** — o ambiente de prova é o Render **teste**. Deploy do `teste` é **automático** no Render após push.
+**Prova = local** — não depender do staging Render free. Deploy loja só com frase + senha.
 
 
-| Ambiente (como falar) | Branch Git | Render (serviço)                               |
-| --------------------- | ---------- | ---------------------------------------------- |
-| **Teste / staging**   | `teste`    | projeto **teste** (ex.: agro-consulta-staging) |
-| **Produção / loja**   | `producao` | projeto **SistVale** (Sistvale - Produção)     |
+| Ambiente (como falar) | Branch Git | Onde |
+| --------------------- | ---------- | ---- |
+| **Teste / local**     | feature / `teste` | máquina do Renan |
+| **Produção / loja**   | `producao` | Render **SistVale** |
 
 
 - `**main` / `principal` não entram no deploy.**
-- **Assistente:** push `**teste` livre** (Renan testa no site teste). Merge/push `**producao` só** quando Renan autorizar.
+- **Assistente:** entregar para Renan rodar **local**; push `teste` opcional (backup de código). Merge/push `**producao` só** quando Renan autorizar.
 - Após merge produção: `python manage.py migrate` no ambiente (Render faz no deploy).
 
 ### 3.2 Pausa antes do deploy loja (Renan 30/06)
@@ -1157,6 +1160,51 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PRÓXIMO CHAT — só autorizar produção (**v11.69** · 23/07 · montado)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **TUDO NO JEITO** — falta **só** frase + senha na **mesma mensagem** |
+| **Frase** | *pode subir para produção* (ou equivalente claro) |
+| **Senha** | `99738595` |
+| **Branch código** | `limpeza/entrada-nf-pg-only` (pacote completo) |
+| **VERSION** | **11.69** (loja hoje **v11.66**) |
+| **Rollback pronto** | `rollback/pre-v1169-entrada-nf-kardex` @ `origin/producao` (**cbb6e69**) |
+| **Como reverter** | `git push origin rollback/pre-v1169-entrada-nf-kardex:producao` |
+| **Migrate** | sim — `0063_agronfedistdfecursor` (NSU Dist DF-e no Postgres) |
+| **Assistente no próximo chat** | (1) confirmar frase+senha · (2) merge branch → `producao` · (3) push `producao` · (4) push rollback se ainda não no remote · (5) registrar Live neste CHECKPOINT |
+
+#### O que sobe (checklist único)
+
+| # | Item | Status |
+| - | ---- | ------ |
+| 1 | Entrada NF **só Postgres** — corrige «serviço legado indisponível» (loja v11.66) | ✅ |
+| 2 | Grade Cód./EAN dual (XML em cima · GM/EAN SisVale embaixo) | ✅ |
+| 3 | Dist DF-e: mTLS · sem Signature (fix 215) · 60s/1h · NSU no PG | ✅ |
+| 4 | Fiscal modal: padrão ao abrir produto **existente** vazio | ✅ |
+| 5 | NCM da NF → cadastro/overlay (CFOP compra **não** vira venda) | ✅ |
+| 6 | Kardex ledger: saída = qtd real (não ~39 mil) · baixa/estorno alinhados | ✅ |
+| 7 | Cadastro: «Carregar mais» na busca (60→300) + códigos EAN/cProd NF no índice | ✅ |
+| 8 | Aguarda Renan frase + senha | ⏳ |
+
+**Não sobe:** dump NFC-e / dados locais · não apaga catálogo da loja.
+
+### WIP — Cadastro «Carregar mais» (incluso no v11.69)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão rodapé lista: limite 60→120→…→300 (cadastro BCA) |
+| **Arquivos** | `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `views.py` |
+| **Loja** | sobe **junto** no v11.69 |
+
+### 📦 PACOTE — Histórico estoque / kardex ledger (incluso no **v11.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ embutido no pacote **v11.69** (antes anunciado como v11.68 em `teste` `fddc5a2`) |
+| **Caso** | Venda **#3747** · saída ~39.463 → deve mostrar **1** |
+| **O que é** | Kardex ledger = Δ `saldo_informado` · baixa/estorno congelam `erp_ref` |
+
 ### ⚠️ VERDADE dura — Mongo / ERP (23/07 · Renan)
 
 | | |
@@ -1169,17 +1217,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
 | **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
 
-### WIP — limpeza Entrada NF slice 1 (**v11.67** · 23/07)
+### 🧪 Prova = **local** (23/07 · Renan reforçou)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ branch `limpeza/entrada-nf-pg-only` · commit a seguir · **ainda NÃO na loja** |
-| **Por quê 1º** | Foi o que derrubou a loja ontem · rascunho já é PG |
-| **O que é** | Entrada NF **nunca** chama `obter_conexao_mongo()` (19 rotas → `_entrada_nfe_conexao`) · 503 → Postgres |
-| **VERSION** | **11.67** |
-| **Risco** | Dist DF-e: NSU Mongo some (consulta SEFAZ ok; cursor manual) · prévia custo sem histórico Mongo |
-| **Testar** | XML · lista rascunhos · estoque · financeiro · conferir código · margem · Salvar |
-| **Loja** | só com frase + senha depois do seu OK |
+| **Decisão** | **Parou** de usar Render **teste** (free): cold start **10–15 min**; **não quer pagar** web+Postgres staging só pra isso |
+| **Onde valida** | **PC local** (Chrome) — Entrada NF, XML, cadastro, PDV, etc. |
+| **Assistente** | **Não** diga «valida no Render teste» · **não** dependa do staging free · oriente teste **local** |
+| **Precisa pagar staging?** | **Não obrigatório** se local tiver Postgres com catálogo parecido + `.env` alinhado · ver opinião no chat |
+| **Risco residual** | Local ≠ Gunicorn/workers/cron/SEFAZ da loja — pacote grande: checklist curto + frase+senha; rollback pronto |
+| **Render teste pago** | Só se quiser staging sempre ligado sem frio — **opcional**, não bloqueia o fluxo local→loja |
+
+### Entrada NF slice 1 — incluso no **v11.69** (base commits `8555004` / `90f2711`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ embutido no pacote **v11.69** (ver bloco «PRÓXIMO CHAT» no topo do CHECKPOINT) |
+| **Por quê** | Derrubou a loja ontem · loja v11.66 ainda «serviço legado» na Entrada NF |
+| **O que é** | Entrada NF **nunca** chama `obter_conexao_mongo()` (19 rotas → `_entrada_nfe_conexao`) |
+| **Risco** | Dist DF-e NSU em PG · prévia custo sem Mongo — **não apaga** produto/rascunho PG |
+
+**EAN «25» loja vs local (23/07 · confirmado XML):** mesmo arquivo NF **14988** (Ibiúna). XML `cEAN` = **SEM GTIN** (não é número). Loja v11.66 mistura **GM** na coluna Cód. (ex. GM1542-**25**) — o «25» é sufixo do GM, não EAN. Local (grade dual): Cód. em cima = `cProd` (R0151); GM no verde; EAN em cima vazio porque `SEM GTIN`. Quando v11.69 subir, loja deve ficar igual ao local.
 
 ### 📦 Deploy loja **v11.66** — corte Mongo morto (23/07 · Renan frase+senha · cuidado dados)
 

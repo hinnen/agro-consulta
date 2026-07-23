@@ -294,15 +294,44 @@ def index_codigos_de_campos(
     codigo: str | None = None,
     codigo_nfe: str | None = None,
     codigo_barras: str | None = None,
+    cadastro_extras: dict | None = None,
+    extras: list[str] | None = None,
 ) -> list[str]:
-    from produtos.mongo_index_codigos import extrair_index_codigos_de_documento_mongo
+    """
+    Códigos para busca (PDV / Entrada NF).
+    Inclui EAN da embalagem NF + cProd do fornecedor gravados no overlay
+    (``entrada_nfe_ean_embalagem`` / ``entrada_nfe_c_prods``) — 2º código.
+    """
+    from produtos.mongo_index_codigos import (
+        _c_prods_nf_de_cadastro_extras,
+        _eans_embalagem_nf_de_cadastro_extras,
+        extrair_index_codigos_de_documento_mongo,
+        somente_alnum,
+    )
 
     doc = {
         "Codigo": codigo or "",
         "CodigoNFe": codigo_nfe or codigo or "",
         "CodigoBarras": codigo_barras or "",
     }
-    return extrair_index_codigos_de_documento_mongo(doc)
+    out = list(extrair_index_codigos_de_documento_mongo(doc) or [])
+    seen = {somente_alnum(str(x)).lower() for x in out if x}
+    extras_list: list[str] = []
+    if isinstance(extras, list):
+        extras_list.extend(str(x) for x in extras if x is not None and str(x).strip())
+    if isinstance(cadastro_extras, dict):
+        extras_list.extend(_eans_embalagem_nf_de_cadastro_extras(cadastro_extras))
+        extras_list.extend(_c_prods_nf_de_cadastro_extras(cadastro_extras))
+    for raw in extras_list:
+        s = str(raw or "").strip()
+        if not s:
+            continue
+        key = somente_alnum(s).lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+    return out
 
 
 def cadastro_mongo_busca_por_codigo(

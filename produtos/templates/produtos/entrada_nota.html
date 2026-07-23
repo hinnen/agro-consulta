@@ -1024,21 +1024,36 @@
     .nfe-grade-itens td.nfe-desc-cell {
       vertical-align: top !important;
     }
-    .nfe-grade-itens .nfe-desc-catalogo {
+    .nfe-grade-itens .nfe-desc-catalogo,
+    .nfe-grade-itens .nfe-cod-catalogo,
+    .nfe-grade-itens .nfe-ean-catalogo {
       display: none;
       margin-top: 0.12rem;
       padding: 0 0.15rem;
       font-size: 0.65rem;
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.25;
       color: rgb(4 120 87);
+      overflow: hidden;
+      max-width: 100%;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .nfe-grade-itens .nfe-desc-catalogo.is-on,
+    .nfe-grade-itens .nfe-cod-catalogo.is-on,
+    .nfe-grade-itens .nfe-ean-catalogo.is-on {
+      display: block;
+    }
+    .nfe-grade-itens .nfe-desc-catalogo .nfe-desc-cat-nome {
+      display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 100%;
     }
-    .nfe-grade-itens .nfe-desc-catalogo.is-on {
-      display: block;
+    .nfe-grade-itens .nfe-cod-catalogo,
+    .nfe-grade-itens .nfe-ean-catalogo {
+      font-variant-numeric: tabular-nums;
+      opacity: 0.95;
     }
     .nfe-grade-itens .nfe-pvenda-grupos {
       display: none;
@@ -1832,6 +1847,7 @@
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">ultNSU (opcional)</span>
           <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
         <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Consultar SEFAZ</button>
+        <p class="w-full text-[10px] font-semibold text-slate-500 leading-snug">Regra SEFAZ: mínimo ~60s entre cliques · se não houver nota nova (137) ou já no fim do NSU, aguarde <strong>1 hora</strong> (senão bloqueio 656).</p>
       </div>
       <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 p-4 space-y-2 text-sm"></div>
       <div id="sefaz-previews" class="space-y-2"></div>
@@ -2091,7 +2107,7 @@
         </div>
         <div class="border-l-4 border-violet-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">EAN da nota (caixa) × unidade no Agro</p>
-          <p>Quando o XML traz o EAN da <strong>caixa</strong> e o cadastro do Agro usa o da <strong>unidade</strong>, use <strong>Mudar</strong> ou a busca na linha. Ao confirmar o produto certo, o sistema <strong>memoriza o EAN da linha</strong> naquele SKU (overlay + índice Mongo) para o próximo «Ler XML». Opcional: conferir ou editar no cadastro (ERP), campo <strong>EAN na NF (embalagem / caixa)</strong>.</p>
+          <p>Quando o XML traz o EAN da <strong>caixa</strong> e o cadastro do Agro usa o da <strong>unidade</strong>, use <strong>Mudar</strong> ou a busca na linha. Ao confirmar o produto certo, o sistema <strong>memoriza o EAN da linha (≥8 dígitos)</strong> e o <strong>cProd do fornecedor</strong> naquele SKU (overlay) para o próximo «Ler XML» e para a busca no PDV. Na grade: <strong>Cód./EAN em cima = XML</strong>; em verde sob a descrição = <strong>GM + EAN do SisVale</strong>. Opcional: conferir no cadastro o campo <strong>EAN na NF (embalagem / caixa)</strong>.</p>
         </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
@@ -2112,7 +2128,7 @@
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
           <p>Cada entrada em andamento fica salva no Postgres (<code class="bg-slate-100 px-1 rounded">EntradaNotaRascunhoAgro</code>). Plano: <code class="bg-slate-100 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1 rounded">plano_conta_id</code>.</p>
-          <p>Certificado A1 (.pfx), CNPJ e UF no ambiente. Homologação SEFAZ: <code class="bg-slate-100 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+          <p>Mesmo certificado A1 da NFC-e (<code class="bg-slate-100 px-1 rounded">NFC_E_CERT_*</code> / CNPJ / UF). Vars <code class="bg-slate-100 px-1 rounded">NFE_DIST_DFE_*</code> são opcionais (só se quiser separar). Homologação: <code class="bg-slate-100 px-1 rounded">NFC_E_TP_AMB=2</code> ou <code class="bg-slate-100 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
         </div>
       </div>
     </div>
@@ -6349,6 +6365,7 @@
       n_item: it.n_item != null ? it.n_item : '',
       preco_venda: it.preco_venda != null ? it.preco_venda : 0,
       codigo_nfe: entradaNfeStrCampo(it.codigo_nfe || it.codigo_gm || it.codigo),
+      codigo_barras_catalogo: entradaNfeStrCampo(it.codigo_barras_catalogo || it.ean_catalogo),
       cfop: entradaNfeStrCampo(it.cfop),
       produto_id: entradaNfeStrCampo(it.produto_id),
       nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
@@ -7020,19 +7037,33 @@
     return s;
   }
 
-  /** Nome catálogo em `data` + linha verde sob a Descrição da NF; «Cat. ✓»: ● se casado. */
+  function entradaNfeLinhaGmCatalogo(tr) {
+    return String(tr?.dataset?.nfeCodigoGmCatalogo || '').trim();
+  }
+
+  function entradaNfeLinhaEanCatalogo(tr) {
+    return entradaNfeEanDigitosValidos(tr?.dataset?.nfeEanCatalogo || '');
+  }
+
+  /** Nome SisVale sob Descrição; GM sob Cód.; EAN cadastro sob EAN. Inputs de cima = XML. */
   function entradaNfeLinhaApplyCatalogoUi(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     const nomeCat = entradaNfeLinhaNomeCatalogoTexto(tr);
     const nomeLimpo = entradaNfeLinhaNomeCatalogoLimpo(tr);
+    const gmCat = entradaNfeLinhaGmCatalogo(tr);
+    const eanCat = entradaNfeLinhaEanCatalogo(tr);
     const tipo = String(tr.dataset.nfeMatchTipo || '').trim();
     const descEl = tr.querySelector('.in-desc');
     const subEl = tr.querySelector('.nfe-desc-catalogo');
+    const gmEl = tr.querySelector('.nfe-cod-catalogo');
+    const eanEl = tr.querySelector('.nfe-ean-catalogo');
     const mxEl = tr.querySelector('.in-match');
     const partes = [];
     if (nomeCat) partes.push(`Nome no catálogo: ${nomeCat}`);
     else if (pid) partes.push('Catálogo: sem texto (só vínculo por ID)');
+    if (gmCat) partes.push(`GM: ${gmCat}`);
+    if (eanCat) partes.push(`EAN: ${eanCat}`);
     if (tipo) partes.push(`Tipo: ${tipo}`);
     if (descEl) {
       if (pid && partes.length) descEl.title = partes.join('\n').slice(0, 850);
@@ -7041,22 +7072,49 @@
     if (subEl) {
       const pareceSoId = !!(nomeLimpo && /^[a-f0-9-]{20,}$/i.test(nomeLimpo));
       if (pid && nomeLimpo && !pareceSoId) {
-        subEl.textContent = nomeLimpo;
-        subEl.title = `Cadastro SisVale: ${nomeLimpo}`;
+        subEl.innerHTML = '';
+        const elNome = document.createElement('span');
+        elNome.className = 'nfe-desc-cat-nome';
+        elNome.textContent = nomeLimpo;
+        subEl.appendChild(elNome);
+        subEl.title = `Nome no SisVale: ${nomeLimpo}`;
         subEl.classList.add('is-on');
       } else {
         subEl.textContent = '';
+        subEl.innerHTML = '';
         subEl.removeAttribute('title');
         subEl.classList.remove('is-on');
       }
     }
+    if (gmEl) {
+      if (pid && gmCat) {
+        gmEl.textContent = gmCat;
+        gmEl.title = `Código GM no SisVale: ${gmCat}`;
+        gmEl.classList.add('is-on');
+      } else {
+        gmEl.textContent = '';
+        gmEl.removeAttribute('title');
+        gmEl.classList.remove('is-on');
+      }
+    }
+    if (eanEl) {
+      if (pid && eanCat) {
+        eanEl.textContent = eanCat;
+        eanEl.title = `EAN no SisVale: ${eanCat}`;
+        eanEl.classList.add('is-on');
+      } else {
+        eanEl.textContent = '';
+        eanEl.removeAttribute('title');
+        eanEl.classList.remove('is-on');
+      }
+    }
     if (mxEl) {
       mxEl.removeAttribute('title');
-      const ok = !!(pid && nomeCat);
+      const ok = !!(pid && (nomeCat || gmCat || eanCat));
       mxEl.textContent = ok ? '●' : '—';
       mxEl.classList.toggle('text-emerald-600', ok);
       mxEl.classList.toggle('text-slate-400', !ok);
-      mxEl.setAttribute('aria-label', nomeCat ? 'Produto encontrado no catálogo' : 'Sem texto de catálogo nesta linha');
+      mxEl.setAttribute('aria-label', ok ? 'Produto encontrado no catálogo' : 'Sem texto de catálogo nesta linha');
     }
   }
 
@@ -7165,6 +7223,9 @@
       match_tipo: entradaNfeStrCampo(merged.match_tipo),
       catalogo_via: entradaNfeStrCampo(merged.catalogo_via),
       codigo_nfe: entradaNfeStrCampo(merged.codigo_nfe || merged.codigo_gm || merged.codigo),
+      codigo_barras_catalogo: entradaNfeStrCampo(
+        merged.codigo_barras_catalogo || merged.ean_catalogo
+      ),
       q_com: merged.q_com != null ? merged.q_com : 1,
       un_por_embalagem: merged.un_por_embalagem != null ? merged.un_por_embalagem : 1,
       v_un_com: merged.v_un_com != null ? merged.v_un_com : 0,
@@ -7212,8 +7273,14 @@
         <input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value="" title="Descrição da NF (fornecedor)">
         <span class="nfe-desc-catalogo" aria-label="Nome no cadastro SisVale"></span>
       </td>
-      <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
-      <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-2 py-1">
+        <input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value="" title="Código do produto na NF (XML)">
+        <span class="nfe-cod-catalogo" aria-label="Código GM no SisVale"></span>
+      </td>
+      <td class="px-2 py-1">
+        <input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value="" title="EAN / GTIN da NF (XML) — inclusive curto (ex. 25)">
+        <span class="nfe-ean-catalogo" aria-label="EAN no SisVale"></span>
+      </td>
       <td class="px-1 py-1.5 text-center align-middle"><button type="button" class="btn-pick-prod inline-flex items-center justify-center min-h-[40px] min-w-[4.25rem] px-2.5 py-2 text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800 shrink-0" title="Trocar o produto do Agro vinculado a esta linha (mesma busca do catálogo).">Mudar</button><input type="hidden" class="in-prod-id" value=""></td>
       <td class="px-1 py-1 align-middle">
         <input type="number" step="any" min="0"
@@ -7263,20 +7330,27 @@
     const cprodOrig = entradaNfeStrCampo(d.c_prod_fornecedor || d.c_prod);
     if (cprodOrig.length >= 2) tr.dataset.nfeCprodOrig = cprodOrig;
     else delete tr.dataset.nfeCprodOrig;
-    /* Casado no cadastro: mostra GM (codigo_nfe) na coluna Cód.; guarda cProd do XML em nfeCprodOrig. */
+    /* Cód./EAN de cima = NF (XML, mesmo curto). GM/EAN SisVale = verde sob cada coluna. */
     const gmShow = entradaNfeStrCampo(d.codigo_nfe || d.codigo_gm);
-    if (gmShow && entradaNfeStrCampo(d.produto_id)) {
-      tr.querySelector('.in-cprod').value = gmShow;
-    }
+    if (gmShow) tr.dataset.nfeCodigoGmCatalogo = gmShow.slice(0, 60);
+    else delete tr.dataset.nfeCodigoGmCatalogo;
+    const eanCatShow = entradaNfeEanDigitosValidos(d.codigo_barras_catalogo || d.ean_catalogo || '');
+    if (eanCatShow) tr.dataset.nfeEanCatalogo = eanCatShow;
+    else delete tr.dataset.nfeEanCatalogo;
     const eanInp = tr.querySelector('.in-ean');
-    if (eanInp) eanInp.value = d.ean;
-    const digOrig = entradaNfeCatalogOnlyDigits(d.ean).slice(0, 20);
-    if (digOrig.length >= 8) tr.dataset.nfeEanOrig = digOrig;
+    /* Mantém o que veio na NF (ex. «25»); não exige ≥8 dígitos na grade. */
+    const eanXmlRaw = entradaNfeStrCampo(d.ean);
+    const eanXml = entradaNfeCatalogOnlyDigits(eanXmlRaw).slice(0, 14) || eanXmlRaw.slice(0, 20);
+    if (eanInp) eanInp.value = eanXml;
+    if (eanXml) tr.dataset.nfeEanOrig = eanXml;
     else delete tr.dataset.nfeEanOrig;
     if (eanInp) {
       eanInp.addEventListener('input', () => {
-        const dg = entradaNfeCatalogOnlyDigits(eanInp.value).slice(0, 20);
-        if (dg.length >= 8) tr.dataset.nfeEanOrig = dg;
+        const raw = String(eanInp.value || '').trim().slice(0, 20);
+        const dg = entradaNfeCatalogOnlyDigits(raw).slice(0, 20);
+        const keep = dg || raw;
+        if (keep) tr.dataset.nfeEanOrig = keep;
+        else delete tr.dataset.nfeEanOrig;
       });
     }
     tr.querySelector('.in-qtd').value = d.q_com;
@@ -7523,6 +7597,8 @@
         c_prod: tr.querySelector('.in-cprod').value.trim(),
         c_prod_fornecedor: String(tr.dataset.nfeCprodOrig || '').trim(),
         ean: tr.querySelector('.in-ean').value.trim(),
+        codigo_nfe: entradaNfeLinhaGmCatalogo(tr),
+        codigo_barras_catalogo: entradaNfeLinhaEanCatalogo(tr),
         q_com: qtd,
         un_por_embalagem: entradaNfeLinhaUnEmbCalculo(tr),
         q_estoque: entradaNfeLinhaQtyEstoqueCalculo(tr),
@@ -8114,6 +8190,20 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  /** GTIN/EAN de verdade (≥8 dígitos). «25» do XML (peso) não conta. */
+  function entradaNfeEanDigitosValidos(s) {
+    const d = entradaNfeCatalogOnlyDigits(s).slice(0, 14);
+    return d.length >= 8 && d.length <= 14 ? d : '';
+  }
+
+  /** Código de barras do produto na busca (vários nomes de campo). */
+  function entradaNfeCodigoBarrasDoProduto(p) {
+    if (!p || typeof p !== 'object') return '';
+    return entradaNfeEanDigitosValidos(
+      p.codigo_barras || p.CodigoBarras || p.EAN_NFe || p.EAN || p.codigoBarras || ''
+    );
+  }
+
   /** Pré-visualização XML × grade: estado e UI (só aplica na grade ao confirmar). */
   let entradaNfeXmlMergeCtx = null;
   let entradaNfeXmlMergeEscHandler = null;
@@ -8536,11 +8626,10 @@
       const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
       if (!pid || pid.toLowerCase().startsWith('local:')) continue;
       const pvAtual = entradaNfeParseDecimalApi(tr.querySelector('.in-pvenda')?.value);
-      const cprodAtual = entradaNfeStrCampo(tr.querySelector('.in-cprod')?.value);
       const precisaPv = pvAtual == null || !Number.isFinite(pvAtual) || pvAtual <= 0;
-      const pareceGm = /^gm/i.test(cprodAtual) || /-/i.test(cprodAtual);
-      const precisaGm = !pareceGm;
-      if (!precisaPv && !precisaGm) continue;
+      const precisaGm = !entradaNfeLinhaGmCatalogo(tr);
+      const precisaEanCat = !entradaNfeLinhaEanCatalogo(tr);
+      if (!precisaPv && !precisaGm && !precisaEanCat) continue;
       jobs.push(
         fetch(`/api/buscar-produto-id/${encodeURIComponent(pid)}/`, { credentials: 'same-origin' })
           .then((r) => (r.ok ? r.json() : null))
@@ -8549,7 +8638,9 @@
             if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
             tr.dataset.nfeCustNfPreservado = '1';
             const gm = entradaNfeStrCampo(det.codigo_nfe || det.codigo);
-            if (gm) tr.querySelector('.in-cprod').value = gm;
+            if (gm) tr.dataset.nfeCodigoGmCatalogo = gm.slice(0, 60);
+            const eanCat = entradaNfeCodigoBarrasDoProduto(det);
+            if (eanCat) tr.dataset.nfeEanCatalogo = eanCat;
             const nome = entradaNfeStrCampo(det.nome);
             if (nome) tr.dataset.nfeNomeCatalogo = nome.slice(0, 500);
             entradaNfeAplicarPrecosCatalogoNaLinha(tr, det);
@@ -9376,10 +9467,25 @@
     entradaNfeSyncEditProdBtn(tr);
     tr.dataset.nfeNomeCatalogo = nome.slice(0, 500).trim();
     tr.dataset.nfeMatchTipo = '';
-    if (!tr.dataset.nfeCprodOrig && (p.codigo_nfe || p.codigo)) {
-      tr.querySelector('.in-cprod').value = String(p.codigo_nfe || p.codigo || '').trim();
+    /* Inputs Cód./EAN = NF (XML). GM/EAN do cadastro vão para o verde sob cada coluna. */
+    if (cProdNfLinha) {
+      tr.dataset.nfeCprodOrig = cProdNfLinha;
+      tr.querySelector('.in-cprod').value = cProdNfLinha;
     }
-    if (p.codigo_barras) tr.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
+    const eanInpPick = tr.querySelector('.in-ean');
+    if (eanInpPick) {
+      if (eanNfLinha) {
+        tr.dataset.nfeEanOrig = eanNfLinha;
+        eanInpPick.value = eanNfLinha;
+      }
+      /* Não zerar EAN da NF ao vincular produto do SisVale. */
+    }
+    const gmCat = entradaNfeStrCampo(p.codigo_nfe || p.codigo);
+    if (gmCat) tr.dataset.nfeCodigoGmCatalogo = gmCat.slice(0, 60);
+    else delete tr.dataset.nfeCodigoGmCatalogo;
+    const eanCat = entradaNfeCodigoBarrasDoProduto(p);
+    if (eanCat) tr.dataset.nfeEanCatalogo = eanCat;
+    else delete tr.dataset.nfeEanCatalogo;
     const elDesc = tr.querySelector('.in-desc');
     if (!entradaNfeStrCampo(elDesc.value)) elDesc.value = nome;
     if (via === 'scan') {
@@ -10292,6 +10398,69 @@
   let entradaNfeSefazStatusEmCurso = false;
   /** Só dispara GET /SEFAZ na primeira vez que o usuário entra na aba (não compete com a lista ao abrir o app). */
   let entradaNfeSefazPrimeiraAberturaFeita = false;
+  let entradaNfeSefazCooldownTimer = null;
+  let entradaNfeSefazCooldownAte = 0;
+
+  function entradaNfeSefazFmtEspera(seg) {
+    const s = Math.max(0, Math.floor(Number(seg) || 0));
+    if (s >= 3600) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      return h + 'h' + (m ? ' ' + m + 'min' : '');
+    }
+    if (s >= 60) return Math.floor(s / 60) + 'min ' + (s % 60) + 's';
+    return s + 's';
+  }
+
+  function entradaNfeSefazAplicarLimiteUi(s) {
+    const btn = document.getElementById('btn-dist-dfe');
+    const el = document.getElementById('sefaz-status');
+    if (!btn) return;
+    const liberado = s && s.configurada && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const falta = Math.max(0, Math.floor(Number(s && s.aguardar_segundos) || 0));
+    if (liberado) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      btn.textContent = 'Consultar SEFAZ';
+      entradaNfeSefazCooldownAte = 0;
+      if (entradaNfeSefazCooldownTimer) {
+        clearInterval(entradaNfeSefazCooldownTimer);
+        entradaNfeSefazCooldownTimer = null;
+      }
+      return;
+    }
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    const motivo = String((s && s.limite_motivo) || '').trim();
+    btn.textContent = falta > 0 ? ('Aguarde ' + entradaNfeSefazFmtEspera(falta)) : 'Consulta bloqueada';
+    if (el && falta > 0) {
+      const base = el.querySelector('[data-sefaz-limite-msg]');
+      const txt =
+        '<span data-sefaz-limite-msg class="block text-[10px] font-bold text-amber-900 mt-1">'
+        + (motivo
+          ? motivo.slice(0, 220)
+          : ('Limite SEFAZ: próxima consulta em ' + entradaNfeSefazFmtEspera(falta) + '. Nenhuma chamada é enviada agora.'))
+        + '</span>';
+      if (base) base.outerHTML = txt;
+      else el.insertAdjacentHTML('beforeend', txt);
+    }
+    if (falta > 0) {
+      entradaNfeSefazCooldownAte = Date.now() + falta * 1000;
+      if (entradaNfeSefazCooldownTimer) clearInterval(entradaNfeSefazCooldownTimer);
+      entradaNfeSefazCooldownTimer = setInterval(() => {
+        const rest = Math.max(0, Math.ceil((entradaNfeSefazCooldownAte - Date.now()) / 1000));
+        if (rest <= 0) {
+          clearInterval(entradaNfeSefazCooldownTimer);
+          entradaNfeSefazCooldownTimer = null;
+          carregarSefazStatus();
+          return;
+        }
+        const b = document.getElementById('btn-dist-dfe');
+        if (b) b.textContent = 'Aguarde ' + entradaNfeSefazFmtEspera(rest);
+      }, 1000);
+    }
+  }
+
   function entradaNfeTentarCarregarSefazAoAbrirPainel() {
     if (entradaNfeSefazPrimeiraAberturaFeita) return;
     entradaNfeSefazPrimeiraAberturaFeita = true;
@@ -10317,6 +10486,16 @@
       } else {
         el.innerHTML = `<span class="text-amber-900 font-bold">Certificado e dados fiscais ainda não estão configurados no servidor.</span> <span class="text-[10px] font-semibold text-amber-800/90">Peça suporte à equipe técnica.</span>`;
       }
+      const ultEl = document.getElementById('sefaz-ult');
+      if (ultEl && s.ult_nsu != null) {
+        const dig = String(s.ult_nsu).replace(/\D/g, '');
+        if (dig && Number(dig) > 0) {
+          const fmt = dig.padStart(15, '0').slice(-15);
+          const atual = Number(String(ultEl.value || '').replace(/\D/g, '') || 0);
+          if (!atual) ultEl.value = fmt;
+        }
+      }
+      entradaNfeSefazAplicarLimiteUi(s);
     } catch (_) {
       el.textContent = 'Não foi possível ler o status.';
     } finally {
@@ -10330,12 +10509,31 @@
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
+    const btn = document.getElementById('btn-dist-dfe');
+    if (btn && btn.disabled) {
+      showMsg('Aguarde o intervalo da SEFAZ — nenhuma consulta é enviada agora.', false);
+      return;
+    }
+    /* Confere no servidor antes de qualquer POST à Receita. */
+    try {
+      const stR = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
+      const st = await stR.json();
+      entradaNfeSefazAplicarLimiteUi(st);
+      if (st.configurada && st.consulta_liberada === false) {
+        showMsg(st.limite_motivo || 'Fora do intervalo permitido — consulta não enviada.', false);
+        return;
+      }
+    } catch (_) {}
     const ult = document.getElementById('sefaz-ult').value.trim();
     const resBox = document.getElementById('sefaz-result');
     const prevBox = document.getElementById('sefaz-previews');
     resBox.classList.remove('hidden');
     resBox.textContent = 'Consultando…';
     prevBox.innerHTML = '';
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_DFE, {
@@ -10349,6 +10547,23 @@
       });
       const j = await r.json();
       resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">ultNSU: ${j.ult_nsu} · maxNSU: ${j.max_nsu ?? '—'}</div>`;
+      const ultElAfter = document.getElementById('sefaz-ult');
+      if (ultElAfter && j.ult_nsu != null) {
+        const dig = String(j.ult_nsu).replace(/\D/g, '');
+        if (dig && Number(dig) > 0) {
+          ultElAfter.value = dig.padStart(15, '0').slice(-15);
+        }
+      }
+      if (j.aguardar_segundos) {
+        entradaNfeSefazAplicarLimiteUi({
+          configurada: true,
+          consulta_liberada: false,
+          aguardar_segundos: j.aguardar_segundos,
+          limite_motivo: j.erro || j.x_motivo || '',
+        });
+      } else {
+        void carregarSefazStatus();
+      }
       if (Array.isArray(j.previews) && j.previews.length) {
         j.previews.forEach((pv, idx) => {
           const div = document.createElement('div');

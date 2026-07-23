@@ -877,6 +877,21 @@ class EntradaNotaRascunhoAgro(models.Model):
         return f"Entrada NF {nf} · {self.rascunho_id[:8]}…"
 
 
+class AgroNfeDistDfeCursor(models.Model):
+    """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — sobrevive a restart (Postgres)."""
+
+    cnpj = models.CharField(max_length=14, unique=True, db_index=True)
+    ult_nsu = models.CharField(max_length=15, default="000000000000000")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cursor Dist DF-e"
+        verbose_name_plural = "Cursores Dist DF-e"
+
+    def __str__(self):
+        return f"{self.cnpj} · NSU {self.ult_nsu}"
+
+
 class PdvMercadoPagoPointOrder(models.Model):
     """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
 
