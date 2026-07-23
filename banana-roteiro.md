@@ -108,5 +108,6 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 | Nova palavra CHECKPOINT recorrente | §3 |
 | Mudança na regra de leitura | Este arquivo + `.cursor/rules/agro-consulta.mdc` §0 |
 | WIP / deploy / decisão | `banana.md` CHECKPOINT (como hoje) |
+| **Deploy loja concluído** | No `banana.md`: registrar Live **e limpar** badges «pronto para envio / aguarda senha» do que **já subiu** (vira ✅ enviado). Renan 23/07: *limpar sempre o que já foi enviado*. |
 
 *Não* duplicar WIP aqui — só o **mapa de leitura**.

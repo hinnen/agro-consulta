@@ -28,6 +28,7 @@ alwaysApply: true
 - **Todo chat:** `Read` no `banana-roteiro.md` + trechos do `banana.md` conforme §0 — ver roteiro.
 - **Atualizar sem consultar Renan** quando a sessão trouxer algo **persistente** — decisão de produto, roadmap, pendência nova/fechada, WIP relevante, ordem de migração, bug recorrente diagnosticado, entrega commitada em módulo grande.
 - **Onde gravar:** CHECKPOINT (WIP, pendências, instruções) e seção de módulo afetada (ex. §4.15); não inflar — tabelas curtas.
+- **Após deploy loja:** limpar no CHECKPOINT os badges «pronto para envio / aguarda senha» do que **já subiu** (vira ✅ enviado / Live) — Renan 23/07.
 - **Não perguntar** *"atualizo a banana?"* — fazer no fim da tarefa ou ao fechar tópico importante.
 - **Não atualizar** por detalhe de implementação passageiro, tentativa descartada ou conversa só explicativa sem decisão.
 - Renan ainda pode pedir *"atualize a banana"* explicitamente; `AGENTS.md` §7 continua **só** quando ele pedir.

@@ -1160,6 +1160,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+> **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
+
 ### 📦 Deploy loja **v11.69** — Entrada NF PG + Dist + fiscal + kardex (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1342,11 +1344,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Backup** | rollback/pre-caixa-vila-centro-v10.82 @ 1aa95dc |
 | **Motivo hotfix** | deploy v10.86 falhou / site 500 por slots Postgres cheios |
 
-### 📦 PACOTE PRONTO LOJA — Caixa Vila × Centro (**v10.86**)
+### 📦 Caixa Vila × Centro (**v10.86** · ✅ enviado via v10.87)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO** — aguardando frase + senha |
+| **Status** | ✅ **enviado** · base do deploy **v10.87** (Live) |
 | **Branch** | prep/loja-caixa-vila-centro (1 commit limpo) |
 | **VERSION loja** | **10.86** |
 | **Backup** | rollback/pre-caixa-vila-centro-v10.82 |
@@ -1496,11 +1498,11 @@ ollback/pre-kardex-c1c3-zap-v10.62 @ **bc911d5** |
 | **Você** | Ctrl+F5 · badge **v10.63** · milho Quem sem @ · NF etapa 8 · Enviar Zap AGROMAIS |
 
 
-### 📦 PACOTE PRONTO LOJA — v10.63 kardex + C1–C3 + Zap legado (18/07 noite)
+### 📦 v10.63 kardex + C1–C3 + Zap legado (18/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **montado** no worktree · **ainda NÃO push** (falta senha nesta mensagem) |
+| **Status** | ✅ **enviado loja v10.63** |
 | **Inclui** | 1) Kardex e-mail + Δcamada · 2) Entrada NF C1–C3 sem duplicar nota · 3) Zap orçamento AGROMAIS no PDV legado /consulta/ · 4) abas cadastro null-safe |
 | **NÃO inclui** | merge inteiro · catálogo novo |
 | **Base** | c911d5 (loja v10.62) |
@@ -1730,7 +1732,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Autorização** | *envie para produção* + **99738595** (checklist Fecha) |
 | **Você** | Ctrl+F5 · badge **v9.90** · Enviar Zap · lápis → aba 9 · modal cadastro · Relatórios **?** · reemitir NFC-e **#2812**/**#3347** |
 
-### 📦 PDV — Enviar orçamento WhatsApp · pronto produção (17/07 · **teste v9.90**)
+### 📦 PDV — Enviar orçamento WhatsApp (17/07 · ✅ loja v9.90)
 
 
 | | |
@@ -1895,11 +1897,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **O quê** | Só isto: remove texto **Etapa 1 / Produtos** · **?** vai para a barra de etapas (ao lado de 1·2·3) |
 | **Você** | Ctrl+F5 · badge **v9.66** · confere |
 
-### 📦 PACOTE PRONTO LOJA — PDV lápis → aba 9 Alterações (17/07 · ✅ enviado v9.90)
+### 📦 PDV lápis → aba 9 Alterações (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.90** |
 | **O quê** | Lápis do PDV grava histórico na aba **9. Alterações** com origem **«PDV edição rápida»** (mesmo overlay do cadastro). Saldo no lápis continua só na aba **4** |
 | **Versão alvo loja** | **v9.62** |
 | **Base loja hoje** | **v9.16** |
@@ -1915,7 +1917,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Edição rápida do PDV (lápis) já salvava no mesmo overlay — agora marca origem **«PDV edição rápida»** na aba **9. Alterações**. Cadastro modal marca **«Modal cadastro»**. Mudança de **saldo** no lápis continua só na aba **4 Estoque** (não mistura) |
-| **Status** | 📦 **pronto pra envio** — pacote acima |
+| **Status** | ✅ **enviado loja v9.90** (pacote acima) |
 | **Você** | Ctrl+F5 · badge **v9.62** · lápis muda nome/preço → cadastro → aba 9 · confere origem |
 
 ### 🩹 PDV etapa 1 — layout: tira ?, botões no cliente, busca sobe (17/07 · **teste v9.60**)
@@ -1926,11 +1928,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Você** | Ctrl+F5 · badge **v9.60** · confere barra do cliente + busca + saldos |
 | **Pacote lápis** | Continua 📦 pronto; este layout sobe junto se pedir PDV |
 
-### 📦 PACOTE PRONTO LOJA — Cadastro modal editar (UX + históricos) (17/07 · ✅ enviado v9.90)
+### 📦 Cadastro modal editar (UX + históricos) (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.90** |
 | **O quê** | Modal editar produto quase tela cheia · aba **4 Estoque** = kardex (movimentação, sem PIN) · aba **9 Alterações** = histórico cadastro (antes→depois) — **inclui PDV lápis** (origem «PDV edição rápida») · Preços com números grandes · Fiscal/Gerais fonte maior e campos juntos · Config no topo · URL da imagem com rótulo · listas de histórico crescem até o rodapé |
 | **Versão alvo loja** | **v9.62** (ou badge do deploy) |
 | **Base loja hoje** | **v9.16** |
@@ -1956,11 +1958,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **O quê** | Aba Fiscal (e Gerais): campos mais próximos e letra maior nos inputs |
 | **Status** | 📦 fecha no pacote **Cadastro modal** acima |
 
-### 📦 PACOTE PRONTO LOJA — PDV editor rápido (lápis) (17/07 · ✅ enviado v9.90)
+### 📦 PDV editor rápido (lápis) (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **testado no teste** · 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.90** |
 | **O quê** | Lápis no carrinho → edição rápida (nome, GM, barras, unidade com busca, preços A/B, estoque Centro/Vila) · popup grande sem scroll · sem travar o PDV · **histórico aba 9** com origem «PDV edição rápida» |
 | **Versão alvo loja** | **v9.62** (ou badge do deploy) |
 | **Base loja hoje** | **v9.16** |
@@ -2080,11 +2082,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Loja** | ⏳ |
 
 
-### 📦 PACOTE PRONTO LOJA — Relatórios ajuda «?» (17/07 · ✅ enviado v9.90)
+### 📦 Relatórios ajuda «?» (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto pra envio** — Renan OK no teste · espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.90** |
 | **Inclui** | Ajuda **?** leiga em **todas** as telas de relatórios (hub, validade, ABC, ranking, margem…) · botão âmbar ao lado de Imprimir A4 · painel colorido por coluna · **sem** scroll interno |
 | **Commits teste** | `3828dcf` · `6016bc1` · `61f6137` (feat + alinhamento + restaura botão) |
 | **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
@@ -2119,7 +2121,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **O quê** | Troca `<details>` por **botão** âmbar fixo (mesmo tamanho do Imprimir A4) · painel abre/fecha no clique · estilo inline pra não sumir |
 | **Arquivo** | `relatorios_help_agents.html` |
 | **Você** | Ctrl+F5 teste · badge **v9.28** · ? laranja ao lado do azul |
-| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
+| **Loja** | ✅ **v9.90** (pacote Relatórios ajuda «?») |
 
 ### fix — Relatórios ajuda «?» alinhada + sem scroll no card (17/07 · **teste v9.27**)
 
@@ -2128,7 +2130,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **O quê** | **?** ao lado de Imprimir A4 / Voltar (mesmo tamanho 44px) · painel à direita **sem** max-height / scrollbar interna |
 | **Arquivos** | `relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` |
 | **Você** | Ctrl+F5 teste · badge **v9.27** · Relatórios → ? ao lado do azul |
-| **Loja** | 📦 **pronto pra envio** (pacote Relatórios ajuda «?») |
+| **Loja** | ✅ **v9.90** (pacote Relatórios ajuda «?») |
 
 ### ✨ Cadastro ERP — busca + filtros na barra (17/07 · **teste v9.24**)
 
@@ -2145,7 +2147,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **O quê** | Botão **?** em todas as telas de relatórios · painel didático (colunas + o que o relatório faz) · hub, validade e todos os cards do genérico |
 | **Arquivos** | `includes/relatorios_help_agents.html` · `relatorios_generico.html` · `relatorios_hub.html` · `relatorios_validade.html` · `relatorios_central_views.py` |
 | **Você** | ✅ OK no teste (v9.28) |
-| **Loja** | 📦 **pronto pra envio** — ver pacote **Relatórios ajuda «?»** |
+| **Loja** | ✅ **v9.90** — pacote Relatórios ajuda «?» |
 
 ### ✨ Cadastro ERP — layout header/toolbar (17/07 · **teste v9.22**)
 
@@ -2156,11 +2158,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Você** | Ctrl+F5 teste · badge **v9.22** · `/produtos/cadastro-erp/` |
 | **Loja** | ainda **v9.16** — sobe só com frase+senha |
 
-### 📦 PACOTE PRONTO LOJA — NFC-e FL-056 (17/07 · ✅ enviado v9.90)
+### 📦 NFC-e FL-056 (17/07 · ✅ enviado v9.90)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto pra envio** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.90** |
 | **Inclui** | **FL-056** — SEFAZ **963** + **225** (`nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py`) |
 | **Versão alvo loja** | **v9.21** |
 | **Base loja hoje** | **v9.16** |
@@ -2177,8 +2179,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Arquivos** | `nfce_sp_emissao_util.py` · `nfce_fiscal_produto_util.py` |
 | **Commits teste** | `fb6ba2f` … (**v9.21**) |
 | **Você** | Ctrl+F5 teste · badge **v9.21** · em Contabilidade **reemitir** #2812 e #3347 |
-| **Status** | 📦 **pronto pra envio** (loja ainda v9.16) |
-| **Loja** | frase + senha na mesma mensagem |
+| **Status** | ✅ **enviado loja v9.90** (FL-056) |
+| **Loja** | ✅ **v9.90** |
 
 ### 📦 Deploy loja **v9.16** — Fecha + Relatórios + NFC-e #23 (17/07 · Renan frase+senha)
 
@@ -2190,11 +2192,11 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Autorização** | *pode enviar* + 99738595 |
 | **Você** | Ctrl+F5 · badge **v9.16** · devolução · busca CP · giro · NFC-e c/ frete |
 
-### 📦 PACOTE PRONTO LOJA — ✅ ENVIADO v9.16 (17/07)
+### 📦 Pacote Fecha + Relatórios + NFC-e · ✅ enviado v9.16 (17/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **montado** · **não subiu** — espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **enviado loja v9.16** |
 | **Versão alvo loja** | **v9.16** |
 | **Base loja hoje** | **c61f7dd** · **v9.14** |
 | **Backup (criar no envio)** | `producao-backup-pre-v916-fecha-relatorios-nfce-YYYYMMDD` @ HEAD loja atual |
@@ -2320,14 +2322,14 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Autorização** | *pode subir para produção esse cherry-pick* + 99738595 |
 | **Você** | Ctrl+F5 loja · badge **v9.04** · Relatórios · ABC |
 
-### ✅ #17 / FL-022 — Busca CP · Renan testou · pronto produção (16/07)
+### ✅ #17 / FL-022 — Busca CP · Renan testou · ✅ loja (16/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **testado no teste** · **📦 pronto para envio à produção** (frase + senha) |
+| **Status** | ✅ **enviado** (fecha / loja ≥ v9.16) |
 | **Pacote** | Fecha com **#12** / FL-035 |
 | **Validou** | Valor progressivo (`234`…`234,78`) · parcela (`parcela 7` / `7/12` no texto) · sem lixo |
-| **Loja** | ⏳ aguarda frase + senha |
+| **Loja** | ✅ enviada |
 
 ### ✅ CHECKLIST ÚNICO — por prioridade · 17/07
 
@@ -2482,7 +2484,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **P2** | Parcela + CPF/CNPJ |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help + placeholder |
 | **Validar** | ✅ Renan testou · valor + parcela OK |
-| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
+| **Loja** | ✅ enviada (fecha / ≥ v9.16) |
 
 ### ✨ Vendas — total restante + risco devolvido + corta ERP (16/07 · **teste v8.79** · **✅ Renan**)
 
@@ -3007,7 +3009,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Causa bug valor** | QS Postgres `_aplicar_texto_qs` não buscava valor — só texto |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · help §10 · placeholder CP |
 | **Validar** | ✅ Renan testou · valor + parcela OK |
-| **Loja** | 📦 **pronto produção** — frase + senha (pacote do fecha c/ #12) |
+| **Loja** | ✅ enviada (fecha / ≥ v9.16) |
 
 ### 🐛 Pacote performance + UX (teste **v8.17**)
 
@@ -4839,7 +4841,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | 📋 Pendente | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | ✅ 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | Botão **NF** não aparece na lista — ex.: título **RBS R$ 781,64** | ✅ **loja v8.68** | 29/06 |
-| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** Renan testou · 📦 pronto produção (fecha) | 29/06 |
+| **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / não acha) | ✅ **#17** · loja (≥ v9.16) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | ✅ 12/07 | 29/06 16:20 |
 | **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — buscar e **só selecionar** se existir; se não, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | 📋 Pendente | 16/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **Sequência código interno** 9000+ → **4010–5999** | ✅ 12/07 | 29/06 16:20 |
@@ -4856,9 +4858,9 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-053** | **P2** | Entrada NF / custo | **Zap #19:** histórico custo últimos pedidos **duplica tick** (fim etapa 2 + finalizar NF) | 📋 Pendente · foto Word | 16/07 |
 | **FL-054** | **P1,5** | Entregas / impressão | **Zap #20:** reimprimir papéis (separação · entregador · cliente) | 📋 Pendente · foto Word | 16/07 |
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
-| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** | 17/07 |
+| **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | ✅ **loja v9.90** | 17/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
-| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
+| **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | ✅ **#12** loja (fecha / ≥ v9.16) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
 | **FL-037** | **P3** | PDV / Promo | **Selo mix único** entre linhas (rowspan / bloco central — opção 3 experimental) | 📋 Pendente | 29/06 |
 | **FL-038** | **P2** | Deploy | **Contingência deploy** — §**3.2.0** leigo · §3.2.4 técnico · **este deploy = manual §3.2** | 📋 Código pendente | 30/06 |
