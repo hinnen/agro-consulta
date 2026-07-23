@@ -209,16 +209,13 @@ def append_eventos_entrada_nf_agro(
     excluir_rascunho_ids: set[str] | None = None,
 ) -> None:
     """
-    Acrescenta eventos de compra a partir de ``AgroEntradaNotaRascunho`` (Entrada NF Agro).
-    Mesmo formato interno que ``_ultimas_compras_por_produto_ids`` (Mongo ERP).
-    ``excluir_rascunho_ids``: não inclui esses rascunhos (ex.: a NF aberta na prévia de custo).
+    Acrescenta eventos de compra a partir de ``EntradaNotaRascunhoAgro`` (Entrada NF).
+    Mesmo formato interno que ``_ultimas_compras_por_produto_ids``.
+
+    **Importante (loja PG):** não usa ``col.find($or $exists)`` — no adaptador PG isso
+    expandia a tabela inteira 3× (até 5000 ids) e travava o worker na prévia de custo.
     """
     if not pid_ok:
-        return
-    from produtos.nfe_entrada_util import _entrada_nota_rascunho_store
-
-    col = _entrada_nota_rascunho_store(db)
-    if col is None:
         return
 
     pid_map = _mapa_pid_busca(list(pid_ok))
@@ -228,32 +225,67 @@ def append_eventos_entrada_nf_agro(
 
     excluir = {str(x).strip() for x in (excluir_rascunho_ids or set()) if str(x).strip()}
 
-    filtro: dict[str, Any] = {
-        "$or": [
-            {"extra.aprovacao_wizard_em": {"$exists": True, "$nin": [None, ""]}},
-            {"extra.estoque_agro_registrado_em": {"$exists": True, "$nin": [None, ""]}},
-            {"estoque_aplicado_em": {"$exists": True}},
-        ]
-    }
-
     try:
-        cur = col.find(
-            filtro,
-            {
-                "cabecalho": 1,
-                "linhas": 1,
-                "extra": 1,
-                "criado_em": 1,
-                "estoque_aplicado_em": 1,
-                "status": 1,
-            },
-        ).sort("criado_em", -1)
-        if mongo_max_time_ms is not None:
-            cur = cur.max_time_ms(int(mongo_max_time_ms))
-        docs = list(cur[:8000])
+        from django.db.models import Q
+
+        from produtos.entrada_nota_rascunho_pg_util import row_to_doc
+        from produtos.models import EntradaNotaRascunhoAgro
+        from produtos.nfe_entrada_util import (
+            ENTRADA_NFE_STATUS_DESCARTADA,
+            ENTRADA_NFE_STATUS_ENCERRADA,
+            ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
+        )
+
+        # Notas que já contam como compra: estoque aplicado / encerrada / marcadores no extra.
+        # Limite baixo: a prévia só precisa de ~3 compras anteriores por produto.
+        lim = 400
+        if mongo_max_time_ms is not None and int(mongo_max_time_ms) < 8_000:
+            lim = 120
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .filter(
+                Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
+                | Q(estoque_aplicado_em__isnull=False)
+            )
+            .order_by("-criado_em")[:lim]
+        )
+        proj = {
+            "cabecalho": 1,
+            "linhas": 1,
+            "extra": 1,
+            "criado_em": 1,
+            "estoque_aplicado_em": 1,
+            "status": 1,
+        }
+        docs = [row_to_doc(row, projection=proj) for row in qs]
     except Exception as exc:
-        logger.warning("ultimas_compras entrada_nf_agro find: %s", exc)
-        return
+        # Fallback legado (Mongo ou adaptador) — só se o ORM falhar.
+        logger.warning("ultimas_compras entrada_nf_agro ORM: %s — tenta store", exc)
+        try:
+            from produtos.nfe_entrada_util import _entrada_nota_rascunho_store
+
+            col = _entrada_nota_rascunho_store(db)
+            if col is None:
+                return
+            cur = (
+                col.find(
+                    {"status": {"$nin": ["descartada"]}},
+                    {
+                        "cabecalho": 1,
+                        "linhas": 1,
+                        "extra": 1,
+                        "criado_em": 1,
+                        "estoque_aplicado_em": 1,
+                        "status": 1,
+                    },
+                )
+                .sort("criado_em", -1)
+                .limit(200)
+            )
+            docs = list(cur)
+        except Exception as exc2:
+            logger.warning("ultimas_compras entrada_nf_agro find: %s", exc2)
+            return
 
     for doc in docs:
         if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):

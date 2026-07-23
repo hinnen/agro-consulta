@@ -4600,7 +4600,7 @@
       return;
     }
     entradaNfeWizCustoHintShow(
-      'Montando prévia de custo (consulta histórico de compras no ERP — pode levar até ~1 min em notas grandes).',
+      'Montando prévia de custo (histórico de entradas no Agro — uns segundos).',
       'load',
     );
     const skelN = Math.min(8, Math.max(4, comProd || 4));
@@ -4634,7 +4634,7 @@
       ? entradaNfeExtraUltimo.entrada_custo_escolhas
       : {};
     try {
-      const sig = entradaNfeAbortSignalMs(150000);
+      const sig = entradaNfeAbortSignalMs(25000);
       const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, {
         credentials: 'same-origin',
         signal: sig,

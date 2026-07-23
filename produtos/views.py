@@ -14965,7 +14965,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_preview_custo(request):
-    """Prévia de custo (média C+V vs NF) para etapa 6 — requer rascunho salvo com linhas."""
+    """Prévia de custo (média C+V vs NF) para Finalizar — requer rascunho salvo com linhas."""
     rid = str(request.GET.get("id") or request.GET.get("rascunho_id") or "").strip()
     if not rid:
         return JsonResponse({"ok": False, "erro": "Informe id do rascunho."}, status=400)
@@ -14976,7 +14976,11 @@ def api_entrada_nota_preview_custo(request):
     col_rasc = _entrada_nota_rascunho_store(db)
     if col_rasc is None:
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
-    doc = col_rasc.find_one({"_id": _oid})
+    try:
+        doc = col_rasc.find_one({"_id": _oid})
+    except Exception as exc:
+        logger.exception("api_entrada_nota_preview_custo find rascunho")
+        return JsonResponse({"ok": False, "erro": f"Falha ao ler rascunho: {exc}"[:240]}, status=500)
     if not doc:
         return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
@@ -14991,30 +14995,70 @@ def api_entrada_nota_preview_custo(request):
         if p and not p.lower().startswith("local:") and p not in seen_u:
             seen_u.add(p)
             uniq_pids.append(p)
-    docs_map = _produtos_mongo_map_por_ids_externos_batch(db, client, uniq_pids)
-    saldos_map = _saldos_erp_produtos_depositos_batch(db, client, uniq_pids)
-    pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
-    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000, excluir_rascunho_id=rid
-    )
-    itens = []
-    for ix, ln in enumerate(linhas):
-        if not isinstance(ln, dict):
-            continue
-        pid_linha = str(ln.get("produto_id") or "").strip()
-        itens.append(
-            _entrada_nfe_preview_custo_linha(
-                db=db,
-                client_m=client,
-                ln=ln,
-                cab=cab,
-                extra=extra,
-                linha_ix=ix,
-                compras_mapa=compras_mapa,
-                produto_doc=docs_map.get(pid_linha) if pid_linha else None,
-                saldos_erp_batch=saldos_map,
-                pin_latest=pin_map,
+    # Catálogo + saldo: Postgres / ledger (sem Mongo — evita hang).
+    docs_map: dict[str, dict] = {}
+    for pid in uniq_pids:
+        try:
+            d = _produto_doc_por_id_externo(None, None, pid)
+            docs_map[pid] = d if isinstance(d, dict) else {}
+        except Exception:
+            docs_map[pid] = {}
+    saldos_map: dict[tuple[str, str], Decimal] = {}
+    try:
+        saldos_op = _mapa_saldos_finais_por_produtos(None, None, uniq_pids)
+        for pid in uniq_pids:
+            sp = saldos_op.get(pid) or {}
+            # Já é saldo operacional (ledger/ajuste) — não reaplicar PIN em cima.
+            saldos_map[(pid, "centro")] = Decimal(str(sp.get("saldo_centro") or 0)).quantize(
+                Decimal("0.001")
             )
+            saldos_map[(pid, "vila")] = Decimal(str(sp.get("saldo_vila") or 0)).quantize(
+                Decimal("0.001")
+            )
+    except Exception:
+        logger.warning("api_entrada_nota_preview_custo saldos", exc_info=True)
+        for pid in uniq_pids:
+            saldos_map[(pid, "centro")] = Decimal("0")
+            saldos_map[(pid, "vila")] = Decimal("0")
+    pin_map: dict = {}
+    compras_mapa: dict[str, list] = {}
+    try:
+        compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
+            db,
+            client,
+            linhas,
+            produtos_por_id=docs_map,
+            mongo_max_time_ms=8_000,
+            excluir_rascunho_id=rid,
+        )
+    except Exception:
+        logger.warning("api_entrada_nota_preview_custo compras/spark", exc_info=True)
+        compras_mapa = {pid: [] for pid in uniq_pids}
+    itens = []
+    try:
+        for ix, ln in enumerate(linhas):
+            if not isinstance(ln, dict):
+                continue
+            pid_linha = str(ln.get("produto_id") or "").strip()
+            itens.append(
+                _entrada_nfe_preview_custo_linha(
+                    db=db,
+                    client_m=client,
+                    ln=ln,
+                    cab=cab,
+                    extra=extra,
+                    linha_ix=ix,
+                    compras_mapa=compras_mapa,
+                    produto_doc=docs_map.get(pid_linha) if pid_linha else None,
+                    saldos_erp_batch=saldos_map,
+                    pin_latest=pin_map,
+                )
+            )
+    except Exception as exc:
+        logger.exception("api_entrada_nota_preview_custo linhas")
+        return JsonResponse(
+            {"ok": False, "erro": f"Falha ao montar prévia: {exc}"[:280]},
+            status=500,
         )
     return JsonResponse({"ok": True, "itens": itens, "tipo_entrada": _entrada_nfe_tipo_entrada(extra)})
 

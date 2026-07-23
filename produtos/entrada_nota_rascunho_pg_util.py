@@ -368,7 +368,26 @@ class _PgFindCursor:
                 break
 
     def __getitem__(self, sl: slice) -> list[dict[str, Any]]:
-        return list(self)[sl]
+        if not isinstance(sl, slice):
+            raise TypeError("cursor só indexa com slice")
+        if sl.step not in (None, 1):
+            return list(self)[sl]
+        start = 0 if sl.start is None else int(sl.start)
+        if start < 0:
+            return list(self)[sl]
+        stop = sl.stop
+        if stop is None:
+            out = list(self)
+            return out[start:] if start else out
+        want = max(0, int(stop) - start)
+        old_lim = self._limit
+        # Aplica o teto no iterador (evita materializar 8000 docs e fatiar depois).
+        self._limit = want if old_lim is None else min(int(old_lim), want + start)
+        try:
+            out = list(self)
+        finally:
+            self._limit = old_lim
+        return out[start : start + want] if start else out
 
 
 def _doc_matches_mongo_filter(doc: dict[str, Any], filt: dict[str, Any]) -> bool:
@@ -447,15 +466,22 @@ def _apply_find_filter(qs, filt: dict[str, Any]):
         from django.db.models import Q
 
         or_q = Q()
+        translated = 0
         for clause in filt["$or"]:
+            if not isinstance(clause, dict) or not clause:
+                continue
+            # $exists em JSON (extra.*) NÃO pode virar «5000 ids da tabela inteira» —
+            # isso travava a prévia de custo / worker Gunicorn na loja.
+            if any(isinstance(v, dict) and "$exists" in v for v in clause.values()):
+                continue
             sub = _apply_find_filter(EntradaNotaRascunhoAgro.objects.all(), clause)
             ids = list(sub.values_list("rascunho_id", flat=True)[:5000])
             if ids:
                 or_q |= Q(rascunho_id__in=ids)
-        if or_q:
+                translated += 1
+        if translated and or_q:
             qs = qs.filter(or_q)
-        else:
-            qs = qs.none()
+        # Sem cláusula traduzível: mantém qs (filtro python no cursor) — sem expandir tabela 3×.
 
     st = filt.get("status")
     if isinstance(st, dict):

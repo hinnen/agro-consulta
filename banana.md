@@ -1162,6 +1162,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🩹 Entrada NF — Finalizar prévia de custo trava loja (23/07 · **v11.73**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Etapa 8 «Montando prévia de custo…» skeleton eterno · trava worker |
+| **Causa** | `append_eventos_entrada_nf_agro` usava `find($or $exists)` → adaptador PG expandia **tabela inteira 3×** (5000 ids) + scan 8000 |
+| **Fix** | Histórico via ORM (status/estoque, lim 400) · prévia PG/ledger · timeout UI 25s · `$exists` não explode `$or` |
+| **VERSION** | **11.73** |
+| **Validar local** | Ctrl+F5 · NF 14988 · Finalizar · prévia em segundos · PIN ok |
+| **Loja** | 📦 aguarda frase + senha |
+
 ### 📦 Deploy loja **v11.72** — Entrada NF v11.71 + grupos A/B (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
