@@ -1166,7 +1166,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`b13b996`** · aguardar Live no Render |
+| **Status** | ✅ **Live** · Renan testou Dist SEFAZ na loja (23/07) |
 | **VERSION** | **loja v11.69** (antes **v11.66** / `cbb6e69`) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **O que é** | Entrada NF só Postgres · Dist DF-e (mTLS/NSU PG) · fiscal modal + NCM NF · kardex ledger · Carregar mais cadastro |
@@ -1174,9 +1174,11 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Backup / reverter** | `rollback/pre-v1169-entrada-nf-kardex` @ **cbb6e69** |
 | **Como reverter** | `git push origin rollback/pre-v1169-entrada-nf-kardex:producao` |
 | **Migrate** | `0063_agronfedistdfecursor` (Render no deploy) |
-| **Após Live** | Ctrl+F5 · Entrada NF (sem «serviço legado») · 1 XML · Dist se precisar · kardex venda 1 un. = saída 1 · Cadastro «Carregar mais» |
+| **Prova Dist (loja)** | cStat **137** · ultNSU=maxNSU **2075** · botão **Aguarde ~1h** · UF SP · Amb 1 · sem erro 215/656 |
 
 **Versão app (VERSION):** **loja v11.69** · rollback `pre-v1169-entrada-nf-kardex` @ cbb6e69
+
+**Dist SEFAZ OK na loja:** «Nenhum documento localizado» (137) + countdown 1h é o comportamento **certo** quando não há DF-e novo (não é falha). NSU **2075** ficou gravado.
 
 ### WIP — Cadastro «Carregar mais» (incluso no v11.69 · ✅ loja)
 
