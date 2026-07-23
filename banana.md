@@ -1281,15 +1281,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
 | **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
 
-### 🐛 Transferências — furo Mongo (incluso no **v11.73** · ✅ enviado)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | `/transferencias/` «Carregando sugestões…» / lista vazia pós-corte Mongo |
-| **Causa** | Flag Agro não ligava só com Mongo off · `get_mongo_client` furava kill switch · transferir exigia Mongo (503) |
-| **Fix** | `agro_fonte_config` + `estoque/views.py` |
-| **Loja** | ✅ no ar com v11.73 |
-
 ### 🧪 Prova = **local** (23/07 · Renan reforçou)
 
 | Item | Detalhe |
