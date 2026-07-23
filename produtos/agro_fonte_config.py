@@ -113,6 +113,9 @@ def agro_estoque_ledger_ativo() -> bool:
 
 def agro_estoque_operacional_sem_mongo_erp() -> bool:
     """Transferências/Validade: saldo Agro (ajuste+ledger) sem depender só do espelho Mongo."""
+    # Mongo ERP morto / flag off: obrigatório caminho Agro (senão hang em auth).
+    if agro_mongo_erp_desligado():
+        return True
     if not agro_estoque_ledger_ativo():
         return False
     if agro_pdv_catalogo_somente_postgres():

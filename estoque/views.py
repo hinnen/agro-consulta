@@ -22,16 +22,23 @@ from estoque.models import (
     OrigemAjusteEstoque,
     PedidoTransferencia,
 )
-from integracoes.venda_erp_mongo import VendaERPMongoClient
 from atualizar_medias import calcular
 import json
 
 _cached_mongo_client = None
 def get_mongo_client():
+    """
+    Cliente Mongo legado do módulo estoque.
+    Respeita ``obter_conexao_mongo`` (kill switch + circuit) — nunca abre URI morta.
+    """
     global _cached_mongo_client
-    if _cached_mongo_client is None:
-        _cached_mongo_client = VendaERPMongoClient()
-    return _cached_mongo_client
+    from produtos.views import obter_conexao_mongo
+
+    client, db = obter_conexao_mongo()
+    if client is None or db is None:
+        raise RuntimeError("Mongo ERP indisponível (desligado ou circuit open)")
+    _cached_mongo_client = client
+    return client
 
 
 def consulta_produtos(request):
@@ -177,6 +184,8 @@ def _transferir_vila_para_centro_exec(
     ped_row = PedidoTransferencia.objects.filter(produto_externo_id=produto_id).first()
     lote_ref = ped_row.lote_uuid if ped_row else None
 
+    from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
     from produtos.views import (
         _empresa_loja_padrao_agro_estoque,
         _invalidar_caches_apos_ajuste_pin,
@@ -185,14 +194,23 @@ def _transferir_vila_para_centro_exec(
         obter_conexao_mongo,
     )
 
-    client_m, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível.", "status": 503}
+    if agro_estoque_operacional_sem_mongo_erp():
+        info = (mapa_saldos_operacionais_agro([produto_id], db=None, client=None) or {}).get(
+            produto_id
+        ) or {}
+        saldo_ag_v = Decimal(str(info.get("saldo_vila", 0) or 0))
+        saldo_ag_c = Decimal(str(info.get("saldo_centro", 0) or 0))
+        saldo_erp_v = Decimal(str(info.get("saldo_erp_vila", 0) or 0))
+        saldo_erp_c = Decimal(str(info.get("saldo_erp_centro", 0) or 0))
+    else:
+        client_m, db = obter_conexao_mongo()
+        if db is None:
+            return {"ok": False, "erro": "Mongo indisponível.", "status": 503}
 
-    saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
-    saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
-    saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
-    saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
+        saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
+        saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
+        saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
+        saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
 
     if qtd > saldo_ag_v:
         return {
@@ -274,48 +292,57 @@ def api_buscar_produtos(request):
 
     if termo:
         try:
+            from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
             from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
+            from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
-            produtos = buscar_produtos_motor_pdv(termo, limit=120)
-            if not produtos:
-                produtos = []
-
-            client = get_mongo_client()
+            produtos = buscar_produtos_motor_pdv(termo, limit=120) or []
             produto_ids = [str(produto.get("Id") or produto.get("_id")) for produto in produtos]
-            estoques = client.buscar_estoques_por_produto_ids(produto_ids)
-            ajustes = _buscar_ajustes_mais_recentes(produto_ids)
-
-            estoques_por_produto = {}
-            for estoque in estoques:
-                produto_id = str(estoque.get("ProdutoID"))
-                estoques_por_produto.setdefault(produto_id, []).append(estoque)
+            saldos_map = {}
+            if agro_estoque_operacional_sem_mongo_erp():
+                saldos_map = mapa_saldos_operacionais_agro(produto_ids, db=None, client=None)
+            else:
+                client = get_mongo_client()
+                estoques = client.buscar_estoques_por_produto_ids(produto_ids)
+                estoques_por_produto = {}
+                for estoque in estoques:
+                    produto_id = str(estoque.get("ProdutoID"))
+                    estoques_por_produto.setdefault(produto_id, []).append(estoque)
+                for produto in produtos:
+                    produto_id = str(produto.get("Id") or produto.get("_id"))
+                    saldo_centro_erp = Decimal('0')
+                    saldo_vila_erp = Decimal('0')
+                    for estoque in estoques_por_produto.get(produto_id, []):
+                        deposito = str(estoque.get("Deposito", "")).strip().lower()
+                        saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
+                        if "centro" in deposito:
+                            saldo_centro_erp += saldo
+                        elif "vila" in deposito:
+                            saldo_vila_erp += saldo
+                    saldos_map[produto_id] = {
+                        "saldo_erp_centro": float(saldo_centro_erp),
+                        "saldo_erp_vila": float(saldo_vila_erp),
+                        "saldo_centro": float(saldo_centro_erp),
+                        "saldo_vila": float(saldo_vila_erp),
+                    }
+                ajustes = _buscar_ajustes_mais_recentes(produto_ids)
+                for produto_id, info in list(saldos_map.items()):
+                    ajuste_centro = ajustes.get((produto_id, 'centro'))
+                    ajuste_vila = ajustes.get((produto_id, 'vila'))
+                    saldo_centro = Decimal(str(info["saldo_erp_centro"]))
+                    saldo_vila = Decimal(str(info["saldo_erp_vila"]))
+                    if ajuste_centro:
+                        saldo_centro = saldo_centro + ajuste_centro.diferenca_saldo
+                    if ajuste_vila:
+                        saldo_vila = saldo_vila + ajuste_vila.diferenca_saldo
+                    info["saldo_centro"] = float(saldo_centro)
+                    info["saldo_vila"] = float(saldo_vila)
 
             for produto in produtos:
                 produto_id = str(produto.get("Id") or produto.get("_id"))
-                saldo_centro_erp = Decimal('0')
-                saldo_vila_erp = Decimal('0')
-
-                for estoque in estoques_por_produto.get(produto_id, []):
-                    deposito = str(estoque.get("Deposito", "")).strip().lower()
-                    saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
-
-                    if "centro" in deposito:
-                        saldo_centro_erp += saldo
-                    elif "vila" in deposito:
-                        saldo_vila_erp += saldo
-
-                ajuste_centro = ajustes.get((produto_id, 'centro'))
-                ajuste_vila = ajustes.get((produto_id, 'vila'))
-
-                saldo_centro = saldo_centro_erp
-                saldo_vila = saldo_vila_erp
-
-                if ajuste_centro:
-                    saldo_centro = saldo_centro_erp + ajuste_centro.diferenca_saldo
-
-                if ajuste_vila:
-                    saldo_vila = saldo_vila_erp + ajuste_vila.diferenca_saldo
-
+                s = saldos_map.get(produto_id) or {}
+                saldo_centro = float(s.get("saldo_centro", 0) or 0)
+                saldo_vila = float(s.get("saldo_vila", 0) or 0)
                 produtos_json.append({
                     "id": produto_id,
                     "codigo_interno": produto.get("CodigoNFe") or str(produto.get("Codigo") or ""),
@@ -324,15 +351,15 @@ def api_buscar_produtos(request):
                     "marca": produto.get("Marca") or "",
                     "categoria": produto.get("Categoria") or "",
                     "preco_venda": float(produto.get("PrecoVenda") or 0),
-                    "saldo_centro": float(saldo_centro),
-                    "saldo_vila": float(saldo_vila),
+                    "saldo_centro": saldo_centro,
+                    "saldo_vila": saldo_vila,
                     "saldo_total": float(saldo_centro + saldo_vila),
-                    "saldo_centro_erp": float(saldo_centro_erp),
-                    "saldo_vila_erp": float(saldo_vila_erp),
+                    "saldo_centro_erp": float(s.get("saldo_erp_centro", 0) or 0),
+                    "saldo_vila_erp": float(s.get("saldo_erp_vila", 0) or 0),
                 })
 
         except Exception as exc:
-            erro_api = f'Erro ao consultar MongoDB do Venda ERP: {exc}'
+            erro_api = f'Erro ao consultar estoque: {exc}'
 
     return JsonResponse({
         'produtos': produtos_json,
@@ -1218,7 +1245,8 @@ def api_importar_planilha_transferencia(request):
         if not reader.fieldnames:
             return JsonResponse({'ok': False, 'erro': 'Planilha vazia ou formato inválido.'}, status=400)
 
-        client = get_mongo_client()
+        from produtos.agro_fonte_config import agro_estoque_operacional_sem_mongo_erp
+
         sucesso = 0
         
         # 1. Lê a planilha inteira e separa os códigos
@@ -1239,34 +1267,68 @@ def api_importar_planilha_transferencia(request):
             linhas_validas.append({'codigo': codigo, 'p_seg': p_seg, 'p_max': p_max})
             codigos_buscados.add(codigo)
 
-        # 2. Faz UMA ÚNICA viagem ao Banco de Dados buscando todos os códigos juntos!
+        # 2. Resolve produtos no Postgres Agro (ou Mongo legado se ainda ligado)
         mapa_produtos = {}
         if codigos_buscados:
-            from bson.objectid import ObjectId
-            obj_ids = []
-            for c in codigos_buscados:
-                if len(c) == 24:
-                    try: obj_ids.append(ObjectId(c))
-                    except: pass
-            
-            query = {"$or": [
-                {"CodigoNFe": {"$in": list(codigos_buscados)}},
-                {"Codigo": {"$in": list(codigos_buscados)}},
-                {"CodigoBarras": {"$in": list(codigos_buscados)}},
-                {"EAN_NFe": {"$in": list(codigos_buscados)}}
-            ]}
-            if obj_ids: query["$or"].append({"_id": {"$in": obj_ids}})
-            
-            produtos_mongo = client.db[client.col_p].find(query, {"_id": 1, "Id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "CodigoBarras": 1, "EAN_NFe": 1})
-            
-            for p in produtos_mongo:
-                pid = str(p.get('_id') or p.get('Id'))
-                info = {"id": pid, "nome": p.get('Nome', f"Produto {pid}")}
-                if p.get("CodigoNFe"): mapa_produtos[str(p.get("CodigoNFe"))] = info
-                if p.get("Codigo"): mapa_produtos[str(p.get("Codigo"))] = info
-                if p.get("CodigoBarras"): mapa_produtos[str(p.get("CodigoBarras"))] = info
-                if p.get("EAN_NFe"): mapa_produtos[str(p.get("EAN_NFe"))] = info
-                mapa_produtos[pid] = info
+            if agro_estoque_operacional_sem_mongo_erp():
+                from django.db.models import Q
+                from produtos.models import Produto
+
+                codigos = list(codigos_buscados)
+                qs = Produto.objects.filter(
+                    Q(codigo_nfe__in=codigos)
+                    | Q(codigo_barras__in=codigos)
+                    | Q(codigo_interno__in=codigos)
+                    | Q(produto_externo_id__in=codigos)
+                )
+                for p in qs:
+                    pid = str(p.produto_externo_id or p.pk)
+                    info = {"id": pid, "nome": (p.nome or f"Produto {pid}")}
+                    if p.codigo_nfe:
+                        mapa_produtos[str(p.codigo_nfe)] = info
+                    if p.codigo_interno:
+                        mapa_produtos[str(p.codigo_interno)] = info
+                    if p.codigo_barras:
+                        mapa_produtos[str(p.codigo_barras)] = info
+                    mapa_produtos[pid] = info
+            else:
+                from bson.objectid import ObjectId
+
+                client = get_mongo_client()
+                obj_ids = []
+                for c in codigos_buscados:
+                    if len(c) == 24:
+                        try:
+                            obj_ids.append(ObjectId(c))
+                        except Exception:
+                            pass
+
+                query = {"$or": [
+                    {"CodigoNFe": {"$in": list(codigos_buscados)}},
+                    {"Codigo": {"$in": list(codigos_buscados)}},
+                    {"CodigoBarras": {"$in": list(codigos_buscados)}},
+                    {"EAN_NFe": {"$in": list(codigos_buscados)}}
+                ]}
+                if obj_ids:
+                    query["$or"].append({"_id": {"$in": obj_ids}})
+
+                produtos_mongo = client.db[client.col_p].find(
+                    query,
+                    {"_id": 1, "Id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "CodigoBarras": 1, "EAN_NFe": 1},
+                )
+
+                for p in produtos_mongo:
+                    pid = str(p.get('_id') or p.get('Id'))
+                    info = {"id": pid, "nome": p.get('Nome', f"Produto {pid}")}
+                    if p.get("CodigoNFe"):
+                        mapa_produtos[str(p.get("CodigoNFe"))] = info
+                    if p.get("Codigo"):
+                        mapa_produtos[str(p.get("Codigo"))] = info
+                    if p.get("CodigoBarras"):
+                        mapa_produtos[str(p.get("CodigoBarras"))] = info
+                    if p.get("EAN_NFe"):
+                        mapa_produtos[str(p.get("EAN_NFe"))] = info
+                    mapa_produtos[pid] = info
 
         # 3. Salva no Cockpit na velocidade da luz
         for linha in linhas_validas:

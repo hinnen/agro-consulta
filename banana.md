@@ -1169,8 +1169,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Etapa 8 «Montando prévia de custo…» skeleton eterno · trava worker |
 | **Causa** | `append_eventos_entrada_nf_agro` usava `find($or $exists)` → adaptador PG expandia **tabela inteira 3×** (5000 ids) + scan 8000 |
 | **Fix P0 (mesmo pacote)** | (1) histórico ORM lim 400 · (2) prévia PG/ledger · (3) PIN pós-aprovação = mesma base da prévia (média C+V) · (4) títulos CP / excluir reabrir no PG com ERP off · (5) auditoria lista ORM sem `$exists` · (6) timeout UI nas ações críticas (prévia 25s, PIN/estoque/fin 90s) |
-| **VERSION** | **11.73** (um deploy — sem 11.74) |
-| **Validar local** | Ctrl+F5 · NF 14988 · Finalizar prévia em segundos · PIN (média C+V) · se der: Salvar a pagar + Reabrir |
+| **+ Transferências** | Furo Mongo: flag Agro com ERP off · `get_mongo_client` no kill switch · sugestões/transferir/import/busca no Agro |
+| **VERSION** | **11.73** (um deploy — Entrada NF + Transferências) |
+| **Validar local** | Ctrl+F5 · NF 14988 Finalizar+PIN · `/transferencias/` lista carrega (0 itens ok se sem regra) |
 | **Loja** | 📦 aguarda frase + senha |
 
 ### 📦 Deploy loja **v11.72** — Entrada NF v11.71 + grupos A/B (23/07 · Renan frase+senha)
@@ -1265,6 +1266,15 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **v11.66** | Primeira vez que a **porta** fecha de verdade na loja (`AGRO_MONGO_ERP_DESLIGADO` default **true** + circuit). XML Renan testou OK. |
 | **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
 | **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
+
+### 🐛 Transferências — furo Mongo (incluso no **v11.73**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `/transferencias/` «Carregando sugestões…» / lista vazia pós-corte Mongo |
+| **Causa** | Flag Agro não ligava só com Mongo off · `get_mongo_client` furava kill switch · transferir exigia Mongo (503) |
+| **Fix** | `agro_fonte_config` + `estoque/views.py` |
+| **Loja** | 📦 no pacote **v11.73** (frase + senha) |
 
 ### 🧪 Prova = **local** (23/07 · Renan reforçou)
 
