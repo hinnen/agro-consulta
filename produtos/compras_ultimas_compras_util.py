@@ -236,16 +236,29 @@ def append_eventos_entrada_nf_agro(
             ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
         )
 
-        # Notas que já contam como compra: estoque aplicado / encerrada / marcadores no extra.
-        # Limite baixo: a prévia só precisa de ~3 compras anteriores por produto.
-        lim = 400
-        if mongo_max_time_ms is not None and int(mongo_max_time_ms) < 8_000:
-            lim = 120
+        # Filtra por produto_id no JSON + limite baixo (evita carregar centenas de notas).
+        lim = 80
+        if mongo_max_time_ms is not None and int(mongo_max_time_ms) <= 8_000:
+            lim = 40
+        pid_list = [str(x).strip() for x in pid_ok if str(x).strip()][:60]
+        pid_q = Q()
+        for pid in pid_list:
+            pid_q |= Q(linhas__contains=[{"produto_id": pid}])
         qs = (
             EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
             .filter(
                 Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
                 | Q(estoque_aplicado_em__isnull=False)
+            )
+            .filter(pid_q)
+            .only(
+                "rascunho_id",
+                "cabecalho",
+                "linhas",
+                "extra",
+                "criado_em",
+                "estoque_aplicado_em",
+                "status",
             )
             .order_by("-criado_em")[:lim]
         )

@@ -4655,7 +4655,7 @@
       const r = await entradaNfeFetch(
         `${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`,
         {},
-        25000,
+        20000,
       );
       const raw = await r.text();
       let j = null;

@@ -14883,19 +14883,8 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         for pid in uniq_pids:
             saldos_map[(pid, "centro")] = Decimal("0")
             saldos_map[(pid, "vila")] = Decimal("0")
-    pin_map: dict = {}
-    try:
-        compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-            db,
-            client_m,
-            linhas,
-            produtos_por_id=docs_map,
-            mongo_max_time_ms=8_000,
-            excluir_rascunho_id=excluir_rascunho_id,
-        )
-    except Exception:
-        logger.warning("aplicar_custos_catalogo compras", exc_info=True)
-        compras_mapa = {pid: [] for pid in uniq_pids}
+    # Spark/histórico não é necessário para gravar custo (média vs NF).
+    compras_mapa: dict[str, list] = {pid: [] for pid in uniq_pids}
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
@@ -14921,7 +14910,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             compras_mapa=compras_mapa,
             produto_doc=doc_ln,
             saldos_erp_batch=saldos_map,
-            pin_latest=pin_map,
+            pin_latest=None,
         )
         if not prev.get("ok"):
             continue
@@ -15038,20 +15027,10 @@ def api_entrada_nota_preview_custo(request):
         for pid in uniq_pids:
             saldos_map[(pid, "centro")] = Decimal("0")
             saldos_map[(pid, "vila")] = Decimal("0")
-    pin_map: dict = {}
-    compras_mapa: dict[str, list] = {}
-    try:
-        compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-            db,
-            client,
-            linhas,
-            produtos_por_id=docs_map,
-            mongo_max_time_ms=8_000,
-            excluir_rascunho_id=rid,
-        )
-    except Exception:
-        logger.warning("api_entrada_nota_preview_custo compras/spark", exc_info=True)
-        compras_mapa = {pid: [] for pid in uniq_pids}
+    # Sem pin_map: saldos já vêm operacionais (ledger/ajuste).
+    # Sem histórico de compras na prévia: varrer notas PG ainda estourava 25s na loja;
+    # média C+V usa custo catálogo + saldo; spark preenche com pad do catálogo.
+    compras_mapa: dict[str, list] = {pid: [] for pid in uniq_pids}
     itens = []
     try:
         for ix, ln in enumerate(linhas):
@@ -15069,7 +15048,7 @@ def api_entrada_nota_preview_custo(request):
                     compras_mapa=compras_mapa,
                     produto_doc=docs_map.get(pid_linha) if pid_linha else None,
                     saldos_erp_batch=saldos_map,
-                    pin_latest=pin_map,
+                    pin_latest=None,
                 )
             )
     except Exception as exc:
