@@ -713,11 +713,26 @@
             if (window.gmLoader) window.gmLoader.show('🐭 carregando sugestões...');
             else if (window.gmLoadingBar) window.gmLoadingBar.show();
             try {
-                const response = await fetch('/estoque/api_sugestoes_transferencia/');
-                const data = await response.json();
-
-                if (data.erro) {
-                    document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold uppercase">ERRO DE CONEXÃO COM O ERP:<br><span class="text-xs text-slate-500 normal-case mt-2 block">${data.erro}</span></td></tr>`;
+                const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const tOut = window.setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 45000);
+                const response = await fetch('/estoque/api_sugestoes_transferencia/', {
+                    credentials: 'same-origin',
+                    signal: ctrl ? ctrl.signal : undefined,
+                });
+                window.clearTimeout(tOut);
+                const raw = await response.text();
+                let data = null;
+                try {
+                    data = raw ? JSON.parse(raw) : null;
+                } catch (_) {
+                    document.getElementById("tabela-corpo").innerHTML =
+                        `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Servidor ocupado ou resposta inválida (HTTP ${response.status}). Atualize (F5).</td></tr>`;
+                    return;
+                }
+                if (!response.ok || (data && data.erro)) {
+                    const msg = (data && data.erro) ? data.erro : (`HTTP ${response.status}`);
+                    document.getElementById("tabela-corpo").innerHTML =
+                        `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold uppercase">Falha ao carregar sugestões:<br><span class="text-xs text-slate-500 normal-case mt-2 block">${msg}</span></td></tr>`;
                     return;
                 }
 
@@ -735,7 +750,10 @@
                 if (window.gmLoader) window.gmLoader.hide(180);
             } catch (error) {
                 console.error(error);
-                document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
+                const aborted = error && (error.name === 'AbortError' || error.name === 'TimeoutError');
+                document.getElementById("tabela-corpo").innerHTML = aborted
+                    ? `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Tempo esgotado ao carregar. Atualize (F5) e tente de novo.</td></tr>`
+                    : `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
             } finally {
                 if (window.gmLoader) window.gmLoader.hide(180);
                 else if (window.gmLoadingBar) window.gmLoadingBar.hide();

@@ -97,18 +97,56 @@ def mapa_saldos_operacionais_agro(
     return out
 
 
-def produto_ids_saldo_deposito_positivo(deposito: str = "vila") -> list[str]:
-    """IDs com saldo operacional > 0 no depósito (ledger ou ERP+ajuste)."""
+def produto_ids_saldo_deposito_positivo(
+    deposito: str = "vila",
+    *,
+    limite: int = 1500,
+) -> list[str]:
+    """IDs com saldo operacional > 0 no depósito (ledger ou ERP+ajuste).
+
+    Usa ``DISTINCT ON`` no Postgres — sem varrer a tabela inteira em Python
+    (Transferências na loja estourava timeout / «Erro ao conectar»).
+    """
+    from django.db import connection
+
     from estoque.models import AjusteRapidoEstoque
 
     dep = (deposito or "vila").strip().lower()
+    lim = max(50, min(int(limite or 1500), 5000))
     ledger = agro_estoque_ledger_ativo()
+
+    if connection.vendor == "postgresql":
+        # Ledger: saldo = saldo_informado. Sem ledger e sem ERP: informado - ref.
+        if ledger:
+            where_saldo = "saldo_informado > 0"
+        else:
+            where_saldo = "(saldo_informado - COALESCE(saldo_erp_referencia, 0)) > 0"
+        sql = f"""
+            SELECT produto_externo_id FROM (
+              SELECT DISTINCT ON (produto_externo_id)
+                produto_externo_id,
+                saldo_informado,
+                saldo_erp_referencia
+              FROM estoque_ajusterapidoestoque
+              WHERE lower(deposito) = %s
+                AND produto_externo_id IS NOT NULL
+                AND produto_externo_id <> ''
+              ORDER BY produto_externo_id, criado_em DESC
+            ) t
+            WHERE {where_saldo}
+            LIMIT %s
+        """
+        with connection.cursor() as cur:
+            cur.execute(sql, [dep, lim])
+            return [str(r[0]).strip() for r in cur.fetchall() if r and r[0]]
+
+    # Fallback (SQLite/tests): último ajuste por produto.
     ajustes = AjusteRapidoEstoque.objects.filter(deposito=dep).order_by(
         "produto_externo_id", "-criado_em"
     )
     seen: set[str] = set()
     out: list[str] = []
-    for aj in ajustes:
+    for aj in ajustes.iterator(chunk_size=500):
         pid = str(aj.produto_externo_id or "").strip()
         if not pid or pid in seen:
             continue
@@ -116,26 +154,33 @@ def produto_ids_saldo_deposito_positivo(deposito: str = "vila") -> list[str]:
         saldo = calcular_saldo_operacional_deposito(aj, 0.0, ledger=ledger)
         if saldo > 0:
             out.append(pid)
+            if len(out) >= lim:
+                break
     return out
 
 
 def mapa_produtos_info_por_externo_ids(p_ids: list[str]) -> dict[str, dict]:
-    from produtos.catalogo_agro import produto_agro_para_row
+    """Nome/código/barras — só colunas leves (sem ``produto_agro_para_row`` pesado)."""
     from produtos.models import Produto
 
     out: dict[str, dict] = {}
     chunk = 500
     for i in range(0, len(p_ids), chunk):
         slice_ids = p_ids[i : i + chunk]
-        for p in Produto.objects.filter(produto_externo_id__in=slice_ids):
+        for p in Produto.objects.filter(produto_externo_id__in=slice_ids).only(
+            "produto_externo_id",
+            "nome",
+            "codigo_nfe",
+            "codigo_interno",
+            "codigo_barras",
+        ):
             pid = str(p.produto_externo_id or "").strip()
             if not pid:
                 continue
-            row = produto_agro_para_row(p)
             out[pid] = {
-                "nome": row.get("nome") or f"Produto {pid}",
-                "codigo": row.get("codigo_nfe") or row.get("codigo") or pid,
-                "codigo_barras": row.get("codigo_barras") or "",
+                "nome": (p.nome or "").strip() or f"Produto {pid}",
+                "codigo": (p.codigo_nfe or p.codigo_interno or pid or "").strip() or pid,
+                "codigo_barras": (p.codigo_barras or "").strip(),
             }
     return out
 

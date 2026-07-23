@@ -1505,11 +1505,15 @@ def _api_sugestoes_transferencia_agro(request):
     mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
     ids_pedidos = list(mapa_pedidos.keys())
 
-    ids_com_saldo_vila = produto_ids_saldo_deposito_positivo("vila")
-    ids_alvo = list(set(ids_configurados + ids_com_saldo_vila + ids_pedidos))
+    # Prioridade: regras + pedidos; depois saldo Vila (teto — evita timeout na loja).
+    ids_prio = {str(x).strip() for x in (ids_configurados + ids_pedidos) if str(x).strip()}
+    ids_com_saldo_vila = produto_ids_saldo_deposito_positivo("vila", limite=800)
+    extras = [x for x in ids_com_saldo_vila if x not in ids_prio]
+    room = max(0, 600 - len(ids_prio))
+    ids_alvo = list(ids_prio) + extras[:room]
 
     if not ids_alvo:
-        return JsonResponse({"sugestoes": []})
+        return JsonResponse({"sugestoes": [], "ultima_atualizacao": "—"})
 
     info_map = mapa_produtos_info_por_externo_ids(ids_alvo)
     saldos_map = mapa_saldos_operacionais_agro(ids_alvo, db=None, client=None)
