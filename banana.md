@@ -1162,20 +1162,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🩹 Entrada NF — prévia Finalizar ainda timeout na loja (23/07 · **v11.74**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Loja **v11.73** · etapa 8 «Tempo esgotado ao carregar a prévia» (NF 14988) |
+| **Causa** | v11.73 tirou `$exists`, mas ainda lia até **400** notas PG (JSONB linhas) p/ spark — >25s |
+| **Fix** | Prévia + PIN **sem** varrer histórico de compras (média C+V ok; spark usa pad) · Compras: filtro JSON por produto + lim 40–80 |
+| **Commit** | `ffa1dae` |
+| **VERSION** | **11.74** |
+| **Loja** | 📦 aguarda frase + senha |
+
 ### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`4b59f0f`** · aguardar Live no Render |
-| **VERSION** | **loja v11.73** (antes **v11.72** / `584913d`) |
-| **Autorização** | *pode subir para produção* + **99738595** |
-| **O que é** | (1) prévia Finalizar sem travar · PIN/CP/auditoria PG · timeouts UI · (2) Transferências sem furo Mongo |
-| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
+| **Status** | ✅ no ar · **prévia ainda falhou** → hotfix **v11.74** |
+| **VERSION** | **loja v11.73** (tip docs `3bf1c84` / código `4b59f0f`) |
 | **Backup / reverter** | `rollback/pre-v1173-entrada-nf-transf` @ **`584913d`** |
-| **Como reverter** | `git push origin rollback/pre-v1173-entrada-nf-transf:producao` |
-| **Após Live** | Ctrl+F5 · NF Finalizar prévia rápida + PIN · `/transferencias/` carrega |
-
-**Versão app (VERSION):** **loja v11.73** · rollback `pre-v1173-entrada-nf-transf` @ 584913d
 
 ### 🩹 Entrada NF — Finalizar prévia de custo (incluso no **v11.73** · ✅ enviado)
 
