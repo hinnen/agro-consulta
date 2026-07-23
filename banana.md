@@ -1162,36 +1162,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 🚀 PRÓXIMO CHAT — só autorizar (**v11.72** · 23/07)
+### 📦 Deploy loja **v11.72** — Entrada NF v11.71 + grupos A/B (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **TUDO NO JEITO** — falta frase + senha |
-| **Frase** | *pode subir para produção* |
-| **Senha** | `99738595` |
-| **Branch** | `limpeza/entrada-nf-pg-only` |
-| **VERSION** | **11.72** (loja hoje **v11.70**) |
-| **Inclui** | **v11.71** (estoque falso + GM/EAN verde) **+** grupos A/B na forma de pagamento |
-| **Assistente** | push `limpeza/entrada-nf-pg-only:producao` · Live · limpar badge |
-| **Após Live** | Ctrl+F5 (limpa cache catálogo) · milho A=87 B=92 · débito → **87** · crédito → **92** · NF 14988 Registrar + GM verde |
+| **Status** | ✅ push `producao` **`12b1b9f`** · aguardar Live no Render |
+| **VERSION** | **loja v11.72** (antes **v11.70** / `01ff11d`) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **O que é** | (1) v11.71 estoque falso + GM/EAN · (2) v11.72 grupos A/B no pagamento (slim/PG) |
+| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
+| **Backup / reverter** | `rollback/pre-v1172-entrada-nf-grupos` @ **`01ff11d`** |
+| **Como reverter** | `git push origin rollback/pre-v1172-entrada-nf-grupos:producao` |
+| **Após Live** | Ctrl+F5 · milho débito **87** / crédito **92** · NF 14988 Registrar + GM verde |
 
-### 🩹 PDV — grupos A/B pararam na forma de pagamento (23/07 · **v11.72**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Tabela A/B ok no lápis; ao escolher forma no pagamento o total **não** muda |
-| **Causa** | Freio `catalogo-full-off` → PDV usa **catálogo slim** / montagem PG **sem** `precos_grupos` · `addItem` do cache local «sucesso» sem buscar servidor |
-| **Fix** | slim + catálogo PG passam `precos_modo`/`precos_grupos` · cache keys v3/slim-v2 · JS infere modo grupos + hydrate preserva meta |
-| **Arquivos** | `catalogo_agro.py` · `views.py` (slim) · `precos_forma_pagamento.js` · `pdv_state.js` · `pdv_wizard.js` · `consulta_produtos.js` |
-| **Validar local** | Ctrl+F5 · milho · PAGAR · crédito (grupo B) → **R$ 92** · débito → **R$ 87** |
-| **Loja** | 📦 no pacote v11.72 (aguarda senha) |
-
-### 🩹 Entrada NF — estoque falso + GM/EAN (incluso no **v11.72** · era v11.71)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Não carimbar estoque antes de aplicar · UI só confia em `estoque_aplicado` · load com GM/EAN |
-| **Loja** | 📦 no pacote v11.72 |
+**Versão app (VERSION):** **loja v11.72** · rollback `pre-v1172-entrada-nf-grupos` @ 01ff11d
 
 ### 📦 Deploy loja **v11.70** — Entrada NF estoque sem Mongo / lock (23/07 · Renan frase+senha)
 
