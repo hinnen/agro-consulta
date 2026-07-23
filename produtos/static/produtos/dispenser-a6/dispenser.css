@@ -894,6 +894,26 @@ html, body {
   white-space: nowrap;
 }
 
+.dsp-folha-save-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.dsp-folha-save-btns .dsp-gal-add-btn {
+  flex: 1 1 8rem;
+}
+
+.dsp-folha-save-btns .dsp-gal-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dsp-folha-save-btns .dsp-gal-add-hint {
+  width: 100%;
+}
+
 .dsp-font-box {
   margin-top: 0.75rem;
   padding-top: 0.55rem;
@@ -1490,3 +1510,26 @@ html, body {
     color: var(--dsp-cat-deep) !important;
   }
 }
+
+
+.dsp-cloud-banner {
+  margin: 0.45rem 0 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px dashed #0d9488;
+  border-radius: 0.45rem;
+  background: #ecfdf5;
+  font-size: 0.78rem;
+  color: #134e4a;
+}
+.dsp-cloud-banner p { margin: 0 0 0.35rem; }
+.dsp-cloud-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.dsp-cloud-banner-actions .secondary {
+  background: #fff;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+}
+.dsp-cloud-banner-status { font-weight: 600; }

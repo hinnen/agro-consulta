@@ -5,19 +5,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.70" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.70"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.70"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.85" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.85"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.85"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.85"></script>
 </head>
 <body>
+  {% csrf_token %}
   <div class="dsp-studio">
     <aside class="dsp-panel no-print">
       <div class="dsp-panel-top">
         <div class="dsp-panel-title-row">
           <h1>Dispenser A6</h1>
+          <div class="dsp-cloud-banner no-print" id="dspCloudBanner" hidden>
+            <p>Este PC tem artes/fotos só no Chrome. Enviar para o <b>sistema</b> (Centro + Vila)?</p>
+            <p class="dsp-cloud-banner-status" id="dspCloudBannerStatus" hidden></p>
+            <div class="dsp-cloud-banner-actions">
+              <button type="button" class="dsp-gal-add-btn" id="dspCloudMigrar">Enviar para as lojas</button>
+              <button type="button" class="dsp-gal-add-btn secondary" id="dspCloudMigrarSkip">Agora não</button>
+            </div>
+          </div>
           <details class="dsp-help">
             <summary><span class="dsp-help-q" aria-hidden="true">?</span><span class="dsp-sr">Ajuda geral</span></summary>
-            <div class="dsp-help-body">Abas embaixo. Na prévia: arraste a foto, use +/− ou a bolinha. Impressão no Chrome: margens <b>Nenhuma</b> e marque <b>Gráficos de segundo plano</b>.</div>
+            <div class="dsp-help-body">Abas embaixo. <b>Grava no sistema</b> (Centro e Vila veem o mesmo). Zoom do pet fica neste PC. Impressão: margens <b>Nenhuma</b> + <b>Gráficos de segundo plano</b>.</div>
           </details>
         </div>
         <div class="dsp-tabs" id="dspTabs" role="tablist" aria-label="Menu do dispenser">
@@ -150,12 +160,14 @@ Batata-Doce</textarea>
         <div class="dsp-tab-panel" id="dspTab-prontas" role="tabpanel" data-tab="prontas" hidden>
           <details class="dsp-help">
             <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Prontas</summary>
-            <div class="dsp-help-body">Salva a prévia inteira (categoria, marca, fotos, sabores, proteína, letras e layout). Clique na miniatura para usar. Fica neste computador.</div>
+            <div class="dsp-help-body">Salva a prévia inteira (categoria, marca/logo, fotos, sabores, proteína, letras e layout) <b>com as imagens dentro da folha</b>. Clique na miniatura para usar. <b>Salvar em cima</b> atualiza a aberta · <b>Salvar como nova</b> cria outra. Grava no <b>sistema</b> — Centro e Vila veem as mesmas folhas.</div>
           </details>
           <div class="dsp-gal-label">Folhas prontas</div>
           <div class="dsp-gal dsp-gal--folhas" id="dspFolhaGal" role="listbox" aria-label="Folhas salvas"></div>
-          <div class="dsp-gal-add no-print">
-            <button type="button" class="dsp-gal-add-btn" id="dspFolhaSave">+ Salvar folha atual</button>
+          <div class="dsp-gal-add no-print dsp-folha-save-btns">
+            <button type="button" class="dsp-gal-add-btn" id="dspFolhaSave" disabled title="Atualiza a folha que está aberta">Salvar em cima</button>
+            <button type="button" class="dsp-gal-add-btn" id="dspFolhaSaveAs" title="Cria uma folha nova com outro nome">+ Salvar como nova</button>
+            <p class="dsp-gal-add-hint" id="dspFolhaSaveHint">Nenhuma folha aberta — use «Salvar como nova».</p>
           </div>
         </div>
       </div>
@@ -444,6 +456,7 @@ Batata-Doce</textarea>
     }
 
     function loadCustomLogos() {
+      if (window.DspCloud && window.DspCloud.getLogos) return window.DspCloud.getLogos();
       try {
         var raw = localStorage.getItem(LOGO_LS_KEY);
         var list = raw ? JSON.parse(raw) : [];
@@ -454,7 +467,30 @@ Batata-Doce</textarea>
     }
 
     function saveCustomLogos(list) {
+      if (window.DspCloud && window.DspCloud.setLogos) return window.DspCloud.setLogos(list);
       return trySaveLocal(LOGO_LS_KEY, JSON.stringify(list));
+    }
+
+    function cloudPushMidia(tipo, item) {
+      if (!window.DspCloud || !window.DspCloud.upsertMidia || !item) return;
+      window.DspCloud.upsertMidia(tipo, item).catch(function (e) {
+        console.warn("cloud midia", e);
+        window.alert("Não gravou no sistema: " + (e && e.message ? e.message : e));
+      });
+    }
+
+    function refreshAfterCloudPull() {
+      buildLogoGal();
+      buildPetGal();
+      buildIngGal();
+      fillFlavorIcoTarget();
+      buildFlavorIcoGal();
+      buildFolhaGal();
+      if (window.DspLayoutEdit && window.DspLayoutEdit.fillSelect) {
+        window.DspLayoutEdit.fillSelect();
+      }
+      renderAll();
+      syncGal();
     }
 
     function resizeImageToDataUrl(img, maxSide, cb, opts) {
@@ -648,6 +684,7 @@ Batata-Doce</textarea>
     }
 
     function loadCustomPets() {
+      if (window.DspCloud && window.DspCloud.getPets) return window.DspCloud.getPets();
       try {
         var raw = localStorage.getItem(PET_LS_KEY);
         var list = raw ? JSON.parse(raw) : [];
@@ -658,6 +695,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomPets(list) {
+      if (window.DspCloud && window.DspCloud.setPets) return window.DspCloud.setPets(list);
       return trySaveLocal(PET_LS_KEY, JSON.stringify(list));
     }
 
@@ -890,6 +928,7 @@ Batata-Doce</textarea>
     }
 
     function loadCustomIngs() {
+      if (window.DspCloud && window.DspCloud.getIngs) return window.DspCloud.getIngs();
       try {
         var raw = localStorage.getItem(ING_LS_KEY);
         var list = raw ? JSON.parse(raw) : [];
@@ -900,6 +939,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomIngs(list) {
+      if (window.DspCloud && window.DspCloud.setIngs) return window.DspCloud.setIngs(list);
       return trySaveLocal(ING_LS_KEY, JSON.stringify(list));
     }
 
@@ -1098,6 +1138,7 @@ Batata-Doce</textarea>
     }
 
     function loadCustomFlavorIcos() {
+      if (window.DspCloud && window.DspCloud.getFlavorIcos) return window.DspCloud.getFlavorIcos();
       try {
         var raw = localStorage.getItem(FLAVOR_ICO_LS_KEY);
         var obj = raw ? JSON.parse(raw) : {};
@@ -1108,6 +1149,7 @@ Batata-Doce</textarea>
     }
 
     function saveCustomFlavorIcos(obj) {
+      if (window.DspCloud && window.DspCloud.setFlavorIcos) return window.DspCloud.setFlavorIcos(obj);
       return trySaveLocal(FLAVOR_ICO_LS_KEY, JSON.stringify(obj));
     }
 
@@ -1456,32 +1498,99 @@ Batata-Doce</textarea>
       return id;
     }
 
+    function compressDataUrl(dataUrl, maxSide, quality) {
+      try {
+        if (!dataUrl || String(dataUrl).indexOf("data:image") !== 0) return dataUrl || "";
+        maxSide = maxSide || 720;
+        quality = quality || 0.72;
+        var img = new Image();
+        img.src = dataUrl;
+        /* sync path: se já cached no browser, desenha; senão devolve original */
+        if (!img.complete || !img.naturalWidth) return dataUrl;
+        var w = img.naturalWidth;
+        var h = img.naturalHeight;
+        var scale = Math.min(1, maxSide / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = cw;
+        canvas.height = ch;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return dataUrl;
+        ctx.drawImage(img, 0, 0, cw, ch);
+        return canvas.toDataURL("image/jpeg", quality);
+      } catch (e) {
+        return dataUrl || "";
+      }
+    }
+
+    function snapshotFlavorIcosUsed() {
+      var customs = loadCustomFlavorIcos();
+      var out = {};
+      flavorLines().forEach(function (name) {
+        var key = window.DspFlavorLib && window.DspFlavorLib.norm
+          ? window.DspFlavorLib.norm(name)
+          : String(name || "").toLowerCase();
+        if (customs[name]) out[name] = customs[name];
+        else if (customs[key]) out[key] = customs[key];
+        else {
+          Object.keys(customs).forEach(function (k) {
+            var kn = window.DspFlavorLib && window.DspFlavorLib.norm
+              ? window.DspFlavorLib.norm(k)
+              : String(k || "").toLowerCase();
+            if (kn === key && customs[k]) out[k] = customs[k];
+          });
+        }
+      });
+      return out;
+    }
+
     function snapshotSheet() {
       var pet = findById(allPets(), petId);
       var ing = findById(allIngs(), ingId);
+      var logo = logoId ? findById(loadCustomLogos(), logoId) : null;
       var card = document.getElementById("dspCard");
       var pos = proteinRow ? proteinRow.getAttribute("data-pos") : "";
       if (!pos) pos = loadProteinPos();
-      /* só IDs/caminhos — fotos grandes ficam nas bibliotecas (não duplicar no localStorage) */
+      /* guarda mídia DENTRO da folha — senão, se a biblioteca sumir, abre tudo igual */
+      var petData = "";
+      if (pet && pet.dataUrl) petData = compressDataUrl(pet.dataUrl, 720, 0.72);
+      else if (petImg && petImg.src && String(petImg.src).indexOf("data:") === 0) {
+        petData = compressDataUrl(petImg.src, 720, 0.72);
+      }
+      var ingData = "";
+      if (ing && ing.dataUrl) ingData = compressDataUrl(ing.dataUrl, 720, 0.72);
+      else if (ingImg && ingImg.src && String(ingImg.src).indexOf("data:") === 0) {
+        ingData = compressDataUrl(ingImg.src, 720, 0.72);
+      }
+      var logoData = "";
+      if (logo && logo.dataUrl) logoData = compressDataUrl(logo.dataUrl, 480, 0.8);
       return {
         cat: catEl.value,
         brand: brandEl.value,
         logoId: logoId || "",
+        logoLabel: logo ? (logo.label || "") : "",
+        logoDataUrl: logoData,
         petId: petId,
+        petLabel: pet ? (pet.label || "") : "",
         petFile: pet && pet.file ? pet.file : "",
+        petDataUrl: petData,
         petFit: {
           x: Math.round((petFit.x || 0) * 10) / 10,
           y: Math.round((petFit.y || 0) * 10) / 10,
           s: Math.round((petFit.s || 1.05) * 1000) / 1000
         },
         ingId: ingId,
+        ingLabel: ing ? (ing.label || "") : "",
         ingFile: ing && ing.file ? ing.file : "",
+        ingDataUrl: ingData,
         ingFit: {
           x: Math.round((ingFit.x || 0) * 10) / 10,
           y: Math.round((ingFit.y || 0) * 10) / 10,
           s: Math.round((ingFit.s || 1.05) * 1000) / 1000
         },
         flavors: flavorsEl.value,
+        flavorIcos: snapshotFlavorIcosUsed(),
         protein: proteinEl.value,
         proteinPos: pos || "foto",
         freeLayout: !!(card && card.classList.contains("is-free-layout")),
@@ -1498,12 +1607,15 @@ Batata-Doce</textarea>
         logoId = ensureCustomInList(
           loadCustomLogos,
           saveCustomLogos,
-          { id: sheet.logoId, label: sheet.logoLabel || "Logo", dataUrl: sheet.logoDataUrl },
+          { id: sheet.logoId, label: sheet.logoLabel || sheet.brand || "Logo", dataUrl: sheet.logoDataUrl },
           LOGO_MAX_CUSTOM
         ) || "";
       } else if (sheet.logoId) {
         var logoHit = findById(loadCustomLogos(), sheet.logoId);
         logoId = logoHit ? logoHit.id : "";
+        if (!logoId && sheet.logoLabel) {
+          brandEl.value = String(sheet.logoLabel);
+        }
       } else {
         logoId = "";
       }
@@ -1515,19 +1627,25 @@ Batata-Doce</textarea>
           { id: sheet.petId, label: sheet.petLabel || "Pet", dataUrl: sheet.petDataUrl },
           PET_MAX_CUSTOM
         ) || sheet.petId || petId;
-        petImg.src = sheet.petDataUrl;
+        var petRestored = findById(allPets(), petId);
+        if (petRestored) selectPet(petRestored);
+        else {
+          petImg.src = sheet.petDataUrl;
+          loadFitForPet(petId);
+        }
       } else if (sheet.petId) {
         var p = findById(allPets(), sheet.petId);
         if (p) {
-          petId = p.id;
-          petImg.src = petSrc(p);
+          selectPet(p);
         } else if (sheet.petFile) {
           petId = sheet.petId;
           petImg.src = STATIC + sheet.petFile;
+          loadFitForPet(petId);
         }
       } else if (sheet.petFile) {
         petId = sheet.petId || petId;
         petImg.src = STATIC + sheet.petFile;
+        loadFitForPet(petId);
       }
 
       if (sheet.petFit) {
@@ -1661,13 +1779,20 @@ Batata-Doce</textarea>
           cat: sheet.cat,
           brand: sheet.brand,
           logoId: sheet.logoId || "",
+          logoLabel: sheet.logoLabel || "",
+          logoDataUrl: sheet.logoDataUrl || "",
           petId: sheet.petId,
+          petLabel: sheet.petLabel || "",
           petFile: sheet.petFile || "",
+          petDataUrl: sheet.petDataUrl || "",
           petFit: sheet.petFit,
           ingId: sheet.ingId,
+          ingLabel: sheet.ingLabel || "",
           ingFile: sheet.ingFile || "",
+          ingDataUrl: sheet.ingDataUrl || "",
           ingFit: sheet.ingFit,
           flavors: sheet.flavors,
+          flavorIcos: sheet.flavorIcos || null,
           protein: sheet.protein,
           proteinPos: sheet.proteinPos,
           freeLayout: !!sheet.freeLayout,
@@ -1675,7 +1800,7 @@ Batata-Doce</textarea>
         };
       }
       return {
-        v: 2,
+        v: 3,
         kind: "folha",
         sheet: sheet,
         items: model.items || null,
@@ -1754,10 +1879,6 @@ Batata-Doce</textarea>
       var title = (CAT_LABELS[(sheet && sheet.cat) || ""] || ["", ""])[0] || "";
       ctx.fillText(String(title).toUpperCase().slice(0, 14), 4, 11);
 
-      ctx.fillStyle = "#1e3a6e";
-      ctx.font = "bold 9px Poppins, system-ui, sans-serif";
-      ctx.fillText(String((sheet && sheet.brand) || "Marca").slice(0, 12), 4, Math.round(h * 0.26));
-
       function paintExtras() {
         var prot = String((sheet && sheet.protein) || "").replace("%", "");
         if (prot) {
@@ -1781,43 +1902,99 @@ Batata-Doce</textarea>
         }
       }
 
-      var petSrcUrl = "";
-      if (sheet && sheet.petId) {
-        var petHit = findById(allPets(), sheet.petId);
-        if (petHit) petSrcUrl = petSrc(petHit);
+      function paintPetThenExtras() {
+        var petSrcUrl = "";
+        if (sheet && sheet.petDataUrl) petSrcUrl = sheet.petDataUrl;
+        if (!petSrcUrl && sheet && sheet.petId) {
+          var petHit = findById(allPets(), sheet.petId);
+          if (petHit) petSrcUrl = petSrc(petHit);
+        }
+        if (!petSrcUrl && sheet && sheet.petFile) petSrcUrl = STATIC + sheet.petFile;
+        if (!petSrcUrl) {
+          paintExtras();
+          return;
+        }
+        var img = new Image();
+        img.onload = function () {
+          var cx = w * 0.7;
+          var cy = h * 0.42;
+          var r = w * 0.2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+          ctx.restore();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = catColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          paintExtras();
+        };
+        img.onerror = function () {
+          paintExtras();
+        };
+        try {
+          img.src = petSrcUrl;
+        } catch (e3) {
+          paintExtras();
+        }
       }
-      if (!petSrcUrl && sheet && sheet.petFile) petSrcUrl = STATIC + sheet.petFile;
-      if (!petSrcUrl && petImg && petImg.src) petSrcUrl = petImg.src;
-      if (!petSrcUrl) {
-        paintExtras();
+
+      var logoSrc = "";
+      if (sheet && sheet.logoDataUrl) logoSrc = sheet.logoDataUrl;
+      if (!logoSrc && sheet && sheet.logoId) {
+        var logoHit = findById(loadCustomLogos(), sheet.logoId);
+        if (logoHit && logoHit.dataUrl) logoSrc = logoHit.dataUrl;
+      }
+      if (logoSrc) {
+        var logoImg = new Image();
+        logoImg.onload = function () {
+          var maxW = w * 0.55;
+          var maxH = h * 0.14;
+          var lw = logoImg.naturalWidth || 1;
+          var lh = logoImg.naturalHeight || 1;
+          var sc = Math.min(maxW / lw, maxH / lh);
+          var dw = lw * sc;
+          var dh = lh * sc;
+          ctx.drawImage(logoImg, 4, Math.round(h * 0.18), dw, dh);
+          paintPetThenExtras();
+        };
+        logoImg.onerror = function () {
+          ctx.fillStyle = "#1e3a6e";
+          ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+          ctx.fillText(String((sheet && (sheet.logoLabel || sheet.brand)) || "Marca").slice(0, 12), 4, Math.round(h * 0.26));
+          paintPetThenExtras();
+        };
+        try {
+          logoImg.src = logoSrc;
+        } catch (eL) {
+          paintPetThenExtras();
+        }
         return;
       }
-      var img = new Image();
-      img.onload = function () {
-        var cx = w * 0.7;
-        var cy = h * 0.42;
-        var r = w * 0.2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = catColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        paintExtras();
-      };
-      img.onerror = function () {
-        paintExtras();
-      };
-      try {
-        img.src = petSrcUrl;
-      } catch (e3) {
-        paintExtras();
+
+      ctx.fillStyle = "#1e3a6e";
+      ctx.font = "bold 9px Poppins, system-ui, sans-serif";
+      ctx.fillText(String((sheet && sheet.brand) || "Marca").slice(0, 12), 4, Math.round(h * 0.26));
+      paintPetThenExtras();
+    }
+
+    function syncFolhaSaveUi() {
+      var overwrite = document.getElementById("dspFolhaSave");
+      var hint = document.getElementById("dspFolhaSaveHint");
+      if (overwrite) {
+        overwrite.disabled = !folhaActive;
+        overwrite.title = folhaActive
+          ? "Atualiza «" + folhaActive + "»"
+          : "Abra uma folha pronta para atualizar em cima";
+      }
+      if (hint) {
+        hint.textContent = folhaActive
+          ? "Aberta: «" + folhaActive + "». «Como nova» cria outra sem apagar esta."
+          : "Nenhuma folha aberta — use «Salvar como nova».";
       }
     }
 
@@ -1838,6 +2015,16 @@ Batata-Doce</textarea>
         else localStorage.removeItem(FOLHA_ACTIVE_KEY);
       } catch (e4) {}
       buildFolhaGal();
+      /* folhas antigas (só ID, sem foto dentro) — avisa para regravar */
+      var sh = model.sheet || {};
+      var petOk = !!(sh.petDataUrl || sh.petFile || (sh.petId && findById(allPets(), sh.petId)));
+      var logoOk = !sh.logoId || !!(sh.logoDataUrl || findById(loadCustomLogos(), sh.logoId));
+      if (!petOk || !logoOk) {
+        window.alert(
+          "Esta folha foi salva no formato antigo (sem a foto/logo dentro).\n" +
+          "Monte de novo a prévia certa e use «Salvar em cima» — daí fica firme."
+        );
+      }
     }
 
     function buildFolhaGal() {
@@ -1854,6 +2041,7 @@ Batata-Doce</textarea>
         empty.className = "dsp-gal-add-hint";
         empty.textContent = "Nenhuma folha salva ainda.";
         folhaGal.appendChild(empty);
+        syncFolhaSaveUi();
         return;
       }
       names.forEach(function (n) {
@@ -1887,6 +2075,7 @@ Batata-Doce</textarea>
           var all = loadFolhas();
           delete all[n];
           saveFolhas(all);
+          if (window.DspCloud) window.DspCloud.deleteDocumento("folha", n);
           if (folhaActive === n) {
             folhaActive = "";
             try {
@@ -1898,13 +2087,37 @@ Batata-Doce</textarea>
         btn.appendChild(del);
         folhaGal.appendChild(btn);
       });
+      syncFolhaSaveUi();
     }
 
-    function saveCurrentFolha() {
-      var name = window.prompt("Nome da folha pronta:", folhaActive || "");
-      if (!name) return;
-      name = String(name).trim().slice(0, 40);
-      if (!name) return;
+    function saveCurrentFolha(asNew) {
+      asNew = !!asNew;
+      var name = "";
+      if (asNew) {
+        var sugestao = folhaActive ? ("Cópia · " + folhaActive).slice(0, 40) : "";
+        name = window.prompt("Nome da NOVA folha pronta:", sugestao);
+        if (!name) return;
+        name = String(name).trim().slice(0, 40);
+        if (!name) return;
+        if (folhaActive && name === folhaActive) {
+          window.alert(
+            "Esse é o nome da folha aberta.\n" +
+            "Para atualizar ela, use «Salvar em cima».\n" +
+            "Para criar outra, digite um nome diferente."
+          );
+          return;
+        }
+      } else {
+        if (!folhaActive) {
+          window.alert("Nenhuma folha aberta.\nUse «Salvar como nova» para criar a primeira.");
+          return;
+        }
+        if (!window.confirm("Atualizar a folha «" + folhaActive + "» com o que está na prévia?")) {
+          return;
+        }
+        name = folhaActive;
+      }
+
       scrubStoredFolhas();
       var sheet = snapshotSheet();
       var items = null;
@@ -1920,6 +2133,14 @@ Batata-Doce</textarea>
       makeFolhaThumb(sheet, function (thumb) {
         var all = loadFolhas();
         var keys = Object.keys(all);
+        if (asNew && all[name]) {
+          window.alert(
+            "Já existe a folha «" + name + "».\n" +
+            "Escolha outro nome em «Salvar como nova»,\n" +
+            "ou abra essa folha e use «Salvar em cima»."
+          );
+          return;
+        }
         if (!all[name] && keys.length >= FOLHA_MAX) {
           window.alert("Limite de " + FOLHA_MAX + " folhas neste computador. Apague alguma.");
           return;
@@ -1933,7 +2154,6 @@ Batata-Doce</textarea>
         });
         all[name] = entry;
         if (!saveFolhas(all)) {
-          /* tenta sem miniatura */
           entry.thumb = "";
           all[name] = entry;
           if (!saveFolhas(all)) return;
@@ -1942,15 +2162,42 @@ Batata-Doce</textarea>
         try {
           localStorage.setItem(FOLHA_ACTIVE_KEY, name);
         } catch (e6) {}
+        if (window.DspCloud) {
+          var cloudEntry = leanFolhaModel(entry);
+          if (cloudEntry && cloudEntry.sheet) {
+            var sh = Object.assign({}, cloudEntry.sheet);
+            delete sh.logoDataUrl;
+            delete sh.petDataUrl;
+            delete sh.ingDataUrl;
+            cloudEntry.sheet = sh;
+          }
+          var thumbCloud = (cloudEntry && cloudEntry.thumb) || thumb || "";
+          if (cloudEntry) delete cloudEntry.thumb;
+          window.DspCloud.upsertDocumento("folha", name, cloudEntry || entry, thumbCloud);
+        }
         buildFolhaGal();
-        window.alert("Folha «" + name + "» salva.");
+        window.alert(
+          asNew
+            ? "Nova folha «" + name + "» criada — no sistema (duas lojas)."
+            : "Folha «" + name + "» atualizada — no sistema (duas lojas)."
+        );
       });
     }
 
     var folhaSaveBtn = document.getElementById("dspFolhaSave");
+    var folhaSaveAsBtn = document.getElementById("dspFolhaSaveAs");
     if (folhaSaveBtn) {
-      folhaSaveBtn.addEventListener("click", saveCurrentFolha);
+      folhaSaveBtn.addEventListener("click", function () {
+        saveCurrentFolha(false);
+      });
     }
+    if (folhaSaveAsBtn) {
+      folhaSaveAsBtn.addEventListener("click", function () {
+        saveCurrentFolha(true);
+      });
+    }
+    buildFolhaGal();
+
     buildFolhaGal();
 
     buildPetGal();
@@ -2015,6 +2262,7 @@ Batata-Doce</textarea>
                 setIngUploadStatus("Não salvou (memória do navegador cheia).", "err");
                 return;
               }
+              cloudPushMidia("ing", item);
               buildIngGal();
               selectIng(item);
               setIngUploadStatus("OK — foto adicionada: " + item.label, "ok");
@@ -2063,6 +2311,7 @@ Batata-Doce</textarea>
               var key = window.DspFlavorLib.norm(label);
               all[key] = dataUrl;
               if (!saveCustomFlavorIcos(all)) return;
+              cloudPushMidia("flavor_ico", { id: key, label: label, dataUrl: dataUrl });
               buildFlavorIcoGal();
               renderFlavors();
             });
@@ -2100,6 +2349,7 @@ Batata-Doce</textarea>
             };
             var next = customs.concat([item]);
             if (!saveCustomLogos(next)) return;
+            cloudPushMidia("logo", item);
             logoId = item.id;
             buildLogoGal();
             applyBrandVisual();
@@ -2137,6 +2387,7 @@ Batata-Doce</textarea>
             };
             var next = customs.concat([item]);
             if (!saveCustomPets(next)) return;
+            cloudPushMidia("pet", item);
             buildPetGal();
             selectPet(item);
           });
@@ -2213,6 +2464,83 @@ Batata-Doce</textarea>
       var layoutTabOn = !!document.querySelector('.dsp-tab.is-on[data-tab="layout"]');
       window.DspLayoutEdit.setEditMode(layoutTabOn);
     }
+
+    (function bootCloud() {
+      if (!window.DspCloud) return;
+      var banner = document.getElementById("dspCloudBanner");
+      var statusEl = document.getElementById("dspCloudBannerStatus");
+      var btnGo = document.getElementById("dspCloudMigrar");
+      var btnSkip = document.getElementById("dspCloudMigrarSkip");
+
+      function showBanner() {
+        if (banner) banner.hidden = false;
+      }
+      function hideBanner() {
+        if (banner) banner.hidden = true;
+      }
+      function setStatus(msg) {
+        if (!statusEl) return;
+        statusEl.textContent = msg || "";
+        statusEl.hidden = !msg;
+      }
+
+      if (btnSkip) {
+        btnSkip.addEventListener("click", function () {
+          window.DspCloud.setMigrateDone();
+          hideBanner();
+        });
+      }
+      if (btnGo) {
+        btnGo.addEventListener("click", function () {
+          if (!window.confirm("Enviar logos, fotos, ícones, layouts e folhas deste PC para as duas lojas?")) {
+            return;
+          }
+          setStatus("Enviando…");
+          btnGo.disabled = true;
+          window.DspCloud
+            .migrar(window.DspCloud.collectLocalForMigrar())
+            .then(function (res) {
+              window.DspCloud.setMigrateDone();
+              if (res.biblioteca) {
+                window.DspCloud.applyBibliotecaToLocal(res.biblioteca);
+                refreshAfterCloudPull();
+              }
+              var msg =
+                "Pronto: " +
+                (res.midias_ok || 0) +
+                " fotos e " +
+                (res.docs_ok || 0) +
+                " folhas/layouts.";
+              if (res.midias_erro || res.docs_erro) {
+                msg += " Alguns itens falharam.";
+              }
+              setStatus(msg);
+              window.alert(msg);
+              hideBanner();
+            })
+            .catch(function (e) {
+              setStatus("Falhou: " + (e && e.message ? e.message : e));
+              btnGo.disabled = false;
+            });
+        });
+      }
+
+      window.DspCloud
+        .getBiblioteca()
+        .then(function (data) {
+          if (data.vazia) {
+            if (window.DspCloud.localHasContent() && !window.DspCloud.migrateDone()) {
+              showBanner();
+            }
+          } else {
+            window.DspCloud.applyBibliotecaToLocal(data);
+            refreshAfterCloudPull();
+          }
+        })
+        .catch(function (e) {
+          console.warn("DspCloud boot", e);
+        });
+    })();
   })();
   </script>
 </body>

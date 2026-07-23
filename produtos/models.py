@@ -2008,3 +2008,82 @@ class CatalogoDeliveryCategoria(models.Model):
         if self.parent_id:
             return f"{self.parent.nome} › {self.nome}"
         return self.nome
+
+class DispenserMidiaAgro(models.Model):
+    """Biblioteca compartilhada do Dispenser A6 (logos, pets, ingredientes, ícones)."""
+
+    TIPO_LOGO = "logo"
+    TIPO_PET = "pet"
+    TIPO_ING = "ing"
+    TIPO_FLAVOR_ICO = "flavor_ico"
+    TIPO_CHOICES = (
+        (TIPO_LOGO, "Logo"),
+        (TIPO_PET, "Pet"),
+        (TIPO_ING, "Ingrediente"),
+        (TIPO_FLAVOR_ICO, "Ícone de sabor"),
+    )
+
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, db_index=True)
+    item_id = models.CharField(max_length=80, db_index=True)
+    label = models.CharField(max_length=120, blank=True, default="")
+    data_base64 = models.TextField(blank=True, default="")
+    mime = models.CharField(max_length=40, blank=True, default="image/png")
+    atualizado_em = models.DateTimeField(auto_now=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dispenser A6 · mídia"
+        verbose_name_plural = "Dispenser A6 · mídias"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tipo", "item_id"],
+                name="uniq_dispenser_midia_tipo_item",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["tipo", "atualizado_em"], name="dsp_midia_tipo_upd_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.tipo}:{self.item_id}"
+
+    def data_url(self) -> str:
+        b64 = (self.data_base64 or "").strip()
+        if not b64:
+            return ""
+        mime = (self.mime or "image/png").strip() or "image/png"
+        return f"data:{mime};base64,{b64}"
+
+
+class DispenserDocumentoAgro(models.Model):
+    """Folhas prontas e modelos de layout do Dispenser A6 (compartilhados)."""
+
+    TIPO_FOLHA = "folha"
+    TIPO_LAYOUT = "layout"
+    TIPO_CHOICES = (
+        (TIPO_FOLHA, "Folha pronta"),
+        (TIPO_LAYOUT, "Modelo de layout"),
+    )
+
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, db_index=True)
+    nome = models.CharField(max_length=80)
+    payload = models.JSONField(default=dict, blank=True)
+    thumb = models.TextField(blank=True, default="", help_text="Miniatura JPEG/PNG (data URL ou base64).")
+    atualizado_em = models.DateTimeField(auto_now=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dispenser A6 · documento"
+        verbose_name_plural = "Dispenser A6 · documentos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tipo", "nome"],
+                name="uniq_dispenser_doc_tipo_nome",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["tipo", "atualizado_em"], name="dsp_doc_tipo_upd_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.tipo}:{self.nome}"
