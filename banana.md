@@ -1169,15 +1169,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Ainda falta** | Apagar/refatorar ~98 funções + módulos + cron + env URL — **código morto**, não «ainda depende do Mongo para vender». |
 | **Regra assistente** | **Nunca** dizer «Mongo cortado» de novo sem provar: (1) default desligado=true na loja · (2) grep `obter_conexao_mongo` só retorna cedo · (3) Renan testou XML+PDV+salvar sem auth fail no log. |
 
-### WIP — limpeza Entrada NF slice 1 (23/07 · branch `limpeza/entrada-nf-pg-only`)
+### WIP — limpeza Entrada NF slice 1 (**v11.67** · 23/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 código local · **sem commit** (parent agent) |
-| **O que é** | `_entrada_nfe_conexao()` — Entrada NF **nunca** chama `obter_conexao_mongo()` (~19 rotas views) · guards 503 → Postgres rascunho/catálogo |
-| **Arquivo** | `produtos/views.py` (entrada_nota_* listadas no chat) |
-| **Risco** | `dist_dfe`: NSU cursor Mongo não persiste (sempre `ult=0` salvo envio manual) · SEFAZ ok · prévia custo sem histórico compras Mongo (usa PG/SisVale) |
-| **Próximo** | Renan testa staging: XML · rascunho · estoque · financeiro · conferir código · margem |
+| **Status** | ✅ branch `limpeza/entrada-nf-pg-only` · commit a seguir · **ainda NÃO na loja** |
+| **Por quê 1º** | Foi o que derrubou a loja ontem · rascunho já é PG |
+| **O que é** | Entrada NF **nunca** chama `obter_conexao_mongo()` (19 rotas → `_entrada_nfe_conexao`) · 503 → Postgres |
+| **VERSION** | **11.67** |
+| **Risco** | Dist DF-e: NSU Mongo some (consulta SEFAZ ok; cursor manual) · prévia custo sem histórico Mongo |
+| **Testar** | XML · lista rascunhos · estoque · financeiro · conferir código · margem · Salvar |
+| **Loja** | só com frase + senha depois do seu OK |
 
 ### 📦 Deploy loja **v11.66** — corte Mongo morto (23/07 · Renan frase+senha · cuidado dados)
 
