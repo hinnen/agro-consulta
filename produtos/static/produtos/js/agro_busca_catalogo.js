@@ -516,10 +516,19 @@
 
         if (!localRows.length) {
             return serverP.catch(function (err) {
+                var msg = (err && err.message) || 'Falha na busca';
+                var name = (err && err.name) || '';
+                if (
+                    name === 'AbortError' ||
+                    /aborted|abort|timeout|timed?\s*out/i.test(String(msg))
+                ) {
+                    msg =
+                        'Busca demorou demais (servidor ocupado). Feche abas extras e tente de novo.';
+                }
                 return {
                     ok: false,
                     produtos: [],
-                    erro: (err && err.message) || 'Falha na busca',
+                    erro: msg,
                     pacote_fonte: st.fonte,
                     pacote_level: st.level,
                 };

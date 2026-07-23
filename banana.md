@@ -1162,6 +1162,24 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 🚑 23/07 ~17:25 — Fantasmas Ibiúna NF 14988 (dados loja reparados)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | `GM1542-5` / `GM1541-5` / `GM1546-5` sumiram do PDV e Cadastro; NF mostrava o GM |
+| **Causa** | Produtos **existiam** no PG com nome `—` e `codigo_nfe` = ObjectId Mongo (fantasma). Busca por GM/nome não acha. Rascunho NF ainda tinha o GM certo |
+| **Reparação** | **Dados loja** (agro-db) corrigidos agora: nomes + GM + overlay dos 4 pids da NF (`…6d39` `…6d2a` `…6d51` `…6d44`) |
+| **Validar** | Ctrl+F5 · Cadastro/PDV buscar **`GM1542-5`** · deve achar «ibiuna inicial 5kg» |
+| **CPU** | v11.75 remove N+1 da prévia; **v11.76** sobe Gunicorn **2 workers** + msg clara no abort da busca Cadastro — **aguarda senha** |
+
+### 📦 Pacote **v11.76** — 2 workers + msg busca (23/07 · **aguarda senha**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 `hotfix/preview-custo-v1175` · **não** na loja ainda |
+| **VERSION** | **11.76** |
+| **O quê** | `Procfile` workers **2** · Cadastro: timeout ≠ «signal is aborted» |
+
 ### 📦 Deploy loja **v11.75** — prévia Finalizar + CPU agro-db (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
