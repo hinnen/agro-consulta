@@ -1168,8 +1168,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Frase** | *pode subir para produção* (ou equivalente claro) |
 | **Senha** | `99738595` |
 | **Branch código** | `limpeza/entrada-nf-pg-only` (pacote completo) |
-| **VERSION** | **11.69** (loja hoje **v11.66**) |
-| **Rollback pronto** | `rollback/pre-v1169-entrada-nf-kardex` @ `origin/producao` (**cbb6e69**) |
+| **VERSION** | **11.69** · tip **`0b025a9`** (loja hoje **v11.66**) |
+| **Commits** | `8555004` + `90f2711` + `0b025a9` |
+| **Rollback pronto** | `rollback/pre-v1169-entrada-nf-kardex` @ `origin/producao` (**cbb6e69**) · já no remote |
 | **Como reverter** | `git push origin rollback/pre-v1169-entrada-nf-kardex:producao` |
 | **Migrate** | sim — `0063_agronfedistdfecursor` (NSU Dist DF-e no Postgres) |
 | **Assistente no próximo chat** | (1) confirmar frase+senha · (2) merge branch → `producao` · (3) push `producao` · (4) push rollback se ainda não no remote · (5) registrar Live neste CHECKPOINT |
