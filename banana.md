@@ -1177,6 +1177,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 **Versão app (VERSION):** **loja v11.72** · rollback `pre-v1172-entrada-nf-grupos` @ 01ff11d
 
+### 🩹 PDV — grupos A/B (incluso no **v11.72** · ✅ enviado)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Catálogo slim/PG sem `precos_grupos` |
+| **Fix** | slim-v2 + cache v3 + JS |
+| **Loja** | ✅ no ar com v11.72 (aguardar Live + Ctrl+F5) |
+
+### 🩹 Entrada NF — estoque falso + GM/EAN (incluso no **v11.72** · ✅ enviado)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Carimbo só após aplicar · load com GM/EAN |
+| **Loja** | ✅ no ar com v11.72 |
+
 ### 📦 Deploy loja **v11.70** — Entrada NF estoque sem Mongo / lock (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
