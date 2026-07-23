@@ -1608,10 +1608,13 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Agora** | **NUVEM Postgres** · logos/pets/ings/Prontas compartilhados Centro+Vila · migrate `0063` · banner «Enviar para as lojas» · **sem push teste** |
-| **Você** | Ctrl+F5 · se aparecer faixa verde → **Enviar para as lojas** · depois salve Prontas de novo |
-| **Status** | ✅ local worktree `agro-consulta-dispenser` · ⏸ push teste até Renan pedir |
-| **Regra** | Dispenser A6: **não** `git push origin teste` sozinho — só se Renan pedir |
+| **Pacote loja** | **`DSP-NUVEM-v11.69`** · commit após push `teste` (ver mensagem commit) |
+| **Inclui** | Studio A6 + **nuvem Postgres** (logos/pets/ings/ícones/Prontas) · migrate **`0063_dispenser_a6_biblioteca_compartilhada`** · Salvar em cima / como nova · banner migrar Chrome→sistema |
+| **APIs** | `/interno/dispenser-a6/api/biblioteca|midia|documento|migrar/` |
+| **Arquivos-chave** | `views_dispenser_a6.py` · `dispenser_a6_util.py` · `dispenser_cloud.js` · `dispenser_a6_studio.html` · models + urls + `0063` |
+| **Pós-Live** | migrate no Render · Ctrl+F5 · login · faixa «Enviar para as lojas» 1× · salvar Prontas |
+| **Status** | ✅ commit+push `teste` · loja só com frase+senha no chat de produção |
+| **Regra** | Produção: outro chat / pacote · **não** merge inteiro do `teste` |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
