@@ -1166,16 +1166,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`a4539ad`** · aguardar Live no Render |
+| **Status** | ✅ push `producao` **`910290f`** · aguardar Live no Render |
 | **VERSION** | **loja v11.75** (antes **v11.74** / `fb7a30c`) |
 | **Autorização** | *pode subir para produção* + **99738595** |
 | **O que é** | Hotfix prévia Finalizar: sem N+1 em `AjusteRapidoEstoque`; catálogo batch; timeout UI 45s |
 | **Branch** | `hotfix/preview-custo-v1175` → `producao` |
-| **Commit** | tip **`a4539ad`** (fix `325b910`) |
+| **Commit** | tip **`910290f`** (fix `325b910`) |
 | **Backup / reverter** | `rollback/pre-v1175-preview-cpu` @ **`fb7a30c`** |
 | **Como reverter** | `git push origin rollback/pre-v1175-preview-cpu:producao` |
 | **Migrate** | nenhuma nova |
 | **Após Live** | Ctrl+F5 · NF 14988 Finalizar · CPU agro-db deve acalmar |
+
+### ⚠️ 23/07 ~17:12 — Cadastro «produtos sumiram» + abort (Relato Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cadastro busca `GM1542-5` / «ibiuna inicial 5kg» → 0 + *signal is aborted*; PDV acha ibiuna (`GM1542-S`) |
+| **Diagnóstico** | **Não apagou.** Cadastro BCA `skipLocal` + timeout **25s** sob pico CPU agro-db / 1 worker → abort vira «0 resultados». NF 14988 mostra GM **1542-5** (verde); PDV 5kg ensacado = **GM1542-S** (código diferente — busca `-5` não pega `-S`) |
+| **Ação loja** | Badge **v11.75** · Ctrl+F5 · fechar abas extras NF · buscar **`GM1542`** ou **ibiuna** · Network: `/api/buscar/?contexto=cadastro` |
+| **Fix UX (pendente)** | mensagem clara no abort (não «signal is aborted») |
 
 **Versão app (VERSION):** **loja v11.75** · rollback `pre-v1175-preview-cpu` @ fb7a30c
 
