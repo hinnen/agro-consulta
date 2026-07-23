@@ -4529,6 +4529,24 @@
     return ctl.signal;
   }
 
+  /** fetch com timeout — evita skeleton eterno se o worker travar. */
+  async function entradaNfeFetch(url, opts, timeoutMs) {
+    opts = opts || {};
+    const signal = entradaNfeAbortSignalMs(timeoutMs != null ? timeoutMs : 45000);
+    const merged = Object.assign({ credentials: 'same-origin' }, opts);
+    if (signal) merged.signal = signal;
+    try {
+      return await fetch(url, merged);
+    } catch (e) {
+      if (e && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
+        const err = new Error('Tempo esgotado no servidor — atualize (F5) e tente de novo.');
+        err.aborted = true;
+        throw err;
+      }
+      throw e;
+    }
+  }
+
   /** Evita aplicar HTML da prévia se outra chamada sobrescreveu (troca rápida de nota / etapa). */
   let entradaNfePreviewCustoReqGen = 0;
 
@@ -4634,11 +4652,11 @@
       ? entradaNfeExtraUltimo.entrada_custo_escolhas
       : {};
     try {
-      const sig = entradaNfeAbortSignalMs(25000);
-      const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, {
-        credentials: 'same-origin',
-        signal: sig,
-      });
+      const r = await entradaNfeFetch(
+        `${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`,
+        {},
+        25000,
+      );
       const raw = await r.text();
       let j = null;
       try {
@@ -4796,9 +4814,9 @@
         cntEl.classList.add('hidden');
       }
       const name = err && err.name ? String(err.name) : '';
-      if (name === 'AbortError' || name === 'TimeoutError') {
+      if (err && err.aborted || name === 'AbortError' || name === 'TimeoutError') {
         entradaNfeWizCustoHintShow(
-          'Tempo esgotado ao carregar a prévia (rede ou Mongo lento). Saia e abra a nota de novo, ou use «Atualizar» na lista; se persistir, avise o suporte.',
+          'Tempo esgotado ao carregar a prévia. Atualize (F5), abra a nota de novo ou use «Atualizar» na lista.',
           'err',
         );
       } else {
@@ -5569,15 +5587,14 @@
       });
     } catch (_) {}
     try {
-      const r = await fetch(URL_APROVAR_WIZ, {
+      const r = await entradaNfeFetch(URL_APROVAR_WIZ, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify({ rascunho_id: rid, pin }),
-      });
+      }, 90000);
       const j = await r.json();
       if (!r.ok || !j.ok) {
         const err = j.erro || (r.status === 403 ? 'PIN inválido.' : 'Falha ao gravar.');
@@ -5607,8 +5624,10 @@
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeAtualizarAvisoFinanceiroPendente();
       entradaNfeWizardAgendarAtualizarCores();
-    } catch (_) {
-      if (elMsg) elMsg.textContent = 'Erro de rede.';
+    } catch (e) {
+      const msg = (e && e.aborted) ? e.message : 'Erro de rede.';
+      if (elMsg) elMsg.textContent = msg;
+      showMsg(msg, false);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
   }
@@ -5635,21 +5654,24 @@
       btnEst.setAttribute('aria-busy', 'true');
     }
     try {
-      const r = await fetch(URL_REABRIR_NOTA, {
+      const r = await entradaNfeFetch(URL_REABRIR_NOTA, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify({ rascunho_id: rid, pin }),
-      });
+      }, 90000);
       const j = await r.json();
       if (!r.ok || !j.ok) {
         showMsg(j.erro || 'Não foi possível reabrir.', false);
         return;
       }
-      const r2 = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(rid)}`, { credentials: 'same-origin' });
+      const r2 = await entradaNfeFetch(
+        `${URL_RASC_OBTER}?id=${encodeURIComponent(rid)}`,
+        {},
+        30000,
+      );
       const j2 = await r2.json();
       if (!j2.ok || !j2.rascunho) {
         showMsg('Servidor reabriu, mas não foi possível recarregar o rascunho.', false);
@@ -5673,8 +5695,8 @@
           + ' Confirme fornecedor, produtos, códigos de barras, estoque e financeiro de novo; depois grave a finalização com o PIN.',
         true,
       );
-    } catch (_) {
-      showMsg('Erro de rede.', false);
+    } catch (e) {
+      showMsg((e && e.aborted) ? e.message : 'Erro de rede.', false);
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -10106,15 +10128,14 @@
     };
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
-      const r = await fetch(URL_FIN, {
+      const r = await entradaNfeFetch(URL_FIN, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify(body),
-      });
+      }, 90000);
       const j = await r.json();
       if ((r.status === 200 || r.status === 207) && j.rascunho && j.rascunho.ok) {
         const fin = j.financeiro || {};
@@ -10180,7 +10201,7 @@
         showMsg(er, false);
       }
     } catch (e) {
-      showMsg('Erro de rede.', false);
+      showMsg((e && e.aborted) ? e.message : 'Erro de rede.', false);
     } finally {
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
@@ -10240,15 +10261,14 @@
     };
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
-      const r = await fetch(URL_ESTOQUE_AGRO, {
+      const r = await entradaNfeFetch(URL_ESTOQUE_AGRO, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify(body),
-      });
+      }, 90000);
       const j = await r.json().catch(() => ({}));
       if (r.status === 409 && j.erro) {
         showMsg(j.erro, false);
@@ -10282,8 +10302,8 @@
         btnEstoqueAgro.disabled = false;
         btnEstoqueAgro.removeAttribute('aria-busy');
       }
-    } catch (_) {
-      showMsg('Erro de rede.', false);
+    } catch (e) {
+      showMsg((e && e.aborted) ? e.message : 'Erro de rede.', false);
       btnEstoqueAgro.disabled = false;
       btnEstoqueAgro.removeAttribute('aria-busy');
     } finally {
@@ -10377,12 +10397,11 @@
     const fd = new FormData();
     fd.append('arquivo', inp.files[0]);
     try {
-      const r = await fetch(URL_PARSE, {
+      const r = await entradaNfeFetch(URL_PARSE, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: fd,
-      });
+      }, 60000);
       const j = await r.json();
       if (!j.ok) {
         showMsg(j.erro || 'Falha ao ler XML.', false);
@@ -10395,7 +10414,7 @@
       );
       document.querySelector('.tab-btn[data-tab="manual"]')?.click();
     } catch (e) {
-      showMsg('Erro de rede no upload.', false);
+      showMsg((e && e.aborted) ? e.message : 'Erro de rede no upload.', false);
     }
   });
 
@@ -10540,15 +10559,14 @@
     }
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
-      const r = await fetch(URL_DFE, {
+      const r = await entradaNfeFetch(URL_DFE, {
         method: 'POST',
-        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify(ult ? { ult_nsu: ult } : {}),
-      });
+      }, 120000);
       const j = await r.json();
       resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">ultNSU: ${j.ult_nsu} · maxNSU: ${j.max_nsu ?? '—'}</div>`;
       const ultElAfter = document.getElementById('sefaz-ult');
@@ -10645,7 +10663,7 @@
       u.searchParams.set('limit', entradaNfeListaBuscaAtiva() ? '60' : '40');
       u.searchParams.set('filtro', entradaNfeListaFiltro);
       entradaNfeListaBuscaAppendParams(u);
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const r = await entradaNfeFetch(u.toString(), {}, 45000);
       const j = await r.json();
       const itens = j.itens || [];
       if (!itens.length) {
@@ -10916,7 +10934,7 @@
     const btn = document.getElementById('btn-auditoria-fin');
     if (!modal || !body) return;
     modal.classList.remove('hidden');
-    body.innerHTML = '<p class="font-bold text-slate-600">Consultando Mongo…</p>';
+    body.innerHTML = '<p class="font-bold text-slate-600">Consultando financeiro…</p>';
     if (btn) {
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
@@ -10927,7 +10945,7 @@
       u.searchParams.set('filtro', entradaNfeListaFiltro || 'concluida');
       u.searchParams.set('limit', entradaNfeListaBuscaAtiva() ? '60' : '80');
       entradaNfeListaBuscaAppendParams(u);
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const r = await entradaNfeFetch(u.toString(), {}, 45000);
       const raw = await r.text();
       let j = {};
       try {

@@ -259,8 +259,15 @@ def append_eventos_entrada_nf_agro(
         }
         docs = [row_to_doc(row, projection=proj) for row in qs]
     except Exception as exc:
-        # Fallback legado (Mongo ou adaptador) — só se o ORM falhar.
-        logger.warning("ultimas_compras entrada_nf_agro ORM: %s — tenta store", exc)
+        # Com rascunho PG: não cair em find amplo (risco de varrer tabela).
+        logger.warning("ultimas_compras entrada_nf_agro ORM: %s", exc)
+        try:
+            from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+            if agro_entrada_nota_rascunho_postgres():
+                return
+        except Exception:
+            pass
         try:
             from produtos.nfe_entrada_util import _entrada_nota_rascunho_store
 

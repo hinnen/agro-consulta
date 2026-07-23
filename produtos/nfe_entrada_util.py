@@ -1674,11 +1674,12 @@ def _entrada_nfe_financeiro_titulos_por_ids(
     db,
     ids: list[str],
 ) -> list[dict[str, Any]]:
-    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
 
-    if agro_financeiro_usa_postgres():
+    # Insert CP já cai no PG com ERP off — leitura precisa seguir a mesma regra.
+    if agro_financeiro_usa_postgres() or agro_mongo_erp_desligado() or db is None:
         pg = _titulos_pg_por_ids_entrada_nfe(ids)
-        if pg or db is None:
+        if pg or db is None or agro_mongo_erp_desligado():
             return pg
     return _titulos_mongo_por_ids_entrada_nfe(db, ids)
 
@@ -1687,11 +1688,11 @@ def _entrada_nfe_financeiro_titulos_por_rastro(
     db,
     cab: dict,
 ) -> list[dict[str, Any]]:
-    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
 
-    if agro_financeiro_usa_postgres():
+    if agro_financeiro_usa_postgres() or agro_mongo_erp_desligado() or db is None:
         pg = _titulos_pg_por_rastro_entrada_nfe(cab)
-        if pg or db is None:
+        if pg or db is None or agro_mongo_erp_desligado():
             return pg
     return _titulos_mongo_por_rastro_entrada_nfe(db, cab)
 
@@ -1915,6 +1916,70 @@ def _auditoria_entrada_nfe_mongo_query(
     return base
 
 
+def _auditoria_entrada_nfe_docs_pg(
+    *,
+    filtro_lista: str | None,
+    scan_cap: int,
+    foco_suspeitas: bool,
+) -> list[dict[str, Any]]:
+    """Lista documentos para auditoria sem ``$exists`` no adaptador (evita full-scan)."""
+    from produtos.entrada_nota_rascunho_pg_util import row_to_doc
+    from produtos.models import EntradaNotaRascunhoAgro
+
+    f = (filtro_lista or "todas").strip().lower()
+    legacy = {
+        "abertas": "em_andamento",
+        "pendencias": "nota_aberta",
+        "prontas": "estoque",
+        "encerradas": "encerrada_legacy",
+        "descartadas": "descartada",
+    }
+    ff = legacy.get(f, f)
+    qs = EntradaNotaRascunhoAgro.objects.all().order_by("-atualizado_em")
+    if ff == "encerrada" or ff == "encerrada_legacy":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_ENCERRADA)
+    elif ff == "descartada":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_DESCARTADA)
+    elif ff == "estoque":
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_PRONTA)
+    elif ff in ("financeiro", "finalizar"):
+        qs = qs.filter(status=ENTRADA_NFE_STATUS_ESTOQUE_APLICADO)
+    else:
+        qs = qs.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+
+    fetch_n = min(max(int(scan_cap) * 3, 120), 800)
+    proj = {
+        "_id": 1,
+        "status": 1,
+        "cabecalho": 1,
+        "modo": 1,
+        "extra": 1,
+        "criado_em": 1,
+        "atualizado_em": 1,
+    }
+    out: list[dict[str, Any]] = []
+    for row in qs[:fetch_n]:
+        doc = row_to_doc(row, projection=proj)
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        aprov = str(extra.get("aprovacao_wizard_em") or "").strip()
+        fin_ok = bool(extra.get("financeiro_lancado") is True)
+        if ff == "concluida":
+            if not aprov:
+                continue
+            if foco_suspeitas and fin_ok:
+                continue
+        elif ff == "financeiro":
+            if fin_ok:
+                continue
+        elif ff == "finalizar":
+            if not fin_ok or aprov:
+                continue
+        out.append(doc)
+        if len(out) >= scan_cap:
+            break
+    return out
+
+
 def auditar_entrada_nfe_financeiro_lote(
     db,
     *,
@@ -1951,14 +2016,22 @@ def auditar_entrada_nfe_financeiro_lote(
     else:
         scan_cap = min(lim * 2, 300)
     try:
-        cur = (
-            col
-            .find(mongo_q, proj_aud)
-            .sort("atualizado_em", -1)
-            .limit(scan_cap)
-            .max_time_ms(25000)
-        )
-        docs = list(cur)
+        from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
+
+        if agro_entrada_nota_rascunho_postgres():
+            docs = _auditoria_entrada_nfe_docs_pg(
+                filtro_lista=f,
+                scan_cap=scan_cap,
+                foco_suspeitas=foco_suspeitas,
+            )
+        else:
+            cur = (
+                col.find(mongo_q, proj_aud)
+                .sort("atualizado_em", -1)
+                .limit(scan_cap)
+                .max_time_ms(25000)
+            )
+            docs = list(cur)
     except Exception as exc:
         logger.exception("auditar_entrada_nfe_financeiro_lote")
         return {"ok": False, "erro": str(exc)[:400], "itens": [], "resumo": {}}
@@ -2595,8 +2668,9 @@ def _titulos_entrada_nfe_ids_do_rascunho(
     col_pessoa: str | None = None,
 ) -> list[str]:
     """IDs de títulos a pagar desta nota (``financeiro_ids`` gravados ou rastro NF/chave + fornecedor)."""
-    if db is None or not isinstance(doc, dict):
+    if not isinstance(doc, dict):
         return []
+    # ``db`` pode ser None (ERP off) — títulos estão no Postgres.
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
     ids_raw = extra.get("financeiro_ids")

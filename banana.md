@@ -1168,9 +1168,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Sintoma** | Etapa 8 «Montando prévia de custo…» skeleton eterno · trava worker |
 | **Causa** | `append_eventos_entrada_nf_agro` usava `find($or $exists)` → adaptador PG expandia **tabela inteira 3×** (5000 ids) + scan 8000 |
-| **Fix** | Histórico via ORM (status/estoque, lim 400) · prévia PG/ledger · timeout UI 25s · `$exists` não explode `$or` |
-| **VERSION** | **11.73** |
-| **Validar local** | Ctrl+F5 · NF 14988 · Finalizar · prévia em segundos · PIN ok |
+| **Fix P0 (mesmo pacote)** | (1) histórico ORM lim 400 · (2) prévia PG/ledger · (3) PIN pós-aprovação = mesma base da prévia (média C+V) · (4) títulos CP / excluir reabrir no PG com ERP off · (5) auditoria lista ORM sem `$exists` · (6) timeout UI nas ações críticas (prévia 25s, PIN/estoque/fin 90s) |
+| **VERSION** | **11.73** (um deploy — sem 11.74) |
+| **Validar local** | Ctrl+F5 · NF 14988 · Finalizar prévia em segundos · PIN (média C+V) · se der: Salvar a pagar + Reabrir |
 | **Loja** | 📦 aguarda frase + senha |
 
 ### 📦 Deploy loja **v11.72** — Entrada NF v11.71 + grupos A/B (23/07 · Renan frase+senha)

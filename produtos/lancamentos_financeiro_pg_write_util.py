@@ -825,12 +825,14 @@ def excluir_lancamento_dispatch(
     despesa: bool = True,
 ) -> dict[str, Any]:
     """Postgres CP vs Mongo — espelha ``inserir_lancamentos_manual_lote_dispatch``."""
+    from produtos.agro_fonte_config import agro_mongo_erp_desligado
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
     from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
 
-    if financeiro_grava_postgres(despesa):
+    # Mesma regra do insert: ERP morto / db None → Postgres (reabrir NF não pode falhar).
+    if financeiro_grava_postgres(despesa) or agro_mongo_erp_desligado() or db is None:
         r = excluir_lancamento_pg(lancamento_id, usuario_label)
-        if r.get("ok"):
+        if r.get("ok") or agro_mongo_erp_desligado() or db is None:
             return r
         if agro_mongo_escrita_bloqueada():
             return r

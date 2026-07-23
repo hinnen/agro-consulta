@@ -14859,25 +14859,43 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         if p and not p.lower().startswith("local:") and p not in seen_u:
             seen_u.add(p)
             uniq_pids.append(p)
-    docs_map = (
-        _produtos_mongo_map_por_ids_externos_batch(db, client_m, uniq_pids) if mongo_ok else {}
-    )
-    saldos_map = (
-        _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids) if mongo_ok else {}
-    )
-    pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
-    compras_mapa = (
-        _entrada_nfe_compras_mapa_batch_para_spark(
+    # Mesma base da prévia (etapa Finalizar): catálogo + saldo operacional PG/ledger.
+    docs_map: dict[str, dict] = {}
+    for pid in uniq_pids:
+        try:
+            d = _produto_doc_por_id_externo(None, None, pid)
+            docs_map[pid] = d if isinstance(d, dict) else {}
+        except Exception:
+            docs_map[pid] = {}
+    saldos_map: dict[tuple[str, str], Decimal] = {}
+    try:
+        saldos_op = _mapa_saldos_finais_por_produtos(None, None, uniq_pids)
+        for pid in uniq_pids:
+            sp = saldos_op.get(pid) or {}
+            saldos_map[(pid, "centro")] = Decimal(str(sp.get("saldo_centro") or 0)).quantize(
+                Decimal("0.001")
+            )
+            saldos_map[(pid, "vila")] = Decimal(str(sp.get("saldo_vila") or 0)).quantize(
+                Decimal("0.001")
+            )
+    except Exception:
+        logger.warning("aplicar_custos_catalogo saldos", exc_info=True)
+        for pid in uniq_pids:
+            saldos_map[(pid, "centro")] = Decimal("0")
+            saldos_map[(pid, "vila")] = Decimal("0")
+    pin_map: dict = {}
+    try:
+        compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
             db,
             client_m,
             linhas,
             produtos_por_id=docs_map,
-            mongo_max_time_ms=70000,
+            mongo_max_time_ms=8_000,
             excluir_rascunho_id=excluir_rascunho_id,
         )
-        if mongo_ok
-        else {}
-    )
+    except Exception:
+        logger.warning("aplicar_custos_catalogo compras", exc_info=True)
+        compras_mapa = {pid: [] for pid in uniq_pids}
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
