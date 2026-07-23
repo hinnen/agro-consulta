@@ -1169,7 +1169,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Sintoma** | Loja **v11.73** · etapa 8 «Tempo esgotado ao carregar a prévia» (NF 14988) |
 | **Causa** | v11.73 tirou `$exists`, mas ainda lia até **400** notas PG (JSONB linhas) p/ spark — >25s |
 | **Fix** | Prévia + PIN **sem** varrer histórico de compras (média C+V ok; spark usa pad) · Compras: filtro JSON por produto + lim 40–80 |
-| **Commit** | `ffa1dae` |
+| **+ Transferências** | «Erro ao conectar»: API Agro lenta (scan ajustes + `produto_agro_para_row`) → DISTINCT ON + info leve + teto 600 · UI timeout 45s |
+| **Commit** | `ffa1dae` + hotfix transfer |
 | **VERSION** | **11.74** |
 | **Loja** | 📦 aguarda frase + senha |
 
