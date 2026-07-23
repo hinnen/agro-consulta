@@ -1160,49 +1160,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PRÓXIMO CHAT — só autorizar produção (**v11.69** · 23/07 · montado)
+### 📦 Deploy loja **v11.69** — Entrada NF PG + Dist + fiscal + kardex (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **TUDO NO JEITO** — falta **só** frase + senha na **mesma mensagem** |
-| **Frase** | *pode subir para produção* (ou equivalente claro) |
-| **Senha** | `99738595` |
-| **Branch código** | `limpeza/entrada-nf-pg-only` (pacote completo) |
-| **VERSION** | **11.69** · tip **`0b025a9`** (loja hoje **v11.66**) |
-| **Commits** | `8555004` + `90f2711` + `0b025a9` |
-| **Rollback pronto** | `rollback/pre-v1169-entrada-nf-kardex` @ `origin/producao` (**cbb6e69**) · já no remote |
+| **Status** | ✅ push `producao` **`b13b996`** · aguardar Live no Render |
+| **VERSION** | **loja v11.69** (antes **v11.66** / `cbb6e69`) |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **O que é** | Entrada NF só Postgres · Dist DF-e (mTLS/NSU PG) · fiscal modal + NCM NF · kardex ledger · Carregar mais cadastro |
+| **Branch** | `limpeza/entrada-nf-pg-only` → `producao` |
+| **Backup / reverter** | `rollback/pre-v1169-entrada-nf-kardex` @ **cbb6e69** |
 | **Como reverter** | `git push origin rollback/pre-v1169-entrada-nf-kardex:producao` |
-| **Migrate** | sim — `0063_agronfedistdfecursor` (NSU Dist DF-e no Postgres) |
-| **Assistente no próximo chat** | (1) confirmar frase+senha · (2) merge `limpeza/entrada-nf-pg-only` → `producao` · (3) `git push origin producao` · (4) registrar Live neste CHECKPOINT · **não** recriar rollback (já existe) |
+| **Migrate** | `0063_agronfedistdfecursor` (Render no deploy) |
+| **Após Live** | Ctrl+F5 · Entrada NF (sem «serviço legado») · 1 XML · Dist se precisar · kardex venda 1 un. = saída 1 · Cadastro «Carregar mais» |
 
-#### O que sobe (checklist único)
+**Versão app (VERSION):** **loja v11.69** · rollback `pre-v1169-entrada-nf-kardex` @ cbb6e69
 
-| # | Item | Status |
-| - | ---- | ------ |
-| 1 | Entrada NF **só Postgres** — corrige «serviço legado indisponível» (loja v11.66) | ✅ |
-| 2 | Grade Cód./EAN dual (XML em cima · GM/EAN SisVale embaixo) | ✅ |
-| 3 | Dist DF-e: mTLS · sem Signature (fix 215) · 60s/1h · NSU no PG | ✅ |
-| 4 | Fiscal modal: padrão ao abrir produto **existente** vazio | ✅ |
-| 5 | NCM da NF → cadastro/overlay (CFOP compra **não** vira venda) | ✅ |
-| 6 | Kardex ledger: saída = qtd real (não ~39 mil) · baixa/estorno alinhados | ✅ |
-| 7 | Cadastro: «Carregar mais» na busca (60→300) + códigos EAN/cProd NF no índice | ✅ |
-| 8 | Aguarda Renan frase + senha | ⏳ |
-
-**Não sobe:** dump NFC-e / dados locais · não apaga catálogo da loja.
-
-### WIP — Cadastro «Carregar mais» (incluso no v11.69)
+### WIP — Cadastro «Carregar mais» (incluso no v11.69 · ✅ loja)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Botão rodapé lista: limite 60→120→…→300 (cadastro BCA) |
 | **Arquivos** | `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `views.py` |
-| **Loja** | sobe **junto** no v11.69 |
+| **Loja** | ✅ no ar com v11.69 |
 
-### 📦 PACOTE — Histórico estoque / kardex ledger (incluso no **v11.69**)
+### 📦 PACOTE — Histórico estoque / kardex ledger (incluso no **v11.69** · ✅ loja)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ embutido no pacote **v11.69** (antes anunciado como v11.68 em `teste` `fddc5a2`) |
+| **Status** | ✅ embutido no deploy **v11.69** (antes anunciado como v11.68 em `teste` `fddc5a2`) |
 | **Caso** | Venda **#3747** · saída ~39.463 → deve mostrar **1** |
 | **O que é** | Kardex ledger = Δ `saldo_informado` · baixa/estorno congelam `erp_ref` |
 
