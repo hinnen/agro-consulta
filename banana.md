@@ -1162,6 +1162,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 📦 PACOTE LOJA pronto — **v11.74** + DSP-NUVEM (23/07 · aguarda frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Branch** | `deploy/loja-v1174-dsp` (`b639d92`) |
+| **Inclui** | Entrada NF prévia Finalizar · Transferências rápidas · **DSP-NUVEM** (Dispenser A6 nuvem + Prontas) |
+| **Migrate** | **`0064_dispenser_a6_biblioteca_compartilhada`** (loja já tem Dist `0063`) |
+| **VERSION** | **11.74** |
+| **NÃO inclui** | Família embalagens Delivery · merge `teste` |
+| **Loja** | 📦 aguarda *pode subir para produção* + **99738595** |
+
 ### 📦 Deploy loja **v11.73** — Entrada NF Finalizar + Transferências (23/07 · Renan frase+senha)
 
 | Item | Detalhe |
