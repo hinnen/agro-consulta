@@ -1162,39 +1162,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.80** — RH CP auto + status + (v11.79 incluso) (24/07 · **PRONTO · aguarda pausa + senha**)
+### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · **não** piorar balcão · **só** push `producao` no próximo chat com *pode subir para produção* + **99738595** |
-| **VERSION** | **11.80** (loja hoje **v11.78** tip **`8c8bb6d`**) |
-| **Inclui** | **v11.79** (valor_pago sem puxar baixas de outra folha + Log CP PG) · status folha ↔ CP (parcial/pago) · envio auto título CP por funcionário · conta placeholder · cron `rh_envio_cp_automatico` · migration `0006` |
-| **Revisão 24/07** | Diff vs `producao` = 19 arquivos · `py_compile` OK · competência 1/ago→jul+venc5 OK · status helper OK · gates saída/lote intactos · Log PG no código · **default `dia_envio_cp_auto=0`** → cron **não** cria título em ninguém até configurar · Renan jul: `valor_pago=0` / título pago=0,01 (dados já OK) |
-| **NÃO testado no balcão** | POST real baixa CP→status · cron Live · Editar ficha nos PCs da loja |
-| **Risco residual** | Folhas com vale/baixa podem virar **Pago parcial** ao sincronizar (esperado) · PDV/caixa/saída **fora** deste diff (só +cron +Log) |
-| **Branch** | `hotfix/preview-custo-v1175` tip **`4783b89`** |
-| **Backup ao subir** | `git branch rollback/pre-v1180-rh-cp-auto origin/producao` (@ **`8c8bb6d`** / v11.78) |
-| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
+| **Status** | ✅ **Live** (`producao` **`47886e0`**) · autorizado Renan frase+senha |
+| **VERSION** | **loja v11.80** (antes v11.78) |
+| **Inclui** | valor_pago folha corrigido · Log CP PG · status folha ↔ CP · envio auto título (default off) · migration dias · cron RH |
+| **Backup / reverter** | `rollback/pre-v1180-rh-cp-auto` @ **`8c8bb6d`** (v11.78) → `git push origin rollback/pre-v1180-rh-cp-auto:producao` |
 | **Render** | migrate no build · confirmar cron `agro-rh-envio-cp-automatico` (`15 6 * * *`) |
-| **Após Live** | Ctrl+F5 · Log CP · RH Editar dias · **não** precisa pausar PDV além do deploy usual · checklist: saída caixa / vale / Log |
+| **Validar agora** | Ctrl+F5 · badge **v11.80** · Log CP · RH Editar dias (opcional) · vale/saída |
 
-**Versão app (VERSION):** código **11.80** · loja **v11.78** até autorizar
+**Versão app (VERSION):** **loja v11.80** · tip `47886e0`
 
-### 📦 PACOTE LOJA **v11.79** — RH valor_pago + Log CP PG (absorvido no **v11.80**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 absorvido pelo **v11.80** |
-| **Dados loja** | ✅ folha Renan jul/2026 realinhada |
-
-### 📦 Deploy loja **v11.78** — 3 urgentes sem Mongo (24/07 · ✅ enviado)
+### 📦 PACOTE LOJA **v11.79** — absorvido no **v11.80** · ✅
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** (`producao` **`8c8bb6d`**) |
-| **VERSION** | **loja v11.78** |
-| **Inclui** | (1) Saída caixa + lote/Nova saída PG · (2) Gestão ajuste estoque PG · (3) RH vale/salário PG + recria órfão |
-| **Backup / reverter** | `rollback/pre-v1178-mongo-urgente` @ **`5746d6c`** (v11.76) |
+| **Status** | ✅ na loja via **v11.80** |
+
+### 📦 Deploy loja **v11.78** — 3 urgentes sem Mongo (24/07 · ✅ enviado · sucedido por v11.80)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ foi loja · agora **v11.80** |
+| **VERSION** | foi **loja v11.78** |
+| **Backup / reverter** | `rollback/pre-v1178-mongo-urgente` @ **`5746d6c`** · ou pré-v11.80 @ **`8c8bb6d`** |
 
 ### 📦 PACOTE LOJA **v11.77** — saída caixa (incluso no **v11.78** · ✅)
 
