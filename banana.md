@@ -1163,30 +1163,50 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### WIP — Relatórios + planilha cadastro (**v11.85** · 24/07 · pronto senha)
+### 📦 Pacote pronto loja — **v11.83 → v11.86** (24/07 · revisado · aguarda pausa + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | (1) Relatórios: filtros **Categoria + Sub 1/2/3/4** combináveis · agrupar por qualquer nível · (2) Planilha Excel: Sub 2/3/4 + colunas extras + validação faceta (lista suspensa, typo, «Permitir criar novos») |
-| **Ex. relatório** | Rações + gato + granel (sub1 + sub3) |
-| **VERSION** | **v11.85** (loja Live **v11.82**; CP **v11.83/v11.84** também aguardam senha) |
-| **Arquivos** | `relatorios_*` · `cadastro_planilha_util.py` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `views.py` · `banana-roteiro.md` |
-| **Validar** | Local · Relatórios (combinar filtros) · Excel ↓/↑ cadastro |
-| **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
+| **Loja hoje** | **v11.82** Live |
+| **Sobe (cherry nesta ordem)** | `9f21bdf` **v11.83** · `e90be3f` **v11.84** · `297b936` **v11.85** · **HEAD v11.86** (perf relatórios + BI troca loja) |
+| **Inclui** | CP `!` órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · **1 passagem** nos relatórios (sem 2× ranking) · BI notebook troca Centro/Vila sem login |
+| **NÃO mexe** | PDV checkout · caixa · NFC-e · estoque saldo · finalizar venda |
+| **Risco loja aberta** | Só **restart** Render (~1–3 min). Relatórios/planilha/CP UI. **Não** importar Excel de preço no pico. |
+| **Migrate** | **nenhuma** neste pacote |
+| **Backup** | criar `rollback/pre-v1186-…` @ HEAD loja antes do cherry |
+| **Próximo chat** | Renan pausa vendas → *«pode subir produção»* + **99738595** → assistente cherry + push `producao` |
+| **Branch código** | `hotfix/preview-custo-v1175` (push feito) |
 
-### WIP — CP ! fora do cadastro na linha (24/07 · **v11.83** local)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | ! laranja na coluna Plano + tooltip · Empréstimo dual **não** marca fora do cadastro |
-| **Loja** | aguarda senha (v11.82 Live; este patch em cima) |
-
-### WIP — CP exibe nome oficial na lista (24/07 · **v11.84**)
+### 🩹 BI — trocar loja notebook novo (incluso **v11.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Coluna Plano mostra alias oficial (ex. `2.1.1.1.2 — Salários` → **Salários**); banco inalterado · tooltip «gravado: …» |
-| **Commit** | `e90be3f` · aguarda senha (junto com v11.83) |
+| **Sintoma** | Notebook novo: BI em Centro; mudar p/ Vila → «Não foi possível trocar a loja» |
+| **Fix** | `api_pdv_deposito` sem `@login_required` · CSRF + erro claro no BI |
+| **Arquivos** | `views.py` · `dashboard_gerencial.html` |
+
+### WIP — Relatórios + planilha (**v11.85** + perf **v11.86**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Filtros cat + sub 1–4 · planilha colunas extras · facetas · single-pass ranking |
+| **Testes assistente** | `py_compile` OK · unit filtros OK · `manage.py check` OK (só warnings SSL local) |
+| **Review** | CP SAFE · relatórios CAUTION→mitigado (1 passagem) · planilha sem migrate; preço Mongo só se importar Excel |
+
+### WIP — CP ! fora do cadastro (**v11.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | ! laranja na coluna Plano · Empréstimo dual sem falso órfão |
+| **Review** | SAFE · só UI CP · sem gravar título |
+
+### WIP — CP nome oficial (**v11.84**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Lista mostra alias oficial · tooltip «gravado: …» · banco intacto |
+| **Commit** | `e90be3f` |
+| **Review** | SAFE |
 
 ### ✅ Deploy loja **v11.82** — Cadastro oficial planos CP (24/07 · Renan senha OK)
 
