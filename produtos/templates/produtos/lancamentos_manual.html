@@ -193,6 +193,33 @@
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const API_TEXTO = "{% url 'api_lancamentos_interpretar_texto' %}";
     const API_CRIAR = "{% url 'api_lancamentos_criar_manual_lote' %}";
+    const API_CRIAR_PLANO = "{% url 'api_lancamentos_planos_cadastro_criar' %}";
+
+    function csrfManual() {
+      const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    async function cadastrarPlanoLote(hint) {
+      const nome = window.prompt('Nome do novo plano de contas:', hint || '');
+      if (nome == null) return null;
+      const n = String(nome || '').trim();
+      if (n.length < 2) { alert('Nome muito curto.'); return null; }
+      try {
+        const r = await fetch(API_CRIAR_PLANO, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfManual() },
+          body: JSON.stringify({ nome: n, tipo: 'outra' }),
+        });
+        const j = await r.json();
+        if (!j || !j.ok || !j.plano) { alert((j && j.erro) || 'Falha ao cadastrar.'); return null; }
+        return j.plano;
+      } catch (_) {
+        alert('Falha de rede.');
+        return null;
+      }
+    }
     const URL_LISTA_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
     const URL_LISTA_RECEBER = "{% url 'lancamentos_contas_receber' %}";
     let loteIdempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
@@ -279,9 +306,22 @@
     function addRow() {
       rowCount++;
       const idStr = `row-${rowCount}`;
-      const html = `<tr class="linha bg-white"><td class="px-2 py-0"><div class="relative sug-wrap" data-sug-campo="plano"><input type="text" id="in-plano-${idStr}" class="w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-black" placeholder="Buscar..."><input type="hidden" id="in-plano-id-${idStr}"><ul id="dd-plano-${idStr}" class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul></div></td><td class="px-2 py-0 td-valor-manual"><input type="text" class="in-valor w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-sm font-black tabular-nums text-slate-700" placeholder="0,00" oninput="calcTotal()"></td><td class="px-2 py-0"><input type="text" class="in-desc w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-bold text-slate-500" placeholder="..."></td><td class="px-2 py-0 td-boleto-manual"><input type="text" class="in-boleto w-full h-10 px-2 rounded-lg border-2 border-slate-100 text-[10px] font-mono font-bold text-slate-700" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off" title="Só em «Pagar»: linha digitável ou código de barras"></td><td class="px-2 py-0 text-center"><button type="button" onclick="if(document.querySelectorAll('.linha').length > 1) { this.closest('tr').remove(); calcTotal(); }" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 font-black transition-all">×</button></td></tr>`;
+      const html = `<tr class="linha bg-white"><td class="px-2 py-0"><div class="flex gap-1 items-stretch"><div class="relative sug-wrap flex-1 min-w-0" data-sug-campo="plano"><input type="text" id="in-plano-${idStr}" class="w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-black" placeholder="Plano cadastrado…"><input type="hidden" id="in-plano-id-${idStr}"><ul id="dd-plano-${idStr}" class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul></div><button type="button" class="btn-novo-plano shrink-0 w-10 h-10 rounded-lg border-2 border-emerald-200 bg-emerald-50 text-emerald-800 font-black text-lg" title="Cadastrar plano">+</button></div></td><td class="px-2 py-0 td-valor-manual"><input type="text" class="in-valor w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-sm font-black tabular-nums text-slate-700" placeholder="0,00" oninput="calcTotal()"></td><td class="px-2 py-0"><input type="text" class="in-desc w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-bold text-slate-500" placeholder="..."></td><td class="px-2 py-0 td-boleto-manual"><input type="text" class="in-boleto w-full h-10 px-2 rounded-lg border-2 border-slate-100 text-[10px] font-mono font-bold text-slate-700" placeholder="Linha / barras" maxlength="60" inputmode="numeric" autocomplete="off" title="Só em «Pagar»: linha digitável ou código de barras"></td><td class="px-2 py-0 text-center"><button type="button" onclick="if(document.querySelectorAll('.linha').length > 1) { this.closest('tr').remove(); calcTotal(); }" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 font-black transition-all">×</button></td></tr>`;
       tbody.insertAdjacentHTML('beforeend', html);
-      attachSuggest(tbody.lastElementChild.querySelector('.sug-wrap'));
+      const tr = tbody.lastElementChild;
+      attachSuggest(tr.querySelector('.sug-wrap'));
+      const btnN = tr.querySelector('.btn-novo-plano');
+      if (btnN) {
+        btnN.addEventListener('click', async () => {
+          const wrap = tr.querySelector('.sug-wrap[data-sug-campo="plano"]');
+          const inp = wrap && wrap.querySelector('input[type="text"]');
+          const hid = wrap && wrap.querySelector('input[type="hidden"]');
+          const p = await cadastrarPlanoLote(inp ? inp.value : '');
+          if (!p || !inp) return;
+          inp.value = p.nome || '';
+          if (hid) hid.value = String(p.id || '');
+        });
+      }
     }
 
     function calcTotal() {

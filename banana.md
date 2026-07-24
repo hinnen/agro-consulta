@@ -1162,6 +1162,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 📦 PACOTE LOJA **v11.82** — Cadastro oficial planos CP (24/07 · **pronto · aguarda senha**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Código no branch · **não** subir sem frase + senha (lojas abertas) |
+| **VERSION** | **v11.82** |
+| **O quê** | Cadastro Postgres planos + aliases · filtro CP agrupa · alerta órfãos + mapear (só alias, **não** reescreve título) · Nova saída/lote: só cadastrado + **+** · RH default **Salários** |
+| **Segurança loja** | Validação de plano **só** no lote manual UI (`exigir_plano_cadastrado`) — **RH / NF / juros / recorrência não bloqueiam** · fail-open se migrate ainda sem seed · APIs órfãos tolerantes |
+| **Migrate** | **0065** cria tabelas + seed (~44 planos / ~40 aliases) — **0 UPDATE** em `TituloFinanceiroAgro` |
+| **Simulação PG loja** | 57 grafias → ~44 checkboxes · 12 merges (CN/SN/Salários/…) · órfãos reais 0 |
+| **Pós-deploy** | Render migrate · Ctrl+F5 CP · conferir `.env` `AGRO_RH_PLANO_SALARIO_FOLHA` (ideal `Salários` ou vazio) |
+| **Testado** | `manage.py check` · smoke validação · simulação local + readonly loja · revisão paths |
+
+### WIP — Cadastro oficial planos CP (24/07 · local · sem Mongo · sem renomear títulos)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Absorvido no pacote **v11.82** (acima) |
+
 ### 📦 Deploy loja **v11.81** — vencimento salário mês seguinte (24/07 · ✅ enviado)
 
 | Item | Detalhe |
@@ -1172,7 +1191,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Backup / reverter** | `rollback/pre-v1181-venc-salario` @ **`e6cce08`** (v11.80) → `git push origin rollback/pre-v1181-venc-salario:producao` |
 | **Validar agora** | Ctrl+F5 · badge **v11.81** · CP vencimentos (já corrigidos nos dados) |
 
-**Versão app (VERSION):** **loja v11.81** · tip `a138101`
+**Versão app (VERSION):** **pacote pronto v11.82** (aguarda senha) · loja ainda **v11.81** · tip `a138101`
 
 ### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado · sucedido por v11.81)
 

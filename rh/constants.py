@@ -6,7 +6,7 @@ SALARIO_PLANO_ID = "salario_folha"
 
 # Texto exato do plano na saída de caixa / Mongo (DtoLancamento.PlanoDeConta)
 PLANO_ADIANTAMENTO_CANONICO = "2.1.1.1.1 — Adiantamento de Salário ( Vale )"
-PLANO_SALARIO_CANONICO = "2.1.1.1.2 — Salários"
+PLANO_SALARIO_CANONICO = "Salários"
 
 REF_TIPO_MONGO_DTO_LANCAMENTO = "MONGO_DtoLancamento"
 

@@ -579,6 +579,7 @@ def inserir_lancamentos_manual_lote_pg(
     recorrente: bool = False,
     recorrente_modo: str = "sempre",
     recorrente_parcelas: int = 1,
+    exigir_plano_cadastrado: bool = False,
 ) -> dict[str, Any]:
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas:
@@ -656,6 +657,24 @@ def inserir_lancamentos_manual_lote_pg(
         if not plano_nome:
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
+        # Só Nova saída / lote manual (UI). RH, NF, juros, recorrência NÃO bloqueiam.
+        if exigir_plano_cadastrado:
+            try:
+                from produtos.plano_conta_agro_util import (
+                    cadastro_planos_disponivel,
+                    validar_plano_para_lancamento_manual,
+                )
+
+                if cadastro_planos_disponivel():
+                    vplano = validar_plano_para_lancamento_manual(plano_nome, plano_id_raw)
+                    if not vplano.get("ok"):
+                        erros.append({"linha": n, "erro": vplano.get("erro") or "Plano inválido"})
+                        continue
+                    plano_nome = str(vplano.get("nome") or plano_nome).strip()
+                    if vplano.get("plano_conta_id"):
+                        plano_id_raw = vplano.get("plano_conta_id")
+            except Exception:
+                logger.exception("validar_plano_para_lancamento_manual")
 
         ln_empresa = _fin_ln_txt(ln, "empresa_nome", empresa_nome)
         ln_pessoa = _fin_ln_txt(ln, "pessoa_nome", pessoa_nome)

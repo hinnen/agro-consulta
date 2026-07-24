@@ -314,6 +314,30 @@
   }
   .sv-plano-mini-btn:hover { background: #f1f3f5; border-color: var(--cor-primaria); }
   .sv-planos-block { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
+  .sv-planos-orfaos-alerta {
+    margin: 0 0 12px; padding: 12px 14px; border-radius: 10px;
+    background: #fff7ed; border: 1px solid #fdba74; color: #9a3412;
+  }
+  .sv-planos-orfaos-alerta[hidden] { display: none !important; }
+  .sv-planos-orfaos-txt { margin: 6px 0 0; font-size: 0.9rem; line-height: 1.35; }
+  .sv-plano-orfao-tag {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700; background: #ffedd5; color: #c2410c;
+  }
+  .sv-planos-map-modal {
+    position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, 0.45); padding: 1rem;
+  }
+  .sv-planos-map-modal[hidden] { display: none !important; }
+  .sv-planos-map-panel {
+    width: min(36rem, 100%); max-height: min(80dvh, 40rem); overflow: auto;
+    background: #fff; border-radius: 12px; padding: 1rem 1.1rem; box-shadow: 0 12px 40px rgba(0,0,0,.2);
+  }
+  .sv-planos-map-row {
+    display: grid; grid-template-columns: 1fr; gap: 8px; margin: 12px 0; padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .sv-planos-map-row select { width: 100%; min-height: 2.5rem; font-size: 1rem; }
   .sv-planos-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; margin-bottom: 10px; }
   .sv-planos-title { font-weight: 700; font-size: 1rem; color: var(--cor-texto-principal); margin: 0; }
   .sv-plano-chks {
@@ -455,6 +479,11 @@
       Com <strong>Em aberto</strong> e filtro só por <strong>pagamento</strong>, a lista pode ficar vazia — use <strong>Todos</strong> ou <strong>Quitados</strong>.
     </p>
     <div class="sv-planos-block" aria-label="Planos de contas">
+      <div id="sv-planos-orfaos-alerta" class="sv-planos-orfaos-alerta" hidden role="status">
+        <strong id="sv-planos-orfaos-titulo">Planos fora do cadastro</strong>
+        <p id="sv-planos-orfaos-txt" class="sv-planos-orfaos-txt"></p>
+        <button type="button" class="sv-btn sv-btn-secondary" id="sv-planos-orfaos-btn" style="margin-top:8px;">Definir planos corretos</button>
+      </div>
       <div class="sv-planos-head">
         <div>
           <p class="sv-planos-title">Planos de contas</p>
@@ -587,6 +616,21 @@
   </div>
 </div>
 
+<div id="sv-planos-map-modal" class="sv-planos-map-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sv-planos-map-titulo">
+  <div class="sv-planos-map-panel">
+    <h2 id="sv-planos-map-titulo" style="margin:0 0 6px;font-size:1.15rem;">Definir planos corretos</h2>
+    <p class="sv-sub" style="margin:0 0 8px;">
+      Estes nomes aparecem em títulos mas <strong>não</strong> estão no cadastro.
+      Escolha o plano oficial. <strong>Não apaga nem muda valores</strong> — só associa o nome para filtrar junto.
+    </p>
+    <div id="sv-planos-map-lista"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-planos-map-fechar">Fechar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-planos-map-salvar">Salvar mapeamentos</button>
+    </div>
+  </div>
+</div>
+
 <div id="sv-modal-edit-lanc" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-edit-lanc-titulo">
   <div class="sv-modal-card" style="max-width: min(40rem, 96vw);">
     <h2 id="sv-modal-edit-lanc-titulo">Editar lançamento</h2>
@@ -670,6 +714,9 @@
   const API_LISTA = "{% url 'api_lancamentos_lista' %}";
   const API_LOG = "{% url 'api_lancamentos_log' %}";
   const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
+  const API_PLANOS_ORFAOS = "{% url 'api_lancamentos_planos_orfaos' %}";
+  const API_PLANOS_CADASTRO = "{% url 'api_lancamentos_planos_cadastro' %}";
+  const API_PLANOS_MAPEAR = "{% url 'api_lancamentos_planos_mapear' %}";
   const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
   const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
@@ -1651,6 +1698,9 @@
         chk.type = 'checkbox';
         chk.checked = !excl.has(key);
         chk.dataset.planoKey = key;
+        if (Array.isArray(item.grafias) && item.grafias.length) {
+          chk.dataset.planoGrafias = item.grafias.join('\n');
+        }
         chk.addEventListener('change', () => {
           const ex2 = getExcludedSet();
           if (chk.checked) ex2.delete(key);
@@ -1661,16 +1711,124 @@
         });
         wrap.appendChild(chk);
         const span = document.createElement('span');
-        span.title = nome;
+        const grafias = Array.isArray(item.grafias) ? item.grafias : [];
+        span.title = grafias.length > 1 ? grafias.join(' · ') : nome;
         span.textContent = nome || '—';
         wrap.appendChild(span);
+        if (item.orfao) {
+          const tag = document.createElement('span');
+          tag.className = 'sv-plano-orfao-tag';
+          tag.textContent = 'fora do cadastro';
+          wrap.appendChild(tag);
+        }
         cont.appendChild(wrap);
       });
       if (!(data.planos || []).length) {
         cont.innerHTML = '<span style="font-size:0.9rem;color:var(--cor-texto-secundario);">Nenhum plano distinto no filtro atual.</span>';
       }
+      carregarAlertaOrfaos();
     } catch (_) {
       cont.innerHTML = '<span style="font-size:0.9rem;color:#b91c1c;font-weight:600;">Erro ao carregar planos.</span>';
+    }
+  }
+
+  async function carregarAlertaOrfaos() {
+    const box = document.getElementById('sv-planos-orfaos-alerta');
+    const txt = document.getElementById('sv-planos-orfaos-txt');
+    if (!box || !txt) return;
+    try {
+      const r = await fetch(API_PLANOS_ORFAOS, { credentials: 'same-origin', cache: 'no-store' });
+      const data = await r.json();
+      const lista = (data && data.orfaos) || [];
+      window.__svOrfaosPlanos = lista;
+      if (!lista.length) {
+        box.hidden = true;
+        return;
+      }
+      const amostra = lista.slice(0, 4).map((o) => o.grafia).join(', ');
+      const mais = lista.length > 4 ? ` e mais ${lista.length - 4}` : '';
+      txt.textContent = `${lista.length} nome(s) fora do cadastro (ex.: ${amostra}${mais}). Clique para associar ao plano oficial.`;
+      box.hidden = false;
+    } catch (_) {
+      box.hidden = true;
+    }
+  }
+
+  async function abrirModalMapearOrfaos() {
+    const modal = document.getElementById('sv-planos-map-modal');
+    const listaEl = document.getElementById('sv-planos-map-lista');
+    if (!modal || !listaEl) return;
+    listaEl.innerHTML = '<p class="sv-sub">Carregando…</p>';
+    modal.hidden = false;
+    let orfaos = window.__svOrfaosPlanos || [];
+    let cadastro = [];
+    try {
+      const [ro, rc] = await Promise.all([
+        fetch(API_PLANOS_ORFAOS, { credentials: 'same-origin', cache: 'no-store' }),
+        fetch(API_PLANOS_CADASTRO, { credentials: 'same-origin', cache: 'no-store' }),
+      ]);
+      const jo = await ro.json();
+      const jc = await rc.json();
+      orfaos = (jo && jo.orfaos) || [];
+      cadastro = (jc && jc.planos) || [];
+      window.__svOrfaosPlanos = orfaos;
+    } catch (_) {
+      listaEl.innerHTML = '<p class="sv-sub" style="color:#b91c1c;">Falha ao carregar.</p>';
+      return;
+    }
+    if (!orfaos.length) {
+      listaEl.innerHTML = '<p class="sv-sub">Nenhum plano fora do cadastro agora.</p>';
+      return;
+    }
+    const opts = cadastro.map((p) => {
+      const n = (p.nome || '').replace(/"/g, '&quot;');
+      return `<option value="${n}">${n}</option>`;
+    }).join('');
+    listaEl.innerHTML = orfaos.map((o, idx) => {
+      const g = String(o.grafia || '');
+      const esc = g.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      return `<div class="sv-planos-map-row" data-grafia="${esc}">
+        <div><strong>${esc}</strong> <span class="sv-sub">· ${o.titulos || 0} título(s)</span></div>
+        <label class="sv-sub" for="sv-map-sel-${idx}">Plano oficial</label>
+        <select id="sv-map-sel-${idx}" data-map-grafia="${esc}">
+          <option value="">— escolher —</option>
+          ${opts}
+        </select>
+      </div>`;
+    }).join('');
+  }
+
+  async function salvarMapeamentosOrfaos() {
+    const sels = document.querySelectorAll('#sv-planos-map-lista select[data-map-grafia]');
+    let okN = 0;
+    let errMsg = '';
+    for (const sel of sels) {
+      const grafia = sel.getAttribute('data-map-grafia') || '';
+      const oficial = (sel.value || '').trim();
+      if (!grafia || !oficial) continue;
+      try {
+        const r = await fetch(API_PLANOS_MAPEAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify({ grafia, oficial }),
+        });
+        const j = await r.json();
+        if (j && j.ok) okN += 1;
+        else errMsg = (j && j.erro) || 'Falha ao mapear';
+      } catch (_) {
+        errMsg = 'Falha de rede';
+      }
+    }
+    if (okN) {
+      document.getElementById('sv-planos-map-modal').hidden = true;
+      await carregarPlanos();
+      page = 1;
+      if (typeof recarregarAposFiltro === 'function') recarregarAposFiltro({ planos: false });
+      else if (typeof carregar === 'function') carregar(false);
+      alert(okN === 1 ? '1 plano associado.' : `${okN} planos associados.`);
+    } else {
+      alert(errMsg || 'Escolha ao menos um plano oficial.');
     }
   }
 
@@ -2471,6 +2629,15 @@
     saveExcludedSet(keys);
     recarregarAposFiltro({ planos: true });
   });
+  const btnOrfaos = document.getElementById('sv-planos-orfaos-btn');
+  if (btnOrfaos) btnOrfaos.addEventListener('click', abrirModalMapearOrfaos);
+  const btnMapFechar = document.getElementById('sv-planos-map-fechar');
+  if (btnMapFechar) btnMapFechar.addEventListener('click', () => {
+    const m = document.getElementById('sv-planos-map-modal');
+    if (m) m.hidden = true;
+  });
+  const btnMapSalvar = document.getElementById('sv-planos-map-salvar');
+  if (btnMapSalvar) btnMapSalvar.addEventListener('click', salvarMapeamentosOrfaos);
   document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
     btn.addEventListener('click', () => aplicarPrefiltro(btn.dataset.pref || ''));
   });
