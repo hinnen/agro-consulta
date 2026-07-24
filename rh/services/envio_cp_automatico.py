@@ -2,11 +2,15 @@
 Lançamento automático do título de salário no CP.
 
 Regra (por funcionário):
-- ``dia_envio_cp_auto`` (1–28): no calendário, nesse dia o sistema gera o título.
-- Competência = **mês anterior** ao mês do envio (salário do mês que acabou).
-- ``dia_vencimento_salario`` (1–28): vencimento no **mês do envio**.
-- Conta = placeholder «ADICIONAR BANCO/CONTA» (preenchida só no pagamento).
-- ``dia_envio_cp_auto = 0`` → desligado.
+- ``dia_envio_cp_auto`` (1–28): nesse dia o sistema gera/atualiza o título. 0 = off.
+- ``dia_vencimento_salario`` (1–28): dia do vencimento no ciclo.
+- Conta = placeholder «ADICIONAR BANCO/CONTA» até o pagamento.
+
+Ciclo (exemplos):
+- Envio **28**, vencimento **1/7/14** → competência = **mês do envio**;
+  vencimento = dia V no **mês seguinte** (ex.: 28/07 → folha 07/2026 venc. 01/08 ou 07/08).
+- Envio **1**, vencimento **5** → competência = **mês anterior**;
+  vencimento = dia V no **mês do envio** (ex.: 01/08 → folha 07/2026 venc. 05/08).
 """
 
 from __future__ import annotations
@@ -31,17 +35,48 @@ def _clamp_dia(dia: int, ano: int, mes: int) -> int:
     if d < 1:
         d = 1
     ultimo = monthrange(ano, mes)[1]
-    return min(d, ultimo, 28) if d > 28 else min(d, ultimo)
+    return min(max(d, 1), ultimo)
 
 
-def competencia_e_vencimento_para_envio(hoje: date, *, dia_vencimento: int) -> tuple[date, date]:
-    """No mês do envio: competência = mês anterior; vencimento = dia V neste mês."""
-    if hoje.month == 1:
-        comp = date(hoje.year - 1, 12, 1)
+def _add_month(d: date, months: int = 1) -> date:
+    y, m = d.year, d.month + months
+    while m > 12:
+        y += 1
+        m -= 12
+    while m < 1:
+        y -= 1
+        m += 12
+    return date(y, m, 1)
+
+
+def data_vencimento_salario_competencia(competencia: date, dia_vencimento: int) -> date:
+    """Salário da competência C vence no dia V do **mês seguinte** a C."""
+    nxt = _add_month(primeiro_dia_mes(competencia), 1)
+    dv = _clamp_dia(dia_vencimento or 5, nxt.year, nxt.month)
+    return date(nxt.year, nxt.month, dv)
+
+
+def competencia_e_vencimento_para_envio(
+    hoje: date,
+    *,
+    dia_envio: int,
+    dia_vencimento: int,
+) -> tuple[date, date]:
+    """Define competência + vencimento no dia de envio automático."""
+    envio = int(dia_envio or 0)
+    venc_dia = int(dia_vencimento or 5)
+    if venc_dia > envio:
+        # Envio cedo (ex. dia 1), vencimento depois no mesmo mês civil → folha do mês anterior.
+        if hoje.month == 1:
+            comp = date(hoje.year - 1, 12, 1)
+        else:
+            comp = date(hoje.year, hoje.month - 1, 1)
+        dv = _clamp_dia(venc_dia, hoje.year, hoje.month)
+        venc = date(hoje.year, hoje.month, dv)
     else:
-        comp = date(hoje.year, hoje.month - 1, 1)
-    dv = _clamp_dia(dia_vencimento or 5, hoje.year, hoje.month)
-    venc = date(hoje.year, hoje.month, dv)
+        # Envio tarde (ex. 28) e vencimento cedo (1/7/14) → folha do mês do envio, vence no mês seguinte.
+        comp = primeiro_dia_mes(hoje)
+        venc = data_vencimento_salario_competencia(comp, venc_dia)
     return primeiro_dia_mes(comp), venc
 
 
@@ -53,8 +88,8 @@ def processar_envio_cp_automatico_funcionario(
     forcar: bool = False,
 ) -> dict[str, Any]:
     """
-    Gera título CP da competência anterior se hoje for o dia de envio (ou forcar=True).
-    Idempotente se o título já existir.
+    Gera ou atualiza título CP no dia de envio (ou forcar=True).
+    Idempotente se o título já existir (ainda assim realinha vencimento).
     """
     hoje = hoje or timezone.localdate()
     dia_envio = int(funcionario.dia_envio_cp_auto or 0)
@@ -68,7 +103,9 @@ def processar_envio_cp_automatico_funcionario(
         return {"ok": True, "skipped": True, "motivo": "inativo"}
 
     comp, venc = competencia_e_vencimento_para_envio(
-        hoje, dia_vencimento=int(funcionario.dia_vencimento_salario or 5)
+        hoje,
+        dia_envio=dia_envio or 28,
+        dia_vencimento=int(funcionario.dia_vencimento_salario or 5),
     )
 
     with transaction.atomic():
@@ -85,6 +122,10 @@ def processar_envio_cp_automatico_funcionario(
                 "competencia": comp.isoformat(),
                 "erro": r.get("erro") or "Falha ao gerar título",
             }
+        from rh.services.salario_financeiro_mongo import sincronizar_valores_titulo_salario_mongo
+
+        if (fech.mongo_lancamento_salario_id or "").strip():
+            sincronizar_valores_titulo_salario_mongo(fech)
         return {
             "ok": True,
             "funcionario_id": funcionario.pk,

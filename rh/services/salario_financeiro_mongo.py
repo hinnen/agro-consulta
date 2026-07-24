@@ -392,7 +392,8 @@ def garantir_titulo_salario_fechamento(
 ) -> dict[str, Any]:
     """
     Garante título único de salário no CP para a competência.
-    Usa vencimento já salvo na folha ou último dia do mês; conta placeholder + forma em branco.
+    Vencimento: salvo na folha ou dia configurado no mês seguinte à competência;
+    conta placeholder + forma em branco.
     """
     mid = (fech.mongo_lancamento_salario_id or "").strip()
     if mid:
@@ -409,7 +410,17 @@ def garantir_titulo_salario_fechamento(
             ),
         }
 
-    dv = fech.data_vencimento_pagamento or ultimo_dia_mes(fech.competencia)
+    from rh.services.envio_cp_automatico import data_vencimento_salario_competencia
+
+    dia_v = int(getattr(fech.funcionario, "dia_vencimento_salario", None) or 5)
+    dv_cfg = data_vencimento_salario_competencia(fech.competencia, dia_v)
+    dv = fech.data_vencimento_pagamento or dv_cfg
+    # Legado: título/folha com vencimento = último dia da competência (ex. 31/07) → usa dia config.
+    if dv == ultimo_dia_mes(fech.competencia):
+        dv = dv_cfg
+    if fech.data_vencimento_pagamento != dv:
+        fech.data_vencimento_pagamento = dv
+        fech.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
     ph = _banco_placeholder_para_select()
     bid = str(ph.get("id") or "").strip()
     bn = str(ph.get("nome") or "").strip() or "ADICIONAR BANCO"

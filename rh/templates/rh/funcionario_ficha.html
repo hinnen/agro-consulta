@@ -99,11 +99,11 @@
           Contas a pagar:
           {% if funcionario.dia_envio_cp_auto %}
           envio automático todo dia <strong>{{ funcionario.dia_envio_cp_auto }}</strong>
-          (salário do <strong>mês anterior</strong>), vencimento dia <strong>{{ funcionario.dia_vencimento_salario }}</strong>
+          (folha do mês do envio; vencimento no mês seguinte), vencimento dia <strong>{{ funcionario.dia_vencimento_salario }}</strong>
           · conta = ADICIONAR CONTA até pagar.
           {% else %}
           envio automático <strong>desligado</strong> (0) — gere o título no passo 2 da folha.
-          Vencimento sugerido dia <strong>{{ funcionario.dia_vencimento_salario }}</strong>.
+          Vencimento sugerido: dia <strong>{{ funcionario.dia_vencimento_salario }}</strong> do mês seguinte à competência.
           {% endif %}
           <a href="{% url 'rh_funcionario_editar' funcionario.pk %}" class="text-emerald-800 font-black underline ml-1">Configurar</a>
         </p>

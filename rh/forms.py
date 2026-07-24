@@ -69,12 +69,13 @@ class FuncionarioForm(forms.ModelForm):
         )
         self.fields["dia_envio_cp_auto"].label = "Dia envio automático → CP"
         self.fields["dia_envio_cp_auto"].help_text = (
-            "1–28: nesse dia do mês o sistema lança o salário do mês anterior no Contas a pagar. "
+            "1–28: nesse dia do mês o sistema lança/atualiza o título no Contas a pagar. "
+            "Com vencimento 1–14 e envio 28 = folha do mês do envio, vence no mês seguinte. "
             "0 = não envia sozinho (só manual no passo 2)."
         )
         self.fields["dia_vencimento_salario"].label = "Dia vencimento salário (CP)"
         self.fields["dia_vencimento_salario"].help_text = (
-            "1–28: vencimento do título no mês do envio. Conta/banco fica em branco "
+            "1–28: dia do vencimento (ex.: 1, 7 ou 14). Conta/banco fica em branco "
             "(ADICIONAR CONTA) até o pagamento."
         )
 

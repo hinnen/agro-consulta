@@ -60,7 +60,7 @@
       <p>Opcional: salário desta competência nas <strong>contas a pagar</strong>, com <strong>vencimento</strong>.</p>
       <p><strong>Vencimento</strong> para gerar; <strong>forma</strong> e <strong>conta/banco</strong> podem ficar em branco (usa ADICIONAR CONTA) até quitar.</p>
       <p>Cada <strong>vale</strong> (ficha ou caixa) e cada <strong>pagamento</strong> no CP somam no <strong>Pago</strong> do mesmo título. Quando o título zera no CP, a folha vai para status <strong>Pago</strong>.</p>
-      <p>Envio automático: configure na ficha (Editar) o <strong>dia de envio</strong> e o <strong>dia de vencimento</strong> por funcionário — no dia de envio o sistema lança o salário do <strong>mês anterior</strong>.</p>
+      <p>Envio automático: na ficha (Editar) configure <strong>dia de envio</strong> e <strong>dia de vencimento</strong>. Ex.: envio 28 + vencimento 1 → no dia 28 lança a folha <strong>daquele mês</strong> com vencimento dia 1 do <strong>mês seguinte</strong>.</p>
       {% if fechamento.status != 'ABERTO' and not fechamento.mongo_lancamento_salario_id %}
       <p class="text-amber-950 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">Competência não está aberta e ainda não há título — use <strong>Gerar título</strong> abaixo ou <strong>Reabrir folha</strong> (passo 3).</p>
       {% elif fechamento.status != 'ABERTO' and fechamento.mongo_lancamento_salario_id %}
