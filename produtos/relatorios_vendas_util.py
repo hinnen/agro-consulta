@@ -202,26 +202,47 @@ def _rotulo_sem(valor: object, vazio: str) -> str:
     return t if t else vazio
 
 
-def _match_rotulo(valor: object, filtro: str | None) -> bool:
-    """True se filtro vazio ou se valor bate (casefold)."""
-    raw = (filtro or "").strip()
-    if not raw:
+def _as_filtro_lista(filtro: object) -> list[str]:
+    """Normaliza str | list | None → lista de rótulos não vazios."""
+    if filtro is None:
+        return []
+    if isinstance(filtro, (list, tuple, set)):
+        out: list[str] = []
+        for x in filtro:
+            t = str(x or "").strip()
+            if t and t not in out:
+                out.append(t)
+        return out
+    t = str(filtro or "").strip()
+    if not t:
+        return []
+    # aceita "Gato,Cachorro" num único param
+    parts = [p.strip() for p in t.split(",")]
+    return [p for p in parts if p]
+
+
+def _match_rotulos(valor: object, filtros: object) -> bool:
+    """True se sem filtro, ou se valor está em qualquer item da lista (OR)."""
+    lista = _as_filtro_lista(filtros)
+    if not lista:
         return True
-    return _rotulo_sem(valor, "").casefold() == raw.casefold()
+    v = _rotulo_sem(valor, "").casefold()
+    return any(v == f.casefold() for f in lista)
 
 
-def _escolher_rotulo(candidatos: list[str], filtro: str | None) -> str:
-    """Devolve o rótulo canônico da lista que bate com o filtro (vazio se não achar)."""
-    raw = (filtro or "").strip()
-    if not raw:
-        return ""
-    for c in candidatos:
-        if c.casefold() == raw.casefold():
-            return c
-    return ""
+def _escolher_rotulos(candidatos: list[str], filtros: object) -> list[str]:
+    """Rótulos canônicos da lista que batem com o pedido (multi)."""
+    out: list[str] = []
+    for raw in _as_filtro_lista(filtros):
+        for c in candidatos:
+            if c.casefold() == raw.casefold():
+                if c not in out:
+                    out.append(c)
+                break
+    return out
 
 
-# Dimensões de catálogo usadas nos filtros (AND entre as preenchidas).
+# Dimensões de catálogo: AND entre níveis; OR dentro do mesmo nível (multi-select).
 _DIMS_CATALOGO: tuple[tuple[str, str, str], ...] = (
     ("categoria", "categorias", "Sem categoria"),
     ("subcategoria", "subcategorias", "Sem subcategoria"),
@@ -233,12 +254,19 @@ _DIMS_CATALOGO: tuple[tuple[str, str, str], ...] = (
 _AGRUPAR_OK = frozenset(d[0] for d in _DIMS_CATALOGO)
 
 
-def filtros_catalogo_request(request) -> dict[str, str | None]:
-    """Lê GET categoria / subcategoria / subcategoria_2..4."""
-    out: dict[str, str | None] = {}
+def filtros_catalogo_request(request) -> dict[str, list[str] | None]:
+    """Lê GET multi: categoria=…&categoria=… (ou vírgula)."""
+    out: dict[str, list[str] | None] = {}
     for campo, _lista, _vazio in _DIMS_CATALOGO:
-        raw = (request.GET.get(campo) or "").strip()
-        out[campo] = raw or None
+        brutos: list[str] = []
+        for raw in request.GET.getlist(campo):
+            brutos.extend(_as_filtro_lista(raw))
+        # dedupe preservando ordem
+        vistos: list[str] = []
+        for b in brutos:
+            if b not in vistos:
+                vistos.append(b)
+        out[campo] = vistos or None
     return out
 
 
@@ -249,9 +277,9 @@ def _meta_dims(m: dict) -> dict[str, str]:
     }
 
 
-def _passa_filtros(dims: dict[str, str], filtros: dict[str, str | None]) -> bool:
+def _passa_filtros(dims: dict[str, str], filtros: dict[str, object]) -> bool:
     for campo, _lista, _vazio in _DIMS_CATALOGO:
-        if not _match_rotulo(dims.get(campo), filtros.get(campo)):
+        if not _match_rotulos(dims.get(campo), filtros.get(campo)):
             return False
     return True
 
@@ -264,6 +292,14 @@ def _label_agrupar(modo: str) -> str:
         "subcategoria_3": "Subcategoria 3",
         "subcategoria_4": "Subcategoria 4",
     }.get(modo, "Grupo")
+
+
+def _norm_filtros_kwargs(**kwargs: object) -> dict[str, list[str] | None]:
+    out: dict[str, list[str] | None] = {}
+    for campo, _lista, _vazio in _DIMS_CATALOGO:
+        lista = _as_filtro_lista(kwargs.get(campo))
+        out[campo] = lista or None
+    return out
 
 
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
@@ -411,19 +447,19 @@ def ranking_produtos(
     ordenar: str = "valor",
     sentido: str = "mais",
     limite: int = 100,
-    categoria: str | None = None,
-    subcategoria: str | None = None,
-    subcategoria_2: str | None = None,
-    subcategoria_3: str | None = None,
-    subcategoria_4: str | None = None,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
 ) -> list[dict]:
-    filtros = {
-        "categoria": categoria,
-        "subcategoria": subcategoria,
-        "subcategoria_2": subcategoria_2,
-        "subcategoria_3": subcategoria_3,
-        "subcategoria_4": subcategoria_4,
-    }
+    filtros = _norm_filtros_kwargs(
+        categoria=categoria,
+        subcategoria=subcategoria,
+        subcategoria_2=subcategoria_2,
+        subcategoria_3=subcategoria_3,
+        subcategoria_4=subcategoria_4,
+    )
     rows = _agg_itens_por_produto(desde, ate)
     reverse = sentido != "menos"
     key = "qtd" if ordenar == "qtd" else "valor"
@@ -463,29 +499,29 @@ def facetas_categoria_sub(
     desde: datetime,
     ate: datetime,
     *,
-    categoria: str | None = None,
-    subcategoria: str | None = None,
-    subcategoria_2: str | None = None,
-    subcategoria_3: str | None = None,
-    subcategoria_4: str | None = None,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
     ordenar: str = "valor",
     sentido: str = "mais",
 ) -> tuple[dict[str, Any], list[dict]]:
     """
     Uma passagem: ranking do período + listas/rótulos ativos + linhas já filtradas.
-    Evita 2× agg/meta nos reports (mais vendidos / margem / ABC).
+    Multi-select = OR no nível; AND entre níveis.
     """
     rows = ranking_produtos(
         desde, ate, ordenar=ordenar, sentido=sentido, limite=0
     )
-    pedidos = {
-        "categoria": categoria,
-        "subcategoria": subcategoria,
-        "subcategoria_2": subcategoria_2,
-        "subcategoria_3": subcategoria_3,
-        "subcategoria_4": subcategoria_4,
-    }
-    ativos: dict[str, str] = {}
+    pedidos = _norm_filtros_kwargs(
+        categoria=categoria,
+        subcategoria=subcategoria,
+        subcategoria_2=subcategoria_2,
+        subcategoria_3=subcategoria_3,
+        subcategoria_4=subcategoria_4,
+    )
+    ativos: dict[str, list[str]] = {}
     listas: dict[str, list[str]] = {}
     base = rows
     for campo, lista_key, vazio in _DIMS_CATALOGO:
@@ -494,10 +530,10 @@ def facetas_categoria_sub(
             key=lambda x: x.casefold(),
         )
         listas[lista_key] = valores
-        escolhido = _escolher_rotulo(valores, pedidos.get(campo))
-        ativos[campo] = escolhido
-        if escolhido:
-            base = [r for r in base if _match_rotulo(r.get(campo), escolhido)]
+        escolhidos = _escolher_rotulos(valores, pedidos.get(campo))
+        ativos[campo] = escolhidos
+        if escolhidos:
+            base = [r for r in base if _match_rotulos(r.get(campo), escolhidos)]
     for i, r in enumerate(base, start=1):
         r["pos"] = i
     return {**listas, **ativos}, base
@@ -518,43 +554,42 @@ def vendas_por_grupo(
     ate: datetime,
     *,
     agrupar: str = "categoria",
-    categoria: str | None = None,
-    subcategoria: str | None = None,
-    subcategoria_2: str | None = None,
-    subcategoria_3: str | None = None,
-    subcategoria_4: str | None = None,
+    categoria: object = None,
+    subcategoria: object = None,
+    subcategoria_2: object = None,
+    subcategoria_3: object = None,
+    subcategoria_4: object = None,
 ) -> tuple[list[dict], dict]:
-    """Agrupa vendas por uma dimensão; filtros AND nas demais."""
+    """Agrupa vendas por uma dimensão; filtros AND entre níveis (OR no nível)."""
     modo = (agrupar or "categoria").strip().lower()
     if modo not in _AGRUPAR_OK:
         modo = "categoria"
-    filtros = {
-        "categoria": categoria,
-        "subcategoria": subcategoria,
-        "subcategoria_2": subcategoria_2,
-        "subcategoria_3": subcategoria_3,
-        "subcategoria_4": subcategoria_4,
-    }
+    filtros = _norm_filtros_kwargs(
+        categoria=categoria,
+        subcategoria=subcategoria,
+        subcategoria_2=subcategoria_2,
+        subcategoria_3=subcategoria_3,
+        subcategoria_4=subcategoria_4,
+    )
     agg = _agg_itens_por_produto(desde, ate)
     pids = [str(r["produto_id_externo"]) for r in agg]
     meta = mapa_produtos_meta(pids)
 
-    # Facetas a partir dos itens do período (antes dos filtros), refinando em cascata.
     itens_dims: list[dict[str, str]] = []
     for r in agg:
         m = meta.get(str(r["produto_id_externo"])) or {}
         itens_dims.append(_meta_dims(m))
 
-    ativos: dict[str, str] = {}
+    ativos: dict[str, list[str]] = {}
     listas: dict[str, list[str]] = {}
     base_dims = itens_dims
     for campo, lista_key, vazio in _DIMS_CATALOGO:
         valores = sorted({d.get(campo) or vazio for d in base_dims}, key=lambda x: x.casefold())
         listas[lista_key] = valores
-        escolhido = _escolher_rotulo(valores, filtros.get(campo))
-        ativos[campo] = escolhido
-        if escolhido:
-            base_dims = [d for d in base_dims if _match_rotulo(d.get(campo), escolhido)]
+        escolhidos = _escolher_rotulos(valores, filtros.get(campo))
+        ativos[campo] = escolhidos
+        if escolhidos:
+            base_dims = [d for d in base_dims if _match_rotulos(d.get(campo), escolhidos)]
 
     vazio_modo = next(v for c, _l, v in _DIMS_CATALOGO if c == modo)
     buckets: dict[str, dict] = {}
@@ -642,7 +677,11 @@ def curva_abc(
     lim = max(1, int(lim_tela or 500))
     truncado = (not todos) and n_total > lim
     mostrar = out if todos else out[:lim]
-    ativos = [facetas.get(c) for c, _l, _v in _DIMS_CATALOGO if facetas.get(c)]
+    ativos = [
+        facetas.get(c)
+        for c, _l, _v in _DIMS_CATALOGO
+        if _as_filtro_lista(facetas.get(c))
+    ]
     if len(ativos) >= 2:
         recorte = "filtros"
     elif ativos:
