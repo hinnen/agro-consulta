@@ -1719,6 +1719,13 @@
         fill(fMarcaEl, j.marcas, 'Todas');
         fill(fCatEl, j.categorias, 'Todas');
         fill(fFornEl, j.fornecedores, 'Todos');
+        try {
+          if (!window._agroFacetas) window._agroFacetas = {};
+          window._agroFacetas.marcas = j.marcas || [];
+          window._agroFacetas.categorias = j.categorias || [];
+          window._agroFacetas.fornecedores = j.fornecedores || [];
+          window._agroFacetas.subcategorias = j.subcategorias || [];
+        } catch (eFac) { /* ignore */ }
       })
       .catch(function () { facetasCarregadas = false; });
   }
@@ -2169,13 +2176,19 @@
     if (btnExp && C.URL_EXPORT_XLSX) {
       var modalExp = document.getElementById('cadastro-export-modal');
       var backExp = document.getElementById('cadastro-export-back');
+      var elPresets = document.getElementById('cadastro-export-presets');
       var elCols = document.getElementById('cadastro-export-colunas');
+      var elColsStatus = document.getElementById('cadastro-export-cols-status');
+      var elColsDetails = document.getElementById('cadastro-export-cols-details');
       var elCats = document.getElementById('cadastro-export-categorias');
       var inpCatBusca = document.getElementById('cadastro-export-cat-busca');
+      var btnCatLimpar = document.getElementById('cadastro-export-cat-limpar');
       var elCatStatus = document.getElementById('cadastro-export-cat-status');
       var btnExpBaixar = document.getElementById('cadastro-export-baixar');
       var btnExpFec = document.getElementById('cadastro-export-fechar');
       var exportCatsCache = null;
+      var exportCatsSelected = {};
+      var exportPresetAtual = 'essencial';
       var exportColsDef = [
         { key: 'id', label: 'ID', fixa: true, bloqueada: true, oculta: true },
         { key: 'codigo_gm', label: 'Código GM' },
@@ -2199,17 +2212,45 @@
         { key: 'cfop', label: 'CFOP' },
         { key: 'csosn', label: 'CSOSN' },
         { key: 'origem', label: 'Origem' },
-        { key: 'estoque_min_centro', label: 'Estoque mín. Centro' },
-        { key: 'estoque_max_centro', label: 'Estoque máx. Centro' },
-        { key: 'estoque_min_vila', label: 'Estoque mín. Vila' },
-        { key: 'estoque_max_vila', label: 'Estoque máx. Vila' },
-        { key: 'ativo', label: 'Ativo (Sim/Não)' }
+        { key: 'estoque_min_centro', label: 'Est. mín. Centro' },
+        { key: 'estoque_max_centro', label: 'Est. máx. Centro' },
+        { key: 'estoque_min_vila', label: 'Est. mín. Vila' },
+        { key: 'estoque_max_vila', label: 'Est. máx. Vila' },
+        { key: 'ativo', label: 'Ativo' }
+      ];
+      var exportPresets = [
+        {
+          id: 'essencial',
+          label: 'Essencial',
+          hint: 'GM, nome, marca, cat, sub 1–2, barras, preços',
+          keys: ['id', 'codigo_gm', 'nome', 'marca', 'categoria', 'subcategoria', 'subcategoria_2', 'codigo_barras', 'preco_custo', 'preco_venda']
+        },
+        {
+          id: 'classificacao',
+          label: 'Classificação',
+          hint: 'Marca, cat, 4 subs, fornecedor, unidade',
+          keys: ['id', 'codigo_gm', 'nome', 'marca', 'categoria', 'subcategoria', 'subcategoria_2', 'subcategoria_3', 'subcategoria_4', 'fornecedor', 'unidade']
+        },
+        {
+          id: 'precos',
+          label: 'Só preços',
+          hint: 'GM, nome, custo, venda, cashback',
+          keys: ['id', 'codigo_gm', 'nome', 'preco_custo', 'preco_venda', 'cashback_percentual']
+        },
+        {
+          id: 'completa',
+          label: 'Completa',
+          hint: 'Todas as colunas',
+          keys: exportColsDef.map(function (c) { return c.key; })
+        }
       ];
 
       function abrirExport() {
         if (!modalExp || !backExp) return;
+        montarPresetsExport();
+        aplicarPresetExport(exportPresetAtual || 'essencial', false);
         montarColunasExport();
-        carregarCategoriasExport();
+        carregarCategoriasExport(true);
         modalExp.classList.remove('hidden');
         backExp.classList.remove('hidden');
       }
@@ -2219,17 +2260,94 @@
         backExp.classList.add('hidden');
       }
 
+      function keysPreset(id) {
+        var p = exportPresets.filter(function (x) { return x.id === id; })[0];
+        return p ? p.keys.slice() : exportPresets[0].keys.slice();
+      }
+
+      function montarPresetsExport() {
+        if (!elPresets) return;
+        elPresets.innerHTML = exportPresets.map(function (p) {
+          var on = p.id === exportPresetAtual ? ' is-on' : '';
+          return '<button type="button" class="cadastro-export-preset' + on + ' px-2 py-2 rounded-xl border-2 border-slate-200 bg-white text-left hover:border-emerald-400" data-preset="' + escapeHtml(p.id) + '">' +
+            '<span class="block text-xs font-black uppercase text-slate-800">' + escapeHtml(p.label) + '</span>' +
+            '<span class="block text-[10px] font-semibold text-slate-500 leading-snug mt-0.5">' + escapeHtml(p.hint) + '</span></button>';
+        }).join('');
+        elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            aplicarPresetExport(btn.getAttribute('data-preset'), true);
+          });
+        });
+      }
+
+      function aplicarPresetExport(id, syncChecks) {
+        exportPresetAtual = id || 'essencial';
+        if (elPresets) {
+          elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
+            btn.classList.toggle('is-on', btn.getAttribute('data-preset') === exportPresetAtual);
+          });
+        }
+        if (syncChecks) {
+          var set = {};
+          keysPreset(exportPresetAtual).forEach(function (k) { set[k] = true; });
+          if (elCols) {
+            elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+              var k = cb.getAttribute('data-key');
+              if (cb.disabled) {
+                cb.checked = true;
+                return;
+              }
+              cb.checked = !!set[k];
+            });
+          }
+          atualizarStatusCols();
+        }
+      }
+
+      function atualizarStatusCols() {
+        if (!elColsStatus || !elCols) return;
+        var n = 0;
+        elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+          if (cb.checked || cb.disabled) n += 1;
+        });
+        var preset = exportPresets.filter(function (p) { return p.id === exportPresetAtual; })[0];
+        elColsStatus.textContent = n + ' coluna(s) · pacote «' + (preset ? preset.label : '—') + '»' +
+          (exportPresetAtual === 'completa' ? '' : ' — abra Personalizar se precisar mudar');
+      }
+
       function montarColunasExport() {
         if (!elCols) return;
+        var set = {};
+        keysPreset(exportPresetAtual).forEach(function (k) { set[k] = true; });
         elCols.innerHTML = exportColsDef.map(function (c) {
-          var chk = c.fixa ? ' checked disabled' : ' checked';
-          var hint = c.oculta
-            ? ' <span class="text-[10px] font-black uppercase text-slate-400">(oculta no Excel)</span>'
-            : (c.bloqueada ? ' <span class="text-[10px] font-black uppercase text-slate-400">(bloqueada no Excel)</span>' : '');
-          return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-slate-50">' +
-            '<input type="checkbox" class="cadastro-export-col-cb w-5 h-5" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
+          var on = c.fixa || set[c.key];
+          var chk = c.fixa ? ' checked disabled' : (on ? ' checked' : '');
+          var hint = c.oculta ? ' <span class="text-[9px] text-slate-400">(oculta)</span>' : '';
+          return '<label class="flex items-center gap-1.5 min-h-[32px] px-1 rounded hover:bg-slate-50">' +
+            '<input type="checkbox" class="cadastro-export-col-cb w-4 h-4" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
             '<span>' + escapeHtml(c.label) + hint + '</span></label>';
         }).join('');
+        elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+          if (cb.disabled) return;
+          cb.addEventListener('change', function () {
+            exportPresetAtual = 'personalizado';
+            if (elPresets) {
+              elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
+                btn.classList.remove('is-on');
+              });
+            }
+            atualizarStatusCols();
+          });
+        });
+        atualizarStatusCols();
+      }
+
+      function nCatsMarcadas() {
+        var n = 0;
+        Object.keys(exportCatsSelected).forEach(function (k) {
+          if (exportCatsSelected[k]) n += 1;
+        });
+        return n;
       }
 
       function renderCategoriasExport(lista) {
@@ -2238,40 +2356,103 @@
         var filtrada = (lista || []).filter(function (c) {
           return !q || String(c).toLowerCase().indexOf(q) >= 0;
         });
-        if (!filtrada.length) {
-          elCats.innerHTML = '<p class="text-slate-500 p-2">Nenhuma categoria' + (q ? ' com esse filtro' : '') + '.</p>';
+        if (!lista || !lista.length) {
+          elCats.innerHTML = '<p class="text-slate-500 p-3 text-sm font-semibold">Nenhuma categoria no cadastro ainda.</p>';
+        } else if (!filtrada.length) {
+          elCats.innerHTML = '<p class="text-slate-500 p-3 text-sm font-semibold">Nenhuma com esse filtro.</p>';
         } else {
           elCats.innerHTML = filtrada.map(function (cat) {
-            return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-emerald-50/80">' +
-              '<input type="checkbox" class="cadastro-export-cat-cb w-5 h-5" value="' + escapeHtml(String(cat)) + '" />' +
-              '<span>' + escapeHtml(String(cat)) + '</span></label>';
+            var v = String(cat);
+            var on = !!exportCatsSelected[v];
+            return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-emerald-50/80 cursor-pointer">' +
+              '<input type="checkbox" class="cadastro-export-cat-cb w-5 h-5 shrink-0" value="' + escapeHtml(v) + '"' + (on ? ' checked' : '') + ' />' +
+              '<span class="font-semibold text-slate-800">' + escapeHtml(v) + '</span></label>';
           }).join('');
+          elCats.querySelectorAll('.cadastro-export-cat-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+              if (cb.checked) exportCatsSelected[cb.value] = true;
+              else delete exportCatsSelected[cb.value];
+              atualizarStatusCats(lista);
+            });
+          });
         }
-        if (elCatStatus) {
-          elCatStatus.textContent = filtrada.length + ' categoria(s) listada(s). Nenhuma marcada = todas.';
-        }
+        atualizarStatusCats(lista);
       }
 
-      function carregarCategoriasExport() {
-        if (exportCatsCache) {
+      function atualizarStatusCats(lista) {
+        if (!elCatStatus) return;
+        var total = (lista || exportCatsCache || []).length;
+        var marc = nCatsMarcadas();
+        if (!total) {
+          elCatStatus.textContent = 'Sem categorias — o Excel sairá com todos os produtos.';
+          return;
+        }
+        elCatStatus.textContent = total + ' categoria(s) · ' +
+          (marc ? marc + ' marcada(s) — só essas no Excel' : 'nenhuma marcada = todas no Excel');
+      }
+
+      function carregarCategoriasExport(force) {
+        if (exportCatsCache && !force) {
           renderCategoriasExport(exportCatsCache);
           return;
         }
-        if (!C.URL_FACETAS) return;
         if (elCatStatus) elCatStatus.textContent = 'Carregando categorias…';
-        fetch(C.URL_FACETAS, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        if (elCats) elCats.innerHTML = '<p class="text-emerald-800 p-3 text-sm font-semibold animate-pulse">Buscando categorias do cadastro…</p>';
+
+        function aplicarLista(arr) {
+          exportCatsCache = Array.isArray(arr) ? arr.slice() : [];
+          renderCategoriasExport(exportCatsCache);
+        }
+
+        // Reusa facetas já carregadas na tela (filtro marca/cat), se existirem.
+        try {
+          if (window._agroFacetas && Array.isArray(window._agroFacetas.categorias) && window._agroFacetas.categorias.length) {
+            aplicarLista(window._agroFacetas.categorias);
+            return;
+          }
+        } catch (e) { /* ignore */ }
+
+        if (!C.URL_FACETAS) {
+          if (elCatStatus) elCatStatus.textContent = 'API de categorias indisponível — Excel com todas.';
+          if (elCats) elCats.innerHTML = '<p class="text-amber-800 p-3 text-sm font-semibold">Não foi possível listar categorias.</p>';
+          return;
+        }
+        fetch(C.URL_FACETAS + (C.URL_FACETAS.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        })
           .then(function (r) { return r.json(); })
           .then(function (j) {
-            exportCatsCache = (j && j.ok && j.categorias) ? j.categorias : [];
-            renderCategoriasExport(exportCatsCache);
+            if (!j || !j.ok) {
+              throw new Error((j && j.erro) || 'Falha ao carregar categorias');
+            }
+            aplicarLista(j.categorias || []);
+            try {
+              if (!window._agroFacetas) window._agroFacetas = {};
+              window._agroFacetas.categorias = exportCatsCache.slice();
+              if (j.marcas) window._agroFacetas.marcas = j.marcas;
+            } catch (e2) { /* ignore */ }
           })
-          .catch(function () {
-            if (elCatStatus) elCatStatus.textContent = 'Não foi possível carregar categorias — exportará todas.';
+          .catch(function (err) {
+            exportCatsCache = [];
+            if (elCatStatus) elCatStatus.textContent = 'Erro ao carregar — Excel sairá com todas as categorias.';
+            if (elCats) {
+              elCats.innerHTML = '<p class="text-red-700 p-3 text-sm font-semibold">' +
+                escapeHtml(err && err.message ? err.message : 'Falha de rede') +
+                '. Você ainda pode baixar (todas as categorias).</p>';
+            }
           });
       }
 
       if (inpCatBusca) {
         inpCatBusca.addEventListener('input', function () {
+          renderCategoriasExport(exportCatsCache || []);
+        });
+      }
+      if (btnCatLimpar) {
+        btnCatLimpar.addEventListener('click', function () {
+          exportCatsSelected = {};
+          if (inpCatBusca) inpCatBusca.value = '';
           renderCategoriasExport(exportCatsCache || []);
         });
       }
@@ -2283,16 +2464,16 @@
       if (btnExpBaixar) {
         btnExpBaixar.addEventListener('click', function () {
           var cols = [];
-          elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
-            if (cb.checked || cb.disabled) cols.push(cb.getAttribute('data-key'));
-          });
-          if (!cols.length) cols.push('id');
-          var cats = [];
-          if (elCats) {
-            elCats.querySelectorAll('.cadastro-export-cat-cb:checked').forEach(function (cb) {
-              if (cb.value) cats.push(cb.value);
+          if (elCols) {
+            elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+              if (cb.checked || cb.disabled) cols.push(cb.getAttribute('data-key'));
             });
           }
+          if (!cols.length) cols = keysPreset('essencial');
+          var cats = [];
+          Object.keys(exportCatsSelected).forEach(function (k) {
+            if (exportCatsSelected[k]) cats.push(k);
+          });
           var params = new URLSearchParams();
           if (ativosEl && !ativosEl.checked) params.set('inativos', '1');
           params.set('cols', cols.join(','));

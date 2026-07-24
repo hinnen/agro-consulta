@@ -1175,18 +1175,27 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Backup / reverter** | `rollback/pre-v1186-20260724` @ **`7e13051`** → `git push origin rollback/pre-v1186-20260724:producao` |
 | **Validar agora** | Ctrl+F5 · badge **v11.86** · CP lista · Relatórios filtros · BI digitar vila |
 
-### WIP — Relatórios multi-select cat/sub (**v11.87** · 24/07 · pronto senha)
+### ✅ CP **v11.83** + **v11.84** — já na loja (via **v11.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Checkbox: marcar **várias** no mesmo nível (ex. Gato + Cachorro) · OR no nível · AND entre níveis · Atualizar |
-| **Fix review** | Excel / Ver todos: `QueryDict.urlencode()` (não perde multi) |
-| **Testes** | `py_compile` · unit OR/AND · QueryDict multi no Excel qs |
-| **Risco loja aberta** | **SAFE** balcão (só relatórios) · restart Render só |
+| **Status** | ✅ **enviado / Live** — **não** falta senha deste pacote |
+| **v11.83** | ! laranja na linha + dual **sem** falso «fora do cadastro» (`1b70cad`) |
+| **v11.84** | Coluna Plano mostra nome oficial (ex. `2.1.1.1.2 — Salários` → **Salários**) (`18ffce1`) |
+| **Por que «não vejo alerta»** | Alerta/! só em plano **fora do mapa**. **Empréstimo (entrada + pagamento)** = sistema → **sem** ! (esperado). Se badge ≠ v11.88 → Ctrl+F5 forte |
+
+### ✅ Deploy loja **v11.88** — multi-select relatórios + presets Excel (24/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** (subindo) · autorizado Renan frase+senha |
+| **VERSION** | **loja v11.88** (antes v11.86) |
+| **Cherry** | `afc6a9a` **v11.87** · `771358b` **v11.88** |
+| **Inclui** | Relatórios multi-select cat/sub · Cadastro Excel presets Essencial/Classificação/Preços/Completa |
+| **NÃO mexe** | PDV checkout · caixa · NFC-e · finalizar venda |
 | **Migrate** | nenhuma |
-| **Backup** | criar `rollback/pre-v1187-…` @ HEAD loja no deploy |
-| **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
-| **Cherry** | commit HEAD **v11.87** (só este pacote em cima da loja **v11.86**) |
+| **Backup / reverter** | `rollback/pre-v1188-20260724` @ **`1ab9c87`** → `git push origin rollback/pre-v1188-20260724:producao` |
+| **Validar agora** | Ctrl+F5 · badge **v11.88** · Relatórios Gato+Cachorro · Cadastro Excel ↓ presets |
 
 ### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
