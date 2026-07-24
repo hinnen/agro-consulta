@@ -1182,38 +1182,36 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Status** | ✅ **enviado / Live** — **não** falta senha deste pacote |
 | **v11.83** | ! laranja na linha + dual **sem** falso «fora do cadastro» (`1b70cad`) |
 | **v11.84** | Coluna Plano mostra nome oficial (ex. `2.1.1.1.2 — Salários` → **Salários**) (`18ffce1`) |
-| **Por que «não vejo alerta»** | Alerta/! só em plano **fora do mapa**. **Empréstimo (entrada + pagamento)** = sistema → **sem** ! (esperado). Se badge ≠ v11.86 → Ctrl+F5 forte |
+| **Por que «não vejo alerta»** | Alerta/! só em plano **fora do mapa**. **Empréstimo (entrada + pagamento)** = sistema → **sem** ! (esperado). Se badge ≠ v11.88 → Ctrl+F5 forte |
 
-### 📦 Pacote pronto loja — **v11.87 + v11.88** (24/07 · revisado · aguarda pausa + senha)
+### ✅ Deploy loja **v11.88** — multi-select relatórios + presets Excel (24/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Loja hoje** | **v11.86** Live |
-| **Sobe (cherry nesta ordem)** | `afc6a9a` **v11.87** · `771358b` **v11.88** |
-| **v11.87** | Relatórios: multi-select cat/sub (checkbox Gato+Cachorro) · Excel/Ver todos preserva multi |
-| **v11.88** | Cadastro Excel ↓: presets Essencial/Classificação/Preços/Completa · modal compacto · limpar categorias |
+| **Status** | ✅ **Live** (producao **db6572b**) · autorizado Renan frase+senha · healthz ok · badge **11.88** |
+| **VERSION** | **loja v11.88** (antes v11.86) |
+| **Cherry** | `afc6a9a` / tip **5b92050** **v11.87** · `771358b` / tip **db6572b** **v11.88** |
+| **Inclui** | Relatórios multi-select cat/sub · Cadastro Excel presets Essencial/Classificação/Preços/Completa |
 | **NÃO mexe** | PDV checkout · caixa · NFC-e · finalizar venda |
-| **Risco loja aberta** | Só restart Render · **SAFE** balcão |
 | **Migrate** | nenhuma |
-| **Backup** | criar `rollback/pre-v1188-…` @ HEAD loja no deploy |
-| **Próximo chat** | Renan pausa vendas → *«pode subir produção»* + **99738595** |
+| **Backup / reverter** | `rollback/pre-v1188-20260724` @ **`1ab9c87`** → `git push origin rollback/pre-v1188-20260724:producao` |
+| **Validar agora** | Ctrl+F5 · badge **v11.88** · Relatórios Gato+Cachorro · Cadastro Excel ↓ presets |
 
-### WIP — Relatórios multi-select cat/sub (**v11.87** · incluso no pacote acima)
+### ✅ Relatórios multi-select (**v11.87** · enviado via **v11.88**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Commit** | `afc6a9a` |
+| **Commit** | `afc6a9a` → producao **5b92050** |
 | **Testes** | `py_compile` · unit OR/AND · QueryDict multi |
-| **Status** | ✅ commit+push · aguarda senha (junto v11.88) |
+| **Status** | ✅ **enviado / Live** |
 
-### WIP — Cadastro Excel presets export (**v11.88** · 24/07)
+### ✅ Cadastro Excel presets export (**v11.88** · enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Modal export: presets de colunas + listas roláveis + Limpar categorias |
+| **Status** | ✅ **enviado / Live** |
+| **O quê** | Modal export compacto: presets Essencial/Classificação/Preços/Completa · personalizar recolhido · categorias roláveis · Limpar |
 | **Arquivos** | `cadastro_erp_panel.js` (?v=25) · `produtos_cadastro_erp.html` |
-| **Risco** | SAFE — só UI export; download/import inalterados na lógica |
-| **Loja** | aguarda senha (pacote com v11.87) |
 
 ### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
@@ -1223,21 +1221,12 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | `api_pdv_deposito` sem `@login_required` · CSRF + erro claro no BI |
 | **Arquivos** | `views.py` · `dashboard_gerencial.html` |
 
-### WIP — Relatórios + planilha (**v11.85** + perf **v11.86**)
+### ✅ Relatórios + planilha (**v11.85** + perf **v11.86** · já na loja)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Filtros cat + sub 1–4 · planilha colunas extras · facetas · single-pass ranking |
-| **Testes assistente** | `py_compile` OK · unit filtros OK · `manage.py check` OK (só warnings SSL local) |
-| **Review** | CP SAFE · relatórios CAUTION→mitigado (1 passagem) · planilha sem migrate; preço Mongo só se importar Excel |
-
-### WIP — Excel ↓ modal compacto + categorias (24/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Problema** | 27 checks engoliam o modal · lista de categorias sumia |
-| **Fix** | Presets Essencial/Classificação/Preços/Completa · personalizar recolhido · categorias com altura fixa + status de carga |
-| **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` (?v=25) |
+| **Status** | ✅ **enviado / Live** (via v11.86) |
+| **O quê** | Filtros cat + sub 1–4 · planilha colunas extras (sub 2–4, fiscal…) · facetas/typo/permitir novos · single-pass ranking |
 
 ### ✅ CP ! fora do cadastro (**v11.83** · enviado via **v11.86**)
 
