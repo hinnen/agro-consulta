@@ -17053,8 +17053,9 @@ def api_lancamentos_saida_caixa(request):
         )
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    # Mongo ERP desligado na loja: db pode ser None. O dispatch abaixo grava
+    # TituloFinanceiroAgro (Postgres). Não retornar 503 «Mongo indisponível»
+    # (vira «serviço legado» no middleware) — quebra saída Alimentação / planos comuns.
 
     pin = str(payload.get("pin") or payload.get("pin_operador") or "").strip()
     ok_pin, usuario, err_pin = operador_label_de_pin(pin)
@@ -17226,7 +17227,7 @@ def api_lancamentos_saida_caixa(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids and db is not None:
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)

@@ -1162,7 +1162,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 Deploy loja **v11.76** — 2 workers + msg busca (23/07 · Renan frase+senha)
+### 📦 PACOTE LOJA **v11.77** — saída caixa sem Mongo (24/07 · **aguarda senha**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
+| **VERSION** | **11.77** (loja hoje **v11.76**) |
+| **Sintoma** | Retirada/saída caixa → alerta «serviço legado indisponível» (teste R$ 0,01 Alimentação) |
+| **Causa** | `api_lancamentos_saida_caixa` retornava 503 se Mongo off; middleware troca por «serviço legado» — mas o dispatch **já grava PG** |
+| **Fix** | Remove bloqueio Mongo; ERP sync só se `db` existir |
+| **Branch** | `hotfix/preview-custo-v1175` (continuar tip) |
+| **Como subir** | `git push origin HEAD:producao` (ff) · rollback antes em tip atual `producao` |
+| **Após Live** | Ctrl+F5 · Nova saída · Alimentação · registrar |
+
+**Versão app (VERSION):** código **11.77** · loja **v11.76** até autorizar
+
+### 📦 Deploy loja **v11.76** — 2 workers + msg busca (23/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
