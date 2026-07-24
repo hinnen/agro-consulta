@@ -22,6 +22,50 @@ def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
     return ru.parse_periodo_request(request, padrao=padrao)
 
 
+def _extra_filtros_catalogo(facetas: dict, **extra) -> dict:
+    out = {
+        "categoria": facetas.get("categoria") or "",
+        "categorias": facetas.get("categorias") or [],
+        "subcategoria": facetas.get("subcategoria") or "",
+        "subcategorias": facetas.get("subcategorias") or [],
+        "subcategoria_2": facetas.get("subcategoria_2") or "",
+        "subcategorias_2": facetas.get("subcategorias_2") or [],
+        "subcategoria_3": facetas.get("subcategoria_3") or "",
+        "subcategorias_3": facetas.get("subcategorias_3") or [],
+        "subcategoria_4": facetas.get("subcategoria_4") or "",
+        "subcategorias_4": facetas.get("subcategorias_4") or [],
+    }
+    out.update(extra)
+    return out
+
+
+def _subtitulo_catalogo(base: str, facetas: dict) -> str:
+    partes = [base]
+    for campo, rotulo in (
+        ("categoria", None),
+        ("subcategoria", "sub"),
+        ("subcategoria_2", "sub2"),
+        ("subcategoria_3", "sub3"),
+        ("subcategoria_4", "sub4"),
+    ):
+        v = (facetas.get(campo) or "").strip()
+        if not v:
+            continue
+        partes.append(f"{rotulo} {v}" if rotulo else v)
+    return " · ".join(partes)
+
+
+def _kw_filtros_catalogo(facetas: dict) -> dict:
+    return {
+        "categoria": facetas.get("categoria") or None,
+        "subcategoria": facetas.get("subcategoria") or None,
+        "subcategoria_2": facetas.get("subcategoria_2") or None,
+        "subcategoria_3": facetas.get("subcategoria_3") or None,
+        "subcategoria_4": facetas.get("subcategoria_4") or None,
+    }
+
+
+
 @require_GET
 def relatorios_mais_vendidos(request):
     try:
@@ -47,23 +91,30 @@ def _relatorios_mais_vendidos_impl(request):
     sentido = (request.GET.get("sentido") or "mais").strip().lower()
     if sentido not in ("mais", "menos"):
         sentido = "mais"
+    facetas = ru.facetas_categoria_sub(f["desde"], f["ate_dt"], **ru.filtros_catalogo_request(request))
+    kw = _kw_filtros_catalogo(facetas)
     rows = ru.ranking_produtos(
-        f["desde"], f["ate_dt"], ordenar=ordenar, sentido=sentido, limite=100
+        f["desde"], f["ate_dt"], ordenar=ordenar, sentido=sentido, limite=100, **kw
     )
-    headers = ["#", "Código GM", "Produto", "Qtd", "Ticket médio", "Total R$"]
+    headers = [
+        "#", "Código GM", "Produto", "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
+        "Qtd", "Ticket médio", "Total R$",
+    ]
+    sub_periodo = _subtitulo_catalogo(f["label"], facetas)
     if request.GET.get("export") == "xlsx":
         data = [
-            [r["pos"], r["codigo"], r["nome"], r["qtd"], r["ticket_medio"], r["valor"]]
+            [
+                r["pos"], r["codigo"], r["nome"],
+                r.get("categoria") or "", r.get("subcategoria") or "",
+                r.get("subcategoria_2") or "", r.get("subcategoria_3") or "",
+                r.get("subcategoria_4") or "",
+                r["qtd"], r["ticket_medio"], r["valor"],
+            ]
             for r in rows
         ]
         return ru.xlsx_http_response(
             "mais-vendidos.xlsx",
-            ru.montar_xlsx(
-                "Produtos mais/menos vendidos",
-                headers,
-                data,
-                subtitulo=f["label"],
-            ),
+            ru.montar_xlsx("Produtos mais/menos vendidos", headers, data, subtitulo=sub_periodo),
         )
     total_qtd = round(sum(r["qtd"] for r in rows), 3)
     total_rs = round(sum(r["valor"] for r in rows), 2)
@@ -73,20 +124,20 @@ def _relatorios_mais_vendidos_impl(request):
         {
             "titulo": "Produtos mais vendidos",
             "eyebrow": "Ranking",
-            "subtitulo": "Ordene por valor total ou quantidade. Período e sentido (mais/menos).",
+            "subtitulo": "Ordene por valor ou quantidade. Combine categoria e subcategorias 1–4.",
             "filtros": f,
-            "extra_filtros": {
-                "ordenar": ordenar,
-                "sentido": sentido,
-            },
+            "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar, sentido=sentido),
             "filtro_parcial": "mais_vendidos",
             "rel_help": "mais_vendidos",
             "headers": headers,
             "rows": [
                 [
-                    r["pos"],
-                    r["codigo"],
-                    r["nome"],
+                    r["pos"], r["codigo"], r["nome"],
+                    r.get("categoria") or "Sem categoria",
+                    r.get("subcategoria") or "—",
+                    r.get("subcategoria_2") or "—",
+                    r.get("subcategoria_3") or "—",
+                    r.get("subcategoria_4") or "—",
                     f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
                     ru.fmt_brl(r["ticket_medio"]),
                     ru.fmt_brl(r["valor"]),
@@ -95,7 +146,7 @@ def _relatorios_mais_vendidos_impl(request):
             ],
             "totais": [f"Qtd {total_qtd}", ru.fmt_brl(total_rs)],
             "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período.",
+            "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
         },
     )
 
@@ -103,8 +154,18 @@ def _relatorios_mais_vendidos_impl(request):
 @require_GET
 def relatorios_vendas_grupo(request):
     f = _periodo_filtros(request)
-    rows = ru.vendas_por_grupo(f["desde"], f["ate_dt"])
-    headers = ["#", "Grupo / categoria", "SKUs", "Qtd", "Total R$", "%"]
+    agrupar = (request.GET.get("agrupar") or "categoria").strip().lower()
+    if agrupar not in (
+        "categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"
+    ):
+        agrupar = "categoria"
+    rows, meta = ru.vendas_por_grupo(
+        f["desde"], f["ate_dt"], agrupar=agrupar, **ru.filtros_catalogo_request(request)
+    )
+    headers = ["#", meta.get("col_grupo") or "Grupo", "SKUs", "Qtd", "Total R$", "%"]
+    sub_periodo = _subtitulo_catalogo(f["label"], meta)
+    if agrupar != "categoria":
+        sub_periodo = f"{sub_periodo} · por {meta.get('col_grupo') or agrupar}"
     if request.GET.get("export") == "xlsx":
         data = [
             [r["pos"], r["grupo"], r["skus"], r["qtd"], r["valor"], r["pct"]]
@@ -112,7 +173,7 @@ def relatorios_vendas_grupo(request):
         ]
         return ru.xlsx_http_response(
             "vendas-por-grupo.xlsx",
-            ru.montar_xlsx("Vendas por grupo", headers, data, subtitulo=f["label"]),
+            ru.montar_xlsx("Vendas por grupo", headers, data, subtitulo=sub_periodo),
         )
     return render(
         request,
@@ -120,16 +181,15 @@ def relatorios_vendas_grupo(request):
         {
             "titulo": "Vendas por grupo",
             "eyebrow": "Categoria",
-            "subtitulo": "Faturamento e quantidade por categoria do cadastro.",
+            "subtitulo": "Faturamento por categoria ou subcategoria (1–4). Combine os filtros.",
             "filtros": f,
-            "filtro_parcial": "periodo",
+            "filtro_parcial": "vendas_grupo",
             "rel_help": "vendas_grupo",
+            "extra_filtros": _extra_filtros_catalogo(meta, agrupar=agrupar),
             "headers": headers,
             "rows": [
                 [
-                    r["pos"],
-                    r["grupo"],
-                    r["skus"],
+                    r["pos"], r["grupo"], r["skus"],
                     f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
                     ru.fmt_brl(r["valor"]),
                     f'{r["pct"]}%',
@@ -138,7 +198,7 @@ def relatorios_vendas_grupo(request):
             ],
             "totais": [ru.fmt_brl(sum(r["valor"] for r in rows))],
             "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período.",
+            "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
         },
     )
 
@@ -147,43 +207,27 @@ def relatorios_vendas_grupo(request):
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
     todos = (request.GET.get("todos") or "").strip() in ("1", "sim", "true", "yes")
-    categoria = (request.GET.get("categoria") or "").strip()
-    rows, meta = ru.curva_abc(
-        f["desde"], f["ate_dt"], todos=todos, categoria=categoria or None
-    )
+    filt = ru.filtros_catalogo_request(request)
+    rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=todos, **filt)
     headers = [
-        "#",
-        "Classe",
-        "Código GM",
-        "Produto",
-        "Categoria",
-        "Total R$",
-        "%",
-        "% acum.",
+        "#", "Classe", "Código GM", "Produto",
+        "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
+        "Total R$", "%", "% acum.",
     ]
-    cat_label = meta.get("categoria") or ""
-    sub_periodo = f["label"]
-    if cat_label:
-        sub_periodo = f"{sub_periodo} · categoria {cat_label}"
+    sub_periodo = _subtitulo_catalogo(f["label"], meta)
     if request.GET.get("export") == "xlsx":
-        # Excel sempre completo (respeita filtro de categoria)
         if not todos:
-            rows, meta = ru.curva_abc(
-                f["desde"], f["ate_dt"], todos=True, categoria=categoria or None
-            )
-            cat_label = meta.get("categoria") or cat_label
-            if cat_label:
-                sub_periodo = f'{f["label"]} · categoria {cat_label}'
+            rows, meta = ru.curva_abc(f["desde"], f["ate_dt"], todos=True, **filt)
+            sub_periodo = _subtitulo_catalogo(f["label"], meta)
         data = [
             [
-                r["pos"],
-                r["classe"],
-                r["codigo"],
-                r["nome"],
+                r["pos"], r["classe"], r["codigo"], r["nome"],
                 r.get("categoria") or "Sem categoria",
-                r["valor"],
-                r["pct"],
-                r["pct_acum"],
+                r.get("subcategoria") or "",
+                r.get("subcategoria_2") or "",
+                r.get("subcategoria_3") or "",
+                r.get("subcategoria_4") or "",
+                r["valor"], r["pct"], r["pct_acum"],
             ]
             for r in rows
         ]
@@ -198,40 +242,41 @@ def relatorios_curva_abc(request):
     if "todos" in q_menos:
         del q_menos["todos"]
     ver_menos_qs = "?" + urlencode(q_menos, doseq=True) if q_menos else "?"
+    recorte = meta.get("recorte") or "período"
     totais = [
         f"{meta['n_tela']} de {meta['n_total']} produtos",
-        f"Total {'categoria' if cat_label else 'período'} {ru.fmt_brl(meta['total_periodo'])}",
+        f"Total {recorte} {ru.fmt_brl(meta['total_periodo'])}",
     ]
-    subtitulo = (
-        "A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. "
-        + (
-            f"% sobre o total da categoria «{cat_label}»."
-            if cat_label
-            else "% sobre o total do período."
-        )
-    )
+    ativos = [
+        meta.get(c) for c in (
+            "categoria", "subcategoria", "subcategoria_2",
+            "subcategoria_3", "subcategoria_4",
+        ) if meta.get(c)
+    ]
+    if ativos:
+        pct_txt = "% sobre o total do recorte filtrado."
+    else:
+        pct_txt = "% sobre o total do período."
     return render(
         request,
         "produtos/relatorios_generico.html",
         {
             "titulo": "Curva ABC",
             "eyebrow": "Classificação",
-            "subtitulo": subtitulo,
+            "subtitulo": f"A ≈ 80% do faturamento · B ≈ 15% · C ≈ 5%. {pct_txt}",
             "filtros": f,
             "filtro_parcial": "curva_abc",
             "rel_help": "curva_abc",
-            "extra_filtros": {
-                "categoria": cat_label,
-                "categorias": meta.get("categorias") or [],
-            },
+            "extra_filtros": _extra_filtros_catalogo(meta),
             "headers": headers,
             "rows": [
                 [
-                    r["pos"],
-                    r["classe"],
-                    r["codigo"],
-                    r["nome"],
+                    r["pos"], r["classe"], r["codigo"], r["nome"],
                     r.get("categoria") or "Sem categoria",
+                    r.get("subcategoria") or "—",
+                    r.get("subcategoria_2") or "—",
+                    r.get("subcategoria_3") or "—",
+                    r.get("subcategoria_4") or "—",
                     ru.fmt_brl(r["valor"]),
                     f'{r["pct"]}%',
                     f'{r["pct_acum"]}%',
@@ -241,8 +286,8 @@ def relatorios_curva_abc(request):
             "totais": totais,
             "export_qs": _qs_export(request),
             "vazio_msg": (
-                "Nenhuma venda nesta categoria no período."
-                if cat_label
+                "Nenhuma venda com estes filtros no período."
+                if ativos
                 else "Nenhuma venda neste período."
             ),
             "ver_mais": {
@@ -388,34 +433,28 @@ def relatorios_margem(request):
     ordenar = (request.GET.get("ordenar") or "margem_rs").strip().lower()
     if ordenar not in ("margem_rs", "margem_pct"):
         ordenar = "margem_rs"
-    rows = ru.margem_produtos(f["desde"], f["ate_dt"], ordenar=ordenar, limite=100)
+    facetas = ru.facetas_categoria_sub(f["desde"], f["ate_dt"], **ru.filtros_catalogo_request(request))
+    kw = _kw_filtros_catalogo(facetas)
+    rows = ru.margem_produtos(f["desde"], f["ate_dt"], ordenar=ordenar, limite=100, **kw)
     headers = [
-        "#",
-        "Código GM",
-        "Produto",
-        "Qtd",
-        "Venda R$",
-        "Custo R$",
-        "Margem R$",
-        "Margem %",
+        "#", "Código GM", "Produto", "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
+        "Qtd", "Venda R$", "Custo R$", "Margem R$", "Margem %",
     ]
+    sub_periodo = _subtitulo_catalogo(f["label"], facetas)
     if request.GET.get("export") == "xlsx":
         data = [
             [
-                r["pos"],
-                r["codigo"],
-                r["nome"],
-                r["qtd"],
-                r["valor"],
-                r["custo_total"],
-                r["margem_rs"],
-                r["margem_pct"],
+                r["pos"], r["codigo"], r["nome"],
+                r.get("categoria") or "", r.get("subcategoria") or "",
+                r.get("subcategoria_2") or "", r.get("subcategoria_3") or "",
+                r.get("subcategoria_4") or "",
+                r["qtd"], r["valor"], r["custo_total"], r["margem_rs"], r["margem_pct"],
             ]
             for r in rows
         ]
         return ru.xlsx_http_response(
             "margem-produtos.xlsx",
-            ru.montar_xlsx("Margem por produto", headers, data, subtitulo=f["label"]),
+            ru.montar_xlsx("Margem por produto", headers, data, subtitulo=sub_periodo),
         )
     return render(
         request,
@@ -423,17 +462,20 @@ def relatorios_margem(request):
         {
             "titulo": "Margem por produto",
             "eyebrow": "Lucratividade",
-            "subtitulo": "Venda líquida menos custo do cadastro × quantidade.",
+            "subtitulo": "Venda líquida menos custo × quantidade. Combine categoria e sub 1–4.",
             "filtros": f,
             "filtro_parcial": "margem",
             "rel_help": "margem",
-            "extra_filtros": {"ordenar": ordenar},
+            "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar),
             "headers": headers,
             "rows": [
                 [
-                    r["pos"],
-                    r["codigo"],
-                    r["nome"],
+                    r["pos"], r["codigo"], r["nome"],
+                    r.get("categoria") or "Sem categoria",
+                    r.get("subcategoria") or "—",
+                    r.get("subcategoria_2") or "—",
+                    r.get("subcategoria_3") or "—",
+                    r.get("subcategoria_4") or "—",
                     r["qtd"],
                     ru.fmt_brl(r["valor"]),
                     ru.fmt_brl(r["custo_total"]),
@@ -447,7 +489,7 @@ def relatorios_margem(request):
                 ru.fmt_brl(sum(r["margem_rs"] for r in rows)),
             ],
             "export_qs": _qs_export(request),
-            "vazio_msg": "Nenhuma venda neste período.",
+            "vazio_msg": "Nenhuma venda neste período (ou nestes filtros).",
         },
     )
 

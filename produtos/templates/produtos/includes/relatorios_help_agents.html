@@ -40,9 +40,9 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">#</span><span>Posição no ranking (1 = quem mais faturou).</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">CLASSE</span><span>A, B ou C — conforme a fatia acumulada do faturamento.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO GM</span><span>Código interno do produto na loja.</span></li>
-      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / CATEGORIA</span><span>Nome e grupo do cadastro.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / CATEGORIA / SUB</span><span>Nome, categoria e subcategoria do cadastro.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Quanto esse produto vendeu no período (em reais).</span></li>
-      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia <strong>só deste produto</strong> no total do período (ou da categoria filtrada).</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia <strong>só deste produto</strong> no total do período (ou da categoria/subcategoria filtrada).</span></li>
       <li class="flex gap-2 rounded-lg border border-pink-500/40 bg-pink-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-pink-500/40 px-1.5 py-0.5 text-[10px] font-black text-pink-100">% ACUM.</span><span>Soma deste + todos os de cima. Quando chega perto de 80%, termina a classe A.</span></li>
     </ul>
 
@@ -57,9 +57,9 @@
     </ul>
 
     {% elif rel_help == "vendas_grupo" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria</span> (ex.: Rações, Sacaria) — útil para ver qual prateleira puxa a loja.</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria ou subcategoria (1–4)</span> — dá para <strong>combinar</strong> os filtros (ex.: Rações + gato + granel).</p>
     <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
-      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>Categoria do cadastro.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>O que você escolheu em <strong>Agrupar por</strong> (categoria ou sub 1–4).</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">SKUs</span><span>Quantos produtos diferentes daquele grupo venderam.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade total vendida no grupo.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Dinheiro que o grupo gerou.</span></li>
