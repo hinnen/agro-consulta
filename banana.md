@@ -1162,18 +1162,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.78** — 3 urgentes sem Mongo (24/07 · **aguarda senha**)
+### 📦 PACOTE LOJA **v11.78** — 3 urgentes sem Mongo (24/07 · **PRONTO · aguarda pausa + senha**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
-| **VERSION** | **11.78** (loja hoje **v11.76**; inclui também fix **v11.77** saída caixa) |
-| **Inclui** | (1) Saída caixa + **lote manual / Nova saída** Lançamentos → PG sem 503 · (2) **Gestão ajustar estoque** via catálogo PG + ledger (igual PDV) · (3) **RH vale/salário** título + baixa parcial + formas/bancos em Postgres |
-| **CPU Postgres** | Com Mongo morto, o balcão concentra carga no agro-db — 2 workers (v11.76) + menos N+1 (v11.75) · estes fixes evitam retries em 503 |
-| **Branch** | `hotfix/preview-custo-v1175` tip **`a4801fd`** |
-| **Backup** | criar `rollback/pre-v1178-mongo-urgente` no tip atual `producao` ao subir |
+| **Status** | 📦 **pronto** · **não** piorar paths abertos · **só** push `producao` no próximo chat com *pode subir para produção* + **99738595** |
+| **VERSION** | **11.78** (loja hoje **v11.76**; inclui **v11.77** saída caixa) |
+| **Inclui** | (1) Saída caixa + **lote manual / Nova saída** → PG sem 503 «serviço legado» · (2) **Gestão ajustar estoque** = catálogo PG + `mapa_saldos_operacionais_agro` + `AjusteRapidoEstoque` · (3) **RH vale/salário** título/baixa/formas no PG · órfão folha→PG **recria** se ID sumiu |
+| **Revisão 24/07** | Diff vs `producao` só 6 arquivos (+banana) · `py_compile` OK · gates 503 removidos nos 3 paths · flags loja `mongo_off`+`fin_pg` · **23/23** títulos salário folha existem no PG (reparado 1 órfão fech. pk9 Renan 04/2026) · dry: catálogo+saldos+formas/bancos PG |
+| **NÃO testado no balcão** | POST real saída/vale/ajuste (lojas abertas — sem UAT live) · após Live: checklist abaixo |
+| **Risco residual** | Paths **fora** do pacote (DRE Mongo, empréstimo Mongo, etc.) **não** mudam · `financeiro_grava_postgres` também true se Mongo off (loja já tinha fin PG) |
+| **Branch** | `hotfix/preview-custo-v1175` — tip após commit blindagem órfão (ver `git log -1`) |
+| **Backup ao subir** | `git branch rollback/pre-v1178-mongo-urgente origin/producao` (tip loja atual ≈ `5746d6c` / v11.76) |
 | **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
-| **Após Live** | Ctrl+F5 · saída Alimentação · Nova saída Lançamentos · Gestão ajuste · RH vale com financeiro |
+| **Após Live (Renan)** | Ctrl+F5 · saída **Alimentação** · **Nova saída** Lançamentos · Gestão **ajuste estoque** · RH **vale** com financeiro · se falhar → `git push origin rollback/pre-v1178-mongo-urgente:producao` |
 
 **Versão app (VERSION):** código **11.78** · loja **v11.76** até autorizar
 
@@ -1182,7 +1184,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 absorvido pelo **v11.78** (não subir sozinho) |
-| **Fix** | `api_lancamentos_saida_caixa` sem gate Mongo |
+| **Fix** | `api_lancamentos_saida_caixa` sem gate Mongo · revisado OK |
 
 ### 📦 Deploy loja **v11.76** — 2 workers + msg busca (23/07 · ✅ enviado)
 

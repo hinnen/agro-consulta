@@ -253,14 +253,31 @@ def criar_ou_atualizar_titulo_salario_mongo(
 
     if mid:
         if use_pg:
+            from produtos.models import TituloFinanceiroAgro
             from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
 
-            r = alinhar_titulo_pg_apos_sync_folha_rh(
-                mid,
-                valor_bruto=bruto,
-                valor_pago=_valor_pago_titulo(fechamento, bruto, db, mid),
-                data_vencimento=data_vencimento,
-            )
+            # Órfão pós-corte Mongo: ID na folha sem linha no Postgres → recria.
+            if not TituloFinanceiroAgro.objects.filter(mongo_id=mid, despesa=True).exists():
+                logger.warning(
+                    "RH folha: título %s ausente no PG — recriando (fechamento pk=%s)",
+                    mid,
+                    fechamento.pk,
+                )
+                mid = ""
+                fechamento.mongo_lancamento_salario_id = ""
+                fechamento.save(update_fields=["mongo_lancamento_salario_id", "atualizado_em"])
+            else:
+                r = alinhar_titulo_pg_apos_sync_folha_rh(
+                    mid,
+                    valor_bruto=bruto,
+                    valor_pago=_valor_pago_titulo(fechamento, bruto, db, mid),
+                    data_vencimento=data_vencimento,
+                )
+                if not r.get("ok"):
+                    return r
+                fechamento.data_vencimento_pagamento = data_vencimento
+                fechamento.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
+                return {"ok": True, "id": mid, "criado": False}
         else:
             if db is None:
                 return {"ok": False, "erro": "Financeiro indisponível."}
@@ -271,11 +288,11 @@ def criar_ou_atualizar_titulo_salario_mongo(
                 valor_pago=float(_valor_pago_titulo(fechamento, bruto, db, mid)),
                 data_vencimento=data_vencimento,
             )
-        if not r.get("ok"):
-            return r
-        fechamento.data_vencimento_pagamento = data_vencimento
-        fechamento.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
-        return {"ok": True, "id": mid, "criado": False}
+            if not r.get("ok"):
+                return r
+            fechamento.data_vencimento_pagamento = data_vencimento
+            fechamento.save(update_fields=["data_vencimento_pagamento", "atualizado_em"])
+            return {"ok": True, "id": mid, "criado": False}
 
     linhas = [
         {
