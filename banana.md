@@ -1186,7 +1186,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Migrate** | nenhuma |
 | **Backup** | criar `rollback/pre-v1187-…` @ HEAD loja no deploy |
 | **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
-| **Cherry** | commit HEAD **v11.87** (só este pacote em cima da loja **v11.86**) |
+| **Cherry** | `afc6a9a` **v11.87** (só este pacote em cima da loja **v11.86**) |
 
 ### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
