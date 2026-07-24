@@ -90,13 +90,62 @@
     </div>
     {% endif %}
 
-    {% if filtro_parcial == 'curva_abc' %}
+    {% if filtro_parcial == 'vendas_grupo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar por</label>
+      <select name="agrupar" class="min-h-[44px] min-w-[11rem] rounded-xl border-2 border-sky-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-sky-400 focus:outline-none" onchange="this.form.submit()" title="Soma por categoria ou por cada nível de subcategoria">
+        <option value="categoria" {% if extra_filtros.agrupar == 'categoria' or not extra_filtros.agrupar %}selected{% endif %}>Categoria</option>
+        <option value="subcategoria" {% if extra_filtros.agrupar == 'subcategoria' %}selected{% endif %}>Subcategoria</option>
+        <option value="subcategoria_2" {% if extra_filtros.agrupar == 'subcategoria_2' %}selected{% endif %}>Subcategoria 2</option>
+        <option value="subcategoria_3" {% if extra_filtros.agrupar == 'subcategoria_3' %}selected{% endif %}>Subcategoria 3</option>
+        <option value="subcategoria_4" {% if extra_filtros.agrupar == 'subcategoria_4' %}selected{% endif %}>Subcategoria 4</option>
+      </select>
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'mais_vendidos' or filtro_parcial == 'curva_abc' or filtro_parcial == 'margem' or filtro_parcial == 'vendas_grupo' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Categoria</label>
-      <select name="categoria" id="filtro-categoria-abc" class="min-h-[44px] min-w-[12rem] max-w-[18rem] rounded-xl border-2 border-violet-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-violet-400 focus:outline-none" onchange="this.form.submit()" title="Recalcula a curva ABC só com produtos desta categoria">
+      <select name="categoria" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-violet-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-violet-400 focus:outline-none" onchange="this.form.submit()" title="Filtra pela categoria">
         <option value="" {% if not extra_filtros.categoria %}selected{% endif %}>Todas</option>
         {% for cat in extra_filtros.categorias %}
         <option value="{{ cat }}" {% if extra_filtros.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria</label>
+      <select name="subcategoria" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-emerald-500/60 bg-slate-900 px-3 text-sm font-bold text-white focus:border-emerald-400 focus:outline-none" onchange="this.form.submit()" title="Subcategoria 1 — combine com as outras">
+        <option value="" {% if not extra_filtros.subcategoria %}selected{% endif %}>Todas</option>
+        {% for sub in extra_filtros.subcategorias %}
+        <option value="{{ sub }}" {% if extra_filtros.subcategoria == sub %}selected{% endif %}>{{ sub }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 2</label>
+      <select name="subcategoria_2" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-emerald-500/50 bg-slate-900 px-3 text-sm font-bold text-white focus:border-emerald-400 focus:outline-none" onchange="this.form.submit()" title="Subcategoria 2 — ex.: Granel">
+        <option value="" {% if not extra_filtros.subcategoria_2 %}selected{% endif %}>Todas</option>
+        {% for sub in extra_filtros.subcategorias_2 %}
+        <option value="{{ sub }}" {% if extra_filtros.subcategoria_2 == sub %}selected{% endif %}>{{ sub }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 3</label>
+      <select name="subcategoria_3" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-emerald-500/40 bg-slate-900 px-3 text-sm font-bold text-white focus:border-emerald-400 focus:outline-none" onchange="this.form.submit()" title="Subcategoria 3">
+        <option value="" {% if not extra_filtros.subcategoria_3 %}selected{% endif %}>Todas</option>
+        {% for sub in extra_filtros.subcategorias_3 %}
+        <option value="{{ sub }}" {% if extra_filtros.subcategoria_3 == sub %}selected{% endif %}>{{ sub }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Subcategoria 4</label>
+      <select name="subcategoria_4" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-emerald-500/30 bg-slate-900 px-3 text-sm font-bold text-white focus:border-emerald-400 focus:outline-none" onchange="this.form.submit()" title="Subcategoria 4">
+        <option value="" {% if not extra_filtros.subcategoria_4 %}selected{% endif %}>Todas</option>
+        {% for sub in extra_filtros.subcategorias_4 %}
+        <option value="{{ sub }}" {% if extra_filtros.subcategoria_4 == sub %}selected{% endif %}>{{ sub }}</option>
         {% endfor %}
       </select>
     </div>

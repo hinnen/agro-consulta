@@ -399,6 +399,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Gastos por plano de conta: oculto por padrão (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
+- **Central de Relatórios** (`/relatorios/`): filtros de período + **categoria** + **subcategorias 1–4** (combináveis) em mais vendidos, ABC, margem, vendas por grupo; agrupar por qualquer nível.
 
 ### 4.2 PDV — ponto de venda
 
@@ -528,7 +529,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **Gestão operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operação loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera. **Colunas (24/07):** além de nome/marca/categoria/sub/barras/custos — **Subcategoria 2/3/4**, modelo, fornecedor, unidade, descrição, cashback %, fiscal (NCM/CEST/CFOP/CSOSN/origem), estoques min/máx Centro/Vila, Ativo (Sim/Não).
+**Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera. **Colunas (24/07):** além de nome/marca/categoria/sub/barras/custos — **Subcategoria 2/3/4**, modelo, fornecedor, unidade, descrição, cashback %, fiscal (NCM/CEST/CFOP/CSOSN/origem), estoques min/máx Centro/Vila, Ativo (Sim/Não). **Validação:** lista no Excel + aviso de novos + typo auto + checkbox «Permitir criar novos» (padrão off).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1162,14 +1163,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### WIP — Planilha cadastro: sub 2–4 + colunas extras (24/07)
+### WIP — Relatórios + planilha cadastro (**v11.85** · 24/07 · pronto senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Excel ↓/↑ ganhou Subcategoria 2/3/4, modelo, fornecedor, unidade, descrição, cashback, NCM/CEST/CFOP/CSOSN/origem, estoques min/máx, Ativo |
-| **Lote avulso** | 53 GM (`subcategoria 2.xlsx`) → **Subcategoria 2 = Granel** (overlay + Produto PG) · 0 erro |
-| **Arquivos** | `cadastro_planilha_util.py` · `cadastro_erp_panel.js` |
-| **Loja** | só local por enquanto |
+| **O quê** | (1) Relatórios: filtros **Categoria + Sub 1/2/3/4** combináveis · agrupar por qualquer nível · (2) Planilha Excel: Sub 2/3/4 + colunas extras + validação faceta (lista suspensa, typo, «Permitir criar novos») |
+| **Ex. relatório** | Rações + gato + granel (sub1 + sub3) |
+| **VERSION** | **v11.85** (loja Live **v11.82**; CP **v11.83/v11.84** também aguardam senha) |
+| **Arquivos** | `relatorios_*` · `cadastro_planilha_util.py` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `views.py` · `banana-roteiro.md` |
+| **Validar** | Local · Relatórios (combinar filtros) · Excel ↓/↑ cadastro |
+| **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
 
 ### WIP — CP ! fora do cadastro na linha (24/07 · **v11.83** local)
 

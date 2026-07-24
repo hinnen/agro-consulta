@@ -426,12 +426,16 @@
     <div class="px-5 py-4 border-b border-slate-200 bg-emerald-50/80 shrink-0">
       <h2 id="cadastro-import-titulo" class="text-lg font-black uppercase text-slate-900">Importar planilha Excel</h2>
       <p class="text-sm text-slate-600 mt-1">Não altere a coluna <strong>ID</strong> (fica oculta no Excel, mas é obrigatória na importação). Célula vazia = mantém o valor atual.</p>
-      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Não altere a coluna ID (oculta no Excel). Se alguma linha mostrar <strong>ID inválido</strong>, apague a linha inteira — costuma ser texto colado por engano. Código GM pode ser editado. Célula vazia = mantém o valor. <strong>Apague as linhas que não editou</strong> — planilha exportada inteira demora. Escolha o arquivo — a prévia roda sozinha.</p>
+      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Use a <strong>lista do Excel</strong> em marca/categoria/sub. Typo parecido é corrigido sozinho. Nome <strong>novo</strong> só grava se marcar a opção abaixo. Apague linhas que não editou.</p>
     </div>
     <div class="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
       <label class="block">
         <span class="text-xs font-black uppercase text-slate-500">Arquivo .xlsx ou .csv</span>
         <input type="file" id="cadastro-import-arquivo" accept=".xlsx,.xls,.csv" class="mt-1 block w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" />
+      </label>
+      <label class="flex items-start gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3 cursor-pointer select-none">
+        <input type="checkbox" id="cadastro-import-permitir-novos" class="mt-1 w-5 h-5 rounded border-amber-400 text-emerald-600 shrink-0" />
+        <span class="text-sm font-semibold text-amber-950 leading-snug"><span class="font-black uppercase text-amber-900">Permitir criar novos</span> — marca, categoria, subcategoria, fornecedor ou unidade que ainda não existem. <span class="font-normal text-amber-800">Desligado = só lista cadastrada (typo próximo é corrigido).</span></span>
       </label>
       <div id="cadastro-import-progress-wrap" class="hidden rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 space-y-2" aria-live="polite">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -444,6 +448,7 @@
         <p id="cadastro-import-progress-detail" class="text-xs font-semibold text-slate-600"></p>
       </div>
       <div id="cadastro-import-resumo" class="hidden text-sm font-semibold text-slate-700"></div>
+      <div id="cadastro-import-avisos" class="hidden text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1"></div>
       <div id="cadastro-import-erros" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 max-h-32 overflow-y-auto"></div>
       <div id="cadastro-import-preview" class="hidden border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto text-xs"></div>
     </div>
