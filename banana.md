@@ -1188,7 +1188,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** (subindo) · autorizado Renan frase+senha |
+| **Status** | ✅ **Live** (producao **db6572b**) · autorizado Renan frase+senha · healthz ok · badge **11.88** |
 | **VERSION** | **loja v11.88** (antes v11.86) |
 | **Cherry** | `afc6a9a` **v11.87** · `771358b` **v11.88** |
 | **Inclui** | Relatórios multi-select cat/sub · Cadastro Excel presets Essencial/Classificação/Preços/Completa |
