@@ -1221,20 +1221,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Fix** | Presets Essencial/Classificação/Preços/Completa · personalizar recolhido · categorias com altura fixa + status de carga |
 | **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` (?v=25) |
 
-### WIP — CP ! fora do cadastro (**v11.83**)
+### ✅ CP ! fora do cadastro (**v11.83** · enviado via **v11.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | ✅ **enviado / Live** |
 | **O quê** | ! laranja na coluna Plano · Empréstimo dual sem falso órfão |
-| **Review** | SAFE · só UI CP · sem gravar título |
 
-### WIP — CP nome oficial (**v11.84**)
+### ✅ CP nome oficial (**v11.84** · enviado via **v11.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | ✅ **enviado / Live** |
 | **O quê** | Lista mostra alias oficial · tooltip «gravado: …» · banco intacto |
-| **Commit** | `e90be3f` |
-| **Review** | SAFE |
 
 ### ✅ Deploy loja **v11.82** — Cadastro oficial planos CP (24/07 · Renan senha OK)
 
