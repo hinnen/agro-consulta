@@ -1162,6 +1162,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### 📦 PACOTE LOJA **v11.81** — vencimento salário mês seguinte (24/07 · **PRONTO · aguarda pausa + senha**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto** · **não** piorar balcão · **só** push `producao` no próximo chat com *pode subir para produção* + **99738595** |
+| **VERSION** | **11.81** (loja hoje **v11.80** tip **`e6cce08`**) |
+| **O quê** | Envio 28 + venc 1/7/14 → folha do **mês do envio**, vence no **mês seguinte** · novos títulos não usam mais dia 31 · se folha ainda tiver venc=último dia da competência, troca pelo dia config |
+| **Revisão 24/07** | Regras unit OK (28→01/07/14 ago; envio1→comp jul venc5 ago) · loja jul títulos OK (Geraldo/Queila/Zuleide/Renan **01/08**, Vitor **07/08**) · `py_compile` OK · saída caixa gate intacto · diff só RH vencimento/help (sem PDV/caixa) |
+| **Dados loja** | ✅ vencimentos jul já corrigidos no CP (não depende do push) |
+| **Risco residual** | No dia **28** o cron atualiza/cria títulos de quem tem auto ligado (6 pessoas) — esperado · até lá zero efeito no balcão |
+| **Branch** | `hotfix/preview-custo-v1175` (tip após commit) |
+| **Backup ao subir** | `git branch rollback/pre-v1181-venc-salario origin/producao` (@ **`e6cce08`** / v11.80) |
+| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
+| **Após Live** | Ctrl+F5 · CP vencimentos · (opcional) conferir textos da ficha RH |
+
+**Versão app (VERSION):** código **11.81** · loja **v11.80** até autorizar
+
 ### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado)
 
 | Item | Detalhe |
