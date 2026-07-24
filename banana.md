@@ -1167,12 +1167,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
-| **VERSION** | **11.77** (loja hoje **v11.76**) |
+| **VERSION** | **11.77** (loja hoje **v11.76** / `5746d6c`) |
 | **Sintoma** | Retirada/saída caixa → alerta «serviço legado indisponível» (teste R$ 0,01 Alimentação) |
 | **Causa** | `api_lancamentos_saida_caixa` retornava 503 se Mongo off; middleware troca por «serviço legado» — mas o dispatch **já grava PG** |
-| **Fix** | Remove bloqueio Mongo; ERP sync só se `db` existir |
-| **Branch** | `hotfix/preview-custo-v1175` (continuar tip) |
-| **Como subir** | `git push origin HEAD:producao` (ff) · rollback antes em tip atual `producao` |
+| **Fix** | Remove bloqueio Mongo; ERP sync só se `db` existir · tip **`0e17162`** |
+| **Branch** | `hotfix/preview-custo-v1175` |
+| **Backup / reverter** | `rollback/pre-v1177-saida-caixa` @ **`5746d6c`** |
+| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
 | **Após Live** | Ctrl+F5 · Nova saída · Alimentação · registrar |
 
 **Versão app (VERSION):** código **11.77** · loja **v11.76** até autorizar
@@ -1181,18 +1182,10 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `producao` **`4fbe9aa`** · aguardar Live no Render |
-| **VERSION** | **loja v11.76** (antes **v11.75** / `910290f`) |
-| **Autorização** | *pode subir para produção* + **99738595** |
-| **Branch** | `hotfix/preview-custo-v1175` → `producao` |
-| **Commit** | tip **`4fbe9aa`** (fix `939a4e0`) |
+| **Status** | ✅ na loja (`producao` **`5746d6c`**) |
+| **VERSION** | **loja v11.76** |
 | **O que é** | Gunicorn **2 workers** · Cadastro timeout com msg clara |
 | **Backup / reverter** | `rollback/pre-v1176-workers` @ **`910290f`** |
-| **Como reverter** | `git push origin rollback/pre-v1176-workers:producao` |
-| **Migrate** | nenhuma |
-| **Após Live** | Ctrl+F5 · badge **v11.76** |
-
-**Versão app (VERSION):** **loja v11.76** · rollback `pre-v1176-workers` @ 910290f
 
 ### 🚑 23/07 ~17:25 — Fantasmas Ibiúna NF 14988 (dados loja ✅ reparados)
 
