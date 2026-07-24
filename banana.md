@@ -1608,15 +1608,10 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` (login) |
-| **Já na loja** | Nuvem Postgres + Prontas em cima/como nova + APIs (`origin/producao` já tem migrate **`0064_dispenser…`** · loja ~v11.88) |
-| **Pacote próximo deploy** | **`DSP-CORES-v11.71`** — **só cores** (sem migrate, sem mexer PDV/caixa/CP) |
-| **Inclui** | Layout: fundo + borda da marca · Folha: cor do balão % · persiste na Pronta (`brandBg` / `brandBorder` / `proteinColor`) |
-| **Arquivos** | `dispenser_a6_studio.html` · `dispenser.css` (+ `banana.md` / `VERSION`) |
-| **NÃO inclui / NÃO repetir** | Re-cherry de nuvem/`0063_dispenser` do teste (conflita: loja já tem `0063_agronfe` + `0064_dispenser`) · merge inteiro `teste` |
-| **Risco loja aberta** | Baixo — paths novos só `/interno/dispenser-a6*` · home/consulta/caixa resolvem iguais |
-| **Pós-Live** | Ctrl+F5 Dispenser · Layout/Folha ver pickers · salvar Pronta e reabrir |
-| **Status** | ✅ revisado 24/07 · commit+push `teste` abaixo · loja só com frase+senha |
-| **Regra** | Produção: cherry **só** o(s) commit(s) do pacote `DSP-CORES` |
+| **Já na loja** | Nuvem + Prontas + cores (`v11.89`) |
+| **Novo local** | **Zoom da logo** na moldura (igual pet/ing) · arraste + scroll + +/− · grava na Pronta (`logoFit`) · cache `?v=11.73` |
+| **Status** | ⏳ commit+push `teste` · loja só com frase+senha |
+| **Regra** | Produção: cherry só o commit do zoom logo (sem merge inteiro `teste`) |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
