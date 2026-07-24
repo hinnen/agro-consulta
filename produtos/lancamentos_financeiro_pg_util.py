@@ -783,6 +783,13 @@ def titulos_financeiro_buscar_pagina_pg(
     totais = None if skip_totais else _totais_de_titulos(deduped)
     page_rows = deduped[skip : skip + page_size]
     linhas = [titulo_financeiro_agro_para_api(t) for t in page_rows]
+    if despesa:
+        try:
+            from produtos.plano_conta_agro_util import marcar_planos_orfaos_nas_linhas
+
+            marcar_planos_orfaos_nas_linhas(linhas)
+        except Exception:
+            logger.debug("marcar_planos_orfaos_nas_linhas falhou", exc_info=True)
     return linhas, total, totais
 
 

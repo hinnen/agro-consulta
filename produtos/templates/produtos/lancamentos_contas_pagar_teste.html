@@ -324,6 +324,15 @@
     display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
     font-size: 0.72rem; font-weight: 700; background: #ffedd5; color: #c2410c;
   }
+  .sv-plano-orfao-bang {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.25rem; height: 1.25rem; margin-left: 0.35rem; flex-shrink: 0;
+    border-radius: 999px; background: #ea580c; color: #fff;
+    font-size: 0.85rem; font-weight: 900; line-height: 1; cursor: help;
+    vertical-align: middle;
+  }
+  .sv-col-plano-wrap { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; }
+  .sv-col-plano-wrap .sv-plano-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sv-planos-map-modal {
     position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center;
     background: rgba(15, 23, 42, 0.45); padding: 1rem;
@@ -1302,6 +1311,19 @@
     return t.innerHTML;
   }
 
+  function planoOrfaoTip() {
+    return 'Plano fora do cadastro. Abra Filtros → «Definir planos corretos» e associe a um plano oficial. Valores e datas não mudam.';
+  }
+
+  function planoCellHtml(row) {
+    const nome = row.plano_conta || '—';
+    const tip = (row.plano_conta || '') + (row.grupo ? ' · ' + row.grupo : '');
+    if (!row.plano_orfao) {
+      return `<span class="sv-col-plano-wrap"><span class="sv-plano-txt" title="${esc(tip)}">${esc(nome)}</span></span>`;
+    }
+    return `<span class="sv-col-plano-wrap"><span class="sv-plano-txt" title="${esc(tip)}">${esc(nome)}</span><span class="sv-plano-orfao-bang" title="${esc(planoOrfaoTip())}" aria-label="${esc(planoOrfaoTip())}">!</span></span>`;
+  }
+
   function statusBadge(row) {
     if (row.pago) return '<span class="sv-badge sv-badge-pago">Pago</span>';
     const v = parseYmd(row.data_vencimento);
@@ -2114,7 +2136,7 @@
           ${auditCell('hora', horaTxt, 'hora')}
           <div data-col-id="fluxo" class="sv-col-vencimento">${esc(fmtData(row.data_fluxo))}</div>
           <div data-col-id="forma" class="sv-col-audit" title="${esc(row.forma_pagamento || '')}">${esc(row.forma_pagamento || '—')}</div>
-          <div data-col-id="plano" class="sv-col-audit" title="${esc((row.plano_conta || '') + (row.grupo ? ' · ' + row.grupo : ''))}">${esc(row.plano_conta || '—')}</div>
+          <div data-col-id="plano" class="sv-col-audit" title="${esc((row.plano_conta || '') + (row.grupo ? ' · ' + row.grupo : ''))}">${planoCellHtml(row)}</div>
           <div data-col-id="desc" class="sv-col-audit" title="${esc(desc)}">${esc(desc || '—')}</div>
           <div data-col-id="banco" class="sv-col-audit" title="${esc(row.banco || '')}">${esc(row.banco || '—')}</div>
           <div data-col-id="bruto" class="sv-col-valor negativo" style="font-size:0.95rem">${esc(brl(row.valor_bruto))}</div>
@@ -2134,7 +2156,7 @@
           <div class="sv-details-grid">
             <div class="sv-detail-box"><p><strong>Fornecedor / favorecido</strong>${esc(row.cliente || '—')}</p></div>
             ${desc ? `<div class="sv-detail-box"><p><strong>Descrição</strong>${esc(desc)}</p></div>` : ''}
-            <div class="sv-detail-box"><p><strong>Plano de contas</strong>${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</p></div>
+            <div class="sv-detail-box"><p><strong>Plano de contas</strong>${planoCellHtml(row)}${row.grupo ? ' · ' + esc(row.grupo) : ''}</p></div>
             <div class="sv-detail-box"><p><strong>Documento</strong>${esc(row.numero_documento || '—')}</p></div>
             <div class="sv-detail-box"><p><strong>Forma / banco</strong>${esc(row.forma_pagamento || '—')} · ${esc(row.banco || '—')}</p></div>
             <div class="sv-detail-box"><p><strong>Competência</strong>${esc(fmtData(row.data_competencia))}</p></div>
