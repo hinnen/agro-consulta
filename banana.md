@@ -1171,7 +1171,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Inclui** | **v11.79** (valor_pago folha + Log CP PG) · status folha espelha CP (parcial/pago) · envio auto título CP por funcionário (`dia_envio` + `dia_vencimento`) · conta placeholder · cron `rh_envio_cp_automatico` |
 | **Regra envio** | No dia de envio → título da **competência mês anterior**, vencimento no mês do envio · conta ADICIONAR CONTA |
 | **Config** | Ficha → Editar funcionário · 0 = auto off |
-| **Branch** | `hotfix/preview-custo-v1175` (tip após commit) |
+| **Branch** | `hotfix/preview-custo-v1175` tip **`4266815`** |
 | **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
 | **Backup** | `rollback/pre-v1180-rh-cp-auto` @ tip atual `producao` |
 | **Render** | criar/confirmar cron `agro-rh-envio-cp-automatico` (`15 6 * * *`) no Blueprint |
