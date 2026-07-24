@@ -1170,8 +1170,9 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **VERSION** | **11.78** (loja hoje **v11.76**; inclui também fix **v11.77** saída caixa) |
 | **Inclui** | (1) Saída caixa + **lote manual / Nova saída** Lançamentos → PG sem 503 · (2) **Gestão ajustar estoque** via catálogo PG + ledger (igual PDV) · (3) **RH vale/salário** título + baixa parcial + formas/bancos em Postgres |
 | **CPU Postgres** | Com Mongo morto, o balcão concentra carga no agro-db — 2 workers (v11.76) + menos N+1 (v11.75) · estes fixes evitam retries em 503 |
-| **Branch** | `hotfix/preview-custo-v1175` |
+| **Branch** | `hotfix/preview-custo-v1175` tip **`a4801fd`** |
 | **Backup** | criar `rollback/pre-v1178-mongo-urgente` no tip atual `producao` ao subir |
+| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
 | **Após Live** | Ctrl+F5 · saída Alimentação · Nova saída Lançamentos · Gestão ajuste · RH vale com financeiro |
 
 **Versão app (VERSION):** código **11.78** · loja **v11.76** até autorizar
