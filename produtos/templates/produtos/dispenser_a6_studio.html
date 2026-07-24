@@ -5,10 +5,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.86" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.86"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.86"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.86"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.73" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.73"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.73"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.73"></script>
 </head>
 <body>
   {% csrf_token %}
@@ -70,6 +70,7 @@
           <div class="dsp-gal-add no-print">
             <label class="dsp-gal-add-btn" for="dspLogoFile">+ Adicionar logo PNG</label>
             <input id="dspLogoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+            <p class="dsp-gal-add-hint">Com logo: arraste na moldura, scroll ou +/− embaixo.</p>
           </div>
 
           <div class="dsp-field">
@@ -236,7 +237,12 @@ Batata-Doce</textarea>
         <section class="dsp-hero">
           <div class="dsp-brand dsp-layout-item" id="dspBrandBox" data-layout="brand" title="Marca / logo">
             <div class="dsp-brand-name" id="dspBrandOut">Robustus</div>
-            <img class="dsp-brand-logo" id="dspBrandLogo" alt="" hidden />
+            <div class="dsp-brand-frame" id="dspBrandFrame" title="Arraste a logo · use +/− ou a alça para o tamanho" hidden>
+              <div class="dsp-brand-viewport" id="dspBrandViewport">
+                <img class="dsp-brand-logo" id="dspBrandLogo" alt="" draggable="false" />
+              </div>
+              <div class="dsp-brand-handle no-print" id="dspBrandHandle" title="Arraste para tamanho"></div>
+            </div>
           </div>
           <div class="dsp-pet-wrap dsp-layout-item" id="dspPetWrap" data-layout="pet" title="Foto do bicho">
             <span class="dsp-pet-ground" aria-hidden="true"></span>
@@ -271,6 +277,12 @@ Batata-Doce</textarea>
         </section>
       </article>
       <div class="dsp-fit-tools no-print">
+        <div class="dsp-fit-group">
+          <span>Logo</span>
+          <button type="button" id="dspLogoZoomOut" title="Menor">−</button>
+          <button type="button" id="dspLogoZoomIn" title="Maior">+</button>
+          <button type="button" id="dspLogoFitReset" title="Resetar">↺</button>
+        </div>
         <div class="dsp-fit-group">
           <span>Pet</span>
           <button type="button" id="dspPetZoomOut" title="Menor">−</button>
@@ -336,6 +348,9 @@ Batata-Doce</textarea>
     var brandOut = document.getElementById("dspBrandOut");
     var brandLogo = document.getElementById("dspBrandLogo");
     var brandBox = document.getElementById("dspBrandBox");
+    var brandFrame = document.getElementById("dspBrandFrame");
+    var brandViewport = document.getElementById("dspBrandViewport");
+    var brandHandle = document.getElementById("dspBrandHandle");
     var flavorList = document.getElementById("dspFlavorList");
     var proteinOut = document.getElementById("dspProteinOut");
     var proteinBubble = document.getElementById("dspProteinBubble");
@@ -360,8 +375,10 @@ Batata-Doce</textarea>
     var ingId = "frango-carne";
     var PET_FIT_KEY = "dsp_pet_fit_v1";
     var ING_FIT_KEY = "dsp_ing_fit_v1";
+    var LOGO_FIT_KEY = "dsp_logo_fit_v1";
     var petFit = { x: 0, y: 0, s: 1.05 };
     var ingFit = { x: 0, y: 0, s: 1.05 };
+    var logoFit = { x: 0, y: 0, s: 1.0 };
     var LINE2_MAX_MM = 6.8;
     var LINE2_MIN_MM = 3.6;
 
@@ -878,17 +895,164 @@ Batata-Doce</textarea>
       }
       if (chosen && chosen.dataUrl) {
         brandBox.classList.add("is-logo");
-        brandLogo.hidden = false;
+        if (brandFrame) brandFrame.hidden = false;
         brandLogo.src = chosen.dataUrl;
         brandLogo.alt = chosen.label || text;
+        loadFitForLogo(logoId);
       } else {
         logoId = "";
         brandBox.classList.remove("is-logo");
-        brandLogo.hidden = true;
+        if (brandFrame) brandFrame.hidden = true;
         brandLogo.removeAttribute("src");
         brandLogo.alt = "";
+        logoFit = { x: 0, y: 0, s: 1.0 };
+        applyLogoFit();
       }
       syncLogoGal();
+    }
+
+    function loadLogoFits() {
+      try {
+        var raw = localStorage.getItem(LOGO_FIT_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        return obj && typeof obj === "object" ? obj : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveLogoFit() {
+      if (!logoId) return;
+      var all = loadLogoFits();
+      all[logoId] = { x: logoFit.x, y: logoFit.y, s: logoFit.s };
+      localStorage.setItem(LOGO_FIT_KEY, JSON.stringify(all));
+    }
+
+    function clampLogoFit() {
+      logoFit.s = Math.max(0.35, Math.min(3.2, logoFit.s));
+      logoFit.x = Math.max(-160, Math.min(160, logoFit.x));
+      logoFit.y = Math.max(-160, Math.min(160, logoFit.y));
+    }
+
+    function applyLogoFit() {
+      if (!brandLogo) return;
+      clampLogoFit();
+      brandLogo.style.transform =
+        "translate(calc(-50% + " + logoFit.x + "px), calc(-50% + " + logoFit.y + "px)) scale(" + logoFit.s + ")";
+    }
+
+    function loadFitForLogo(id) {
+      var saved = id ? loadLogoFits()[id] : null;
+      if (saved && typeof saved === "object") {
+        logoFit = {
+          x: Number(saved.x) || 0,
+          y: Number(saved.y) || 0,
+          s: Number(saved.s) || 1.0
+        };
+      } else {
+        logoFit = { x: 0, y: 0, s: 1.0 };
+      }
+      applyLogoFit();
+    }
+
+    function bindLogoFitControls() {
+      if (!brandViewport || !brandHandle) return;
+      var dragging = false;
+      var resizing = false;
+      var lastX = 0;
+      var lastY = 0;
+
+      brandViewport.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return;
+        if (!logoId) return;
+        if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
+        dragging = true;
+        resizing = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        brandViewport.classList.add("is-dragging");
+        brandViewport.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+      });
+
+      brandHandle.addEventListener("pointerdown", function (ev) {
+        if (layoutEditOn()) return;
+        if (!logoId) return;
+        if (ev.button !== undefined && ev.button !== 0) return;
+        pushFitHistory();
+        resizing = true;
+        dragging = false;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        brandHandle.setPointerCapture(ev.pointerId);
+        ev.preventDefault();
+        ev.stopPropagation();
+      });
+
+      function onMove(ev) {
+        if (!dragging && !resizing) return;
+        var dx = ev.clientX - lastX;
+        var dy = ev.clientY - lastY;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        if (dragging) {
+          logoFit.x += dx;
+          logoFit.y += dy;
+        } else if (resizing) {
+          logoFit.s += (dx - dy) * 0.008;
+        }
+        applyLogoFit();
+      }
+
+      function onUp(ev) {
+        if (!dragging && !resizing) return;
+        dragging = false;
+        resizing = false;
+        brandViewport.classList.remove("is-dragging");
+        try { brandViewport.releasePointerCapture(ev.pointerId); } catch (e) {}
+        try { brandHandle.releasePointerCapture(ev.pointerId); } catch (e2) {}
+        saveLogoFit();
+      }
+
+      brandViewport.addEventListener("pointermove", onMove);
+      brandHandle.addEventListener("pointermove", onMove);
+      brandViewport.addEventListener("pointerup", onUp);
+      brandViewport.addEventListener("pointercancel", onUp);
+      brandHandle.addEventListener("pointerup", onUp);
+      brandHandle.addEventListener("pointercancel", onUp);
+
+      brandViewport.addEventListener("wheel", function (ev) {
+        if (layoutEditOn()) return;
+        if (!logoId) return;
+        ev.preventDefault();
+        pushFitHistory();
+        logoFit.s += (ev.deltaY < 0 ? 0.06 : -0.06);
+        applyLogoFit();
+        saveLogoFit();
+      }, { passive: false });
+
+      document.getElementById("dspLogoZoomIn").addEventListener("click", function () {
+        if (!logoId) return;
+        pushFitHistory();
+        logoFit.s += 0.08;
+        applyLogoFit();
+        saveLogoFit();
+      });
+      document.getElementById("dspLogoZoomOut").addEventListener("click", function () {
+        if (!logoId) return;
+        pushFitHistory();
+        logoFit.s -= 0.08;
+        applyLogoFit();
+        saveLogoFit();
+      });
+      document.getElementById("dspLogoFitReset").addEventListener("click", function () {
+        if (!logoId) return;
+        pushFitHistory();
+        logoFit = { x: 0, y: 0, s: 1.0 };
+        applyLogoFit();
+        saveLogoFit();
+      });
     }
 
     function buildLogoGal() {
@@ -1832,6 +1996,11 @@ Batata-Doce</textarea>
         logoId: logoId || "",
         logoLabel: logo ? (logo.label || "") : "",
         logoDataUrl: logoData,
+        logoFit: {
+          x: Math.round((logoFit.x || 0) * 10) / 10,
+          y: Math.round((logoFit.y || 0) * 10) / 10,
+          s: Math.round((logoFit.s || 1.0) * 1000) / 1000
+        },
         petId: petId,
         petLabel: pet ? (pet.label || "") : "",
         petFile: pet && pet.file ? pet.file : "",
@@ -1882,6 +2051,16 @@ Batata-Doce</textarea>
         }
       } else {
         logoId = "";
+      }
+
+      if (sheet.logoFit) {
+        logoFit = {
+          x: Number(sheet.logoFit.x) || 0,
+          y: Number(sheet.logoFit.y) || 0,
+          s: Number(sheet.logoFit.s) || 1.0
+        };
+        applyLogoFit();
+        if (logoId) saveLogoFit();
       }
 
       if (sheet.petDataUrl) {
@@ -1985,6 +2164,16 @@ Batata-Doce</textarea>
       buildFlavorIcoGal();
       renderAll();
 
+      if (sheet.logoFit) {
+        logoFit = {
+          x: Number(sheet.logoFit.x) || 0,
+          y: Number(sheet.logoFit.y) || 0,
+          s: Number(sheet.logoFit.s) || 1.0
+        };
+        applyLogoFit();
+        if (logoId) saveLogoFit();
+      }
+
       if (!sheet.freeLayout && sheet.proteinPos) {
         applyProteinPos(sheet.proteinPos);
       } else if (sheet.proteinPos) {
@@ -2049,6 +2238,7 @@ Batata-Doce</textarea>
           logoId: sheet.logoId || "",
           logoLabel: sheet.logoLabel || "",
           logoDataUrl: sheet.logoDataUrl || "",
+          logoFit: sheet.logoFit,
           petId: sheet.petId,
           petLabel: sheet.petLabel || "",
           petFile: sheet.petFile || "",
@@ -2695,6 +2885,8 @@ Batata-Doce</textarea>
       setProteinColor("");
       loadFitForPet(petId);
       loadFitForIng(ingId);
+      logoFit = { x: 0, y: 0, s: 1.0 };
+      applyLogoFit();
       buildLogoGal();
       buildFlavorIcoGal();
       buildIngGal();
@@ -2710,6 +2902,7 @@ Batata-Doce</textarea>
     bindProteinColorControls();
     loadProteinColor();
 
+    bindLogoFitControls();
     bindPetFitControls();
     bindIngFitControls();
     loadFitForPet(petId);
@@ -2719,12 +2912,18 @@ Batata-Doce</textarea>
       window.DspLayoutEdit.setFitHooks(
         function () {
           return {
+            logo: { x: logoFit.x, y: logoFit.y, s: logoFit.s, id: logoId },
             pet: { x: petFit.x, y: petFit.y, s: petFit.s, id: petId },
             ing: { x: ingFit.x, y: ingFit.y, s: ingFit.s, id: ingId }
           };
         },
         function (fit) {
           if (!fit) return;
+          if (fit.logo) {
+            logoFit = { x: fit.logo.x || 0, y: fit.logo.y || 0, s: fit.logo.s || 1.0 };
+            applyLogoFit();
+            if (logoId) saveLogoFit();
+          }
           if (fit.pet) {
             petFit = { x: fit.pet.x || 0, y: fit.pet.y || 0, s: fit.pet.s || 1.05 };
             applyPetFit();

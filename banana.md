@@ -1163,6 +1163,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+## CHECKPOINT DE ATUALIZAÇÃO
+
+> **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
+
+### ✅ Deploy loja **v11.90** — Dispenser zoom logo (`DSP-LOGO-ZOOM`) (24/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **VERSION** | **loja v11.90** (antes v11.89) |
+| **Cherry** | `4f59369` (só HTML/CSS Dispenser; VERSION/banana resolvidos na loja) |
+| **Inclui** | Zoom/arraste da logo na moldura · botões Logo +/− · `logoFit` na Pronta |
+| **NÃO inclui** | migrate · PDV · caixa · CP · merge inteiro `teste` |
+| **Migrate** | nenhuma |
+| **Backup / reverter** | `rollback/pre-v1190-dsp-logo-zoom` @ **`f64b81a`** → `git push origin rollback/pre-v1190-dsp-logo-zoom:producao` |
+| **Validar agora** | Ctrl+F5 Dispenser · logo arrastar/zoom · salvar Pronta e reabrir |
+
 ### ✅ Deploy loja **v11.89** — Dispenser cores (`DSP-CORES`) (24/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1181,8 +1198,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Status** | ✅ cores sobem na **v11.89** · nuvem já estava na loja (~v11.88 / migrate `0064`) |
-| **Nota 24/07** | `teste` e `producao` = **mesmo** HTML/CSS/JS do studio (hash idêntico). Melhorias «sumidas» ≠ apagadas no Git — conferir Ctrl+F5 / pasta certa (`agro-consulta-dispenser`) / listar o que falta |
+| **Status** | ✅ zoom logo sobe na **v11.90** · cores já na **v11.89** · nuvem/`0064` já na loja |
 
 ### ✅ Deploy loja **v11.86** — CP + relatórios + planilha + BI loja (24/07 · Renan frase+senha)
 
