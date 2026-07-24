@@ -1172,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Revisão 24/07** | Regras unit OK (28→01/07/14 ago; envio1→comp jul venc5 ago) · loja jul títulos OK (Geraldo/Queila/Zuleide/Renan **01/08**, Vitor **07/08**) · `py_compile` OK · saída caixa gate intacto · diff só RH vencimento/help (sem PDV/caixa) |
 | **Dados loja** | ✅ vencimentos jul já corrigidos no CP (não depende do push) |
 | **Risco residual** | No dia **28** o cron atualiza/cria títulos de quem tem auto ligado (6 pessoas) — esperado · até lá zero efeito no balcão |
-| **Branch** | `hotfix/preview-custo-v1175` (tip após commit) |
+| **Branch** | `hotfix/preview-custo-v1175` tip **`059be73`** |
 | **Backup ao subir** | `git branch rollback/pre-v1181-venc-salario origin/producao` (@ **`e6cce08`** / v11.80) |
 | **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
 | **Após Live** | Ctrl+F5 · CP vencimentos · (opcional) conferir textos da ficha RH |
