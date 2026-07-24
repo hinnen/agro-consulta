@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import urlencode
 
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
@@ -15,7 +14,15 @@ logger = logging.getLogger(__name__)
 def _qs_export(request) -> str:
     q = request.GET.copy()
     q["export"] = "xlsx"
-    return "?" + urlencode(q, doseq=True)
+    # QueryDict.urlencode() preserva multi (categoria=Gato&categoria=Cachorro)
+    return "?" + q.urlencode()
+
+
+def _qs_get(q) -> str:
+    """Serializa QueryDict preservando valores repetidos."""
+    if not q:
+        return "?"
+    return "?" + q.urlencode()
 
 
 def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
@@ -24,15 +31,15 @@ def _periodo_filtros(request, padrao: str = "mes_atual") -> dict:
 
 def _extra_filtros_catalogo(facetas: dict, **extra) -> dict:
     out = {
-        "categoria": facetas.get("categoria") or "",
+        "categoria": list(facetas.get("categoria") or []),
         "categorias": facetas.get("categorias") or [],
-        "subcategoria": facetas.get("subcategoria") or "",
+        "subcategoria": list(facetas.get("subcategoria") or []),
         "subcategorias": facetas.get("subcategorias") or [],
-        "subcategoria_2": facetas.get("subcategoria_2") or "",
+        "subcategoria_2": list(facetas.get("subcategoria_2") or []),
         "subcategorias_2": facetas.get("subcategorias_2") or [],
-        "subcategoria_3": facetas.get("subcategoria_3") or "",
+        "subcategoria_3": list(facetas.get("subcategoria_3") or []),
         "subcategorias_3": facetas.get("subcategorias_3") or [],
-        "subcategoria_4": facetas.get("subcategoria_4") or "",
+        "subcategoria_4": list(facetas.get("subcategoria_4") or []),
         "subcategorias_4": facetas.get("subcategorias_4") or [],
     }
     out.update(extra)
@@ -48,20 +55,21 @@ def _subtitulo_catalogo(base: str, facetas: dict) -> str:
         ("subcategoria_3", "sub3"),
         ("subcategoria_4", "sub4"),
     ):
-        v = (facetas.get(campo) or "").strip()
-        if not v:
+        vals = ru._as_filtro_lista(facetas.get(campo))
+        if not vals:
             continue
-        partes.append(f"{rotulo} {v}" if rotulo else v)
+        texto = " + ".join(vals)
+        partes.append(f"{rotulo} {texto}" if rotulo else texto)
     return " · ".join(partes)
 
 
 def _kw_filtros_catalogo(facetas: dict) -> dict:
     return {
-        "categoria": facetas.get("categoria") or None,
-        "subcategoria": facetas.get("subcategoria") or None,
-        "subcategoria_2": facetas.get("subcategoria_2") or None,
-        "subcategoria_3": facetas.get("subcategoria_3") or None,
-        "subcategoria_4": facetas.get("subcategoria_4") or None,
+        "categoria": list(facetas.get("categoria") or []) or None,
+        "subcategoria": list(facetas.get("subcategoria") or []) or None,
+        "subcategoria_2": list(facetas.get("subcategoria_2") or []) or None,
+        "subcategoria_3": list(facetas.get("subcategoria_3") or []) or None,
+        "subcategoria_4": list(facetas.get("subcategoria_4") or []) or None,
     }
 
 
@@ -127,7 +135,7 @@ def _relatorios_mais_vendidos_impl(request):
         {
             "titulo": "Produtos mais vendidos",
             "eyebrow": "Ranking",
-            "subtitulo": "Ordene por valor ou quantidade. Combine categoria e subcategorias 1–4.",
+            "subtitulo": "Ordene por valor ou quantidade. Marque várias categorias/subs · Atualizar.",
             "filtros": f,
             "extra_filtros": _extra_filtros_catalogo(facetas, ordenar=ordenar, sentido=sentido),
             "filtro_parcial": "mais_vendidos",
@@ -240,11 +248,11 @@ def relatorios_curva_abc(request):
         )
     q = request.GET.copy()
     q["todos"] = "1"
-    ver_todos_qs = "?" + urlencode(q, doseq=True)
+    ver_todos_qs = _qs_get(q)
     q_menos = request.GET.copy()
     if "todos" in q_menos:
         del q_menos["todos"]
-    ver_menos_qs = "?" + urlencode(q_menos, doseq=True) if q_menos else "?"
+    ver_menos_qs = _qs_get(q_menos) if q_menos else "?"
     recorte = meta.get("recorte") or "período"
     totais = [
         f"{meta['n_tela']} de {meta['n_total']} produtos",

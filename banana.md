@@ -1172,10 +1172,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Cherry** | 1b70cad v11.83 · 18ffce1 v11.84 · 54bcf92 v11.85 · 92efe70 v11.86 |
 | **Inclui** | CP ! órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · 1 passagem relatórios · BI troca Centro/Vila sem login |
 | **Migrate** | nenhuma |
-| **Backup / reverter** | 
-ollback/pre-v1186-20260724 @ **7e13051** → git push origin rollback/pre-v1186-20260724:producao |
+| **Backup / reverter** | `rollback/pre-v1186-20260724` @ **`7e13051`** → `git push origin rollback/pre-v1186-20260724:producao` |
 | **Validar agora** | Ctrl+F5 · badge **v11.86** · CP lista · Relatórios filtros · BI digitar vila |
 
+### WIP — Relatórios multi-select cat/sub (**v11.87** · 24/07 · pronto senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Checkbox: marcar **várias** no mesmo nível (ex. Gato + Cachorro) · OR no nível · AND entre níveis · Atualizar |
+| **Fix review** | Excel / Ver todos: `QueryDict.urlencode()` (não perde multi) |
+| **Testes** | `py_compile` · unit OR/AND · QueryDict multi no Excel qs |
+| **Risco loja aberta** | **SAFE** balcão (só relatórios) · restart Render só |
+| **Migrate** | nenhuma |
+| **Backup** | criar `rollback/pre-v1187-…` @ HEAD loja no deploy |
+| **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
+| **Cherry** | commit HEAD **v11.87** (só este pacote em cima da loja **v11.86**) |
 
 ### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
