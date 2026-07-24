@@ -1,4 +1,4 @@
-# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA — GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** — prova **local**, produção Render (SistVale), pacotes, operação diária. O **produto SisVale** no geral está em **`SISTVALE.md`**; a instância **delivery em branco** está em **`FOOD.md`**.
 
@@ -1189,7 +1189,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Loja hoje** | **v11.86** Live |
-| **Sobe (cherry nesta ordem)** | `afc6a9a` **v11.87** · **HEAD v11.88** (presets Excel cadastro) |
+| **Sobe (cherry nesta ordem)** | `afc6a9a` **v11.87** · `771358b` **v11.88** |
 | **v11.87** | Relatórios: multi-select cat/sub (checkbox Gato+Cachorro) · Excel/Ver todos preserva multi |
 | **v11.88** | Cadastro Excel ↓: presets Essencial/Classificação/Preços/Completa · modal compacto · limpar categorias |
 | **NÃO mexe** | PDV checkout · caixa · NFC-e · finalizar venda |
