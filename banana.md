@@ -1163,10 +1163,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-## CHECKPOINT DE ATUALIZAÇÃO
-
-> **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
-
 ### ✅ Deploy loja **v11.90** — Dispenser zoom logo (`DSP-LOGO-ZOOM`) (24/07 · Renan frase+senha)
 
 | Item | Detalhe |
