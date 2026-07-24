@@ -1166,7 +1166,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | Código no branch · **não** subir sem frase + senha (lojas abertas) |
+| **Status** | Código **`eb6c2c4`** · branch `hotfix/preview-custo-v1175` · **não** subir sem frase + senha (lojas abertas) |
 | **VERSION** | **v11.82** |
 | **O quê** | Cadastro Postgres planos + aliases · filtro CP agrupa · alerta órfãos + mapear (só alias, **não** reescreve título) · Nova saída/lote: só cadastrado + **+** · RH default **Salários** |
 | **Segurança loja** | Validação de plano **só** no lote manual UI (`exigir_plano_cadastrado`) — **RH / NF / juros / recorrência não bloqueiam** · fail-open se migrate ainda sem seed · APIs órfãos tolerantes |
