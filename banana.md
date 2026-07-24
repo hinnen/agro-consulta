@@ -1182,6 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
 | **Status** | ✅ cores sobem na **v11.89** · nuvem já estava na loja (~v11.88 / migrate `0064`) |
+| **Nota 24/07** | `teste` e `producao` = **mesmo** HTML/CSS/JS do studio (hash idêntico). Melhorias «sumidas» ≠ apagadas no Git — conferir Ctrl+F5 / pasta certa (`agro-consulta-dispenser`) / listar o que falta |
 
 ### ✅ Deploy loja **v11.86** — CP + relatórios + planilha + BI loja (24/07 · Renan frase+senha)
 
