@@ -1172,7 +1172,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Revisão 24/07** | Diff vs `producao` só 6 arquivos (+banana) · `py_compile` OK · gates 503 removidos nos 3 paths · flags loja `mongo_off`+`fin_pg` · **23/23** títulos salário folha existem no PG (reparado 1 órfão fech. pk9 Renan 04/2026) · dry: catálogo+saldos+formas/bancos PG |
 | **NÃO testado no balcão** | POST real saída/vale/ajuste (lojas abertas — sem UAT live) · após Live: checklist abaixo |
 | **Risco residual** | Paths **fora** do pacote (DRE Mongo, empréstimo Mongo, etc.) **não** mudam · `financeiro_grava_postgres` também true se Mongo off (loja já tinha fin PG) |
-| **Branch** | `hotfix/preview-custo-v1175` — tip após commit blindagem órfão (ver `git log -1`) |
+| **Branch** | `hotfix/preview-custo-v1175` tip **`911de3c`** (inclui `a4801fd` + blindagem órfão) |
 | **Backup ao subir** | `git branch rollback/pre-v1178-mongo-urgente origin/producao` (tip loja atual ≈ `5746d6c` / v11.76) |
 | **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
 | **Após Live (Renan)** | Ctrl+F5 · saída **Alimentação** · **Nova saída** Lançamentos · Gestão **ajuste estoque** · RH **vale** com financeiro · se falhar → `git push origin rollback/pre-v1178-mongo-urgente:producao` |
