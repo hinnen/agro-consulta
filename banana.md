@@ -1166,13 +1166,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** (`producao` **`567a82f`**) · autorizado Renan frase+senha |
+| **Status** | ✅ **Live** (`producao` **`f31558c`**) · autorizado Renan frase+senha |
 | **VERSION** | **loja v11.78** (antes v11.76) |
 | **Inclui** | (1) Saída caixa + lote/Nova saída PG · (2) Gestão ajuste estoque PG · (3) RH vale/salário PG + recria órfão |
 | **Backup / reverter** | `rollback/pre-v1178-mongo-urgente` @ **`5746d6c`** (v11.76) → `git push origin rollback/pre-v1178-mongo-urgente:producao` |
 | **Validar agora** | Ctrl+F5 · saída **Alimentação** · **Nova saída** · Gestão **ajuste** · RH **vale** |
 
-**Versão app (VERSION):** **loja v11.78** · tip `567a82f`
+**Versão app (VERSION):** **loja v11.78** · tip `f31558c`
 
 ### 📦 PACOTE LOJA **v11.77** — saída caixa (incluso no **v11.78** · ✅)
 
