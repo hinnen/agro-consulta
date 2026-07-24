@@ -1644,9 +1644,10 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` (login) |
 | **Já na loja** | Nuvem + Prontas + cores + zoom logo (`v11.90`) |
-| **Novo local** | **+13 sabores** (Leite, Ovo, Bacalhau, Veado, Camarão, Batata, Milho, Linhaça, Cranberry, Banana, Couve, Inhame, Alecrim) · ícones PNG + `flavor_lib` · cache `?v=11.76` |
-| **Status** | ⏳ commit `teste` · loja só com frase+senha |
-| **Regra** | Cherry só pacote sabores · sem merge inteiro `teste` |
+| **Pacote pronto** | **`DSP-SABORES`** · commit **`ed43464`** · loja alvo **v11.91** · ver topo CHECKPOINT |
+| **Blueberry** | ✅ já existia (Mirtilo) |
+| **Status** | ✅ revisado + dry-run cherry OK · aguarda pausa vendas + frase+senha |
+| **Regra** | Cherry só `ed43464` · sem merge inteiro `teste` |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
