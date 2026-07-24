@@ -415,7 +415,7 @@ AGRO_SAIDA_CAIXA_EMPRESA_PADRAO = config('AGRO_SAIDA_CAIXA_EMPRESA_PADRAO', defa
 
 # RH: texto de PlanoDeConta no Mongo para o título único de salário (despesa). Deve existir no ERP.
 AGRO_RH_PLANO_SALARIO_FOLHA = (config("AGRO_RH_PLANO_SALARIO_FOLHA", default="") or "").strip() or (
-    "2.1.1.1.2 — Salários"
+    "Salários"
 )
 # Conta placeholder no ERP (ex.: «ADICIONAR BANCO») até definir banco real — BancoID como string no Mongo/cadastro.
 # Se vazio, o Agro usa um ID legado embutido; defina no .env o ID correto da sua base (veja um DtoLancamento que já use essa conta).

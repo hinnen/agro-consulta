@@ -726,6 +726,26 @@ urlpatterns = [
         name='api_lancamentos_planos_distintos',
     ),
     path(
+        'api/lancamentos/planos-cadastro/',
+        views.api_lancamentos_planos_cadastro,
+        name='api_lancamentos_planos_cadastro',
+    ),
+    path(
+        'api/lancamentos/planos-cadastro/criar/',
+        views.api_lancamentos_planos_cadastro_criar,
+        name='api_lancamentos_planos_cadastro_criar',
+    ),
+    path(
+        'api/lancamentos/planos-orfaos/',
+        views.api_lancamentos_planos_orfaos,
+        name='api_lancamentos_planos_orfaos',
+    ),
+    path(
+        'api/lancamentos/planos-mapear/',
+        views.api_lancamentos_planos_mapear,
+        name='api_lancamentos_planos_mapear',
+    ),
+    path(
         'api/lancamentos/atalhos-filtro/',
         views.api_lancamentos_atalhos_filtro,
         name='api_lancamentos_atalhos_filtro',

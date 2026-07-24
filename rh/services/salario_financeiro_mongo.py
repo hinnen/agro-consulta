@@ -79,7 +79,7 @@ def _baixar_parcial_titulo_salario(
 
 
 def _plano_salario_folha() -> str:
-    return (getattr(settings, "AGRO_RH_PLANO_SALARIO_FOLHA", None) or "").strip() or "2.1.1.1.2 — Salários"
+    return (getattr(settings, "AGRO_RH_PLANO_SALARIO_FOLHA", None) or "").strip() or "Salários"
 
 
 def bruto_titulo_salario(f: FechamentoFolhaSimplificado) -> Decimal:

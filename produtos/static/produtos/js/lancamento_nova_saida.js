@@ -585,9 +585,11 @@
     if (!inp || !dd) return;
     inp.addEventListener('input', () => {
       if (hid) hid.value = '';
+      inp.dataset.planoPickOk = '';
       clearTimeout(timer);
       timer = setTimeout(async () => {
-        if (inp.value.length < 2) { dd.classList.add('hidden'); return; }
+        if (inp.value.length < 1 && campo === 'plano') { dd.classList.add('hidden'); return; }
+        if (inp.value.length < 2 && campo !== 'plano') { dd.classList.add('hidden'); return; }
         const api = cfg().apiSug;
         if (!api) return;
         try {
@@ -605,11 +607,16 @@
             const prefix = dual ? '↳ ' : '';
             return `<li class="${cls.trim()}" data-nome="${nome}" data-id="${String(it.id || '')}" data-dual="${dual ? '1' : '0'}">${prefix}${it.nome}</li>`;
           }).join('');
+          if (campo === 'plano' && !itens.length && String(inp.value || '').trim().length >= 2) {
+            dd.innerHTML = '<li class="text-amber-800 font-bold" data-nome="" data-id="">Nenhum no cadastro — use +</li>';
+          }
           dd.querySelectorAll('li').forEach((li) => {
             li.addEventListener('mousedown', (ev) => {
               ev.preventDefault();
+              if (!li.dataset.nome) { dd.classList.add('hidden'); return; }
               inp.value = li.dataset.nome || '';
               if (hid) hid.value = li.dataset.id || '';
+              inp.dataset.planoPickOk = '1';
               dd.classList.add('hidden');
               if (campo === 'plano' && window.AgroLancEmprestimoDual) {
                 window.AgroLancEmprestimoDual.onPlanoSelectModal(wrap, inp.value, hid ? hid.value : '');
@@ -618,15 +625,72 @@
               if (card) atualizarResumoCard(card);
             });
           });
-          dd.classList.toggle('hidden', !itens.length);
+          dd.classList.toggle('hidden', !itens.length && campo !== 'plano');
+          if (campo === 'plano') dd.classList.toggle('hidden', !dd.innerHTML);
         } catch (_) { /* ignore */ }
       }, 300);
     });
     inp.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 200));
   }
 
+  function csrfToken() {
+    const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  async function cadastrarPlanoNaHora(nomeHint) {
+    const api = cfg().apiCriarPlano;
+    if (!api) {
+      alert('API de cadastro de plano indisponível.');
+      return null;
+    }
+    const nome = window.prompt('Nome do novo plano de contas:', nomeHint || '');
+    if (nome == null) return null;
+    const n = String(nome || '').trim();
+    if (n.length < 2) {
+      alert('Nome muito curto.');
+      return null;
+    }
+    try {
+      const r = await fetch(api, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ nome: n, tipo: 'outra' }),
+      });
+      const j = await r.json();
+      if (!j || !j.ok || !j.plano) {
+        alert((j && j.erro) || 'Não foi possível cadastrar o plano.');
+        return null;
+      }
+      return j.plano;
+    } catch (_) {
+      alert('Falha de rede ao cadastrar plano.');
+      return null;
+    }
+  }
+
+  function attachNovoPlanoBtn(card) {
+    if (!card) return;
+    const btn = card.querySelector('.agro-ns-btn-novo-plano');
+    if (!btn || btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', async () => {
+      const wrap = card.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
+      const inp = wrap && wrap.querySelector('input[type="text"]');
+      const hid = wrap && wrap.querySelector('input[type="hidden"]');
+      const plano = await cadastrarPlanoNaHora(inp ? inp.value : '');
+      if (!plano || !inp) return;
+      inp.value = plano.nome || '';
+      if (hid) hid.value = String(plano.id || '');
+      inp.dataset.planoPickOk = '1';
+      atualizarResumoCard(card);
+    });
+  }
+
   function attachSugAll(root) {
     (root || document).querySelectorAll('.agro-ns-sug-wrap').forEach(attachSuggest);
+    (root || document).querySelectorAll('.agro-ns-card').forEach(attachNovoPlanoBtn);
   }
 
   function fmtDataBr(iso) {
@@ -868,12 +932,14 @@
       <div class="agro-ns-card-row agro-ns-card-row--4 agro-ns-card-row--plano">
         <div class="agro-ns-field agro-ns-field--plano">
           <label class="agro-ns-field-lbl agro-ns-label">Plano de contas</label>
-          <div class="agro-ns-field-inp">
-            <div class="relative agro-ns-sug-wrap" data-sug-campo="plano">
-              <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano…" autocomplete="off" class="agro-ns-input">
+          <div class="agro-ns-field-inp" style="display:flex;gap:6px;align-items:stretch;">
+            <div class="relative agro-ns-sug-wrap" data-sug-campo="plano" style="flex:1;min-width:0;">
+              <input type="text" id="agro-ns-plano-${idStr}" placeholder="Buscar plano cadastrado…" autocomplete="off" class="agro-ns-input">
               <input type="hidden" id="agro-ns-plano-id-${idStr}">
               <ul class="agro-ns-sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-y-auto"></ul>
             </div>
+            <button type="button" class="agro-ns-btn-novo-plano" title="Cadastrar plano novo" aria-label="Cadastrar plano novo"
+              style="flex:0 0 auto;min-width:2.5rem;border-radius:0.75rem;border:2px solid #86efac;background:#ecfdf5;font-weight:900;font-size:1.25rem;color:#047857;">+</button>
           </div>
         </div>
         <div class="agro-ns-field agro-ns-field--valor">
@@ -1221,6 +1287,20 @@
       if (!ln.plano_conta || !ln.valor) {
         alert(`Lançamento ${num}: informe plano de contas e valor.`);
         return false;
+      }
+      const dualId = (window.AgroLancEmprestimoDual && window.AgroLancEmprestimoDual.dualId)
+        ? window.AgroLancEmprestimoDual.dualId()
+        : '__AGRO_EMPRESTIMO_DUAL__';
+      if (ln.plano_conta_id !== dualId) {
+        /* Backend rejeita plano fora do cadastro; avisa antes se o usuário digitou solto */
+        const cards = document.querySelectorAll('#agro-ns-linhas .agro-ns-card');
+        const card = cards[i];
+        const wrap = card && card.querySelector('.agro-ns-sug-wrap[data-sug-campo="plano"]');
+        const inp = wrap && wrap.querySelector('input[type="text"]');
+        if (inp && inp.dataset.planoPickOk !== '1' && !(ln.plano_conta_id || '').trim()) {
+          alert(`Lançamento ${num}: escolha o plano na lista ou clique + para cadastrar um novo.`);
+          return false;
+        }
       }
       if (!ln.empresa_nome || !ln.pessoa_nome || !ln.banco_nome) {
         alert(`Lançamento ${num}: preencha loja, pessoa e conta.`);

@@ -12615,6 +12615,78 @@ def api_lancamentos_planos_distintos(request):
 
 @never_cache
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_planos_cadastro(request):
+    """Lista planos oficiais cadastrados (Postgres)."""
+    from produtos.plano_conta_agro_util import listar_planos_cadastro, sugestoes_plano_cadastro
+
+    q = (request.GET.get("q") or "").strip() or None
+    if request.GET.get("sugestoes"):
+        itens = sugestoes_plano_cadastro(q, limit=int(request.GET.get("limit") or 40))
+        from produtos.mongo_financeiro_util import injetar_emprestimo_dual_sugestao_plano
+
+        itens = injetar_emprestimo_dual_sugestao_plano(itens, q or "")
+        return JsonResponse({"ok": True, "itens": itens})
+    planos = listar_planos_cadastro(ativos=True, q=q)
+    return JsonResponse({"ok": True, "planos": planos})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_planos_cadastro_criar(request):
+    """Cadastra plano novo na hora (ex. Nova saída). Não altera títulos."""
+    from produtos.plano_conta_agro_util import criar_plano_cadastro
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    r = criar_plano_cadastro(
+        str(body.get("nome") or ""),
+        tipo=str(body.get("tipo") or "outra"),
+        grupo=str(body.get("grupo") or ""),
+        observacao=str(body.get("observacao") or ""),
+    )
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_planos_orfaos(request):
+    """Grafias em títulos CP que não estão no cadastro nem em alias."""
+    try:
+        from produtos.plano_conta_agro_util import listar_orfaos_cp
+
+        orfaos = listar_orfaos_cp(despesa=True)
+        return JsonResponse({"ok": True, "orfaos": orfaos, "total": len(orfaos)})
+    except Exception:
+        logger.exception("api_lancamentos_planos_orfaos")
+        return JsonResponse({"ok": True, "orfaos": [], "total": 0, "aviso": "cadastro indisponível"})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_planos_mapear(request):
+    """Mapeia grafia órfã → plano oficial (só alias; não altera valores/títulos)."""
+    from produtos.plano_conta_agro_util import mapear_grafia_para_oficial
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    r = mapear_grafia_para_oficial(
+        str(body.get("grafia") or body.get("nome_antigo") or ""),
+        str(body.get("oficial") or body.get("plano_oficial") or ""),
+        usuario=request.user,
+    )
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
 @require_http_methods(["GET", "POST", "DELETE"])
 def api_lancamentos_atalhos_filtro(request):
     """Dois atalhos de filtro por usuário (payload JSON espelha favoritos locais)."""
@@ -17851,6 +17923,12 @@ def api_lancamentos_sugestoes(request):
     if agro_financeiro_usa_postgres():
         from produtos.lancamentos_financeiro_pg_util import lancamentos_sugestoes_campo_pg
 
+        if campo == "plano":
+            from produtos.plano_conta_agro_util import sugestoes_plano_cadastro
+
+            itens = sugestoes_plano_cadastro(q or None, limit=lim)
+            itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
+            return JsonResponse({"campo": campo, "itens": itens, "fonte": "cadastro_pg"})
         itens = lancamentos_sugestoes_campo_pg(
             campo,
             q=q or None,
@@ -17859,8 +17937,6 @@ def api_lancamentos_sugestoes(request):
             ordenar=ordenar,
             empresa_id=empresa_id,
         )
-        if campo == "plano":
-            itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
         return JsonResponse({"campo": campo, "itens": itens, "fonte": "postgres"})
     _, db = obter_conexao_mongo()
     if db is None:
@@ -18084,6 +18160,7 @@ def api_lancamentos_criar_manual_lote(request):
             recorrente=bool(recorrente),
             recorrente_modo=rec_mod,
             recorrente_parcelas=rec_par,
+            exigir_plano_cadastrado=True,
         )
     except Exception as exc:
         logger.exception("inserir_lancamentos_manual_lote")

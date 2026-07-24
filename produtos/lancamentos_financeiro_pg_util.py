@@ -167,7 +167,13 @@ def _aplicar_exclusao_planos(qs: QuerySet, excluir_planos: list[str] | None) -> 
     exclui_sem = _SEM_PLANO_MARKER in raw or any(x.lower() == "(sem plano)" for x in raw)
     nomes = [x for x in raw if x != _SEM_PLANO_MARKER and x.lower() != "(sem plano)"]
     if nomes:
-        qs = qs.exclude(plano_conta__in=nomes[:200])
+        try:
+            from produtos.plano_conta_agro_util import expandir_nomes_exclusao
+
+            nomes = expandir_nomes_exclusao(nomes)
+        except Exception:
+            logger.debug("expandir_nomes_exclusao falhou", exc_info=True)
+        qs = qs.exclude(plano_conta__in=nomes[:400])
     if exclui_sem:
         qs = qs.exclude(plano_conta="")
     return qs
@@ -852,7 +858,14 @@ def planos_distintos_pg(
         n = (t.plano_conta or "").strip()
         nomes.add(n if n else "(sem plano)")
     lim = min(max(int(limit or 400), 1), 500)
-    return [{"nome": x} for x in sorted(nomes, key=lambda s: s.lower())][:lim]
+    bruto = [{"nome": x} for x in sorted(nomes, key=lambda s: s.lower())][:lim]
+    try:
+        from produtos.plano_conta_agro_util import mesclar_planos_distintos
+
+        return mesclar_planos_distintos(bruto)[:lim]
+    except Exception:
+        logger.debug("mesclar_planos_distintos falhou", exc_info=True)
+        return bruto
 
 
 def planos_distintos_cp_pg(
