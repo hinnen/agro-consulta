@@ -529,7 +529,7 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 | **Gestão operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operação loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera. **Colunas (24/07):** além de nome/marca/categoria/sub/barras/custos — **Subcategoria 2/3/4**, modelo, fornecedor, unidade, descrição, cashback %, fiscal (NCM/CEST/CFOP/CSOSN/origem), estoques min/máx Centro/Vila, Ativo (Sim/Não). **Validação:** lista no Excel + aviso de novos + typo auto + checkbox «Permitir criar novos» (padrão off).
+**Excel fase 1:** export com colunas/categorias; import async com histórico e desfazer; ID oculta; Código GM editável; célula vazia não altera. **Colunas (24/07):** além de nome/marca/categoria/sub/barras/custos — **Subcategoria 2/3/4**, modelo, fornecedor, unidade, descrição, cashback %, fiscal (NCM/CEST/CFOP/CSOSN/origem), estoques min/máx Centro/Vila, Ativo (Sim/Não). **Validação:** lista no Excel + aviso de novos + typo auto + checkbox «Permitir criar novos» (padrão off). **Modal Excel ↓ (24/07):** compacto · presets Essencial / Classificação / Preços / Completa · categorias em lista rolável (antes sumia sob 27 checks).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1169,11 +1169,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | ---- | ------- |
 | **Status** | ✅ **Live** (producao **92efe70**) · autorizado Renan frase+senha |
 | **VERSION** | **loja v11.86** (antes v11.82) |
-| **Cherry** | 1b70cad v11.83 · 18ffce1 v11.84 · 54bcf92 v11.85 · 92efe70 v11.86 |
+| **Cherry** | 1b70cad **v11.83** · 18ffce1 **v11.84** · 54bcf92 v11.85 · 92efe70 v11.86 |
 | **Inclui** | CP ! órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · 1 passagem relatórios · BI troca Centro/Vila sem login |
 | **Migrate** | nenhuma |
 | **Backup / reverter** | `rollback/pre-v1186-20260724` @ **`7e13051`** → `git push origin rollback/pre-v1186-20260724:producao` |
 | **Validar agora** | Ctrl+F5 · badge **v11.86** · CP lista · Relatórios filtros · BI digitar vila |
+
+### ✅ CP **v11.83** + **v11.84** — já na loja (via **v11.86**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live** — **não** falta senha deste pacote |
+| **v11.83** | ! laranja na linha + dual **sem** falso «fora do cadastro» (`1b70cad`) |
+| **v11.84** | Coluna Plano mostra nome oficial (ex. `2.1.1.1.2 — Salários` → **Salários**) (`18ffce1`) |
+| **Por que «não vejo alerta»** | Alerta/! só em plano **fora do mapa**. **Empréstimo (entrada + pagamento)** = sistema → **sem** ! (esperado). Se badge ≠ v11.86 → Ctrl+F5 forte |
 
 ### WIP — Relatórios multi-select cat/sub (**v11.87** · 24/07 · pronto senha)
 
@@ -1203,6 +1212,14 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **O quê** | Filtros cat + sub 1–4 · planilha colunas extras · facetas · single-pass ranking |
 | **Testes assistente** | `py_compile` OK · unit filtros OK · `manage.py check` OK (só warnings SSL local) |
 | **Review** | CP SAFE · relatórios CAUTION→mitigado (1 passagem) · planilha sem migrate; preço Mongo só se importar Excel |
+
+### WIP — Excel ↓ modal compacto + categorias (24/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | 27 checks engoliam o modal · lista de categorias sumia |
+| **Fix** | Presets Essencial/Classificação/Preços/Completa · personalizar recolhido · categorias com altura fixa + status de carga |
+| **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` (?v=25) |
 
 ### WIP — CP ! fora do cadastro (**v11.83**)
 
