@@ -1168,7 +1168,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Loja hoje** | **v11.82** Live |
-| **Sobe (cherry nesta ordem)** | `9f21bdf` **v11.83** · `e90be3f` **v11.84** · `297b936` **v11.85** · **HEAD v11.86** (perf relatórios + BI troca loja) |
+| **Sobe (cherry nesta ordem)** | `9f21bdf` **v11.83** · `e90be3f` **v11.84** · `297b936` **v11.85** · `7c2bd5f` **v11.86** |
 | **Inclui** | CP `!` órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · **1 passagem** nos relatórios (sem 2× ranking) · BI notebook troca Centro/Vila sem login |
 | **NÃO mexe** | PDV checkout · caixa · NFC-e · estoque saldo · finalizar venda |
 | **Risco loja aberta** | Só **restart** Render (~1–3 min). Relatórios/planilha/CP UI. **Não** importar Excel de preço no pico. |
