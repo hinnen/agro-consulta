@@ -1165,30 +1165,39 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 📦 PACOTE PRONTO LOJA — Dispenser zoom logo (`DSP-LOGO-ZOOM` · 24/07)
+### 📦 PACOTE PRONTO LOJA — Dispenser +13 sabores (`DSP-SABORES` · 24/07)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto** · **NÃO subir** enquanto loja vende · próximo chat: pausar vendas + frase + senha `99738595` |
-| **Commit teste** | **código:** `4f59369` · **checkpoint:** `0aa9235` (só banana/VERSION) |
-| **VERSION loja alvo** | **11.90** (loja hoje **11.89** · no cherry **não** usar 11.73/11.74 do teste) |
-| **Arquivos** | só `dispenser_a6_studio.html` + `dispenser.css` (+ `VERSION`/`banana` no resolve) |
-| **Inclui** | Zoom/arraste da **logo** na moldura (igual pet/ing) · botões Logo +/− · `logoFit` na Pronta · cache `?v=11.73` |
-| **NÃO inclui** | migrate · PDV · caixa · CP · NFC-e · merge inteiro `teste` · kardex · outros commits do teste |
-| **Cherry** | **só** `4f59369` em `producao` · conflito esperado só `VERSION`+`banana` (HTML/CSS aplicam limpo — dry-run OK) |
-| **Backup** | criar `rollback/pre-v1190-dsp-logo-zoom` @ HEAD `producao` antes do push |
-| **Risco loja aberta** | **Baixo** se cherry só esse commit — paths só `/interno/dispenser-a6*` · **zero** alteração em `/consulta/`, caixa, vendas |
-| **Testado assistente** | escopo 4 arquivos · dry-run cherry HTML/CSS sem conflito · braces JS `bindLogoFitControls` OK · `manage.py check` só warnings SSL locais · **falta** Ctrl+F5 visual do Renan no PC |
-| **Você antes de autorizar** | Local: abrir Dispenser → logo → arrastar/zoom → salvar Pronta → reabrir |
-| **Pós-Live** | Ctrl+F5 Dispenser · testar logo · PDV smoke rápido (busca) só por precaução |
+| **Commit teste** | **`ed43464`** `feat(dispenser): +13 sabores comuns (leite, ovo, bacalhau…)` |
+| **VERSION loja alvo** | **11.91** (loja hoje **11.90** · no cherry **não** usar 11.76 do teste) |
+| **Arquivos** | `flavor_lib.js` · `flavor-icons.svg` · `dispenser_flavor_icons.html` · 13 PNG em `lib/icons/` · cache studio `?v=11.76` · (+ `VERSION`/`banana` no resolve) |
+| **Inclui** | Leite · Ovo · Bacalhau · Veado · Camarão · Batata · Milho · Linhaça · Cranberry · Banana · Couve · Inhame · Alecrim |
+| **Já tinha** | **Blueberry (Mirtilo)** — ícone + catálogo já existiam (`mirtilo.png`) · **não** faltava |
+| **NÃO inclui** | migrate · PDV · caixa · CP · NFC-e · merge inteiro `teste` · kardex · re-cherry zoom/cores |
+| **Cherry** | **só** `ed43464` em `producao` · conflito esperado só `VERSION`+`banana` (ícones/JS aplicam limpo — dry-run OK 24/07) |
+| **Backup** | criar `rollback/pre-v1191-dsp-sabores` @ HEAD `producao` antes do push |
+| **Risco loja aberta** | **Baixo** se cherry só esse commit — paths só `/interno/dispenser-a6*` · **zero** `/consulta/`, caixa, vendas |
+| **Testado assistente** | dry-run cherry · 13 PNG + blueberry presentes · META/PROTEINS/SIDES OK · **falta** Ctrl+F5 visual do Renan |
+| **Você antes de autorizar** | Local: Dispenser → Sabores → ver grade nova (Leite etc.) · Blueberry já na lista |
+| **Pós-Live** | Ctrl+F5 Dispenser · Sabores · PDV smoke rápido só por precaução |
+
+### ✅ Deploy loja **v11.90** — zoom logo (`DSP-LOGO-ZOOM`) · ✅ já enviado
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** · **não** falta senha deste pacote |
+| **Commit** | `2f004b5` / tip docs Live |
 
 ### WIP — Dispenser A6 (visual)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Já na loja** | Nuvem + Prontas + cores (**v11.89**) |
-| **Próximo pacote** | **`DSP-LOGO-ZOOM`** → commit **`4f59369`** (acima) |
+| **Já na loja** | Nuvem + Prontas + cores + zoom logo (**v11.90**) |
+| **Próximo pacote** | **`DSP-SABORES`** → `ed43464` · loja alvo **v11.91** (acima) |
+| **Blueberry** | ✅ já no catálogo (Mirtilo) |
 | **Regra** | Cherry **só** o pacote · **nunca** merge `teste`→`producao` |
 
 ### 📦 PACOTE PRONTO LOJA — Histórico estoque / kardex ledger (**v11.68** · 23/07)
