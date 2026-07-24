@@ -1162,17 +1162,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.79** — RH valor_pago + Log CP PG (24/07 · **pronto · aguarda senha**)
+### 📦 PACOTE LOJA **v11.80** — RH CP auto + status + (v11.79 incluso) (24/07 · **pronto · aguarda senha**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto** · aguarda *pode subir para produção* + **99738595** |
-| **VERSION** | **11.79** (loja hoje **v11.78**) |
-| **Inclui** | (1) `valor_pago` folha **não** puxa baixas de outra competência só pela data · (2) Log CP lê Postgres (fim «serviço legado» no Log) |
-| **Dados loja** | ✅ 24/07 folha Renan jul/2026: campo `valor_pago` zerado · título CP pago = R$ 0,01 (só vale teste) — **não** clicar Salvar e recalcular até subir v11.79 (código antigo reinsere 1670,01) |
-| **Origem 1670,01** | baixas CP do **salário jun/2026** em 10/07 (566,38) + 13/07 (1103,63) ligadas à folha jun — não é ajuste manual misterioso |
+| **VERSION** | **11.80** (loja hoje **v11.78**) |
+| **Inclui** | **v11.79** (valor_pago folha + Log CP PG) · status folha espelha CP (parcial/pago) · envio auto título CP por funcionário (`dia_envio` + `dia_vencimento`) · conta placeholder · cron `rh_envio_cp_automatico` |
+| **Regra envio** | No dia de envio → título da **competência mês anterior**, vencimento no mês do envio · conta ADICIONAR CONTA |
+| **Config** | Ficha → Editar funcionário · 0 = auto off |
+| **Branch** | `hotfix/preview-custo-v1175` (tip após commit) |
 | **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
-| **Backup** | `rollback/pre-v1179-rh-valorpago` @ tip atual `producao` |
+| **Backup** | `rollback/pre-v1180-rh-cp-auto` @ tip atual `producao` |
+| **Render** | criar/confirmar cron `agro-rh-envio-cp-automatico` (`15 6 * * *`) no Blueprint |
+
+### 📦 PACOTE LOJA **v11.79** — RH valor_pago + Log CP PG (absorvido no **v11.80**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 absorvido pelo **v11.80** |
+| **Dados loja** | ✅ folha Renan jul/2026 realinhada (não Salvar/recalcular no v11.78) |
 
 ### 📦 Deploy loja **v11.78** — 3 urgentes sem Mongo (24/07 · ✅ enviado)
 

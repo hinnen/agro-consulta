@@ -85,6 +85,7 @@
           <span class="text-[11px] font-black uppercase text-slate-500 tracking-wide shrink-0">Atalhos</span>
           <a href="#salario" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800">Salário</a>
           <a href="#vales" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700">Vales</a>
+          <a href="{% url 'rh_funcionario_editar' funcionario.pk %}" class="min-h-[44px] inline-flex items-center px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-xs font-black uppercase hover:bg-emerald-100" title="Dia de envio automático e vencimento no CP">CP auto{% if funcionario.dia_envio_cp_auto %} · d{{ funcionario.dia_envio_cp_auto }}/venc{{ funcionario.dia_vencimento_salario }}{% else %} · off{% endif %}</a>
           {% if folha_mes_atual %}
           <a href="{% url 'rh_fechamento_detalhe' folha_mes_atual.pk %}" class="min-h-[44px] inline-flex items-center px-3 rounded-xl bg-slate-800 text-white text-xs font-black uppercase hover:bg-slate-900">Folha {{ hoje|date:"m/Y" }}</a>
           {% else %}
@@ -94,6 +95,18 @@
           </form>
           {% endif %}
         </div>
+        <p class="mt-2 text-[11px] font-semibold text-slate-600 leading-snug">
+          Contas a pagar:
+          {% if funcionario.dia_envio_cp_auto %}
+          envio automático todo dia <strong>{{ funcionario.dia_envio_cp_auto }}</strong>
+          (salário do <strong>mês anterior</strong>), vencimento dia <strong>{{ funcionario.dia_vencimento_salario }}</strong>
+          · conta = ADICIONAR CONTA até pagar.
+          {% else %}
+          envio automático <strong>desligado</strong> (0) — gere o título no passo 2 da folha.
+          Vencimento sugerido dia <strong>{{ funcionario.dia_vencimento_salario }}</strong>.
+          {% endif %}
+          <a href="{% url 'rh_funcionario_editar' funcionario.pk %}" class="text-emerald-800 font-black underline ml-1">Configurar</a>
+        </p>
       </div>
 
       <div class="relative rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-visible">

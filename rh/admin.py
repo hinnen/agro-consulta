@@ -19,8 +19,18 @@ class HistoricoSalarialInline(admin.TabularInline):
 
 @admin.register(Funcionario)
 class FuncionarioAdmin(admin.ModelAdmin):
-    list_display = ("nome_cache", "cliente_agro", "empresa", "loja", "cargo", "ativo", "atualizado_em")
-    list_filter = ("empresa", "ativo", "loja")
+    list_display = (
+        "nome_cache",
+        "cliente_agro",
+        "empresa",
+        "loja",
+        "cargo",
+        "dia_envio_cp_auto",
+        "dia_vencimento_salario",
+        "ativo",
+        "atualizado_em",
+    )
+    list_filter = ("empresa", "ativo", "loja", "dia_envio_cp_auto")
     search_fields = ("nome_cache", "apelido_interno", "cliente_agro__nome", "cargo")
     autocomplete_fields = ("cliente_agro",)
     inlines = [HistoricoSalarialInline]

@@ -9457,6 +9457,22 @@ def api_cron_estoque_mongo_ping(request):
 
 
 @require_GET
+def api_cron_rh_envio_cp_automatico(request):
+    """
+    Agendador diário: gera títulos de salário no CP no dia configurado por funcionário.
+    Token: ``ALERTA_VENDAS_CRON_TOKEN``.
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "token"}, status=403)
+    from rh.services.envio_cp_automatico import rodar_envio_cp_automatico_diario
+
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes", "sim")
+    out = rodar_envio_cp_automatico_diario(dry_run=dry)
+    st = 200 if out.get("ok") else 500
+    return JsonResponse(out, status=st)
+
+
+@require_GET
 def api_cron_pg_backup_nightly(request):
     """
     Backup Postgres noturno (completo + kit + por categoria).

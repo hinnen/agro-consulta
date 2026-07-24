@@ -141,21 +141,64 @@ def _atualizar_controle_fechamento_apos_pagamentos(
     *,
     atualizar_status: bool = True,
 ) -> None:
-    comp = f.competencia
-    pagos = total_pagamentos_salario_fechamento(f)
-    f.valor_pago = pagos
+    from rh.services.salario_financeiro_mongo import bruto_titulo_salario
+
+    pagos_sal = total_pagamentos_salario_fechamento(f)
+    f.valor_pago = pagos_sal
     update = ["valor_pago", "atualizado_em"]
     if atualizar_status:
-        if pagos <= Decimal("0"):
-            pass
-        elif pagos + Decimal("0.02") >= f.valor_liquido_previsto:
-            if f.status == FechamentoFolhaSimplificado.Status.ABERTO:
-                f.status = FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
-                update.append("status")
-        elif pagos > Decimal("0") and f.status == FechamentoFolhaSimplificado.Status.ABERTO:
-            f.status = FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
+        bruto = bruto_titulo_salario(f)
+        vp_titulo = valor_pago_titulo_salario(f, bruto, db=None)
+        novo = _status_folha_pelo_pagamento(f.status, vp_titulo, bruto)
+        if novo != f.status:
+            f.status = novo
             update.append("status")
+            if novo == FechamentoFolhaSimplificado.Status.PAGO and f.fechado_em is None:
+                f.fechado_em = timezone.now()
+                update.append("fechado_em")
     f.save(update_fields=update)
+
+
+def _status_folha_pelo_pagamento(
+    status_atual: str,
+    valor_pago_titulo: Decimal,
+    bruto: Decimal,
+) -> str:
+    """Espelha quitação do título (vales + pagamentos) no status da folha."""
+    if bruto <= Decimal("0"):
+        return status_atual
+    if valor_pago_titulo + Decimal("0.02") >= bruto:
+        return FechamentoFolhaSimplificado.Status.PAGO
+    if valor_pago_titulo > Decimal("0"):
+        return FechamentoFolhaSimplificado.Status.PAGO_PARCIAL
+    # Sem pagamento: mantém Aberto/Fechado manuais; não reabre PAGO automaticamente aqui
+    # (cancelamentos usam fluxo próprio).
+    if status_atual in (
+        FechamentoFolhaSimplificado.Status.PAGO,
+        FechamentoFolhaSimplificado.Status.PAGO_PARCIAL,
+    ):
+        return FechamentoFolhaSimplificado.Status.ABERTO
+    return status_atual
+
+
+def alinhar_status_folha_com_pagamentos(f: FechamentoFolhaSimplificado) -> str:
+    """Recalcula status ABERTO / PAGO_PARCIAL / PAGO a partir de vales + pagamentos vs bruto."""
+    from rh.services.salario_financeiro_mongo import bruto_titulo_salario
+
+    bruto = bruto_titulo_salario(f)
+    vp = valor_pago_titulo_salario(f, bruto, db=None)
+    novo = _status_folha_pelo_pagamento(f.status, vp, bruto)
+    update = ["atualizado_em"]
+    if novo != f.status:
+        f.status = novo
+        update.append("status")
+    if novo == FechamentoFolhaSimplificado.Status.PAGO and f.fechado_em is None:
+        f.fechado_em = timezone.now()
+        update.append("fechado_em")
+    f.valor_pago = total_pagamentos_salario_fechamento(f)
+    update.append("valor_pago")
+    f.save(update_fields=list(dict.fromkeys(update)))
+    return f.status
 
 
 def restaurar_valor_pago_controle_fechamento(f: FechamentoFolhaSimplificado) -> None:
@@ -248,7 +291,8 @@ def processar_baixa_cp_titulo_salario(
 
     fech.refresh_from_db()
     sr = sincronizar_valores_titulo_salario_mongo(fech)
-    return {"ok": True, "fechamento_id": fech.pk, "sync": sr}
+    st = alinhar_status_folha_com_pagamentos(fech)
+    return {"ok": True, "fechamento_id": fech.pk, "sync": sr, "status": st}
 
 
 def valor_pago_titulo_salario(

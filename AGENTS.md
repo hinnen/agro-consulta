@@ -247,20 +247,21 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ### 9.4 Passo 2 — Conta a pagar no financeiro
 
-- Opcional: faz o salário da competência aparecer nas **contas a pagar** (Mongo) com **data de vencimento** em Lançamentos.
+- Opcional: faz o salário da competência aparecer nas **contas a pagar** (Postgres) com **data de vencimento** em Lançamentos.
 - Cada **vale** (ficha ou caixa) é **pagamento parcial** do mesmo título; não cria outra despesa de “vale”.
-- **Forma de pagamento** pode ficar em **branco** até quitar; **conta/banco** é obrigatória para gerar o título.
-- Conta placeholder tipo **«ADICIONAR BANCO»** aparece no **topo** da lista quando configurada (`AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID` no `.env` se o ID do ERP for diferente do padrão embutido).
+- **Forma** e **conta/banco** podem ficar em **branco** (placeholder ADICIONAR CONTA) até quitar.
+- **Envio automático** (ficha → Editar): `dia_envio_cp_auto` (1–28; 0=off) gera o título do **mês anterior** nesse dia; `dia_vencimento_salario` (1–28) = vencimento no mês do envio. Cron: `manage.py rh_envio_cp_automatico` / `/api/cron/rh-envio-cp-automatico/`.
+- Quando vales + baixas no CP atingem o bruto do título, o status da folha passa a **Pago** (parcial → **Pago parcial**).
 
-### 9.5 Passo 2 — Ajuda técnica (plano Mongo)
+### 9.5 Passo 2 — Ajuda técnica (plano)
 
-- Plano do título: variável de ambiente `**AGRO_RH_PLANO_SALARIO_FOLHA`** (texto igual ao cadastro no ERP/Mongo).
+- Plano do título: variável de ambiente `**AGRO_RH_PLANO_SALARIO_FOLHA**` (texto igual ao cadastro no ERP/Mongo).
 - Quando já existe lançamento, o **ID** do título é exibido na própria tela (ajuda técnica).
 
 ### 9.6 Passo 3 — Encerrar e correções
 
-- **Fechar** e **Marcar pago** são só **controle interno** do RH; não substituem pagamento no banco nem baixa no ERP.
-- **Reabrir folha** volta para Aberto e zera valor pago de controle se estava Pago.
+- **Fechar** e **Marcar pago** são controle interno do RH; o status **Pago** também sobe sozinho quando o título no CP fica quitado.
+- **Reabrir folha** volta para Aberto; pagamentos reais (caixa/CP) permanecem.
 - **Excluir competência** só sem título de salário vinculado no financeiro.
 
 ### 9.7 Ficha — onde estão salário e vales

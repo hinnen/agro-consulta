@@ -35,6 +35,15 @@ class Funcionario(models.Model):
     cargo = models.CharField(max_length=120, blank=True)
     data_admissao = models.DateField(null=True, blank=True)
     ativo = models.BooleanField(default=True)
+    # Contas a pagar (salário): dia 1–28 (evita meses curtos); 0 = desligado.
+    dia_envio_cp_auto = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Dia do mês (1–28) em que o sistema gera o título no CP da competência anterior. 0 = não enviar automaticamente.",
+    )
+    dia_vencimento_salario = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Dia do mês (1–28) do vencimento do título de salário no CP (conta definida só no pagamento).",
+    )
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

@@ -36,6 +36,15 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python manage.py estoque_mongo_ping
 
+  # RH: títulos de salário no CP no dia configurado por funcionário (competência = mês anterior).
+  - type: cron
+    name: agro-rh-envio-cp-automatico
+    branch: producao
+    runtime: python
+    schedule: "15 6 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py rh_envio_cp_automatico
+
   # Ping /healthz do staging — mesma rotina no final de estoque_mongo_ping (evita serviço cron extra).
   # Se o Blueprint não sincronizar sozinho, confira no painel Render que o cron existe e branch teste.
 

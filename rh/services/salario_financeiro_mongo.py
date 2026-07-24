@@ -184,21 +184,31 @@ def sincronizar_valores_titulo_salario_mongo(fechamento: FechamentoFolhaSimplifi
     if _rh_financeiro_usa_postgres(db):
         from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
 
-        return alinhar_titulo_pg_apos_sync_folha_rh(
+        r = alinhar_titulo_pg_apos_sync_folha_rh(
             mid,
             valor_bruto=bruto,
             valor_pago=vp,
             data_vencimento=fechamento.data_vencimento_pagamento,
         )
-    if db is None:
+    elif db is None:
         return {"ok": False, "erro": "Financeiro indisponível."}
-    return _aplicar_totais_no_documento_mongo(
-        db,
-        mid,
-        saida=float(bruto),
-        valor_pago=float(vp),
-        data_vencimento=fechamento.data_vencimento_pagamento,
-    )
+    else:
+        r = _aplicar_totais_no_documento_mongo(
+            db,
+            mid,
+            saida=float(bruto),
+            valor_pago=float(vp),
+            data_vencimento=fechamento.data_vencimento_pagamento,
+        )
+    if r.get("ok"):
+        from rh.services.pagamento_salario import alinhar_status_folha_com_pagamentos
+
+        try:
+            st = alinhar_status_folha_com_pagamentos(fechamento)
+            r = {**r, "status_folha": st}
+        except Exception:
+            logger.exception("RH: alinhar status folha após sync título")
+    return r
 
 
 def criar_ou_atualizar_titulo_salario_mongo(
@@ -221,8 +231,12 @@ def criar_ou_atualizar_titulo_salario_mongo(
 
     fid, fn = _split_id_nome(forma_value)
     bid, bn = _split_id_nome(banco_value)
+    bn = (bn or "").strip()
     if not bn:
-        return {"ok": False, "erro": "Conta / banco é obrigatório para gerar o título no financeiro."}
+        # Conta só no ato do pagamento — usa placeholder «ADICIONAR BANCO/CONTA».
+        ph = _banco_placeholder_para_select()
+        bid = str(ph.get("id") or "").strip() or None
+        bn = str(ph.get("nome") or "").strip() or "ADICIONAR BANCO"
     fn = (fn or "").strip()
     if not fn:
         fn = ""
