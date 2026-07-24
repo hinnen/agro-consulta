@@ -47,7 +47,25 @@ window.DspFlavorLib = (function () {
     legumes: { ico: "ico-legumes", img: "icons/legumes.png", desc: "Variedade de vegetais" },
     vegetais: { ico: "ico-legumes", img: "icons/legumes.png", desc: "Variedade de vegetais" },
     "erva doce": { ico: "ico-erva", img: "icons/erva.png", desc: "Aroma suave e digestivo" },
-    hortela: { ico: "ico-hortela", img: "icons/hortela.png", desc: "Frescor natural" }
+    hortela: { ico: "ico-hortela", img: "icons/hortela.png", desc: "Frescor natural" },
+    leite: { ico: "ico-leite", img: "icons/leite.png", desc: "Cálcio e sabor cremoso" },
+    "leite integral": { ico: "ico-leite", img: "icons/leite.png", desc: "Cálcio e sabor cremoso" },
+    ovo: { ico: "ico-ovo", img: "icons/ovo.png", desc: "Proteína completa e leve" },
+    ovos: { ico: "ico-ovo", img: "icons/ovo.png", desc: "Proteína completa e leve" },
+    bacalhau: { ico: "ico-bacalhau", img: "icons/bacalhau.png", desc: "Peixe branco de sabor suave" },
+    veado: { ico: "ico-veado", img: "icons/veado.png", desc: "Proteína magra e diferenciada" },
+    cervo: { ico: "ico-veado", img: "icons/veado.png", desc: "Proteína magra e diferenciada" },
+    camarao: { ico: "ico-camarao", img: "icons/camarao.png", desc: "Sabor do mar, rico e marcante" },
+    batata: { ico: "ico-batata-branca", img: "icons/batata-branca.png", desc: "Energia de fácil digestão" },
+    "batata inglesa": { ico: "ico-batata-branca", img: "icons/batata-branca.png", desc: "Energia de fácil digestão" },
+    milho: { ico: "ico-milho", img: "icons/milho.png", desc: "Energia e fibras naturais" },
+    linhaca: { ico: "ico-linhaca", img: "icons/linhaca.png", desc: "Ômega-3 vegetal e fibras" },
+    cranberry: { ico: "ico-cranberry", img: "icons/cranberry.png", desc: "Antioxidantes e suporte urinário" },
+    oxicoco: { ico: "ico-cranberry", img: "icons/cranberry.png", desc: "Antioxidantes e suporte urinário" },
+    banana: { ico: "ico-banana", img: "icons/banana.png", desc: "Potássio e energia natural" },
+    couve: { ico: "ico-couve", img: "icons/couve.png", desc: "Folhas verdes e vitaminas" },
+    inhame: { ico: "ico-inhame", img: "icons/inhame.png", desc: "Carboidrato de raiz suave" },
+    alecrim: { ico: "ico-alecrim", img: "icons/alecrim.png", desc: "Aroma natural e antioxidante" }
   };
 
   function lookup(name) {
@@ -153,12 +171,17 @@ window.DspFlavorLib = (function () {
     { key: "atum", label: "Atum" },
     { key: "peixe branco", label: "Peixe Branco" },
     { key: "sardinha", label: "Sardinha" },
+    { key: "bacalhau", label: "Bacalhau" },
     { key: "carne suina", label: "Carne Suína" },
     { key: "peru", label: "Peru" },
     { key: "pato", label: "Pato" },
     { key: "coelho", label: "Coelho" },
+    { key: "veado", label: "Veado" },
     { key: "figado", label: "Fígado" },
-    { key: "ovelha", label: "Ovelha" }
+    { key: "ovelha", label: "Ovelha" },
+    { key: "camarao", label: "Camarão" },
+    { key: "ovo", label: "Ovo" },
+    { key: "leite", label: "Leite" }
   ];
 
   /** Lista canônica — acompanhamentos */
@@ -166,20 +189,28 @@ window.DspFlavorLib = (function () {
     { key: "arroz integral", label: "Arroz Integral" },
     { key: "arroz branco", label: "Arroz Branco" },
     { key: "batata doce", label: "Batata-Doce" },
+    { key: "batata", label: "Batata" },
     { key: "cenoura", label: "Cenoura" },
     { key: "abobora", label: "Abóbora" },
     { key: "ervilha", label: "Ervilha" },
     { key: "maca", label: "Maçã" },
     { key: "mirtilo", label: "Blueberry (Mirtilo)" },
+    { key: "cranberry", label: "Cranberry (Oxicoco)" },
+    { key: "banana", label: "Banana" },
     { key: "brocolis", label: "Brócolis" },
     { key: "espinafre", label: "Espinafre" },
+    { key: "couve", label: "Couve" },
     { key: "beterraba", label: "Beterraba" },
     { key: "polpa de beterraba", label: "Polpa de Beterraba" },
     { key: "mandioca", label: "Mandioca" },
+    { key: "inhame", label: "Inhame" },
     { key: "quinoa", label: "Quinoa" },
     { key: "aveia", label: "Aveia" },
+    { key: "milho", label: "Milho" },
+    { key: "linhaca", label: "Linhaça" },
     { key: "erva doce", label: "Erva-Doce" },
     { key: "hortela", label: "Hortelã" },
+    { key: "alecrim", label: "Alecrim" },
     { key: "legumes", label: "Legumes" },
     { key: "vegetais", label: "Vegetais" }
   ];

@@ -1163,6 +1163,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### ✅ Deploy loja **v11.91** — Dispenser +13 sabores (`DSP-SABORES`) (24/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **VERSION** | **loja v11.91** (antes v11.90) |
+| **Cherry** | `ed43464` (só sabores Dispenser; VERSION/banana resolvidos na loja) |
+| **Inclui** | Leite · Ovo · Bacalhau · Veado · Camarão · Batata · Milho · Linhaça · Cranberry · Banana · Couve · Inhame · Alecrim |
+| **NÃO inclui** | migrate · PDV · caixa · CP · merge inteiro `teste` |
+| **Migrate** | nenhuma |
+| **Backup / reverter** | `rollback/pre-v1191-dsp-sabores` @ **`4fae8b8`** → `git push origin rollback/pre-v1191-dsp-sabores:producao` |
+| **Validar agora** | Ctrl+F5 Dispenser · aba Sabores · ver ícones novos |
+
 ### ✅ Deploy loja **v11.90** — Dispenser zoom logo (`DSP-LOGO-ZOOM`) (24/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1194,7 +1207,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Status** | ✅ zoom logo sobe na **v11.90** · cores já na **v11.89** · nuvem/`0064` já na loja |
+| **Status** | ✅ sabores sobem na **v11.91** · zoom logo **v11.90** · cores **v11.89** · nuvem/`0064` já na loja |
 
 ### ✅ Deploy loja **v11.86** — CP + relatórios + planilha + BI loja (24/07 · Renan frase+senha)
 
