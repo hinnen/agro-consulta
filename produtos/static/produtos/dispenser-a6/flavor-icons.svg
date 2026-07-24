@@ -189,6 +189,84 @@
       d="M12 11.2c2.6-1 4.2-3 4.2-5.3-2.6.4-4.2 2.1-4.2 5.3z"/>
   </symbol>
 
+  <symbol id="ico-leite" viewBox="0 0 24 24" fill="none">
+    <path stroke="#3498db" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M8 7.2 12 4.2 16 7.2v12.3H8z"/>
+    <path stroke="#3498db" stroke-width="1.5" stroke-linecap="round" d="M14.6 5.4 17.2 4.2v2.2l-2.2.8"/>
+    <path stroke="#3498db" stroke-width="1.45" stroke-linecap="round" d="M11.5 11.2c0 1.4.5 2.4.5 2.4s.5-1 .5-2.4-.5-1.3-.5-1.3-.5.5-.5 1.3z"/>
+  </symbol>
+
+  <symbol id="ico-ovo" viewBox="0 0 24 24" fill="none">
+    <path stroke="#f1c40f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M12 4.6c2.8 0 5.2 3.6 5.2 8.2S14.8 20 12 20 6.8 17.4 6.8 12.8 9.2 4.6 12 4.6z"/>
+  </symbol>
+
+  <symbol id="ico-bacalhau" viewBox="0 0 24 24" fill="none">
+    <path stroke="#2471a3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M4 12s3.4-4.2 8.2-4.2S20.4 12 20.4 12s-3.4 4.2-8.2 4.2S4 12 4 12z"/>
+    <circle fill="#2471a3" cx="16.4" cy="11.4" r=".8"/>
+    <path stroke="#2471a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4 12 6.8 10v4z"/>
+  </symbol>
+
+  <symbol id="ico-veado" viewBox="0 0 24 24" fill="none">
+    <path stroke="#6e2c00" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"
+      d="M8.2 12.5c0-2.2 1.7-4 3.8-4s3.8 1.8 3.8 4v4.2c0 1.4-1.5 2.5-3.8 2.5s-3.8-1.1-3.8-2.5z"/>
+    <path stroke="#6e2c00" stroke-width="1.5" stroke-linecap="round" d="M9.4 9.2 7.6 5.8M14.6 9.2l1.8-3.4M7.6 5.8 6.2 4.8M16.4 5.8l1.4-1"/>
+  </symbol>
+
+  <symbol id="ico-camarao" viewBox="0 0 24 24" fill="none">
+    <path stroke="#e74c3c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M6.5 15c1.2-3.2 3.8-5.5 7-5.8 2.2-.2 4.2.8 5.2 2.4"/>
+    <path stroke="#e74c3c" stroke-width="1.55" stroke-linecap="round" d="M9 12.5 7.2 16.2M11.5 14.2 10.5 17.5M14 14.5l.2 3.2"/>
+    <circle fill="#e74c3c" cx="17.6" cy="10.6" r=".65"/>
+  </symbol>
+
+  <symbol id="ico-batata-branca" viewBox="0 0 24 24" fill="none">
+    <path stroke="#b7950b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M7.2 9.5c1.2-2.4 4.2-3.6 7-2.8 2.6.8 4.2 3.4 3.6 6.2-.7 3.2-3.6 5.4-6.8 5.1-3.1-.3-5.1-2.8-4.8-5.6.1-1 .4-2 .9-2.9z"/>
+    <path stroke="#b7950b" stroke-width="1.4" stroke-linecap="round" d="M10.2 11h.01M13.5 13h.01M11.5 15.2h.01"/>
+  </symbol>
+
+  <symbol id="ico-milho" viewBox="0 0 24 24" fill="none">
+    <path stroke="#f1c40f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M10 5.8h4c.8 0 1.5.7 1.5 1.5v11.4c0 .8-.7 1.5-1.5 1.5h-4c-.8 0-1.5-.7-1.5-1.5V7.3c0-.8.7-1.5 1.5-1.5z"/>
+    <path stroke="#27ae60" stroke-width="1.45" stroke-linecap="round" d="M9.2 6.2 7 4.2M14.8 6.2 17 4.2"/>
+  </symbol>
+
+  <symbol id="ico-linhaca" viewBox="0 0 24 24" fill="none">
+    <ellipse stroke="#935116" stroke-width="1.5" cx="9" cy="10" rx="2.3" ry="1.5" transform="rotate(-25 9 10)"/>
+    <ellipse stroke="#935116" stroke-width="1.5" cx="14.5" cy="9.5" rx="2.3" ry="1.5" transform="rotate(-25 14.5 9.5)"/>
+    <ellipse stroke="#935116" stroke-width="1.5" cx="11.5" cy="14.2" rx="2.4" ry="1.55" transform="rotate(-25 11.5 14.2)"/>
+  </symbol>
+
+  <symbol id="ico-cranberry" viewBox="0 0 24 24" fill="none">
+    <circle stroke="#c0392b" stroke-width="1.6" cx="9.2" cy="13.2" r="3"/>
+    <circle stroke="#c0392b" stroke-width="1.6" cx="14.8" cy="12.4" r="3"/>
+    <circle stroke="#c0392b" stroke-width="1.6" cx="12" cy="8.4" r="2.5"/>
+    <path stroke="#27ae60" stroke-width="1.35" stroke-linecap="round" d="M12 6V4.8"/>
+  </symbol>
+
+  <symbol id="ico-banana" viewBox="0 0 24 24" fill="none">
+    <path stroke="#f1c40f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M7.2 8c.8 4.2 3.2 8.2 7.6 10.2 1.4.6 2.8.2 3.2-1.1.3-1-.3-2-1.4-2.5-3.2-1.4-5-4.2-5.6-7.8-.2-1.2-1.4-1.8-2.4-1.4C7.4 5.8 7 6.8 7.2 8z"/>
+  </symbol>
+
+  <symbol id="ico-couve" viewBox="0 0 24 24" fill="none">
+    <path stroke="#1e8449" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M12 5c3.5 1.2 5.8 4.2 5.8 8S15.2 20 12 20 6.2 16.8 6.2 13 8.5 6.2 12 5z"/>
+    <path stroke="#1e8449" stroke-width="1.45" stroke-linecap="round" d="M12 6.8v11.5M12 10l3.2-1.2M12 13.5l3.4.4M12 10 8.8 8.8M12 13.5l-3.4.4"/>
+  </symbol>
+
+  <symbol id="ico-inhame" viewBox="0 0 24 24" fill="none">
+    <path stroke="#7d3c98" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+      d="M9.5 5.8c2.6.8 5.2.8 7.2-.2.6 2.6.2 7-1.6 10.2-1.4 2.4-3.4 4-4.6 4s-3-1.6-4.2-4C4.8 12.6 4.5 8.4 5.4 5.6c2.2 1 4.1 1 4.1.2z"/>
+  </symbol>
+
+  <symbol id="ico-alecrim" viewBox="0 0 24 24" fill="none">
+    <path stroke="#16a085" stroke-width="1.65" stroke-linecap="round" d="M12 19.5V5.5"/>
+    <path stroke="#16a085" stroke-width="1.5" stroke-linecap="round" d="M12 8 8.8 6.5M12 8l3.2-1.5M12 11.2 8.6 9.6M12 11.2l3.4-1.6M12 14.5 9 13M12 14.5l3 1.5"/>
+  </symbol>
+
   <symbol id="ico-generico" viewBox="0 0 24 24" fill="none">
     <circle stroke="#7f8c8d" stroke-width="1.65" cx="12" cy="12" r="6"/>
     <circle fill="#7f8c8d" cx="12" cy="12" r="1.6"/>
