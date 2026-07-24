@@ -1184,18 +1184,36 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **v11.84** | Coluna Plano mostra nome oficial (ex. `2.1.1.1.2 — Salários` → **Salários**) (`18ffce1`) |
 | **Por que «não vejo alerta»** | Alerta/! só em plano **fora do mapa**. **Empréstimo (entrada + pagamento)** = sistema → **sem** ! (esperado). Se badge ≠ v11.86 → Ctrl+F5 forte |
 
-### WIP — Relatórios multi-select cat/sub (**v11.87** · 24/07 · pronto senha)
+### 📦 Pacote pronto loja — **v11.87 + v11.88** (24/07 · revisado · aguarda pausa + senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Checkbox: marcar **várias** no mesmo nível (ex. Gato + Cachorro) · OR no nível · AND entre níveis · Atualizar |
-| **Fix review** | Excel / Ver todos: `QueryDict.urlencode()` (não perde multi) |
-| **Testes** | `py_compile` · unit OR/AND · QueryDict multi no Excel qs |
-| **Risco loja aberta** | **SAFE** balcão (só relatórios) · restart Render só |
+| **Loja hoje** | **v11.86** Live |
+| **Sobe (cherry nesta ordem)** | `afc6a9a` **v11.87** · **HEAD v11.88** (presets Excel cadastro) |
+| **v11.87** | Relatórios: multi-select cat/sub (checkbox Gato+Cachorro) · Excel/Ver todos preserva multi |
+| **v11.88** | Cadastro Excel ↓: presets Essencial/Classificação/Preços/Completa · modal compacto · limpar categorias |
+| **NÃO mexe** | PDV checkout · caixa · NFC-e · finalizar venda |
+| **Risco loja aberta** | Só restart Render · **SAFE** balcão |
 | **Migrate** | nenhuma |
-| **Backup** | criar `rollback/pre-v1187-…` @ HEAD loja no deploy |
-| **Loja** | **aguarda senha** — *«pode subir produção»* + **99738595** |
-| **Cherry** | `afc6a9a` **v11.87** (só este pacote em cima da loja **v11.86**) |
+| **Backup** | criar `rollback/pre-v1188-…` @ HEAD loja no deploy |
+| **Próximo chat** | Renan pausa vendas → *«pode subir produção»* + **99738595** |
+
+### WIP — Relatórios multi-select cat/sub (**v11.87** · incluso no pacote acima)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit** | `afc6a9a` |
+| **Testes** | `py_compile` · unit OR/AND · QueryDict multi |
+| **Status** | ✅ commit+push · aguarda senha (junto v11.88) |
+
+### WIP — Cadastro Excel presets export (**v11.88** · 24/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Modal export: presets de colunas + listas roláveis + Limpar categorias |
+| **Arquivos** | `cadastro_erp_panel.js` (?v=25) · `produtos_cadastro_erp.html` |
+| **Risco** | SAFE — só UI export; download/import inalterados na lógica |
+| **Loja** | aguarda senha (pacote com v11.87) |
 
 ### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
