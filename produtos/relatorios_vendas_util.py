@@ -445,6 +445,7 @@ def ranking_produtos(
                 "codigo": m.get("codigo") or "",
                 "nome": m.get("nome") or pid,
                 **dims,
+                "custo": float(m.get("custo") or 0),
                 "qtd": round(qtd, 3),
                 "valor": round(valor, 2),
                 "ticket_medio": round(valor / qtd, 2) if qtd else 0.0,
@@ -467,9 +468,16 @@ def facetas_categoria_sub(
     subcategoria_2: str | None = None,
     subcategoria_3: str | None = None,
     subcategoria_4: str | None = None,
-) -> dict[str, Any]:
-    """Listas e rótulos ativos de categoria + sub 1–4 (AND nos filtros)."""
-    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=0)
+    ordenar: str = "valor",
+    sentido: str = "mais",
+) -> tuple[dict[str, Any], list[dict]]:
+    """
+    Uma passagem: ranking do período + listas/rótulos ativos + linhas já filtradas.
+    Evita 2× agg/meta nos reports (mais vendidos / margem / ABC).
+    """
+    rows = ranking_produtos(
+        desde, ate, ordenar=ordenar, sentido=sentido, limite=0
+    )
     pedidos = {
         "categoria": categoria,
         "subcategoria": subcategoria,
@@ -490,7 +498,18 @@ def facetas_categoria_sub(
         ativos[campo] = escolhido
         if escolhido:
             base = [r for r in base if _match_rotulo(r.get(campo), escolhido)]
-    out: dict[str, Any] = {**listas, **ativos}
+    for i, r in enumerate(base, start=1):
+        r["pos"] = i
+    return {**listas, **ativos}, base
+
+
+def limitar_ranking(rows: list[dict], limite: int) -> list[dict]:
+    lim = int(limite or 0)
+    if lim <= 0:
+        return rows
+    out = rows[: max(1, min(50000, lim))]
+    for i, r in enumerate(out, start=1):
+        r["pos"] = i
     return out
 
 
@@ -586,7 +605,7 @@ def curva_abc(
     Por padrão mostra só os primeiros ``lim_tela``; com ``todos=True`` lista inteira.
     % e classes usam o faturamento **total** do recorte.
     """
-    facetas = facetas_categoria_sub(
+    facetas, rows = facetas_categoria_sub(
         desde,
         ate,
         categoria=categoria,
@@ -594,18 +613,8 @@ def curva_abc(
         subcategoria_2=subcategoria_2,
         subcategoria_3=subcategoria_3,
         subcategoria_4=subcategoria_4,
-    )
-    rows = ranking_produtos(
-        desde,
-        ate,
         ordenar="valor",
         sentido="mais",
-        limite=0,
-        categoria=facetas.get("categoria") or None,
-        subcategoria=facetas.get("subcategoria") or None,
-        subcategoria_2=facetas.get("subcategoria_2") or None,
-        subcategoria_3=facetas.get("subcategoria_3") or None,
-        subcategoria_4=facetas.get("subcategoria_4") or None,
     )
     total_bruto = sum(r["valor"] for r in rows)
     total = total_bruto or 1.0
@@ -663,25 +672,30 @@ def margem_produtos(
     subcategoria_2: str | None = None,
     subcategoria_3: str | None = None,
     subcategoria_4: str | None = None,
+    rows: list[dict] | None = None,
 ) -> list[dict]:
-    rows = ranking_produtos(
-        desde,
-        ate,
-        ordenar="valor",
-        sentido="mais",
-        limite=limite,
-        categoria=categoria,
-        subcategoria=subcategoria,
-        subcategoria_2=subcategoria_2,
-        subcategoria_3=subcategoria_3,
-        subcategoria_4=subcategoria_4,
-    )
-    pids = [r["produto_id"] for r in rows]
-    meta = mapa_produtos_meta(pids)
+    if rows is None:
+        rows = ranking_produtos(
+            desde,
+            ate,
+            ordenar="valor",
+            sentido="mais",
+            limite=limite,
+            categoria=categoria,
+            subcategoria=subcategoria,
+            subcategoria_2=subcategoria_2,
+            subcategoria_3=subcategoria_3,
+            subcategoria_4=subcategoria_4,
+        )
+    else:
+        rows = limitar_ranking(list(rows), limite)
+    # custo já veio em mapa_produtos_meta no ranking; reaproveita se presente
     out = []
     for r in rows:
-        m = meta.get(r["produto_id"]) or {}
-        custo_u = float(m.get("custo") or 0)
+        custo_u = float(r.get("custo") or 0)
+        if not custo_u:
+            # fallback — ranking antigo sem custo no row
+            custo_u = 0.0
         custo_tot = round(custo_u * r["qtd"], 2)
         margem_rs = round(r["valor"] - custo_tot, 2)
         margem_pct = round(100.0 * margem_rs / r["valor"], 1) if r["valor"] else 0.0

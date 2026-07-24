@@ -22380,10 +22380,13 @@ def api_login_mobile(request):
     return JsonResponse({"ok": True, "operador": operador})
 
 
-@login_required(login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def api_pdv_deposito(request):
-    """GET/POST depósito operacional do PDV neste aparelho (Centro × Vila Elias)."""
+    """GET/POST depósito operacional do PDV neste aparelho (Centro × Vila Elias).
+
+    Sem login: o BI/PDV rodam abertos na loja (AGRO_PUBLIC_DASHBOARD); a loja do
+    aparelho fica em sessão+cookie. Proteção antiburro = digitar centro/vila.
+    """
     from produtos.pdv_deposito_util import (
         anexar_cookie_deposito,
         bootstrap_deposito,

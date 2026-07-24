@@ -91,11 +91,14 @@ def _relatorios_mais_vendidos_impl(request):
     sentido = (request.GET.get("sentido") or "mais").strip().lower()
     if sentido not in ("mais", "menos"):
         sentido = "mais"
-    facetas = ru.facetas_categoria_sub(f["desde"], f["ate_dt"], **ru.filtros_catalogo_request(request))
-    kw = _kw_filtros_catalogo(facetas)
-    rows = ru.ranking_produtos(
-        f["desde"], f["ate_dt"], ordenar=ordenar, sentido=sentido, limite=100, **kw
+    facetas, rows_all = ru.facetas_categoria_sub(
+        f["desde"],
+        f["ate_dt"],
+        ordenar=ordenar,
+        sentido=sentido,
+        **ru.filtros_catalogo_request(request),
     )
+    rows = ru.limitar_ranking(rows_all, 100)
     headers = [
         "#", "Código GM", "Produto", "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
         "Qtd", "Ticket médio", "Total R$",
@@ -433,9 +436,12 @@ def relatorios_margem(request):
     ordenar = (request.GET.get("ordenar") or "margem_rs").strip().lower()
     if ordenar not in ("margem_rs", "margem_pct"):
         ordenar = "margem_rs"
-    facetas = ru.facetas_categoria_sub(f["desde"], f["ate_dt"], **ru.filtros_catalogo_request(request))
-    kw = _kw_filtros_catalogo(facetas)
-    rows = ru.margem_produtos(f["desde"], f["ate_dt"], ordenar=ordenar, limite=100, **kw)
+    facetas, rows_all = ru.facetas_categoria_sub(
+        f["desde"], f["ate_dt"], **ru.filtros_catalogo_request(request)
+    )
+    rows = ru.margem_produtos(
+        f["desde"], f["ate_dt"], ordenar=ordenar, limite=100, rows=rows_all
+    )
     headers = [
         "#", "Código GM", "Produto", "Categoria", "Sub", "Sub 2", "Sub 3", "Sub 4",
         "Qtd", "Venda R$", "Custo R$", "Margem R$", "Margem %",
