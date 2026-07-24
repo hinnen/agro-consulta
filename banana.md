@@ -1608,8 +1608,8 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 | Item | Detalhe |
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` |
-| **Pacote loja** | **`DSP-NUVEM-v11.69`** · commit após push `teste` (ver mensagem commit) |
-| **Inclui** | Studio A6 + **nuvem Postgres** (logos/pets/ings/ícones/Prontas) · migrate **`0063_dispenser_a6_biblioteca_compartilhada`** · Salvar em cima / como nova · banner migrar Chrome→sistema |
+| **Pacote loja** | **`DSP-NUVEM-v11.69`** · + cores marca/balão (local, falta commit se for loja) |
+| **Inclui** | Studio A6 + nuvem · **cores**: fundo/borda da marca (Layout) · cor do balão % (Folha) · migrate `0063` |
 | **APIs** | `/interno/dispenser-a6/api/biblioteca|midia|documento|migrar/` |
 | **Arquivos-chave** | `views_dispenser_a6.py` · `dispenser_a6_util.py` · `dispenser_cloud.js` · `dispenser_a6_studio.html` · models + urls + `0063` |
 | **Pós-Live** | migrate no Render · Ctrl+F5 · login · faixa «Enviar para as lojas» 1× · salvar Prontas |
