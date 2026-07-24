@@ -1533,3 +1533,68 @@ html, body {
   border: 1px solid #99f6e4;
 }
 .dsp-cloud-banner-status { font-weight: 600; }
+
+
+.dsp-brand-bg-box {
+  margin-top: 0.75rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dsp-brand-bg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dsp-brand-bg-row input[type="color"] {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  background: #fff;
+}
+
+.dsp-brand-bg-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dsp-brand-bg-swatch {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 0.3rem;
+  border: 1.5px solid #94a3b8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dsp-brand-bg-swatch.is-on {
+  outline: 2px solid #0f172a;
+  outline-offset: 1px;
+  border-color: #0f172a;
+}
+
+.dsp-brand.has-brand-bg {
+  padding: 1.2mm 1.5mm;
+  border-radius: 3.2mm;
+}
+
+/* Mesma espessura da moldura dos ingredientes */
+.dsp-brand.has-brand-border {
+  border: 1.35mm solid #fff;
+  border-radius: 3.2mm;
+  padding: 1.2mm 1.5mm;
+  box-shadow:
+    0 0 0 0.7mm var(--dsp-brand-border, var(--dsp-cat-deep)),
+    0 2.2mm 4mm rgba(15, 23, 42, 0.3),
+    0 0.7mm 1.2mm rgba(15, 23, 42, 0.16);
+}
+
+.dsp-brand.has-brand-bg.has-brand-border {
+  padding: 1.2mm 1.5mm;
+}

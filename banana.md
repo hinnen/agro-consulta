@@ -1163,6 +1163,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### ✅ Deploy loja **v11.89** — Dispenser cores (`DSP-CORES`) (24/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ push `producao` · aguardar Live |
+| **VERSION** | **loja v11.89** (antes v11.88) |
+| **Cherry** | `9ec5ab1` (só HTML/CSS Dispenser; VERSION/banana resolvidos na loja) |
+| **Inclui** | Layout: fundo + borda da marca · Folha: cor do balão % · persiste na Pronta |
+| **NÃO inclui** | migrate · PDV · caixa · CP · merge inteiro `teste` · re-cherry nuvem/`0063` |
+| **Migrate** | nenhuma |
+| **Backup / reverter** | `rollback/pre-v1189-dsp-cores` @ **`5d1ee79`** → `git push origin rollback/pre-v1189-dsp-cores:producao` |
+| **Validar agora** | Ctrl+F5 Dispenser · pickers Layout/Folha · salvar Pronta e reabrir |
+
+### WIP — Dispenser A6 (visual)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **URL** | `/interno/dispenser-a6/` |
+| **Status** | ✅ cores sobem na **v11.89** · nuvem já estava na loja (~v11.88 / migrate `0064`) |
+
 ### ✅ Deploy loja **v11.86** — CP + relatórios + planilha + BI loja (24/07 · Renan frase+senha)
 
 | Item | Detalhe |

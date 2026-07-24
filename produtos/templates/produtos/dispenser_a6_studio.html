@@ -5,10 +5,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.85" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.85"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.85"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.85"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.86" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.86"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.86"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.86"></script>
 </head>
 <body>
   {% csrf_token %}
@@ -86,6 +86,22 @@
               <button type="button" data-pos="lista">Sob a lista</button>
             </div>
           </div>
+
+          <div class="dsp-brand-bg-box" id="dspProteinColorBox">
+            <div class="dsp-gal-label">Cor do balão (%)</div>
+            <div class="dsp-brand-bg-row">
+              <input type="color" id="dspProteinColor" value="#1d4ed8" title="Cor do balão" />
+              <div class="dsp-brand-bg-swatches" id="dspProteinColorSwatches" role="group" aria-label="Cores do balão">
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="" title="Cor da categoria" style="background:repeating-conic-gradient(#cbd5e1 0% 25%, #fff 0% 50%) 50%/8px 8px"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="#1d4ed8" title="Azul" style="background:#1d4ed8"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="#15803d" title="Verde" style="background:#15803d"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="#0f172a" title="Preto" style="background:#0f172a"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="#dc2626" title="Vermelho" style="background:#dc2626"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-pc="#ea580c" title="Laranja" style="background:#ea580c"></button>
+              </div>
+              <button type="button" class="dsp-gal-add-btn" id="dspProteinColorClear">Cor da categoria</button>
+            </div>
+          </div>
         </div>
 
         <div class="dsp-tab-panel" id="dspTab-pet" role="tabpanel" data-tab="pet" hidden>
@@ -138,7 +154,7 @@ Batata-Doce</textarea>
         <div class="dsp-tab-panel" id="dspTab-layout" role="tabpanel" data-tab="layout" hidden>
           <details class="dsp-help">
             <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Layout</summary>
-            <div class="dsp-help-body">Nesta aba o ajuste fica ligado: arraste as peças e use o cantinho para o tamanho (não passa da margem). <b>Ctrl+Z</b> desfaz. Só posição/tamanho — a folha completa fica em <b>Prontas</b>. Tamanho das letras entra na folha pronta ao salvar.</div>
+            <div class="dsp-help-body">Nesta aba o ajuste fica ligado: arraste as peças e use o cantinho para o tamanho (não passa da margem). <b>Ctrl+Z</b> desfaz. Só posição/tamanho — a folha completa fica em <b>Prontas</b>. <b>Fundo e borda da marca</b>: escolha as cores do quadro do logo/texto. Letras entram na folha ao salvar.</div>
           </details>
           <div class="dsp-field">
             <label for="dspLayoutSelect">Modelos de layout</label>
@@ -149,6 +165,34 @@ Batata-Doce</textarea>
             <button type="button" class="dsp-gal-add-btn" id="dspLayoutSave">Salvar</button>
             <button type="button" class="dsp-gal-add-btn" id="dspLayoutDelete">Apagar</button>
             <button type="button" class="dsp-gal-add-btn" id="dspLayoutReset">Padrão</button>
+          </div>
+          <div class="dsp-brand-bg-box" id="dspBrandBgBox">
+            <div class="dsp-gal-label">Fundo da marca</div>
+            <div class="dsp-brand-bg-row">
+              <input type="color" id="dspBrandBgColor" value="#ffffff" title="Cor de fundo" />
+              <div class="dsp-brand-bg-swatches" id="dspBrandBgSwatches" role="group" aria-label="Cores de fundo">
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="" title="Sem fundo" style="background:repeating-conic-gradient(#cbd5e1 0% 25%, #fff 0% 50%) 50%/8px 8px"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="#ffffff" title="Branco" style="background:#ffffff"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="#f8fafc" title="Off-white" style="background:#f8fafc"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="#eff6ff" title="Azul claro" style="background:#eff6ff"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="#ecfdf5" title="Verde claro" style="background:#ecfdf5"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bg="#fff7ed" title="Laranja claro" style="background:#fff7ed"></button>
+              </div>
+              <button type="button" class="dsp-gal-add-btn" id="dspBrandBgClear">Sem fundo</button>
+            </div>
+            <div class="dsp-gal-label" style="margin-top:0.55rem">Borda da marca</div>
+            <div class="dsp-brand-bg-row">
+              <input type="color" id="dspBrandBorderColor" value="#2563eb" title="Cor da borda" />
+              <div class="dsp-brand-bg-swatches" id="dspBrandBorderSwatches" role="group" aria-label="Cores de borda">
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="" title="Sem borda" style="background:repeating-conic-gradient(#cbd5e1 0% 25%, #fff 0% 50%) 50%/8px 8px"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="#2563eb" title="Azul" style="background:#2563eb"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="#16a34a" title="Verde" style="background:#16a34a"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="#0f172a" title="Preto" style="background:#0f172a"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="#dc2626" title="Vermelho" style="background:#dc2626"></button>
+                <button type="button" class="dsp-brand-bg-swatch" data-bd="#ea580c" title="Laranja" style="background:#ea580c"></button>
+              </div>
+              <button type="button" class="dsp-gal-add-btn" id="dspBrandBorderClear">Sem borda</button>
+            </div>
           </div>
           <div class="dsp-font-box" id="dspFontBox">
             <div class="dsp-gal-label">Tamanho das letras</div>
@@ -322,6 +366,12 @@ Batata-Doce</textarea>
     var LINE2_MIN_MM = 3.6;
 
     var FONT_KEY = "dsp_fonts_v1";
+    var BRAND_BG_KEY = "dsp_brand_bg_v1";
+    var BRAND_BORDER_KEY = "dsp_brand_border_v1";
+    var PROTEIN_COLOR_KEY = "dsp_protein_color_v1";
+    var brandBg = "";
+    var brandBorder = "";
+    var proteinColor = "";
     var FONT_DEFAULTS = {
       line1: 5.6,
       line2: 6.2,
@@ -439,6 +489,216 @@ Batata-Doce</textarea>
         });
       }
       syncFontControls();
+    }
+
+    function normalizeBrandBg(c) {
+      var s = String(c || "").trim().toLowerCase();
+      if (!s || s === "transparent" || s === "none") return "";
+      if (/^#[0-9a-f]{3}$/i.test(s)) {
+        return (
+          "#" +
+          s.charAt(1) + s.charAt(1) +
+          s.charAt(2) + s.charAt(2) +
+          s.charAt(3) + s.charAt(3)
+        ).toLowerCase();
+      }
+      if (/^#[0-9a-f]{6}$/i.test(s)) return s;
+      return "";
+    }
+
+    function applyBrandChrome() {
+      if (!brandBox) return;
+      var c = normalizeBrandBg(brandBg);
+      var bd = normalizeBrandBg(brandBorder);
+      brandBg = c;
+      brandBorder = bd;
+      if (c) {
+        brandBox.style.backgroundColor = c;
+        brandBox.classList.add("has-brand-bg");
+      } else {
+        brandBox.style.backgroundColor = "";
+        brandBox.classList.remove("has-brand-bg");
+      }
+      if (bd) {
+        brandBox.style.setProperty("--dsp-brand-border", bd);
+        brandBox.classList.add("has-brand-border");
+      } else {
+        brandBox.style.removeProperty("--dsp-brand-border");
+        brandBox.classList.remove("has-brand-border");
+      }
+      var picker = document.getElementById("dspBrandBgColor");
+      if (picker) picker.value = c || "#ffffff";
+      var sw = document.getElementById("dspBrandBgSwatches");
+      if (sw) {
+        Array.prototype.forEach.call(sw.querySelectorAll(".dsp-brand-bg-swatch"), function (b) {
+          var bg = b.getAttribute("data-bg");
+          b.classList.toggle("is-on", (normalizeBrandBg(bg) || "") === c);
+        });
+      }
+      var bdPicker = document.getElementById("dspBrandBorderColor");
+      if (bdPicker) bdPicker.value = bd || "#2563eb";
+      var bdSw = document.getElementById("dspBrandBorderSwatches");
+      if (bdSw) {
+        Array.prototype.forEach.call(bdSw.querySelectorAll(".dsp-brand-bg-swatch"), function (b) {
+          var v = b.getAttribute("data-bd");
+          b.classList.toggle("is-on", (normalizeBrandBg(v) || "") === bd);
+        });
+      }
+    }
+
+    function saveBrandBg() {
+      try {
+        localStorage.setItem(BRAND_BG_KEY, brandBg || "");
+      } catch (e) {}
+    }
+
+    function saveBrandBorder() {
+      try {
+        localStorage.setItem(BRAND_BORDER_KEY, brandBorder || "");
+      } catch (e) {}
+    }
+
+    function loadBrandBg() {
+      try {
+        brandBg = normalizeBrandBg(localStorage.getItem(BRAND_BG_KEY) || "");
+      } catch (e) {
+        brandBg = "";
+      }
+      try {
+        brandBorder = normalizeBrandBg(localStorage.getItem(BRAND_BORDER_KEY) || "");
+      } catch (e2) {
+        brandBorder = "";
+      }
+      applyBrandChrome();
+    }
+
+    function setBrandBg(c) {
+      brandBg = normalizeBrandBg(c);
+      applyBrandChrome();
+      saveBrandBg();
+    }
+
+    function setBrandBorder(c) {
+      brandBorder = normalizeBrandBg(c);
+      applyBrandChrome();
+      saveBrandBorder();
+    }
+
+    function applyProteinColor() {
+      var card = document.getElementById("dspCard");
+      var c = normalizeBrandBg(proteinColor);
+      proteinColor = c;
+      if (card) {
+        if (c) card.style.setProperty("--dsp-protein", c);
+        else card.style.removeProperty("--dsp-protein");
+      }
+      var picker = document.getElementById("dspProteinColor");
+      if (picker) {
+        if (c) {
+          picker.value = c;
+        } else {
+          try {
+            var computed = getComputedStyle(document.documentElement).getPropertyValue("--dsp-protein").trim();
+            picker.value = normalizeBrandBg(computed) || "#1d4ed8";
+          } catch (ePc) {
+            picker.value = "#1d4ed8";
+          }
+        }
+      }
+      var sw = document.getElementById("dspProteinColorSwatches");
+      if (sw) {
+        Array.prototype.forEach.call(sw.querySelectorAll(".dsp-brand-bg-swatch"), function (b) {
+          var v = b.getAttribute("data-pc");
+          b.classList.toggle("is-on", (normalizeBrandBg(v) || "") === c);
+        });
+      }
+    }
+
+    function saveProteinColor() {
+      try {
+        localStorage.setItem(PROTEIN_COLOR_KEY, proteinColor || "");
+      } catch (e) {}
+    }
+
+    function loadProteinColor() {
+      try {
+        proteinColor = normalizeBrandBg(localStorage.getItem(PROTEIN_COLOR_KEY) || "");
+      } catch (e) {
+        proteinColor = "";
+      }
+      applyProteinColor();
+    }
+
+    function setProteinColor(c) {
+      proteinColor = normalizeBrandBg(c);
+      applyProteinColor();
+      saveProteinColor();
+    }
+
+    function bindProteinColorControls() {
+      var picker = document.getElementById("dspProteinColor");
+      var clearBtn = document.getElementById("dspProteinColorClear");
+      var sw = document.getElementById("dspProteinColorSwatches");
+      if (picker) {
+        picker.addEventListener("input", function () {
+          setProteinColor(picker.value);
+        });
+      }
+      if (clearBtn) {
+        clearBtn.addEventListener("click", function () {
+          setProteinColor("");
+        });
+      }
+      if (sw) {
+        sw.addEventListener("click", function (ev) {
+          var btn = ev.target.closest(".dsp-brand-bg-swatch");
+          if (!btn || !btn.hasAttribute("data-pc")) return;
+          setProteinColor(btn.getAttribute("data-pc") || "");
+        });
+      }
+    }
+
+    function bindBrandBgControls() {
+      var picker = document.getElementById("dspBrandBgColor");
+      var clearBtn = document.getElementById("dspBrandBgClear");
+      var sw = document.getElementById("dspBrandBgSwatches");
+      if (picker) {
+        picker.addEventListener("input", function () {
+          setBrandBg(picker.value);
+        });
+      }
+      if (clearBtn) {
+        clearBtn.addEventListener("click", function () {
+          setBrandBg("");
+        });
+      }
+      if (sw) {
+        sw.addEventListener("click", function (ev) {
+          var btn = ev.target.closest(".dsp-brand-bg-swatch");
+          if (!btn || !btn.hasAttribute("data-bg")) return;
+          setBrandBg(btn.getAttribute("data-bg") || "");
+        });
+      }
+      var bdPicker = document.getElementById("dspBrandBorderColor");
+      var bdClear = document.getElementById("dspBrandBorderClear");
+      var bdSw = document.getElementById("dspBrandBorderSwatches");
+      if (bdPicker) {
+        bdPicker.addEventListener("input", function () {
+          setBrandBorder(bdPicker.value);
+        });
+      }
+      if (bdClear) {
+        bdClear.addEventListener("click", function () {
+          setBrandBorder("");
+        });
+      }
+      if (bdSw) {
+        bdSw.addEventListener("click", function (ev) {
+          var btn = ev.target.closest(".dsp-brand-bg-swatch");
+          if (!btn || !btn.hasAttribute("data-bd")) return;
+          setBrandBorder(btn.getAttribute("data-bd") || "");
+        });
+      }
     }
 
     function fitLine2NoWrap() {
@@ -1460,6 +1720,7 @@ Batata-Doce</textarea>
         line2El.style.display = "none";
       }
       applyBrandVisual();
+      applyProteinColor();
       renderFlavors();
       renderProtein();
       syncGal();
@@ -1594,7 +1855,10 @@ Batata-Doce</textarea>
         protein: proteinEl.value,
         proteinPos: pos || "foto",
         freeLayout: !!(card && card.classList.contains("is-free-layout")),
-        fonts: Object.assign({}, fontSizes)
+        fonts: Object.assign({}, fontSizes),
+        brandBg: brandBg || "",
+        brandBorder: brandBorder || "",
+        proteinColor: proteinColor || ""
       };
     }
 
@@ -1702,6 +1966,10 @@ Batata-Doce</textarea>
         applyFontSizes();
       }
 
+      if (sheet.brandBg != null) setBrandBg(sheet.brandBg);
+      if (sheet.brandBorder != null) setBrandBorder(sheet.brandBorder);
+      if (sheet.proteinColor != null) setProteinColor(sheet.proteinColor);
+
       if (sheet.flavorIcos && typeof sheet.flavorIcos === "object") {
         var icos = loadCustomFlavorIcos();
         Object.keys(sheet.flavorIcos).forEach(function (k) {
@@ -1796,7 +2064,10 @@ Batata-Doce</textarea>
           protein: sheet.protein,
           proteinPos: sheet.proteinPos,
           freeLayout: !!sheet.freeLayout,
-          fonts: sheet.fonts || null
+          fonts: sheet.fonts || null,
+          brandBg: sheet.brandBg != null ? sheet.brandBg : "",
+          brandBorder: sheet.brandBorder != null ? sheet.brandBorder : "",
+          proteinColor: sheet.proteinColor != null ? sheet.proteinColor : ""
         };
       }
       return {
@@ -2419,6 +2690,9 @@ Batata-Doce</textarea>
       fontSizes = Object.assign({}, FONT_DEFAULTS);
       saveFontSizes();
       applyFontSizes();
+      setBrandBg("");
+      setBrandBorder("");
+      setProteinColor("");
       loadFitForPet(petId);
       loadFitForIng(ingId);
       buildLogoGal();
@@ -2431,6 +2705,10 @@ Batata-Doce</textarea>
     loadFontSizes();
     buildFontControls();
     applyFontSizes();
+    bindBrandBgControls();
+    loadBrandBg();
+    bindProteinColorControls();
+    loadProteinColor();
 
     bindPetFitControls();
     bindIngFitControls();
