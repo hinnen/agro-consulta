@@ -1167,7 +1167,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` · aguardar Live |
+| **Status** | ✅ **Live** (producao **6296abb**) · healthz ok · badge **11.91** |
 | **VERSION** | **loja v11.91** (antes v11.90) |
 | **Cherry** | `ed43464` (só sabores Dispenser; VERSION/banana resolvidos na loja) |
 | **Inclui** | Leite · Ovo · Bacalhau · Veado · Camarão · Batata · Milho · Linhaça · Cranberry · Banana · Couve · Inhame · Alecrim |
