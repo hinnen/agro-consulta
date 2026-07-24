@@ -1165,6 +1165,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Dispenser zoom logo (`DSP-LOGO-ZOOM` · 24/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto** · **NÃO subir** enquanto loja vende · próximo chat: pausar vendas + frase + senha `99738595` |
+| **Commit teste** | **`4f59369`** `feat(dispenser): zoom/arraste da logo na moldura` |
+| **VERSION loja alvo** | **11.90** (loja hoje **11.89** · teste badge interno `11.73` — no cherry usar **11.90**) |
+| **Arquivos** | só `dispenser_a6_studio.html` + `dispenser.css` (+ `VERSION`/`banana` no resolve) |
+| **Inclui** | Zoom/arraste da **logo** na moldura (igual pet/ing) · botões Logo +/− · `logoFit` na Pronta · cache `?v=11.73` |
+| **NÃO inclui** | migrate · PDV · caixa · CP · NFC-e · merge inteiro `teste` · kardex · outros commits do teste |
+| **Cherry** | **só** `4f59369` em `producao` · conflito esperado só `VERSION`+`banana` (HTML/CSS aplicam limpo — dry-run OK) |
+| **Backup** | criar `rollback/pre-v1190-dsp-logo-zoom` @ HEAD `producao` antes do push |
+| **Risco loja aberta** | **Baixo** se cherry só esse commit — paths só `/interno/dispenser-a6*` · **zero** alteração em `/consulta/`, caixa, vendas |
+| **Testado assistente** | escopo 4 arquivos · dry-run cherry HTML/CSS sem conflito · braces JS `bindLogoFitControls` OK · `manage.py check` só warnings SSL locais · **falta** Ctrl+F5 visual do Renan no PC |
+| **Você antes de autorizar** | Local: abrir Dispenser → logo → arrastar/zoom → salvar Pronta → reabrir |
+| **Pós-Live** | Ctrl+F5 Dispenser · testar logo · PDV smoke rápido (busca) só por precaução |
+
+### WIP — Dispenser A6 (visual)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **URL** | `/interno/dispenser-a6/` |
+| **Já na loja** | Nuvem + Prontas + cores (**v11.89**) |
+| **Próximo pacote** | **`DSP-LOGO-ZOOM`** → commit **`4f59369`** (acima) |
+| **Regra** | Cherry **só** o pacote · **nunca** merge `teste`→`producao` |
+
 ### 📦 PACOTE PRONTO LOJA — Histórico estoque / kardex ledger (**v11.68** · 23/07)
 
 | Item | Detalhe |
@@ -1609,9 +1635,9 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 | ---- | ------- |
 | **URL** | `/interno/dispenser-a6/` (login) |
 | **Já na loja** | Nuvem + Prontas + cores (`v11.89`) |
-| **Novo local** | **Zoom da logo** na moldura (igual pet/ing) · arraste + scroll + +/− · grava na Pronta (`logoFit`) · cache `?v=11.73` |
-| **Status** | ⏳ commit+push `teste` · loja só com frase+senha |
-| **Regra** | Produção: cherry só o commit do zoom logo (sem merge inteiro `teste`) |
+| **Pacote pronto** | **`DSP-LOGO-ZOOM`** · commit **`4f59369`** · ver topo CHECKPOINT · loja alvo **v11.90** |
+| **Status** | ✅ revisado + dry-run cherry OK · aguarda pausa vendas + frase+senha no próximo chat |
+| **Regra** | Cherry **só** `4f59369` · sem merge inteiro `teste` |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
