@@ -1162,6 +1162,13 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### WIP — CP ! fora do cadastro na linha (24/07 · **v11.83** local)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | ! laranja na coluna Plano + tooltip · Empréstimo dual **não** marca fora do cadastro |
+| **Loja** | aguarda senha (v11.82 Live; este patch em cima) |
+
 ### ✅ Deploy loja **v11.82** — Cadastro oficial planos CP (24/07 · Renan senha OK)
 
 | Item | Detalhe |

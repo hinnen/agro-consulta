@@ -207,6 +207,8 @@ def expandir_nomes_exclusao(nomes: list[str] | None) -> list[str]:
 
 def mesclar_planos_distintos(planos: list[dict[str, str]]) -> list[dict[str, Any]]:
     """Agrupa distinct de títulos pelo nome oficial (alias); marca órfãos."""
+    from produtos.mongo_financeiro_util import EMPRESTIMO_DUAL_LABEL
+
     mapa, oficiais = _mapa_resolucao()
     grupos: dict[str, dict[str, Any]] = {}
     for item in planos or []:
@@ -214,6 +216,10 @@ def mesclar_planos_distintos(planos: list[dict[str, str]]) -> list[dict[str, Any
         if nome == _SEM_PLANO:
             chave_ui = _SEM_PLANO
             oficial = _SEM_PLANO
+            orfao = False
+        elif nome == EMPRESTIMO_DUAL_LABEL:
+            chave_ui = nome
+            oficial = nome
             orfao = False
         else:
             oficial = mapa.get(norm_plano_chave(nome))
@@ -241,6 +247,43 @@ def mesclar_planos_distintos(planos: list[dict[str, str]]) -> list[dict[str, Any
             if orfao:
                 g["orfao"] = True
     return sorted(grupos.values(), key=lambda r: (r["nome"] or "").casefold())
+
+
+def eh_plano_fora_cadastro(nome: str) -> bool:
+    """True se o texto do título não está no cadastro nem em alias (e não é dual/sistema)."""
+    from produtos.mongo_financeiro_util import EMPRESTIMO_DUAL_LABEL
+
+    g = (nome or "").strip()
+    if not g or g == _SEM_PLANO or g == EMPRESTIMO_DUAL_LABEL:
+        return False
+    if not cadastro_planos_disponivel():
+        return False
+    return resolver_nome_oficial(g) is None
+
+
+def marcar_planos_orfaos_nas_linhas(itens: list[dict[str, Any]]) -> None:
+    """Injeta ``plano_orfao`` nas linhas da lista CP (in-place)."""
+    if not itens:
+        return
+    if not cadastro_planos_disponivel():
+        for it in itens:
+            if isinstance(it, dict):
+                it["plano_orfao"] = False
+        return
+    from produtos.mongo_financeiro_util import EMPRESTIMO_DUAL_LABEL
+
+    mapa, oficiais = _mapa_resolucao()
+    for it in itens:
+        if not isinstance(it, dict):
+            continue
+        g = str(it.get("plano_conta") or "").strip()
+        if not g or g == EMPRESTIMO_DUAL_LABEL:
+            it["plano_orfao"] = False
+            continue
+        if g in oficiais or mapa.get(norm_plano_chave(g)):
+            it["plano_orfao"] = False
+        else:
+            it["plano_orfao"] = True
 
 
 def listar_orfaos_cp(*, despesa: bool = True) -> list[dict[str, Any]]:
