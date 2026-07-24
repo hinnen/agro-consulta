@@ -1162,35 +1162,25 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.81** — vencimento salário mês seguinte (24/07 · **PRONTO · aguarda pausa + senha**)
+### 📦 Deploy loja **v11.81** — vencimento salário mês seguinte (24/07 · ✅ enviado)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · **não** piorar balcão · **só** push `producao` no próximo chat com *pode subir para produção* + **99738595** |
-| **VERSION** | **11.81** (loja hoje **v11.80** tip **`e6cce08`**) |
-| **O quê** | Envio 28 + venc 1/7/14 → folha do **mês do envio**, vence no **mês seguinte** · novos títulos não usam mais dia 31 · se folha ainda tiver venc=último dia da competência, troca pelo dia config |
-| **Revisão 24/07** | Regras unit OK (28→01/07/14 ago; envio1→comp jul venc5 ago) · loja jul títulos OK (Geraldo/Queila/Zuleide/Renan **01/08**, Vitor **07/08**) · `py_compile` OK · saída caixa gate intacto · diff só RH vencimento/help (sem PDV/caixa) |
-| **Dados loja** | ✅ vencimentos jul já corrigidos no CP (não depende do push) |
-| **Risco residual** | No dia **28** o cron atualiza/cria títulos de quem tem auto ligado (6 pessoas) — esperado · até lá zero efeito no balcão |
-| **Branch** | `hotfix/preview-custo-v1175` tip **`059be73`** |
-| **Backup ao subir** | `git branch rollback/pre-v1181-venc-salario origin/producao` (@ **`e6cce08`** / v11.80) |
-| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
-| **Após Live** | Ctrl+F5 · CP vencimentos · (opcional) conferir textos da ficha RH |
+| **Status** | ✅ **Live** (`producao` **`a138101`**) · autorizado Renan frase+senha |
+| **VERSION** | **loja v11.81** (antes v11.80) |
+| **O quê** | Envio 28 + venc 1/7/14 → folha do mês, vence no mês seguinte · sem dia 31 legado |
+| **Backup / reverter** | `rollback/pre-v1181-venc-salario` @ **`e6cce08`** (v11.80) → `git push origin rollback/pre-v1181-venc-salario:producao` |
+| **Validar agora** | Ctrl+F5 · badge **v11.81** · CP vencimentos (já corrigidos nos dados) |
 
-**Versão app (VERSION):** código **11.81** · loja **v11.80** até autorizar
+**Versão app (VERSION):** **loja v11.81** · tip `a138101`
 
-### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado)
+### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado · sucedido por v11.81)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** (`producao` **`47886e0`**) · autorizado Renan frase+senha |
-| **VERSION** | **loja v11.80** (antes v11.78) |
-| **Inclui** | valor_pago folha corrigido · Log CP PG · status folha ↔ CP · envio auto título (default off) · migration dias · cron RH |
-| **Backup / reverter** | `rollback/pre-v1180-rh-cp-auto` @ **`8c8bb6d`** (v11.78) → `git push origin rollback/pre-v1180-rh-cp-auto:producao` |
-| **Render** | migrate no build · confirmar cron `agro-rh-envio-cp-automatico` (`15 6 * * *`) |
-| **Validar agora** | Ctrl+F5 · badge **v11.80** · Log CP · RH Editar dias (opcional) · vale/saída |
-
-**Versão app (VERSION):** **loja v11.80** · tip `47886e0`
+| **Status** | ✅ foi loja · agora **v11.81** |
+| **VERSION** | foi **loja v11.80** |
+| **Backup / reverter** | `rollback/pre-v1180-rh-cp-auto` @ **`8c8bb6d`** · ou pré-v11.81 @ **`e6cce08`** |
 
 ### 📦 PACOTE LOJA **v11.79** — absorvido no **v11.80** · ✅
 
