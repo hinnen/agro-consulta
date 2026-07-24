@@ -1167,7 +1167,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ push `producao` · aguardar Live |
+| **Status** | ✅ **Live** (producao **2f004b5** / tip **ffcaee3**) · healthz ok · badge **11.90** |
 | **VERSION** | **loja v11.90** (antes v11.89) |
 | **Cherry** | `4f59369` (só HTML/CSS Dispenser; VERSION/banana resolvidos na loja) |
 | **Inclui** | Zoom/arraste da logo na moldura · botões Logo +/− · `logoFit` na Pronta |
