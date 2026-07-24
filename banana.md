@@ -1163,21 +1163,21 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 Pacote pronto loja — **v11.83 → v11.86** (24/07 · revisado · aguarda pausa + senha)
+### ✅ Deploy loja **v11.86** — CP + relatórios + planilha + BI loja (24/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Loja hoje** | **v11.82** Live |
-| **Sobe (cherry nesta ordem)** | `9f21bdf` **v11.83** · `e90be3f` **v11.84** · `297b936` **v11.85** · `7c2bd5f` **v11.86** |
-| **Inclui** | CP `!` órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · **1 passagem** nos relatórios (sem 2× ranking) · BI notebook troca Centro/Vila sem login |
-| **NÃO mexe** | PDV checkout · caixa · NFC-e · estoque saldo · finalizar venda |
-| **Risco loja aberta** | Só **restart** Render (~1–3 min). Relatórios/planilha/CP UI. **Não** importar Excel de preço no pico. |
-| **Migrate** | **nenhuma** neste pacote |
-| **Backup** | criar `rollback/pre-v1186-…` @ HEAD loja antes do cherry |
-| **Próximo chat** | Renan pausa vendas → *«pode subir produção»* + **99738595** → assistente cherry + push `producao` |
-| **Branch código** | `hotfix/preview-custo-v1175` (push feito) |
+| **Status** | ✅ **Live** (producao **92efe70**) · autorizado Renan frase+senha |
+| **VERSION** | **loja v11.86** (antes v11.82) |
+| **Cherry** | 1b70cad v11.83 · 18ffce1 v11.84 · 54bcf92 v11.85 · 92efe70 v11.86 |
+| **Inclui** | CP ! órfão + nome oficial · Relatórios cat/sub 1–4 · Planilha Sub 2–4 + facetas · 1 passagem relatórios · BI troca Centro/Vila sem login |
+| **Migrate** | nenhuma |
+| **Backup / reverter** | 
+ollback/pre-v1186-20260724 @ **7e13051** → git push origin rollback/pre-v1186-20260724:producao |
+| **Validar agora** | Ctrl+F5 · badge **v11.86** · CP lista · Relatórios filtros · BI digitar vila |
 
-### 🩹 BI — trocar loja notebook novo (incluso **v11.86**)
+
+### 🩹 BI — trocar loja notebook novo (✅ enviado **v11.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1236,7 +1236,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **Backup / reverter** | `rollback/pre-v1181-venc-salario` @ **`e6cce08`** (v11.80) |
 | **Validar agora** | — |
 
-**Versão app (VERSION):** **loja v11.82** · tip `a459735`
+**Versão app (VERSION):** **loja v11.86** · tip 92efe70
 
 ### 📦 Deploy loja **v11.80** — RH CP auto + status (24/07 · ✅ enviado · sucedido por v11.81)
 
