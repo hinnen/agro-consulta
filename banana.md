@@ -1607,14 +1607,16 @@ Busca tecla sem esperar delta; mata N+1 overlay no batch catalogo_agro. Prova: b
 
 | Item | Detalhe |
 | ---- | ------- |
-| **URL** | `/interno/dispenser-a6/` |
-| **Pacote loja** | **`DSP-NUVEM-v11.69`** · + cores marca/balão (local, falta commit se for loja) |
-| **Inclui** | Studio A6 + nuvem · **cores**: fundo/borda da marca (Layout) · cor do balão % (Folha) · migrate `0063` |
-| **APIs** | `/interno/dispenser-a6/api/biblioteca|midia|documento|migrar/` |
-| **Arquivos-chave** | `views_dispenser_a6.py` · `dispenser_a6_util.py` · `dispenser_cloud.js` · `dispenser_a6_studio.html` · models + urls + `0063` |
-| **Pós-Live** | migrate no Render · Ctrl+F5 · login · faixa «Enviar para as lojas» 1× · salvar Prontas |
-| **Status** | ✅ commit+push `teste` · loja só com frase+senha no chat de produção |
-| **Regra** | Produção: outro chat / pacote · **não** merge inteiro do `teste` |
+| **URL** | `/interno/dispenser-a6/` (login) |
+| **Já na loja** | Nuvem Postgres + Prontas em cima/como nova + APIs (`origin/producao` já tem migrate **`0064_dispenser…`** · loja ~v11.88) |
+| **Pacote próximo deploy** | **`DSP-CORES-v11.71`** — **só cores** (sem migrate, sem mexer PDV/caixa/CP) |
+| **Inclui** | Layout: fundo + borda da marca · Folha: cor do balão % · persiste na Pronta (`brandBg` / `brandBorder` / `proteinColor`) |
+| **Arquivos** | `dispenser_a6_studio.html` · `dispenser.css` (+ `banana.md` / `VERSION`) |
+| **NÃO inclui / NÃO repetir** | Re-cherry de nuvem/`0063_dispenser` do teste (conflita: loja já tem `0063_agronfe` + `0064_dispenser`) · merge inteiro `teste` |
+| **Risco loja aberta** | Baixo — paths novos só `/interno/dispenser-a6*` · home/consulta/caixa resolvem iguais |
+| **Pós-Live** | Ctrl+F5 Dispenser · Layout/Folha ver pickers · salvar Pronta e reabrir |
+| **Status** | ✅ revisado 24/07 · commit+push `teste` abaixo · loja só com frase+senha |
+| **Regra** | Produção: cherry **só** o(s) commit(s) do pacote `DSP-CORES` |
 
 ### 📦 Deploy loja **v10.86** — Caixa Vila × Centro (21/07 · Renan frase+senha)
 
