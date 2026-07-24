@@ -1170,8 +1170,8 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto** · **NÃO subir** enquanto loja vende · próximo chat: pausar vendas + frase + senha `99738595` |
-| **Commit teste** | **`4f59369`** `feat(dispenser): zoom/arraste da logo na moldura` |
-| **VERSION loja alvo** | **11.90** (loja hoje **11.89** · teste badge interno `11.73` — no cherry usar **11.90**) |
+| **Commit teste** | **código:** `4f59369` · **checkpoint:** `0aa9235` (só banana/VERSION) |
+| **VERSION loja alvo** | **11.90** (loja hoje **11.89** · no cherry **não** usar 11.73/11.74 do teste) |
 | **Arquivos** | só `dispenser_a6_studio.html` + `dispenser.css` (+ `VERSION`/`banana` no resolve) |
 | **Inclui** | Zoom/arraste da **logo** na moldura (igual pet/ing) · botões Logo +/− · `logoFit` na Pronta · cache `?v=11.73` |
 | **NÃO inclui** | migrate · PDV · caixa · CP · NFC-e · merge inteiro `teste` · kardex · outros commits do teste |
