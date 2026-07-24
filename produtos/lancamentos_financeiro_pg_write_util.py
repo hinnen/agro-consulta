@@ -63,9 +63,10 @@ def _notificar_baixa_rh_titulo_salario_pg(
 
 
 def financeiro_grava_postgres(despesa: bool) -> bool:
-    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
 
-    return agro_financeiro_usa_postgres()
+    # Loja com Mongo ERP cortado: sempre grava/alinha título no Postgres.
+    return agro_financeiro_usa_postgres() or agro_mongo_erp_desligado()
 
 
 def financeiro_cp_grava_postgres(despesa: bool) -> bool:

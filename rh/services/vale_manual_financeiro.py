@@ -25,8 +25,11 @@ def montar_choices_formas_bancos(user, *, modo: str = "erp") -> tuple[list[tuple
         modo = "erp"
     _, db = obter_conexao_mongo()
     if db is None:
-        return [], []
-    formas, bancos = listar_formas_e_bancos_distintos(db, modo=modo)
+        from produtos.lancamentos_financeiro_pg_util import listar_formas_e_bancos_distintos_pg
+
+        formas, bancos = listar_formas_e_bancos_distintos_pg(modo=modo)
+    else:
+        formas, bancos = listar_formas_e_bancos_distintos(db, modo=modo)
     if user is not None and not isinstance(user, AnonymousUser):
         extras_q = OpcaoBaixaFinanceiroExtra.objects.filter(usuario=user)
         formas, _ = _mesclar_opcoes_baixa_com_extras(

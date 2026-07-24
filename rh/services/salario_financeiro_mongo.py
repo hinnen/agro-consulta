@@ -39,6 +39,45 @@ from rh.utils import resolver_empresa_por_nome_fantasia, resolver_perfil_rh_para
 logger = logging.getLogger(__name__)
 
 
+def _rh_financeiro_usa_postgres(db=None) -> bool:
+    """Título de salário / vale: Postgres quando financeiro PG ou Mongo ERP cortado."""
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres, agro_mongo_erp_desligado
+
+    return agro_financeiro_usa_postgres() or agro_mongo_erp_desligado() or db is None
+
+
+def _baixar_parcial_titulo_salario(
+    *,
+    db,
+    mid: str,
+    data_mov: datetime,
+    parcelas: list[dict[str, Any]],
+    usuario_label: str,
+) -> dict[str, Any]:
+    if _rh_financeiro_usa_postgres(db):
+        from produtos.lancamentos_financeiro_pg_write_util import baixar_lancamento_parcial_pg
+
+        return baixar_lancamento_parcial_pg(
+            mid,
+            despesa=True,
+            data_movimento=data_mov,
+            parcelas=parcelas,
+            usuario_label=usuario_label,
+            notificar_rh_baixa_cp=False,
+        )
+    if db is None:
+        return {"ok": False, "erro": "Financeiro indisponível (Mongo off e Postgres não gravou)."}
+    return baixar_lancamento_parcial_mongo(
+        db,
+        mid,
+        despesa=True,
+        data_movimento=data_mov,
+        parcelas=parcelas,
+        usuario_label=usuario_label,
+        notificar_rh_baixa_cp=False,
+    )
+
+
 def _plano_salario_folha() -> str:
     return (getattr(settings, "AGRO_RH_PLANO_SALARIO_FOLHA", None) or "").strip() or "2.1.1.1.2 — Salários"
 
@@ -140,10 +179,19 @@ def sincronizar_valores_titulo_salario_mongo(fechamento: FechamentoFolhaSimplifi
     if not mid:
         return {"ok": False, "erro": "Nenhum título de salário vinculado a este fechamento."}
     _, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível."}
     bruto = bruto_titulo_salario(fechamento)
     vp = _valor_pago_titulo(fechamento, bruto, db, mid)
+    if _rh_financeiro_usa_postgres(db):
+        from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
+
+        return alinhar_titulo_pg_apos_sync_folha_rh(
+            mid,
+            valor_bruto=bruto,
+            valor_pago=vp,
+            data_vencimento=fechamento.data_vencimento_pagamento,
+        )
+    if db is None:
+        return {"ok": False, "erro": "Financeiro indisponível."}
     return _aplicar_totais_no_documento_mongo(
         db,
         mid,
@@ -197,21 +245,32 @@ def criar_ou_atualizar_titulo_salario_mongo(
     )[:500]
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível."}
+    use_pg = _rh_financeiro_usa_postgres(db)
 
     plano = _plano_salario_folha()
     usuario_label = _usuario_label(usuario)
     mid = (fechamento.mongo_lancamento_salario_id or "").strip()
 
     if mid:
-        r = _aplicar_totais_no_documento_mongo(
-            db,
-            mid,
-            saida=float(bruto),
-            valor_pago=float(_valor_pago_titulo(fechamento, bruto, db, mid)),
-            data_vencimento=data_vencimento,
-        )
+        if use_pg:
+            from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
+
+            r = alinhar_titulo_pg_apos_sync_folha_rh(
+                mid,
+                valor_bruto=bruto,
+                valor_pago=_valor_pago_titulo(fechamento, bruto, db, mid),
+                data_vencimento=data_vencimento,
+            )
+        else:
+            if db is None:
+                return {"ok": False, "erro": "Financeiro indisponível."}
+            r = _aplicar_totais_no_documento_mongo(
+                db,
+                mid,
+                saida=float(bruto),
+                valor_pago=float(_valor_pago_titulo(fechamento, bruto, db, mid)),
+                data_vencimento=data_vencimento,
+            )
         if not r.get("ok"):
             return r
         fechamento.data_vencimento_pagamento = data_vencimento
@@ -227,7 +286,9 @@ def criar_ou_atualizar_titulo_salario_mongo(
             "observacao": "Título único folha RH (vales = baixa parcial)",
         }
     ]
-    resultado = inserir_lancamentos_manual_lote(
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=True,
         empresa_nome=empresa_nome[:200],
@@ -255,13 +316,23 @@ def criar_ou_atualizar_titulo_salario_mongo(
 
     new_id = str(ids[0]).strip()
     vp = _valor_pago_titulo(fechamento, bruto, db, new_id)
-    _aplicar_totais_no_documento_mongo(
-        db,
-        new_id,
-        saida=float(bruto),
-        valor_pago=float(vp),
-        data_vencimento=data_vencimento,
-    )
+    if use_pg:
+        from produtos.lancamentos_financeiro_pg_write_util import alinhar_titulo_pg_apos_sync_folha_rh
+
+        alinhar_titulo_pg_apos_sync_folha_rh(
+            new_id,
+            valor_bruto=bruto,
+            valor_pago=vp,
+            data_vencimento=data_vencimento,
+        )
+    elif db is not None:
+        _aplicar_totais_no_documento_mongo(
+            db,
+            new_id,
+            saida=float(bruto),
+            valor_pago=float(vp),
+            data_vencimento=data_vencimento,
+        )
     fechamento.mongo_lancamento_salario_id = new_id[:32]
     fechamento.data_vencimento_pagamento = data_vencimento
     fechamento.save(
@@ -376,8 +447,6 @@ def registrar_vale_como_baixa_parcial_salario(
         return {"ok": False, "erro": "Forma e conta/banco são obrigatórios."}
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível."}
 
     data_mov = _data_movimento_naive(data)
     usuario_label = _usuario_label(usuario)
@@ -390,14 +459,12 @@ def registrar_vale_como_baixa_parcial_salario(
             "banco_id": bid,
         }
     ]
-    r = baixar_lancamento_parcial_mongo(
-        db,
-        mid,
-        despesa=True,
-        data_movimento=data_mov,
+    r = _baixar_parcial_titulo_salario(
+        db=db,
+        mid=mid,
+        data_mov=data_mov,
         parcelas=parc,
         usuario_label=usuario_label,
-        notificar_rh_baixa_cp=False,
     )
     if not r.get("ok"):
         return {"ok": False, "erro": (r.get("erro") or "Falha na baixa parcial.")[:500]}
@@ -417,7 +484,7 @@ def registrar_vale_como_baixa_parcial_salario(
             criado_por=usuario if usuario and getattr(usuario, "is_authenticated", False) else None,
         )
     except Exception:
-        logger.exception("RH: vale após baixa parcial — inconsistência possível (Mongo já movimentado)")
+        logger.exception("RH: vale após baixa parcial — inconsistência possível (financeiro já movimentado)")
         return {
             "ok": False,
             "erro": "Baixa parcial aplicada no financeiro, mas falhou ao gravar o vale no RH. Conferir lançamentos.",
@@ -463,8 +530,6 @@ def registrar_pagamento_salario_com_baixa_titulo(
         return {"ok": False, "erro": "Forma e conta/banco são obrigatórios."}
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível."}
 
     data_mov = _data_movimento_naive(data)
     usuario_label = _usuario_label(usuario)
@@ -477,14 +542,12 @@ def registrar_pagamento_salario_com_baixa_titulo(
             "banco_id": bid,
         }
     ]
-    r = baixar_lancamento_parcial_mongo(
-        db,
-        mid,
-        despesa=True,
-        data_movimento=data_mov,
+    r = _baixar_parcial_titulo_salario(
+        db=db,
+        mid=mid,
+        data_mov=data_mov,
         parcelas=parc,
         usuario_label=usuario_label,
-        notificar_rh_baixa_cp=False,
     )
     if not r.get("ok"):
         return {"ok": False, "erro": (r.get("erro") or "Falha na baixa parcial.")[:500]}

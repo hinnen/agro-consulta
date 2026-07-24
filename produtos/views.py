@@ -1284,31 +1284,67 @@ def api_produtos_gestao_ajuste_estoque(request):
     if novo_c is None and novo_v is None:
         return JsonResponse({"ok": False, "erro": "Informe saldo_centro e/ou saldo_vila"}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    client, db = None, None
+    try:
+        client, db = obter_conexao_mongo()
+    except Exception:
+        client, db = None, None
 
-    doc = _produto_mongo_por_id_externo(db, client, pid)
-    if not doc:
-        pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
-        return JsonResponse(
-            {"ok": False, "erro": f"Produto não encontrado no espelho (id «{pid_ex}»).", "produto_id": pid[:64]},
-            status=404,
-        )
-    nome_p = str(doc.get("Nome") or "")[:200]
-    codigo = str(doc.get("CodigoNFe") or doc.get("Codigo") or "")[:100]
+    from produtos.catalogo_agro import obter_produto_model, produto_agro_para_row
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    p_model = obter_produto_model(pid)
+    if p_model is not None:
+        row0 = produto_agro_para_row(p_model)
+        pid_out = str(row0.get("id") or pid).strip() or pid
+        nome_p = str(row0.get("nome") or pid_out)[:200]
+        codigo = str(row0.get("codigo_nfe") or row0.get("codigo") or "")[:100]
+        doc = {
+            "Id": pid_out,
+            "Nome": nome_p,
+            "CodigoNFe": codigo,
+            "Codigo": str(row0.get("codigo") or "")[:100],
+            "Marca": str(row0.get("marca") or ""),
+            "NomeCategoria": str(row0.get("categoria") or ""),
+            "Unidade": str(row0.get("unidade") or "UN"),
+            "ValorVenda": row0.get("preco_venda"),
+            "PrecoCusto": row0.get("preco_custo"),
+            "CadastroInativo": bool(row0.get("inativo")),
+        }
+    else:
+        try:
+            doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
+        except Exception:
+            doc = None
+        if not isinstance(doc, dict):
+            pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": f"Produto não encontrado (id «{pid_ex}»).",
+                    "produto_id": pid[:64],
+                },
+                status=404,
+            )
+        pid_out = str(doc.get("Id") or doc.get("_id") or pid).strip() or pid
+        nome_p = str(doc.get("Nome") or pid_out)[:200]
+        codigo = str(doc.get("CodigoNFe") or doc.get("Codigo") or "")[:100]
+
+    saldos_antes = mapa_saldos_operacionais_agro([pid_out], db=db, client=client)
+    sinfo = saldos_antes.get(pid_out) or {}
+    erp_c = Decimal(str(sinfo.get("saldo_erp_centro") or sinfo.get("saldo_centro") or 0))
+    erp_v = Decimal(str(sinfo.get("saldo_erp_vila") or sinfo.get("saldo_vila") or 0))
 
     empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first() or Empresa.objects.first()
 
     try:
         with transaction.atomic():
             if novo_c is not None:
-                erp_c = _saldo_erp_produto_deposito_mongo(db, client, pid, "centro")
                 AjusteRapidoEstoque.objects.create(
                     empresa=empresa,
-                    produto_externo_id=pid[:100],
+                    produto_externo_id=pid_out[:100],
                     codigo_interno=codigo,
-                    nome_produto=(nome_p or pid)[:255],
+                    nome_produto=(nome_p or pid_out)[:255],
                     deposito="centro",
                     saldo_erp_referencia=erp_c,
                     saldo_informado=novo_c,
@@ -1317,12 +1353,11 @@ def api_produtos_gestao_ajuste_estoque(request):
                     usuario=request.user if request.user.is_authenticated else None,
                 )
             if novo_v is not None:
-                erp_v = _saldo_erp_produto_deposito_mongo(db, client, pid, "vila")
                 AjusteRapidoEstoque.objects.create(
                     empresa=empresa,
-                    produto_externo_id=pid[:100],
+                    produto_externo_id=pid_out[:100],
                     codigo_interno=codigo,
-                    nome_produto=(nome_p or pid)[:255],
+                    nome_produto=(nome_p or pid_out)[:255],
                     deposito="vila",
                     saldo_erp_referencia=erp_v,
                     saldo_informado=novo_v,
@@ -1335,9 +1370,9 @@ def api_produtos_gestao_ajuste_estoque(request):
         logger.warning("api_produtos_gestao_ajuste_estoque: %s", e, exc_info=True)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
-    saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
-    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
-    row = _linha_gestao_produto_json(doc or {"Id": pid, "Nome": nome_p}, saldos, ov)
+    saldos = mapa_saldos_operacionais_agro([pid_out], db=db, client=client)
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_out[:64]).first()
+    row = _linha_gestao_produto_json(doc or {"Id": pid_out, "Nome": nome_p}, saldos, ov)
     return JsonResponse({"ok": True, "produto": row})
 
 
@@ -17981,11 +18016,10 @@ def api_lancamentos_criar_manual_lote(request):
                 )
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    # Mongo off: grava Postgres via dispatch. Não 503 «serviço legado».
 
     idem_key = str(payload.get("idempotency_key") or "").strip()[:80]
-    if idem_key:
+    if idem_key and db is not None:
         try:
             hit = db[_COL_AGRO_LOTE_MANUAL_IDEM].find_one({"_id": idem_key})
             if hit and isinstance(hit.get("body"), dict):
@@ -18042,7 +18076,7 @@ def api_lancamentos_criar_manual_lote(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids and db is not None:
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), despesa)
@@ -18061,7 +18095,7 @@ def api_lancamentos_criar_manual_lote(request):
             aviso_api_erp = str(exc)[:800]
     elif ids and not path_lanc:
         logger.info(
-            "Lançamento manual: Mongo gravou %s título(s); POST ao ERP não executado "
+            "Lançamento manual: gravou %s título(s); POST ao ERP não executado "
             "(VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH vazio no ambiente).",
             len(ids),
         )
@@ -18083,7 +18117,7 @@ def api_lancamentos_criar_manual_lote(request):
         out_lm["erp_lancamento_ok"] = erp_lanc_ok
     if aviso_api_erp:
         out_lm["aviso_api"] = aviso_api_erp
-    if idem_key and ids:
+    if idem_key and ids and db is not None:
         try:
             db[_COL_AGRO_LOTE_MANUAL_IDEM].replace_one(
                 {"_id": idem_key},

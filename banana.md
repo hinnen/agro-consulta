@@ -1162,21 +1162,26 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
-### 📦 PACOTE LOJA **v11.77** — saída caixa sem Mongo (24/07 · **aguarda senha**)
+### 📦 PACOTE LOJA **v11.78** — 3 urgentes sem Mongo (24/07 · **aguarda senha**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio** · aguarda *pode subir para produção* + **99738595** |
-| **VERSION** | **11.77** (loja hoje **v11.76** / `5746d6c`) |
-| **Sintoma** | Retirada/saída caixa → alerta «serviço legado indisponível» (teste R$ 0,01 Alimentação) |
-| **Causa** | `api_lancamentos_saida_caixa` retornava 503 se Mongo off; middleware troca por «serviço legado» — mas o dispatch **já grava PG** |
-| **Fix** | Remove bloqueio Mongo; ERP sync só se `db` existir · tip **`0e17162`** |
+| **VERSION** | **11.78** (loja hoje **v11.76**; inclui também fix **v11.77** saída caixa) |
+| **Inclui** | (1) Saída caixa + **lote manual / Nova saída** Lançamentos → PG sem 503 · (2) **Gestão ajustar estoque** via catálogo PG + ledger (igual PDV) · (3) **RH vale/salário** título + baixa parcial + formas/bancos em Postgres |
+| **CPU Postgres** | Com Mongo morto, o balcão concentra carga no agro-db — 2 workers (v11.76) + menos N+1 (v11.75) · estes fixes evitam retries em 503 |
 | **Branch** | `hotfix/preview-custo-v1175` |
-| **Backup / reverter** | `rollback/pre-v1177-saida-caixa` @ **`5746d6c`** |
-| **Como subir** | `git push origin hotfix/preview-custo-v1175:producao` |
-| **Após Live** | Ctrl+F5 · Nova saída · Alimentação · registrar |
+| **Backup** | criar `rollback/pre-v1178-mongo-urgente` no tip atual `producao` ao subir |
+| **Após Live** | Ctrl+F5 · saída Alimentação · Nova saída Lançamentos · Gestão ajuste · RH vale com financeiro |
 
-**Versão app (VERSION):** código **11.77** · loja **v11.76** até autorizar
+**Versão app (VERSION):** código **11.78** · loja **v11.76** até autorizar
+
+### 📦 PACOTE LOJA **v11.77** — saída caixa (incluso no **v11.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 absorvido pelo **v11.78** (não subir sozinho) |
+| **Fix** | `api_lancamentos_saida_caixa` sem gate Mongo |
 
 ### 📦 Deploy loja **v11.76** — 2 workers + msg busca (23/07 · ✅ enviado)
 
