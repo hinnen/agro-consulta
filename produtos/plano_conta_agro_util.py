@@ -262,13 +262,14 @@ def eh_plano_fora_cadastro(nome: str) -> bool:
 
 
 def marcar_planos_orfaos_nas_linhas(itens: list[dict[str, Any]]) -> None:
-    """Injeta ``plano_orfao`` nas linhas da lista CP (in-place)."""
+    """Injeta ``plano_orfao`` e ``plano_conta_exibicao`` (nome oficial se alias)."""
     if not itens:
         return
     if not cadastro_planos_disponivel():
         for it in itens:
             if isinstance(it, dict):
                 it["plano_orfao"] = False
+                it["plano_conta_exibicao"] = str(it.get("plano_conta") or "")
         return
     from produtos.mongo_financeiro_util import EMPRESTIMO_DUAL_LABEL
 
@@ -279,11 +280,18 @@ def marcar_planos_orfaos_nas_linhas(itens: list[dict[str, Any]]) -> None:
         g = str(it.get("plano_conta") or "").strip()
         if not g or g == EMPRESTIMO_DUAL_LABEL:
             it["plano_orfao"] = False
+            it["plano_conta_exibicao"] = g
             continue
-        if g in oficiais or mapa.get(norm_plano_chave(g)):
+        oficial = mapa.get(norm_plano_chave(g))
+        if oficial:
             it["plano_orfao"] = False
+            it["plano_conta_exibicao"] = oficial
+        elif g in oficiais:
+            it["plano_orfao"] = False
+            it["plano_conta_exibicao"] = g
         else:
             it["plano_orfao"] = True
+            it["plano_conta_exibicao"] = g
 
 
 def listar_orfaos_cp(*, despesa: bool = True) -> list[dict[str, Any]]:

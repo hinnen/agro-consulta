@@ -1316,8 +1316,12 @@
   }
 
   function planoCellHtml(row) {
-    const nome = row.plano_conta || '—';
-    const tip = (row.plano_conta || '') + (row.grupo ? ' · ' + row.grupo : '');
+    const gravado = row.plano_conta || '';
+    const nome = (row.plano_conta_exibicao || row.plano_conta || '—');
+    const tipBase = nome + (row.grupo ? ' · ' + row.grupo : '');
+    const tip = (gravado && gravado !== nome)
+      ? (tipBase + ' · gravado: ' + gravado)
+      : tipBase;
     if (!row.plano_orfao) {
       return `<span class="sv-col-plano-wrap"><span class="sv-plano-txt" title="${esc(tip)}">${esc(nome)}</span></span>`;
     }
