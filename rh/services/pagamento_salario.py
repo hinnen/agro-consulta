@@ -42,7 +42,11 @@ def total_pagamentos_salario_mes(funcionario, ano: int, mes: int) -> Decimal:
 
 
 def total_pagamentos_salario_fechamento(fechamento: FechamentoFolhaSimplificado) -> Decimal:
-    """Soma pagamentos de salário vinculados à competência (FK fechamento), não só data no mês."""
+    """Soma pagamentos de salário da competência (FK fechamento).
+
+    Fallback só para órfãos do mês (sem FK) — não puxa baixas de outra folha
+    só porque a data caiu neste calendário (ex.: salário jun/2026 pago em jul).
+    """
     q = PagamentoSalarioFuncionario.objects.filter(
         fechamento=fechamento,
         cancelado=False,
@@ -51,7 +55,18 @@ def total_pagamentos_salario_fechamento(fechamento: FechamentoFolhaSimplificado)
     if total > Decimal("0"):
         return total
     comp = fechamento.competencia
-    return total_pagamentos_salario_mes(fechamento.funcionario, comp.year, comp.month)
+    ini = date(comp.year, comp.month, 1)
+    from calendar import monthrange
+
+    fim = date(comp.year, comp.month, monthrange(comp.year, comp.month)[1])
+    q2 = PagamentoSalarioFuncionario.objects.filter(
+        funcionario=fechamento.funcionario,
+        fechamento__isnull=True,
+        data__gte=ini,
+        data__lte=fim,
+        cancelado=False,
+    ).aggregate(t=Sum("valor"))
+    return money_two_decimals(q2["t"])
 
 
 def fechamento_por_titulo_mongo_id(mongo_id: str) -> FechamentoFolhaSimplificado | None:

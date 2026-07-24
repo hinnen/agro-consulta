@@ -1172,3 +1172,99 @@ def financeiro_pg_conferencia_abertos() -> dict[str, Any]:
     out["mongo_ok"] = True
     out["mongo_abertos_dedup"] = tot_m
     return out
+
+
+def lancamento_log_auditoria_pg(lancamento_id: str) -> dict[str, Any]:
+    """Timeline resumida a partir de ``TituloFinanceiroAgro`` (loja sem Mongo)."""
+    mid = str(lancamento_id or "").strip()
+    if not mid:
+        return {"ok": False, "erro": "ID inválido"}
+    t = TituloFinanceiroAgro.objects.filter(mongo_id=mid).first()
+    if t is None:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+
+    bruto = float(t.valor_bruto or 0)
+    mov = float(t.valor_pago or 0)
+    restante = float(t.valor_restante or 0)
+    quitado = bool(t.quitado) or restante <= 0.02
+    quando_imp = t.importado_em.isoformat() if t.importado_em else None
+    quando_upd = t.atualizado_em.isoformat() if t.atualizado_em else None
+
+    eventos: list[dict[str, Any]] = [
+        {
+            "tipo": "criacao",
+            "rotulo": "Título no financeiro (Postgres)",
+            "usuario": (t.criado_por or t.usuario_lancou or "")[:120] or "—",
+            "detalhe": (t.descricao or "")[:300],
+            "quando": quando_imp,
+        }
+    ]
+    if mov > 0.02:
+        eventos.append(
+            {
+                "tipo": "estado_parcial" if not quitado else "quitacao",
+                "rotulo": "Quitado" if quitado else "Pagamento parcial em aberto",
+                "usuario": (t.usuario_quitou or t.modificado_por or "")[:120] or "—",
+                "detalhe": f"Movimentado: {mov:.2f} · Saldo: {restante:.2f}",
+                "quando": (t.data_pagamento.isoformat() if t.data_pagamento else quando_upd),
+            }
+        )
+    if (t.modificado_por or "").strip():
+        eventos.append(
+            {
+                "tipo": "modificacao",
+                "rotulo": "Última alteração",
+                "usuario": (t.modificado_por or "")[:120],
+                "detalhe": (t.observacoes or "")[:400],
+                "quando": quando_upd,
+            }
+        )
+
+    campos = {
+        "mongo_id": t.mongo_id,
+        "despesa": t.despesa,
+        "descricao": t.descricao,
+        "cliente": t.cliente,
+        "plano_conta": t.plano_conta,
+        "forma_pagamento": t.forma_pagamento,
+        "banco": t.banco,
+        "empresa": t.empresa,
+        "valor_bruto": str(t.valor_bruto),
+        "valor_pago": str(t.valor_pago),
+        "valor_restante": str(t.valor_restante),
+        "quitado": t.quitado,
+        "data_competencia": t.data_competencia.isoformat() if t.data_competencia else None,
+        "data_vencimento": t.data_vencimento.isoformat() if t.data_vencimento else None,
+        "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else None,
+        "observacoes": (t.observacoes or "")[:2000],
+        "criado_por": t.criado_por,
+        "modificado_por": t.modificado_por,
+        "usuario_lancou": t.usuario_lancou,
+        "usuario_quitou": t.usuario_quitou,
+        "importado_em": quando_imp,
+        "atualizado_em": quando_upd,
+    }
+    return {
+        "ok": True,
+        "id": mid,
+        "eventos": eventos,
+        "campos": campos,
+        "resumo": {
+            "cliente": t.cliente or "",
+            "descricao": (t.descricao or "")[:300],
+            "pago": quitado,
+            "valor_bruto": round(bruto, 2),
+            "valor_movimentado": round(mov, 2),
+            "restante": round(restante, 2),
+            "usuario_lancou": (t.usuario_lancou or t.criado_por or "")[:120],
+            "usuario_quitou": (t.usuario_quitou or "")[:120],
+            "horario_quitacao": t.data_pagamento.isoformat() if t.data_pagamento else None,
+            "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else None,
+            "last_update": quando_upd,
+            "data_modificacao": quando_upd,
+            "modificado_por": (t.modificado_por or "")[:500],
+            "criado_por": (t.criado_por or "")[:500],
+            "observacoes": (t.observacoes or "")[:2000],
+        },
+        "fonte": "postgres",
+    }

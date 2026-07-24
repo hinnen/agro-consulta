@@ -12462,17 +12462,28 @@ def api_lancamentos_lista(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_log(request):
-    """Log de auditoria de um DtoLancamento (timeline + todos os campos Mongo)."""
+    """Log de auditoria de um lançamento (Mongo legado ou Postgres)."""
     lanc_id = (request.GET.get("id") or request.GET.get("mongo_id") or "").strip()
     if not lanc_id:
         return JsonResponse({"ok": False, "erro": "Informe id ou mongo_id."}, status=400)
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    out = lancamento_log_auditoria(db, lanc_id)
-    if not out.get("ok"):
-        return JsonResponse(out, status=404 if "não encontrado" in str(out.get("erro", "")).lower() else 400)
-    return JsonResponse(out)
+    out = None
+    if db is not None:
+        out = lancamento_log_auditoria(db, lanc_id)
+        if out.get("ok"):
+            return JsonResponse(out)
+    from produtos.lancamentos_financeiro_pg_util import lancamento_log_auditoria_pg
+
+    out_pg = lancamento_log_auditoria_pg(lanc_id)
+    if out_pg.get("ok"):
+        return JsonResponse(out_pg)
+    err = (
+        (out_pg.get("erro") if isinstance(out_pg, dict) else None)
+        or ((out or {}).get("erro") if isinstance(out, dict) else None)
+        or "Lançamento não encontrado"
+    )
+    st = 404 if "não encontrado" in str(err).lower() else 400
+    return JsonResponse({"ok": False, "erro": err}, status=st)
 
 
 @ensure_csrf_cookie
