@@ -1198,6 +1198,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **VERSION teste** | **11.80** |
 | **VERSION loja alvo** | **11.92** (loja hoje **11.91** DSP-SABORES · no cherry **não** deixar 11.80) |
 | **Inclui** | Cadastro filtros compactos + coluna estoque C/V · Folha saldo Compras A4/A5/80mm · Folha fornecedor PG (`87d6557`) · Ajuste mobile `positivos=1` · fix `/api/pdv/saldos/` c/ Mongo off |
+| **Commits teste** | `87d6557` (folha fornecedor) + **`a812c78`** (este pacote v11.80) |
 | **Check auto** | `manage.py check` 0 · rotas 200 · py/JS compile OK |
 | **Validar local** | Cadastro filtros · Compras→Folha saldo · `/ajuste-mobile/` Só positivo+ATUALIZAR |
 
