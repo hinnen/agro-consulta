@@ -580,6 +580,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
+- **Folha por fornecedor (27/07):** com catálogo PG **não** depende de Mongo — usa cadastro + Entrada NF Agro.
 
 ### 4.10 Lançamentos / financeiro
 
@@ -1164,6 +1165,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🐛 FIX — Folha Compras «por fornecedor» sem Mongo (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar no PC (Ctrl+F5 `/compras/`) |
+| **Sintoma** | Alert «serviço legado indisponível» ao **Imprimir planilha** (por fornecedor) — Mongo morto |
+| **Fix** | Caminho Postgres: catálogo por fornecedor + última Entrada NF Agro + vendas PDV |
+| **Também** | Categoria/unidade já eram PG (sem mudança) · rótulo «FORNECEDOR» duplicado → «Montar folha» |
+| **Arquivos** | `views.py` · `catalogo_agro.py` · `compras_ultimas_compras_util.py` · `compras_relatorio_planilha.html` |
+| **Validar** | Folha → por fornecedor (IBIUNA) · por categoria · por unidade |
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser +13 sabores (`DSP-SABORES` · 24/07)
 

@@ -92,6 +92,7 @@ def produto_agro_para_row(
         "descricao": (p.descricao or "").strip(),
         "ncm": (p.ncm or "").strip(),
         "cadastro_somente_agro": bool(p.cadastro_somente_agro),
+        "criado_em": p.criado_em.isoformat() if getattr(p, "criado_em", None) else "",
         "fonte": "agro_pg",
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
@@ -162,9 +163,15 @@ def listar_paginado(
     marca: str = "",
     categoria: str = "",
     fornecedor: str = "",
+    filtros: dict | None = None,
 ) -> tuple[list[dict], bool]:
     qs = queryset_catalogo_ativos(inativos=inativos)
-    qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
+    if filtros:
+        from produtos.cadastro_filtros_util import aplicar_filtros_cadastro_qs
+
+        qs = aplicar_filtros_cadastro_qs(qs, filtros)
+    else:
+        qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
     field = _SORT_MAP.get(sort_key, "nome")
     order = field if sort_direction >= 0 else f"-{field}"
     skip = max(0, (pagina - 1) * por_pagina)
@@ -726,18 +733,34 @@ def buscar_gestao(
     marca: str = "",
     categoria: str = "",
     fornecedor: str = "",
+    filtros: dict | None = None,
 ) -> list[dict]:
     """Busca gestão com filtros (Postgres)."""
     include_inactive = status_q in ("todos", "inativos")
-    rows = buscar(q, limit=limit, inativos=include_inactive)
+    # Com filtros avançados (estoque/data/multi), amplia o pool da busca e filtra depois.
+    lim_busca = limit
+    if filtros:
+        from produtos.cadastro_filtros_util import filtros_cadastro_ativos
+
+        if filtros_cadastro_ativos(filtros):
+            lim_busca = max(int(limit or 120), 400)
+    rows = buscar(q, limit=lim_busca, inativos=include_inactive)
     out: list[dict] = []
     for row in rows:
         if not _gestao_row_passa_status(row, status_q):
             continue
-        if not _gestao_row_passa_filtros(row, marca, categoria, fornecedor):
+        if filtros:
+            from produtos.cadastro_filtros_util import row_passa_filtros_cadastro
+
+            # Estoque precisa de saldo — aplica dims sem estoque aqui; estoque depois do enrich.
+            f_sem_est = dict(filtros)
+            f_sem_est["estoque_sinal"] = ""
+            if not row_passa_filtros_cadastro(row, f_sem_est):
+                continue
+        elif not _gestao_row_passa_filtros(row, marca, categoria, fornecedor):
             continue
         out.append(row)
-    return out
+    return out[: max(1, int(limit or 120))]
 
 
 def _faceta_valores_distintos(valores, *, limite: int = 200) -> list[str]:
@@ -923,6 +946,53 @@ def lista_produto_externo_ids_por_unidade(unidade: str, *, limit: int = 800) -> 
     return ids[:lim]
 
 
+def lista_produto_externo_ids_por_fornecedor(
+    fornecedor_nome: str,
+    fornecedor_id: str | None = None,
+    *,
+    limit: int = 800,
+) -> tuple[list[str], dict[str, str]]:
+    """IDs ativos cujo fornecedor no catálogo/overlay casa com nome (folha Compras sem Mongo)."""
+    fn = str(fornecedor_nome or "").strip()
+    _fid = str(fornecedor_id or "").strip()  # reservado — catálogo PG não tem id ERP de fornecedor
+    if not fn and not _fid:
+        return [], {}
+    lim = max(1, min(int(limit or 800), 1200))
+    ids: list[str] = []
+    nomes: dict[str, str] = {}
+    seen: set[str] = set()
+
+    def _add(pid: str, nome: str = "") -> None:
+        p = str(pid or "").strip()
+        if not p or p in seen:
+            return
+        seen.add(p)
+        ids.append(p)
+        nm = str(nome or "").strip()
+        if nm:
+            nomes[p] = nm
+            if p.isdigit():
+                nomes[str(int(p))] = nm
+
+    qs = queryset_catalogo_ativos(inativos=False)
+    if fn:
+        qs = qs.filter(fornecedor_texto__icontains=fn[:120])
+    else:
+        qs = qs.none()
+    for p in qs.order_by("nome")[: lim + 200]:
+        pid = str(p.produto_externo_id or p.pk).strip()
+        _add(pid, (p.nome or "").strip())
+        if len(ids) >= lim:
+            break
+    if fn:
+        for oid in _produto_overlay_ids_fornecedor_agro(fn):
+            if len(ids) >= lim:
+                break
+            if oid not in seen:
+                _add(oid)
+    return ids[:lim], nomes
+
+
 def _produto_overlay_ids_categoria_agro(termo: str) -> list[str]:
     t = str(termo or "").strip()
     if not t:
@@ -949,6 +1019,22 @@ def _produto_overlay_ids_unidade_agro(termo: str) -> list[str]:
             for x in ProdutoGestaoOverlayAgro.objects.filter(unidade__iexact=t[:20]).values_list(
                 "produto_externo_id", flat=True
             )[:1600]
+            if x
+        ]
+    except Exception:
+        return []
+
+
+def _produto_overlay_ids_fornecedor_agro(termo: str) -> list[str]:
+    t = str(termo or "").strip()
+    if not t:
+        return []
+    try:
+        return [
+            str(x).strip()
+            for x in ProdutoGestaoOverlayAgro.objects.filter(
+                fornecedor_texto__icontains=t[:120]
+            ).values_list("produto_externo_id", flat=True)[:1600]
             if x
         ]
     except Exception:
@@ -996,12 +1082,35 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
         + [x for x in ov_qs.exclude(unidade="").values_list("unidade", flat=True).distinct()],
         limite=lim_cat,
     )
+    subcategorias_2 = _faceta_valores_distintos(
+        list(qs.exclude(subcategoria_2="").values_list("subcategoria_2", flat=True).distinct())
+        + [x for x in ov_qs.exclude(subcategoria_2="").values_list("subcategoria_2", flat=True).distinct()],
+        limite=lim_cat,
+    )
+    subcategorias_3 = _faceta_valores_distintos(
+        list(qs.exclude(subcategoria_3="").values_list("subcategoria_3", flat=True).distinct())
+        + [x for x in ov_qs.exclude(subcategoria_3="").values_list("subcategoria_3", flat=True).distinct()],
+        limite=lim_cat,
+    )
+    subcategorias_4 = _faceta_valores_distintos(
+        list(qs.exclude(subcategoria_4="").values_list("subcategoria_4", flat=True).distinct())
+        + [x for x in ov_qs.exclude(subcategoria_4="").values_list("subcategoria_4", flat=True).distinct()],
+        limite=lim_cat,
+    )
+    modelos = _faceta_valores_distintos(
+        list(qs.exclude(modelo="").values_list("modelo", flat=True).distinct()),
+        limite=lim_cat,
+    )
     return {
         "marcas": marcas,
         "categorias": categorias,
         "subcategorias": subcategorias,
+        "subcategorias_2": subcategorias_2,
+        "subcategorias_3": subcategorias_3,
+        "subcategorias_4": subcategorias_4,
         "fornecedores": fornecedores,
         "unidades": unidades,
+        "modelos": modelos,
     }
 
 
