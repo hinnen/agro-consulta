@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
+_local_catalogo_snapshot.json
 staticfiles/
 node_modules/
 dist-electron/

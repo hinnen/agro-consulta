@@ -1,0 +1,659 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ecfdf5">
+  <title>SisVale | Folha de saldo</title>
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .safe-pad {
+      padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-top-nav { display: none !important; }
+    html[data-agro-folha-embed="1"] body {
+      min-height: 100%;
+      height: 100%;
+      background: #fff;
+      overflow: hidden;
+      padding: 0 !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-shell {
+      max-width: 100%;
+      height: 100%;
+      min-height: 100%;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-main {
+      border-radius: 0;
+      border-width: 0;
+      box-shadow: none;
+      height: 100%;
+    }
+    /* Filtros ERP — chips + dropdown (igual cadastro) */
+    .cad-ms { position: relative; min-width: 0; }
+    .cad-ms-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      min-height: 2.25rem; max-width: 100%;
+      padding: 0.3rem 0.65rem; border-radius: 0.5rem;
+      border: 1.5px solid #cbd5e1; background: #fff;
+      font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.02em; color: #334155; cursor: pointer;
+      white-space: nowrap;
+    }
+    .cad-ms-btn:hover { border-color: #34d399; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn.is-on { border-color: #059669; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn .cad-ms-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.25rem; height: 1.25rem; padding: 0 0.3rem;
+      border-radius: 999px; background: #059669; color: #fff;
+      font-size: 0.65rem; font-weight: 900;
+    }
+    .cad-ms-panel {
+      position: absolute; z-index: 50; top: calc(100% + 0.25rem); left: 0;
+      width: min(18rem, calc(100vw - 2rem));
+      max-height: min(16rem, 42dvh);
+      display: flex; flex-direction: column;
+      border: 1.5px solid #a7f3d0; border-radius: 0.85rem;
+      background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    }
+    .cad-ms-panel.hidden { display: none; }
+    .cad-ms-panel input[type="search"] {
+      margin: 0.5rem; min-height: 2.25rem; padding: 0.35rem 0.65rem;
+      border: 1.5px solid #e2e8f0; border-radius: 0.55rem;
+      font-size: 0.875rem; font-weight: 600; outline: none;
+    }
+    .cad-ms-panel input[type="search"]:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+    .cad-ms-list { flex: 1 1 auto; overflow-y: auto; padding: 0.15rem 0.35rem 0.5rem; scrollbar-width: thin; }
+    .cad-ms-opt {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.45rem;
+      font-size: 0.8125rem; font-weight: 600; color: #1e293b;
+      cursor: pointer; text-align: left; background: transparent; border: 0;
+    }
+    .cad-ms-opt:hover { background: #f0fdf4; }
+    .cad-ms-opt input { width: 1rem; height: 1rem; accent-color: #059669; flex-shrink: 0; }
+    .cad-f-chip {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      max-width: 14rem; min-height: 1.75rem; padding: 0.15rem 0.45rem 0.15rem 0.55rem;
+      border-radius: 999px; border: 1px solid #a7f3d0; background: #ecfdf5;
+      font-size: 0.7rem; font-weight: 700; color: #065f46;
+    }
+    .cad-f-chip button {
+      flex-shrink: 0; width: 1.15rem; height: 1.15rem; border-radius: 999px;
+      border: 0; background: #059669; color: #fff; font-size: 0.7rem; font-weight: 900;
+      line-height: 1; cursor: pointer;
+    }
+    .cad-f-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cad-filtros-bar {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 0.65rem;
+    }
+    .cad-filtros-bar label > span {
+      display: block; font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.2rem;
+    }
+    .cad-filtros-bar select,
+    .cad-filtros-bar input[type="date"],
+    .cad-filtros-bar input[type="text"],
+    .cad-filtros-bar input[type="search"] {
+      min-height: 2.25rem; border-radius: 0.5rem; border: 1.5px solid #cbd5e1;
+      background: #fff; padding: 0.25rem 0.55rem; font-size: 0.8125rem; font-weight: 700; color: #0f172a;
+    }
+    .cad-filtros-bar select:focus,
+    .cad-filtros-bar input:focus {
+      outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+    }
+    .cad-ms-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  </style>
+  <script>
+    (function () {
+      try {
+        if (new URLSearchParams(location.search || '').get('embed') === '1') {
+          document.documentElement.setAttribute('data-agro-folha-embed', '1');
+        }
+      } catch (_) {}
+    })();
+  </script>
+</head>
+<body class="min-h-[100dvh] bg-gradient-to-b from-emerald-50/80 via-slate-50 to-slate-100 text-slate-800 safe-pad">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <div class="mx-auto w-full max-w-3xl flex min-h-[100dvh] min-h-0 flex-col folha-saldo-shell px-2 sm:px-3">
+    <header class="folha-saldo-top-nav shrink-0 flex flex-wrap items-start justify-between gap-3 pb-3">
+      <div class="min-w-0">
+        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">SisVale · Compras</p>
+        <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Folha de saldo</h1>
+        <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Só código GM, produto e saldo — para levar no papel.</p>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-orange-400 hover:text-orange-700">Voltar às Compras</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-600 hover:border-orange-400 hover:text-orange-600" %}
+      </div>
+    </header>
+
+    <main class="folha-saldo-main flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-200/90 bg-white shadow-xl overflow-hidden">
+      <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 bg-emerald-50/50">
+        <span class="text-xs font-black uppercase text-emerald-950 tracking-wide">Montar folha</span>
+        <div class="flex items-center gap-2">
+          <span id="saldo-facetas-status" class="text-[10px] font-semibold text-slate-500" role="status"></span>
+          <details class="relative">
+            <summary class="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-sm hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+            <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+              <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
+              <p>Marque <strong>Centro</strong> e/ou <strong>Vila Elias</strong>. As duas = soma no saldo.</p>
+              <p>Filtros iguais ao cadastro: clique em Marca/Categoria… e marque na lista (com busca).</p>
+              <p><strong>A4</strong> e <strong>A5</strong> para folha; <strong>80 mm</strong> para impressora térmica.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3">
+        <div id="saldo-f-chips" class="flex flex-wrap gap-1 empty:hidden" aria-live="polite"></div>
+
+        <div class="cad-filtros-bar">
+          <label class="min-w-[6.5rem]">
+            <span>Papel</span>
+            <select id="saldo-papel">
+              <option value="A4" selected>A4</option>
+              <option value="A5">A5</option>
+              <option value="80mm">Cupom 80 mm</option>
+            </select>
+          </label>
+          <label class="min-w-[7rem]">
+            <span>Estoque</span>
+            <select id="saldo-f-estoque-sinal">
+              <option value="">Qualquer</option>
+              <option value="positivo">Positivo</option>
+              <option value="negativo">Negativo</option>
+              <option value="zero">Zerado</option>
+            </select>
+          </label>
+          <label class="flex-1 min-w-[12rem]">
+            <span>Busca (opcional)</span>
+            <input type="search" id="saldo-q" autocomplete="off" placeholder="Nome, GM, código…" />
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-2 items-center">
+          <label class="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-lg border-2 border-emerald-300 bg-emerald-50 text-sm font-bold text-emerald-950">
+            <input type="checkbox" id="saldo-loja-centro" class="w-4 h-4 accent-emerald-600" checked /> Centro
+          </label>
+          <label class="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-lg border-2 border-sky-300 bg-sky-50 text-sm font-bold text-sky-950">
+            <input type="checkbox" id="saldo-loja-vila" class="w-4 h-4 accent-sky-600" checked /> Vila Elias
+          </label>
+          <label class="inline-flex items-center gap-2 min-h-[40px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700">
+            <input type="checkbox" id="saldo-omit-zero" class="w-4 h-4 accent-emerald-600" /> Esconder zerados
+          </label>
+          <label class="inline-flex items-center gap-2 min-h-[40px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700">
+            <input type="checkbox" id="saldo-somente-ativos" class="w-4 h-4 accent-emerald-600" checked /> Somente ativos
+          </label>
+        </div>
+
+        <div class="cad-ms-row" id="saldo-ms-row" aria-label="Classificação">
+          <div class="cad-ms" data-ms="marca" data-label="Marca"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Marca</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          <div class="cad-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Categoria</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          <div class="cad-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          <div class="cad-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          <div class="cad-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Unidade</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          <div class="cad-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Modelo</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+        </div>
+
+        <details class="rounded-lg border border-slate-200 bg-slate-50/80">
+          <summary class="cursor-pointer list-none px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+            <span>Mais · data, sub 2–4, preço, NCM</span>
+            <span class="text-slate-400 font-black" aria-hidden="true">▾</span>
+          </summary>
+          <div class="cad-filtros-bar px-3 pb-3 pt-1 border-t border-slate-100">
+            <label class="min-w-[8rem]">
+              <span>Tipo de data</span>
+              <select id="saldo-f-data-tipo">
+                <option value="cadastro">Cadastro</option>
+                <option value="primeira_nf">1ª Entrada NF</option>
+                <option value="ultima_nf">Última Entrada NF</option>
+              </select>
+            </label>
+            <label class="min-w-[7.5rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
+            <label class="min-w-[7.5rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
+            <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <label class="min-w-[5.5rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[5.5rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[5.5rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[5.5rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[6.5rem]">
+              <span>NCM</span>
+              <select id="saldo-f-ncm">
+                <option value="">Qualquer</option>
+                <option value="com">Com NCM</option>
+                <option value="sem">Sem NCM</option>
+              </select>
+            </label>
+            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-sem-marca" class="w-3.5 h-3.5 accent-emerald-600" /> Sem marca
+            </label>
+            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-sem-cat" class="w-3.5 h-3.5 accent-emerald-600" /> Sem categoria
+            </label>
+            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-somente-agro" class="w-3.5 h-3.5 accent-emerald-600" /> Só Agro
+            </label>
+          </div>
+        </details>
+      </div>
+
+      <div class="shrink-0 border-t border-slate-100 bg-slate-50/90 px-3 sm:px-4 py-3 flex flex-wrap items-center gap-2">
+        <button type="button" id="saldo-btn-imprimir" class="flex-1 min-w-[10rem] min-h-[48px] rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-sm">Imprimir saldo</button>
+        <button type="button" id="saldo-btn-limpar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold uppercase text-xs hover:bg-slate-50">Limpar</button>
+        <p id="saldo-status" class="w-full text-xs font-semibold text-slate-500" role="status"></p>
+      </div>
+    </main>
+  </div>
+
+{{ facetas|json_script:"saldo-facetas-boot" }}
+<script>
+(function () {
+  var API = "{{ api_relatorio_url|escapejs }}";
+  var FACETAS_URL = "{{ api_facetas_url|escapejs }}";
+
+  var msFacetas = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msSelected = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msLabels = {
+    marca: 'Marca', categoria: 'Categoria', subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2', subcategoria_3: 'Sub 3', subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor', unidade: 'Unidade', modelo: 'Modelo'
+  };
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function norm(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  function setStatus(msg, isErr) {
+    var s = el('saldo-status');
+    if (!s) return;
+    s.textContent = msg || '';
+    s.className = 'w-full text-xs font-semibold ' + (isErr ? 'text-red-700' : 'text-slate-500');
+  }
+  function setFacStatus(msg, isErr) {
+    var s = el('saldo-facetas-status');
+    if (!s) return;
+    s.textContent = msg || '';
+    s.className = 'text-[10px] font-semibold ' + (isErr ? 'text-red-600' : 'text-slate-500');
+  }
+
+  function applyFacetasPayload(j) {
+    if (!j) return 0;
+    msFacetas.marca = j.marcas || [];
+    msFacetas.categoria = j.categorias || [];
+    msFacetas.subcategoria = j.subcategorias || [];
+    msFacetas.subcategoria_2 = j.subcategorias_2 || [];
+    msFacetas.subcategoria_3 = j.subcategorias_3 || [];
+    msFacetas.subcategoria_4 = j.subcategorias_4 || [];
+    msFacetas.fornecedor = j.fornecedores || [];
+    msFacetas.unidade = j.unidades || [];
+    msFacetas.modelo = j.modelos || [];
+    var n = 0;
+    Object.keys(msFacetas).forEach(function (k) { n += (msFacetas[k] || []).length; });
+    Object.keys(msFacetas).forEach(function (k) { msRenderBtn(k); });
+    return n;
+  }
+
+  function msToggle(key, val, on) {
+    var list = msSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    msSelected[key] = list;
+    msRenderBtn(key);
+    msRenderChips();
+  }
+
+  function msRenderBtn(key) {
+    var root = document.querySelector('.cad-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.cad-ms-btn');
+    if (!btn) return;
+    var n = (msSelected[key] || []).length;
+    var label = msLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = esc(label) + (n ? ' <span class="cad-ms-count">' + n + '</span>' : '');
+  }
+
+  function msRenderChips() {
+    var box = el('saldo-f-chips');
+    if (!box) return;
+    var html = '';
+    Object.keys(msSelected).forEach(function (key) {
+      (msSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="cad-f-chip" data-ms-key="' + esc(key) + '" data-ms-val="' + esc(v) + '"><span title="' +
+          esc((msLabels[key] || key) + ': ' + v) + '">' + esc(msLabels[key] || key) + ': ' + esc(v) +
+          '</span><button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    box.innerHTML = html;
+  }
+
+  function msCloseAll(exceptRoot) {
+    document.querySelectorAll('.cad-ms-panel').forEach(function (p) {
+      if (exceptRoot && exceptRoot.contains(p)) return;
+      p.classList.add('hidden');
+    });
+  }
+
+  function msFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.cad-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (msSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = norm(q);
+    var opts = (msFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return norm(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      return (
+        '<label class="cad-ms-opt"><input type="checkbox" data-val="' + esc(x) + '"' +
+        (selected[x] ? ' checked' : '') + '/><span>' + esc(x) + '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">' +
+        ((msFacetas[key] || []).length ? 'Nada encontrado.' : 'Lista vazia — aguarde carregar ou confira o cadastro.') +
+        '</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' + esc(keepQ) + '" autocomplete="off" />' +
+      '<div class="cad-ms-list">' + listHtml + '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        msFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try { var len = again.value.length; again.setSelectionRange(len, len); } catch (_) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        msToggle(key, cb.getAttribute('data-val'), cb.checked);
+      });
+    });
+  }
+
+  function msWire() {
+    document.querySelectorAll('.cad-ms').forEach(function (root) {
+      var btn = root.querySelector('.cad-ms-btn');
+      var panel = root.querySelector('.cad-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        msCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        msFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    var chips = el('saldo-f-chips');
+    if (chips) {
+      chips.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.cad-f-chip');
+        if (!btn || !chip) return;
+        msToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.cad-ms')) return;
+      msCloseAll();
+    });
+  }
+
+  function appendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) { if (v) params.append(key, v); });
+  }
+
+  function buildParams() {
+    var p = new URLSearchParams();
+    if (el('saldo-loja-centro') && el('saldo-loja-centro').checked) p.set('loja_centro', '1');
+    if (el('saldo-loja-vila') && el('saldo-loja-vila').checked) p.set('loja_vila', '1');
+    if (el('saldo-omit-zero') && el('saldo-omit-zero').checked) p.set('omit_zero', '1');
+    if (!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked)) p.set('inativos', '1');
+    var q = el('saldo-q') ? el('saldo-q').value.trim() : '';
+    if (q) p.set('q', q);
+    if (el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value) {
+      p.set('estoque_sinal', el('saldo-f-estoque-sinal').value);
+    }
+    if ((el('saldo-f-data-de') && el('saldo-f-data-de').value) || (el('saldo-f-data-ate') && el('saldo-f-data-ate').value)) {
+      p.set('data_tipo', (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro');
+      if (el('saldo-f-data-de') && el('saldo-f-data-de').value) p.set('data_de', el('saldo-f-data-de').value);
+      if (el('saldo-f-data-ate') && el('saldo-f-data-ate').value) p.set('data_ate', el('saldo-f-data-ate').value);
+    }
+    appendMulti(p, 'marca', msSelected.marca);
+    appendMulti(p, 'categoria', msSelected.categoria);
+    appendMulti(p, 'subcategoria', msSelected.subcategoria);
+    appendMulti(p, 'subcategoria_2', msSelected.subcategoria_2);
+    appendMulti(p, 'subcategoria_3', msSelected.subcategoria_3);
+    appendMulti(p, 'subcategoria_4', msSelected.subcategoria_4);
+    appendMulti(p, 'fornecedor', msSelected.fornecedor);
+    appendMulti(p, 'unidade', msSelected.unidade);
+    appendMulti(p, 'modelo', msSelected.modelo);
+    if (el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim()) p.set('custo_min', el('saldo-f-custo-min').value.trim());
+    if (el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim()) p.set('custo_max', el('saldo-f-custo-max').value.trim());
+    if (el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim()) p.set('venda_min', el('saldo-f-venda-min').value.trim());
+    if (el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim()) p.set('venda_max', el('saldo-f-venda-max').value.trim());
+    if (el('saldo-f-ncm') && el('saldo-f-ncm').value) p.set('ncm', el('saldo-f-ncm').value);
+    if (el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked) p.set('sem_marca', '1');
+    if (el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked) p.set('sem_categoria', '1');
+    if (el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked) p.set('somente_agro', '1');
+    return p;
+  }
+
+  function limparFiltros() {
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if (el('saldo-f-estoque-sinal')) el('saldo-f-estoque-sinal').value = '';
+    if (el('saldo-f-data-tipo')) el('saldo-f-data-tipo').value = 'cadastro';
+    if (el('saldo-f-data-de')) el('saldo-f-data-de').value = '';
+    if (el('saldo-f-data-ate')) el('saldo-f-data-ate').value = '';
+    ['saldo-f-custo-min','saldo-f-custo-max','saldo-f-venda-min','saldo-f-venda-max','saldo-q'].forEach(function (id) {
+      if (el(id)) el(id).value = '';
+    });
+    if (el('saldo-f-ncm')) el('saldo-f-ncm').value = '';
+    if (el('saldo-f-sem-marca')) el('saldo-f-sem-marca').checked = false;
+    if (el('saldo-f-sem-cat')) el('saldo-f-sem-cat').checked = false;
+    if (el('saldo-f-somente-agro')) el('saldo-f-somente-agro').checked = false;
+    setStatus('');
+  }
+
+  function fmtSaldo(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    return x.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+  }
+
+  function cssPapel(papel) {
+    if (papel === '80mm') {
+      /* Epson TM-T20X: 100%/90% ainda raspam saldo — 82% + saldo reservado */
+      return '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm;font-family:system-ui,sans-serif;font-size:10.5px;color:#000}' +
+        '.wrap{width:82%;max-width:66mm;box-sizing:border-box;margin:0 auto;padding:1.5mm 0}' +
+        '.tit{font-weight:900;font-size:12px;text-align:center;text-transform:uppercase;margin:0 0 3px}' +
+        '.meta{font-size:9px;text-align:center;margin:0 0 5px;font-weight:600}' +
+        '.row{display:flex;align-items:flex-start;gap:2px;border-bottom:1px dashed #999;padding:2px 0;page-break-inside:avoid}' +
+        '.gm{font-weight:800;font-family:ui-monospace,monospace;flex:0 0 auto;max-width:26%;word-break:break-all}' +
+        '.nome{flex:1 1 auto;min-width:0;font-weight:700;line-height:1.12;overflow-wrap:anywhere}' +
+        '.saldo{font-weight:900;flex:0 0 3.2em;width:3.2em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}';
+    }
+    if (papel === 'A5') {
+      return '@page{size:A5;margin:8mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:11px;color:#111}' +
+        '.wrap{width:100%}.tit{font-weight:900;font-size:16px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:10px;margin:0 0 8px;font-weight:600}' +
+        'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:4px 5px;text-align:left;vertical-align:top}' +
+        'th{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#475569}td.gm{font-family:ui-monospace,monospace;font-weight:800;white-space:nowrap;width:18%}' +
+        'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:16%}';
+    }
+    return '@page{size:A4;margin:10mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:12px;color:#111}' +
+      '.wrap{width:100%}.tit{font-weight:900;font-size:18px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:11px;margin:0 0 10px;font-weight:600}' +
+      'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:5px 6px;text-align:left;vertical-align:top}' +
+      'th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#475569}td.gm{font-family:ui-monospace,monospace;font-weight:800;white-space:nowrap;width:16%}' +
+      'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:14%}';
+  }
+
+  function montarHtml(j, papel) {
+    var linhas = j.linhas || [];
+    var meta = 'SisVale · ' + (j.loja_rotulo || 'Saldo') + ' · ' + (j.gerado_em || '') + ' · ' + linhas.length + ' itens' + (j.truncado ? ' (lista limitada)' : '');
+    var body;
+    if (papel === '80mm') {
+      body = linhas.map(function (ln) {
+        return '<div class="row"><span class="gm">' + esc(ln.codigo_gm) + '</span><span class="nome">' + esc(ln.nome) + '</span><span class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</span></div>';
+      }).join('');
+    } else {
+      body = '<table><thead><tr><th>Código GM</th><th>Produto</th><th>Saldo</th></tr></thead><tbody>' +
+        linhas.map(function (ln) {
+          return '<tr><td class="gm">' + esc(ln.codigo_gm) + '</td><td>' + esc(ln.nome) + '</td><td class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><title>Folha de saldo</title><style>' +
+      cssPapel(papel) + '</style></head><body><div class="wrap"><p class="tit">Folha de saldo</p><p class="meta">' +
+      esc(meta) + '</p>' + body + '</div></body></html>';
+  }
+
+  function entregarPrint(html) {
+    var preferWin = false;
+    try {
+      if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) preferWin = true;
+    } catch (_) {}
+    if (preferWin) {
+      var w = null;
+      try { w = window.open('', '_blank'); } catch (_) { w = null; }
+      if (w && w.document) {
+        try {
+          w.document.open();
+          w.document.write(html);
+          w.document.close();
+          setTimeout(function () { try { w.focus(); w.print(); } catch (_) {} }, 350);
+          return;
+        } catch (_) {}
+      }
+    }
+    var ifr = document.createElement('iframe');
+    ifr.setAttribute('style', 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden');
+    document.body.appendChild(ifr);
+    var doc = ifr.contentWindow || ifr.contentDocument;
+    doc = doc.document || doc;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(function () {
+      try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (_) {}
+      setTimeout(function () { try { ifr.remove(); } catch (_) {} }, 1500);
+    }, 300);
+  }
+
+  function carregarFacetasApi() {
+    if (!FACETAS_URL) return;
+    setFacStatus('Atualizando listas…');
+    fetch(FACETAS_URL + (FACETAS_URL.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Facetas indisponíveis');
+        var n = applyFacetasPayload(j);
+        setFacStatus(n ? (n + ' opções') : 'Listas vazias no cadastro', !n);
+      })
+      .catch(function (err) {
+        setFacStatus((err && err.message) || 'Falha ao carregar filtros', true);
+      });
+  }
+
+  /* Boot: listas já no HTML (evita iframe vazio) */
+  try {
+    var bootEl = document.getElementById('saldo-facetas-boot');
+    var boot = bootEl ? JSON.parse(bootEl.textContent || '{}') : {};
+    var n0 = applyFacetasPayload(boot);
+    if (n0) setFacStatus(n0 + ' opções');
+    else setFacStatus('Carregando listas…');
+  } catch (_) {
+    setFacStatus('Carregando listas…');
+  }
+  msWire();
+  carregarFacetasApi();
+
+  el('saldo-btn-limpar') && el('saldo-btn-limpar').addEventListener('click', limparFiltros);
+  el('saldo-btn-imprimir') && el('saldo-btn-imprimir').addEventListener('click', function () {
+    var centro = el('saldo-loja-centro') && el('saldo-loja-centro').checked;
+    var vila = el('saldo-loja-vila') && el('saldo-loja-vila').checked;
+    if (!centro && !vila) {
+      setStatus('Marque Centro e/ou Vila Elias.', true);
+      return;
+    }
+    var papel = (el('saldo-papel') && el('saldo-papel').value) || 'A4';
+    var btn = el('saldo-btn-imprimir');
+    if (btn) { btn.disabled = true; btn.textContent = 'Montando…'; }
+    setStatus('Buscando produtos…');
+    fetch(API + '?' + buildParams().toString(), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao montar lista');
+        if (!(j.linhas || []).length) {
+          setStatus('Nenhum produto com esses filtros.', true);
+          return;
+        }
+        setStatus((j.total || 0) + ' produto(s)' + (j.truncado ? ' · lista limitada a ' + (j.limite || 2000) : '') + ' · ' + (j.loja_rotulo || ''));
+        entregarPrint(montarHtml(j, papel));
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao imprimir', true);
+      })
+      .finally(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Imprimir saldo'; }
+      });
+  });
+})();
+</script>
+</body>
+</html>

@@ -580,6 +580,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
+- **Popup Folha (27/07):** modal compacto (padrão ERP) · Folha de saldo com filtros **botão+chip** iguais ao cadastro · facetas no HTML.
 - **Folha por fornecedor (27/07):** com catálogo PG **não** depende de Mongo — usa cadastro + Entrada NF Agro.
 
 ### 4.10 Lançamentos / financeiro
@@ -1165,6 +1166,99 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🐛 SEFAZ Dist DF-e — cStat 656 na 1ª consulta do dia (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Aba SEFAZ · 1 clique · **656 Consumo Indevido** · botão «Aguarde ~1h» · `ultNSU=…2084` · `maxNSU=0` |
+| **Causa** | Bloqueio **da Receita no CNPJ** (não é bug do botão). Quase sempre: **outro sistema** (ERP / contador / outro PC / staging) já consultou DF-e no mesmo CNPJ, **ou** NSU já no fim sem intervalo de 1h |
+| **Agora** | Esperar a 1h do botão · **não** clicar de novo · nota de hoje → **Ler XML** (e-mail / portal / fornecedor) |
+| **Depois** | 1 clique só · se vier **137** (nada novo) → esperar 1h · se **138** → carregar na grade |
+| **Conferir** | ERP legado ou software do contador ainda “baixa NF” automático deste CNPJ? |
+
+### 🩹 FIX — Ajuste Mobile saldo «tudo 0» / filtro só positivo (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no pacote **CAD-COMPRAS-AJUSTE** (teste v11.80) · validar local · loja alvo v11.92 |
+| **Sintoma** | Histórico grava ajuste (ex. +1000 Vila) · lista com «Só positivo» = **0 itens** · saldo na tela fica 0 |
+| **Causa** | Lista usa cache do PDV com saldo 0 · filtro positivo esconde tudo · ATUALIZAR só pedia saldo dos **visíveis** (ninguém) |
+| **Fix** | API `?positivos=1&deposito=` · ao abrir / ATUALIZAR / Aplicar «só positivo» hidrata saldo real do depósito |
+| **Arquivos** | `mobile_ajuste.html` · `views.py` (`api_pdv_saldos`) · `estoque_saldo_agro_util.py` |
+| **Validar** | Ctrl+F5 · Vila · filtro Só positivo → deve listar o que ajustou hoje · ATUALIZAR · Hist. confere |
+| **Workaround se ainda vazio** | Limpar filtros → ATUALIZAR → depois Só positivo de novo |
+
+### 📦 PACOTE PRONTO LOJA — Cadastro filtros + Folha saldo + Ajuste mobile (`CAD-COMPRAS-AJUSTE` · 27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** — espera frase + senha `99738595` · **Renan valida local antes** |
+| **Pasta** | `_pacote_cadastro_compras_ajuste_20260727/LEIA-ME.txt` (junta este chat + `_pacote_ajuste_mobile_saldo/` + compras) |
+| **VERSION teste** | **11.80** |
+| **VERSION loja alvo** | **11.92** (loja hoje **11.91** DSP-SABORES · no cherry **não** deixar 11.80) |
+| **Inclui** | Cadastro filtros compactos + coluna estoque C/V · Folha saldo Compras A4/A5/80mm · Folha fornecedor PG (`87d6557`) · Ajuste mobile `positivos=1` · fix `/api/pdv/saldos/` c/ Mongo off |
+| **Check auto** | `manage.py check` 0 · rotas 200 · py/JS compile OK |
+| **Validar local** | Cadastro filtros · Compras→Folha saldo · `/ajuste-mobile/` Só positivo+ATUALIZAR |
+
+### ✨ UX — Coluna estoque cadastro (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Total grande colorido (verde/vermelho/cinza) + chips **C** / **V** com cor própria · número pt-BR |
+| **Arquivos** | `cadastro_erp_panel.js` `?v=27` · CSS em `produtos_cadastro_erp.html` |
+| **Você** | Ctrl+F5 cadastro · olhar coluna Estoque |
+
+### ✨ UX — Filtros cadastro compactos (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Removidas abas/vitrines redundantes (Produtos/Marcas/Categorias/Fornecedores). Uma barra: Loja · Estoque · Marca/Cat/Sub/Forn/Unid/Modelo · Aplicar. Data/sub2–4/preço/NCM em «Mais». Mais altura p/ lista. |
+| **Arquivos** | `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` `?v=26` |
+| **Você** | Ctrl+F5 cadastro · botão **Filtros** |
+
+### 🩹 FIX — `/api/pdv/saldos/` 500 local (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Local lento · log `Internal Server Error: /api/pdv/saldos/` · body «Erro conexao» |
+| **Causa** | Mongo ERP desligado, mas `estoque_operacional_sem_mongo_erp` exigia ledger → API recusava |
+| **Fix** | Com `mongo_erp_desligado` → saldo operacional sem Mongo (ajuste) |
+| **Arquivo** | `agro_fonte_config.py` |
+| **Você** | Reinicia `runserver` · Ctrl+F5 · Compras/ajuste não devem mais spammar 500 |
+
+### WIP — Folha de saldo Compras (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no pacote **CAD-COMPRAS-AJUSTE** (teste v11.80) · validar local |
+| **O quê** | Impressão só **GM · produto · saldo** · papel **A4 / A5 / 80mm** · checkbox Centro e/ou Vila (duas = soma) |
+| **Filtros** | Mesmos do cadastro (marca/cat/sub/estoque/datas/modelo/unidade/extras) + esconder zerados + busca |
+| **UX (27/07)** | Popup compacto padrão ERP · filtros = **botões + chips** (igual cadastro) · listas já no HTML (não fica branco) |
+| **80mm Epson TM-T20X** | wrap **82%** + saldo fixo (90% ainda raspava) |
+| **Arquivos** | `compras_relatorio_saldo.html` · `views.py` · `urls.py` · `compras.html` |
+| **API** | `/api/compras/relatorio-saldo/` |
+| **Você** | Ctrl+F5 Compras · Folha de saldo · clicar **Marca** deve listar opções |
+
+### WIP — Cadastro ERP filtros completos (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no pacote **CAD-COMPRAS-AJUSTE** (teste v11.80) · validar local |
+| **Pedido** | Filtros avançados: estoque +/−/0 · loja Centro/Vila · multi cat/sub 1–4 · datas (cadastro / 1ª NF / última NF) · modelo · unidade · extras |
+| **UI** | Botão **Filtros** · barra compacta (sem vitrines) · «Mais» recolhido |
+| **Exemplo** | Loja=Vila + Estoque=Positivo → só saldo Vila Elias |
+| **Arquivos** | `cadastro_filtros_util.py` · `estoque_saldo_agro_util.py` · `catalogo_agro.py` · `views.py` · `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` · `agro_busca_catalogo.js` |
+| **Validar** | Vila+positivo · multi cat/sub · cada tipo de data · Limpar · lista com mais altura |
+
+### 🐌 Local lento — Postgres Oregon (27/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | `.env` com `DATABASE_URL` staging **Oregon** (~300–600 ms/consulta) |
+| **Solução Renan** | Snapshot catálogo → SQLite local · `DATABASE_URL` comentado · **reiniciar runserver** |
+| **Resultado** | ~3361 produtos congelados · count ~5 ms |
+| **Doc** | `docs/TESTE-LOCAL.md` §0 |
 
 ### 🐛 FIX — Folha Compras «por fornecedor» sem Mongo (27/07)
 

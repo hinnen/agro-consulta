@@ -713,17 +713,29 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
                 Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
                 | Q(estoque_aplicado_em__isnull=False)
             )
-            .only(
-                "rascunho_id",
-                "cabecalho",
-                "linhas",
-                "extra",
-                "criado_em",
-                "estoque_aplicado_em",
-                "status",
-            )
-            .order_by("-criado_em")[:lim]
         )
+        # Pré-filtro no JSON (evita puxar 400 notas pelo Oregon / rede lenta).
+        if fid:
+            qs = qs.filter(
+                Q(cabecalho__emit_fornecedor_id=fid)
+                | Q(cabecalho__fornecedor_id=fid)
+                | Q(cabecalho__emit_id=fid)
+            )
+        elif fn:
+            token = fn.split()[0][:40]
+            qs = qs.filter(
+                Q(cabecalho__emit_nome__icontains=token)
+                | Q(cabecalho__fornecedor_nome__icontains=token)
+            )
+        qs = qs.only(
+            "rascunho_id",
+            "cabecalho",
+            "linhas",
+            "extra",
+            "criado_em",
+            "estoque_aplicado_em",
+            "status",
+        ).order_by("-criado_em")[:lim]
         proj = {
             "cabecalho": 1,
             "linhas": 1,

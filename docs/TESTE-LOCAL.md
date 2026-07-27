@@ -4,6 +4,29 @@
 **Não** depender do Render teste (dorme no free).  
 **Produção** só depois que você testou local **e** mandou frase + senha.
 
+## 0. Site local «lento pra desgraça»?
+
+**Causa nº 1 (medida no seu PC):** `.env` com `DATABASE_URL` do Postgres staging no **Oregon (EUA)**.  
+Cada consulta simples leva **~300–600 ms**. Uma tela com 5–10 consultas = **vários segundos**. Antes (SQLite no disco) era quase instantâneo — não é «falta de cache», é **latência Brasil ↔ Oregon**.
+
+### Catálogo cheio + rápido (congelado no PC)
+
+1. Assistente copia o catálogo **uma vez** do Oregon → SQLite (`db.sqlite3`).
+2. **Comenta** `DATABASE_URL` no `.env` (fica `#DATABASE_URL=...`).
+3. Você **reinicia** o `runserver` → Ctrl+F5.
+
+Resultado: ~3300 produtos **no PC**, **rápido**, **não atualiza sozinho**.  
+Quando quiser atualizar: peça *«atualiza o catálogo local»*.
+
+| Modo | Velocidade | Dados |
+|------|------------|--------|
+| SQLite local (snapshot) | Rápido | Catálogo cheio congelado |
+| Oregon ao vivo (`DATABASE_URL` ligado) | Lento | Sempre atualizado |
+
+Mongo já está desligado (`AGRO_MONGO_ERP_DESLIGADO=true`) — **não** é timeout de Mongo.
+
+Repo na pasta **OneDrive** também atrasa um pouco (sync); o Oregon era o que matava.
+
 ## 1. Uma vez (se ainda não tiver)
 
 No PowerShell, pasta do repo `agro-consulta`:
@@ -61,6 +84,8 @@ AGRO_MONGO_ERP_DESLIGADO=true
 
 3. Pare o `runserver`, suba de novo, **Ctrl+F5**.  
 4. Busca deve achar milho/sache como no staging.
+
+**Atenção:** staging no **Oregon** = local **lento** (ver §0). Use só quando precisar do catálogo cheio.
 
 **Proibido:** colar o `DATABASE_URL` da **loja** (`agro-db` produção) no local (risco de gravar na loja).
 

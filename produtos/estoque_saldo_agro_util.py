@@ -120,50 +120,149 @@ def mapa_saldos_operacionais_agro(
     return out
 
 
-def produto_ids_saldo_deposito_positivo(deposito: str = "vila") -> list[str]:
-    """IDs com saldo operacional > 0 no depósito (ledger ou ERP+ajuste)."""
+def _saldo_expr_sql(ledger: bool) -> str:
+    if ledger:
+        return "saldo_informado"
+    return "(saldo_informado - COALESCE(saldo_erp_referencia, 0))"
+
+
+def _mapa_ultimo_saldo_ajuste_por_deposito(
+    deposito: str,
+    *,
+    limite: int = 20000,
+    so_positivo: bool = False,
+) -> dict[str, float]:
+    """Último saldo operacional por produto em um depósito (só tabela de ajuste)."""
     from estoque.models import AjusteRapidoEstoque
 
-    dep = (deposito or "vila").strip().lower()
+    dep = (deposito or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        return {}
+    lim = max(50, min(int(limite or 20000), 50000))
     ledger = agro_estoque_ledger_ativo()
+    out: dict[str, float] = {}
 
-    # Postgres: só o ajuste mais recente por produto (DISTINCT ON) — não o histórico.
     if connection.vendor == "postgresql":
-        latest = (
-            AjusteRapidoEstoque.objects.filter(deposito=dep)
-            .order_by("produto_externo_id", "-criado_em")
-            .distinct("produto_externo_id")
-            .only("produto_externo_id", "saldo_informado", "saldo_erp_referencia", "diferenca_saldo")
-        )
-        out: list[str] = []
-        for aj in latest:
-            pid = str(aj.produto_externo_id or "").strip()
-            if not pid:
-                continue
-            saldo = calcular_saldo_operacional_deposito(aj, 0.0, ledger=ledger)
-            if saldo > 0:
-                out.append(pid)
+        expr = _saldo_expr_sql(ledger)
+        where_pos = "WHERE saldo > 0" if so_positivo else ""
+        sql = f"""
+            SELECT produto_externo_id, saldo FROM (
+              SELECT produto_externo_id, {expr} AS saldo FROM (
+                SELECT DISTINCT ON (produto_externo_id)
+                  produto_externo_id,
+                  saldo_informado,
+                  saldo_erp_referencia
+                FROM estoque_ajusterapidoestoque
+                WHERE lower(deposito) = %s
+                  AND produto_externo_id IS NOT NULL
+                  AND produto_externo_id <> ''
+                ORDER BY produto_externo_id, criado_em DESC
+              ) u
+            ) t
+            {where_pos}
+            ORDER BY produto_externo_id
+            LIMIT %s
+        """
+        with connection.cursor() as cur:
+            cur.execute(sql, [dep, lim])
+            for row in cur.fetchall():
+                if not row or not row[0]:
+                    continue
+                try:
+                    out[str(row[0]).strip()] = float(row[1] or 0)
+                except (TypeError, ValueError):
+                    out[str(row[0]).strip()] = 0.0
         return out
 
-    ajustes = AjusteRapidoEstoque.objects.filter(deposito=dep).order_by(
-        "produto_externo_id", "-criado_em"
-    ).only(
-        "produto_externo_id",
-        "saldo_informado",
-        "saldo_erp_referencia",
-        "diferenca_saldo",
+    ajustes = (
+        AjusteRapidoEstoque.objects.filter(deposito=dep)
+        .order_by("produto_externo_id", "-criado_em")
+        .only(
+            "produto_externo_id",
+            "saldo_informado",
+            "saldo_erp_referencia",
+            "diferenca_saldo",
+        )
     )
     seen: set[str] = set()
-    out = []
-    for aj in ajustes:
+    for aj in ajustes.iterator(chunk_size=500):
         pid = str(aj.produto_externo_id or "").strip()
         if not pid or pid in seen:
             continue
         seen.add(pid)
-        saldo = calcular_saldo_operacional_deposito(aj, 0.0, ledger=ledger)
-        if saldo > 0:
-            out.append(pid)
+        saldo = float(calcular_saldo_operacional_deposito(aj, 0.0, ledger=ledger))
+        if so_positivo and not (saldo > 0):
+            continue
+        out[pid] = saldo
+        if len(out) >= lim:
+            break
     return out
+
+
+def filtro_ids_estoque_sinal(
+    *,
+    loja: str = "total",
+    sinal: str,
+    limite: int = 20000,
+) -> tuple[str, set[str]]:
+    """
+    Prepara filtro de estoque para o QS do cadastro.
+
+    Retorno:
+      - ``(\"in\", ids)`` — manter só esses IDs (positivo/negativo)
+      - ``(\"exclude\", ids_nonzero)`` — zerado: excluir quem não é zero no escopo
+      - ``(\"noop\", set())`` — sem filtro
+    """
+    sinal = (sinal or "").strip().lower()
+    loja = (loja or "total").strip().lower()
+    if sinal not in ("positivo", "negativo", "zero"):
+        return "noop", set()
+    if loja not in ("total", "centro", "vila"):
+        loja = "total"
+
+    so_pos = sinal == "positivo" and loja in ("centro", "vila")
+    if so_pos:
+        # Um depósito + só positivo: SQL já corta — não perde item por LIMIT cedo.
+        m = _mapa_ultimo_saldo_ajuste_por_deposito(loja, limite=limite, so_positivo=True)
+        return "in", set(m.keys())
+
+    centro = _mapa_ultimo_saldo_ajuste_por_deposito("centro", limite=limite)
+    vila = _mapa_ultimo_saldo_ajuste_por_deposito("vila", limite=limite)
+    pids = set(centro) | set(vila)
+
+    saldos: dict[str, float] = {}
+    for pid in pids:
+        sc = float(centro.get(pid, 0.0))
+        sv = float(vila.get(pid, 0.0))
+        if loja == "centro":
+            saldos[pid] = sc
+        elif loja == "vila":
+            saldos[pid] = sv
+        else:
+            saldos[pid] = sc + sv
+
+    if sinal == "positivo":
+        return "in", {pid for pid, s in saldos.items() if s > 0}
+    if sinal == "negativo":
+        return "in", {pid for pid, s in saldos.items() if s < 0}
+
+    nonzero = {pid for pid, s in saldos.items() if abs(s) >= 1e-9}
+    return "exclude", nonzero
+
+
+def produto_ids_saldo_deposito_positivo(
+    deposito: str = "vila",
+    *,
+    limite: int = 1500,
+) -> list[str]:
+    """IDs com saldo operacional > 0 no depósito (ledger ou ERP+ajuste)."""
+    dep = (deposito or "vila").strip().lower()
+    lim = max(50, min(int(limite or 1500), 20000))
+    loja = dep if dep in ("centro", "vila") else "vila"
+    modo, ids = filtro_ids_estoque_sinal(loja=loja, sinal="positivo", limite=lim)
+    if modo != "in":
+        return []
+    return list(ids)[:lim]
 
 
 def mapa_produtos_info_por_externo_ids(p_ids: list[str]) -> dict[str, dict]:

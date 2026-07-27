@@ -442,7 +442,15 @@
         if (opts.entrada_nfe) params.set('entrada_nfe', '1');
         var extra = opts.extra || {};
         Object.keys(extra).forEach(function (k) {
-            if (extra[k] != null && extra[k] !== '') params.set(k, String(extra[k]));
+            var v = extra[k];
+            if (v == null || v === '') return;
+            if (Array.isArray(v)) {
+                v.forEach(function (item) {
+                    if (item != null && item !== '') params.append(k, String(item));
+                });
+                return;
+            }
+            params.set(k, String(v));
         });
         return AGRO_BUSCA_CATALOGO.api + '?' + params.toString();
     }
