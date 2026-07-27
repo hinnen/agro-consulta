@@ -89,25 +89,74 @@
   var filtrarEl = document.getElementById('cadastro-filtrar');
   var listaEl = document.getElementById('cadastro-lista');
   var metaEl = document.getElementById('cadastro-lista-meta');
-  var btnMaisEl = document.getElementById('cadastro-btn-mais');
   var detalheEl = document.getElementById('cadastro-detalhe');
   var erroEl = document.getElementById('cadastro-erro');
   var prevEl = document.getElementById('cadastro-prev');
   var nextEl = document.getElementById('cadastro-next');
   var pagWrap = document.getElementById('cadastro-paginacao');
-  var fMarcaEl = document.getElementById('cadastro-f-marca');
-  var fCatEl = document.getElementById('cadastro-f-cat');
-  var fFornEl = document.getElementById('cadastro-f-forn');
-  var vitrineNav = document.getElementById('cadastro-adv-nav');
-  var vitrineStrip = document.getElementById('cadastro-vitrine-strip');
+  var fMarcaEl = null;
+  var fCatEl = null;
+  var fFornEl = null;
+  var fSubEl = null;
+  var fSub2El = null;
+  var fSub3El = null;
+  var fSub4El = null;
+  var fUnidadeEl = null;
+  var fModeloEl = null;
+  var fEstoqueLojaEl = document.getElementById('cadastro-f-estoque-loja');
+  var fEstoqueSinalEl = document.getElementById('cadastro-f-estoque-sinal');
+  var fDataTipoEl = document.getElementById('cadastro-f-data-tipo');
+  var fDataDeEl = document.getElementById('cadastro-f-data-de');
+  var fDataAteEl = document.getElementById('cadastro-f-data-ate');
+  var fCustoMinEl = document.getElementById('cadastro-f-custo-min');
+  var fCustoMaxEl = document.getElementById('cadastro-f-custo-max');
+  var fVendaMinEl = document.getElementById('cadastro-f-venda-min');
+  var fVendaMaxEl = document.getElementById('cadastro-f-venda-max');
+  var fNcmEl = document.getElementById('cadastro-f-ncm');
+  var fSemMarcaEl = document.getElementById('cadastro-f-sem-marca');
+  var fSemCatEl = document.getElementById('cadastro-f-sem-cat');
+  var fSomenteAgroEl = document.getElementById('cadastro-f-somente-agro');
+  var fAplicarEl = document.getElementById('cadastro-f-aplicar');
+  var fLimparEl = document.getElementById('cadastro-f-limpar');
+  var fResumoEl = document.getElementById('cadastro-f-resumo');
+  var fChipsEl = document.getElementById('cadastro-f-chips');
 
+  var cadMsFacetas = {
+    marca: [],
+    categoria: [],
+    subcategoria: [],
+    subcategoria_2: [],
+    subcategoria_3: [],
+    subcategoria_4: [],
+    fornecedor: [],
+    unidade: [],
+    modelo: []
+  };
+  var cadMsSelected = {
+    marca: [],
+    categoria: [],
+    subcategoria: [],
+    subcategoria_2: [],
+    subcategoria_3: [],
+    subcategoria_4: [],
+    fornecedor: [],
+    unidade: [],
+    modelo: []
+  };
+  var cadMsLabels = {
+    marca: 'Marca',
+    categoria: 'Categoria',
+    subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2',
+    subcategoria_3: 'Sub 3',
+    subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor',
+    unidade: 'Unidade',
+    modelo: 'Modelo'
+  };
   var CADASTRO_LISTA_COLSPAN = 9;
   var pagina = 1;
   var porPagina = 72;
-  var BUSCA_LIMITE_BASE = 60;
-  var BUSCA_LIMITE_PASSO = 60;
-  var BUSCA_LIMITE_MAX = 300;
-  var buscaLimitAtual = BUSCA_LIMITE_BASE;
   var debounceTimer = null;
   var carregarGen = 0;
   var carregarAbort = null;
@@ -121,10 +170,6 @@
   var modoLista = true;
   var detalheReqSeq = 0;
   var ordenacaoAtual = { campo: null, direcao: 'asc' };
-  var vistaVitrine = 'produtos';
-  var chipMarca = '';
-  var chipCat = '';
-  var chipForn = '';
   var expandAj = null;
   var expandMm = null;
   var facetasCarregadas = false;
@@ -139,6 +184,202 @@
     erroEl.innerHTML = '';
     erroEl.textContent = msg;
     erroEl.classList.remove('hidden');
+  }
+
+  function cadastroMultiVals(keyOrSel) {
+    if (typeof keyOrSel === 'string') {
+      return (cadMsSelected[keyOrSel] || []).slice();
+    }
+    /* legado select — não usado mais */
+    if (!keyOrSel) return [];
+    var out = [];
+    Array.prototype.forEach.call(keyOrSel.selectedOptions || [], function (o) {
+      var v = String(o.value || '').trim();
+      if (v) out.push(v);
+    });
+    return out;
+  }
+
+  function cadastroMsNorm(s) {
+    return String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function cadastroMsToggle(key, val, on) {
+    var list = cadMsSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    cadMsSelected[key] = list;
+    cadastroMsRenderBtn(key);
+    cadastroMsRenderChips();
+    cadastroAtualizarResumoFiltros();
+  }
+
+  function cadastroMsClearKey(key) {
+    cadMsSelected[key] = [];
+    cadastroMsRenderBtn(key);
+  }
+
+  function cadastroMsRenderBtn(key) {
+    var root = document.querySelector('.cad-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.cad-ms-btn');
+    if (!btn) return;
+    var n = (cadMsSelected[key] || []).length;
+    var label = cadMsLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = escapeHtml(label) + (n ? ' <span class="cad-ms-count">' + n + '</span>' : '');
+  }
+
+  function cadastroMsRenderChips() {
+    if (!fChipsEl) return;
+    var html = '';
+    Object.keys(cadMsSelected).forEach(function (key) {
+      (cadMsSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="cad-f-chip" data-ms-key="' +
+          escapeHtml(key) +
+          '" data-ms-val="' +
+          escapeHtml(v) +
+          '"><span title="' +
+          escapeHtml((cadMsLabels[key] || key) + ': ' + v) +
+          '">' +
+          escapeHtml(cadMsLabels[key] || key) +
+          ': ' +
+          escapeHtml(v) +
+          '</span><button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    fChipsEl.innerHTML = html;
+  }
+
+  function cadastroMsCloseAll(exceptRoot) {
+    document.querySelectorAll('.cad-ms-panel').forEach(function (p) {
+      if (exceptRoot && exceptRoot.contains(p)) return;
+      p.classList.add('hidden');
+    });
+  }
+
+  function cadastroMsFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.cad-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (cadMsSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = cadastroMsNorm(q);
+    var opts = (cadMsFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return cadastroMsNorm(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      var checked = selected[x] ? ' checked' : '';
+      return (
+        '<label class="cad-ms-opt"><input type="checkbox" data-val="' +
+        escapeHtml(x) +
+        '"' +
+        checked +
+        '/><span>' +
+        escapeHtml(x) +
+        '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">Nada encontrado.</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' +
+      escapeHtml(keepQ) +
+      '" autocomplete="off" />' +
+      '<div class="cad-ms-list">' +
+      listHtml +
+      '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        cadastroMsFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try {
+            var len = again.value.length;
+            again.setSelectionRange(len, len);
+          } catch (e) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        cadastroMsToggle(key, cb.getAttribute('data-val'), cb.checked);
+      });
+    });
+  }
+
+  function cadastroMsWire() {
+    document.querySelectorAll('.cad-ms').forEach(function (root) {
+      var btn = root.querySelector('.cad-ms-btn');
+      var panel = root.querySelector('.cad-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        cadastroMsCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        cadastroMsFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    if (fChipsEl) {
+      fChipsEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.cad-f-chip');
+        if (!btn || !chip) return;
+        cadastroMsToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+        cadastroMsRenderChips();
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.cad-ms')) return;
+      cadastroMsCloseAll();
+    });
+  }
+
+  function cadastroAppendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) {
+      if (v) params.append(key, v);
+    });
+  }
+
+  function cadastroAtualizarResumoFiltros() {
+    if (!fResumoEl) return;
+    var n = 0;
+    Object.keys(cadMsSelected).forEach(function (k) {
+      if ((cadMsSelected[k] || []).length) n += 1;
+    });
+    if (fEstoqueSinalEl && fEstoqueSinalEl.value) n += 1;
+    if ((fDataDeEl && fDataDeEl.value) || (fDataAteEl && fDataAteEl.value)) n += 1;
+    if (fCustoMinEl && fCustoMinEl.value.trim()) n += 1;
+    if (fCustoMaxEl && fCustoMaxEl.value.trim()) n += 1;
+    if (fVendaMinEl && fVendaMinEl.value.trim()) n += 1;
+    if (fVendaMaxEl && fVendaMaxEl.value.trim()) n += 1;
+    if (fNcmEl && fNcmEl.value) n += 1;
+    if (fSemMarcaEl && fSemMarcaEl.checked) n += 1;
+    if (fSemCatEl && fSemCatEl.checked) n += 1;
+    if (fSomenteAgroEl && fSomenteAgroEl.checked) n += 1;
+    fResumoEl.textContent = n ? (n + ' ativo(s)') : '';
   }
 
   function cadastroQueryParams(opts) {
@@ -162,12 +403,32 @@
       params.set('sort', ordenacaoAtual.campo);
       params.set('dir', ordenacaoAtual.direcao);
     }
-    var m = (vistaVitrine === 'marcas' && chipMarca) ? chipMarca : (fMarcaEl ? (fMarcaEl.value || '').trim() : '');
-    var c = (vistaVitrine === 'categorias' && chipCat) ? chipCat : (fCatEl ? (fCatEl.value || '').trim() : '');
-    var f = (vistaVitrine === 'fornecedores' && chipForn) ? chipForn : (fFornEl ? (fFornEl.value || '').trim() : '');
-    if (m) params.set('marca', m);
-    if (c) params.set('categoria', c);
-    if (f) params.set('fornecedor', f);
+
+    cadastroAppendMulti(params, 'marca', cadastroMultiVals('marca'));
+    cadastroAppendMulti(params, 'categoria', cadastroMultiVals('categoria'));
+    cadastroAppendMulti(params, 'fornecedor', cadastroMultiVals('fornecedor'));
+    cadastroAppendMulti(params, 'subcategoria', cadastroMultiVals('subcategoria'));
+    cadastroAppendMulti(params, 'subcategoria_2', cadastroMultiVals('subcategoria_2'));
+    cadastroAppendMulti(params, 'subcategoria_3', cadastroMultiVals('subcategoria_3'));
+    cadastroAppendMulti(params, 'subcategoria_4', cadastroMultiVals('subcategoria_4'));
+    cadastroAppendMulti(params, 'unidade', cadastroMultiVals('unidade'));
+    cadastroAppendMulti(params, 'modelo', cadastroMultiVals('modelo'));
+
+    if (fEstoqueLojaEl && fEstoqueLojaEl.value) params.set('estoque_loja', fEstoqueLojaEl.value);
+    if (fEstoqueSinalEl && fEstoqueSinalEl.value) params.set('estoque_sinal', fEstoqueSinalEl.value);
+    if ((fDataDeEl && fDataDeEl.value) || (fDataAteEl && fDataAteEl.value)) {
+      params.set('data_tipo', (fDataTipoEl && fDataTipoEl.value) || 'cadastro');
+      if (fDataDeEl && fDataDeEl.value) params.set('data_de', fDataDeEl.value);
+      if (fDataAteEl && fDataAteEl.value) params.set('data_ate', fDataAteEl.value);
+    }
+    if (fCustoMinEl && fCustoMinEl.value.trim()) params.set('custo_min', fCustoMinEl.value.trim());
+    if (fCustoMaxEl && fCustoMaxEl.value.trim()) params.set('custo_max', fCustoMaxEl.value.trim());
+    if (fVendaMinEl && fVendaMinEl.value.trim()) params.set('venda_min', fVendaMinEl.value.trim());
+    if (fVendaMaxEl && fVendaMaxEl.value.trim()) params.set('venda_max', fVendaMaxEl.value.trim());
+    if (fNcmEl && fNcmEl.value) params.set('ncm', fNcmEl.value);
+    if (fSemMarcaEl && fSemMarcaEl.checked) params.set('sem_marca', '1');
+    if (fSemCatEl && fSemCatEl.checked) params.set('sem_categoria', '1');
+    if (fSomenteAgroEl && fSomenteAgroEl.checked) params.set('somente_agro', '1');
     return params;
   }
 
@@ -180,8 +441,9 @@
     var params = new URLSearchParams();
     params.set('contexto', 'cadastro');
     params.set('compras', '1');
-    ['q', 'limit', 'sort', 'dir', 'marca', 'categoria', 'fornecedor', 'ativo', 'inativos', 'incluir_saldo'].forEach(function (k) {
-      if (base.has(k)) params.set(k, base.get(k));
+    base.forEach(function (val, key) {
+      if (key === 'pagina' || key === 'por_pagina') return;
+      params.append(key, val);
     });
     if (!params.has('incluir_saldo')) params.set('incluir_saldo', '1');
     return params;
@@ -220,6 +482,54 @@
       minimumFractionDigits: dec != null ? dec : 2,
       maximumFractionDigits: dec != null ? dec : 4
     });
+  }
+
+  /** Quantidade de estoque: inteiro sem vírgula; senão até 2 casas (bater o olho). */
+  function fmtSaldoQtd(n) {
+    if (n === undefined || n === null || n === '') return '—';
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    if (Math.abs(x - Math.round(x)) < 1e-9) {
+      return Math.round(x).toLocaleString('pt-BR');
+    }
+    return x.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function cadastroSaldoTom(n) {
+    if (n === undefined || n === null || n === '' || !isFinite(Number(n))) return 'vazio';
+    var x = Number(n);
+    if (x > 1e-9) return 'pos';
+    if (x < -1e-9) return 'neg';
+    return 'zero';
+  }
+
+  function htmlCelulaSaldoLista(p) {
+    var sc = p.saldo_centro != null && isFinite(Number(p.saldo_centro)) ? Number(p.saldo_centro) : null;
+    var sv = p.saldo_vila != null && isFinite(Number(p.saldo_vila)) ? Number(p.saldo_vila) : null;
+    var st = p.saldo_total != null && isFinite(Number(p.saldo_total))
+      ? Number(p.saldo_total)
+      : (sc != null || sv != null ? (sc || 0) + (sv || 0) : null);
+    var tom = cadastroSaldoTom(st);
+    var totCls =
+      tom === 'pos' ? 'cad-saldo-tot is-pos' :
+      tom === 'neg' ? 'cad-saldo-tot is-neg' :
+      tom === 'zero' ? 'cad-saldo-tot is-zero' : 'cad-saldo-tot is-empty';
+    var pill = function (letra, val, titulo) {
+      var t = cadastroSaldoTom(val);
+      var cls =
+        t === 'pos' ? 'cad-saldo-pill is-pos' :
+        t === 'neg' ? 'cad-saldo-pill is-neg' :
+        t === 'zero' ? 'cad-saldo-pill is-zero' : 'cad-saldo-pill is-empty';
+      return '<span class="' + cls + '" title="' + escapeHtml(titulo) + '">' +
+        '<span class="cad-saldo-pill-l">' + letra + '</span>' +
+        '<span class="cad-saldo-pill-n">' + escapeHtml(fmtSaldoQtd(val)) + '</span></span>';
+    };
+    return '<div class="cad-saldo" title="Total = Centro + Vila">' +
+      '<div class="' + totCls + '">' + escapeHtml(fmtSaldoQtd(st)) + '</div>' +
+      '<div class="cad-saldo-lojas">' +
+      pill('C', sc, 'Centro') +
+      pill('V', sv, 'Vila Elias') +
+      '</div></div>';
   }
 
   function renderTabelaComposicao(itens) {
@@ -910,9 +1220,6 @@
         ? '…'
         : (custoListaNum != null ? fmtMoney(custoListaNum) : '—');
       var vendaTxt = p._precoAguardando ? '…' : formatVendaListaHtml(p);
-      var sc = p.saldo_centro != null ? String(p.saldo_centro) : '—';
-      var sv = p.saldo_vila != null ? String(p.saldo_vila) : '—';
-      var st = p.saldo_total != null ? String(p.saldo_total) : '—';
       var tr = document.createElement('tr');
       tr.setAttribute('data-main', '1');
       tr.setAttribute('data-prod-id', String(p.id));
@@ -930,9 +1237,9 @@
         '</td>' +
         '<td data-coluna="preco_custo" class="px-4 py-3 text-slate-600 whitespace-nowrap">' + custoTxt + '</td>' +
         '<td class="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">' + vendaTxt + '</td>' +
-        '<td data-coluna="estoque" class="px-4 py-3 text-right whitespace-nowrap">' +
-        '<span class="font-bold text-slate-900">' + escapeHtml(st) + '</span>' +
-        '<div class="text-[10px] font-semibold text-slate-400">C ' + escapeHtml(sc) + ' · V ' + escapeHtml(sv) + '</div></td>' +
+        '<td data-coluna="estoque" class="px-3 py-2 text-right whitespace-nowrap align-middle">' +
+        htmlCelulaSaldoLista(p) +
+        '</td>' +
         '<td class="px-4 py-3 text-right cadastro-acoes">' +
         '<span class="inline-flex items-center justify-end gap-1 text-lg">' +
         '<button type="button" class="cadastro-btn-edit-modal inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer" title="Editar (modal)">✏️</button>' +
@@ -1079,21 +1386,64 @@
   }
 
   function cadastroFiltroDimensaoAtivo() {
-    var m = (vistaVitrine === 'marcas' && chipMarca) ? chipMarca : (fMarcaEl ? (fMarcaEl.value || '').trim() : '');
-    var c = (vistaVitrine === 'categorias' && chipCat) ? chipCat : (fCatEl ? (fCatEl.value || '').trim() : '');
-    var f = (vistaVitrine === 'fornecedores' && chipForn) ? chipForn : (fFornEl ? (fFornEl.value || '').trim() : '');
-    return { marca: m, categoria: c, fornecedor: f };
+    return {
+      marcas: cadastroMultiVals('marca'),
+      categorias: cadastroMultiVals('categoria'),
+      fornecedores: cadastroMultiVals('fornecedor'),
+      subs: cadastroMultiVals('subcategoria'),
+      subs2: cadastroMultiVals('subcategoria_2'),
+      subs3: cadastroMultiVals('subcategoria_3'),
+      subs4: cadastroMultiVals('subcategoria_4'),
+      unidades: cadastroMultiVals('unidade'),
+      modelos: cadastroMultiVals('modelo'),
+      estoqueLoja: fEstoqueLojaEl ? fEstoqueLojaEl.value : 'total',
+      estoqueSinal: fEstoqueSinalEl ? fEstoqueSinalEl.value : '',
+      semMarca: !!(fSemMarcaEl && fSemMarcaEl.checked),
+      semCat: !!(fSemCatEl && fSemCatEl.checked),
+      somenteAgro: !!(fSomenteAgroEl && fSomenteAgroEl.checked),
+      ncm: fNcmEl ? fNcmEl.value : ''
+    };
+  }
+
+  function _cadastroValInList(val, lista) {
+    if (!lista || !lista.length) return true;
+    var v = String(val || '').trim().toLowerCase();
+    return lista.some(function (x) { return String(x).trim().toLowerCase() === v; });
   }
 
   function cadastroFiltrarDimensoesLista(rows) {
     var dim = cadastroFiltroDimensaoAtivo();
-    if (!dim.marca && !dim.categoria && !dim.fornecedor) return rows || [];
+    var tem =
+      dim.marcas.length || dim.categorias.length || dim.fornecedores.length ||
+      dim.subs.length || dim.subs2.length || dim.subs3.length || dim.subs4.length ||
+      dim.unidades.length || dim.modelos.length || dim.estoqueSinal ||
+      dim.semMarca || dim.semCat || dim.somenteAgro || dim.ncm;
+    if (!tem) return rows || [];
     return (rows || []).filter(function (r) {
-      if (dim.marca && String(r.marca || '').trim() !== dim.marca) return false;
-      if (dim.categoria && String(r.categoria || '').trim() !== dim.categoria) return false;
-      if (dim.fornecedor) {
+      if (!_cadastroValInList(r.marca, dim.marcas)) return false;
+      if (dim.semMarca && String(r.marca || '').trim()) return false;
+      if (!_cadastroValInList(r.categoria, dim.categorias)) return false;
+      if (dim.semCat && String(r.categoria || '').trim()) return false;
+      if (!_cadastroValInList(r.subcategoria, dim.subs)) return false;
+      if (!_cadastroValInList(r.subcategoria_2, dim.subs2)) return false;
+      if (!_cadastroValInList(r.subcategoria_3, dim.subs3)) return false;
+      if (!_cadastroValInList(r.subcategoria_4, dim.subs4)) return false;
+      if (!_cadastroValInList(r.unidade, dim.unidades)) return false;
+      if (!_cadastroValInList(r.modelo, dim.modelos)) return false;
+      if (dim.fornecedores.length) {
         var fn = String(r.fornecedor || '').trim().toLowerCase();
-        if (fn.indexOf(dim.fornecedor.trim().toLowerCase()) === -1) return false;
+        if (!dim.fornecedores.some(function (f) { return fn.indexOf(String(f).trim().toLowerCase()) !== -1; })) return false;
+      }
+      if (dim.somenteAgro && !(r.cadastro_somente_agro || r.somente_agro)) return false;
+      if (dim.ncm === 'com' && !String(r.ncm || '').trim()) return false;
+      if (dim.ncm === 'sem' && String(r.ncm || '').trim()) return false;
+      if (dim.estoqueSinal) {
+        var sc = Number(r.saldo_centro || 0);
+        var sv = Number(r.saldo_vila || 0);
+        var saldo = dim.estoqueLoja === 'centro' ? sc : (dim.estoqueLoja === 'vila' ? sv : (sc + sv));
+        if (dim.estoqueSinal === 'positivo' && !(saldo > 0)) return false;
+        if (dim.estoqueSinal === 'negativo' && !(saldo < 0)) return false;
+        if (dim.estoqueSinal === 'zero' && Math.abs(saldo) >= 1e-9) return false;
       }
       return true;
     });
@@ -1122,9 +1472,28 @@
           extra: {
             sort: params.get('sort') || '',
             dir: params.get('dir') || '',
-            marca: params.get('marca') || '',
-            categoria: params.get('categoria') || '',
-            fornecedor: params.get('fornecedor') || '',
+            marca: params.getAll('marca'),
+            categoria: params.getAll('categoria'),
+            fornecedor: params.getAll('fornecedor'),
+            subcategoria: params.getAll('subcategoria'),
+            subcategoria_2: params.getAll('subcategoria_2'),
+            subcategoria_3: params.getAll('subcategoria_3'),
+            subcategoria_4: params.getAll('subcategoria_4'),
+            unidade: params.getAll('unidade'),
+            modelo: params.getAll('modelo'),
+            estoque_loja: params.get('estoque_loja') || '',
+            estoque_sinal: params.get('estoque_sinal') || '',
+            data_tipo: params.get('data_tipo') || '',
+            data_de: params.get('data_de') || '',
+            data_ate: params.get('data_ate') || '',
+            custo_min: params.get('custo_min') || '',
+            custo_max: params.get('custo_max') || '',
+            venda_min: params.get('venda_min') || '',
+            venda_max: params.get('venda_max') || '',
+            ncm: params.get('ncm') || '',
+            sem_marca: params.get('sem_marca') || '',
+            sem_categoria: params.get('sem_categoria') || '',
+            somente_agro: params.get('somente_agro') || ''
           },
           signal: sig,
         })
@@ -1143,7 +1512,6 @@
 
   function finalizarBuscaPdvRows(apiRows, gen) {
     if (gen !== carregarGen) return;
-    var nApi = Array.isArray(apiRows) ? apiRows.length : 0;
     var linhas = (apiRows || []).map(apiProdutoParaLinhaCadastro);
     linhas = cadastroFiltrarDimensoesLista(linhas);
     linhas = cadastroFiltrarAtivosLocal(linhas);
@@ -1155,7 +1523,6 @@
       motor: 'pdv',
       pacote_fallback: !!(apiRows && apiRows._pacote_fallback),
       pacote_level: (apiRows && apiRows._pacote_level) || '',
-      n_api: nApi,
     }, linhas);
     renderLista(linhas);
   }
@@ -1172,33 +1539,9 @@
   }
 
   function cadastroLimiteBuscaPdv() {
-    var base = (typeof window.BUSCA_PDV_LIM_MAX === 'number' && window.BUSCA_PDV_LIM_MAX > 0)
+    return (typeof window.BUSCA_PDV_LIM_MAX === 'number' && window.BUSCA_PDV_LIM_MAX > 0)
       ? window.BUSCA_PDV_LIM_MAX
-      : BUSCA_LIMITE_BASE;
-    return Math.min(Math.max(buscaLimitAtual || base, base), BUSCA_LIMITE_MAX);
-  }
-
-  function resetBuscaLimit() {
-    buscaLimitAtual = BUSCA_LIMITE_BASE;
-  }
-
-  function atualizarBtnCarregarMais(nApi) {
-    if (!btnMaisEl) return;
-    var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
-    var lim = cadastroLimiteBuscaPdv();
-    var n = Math.max(0, Number(nApi) || 0);
-    /* Mostra se a busca encheu o lote atual (pode haver mais no servidor). */
-    var pode = !!q && !modoLista && n > 0 && n >= lim && lim < BUSCA_LIMITE_MAX;
-    if (pode) {
-      btnMaisEl.classList.remove('hidden');
-      btnMaisEl.disabled = false;
-      var prox = Math.min(lim + BUSCA_LIMITE_PASSO, BUSCA_LIMITE_MAX);
-      btnMaisEl.textContent = 'Carregar mais (' + prox + ')';
-    } else {
-      btnMaisEl.classList.add('hidden');
-      btnMaisEl.disabled = true;
-      btnMaisEl.textContent = 'Carregar mais';
-    }
+      : 60;
   }
 
   function atualizarMeta(data, produtos) {
@@ -1213,13 +1556,11 @@
       else if (data.pacote_level === 'green') base += ' · lista hoje';
       metaEl.textContent = base;
       pagWrap.classList.add('hidden');
-      atualizarBtnCarregarMais(typeof data.n_api === 'number' ? data.n_api : produtos.length);
     } else {
       modoLista = true;
       metaEl.textContent = 'Lista A–Z · página ' + data.pagina + (data.has_more ? ' (há próxima)' : ' (fim)');
       pagWrap.classList.remove('hidden');
       prevEl.disabled = data.pagina <= 1;
-      atualizarBtnCarregarMais(0);
       nextEl.disabled = !data.has_more;
     }
   }
@@ -1557,10 +1898,8 @@
       .finally(function () { setLoading(false); });
   }
 
-  function carregar(opts) {
-    opts = opts || {};
+  function carregar() {
     if (!listaEl) return;
-    if (!opts.manterLimiteBusca) resetBuscaLimit();
     if (typeof resetLoading === 'function') resetLoading();
     var g = ++carregarGen;
     if (carregarAbort) {
@@ -1578,7 +1917,6 @@
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
-      atualizarBtnCarregarMais(0);
       return;
     }
 
@@ -1589,7 +1927,6 @@
       return;
     }
 
-    atualizarBtnCarregarMais(0);
     setLoading(true);
     carregarListaPaginada(g, sig)
       .catch(function (err) {
@@ -1608,7 +1945,6 @@
     if (!buscaEl) return;
     clearTimeout(debounceTimer);
     clearTimeout(buscaCodigoDebounceTimer);
-    resetBuscaLimit();
     var q = (buscaEl.value || '').trim();
     if (!q) {
       pagina = 1;
@@ -1627,7 +1963,6 @@
       if (listaEl) {
         listaEl.innerHTML = '<tr><td colspan="' + CADASTRO_LISTA_COLSPAN + '" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
-      atualizarBtnCarregarMais(0);
       return;
     }
     mostrarErro('');
@@ -1681,18 +2016,6 @@
       carregar();
     });
   }
-  if (btnMaisEl) {
-    btnMaisEl.addEventListener('click', function () {
-      var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
-      if (!q || !buscaProntaParaCatalogo(q)) return;
-      buscaLimitAtual = Math.min(
-        Math.max(buscaLimitAtual, BUSCA_LIMITE_BASE) + BUSCA_LIMITE_PASSO,
-        BUSCA_LIMITE_MAX
-      );
-      btnMaisEl.disabled = true;
-      carregar({ manterLimiteBusca: true });
-    });
-  }
 
   function fillCadastroFacetSelects() {
     if (facetasCarregadas || !URL_FACETAS) return;
@@ -1704,101 +2027,69 @@
           facetasCarregadas = false;
           return;
         }
-        function fill(sel, arr, allLabel) {
-          if (!sel) return;
-          var cur = sel.value;
-          sel.innerHTML = '<option value="">' + allLabel + '</option>';
-          (arr || []).forEach(function (x) {
-            var o = document.createElement('option');
-            o.value = x;
-            o.textContent = x;
-            sel.appendChild(o);
-          });
-          sel.value = cur;
-        }
-        fill(fMarcaEl, j.marcas, 'Todas');
-        fill(fCatEl, j.categorias, 'Todas');
-        fill(fFornEl, j.fornecedores, 'Todos');
+        cadMsFacetas.marca = j.marcas || [];
+        cadMsFacetas.categoria = j.categorias || [];
+        cadMsFacetas.fornecedor = j.fornecedores || [];
+        cadMsFacetas.subcategoria = j.subcategorias || [];
+        cadMsFacetas.subcategoria_2 = j.subcategorias_2 || [];
+        cadMsFacetas.subcategoria_3 = j.subcategorias_3 || [];
+        cadMsFacetas.subcategoria_4 = j.subcategorias_4 || [];
+        cadMsFacetas.unidade = j.unidades || [];
+        cadMsFacetas.modelo = j.modelos || [];
+        Object.keys(cadMsFacetas).forEach(function (k) { cadastroMsRenderBtn(k); });
         try {
           if (!window._agroFacetas) window._agroFacetas = {};
           window._agroFacetas.marcas = j.marcas || [];
           window._agroFacetas.categorias = j.categorias || [];
           window._agroFacetas.fornecedores = j.fornecedores || [];
           window._agroFacetas.subcategorias = j.subcategorias || [];
+          window._agroFacetas.subcategorias_2 = j.subcategorias_2 || [];
+          window._agroFacetas.subcategorias_3 = j.subcategorias_3 || [];
+          window._agroFacetas.subcategorias_4 = j.subcategorias_4 || [];
+          window._agroFacetas.unidades = j.unidades || [];
+          window._agroFacetas.modelos = j.modelos || [];
         } catch (eFac) { /* ignore */ }
+        cadastroAtualizarResumoFiltros();
       })
       .catch(function () { facetasCarregadas = false; });
   }
 
-  function carregarVitrineStrip() {
-    if (!vitrineStrip || !URL_FACETAS) return;
-    fetch(URL_FACETAS, { credentials: 'same-origin' })
-      .then(function (r) { return jsonOuErroHumano(r); })
-      .then(function (j) {
-        if (!j.ok) return;
-        var arr = vistaVitrine === 'marcas' ? j.marcas : vistaVitrine === 'categorias' ? j.categorias : j.fornecedores;
-        vitrineStrip.innerHTML = '';
-        (arr || []).slice(0, 80).forEach(function (x) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-emerald-300';
-          btn.textContent = x;
-          btn.addEventListener('click', function () {
-            if (vistaVitrine === 'marcas') {
-              chipMarca = chipMarca === x ? '' : x;
-              chipCat = '';
-              chipForn = '';
-            } else if (vistaVitrine === 'categorias') {
-              chipCat = chipCat === x ? '' : x;
-              chipMarca = '';
-              chipForn = '';
-            } else {
-              chipForn = chipForn === x ? '' : x;
-              chipMarca = '';
-              chipCat = '';
-            }
-            var sel = vistaVitrine === 'marcas' ? chipMarca : vistaVitrine === 'categorias' ? chipCat : chipForn;
-            Array.prototype.forEach.call(vitrineStrip.querySelectorAll('button'), function (c) {
-              var on = sel && c.textContent === sel;
-              c.classList.toggle('border-emerald-600', on);
-              c.classList.toggle('bg-emerald-50', on);
-              c.classList.toggle('text-emerald-900', on);
-              c.classList.toggle('border-slate-300', !on);
-              c.classList.toggle('bg-white', !on);
-              c.classList.toggle('text-slate-600', !on);
-            });
-            pagina = 1;
-            carregar();
-          });
-          vitrineStrip.appendChild(btn);
-        });
-      })
-      .catch(function () { /* ignore */ });
+  function cadastroLimparFiltrosAvancados() {
+    Object.keys(cadMsSelected).forEach(function (k) {
+      cadMsSelected[k] = [];
+      cadastroMsRenderBtn(k);
+    });
+    cadastroMsRenderChips();
+    if (fEstoqueLojaEl) fEstoqueLojaEl.value = 'total';
+    if (fEstoqueSinalEl) fEstoqueSinalEl.value = '';
+    if (fDataTipoEl) fDataTipoEl.value = 'cadastro';
+    if (fDataDeEl) fDataDeEl.value = '';
+    if (fDataAteEl) fDataAteEl.value = '';
+    if (fCustoMinEl) fCustoMinEl.value = '';
+    if (fCustoMaxEl) fCustoMaxEl.value = '';
+    if (fVendaMinEl) fVendaMinEl.value = '';
+    if (fVendaMaxEl) fVendaMaxEl.value = '';
+    if (fNcmEl) fNcmEl.value = '';
+    if (fSemMarcaEl) fSemMarcaEl.checked = false;
+    if (fSemCatEl) fSemCatEl.checked = false;
+    if (fSomenteAgroEl) fSomenteAgroEl.checked = false;
+    cadastroAtualizarResumoFiltros();
   }
 
-  if (vitrineNav) {
-    vitrineNav.querySelectorAll('button[data-mode]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        vistaVitrine = b.getAttribute('data-mode') || 'produtos';
-        vitrineNav.querySelectorAll('button[data-mode]').forEach(function (x) {
-          x.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-900');
-          x.classList.add('border-slate-300', 'bg-white', 'text-slate-600');
-        });
-        b.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-900');
-        b.classList.remove('border-slate-300', 'bg-white', 'text-slate-600');
-        chipMarca = chipCat = chipForn = '';
-        if (vitrineStrip) {
-          if (vistaVitrine === 'marcas' || vistaVitrine === 'categorias' || vistaVitrine === 'fornecedores') {
-            vitrineStrip.classList.remove('hidden');
-            carregarVitrineStrip();
-          } else {
-            vitrineStrip.classList.add('hidden');
-            vitrineStrip.innerHTML = '';
-          }
-        }
-        pagina = 1;
-        carregar();
-      });
+  cadastroMsWire();
+
+  if (fAplicarEl) {
+    fAplicarEl.addEventListener('click', function () {
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      carregar();
+    });
+  }
+  if (fLimparEl) {
+    fLimparEl.addEventListener('click', function () {
+      cadastroLimparFiltrosAvancados();
+      pagina = 1;
+      carregar();
     });
   }
 
@@ -2176,81 +2467,29 @@
     if (btnExp && C.URL_EXPORT_XLSX) {
       var modalExp = document.getElementById('cadastro-export-modal');
       var backExp = document.getElementById('cadastro-export-back');
-      var elPresets = document.getElementById('cadastro-export-presets');
       var elCols = document.getElementById('cadastro-export-colunas');
-      var elColsStatus = document.getElementById('cadastro-export-cols-status');
-      var elColsDetails = document.getElementById('cadastro-export-cols-details');
       var elCats = document.getElementById('cadastro-export-categorias');
       var inpCatBusca = document.getElementById('cadastro-export-cat-busca');
-      var btnCatLimpar = document.getElementById('cadastro-export-cat-limpar');
       var elCatStatus = document.getElementById('cadastro-export-cat-status');
       var btnExpBaixar = document.getElementById('cadastro-export-baixar');
       var btnExpFec = document.getElementById('cadastro-export-fechar');
       var exportCatsCache = null;
-      var exportCatsSelected = {};
-      var exportPresetAtual = 'essencial';
       var exportColsDef = [
         { key: 'id', label: 'ID', fixa: true, bloqueada: true, oculta: true },
         { key: 'codigo_gm', label: 'Código GM' },
         { key: 'nome', label: 'Nome' },
         { key: 'marca', label: 'Marca' },
-        { key: 'modelo', label: 'Modelo' },
         { key: 'categoria', label: 'Categoria' },
         { key: 'subcategoria', label: 'Subcategoria' },
-        { key: 'subcategoria_2', label: 'Subcategoria 2' },
-        { key: 'subcategoria_3', label: 'Subcategoria 3' },
-        { key: 'subcategoria_4', label: 'Subcategoria 4' },
-        { key: 'fornecedor', label: 'Fornecedor' },
-        { key: 'unidade', label: 'Unidade' },
-        { key: 'descricao', label: 'Descrição' },
         { key: 'codigo_barras', label: 'Código barras' },
         { key: 'preco_custo', label: 'Preço custo' },
-        { key: 'preco_venda', label: 'Preço venda' },
-        { key: 'cashback_percentual', label: 'Cashback %' },
-        { key: 'ncm', label: 'NCM' },
-        { key: 'cest', label: 'CEST' },
-        { key: 'cfop', label: 'CFOP' },
-        { key: 'csosn', label: 'CSOSN' },
-        { key: 'origem', label: 'Origem' },
-        { key: 'estoque_min_centro', label: 'Est. mín. Centro' },
-        { key: 'estoque_max_centro', label: 'Est. máx. Centro' },
-        { key: 'estoque_min_vila', label: 'Est. mín. Vila' },
-        { key: 'estoque_max_vila', label: 'Est. máx. Vila' },
-        { key: 'ativo', label: 'Ativo' }
-      ];
-      var exportPresets = [
-        {
-          id: 'essencial',
-          label: 'Essencial',
-          hint: 'GM, nome, marca, cat, sub 1–2, barras, preços',
-          keys: ['id', 'codigo_gm', 'nome', 'marca', 'categoria', 'subcategoria', 'subcategoria_2', 'codigo_barras', 'preco_custo', 'preco_venda']
-        },
-        {
-          id: 'classificacao',
-          label: 'Classificação',
-          hint: 'Marca, cat, 4 subs, fornecedor, unidade',
-          keys: ['id', 'codigo_gm', 'nome', 'marca', 'categoria', 'subcategoria', 'subcategoria_2', 'subcategoria_3', 'subcategoria_4', 'fornecedor', 'unidade']
-        },
-        {
-          id: 'precos',
-          label: 'Só preços',
-          hint: 'GM, nome, custo, venda, cashback',
-          keys: ['id', 'codigo_gm', 'nome', 'preco_custo', 'preco_venda', 'cashback_percentual']
-        },
-        {
-          id: 'completa',
-          label: 'Completa',
-          hint: 'Todas as colunas',
-          keys: exportColsDef.map(function (c) { return c.key; })
-        }
+        { key: 'preco_venda', label: 'Preço venda' }
       ];
 
       function abrirExport() {
         if (!modalExp || !backExp) return;
-        montarPresetsExport();
-        aplicarPresetExport(exportPresetAtual || 'essencial', false);
         montarColunasExport();
-        carregarCategoriasExport(true);
+        carregarCategoriasExport();
         modalExp.classList.remove('hidden');
         backExp.classList.remove('hidden');
       }
@@ -2260,94 +2499,17 @@
         backExp.classList.add('hidden');
       }
 
-      function keysPreset(id) {
-        var p = exportPresets.filter(function (x) { return x.id === id; })[0];
-        return p ? p.keys.slice() : exportPresets[0].keys.slice();
-      }
-
-      function montarPresetsExport() {
-        if (!elPresets) return;
-        elPresets.innerHTML = exportPresets.map(function (p) {
-          var on = p.id === exportPresetAtual ? ' is-on' : '';
-          return '<button type="button" class="cadastro-export-preset' + on + ' px-2 py-2 rounded-xl border-2 border-slate-200 bg-white text-left hover:border-emerald-400" data-preset="' + escapeHtml(p.id) + '">' +
-            '<span class="block text-xs font-black uppercase text-slate-800">' + escapeHtml(p.label) + '</span>' +
-            '<span class="block text-[10px] font-semibold text-slate-500 leading-snug mt-0.5">' + escapeHtml(p.hint) + '</span></button>';
-        }).join('');
-        elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            aplicarPresetExport(btn.getAttribute('data-preset'), true);
-          });
-        });
-      }
-
-      function aplicarPresetExport(id, syncChecks) {
-        exportPresetAtual = id || 'essencial';
-        if (elPresets) {
-          elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
-            btn.classList.toggle('is-on', btn.getAttribute('data-preset') === exportPresetAtual);
-          });
-        }
-        if (syncChecks) {
-          var set = {};
-          keysPreset(exportPresetAtual).forEach(function (k) { set[k] = true; });
-          if (elCols) {
-            elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
-              var k = cb.getAttribute('data-key');
-              if (cb.disabled) {
-                cb.checked = true;
-                return;
-              }
-              cb.checked = !!set[k];
-            });
-          }
-          atualizarStatusCols();
-        }
-      }
-
-      function atualizarStatusCols() {
-        if (!elColsStatus || !elCols) return;
-        var n = 0;
-        elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
-          if (cb.checked || cb.disabled) n += 1;
-        });
-        var preset = exportPresets.filter(function (p) { return p.id === exportPresetAtual; })[0];
-        elColsStatus.textContent = n + ' coluna(s) · pacote «' + (preset ? preset.label : '—') + '»' +
-          (exportPresetAtual === 'completa' ? '' : ' — abra Personalizar se precisar mudar');
-      }
-
       function montarColunasExport() {
         if (!elCols) return;
-        var set = {};
-        keysPreset(exportPresetAtual).forEach(function (k) { set[k] = true; });
         elCols.innerHTML = exportColsDef.map(function (c) {
-          var on = c.fixa || set[c.key];
-          var chk = c.fixa ? ' checked disabled' : (on ? ' checked' : '');
-          var hint = c.oculta ? ' <span class="text-[9px] text-slate-400">(oculta)</span>' : '';
-          return '<label class="flex items-center gap-1.5 min-h-[32px] px-1 rounded hover:bg-slate-50">' +
-            '<input type="checkbox" class="cadastro-export-col-cb w-4 h-4" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
+          var chk = c.fixa ? ' checked disabled' : ' checked';
+          var hint = c.oculta
+            ? ' <span class="text-[10px] font-black uppercase text-slate-400">(oculta no Excel)</span>'
+            : (c.bloqueada ? ' <span class="text-[10px] font-black uppercase text-slate-400">(bloqueada no Excel)</span>' : '');
+          return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-slate-50">' +
+            '<input type="checkbox" class="cadastro-export-col-cb w-5 h-5" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
             '<span>' + escapeHtml(c.label) + hint + '</span></label>';
         }).join('');
-        elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
-          if (cb.disabled) return;
-          cb.addEventListener('change', function () {
-            exportPresetAtual = 'personalizado';
-            if (elPresets) {
-              elPresets.querySelectorAll('[data-preset]').forEach(function (btn) {
-                btn.classList.remove('is-on');
-              });
-            }
-            atualizarStatusCols();
-          });
-        });
-        atualizarStatusCols();
-      }
-
-      function nCatsMarcadas() {
-        var n = 0;
-        Object.keys(exportCatsSelected).forEach(function (k) {
-          if (exportCatsSelected[k]) n += 1;
-        });
-        return n;
       }
 
       function renderCategoriasExport(lista) {
@@ -2356,103 +2518,40 @@
         var filtrada = (lista || []).filter(function (c) {
           return !q || String(c).toLowerCase().indexOf(q) >= 0;
         });
-        if (!lista || !lista.length) {
-          elCats.innerHTML = '<p class="text-slate-500 p-3 text-sm font-semibold">Nenhuma categoria no cadastro ainda.</p>';
-        } else if (!filtrada.length) {
-          elCats.innerHTML = '<p class="text-slate-500 p-3 text-sm font-semibold">Nenhuma com esse filtro.</p>';
+        if (!filtrada.length) {
+          elCats.innerHTML = '<p class="text-slate-500 p-2">Nenhuma categoria' + (q ? ' com esse filtro' : '') + '.</p>';
         } else {
           elCats.innerHTML = filtrada.map(function (cat) {
-            var v = String(cat);
-            var on = !!exportCatsSelected[v];
-            return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-emerald-50/80 cursor-pointer">' +
-              '<input type="checkbox" class="cadastro-export-cat-cb w-5 h-5 shrink-0" value="' + escapeHtml(v) + '"' + (on ? ' checked' : '') + ' />' +
-              '<span class="font-semibold text-slate-800">' + escapeHtml(v) + '</span></label>';
+            return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-emerald-50/80">' +
+              '<input type="checkbox" class="cadastro-export-cat-cb w-5 h-5" value="' + escapeHtml(String(cat)) + '" />' +
+              '<span>' + escapeHtml(String(cat)) + '</span></label>';
           }).join('');
-          elCats.querySelectorAll('.cadastro-export-cat-cb').forEach(function (cb) {
-            cb.addEventListener('change', function () {
-              if (cb.checked) exportCatsSelected[cb.value] = true;
-              else delete exportCatsSelected[cb.value];
-              atualizarStatusCats(lista);
-            });
-          });
         }
-        atualizarStatusCats(lista);
+        if (elCatStatus) {
+          elCatStatus.textContent = filtrada.length + ' categoria(s) listada(s). Nenhuma marcada = todas.';
+        }
       }
 
-      function atualizarStatusCats(lista) {
-        if (!elCatStatus) return;
-        var total = (lista || exportCatsCache || []).length;
-        var marc = nCatsMarcadas();
-        if (!total) {
-          elCatStatus.textContent = 'Sem categorias — o Excel sairá com todos os produtos.';
-          return;
-        }
-        elCatStatus.textContent = total + ' categoria(s) · ' +
-          (marc ? marc + ' marcada(s) — só essas no Excel' : 'nenhuma marcada = todas no Excel');
-      }
-
-      function carregarCategoriasExport(force) {
-        if (exportCatsCache && !force) {
+      function carregarCategoriasExport() {
+        if (exportCatsCache) {
           renderCategoriasExport(exportCatsCache);
           return;
         }
+        if (!C.URL_FACETAS) return;
         if (elCatStatus) elCatStatus.textContent = 'Carregando categorias…';
-        if (elCats) elCats.innerHTML = '<p class="text-emerald-800 p-3 text-sm font-semibold animate-pulse">Buscando categorias do cadastro…</p>';
-
-        function aplicarLista(arr) {
-          exportCatsCache = Array.isArray(arr) ? arr.slice() : [];
-          renderCategoriasExport(exportCatsCache);
-        }
-
-        // Reusa facetas já carregadas na tela (filtro marca/cat), se existirem.
-        try {
-          if (window._agroFacetas && Array.isArray(window._agroFacetas.categorias) && window._agroFacetas.categorias.length) {
-            aplicarLista(window._agroFacetas.categorias);
-            return;
-          }
-        } catch (e) { /* ignore */ }
-
-        if (!C.URL_FACETAS) {
-          if (elCatStatus) elCatStatus.textContent = 'API de categorias indisponível — Excel com todas.';
-          if (elCats) elCats.innerHTML = '<p class="text-amber-800 p-3 text-sm font-semibold">Não foi possível listar categorias.</p>';
-          return;
-        }
-        fetch(C.URL_FACETAS + (C.URL_FACETAS.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
-          credentials: 'same-origin',
-          headers: { 'Accept': 'application/json' }
-        })
+        fetch(C.URL_FACETAS, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
           .then(function (r) { return r.json(); })
           .then(function (j) {
-            if (!j || !j.ok) {
-              throw new Error((j && j.erro) || 'Falha ao carregar categorias');
-            }
-            aplicarLista(j.categorias || []);
-            try {
-              if (!window._agroFacetas) window._agroFacetas = {};
-              window._agroFacetas.categorias = exportCatsCache.slice();
-              if (j.marcas) window._agroFacetas.marcas = j.marcas;
-            } catch (e2) { /* ignore */ }
+            exportCatsCache = (j && j.ok && j.categorias) ? j.categorias : [];
+            renderCategoriasExport(exportCatsCache);
           })
-          .catch(function (err) {
-            exportCatsCache = [];
-            if (elCatStatus) elCatStatus.textContent = 'Erro ao carregar — Excel sairá com todas as categorias.';
-            if (elCats) {
-              elCats.innerHTML = '<p class="text-red-700 p-3 text-sm font-semibold">' +
-                escapeHtml(err && err.message ? err.message : 'Falha de rede') +
-                '. Você ainda pode baixar (todas as categorias).</p>';
-            }
+          .catch(function () {
+            if (elCatStatus) elCatStatus.textContent = 'Não foi possível carregar categorias — exportará todas.';
           });
       }
 
       if (inpCatBusca) {
         inpCatBusca.addEventListener('input', function () {
-          renderCategoriasExport(exportCatsCache || []);
-        });
-      }
-      if (btnCatLimpar) {
-        btnCatLimpar.addEventListener('click', function () {
-          exportCatsSelected = {};
-          if (inpCatBusca) inpCatBusca.value = '';
           renderCategoriasExport(exportCatsCache || []);
         });
       }
@@ -2464,16 +2563,16 @@
       if (btnExpBaixar) {
         btnExpBaixar.addEventListener('click', function () {
           var cols = [];
-          if (elCols) {
-            elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
-              if (cb.checked || cb.disabled) cols.push(cb.getAttribute('data-key'));
+          elCols.querySelectorAll('.cadastro-export-col-cb').forEach(function (cb) {
+            if (cb.checked || cb.disabled) cols.push(cb.getAttribute('data-key'));
+          });
+          if (!cols.length) cols.push('id');
+          var cats = [];
+          if (elCats) {
+            elCats.querySelectorAll('.cadastro-export-cat-cb:checked').forEach(function (cb) {
+              if (cb.value) cats.push(cb.value);
             });
           }
-          if (!cols.length) cols = keysPreset('essencial');
-          var cats = [];
-          Object.keys(exportCatsSelected).forEach(function (k) {
-            if (exportCatsSelected[k]) cats.push(k);
-          });
           var params = new URLSearchParams();
           if (ativosEl && !ativosEl.checked) params.set('inativos', '1');
           params.set('cols', cols.join(','));
@@ -2486,14 +2585,11 @@
 
     var inpArq = document.getElementById('cadastro-import-arquivo');
     var elResumo = document.getElementById('cadastro-import-resumo');
-    var elAvisos = document.getElementById('cadastro-import-avisos');
     var elErros = document.getElementById('cadastro-import-erros');
     var elPrev = document.getElementById('cadastro-import-preview');
     var btnPrev = document.getElementById('cadastro-import-previa');
     var btnApl = document.getElementById('cadastro-import-aplicar');
     var btnFec = document.getElementById('cadastro-import-fechar');
-    var chkPermitirNovos = document.getElementById('cadastro-import-permitir-novos');
-    var ultimaPrevia = null;
     var elProgWrap = document.getElementById('cadastro-import-progress-wrap');
     var elProgBar = document.getElementById('cadastro-import-progress-bar');
     var elProgPct = document.getElementById('cadastro-import-progress-pct');
@@ -2533,94 +2629,33 @@
       cancelPoll();
       hideProgress();
       ultimaPreviaOk = false;
-      ultimaPrevia = null;
       if (btnApl) btnApl.disabled = true;
       if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
-      if (elAvisos) { elAvisos.classList.add('hidden'); elAvisos.innerHTML = ''; }
       if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
       if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
     }
 
-    function permitirNovosMarcado() {
-      return !!(chkPermitirNovos && chkPermitirNovos.checked);
-    }
-
-    function podeConfirmarImport(j) {
-      if (!j || !(j.n_alteracoes > 0)) return false;
-      var nNovos = Number(j.n_valores_novos || j.n_bloqueadas_valor_novo || 0);
-      if (nNovos > 0 && !permitirNovosMarcado()) {
-        // Ainda dá para gravar as linhas sem valor novo.
-        return Number(j.n_alteracoes_ok || 0) > 0;
-      }
-      return true;
-    }
-
     function renderPrevia(j) {
-      ultimaPrevia = j || null;
-      var nNovos = Number(j.n_valores_novos || 0);
-      var nCorr = Number(j.n_correcoes_sugeridas || 0);
-      var nOk = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes || 0);
       if (elResumo) {
         elResumo.className = 'text-sm font-semibold ' + (j.n_alteracoes > 0 ? 'text-emerald-800' : 'text-amber-800');
         if (j.n_alteracoes > 0) {
-          var extra = '';
-          if (nCorr) extra += ' · ' + nCorr + ' typo(s) serão corrigidos';
-          if (nNovos) {
-            extra += permitirNovosMarcado()
-              ? ' · ' + nNovos + ' valor(es) novo(s) serão criados'
-              : ' · ' + nNovos + ' valor(es) novo(s) bloqueados (marque a opção ou corrija)';
-          }
-          elResumo.textContent = (nOk || j.n_alteracoes) + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' aviso/erro(s)' + extra + ' — confira abaixo.';
+          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s) — pode confirmar abaixo.';
         } else {
           elResumo.textContent = 'Nenhuma alteração detectada (' + j.n_ignoradas + ' ignorada(s), ' + j.n_erros + ' erro(s)). Edite alguma célula (vazio não altera) ou clique «Ver prévia» de novo após corrigir.';
         }
         elResumo.classList.remove('hidden');
       }
-      if (elAvisos) {
-        var avisosHtml = [];
-        (j.correcoes_sugeridas || []).slice(0, 30).forEach(function (c) {
-          avisosHtml.push(
-            '<div><span class="font-black uppercase text-[10px] text-emerald-800">Typo</span> ' +
-            escapeHtml(String(c.rotulo || c.campo || '')) + ': «' + escapeHtml(String(c.valor || '')) +
-            '» → <strong>' + escapeHtml(String(c.sugestao || '')) + '</strong></div>'
-          );
-        });
-        (j.valores_novos || []).slice(0, 30).forEach(function (c) {
-          avisosHtml.push(
-            '<div><span class="font-black uppercase text-[10px] text-amber-700">Novo</span> ' +
-            escapeHtml(String(c.rotulo || c.campo || '')) + ': «' + escapeHtml(String(c.valor || '')) +
-            '»</div>'
-          );
-        });
-        if (avisosHtml.length) {
-          elAvisos.innerHTML = avisosHtml.join('');
-          elAvisos.classList.remove('hidden');
-        } else {
-          elAvisos.classList.add('hidden');
-          elAvisos.innerHTML = '';
-        }
-      }
       if (elErros && j.erros && j.erros.length) {
-        var errosFiltrados = (j.erros || []).filter(function (e) {
-          if (e && e.tipo === 'valor_novo' && permitirNovosMarcado()) return false;
-          return true;
-        });
-        if (errosFiltrados.length) {
-          elErros.innerHTML = errosFiltrados.slice(0, 40).map(function (e) {
-            return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
-          }).join('');
-          elErros.classList.remove('hidden');
-        } else {
-          elErros.classList.add('hidden');
-          elErros.innerHTML = '';
-        }
+        elErros.innerHTML = j.erros.slice(0, 40).map(function (e) {
+          return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
+        }).join('');
+        elErros.classList.remove('hidden');
       }
       if (elPrev && j.alteracoes && j.alteracoes.length) {
         var html = '<table class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-2">Linha</th><th class="p-2">Nome</th><th class="p-2">Campos</th></tr></thead><tbody>';
         j.alteracoes.slice(0, 80).forEach(function (a) {
           var campos = (a.campos || []).map(function (c) {
-            var nota = c.nota ? ' <em class="text-amber-700">(' + escapeHtml(String(c.nota)) + ')</em>' : '';
-            return escapeHtml(String(c.campo || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para)) + nota;
+            return escapeHtml(String(c.campo || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
           }).join('; ');
           html += '<tr class="border-t border-slate-100"><td class="p-2 font-mono">' + a.linha + '</td><td class="p-2">' + escapeHtml(String(a.nome || '')) + '</td><td class="p-2 text-slate-600">' + campos + '</td></tr>';
         });
@@ -2628,8 +2663,8 @@
         elPrev.innerHTML = html;
         elPrev.classList.remove('hidden');
       }
-      ultimaPreviaOk = podeConfirmarImport(j);
-      if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+      ultimaPreviaOk = j.n_alteracoes > 0 && (!j.n_erros || j.n_alteracoes > 0);
+      if (btnApl) btnApl.disabled = !(j.n_alteracoes > 0);
     }
 
     function parseHttpJson(r) {
@@ -2836,7 +2871,6 @@
       var file = inpArq.files[0];
       fd.append('arquivo', file);
       fd.append('nome_arquivo', file.name || '');
-      fd.append('permitir_novos', permitirNovosMarcado() ? '1' : '0');
       if (btnPrev) btnPrev.disabled = true;
       if (btnApl) btnApl.disabled = true;
       setLoading(true);
@@ -2959,27 +2993,11 @@
     if (btnApl && C.URL_IMPORT_APLICAR) {
       btnApl.addEventListener('click', function () {
         function confirmarGravacao() {
-          if (!podeConfirmarImport(ultimaPrevia)) {
-            if (typeof alert !== 'undefined') {
-              alert('Há valores novos bloqueados. Marque «Permitir criar novos» ou corrija a planilha / use a lista.');
-            }
-            return;
-          }
-          var msgConf = 'Gravar alterações da planilha no SisVale?';
-          if (ultimaPrevia && Number(ultimaPrevia.n_valores_novos || 0) > 0 && permitirNovosMarcado()) {
-            msgConf += '\n\nAtenção: vai CRIAR ' + ultimaPrevia.n_valores_novos + ' nome(s) novo(s) de marca/categoria/sub.';
-          }
-          if (ultimaPrevia && Number(ultimaPrevia.n_correcoes_sugeridas || 0) > 0) {
-            msgConf += '\n\n' + ultimaPrevia.n_correcoes_sugeridas + ' typo(s) serão corrigidos para o nome cadastrado.';
-          }
-          if (!window.confirm(msgConf)) return;
+          if (!window.confirm('Gravar alterações da planilha no SisVale?')) return;
           enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
             fecharImport();
             if (typeof alert !== 'undefined') {
-              var msg = 'Importação concluída: ' + (j.gravados || j.n_alteracoes || 0) + ' produto(s) atualizado(s).';
-              if (j.n_bloqueados_valor_novo) {
-                msg += ' ' + j.n_bloqueados_valor_novo + ' linha(s) com valor novo foram puladas.';
-              }
+              var msg = 'Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).';
               if (j.historico_id) msg += ' Backup salvo — use «Histórico» para desfazer se precisar.';
               alert(msg);
             }
@@ -2992,13 +3010,8 @@
         }
         enviarPlanilha(C.URL_IMPORT_PREVIEW, function (j) {
           renderPrevia(j);
-          if (podeConfirmarImport(j)) confirmarGravacao();
+          if (j.n_alteracoes > 0) confirmarGravacao();
         });
-      });
-    }
-    if (chkPermitirNovos) {
-      chkPermitirNovos.addEventListener('change', function () {
-        if (ultimaPrevia) renderPrevia(ultimaPrevia);
       });
     }
 
@@ -3010,29 +3023,11 @@
     var rotuloCampoImport = {
       nome: 'Nome',
       marca: 'Marca',
-      modelo: 'Modelo',
       categoria: 'Categoria',
       subcategoria: 'Subcategoria',
-      subcategoria_2: 'Subcategoria 2',
-      subcategoria_3: 'Subcategoria 3',
-      subcategoria_4: 'Subcategoria 4',
-      fornecedor: 'Fornecedor',
-      unidade: 'Unidade',
-      descricao: 'Descrição',
       codigo_barras: 'Código barras',
       preco_custo: 'Preço custo',
-      preco_venda: 'Preço venda',
-      cashback_percentual: 'Cashback %',
-      ncm: 'NCM',
-      cest: 'CEST',
-      cfop: 'CFOP',
-      csosn: 'CSOSN',
-      origem: 'Origem',
-      estoque_min_centro: 'Estoque mín. Centro',
-      estoque_max_centro: 'Estoque máx. Centro',
-      estoque_min_vila: 'Estoque mín. Vila',
-      estoque_max_vila: 'Estoque máx. Vila',
-      ativo: 'Ativo'
+      preco_venda: 'Preço venda'
     };
 
     function fmtDataIso(iso) {

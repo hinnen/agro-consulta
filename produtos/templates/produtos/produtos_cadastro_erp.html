@@ -60,6 +60,108 @@
       display: inline-block;
       transform: rotate(90deg);
     }
+    /* Filtros ERP — chips + dropdown (sem caixas altas) */
+    .cad-ms { position: relative; min-width: 0; }
+    .cad-ms-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      min-height: 2.15rem; max-width: 100%;
+      padding: 0.25rem 0.55rem; border-radius: 0.5rem;
+      border: 1.5px solid #cbd5e1; background: #fff;
+      font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.02em; color: #334155; cursor: pointer;
+      white-space: nowrap;
+    }
+    .cad-ms-btn:hover { border-color: #34d399; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn.is-on { border-color: #059669; background: #ecfdf5; color: #064e3b; }
+    .cad-ms-btn .cad-ms-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.25rem; height: 1.25rem; padding: 0 0.3rem;
+      border-radius: 999px; background: #059669; color: #fff;
+      font-size: 0.65rem; font-weight: 900;
+    }
+    .cad-ms-panel {
+      position: absolute; z-index: 40; top: calc(100% + 0.25rem); left: 0;
+      width: min(18rem, calc(100vw - 2rem));
+      max-height: min(16rem, 42dvh);
+      display: flex; flex-direction: column;
+      border: 1.5px solid #a7f3d0; border-radius: 0.85rem;
+      background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    }
+    .cad-ms-panel.hidden { display: none; }
+    .cad-ms-panel input[type="search"] {
+      margin: 0.5rem; min-height: 2.25rem; padding: 0.35rem 0.65rem;
+      border: 1.5px solid #e2e8f0; border-radius: 0.55rem;
+      font-size: 0.875rem; font-weight: 600; outline: none;
+    }
+    .cad-ms-panel input[type="search"]:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+    .cad-ms-list {
+      flex: 1 1 auto; overflow-y: auto; padding: 0.15rem 0.35rem 0.5rem;
+      scrollbar-width: thin;
+    }
+    .cad-ms-opt {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.45rem;
+      font-size: 0.8125rem; font-weight: 600; color: #1e293b;
+      cursor: pointer; text-align: left; background: transparent; border: 0;
+    }
+    .cad-ms-opt:hover { background: #f0fdf4; }
+    .cad-ms-opt input { width: 1rem; height: 1rem; accent-color: #059669; flex-shrink: 0; }
+    .cad-f-chip {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      max-width: 14rem; min-height: 1.75rem; padding: 0.15rem 0.45rem 0.15rem 0.55rem;
+      border-radius: 999px; border: 1px solid #a7f3d0; background: #ecfdf5;
+      font-size: 0.7rem; font-weight: 700; color: #065f46;
+    }
+    .cad-f-chip button {
+      flex-shrink: 0; width: 1.15rem; height: 1.15rem; border-radius: 999px;
+      border: 0; background: #059669; color: #fff; font-size: 0.7rem; font-weight: 900;
+      line-height: 1; cursor: pointer;
+    }
+    .cad-f-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cad-filtros-bar {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 0.65rem;
+    }
+    .cad-filtros-bar label > span {
+      display: block; font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.2rem;
+    }
+    .cad-filtros-bar select,
+    .cad-filtros-bar input[type="date"],
+    .cad-filtros-bar input[type="text"] {
+      min-height: 2.15rem; border-radius: 0.5rem; border: 1.5px solid #cbd5e1;
+      background: #fff; padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 700; color: #0f172a;
+    }
+    .cad-filtros-bar select:focus,
+    .cad-filtros-bar input:focus {
+      outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+    }
+    .cad-ms-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    /* Coluna saldo — bater o olho */
+    .cad-saldo { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; min-width: 5.5rem; }
+    .cad-saldo-tot {
+      font-size: 1.05rem; font-weight: 900; line-height: 1.1;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+    }
+    .cad-saldo-tot.is-pos { color: #047857; }
+    .cad-saldo-tot.is-neg { color: #b91c1c; }
+    .cad-saldo-tot.is-zero { color: #94a3b8; }
+    .cad-saldo-tot.is-empty { color: #cbd5e1; }
+    .cad-saldo-lojas { display: inline-flex; gap: 0.25rem; align-items: center; }
+    .cad-saldo-pill {
+      display: inline-flex; align-items: center; gap: 0.2rem;
+      min-height: 1.35rem; padding: 0.05rem 0.35rem 0.05rem 0.25rem;
+      border-radius: 0.4rem; border: 1px solid transparent;
+      font-variant-numeric: tabular-nums;
+    }
+    .cad-saldo-pill-l {
+      font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 0.03em; opacity: 0.85;
+    }
+    .cad-saldo-pill-n { font-size: 0.7rem; font-weight: 800; }
+    .cad-saldo-pill.is-pos { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .cad-saldo-pill.is-neg { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .cad-saldo-pill.is-zero { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+    .cad-saldo-pill.is-empty { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
     @media (max-height: 780px) {
       .cadastro-erp-shell .cadastro-erp-header-block {
         padding-top: 0.4rem;
@@ -79,31 +181,17 @@
         --cad-table-min: clamp(60rem, 72vw, 75rem);
       }
     }
-    /* Modal export Excel — compacto (presets + listas roláveis). */
+    /* Modal export Excel — ~80% da tela (pedido operacional). */
     .cadastro-export-modal-panel {
-      width: min(36rem, 94vw);
-      max-width: 94vw;
-      max-height: min(88dvh, 40rem);
-      height: auto;
-    }
-    .cadastro-export-modal-panel .cadastro-export-cols-scroll {
-      max-height: 9.5rem;
-      overflow-y: auto;
-      scrollbar-width: thin;
+      width: 80vw;
+      max-width: 80vw;
+      height: 80dvh;
+      max-height: 80dvh;
     }
     .cadastro-export-modal-panel .cadastro-export-cats-scroll {
-      min-height: 12rem;
-      max-height: min(42vh, 16rem);
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-    .cadastro-export-preset {
-      min-height: 2.75rem;
-    }
-    .cadastro-export-preset.is-on {
-      background: #ecfdf5;
-      border-color: #059669;
-      color: #064e3b;
+      flex: 1 1 auto;
+      min-height: clamp(8rem, 28vh, 22rem);
+      max-height: none;
     }
   </style>
 </head>
@@ -179,7 +267,7 @@
         <button type="button" id="cadastro-filtrar" class="cadastro-erp-btn bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold">Filtrar</button>
         <button type="button" id="cadastro-btn-novo-produto" class="cadastro-erp-btn inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-semibold shrink-0 border-0 cursor-pointer">+ Novo Produto</button>
         <button type="button" id="cadastro-btn-filtros-adv" class="cadastro-erp-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-emerald-800 bg-white border-2 border-emerald-500 hover:bg-emerald-50 shrink-0" aria-expanded="false" aria-controls="cadastro-adv-filtros">
-          <span aria-hidden="true">▶</span> Filtros avançados e vitrines
+          <span aria-hidden="true">▶</span> Filtros
         </button>
         {% if cadastro_produto_erp_sync_habilitado %}
         <button type="button" id="cadastro-btn-erp-pendentes" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-800 shadow-sm shrink-0" title="Envia ao ERP legado até 80 produtos pendentes desta sessão (uma rodada)">
@@ -207,30 +295,86 @@
         </div>
       </div>
 
-      <details id="cadastro-adv-filtros" class="cadastro-adv-filtros mt-0 border-b border-slate-200 bg-slate-50/60 shrink-0 px-4 py-3">
-        <summary class="sr-only">Filtros avançados e vitrines</summary>
-        <div class="space-y-3">
-          <div class="flex flex-wrap gap-2 items-center" id="cadastro-adv-nav" role="tablist" aria-label="Vitrine">
-            <button type="button" data-mode="produtos" class="cadastro-vitrine-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-emerald-600 bg-emerald-50 text-emerald-900">Produtos</button>
-            <button type="button" data-mode="marcas" class="cadastro-vitrine-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-emerald-300">Marcas</button>
-            <button type="button" data-mode="categorias" class="cadastro-vitrine-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-emerald-300">Categorias</button>
-            <button type="button" data-mode="fornecedores" class="cadastro-vitrine-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-emerald-300">Fornecedores</button>
+      <details id="cadastro-adv-filtros" class="cadastro-adv-filtros mt-0 border-b border-slate-200 bg-slate-50/80 shrink-0 px-3 py-2">
+        <summary class="sr-only">Filtros</summary>
+        <div id="cadastro-filtros-produtos" class="space-y-1.5">
+          <div id="cadastro-f-chips" class="flex flex-wrap gap-1 empty:hidden" aria-live="polite"></div>
+
+          <div class="cad-filtros-bar items-center">
+            <label class="min-w-[6.5rem]">
+              <span>Loja</span>
+              <select id="cadastro-f-estoque-loja">
+                <option value="total">Total (C+V)</option>
+                <option value="centro">Centro</option>
+                <option value="vila">Vila Elias</option>
+              </select>
+            </label>
+            <label class="min-w-[7rem]">
+              <span>Estoque</span>
+              <select id="cadastro-f-estoque-sinal">
+                <option value="">Qualquer</option>
+                <option value="positivo">Positivo</option>
+                <option value="negativo">Negativo</option>
+                <option value="zero">Zerado</option>
+              </select>
+            </label>
+            <div class="cad-ms-row flex-1 min-w-0" id="cadastro-ms-row" aria-label="Classificação">
+              <div class="cad-ms" data-ms="marca" data-label="Marca"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Marca</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Categoria</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Unidade</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Modelo</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            </div>
+            <div class="flex flex-wrap gap-1 items-center shrink-0">
+              <button type="button" id="cadastro-f-aplicar" class="min-h-[36px] px-3 rounded-lg text-[11px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800">Aplicar</button>
+              <button type="button" id="cadastro-f-limpar" class="min-h-[36px] px-2.5 rounded-lg text-[11px] font-bold uppercase bg-white hover:bg-slate-50 text-slate-700 border border-slate-300">Limpar</button>
+              <span id="cadastro-f-resumo" class="text-[10px] font-semibold text-slate-500"></span>
+            </div>
           </div>
-          <div id="cadastro-vitrine-strip" class="hidden flex flex-wrap gap-2"></div>
-          <div class="flex flex-wrap gap-3 items-end">
-            <label class="flex flex-col gap-1 min-w-[10rem]">
-              <span class="text-[10px] font-bold uppercase text-slate-500">Marca</span>
-              <select id="cadastro-f-marca" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todas</option></select>
-            </label>
-            <label class="flex flex-col gap-1 min-w-[10rem]">
-              <span class="text-[10px] font-bold uppercase text-slate-500">Categoria</span>
-              <select id="cadastro-f-cat" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todas</option></select>
-            </label>
-            <label class="flex flex-col gap-1 min-w-[10rem]">
-              <span class="text-[10px] font-bold uppercase text-slate-500">Fornecedor</span>
-              <select id="cadastro-f-forn" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todos</option></select>
-            </label>
-          </div>
+
+          <details class="rounded-lg border border-slate-200 bg-white/90">
+            <summary class="cursor-pointer list-none px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+              <span>Mais · data, sub 2–4, preço, NCM</span>
+              <span class="text-slate-400 font-black" aria-hidden="true">▾</span>
+            </summary>
+            <div class="cad-filtros-bar px-2.5 pb-2.5 pt-1 border-t border-slate-100">
+              <label class="min-w-[8rem]">
+                <span>Tipo de data</span>
+                <select id="cadastro-f-data-tipo">
+                  <option value="cadastro">Cadastro</option>
+                  <option value="primeira_nf">1ª Entrada NF</option>
+                  <option value="ultima_nf">Última Entrada NF</option>
+                </select>
+              </label>
+              <label class="min-w-[7.5rem]"><span>De</span><input type="date" id="cadastro-f-data-de" /></label>
+              <label class="min-w-[7.5rem]"><span>Até</span><input type="date" id="cadastro-f-data-ate" /></label>
+              <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <label class="min-w-[5.5rem]"><span>Custo de</span><input type="text" id="cadastro-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[5.5rem]"><span>Custo até</span><input type="text" id="cadastro-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[5.5rem]"><span>Venda de</span><input type="text" id="cadastro-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[5.5rem]"><span>Venda até</span><input type="text" id="cadastro-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6.5rem]">
+                <span>NCM</span>
+                <select id="cadastro-f-ncm">
+                  <option value="">Qualquer</option>
+                  <option value="com">Com NCM</option>
+                  <option value="sem">Sem NCM</option>
+                </select>
+              </label>
+              <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+                <input type="checkbox" id="cadastro-f-sem-marca" class="w-3.5 h-3.5 accent-emerald-600" /> Sem marca
+              </label>
+              <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+                <input type="checkbox" id="cadastro-f-sem-cat" class="w-3.5 h-3.5 accent-emerald-600" /> Sem categoria
+              </label>
+              <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
+                <input type="checkbox" id="cadastro-f-somente-agro" class="w-3.5 h-3.5 accent-emerald-600" /> Só Agro
+              </label>
+            </div>
+          </details>
         </div>
       </details>
 
@@ -245,7 +389,7 @@
               <th data-coluna="subcategoria" data-sort="subcategoria" class="px-4 py-3 text-left font-bold cursor-pointer select-none hover:bg-slate-100/80" title="Último nível preenchido (subcategorias); ordenação pelo subgrupo no Mongo">Subcategoria</th>
               <th data-coluna="preco_custo" data-sort="preco_custo" class="px-4 py-3 text-left font-bold cursor-pointer select-none hover:bg-slate-100/80" title="Ordenar por custo">Custo</th>
               <th data-sort="preco_venda" class="px-4 py-3 text-left font-bold cursor-pointer select-none hover:bg-slate-100/80" title="Ordenar por venda">Venda</th>
-              <th data-coluna="estoque" class="px-4 py-3 text-right font-bold whitespace-nowrap" title="Saldo operacional Agro (Centro + Vila)">Estoque</th>
+              <th data-coluna="estoque" class="px-3 py-3 text-right font-bold whitespace-nowrap" title="Total · Centro (C) · Vila (V) — verde tem · vermelho falta · cinza zerado">Estoque</th>
               <th class="px-4 py-3 text-right font-bold">Ações</th>
             </tr>
           </thead>
@@ -254,10 +398,8 @@
       </div>
 
       <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-slate-200 bg-slate-50/80 shrink-0">
-        <div class="flex flex-wrap items-center gap-2 min-w-0">
-          <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
-          <button type="button" id="cadastro-btn-mais" class="hidden min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-white border-2 border-emerald-500 text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:pointer-events-none" title="Pedir mais resultados desta busca ao servidor">Carregar mais</button>
-        </div>
+        <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
+        <span id="agro-pacote-chip" hidden class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600" title="Status da lista local de produtos">…</span>
         <div id="cadastro-paginacao" class="flex items-center gap-1 flex-wrap">
           <button type="button" id="cadastro-prev" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:border-emerald-500 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
           <button type="button" id="cadastro-next" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
@@ -317,8 +459,8 @@
           <ul class="list-disc pl-4 space-y-1 text-[13px]">
             <li>Busca por nome, marca ou código usa o <strong>mesmo motor do PDV</strong>.</li>
             <li>Sem busca, a lista fica alfabética (cadastro).</li>
-            <li>Coluna <strong>Estoque</strong>: total Centro+Vila; 🔧 ajusta saldo; ⚙️ mín/máx por loja.</li>
-            <li><strong>Filtros avançados</strong>: vitrines por marca, categoria ou fornecedor.</li>
+            <li>Coluna <strong>Estoque</strong>: número grande = total; chips <strong>C</strong> Centro e <strong>V</strong> Vila. Verde = tem · vermelho = negativo · cinza = zerado. 🔧 ajusta · ⚙️ mín/máx.</li>
+            <li><strong>Filtros</strong>: estoque (loja + positivo/negativo/zerado), várias categorias/subcategorias, datas (cadastro ou NF), modelo, unidade e mais.</li>
             <li>Clique na linha (ou ✏️) para abrir o modal de edição do produto.</li>
             <li>Aba <strong>Grupos</strong>: um nome + preço e várias marcas/códigos no mesmo grupo.</li>
             <li><kbd class="text-[10px] px-1 rounded border border-slate-300 bg-white font-mono font-black">F2</kbd> foca na busca; <kbd class="text-[10px] px-1 rounded border border-slate-300 bg-white font-mono font-black">F1</kbd> volta ao PDV.</li>
@@ -440,16 +582,12 @@
     <div class="px-5 py-4 border-b border-slate-200 bg-emerald-50/80 shrink-0">
       <h2 id="cadastro-import-titulo" class="text-lg font-black uppercase text-slate-900">Importar planilha Excel</h2>
       <p class="text-sm text-slate-600 mt-1">Não altere a coluna <strong>ID</strong> (fica oculta no Excel, mas é obrigatória na importação). Célula vazia = mantém o valor atual.</p>
-      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Use a <strong>lista do Excel</strong> em marca/categoria/sub. Typo parecido é corrigido sozinho. Nome <strong>novo</strong> só grava se marcar a opção abaixo. Apague linhas que não editou.</p>
+      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Não altere a coluna ID (oculta no Excel). Se alguma linha mostrar <strong>ID inválido</strong>, apague a linha inteira — costuma ser texto colado por engano. Código GM pode ser editado. Célula vazia = mantém o valor. <strong>Apague as linhas que não editou</strong> — planilha exportada inteira demora. Escolha o arquivo — a prévia roda sozinha.</p>
     </div>
     <div class="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
       <label class="block">
         <span class="text-xs font-black uppercase text-slate-500">Arquivo .xlsx ou .csv</span>
         <input type="file" id="cadastro-import-arquivo" accept=".xlsx,.xls,.csv" class="mt-1 block w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" />
-      </label>
-      <label class="flex items-start gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-3 cursor-pointer select-none">
-        <input type="checkbox" id="cadastro-import-permitir-novos" class="mt-1 w-5 h-5 rounded border-amber-400 text-emerald-600 shrink-0" />
-        <span class="text-sm font-semibold text-amber-950 leading-snug"><span class="font-black uppercase text-amber-900">Permitir criar novos</span> — marca, categoria, subcategoria, fornecedor ou unidade que ainda não existem. <span class="font-normal text-amber-800">Desligado = só lista cadastrada (typo próximo é corrigido).</span></span>
       </label>
       <div id="cadastro-import-progress-wrap" class="hidden rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 space-y-2" aria-live="polite">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -462,7 +600,6 @@
         <p id="cadastro-import-progress-detail" class="text-xs font-semibold text-slate-600"></p>
       </div>
       <div id="cadastro-import-resumo" class="hidden text-sm font-semibold text-slate-700"></div>
-      <div id="cadastro-import-avisos" class="hidden text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1"></div>
       <div id="cadastro-import-erros" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 max-h-32 overflow-y-auto"></div>
       <div id="cadastro-import-preview" class="hidden border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto text-xs"></div>
     </div>
@@ -475,32 +612,24 @@
 
   <div id="cadastro-export-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
   <div id="cadastro-export-modal" class="cadastro-export-modal-panel fixed left-1/2 top-1/2 z-[190] hidden -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-600 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="cadastro-export-titulo">
-    <div class="px-4 py-3 border-b border-slate-200 bg-emerald-50/80 shrink-0">
-      <h2 id="cadastro-export-titulo" class="text-base font-black uppercase text-slate-900">Exportar planilha Excel</h2>
-      <p class="text-xs text-slate-600 mt-0.5">Overlay Agro · ID oculta · escolha o pacote de colunas e, se quiser, só algumas categorias.</p>
+    <div class="px-5 py-4 border-b border-slate-200 bg-emerald-50/80 shrink-0">
+      <h2 id="cadastro-export-titulo" class="text-lg font-black uppercase text-slate-900">Exportar planilha Excel</h2>
+      <p class="text-sm text-slate-600 mt-1">Escolha colunas e categorias. A coluna <strong>ID</strong> vem oculta no Excel (travada). <strong>Código GM</strong> pode ser editado na planilha.</p>
     </div>
-    <div class="p-4 flex flex-col gap-3 overflow-hidden min-h-0 flex-1">
+    <div class="p-5 flex flex-col gap-5 overflow-hidden min-h-0 flex-1">
       <fieldset class="space-y-2 shrink-0">
-        <legend class="text-[10px] font-black uppercase text-slate-500">1 · Colunas</legend>
-        <div id="cadastro-export-presets" class="grid grid-cols-2 gap-2"></div>
-        <details id="cadastro-export-cols-details" class="rounded-xl border-2 border-slate-200 bg-slate-50/80 open:bg-white">
-          <summary class="cursor-pointer px-3 py-2 text-xs font-black uppercase text-slate-600 select-none">Personalizar colunas</summary>
-          <div id="cadastro-export-colunas" class="cadastro-export-cols-scroll grid grid-cols-2 gap-x-2 gap-y-0.5 px-2 pb-2 text-xs font-semibold text-slate-800"></div>
-        </details>
-        <p id="cadastro-export-cols-status" class="text-[11px] font-semibold text-slate-500"></p>
+        <legend class="text-xs font-black uppercase text-slate-500">Colunas na planilha</legend>
+        <div id="cadastro-export-colunas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm font-semibold text-slate-800"></div>
       </fieldset>
       <fieldset class="space-y-2 flex flex-col min-h-0 flex-1">
-        <legend class="text-[10px] font-black uppercase text-slate-500 shrink-0">2 · Categorias (opcional)</legend>
-        <p class="text-[11px] text-slate-500 shrink-0">Nenhuma marcada = <strong>todas</strong>. Marque só o que vai editar.</p>
-        <div class="flex gap-2 shrink-0">
-          <input type="search" id="cadastro-export-cat-busca" placeholder="Buscar categoria…" class="cadastro-erp-btn flex-1 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" autocomplete="off" />
-          <button type="button" id="cadastro-export-cat-limpar" class="min-h-[44px] px-3 rounded-xl border-2 border-slate-200 text-[10px] font-black uppercase text-slate-600 shrink-0">Limpar</button>
-        </div>
-        <div id="cadastro-export-categorias" class="cadastro-export-cats-scroll rounded-xl border-2 border-slate-200 p-1.5 space-y-0.5 text-sm bg-white"></div>
-        <p id="cadastro-export-cat-status" class="text-[11px] font-semibold text-slate-500 shrink-0">Carregando categorias…</p>
+        <legend class="text-xs font-black uppercase text-slate-500 shrink-0">Categorias (opcional)</legend>
+        <p class="text-xs text-slate-500 shrink-0">Nenhuma marcada = exporta todas. Marque só as que quer editar.</p>
+        <input type="search" id="cadastro-export-cat-busca" placeholder="Filtrar categorias…" class="cadastro-erp-btn w-full rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold shrink-0" autocomplete="off" />
+        <div id="cadastro-export-categorias" class="cadastro-export-cats-scroll overflow-y-auto rounded-xl border-2 border-slate-200 p-2 space-y-1 text-sm"></div>
+        <p id="cadastro-export-cat-status" class="text-xs font-semibold text-slate-500 shrink-0"></p>
       </fieldset>
     </div>
-    <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
       <button type="button" id="cadastro-export-baixar" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm border-2 border-emerald-800">Baixar Excel</button>
       <button type="button" id="cadastro-export-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto">Cancelar</button>
     </div>
@@ -540,8 +669,8 @@
   </div>
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
-  <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=1"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=25"></script>
+  <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=2"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=27"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=4"></script>
 
 </body>

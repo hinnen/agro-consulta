@@ -11843,6 +11843,210 @@ def compras_relatorio_planilha_fornecedor_view(request):
 
 
 @ensure_csrf_cookie
+def compras_relatorio_saldo_view(request):
+    """Folha só saldo: código GM · produto · saldo (A4 / A5 / cupom 80mm)."""
+    facetas = {
+        "marcas": [],
+        "categorias": [],
+        "subcategorias": [],
+        "subcategorias_2": [],
+        "subcategorias_3": [],
+        "subcategorias_4": [],
+        "fornecedores": [],
+        "unidades": [],
+        "modelos": [],
+    }
+    try:
+        from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+        from produtos import catalogo_agro as cat_agro
+
+        if agro_catalogo_usa_postgres():
+            facetas = cat_agro.facetas_gestao()
+    except Exception as e:
+        logger.warning("compras_relatorio_saldo_view facetas: %s", e, exc_info=True)
+
+    return render(
+        request,
+        "produtos/compras_relatorio_saldo.html",
+        {
+            "api_relatorio_url": reverse("api_compras_relatorio_saldo"),
+            "api_facetas_url": reverse("api_produtos_gestao_facetas"),
+            "facetas": facetas,
+        },
+    )
+
+
+@require_GET
+def api_compras_relatorio_saldo(request):
+    """
+    Lista filtrada para impressão de saldo.
+    Colunas: codigo_gm, nome, saldo (conforme lojas marcadas).
+    Filtros: mesmos do cadastro ERP + loja_centro/loja_vila + omit_zero.
+    """
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_estoque_operacional_sem_mongo_erp,
+    )
+    from produtos.cadastro_filtros_util import (
+        aplicar_filtros_cadastro_qs,
+        parse_filtros_cadastro,
+        row_passa_filtros_cadastro,
+    )
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    if not agro_catalogo_usa_postgres():
+        return JsonResponse(
+            {"ok": False, "erro": "Catálogo Postgres necessário para este relatório."},
+            status=503,
+        )
+
+    loja_centro = request.GET.get("loja_centro") in ("1", "true", "yes", "on")
+    loja_vila = request.GET.get("loja_vila") in ("1", "true", "yes", "on")
+    if not loja_centro and not loja_vila:
+        loja_centro = True
+        loja_vila = True
+    omit_zero = request.GET.get("omit_zero") in ("1", "true", "yes", "on")
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    q_raw = str(request.GET.get("q") or "").strip()[:120]
+
+    filtros = parse_filtros_cadastro(request)
+    # Lojas do relatório são checkboxes separados; não misturar com estoque_loja do cadastro
+    # a menos que o usuário tenha pedido sinal de estoque — aí usa o escopo das lojas marcadas.
+    if filtros.get("estoque_sinal"):
+        if loja_centro and loja_vila:
+            filtros["estoque_loja"] = "total"
+        elif loja_centro:
+            filtros["estoque_loja"] = "centro"
+        else:
+            filtros["estoque_loja"] = "vila"
+
+    from produtos import catalogo_agro as cat_agro
+
+    qs = cat_agro.queryset_catalogo_ativos(inativos=inativos)
+    qs = aplicar_filtros_cadastro_qs(qs, filtros)
+    if q_raw:
+        from django.db.models import Q as DQ
+
+        qs = qs.filter(
+            DQ(nome__icontains=q_raw)
+            | DQ(codigo_interno__icontains=q_raw)
+            | DQ(codigo_nfe__icontains=q_raw)
+            | DQ(codigo_barras__icontains=q_raw)
+        )
+
+    lim = 2000
+    prods = list(
+        qs.order_by("nome", "pk").values(
+            "produto_externo_id",
+            "erp_produto_id",
+            "pk",
+            "nome",
+            "codigo_interno",
+            "codigo_nfe",
+            "marca",
+            "categoria",
+            "subcategoria",
+            "subcategoria_2",
+            "subcategoria_3",
+            "subcategoria_4",
+            "unidade",
+            "modelo",
+            "fornecedor_texto",
+            "ncm",
+            "custo",
+            "preco_venda",
+            "cadastro_somente_agro",
+            "criado_em",
+        )[: lim + 1]
+    )
+    truncado = len(prods) > lim
+    prods = prods[:lim]
+
+    p_ids = []
+    for p in prods:
+        pid = str(p.get("produto_externo_id") or p.get("erp_produto_id") or p.get("pk") or "").strip()
+        if pid:
+            p_ids.append(pid)
+
+    client, db = (None, None)
+    if not agro_estoque_operacional_sem_mongo_erp():
+        client, db = obter_conexao_mongo()
+    saldos = mapa_saldos_operacionais_agro(p_ids, db=db, client=client) if p_ids else {}
+
+    if loja_centro and loja_vila:
+        loja_rotulo = "Centro + Vila"
+    elif loja_centro:
+        loja_rotulo = "Centro"
+    else:
+        loja_rotulo = "Vila Elias"
+
+    linhas = []
+    for p in prods:
+        pid = str(p.get("produto_externo_id") or p.get("erp_produto_id") or p.get("pk") or "").strip()
+        s = saldos.get(pid) or {}
+        try:
+            sc = float(s.get("saldo_centro") or 0)
+            sv = float(s.get("saldo_vila") or 0)
+        except (TypeError, ValueError):
+            sc, sv = 0.0, 0.0
+        saldo = 0.0
+        if loja_centro:
+            saldo += sc
+        if loja_vila:
+            saldo += sv
+        saldo = round(saldo, 3)
+        if omit_zero and abs(saldo) < 1e-9:
+            continue
+        gm = str(p.get("codigo_nfe") or p.get("codigo_interno") or "").strip() or "—"
+        nome = str(p.get("nome") or "").strip() or "—"
+        row = {
+            "id": pid,
+            "codigo_gm": gm,
+            "nome": nome,
+            "saldo": saldo,
+            "saldo_centro": round(sc, 3),
+            "saldo_vila": round(sv, 3),
+            "marca": str(p.get("marca") or "").strip(),
+            "categoria": str(p.get("categoria") or "").strip(),
+            "subcategoria": str(p.get("subcategoria") or "").strip(),
+            "unidade": str(p.get("unidade") or "").strip(),
+            "modelo": str(p.get("modelo") or "").strip(),
+            "fornecedor": str(p.get("fornecedor_texto") or "").strip(),
+            "ncm": str(p.get("ncm") or "").strip(),
+            "preco_custo": float(p.get("custo") or 0),
+            "preco_venda": float(p.get("preco_venda") or 0),
+            "cadastro_somente_agro": bool(p.get("cadastro_somente_agro")),
+            "criado_em": p["criado_em"].isoformat() if p.get("criado_em") else "",
+        }
+        # Revalida dims pós-row (datas NF / extras já no QS; estoque_sinal já no QS)
+        f_chk = dict(filtros)
+        f_chk["estoque_sinal"] = ""
+        if not row_passa_filtros_cadastro(row, f_chk):
+            continue
+        linhas.append(
+            {
+                "codigo_gm": gm,
+                "nome": nome,
+                "saldo": saldo,
+            }
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "linhas": linhas,
+            "total": len(linhas),
+            "truncado": truncado,
+            "loja_rotulo": loja_rotulo,
+            "loja_centro": loja_centro,
+            "loja_vila": loja_vila,
+            "limite": lim,
+            "gerado_em": timezone.localtime().strftime("%d/%m/%Y %H:%M"),
+        }
+    )
+
+
+@ensure_csrf_cookie
 def compras_view(request):
     return render(
         request,
@@ -26239,6 +26443,27 @@ def api_pdv_saldos_compacto(request):
             p_ids_filtro.append(pid)
             if len(p_ids_filtro) >= 400:
                 break
+
+    quer_positivos = str(request.GET.get("positivos") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "sim",
+    )
+    # Ajuste mobile: IDs com saldo > 0 no depósito (evita lista vazia com filtro «só positivo»
+    # quando o cache do PC ainda está com saldo 0).
+    if p_ids_filtro is None and quer_positivos:
+        from produtos.estoque_saldo_agro_util import produto_ids_saldo_deposito_positivo
+
+        dep_pos = str(request.GET.get("deposito") or "vila").strip().lower() or "vila"
+        if dep_pos not in ("centro", "vila"):
+            dep_pos = "vila"
+        try:
+            lim_pos = int(request.GET.get("limite") or 5000)
+        except (TypeError, ValueError):
+            lim_pos = 5000
+        lim_pos = max(50, min(lim_pos, 20000))
+        p_ids_filtro = produto_ids_saldo_deposito_positivo(dep_pos, limite=lim_pos)
 
     ttl = int(getattr(settings, "AGRO_PDV_SALDOS_CACHE_SECONDS", 0) or 0)
     if p_ids_filtro is None and ttl > 0:

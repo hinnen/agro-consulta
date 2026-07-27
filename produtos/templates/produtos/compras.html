@@ -278,6 +278,7 @@
               <button type="button" id="btn-abrir-planilha-ocr" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-amber-400 bg-amber-50 text-amber-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-amber-100 text-left leading-snug" title="Foto da coluna Pedir da planilha oficial">Ler foto da planilha</button>
               <button type="button" data-folha-url="{% url 'compras_relatorio_planilha_categoria' %}" data-folha-titulo="Por categoria (A4 · A6)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-100 text-left leading-snug folha-compras-menu-link" title="Lista por categoria; papel A4 ou A6; colunas Contagem e Pedir">Por categoria (A4 · A6)</button>
               <button type="button" data-folha-url="{% url 'compras_relatorio_planilha_unidade' %}" data-folha-titulo="Por unidade (A4 · A6)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-sky-100 text-left leading-snug folha-compras-menu-link" title="Lista por unidade; papel A4 ou A6; colunas Contagem e Pedir">Por unidade (A4 · A6)</button>
+              <button type="button" data-folha-url="{% url 'compras_relatorio_saldo' %}" data-folha-titulo="Folha de saldo (A4 · A5 · 80mm)" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-orange-300 bg-orange-50 text-orange-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-orange-100 text-left leading-snug folha-compras-menu-link" title="Código GM, produto e saldo; Centro e/ou Vila; filtros completos">Folha de saldo (A4 · A5 · 80mm)</button>
             </div>
           </details>
         </div>
@@ -507,9 +508,9 @@
     </div>
   </div>
 
-  <div id="modal-folha-planilha-compras" class="fixed inset-0 z-[118] hidden items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-folha-planilha-titulo">
-    <div class="bg-white rounded-2xl shadow-2xl border-2 border-violet-200 w-[min(96vw,26rem)] sm:w-[min(92vw,24rem)] h-[min(92dvh,760px)] max-h-[94dvh] flex flex-col min-h-0 overflow-hidden">
-      <div class="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-slate-100 bg-violet-50/40">
+  <div id="modal-folha-planilha-compras" class="fixed inset-0 z-[118] hidden items-center justify-center p-2 sm:p-4 bg-slate-900/55" role="dialog" aria-modal="true" aria-labelledby="modal-folha-planilha-titulo">
+    <div id="modal-folha-planilha-panel" data-folha-size="padrao" class="bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col min-h-0 overflow-hidden" style="width:min(96vw,42rem);height:min(88dvh,640px);max-height:92dvh">
+      <div class="shrink-0 flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-slate-100 bg-slate-50">
         <h2 id="modal-folha-planilha-titulo" class="text-sm sm:text-base font-black uppercase text-slate-800 tracking-tight truncate min-w-0">Folha de compras</h2>
         <div class="flex items-center gap-1 shrink-0">
           <button type="button" id="btn-folha-planilha-nova-aba" class="text-[10px] font-black uppercase text-violet-800 hover:text-violet-950 px-2 py-1.5 rounded-lg border border-violet-200 bg-white min-h-[40px]" title="Abrir em nova aba do navegador">Nova aba</button>
@@ -4219,12 +4220,24 @@ function comprasModalFolhaPlanilhaAberta() {
 function abrirModalFolhaPlanilha(url, titulo) {
   fecharMenuFolhaCompras();
   const m = document.getElementById('modal-folha-planilha-compras');
+  const panel = document.getElementById('modal-folha-planilha-panel');
   const ifr = document.getElementById('folha-planilha-iframe');
   const tit = document.getElementById('modal-folha-planilha-titulo');
   if (!m || !ifr || !url) return;
   const sep = String(url).indexOf('?') >= 0 ? '&' : '?';
   folhaPlanilhaUrlNovaAba = String(url);
   if (tit) tit.textContent = titulo || 'Folha de compras';
+  const isSaldo = /relatorio-saldo/i.test(String(url)) || /saldo/i.test(String(titulo || ''));
+  if (panel) {
+    panel.setAttribute('data-folha-size', isSaldo ? 'saldo' : 'padrao');
+    if (isSaldo) {
+      panel.style.width = 'min(96vw, 48rem)';
+      panel.style.height = 'min(90dvh, 720px)';
+    } else {
+      panel.style.width = 'min(96vw, 42rem)';
+      panel.style.height = 'min(88dvh, 640px)';
+    }
+  }
   ifr.src = String(url) + sep + 'embed=1';
   m.classList.remove('hidden');
   m.classList.add('flex');
