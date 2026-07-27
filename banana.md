@@ -1193,14 +1193,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** — espera frase + senha `99738595` · **Renan valida local antes** |
-| **Pasta** | `_pacote_cadastro_compras_ajuste_20260727/LEIA-ME.txt` (junta este chat + `_pacote_ajuste_mobile_saldo/` + compras) |
-| **VERSION teste** | **11.80** |
-| **VERSION loja alvo** | **11.92** (loja hoje **11.91** DSP-SABORES · no cherry **não** deixar 11.80) |
-| **Inclui** | Cadastro filtros compactos + coluna estoque C/V · Folha saldo Compras A4/A5/80mm · Folha fornecedor PG (`87d6557`) · Ajuste mobile `positivos=1` · fix `/api/pdv/saldos/` c/ Mongo off |
-| **Commits teste** | `87d6557` (folha fornecedor) + **`a812c78`** (este pacote v11.80) |
-| **Check auto** | `manage.py check` 0 · rotas 200 · py/JS compile OK |
-| **Validar local** | Cadastro filtros · Compras→Folha saldo · `/ajuste-mobile/` Só positivo+ATUALIZAR |
+| **Status** | 📦 **pronto p/ próximo chat** — push `teste` · **não** produção ainda · espera pausa loja + frase + senha `99738595` |
+| **Pasta** | `_pacote_cadastro_compras_ajuste_20260727/LEIA-ME.txt` |
+| **VERSION teste** | **11.80** (push) |
+| **VERSION loja alvo** | **11.92** (loja hoje **11.91** · no cherry **forçar 11.92**, não 11.80) |
+| **Commits (ordem cherry)** | `87d6557` (folha fornecedor PG) → **`a812c78`** (pacote) · docs `9a72d80` opcional |
+| **Inclui** | Cadastro filtros/coluna estoque · Folha saldo A4/A5/80mm · Folha fornecedor PG · Ajuste mobile `positivos=1` · fix saldos c/ Mongo off |
+| **Revisão 27/07 (assistente)** | Diffs revisados · `manage.py check` 0 · smoke 200: `/api/pdv/saldos/` (c/ e s/ ids) · `/consulta/` · `/caixa/` · `/compras/` · cadastro · ajuste-mobile · APIs saldo |
+| **Risco loja aberta** | **Baixo** se cherry só estes commits: PDV/saldos sem `positivos` **igual** · `positivos=1` só mobile · Compras/Cadastro = additivo · `agro_fonte` na loja **já** tem o short-circuit Mongo (cherry pode no-op/conflito trivial) |
+| **NÃO fazer** | merge `teste`→`producao` inteiro · subir sem pausa PDV · deixar VERSION 11.80 na loja |
+| **Próximo chat** | 1) lojas pausam vendas 2) «pode subir produção» + `99738595` 3) cherry + VERSION 11.92 + push `producao` + Ctrl+F5 |
 
 ### ✨ UX — Coluna estoque cadastro (27/07)
 
