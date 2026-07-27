@@ -583,6 +583,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **UX Compras (08/07):** coluna «Comprar»; estoque Centro+Vila por extenso; lucro só com custo confiável; custo usa cadastro ou última NF; F5 preenche «Últ. NF» via Entrada NF Agro.
 - Relatórios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
+- **Folha por fornecedor (27/07):** com catálogo PG **não** depende de Mongo — usa cadastro + Entrada NF Agro.
 
 ### 4.10 Lançamentos / financeiro
 
@@ -1164,7 +1165,6 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
 ### ✅ Deploy loja **v11.91** — Dispenser +13 sabores (`DSP-SABORES`) (24/07 · Renan frase+senha)
-
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **Live** (producao **6296abb**) · healthz ok · badge **11.91** |

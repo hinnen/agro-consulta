@@ -961,7 +961,7 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v5"
+    _fac_cache_key = "agro_gestao_facetas_v6"
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
@@ -6228,9 +6228,9 @@ def api_compras_relatorio_fornecedor(request):
 
 def _api_compras_relatorio_fornecedor_impl(request):
     """
-    Dados para relatório de compras por fornecedor: último documento ERP, qtd na última compra,
-    vendas desde essa compra, média semanal (até 8 semanas / 56 dias, denominador pela janela com vendas).
-    Lista de produtos: catálogo Mongo filtrado pelo fornecedor (não exige carrinho).
+    Dados para relatório de compras por fornecedor: último documento (Entrada NF Agro / ERP),
+    qtd na última compra, vendas desde essa compra, média semanal (até 8 semanas / 56 dias).
+    Com catálogo Postgres: sem Mongo — lista pelo fornecedor do cadastro + última NF Agro.
     """
     try:
         body = json.loads((request.body or b"").decode("utf-8") or "{}")
@@ -6242,9 +6242,14 @@ def _api_compras_relatorio_fornecedor_impl(request):
     if not fornecedor_nome and not fornecedor_id:
         return JsonResponse({"ok": False, "erro": "Informe o fornecedor."}, status=400)
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    use_pg = agro_catalogo_usa_postgres()
+    client, db = (None, None)
+    if not use_pg:
+        client, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
     nomes_forn: dict[str, str] = {}
@@ -6259,9 +6264,16 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 seen_l.add(s)
                 local_ids.append(s)
         if not local_ids:
-            local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
-                db, client, fornecedor_nome, fornecedor_id, limit=800
-            )
+            if use_pg:
+                from produtos import catalogo_agro as cat_agro
+
+                local_ids, nomes_forn = cat_agro.lista_produto_externo_ids_por_fornecedor(
+                    fornecedor_nome, fornecedor_id, limit=800
+                )
+            else:
+                local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
+                    db, client, fornecedor_nome, fornecedor_id, limit=800
+                )
         if not local_ids:
             return JsonResponse(
                 {
@@ -6271,6 +6283,14 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 status=400,
             )
         p_ids = local_ids
+
+        if use_pg:
+            return _api_compras_relatorio_fornecedor_pg(
+                p_ids,
+                nomes_forn=nomes_forn,
+                fornecedor_nome=fornecedor_nome,
+                fornecedor_id=fornecedor_id,
+            )
 
         ultimo = _ultimo_documento_compra_do_fornecedor(db, fornecedor_nome, fornecedor_id)
         ref_dt: datetime | None = None
@@ -6478,6 +6498,208 @@ def _api_compras_relatorio_fornecedor_impl(request):
             fornecedor_nome=fornecedor_nome,
             fornecedor_id=fornecedor_id,
         )
+
+
+def _api_compras_relatorio_fornecedor_pg(
+    p_ids: list[str],
+    *,
+    nomes_forn: dict[str, str],
+    fornecedor_nome: str,
+    fornecedor_id: str | None,
+) -> JsonResponse:
+    """Folha por fornecedor 100% Postgres (catálogo + Entrada NF Agro + vendas PDV)."""
+    from produtos.compras_metricas_util import (
+        vendas_qtd_apos_ref_compra_postgres,
+        vendas_qtd_por_produto_intervalo_postgres,
+    )
+    from produtos.compras_ultimas_compras_util import ultimo_documento_entrada_nf_agro_por_fornecedor
+    from produtos import catalogo_agro as cat_agro
+
+    now = datetime.now()
+    t56 = now - timedelta(days=56)
+    ultimo = ultimo_documento_entrada_nf_agro_por_fornecedor(fornecedor_nome, fornecedor_id)
+    sem_doc = ultimo is None
+    ref_dt: datetime | None = None
+    ultimo_iso = ""
+    ultimo_doc_txt = ""
+    ultimo_origem = ""
+    linhas_doc: dict[str, float] = {}
+    hist_linhas: set[str] = set()
+    if ultimo and isinstance(ultimo.get("dt"), datetime):
+        ref_dt = ultimo["dt"]
+        ultimo_iso = ref_dt.isoformat()[:19]
+        ultimo_doc_txt = str(ultimo.get("documento") or "")
+        ultimo_origem = str(ultimo.get("origem") or "entrada_nf_agro")
+        linhas_doc = dict(ultimo.get("linhas_qtd") or {})
+        hist_linhas = set(ultimo.get("hist_pids") or set())
+
+    prods = cat_agro.produtos_docs_relatorio_por_externo_ids(p_ids)
+
+    def _chaves_produto(p) -> list[str]:
+        keys: list[str] = []
+        vid = p.get("Id")
+        if vid is not None:
+            keys.append(str(vid))
+        keys.append(str(p.get("_id")))
+        cod = p.get("Codigo")
+        if cod is not None and str(cod).strip() != "":
+            keys.append(str(cod))
+        return [k for k in keys if k and k != "None"]
+
+    pmap: dict[str, dict] = {}
+    for p in prods:
+        for k in _chaves_produto(p):
+            pmap[k] = p
+
+    overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
+
+    variant_to_canon: dict[str, str] = {}
+    pid_variants: list[str] = []
+    for pid0 in p_ids:
+        p0 = _catalogo_pmap_resolve(pmap, pid0)
+        canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
+        chs0 = _chaves_produto(p0) if p0 else [str(pid0)]
+        for k in chs0:
+            variant_to_canon[str(k)] = str(canon0)
+            pid_variants.append(str(k))
+        for v in _produto_ids_variants_mongo([str(pid0)]):
+            variant_to_canon.setdefault(str(v), str(canon0))
+            pid_variants.append(str(v))
+
+    tot56, first_in56 = vendas_qtd_por_produto_intervalo_postgres(pid_variants, t56, now)
+    tot56_canon, first56_canon = _rollup_vendas_tot_first_por_canon(
+        tot56, first_in56, variant_to_canon
+    )
+
+    ref_por_canon: dict[str, datetime] = {}
+    if ref_dt is not None:
+        for pid0 in p_ids:
+            p0 = _catalogo_pmap_resolve(pmap, pid0)
+            canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
+            ref_por_canon[str(canon0)] = ref_dt
+    vendas_pos = (
+        vendas_qtd_apos_ref_compra_postgres(ref_por_canon, variant_to_canon)
+        if ref_por_canon
+        else {}
+    )
+
+    rows_out: list[dict] = []
+    for pid in p_ids:
+        try:
+            p = _catalogo_pmap_resolve(pmap, pid)
+            canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
+            nome = str(p.get("Nome") or "").strip() if p else ""
+            if not nome:
+                nome = "—"
+            hn = _relatorio_nome_hint_pid(nomes_forn, pid)
+            if hn and (nome == "—" or not nome.strip()):
+                nome = hn
+            chaves = _chaves_produto(p) if p else [canon]
+            if p:
+                gm_raw = _mongo_primeiro_texto(
+                    p,
+                    ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+                )
+                codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+            else:
+                codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+            ovr = overlay_by_pid.get(str(pid).strip()) or {}
+            onome = str(ovr.get("nome") or "").strip()
+            if onome and (not nome or nome == "—"):
+                nome = onome
+            if not p and ovr:
+                for ck in ("codigo_nfe", "codigo_barras"):
+                    rawc = str(ovr.get(ck) or "").strip()
+                    if rawc:
+                        codigo = _fmt_relatorio_gm_display(rawc)[:80]
+                        break
+
+            qtd_ult: int | None
+            if sem_doc:
+                qtd_ult = None
+            elif _linhas_doc_mapa_contem_produto(linhas_doc, str(canon), chaves):
+                qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, str(canon)))
+            elif _conjunto_compra_contem_produto(hist_linhas, str(canon), chaves):
+                qtd_ult = 0
+            else:
+                qtd_ult = None
+
+            cs_f = str(canon)
+            qtd_pos = None
+            if not sem_doc:
+                qtd_pos = _arred_int_meio_para_cima(float(vendas_pos.get(cs_f, 0.0)))
+            t56p = float(tot56_canon.get(cs_f, 0.0))
+            first_dt = first56_canon.get(cs_f)
+            anchor = t56
+            if isinstance(first_dt, datetime):
+                fd = _mongo_dt_utc_naive(first_dt) or first_dt
+                ad = _mongo_dt_utc_naive(anchor) or anchor
+                if fd > ad:
+                    anchor = fd
+            now_n = _mongo_dt_utc_naive(now) or now
+            an_n = _mongo_dt_utc_naive(anchor) or anchor
+            try:
+                dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+            except Exception:
+                dias_hist = 56.0
+            if not math.isfinite(dias_hist):
+                dias_hist = 56.0
+            semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
+            media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+            rows_out.append(
+                {
+                    "produto_id": str(canon),
+                    "codigo": codigo[:80],
+                    "nome": nome[:500],
+                    "qtd_ultimo_pedido": qtd_ult,
+                    "qtd_vendida_desde_ultima": qtd_pos,
+                    "media_venda_semana": media_sem,
+                    "semanas_media": semanas_den,
+                }
+            )
+        except Exception:
+            logger.warning("relatorio fornecedor PG linha pid=%s falhou", pid, exc_info=True)
+            sp = str(pid or "").strip()
+            if sp:
+                rows_out.append(
+                    {
+                        "produto_id": sp,
+                        "codigo": sp[:80],
+                        "nome": "—",
+                        "qtd_ultimo_pedido": None,
+                        "qtd_vendida_desde_ultima": None,
+                        "media_venda_semana": 0,
+                        "semanas_media": 1,
+                    }
+                )
+
+    rows_out.sort(
+        key=lambda r: (
+            1 if (not sem_doc and r.get("qtd_ultimo_pedido") is None) else 0,
+            str(r.get("nome") or "").strip().lower(),
+        )
+    )
+    rotulo_forn = (fornecedor_nome or fornecedor_id or "")[:200]
+    return JsonResponse(
+        {
+            "ok": True,
+            "filtro_tipo": "fornecedor",
+            "filtro_rotulo": rotulo_forn,
+            "fornecedor_nome": rotulo_forn,
+            "fornecedor_id": fornecedor_id or "",
+            "total_produtos": len(rows_out),
+            "sem_ultimo_documento": sem_doc,
+            "ultimo_documento": {
+                "data": ultimo_iso,
+                "documento": ultimo_doc_txt[:120],
+                "origem": ultimo_origem,
+            },
+            "linhas": rows_out,
+            "erp_portal": {},
+            "fonte": "agro_pg",
+        },
+    )
 
 
 def _sanear_itens_checkout_sessao(itens):
@@ -21420,27 +21642,28 @@ def _sort_cadastro_rows_inplace(rows: list[dict], sort_key: str, direction: int)
 
 
 def _cadastro_parse_filtros_lista(request) -> tuple[str, str, str, bool]:
-    marca = str(request.GET.get("marca") or "").strip()
-    categoria = str(request.GET.get("categoria") or "").strip()
-    fornecedor = str(request.GET.get("fornecedor") or "").strip()
-    incluir_saldo = request.GET.get("incluir_saldo", "1").strip().lower() not in (
-        "0",
-        "false",
-        "no",
-    )
-    return marca, categoria, fornecedor, incluir_saldo
+    """Compat: retorna marca/categoria/fornecedor single + incluir_saldo.
+
+    Preferir ``parse_filtros_cadastro`` para filtros avançados.
+    """
+    from produtos.cadastro_filtros_util import parse_filtros_cadastro
+
+    f = parse_filtros_cadastro(request)
+    marca = (f.get("marca") or [""])[0] if f.get("marca") else ""
+    categoria = (f.get("categoria") or [""])[0] if f.get("categoria") else ""
+    fornecedor = (f.get("fornecedor") or [""])[0] if f.get("fornecedor") else ""
+    return marca, categoria, fornecedor, bool(f.get("incluir_saldo", True))
 
 
 def _cadastro_row_passa_filtros(r: dict, marca: str, categoria: str, fornecedor: str) -> bool:
-    if marca and str(r.get("marca") or "").strip() != marca:
-        return False
-    if categoria and str(r.get("categoria") or "").strip() != categoria:
-        return False
-    if fornecedor:
-        f = str(r.get("fornecedor") or "").strip().lower()
-        if fornecedor.strip().lower() not in f:
-            return False
-    return True
+    from produtos.cadastro_filtros_util import row_passa_filtros_cadastro
+
+    f = {
+        "marca": [marca] if marca else [],
+        "categoria": [categoria] if categoria else [],
+        "fornecedor": [fornecedor] if fornecedor else [],
+    }
+    return row_passa_filtros_cadastro(r, f)
 
 
 def _cadastro_enriquecer_saldo_nas_rows(rows: list[dict]) -> list[dict]:
@@ -21488,8 +21711,17 @@ def _cadastro_finalizar_payload_rows(payload: dict, incluir_saldo: bool) -> dict
 
 def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonResponse:
     """Embalagem cadastro ERP sobre linhas já montadas por ``api_buscar_produtos``."""
+    from produtos.cadastro_filtros_util import (
+        filtros_cadastro_ativos,
+        parse_filtros_cadastro,
+        row_passa_filtros_cadastro,
+    )
+
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
-    marca_f, cat_f, forn_f, incluir_saldo = _cadastro_parse_filtros_lista(request)
+    filtros = parse_filtros_cadastro(request)
+    incluir_saldo = bool(filtros.get("incluir_saldo", True))
+    if filtros.get("estoque_sinal"):
+        incluir_saldo = True
     sort_key, sort_direction = _parse_sort_cadastro_request(request)
     q_raw = str(request.GET.get("q") or "").strip()
 
@@ -21497,7 +21729,9 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
     for r in rows:
         if not inativos and r.get("inativo"):
             continue
-        if not _cadastro_row_passa_filtros(r, marca_f, cat_f, forn_f):
+        f_sem = dict(filtros)
+        f_sem["estoque_sinal"] = ""
+        if filtros_cadastro_ativos(f_sem) and not row_passa_filtros_cadastro(r, f_sem):
             continue
         out.append(r)
 
@@ -21509,6 +21743,8 @@ def _api_buscar_json_contexto_cadastro(request, rows: list[dict]) -> JsonRespons
                 sc = _float_api_json(r.get("saldo_centro") or 0)
                 sv = _float_api_json(r.get("saldo_vila") or 0)
                 r["saldo_total"] = round(sc + sv, 2)
+    if filtros.get("estoque_sinal"):
+        out = [r for r in out if row_passa_filtros_cadastro(r, filtros)]
     _sort_cadastro_rows_inplace(out, sort_key, sort_direction)
 
     return JsonResponse(
@@ -21534,15 +21770,30 @@ def api_produtos_cadastro(request):
     - Com `q`: motor da Consulta / ``/api/buscar/`` (projeção slim no Mongo).
     - Sem `q`: paginação alfabética (`pagina`, `por_pagina`).
     - `inativos=1`: inclui cadastros inativos.
-    - `marca`, `categoria`, `fornecedor`: filtros (como gestão operacional).
+    - Filtros: marca/categoria/sub*/fornecedor/unidade/modelo (multi),
+      estoque_loja + estoque_sinal, data_tipo + data_de/ate, extras.
     - `incluir_saldo=1` (padrão): saldo Centro/Vila operacional Agro.
     - `sort` / `dir`: ordenação (nome, marca, unidade, categoria, subcategoria, preco_custo, preco_venda; asc|desc).
     """
+    from produtos.cadastro_filtros_util import (
+        filtros_cadastro_ativos,
+        filtros_cadastro_cache_key,
+        parse_filtros_cadastro,
+        row_passa_filtros_cadastro,
+    )
+
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
     q_raw = str(request.GET.get("q") or "").strip()
-    marca_f, cat_f, forn_f, incluir_saldo = _cadastro_parse_filtros_lista(request)
-    tem_filtros_dim = bool(marca_f or cat_f or forn_f)
+    filtros = parse_filtros_cadastro(request)
+    incluir_saldo = bool(filtros.get("incluir_saldo", True))
+    if filtros.get("estoque_sinal"):
+        incluir_saldo = True
+    marca_f = (filtros.get("marca") or [""])[0] if filtros.get("marca") else ""
+    cat_f = (filtros.get("categoria") or [""])[0] if filtros.get("categoria") else ""
+    forn_f = (filtros.get("fornecedor") or [""])[0] if filtros.get("fornecedor") else ""
+    tem_filtros_dim = filtros_cadastro_ativos(filtros)
     status_q = "todos" if inativos else "ativos"
+    fkey = filtros_cadastro_cache_key(filtros)
 
     try:
         lim_busca = int(request.GET.get("limit") or 80)
@@ -21573,8 +21824,8 @@ def api_produtos_cadastro(request):
                 from django.core.cache import cache
 
                 _cad_pg_key = (
-                    f"cadastro_busca_pg_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
-                    f"{marca_f}:{cat_f}:{forn_f}:{q_raw.lower()[:100]}"
+                    f"cadastro_busca_pg_v2:{int(inativos)}:{sort_key}:{sort_direction}:"
+                    f"{fkey}:{q_raw.lower()[:100]}"
                 )
                 _cad_pg_hit = cache.get(_cad_pg_key)
                 if _cad_pg_hit is not None:
@@ -21587,12 +21838,14 @@ def api_produtos_cadastro(request):
                         q_raw,
                         limit=lim_busca,
                         status_q=status_q,
-                        marca=marca_f,
-                        categoria=cat_f,
-                        fornecedor=forn_f,
+                        filtros=filtros,
                     )
                 else:
                     rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
+                if incluir_saldo and filtros.get("estoque_sinal"):
+                    rows = _cadastro_enriquecer_saldo_nas_rows(rows)
+                    rows = [r for r in rows if row_passa_filtros_cadastro(r, filtros)]
+                    incluir_saldo = False  # já enriquecido
                 _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
                 _cad_pg_payload = {
                     "ok": True,
@@ -21617,6 +21870,7 @@ def api_produtos_cadastro(request):
                 sort_key=sort_key,
                 sort_direction=sort_direction,
                 inativos=inativos,
+                filtros=filtros if tem_filtros_dim else None,
                 marca=marca_f,
                 categoria=cat_f,
                 fornecedor=forn_f,
@@ -21650,8 +21904,8 @@ def api_produtos_cadastro(request):
             from django.core.cache import cache
 
             _cad_cache_key = (
-                f"cadastro_busca_v1:{int(inativos)}:{sort_key}:{sort_direction}:"
-                f"{marca_f}:{cat_f}:{forn_f}:{q_raw.lower()[:100]}"
+                f"cadastro_busca_v2:{int(inativos)}:{sort_key}:{sort_direction}:"
+                f"{fkey}:{q_raw.lower()[:100]}"
             )
             _cad_hit = cache.get(_cad_cache_key)
             if _cad_hit is not None:
@@ -21696,11 +21950,9 @@ def api_produtos_cadastro(request):
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
             if tem_filtros_dim:
-                rows = [
-                    r
-                    for r in rows
-                    if _cadastro_row_passa_filtros(r, marca_f, cat_f, forn_f)
-                ]
+                f_sem = dict(filtros)
+                f_sem["estoque_sinal"] = ""
+                rows = [r for r in rows if row_passa_filtros_cadastro(r, f_sem)]
             _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
             for _r in rows:
                 _aplicar_produto_gestao_overlay_em_dict(_r, _ovs.get(str(_r.get("id") or "")))
@@ -21718,7 +21970,13 @@ def api_produtos_cadastro(request):
                 cache.set(_cad_cache_key, _cad_payload, 45)
             except Exception:
                 pass
-            return JsonResponse(_cadastro_finalizar_payload_rows(_cad_payload, incluir_saldo))
+            payload_out = _cadastro_finalizar_payload_rows(_cad_payload, incluir_saldo)
+            if filtros.get("estoque_sinal") and isinstance(payload_out.get("produtos"), list):
+                payload_out["produtos"] = [
+                    r for r in payload_out["produtos"] if row_passa_filtros_cadastro(r, filtros)
+                ]
+                payload_out["total_retornado"] = len(payload_out["produtos"])
+            return JsonResponse(payload_out)
 
         clauses: list[dict] = []
         if not inativos:

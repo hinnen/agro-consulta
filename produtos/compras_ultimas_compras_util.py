@@ -1,4 +1,4 @@
-"""Últimas compras Compras — Entrada NF Agro (Mongo) + fallback ERP (views)."""
+"""Ãšltimas compras Compras â€” Entrada NF Agro (Mongo) + fallback ERP (views)."""
 from __future__ import annotations
 
 import logging
@@ -121,7 +121,7 @@ def _normalizar_pid_compra(raw: Any) -> str:
 
 
 def _mapa_pid_busca(p_ids: list[str]) -> dict[str, str]:
-    """Chaves alternativas (ObjectId str, int…) → pid canônico da busca."""
+    """Chaves alternativas (ObjectId str, intâ€¦) â†’ pid canÃ´nico da busca."""
     out: dict[str, str] = {}
     for raw in p_ids:
         canon = _normalizar_pid_compra(raw)
@@ -212,8 +212,8 @@ def append_eventos_entrada_nf_agro(
     Acrescenta eventos de compra a partir de ``EntradaNotaRascunhoAgro`` (Entrada NF).
     Mesmo formato interno que ``_ultimas_compras_por_produto_ids``.
 
-    **Importante (loja PG):** não usa ``col.find($or $exists)`` — no adaptador PG isso
-    expandia a tabela inteira 3× (até 5000 ids) e travava o worker na prévia de custo.
+    **Importante (loja PG):** nÃ£o usa ``col.find($or $exists)`` â€” no adaptador PG isso
+    expandia a tabela inteira 3Ã— (atÃ© 5000 ids) e travava o worker na prÃ©via de custo.
     """
     if not pid_ok:
         return
@@ -272,7 +272,7 @@ def append_eventos_entrada_nf_agro(
         }
         docs = [row_to_doc(row, projection=proj) for row in qs]
     except Exception as exc:
-        # Com rascunho PG: não cair em find amplo (risco de varrer tabela).
+        # Com rascunho PG: nÃ£o cair em find amplo (risco de varrer tabela).
         logger.warning("ultimas_compras entrada_nf_agro ORM: %s", exc)
         try:
             from produtos.agro_fonte_config import agro_entrada_nota_rascunho_postgres
@@ -317,7 +317,7 @@ def append_eventos_entrada_nf_agro(
         dt = _data_doc_entrada_nf_agro(cab, doc)
         if dt is None or dt < since:
             continue
-        forn = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()[:200] or "—"
+        forn = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()[:200] or "â€”"
         numero_doc = _numero_doc_entrada_nf_agro(cab)
         linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
         for ln in linhas:
@@ -357,7 +357,7 @@ def ultima_entrada_nf_agro_por_produto_ids(
     mongo_max_time_ms: int | None = 20_000,
 ) -> dict[str, dict[str, Any]]:
     """
-    Última entrada NF Agro concluída por produto.
+    Ãšltima entrada NF Agro concluÃ­da por produto.
     Retorno: ``{ pid: {"data": iso str, "qtd": float} }``.
     """
     out: dict[str, dict[str, Any]] = {}
@@ -389,3 +389,114 @@ def ultima_entrada_nf_agro_por_produto_ids(
             qtd = 0.0
         out[pid] = {"data": iso, "qtd": qtd}
     return out
+
+
+def ultimo_documento_entrada_nf_agro_por_fornecedor(
+    fornecedor_nome: str,
+    fornecedor_id: str | None = None,
+    *,
+    scan_limit: int = 400,
+) -> dict | None:
+    """
+    Ultima Entrada NF Agro concluida do fornecedor (Postgres).
+    Retorno: dt, documento, origem, linhas_qtd {pid: float}, hist_pids set[str].
+    """
+    fn = str(fornecedor_nome or "").strip()
+    fid = str(fornecedor_id or "").strip()
+    if not fn and not fid:
+        return None
+    try:
+        from django.db.models import Q
+
+        from produtos.entrada_nota_rascunho_pg_util import row_to_doc
+        from produtos.models import EntradaNotaRascunhoAgro
+        from produtos.nfe_entrada_util import (
+            ENTRADA_NFE_STATUS_DESCARTADA,
+            ENTRADA_NFE_STATUS_ENCERRADA,
+            ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
+            _entrada_nfe_nomes_fornecedor_batem,
+        )
+    except Exception as exc:
+        logger.warning("ultimo_doc entrada_nf forn import: %s", exc)
+        return None
+
+    lim = max(50, min(int(scan_limit or 400), 800))
+    try:
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .filter(
+                Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
+                | Q(estoque_aplicado_em__isnull=False)
+            )
+            .only(
+                "rascunho_id",
+                "cabecalho",
+                "linhas",
+                "extra",
+                "criado_em",
+                "estoque_aplicado_em",
+                "status",
+            )
+            .order_by("-criado_em")[:lim]
+        )
+        proj = {
+            "cabecalho": 1,
+            "linhas": 1,
+            "extra": 1,
+            "criado_em": 1,
+            "estoque_aplicado_em": 1,
+            "status": 1,
+        }
+        docs = [row_to_doc(row, projection=proj) for row in qs]
+    except Exception as exc:
+        logger.warning("ultimo_doc entrada_nf forn query: %s", exc)
+        return None
+
+    best: dict | None = None
+    best_dt: datetime | None = None
+    hist_pids: set[str] = set()
+    for doc in docs:
+        if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
+            continue
+        cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        emit = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()
+        emit_id = str(
+            cab.get("emit_fornecedor_id") or cab.get("fornecedor_id") or cab.get("emit_id") or ""
+        ).strip()
+        match = False
+        if fid and emit_id and fid == emit_id:
+            match = True
+        elif fn and emit and _entrada_nfe_nomes_fornecedor_batem(fn, emit):
+            match = True
+        if not match:
+            continue
+        dt = _data_doc_entrada_nf_agro(cab, doc)
+        if dt is None:
+            continue
+        linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        linhas_qtd: dict[str, float] = {}
+        for ln in linhas:
+            if not isinstance(ln, dict):
+                continue
+            pid = str(ln.get("produto_id") or ln.get("ProdutoID") or "").strip()
+            if not pid or pid == "None":
+                continue
+            qtd = _qtd_linha_entrada_nf_agro(ln)
+            if qtd <= 0:
+                continue
+            hist_pids.add(pid)
+            linhas_qtd[pid] = linhas_qtd.get(pid, 0.0) + qtd
+            if pid.isdigit():
+                hist_pids.add(str(int(pid)))
+        if best_dt is None or dt > best_dt:
+            best_dt = dt
+            best = {
+                "dt": dt,
+                "documento": _numero_doc_entrada_nf_agro(cab),
+                "origem": "entrada_nf_agro",
+                "linhas_qtd": linhas_qtd,
+            }
+    if not best or best_dt is None:
+        return None
+    best["hist_pids"] = hist_pids
+    return best
