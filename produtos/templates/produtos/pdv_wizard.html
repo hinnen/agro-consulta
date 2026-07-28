@@ -77,6 +77,8 @@
     min-width: 0;
     min-height: 4.15rem;
     box-sizing: border-box;
+    overflow: hidden;
+    pointer-events: none;
   }
   .pdv-cart-promo-badge {
     display: block;
@@ -386,6 +388,15 @@
     border: 2px solid #0ea5e9 !important;
     background: #bfdbfe !important;
     box-shadow: 0 20px 52px rgba(14, 116, 144, 0.28) !important;
+  }
+  /* ID+display:flex ganha do .hidden do Tailwind — sem isto a lista cobre o carrinho (FL-008). */
+  #pdv-product-autocomplete.hidden,
+  #pdv-step1-search-wrap #pdv-product-autocomplete.hidden {
+    display: none !important;
+    pointer-events: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: 0 !important;
   }
   #pdv-product-autocomplete .pdv-ac-scroll {
     flex: 0 1 auto;

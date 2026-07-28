@@ -1169,7 +1169,20 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-﻿### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
+### Deploy loja **v11.99** — PDV carrinho itens travados (FL-008 · 28/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` · commit **`354fdc1`** · badge **11.99** |
+| **O quê** | Lista busca não some de verdade e cobre +/−/lixeira/lápis (ex. GM0110-1 / GM0110-10) — mesmo bug v6.16 |
+| **Arquivos** | só `pdv_wizard.html` + `pdv_wizard.js` (+ `VERSION` + banana) |
+| **NÃO inclui** | DF-e · merge `teste` · Entrada NF · outros WIPs |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — CSS/JS do carrinho; não mexe venda/caixa/estoque |
+| **Rollback** | `git push origin rollback/pre-v1199-pdv-carrinho:producao` (volta **v11.98**) |
+| **Validar** | Ctrl+F5 · badge **11.99** · GM0110-1 + GM0110-10 no carrinho: +/−, lixeira, lápis |
+
+### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |

@@ -1610,24 +1610,44 @@
         input.title = 'Toque para alterar o preço unitário';
     }
 
-    function applyQtyDelta(itemId, direction) {
+    function cartItemFromRow(event) {
+        if (!event || !event.target || !event.target.closest) return null;
+        var row = event.target.closest('[data-cart-row]');
+        if (!row) return null;
+        var idx = parseInt(row.getAttribute('data-cart-row-index'), 10);
+        if (!isFinite(idx) || idx < 0) return null;
+        var items = State.getState().itens || [];
+        return items[idx] || null;
+    }
+
+    function resolveCartItemId(itemId, event) {
+        var fromRow = cartItemFromRow(event);
+        if (fromRow && fromRow.id != null && String(fromRow.id).trim()) {
+            return String(fromRow.id).trim();
+        }
+        return itemId == null ? '' : String(itemId).trim();
+    }
+
+    function applyQtyDelta(itemId, direction, event) {
+        var resolvedId = resolveCartItemId(itemId, event);
+        if (!resolvedId) return;
         var current = State.getState().itens.find(function (item) {
-            return String(item.id) === String(itemId);
+            return String(item.id) === resolvedId;
         });
         if (!current) return;
         qtyEditDraft = { id: null, raw: '' };
         var step = State.qtyStepFor ? State.qtyStepFor(current.qtd) : 1;
         var nextQty = State.toNumber(current.qtd) + direction * step;
         if (nextQty < (State.QTD_MIN || 0.001)) {
-            State.removeItem(itemId);
+            State.removeItem(resolvedId);
         } else {
-            State.updateItemQuantity(itemId, nextQty);
+            State.updateItemQuantity(resolvedId, nextQty);
         }
     }
 
-    function commitQtyInput(input) {
+    function commitQtyInput(input, event) {
         if (!input) return;
-        var id = input.getAttribute('data-item-qty-input');
+        var id = resolveCartItemId(input.getAttribute('data-item-qty-input'), event || { target: input });
         if (!id) return;
         var parsed = State.normalizeQty ? State.normalizeQty(input.value, null) : State.toNumber(input.value);
         qtyEditDraft = { id: null, raw: '' };
@@ -1643,9 +1663,9 @@
         State.updateItemQuantity(id, parsed);
     }
 
-    function commitPriceInput(input) {
+    function commitPriceInput(input, event) {
         if (!input) return;
-        var id = input.getAttribute('data-item-price-input');
+        var id = resolveCartItemId(input.getAttribute('data-item-price-input'), event || { target: input });
         if (!id) return;
         var parsed = State.normalizePrice ? State.normalizePrice(input.value, null) : State.toNumber(input.value);
         priceEditDraft = { id: null, raw: '' };
@@ -3142,7 +3162,9 @@
         if (!item || item.preco_manual) return '';
         var cor = item.promo_mix_cor;
         if (cor == null || cor === '') return '';
-        var cls = ' pdv-cart-row--mix pdv-cart-row--mix-' + String(cor);
+        var corNum = parseInt(cor, 10);
+        if (!isFinite(corNum) || corNum < 0 || corNum > 5) return '';
+        var cls = ' pdv-cart-row--mix pdv-cart-row--mix-' + String(corNum);
         if (item.promo_mix_pendente) cls += ' pdv-cart-row--mix-pendente';
         return cls;
     }
@@ -3296,7 +3318,7 @@
                 '  <p class="pdv-cart-empty-sub">Os produtos adicionados aparecerão aqui.</p>' +
                 '</div>';
         } else {
-            dom.productCartList.innerHTML = state.itens.map(function (item) {
+            dom.productCartList.innerHTML = state.itens.map(function (item, cartIndex) {
                 var imgUrl = String(item.imagem || assets.placeholderProduto || '').trim();
                 var itemId = String(item.id);
                 var qtyVal =
@@ -3311,6 +3333,8 @@
                     '' +
                     '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5' +
                     cartRowMixClass(item) +
+                    '" data-cart-row="1" data-cart-row-index="' +
+                    cartIndex +
                     '">' +
                     '  <span class="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +
@@ -12269,6 +12293,10 @@
                 openProductPhotoPop(zEl.getAttribute('data-pdv-photo-zoom') || '');
             }
         });
+        dom.productCartList.addEventListener('mousedown', function () {
+            hideProductAutocomplete({ skipSnapshot: true });
+        });
+
         dom.productCartList.addEventListener('click', function (event) {
             var zoomC = event.target.closest('[data-pdv-photo-zoom]');
             if (zoomC) {
@@ -12279,7 +12307,7 @@
             var grupoBtn = event.target.closest('[data-cart-grupo]');
             if (grupoBtn) {
                 event.preventDefault();
-                var gid = grupoBtn.getAttribute('data-item-id');
+                var gid = resolveCartItemId(grupoBtn.getAttribute('data-item-id'), event);
                 var gLetra = grupoBtn.getAttribute('data-cart-grupo');
                 if (gid && gLetra && typeof State.setItemPrecoGrupoPreview === 'function') {
                     State.setItemPrecoGrupoPreview(gid, gLetra);
@@ -12288,20 +12316,22 @@
             }
             var removeBtn = event.target.closest('[data-remove-item]');
             if (removeBtn) {
-                State.removeItem(removeBtn.getAttribute('data-remove-item'));
+                var removeId = resolveCartItemId(removeBtn.getAttribute('data-remove-item'), event);
+                if (removeId) State.removeItem(removeId);
                 return;
             }
             var editBtn = event.target.closest('[data-edit-item]');
             if (editBtn) {
                 event.preventDefault();
-                openQuickProductEditOverlay(editBtn.getAttribute('data-edit-item'));
+                var editId = resolveCartItemId(editBtn.getAttribute('data-edit-item'), event);
+                if (editId) openQuickProductEditOverlay(editId);
                 return;
             }
-            var qtyBtn = event.target.closest('[data-item-qty]');
+            var qtyBtn = event.target.closest('[data-item-delta]');
             if (qtyBtn) {
                 var id = qtyBtn.getAttribute('data-item-qty');
                 var delta = parseInt(qtyBtn.getAttribute('data-item-delta') || '0', 10);
-                applyQtyDelta(id, delta > 0 ? 1 : -1);
+                applyQtyDelta(id, delta > 0 ? 1 : -1, event);
             }
         });
 
@@ -12362,7 +12392,7 @@
             if (priceInput) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    commitPriceInput(priceInput);
+                    commitPriceInput(priceInput, event);
                     priceInput.blur();
                     if (dom.productSearch) dom.productSearch.focus();
                 } else if (event.key === 'Escape') {
@@ -12379,12 +12409,12 @@
             if (!input) return;
             if (event.key === 'Enter') {
                 event.preventDefault();
-                commitQtyInput(input);
+                commitQtyInput(input, event);
                 input.blur();
                 if (dom.productSearch) dom.productSearch.focus();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
-                var escId = input.getAttribute('data-item-qty-input');
+                var escId = resolveCartItemId(input.getAttribute('data-item-qty-input'), event);
                 var escItem = State.getState().itens.find(function (item) {
                     return String(item.id) === String(escId);
                 });
@@ -12403,7 +12433,7 @@
                     priceSkipCommitOnce = false;
                     return;
                 }
-                commitPriceInput(priceInput);
+                commitPriceInput(priceInput, event);
                 return;
             }
             var input = event.target.closest('[data-item-qty-input]');
@@ -12412,7 +12442,7 @@
                 qtySkipCommitOnce = false;
                 return;
             }
-            commitQtyInput(input);
+            commitQtyInput(input, event);
         });
 
         dom.clearItems.addEventListener('click', function () {
