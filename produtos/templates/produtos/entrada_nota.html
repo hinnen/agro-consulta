@@ -11142,20 +11142,9 @@
 
   document.getElementById('btn-entrada-nfe-nova')?.addEventListener('click', () => {
     entradaNfeAbrirEditor();
-    entradaNfeExtraUltimo = null;
-    setEntradaNfeRascunhoEdit(null);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-    fornHid.value = '';
-    fornInp.value = '';
-    document.getElementById('m-emit-cnpj').value = '';
-    document.getElementById('m-nf').value = '';
-    document.getElementById('m-serie').value = '';
-    document.getElementById('m-chave').value = '';
-    document.getElementById('m-dh').value = '';
-    entradaNfeDepositoDefinir('', true);
-    tbodyClear();
-    atualizarPainelTotalNfe();
-    showMsg('Nova entrada.', true);
+    entradaNfeResetEditorParaNovaNota();
+    showMsg('Nova entrada — campos limpos.', true);
   });
 
   document.getElementById('btn-refresh-rasc')?.addEventListener('click', carregarRascunhos);
