@@ -1169,6 +1169,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — PDV Pix máquina Sicredi (`PDV-PIX-SICREDI` · **v11.94**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO PARA O PDV** · aguarda pausa vendas + frase + senha |
+| **Branch** | `deploy/pdv-pix-sicredi-v11.94` (base `producao` v11.93 + só 3 arquivos) |
+| **VERSION** | **loja 11.93 → 11.94** |
+| **Inclui** | Modal «Pix — qual máquina?» · **Sicredi — Pix** (`pix_sicredi`) · card orientação QR na maquininha |
+| **Arquivos** | `pdv/views.py` · `step_pagamento.html` · `pdv_wizard.js` |
+| **NÃO inclui** | cartão Sicredi (já existia) · MP Point · caixa · Entrada NF · merge `teste` · migrate |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só **adiciona** opção no modal Pix; Cielo/Sicoob/MP Renan/MP auto **iguais** |
+| **Smoke OK** | lista IDs `[pix_mp_qr, pix_cielo, pix_sicredi, pix_sicoob_chave, pix_mp_renan]` · notebook sem MP auto ainda traz Sicredi · diff só +15/−2 |
+| **Backup no push** | `rollback/pre-v1194-pdv-pix-sicredi` @ tip `producao` atual |
+| **Autorizar** | *pode subir Sicredi Pix / PDV* + **99738595** |
+| **Validar pós Live** | Ctrl+F5 PDV · PIX · Selecionar máquina · Sicredi aparece · venda Cielo Pix ainda OK |
+
 ### ✅ Deploy loja **v11.93** — Folha saldo presets + transferência sem saldo+ (`FOLHA-TRANSF`) (28/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -3254,6 +3271,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
+| **PDV** | **Sicredi — Pix** — 📦 **PRONTO PARA ENVIO PARA O PDV** · branch `deploy/pdv-pix-sicredi-v11.94` · loja alvo **v11.94** |
+| **Autorizar Sicredi Pix** | *pode subir Sicredi Pix / PDV* + **99738595** |
 | **P0 agora** | **Custo NF 77846** — **depois** de subir pacote **v11.54+** (fix custo pós-PIN): `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` · confere Cadastro GM0025 ~**90,42** (hoje **75,58**) |
 | **Entrada NF** | **«Nova» limpa XML/dados** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja alvo **v10.90** · commit `46add26` |
 | **Autorizar NF Nova** | *«pode subir para produção»* + **99738595** |
@@ -3272,6 +3291,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | PDV · Pix · **FL-058** | Incluir máquina **Sicredi — Pix** no modal | 📦 **PRONTO PARA ENVIO PARA O PDV** · `deploy/pdv-pix-sicredi-v11.94` · **v11.94** |
 | **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | 📋 **depois de subir pacote** · GM0025 75,58→~90,42 |
 | **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja **v10.90** |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** · pós v10.88 |
@@ -5789,6 +5809,7 @@ Dry-run do import também lista **quantos itens** ficaram sem match no catálogo
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeição **535** — frete no total sem `vFrete` nos itens | ✅ **loja v9.16** | 16/07 |
 | **FL-056** | **P0** | NFC-e / SEFAZ | Rejeições **963** (fiado+card) + **225** (CFOP/CEST pontuação) — vendas #2812/#3347 | 📦 **pronto pra envio** · teste **v9.21** | 17/07 |
 | **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web (reforço slots; código v10.88 já fecha leak) | 📋 Pendente · Renan no painel | 21/07 |
+| **FL-058** | **P1** | PDV / Pix | **Sicredi — Pix** no modal «qual máquina?» (`pix_sicredi`) + card orientação QR maquininha | 📦 **PRONTO PARA ENVIO PARA O PDV** · v11.94 | 28/07 |
 | **FL-034** | **P1,9** | PDV / Clientes | Botão **Histórico** não filtra vendas do **cliente selecionado** — deve filtrar (relacionamento / devolução) | 🔄 **F8 modal rascunho** teste · fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | Devolução | **Devolução parcial** da venda — ou **itens específicos** | 📦 **#12** pronto loja (fecha) · ✅ teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opção visual 2) | 📋 Pendente | 29/06 |
