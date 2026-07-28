@@ -1169,6 +1169,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### LOTE PRONTO LOJA — 11.94→11.98 junto (`LOTE-1198` · 28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto** · branch `deploy/lote-v11.94-11.98` · badge final **11.98** · espera frase + senha |
+| **Inclui** | Pix Sicredi · Entrada NF UX+Nova · Gôndola A4 (mig 0067) · Transf forçada · Estoque Vila |
+| **Migrate** | **SIM** `0067` (só etiquetas) |
+| **Rollback** | `rollback/pre-v1198-lote` @ tip producao antes do push |
+| **Autorizar** | *pode subir lote 11.94-11.98 / produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO LOJA — PDV Pix máquina Sicredi (`PDV-PIX-SICREDI` · **v11.94**)
 
 | Item | Detalhe |
