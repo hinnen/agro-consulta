@@ -1171,7 +1171,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### FILA DEPLOY — próximo chat (28/07 · preparado · aguarda frase+senha)
+﻿### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` **`cb73d87`** · badge **11.98** · aguardar Live + migrate `0067` |
+| **Inclui** | Pix Sicredi (11.94) · Entrada NF UX+Nova (11.95) · Gôndola+0067 (11.96) · Transf forçada (11.97) · Estoque Vila (11.98) |
+| **NÃO inclui** | DF-e inbox · merge inteiro `teste` |
+| **Migrate** | **SIM** `0067_produto_overlay_peso_etiqueta` |
+| **Rollback** | `git push origin rollback/pre-lote-v1194-1198:producao` (@ **3633011** / v11.93) |
+| **Validar agora** | Ctrl+F5 · badge **11.98** · Pix Sicredi · Entrada NF Nova/boleto · etiquetas · transf forçada · PDV Estoque Vila · 1 venda |
+
+### FILA DEPLOY — 11.94-11.98 (enviado loja v11.98)
 
 Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99738595`):
 
