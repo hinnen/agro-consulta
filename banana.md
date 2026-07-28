@@ -1164,6 +1164,19 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+### ✅ Deploy loja **v11.92** — Cadastro filtros + Folha saldo + Ajuste mobile (`CAD-COMPRAS-AJUSTE`) (28/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` · badge **11.92** |
+| **VERSION** | **loja v11.92** (antes v11.91) |
+| **Cherry** | `87d6557` → `a812c78` (resolvido na loja: PG `compras_ultimas` mantido · `agro_fonte` loja · VERSION **11.92**) |
+| **Inclui** | Cadastro filtros compactos + coluna estoque C/V · Folha saldo A4/A5/80mm · Folha fornecedor PG · Ajuste mobile `positivos=1` |
+| **NÃO inclui** | merge inteiro `teste` · migrate |
+| **Migrate** | nenhuma |
+| **Backup / reverter** | `rollback/pre-v1192-cad-compras-ajuste` @ **`6724fc7`** → `git push origin rollback/pre-v1192-cad-compras-ajuste:producao` |
+| **Validar agora** | Ctrl+F5 cadastro (Filtros + estoque) · Compras→Folha saldo · `/ajuste-mobile/` Só positivo · 1 venda PDV |
+
 ### ✅ Deploy loja **v11.91** — Dispenser +13 sabores (`DSP-SABORES`) (24/07 · Renan frase+senha)
 | Item | Detalhe |
 | ---- | ------- |
