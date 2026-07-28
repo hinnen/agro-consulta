@@ -1169,6 +1169,31 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída (`ENTRADA-NF-UX` · **v11.95**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** · Renan testou local · **revisão Auto 28/07 OK** · aguarda pausa + frase + senha (junto com PIX v11.94) |
+| **Branch** | `deploy/entrada-nf-ux-v11.95` (base `producao` v11.93) |
+| **Origem teste** | `78d26ee` (+ docs `d60b700`/`b63598d` no teste; loja usa **VERSION 11.95**) |
+| **VERSION** | **loja 11.93 → 11.95** (11.94 = PDV-PIX-SICREDI) |
+| **Inclui** | Boleto 44→47 · lista Concluída (origem XML · chip «Sem a pagar» · nome limpo) · carimbo financeiro não some · «Nova» sem herdar XML |
+| **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` · VERSION · banana |
+| **NÃO inclui** | DF-e inbox · PDV · caixa · CP · merge `teste` · migrate |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só Entrada NF |
+| **Review** | boleto BB sample 44→47 OK · `financeiro_ids` = lançado · modo XML preservado no autosave · conflict «Nova» resolvido |
+| **Backup no push** | `rollback/pre-v1195-entrada-nf-ux` @ tip `producao` pré-deploy (ou pós-PIX) |
+| **Autorizar** | *pode subir Entrada NF / produção* + **99738595** |
+| **Validar pós Live** | Ctrl+F5 Entrada NF · Concluída origem/chip · bipar boleto 44→47 · 1 venda PDV |
+
+### 📦 PACOTE IRMÃO — PDV Pix Sicredi (`PDV-PIX-SICREDI` · **v11.94**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** · `deploy/pdv-pix-sicredi-v11.94` @ **`06db8c8`** · subir **antes** deste (ordem VERSION) |
+| **Autorizar** | *pode subir Sicredi Pix / PDV* + **99738595** |
+
 ### ✅ Deploy loja **v11.93** — Folha saldo presets + transferência sem saldo+ (`FOLHA-TRANSF`) (28/07 · Renan frase+senha)
 
 | Item | Detalhe |
