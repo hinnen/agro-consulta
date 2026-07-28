@@ -1173,16 +1173,17 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO PARA O PDV** · aguarda pausa vendas + frase + senha |
-| **Branch** | `deploy/pdv-pix-sicredi-v11.94` (base `producao` v11.93 + só 3 arquivos) |
+| **Status** | 📦 **PRONTO PARA ENVIO PARA O PDV** · Renan testou local · **revisão Auto 28/07 OK** · aguarda pausa + frase + senha |
+| **Commit** | **`aef7bfc`** · branch `deploy/pdv-pix-sicredi-v11.94` (base `producao` v11.93) |
 | **VERSION** | **loja 11.93 → 11.94** |
 | **Inclui** | Modal «Pix — qual máquina?» · **Sicredi — Pix** (`pix_sicredi`) · card orientação QR na maquininha |
-| **Arquivos** | `pdv/views.py` · `step_pagamento.html` · `pdv_wizard.js` |
+| **Arquivos** | `pdv/views.py` · `step_pagamento.html` · `pdv_wizard.js` (+ VERSION + banana) |
 | **NÃO inclui** | cartão Sicredi (já existia) · MP Point · caixa · Entrada NF · merge `teste` · migrate |
 | **Migrate** | **NÃO** |
 | **Risco loja aberta** | **Baixo** — só **adiciona** opção no modal Pix; Cielo/Sicoob/MP Renan/MP auto **iguais** |
-| **Smoke OK** | lista IDs `[pix_mp_qr, pix_cielo, pix_sicredi, pix_sicoob_chave, pix_mp_renan]` · notebook sem MP auto ainda traz Sicredi · diff só +15/−2 |
-| **Backup no push** | `rollback/pre-v1194-pdv-pix-sicredi` @ tip `producao` atual |
+| **Review** | lista default + filtro notebook OK · CSS `pix_sicredi` já mapeado · sem override `.env` `PDV_WIZARD_MAQUININHAS_PIX` · `isMaquinaMpPointAuto` **não** pega Sicredi (manual) · diff só +37/−3 |
+| **Smoke OK** | IDs `[pix_mp_qr, pix_cielo, pix_sicredi, pix_sicoob_chave, pix_mp_renan]` · sem MP auto: Cielo+Sicredi+Sicoob+Renan · `py_compile` OK |
+| **Backup no push** | `rollback/pre-v1194-pdv-pix-sicredi` @ tip `producao` pré-deploy |
 | **Autorizar** | *pode subir Sicredi Pix / PDV* + **99738595** |
 | **Validar pós Live** | Ctrl+F5 PDV · PIX · Selecionar máquina · Sicredi aparece · venda Cielo Pix ainda OK |
 
