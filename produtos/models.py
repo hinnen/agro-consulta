@@ -1216,6 +1216,35 @@ class LancamentoAtalhoFiltro(models.Model):
         return f"{self.usuario_id} · {self.slot} · {self.nome[:40]}"
 
 
+class ComprasFolhaSaldoFiltroPreset(models.Model):
+    """
+    Filtros salvos da Folha de saldo (Compras) — compartilhados por toda a loja (Postgres).
+    No máximo um registro com ``is_padrao=True`` (aberto automaticamente).
+    """
+
+    nome = models.CharField(max_length=80)
+    payload = models.JSONField(default=dict, blank=True)
+    is_padrao = models.BooleanField(default=False, db_index=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="compras_folha_saldo_presets",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Filtro Folha de saldo (Compras)"
+        verbose_name_plural = "Filtros Folha de saldo (Compras)"
+        ordering = ["-is_padrao", "nome", "pk"]
+
+    def __str__(self):
+        marca = " ★" if self.is_padrao else ""
+        return f"{self.nome[:40]}{marca}"
+
+
 class ProdutoGrupoAgro(models.Model):
     """
     Agrupamento lógico no Agro: um nome comercial e um preço de venda únicos,

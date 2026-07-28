@@ -557,6 +557,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 ### 4.7 Entrada de nota fiscal
 
 - `/entrada-nota/` — wizard 8 passos (fornecedor → … → financeiro → finalizar PIN).
+- **Dist DF-e (pedido Renan 28/07):** hoje cada «Consultar SEFAZ» fala na Receita e a lista some ao sair. No ERP antigo: lista **salva** das notas já puxadas · nova puxada só traz o que for novo · ver lista **não** consulta SEFAZ · 2–3×/dia ok. **XML continua o caminho seguro.** Feature «caixa de entrada DF-e» = pendente (só se Renan pedir).
 - Pré-visualização XML: modal drag-and-drop, não fecha ao clicar fora; «Confirmar na grade» aplica de fato.
 - **Busca produtos etapa 2 (16/07 · loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV — família GM completa (complemento Mongo); não desligar Mongo no `entrada_nfe=1`.
 - **Acréscimos no custo (14/07 · loja v8.43):** checkbox «Incluir no custo os acréscimos da nota» (etapa 2) — rateia frete+ST+seguro+outras+IPI−desconto no custo unitário proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
@@ -582,6 +583,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequência; padrão **4010**)
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na própria tela** (não nova aba) — evita limite de 3 abas SisVale e layout bugado. Botão **Nova aba** no popup se precisar. Páginas planilha com `?embed=1` não montam barra lateral.
 - **Popup Folha (27/07):** modal compacto (padrão ERP) · Folha de saldo com filtros **botão+chip** iguais ao cadastro · facetas no HTML.
 - **Folha por fornecedor (27/07):** com catálogo PG **não** depende de Mongo — usa cadastro + Entrada NF Agro.
+- **Folha de saldo (28/07):** overlay grande · filtros salvos **online** (Postgres) com 1 padrão global · tipografia maior nos filtros.
 
 ### 4.10 Lançamentos / financeiro
 
@@ -1166,6 +1168,16 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE — Folha saldo presets + transferência sem saldo+ (28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ commit local · **teste v11.81** · branch `fix/transferencia-sem-saldo-positivo` · **validar no PC** · migrate **`0066`** no deploy |
+| **1 · Folha saldo** | Overlay maior + fontes · filtros salvos **online** (Postgres) · Padrão ★ global · migrate **`0066`** |
+| **2 · Transferência** | Vila→C mesmo com saldo 0/negativo · aviso/confirma se qtd > saldo |
+| **Arquivos** | `compras_relatorio_saldo.html` · `compras.html` · `models.py` · `views.py` · `urls.py` · `0066_…` · `transferencias.html` · `estoque/views.py` |
+| **Você** | Ctrl+F5 Compras→Folha saldo (salvar/padrão) · `/transferencias/` Vila→C com saldo 0 |
 
 ### 🐛 SEFAZ Dist DF-e — cStat 656 na 1ª consulta do dia (27/07)
 

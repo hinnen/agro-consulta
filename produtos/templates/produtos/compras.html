@@ -4231,11 +4231,13 @@ function abrirModalFolhaPlanilha(url, titulo) {
   if (panel) {
     panel.setAttribute('data-folha-size', isSaldo ? 'saldo' : 'padrao');
     if (isSaldo) {
-      panel.style.width = 'min(96vw, 48rem)';
-      panel.style.height = 'min(90dvh, 720px)';
+      panel.style.width = 'min(96vw, 78rem)';
+      panel.style.height = 'min(94dvh, 900px)';
+      panel.style.maxHeight = '96dvh';
     } else {
       panel.style.width = 'min(96vw, 42rem)';
       panel.style.height = 'min(88dvh, 640px)';
+      panel.style.maxHeight = '92dvh';
     }
   }
   ifr.src = String(url) + sep + 'embed=1';
