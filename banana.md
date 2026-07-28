@@ -1169,6 +1169,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Folha saldo presets + transferência sem saldo+ (`FOLHA-TRANSF` · **v11.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto p/ próximo chat** — lojas abertas = **NÃO** subir agora · espera pausa + frase + senha `99738595` |
+| **Branch pronta** | `deploy/folha-transf-v11.93` @ **`f83e804`** (base `producao` + código limpo) |
+| **Fonte teste** | `1dfd369` · tip `037f67b` |
+| **VERSION** | **loja 11.92 → 11.93** |
+| **Inclui** | 1) Folha saldo overlay maior + filtros salvos **online** + Padrão ★ · 2) Transferência Vila→C com saldo 0/negativo |
+| **NÃO inclui** | merge inteiro `teste` · PDV · caixa · CP |
+| **Migrate** | **SIM** `0066_compras_folha_saldo_filtro_preset` (tabela nova) |
+| **Risco loja aberta** | PDV/caixa **intocados** · Transferência só mais permissiva · Folha saldo só Compras |
+| **Smoke OK** | `check` · URLs · CRUD preset · HTML · cherry código limpo (só VERSION/banana) |
+| **Backup** | criar `rollback/pre-v1193-folha-transf` no tip `producao` **antes** do push |
+| **Validar pós** | Ctrl+F5 Folha saldo (salvar/padrão) · `/transferencias/` saldo 0 · 1 venda PDV |
+| **Próximo chat** | 1) rollback tag · 2) `deploy/folha-transf-v11.93` → `producao` · 3) migrate · 4) badge **11.93** |
+
 ### 📦 PACOTE — Folha saldo presets + transferência sem saldo+ (28/07)
 
 | Item | Detalhe |
