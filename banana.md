@@ -1171,91 +1171,90 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### FILA DEPLOY — próximo chat (28/07 · preparado · aguarda frase+senha)
+
+Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99738595`):
+
+| Ordem | Loja | Ref | Branch pronta | Migrate | Rollback |
+| ----- | ---- | --- | ------------- | ------- | -------- |
+| 1 | **11.94** | PDV-PIX-SICREDI | `deploy/pdv-pix-sicredi-v11.94` @ `06db8c8` | NÃO | `rollback/pre-v1194-pdv-pix-sicredi` |
+| 2 | **11.95** | ENTRADA-NF-UX (+ Nova limpa) | `deploy/entrada-nf-ux-v11.95` @ `425e16c` | NÃO | `rollback/pre-v1195-entrada-nf-ux` |
+| 3 | **11.96** | ETQ-GONDOLA | `deploy/etq-gondola-v11.96` @ `3ab66e9` | **SIM** `0067` | `rollback/pre-v1196-etq-gondola` |
+| 4 | **11.97** | TRANSF-FORCADA | `deploy/transf-forcada-v11.97` @ `cbc9a38` | NÃO | `rollback/pre-v1197-transf-forcada` |
+| 5 | **11.98** | PDV-ESTOQUE-VILA | `deploy/pdv-estoque-vila-v11.98` @ `e792363` | NÃO | `rollback/pre-v1198-pdv-estoque-vila` |
+
+**Já resolvido (não sobe de novo):**
+- **«v10.89» MP automático pós-abrir caixa** — código **já na loja** (v11.93+); checklist antigo enganava.
+- **«v10.90» Entrada NF Nova limpa** — **já dentro** do pacote **11.95** (`entradaNfeResetEditorParaNovaNota`).
+
+**Smoke 28/07:** `manage.py check` 0 · asserts pacote 10/10 · py_compile OK · DF-e **fora** de todos os deploys.
+
+**Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
+
 ### PACOTE PRONTO LOJA — Etiqueta Gôndola A4 (`ETQ-GONDOLA` · 28/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** — espera frase + senha `99738595` na **mesma mensagem** |
-| **VERSION alvo loja** | **11.96** (loja ~**11.93** · reservas: Pix **11.94** · Entrada NF **11.95**) |
+| **Status** | 📦 **pronto** · branch `deploy/etq-gondola-v11.96` @ **`3ab66e9`** · espera frase + senha |
+| **VERSION alvo loja** | **11.96** |
 | **O quê** | Preset **Gôndola A4** · 9×3 cm · 18/folha · marcas de corte · logo Agro Mais · R$ separado · centavos menores · peso **sem** texto «PESO:» · campo peso no cadastro |
 | **Migrate** | **SIM** — `0067_produto_overlay_peso_etiqueta` |
-| **Arquivos (só este pacote)** | `produtos_etiquetas*.js/html` · `logo_agro_mais.png` · `models.py` (`peso_etiqueta`) · `0067_…` · trechos cadastro (`_modal…` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html`) · `cadastro_alteracao_historico_util.py` · `views.py` (peso + historico etq) · `banana.md` |
-| **NÃO inclui** | Transferência · DF-e · Entrada NF · PDV Estoque Vila · Compras |
-| **Risco loja aberta** | **Baixo** — só etiquetas + 1 campo cadastro; PDV/caixa intocados |
-| **Checklist** | ✅ na **CHECKLIST ÚNICO** (Fila aberta) |
-| **Antes do cherry** | commit só arquivos deste pacote (branch ainda misturada) |
+| **Fonte teste** | `27c8436` |
+| **NÃO inclui** | Transferência · DF-e · Entrada NF · PDV Estoque Vila |
+| **Risco loja aberta** | **Baixo** — só etiquetas + 1 campo cadastro |
 | **Autorizar** | *pode subir etiquetas gôndola / produção* + **99738595** |
-| **Cherry** | só commits deste pacote · VERSION loja **11.96** · migrate `0067` no Render |
+| **Rollback** | `rollback/pre-v1196-etq-gondola` |
 
 ### PACOTE PRONTO LOJA — Transferência forçada Vila↔Centro (`TRANSF-FORCADA` · 28/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** — espera frase + senha `99738595` na **mesma mensagem** |
-| **VERSION alvo loja** | **11.97** (loja ~**11.93** · reservas: Pix **11.94** · Entrada NF **11.95** · Gôndola **11.96**) |
+| **Status** | 📦 **pronto** · branch `deploy/transf-forcada-v11.97` @ **`cbc9a38`** · espera frase + senha |
+| **VERSION alvo loja** | **11.97** |
 | **O quê** | Modal **Forçada Vila↔C** · carrinho (busca + colar) · direção **Vila→C** ou **C→Vila** · qtd com foco/Enter · altura fixa · ajuda no «?» |
 | **Migrate** | **NÃO** |
-| **Arquivos (só este pacote)** | `transferencias.html` · `estoque/views.py` · `config/urls.py` · `banana.md` |
-| **NÃO inclui** | Etiquetas · DF-e · Entrada NF · PDV · Compras |
-| **Risco loja aberta** | **Baixo** — só /transferencias/ forçada; PDV/caixa intocados |
-| **Checklist** | ✅ na **CHECKLIST ÚNICO** (Fila aberta) |
+| **Fonte teste** | `0391ca7` |
+| **NÃO inclui** | Etiquetas · DF-e · Entrada NF · PDV |
+| **Risco loja aberta** | **Baixo** — só /transferencias/ forçada |
 | **Autorizar** | *pode subir transferência forçada / produção* + **99738595** |
-| **Cherry** | só commits deste pacote · VERSION loja **11.97** |
-
-### WIP — Etiqueta Gôndola (nome + preço + peso) (28/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · ver `ETQ-GONDOLA` + CHECKLIST ÚNICO |
-| **Loja alvo** | **v11.96** · migrate **0067** |
+| **Rollback** | `rollback/pre-v1197-transf-forcada` |
 
 ### PACOTE PRONTO LOJA — PDV atalho «Estoque Vila» (`PDV-ESTOQUE-VILA` · 28/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** — espera frase + senha `99738595` na **mesma mensagem** |
-| **VERSION alvo loja** | **11.98** (loja ~**11.93** · reservas: Pix **11.94** · Entrada NF **11.95** · Gôndola **11.96** · Transf **11.97**) |
+| **Status** | 📦 **pronto** · branch `deploy/pdv-estoque-vila-v11.98` @ **`e792363`** · espera frase + senha |
+| **VERSION alvo loja** | **11.98** |
 | **O quê** | Botão **Estoque Vila** no PDV · 5 folhas no overlay · Folha saldo UX (Filtro salvo na 1ª tela · Mais opções = datas/preço/NCM) |
-| **Migrate** | **NÃO** (`0066` presets já na loja v11.93) |
-| **Arquivos (só este pacote)** | `pdv_wizard.html` · `pdv_wizard.js` · `compras.html` · `agro_pdv_overlay.js` · `compras_relatorio_saldo.html` · `banana.md` |
-| **NÃO inclui** | Etiquetas · Transferência · DF-e · Entrada NF · migrate · `models`/`views`/`urls` |
-| **Risco loja aberta** | **Baixo** — atalho + overlay; caixa/venda intocados |
-| **Checklist** | ✅ na **CHECKLIST ÚNICO** (Fila aberta) |
-| **Antes do cherry** | commit **só** os 5 arquivos (working tree ainda misturada com DF-e/etiquetas) · bump VERSION loja **11.98** |
-| **Autorizar** | *pode subir Estoque Vila / produção* + **99738595** |
-| **Smoke pré** | Ctrl+F5 PDV · 5 opções · Folha saldo · filtro salvo na tela principal · imprimir A4 |
-| **Cherry** | só commits deste pacote · VERSION loja **11.98** · **sem** migrate |
-
-### WIP — PDV atalho «Estoque Vila» (28/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · ver `PDV-ESTOQUE-VILA` + CHECKLIST ÚNICO |
-| **Loja alvo** | **v11.98** · sem migrate |
-
-### PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída (`ENTRADA-NF-UX` · 28/07)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no `teste` @ **78d26ee** (+ VERSION **11.83** @ **d60b700**) · **aguarda pausa + senha** no próximo chat |
-| **VERSION alvo loja** | **11.95** (loja hoje **11.93** · PDV-PIX já reserva **11.94**) |
-| **Inclui** | 1) Boleto 44→47 na coluna BOLETO · 2) Lista Concluída: nome limpo · Origem XML · chip «Sem a pagar» · carimbo financeiro não some |
-| **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` · `banana.md` |
-| **NÃO inclui** | DF-e inbox · SEFAZ caixa nova · Transferência · PDV · migrate nova |
 | **Migrate** | **NÃO** |
-| **Risco loja aberta** | **Baixo** — só Entrada NF (lista + financeiro parcelas); PDV/caixa/CP intocados |
-| **Smoke** | `manage.py check` 0 · algoritmo boleto 44→47 · `financeiro_ids` conta como lançado · sem `URL_DFE_INBOX` no template |
-| **Você (próximo chat)** | 1) lojas pausam vendas 2) «pode subir produção» + `99738595` 3) cherry só commits deste pacote · VERSION **11.95** · push `producao` · Ctrl+F5 Entrada NF |
-| **Validar pós** | filtro Concluída (nome/XML/verde) · bipar boleto 44→47 · 1 venda PDV ok |
+| **Fonte teste** | `2a6b5a3` |
+| **NÃO inclui** | Etiquetas · Transferência · DF-e · Entrada NF · migrate |
+| **Risco loja aberta** | **Baixo** — atalho + overlay |
+| **Autorizar** | *pode subir Estoque Vila / produção* + **99738595** |
+| **Rollback** | `rollback/pre-v1198-pdv-estoque-vila` |
+| **Smoke pós** | Ctrl+F5 PDV · 5 opções · Folha saldo · filtro salvo · imprimir A4 |
+
+### PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída + Nova limpa (`ENTRADA-NF-UX` · 28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto** · branch `deploy/entrada-nf-ux-v11.95` @ **`425e16c`** · espera frase + senha |
+| **VERSION alvo loja** | **11.95** |
+| **Inclui** | 1) Boleto 44→47 · 2) Lista Concluída (nome/XML/chip «Sem a pagar») · 3) **Nova limpa** (antigo «v10.90») |
+| **NÃO inclui** | DF-e inbox · Transferência · PDV · migrate |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** |
+| **Autorizar** | *pode subir Entrada NF UX / produção* + **99738595** |
+| **Rollback** | `rollback/pre-v1195-entrada-nf-ux` |
+| **Validar pós** | Concluída · boleto 44→47 · **Nova** em branco · 1 venda PDV |
 
 ### ðŸ“¦ PACOTE PRONTO LOJA â€” PDV Pix mÃ¡quina Sicredi (`PDV-PIX-SICREDI` Â· **v11.94**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸ“¦ **PRONTO PARA ENVIO PARA O PDV** Â· aguarda pausa + frase + senha |
-| **Branch loja** | `deploy/pdv-pix-sicredi-v11.94` @ **`aef7bfc`** (base `producao`) |
-| **TambÃ©m no teste** | este commit Â· VERSION teste **11.82** (badge loja = **11.94** no deploy) |
-| **Smoke OK** | lista + filtro notebook Â· sÃ³ 3 arquivos PDV Â· migrate **NÃƒO** |
+| **Status** | ðŸ“¦ **PRONTO** Â· branch `deploy/pdv-pix-sicredi-v11.94` @ **`06db8c8`** Â· aguarda frase + senha |
+| **VERSION alvo loja** | **11.94** |
+| **Smoke OK** | lista + filtro notebook Â· sÃ³ arquivos PDV Â· migrate **NÃƒO** |
 | **Risco loja aberta** | **Baixo** â€” sÃ³ adiciona opÃ§Ã£o Sicredi Pix |
 | **Autorizar** | *pode subir Sicredi Pix / PDV* + **99738595** |
 | **Rollback** | `rollback/pre-v1194-pdv-pix-sicredi` |
@@ -3344,35 +3343,31 @@ iews.py (compras enrich) |
 
 #### Agora
 
-| Quando | O quÃª |
+| Quando | O quê |
 | ------ | ----- |
-| **PDV** | **Estoque Vila** (PDV-ESTOQUE-VILA) — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja alvo **v11.98** · sem migrate · Filtro salvo na 1ª tela |
-| **Autorizar Estoque Vila** | *«pode subir Estoque Vila»* + **99738595** |
-| **Etiquetas** | **Gôndola A4** (ETQ-GONDOLA) — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja alvo **v11.96** · migrate **0067** · peso sem «PESO:» · logo Agro Mais · 18/folha |
-| **Autorizar ETQ** | *«pode subir etiquetas gôndola»* + **99738595** |
-| **P0 agora** | **Custo NF 77846** â€” **depois** de subir pacote **v11.54+** (fix custo pÃ³s-PIN): `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` Â· confere Cadastro GM0025 ~**90,42** (hoje **75,58**) |
-| **Entrada NF** | **Â«NovaÂ» limpa XML/dados** â€” ðŸ“¦ **PRONTO PARA ENVIO PARA PRODUÃ‡ÃƒO** Â· teste **v11.38** Â· loja alvo **v10.90** Â· commit `46add26` |
-| **Autorizar NF Nova** | *Â«pode subir para produÃ§Ã£oÂ»* + **99738595** |
-| **P0,1 agora** | **FL-057** â€” Render loja: ligar **PgBouncer** no `agro-db` + `DATABASE_URL` porta **6432** + restart web (cinto pÃ³s-incidente slots) |
-| **Fecha** | **MP automÃ¡tico apÃ³s abrir caixa** â€” ðŸ“¦ **PRONTO PARA ENVIO PARA PRODUÃ‡ÃƒO** Â· teste **v10.89** Â· **Obs.: testar em produÃ§Ã£o apÃ³s subir** |
-| **Autorizar MP refresh** | *Â«pode subir MP automÃ¡tico apÃ³s abrir caixaÂ»* + **99738595** |
-| **âœ… Loja v10.89** | Entrada NF V. unit no Mudar (21/07) |
-| **âœ… Loja v10.61** | **Aba 9 histÃ³rico** â€” enviado 18/07 Â· testar na loja (1 centavo â†’ 1 linha Â· DE = preÃ§o antigo) |
-| **Fecha** | **Kardex e-mail + Entrada NF Î”camada** â€” ðŸ“¦ **pronto pra envio** Â· teste **v9.92** Â· **ainda NÃƒO na loja** (conferido 18/07 noite) |
-| **Autorizar kardex** | *Â«pode subir kardex e-mail / Entrada NFÂ»* + **99738595** |
-| **âœ… Loja v10.60** | **Compras UI etapa 1** â€” enviado 18/07 Â· validar `/compras/` |
-| **âœ… Loja v9.91** | kardex Quem v1 (18/07) Â· v9.90 Fecha PDV/cadastro/NFC-e/relatÃ³rios (17/07) |
-| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260717:producao` |
+| **Fila deploy** | **11.94→11.98** prontos (CHECKPOINT «FILA DEPLOY») · próximo chat: frase + **99738595** |
+| **PDV Pix** | Sicredi — 📦 deploy/pdv-pix-sicredi-v11.94 · loja **v11.94** |
+| **Entrada NF** | UX boleto+lista+Nova — 📦 deploy/entrada-nf-ux-v11.95 · loja **v11.95** |
+| **Etiquetas** | Gôndola A4 — 📦 deploy/etq-gondola-v11.96 · migrate **0067** |
+| **Transferência** | Forçada Vila↔C — 📦 deploy/transf-forcada-v11.97 |
+| **PDV** | Estoque Vila — 📦 deploy/pdv-estoque-vila-v11.98 |
+| **✅ MP auto** | **já na loja** (antigo «v10.89» era engano) |
+| **P0 agora** | Custo NF 77846 — depois de subir v11.54+: 
+eaplicar_custos_entrada_nf --nf=77846 --aplicar |
+| **P0,1 agora** | FL-057 PgBouncer loja (painel Render) |
+| **✅ Loja v11.93** | Folha saldo + transf sem saldo+ (28/07) |
+| **Fecha** | Kardex e-mail + Δcamada — 📦 antigo **v9.92** (fora da fila 11.94–11.98) |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila (5 folhas overlay · Folha saldo UX) | 📦 **pronto para envio à produção** · loja **v11.98** · sem migrate |
-| **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 (9×3 · 18/folha · logo · R$ separado · peso cadastro) | 📦 **pronto para envio à produção** · loja **v11.96** · migrate **0067** |
-| **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro (carrinho + colar + direção) | 📦 **pronto para envio à produção** · loja **v11.97** · sem migrate |
+| **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | 📦 **pronto** · loja **v11.94** · deploy/pdv-pix-sicredi-v11.94 |
+| **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | 📦 **pronto** · loja **v11.95** · deploy/entrada-nf-ux-v11.95 |
+| **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | 📦 **pronto** · loja **v11.96** · migrate **0067** · deploy/etq-gondola-v11.96 |
+| **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | 📦 **pronto** · loja **v11.97** · deploy/transf-forcada-v11.97 |
+| **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | 📦 **pronto** · loja **v11.98** · deploy/pdv-estoque-vila-v11.98 |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
-| **P1** | Entrada NF | BotÃ£o **Nova** herdava XML/dados da nota anterior | ðŸ“¦ **PRONTO PARA ENVIO PARA PRODUÃ‡ÃƒO** Â· teste **v11.38** Â· loja **v10.90** |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saÃ­da fantasma (Î”camada) | ðŸ“¦ **pronto pra envio** Â· teste **v9.92** Â· **validar na loja apÃ³s envio** |
 | **P1** | Aba 9 | HistÃ³rico lÃ¡pis PDV: vÃ¡rias linhas DE=â€” Â· sem preÃ§o antigo | ðŸ“¦ **pronto pra envio** Â· teste **v10.01** Â· **validar na loja apÃ³s envio** |
