@@ -1398,17 +1398,18 @@
                 return;
             }
             const saldoV = Number(item.saldo_vila || 0);
-            if (saldoV <= 0) {
-                alert('Sem saldo na Vila Elias para transferir.');
-                return;
-            }
-            const def = item.qtde_transferir > 0 ? Number(item.qtde_transferir) : Math.min(1, saldoV);
+            // Permite transferir mesmo com Vila zerada/negativa (ajuste operacional / correção).
+            const def = item.qtde_transferir > 0 ? Number(item.qtde_transferir) : 1;
+            const avisoSaldo = saldoV <= 0
+                ? `\nAtenção: saldo Vila está ${saldoV.toFixed(1)} (pode ficar mais negativo).\n`
+                : '';
             const resposta = prompt(
                 `Vila Elias → Centro (somente no Agro)\n\n` +
                 `Produto: ${item.nome}\n` +
                 `Saldo Vila (operacional): ${saldoV.toFixed(1)}\n` +
-                `Saldo Centro (operacional): ${Number(item.saldo_centro || 0).toFixed(1)}\n\n` +
-                `Quantidade a mover para o Centro:`,
+                `Saldo Centro (operacional): ${Number(item.saldo_centro || 0).toFixed(1)}` +
+                avisoSaldo +
+                `\nQuantidade a mover para o Centro:`,
                 String(def)
             );
             if (resposta === null) return;
@@ -1417,9 +1418,10 @@
                 alert('Informe uma quantidade maior que zero.');
                 return;
             }
-            if (qtde > saldoV) {
-                alert(`Quantidade maior que o saldo na Vila (${saldoV.toFixed(1)}).`);
-                return;
+            if (qtde > saldoV && saldoV > 0) {
+                if (!confirm(`Quantidade (${qtde}) é maior que o saldo na Vila (${saldoV.toFixed(1)}).\nContinuar mesmo assim?`)) {
+                    return;
+                }
             }
             try {
                 const pin = await pedirPIN('Confirme a transferência Vila→Centro no Agro');

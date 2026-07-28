@@ -127,6 +127,16 @@ urlpatterns = [
         name='api_compras_relatorio_saldo',
     ),
     path(
+        'api/compras/folha-saldo-presets/',
+        views.api_compras_folha_saldo_presets,
+        name='api_compras_folha_saldo_presets',
+    ),
+    path(
+        'api/compras/folha-saldo-presets/<int:pk>/',
+        views.api_compras_folha_saldo_preset_detail,
+        name='api_compras_folha_saldo_preset_detail',
+    ),
+    path(
         'api/compras/relatorio-fornecedor/',
         views.api_compras_relatorio_fornecedor,
         name='api_compras_relatorio_fornecedor',

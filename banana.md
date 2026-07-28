@@ -1164,6 +1164,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 > **Regra (23/07 · Renan):** após deploy loja, **sempre limpar** badges «pronto para envio / aguarda senha» do que já subiu — status vira ✅ enviado / Live. Não deixar fila falsa.
 
+
+### 📦 PACOTE PRONTO LOJA — Folha saldo presets + transferência sem saldo+ (FOLHA-TRANSF · **v11.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto p/ próximo chat** — lojas abertas = **NÃO** subir agora · espera pausa + frase + senha `99738595` |
+| **Branch pronta** | `deploy/folha-transf-v11.93` (base `origin/producao` + cherry `1dfd369` resolvido) |
+| **Fonte teste** | `1dfd369` (feat) · tip teste `037f67b` |
+| **VERSION** | **loja 11.92 → 11.93** |
+| **Inclui** | 1) Folha saldo overlay maior + filtros salvos **online** (Postgres) + Padrão ★ · 2) Transferência Vila→C com saldo 0/negativo |
+| **NÃO inclui** | merge inteiro `teste` · PDV · caixa · CP · cadastro |
+| **Migrate** | **SIM** `produtos/0066_compras_folha_saldo_filtro_preset` (tabela nova — não mexe em venda) |
+| **Risco loja aberta** | Baixo no PDV/caixa (não toca) · Transferência fica **mais permissiva** (só quem usa a tela) · Folha saldo só em Compras |
+| **Smoke OK (agent)** | `manage.py check` · URLs presets · CRUD preset · HTML sem bloqueio antigo · cherry-pick código limpo (só VERSION/banana conflitavam) |
+| **Backup / reverter** | criar `rollback/pre-v1193-folha-transf` no tip `producao` **antes** do push |
+| **Validar pós-deploy** | Ctrl+F5 Compras→Folha saldo (salvar/padrão) · `/transferencias/` Vila→C com saldo 0 · 1 venda PDV |
+| **Próximo chat** | 1) tag rollback · 2) merge/push `deploy/folha-transf-v11.93` → `producao` · 3) migrate Render · 4) badge 11.93 |
 ### ✅ Deploy loja **v11.92** — Cadastro filtros + Folha saldo + Ajuste mobile (`CAD-COMPRAS-AJUSTE`) (28/07 · Renan frase+senha)
 
 | Item | Detalhe |

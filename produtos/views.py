@@ -163,6 +163,7 @@ from .entrega_pdv_pendente_util import (
 )
 from .models import (
     ClienteAgro,
+    ComprasFolhaSaldoFiltroPreset,
     ItemVendaAgro,
     LancamentoAtalhoFiltro,
     NfceDocumentoAgro,
@@ -11871,9 +11872,97 @@ def compras_relatorio_saldo_view(request):
         {
             "api_relatorio_url": reverse("api_compras_relatorio_saldo"),
             "api_facetas_url": reverse("api_produtos_gestao_facetas"),
+            "api_presets_url": reverse("api_compras_folha_saldo_presets"),
             "facetas": facetas,
         },
     )
+
+
+def _serializar_folha_saldo_preset(obj: ComprasFolhaSaldoFiltroPreset) -> dict:
+    return {
+        "id": obj.pk,
+        "nome": obj.nome,
+        "payload": obj.payload or {},
+        "is_padrao": bool(obj.is_padrao),
+        "atualizado_em": obj.atualizado_em.isoformat() if obj.atualizado_em else "",
+    }
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET", "POST"])
+def api_compras_folha_saldo_presets(request):
+    """Lista / cria filtros salvos da Folha de saldo (compartilhados na loja)."""
+    if request.method == "GET":
+        rows = list(ComprasFolhaSaldoFiltroPreset.objects.all()[:80])
+        padrao_id = next((r.pk for r in rows if r.is_padrao), None)
+        return JsonResponse(
+            {
+                "ok": True,
+                "presets": [_serializar_folha_saldo_preset(r) for r in rows],
+                "padrao_id": padrao_id,
+            }
+        )
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    nome = (body.get("nome") or "").strip()[:80]
+    if not nome:
+        return JsonResponse({"ok": False, "erro": "Informe um nome para o filtro."}, status=400)
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "erro": "payload deve ser objeto"}, status=400)
+    tornar_padrao = bool(body.get("tornar_padrao") or body.get("is_padrao"))
+    with transaction.atomic():
+        if tornar_padrao:
+            ComprasFolhaSaldoFiltroPreset.objects.filter(is_padrao=True).update(is_padrao=False)
+        obj = ComprasFolhaSaldoFiltroPreset.objects.create(
+            nome=nome,
+            payload=payload,
+            is_padrao=tornar_padrao,
+            criado_por=request.user if request.user.is_authenticated else None,
+        )
+    return JsonResponse({"ok": True, "preset": _serializar_folha_saldo_preset(obj)})
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["POST", "DELETE"])
+def api_compras_folha_saldo_preset_detail(request, pk: int):
+    """Atualiza / define padrão / exclui um filtro salvo."""
+    try:
+        obj = ComprasFolhaSaldoFiltroPreset.objects.get(pk=pk)
+    except ComprasFolhaSaldoFiltroPreset.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Filtro não encontrado"}, status=404)
+
+    if request.method == "DELETE":
+        obj.delete()
+        return JsonResponse({"ok": True})
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    with transaction.atomic():
+        if "nome" in body:
+            nome = (body.get("nome") or "").strip()[:80]
+            if not nome:
+                return JsonResponse({"ok": False, "erro": "Nome inválido"}, status=400)
+            obj.nome = nome
+        if "payload" in body:
+            payload = body.get("payload")
+            if not isinstance(payload, dict):
+                return JsonResponse({"ok": False, "erro": "payload deve ser objeto"}, status=400)
+            obj.payload = payload
+        if body.get("tornar_padrao") or body.get("is_padrao") is True:
+            ComprasFolhaSaldoFiltroPreset.objects.filter(is_padrao=True).exclude(pk=obj.pk).update(
+                is_padrao=False
+            )
+            obj.is_padrao = True
+        elif body.get("is_padrao") is False:
+            obj.is_padrao = False
+        obj.save()
+    return JsonResponse({"ok": True, "preset": _serializar_folha_saldo_preset(obj)})
 
 
 @require_GET

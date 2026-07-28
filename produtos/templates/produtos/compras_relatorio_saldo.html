@@ -39,14 +39,14 @@
       box-shadow: none;
       height: 100%;
     }
-    /* Filtros ERP — chips + dropdown (igual cadastro) */
+    /* Filtros ERP — chips + dropdown (igual cadastro) · tipografia maior no overlay */
     .cad-ms { position: relative; min-width: 0; }
     .cad-ms-btn {
-      display: inline-flex; align-items: center; gap: 0.3rem;
-      min-height: 2.25rem; max-width: 100%;
-      padding: 0.3rem 0.65rem; border-radius: 0.5rem;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      min-height: 2.75rem; max-width: 100%;
+      padding: 0.4rem 0.85rem; border-radius: 0.6rem;
       border: 1.5px solid #cbd5e1; background: #fff;
-      font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;
+      font-size: 0.8125rem; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.02em; color: #334155; cursor: pointer;
       white-space: nowrap;
     }
@@ -54,65 +54,99 @@
     .cad-ms-btn.is-on { border-color: #059669; background: #ecfdf5; color: #064e3b; }
     .cad-ms-btn .cad-ms-count {
       display: inline-flex; align-items: center; justify-content: center;
-      min-width: 1.25rem; height: 1.25rem; padding: 0 0.3rem;
+      min-width: 1.35rem; height: 1.35rem; padding: 0 0.35rem;
       border-radius: 999px; background: #059669; color: #fff;
-      font-size: 0.65rem; font-weight: 900;
+      font-size: 0.75rem; font-weight: 900;
     }
     .cad-ms-panel {
       position: absolute; z-index: 50; top: calc(100% + 0.25rem); left: 0;
-      width: min(18rem, calc(100vw - 2rem));
-      max-height: min(16rem, 42dvh);
+      width: min(22rem, calc(100vw - 2rem));
+      max-height: min(18rem, 48dvh);
       display: flex; flex-direction: column;
       border: 1.5px solid #a7f3d0; border-radius: 0.85rem;
       background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
     }
     .cad-ms-panel.hidden { display: none; }
     .cad-ms-panel input[type="search"] {
-      margin: 0.5rem; min-height: 2.25rem; padding: 0.35rem 0.65rem;
+      margin: 0.55rem; min-height: 2.5rem; padding: 0.4rem 0.7rem;
       border: 1.5px solid #e2e8f0; border-radius: 0.55rem;
-      font-size: 0.875rem; font-weight: 600; outline: none;
+      font-size: 1rem; font-weight: 600; outline: none;
     }
     .cad-ms-panel input[type="search"]:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
     .cad-ms-list { flex: 1 1 auto; overflow-y: auto; padding: 0.15rem 0.35rem 0.5rem; scrollbar-width: thin; }
     .cad-ms-opt {
-      display: flex; align-items: center; gap: 0.5rem;
-      width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.45rem;
-      font-size: 0.8125rem; font-weight: 600; color: #1e293b;
+      display: flex; align-items: center; gap: 0.55rem;
+      width: 100%; padding: 0.5rem 0.55rem; border-radius: 0.45rem;
+      font-size: 0.9375rem; font-weight: 600; color: #1e293b;
       cursor: pointer; text-align: left; background: transparent; border: 0;
     }
     .cad-ms-opt:hover { background: #f0fdf4; }
-    .cad-ms-opt input { width: 1rem; height: 1rem; accent-color: #059669; flex-shrink: 0; }
+    .cad-ms-opt input { width: 1.1rem; height: 1.1rem; accent-color: #059669; flex-shrink: 0; }
     .cad-f-chip {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      max-width: 14rem; min-height: 1.75rem; padding: 0.15rem 0.45rem 0.15rem 0.55rem;
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      max-width: 16rem; min-height: 2rem; padding: 0.2rem 0.5rem 0.2rem 0.65rem;
       border-radius: 999px; border: 1px solid #a7f3d0; background: #ecfdf5;
-      font-size: 0.7rem; font-weight: 700; color: #065f46;
+      font-size: 0.8125rem; font-weight: 700; color: #065f46;
     }
     .cad-f-chip button {
-      flex-shrink: 0; width: 1.15rem; height: 1.15rem; border-radius: 999px;
-      border: 0; background: #059669; color: #fff; font-size: 0.7rem; font-weight: 900;
+      flex-shrink: 0; width: 1.25rem; height: 1.25rem; border-radius: 999px;
+      border: 0; background: #059669; color: #fff; font-size: 0.75rem; font-weight: 900;
       line-height: 1; cursor: pointer;
     }
     .cad-f-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cad-filtros-bar {
-      display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 0.65rem;
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.65rem 0.85rem;
     }
     .cad-filtros-bar label > span {
-      display: block; font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.2rem;
+      display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; margin-bottom: 0.25rem;
     }
     .cad-filtros-bar select,
     .cad-filtros-bar input[type="date"],
     .cad-filtros-bar input[type="text"],
     .cad-filtros-bar input[type="search"] {
-      min-height: 2.25rem; border-radius: 0.5rem; border: 1.5px solid #cbd5e1;
-      background: #fff; padding: 0.25rem 0.55rem; font-size: 0.8125rem; font-weight: 700; color: #0f172a;
+      min-height: 2.75rem; border-radius: 0.6rem; border: 1.5px solid #cbd5e1;
+      background: #fff; padding: 0.35rem 0.65rem; font-size: 0.9375rem; font-weight: 700; color: #0f172a;
     }
     .cad-filtros-bar select:focus,
     .cad-filtros-bar input:focus {
       outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15);
     }
-    .cad-ms-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .cad-ms-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .folha-saldo-loja label {
+      font-size: 0.9375rem !important;
+      min-height: 2.75rem !important;
+      padding-left: 0.85rem !important;
+      padding-right: 0.85rem !important;
+    }
+    .folha-saldo-loja input[type="checkbox"] {
+      width: 1.15rem; height: 1.15rem;
+    }
+    .folha-saldo-presets {
+      display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem 0.65rem;
+      padding: 0.65rem 0.75rem; border-radius: 0.75rem;
+      border: 1.5px solid #dbeafe; background: #eff6ff;
+    }
+    .folha-saldo-presets label > span {
+      display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #1e40af; margin-bottom: 0.25rem;
+    }
+    .folha-saldo-presets select {
+      min-height: 2.75rem; min-width: 12rem; border-radius: 0.6rem;
+      border: 1.5px solid #93c5fd; background: #fff;
+      padding: 0.35rem 0.65rem; font-size: 0.9375rem; font-weight: 700; color: #0f172a;
+    }
+    .folha-saldo-presets .btn-p {
+      min-height: 2.75rem; padding: 0.35rem 0.85rem; border-radius: 0.6rem;
+      font-size: 0.75rem; font-weight: 900; text-transform: uppercase;
+      border: 1.5px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer;
+    }
+    .folha-saldo-presets .btn-p:hover { border-color: #3b82f6; background: #dbeafe; }
+    .folha-saldo-presets .btn-p.is-pri {
+      border-color: #1d4ed8; background: #2563eb; color: #fff;
+    }
+    .folha-saldo-presets .btn-p.is-pri:hover { background: #1d4ed8; }
+    .folha-saldo-presets .btn-p:disabled { opacity: 0.45; cursor: not-allowed; }
   </style>
   <script>
     (function () {
@@ -127,7 +161,7 @@
 <body class="min-h-[100dvh] bg-gradient-to-b from-emerald-50/80 via-slate-50 to-slate-100 text-slate-800 safe-pad">
 {% include "produtos/_gm_loading_bar.html" %}
 
-  <div class="mx-auto w-full max-w-3xl flex min-h-[100dvh] min-h-0 flex-col folha-saldo-shell px-2 sm:px-3">
+  <div class="mx-auto w-full max-w-5xl flex min-h-[100dvh] min-h-0 flex-col folha-saldo-shell px-2 sm:px-3">
     <header class="folha-saldo-top-nav shrink-0 flex flex-wrap items-start justify-between gap-3 pb-3">
       <div class="min-w-0">
         <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">SisVale · Compras</p>
@@ -141,27 +175,41 @@
     </header>
 
     <main class="folha-saldo-main flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-200/90 bg-white shadow-xl overflow-hidden">
-      <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 bg-emerald-50/50">
-        <span class="text-xs font-black uppercase text-emerald-950 tracking-wide">Montar folha</span>
+      <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 bg-emerald-50/50">
+        <span class="text-sm font-black uppercase text-emerald-950 tracking-wide">Montar folha</span>
         <div class="flex items-center gap-2">
-          <span id="saldo-facetas-status" class="text-[10px] font-semibold text-slate-500" role="status"></span>
+          <span id="saldo-facetas-status" class="text-xs font-semibold text-slate-500" role="status"></span>
           <details class="relative">
-            <summary class="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-sm hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
-            <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+            <summary class="list-none inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-base hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+            <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
               <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
               <p>Marque <strong>Centro</strong> e/ou <strong>Vila Elias</strong>. As duas = soma no saldo.</p>
               <p>Filtros iguais ao cadastro: clique em Marca/Categoria… e marque na lista (com busca).</p>
+              <p><strong>Filtros salvos</strong> ficam no servidor — valem para todos os PCs da loja. Um pode ser o <strong>padrão</strong> (abre sozinho).</p>
               <p><strong>A4</strong> e <strong>A5</strong> para folha; <strong>80 mm</strong> para impressora térmica.</p>
             </div>
           </details>
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3">
-        <div id="saldo-f-chips" class="flex flex-wrap gap-1 empty:hidden" aria-live="polite"></div>
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        <div class="folha-saldo-presets" aria-label="Filtros salvos na loja">
+          <label class="min-w-0 flex-1">
+            <span>Filtro salvo (loja)</span>
+            <select id="saldo-preset-sel">
+              <option value="">— escolher —</option>
+            </select>
+          </label>
+          <button type="button" id="saldo-preset-aplicar" class="btn-p is-pri" disabled>Aplicar</button>
+          <button type="button" id="saldo-preset-salvar" class="btn-p">Salvar atual</button>
+          <button type="button" id="saldo-preset-padrao" class="btn-p" disabled title="Abre sozinho para todos">Padrão ★</button>
+          <button type="button" id="saldo-preset-excluir" class="btn-p" disabled>Excluir</button>
+        </div>
+
+        <div id="saldo-f-chips" class="flex flex-wrap gap-1.5 empty:hidden" aria-live="polite"></div>
 
         <div class="cad-filtros-bar">
-          <label class="min-w-[6.5rem]">
+          <label class="min-w-[7.5rem]">
             <span>Papel</span>
             <select id="saldo-papel">
               <option value="A4" selected>A4</option>
@@ -169,7 +217,7 @@
               <option value="80mm">Cupom 80 mm</option>
             </select>
           </label>
-          <label class="min-w-[7rem]">
+          <label class="min-w-[8rem]">
             <span>Estoque</span>
             <select id="saldo-f-estoque-sinal">
               <option value="">Qualquer</option>
@@ -178,24 +226,24 @@
               <option value="zero">Zerado</option>
             </select>
           </label>
-          <label class="flex-1 min-w-[12rem]">
+          <label class="flex-1 min-w-[14rem]">
             <span>Busca (opcional)</span>
             <input type="search" id="saldo-q" autocomplete="off" placeholder="Nome, GM, código…" />
           </label>
         </div>
 
-        <div class="flex flex-wrap gap-2 items-center">
-          <label class="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-lg border-2 border-emerald-300 bg-emerald-50 text-sm font-bold text-emerald-950">
-            <input type="checkbox" id="saldo-loja-centro" class="w-4 h-4 accent-emerald-600" checked /> Centro
+        <div class="folha-saldo-loja flex flex-wrap gap-2.5 items-center">
+          <label class="inline-flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 font-bold text-emerald-950">
+            <input type="checkbox" id="saldo-loja-centro" class="accent-emerald-600" checked /> Centro
           </label>
-          <label class="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-lg border-2 border-sky-300 bg-sky-50 text-sm font-bold text-sky-950">
-            <input type="checkbox" id="saldo-loja-vila" class="w-4 h-4 accent-sky-600" checked /> Vila Elias
+          <label class="inline-flex items-center gap-2 rounded-lg border-2 border-sky-300 bg-sky-50 font-bold text-sky-950">
+            <input type="checkbox" id="saldo-loja-vila" class="accent-sky-600" checked /> Vila Elias
           </label>
-          <label class="inline-flex items-center gap-2 min-h-[40px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700">
-            <input type="checkbox" id="saldo-omit-zero" class="w-4 h-4 accent-emerald-600" /> Esconder zerados
+          <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+            <input type="checkbox" id="saldo-omit-zero" class="accent-emerald-600" /> Esconder zerados
           </label>
-          <label class="inline-flex items-center gap-2 min-h-[40px] px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700">
-            <input type="checkbox" id="saldo-somente-ativos" class="w-4 h-4 accent-emerald-600" checked /> Somente ativos
+          <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+            <input type="checkbox" id="saldo-somente-ativos" class="accent-emerald-600" checked /> Somente ativos
           </label>
         </div>
 
@@ -209,12 +257,12 @@
         </div>
 
         <details class="rounded-lg border border-slate-200 bg-slate-50/80">
-          <summary class="cursor-pointer list-none px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+          <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
             <span>Mais · data, sub 2–4, preço, NCM</span>
             <span class="text-slate-400 font-black" aria-hidden="true">▾</span>
           </summary>
-          <div class="cad-filtros-bar px-3 pb-3 pt-1 border-t border-slate-100">
-            <label class="min-w-[8rem]">
+          <div class="cad-filtros-bar px-3 pb-3 pt-2 border-t border-slate-100">
+            <label class="min-w-[9rem]">
               <span>Tipo de data</span>
               <select id="saldo-f-data-tipo">
                 <option value="cadastro">Cadastro</option>
@@ -222,16 +270,16 @@
                 <option value="ultima_nf">Última Entrada NF</option>
               </select>
             </label>
-            <label class="min-w-[7.5rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
-            <label class="min-w-[7.5rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
+            <label class="min-w-[8rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
+            <label class="min-w-[8rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
             <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
             <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
             <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-            <label class="min-w-[5.5rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[5.5rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[5.5rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[5.5rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[6.5rem]">
+            <label class="min-w-[6rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[6rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[6rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[6rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+            <label class="min-w-[7rem]">
               <span>NCM</span>
               <select id="saldo-f-ncm">
                 <option value="">Qualquer</option>
@@ -239,23 +287,23 @@
                 <option value="sem">Sem NCM</option>
               </select>
             </label>
-            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-sem-marca" class="w-3.5 h-3.5 accent-emerald-600" /> Sem marca
+            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-sem-marca" class="w-4 h-4 accent-emerald-600" /> Sem marca
             </label>
-            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-sem-cat" class="w-3.5 h-3.5 accent-emerald-600" /> Sem categoria
+            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-sem-cat" class="w-4 h-4 accent-emerald-600" /> Sem categoria
             </label>
-            <label class="inline-flex items-center gap-1.5 min-h-[36px] px-2 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-somente-agro" class="w-3.5 h-3.5 accent-emerald-600" /> Só Agro
+            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+              <input type="checkbox" id="saldo-f-somente-agro" class="w-4 h-4 accent-emerald-600" /> Só Agro
             </label>
           </div>
         </details>
       </div>
 
-      <div class="shrink-0 border-t border-slate-100 bg-slate-50/90 px-3 sm:px-4 py-3 flex flex-wrap items-center gap-2">
-        <button type="button" id="saldo-btn-imprimir" class="flex-1 min-w-[10rem] min-h-[48px] rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-sm">Imprimir saldo</button>
-        <button type="button" id="saldo-btn-limpar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold uppercase text-xs hover:bg-slate-50">Limpar</button>
-        <p id="saldo-status" class="w-full text-xs font-semibold text-slate-500" role="status"></p>
+      <div class="shrink-0 border-t border-slate-100 bg-slate-50/90 px-4 py-3.5 flex flex-wrap items-center gap-2.5">
+        <button type="button" id="saldo-btn-imprimir" class="flex-1 min-w-[12rem] min-h-[52px] rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white font-black uppercase text-base hover:bg-emerald-700 shadow-sm">Imprimir saldo</button>
+        <button type="button" id="saldo-btn-limpar" class="min-h-[52px] px-5 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold uppercase text-sm hover:bg-slate-50">Limpar</button>
+        <p id="saldo-status" class="w-full text-sm font-semibold text-slate-500" role="status"></p>
       </div>
     </main>
   </div>
@@ -265,6 +313,7 @@
 (function () {
   var API = "{{ api_relatorio_url|escapejs }}";
   var FACETAS_URL = "{{ api_facetas_url|escapejs }}";
+  var PRESETS_URL = "{{ api_presets_url|escapejs }}";
 
   var msFacetas = {
     marca: [], categoria: [], subcategoria: [],
@@ -281,11 +330,21 @@
     subcategoria_2: 'Sub 2', subcategoria_3: 'Sub 3', subcategoria_4: 'Sub 4',
     fornecedor: 'Fornecedor', unidade: 'Unidade', modelo: 'Modelo'
   };
+  var presetsCache = [];
 
   function el(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function presetDetailUrl(id) {
+    var base = PRESETS_URL || '';
+    if (!base) return '';
+    return base.replace(/\/?$/, '/') + String(id) + '/';
   }
   function norm(s) {
     return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -505,6 +564,207 @@
     setStatus('');
   }
 
+  function capturePayload() {
+    var out = {
+      papel: (el('saldo-papel') && el('saldo-papel').value) || 'A4',
+      loja_centro: !!(el('saldo-loja-centro') && el('saldo-loja-centro').checked),
+      loja_vila: !!(el('saldo-loja-vila') && el('saldo-loja-vila').checked),
+      omit_zero: !!(el('saldo-omit-zero') && el('saldo-omit-zero').checked),
+      somente_ativos: !!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked),
+      q: el('saldo-q') ? el('saldo-q').value.trim() : '',
+      estoque_sinal: (el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value) || '',
+      data_tipo: (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro',
+      data_de: (el('saldo-f-data-de') && el('saldo-f-data-de').value) || '',
+      data_ate: (el('saldo-f-data-ate') && el('saldo-f-data-ate').value) || '',
+      custo_min: (el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim()) || '',
+      custo_max: (el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim()) || '',
+      venda_min: (el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim()) || '',
+      venda_max: (el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim()) || '',
+      ncm: (el('saldo-f-ncm') && el('saldo-f-ncm').value) || '',
+      sem_marca: !!(el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked),
+      sem_categoria: !!(el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked),
+      somente_agro: !!(el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked)
+    };
+    Object.keys(msSelected).forEach(function (k) {
+      out[k] = (msSelected[k] || []).slice();
+    });
+    return out;
+  }
+
+  function applyPayload(p) {
+    if (!p || typeof p !== 'object') return;
+    limparFiltros();
+    if (el('saldo-papel') && p.papel) el('saldo-papel').value = p.papel;
+    if (el('saldo-loja-centro')) el('saldo-loja-centro').checked = typeof p.loja_centro === 'boolean' ? p.loja_centro : true;
+    if (el('saldo-loja-vila')) el('saldo-loja-vila').checked = typeof p.loja_vila === 'boolean' ? p.loja_vila : true;
+    if (el('saldo-omit-zero')) el('saldo-omit-zero').checked = !!p.omit_zero;
+    if (el('saldo-somente-ativos')) el('saldo-somente-ativos').checked = p.somente_ativos !== false;
+    if (el('saldo-q')) el('saldo-q').value = p.q || '';
+    if (el('saldo-f-estoque-sinal')) el('saldo-f-estoque-sinal').value = p.estoque_sinal || '';
+    if (el('saldo-f-data-tipo')) el('saldo-f-data-tipo').value = p.data_tipo || 'cadastro';
+    if (el('saldo-f-data-de')) el('saldo-f-data-de').value = p.data_de || '';
+    if (el('saldo-f-data-ate')) el('saldo-f-data-ate').value = p.data_ate || '';
+    if (el('saldo-f-custo-min')) el('saldo-f-custo-min').value = p.custo_min || '';
+    if (el('saldo-f-custo-max')) el('saldo-f-custo-max').value = p.custo_max || '';
+    if (el('saldo-f-venda-min')) el('saldo-f-venda-min').value = p.venda_min || '';
+    if (el('saldo-f-venda-max')) el('saldo-f-venda-max').value = p.venda_max || '';
+    if (el('saldo-f-ncm')) el('saldo-f-ncm').value = p.ncm || '';
+    if (el('saldo-f-sem-marca')) el('saldo-f-sem-marca').checked = !!p.sem_marca;
+    if (el('saldo-f-sem-cat')) el('saldo-f-sem-cat').checked = !!p.sem_categoria;
+    if (el('saldo-f-somente-agro')) el('saldo-f-somente-agro').checked = !!p.somente_agro;
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = Array.isArray(p[k]) ? p[k].map(String).filter(Boolean) : [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+  }
+
+  function syncPresetButtons() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value ? String(sel.value) : '';
+    var has = !!id;
+    if (el('saldo-preset-aplicar')) el('saldo-preset-aplicar').disabled = !has;
+    if (el('saldo-preset-padrao')) el('saldo-preset-padrao').disabled = !has;
+    if (el('saldo-preset-excluir')) el('saldo-preset-excluir').disabled = !has;
+  }
+
+  function renderPresetSelect(selectedId, padraoId) {
+    var sel = el('saldo-preset-sel');
+    if (!sel) return;
+    var cur = selectedId != null ? String(selectedId) : (sel.value || '');
+    var html = '<option value="">— escolher —</option>';
+    (presetsCache || []).forEach(function (pr) {
+      var mark = pr.is_padrao || String(pr.id) === String(padraoId) ? ' ★' : '';
+      html += '<option value="' + esc(String(pr.id)) + '">' + esc(pr.nome) + mark + '</option>';
+    });
+    sel.innerHTML = html;
+    if (cur) sel.value = cur;
+    syncPresetButtons();
+  }
+
+  function carregarPresets(opts) {
+    opts = opts || {};
+    if (!PRESETS_URL) return Promise.resolve();
+    return fetch(PRESETS_URL + (PRESETS_URL.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao listar filtros');
+        presetsCache = j.presets || [];
+        var padraoId = j.padrao_id;
+        renderPresetSelect(opts.keepId, padraoId);
+        if (opts.applyPadrao && padraoId) {
+          var pr = presetsCache.find(function (x) { return String(x.id) === String(padraoId); });
+          if (pr) {
+            applyPayload(pr.payload || {});
+            if (el('saldo-preset-sel')) el('saldo-preset-sel').value = String(pr.id);
+            syncPresetButtons();
+            setStatus('Filtro padrão aplicado: ' + (pr.nome || ''));
+          }
+        }
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Não deu para carregar filtros salvos', true);
+      });
+  }
+
+  function salvarPresetAtual() {
+    var nome = window.prompt('Nome deste filtro (aparece em todos os PCs da loja):');
+    if (nome == null) return;
+    nome = String(nome).trim().slice(0, 80);
+    if (!nome) {
+      setStatus('Informe um nome.', true);
+      return;
+    }
+    var tornar = window.confirm('Definir este filtro como padrão? (abre sozinho para todos)');
+    fetch(PRESETS_URL, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken()
+      },
+      body: JSON.stringify({ nome: nome, payload: capturePayload(), tornar_padrao: tornar })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao salvar');
+        setStatus('Filtro salvo' + (tornar ? ' e marcado como padrão' : '') + '.');
+        return carregarPresets({ keepId: x.j.preset && x.j.preset.id });
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao salvar filtro', true);
+      });
+  }
+
+  function aplicarPresetSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var pr = presetsCache.find(function (x) { return String(x.id) === String(id); });
+    if (!pr) {
+      setStatus('Filtro não encontrado — recarregue a lista.', true);
+      return;
+    }
+    applyPayload(pr.payload || {});
+    setStatus('Filtro aplicado: ' + (pr.nome || ''));
+  }
+
+  function tornarPadraoSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var url = presetDetailUrl(id);
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken()
+      },
+      body: JSON.stringify({ tornar_padrao: true })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha');
+        setStatus('Padrão definido para toda a loja.');
+        return carregarPresets({ keepId: id });
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao definir padrão', true);
+      });
+  }
+
+  function excluirPresetSelecionado() {
+    var sel = el('saldo-preset-sel');
+    var id = sel && sel.value;
+    if (!id) return;
+    var pr = presetsCache.find(function (x) { return String(x.id) === String(id); });
+    if (!window.confirm('Excluir o filtro «' + ((pr && pr.nome) || id) + '»? Vale para todos os PCs.')) return;
+    fetch(presetDetailUrl(id), {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-CSRFToken': csrfToken() }
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha');
+        setStatus('Filtro excluído.');
+        return carregarPresets();
+      })
+      .catch(function (err) {
+        setStatus((err && err.message) || 'Erro ao excluir', true);
+      });
+  }
+
   function fmtSaldo(n) {
     var x = Number(n);
     if (!isFinite(x)) return '—';
@@ -622,6 +882,13 @@
   }
   msWire();
   carregarFacetasApi();
+  carregarPresets({ applyPadrao: true });
+
+  el('saldo-preset-sel') && el('saldo-preset-sel').addEventListener('change', syncPresetButtons);
+  el('saldo-preset-aplicar') && el('saldo-preset-aplicar').addEventListener('click', aplicarPresetSelecionado);
+  el('saldo-preset-salvar') && el('saldo-preset-salvar').addEventListener('click', salvarPresetAtual);
+  el('saldo-preset-padrao') && el('saldo-preset-padrao').addEventListener('click', tornarPadraoSelecionado);
+  el('saldo-preset-excluir') && el('saldo-preset-excluir').addEventListener('click', excluirPresetSelecionado);
 
   el('saldo-btn-limpar') && el('saldo-btn-limpar').addEventListener('click', limparFiltros);
   el('saldo-btn-imprimir') && el('saldo-btn-imprimir').addEventListener('click', function () {

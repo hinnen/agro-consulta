@@ -212,13 +212,7 @@ def _transferir_vila_para_centro_exec(
         saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
         saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
 
-    if qtd > saldo_ag_v:
-        return {
-            "ok": False,
-            "erro": f"Quantidade maior que o saldo na Vila ({float(saldo_ag_v):.3f}).",
-            "status": 400,
-        }
-
+    # Permite qtd > saldo Vila (zerado/negativo) — correção operacional na camada Agro.
     novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
     novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
 
