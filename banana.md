@@ -1173,7 +1173,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | no `teste` · **aguarda pausa loja + frase + senha** no próximo chat |
+| **Status** | ✅ no `teste` @ **78d26ee** (+ VERSION **11.83** @ **d60b700**) · **aguarda pausa + senha** no próximo chat |
 | **VERSION alvo loja** | **11.95** (loja hoje **11.93** · PDV-PIX já reserva **11.94**) |
 | **Inclui** | 1) Boleto 44→47 na coluna BOLETO · 2) Lista Concluída: nome limpo · Origem XML · chip «Sem a pagar» · carimbo financeiro não some |
 | **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` · `banana.md` |
