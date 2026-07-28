@@ -1190,7 +1190,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · **v11.81** · branch `fix/transferencia-sem-saldo-positivo` · **validar no PC** · migrate **`0066`** no deploy loja |
+| **Status** | ✅ no `teste` · pacote loja = branch **`deploy/folha-transf-v11.93`** (v11.93) · **aguarda pausa + senha** |
 | **1 · Folha saldo** | Overlay maior + fontes · filtros salvos **online** (Postgres) · Padrão ★ global · migrate **`0066`** |
 | **2 · Transferência** | Vila→C mesmo com saldo 0/negativo · aviso/confirma se qtd > saldo |
 | **Arquivos** | `compras_relatorio_saldo.html` · `compras.html` · `models.py` · `views.py` · `urls.py` · `0066_…` · `transferencias.html` · `estoque/views.py` |
