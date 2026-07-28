@@ -750,6 +750,9 @@ def _linha_gestao_produto_json(
         "categoria": cat,
         "fornecedor": forn,
         "unidade": unidade,
+        "peso_etiqueta": (
+            str(getattr(ov, "peso_etiqueta", "") or "").strip() if ov else ""
+        ),
         "preco_custo": round(p_custo, 2),
         "preco_venda": round(pv, 2),
         "saldo_centro": round(sc, 2),
@@ -790,6 +793,7 @@ def _aplicar_produto_gestao_overlay_em_dict(
             row["fornecedor"] = ov.fornecedor_texto.strip()
         if ov.unidade.strip():
             row["unidade"] = ov.unidade.strip()
+        row["peso_etiqueta"] = str(getattr(ov, "peso_etiqueta", "") or "").strip()
         if ov.preco_venda is not None:
             row["preco_venda"] = round(float(ov.preco_venda), 2)
         if ov.codigo_barras.strip():
@@ -2271,6 +2275,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         ov.fornecedor_texto = _txt("fornecedor_texto", 300)
     if "unidade" in payload:
         ov.unidade = _txt("unidade", 20)
+    if "peso_etiqueta" in payload:
+        ov.peso_etiqueta = _txt("peso_etiqueta", 40)
     if "codigo_barras" in payload:
         ov.codigo_barras = _txt("codigo_barras", 80)
     if "codigo_nfe" in payload:
@@ -12229,6 +12235,7 @@ def _etiquetas_normalizar_itens_json(raw) -> list[dict]:
                 "codigo_gm": str(it.get("codigo_gm") or "")[:80],
                 "codigo_barras": str(it.get("codigo_barras") or "")[:80],
                 "preco_venda": preco,
+                "peso_etiqueta": str(it.get("peso_etiqueta") or "")[:40],
                 "qtd": max(1, min(qtd, 999)),
             }
         )

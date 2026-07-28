@@ -6,6 +6,7 @@
   var DEFAULT_PRESET = {
     id: 'padrao-4x4',
     nome: '4×4 padrão',
+    estilo: 'termica',
     largura_mm: 40,
     altura_mm: 40,
     nome_pt: 8,
@@ -17,6 +18,49 @@
     texto_rodape: 'Gm Agro Mais',
     impressora: '',
   };
+
+  var DEFAULT_GONDOLA_LAYOUT = {
+    nome: { x: 0, y: 0, w: 100, h: 32 },
+    rs: { x: 10, y: 40, w: 16, h: 36 },
+    preco: { x: 26, y: 36, w: 58, h: 42 },
+    logo: { x: 2, y: 74, w: 14, h: 22 },
+    peso: { x: 20, y: 78, w: 78, h: 18 },
+  };
+
+  var DEFAULT_GONDOLA_PRESET = {
+    id: 'gondola',
+    nome: 'Gôndola A4',
+    estilo: 'gondola',
+    folha: 'a4',
+    largura_mm: 90,
+    altura_mm: 30,
+    nome_pt: 10,
+    preco_pt: 20,
+    rs_pt: 11,
+    peso_pt: 7,
+    codigo_pt: 7,
+    rodape_pt: 8,
+    barcode_height: 26,
+    barcode_width: 1.05,
+    texto_rodape: '',
+    impressora: '',
+    show_logo: true,
+    cols_folha: 2,
+    rows_folha: 9,
+    cores: {
+      faixa_bg: '#1a4d2e',
+      faixa_fg: '#ffffff',
+      fundo: '#ffffff',
+      preco_fg: '#1a4d2e',
+      rs_fg: '#1a4d2e',
+      peso_fg: '#1a4d2e',
+      borda: '#1a4d2e',
+      marca_corte: '#94a3b8',
+    },
+    layout: JSON.parse(JSON.stringify(DEFAULT_GONDOLA_LAYOUT)),
+  };
+
+  var LOGO_AGRO_URL = '/static/produtos/img/logo_agro_mais.png';
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -172,19 +216,68 @@
     return JSON.parse(JSON.stringify(p));
   }
 
+  function ehGondola(preset) {
+    return String((preset && preset.estilo) || '') === 'gondola';
+  }
+
+  function normalizarPreset(p) {
+    if (!p || typeof p !== 'object') return clonePreset(DEFAULT_PRESET);
+    var out = clonePreset(p);
+    if (!out.estilo) out.estilo = out.id === 'gondola' ? 'gondola' : 'termica';
+    if (ehGondola(out)) {
+      out.folha = 'a4';
+      if (!out.cols_folha) out.cols_folha = 2;
+      if (!out.rows_folha) out.rows_folha = 9;
+      /* Força padrão 9×3 cm se ainda no seed antigo 90×35. */
+      if (Number(out.largura_mm) === 90 && Number(out.altura_mm) === 35) {
+        out.altura_mm = 30;
+      }
+      if (!out.largura_mm) out.largura_mm = 90;
+      if (!out.altura_mm) out.altura_mm = 30;
+      if (!out.cores || typeof out.cores !== 'object') {
+        out.cores = clonePreset(DEFAULT_GONDOLA_PRESET.cores);
+      } else {
+        Object.keys(DEFAULT_GONDOLA_PRESET.cores).forEach(function (k) {
+          if (!out.cores[k]) out.cores[k] = DEFAULT_GONDOLA_PRESET.cores[k];
+        });
+      }
+      if (!out.layout || typeof out.layout !== 'object') {
+        out.layout = clonePreset(DEFAULT_GONDOLA_LAYOUT);
+      } else {
+        Object.keys(DEFAULT_GONDOLA_LAYOUT).forEach(function (k) {
+          if (!out.layout[k]) out.layout[k] = clonePreset(DEFAULT_GONDOLA_LAYOUT[k]);
+        });
+      }
+      if (out.peso_pt == null) out.peso_pt = 7;
+      if (out.rs_pt == null) out.rs_pt = 11;
+      if (out.show_logo == null) out.show_logo = true;
+      if (!out.nome || out.nome === 'Gôndola') out.nome = 'Gôndola A4';
+    }
+    return out;
+  }
+
+  function ensureSeedPresets(presets) {
+    var list = Array.isArray(presets) ? presets.map(normalizarPreset) : [];
+    if (!list.length) list = [clonePreset(DEFAULT_PRESET)];
+    var hasGondola = list.some(function (p) {
+      return p.id === 'gondola' || ehGondola(p);
+    });
+    if (!hasGondola) list.push(clonePreset(DEFAULT_GONDOLA_PRESET));
+    return list;
+  }
+
   function loadStorage() {
     try {
       var raw = localStorage.getItem(LS_KEY);
       if (!raw) {
         return {
-          presets: [clonePreset(DEFAULT_PRESET)],
+          presets: [clonePreset(DEFAULT_PRESET), clonePreset(DEFAULT_GONDOLA_PRESET)],
           preset_ativo: DEFAULT_PRESET.id,
           texto_rodape_global: DEFAULT_PRESET.texto_rodape,
         };
       }
       var data = JSON.parse(raw);
-      var presets =
-        Array.isArray(data.presets) && data.presets.length ? data.presets : [clonePreset(DEFAULT_PRESET)];
+      var presets = ensureSeedPresets(data.presets);
       return {
         presets: presets,
         preset_ativo: data.preset_ativo || presets[0].id,
@@ -192,7 +285,7 @@
       };
     } catch (e) {
       return {
-        presets: [clonePreset(DEFAULT_PRESET)],
+        presets: [clonePreset(DEFAULT_PRESET), clonePreset(DEFAULT_GONDOLA_PRESET)],
         preset_ativo: DEFAULT_PRESET.id,
         texto_rodape_global: DEFAULT_PRESET.texto_rodape,
       };
@@ -233,11 +326,264 @@
       ).trim(),
       codigo_barras: String(prod.codigo_barras || prod.ean || prod.gtin || '').trim(),
       preco_venda: Number(prod.preco_venda) || 0,
+      peso_etiqueta: String(prod.peso_etiqueta || '').trim(),
       qtd: qtd > 0 ? qtd : 1,
     };
   }
 
-  function montarHtmlImpressao(preset, itens, textoRodape) {
+  function fmtPesoEtiqueta(peso) {
+    var t = String(peso || '').trim();
+    if (!t) return '';
+    t = t.replace(/^peso\s*:?\s*/i, '').trim();
+    return t.toUpperCase();
+  }
+
+  function splitPrecoParts(v) {
+    var s = fmtPreco(v);
+    var i = s.indexOf(',');
+    if (i < 0) return { inteiro: s || '0', centavos: ',00' };
+    return { inteiro: s.slice(0, i) || '0', centavos: s.slice(i) };
+  }
+
+  function logoImgMarkup() {
+    return (
+      '<img src="' +
+      esc(LOGO_AGRO_URL) +
+      '" alt="Agro Mais" style="width:100%;height:100%;object-fit:contain;display:block" />'
+    );
+  }
+
+  function boxCss(box) {
+    var b = box || { x: 0, y: 0, w: 100, h: 20 };
+    return (
+      'left:' +
+      Number(b.x) +
+      '%;top:' +
+      Number(b.y) +
+      '%;width:' +
+      Number(b.w) +
+      '%;height:' +
+      Number(b.h) +
+      '%'
+    );
+  }
+
+  function marcasCorteHtml(xMm, yMm, wMm, hMm, cor) {
+    var c = cor || '#94a3b8';
+    var L = 2.2;
+    var o = 0.15;
+    function line(x1, y1, x2, y2) {
+      return (
+        '<line x1="' +
+        x1 +
+        '" y1="' +
+        y1 +
+        '" x2="' +
+        x2 +
+        '" y2="' +
+        y2 +
+        '" stroke="' +
+        esc(c) +
+        '" stroke-width="0.25" />'
+      );
+    }
+    /* Cruzetas nos 4 cantos, para fora da etiqueta. */
+    var parts = [];
+    /* TL */
+    parts.push(line(xMm - L, yMm - o, xMm + L * 0.35, yMm - o));
+    parts.push(line(xMm - o, yMm - L, xMm - o, yMm + L * 0.35));
+    /* TR */
+    parts.push(line(xMm + wMm - L * 0.35, yMm - o, xMm + wMm + L, yMm - o));
+    parts.push(line(xMm + wMm + o, yMm - L, xMm + wMm + o, yMm + L * 0.35));
+    /* BL */
+    parts.push(line(xMm - L, yMm + hMm + o, xMm + L * 0.35, yMm + hMm + o));
+    parts.push(line(xMm - o, yMm + hMm - L * 0.35, xMm - o, yMm + hMm + L));
+    /* BR */
+    parts.push(line(xMm + wMm - L * 0.35, yMm + hMm + o, xMm + wMm + L, yMm + hMm + o));
+    parts.push(line(xMm + wMm + o, yMm + hMm - L * 0.35, xMm + wMm + o, yMm + hMm + L));
+    return parts.join('');
+  }
+
+  function montarConteudoEtiquetaGondola(lb, layout, showLogo) {
+    var precoHtml =
+      '<span class="preco-int">' +
+      esc(lb.inteiro) +
+      '</span><span class="preco-cent">' +
+      esc(lb.centavos) +
+      '</span>';
+    var html =
+      '<div class="slot slot-nome" style="' +
+      boxCss(layout.nome) +
+      '">' +
+      esc(lb.nome) +
+      '</div>' +
+      '<div class="slot slot-rs" style="' +
+      boxCss(layout.rs) +
+      '">R$</div>' +
+      '<div class="slot slot-preco" style="' +
+      boxCss(layout.preco) +
+      '">' +
+      precoHtml +
+      '</div>';
+    if (showLogo) {
+      html +=
+        '<div class="slot slot-logo" style="' +
+        boxCss(layout.logo) +
+        '">' +
+        logoImgMarkup() +
+        '</div>';
+    }
+    if (lb.peso) {
+      html +=
+        '<div class="slot slot-peso" style="' +
+        boxCss(layout.peso) +
+        '">' +
+        esc(lb.peso) +
+        '</div>';
+    }
+    return html;
+  }
+
+  function cssGondolaSlots(preset, cores) {
+    return (
+      '.slot{position:absolute;box-sizing:border-box;overflow:hidden}' +
+      '.slot-nome{display:flex;align-items:center;justify-content:center;padding:0.4mm 1.2mm;background:' +
+      esc(cores.faixa_bg || '#1a4d2e') +
+      ';color:' +
+      esc(cores.faixa_fg || '#fff') +
+      ';font-size:' +
+      (Number(preset.nome_pt) || 10) +
+      'pt;font-weight:800;line-height:1.05;text-align:center;text-transform:uppercase;letter-spacing:0.02em}' +
+      '.slot-rs{display:flex;align-items:flex-end;justify-content:flex-end;padding:0 0.4mm 1.2mm 0;color:' +
+      esc(cores.rs_fg || cores.preco_fg || '#1a4d2e') +
+      ';font-size:' +
+      (Number(preset.rs_pt) || 11) +
+      'pt;font-weight:800;line-height:1}' +
+      '.slot-preco{display:flex;align-items:center;justify-content:flex-start;padding:0.3mm;color:' +
+      esc(cores.preco_fg || '#1a4d2e') +
+      ';font-size:' +
+      (Number(preset.preco_pt) || 20) +
+      'pt;font-weight:900;line-height:1;white-space:nowrap}' +
+      '.preco-int{font-size:1em;font-weight:900}' +
+      '.preco-cent{font-size:0.58em;font-weight:800;vertical-align:super;margin-left:0.05em;position:relative;top:-0.15em}' +
+      '.slot-peso{display:flex;align-items:center;justify-content:flex-end;padding:0 1.5mm;color:' +
+      esc(cores.peso_fg || '#1a4d2e') +
+      ';font-size:' +
+      (Number(preset.peso_pt) || 7) +
+      'pt;font-weight:800;line-height:1.1;text-transform:uppercase}' +
+      '.slot-logo{display:flex;align-items:center;justify-content:center;padding:0.2mm}'
+    );
+  }
+
+  function montarHtmlGondola(preset, itens) {
+    var w = Number(preset.largura_mm) || 90;
+    var h = Number(preset.altura_mm) || 30;
+    var cols = Math.max(1, parseInt(preset.cols_folha, 10) || 2);
+    var rows = Math.max(1, parseInt(preset.rows_folha, 10) || 9);
+    var perPage = cols * rows;
+    var pageW = 210;
+    var pageH = 297;
+    var marginX = Math.max(0, (pageW - cols * w) / 2);
+    var marginY = Math.max(0, (pageH - rows * h) / 2);
+    var cores = preset.cores || DEFAULT_GONDOLA_PRESET.cores;
+    var layout = preset.layout || DEFAULT_GONDOLA_LAYOUT;
+    var showLogo = preset.show_logo !== false;
+    var labels = [];
+    itens.forEach(function (it) {
+      var qtd = Math.max(1, parseInt(it.qtd, 10) || 1);
+      var parts = splitPrecoParts(it.preco_venda);
+      for (var i = 0; i < qtd; i++) {
+        labels.push({
+          nome: String(it.nome || ''),
+          inteiro: parts.inteiro,
+          centavos: parts.centavos,
+          peso: fmtPesoEtiqueta(it.peso_etiqueta),
+        });
+      }
+    });
+
+    var css =
+      '@page{size:A4;margin:0}' +
+      'html,body{margin:0;padding:0;width:' +
+      pageW +
+      'mm;background:#fff;zoom:1!important;transform:none!important}' +
+      'body{font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.sheet{position:relative;width:' +
+      pageW +
+      'mm;height:' +
+      pageH +
+      'mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}' +
+      '.sheet:last-child{page-break-after:auto;break-after:auto}' +
+      '.etq{position:absolute;width:' +
+      w +
+      'mm;height:' +
+      h +
+      'mm;box-sizing:border-box;overflow:hidden;background:' +
+      esc(cores.fundo || '#fff') +
+      ';border:0.2mm solid ' +
+      esc(cores.borda || cores.faixa_bg || '#1a4d2e') +
+      '}' +
+      '.crop-layer{position:absolute;left:0;top:0;width:' +
+      pageW +
+      'mm;height:' +
+      pageH +
+      'mm;pointer-events:none;z-index:5}' +
+      cssGondolaSlots(preset, cores);
+
+    var pages = [];
+    var total = Math.max(labels.length, 1);
+    for (var start = 0; start < total; start += perPage) {
+      var chunk = labels.slice(start, start + perPage);
+      var marks = [];
+      var cells = chunk
+        .map(function (lb, idx) {
+          var col = idx % cols;
+          var row = Math.floor(idx / cols);
+          var x = marginX + col * w;
+          var y = marginY + row * h;
+          marks.push(marcasCorteHtml(x, y, w, h, cores.marca_corte));
+          return (
+            '<div class="etq" style="left:' +
+            x +
+            'mm;top:' +
+            y +
+            'mm">' +
+            montarConteudoEtiquetaGondola(lb, layout, showLogo) +
+            '</div>'
+          );
+        })
+        .join('');
+      for (var gi = chunk.length; gi < perPage; gi++) {
+        var gc = gi % cols;
+        var gr = Math.floor(gi / cols);
+        marks.push(
+          marcasCorteHtml(marginX + gc * w, marginY + gr * h, w, h, cores.marca_corte)
+        );
+      }
+      pages.push(
+        '<div class="sheet">' +
+          cells +
+          '<svg class="crop-layer" viewBox="0 0 ' +
+          pageW +
+          ' ' +
+          pageH +
+          '" xmlns="http://www.w3.org/2000/svg">' +
+          marks.join('') +
+          '</svg></div>'
+      );
+      if (!labels.length) break;
+    }
+
+    return (
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas Gôndola A4</title><style>' +
+      css +
+      '</style></head><body>' +
+      pages.join('') +
+      '</body></html>'
+    );
+  }
+
+  function montarHtmlTermica(preset, itens, textoRodape) {
     var w = Number(preset.largura_mm) || 40;
     var h = Number(preset.altura_mm) || 40;
     var labels = [];
@@ -345,6 +691,12 @@
     );
   }
 
+  function montarHtmlImpressao(preset, itens, textoRodape) {
+    preset = normalizarPreset(preset);
+    if (ehGondola(preset)) return montarHtmlGondola(preset, itens);
+    return montarHtmlTermica(preset, itens, textoRodape);
+  }
+
   function podeSilentPrint() {
     return !!(global.agroShell && typeof global.agroShell.silentPrint === 'function');
   }
@@ -375,6 +727,7 @@
             codigo_gm: it.codigo_gm,
             codigo_barras: it.codigo_barras,
             preco_venda: it.preco_venda,
+            peso_etiqueta: it.peso_etiqueta || '',
             qtd: it.qtd,
           };
         }),
@@ -399,6 +752,7 @@
       : opts.presetId
         ? getPresetById(data.presets, opts.presetId) || getPresetAtivo(data)
         : getPresetAtivo(data);
+    preset = normalizarPreset(preset);
     var textoRodape =
       opts.textoRodape != null
         ? String(opts.textoRodape)
@@ -406,6 +760,12 @@
     var html = montarHtmlImpressao(preset, itens, textoRodape);
     var w = Number(preset.largura_mm) || 40;
     var h = Number(preset.altura_mm) || 40;
+    var pageWMicrons = Math.round(w * 1000);
+    var pageHMicrons = Math.round(h * 1000);
+    if (ehGondola(preset)) {
+      pageWMicrons = 210000;
+      pageHMicrons = 297000;
+    }
 
     if (podeSilentPrint()) {
       return global.agroShell
@@ -413,8 +773,8 @@
           html: html,
           deviceName: preset.impressora || '',
           waitMs: 900,
-          pageWidthMicrons: Math.round(w * 1000),
-          pageHeightMicrons: Math.round(h * 1000),
+          pageWidthMicrons: pageWMicrons,
+          pageHeightMicrons: pageHMicrons,
         })
         .then(function (res) {
           if (res && res.ok) registrarHistoricoBackend(opts, itens);
@@ -474,9 +834,16 @@
   global.AgroEtiquetasCore = {
     LS_KEY: LS_KEY,
     DEFAULT_PRESET: DEFAULT_PRESET,
+    DEFAULT_GONDOLA_PRESET: DEFAULT_GONDOLA_PRESET,
+    DEFAULT_GONDOLA_LAYOUT: DEFAULT_GONDOLA_LAYOUT,
     esc: esc,
     fmtPreco: fmtPreco,
+    fmtPesoEtiqueta: fmtPesoEtiqueta,
+    logoImgMarkup: logoImgMarkup,
+    LOGO_AGRO_URL: LOGO_AGRO_URL,
     clonePreset: clonePreset,
+    normalizarPreset: normalizarPreset,
+    ehGondola: ehGondola,
     loadStorage: loadStorage,
     saveStorage: saveStorage,
     getPresetAtivo: getPresetAtivo,
