@@ -1342,6 +1342,13 @@ class ProdutoGestaoOverlayAgro(models.Model):
         db_index=True,
         verbose_name="Código / NFe GM (override)",
     )
+    peso_etiqueta = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        verbose_name="Peso (etiqueta)",
+        help_text="Texto livre para etiqueta gôndola (ex.: 5 KG, 500 g).",
+    )
     subcategoria = models.CharField(max_length=200, blank=True, default="")
     subcategoria_2 = models.CharField(
         max_length=200,

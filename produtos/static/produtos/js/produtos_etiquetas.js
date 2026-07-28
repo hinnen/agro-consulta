@@ -40,7 +40,95 @@
   }
 
   function getPresetAtivo() {
-    return Core.getPresetAtivo(state.storage);
+    return Core.normalizarPreset(Core.getPresetAtivo(state.storage));
+  }
+
+  var layoutDrag = null;
+
+  function bindLayoutEditor() {
+    var stage = $('etq-layout-stage');
+    if (!stage || stage.dataset.layBound) return;
+    stage.dataset.layBound = '1';
+
+    function pctFromEvent(ev, rect) {
+      return {
+        x: ((ev.clientX - rect.left) / rect.width) * 100,
+        y: ((ev.clientY - rect.top) / rect.height) * 100,
+      };
+    }
+
+    stage.addEventListener('pointerdown', function (ev) {
+      var handle = ev.target.closest('.etq-lay-handle');
+      var item = ev.target.closest('.etq-lay-item');
+      if (!item || !stage.contains(item)) return;
+      ev.preventDefault();
+      var rect = stage.getBoundingClientRect();
+      var box = {
+        x: parseFloat(item.style.left) || 0,
+        y: parseFloat(item.style.top) || 0,
+        w: parseFloat(item.style.width) || 10,
+        h: parseFloat(item.style.height) || 10,
+      };
+      var pt = pctFromEvent(ev, rect);
+      layoutDrag = {
+        el: item,
+        mode: handle ? 'resize' : 'move',
+        start: pt,
+        box: box,
+        pointerId: ev.pointerId,
+      };
+      try {
+        stage.setPointerCapture(ev.pointerId);
+      } catch (e) {}
+    });
+
+    stage.addEventListener('pointermove', function (ev) {
+      if (!layoutDrag || layoutDrag.pointerId !== ev.pointerId) return;
+      var rect = stage.getBoundingClientRect();
+      var pt = pctFromEvent(ev, rect);
+      var dx = pt.x - layoutDrag.start.x;
+      var dy = pt.y - layoutDrag.start.y;
+      var b = layoutDrag.box;
+      var nx = b.x;
+      var ny = b.y;
+      var nw = b.w;
+      var nh = b.h;
+      if (layoutDrag.mode === 'move') {
+        nx = Math.max(0, Math.min(100 - b.w, b.x + dx));
+        ny = Math.max(0, Math.min(100 - b.h, b.y + dy));
+      } else {
+        nw = Math.max(8, Math.min(100 - b.x, b.w + dx));
+        nh = Math.max(8, Math.min(100 - b.y, b.h + dy));
+      }
+      layoutDrag.el.style.left = Math.round(nx * 10) / 10 + '%';
+      layoutDrag.el.style.top = Math.round(ny * 10) / 10 + '%';
+      layoutDrag.el.style.width = Math.round(nw * 10) / 10 + '%';
+      layoutDrag.el.style.height = Math.round(nh * 10) / 10 + '%';
+    });
+
+    function endDrag(ev) {
+      if (!layoutDrag || (ev && layoutDrag.pointerId !== ev.pointerId)) return;
+      layoutDrag = null;
+      var p = lerPresetForm();
+      var idx = state.storage.presets.findIndex(function (x) {
+        return x.id === p.id;
+      });
+      if (idx >= 0) state.storage.presets[idx] = p;
+      persistStorage();
+    }
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+  }
+
+  function commitPresetFormLive() {
+    var p = lerPresetForm();
+    var idx = state.storage.presets.findIndex(function (x) {
+      return x.id === p.id;
+    });
+    if (idx >= 0) state.storage.presets[idx] = p;
+    persistStorage();
+    togglePresetFields(p.estilo || 'termica');
+    syncLayoutStageSize(p);
   }
 
   function renderPresetOptions(selectEl, activeId) {
@@ -65,14 +153,76 @@
     renderPresetOptions($('etq-fila-preset'), state.storage.preset_ativo);
   }
 
+  function togglePresetFields(estilo) {
+    var gondola = estilo === 'gondola';
+    document.querySelectorAll('.etq-field-gondola').forEach(function (el) {
+      el.classList.toggle('hidden', !gondola);
+    });
+    document.querySelectorAll('.etq-field-termica').forEach(function (el) {
+      el.classList.toggle('hidden', gondola);
+    });
+  }
+
+  function applyLayoutBoxes(layout) {
+    var stage = $('etq-layout-stage');
+    if (!stage || !layout) return;
+    stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
+      var id = el.getAttribute('data-lay');
+      var box = layout[id];
+      if (!box) return;
+      el.style.left = Number(box.x) + '%';
+      el.style.top = Number(box.y) + '%';
+      el.style.width = Number(box.w) + '%';
+      el.style.height = Number(box.h) + '%';
+    });
+  }
+
+  function readLayoutBoxes() {
+    var stage = $('etq-layout-stage');
+    var out = {};
+    if (!stage) return out;
+    stage.querySelectorAll('.etq-lay-item').forEach(function (el) {
+      var id = el.getAttribute('data-lay');
+      out[id] = {
+        x: Math.round(parseFloat(el.style.left) * 10) / 10 || 0,
+        y: Math.round(parseFloat(el.style.top) * 10) / 10 || 0,
+        w: Math.round(parseFloat(el.style.width) * 10) / 10 || 10,
+        h: Math.round(parseFloat(el.style.height) * 10) / 10 || 10,
+      };
+    });
+    return out;
+  }
+
+  function syncLayoutStageSize(p) {
+    var stage = $('etq-layout-stage');
+    if (!stage) return;
+    var wMm = Number(p.largura_mm) || 90;
+    var hMm = Number(p.altura_mm) || 35;
+    var maxW = 420;
+    var scale = maxW / wMm;
+    stage.style.width = Math.round(wMm * scale) + 'px';
+    stage.style.height = Math.round(hMm * scale) + 'px';
+    var cores = (p.cores && typeof p.cores === 'object') ? p.cores : {};
+    stage.style.background = cores.fundo || '#ffffff';
+    stage.style.borderColor = cores.borda || cores.faixa_bg || '#1a4d2e';
+  }
+
   function renderPresetForm() {
-    var p = getPresetAtivo();
+    var p = Core.normalizarPreset(getPresetAtivo());
+    var idx = state.storage.presets.findIndex(function (x) {
+      return x.id === p.id;
+    });
+    if (idx >= 0) state.storage.presets[idx] = p;
+
     var map = {
       'etq-preset-nome': p.nome,
+      'etq-preset-estilo': p.estilo || 'termica',
       'etq-preset-largura': p.largura_mm,
       'etq-preset-altura': p.altura_mm,
       'etq-preset-nome-pt': p.nome_pt,
       'etq-preset-preco-pt': p.preco_pt,
+      'etq-preset-rs-pt': p.rs_pt != null ? p.rs_pt : 11,
+      'etq-preset-peso-pt': p.peso_pt != null ? p.peso_pt : 7,
       'etq-preset-codigo-pt': p.codigo_pt,
       'etq-preset-rodape-pt': p.rodape_pt,
       'etq-preset-bar-h': p.barcode_height,
@@ -83,11 +233,69 @@
       var el = $(k);
       if (el) el.value = map[k];
     });
+    var cores = p.cores || {};
+    var corMap = {
+      'etq-cor-faixa-bg': cores.faixa_bg || '#1a4d2e',
+      'etq-cor-faixa-fg': cores.faixa_fg || '#ffffff',
+      'etq-cor-fundo': cores.fundo || '#ffffff',
+      'etq-cor-preco': cores.preco_fg || '#1a4d2e',
+      'etq-cor-rs': cores.rs_fg || cores.preco_fg || '#1a4d2e',
+      'etq-cor-peso': cores.peso_fg || '#1a4d2e',
+      'etq-cor-borda': cores.borda || '#1a4d2e',
+      'etq-cor-corte': cores.marca_corte || '#94a3b8',
+    };
+    Object.keys(corMap).forEach(function (k) {
+      var el = $(k);
+      if (el) el.value = corMap[k];
+    });
+    var showLogo = $('etq-preset-show-logo');
+    if (showLogo) showLogo.checked = p.show_logo !== false;
+
+    togglePresetFields(p.estilo || 'termica');
+    syncLayoutStageSize(p);
+    applyLayoutBoxes(p.layout || Core.DEFAULT_GONDOLA_LAYOUT);
+
     var tr = $('etq-texto-rodape-global');
     if (tr && !tr.dataset.touched) {
       tr.value = state.storage.texto_rodape_global || p.texto_rodape || '';
     }
     carregarImpressoras(p.impressora || '');
+  }
+
+  function lerPresetForm() {
+    var p = Core.normalizarPreset(getPresetAtivo());
+    p.nome = ($('etq-preset-nome') && $('etq-preset-nome').value.trim()) || p.nome;
+    p.estilo = ($('etq-preset-estilo') && $('etq-preset-estilo').value) || p.estilo || 'termica';
+    p.largura_mm = Number($('etq-preset-largura') && $('etq-preset-largura').value) || 40;
+    p.altura_mm = Number($('etq-preset-altura') && $('etq-preset-altura').value) || 40;
+    p.nome_pt = Number($('etq-preset-nome-pt') && $('etq-preset-nome-pt').value) || 8;
+    p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
+    p.rs_pt = Number($('etq-preset-rs-pt') && $('etq-preset-rs-pt').value) || 11;
+    p.peso_pt = Number($('etq-preset-peso-pt') && $('etq-preset-peso-pt').value) || 7;
+    p.codigo_pt = Number($('etq-preset-codigo-pt') && $('etq-preset-codigo-pt').value) || 7;
+    p.rodape_pt = Number($('etq-preset-rodape-pt') && $('etq-preset-rodape-pt').value) || 8;
+    p.barcode_height = Number($('etq-preset-bar-h') && $('etq-preset-bar-h').value) || 26;
+    p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.05;
+    p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
+    p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
+    p.show_logo = !($('etq-preset-show-logo') && !$('etq-preset-show-logo').checked);
+    if (Core.ehGondola(p)) {
+      p.cores = {
+        faixa_bg: ($('etq-cor-faixa-bg') && $('etq-cor-faixa-bg').value) || '#1a4d2e',
+        faixa_fg: ($('etq-cor-faixa-fg') && $('etq-cor-faixa-fg').value) || '#ffffff',
+        fundo: ($('etq-cor-fundo') && $('etq-cor-fundo').value) || '#ffffff',
+        preco_fg: ($('etq-cor-preco') && $('etq-cor-preco').value) || '#1a4d2e',
+        rs_fg: ($('etq-cor-rs') && $('etq-cor-rs').value) || '#1a4d2e',
+        peso_fg: ($('etq-cor-peso') && $('etq-cor-peso').value) || '#1a4d2e',
+        borda: ($('etq-cor-borda') && $('etq-cor-borda').value) || '#1a4d2e',
+        marca_corte: ($('etq-cor-corte') && $('etq-cor-corte').value) || '#94a3b8',
+      };
+      p.layout = readLayoutBoxes();
+      p.folha = 'a4';
+      p.cols_folha = 2;
+      p.rows_folha = 9;
+    }
+    return p;
   }
 
   function renderFila() {
@@ -101,7 +309,7 @@
 
     if (!state.fila.length) {
       tbody.innerHTML =
-        '<tr><td colspan="5" class="px-3 py-4 text-center text-sm text-slate-500">Nenhum produto na fila.</td></tr>';
+        '<tr><td colspan="6" class="px-3 py-4 text-center text-sm text-slate-500">Nenhum produto na fila.</td></tr>';
       return;
     }
 
@@ -117,6 +325,9 @@
           '</td>' +
           '<td class="px-3 py-1.5 text-sm font-bold text-emerald-400">' +
           Core.esc(Core.fmtPreco(it.preco_venda)) +
+          '</td>' +
+          '<td class="px-3 py-1.5 text-xs font-semibold text-slate-300">' +
+          Core.esc(it.peso_etiqueta || '—') +
           '</td>' +
           '<td class="px-3 py-1.5">' +
           '<input type="number" min="1" max="999" value="' +
@@ -349,22 +560,6 @@
         }
       } else if (res && res.reason) setStatus('Falha: ' + res.reason, true);
     });
-  }
-
-  function lerPresetForm() {
-    var p = getPresetAtivo();
-    p.nome = ($('etq-preset-nome') && $('etq-preset-nome').value.trim()) || p.nome;
-    p.largura_mm = Number($('etq-preset-largura') && $('etq-preset-largura').value) || 40;
-    p.altura_mm = Number($('etq-preset-altura') && $('etq-preset-altura').value) || 40;
-    p.nome_pt = Number($('etq-preset-nome-pt') && $('etq-preset-nome-pt').value) || 8;
-    p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
-    p.codigo_pt = Number($('etq-preset-codigo-pt') && $('etq-preset-codigo-pt').value) || 7;
-    p.rodape_pt = Number($('etq-preset-rodape-pt') && $('etq-preset-rodape-pt').value) || 8;
-    p.barcode_height = Number($('etq-preset-bar-h') && $('etq-preset-bar-h').value) || 26;
-    p.barcode_width = Number($('etq-preset-bar-w') && $('etq-preset-bar-w').value) || 1.05;
-    p.texto_rodape = ($('etq-preset-texto-rodape') && $('etq-preset-texto-rodape').value) || '';
-    p.impressora = ($('etq-preset-impressora') && $('etq-preset-impressora').value.trim()) || '';
-    return p;
   }
 
   function salvarPresetAtual() {
@@ -663,6 +858,65 @@
     $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
     $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
+    $('etq-btn-reset-layout') &&
+      $('etq-btn-reset-layout').addEventListener('click', function () {
+        var p = getPresetAtivo();
+        if (Core.ehGondola(p)) {
+          p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
+          p.largura_mm = 90;
+          p.altura_mm = 30;
+          p.folha = 'a4';
+          p.cols_folha = 2;
+          p.rows_folha = 9;
+          var idx = state.storage.presets.findIndex(function (x) {
+            return x.id === p.id;
+          });
+          if (idx >= 0) state.storage.presets[idx] = p;
+          persistStorage();
+          renderPresetForm();
+        } else {
+          applyLayoutBoxes(Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT));
+          commitPresetFormLive();
+        }
+        setStatus('Layout A4 9×3 resetado.');
+      });
+
+    bindLayoutEditor();
+
+    var estiloSel = $('etq-preset-estilo');
+    if (estiloSel) {
+      estiloSel.addEventListener('change', function () {
+        commitPresetFormLive();
+        renderPresetForm();
+      });
+    }
+    [
+      'etq-preset-largura',
+      'etq-preset-altura',
+      'etq-preset-nome-pt',
+      'etq-preset-preco-pt',
+      'etq-preset-rs-pt',
+      'etq-preset-peso-pt',
+      'etq-cor-faixa-bg',
+      'etq-cor-faixa-fg',
+      'etq-cor-fundo',
+      'etq-cor-preco',
+      'etq-cor-rs',
+      'etq-cor-peso',
+      'etq-cor-borda',
+      'etq-cor-corte',
+      'etq-preset-show-logo',
+    ].forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('change', commitPresetFormLive);
+      el.addEventListener('input', function () {
+        if (id.indexOf('etq-cor-') === 0 || id === 'etq-preset-largura' || id === 'etq-preset-altura') {
+          commitPresetFormLive();
+        }
+      });
+    });
+
     $('etq-modal-back') &&
       $('etq-modal-back').addEventListener('click', function (ev) {
         if (ev.target === $('etq-modal-back')) fecharModalPreset();
@@ -704,6 +958,8 @@
     ensureModalOnBody();
     ensureHistModalOnBody();
     reloadStorage();
+    /* Garante seed Gôndola no PC (quem já tinha só 4×4). */
+    persistStorage();
     renderPresetSelect();
     renderPresetForm();
     renderFila();
