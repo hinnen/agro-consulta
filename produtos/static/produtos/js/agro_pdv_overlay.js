@@ -5,7 +5,7 @@
   'use strict';
 
   var ROOT_ID = 'agro-pdv-overlay';
-  var STYLE_ID = 'agro-pdv-overlay-styles-v2';
+  var STYLE_ID = 'agro-pdv-overlay-styles-v5';
   var openFlag = false;
 
   function titleFromUrl(url) {
@@ -69,6 +69,12 @@
   function ensureStyles() {
     var old = document.getElementById('agro-pdv-overlay-styles');
     if (old) old.remove();
+    var oldV2 = document.getElementById('agro-pdv-overlay-styles-v2');
+    if (oldV2) oldV2.remove();
+    var oldV3 = document.getElementById('agro-pdv-overlay-styles-v3');
+    if (oldV3) oldV3.remove();
+    var oldV4 = document.getElementById('agro-pdv-overlay-styles-v4');
+    if (oldV4) oldV4.remove();
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -81,6 +87,7 @@
       '{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:clamp(6px,1.2vw,14px);box-sizing:border-box}' +
       '.agro-pdv-overlay-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px)}' +
       '.agro-pdv-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;width:min(98vw,100%);height:min(95vh,100%);max-width:100%;border-radius:1rem;border:3px solid #10b981;background:#f8fafc;box-shadow:0 28px 80px rgba(15,23,42,.35);overflow:hidden}' +
+      '.agro-pdv-overlay-panel[data-overlay-size="folha"]{width:min(94vw,64rem);height:min(92vh,52rem);max-width:94vw;max-height:92vh}' +
       '.agro-pdv-overlay-head{display:flex;align-items:center;gap:.55rem;flex-shrink:0;padding:.5rem .75rem;border-bottom:2px solid #e2e8f0;background:linear-gradient(180deg,#fff,#f1f5f9);flex-wrap:nowrap}' +
       '.agro-pdv-overlay-brand{flex-shrink:0;width:2.25rem;height:2.25rem;border-radius:.65rem;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 1px 3px rgba(15,23,42,.08)}' +
       '.agro-pdv-overlay-brand .g{color:#059669}.agro-pdv-overlay-brand .m{color:#f97316}' +
@@ -239,6 +246,26 @@
     applyMeta({ title: title || 'Consulta no balcão', subtitle: '', showMenu: false, showHelp: false, helpHtml: '' });
   }
 
+  function detectOverlaySize(href) {
+    try {
+      var p = new URL(href, window.location.origin).pathname.toLowerCase();
+      if (p.indexOf('relatorio-saldo') >= 0 || p.indexOf('relatorio-planilha') >= 0) {
+        return 'folha';
+      }
+    } catch (_) {}
+    return 'default';
+  }
+
+  function applyPanelSize(root, size) {
+    var panel = root && root.querySelector('.agro-pdv-overlay-panel');
+    if (!panel) return;
+    if (size && size !== 'default') {
+      panel.setAttribute('data-overlay-size', size);
+    } else {
+      panel.removeAttribute('data-overlay-size');
+    }
+  }
+
   function open(rawUrl, title, options) {
     options = options || {};
     var href = overlayUrl(rawUrl);
@@ -254,6 +281,7 @@
     options.force = true;
     var root = ensureRoot();
     var frame = root.querySelector('#agro-pdv-overlay-frame');
+    applyPanelSize(root, options.size || detectOverlaySize(href));
     resetMeta(title || titleFromUrl(href));
     navigateFrame(frame, href, options);
     root.removeAttribute('hidden');
