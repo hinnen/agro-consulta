@@ -12463,6 +12463,40 @@
                 navegarAgroInApp(link.href);
             });
         });
+        document.querySelectorAll('#pdv-estoque-vila-menu a[data-pdv-folha-atalho]').forEach(function (link) {
+            link.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                var menu = document.getElementById('pdv-estoque-vila-menu');
+                if (menu) menu.removeAttribute('open');
+                var url = String(link.href || '').trim();
+                if (!url) return;
+                try {
+                    if (!/^https?:\/\//i.test(url)) {
+                        url = new URL(url, window.location.origin).href;
+                    }
+                } catch (eAbs) {
+                    return;
+                }
+                /* Overlay no próprio PDV — leve se não usar; Compras só carrega ao clicar. */
+                var dw = window.AgroDualWindow;
+                if (dw && typeof dw.openPdvPanel === 'function') {
+                    dw.openPdvPanel(url, (link.textContent || '').trim());
+                    return;
+                }
+                if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function') {
+                    window.AgroPdvOverlay.open(url, (link.textContent || '').trim());
+                    return;
+                }
+                window.location.href = url;
+            });
+        });
+        document.addEventListener('mousedown', function (ev) {
+            var menu = document.getElementById('pdv-estoque-vila-menu');
+            if (!menu || !menu.open) return;
+            if (ev.target && menu.contains(ev.target)) return;
+            menu.removeAttribute('open');
+        });
         if (dom.fiadoVencidosGestao) {
             dom.fiadoVencidosGestao.addEventListener('click', function (ev) {
                 ev.preventDefault();

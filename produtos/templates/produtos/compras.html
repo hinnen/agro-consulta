@@ -39,6 +39,16 @@
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 #f1f5f9;
     }
+    /* Atalho PDV: só o modal OCR (sem painel de Compras por baixo) */
+    html.compras-folha-so body.compras-page > *:not(#modal-planilha-ocr) {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    html.compras-folha-so #modal-planilha-ocr {
+      visibility: visible !important;
+      pointer-events: auto !important;
+      background: rgba(15, 23, 42, 0.45) !important;
+    }
     .gm-kbd {
       pointer-events: none;
       display: inline-flex;
@@ -4231,13 +4241,13 @@ function abrirModalFolhaPlanilha(url, titulo) {
   if (panel) {
     panel.setAttribute('data-folha-size', isSaldo ? 'saldo' : 'padrao');
     if (isSaldo) {
-      panel.style.width = 'min(96vw, 78rem)';
-      panel.style.height = 'min(94dvh, 900px)';
-      panel.style.maxHeight = '96dvh';
+      panel.style.width = 'min(94vw, 64rem)';
+      panel.style.height = 'min(92vh, 52rem)';
+      panel.style.maxHeight = '92vh';
     } else {
-      panel.style.width = 'min(96vw, 42rem)';
-      panel.style.height = 'min(88dvh, 640px)';
-      panel.style.maxHeight = '92dvh';
+      panel.style.width = 'min(90vw, 48rem)';
+      panel.style.height = 'min(88vh, 42rem)';
+      panel.style.maxHeight = '88vh';
     }
   }
   ifr.src = String(url) + sep + 'embed=1';
@@ -4484,6 +4494,100 @@ window.addEventListener('resize', () => setCarrinhoExpandido(compraCarrinhoExpan
 
 {% include "produtos/includes/_compras_planilha_ocr_js.html" %}
 compraPlanilhaOcrInitCompras();
+
+(() => {
+  /* Atalho PDV «Estoque Vila»: folha direta ou OCR sem painel Compras por baixo */
+  let folha = '';
+  let folhaSo = false;
+  let inPdvOverlay = false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    folha = String(params.get('folha') || '').trim().toLowerCase();
+    folhaSo = params.get('folha_so') === '1' || params.get('folha_so') === 'true';
+    inPdvOverlay =
+      params.get('agro_pdv_overlay') === '1' ||
+      params.get('agro_inapp_embed') === '1' ||
+      window.self !== window.top;
+  } catch (eFolha) {
+    folha = '';
+  }
+  if (!folha) return;
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete('folha');
+    u.searchParams.delete('folha_so');
+    const qs = u.searchParams.toString();
+    history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+  } catch (eClean) {}
+
+  const mapa = {
+    fornecedor: '{% url "compras_relatorio_planilha_fornecedor" %}',
+    categoria: '{% url "compras_relatorio_planilha_categoria" %}',
+    unidade: '{% url "compras_relatorio_planilha_unidade" %}',
+    saldo: '{% url "compras_relatorio_saldo" %}',
+  };
+
+  const fecharOverlayPdv = () => {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'agro-pdv-overlay-close' }, window.location.origin);
+      }
+    } catch (eClose) {}
+  };
+
+  window.setTimeout(() => {
+    if (folha === 'ocr') {
+      if (folhaSo || inPdvOverlay) {
+        document.documentElement.classList.add('compras-folha-so');
+        const origFechar =
+          typeof compraPlanilhaOcrFecharModal === 'function' ? compraPlanilhaOcrFecharModal : null;
+        window.compraPlanilhaOcrFecharModal = function () {
+          if (origFechar) origFechar();
+          if (document.documentElement.classList.contains('compras-folha-so')) {
+            fecharOverlayPdv();
+          }
+        };
+        /* Init já ligou o botão à função antiga — religa à versão com fechar overlay. */
+        const btnFechar = document.getElementById('btn-planilha-ocr-fechar');
+        if (btnFechar) {
+          const neo = btnFechar.cloneNode(true);
+          btnFechar.parentNode.replaceChild(neo, btnFechar);
+          neo.addEventListener('click', () => window.compraPlanilhaOcrFecharModal());
+        }
+        document.getElementById('btn-planilha-ocr-aplicar')?.addEventListener(
+          'click',
+          () => {
+            document.documentElement.classList.remove('compras-folha-so');
+          },
+          true
+        );
+      }
+      if (typeof compraPlanilhaOcrAbrirModal === 'function') compraPlanilhaOcrAbrirModal();
+      const m = document.getElementById('modal-planilha-ocr');
+      if ((folhaSo || inPdvOverlay) && m && !m.classList.contains('flex')) {
+        fecharOverlayPdv();
+      }
+      return;
+    }
+    const url = mapa[folha];
+    if (!url) return;
+    /* No PDV/overlay: ir direto à folha (1 overlay). Na Gestão: modal em cima de Compras. */
+    if (folhaSo || inPdvOverlay) {
+      const sep = String(url).indexOf('?') >= 0 ? '&' : '?';
+      window.location.replace(String(url) + sep + 'embed=1&agro_pdv_overlay=1&agro_inapp_embed=1');
+      return;
+    }
+    const titMap = {
+      fornecedor: 'Por fornecedor (A4 · A6)',
+      categoria: 'Por categoria (A4 · A6)',
+      unidade: 'Por unidade (A4 · A6)',
+      saldo: 'Folha de saldo (A4 · A5 · 80mm)',
+    };
+    if (typeof abrirModalFolhaPlanilha === 'function') {
+      abrirModalFolhaPlanilha(url, titMap[folha] || '');
+    }
+  }, 80);
+})();
 </script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
