@@ -1169,6 +1169,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+﻿### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` **`cb73d87`** · badge **11.98** · aguardar Live + migrate `0067` |
+| **Inclui** | Pix Sicredi (11.94) · Entrada NF UX+Nova (11.95) · Gôndola+0067 (11.96) · Transf forçada (11.97) · Estoque Vila (11.98) |
+| **NÃO inclui** | DF-e inbox · merge inteiro `teste` |
+| **Migrate** | **SIM** `0067_produto_overlay_peso_etiqueta` |
+| **Rollback** | `git push origin rollback/pre-lote-v1194-1198:producao` (@ **3633011** / v11.93) |
+| **Validar agora** | Ctrl+F5 · badge **11.98** · Pix Sicredi · Entrada NF Nova/boleto · etiquetas · transf forçada · PDV Estoque Vila · 1 venda |
+
+
 ### 📦 PACOTE PRONTO LOJA — PDV Pix máquina Sicredi (`PDV-PIX-SICREDI` · **v11.94**)
 
 | Item | Detalhe |
