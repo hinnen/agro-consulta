@@ -52,6 +52,129 @@
             color: #fff;
         }
 
+        /* Transferência forçada — grade alinhada (carrinho + busca) */
+        #modal-transfer-forcada {
+            width: min(99vw, 98rem);
+            height: min(92dvh, 56rem);
+            max-height: min(92dvh, 56rem);
+        }
+        #modal-transfer-forcada .tf-grid-head,
+        #modal-transfer-forcada .tf-grid-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 6.25rem 4.25rem 4.25rem 5.25rem 2.5rem;
+            gap: 0.35rem 0.45rem;
+            align-items: center;
+        }
+        #modal-transfer-forcada .tf-busca-head,
+        #modal-transfer-forcada .tf-busca-row {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) 6.25rem 4.25rem 4.25rem !important;
+            gap: 0.35rem 0.45rem;
+            align-items: center;
+            width: 100% !important;
+            box-sizing: border-box;
+            margin: 0;
+        }
+        #modal-transfer-forcada #tf-resultados {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table th,
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td {
+            padding: 0.55rem 0.4rem;
+            vertical-align: middle;
+            text-align: left;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table th:nth-child(2),
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td:nth-child(2),
+        #modal-transfer-forcada #tf-resultados .tf-busca-table th:nth-child(3),
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td:nth-child(3),
+        #modal-transfer-forcada #tf-resultados .tf-busca-table th:nth-child(4),
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td:nth-child(4) {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-prod { width: auto; }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-cod { width: 6.5rem; }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-v { width: 4.5rem; }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-c { width: 4.5rem; }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table tbody tr {
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table tbody tr + tr td {
+            /* spacing via border */
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table tbody tr:hover {
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table tbody tr.tf-hi {
+            background: #d1fae5;
+            border-color: #34d399;
+            box-shadow: inset 0 0 0 1px #34d399;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f1f5f9;
+            font-size: 0.6875rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td.tf-nome {
+            font-size: 0.9375rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 0; /* força ellipsis com table-layout:fixed */
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td.tf-cod {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td.tf-saldo {
+            font-size: 0.875rem;
+            font-weight: 900;
+            color: #0f172a;
+        }
+        #modal-transfer-forcada #tf-resultados .tf-busca-table td.tf-saldo.tf-neg {
+            color: #b45309;
+        }
+        @media (max-width: 900px) {
+            #modal-transfer-forcada .tf-grid-head,
+            #modal-transfer-forcada .tf-grid-row {
+                grid-template-columns: minmax(0, 1fr) 4.25rem 5rem 2.5rem;
+            }
+            #modal-transfer-forcada .tf-col-codigo,
+            #modal-transfer-forcada .tf-col-centro,
+            #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-cod,
+            #modal-transfer-forcada #tf-resultados .tf-busca-table th:nth-child(2),
+            #modal-transfer-forcada #tf-resultados .tf-busca-table td:nth-child(2),
+            #modal-transfer-forcada #tf-resultados .tf-busca-table th:nth-child(4),
+            #modal-transfer-forcada #tf-resultados .tf-busca-table td:nth-child(4) { display: none; }
+            #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-v,
+            #modal-transfer-forcada #tf-resultados .tf-busca-table col.tf-c-c { width: 4.5rem; }
+        }
+
         @media print {
             .esconder-na-impressao, header, nav, footer { display: none !important; }
             @page { margin: 0; size: 80mm 297mm; }
@@ -123,6 +246,7 @@
                         <button type="button" onclick="gerarCupom()" class="inline-flex items-center gap-1 rounded-lg bg-sky-600 text-white px-3 py-2 text-[11px] font-black uppercase hover:bg-sky-700 shadow-sm ring-1 ring-sky-500/40" title="Novo cupom ou reimprimir último (F7)">Imprimir <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F7</kbd></button>
                         <button type="button" onclick="abrirModalPedidosTransfer()" class="inline-flex items-center gap-1 rounded-lg border-2 border-sky-300 bg-sky-50 px-3 py-2 text-[11px] font-black uppercase text-sky-900 hover:bg-sky-100">Pedidos</button>
                         <button type="button" onclick="abrirModalHistoricoTransfer()" class="inline-flex items-center gap-1 rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Histórico</button>
+                        <button type="button" onclick="abrirModalTransferForcada()" class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-400 bg-emerald-600 px-3 py-2 text-[11px] font-black uppercase text-white hover:bg-emerald-700 shadow-sm" title="Montar lista e transferir Vila↔Centro (mesmo sem aparecer em Transferir)">Forçada Vila↔C</button>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0 lg:border-l lg:border-slate-200 lg:pl-2 lg:ml-1">
@@ -266,6 +390,62 @@
             <button type="button" onclick="fecharModal('modal-historico-transfer-detalhe', false)" class="text-slate-400 hover:text-slate-700 font-black text-lg leading-none px-1 shrink-0" aria-label="Fechar">×</button>
         </div>
         <div id="modal-hist-det-corpo" class="text-[11px] overflow-y-auto min-h-0 flex-1 pr-1"></div>
+    </div>
+
+    <div id="modal-transfer-forcada" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl z-[10110] hidden shadow-2xl flex flex-col scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-tf-titulo">
+        <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 pt-4 pb-3 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 rounded-t-2xl">
+            <div class="min-w-0 flex flex-wrap items-center gap-2.5">
+                <h3 id="modal-tf-titulo" class="text-base sm:text-xl font-black uppercase text-emerald-950 leading-tight">Transferência forçada</h3>
+                <div class="inline-flex rounded-xl border-2 border-emerald-300 bg-white p-0.5 shadow-sm" role="group" aria-label="Direção">
+                    <button type="button" id="tf-dir-vc" onclick="tfSetDirecao('vila_centro')" class="rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-white bg-emerald-600">Vila → C</button>
+                    <button type="button" id="tf-dir-cv" onclick="tfSetDirecao('centro_vila')" class="rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-slate-600 bg-transparent hover:bg-slate-50">C → Vila</button>
+                </div>
+                <details class="relative shrink-0">
+                    <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-sm hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+                    <div class="absolute left-0 top-full z-20 mt-1 w-[min(22rem,85vw)] rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700 font-semibold leading-relaxed shadow-xl space-y-2">
+                        <p>Escolha a direção: <b>Vila → Centro</b> ou <b>Centro → Vila</b>.</p>
+                        <p>Monte o carrinho mesmo se o produto <b>não</b> aparecer na aba Transferir.</p>
+                        <p>Saldo da origem zerado/negativo: transferência <b>permitida</b> (ajuste Agro).</p>
+                        <p><b>Busca:</b> Enter/clique → Qtd (1 selecionado) · Enter na Qtd volta pra busca.</p>
+                        <p><b>Colar lista:</b> <code class="bg-slate-50 px-1 rounded border">código qtd</code></p>
+                    </div>
+                </details>
+            </div>
+            <button type="button" onclick="fecharModalTransferForcada()" class="text-slate-400 hover:text-slate-700 font-black text-3xl leading-none px-1 shrink-0" aria-label="Fechar">×</button>
+        </div>
+        <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] gap-0 overflow-hidden">
+            <div class="flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-200 p-4 sm:p-5 gap-2">
+                <div class="flex items-center justify-between gap-2 shrink-0">
+                    <label for="tf-busca" class="text-xs font-black uppercase text-slate-500 tracking-wide">1 · Buscar</label>
+                    <span id="tf-busca-status" class="text-xs font-bold text-slate-500 tabular-nums"></span>
+                </div>
+                <div class="relative shrink-0">
+                    <input id="tf-busca" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Nome, código ou barras" class="w-full rounded-xl border-2 border-emerald-300 bg-white pl-4 pr-4 py-3.5 text-base sm:text-lg font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
+                </div>
+                <div id="tf-resultados" class="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-0" role="listbox" aria-label="Resultados da busca"></div>
+                <details id="tf-colar-details" class="rounded-xl border border-slate-200 bg-slate-50/90 px-3.5 py-2 shrink-0">
+                    <summary class="cursor-pointer select-none text-xs font-black uppercase text-slate-600 list-none flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+                        <span class="text-slate-400">▸</span> Colar lista
+                    </summary>
+                    <div class="pt-2 space-y-2 border-t border-slate-200 mt-1.5">
+                        <textarea id="tf-colar" rows="3" class="w-full rounded-lg border-2 border-slate-200 bg-white p-3 text-sm font-mono font-semibold text-slate-800 outline-none focus:border-sky-400" placeholder="código  qtd"></textarea>
+                        <button type="button" onclick="tfAplicarColarLista()" class="w-full rounded-xl bg-sky-600 text-white text-sm font-black uppercase py-3 hover:bg-sky-700">Adicionar ao carrinho</button>
+                        <div id="tf-colar-status" class="text-xs font-semibold text-slate-600"></div>
+                    </div>
+                </details>
+            </div>
+            <div class="flex flex-col min-h-0 p-4 sm:p-5 gap-2 bg-white">
+                <div class="flex items-center justify-between gap-2 shrink-0">
+                    <label class="text-xs font-black uppercase text-slate-500 tracking-wide">2 · Carrinho <span id="tf-carrinho-count" class="text-emerald-700 tabular-nums text-sm">(0)</span></label>
+                    <button type="button" onclick="tfLimparCarrinho()" class="text-xs font-black uppercase text-slate-500 hover:text-red-600 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50">Limpar</button>
+                </div>
+                <div id="tf-carrinho" class="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white"></div>
+                <div class="shrink-0 flex flex-col sm:flex-row gap-2.5 pt-1">
+                    <button type="button" onclick="fecharModalTransferForcada()" class="flex-1 rounded-xl bg-slate-100 text-slate-700 font-black uppercase text-sm py-3.5 hover:bg-slate-200">Cancelar</button>
+                    <button type="button" id="tf-btn-transferir" onclick="tfConfirmarTransferencia()" class="flex-[1.5] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base py-3.5 hover:bg-emerald-700 shadow-md shadow-emerald-200 disabled:opacity-40 disabled:pointer-events-none">Transferir Vila→C</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     {% include "produtos/_js_busca_produto_inteligente.html" %}
@@ -1158,6 +1338,474 @@
             } catch (e) {}
         }
 
+        /* —— Transferência forçada (carrinho + colar lista) —— */
+        let tfCarrinho = [];
+        let tfBuscaTimer = null;
+        let tfBuscaSeq = 0;
+        let tfResultados = [];
+        let tfHighlightIdx = -1;
+        let tfDirecao = 'vila_centro'; // ou centro_vila
+
+        function tfRotuloDirecao() {
+            return tfDirecao === 'centro_vila' ? 'Centro→Vila' : 'Vila→Centro';
+        }
+
+        function tfSetDirecao(dir) {
+            tfDirecao = (dir === 'centro_vila') ? 'centro_vila' : 'vila_centro';
+            const btnVc = document.getElementById('tf-dir-vc');
+            const btnCv = document.getElementById('tf-dir-cv');
+            const btnOk = document.getElementById('tf-btn-transferir');
+            const on = 'rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-white bg-emerald-600';
+            const off = 'rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-slate-600 bg-transparent hover:bg-slate-50';
+            if (btnVc) btnVc.className = tfDirecao === 'vila_centro' ? on : off;
+            if (btnCv) btnCv.className = tfDirecao === 'centro_vila' ? on : off;
+            if (btnOk) btnOk.textContent = 'Transferir ' + (tfDirecao === 'centro_vila' ? 'C→Vila' : 'Vila→C');
+        }
+
+        function abrirModalTransferForcada() {
+            const elBusca = document.getElementById('tf-busca');
+            const elRes = document.getElementById('tf-resultados');
+            const elStatus = document.getElementById('tf-busca-status');
+            const elColar = document.getElementById('tf-colar');
+            const elColarSt = document.getElementById('tf-colar-status');
+            if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
+            if (elStatus) elStatus.textContent = '';
+            if (elColar) elColar.value = '';
+            if (elColarSt) elColarSt.textContent = '';
+            tfResultados = [];
+            tfHighlightIdx = -1;
+            tfSetDirecao(tfDirecao || 'vila_centro');
+            tfRenderCarrinho();
+            abrirModal('modal-transfer-forcada');
+            setTimeout(() => { if (elBusca) { elBusca.value = ''; elBusca.focus(); } }, 40);
+        }
+
+        function fecharModalTransferForcada() {
+            fecharModal('modal-transfer-forcada', false);
+        }
+
+        function tfFmtSaldo(n) {
+            const v = Number(n || 0);
+            if (Number.isNaN(v)) return '—';
+            return v.toFixed(1);
+        }
+
+        function tfEsc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function tfRenderCarrinho() {
+            const el = document.getElementById('tf-carrinho');
+            const cnt = document.getElementById('tf-carrinho-count');
+            const btn = document.getElementById('tf-btn-transferir');
+            if (cnt) cnt.textContent = '(' + tfCarrinho.length + ')';
+            if (btn) btn.disabled = tfCarrinho.length === 0;
+            if (!el) return;
+            if (!tfCarrinho.length) {
+                el.innerHTML = '<div class="p-10 text-center text-sm font-bold text-slate-400">—</div>';
+                return;
+            }
+            let html = '<div class="tf-grid-head sticky top-0 z-[1] bg-slate-100 border-b border-slate-200 px-2.5 py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-wide text-slate-500">'
+                + '<div>Produto</div>'
+                + '<div class="tf-col-codigo text-right">Cód.</div>'
+                + '<div class="text-right">Vila</div>'
+                + '<div class="tf-col-centro text-right">Centro</div>'
+                + '<div class="text-center">Qtd</div>'
+                + '<div></div>'
+                + '</div>';
+            tfCarrinho.forEach((it, idx) => {
+                const vilaNeg = Number(it.saldo_vila || 0) <= 0;
+                const vilaCls = vilaNeg ? 'text-amber-700' : 'text-slate-800';
+                const cod = it.codigo_interno || it.codigo_barras || it.produto_id || '—';
+                html += `<div class="tf-grid-row px-2.5 py-2 border-b border-slate-100 hover:bg-emerald-50/50" data-tf-idx="${idx}">
+                    <div class="min-w-0">
+                        <div class="text-sm sm:text-[15px] font-black text-slate-900 leading-snug uppercase truncate" title="${tfEsc(it.nome)}">${tfEsc(it.nome)}</div>
+                    </div>
+                    <div class="tf-col-codigo text-right text-xs font-bold text-slate-600 tabular-nums truncate" title="${tfEsc(cod)}">${tfEsc(cod)}</div>
+                    <div class="text-right text-sm font-black tabular-nums ${vilaCls}">${tfFmtSaldo(it.saldo_vila)}</div>
+                    <div class="tf-col-centro text-right text-sm font-black tabular-nums text-slate-800">${tfFmtSaldo(it.saldo_centro)}</div>
+                    <div class="flex justify-center">
+                        <input type="number" min="0.001" step="any" inputmode="decimal" data-tf-qtd="${idx}" value="${Number(it.quantidade) || 1}" onchange="tfAlterarQtd(${idx}, this.value)" onfocus="this.select()" onkeydown="tfQtdKeydown(event, ${idx})" class="w-full max-w-[5rem] rounded-lg border-2 border-emerald-400 bg-emerald-50 text-center text-base sm:text-lg font-black text-emerald-950 py-1.5 outline-none focus:ring-2 focus:ring-emerald-400/50" />
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="tfRemoverDoCarrinho(${idx})" class="shrink-0 w-8 h-8 inline-flex items-center justify-center text-sm font-black text-red-600 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100" title="Remover">✕</button>
+                    </div>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
+
+        function tfFocarQtd(idx) {
+            requestAnimationFrame(() => {
+                const inp = document.querySelector('#tf-carrinho input[data-tf-qtd="' + idx + '"]');
+                if (!inp) return;
+                inp.focus();
+                try { inp.select(); } catch (_) {}
+                try { inp.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+            });
+        }
+
+        function tfVoltarBusca() {
+            const elBusca = document.getElementById('tf-busca');
+            const elStatus = document.getElementById('tf-busca-status');
+            const elRes = document.getElementById('tf-resultados');
+            if (elStatus) elStatus.textContent = '';
+            if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
+            if (elBusca) {
+                elBusca.value = '';
+                elBusca.focus();
+            }
+        }
+
+        function tfQtdKeydown(ev, idx) {
+            if (!ev || ev.key !== 'Enter') return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const inp = ev.target;
+            tfAlterarQtd(idx, inp ? inp.value : '');
+            tfVoltarBusca();
+        }
+
+        function tfAddOuSomar(produto, opts) {
+            if (!produto || !produto.produto_id) return -1;
+            const pid = String(produto.produto_id);
+            const forcarQtd = opts && opts.quantidade != null;
+            let qtdForcada = 1;
+            if (forcarQtd) {
+                const q = Number(opts.quantidade);
+                qtdForcada = (!Number.isNaN(q) && q > 0) ? q : 1;
+            }
+            let idx = tfCarrinho.findIndex((x) => String(x.produto_id) === pid);
+            if (idx >= 0) {
+                if (forcarQtd) {
+                    tfCarrinho[idx].quantidade = Number(tfCarrinho[idx].quantidade || 0) + qtdForcada;
+                }
+                if (produto.saldo_vila != null) tfCarrinho[idx].saldo_vila = produto.saldo_vila;
+                if (produto.saldo_centro != null) tfCarrinho[idx].saldo_centro = produto.saldo_centro;
+            } else {
+                const qNew = forcarQtd ? qtdForcada : 1;
+                tfCarrinho.push({
+                    produto_id: pid,
+                    nome: produto.nome || ('Produto ' + pid),
+                    codigo_interno: produto.codigo_interno || '',
+                    codigo_barras: produto.codigo_barras || '',
+                    quantidade: qNew,
+                    saldo_vila: Number(produto.saldo_vila || 0),
+                    saldo_centro: Number(produto.saldo_centro || 0),
+                });
+                idx = tfCarrinho.length - 1;
+            }
+            tfRenderCarrinho();
+            return idx;
+        }
+
+        function tfRemoverDoCarrinho(idx) {
+            if (idx < 0 || idx >= tfCarrinho.length) return;
+            tfCarrinho.splice(idx, 1);
+            tfRenderCarrinho();
+        }
+
+        function tfAlterarQtd(idx, val) {
+            if (idx < 0 || idx >= tfCarrinho.length) return;
+            const q = parseFloat(String(val).replace(',', '.'));
+            if (Number.isNaN(q) || q <= 0) {
+                alert('Quantidade inválida.');
+                tfRenderCarrinho();
+                tfFocarQtd(idx);
+                return;
+            }
+            tfCarrinho[idx].quantidade = q;
+        }
+
+        function tfLimparCarrinho() {
+            if (!tfCarrinho.length) return;
+            if (!confirm('Limpar o carrinho?')) return;
+            tfCarrinho = [];
+            tfRenderCarrinho();
+        }
+
+        function tfMapBuscaProduto(p) {
+            return {
+                produto_id: String(p.id || p.produto_id || ''),
+                nome: p.nome || '',
+                codigo_interno: p.codigo || p.codigo_interno || p.codigo_nfe || '',
+                codigo_barras: p.codigo_barras || p.ean || '',
+                quantidade: 1,
+                saldo_vila: Number(p.saldo_vila || 0),
+                saldo_centro: Number(p.saldo_centro || 0),
+            };
+        }
+
+        function tfRenderResultados() {
+            const el = document.getElementById('tf-resultados');
+            if (!el) return;
+            if (!tfResultados.length) {
+                el.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">0</div>';
+                return;
+            }
+            let html = '<table class="tf-busca-table">'
+                + '<colgroup><col class="tf-c-prod"><col class="tf-c-cod"><col class="tf-c-v"><col class="tf-c-c"></colgroup>'
+                + '<thead><tr>'
+                + '<th>Produto</th><th>Cód.</th><th>Vila</th><th>Centro</th>'
+                + '</tr></thead><tbody>';
+            tfResultados.forEach((p, i) => {
+                const hi = i === tfHighlightIdx ? ' tf-hi' : '';
+                const vilaNeg = Number(p.saldo_vila || 0) <= 0;
+                const vilaCls = vilaNeg ? 'tf-saldo tf-neg' : 'tf-saldo';
+                const cod = p.codigo_interno || p.codigo_barras || p.produto_id || '—';
+                html += `<tr role="option" data-tf-res="${i}" class="${hi.trim()}" onclick="tfEscolherResultado(${i})">`
+                    + `<td class="tf-nome" title="${tfEsc(p.nome)}">${tfEsc(p.nome)}</td>`
+                    + `<td class="tf-cod" title="${tfEsc(cod)}">${tfEsc(cod)}</td>`
+                    + `<td class="${vilaCls}">${tfFmtSaldo(p.saldo_vila)}</td>`
+                    + `<td class="tf-saldo">${tfFmtSaldo(p.saldo_centro)}</td>`
+                    + `</tr>`;
+            });
+            html += '</tbody></table>';
+            el.innerHTML = html;
+            const hiEl = el.querySelector('[data-tf-res="' + tfHighlightIdx + '"]');
+            if (hiEl && hiEl.scrollIntoView) hiEl.scrollIntoView({ block: 'nearest' });
+        }
+
+        function tfEscolherResultado(idx) {
+            if (idx < 0 || idx >= tfResultados.length) return;
+            const cartIdx = tfAddOuSomar(tfResultados[idx]);
+            const elBusca = document.getElementById('tf-busca');
+            const elStatus = document.getElementById('tf-busca-status');
+            if (elStatus) elStatus.textContent = '';
+            if (elBusca) elBusca.value = '';
+            tfResultados = [];
+            tfHighlightIdx = -1;
+            const elRes = document.getElementById('tf-resultados');
+            if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
+            if (cartIdx >= 0) {
+                // Item novo entra com 1; se já existia, mantém qtd e seleciona (pronto pra sobrescrever)
+                tfFocarQtd(cartIdx);
+            }
+        }
+
+        async function tfExecutarBusca(termo) {
+            const q = String(termo || '').trim();
+            const elStatus = document.getElementById('tf-busca-status');
+            const elRes = document.getElementById('tf-resultados');
+            if (q.length < 1) {
+                tfResultados = [];
+                tfHighlightIdx = -1;
+                if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
+                if (elStatus) elStatus.textContent = '';
+                return;
+            }
+            const seq = ++tfBuscaSeq;
+            if (elStatus) elStatus.textContent = '…';
+            try {
+                const response = await fetch('/api/buscar/?q=' + encodeURIComponent(q), { credentials: 'same-origin' });
+                const data = await response.json();
+                if (seq !== tfBuscaSeq) return;
+                const lista = (data.produtos || []).slice(0, 40).map(tfMapBuscaProduto).filter((p) => p.produto_id);
+                tfResultados = lista;
+                tfHighlightIdx = lista.length ? 0 : -1;
+                if (elStatus) {
+                    elStatus.textContent = lista.length ? (lista.length + '') : '0';
+                }
+                const qDigits = q.replace(/\s+/g, '');
+                if (lista.length === 1) {
+                    const only = lista[0];
+                    const codes = [only.codigo_interno, only.codigo_barras, only.produto_id]
+                        .map((x) => String(x || '').trim().toLowerCase())
+                        .filter(Boolean);
+                    const isBarcodeLike = /^\d{8,}$/.test(qDigits);
+                    if (codes.includes(qDigits.toLowerCase()) || isBarcodeLike) {
+                        tfEscolherResultado(0);
+                        return;
+                    }
+                }
+                tfRenderResultados();
+            } catch (e) {
+                if (seq !== tfBuscaSeq) return;
+                if (elStatus) elStatus.textContent = 'erro';
+                if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-red-500">erro</div>';
+            }
+        }
+
+        function tfAgendarBusca() {
+            const el = document.getElementById('tf-busca');
+            if (!el) return;
+            clearTimeout(tfBuscaTimer);
+            tfBuscaTimer = setTimeout(() => tfExecutarBusca(el.value), 220);
+        }
+
+        function tfParseLinhasColar(texto) {
+            const linhas = [];
+            String(texto || '').split(/\r?\n/).forEach((raw) => {
+                const line = String(raw || '').trim();
+                if (!line) return;
+                const parts = line.split(/[\s\t;,|]+/).filter(Boolean);
+                if (!parts.length) return;
+                let codigo = parts[0];
+                let qtd = 1;
+                if (parts.length >= 2) {
+                    const maybeQ = parseFloat(String(parts[parts.length - 1]).replace(',', '.'));
+                    if (!Number.isNaN(maybeQ) && maybeQ > 0) {
+                        qtd = maybeQ;
+                        codigo = parts.slice(0, -1).join(' ');
+                    }
+                }
+                if (codigo) linhas.push({ codigo: codigo.trim(), quantidade: qtd });
+            });
+            return linhas;
+        }
+
+        async function tfAplicarColarLista() {
+            const el = document.getElementById('tf-colar');
+            const st = document.getElementById('tf-colar-status');
+            const linhas = tfParseLinhasColar(el ? el.value : '');
+            if (!linhas.length) {
+                if (st) st.textContent = 'Cole ao menos uma linha com código.';
+                return;
+            }
+            if (st) st.textContent = 'Resolvendo ' + linhas.length + ' linha(s)…';
+            try {
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
+                const res = await fetch('/estoque/api_resolver_codigos_transferencia_forcada/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({ linhas }),
+                });
+                const data = await res.json();
+                if (!data.ok) {
+                    if (st) st.textContent = data.erro || 'Não foi possível resolver.';
+                    alert(data.erro || 'Não foi possível resolver a lista.');
+                    return;
+                }
+                let lastIdx = -1;
+                (data.itens || []).forEach((it) => {
+                    lastIdx = tfAddOuSomar(it, { quantidade: it.quantidade });
+                });
+                const nOk = (data.itens || []).length;
+                const nFail = (data.nao_encontrados || []).length;
+                let msg = nOk + ' no carrinho';
+                if (nFail) {
+                    msg += ' · ' + nFail + ' não achado(s)';
+                }
+                if (st) st.textContent = msg;
+                if (el && nOk) el.value = '';
+                if (lastIdx >= 0) tfFocarQtd(lastIdx);
+            } catch (e) {
+                if (st) st.textContent = 'Erro de rede.';
+                alert('Erro ao resolver lista.');
+            } finally {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            }
+        }
+
+        async function tfConfirmarTransferencia() {
+            if (!tfCarrinho.length) {
+                alert('Carrinho vazio.');
+                return;
+            }
+            for (let i = 0; i < tfCarrinho.length; i++) {
+                const q = Number(tfCarrinho[i].quantidade);
+                if (Number.isNaN(q) || q <= 0) {
+                    alert('Quantidade inválida em: ' + (tfCarrinho[i].nome || ''));
+                    return;
+                }
+            }
+            const origemKey = tfDirecao === 'centro_vila' ? 'saldo_centro' : 'saldo_vila';
+            const origemNome = tfDirecao === 'centro_vila' ? 'Centro' : 'Vila';
+            const comAviso = tfCarrinho.filter((x) => Number(x[origemKey] || 0) <= 0);
+            let msgConfirm = 'Transferir ' + tfCarrinho.length + ' item(ns) ' + tfRotuloDirecao() + ' no Agro?';
+            if (comAviso.length) {
+                msgConfirm += '\n\nAtenção: ' + comAviso.length + ' com saldo ' + origemNome + ' zerado/negativo (pode ficar mais negativo).';
+            }
+            if (!confirm(msgConfirm)) return;
+            try {
+                const pin = await pedirPIN('PIN para transferência forçada ' + tfRotuloDirecao());
+                if (!pin) return;
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
+                const res = await fetch('/estoque/api_transferir_forcado_vila_para_centro/', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pin,
+                        direcao: tfDirecao,
+                        itens: tfCarrinho.map((it) => ({
+                            produto_id: it.produto_id,
+                            quantidade: it.quantidade,
+                            nome_produto: it.nome,
+                            codigo_interno: it.codigo_interno || '',
+                        })),
+                    }),
+                });
+                const raw = await res.text();
+                let data = {};
+                try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {}; }
+                if (!res.ok && !data.mensagem) {
+                    alert(data.erro || ('Erro ' + res.status));
+                    return;
+                }
+                let msg = data.mensagem || '';
+                if (data.falhas && data.falhas.length) {
+                    msg += '\n\nFalhas:\n' + data.falhas.slice(0, 15).map((f) =>
+                        (f.nome || f.produto_id || '?') + ': ' + (f.erro || '')
+                    ).join('\n');
+                }
+                alert((data.ok ? 'Concluído.\n' : 'Concluído com avisos.\n') + msg);
+                if (data.transferidos && data.transferidos.length) {
+                    const okIds = new Set(data.transferidos.map((t) => String(t.produto_id)));
+                    tfCarrinho = tfCarrinho.filter((c) => !okIds.has(String(c.produto_id)));
+                    tfRenderCarrinho();
+                }
+                await carregarDados({ preserveScroll: true });
+                await carregarLotesPedidos();
+                await carregarHistoricoTransferencias();
+                if (!tfCarrinho.length) fecharModalTransferForcada();
+            } catch (e) {
+                if (e.message !== 'Troca de PIN necessária') alert('Erro de comunicação: ' + (e.message || String(e)));
+            } finally {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const elBusca = document.getElementById('tf-busca');
+            if (!elBusca) return;
+            elBusca.addEventListener('input', tfAgendarBusca);
+            elBusca.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (!tfResultados.length) return;
+                    tfHighlightIdx = Math.min(tfResultados.length - 1, tfHighlightIdx + 1);
+                    tfRenderResultados();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (!tfResultados.length) return;
+                    tfHighlightIdx = Math.max(0, tfHighlightIdx - 1);
+                    tfRenderResultados();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (tfHighlightIdx >= 0 && tfResultados[tfHighlightIdx]) {
+                        tfEscolherResultado(tfHighlightIdx);
+                    } else {
+                        clearTimeout(tfBuscaTimer);
+                        tfExecutarBusca(elBusca.value);
+                    }
+                }
+            });
+        });
+
         let modalPromiseResolve = null;
         let depositoSelecionadoParaAjuste = '';
 
@@ -1172,7 +1820,7 @@
             }, 10);
         }
 
-        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe'];
+        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada'];
 
         function fecharModal(id, confirmado) {
             const bd = document.getElementById('backdrop');
@@ -1566,7 +2214,7 @@
             if (document.body.classList.contains('sspin-locked')) return;
             if (!document.getElementById('backdrop').classList.contains('hidden')) {
                 if (e.key === 'Escape') {
-                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe'].forEach(id => {
+                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) {
                             fecharModal(id, false);
