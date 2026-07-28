@@ -127,7 +127,13 @@ def entrada_nfe_status_ui_por_codigo(codigo: str) -> dict[str, str]:
 def entrada_nfe_extra_financeiro_ok(extra: Any) -> bool:
     if not isinstance(extra, dict):
         return False
-    return bool(extra.get("financeiro_lancado"))
+    if extra.get("financeiro_lancado"):
+        return True
+    # Título já vinculado mesmo se a flag booleana sumiu (corrida autosave × marcar).
+    ids = extra.get("financeiro_ids")
+    if isinstance(ids, list) and any(str(x).strip() for x in ids):
+        return True
+    return False
 
 
 def _entrada_nfe_extra_wizard_data_ok(extra: Any) -> bool:
@@ -2875,25 +2881,47 @@ def atualizar_rascunho_entrada(
             novo_status = entrada_nfe_status_derivado_linhas(linhas)
         prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
         merged_extra = {**prev_ex, **(extra or {})}
-        # Evita corrida autosave/manual vs. ``marcar_rascunho_financeiro_lancado``: merge com snapshot
-        # antigo não pode reapagar nem reintroduzir sozinho o carimbo de financeiro.
-        fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
-        fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
-        if entrada_nfe_extra_financeiro_ok(fresh_ex):
-            merged_extra["financeiro_lancado"] = True
-            if "financeiro_ids" in fresh_ex:
-                ids_f = fresh_ex["financeiro_ids"]
-                merged_extra["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
-            if "financeiro_lancado_em" in fresh_ex:
-                merged_extra["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
-        else:
-            merged_extra.pop("financeiro_lancado", None)
-            merged_extra.pop("financeiro_ids", None)
-            merged_extra.pop("financeiro_lancado_em", None)
+
+        def _entrada_nfe_mesclar_carimbo_financeiro(dst: dict[str, Any]) -> None:
+            """Fecha janela autosave × ``marcar_rascunho_financeiro_lancado`` (re-lê o DB)."""
+            fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
+            fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+            if entrada_nfe_extra_financeiro_ok(fresh_ex):
+                dst["financeiro_lancado"] = True
+                if "financeiro_ids" in fresh_ex:
+                    ids_f = fresh_ex["financeiro_ids"]
+                    dst["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
+                if "financeiro_lancado_em" in fresh_ex:
+                    dst["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+                if "financeiro_lote" in fresh_ex:
+                    dst["financeiro_lote"] = fresh_ex["financeiro_lote"]
+                return
+            if entrada_nfe_extra_financeiro_ok(prev_ex):
+                dst["financeiro_lancado"] = True
+                if "financeiro_ids" in prev_ex:
+                    ids_p = prev_ex["financeiro_ids"]
+                    dst["financeiro_ids"] = list(ids_p) if isinstance(ids_p, list) else ids_p
+                if "financeiro_lancado_em" in prev_ex:
+                    dst["financeiro_lancado_em"] = prev_ex["financeiro_lancado_em"]
+                return
+            dst.pop("financeiro_lancado", None)
+            dst.pop("financeiro_ids", None)
+            dst.pop("financeiro_lancado_em", None)
+
+        _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+
+        modo_in = str(modo or "manual").strip()[:40] or "manual"
+        modo_prev = str(atual.get("modo") or "manual").strip()[:40] or "manual"
+        chave_dig = "".join(ch for ch in str(xml_chave or "") if ch.isdigit())
+        if modo_in.lower() == "manual" and modo_prev.lower() in ("xml", "sefaz"):
+            modo_in = modo_prev
+        elif modo_in.lower() == "manual" and len(chave_dig) >= 44:
+            modo_in = "xml"
+
         set_doc: dict[str, Any] = {
             "atualizado_em": datetime.now(timezone.utc),
             "usuario_ultima_alteracao": (usuario or "")[:200],
-            "modo": (modo or "manual")[:40],
+            "modo": modo_in,
             "cabecalho": cab_norm,
             "linhas": linhas,
             "xml_chave": (xml_chave or "")[:44] or None,
@@ -2901,6 +2929,8 @@ def atualizar_rascunho_entrada(
         }
         if novo_status is not None:
             set_doc["status"] = novo_status
+        _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+        set_doc["extra"] = merged_extra
         col.update_one(
             {"_id": _id},
             {"$set": set_doc},
@@ -2967,10 +2997,26 @@ def patch_rascunho_entrada_extra(
                 merged_extra["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
             if "financeiro_lancado_em" in fresh_ex:
                 merged_extra["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+        elif entrada_nfe_extra_financeiro_ok(prev_ex):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in prev_ex:
+                ids_p = prev_ex["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_p) if isinstance(ids_p, list) else ids_p
+            if "financeiro_lancado_em" in prev_ex:
+                merged_extra["financeiro_lancado_em"] = prev_ex["financeiro_lancado_em"]
         else:
             merged_extra.pop("financeiro_lancado", None)
             merged_extra.pop("financeiro_ids", None)
             merged_extra.pop("financeiro_lancado_em", None)
+        fresh_mini2 = col.find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_ex2 = fresh_mini2.get("extra") if isinstance(fresh_mini2.get("extra"), dict) else {}
+        if entrada_nfe_extra_financeiro_ok(fresh_ex2):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in fresh_ex2:
+                ids_f2 = fresh_ex2["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_f2) if isinstance(ids_f2, list) else ids_f2
+            if "financeiro_lancado_em" in fresh_ex2:
+                merged_extra["financeiro_lancado_em"] = fresh_ex2["financeiro_lancado_em"]
         col.update_one(
             {"_id": _id},
             {

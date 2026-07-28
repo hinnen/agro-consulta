@@ -114,6 +114,7 @@
       max-width: 6.85rem;
       min-width: 0;
       align-self: start;
+      overflow: hidden;
     }
     @media (min-width: 768px) {
       .nfe-lista-chip-col {
@@ -121,11 +122,16 @@
       }
     }
     .nfe-lista-chip-fila {
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      max-width: 100%;
+      display: inline-block;
     }
     .nfe-lista-text {
       min-width: 0;
       width: 100%;
+      overflow: hidden;
     }
     .nfe-lista-fornecedor {
       font-size: clamp(0.95rem, 1.4vw, 1.08rem);
@@ -133,11 +139,16 @@
       color: rgb(15 23 42);
       line-height: 1.25;
       letter-spacing: -0.02em;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     @media (min-width: 1100px) {
       .nfe-lista-text {
         display: grid;
-        grid-template-columns: minmax(9rem, 0.38fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 0.38fr) minmax(0, 1fr);
         align-items: center;
         column-gap: clamp(0.65rem, 1.2vw, 1.15rem);
       }
@@ -2653,6 +2664,8 @@
   };
 
   let entradaNfeRascunhoEditId = null;
+  /** ``manual`` | ``xml`` | ``sefaz`` — autosave não pode apagar origem XML. */
+  let entradaNfeModoPersistido = 'manual';
   /** sessionStorage: último rascunho editado (sobrevive a F5 na mesma aba). */
   const ENTRADA_NFE_SS_RASC_ID = 'agro_entrada_nfe_rascunho_id_v1';
   /** Evita POST automático enquanto o rascunho está sendo montado na grade. */
@@ -2859,9 +2872,16 @@
     const host = document.getElementById('entrada-nfe-editor-meta');
     if (!host) return;
     host.textContent = '';
-    const tabOn = document.querySelector('.tab-btn.tab-on[data-tab]');
-    const tab = (tabOn && tabOn.getAttribute('data-tab')) || 'manual';
-    const modo = tab === 'xml' ? 'XML' : tab === 'sefaz' ? 'SEFAZ' : 'Manual';
+    const modo = (() => {
+      const m = entradaNfeModoParaSalvar();
+      if (m === 'xml') return 'XML';
+      if (m === 'sefaz') return 'SEFAZ';
+      const tabOn = document.querySelector('.tab-btn.tab-on[data-tab]');
+      const tab = (tabOn && tabOn.getAttribute('data-tab')) || 'manual';
+      if (tab === 'xml') return 'XML';
+      if (tab === 'sefaz') return 'SEFAZ';
+      return 'Manual';
+    })();
     const n = String(document.getElementById('m-nf')?.value || '').trim();
     const ser = String(document.getElementById('m-serie')?.value || '').trim();
     const nfTxt = n || ser ? [n || '—', ser ? `série ${ser}` : ''].filter(Boolean).join(' · ') : '—';
@@ -3043,7 +3063,46 @@
     if (!rz || typeof rz !== 'object') return false;
     if (rz.entrada_financeiro_lancado === true) return true;
     const ex = rz.extra;
-    return !!(ex && typeof ex === 'object' && ex.financeiro_lancado);
+    if (!ex || typeof ex !== 'object') return false;
+    if (ex.financeiro_lancado) return true;
+    const ids = ex.financeiro_ids;
+    return Array.isArray(ids) && ids.some((x) => String(x || '').trim());
+  }
+
+  /** Modo gravado no rascunho (lista + autosave). */
+  function entradaNfeModoParaSalvar(hint) {
+    const h = String(hint || '').trim().toLowerCase();
+    if (h === 'xml' || h === 'sefaz') {
+      entradaNfeModoPersistido = h;
+      return h;
+    }
+    let chave = '';
+    try {
+      chave = (ultimaNotaParse && ultimaNotaParse.chave)
+        || (document.getElementById('m-chave') && document.getElementById('m-chave').value)
+        || '';
+    } catch (_) {}
+    const dig = String(chave || '').replace(/\D/g, '');
+    const prev = String(entradaNfeModoPersistido || 'manual').toLowerCase();
+    if (dig.length >= 44) {
+      if (prev === 'sefaz') return 'sefaz';
+      entradaNfeModoPersistido = 'xml';
+      return 'xml';
+    }
+    if (prev === 'xml' || prev === 'sefaz') return prev;
+    return 'manual';
+  }
+
+  /** Rótulo Origem na lista (não confiar só em ``modo`` se a chave XML existir). */
+  function entradaNfeListaOrigemModo(it) {
+    const modo = String((it && it.modo) || '').trim().toLowerCase();
+    const cab = (it && it.cabecalho && typeof it.cabecalho === 'object') ? it.cabecalho : {};
+    const ch = String((it && it.xml_chave) || cab.chave || '').replace(/\D/g, '');
+    const ex = (it && it.extra && typeof it.extra === 'object') ? it.extra : {};
+    const orig = String(ex.origem || '').trim().toLowerCase();
+    if (modo === 'sefaz' || orig.includes('sefaz') || orig.includes('dfe')) return 'SEFAZ';
+    if (modo === 'xml' || orig === 'upload_xml' || orig.includes('xml') || ch.length >= 44) return 'XML';
+    return 'Manual';
   }
 
   function entradaNfeBonificacaoFromExtra(ex) {
@@ -6578,7 +6637,9 @@
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
     const parcelas_preview = rows.map((tr) => {
       const vRaw = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
-      const bol = (tr.querySelector('.fin-parc-boleto')?.value || '').trim();
+      const bolInp = tr.querySelector('.fin-parc-boleto');
+      if (bolInp) entradaNfeNormalizarCampoBoleto(bolInp);
+      const bol = (bolInp?.value || '').trim();
       const o = {
         data_vencimento: (tr.querySelector('.fin-parc-dv')?.value || '').trim(),
         valor: vRaw != null && Number.isFinite(vRaw) && vRaw > 0 ? vRaw : 0,
@@ -6700,6 +6761,7 @@
           }
           if (bl && p.boleto_codigo_barras != null) {
             bl.value = String(p.boleto_codigo_barras);
+            entradaNfeNormalizarCampoBoleto(bl);
           }
         });
         entradaNfeAtualizarRodapeParcelas();
@@ -6717,6 +6779,50 @@
 
   let finParcPreviewT = null;
   let _finParcForcarPadrao = false;
+
+  /** Módulo 10 (boleto bancário FEBRABAN) — DV dos campos da linha digitável. */
+  function entradaNfeBoletoModulo10(bloco) {
+    let soma = 0;
+    let multiplicador = 2;
+    const s = String(bloco || '');
+    for (let i = s.length - 1; i >= 0; i -= 1) {
+      const resultado = parseInt(s[i], 10) * multiplicador;
+      soma += resultado > 9 ? Math.floor(resultado / 10) + (resultado % 10) : resultado;
+      multiplicador = multiplicador === 2 ? 1 : 2;
+    }
+    const resto = soma % 10;
+    return resto === 0 ? 0 : 10 - resto;
+  }
+
+  /**
+   * Leitor de boleto manda 44 dígitos (código de barras);
+   * apps de banco pedem a linha digitável de 47 (com 3 DVs módulo 10).
+   */
+  function entradaNfeBarcodeParaLinhaDigitavel(barcode) {
+    const dig = String(barcode || '').replace(/\D/g, '');
+    if (dig.length !== 44) return dig;
+    const campo1 = dig.substring(0, 4) + dig.substring(19, 24);
+    const campo2 = dig.substring(24, 34);
+    const campo3 = dig.substring(34, 44);
+    const campo4 = dig.substring(4, 5);
+    const campo5 = dig.substring(5, 19);
+    return (
+      campo1 + entradaNfeBoletoModulo10(campo1)
+      + campo2 + entradaNfeBoletoModulo10(campo2)
+      + campo3 + entradaNfeBoletoModulo10(campo3)
+      + campo4 + campo5
+    );
+  }
+
+  function entradaNfeNormalizarCampoBoleto(inp) {
+    if (!inp) return false;
+    const dig = String(inp.value || '').replace(/\D/g, '');
+    if (dig.length !== 44) return false;
+    const linha = entradaNfeBarcodeParaLinhaDigitavel(dig);
+    if (!linha || linha.length !== 47) return false;
+    inp.value = linha;
+    return true;
+  }
 
   function entradaNfeAtualizarRodapeParcelas(totalCentsPinned) {
     const warnEl = document.getElementById('fin-parcelas-sum-warn');
@@ -6827,12 +6933,14 @@
       const venc = dates[i] || datesDefault[i] || '';
       const vnum = Number(valorReais);
       const vdisp = Number.isFinite(vnum) ? String(vnum) : '';
-      const bolRaw = prevBoleto[i] || '';
+      let bolRaw = prevBoleto[i] || '';
+      const bolDig = String(bolRaw).replace(/\D/g, '');
+      if (bolDig.length === 44) bolRaw = entradaNfeBarcodeParaLinhaDigitavel(bolDig);
       tr.innerHTML = `
         <td class="px-2 py-1 font-black text-slate-600 align-middle">${i + 1}</td>
         <td class="px-1 py-1 align-middle"><input type="date" class="fin-parc-dv w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-bold bg-white" value="${venc}"></td>
         <td class="px-1 py-1 align-middle"><input type="text" inputmode="decimal" autocomplete="off" class="fin-parc-val w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-black text-right tabular-nums bg-white" value="${vdisp}" title="Valor desta parcela — edite à mão; use Recalcular para dividir igual de novo"></td>
-        <td class="px-1 py-1 align-middle"><input type="text" inputmode="numeric" autocomplete="off" maxlength="60" class="fin-parc-boleto w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-[11px] font-mono font-bold bg-white" placeholder="Linha / barras" value="${entradaNfeEscAttrValor(bolRaw)}" title="Opcional: linha digitável ou código de barras para pagar sem o papel"></td>`;
+        <td class="px-1 py-1 align-middle"><input type="text" inputmode="numeric" autocomplete="off" maxlength="60" class="fin-parc-boleto w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-[11px] font-mono font-bold bg-white" placeholder="Linha / barras" value="${entradaNfeEscAttrValor(bolRaw)}" title="Opcional: linha digitável ou código de barras (44 → 47 automático)"></td>`;
       tbodyEl.appendChild(tr);
     });
     totalEl.textContent = (totalCentsGrade / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -6841,8 +6949,14 @@
       : 'Uma parcela com o total a pagar (nota + imposto fora da NF, se houver).');
     tableEl.classList.remove('hidden');
     tbodyEl.querySelectorAll('.fin-parc-dv, .fin-parc-val, .fin-parc-boleto').forEach((inp) => {
-      inp.addEventListener('input', () => entradaNfeAtualizarRodapeParcelas());
-      inp.addEventListener('change', () => entradaNfeAtualizarRodapeParcelas());
+      inp.addEventListener('input', () => {
+        if (inp.classList.contains('fin-parc-boleto')) entradaNfeNormalizarCampoBoleto(inp);
+        entradaNfeAtualizarRodapeParcelas();
+      });
+      inp.addEventListener('change', () => {
+        if (inp.classList.contains('fin-parc-boleto')) entradaNfeNormalizarCampoBoleto(inp);
+        entradaNfeAtualizarRodapeParcelas();
+      });
     });
     entradaNfeAtualizarRodapeParcelas(totalCentsGrade);
   }
@@ -6865,9 +6979,11 @@
         return { erro: `Parcela ${i + 1}: valor inválido.` };
       }
       combinedCents.push(Math.round(v * 100));
+      const bolInp = tr.querySelector('.fin-parc-boleto');
+      if (bolInp) entradaNfeNormalizarCampoBoleto(bolInp);
       metas.push({
         dvLin,
-        bol: (tr.querySelector('.fin-parc-boleto')?.value || '').trim(),
+        bol: (bolInp?.value || '').trim(),
       });
     }
     const dec = entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents);
@@ -7011,6 +7127,112 @@
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
+  }
+
+  /** Zera editor para «Nova» — sem herdar XML, financeiro nem cabeçalho da nota anterior. */
+  function entradaNfeResetEditorParaNovaNota() {
+    clearTimeout(entradaNfeAutosaveTimer);
+    entradaNfeAutosaveTimer = null;
+    entradaNfeAutosaveDirty = false;
+    entradaNfeAutosaveLastSig = '';
+    entradaNfeLimparAutosaveHint();
+    try {
+      entradaNfeXmlMergeFechar();
+    } catch (_) {
+      entradaNfeXmlMergeCtx = null;
+      document.getElementById('modal-xml-merge')?.classList.add('hidden');
+    }
+    const xmlFile = document.getElementById('xml-file');
+    if (xmlFile) xmlFile.value = '';
+    entradaNfeRascunhoAplicandoGrade = true;
+    try {
+      ultimaNotaParse = null;
+      entradaNfeExtraUltimo = null;
+      entradaNfeModoPersistido = 'manual';
+      setEntradaNfeRascunhoEdit(null);
+      const limparVal = (id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      };
+      [
+        'm-emit-nome',
+        'm-emit-cnpj',
+        'm-emit-forn-id',
+        'm-nf',
+        'm-serie',
+        'm-chave',
+        'm-dh',
+        'm-data-entrada',
+        'm-plano-conta',
+        'm-plano-conta-id',
+        'fin-dc',
+        'fin-dv',
+        'fin-forma-nome',
+        'fin-forma-id',
+        'fin-banco-nome',
+        'fin-banco-id',
+        'fin-grupo-nome',
+        'fin-grupo-id',
+        'fin-imposto-extra',
+        'fin-empresa-nome',
+        'fin-empresa-id',
+        'nfe-wiz-pin',
+        'nfe-wiz-pin-estoque',
+      ].forEach(limparVal);
+      const selEmpFat = document.getElementById('m-empresa-faturada');
+      if (selEmpFat) selEmpFat.selectedIndex = 0;
+      const selFinEmp = document.getElementById('fin-empresa-loja');
+      if (selFinEmp) selFinEmp.value = '';
+      const finNP = document.getElementById('fin-n-parc');
+      if (finNP) finNP.value = '1';
+      const finQuit = document.getElementById('fin-quitar-ao-salvar');
+      if (finQuit) finQuit.checked = false;
+      const finParcTbody = document.getElementById('fin-parcelas-preview-tbody');
+      if (finParcTbody) finParcTbody.innerHTML = '';
+      const finParcWrap = document.getElementById('fin-parcelas-preview-table');
+      if (finParcWrap) finParcWrap.classList.add('hidden');
+      const finParcWarn = document.getElementById('fin-parcelas-sum-warn');
+      if (finParcWarn) {
+        finParcWarn.textContent = '';
+        finParcWarn.classList.add('hidden');
+      }
+      const tipoCompras = document.getElementById('nfe-tipo-compras');
+      if (tipoCompras) tipoCompras.checked = true;
+      const tipoBon = document.getElementById('nfe-tipo-bonificacao');
+      if (tipoBon) tipoBon.checked = false;
+      const chkRateio = document.getElementById('nfe-chk-rateio-acrescimos');
+      if (chkRateio) {
+        chkRateio.checked = false;
+        chkRateio.disabled = true;
+      }
+      entradaNfeDepositoDefinir('', true);
+      tbodyClear();
+      try {
+        entradaNfeFinDefaultsHoje();
+      } catch (_) {}
+      try {
+        entradaNfeFinParcelasIntervaloUiSync();
+      } catch (_) {}
+      try {
+        entradaNfeAtualizarPreviewParcelas();
+      } catch (_) {}
+      try {
+        entradaNfeAtualizarUiRateioAcrescimos(null);
+      } catch (_) {}
+      atualizarPainelTotalNfe();
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      entradaNfeAtualizarAvisoFinanceiroPendente();
+      entradaNfeAtualizarBarraContextoNota();
+    } finally {
+      queueMicrotask(() => {
+        requestAnimationFrame(() => {
+          entradaNfeRascunhoAplicandoGrade = false;
+        });
+      });
+    }
   }
 
   /** Exibe Qtd est. só quando Un/emb &gt; 1 (como R$ pacote); moldura azul; somente leitura. */
@@ -8040,7 +8262,16 @@
       const exW = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
       entradaNfeRascunhoStatusUltimo = String(rz.status != null ? rz.status : '').trim().toLowerCase();
       entradaNfeRascunhoBucketUltimo = String(rz.entrada_lista_bucket || '').trim().toLowerCase();
-      entradaNfeRascunhoFinanceiroLancadoUltimo = rz.entrada_financeiro_lancado === true;
+      entradaNfeRascunhoFinanceiroLancadoUltimo = rz.entrada_financeiro_lancado === true
+        || entradaNfeFinanceiroTituloJaGerado(rz);
+      {
+        const m0 = String(rz.modo || '').trim().toLowerCase();
+        if (m0 === 'xml' || m0 === 'sefaz') entradaNfeModoPersistido = m0;
+        else {
+          const ch0 = String(rz.xml_chave || (cab && cab.chave) || '').replace(/\D/g, '');
+          entradaNfeModoPersistido = ch0.length >= 44 ? 'xml' : 'manual';
+        }
+      }
       const legadoFluxoAvancado = entradaNfeWizardFluxoLegadoOuConcluido(
         exW,
         entradaNfeRascunhoStatusUltimo,
@@ -9816,20 +10047,21 @@
       return;
     }
     const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
+    const modoSalvar = entradaNfeModoParaSalvar(modo);
     const ex = entradaNfeAnexarFinanceiroAoExtra(extra && typeof extra === 'object' ? { ...extra } : {});
     const jaEditando = !!entradaNfeRascunhoEditId;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
     const body = jaEditando
       ? {
           id: entradaNfeRascunhoEditId,
-          modo,
+          modo: modoSalvar,
           cabecalho: cab,
           linhas,
           xml_chave: xmlChave,
           extra: ex,
         }
       : {
-          modo,
+          modo: modoSalvar,
           cabecalho: cab,
           linhas,
           xml_chave: xmlChave,
@@ -9957,14 +10189,14 @@
     const body = jaEditando
       ? {
           id: entradaNfeRascunhoEditId,
-          modo: 'manual',
+          modo: entradaNfeModoParaSalvar(),
           cabecalho: cab,
           linhas,
           xml_chave: xmlChave,
           extra: extraMerge,
         }
       : {
-          modo: 'manual',
+          modo: entradaNfeModoParaSalvar(),
           cabecalho: cab,
           linhas,
           xml_chave: xmlChave,
@@ -10207,7 +10439,7 @@
     }
   }
 
-  document.getElementById('btn-salvar-fin')?.addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
+  document.getElementById('btn-salvar-fin')?.addEventListener('click', () => salvarComFinanceiro(entradaNfeModoParaSalvar(), { com_financeiro: true }));
 
   const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
   let entradaNfeEstoqueAgroEmCurso = false;
@@ -10254,7 +10486,7 @@
       cabecalho: cab,
       deposito: depVal,
       salvar_rascunho: true,
-      modo: 'manual',
+      modo: entradaNfeModoParaSalvar(),
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
       extra: { origem: 'entrada_nfe_estoque_agro' },
       rascunho_id: entradaNfeRascunhoEditId || undefined,
@@ -10718,7 +10950,7 @@
               'Criado na tela Compras: aguarde a chegada da mercadoria. A entrada fiscal segue quando os produtos e a NF estiverem disponíveis.';
           } else if (entradaNfeConcluidaSemFinanceiro(it)) {
             fb.className = entradaNfeFilaChipClassLista('concluida_sem_fin');
-            fb.textContent = 'Concluída · sem financeiro';
+            fb.textContent = 'Sem a pagar';
             fb.title =
               'PIN gravado no Agro, mas falta gerar conta a pagar na etapa 7 · Financeiro.';
           } else {
@@ -10751,11 +10983,11 @@
         nomeForn.title = (cab.emit_nome || '').toString();
         const metaWrap = document.createElement('div');
         metaWrap.className = 'nfe-lista-meta';
-        const modo = (it.modo || '').toString().trim() || '—';
+        const modo = entradaNfeListaOrigemModo(it);
         const cr = entradaNfeFormatarDataBr(it.criado_em);
         const at = it.atualizado_em ? entradaNfeFormatarDataBr(it.atualizado_em) : '';
         const origemExibir = ch ? `${modo} · ${chShort}` : modo;
-        const origemTitulo = ch ? `${modo} — chave NFe ${ch}` : '';
+        const origemTitulo = ch ? `${modo} — chave NFe ${ch}` : modo;
         metaWrap.appendChild(entradaNfeListaMetaItem('Origem', origemExibir, origemTitulo, 'nfe-lista-meta-val--clip'));
         metaWrap.appendChild(entradaNfeListaMetaItem('NF', cab.numero != null && cab.numero !== '' ? String(cab.numero) : '—'));
         metaWrap.appendChild(entradaNfeListaMetaItem('Total', entradaNfeFormatarMoedaBr(it.entrada_valor_total), null, 'nfe-lista-meta-val--money'));
