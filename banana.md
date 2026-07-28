@@ -1173,7 +1173,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · push `producao` · commit **`354fdc1`** · badge **11.99** |
+| **Status** | ✅ **enviado** · badge **11.99** · branch `deploy/pdv-carrinho-travado-v11.99` |
 | **O quê** | Lista busca não some de verdade e cobre +/−/lixeira/lápis (ex. GM0110-1 / GM0110-10) — mesmo bug v6.16 |
 | **Arquivos** | só `pdv_wizard.html` + `pdv_wizard.js` (+ `VERSION` + banana) |
 | **NÃO inclui** | DF-e · merge `teste` · Entrada NF · outros WIPs |
