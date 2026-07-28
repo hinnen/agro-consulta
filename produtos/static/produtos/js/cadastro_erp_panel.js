@@ -635,6 +635,8 @@
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 4</span>' +
       '<input type="text" id="cad-ov-sub4" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_4 || '') + '" autocomplete="off" /></label>' +
       pickFieldHtml('Unidade', 'cad-ov-un', p.unidade, false, 'cad-ov-un-mais', 'cad-ov-un-res') +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Peso (etiqueta)</span>' +
+      '<input type="text" id="cad-ov-peso" class="' + ic + '" maxlength="40" value="' + escapeHtml(p.peso_etiqueta || '') + '" placeholder="Ex.: 5 KG" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Custo unit. (R$) <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-custo" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pc) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$) <span class="text-red-600 font-black">*</span></span>' +
@@ -717,6 +719,7 @@
         categoria: gv('cad-ov-cat'),
         fornecedor_texto: gv('cad-ov-forn'),
         unidade: gv('cad-ov-un'),
+        peso_etiqueta: gv('cad-ov-peso'),
         codigo_nfe: gv('cad-ov-codnfe'),
         codigo_barras: gv('cad-ov-cb'),
         subcategoria: gv('cad-ov-sub'),

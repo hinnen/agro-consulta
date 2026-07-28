@@ -19,6 +19,7 @@ _CAMPOS_OVERLAY: list[tuple[str, str]] = [
     ("subcategoria_4", "Subcategoria 4"),
     ("fornecedor_texto", "Fornecedor"),
     ("unidade", "Unidade"),
+    ("peso_etiqueta", "Peso (etiqueta)"),
     ("codigo_barras", "Código de barras"),
     ("codigo_nfe", "Código GM / NFe"),
     ("preco_venda", "Preço venda"),
