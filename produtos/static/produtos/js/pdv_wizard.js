@@ -6602,6 +6602,7 @@
             }
             var pixMpRow = document.getElementById('pdv-pix-row-mp');
             var pixCieloRow = document.getElementById('pdv-pix-row-cielo');
+            var pixScrRow = document.getElementById('pdv-pix-row-sicredi');
             var pixScoRow = document.getElementById('pdv-pix-row-sicoob');
             var rowVisPix = function (el, on) {
                 if (el) el.classList.toggle('hidden', !on);
@@ -6610,20 +6611,24 @@
                 var pMid = String(state.pagamento.maquinaId || '').trim();
                 var narrowMp = pMid === 'pix_mp_qr';
                 var narrowCielo = pMid === 'pix_cielo';
+                var narrowScr = pMid === 'pix_sicredi';
                 var narrowSco = pMid === 'pix_sicoob_chave';
-                var narrow = narrowMp || narrowCielo || narrowSco;
+                var narrow = narrowMp || narrowCielo || narrowScr || narrowSco;
                 if (narrow) {
                     rowVisPix(pixMpRow, narrowMp);
                     rowVisPix(pixCieloRow, narrowCielo);
+                    rowVisPix(pixScrRow, narrowScr);
                     rowVisPix(pixScoRow, narrowSco);
                 } else {
                     rowVisPix(pixMpRow, true);
                     rowVisPix(pixCieloRow, true);
+                    rowVisPix(pixScrRow, true);
                     rowVisPix(pixScoRow, true);
                 }
             } else {
                 rowVisPix(pixMpRow, true);
                 rowVisPix(pixCieloRow, true);
+                rowVisPix(pixScrRow, true);
                 rowVisPix(pixScoRow, true);
             }
         } else {
