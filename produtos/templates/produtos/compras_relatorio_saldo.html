@@ -147,13 +147,467 @@
     }
     .folha-saldo-presets .btn-p.is-pri:hover { background: #1d4ed8; }
     .folha-saldo-presets .btn-p:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Embed / overlay PDV: layout amigável · cabe sem scroll no zoom 100% */
+    html[data-agro-folha-embed="1"] body {
+      overflow: hidden !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-shell {
+      overflow: hidden;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-main {
+      background: linear-gradient(180deg, #f0fdf4 0%, #fff 6rem);
+      overflow: hidden;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-titulo-bar {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-embed-meta {
+      display: inline-flex !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-body {
+      padding: 0.55rem 0.85rem 0.45rem !important;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem !important;
+      overflow: hidden !important;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-body.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 0 !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem 0.75rem;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #064e3b;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-intro-sub {
+      display: block;
+      margin-top: 0.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748b;
+      line-height: 1.25;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card {
+      border: 2px solid #d1fae5;
+      border-radius: 0.9rem;
+      background: #fff;
+      padding: 0.55rem 0.75rem 0.65rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-h {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      margin-bottom: 0.45rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-num {
+      flex-shrink: 0;
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 999px;
+      background: #059669;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-title {
+      font-size: 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #0f172a;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-hint {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: auto;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets {
+      border-color: #bfdbfe;
+      background: #f8fbff;
+      padding: 0.45rem 0.7rem 0.5rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-num-star {
+      background: #2563eb;
+      font-size: 0.72rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets .folha-saldo-presets {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      gap: 0.4rem 0.5rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-card-presets .folha-saldo-presets label > span {
+      display: none;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets select,
+    html[data-agro-folha-embed="1"] .folha-saldo-presets .btn-p,
+    html[data-agro-folha-embed="1"] .cad-filtros-bar select,
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="text"],
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="search"],
+    html[data-agro-folha-embed="1"] .cad-filtros-bar input[type="date"] {
+      min-height: 2.45rem;
+      font-size: 0.95rem;
+      border-radius: 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets .btn-p {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.6rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-presets select {
+      min-width: 10rem;
+      flex: 1 1 10rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main {
+      display: block;
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar {
+      display: grid !important;
+      grid-template-columns: minmax(9.5rem, 11rem) minmax(10.5rem, 12.5rem) minmax(0, 1fr);
+      gap: 0.65rem 1rem;
+      align-items: end;
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label {
+      min-width: 0 !important;
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label select,
+    html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label input {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box;
+    }
+    @media (max-width: 640px) {
+      html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      html[data-agro-folha-embed="1"] .folha-saldo-row-main .cad-filtros-bar > label:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+    html[data-agro-folha-embed="1"] .cad-filtros-bar label > span {
+      font-size: 0.72rem;
+      margin-bottom: 0.2rem;
+      color: #475569;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja .folha-saldo-loja-extra {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja label {
+      font-size: 0.98rem !important;
+      min-height: 2.75rem !important;
+      padding: 0.45rem 0.7rem !important;
+      border-radius: 0.75rem !important;
+      justify-content: center;
+      gap: 0.45rem !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-loja input[type="checkbox"] {
+      width: 1.15rem;
+      height: 1.15rem;
+    }
+    html[data-agro-folha-embed="1"] .cad-ms-row {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem !important;
+    }
+    @media (max-width: 520px) {
+      html[data-agro-folha-embed="1"] .cad-ms-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    html[data-agro-folha-embed="1"] .cad-ms {
+      width: 100%;
+    }
+    html[data-agro-folha-embed="1"] .cad-ms-btn {
+      width: 100%;
+      justify-content: center;
+      min-height: 2.75rem;
+      font-size: 0.88rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.75rem;
+      border-width: 2px;
+    }
+    html[data-agro-folha-embed="1"] #saldo-f-chips {
+      gap: 0.35rem !important;
+      min-height: 0;
+      margin-bottom: 0.35rem !important;
+    }
+    html[data-agro-folha-embed="1"] .cad-f-chip {
+      min-height: 2rem;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.45rem 0.25rem 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-avancado {
+      display: none !important; /* no embed: usa o painel cheio abaixo */
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle {
+      display: flex !important;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-height: 2.75rem;
+      padding: 0.55rem 0.85rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle.hidden {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-toggle:hover {
+      border-color: #94a3b8;
+      background: #f1f5f9;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      border: 3px solid #059669;
+      border-radius: 1rem;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px #a7f3d0;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-intro,
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-card,
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-mais-toggle {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-mais-panel {
+      display: flex !important;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-body {
+      overflow: hidden !important;
+      background: #ecfdf5;
+      padding: 0.45rem !important;
+      border-radius: 0.75rem;
+    }
+    html[data-agro-folha-embed="1"].folha-mais-aberto .folha-saldo-footer {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-head {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.35rem;
+      flex-shrink: 0;
+      padding: 0.65rem 0.85rem 0.75rem;
+      border-bottom: 3px solid #059669;
+      background: linear-gradient(180deg, #059669 0%, #047857 100%);
+      color: #fff;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-head-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-voltar {
+      min-height: 3rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: 0.85rem;
+      border: 2px solid #fff;
+      background: #fff;
+      color: #065f46;
+      font-size: 0.95rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-voltar:hover {
+      background: #ecfdf5;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #fff;
+      letter-spacing: 0.03em;
+      line-height: 1.15;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-hint {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #d1fae5;
+      line-height: 1.25;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-contain: contain;
+      padding: 0.75rem 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar {
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 0.65rem 0.85rem;
+      align-items: end;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar > label,
+    html[data-agro-folha-embed="1"] .folha-saldo-mais-body .cad-filtros-bar > .cad-ms {
+      min-width: 8.5rem;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-mais-toggle,
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-mais-panel {
+      display: none !important;
+    }
+    html[data-agro-folha-embed="1"] .folha-saldo-footer {
+      padding: 0.55rem 0.85rem !important;
+      gap: 0.5rem !important;
+      background: #fff !important;
+      border-top: 2px solid #d1fae5 !important;
+      flex-shrink: 0;
+    }
+    html[data-agro-folha-embed="1"] #saldo-btn-imprimir {
+      min-height: 3.1rem !important;
+      font-size: 1.1rem !important;
+      border-radius: 0.9rem !important;
+    }
+    html[data-agro-folha-embed="1"] #saldo-btn-limpar {
+      min-height: 3.1rem !important;
+      font-size: 0.9rem !important;
+      border-radius: 0.9rem !important;
+      padding-left: 1.1rem !important;
+      padding-right: 1.1rem !important;
+    }
+    html[data-agro-folha-embed="1"] #saldo-status {
+      font-size: 0.92rem !important;
+      font-weight: 700 !important;
+      color: #334155 !important;
+      line-height: 1.2 !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-intro {
+      display: none !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card {
+      border: 0;
+      padding: 0;
+      box-shadow: none;
+      background: transparent;
+      border-radius: 0;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card-h {
+      display: none !important;
+    }
+    html:not([data-agro-folha-embed="1"]) .folha-saldo-card + .folha-saldo-card {
+      margin-top: 0.75rem;
+    }
   </style>
   <script>
     (function () {
       try {
-        if (new URLSearchParams(location.search || '').get('embed') === '1') {
+        var q = new URLSearchParams(location.search || '');
+        var embed =
+          q.get('embed') === '1' ||
+          q.get('agro_pdv_overlay') === '1' ||
+          q.get('agro_inapp_embed') === '1';
+        if (embed) {
           document.documentElement.setAttribute('data-agro-folha-embed', '1');
         }
+        document.addEventListener('DOMContentLoaded', function () {
+          var avancado = document.getElementById('saldo-avancado');
+          var inner = document.getElementById('saldo-avancado-inner');
+          var slot = document.getElementById('saldo-mais-body');
+          var btnMais = document.getElementById('saldo-btn-mais');
+          var btnVoltar = document.getElementById('saldo-btn-mais-voltar');
+          var panel = document.getElementById('saldo-mais-panel');
+          if (!embed) {
+            if (avancado) avancado.setAttribute('open', '');
+            return;
+          }
+          if (btnMais) btnMais.classList.remove('hidden');
+          if (inner && slot) {
+            slot.appendChild(inner);
+            inner.classList.remove('px-3', 'pb-3', 'pt-2', 'border-t', 'border-slate-100');
+          }
+          if (avancado) avancado.setAttribute('hidden', '');
+          function setOverlayTitulo(titulo, sub) {
+            try {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage(
+                  {
+                    type: 'agro-pdv-overlay-meta',
+                    title: titulo || 'Folha de saldo',
+                    subtitle: sub || '',
+                  },
+                  window.location.origin
+                );
+              }
+            } catch (_) {}
+          }
+          function abrirMais() {
+            document.documentElement.classList.add('folha-mais-aberto');
+            if (panel) panel.hidden = false;
+            if (btnMais) btnMais.setAttribute('aria-expanded', 'true');
+            setOverlayTitulo('Opções extras', 'Toque em Voltar à folha para imprimir');
+            try {
+              if (slot) slot.scrollTop = 0;
+            } catch (_) {}
+          }
+          function fecharMais() {
+            document.documentElement.classList.remove('folha-mais-aberto');
+            if (panel) panel.hidden = true;
+            if (btnMais) btnMais.setAttribute('aria-expanded', 'false');
+            setOverlayTitulo('Folha de saldo (A4 · A5 · 80mm)', '');
+          }
+          if (btnMais) btnMais.addEventListener('click', abrirMais);
+          if (btnVoltar) btnVoltar.addEventListener('click', fecharMais);
+        });
       } catch (_) {}
     })();
   </script>
@@ -175,11 +629,11 @@
     </header>
 
     <main class="folha-saldo-main flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-emerald-200/90 bg-white shadow-xl overflow-hidden">
-      <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 bg-emerald-50/50">
+      <div class="folha-saldo-titulo-bar shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 bg-emerald-50/50">
         <span class="text-sm font-black uppercase text-emerald-950 tracking-wide">Montar folha</span>
         <div class="flex items-center gap-2">
           <span id="saldo-facetas-status" class="text-xs font-semibold text-slate-500" role="status"></span>
-          <details class="relative">
+          <details class="relative folha-saldo-help">
             <summary class="list-none inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-base hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
             <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
               <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
@@ -192,115 +646,185 @@
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
-        <div class="folha-saldo-presets" aria-label="Filtros salvos na loja">
-          <label class="min-w-0 flex-1">
-            <span>Filtro salvo (loja)</span>
-            <select id="saldo-preset-sel">
-              <option value="">— escolher —</option>
-            </select>
-          </label>
-          <button type="button" id="saldo-preset-aplicar" class="btn-p is-pri" disabled>Aplicar</button>
-          <button type="button" id="saldo-preset-salvar" class="btn-p">Salvar atual</button>
-          <button type="button" id="saldo-preset-padrao" class="btn-p" disabled title="Abre sozinho para todos">Padrão ★</button>
-          <button type="button" id="saldo-preset-excluir" class="btn-p" disabled>Excluir</button>
+      <div class="folha-saldo-body flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        <div class="folha-saldo-intro hidden">
+          <div class="min-w-0">
+            <span class="folha-saldo-intro-title">Imprimir lista de estoque</span>
+            <span class="folha-saldo-intro-sub">Escolha a loja, o papel e (se quiser) os filtros. Depois toque em Imprimir.</span>
+          </div>
+          <div class="folha-saldo-embed-meta hidden items-center gap-2 shrink-0">
+            <span id="saldo-facetas-status-embed" class="text-sm font-semibold text-slate-600 tabular-nums" role="status"></span>
+            <details class="relative folha-saldo-help-embed">
+              <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-lg hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+              <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-base font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+                <p>Imprime no máximo <strong>2000</strong> produtos ativos (ou todos se desmarcar «somente ativos»).</p>
+                <p>Marque <strong>Centro</strong> e/ou <strong>Vila Elias</strong>. As duas = soma no saldo.</p>
+                <p>Filtros iguais ao cadastro: clique em Marca/Categoria… e marque na lista (com busca).</p>
+                <p><strong>Filtros salvos</strong> ficam no servidor — valem para todos os PCs da loja. Um pode ser o <strong>padrão</strong> (abre sozinho).</p>
+                <p><strong>A4</strong> e <strong>A5</strong> para folha; <strong>80 mm</strong> para impressora térmica.</p>
+              </div>
+            </details>
+          </div>
         </div>
 
-        <div id="saldo-f-chips" class="flex flex-wrap gap-1.5 empty:hidden" aria-live="polite"></div>
+        <section class="folha-saldo-card" aria-label="Qual estoque">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">1</span>
+            <span class="folha-saldo-card-title">Qual estoque?</span>
+            <span class="folha-saldo-card-hint">pode marcar os dois</span>
+          </div>
+          <div class="folha-saldo-loja flex flex-wrap gap-2.5 items-center">
+            <label class="inline-flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 font-bold text-emerald-950">
+              <input type="checkbox" id="saldo-loja-centro" class="accent-emerald-600" checked /> Centro
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-lg border-2 border-sky-300 bg-sky-50 font-bold text-sky-950">
+              <input type="checkbox" id="saldo-loja-vila" class="accent-sky-600" checked /> Vila Elias
+            </label>
+            <div class="folha-saldo-loja-extra flex flex-wrap gap-2.5 items-center">
+              <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+                <input type="checkbox" id="saldo-omit-zero" class="accent-emerald-600" /> Esconder zerados
+              </label>
+              <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
+                <input type="checkbox" id="saldo-somente-ativos" class="accent-emerald-600" checked /> Somente ativos
+              </label>
+            </div>
+          </div>
+        </section>
 
-        <div class="cad-filtros-bar">
-          <label class="min-w-[7.5rem]">
-            <span>Papel</span>
-            <select id="saldo-papel">
-              <option value="A4" selected>A4</option>
-              <option value="A5">A5</option>
-              <option value="80mm">Cupom 80 mm</option>
-            </select>
-          </label>
-          <label class="min-w-[8rem]">
-            <span>Estoque</span>
-            <select id="saldo-f-estoque-sinal">
-              <option value="">Qualquer</option>
-              <option value="positivo">Positivo</option>
-              <option value="negativo">Negativo</option>
-              <option value="zero">Zerado</option>
-            </select>
-          </label>
-          <label class="flex-1 min-w-[14rem]">
-            <span>Busca (opcional)</span>
-            <input type="search" id="saldo-q" autocomplete="off" placeholder="Nome, GM, código…" />
-          </label>
+        <section class="folha-saldo-card" aria-label="Papel e busca">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">2</span>
+            <span class="folha-saldo-card-title">Papel e busca</span>
+          </div>
+          <div class="folha-saldo-row-main">
+            <div class="cad-filtros-bar">
+              <label class="min-w-[7.5rem]">
+                <span>Papel</span>
+                <select id="saldo-papel">
+                  <option value="A4" selected>A4</option>
+                  <option value="A5">A5</option>
+                  <option value="80mm">Cupom 80 mm</option>
+                </select>
+              </label>
+              <label class="min-w-[8rem]">
+                <span>Estoque</span>
+                <select id="saldo-f-estoque-sinal">
+                  <option value="">Qualquer</option>
+                  <option value="positivo">Positivo</option>
+                  <option value="negativo">Negativo</option>
+                  <option value="zero">Zerado</option>
+                </select>
+              </label>
+              <label class="flex-1 min-w-[12rem]">
+                <span>Busca (opcional)</span>
+                <input type="search" id="saldo-q" autocomplete="off" placeholder="Nome, GM, código…" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="folha-saldo-card" aria-label="Filtrar produtos">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num" aria-hidden="true">3</span>
+            <span class="folha-saldo-card-title">Filtrar produtos</span>
+            <span class="folha-saldo-card-hint">opcional</span>
+          </div>
+          <div id="saldo-f-chips" class="flex flex-wrap gap-1.5 empty:hidden mb-2" aria-live="polite"></div>
+          <div class="cad-ms-row" id="saldo-ms-row" aria-label="Classificação">
+            <div class="cad-ms" data-ms="marca" data-label="Marca"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Marca</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Categoria</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Unidade</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+            <div class="cad-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Modelo</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+          </div>
+        </section>
+
+        <section class="folha-saldo-card folha-saldo-card-presets" aria-label="Filtro salvo">
+          <div class="folha-saldo-card-h">
+            <span class="folha-saldo-card-num folha-saldo-card-num-star" aria-hidden="true">★</span>
+            <span class="folha-saldo-card-title">Filtro salvo</span>
+            <span class="folha-saldo-card-hint">atalho da loja</span>
+          </div>
+          <div class="folha-saldo-presets" aria-label="Filtros salvos na loja">
+            <label class="min-w-0 flex-1">
+              <span>Filtro salvo (loja)</span>
+              <select id="saldo-preset-sel">
+                <option value="">— escolher —</option>
+              </select>
+            </label>
+            <button type="button" id="saldo-preset-aplicar" class="btn-p is-pri" disabled>Aplicar</button>
+            <button type="button" id="saldo-preset-salvar" class="btn-p">Salvar atual</button>
+            <button type="button" id="saldo-preset-padrao" class="btn-p" disabled title="Abre sozinho para todos">Padrão ★</button>
+            <button type="button" id="saldo-preset-excluir" class="btn-p" disabled>Excluir</button>
+          </div>
+        </section>
+
+        <button type="button" id="saldo-btn-mais" class="folha-saldo-mais-toggle hidden" aria-expanded="false">
+          <span>Mais opções · datas, preço, NCM</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div id="saldo-mais-panel" class="folha-saldo-mais-panel" hidden>
+          <div class="folha-saldo-mais-head">
+            <span class="folha-saldo-mais-eyebrow">Você saiu da montagem da folha</span>
+            <div class="folha-saldo-mais-head-row">
+              <button type="button" id="saldo-btn-mais-voltar" class="folha-saldo-mais-voltar">← Voltar à folha</button>
+              <div class="min-w-0">
+                <div class="folha-saldo-mais-title">Opções extras</div>
+                <div class="folha-saldo-mais-hint">Datas, preço e NCM. Toque em Voltar para imprimir.</div>
+              </div>
+            </div>
+          </div>
+          <div class="folha-saldo-mais-body" id="saldo-mais-body"></div>
         </div>
 
-        <div class="folha-saldo-loja flex flex-wrap gap-2.5 items-center">
-          <label class="inline-flex items-center gap-2 rounded-lg border-2 border-emerald-300 bg-emerald-50 font-bold text-emerald-950">
-            <input type="checkbox" id="saldo-loja-centro" class="accent-emerald-600" checked /> Centro
-          </label>
-          <label class="inline-flex items-center gap-2 rounded-lg border-2 border-sky-300 bg-sky-50 font-bold text-sky-950">
-            <input type="checkbox" id="saldo-loja-vila" class="accent-sky-600" checked /> Vila Elias
-          </label>
-          <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
-            <input type="checkbox" id="saldo-omit-zero" class="accent-emerald-600" /> Esconder zerados
-          </label>
-          <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white font-semibold text-slate-700">
-            <input type="checkbox" id="saldo-somente-ativos" class="accent-emerald-600" checked /> Somente ativos
-          </label>
-        </div>
-
-        <div class="cad-ms-row" id="saldo-ms-row" aria-label="Classificação">
-          <div class="cad-ms" data-ms="marca" data-label="Marca"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Marca</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-          <div class="cad-ms" data-ms="categoria" data-label="Categoria"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Categoria</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-          <div class="cad-ms" data-ms="subcategoria" data-label="Sub"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-          <div class="cad-ms" data-ms="fornecedor" data-label="Fornecedor"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Fornecedor</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-          <div class="cad-ms" data-ms="unidade" data-label="Unidade"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Unidade</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-          <div class="cad-ms" data-ms="modelo" data-label="Modelo"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Modelo</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-        </div>
-
-        <details class="rounded-lg border border-slate-200 bg-slate-50/80">
+        <details class="folha-saldo-avancado rounded-lg border border-slate-200 bg-slate-50/80" id="saldo-avancado">
           <summary class="cursor-pointer list-none px-3 py-2.5 text-xs font-black uppercase tracking-wide text-slate-500 hover:text-emerald-800 [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
-            <span>Mais · data, sub 2–4, preço, NCM</span>
+            <span>Mais opções · datas, preço, NCM</span>
             <span class="text-slate-400 font-black" aria-hidden="true">▾</span>
           </summary>
-          <div class="cad-filtros-bar px-3 pb-3 pt-2 border-t border-slate-100">
-            <label class="min-w-[9rem]">
-              <span>Tipo de data</span>
-              <select id="saldo-f-data-tipo">
-                <option value="cadastro">Cadastro</option>
-                <option value="primeira_nf">1ª Entrada NF</option>
-                <option value="ultima_nf">Última Entrada NF</option>
-              </select>
-            </label>
-            <label class="min-w-[8rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
-            <label class="min-w-[8rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
-            <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-            <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-            <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
-            <label class="min-w-[6rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[6rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[6rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[6rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
-            <label class="min-w-[7rem]">
-              <span>NCM</span>
-              <select id="saldo-f-ncm">
-                <option value="">Qualquer</option>
-                <option value="com">Com NCM</option>
-                <option value="sem">Sem NCM</option>
-              </select>
-            </label>
-            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-sem-marca" class="w-4 h-4 accent-emerald-600" /> Sem marca
-            </label>
-            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-sem-cat" class="w-4 h-4 accent-emerald-600" /> Sem categoria
-            </label>
-            <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
-              <input type="checkbox" id="saldo-f-somente-agro" class="w-4 h-4 accent-emerald-600" /> Só Agro
-            </label>
+          <div class="px-3 pb-3 pt-2 border-t border-slate-100 space-y-3" id="saldo-avancado-inner">
+            <div class="cad-filtros-bar">
+              <label class="min-w-[9rem]">
+                <span>Tipo de data</span>
+                <select id="saldo-f-data-tipo">
+                  <option value="cadastro">Cadastro</option>
+                  <option value="primeira_nf">1ª Entrada NF</option>
+                  <option value="ultima_nf">Última Entrada NF</option>
+                </select>
+              </label>
+              <label class="min-w-[8rem]"><span>De</span><input type="date" id="saldo-f-data-de" /></label>
+              <label class="min-w-[8rem]"><span>Até</span><input type="date" id="saldo-f-data-ate" /></label>
+              <div class="cad-ms" data-ms="subcategoria_2" data-label="Sub 2"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 2</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_3" data-label="Sub 3"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 3</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <div class="cad-ms" data-ms="subcategoria_4" data-label="Sub 4"><button type="button" class="cad-ms-btn" aria-haspopup="listbox">Sub 4</button><div class="cad-ms-panel hidden" role="listbox"></div></div>
+              <label class="min-w-[6rem]"><span>Custo de</span><input type="text" id="saldo-f-custo-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Custo até</span><input type="text" id="saldo-f-custo-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Venda de</span><input type="text" id="saldo-f-venda-min" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[6rem]"><span>Venda até</span><input type="text" id="saldo-f-venda-max" inputmode="decimal" placeholder="0,00" /></label>
+              <label class="min-w-[7rem]">
+                <span>NCM</span>
+                <select id="saldo-f-ncm">
+                  <option value="">Qualquer</option>
+                  <option value="com">Com NCM</option>
+                  <option value="sem">Sem NCM</option>
+                </select>
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-sem-marca" class="w-4 h-4 accent-emerald-600" /> Sem marca
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-sem-cat" class="w-4 h-4 accent-emerald-600" /> Sem categoria
+              </label>
+              <label class="inline-flex items-center gap-2 min-h-[2.75rem] px-2.5 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 self-end">
+                <input type="checkbox" id="saldo-f-somente-agro" class="w-4 h-4 accent-emerald-600" /> Só Agro
+              </label>
+            </div>
           </div>
         </details>
       </div>
 
-      <div class="shrink-0 border-t border-slate-100 bg-slate-50/90 px-4 py-3.5 flex flex-wrap items-center gap-2.5">
+      <div class="folha-saldo-footer shrink-0 border-t border-slate-100 bg-slate-50/90 px-4 py-3.5 flex flex-wrap items-center gap-2.5">
         <button type="button" id="saldo-btn-imprimir" class="flex-1 min-w-[12rem] min-h-[52px] rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white font-black uppercase text-base hover:bg-emerald-700 shadow-sm">Imprimir saldo</button>
         <button type="button" id="saldo-btn-limpar" class="min-h-[52px] px-5 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold uppercase text-sm hover:bg-slate-50">Limpar</button>
         <p id="saldo-status" class="w-full text-sm font-semibold text-slate-500" role="status"></p>
@@ -356,10 +880,18 @@
     s.className = 'w-full text-xs font-semibold ' + (isErr ? 'text-red-700' : 'text-slate-500');
   }
   function setFacStatus(msg, isErr) {
+    var cls = 'text-xs font-semibold ' + (isErr ? 'text-red-600' : 'text-slate-500');
+    var clsEmbed = 'text-sm font-semibold tabular-nums ' + (isErr ? 'text-red-600' : 'text-slate-600');
     var s = el('saldo-facetas-status');
-    if (!s) return;
-    s.textContent = msg || '';
-    s.className = 'text-[10px] font-semibold ' + (isErr ? 'text-red-600' : 'text-slate-500');
+    if (s) {
+      s.textContent = msg || '';
+      s.className = cls;
+    }
+    var s2 = el('saldo-facetas-status-embed');
+    if (s2) {
+      s2.textContent = msg || '';
+      s2.className = clsEmbed;
+    }
   }
 
   function applyFacetasPayload(j) {
