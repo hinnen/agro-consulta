@@ -1169,6 +1169,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída (`ENTRADA-NF-UX` · 28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | no `teste` · **aguarda pausa loja + frase + senha** no próximo chat |
+| **VERSION alvo loja** | **11.95** (loja hoje **11.93** · PDV-PIX já reserva **11.94**) |
+| **Inclui** | 1) Boleto 44→47 na coluna BOLETO · 2) Lista Concluída: nome limpo · Origem XML · chip «Sem a pagar» · carimbo financeiro não some |
+| **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` · `banana.md` |
+| **NÃO inclui** | DF-e inbox · SEFAZ caixa nova · Transferência · PDV · migrate nova |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só Entrada NF (lista + financeiro parcelas); PDV/caixa/CP intocados |
+| **Smoke** | `manage.py check` 0 · algoritmo boleto 44→47 · `financeiro_ids` conta como lançado · sem `URL_DFE_INBOX` no template |
+| **Você (próximo chat)** | 1) lojas pausam vendas 2) «pode subir produção» + `99738595` 3) cherry só commits deste pacote · VERSION **11.95** · push `producao` · Ctrl+F5 Entrada NF |
+| **Validar pós** | filtro Concluída (nome/XML/verde) · bipar boleto 44→47 · 1 venda PDV ok |
+
 ### ðŸ“¦ PACOTE PRONTO LOJA â€” PDV Pix mÃ¡quina Sicredi (`PDV-PIX-SICREDI` Â· **v11.94**)
 
 | Item | Detalhe |
