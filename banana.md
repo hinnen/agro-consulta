@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | **NÃO inclui** | DF-e inbox · PDV · caixa · CP · merge `teste` · migrate |
 | **Migrate** | **NÃO** |
 | **Risco loja aberta** | **Baixo** — só Entrada NF |
-| **Review** | boleto BB sample 44→47 OK · `financeiro_ids` = lançado · modo XML preservado no autosave · conflict «Nova» resolvido |
+| **Review** | boleto BB sample 44→47 OK · `financeiro_ids` = lançado · modo XML preservado · conflict «Nova» resolvido · **fix pós-cherry:** botão Nova chama `entradaNfeResetEditorParaNovaNota` (merge tinha deixado limpa parcial da loja) |
 | **Backup no push** | `rollback/pre-v1195-entrada-nf-ux` @ tip `producao` pré-deploy (ou pós-PIX) |
 | **Autorizar** | *pode subir Entrada NF / produção* + **99738595** |
 | **Validar pós Live** | Ctrl+F5 Entrada NF · Concluída origem/chip · bipar boleto 44→47 · 1 venda PDV |
