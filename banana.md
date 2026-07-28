@@ -1169,6 +1169,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ðŸ“¦ PACOTE PRONTO LOJA â€” PDV Pix mÃ¡quina Sicredi (`PDV-PIX-SICREDI` Â· **v11.94**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ðŸ“¦ **PRONTO PARA ENVIO PARA O PDV** Â· aguarda pausa + frase + senha |
+| **Branch loja** | `deploy/pdv-pix-sicredi-v11.94` @ **`aef7bfc`** (base `producao`) |
+| **TambÃ©m no teste** | este commit Â· VERSION teste **11.82** (badge loja = **11.94** no deploy) |
+| **Smoke OK** | lista + filtro notebook Â· sÃ³ 3 arquivos PDV Â· migrate **NÃƒO** |
+| **Risco loja aberta** | **Baixo** â€” sÃ³ adiciona opÃ§Ã£o Sicredi Pix |
+| **Autorizar** | *pode subir Sicredi Pix / PDV* + **99738595** |
+| **Rollback** | `rollback/pre-v1194-pdv-pix-sicredi` |
+
 ### âœ… Deploy loja **v11.93** â€” Folha saldo presets + transferÃªncia sem saldo+ (`FOLHA-TRANSF`) (28/07 Â· Renan frase+senha)
 
 | Item | Detalhe |
