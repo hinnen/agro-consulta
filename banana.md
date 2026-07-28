@@ -3374,11 +3374,11 @@ eaplicar_custos_entrada_nf --nf=77846 --aplicar |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | 📦 **pronto** · loja **v11.94** · deploy/pdv-pix-sicredi-v11.94 |
-| **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | 📦 **pronto** · loja **v11.95** · deploy/entrada-nf-ux-v11.95 |
-| **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | 📦 **pronto** · loja **v11.96** · migrate **0067** · deploy/etq-gondola-v11.96 |
-| **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | 📦 **pronto** · loja **v11.97** · deploy/transf-forcada-v11.97 |
-| **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | 📦 **pronto** · loja **v11.98** · deploy/pdv-estoque-vila-v11.98 |
+| **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | ✅ **loja v11.98** (lote) |
+| **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
+| **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
+| **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
+| **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF Δcamada | ✅ **já loja v10.63** (era v9.92 — não sobe) |
