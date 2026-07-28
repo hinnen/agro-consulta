@@ -124,7 +124,7 @@ def _historico_transferencia(
         pass
 
 
-def _transferir_vila_para_centro_exec(
+def _transferir_entre_depositos_exec(
     request,
     pin,
     produto_id,
@@ -132,16 +132,24 @@ def _transferir_vila_para_centro_exec(
     nome_produto,
     codigo_interno,
     obs_extra,
+    origem="vila",
+    destino="centro",
     registrar_historico=True,
     invalidar_cache=True,
 ):
     """
-    Executa uma transferência Vila→Centro (Agro). Retorna dict com ok/erro e códigos HTTP sugeridos.
+    Transferência entre depósitos Agro (Vila ↔ Centro).
+    ``origem`` / ``destino``: ``vila`` ou ``centro``.
     """
     if pin == "1234":
         return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
     if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
         return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+
+    origem = (origem or "vila").strip().lower()
+    destino = (destino or "centro").strip().lower()
+    if origem not in ("vila", "centro") or destino not in ("vila", "centro") or origem == destino:
+        return {"ok": False, "erro": "Direção inválida.", "status": 400}
 
     produto_id = (produto_id or "").strip()[:100]
     if not produto_id:
@@ -180,20 +188,25 @@ def _transferir_vila_para_centro_exec(
     saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
     saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
 
-    # Permite qtd > saldo Vila (zerado/negativo) — correção operacional na camada Agro.
-    novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
-    novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+    # Permite qtd > saldo da origem (zerado/negativo) — correção operacional na camada Agro.
+    if origem == "vila":
+        novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
+        novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+        rotulo_dir = "Vila→Centro"
+    else:
+        novo_c = (saldo_ag_c - qtd).quantize(Decimal("0.001"))
+        novo_v = (saldo_ag_v + qtd).quantize(Decimal("0.001"))
+        rotulo_dir = "Centro→Vila"
 
     empresa_v, loja_v = _empresa_loja_padrao_agro_estoque("vila")
     empresa_c, loja_c = _empresa_loja_padrao_agro_estoque("centro")
     empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
 
-    ref_obs = f"Vila→Centro {qtd}"
+    ref_obs = f"{rotulo_dir} {qtd}"
     if obs_extra:
         ref_obs = f"{ref_obs} · {obs_extra}"
 
-    nome_v = f"{nome_produto} · Transferência {ref_obs}"[:255]
-    nome_c = nome_v
+    nome_aj = f"{nome_produto} · Transferência {ref_obs}"[:255]
 
     with transaction.atomic():
         AjusteRapidoEstoque.objects.create(
@@ -201,7 +214,7 @@ def _transferir_vila_para_centro_exec(
             loja=loja_v,
             produto_externo_id=produto_id,
             codigo_interno=codigo_interno,
-            nome_produto=nome_v,
+            nome_produto=nome_aj,
             deposito="vila",
             saldo_erp_referencia=saldo_erp_v,
             saldo_informado=novo_v,
@@ -214,7 +227,7 @@ def _transferir_vila_para_centro_exec(
             loja=loja_c,
             produto_externo_id=produto_id,
             codigo_interno=codigo_interno,
-            nome_produto=nome_c,
+            nome_produto=nome_aj,
             deposito="centro",
             saldo_erp_referencia=saldo_erp_c,
             saldo_informado=novo_c,
@@ -235,7 +248,7 @@ def _transferir_vila_para_centro_exec(
             lote_uuid=lote_ref,
             produto_externo_id=produto_id,
             quantidade=qtd,
-            observacao=nome_produto[:500],
+            observacao=f"{rotulo_dir} · {nome_produto}"[:500],
         )
 
     return {
@@ -243,7 +256,35 @@ def _transferir_vila_para_centro_exec(
         "saldo_vila": float(novo_v),
         "saldo_centro": float(novo_c),
         "quantidade": float(qtd),
+        "direcao": f"{origem}_{destino}",
     }
+
+
+def _transferir_vila_para_centro_exec(
+    request,
+    pin,
+    produto_id,
+    qtd,
+    nome_produto,
+    codigo_interno,
+    obs_extra,
+    registrar_historico=True,
+    invalidar_cache=True,
+):
+    """Compat: Vila→Centro."""
+    return _transferir_entre_depositos_exec(
+        request,
+        pin,
+        produto_id,
+        qtd,
+        nome_produto,
+        codigo_interno,
+        obs_extra,
+        origem="vila",
+        destino="centro",
+        registrar_historico=registrar_historico,
+        invalidar_cache=invalidar_cache,
+    )
 
 
 @require_GET
@@ -647,6 +688,266 @@ def api_transferir_lote_vila_para_centro(request):
                 "transferidos": resultados_ok,
                 "falhas": resultados_erro,
                 "mensagem": f"{len(resultados_ok)} transferido(s), {len(resultados_erro)} falha(s).",
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_transferir_forcado_vila_para_centro(request):
+    """
+    Transferência em massa Vila↔Centro a partir de lista livre (carrinho / colar).
+    Body JSON: pin, itens[], direcao=``vila_centro``|``centro_vila`` (padrão Vila→Centro).
+    """
+    try:
+        try:
+            raw_body = request.body.decode("utf-8") if request.body else "{}"
+            data = json.loads(raw_body) if raw_body.strip() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            return JsonResponse(
+                {"ok": False, "erro": "JSON inválido.", "transferidos": [], "falhas": []},
+                status=400,
+            )
+        if not isinstance(data, dict):
+            data = {}
+        pin = str(data.get("pin") or "").strip()
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
+
+        direcao = str(data.get("direcao") or "vila_centro").strip().lower().replace("-", "_").replace("→", "_")
+        if direcao in ("centro_vila", "c_v", "centro_para_vila"):
+            origem, destino = "centro", "vila"
+            rotulo_dir = "Centro→Vila"
+        else:
+            origem, destino = "vila", "centro"
+            rotulo_dir = "Vila→Centro"
+            direcao = "vila_centro"
+
+        itens_raw = data.get("itens")
+        if not isinstance(itens_raw, list) or not itens_raw:
+            return JsonResponse({"ok": False, "erro": "Informe ao menos um item."}, status=400)
+        if len(itens_raw) > 200:
+            return JsonResponse({"ok": False, "erro": "Máximo 200 itens por vez."}, status=400)
+
+        from produtos.views import _invalidar_caches_apos_ajuste_pin
+
+        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        resultados_ok = []
+        resultados_erro = []
+
+        for row in itens_raw:
+            if not isinstance(row, dict):
+                resultados_erro.append({"produto_id": "", "erro": "Item inválido."})
+                continue
+            pid = str(row.get("produto_id") or "").strip()[:100]
+            nome = (str(row.get("nome_produto") or "").strip()[:255]) or (f"Produto {pid}" if pid else "Produto")
+            cod = str(row.get("codigo_interno") or "").strip()[:100]
+            try:
+                qtd = _normalizar_decimal(row.get("quantidade", "0"))
+            except (InvalidOperation, TypeError, ValueError):
+                resultados_erro.append({"produto_id": pid or "?", "erro": "Quantidade inválida.", "nome": nome})
+                continue
+            if not pid:
+                resultados_erro.append({"produto_id": "", "erro": "Produto sem id.", "nome": nome})
+                continue
+            out = _transferir_entre_depositos_exec(
+                request,
+                pin,
+                pid,
+                qtd,
+                nome,
+                cod,
+                "forçado",
+                origem=origem,
+                destino=destino,
+                registrar_historico=False,
+                invalidar_cache=False,
+            )
+            if out.get("ok"):
+                resultados_ok.append(
+                    {
+                        "produto_id": pid,
+                        "nome": nome,
+                        "quantidade": float(out.get("quantidade", qtd)),
+                        "saldo_vila": out.get("saldo_vila"),
+                        "saldo_centro": out.get("saldo_centro"),
+                    }
+                )
+            else:
+                resultados_erro.append(
+                    {"produto_id": pid, "nome": nome, "erro": out.get("erro", "Erro")}
+                )
+
+        _invalidar_caches_apos_ajuste_pin()
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_TRANSFER_LOTE,
+            usuario_label=rotulo,
+            observacao=json.dumps(
+                {
+                    "origem": "forcado",
+                    "direcao": direcao,
+                    "ok": resultados_ok,
+                    "erro": resultados_erro,
+                },
+                ensure_ascii=False,
+            )[:8000],
+        )
+
+        return JsonResponse(
+            {
+                "ok": len(resultados_erro) == 0 and len(resultados_ok) > 0,
+                "direcao": direcao,
+                "transferidos": resultados_ok,
+                "falhas": resultados_erro,
+                "mensagem": f"{rotulo_dir}: {len(resultados_ok)} transferido(s), {len(resultados_erro)} falha(s).",
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_resolver_codigos_transferencia_forcada(request):
+    """Resolve códigos (GM / barras / EAN / id) para montar o carrinho da transferência forçada."""
+    try:
+        try:
+            raw_body = request.body.decode("utf-8") if request.body else "{}"
+            data = json.loads(raw_body) if raw_body.strip() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+        if not isinstance(data, dict):
+            data = {}
+        linhas = data.get("linhas")
+        if not isinstance(linhas, list) or not linhas:
+            return JsonResponse({"ok": False, "erro": "Informe linhas com código."}, status=400)
+        if len(linhas) > 200:
+            return JsonResponse({"ok": False, "erro": "Máximo 200 linhas."}, status=400)
+
+        pedidos = []
+        codigos = set()
+        for row in linhas:
+            if isinstance(row, str):
+                codigo = row.strip()
+                qtd_raw = "1"
+            elif isinstance(row, dict):
+                codigo = str(row.get("codigo") or row.get("code") or "").strip()
+                qtd_raw = row.get("quantidade", row.get("qtd", "1"))
+            else:
+                continue
+            if not codigo:
+                continue
+            try:
+                qtd = _normalizar_decimal(qtd_raw)
+            except (InvalidOperation, TypeError, ValueError):
+                qtd = Decimal("0")
+            pedidos.append({"codigo": codigo, "quantidade": qtd})
+            codigos.add(codigo)
+
+        if not pedidos:
+            return JsonResponse({"ok": False, "erro": "Nenhuma linha válida."}, status=400)
+
+        from bson.objectid import ObjectId
+
+        client = get_mongo_client()
+        obj_ids = []
+        for c in codigos:
+            if len(c) == 24:
+                try:
+                    obj_ids.append(ObjectId(c))
+                except Exception:
+                    pass
+        query = {
+            "$or": [
+                {"CodigoNFe": {"$in": list(codigos)}},
+                {"Codigo": {"$in": list(codigos)}},
+                {"CodigoBarras": {"$in": list(codigos)}},
+                {"EAN_NFe": {"$in": list(codigos)}},
+            ]
+        }
+        if obj_ids:
+            query["$or"].append({"_id": {"$in": obj_ids}})
+
+        mapa = {}
+        produtos_mongo = client.db[client.col_p].find(
+            query,
+            {
+                "_id": 1,
+                "Id": 1,
+                "Nome": 1,
+                "CodigoNFe": 1,
+                "Codigo": 1,
+                "CodigoBarras": 1,
+                "EAN_NFe": 1,
+            },
+        )
+        for p in produtos_mongo:
+            pid = str(p.get("_id") or p.get("Id"))
+            info = {
+                "id": pid,
+                "nome": (p.get("Nome") or f"Produto {pid}")[:255],
+                "codigo_interno": str(p.get("CodigoNFe") or p.get("Codigo") or "")[:100],
+                "codigo_barras": str(p.get("EAN_NFe") or p.get("CodigoBarras") or "")[:100],
+            }
+            for key in ("CodigoNFe", "Codigo", "CodigoBarras", "EAN_NFe"):
+                val = p.get(key)
+                if val is not None and str(val).strip():
+                    mapa[str(val).strip()] = info
+            mapa[pid] = info
+
+        from produtos.views import (
+            _saldo_erp_produto_deposito_mongo,
+            _saldo_final_agro_com_pin,
+            obter_conexao_mongo,
+        )
+
+        client_m, db = obter_conexao_mongo()
+        encontrados = []
+        nao_encontrados = []
+        vistos = {}
+
+        for ped in pedidos:
+            codigo = ped["codigo"]
+            qtd = ped["quantidade"]
+            info = mapa.get(codigo)
+            if not info:
+                nao_encontrados.append({"codigo": codigo, "quantidade": float(qtd)})
+                continue
+            pid = info["id"]
+            if pid in vistos:
+                vistos[pid]["quantidade"] = float(
+                    Decimal(str(vistos[pid]["quantidade"])) + qtd
+                )
+                continue
+            saldo_vila = 0.0
+            saldo_centro = 0.0
+            if db is not None:
+                try:
+                    sv_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
+                    sc_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
+                    saldo_vila = float(_saldo_final_agro_com_pin(pid, "vila", sv_erp))
+                    saldo_centro = float(_saldo_final_agro_com_pin(pid, "centro", sc_erp))
+                except Exception:
+                    pass
+            item = {
+                "produto_id": pid,
+                "nome": info["nome"],
+                "codigo_interno": info["codigo_interno"],
+                "codigo_barras": info["codigo_barras"],
+                "quantidade": float(qtd) if qtd > 0 else 1.0,
+                "saldo_vila": round(saldo_vila, 3),
+                "saldo_centro": round(saldo_centro, 3),
+            }
+            vistos[pid] = item
+            encontrados.append(item)
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "itens": encontrados,
+                "nao_encontrados": nao_encontrados,
             }
         )
     except Exception as exc:

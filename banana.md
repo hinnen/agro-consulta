@@ -411,7 +411,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 **Regras UX jÃ¡ decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
-- **BotÃ£o flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrÃ£o; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botÃ£o â€” prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR â†’ TL â†’ BR â†’ BL.
+- **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
+- **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
 - Entrega wizard **F3:** pagamento local â†’ endereÃ§o â†’ taxa â†’ meio â†’ troco â†’ **Conferir entrega** (resumo com Editar por bloco). Frete grÃ¡tis por endereÃ§o no futuro pula popup taxa.
@@ -583,7 +584,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na prÃ³pria tela** (nÃ£o nova aba) â€” evita limite de 3 abas SisVale e layout bugado. BotÃ£o **Nova aba** no popup se precisar. PÃ¡ginas planilha com `?embed=1` nÃ£o montam barra lateral.
 - **Popup Folha (27/07):** modal compacto (padrÃ£o ERP) Â· Folha de saldo com filtros **botÃ£o+chip** iguais ao cadastro Â· facetas no HTML.
 - **Folha por fornecedor (27/07):** com catÃ¡logo PG **nÃ£o** depende de Mongo â€” usa cadastro + Entrada NF Agro.
-- **Folha de saldo (28/07):** overlay grande Â· filtros salvos **online** (Postgres) com 1 padrÃ£o global Â· tipografia maior nos filtros.
+- **Folha de saldo (28/07):** overlay grande · filtros salvos **online** (Postgres) com 1 padrão global · tipografia maior nos filtros.
+- **Atalho PDV Estoque Vila (28/07):** botão no PDV (`/pdv/checkout/`) abre as 5 opções da Folha Compras e manda pra `/compras/?folha=…` com overlay já aberto (rótulo só — não força Vila).
 
 ### 4.10 LanÃ§amentos / financeiro
 
@@ -1168,6 +1170,53 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### PACOTE PRONTO LOJA — Etiqueta Gôndola A4 (`ETQ-GONDOLA` · 28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** — espera frase + senha `99738595` na **mesma mensagem** |
+| **VERSION alvo loja** | **11.96** (loja ~**11.93** · reservas: Pix **11.94** · Entrada NF **11.95**) |
+| **O quê** | Preset **Gôndola A4** · 9×3 cm · 18/folha · marcas de corte · logo Agro Mais · R$ separado · centavos menores · peso **sem** texto «PESO:» · campo peso no cadastro |
+| **Migrate** | **SIM** — `0067_produto_overlay_peso_etiqueta` |
+| **Arquivos (só este pacote)** | `produtos_etiquetas*.js/html` · `logo_agro_mais.png` · `models.py` (`peso_etiqueta`) · `0067_…` · trechos cadastro (`_modal…` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html`) · `cadastro_alteracao_historico_util.py` · `views.py` (peso + historico etq) · `banana.md` |
+| **NÃO inclui** | Transferência · DF-e · Entrada NF · PDV Estoque Vila · Compras |
+| **Risco loja aberta** | **Baixo** — só etiquetas + 1 campo cadastro; PDV/caixa intocados |
+| **Checklist** | ✅ na **CHECKLIST ÚNICO** (Fila aberta) |
+| **Antes do cherry** | commit só arquivos deste pacote (branch ainda misturada) |
+| **Autorizar** | *pode subir etiquetas gôndola / produção* + **99738595** |
+| **Cherry** | só commits deste pacote · VERSION loja **11.96** · migrate `0067` no Render |
+
+### PACOTE PRONTO LOJA — Transferência forçada Vila↔Centro (`TRANSF-FORCADA` · 28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** — espera frase + senha `99738595` na **mesma mensagem** |
+| **VERSION alvo loja** | **11.97** (loja ~**11.93** · reservas: Pix **11.94** · Entrada NF **11.95** · Gôndola **11.96**) |
+| **O quê** | Modal **Forçada Vila↔C** · carrinho (busca + colar) · direção **Vila→C** ou **C→Vila** · qtd com foco/Enter · altura fixa · ajuda no «?» |
+| **Migrate** | **NÃO** |
+| **Arquivos (só este pacote)** | `transferencias.html` · `estoque/views.py` · `config/urls.py` · `banana.md` |
+| **NÃO inclui** | Etiquetas · DF-e · Entrada NF · PDV · Compras |
+| **Risco loja aberta** | **Baixo** — só /transferencias/ forçada; PDV/caixa intocados |
+| **Checklist** | ✅ na **CHECKLIST ÚNICO** (Fila aberta) |
+| **Autorizar** | *pode subir transferência forçada / produção* + **99738595** |
+| **Cherry** | só commits deste pacote · VERSION loja **11.97** |
+
+### WIP — Etiqueta Gôndola (nome + preço + peso) (28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · ver `ETQ-GONDOLA` + CHECKLIST ÚNICO |
+| **Loja alvo** | **v11.96** · migrate **0067** |
+
+### WIP — PDV atalho «Estoque Vila» (28/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ código local · validar no PC |
+| **O quê** | Folha saldo overlay · Papel/Estoque/Busca sem sobrepor · **Mais opções** = tela cheia com «Voltar» (sem scrollzinho interno) |
+| **Arquivos** | `pdv_wizard.html` · `pdv_wizard.js` · `compras.html` · `agro_pdv_overlay.js` · `compras_relatorio_saldo.html` |
+| **Você** | Ctrl+F5 PDV · Estoque Vila → Folha de saldo · olhar se ficou claro pra 1ª vez |
 
 ### PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída (`ENTRADA-NF-UX` · 28/07)
 
@@ -2657,7 +2706,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 | **Sintoma** | 1) Coluna **Quem** quase sempre Â«Geraldo HinnenÂ» Â· 2) **Entrada NF** aparecia como **saÃ­da** (~170) e fornecedor **RBS** errado (NF 398454 era outro fornecedor / +20 milho) |
 | **Causa** | Quem: priorizava usuÃ¡rio Django da sessÃ£o Chrome. Qtd: misturava saldo de IDs variantes no mesmo depÃ³sito. Fornecedor: casava sÃ³ por data + fallback 1Âª compra |
 | **Fix** | Operador do PIN/venda; delta por produto+depÃ³sito; casa NF por nÃºmero; sem fallback cego; rÃ³tulo Â«NFÂ» sem duplicar |
-| **Arquivos** | estoque_movimentos_cadastro_util.py Â· iews.py (compras enrich) |
+| **Arquivos** | estoque_movimentos_cadastro_util.py Â· 
+iews.py (compras enrich) |
 | **VocÃª** | Ctrl+F5 teste Â· milho grande Â· aba Estoque Â· confere Quem nas vendas Â· Entrada NF 398454 = **entrada** (nÃ£o saÃ­da) e fornecedor certo |
 
 ### ðŸ“¦ Deploy loja **v9.90** â€” Fecha PDV+Cadastro+NFC-e+RelatÃ³rios (17/07 Â· Renan frase+senha)
@@ -3281,6 +3331,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quÃª |
 | ------ | ----- |
+| **Etiquetas** | **Gôndola A4** (ETQ-GONDOLA) — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja alvo **v11.96** · migrate **0067** · peso sem «PESO:» · logo Agro Mais · 18/folha |
+| **Autorizar ETQ** | *«pode subir etiquetas gôndola»* + **99738595** |
 | **P0 agora** | **Custo NF 77846** â€” **depois** de subir pacote **v11.54+** (fix custo pÃ³s-PIN): `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` Â· confere Cadastro GM0025 ~**90,42** (hoje **75,58**) |
 | **Entrada NF** | **Â«NovaÂ» limpa XML/dados** â€” ðŸ“¦ **PRONTO PARA ENVIO PARA PRODUÃ‡ÃƒO** Â· teste **v11.38** Â· loja alvo **v10.90** Â· commit `46add26` |
 | **Autorizar NF Nova** | *Â«pode subir para produÃ§Ã£oÂ»* + **99738595** |
@@ -3299,6 +3351,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 (9×3 · 18/folha · logo · R$ separado · peso cadastro) | 📦 **pronto para envio à produção** · loja **v11.96** · migrate **0067** |
+| **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro (carrinho + colar + direção) | 📦 **pronto para envio à produção** · loja **v11.97** · sem migrate |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P1** | Entrada NF | BotÃ£o **Nova** herdava XML/dados da nota anterior | ðŸ“¦ **PRONTO PARA ENVIO PARA PRODUÃ‡ÃƒO** Â· teste **v11.38** Â· loja **v10.90** |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
