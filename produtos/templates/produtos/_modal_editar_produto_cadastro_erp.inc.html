@@ -355,6 +355,11 @@
           </div>
         </div>
 
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Peso (etiqueta)</span>
+          <input type="text" id="edit-peso-etiqueta" maxlength="40" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Ex.: 5 KG, 500 g" autocomplete="off" />
+        </label>
+
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Categoria <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
           <div class="flex gap-1 relative">
@@ -2278,6 +2283,7 @@
     setVal('edit-subcategoria-3', produto.subcategoria_3 || '');
     setVal('edit-subcategoria-4', produto.subcategoria_4 || '');
     setVal('edit-unidade', produto.unidade || '');
+    setVal('edit-peso-etiqueta', produto.peso_etiqueta || '');
     setVal('edit-fornecedor', produto.fornecedor || '');
 
     var ce = produto.cadastro_extras && typeof produto.cadastro_extras === 'object' ? produto.cadastro_extras : {};
@@ -2642,6 +2648,7 @@
       fornecedor_texto: gv('edit-fornecedor'),
       categoria: gv('edit-categoria'),
       unidade: gv('edit-unidade'),
+      peso_etiqueta: gv('edit-peso-etiqueta'),
       codigo: gv('edit-codigo'),
       codigo_barras: gv('edit-cb'),
       ean_embalagem_nf: gv('edit-ean-embalagem-nf'),
