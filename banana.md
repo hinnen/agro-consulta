@@ -2691,7 +2691,7 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸ“¦ **pronto para envio Ã  produÃ§Ã£o** (frase + senha) |
+| **Status** | âœ… **jÃ¡ na loja desde v10.63** (`1e6fe3c`) â€” nÃ£o incluir na fila 11.94â€“11.98 |
 | **Sintoma** | Quem ainda com e-mail (`agromaisgm@â€¦`) Â· Entrada NF (ex. 399636) ainda como **saÃ­da ~172** |
 | **Causa** | Label da NF era e-mail do login Â· qty usava Î” `saldo_informado` bruto (mistura salto ERP) |
 | **Fix** | Resolve e-mailâ†’nome Â· movimento = Î”(camada Agro = informadoâˆ’ERP ref) Â· saldo recomposto |
