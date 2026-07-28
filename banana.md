@@ -1186,6 +1186,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 **Já resolvido (não sobe de novo):**
 - **«v10.89» MP automático pós-abrir caixa** — código **já na loja** (v11.93+); checklist antigo enganava.
 - **«v10.90» Entrada NF Nova limpa** — **já dentro** do pacote **11.95** (`entradaNfeResetEditorParaNovaNota`).
+- **«v9.92» kardex e-mail + Δcamada** — **já na loja desde v10.63** (`1e6fe3c`); checklist antigo enganava.
 
 **Smoke 28/07:** `manage.py check` 0 · asserts pacote 10/10 · py_compile OK · DF-e **fora** de todos os deploys.
 
@@ -3356,7 +3357,7 @@ iews.py (compras enrich) |
 eaplicar_custos_entrada_nf --nf=77846 --aplicar |
 | **P0,1 agora** | FL-057 PgBouncer loja (painel Render) |
 | **✅ Loja v11.93** | Folha saldo + transf sem saldo+ (28/07) |
-| **Fecha** | Kardex e-mail + Δcamada — 📦 antigo **v9.92** (fora da fila 11.94–11.98) |
+| **✅ Kardex 9.92** | **já na loja desde v10.63** — não sobe de novo |
 
 #### Fila aberta (por prioridade)
 
@@ -3369,7 +3370,7 @@ eaplicar_custos_entrada_nf --nf=77846 --aplicar |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | 📦 **pronto** · loja **v11.98** · deploy/pdv-estoque-vila-v11.98 |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
-| **P1** | Kardex | E-mail no Quem + Entrada NF saÃ­da fantasma (Î”camada) | ðŸ“¦ **pronto pra envio** Â· teste **v9.92** Â· **validar na loja apÃ³s envio** |
+| **P1** | Kardex | E-mail no Quem + Entrada NF Δcamada | ✅ **já loja v10.63** (era v9.92 — não sobe) |
 | **P1** | Aba 9 | HistÃ³rico lÃ¡pis PDV: vÃ¡rias linhas DE=â€” Â· sem preÃ§o antigo | ðŸ“¦ **pronto pra envio** Â· teste **v10.01** Â· **validar na loja apÃ³s envio** |
 | **P2** | Cadastro modal | Modal editar: UX Â· kardex Â· aba AlteraÃ§Ãµes Â· origem PDV | âœ… **loja v9.90** |
 | **P1** | PDV lÃ¡pis | Editor rÃ¡pido + histÃ³rico aba 9 (origem PDV) | âœ… **loja v9.90** |
