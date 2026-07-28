@@ -55,6 +55,16 @@ urlpatterns = [
         name='api_transferir_lote_vila_para_centro',
     ),
     path(
+        'estoque/api_transferir_forcado_vila_para_centro/',
+        estoque_views.api_transferir_forcado_vila_para_centro,
+        name='api_transferir_forcado_vila_para_centro',
+    ),
+    path(
+        'estoque/api_resolver_codigos_transferencia_forcada/',
+        estoque_views.api_resolver_codigos_transferencia_forcada,
+        name='api_resolver_codigos_transferencia_forcada',
+    ),
+    path(
         'estoque/api_listar_historico_transferencia/',
         estoque_views.api_listar_historico_transferencia,
         name='api_listar_historico_transferencia',
