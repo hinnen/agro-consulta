@@ -28,6 +28,7 @@ _DEFAULT_MAQUININHAS_CARTAO_PDV = [
 _DEFAULT_MAQUININHAS_PIX_PDV = [
     {"id": "pix_mp_qr", "nome": "Mercado Pago — Pix (automático)", "rede": "mp"},
     {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo"},
+    {"id": "pix_sicredi", "nome": "Sicredi — Pix", "rede": "sicredi"},
     {"id": "pix_sicoob_chave", "nome": "Sicoob — Chave Pix", "rede": "sicoob"},
     {"id": "pix_mp_renan", "nome": "Mercado Pago Renan", "rede": "mp"},
 ]
