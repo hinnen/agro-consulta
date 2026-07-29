@@ -558,7 +558,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 ### 4.7 Entrada de nota fiscal
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
-- **Dist DF-e (pedido Renan 28/07):** hoje cada Â«Consultar SEFAZÂ» fala na Receita e a lista some ao sair. No ERP antigo: lista **salva** das notas jÃ¡ puxadas Â· nova puxada sÃ³ traz o que for novo Â· ver lista **nÃ£o** consulta SEFAZ Â· 2â€“3Ã—/dia ok. **XML continua o caminho seguro.** Feature Â«caixa de entrada DF-eÂ» = pendente (sÃ³ se Renan pedir).
+- **Dist DF-e (29/07):** certificado = `NFE_DIST_DFE_*` **ou** o mesmo A1 da NFC-e (`NFC_E_*`). Cursor ultNSU no Postgres/SQLite (local **2086**). **Nunca** pular NSU. Caixa de entrada salva = WIP parcial. **XML** se SEFAZ 656.
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
 - **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
@@ -1172,11 +1172,77 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### PACOTE PRONTO LOJA — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · **v12.06**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · validar local · falta branch deploy |
+| **VERSION alvo loja** | **12.06** (loja hoje **12.05**) |
+| **Sintoma** | Etapa 2: produto com custo cadastrado entra com **V. unit 0,00** (ex. milho pequeno 24kg · venda 49 ok) |
+| **Causa** | Busca `compras=1` não lia `preco_custo_overlay` do overlay · JS aceitava custo final **0** e não caía no base |
+| **Fix** | API: overlay custo tem prioridade · JS: só usa custo **> 0** |
+| **Arquivos** | `produtos/views.py` · `entrada_nota.html` |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só pré-preenche V. unit na Entrada NF · **zero** PDV/caixa/CP |
+| **NÃO inclui** | DF-e · Ajuste mobile · merge `teste` |
+| **Você** | Ctrl+F5 local · Entrada NF manual · buscar produto com custo → V. unit deve vir preenchido |
+| **Próximo chat** | 1) validar local 2) *pode subir Entrada NF custo / produção* + **99738595** |
+| **Rollback** | reverter commits do pacote em `producao` |
+
+### Entrada NF — custo cadastro não puxa (29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 no pacote **ENTRADA-NF-CUSTO** (v12.06) |
+| **Sintoma** | Busca mostra venda ok · V. unit 0,00 ao incluir |
+| **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
+| **Você** | validar local antes do envio |
+
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile celular (`AJUSTE-MOBILE-CEL` · 29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto p/ próximo chat** — push `teste` · **não** produção ainda · espera pausa loja + frase + senha `99738595` |
+| **Escopo** | Só `/ajuste-mobile/` (+ atalho BI / links `target=_top`) · **não** mexe PDV venda / caixa / CP |
+| **Risco loja aberta** | **Baixo** se cherry **só** estes arquivos: shell/FAB/BI só especializam path ajuste-mobile · Display Scale off só nessa rota |
+| **Inclui** | Tela cheia fora do BI · layout celular · scroll página · cards/resumo · teclado visualViewport |
+| **Arquivos** | `mobile_ajuste.html` · `ajuste_mobile_login.html` · `_agro_open_external.html` · `dashboard_gerencial.html` · `_agro_pdv_fab.html` · `context_processors.py` · `sidebar_nav.html` · `consulta_produtos_pre_layout_pdv.html` · `banana.md` |
+| **NÃO incluir** | WIP DF-e / bug report / entrada_nota / models / views / *-CAIXA* |
+| **Validar local** | Celular ou Chrome DevTools · `/ajuste-mobile/` · PIN · busca · 1 contagem · BI «Ajuste» sai do BI |
+| **Próximo chat** | 1) lojas pausam vendas 2) «pode subir produção» + `99738595` 3) cherry só este pacote + VERSION loja + push `producao` + Ctrl+F5 |
+
+### UX — Ajuste Mobile tela cheia no celular (29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ pacote **AJUSTE-MOBILE-CEL** · push `teste` · loja **não** ainda |
+| **Pedido** | Layout só celular + link próprio (não abrir dentro do BI com barra lateral) |
+| **Causa** | Shell de abas (`agro-open-inapp-tab`) engolia `/ajuste-mobile/` · URL ficava no BI |
+| **Fix** | Sem shell nesta rota · rompe iframe · BI atalho = `location.assign` full · layout touch · sem F1/PDV/Display Scale |
+| **Revisão 29/07 b** | Scroll da **página inteira** · tipografia sem inflar · teclado (`visualViewport`) |
+| **Revisão 29/07 c** | Cabeçalho em **faixas** (estoque sozinho · horário + Atualizar na linha de baixo) |
+| **Revisão 29/07 d** | Resumo 1 linha · cards compactos · título 2 linhas c/ corte |
+| **Link** | `…/ajuste-mobile/` (PIN → mesma URL) |
+| **Arquivos** | ver pacote **AJUSTE-MOBILE-CEL** |
+| **Você** | Ctrl+F5 no celular · rolar · buscar · 1 contagem · BI «Ajuste» deve sair do BI |
+| **Não** | Usar no PC / abrir pelo shell de abas |
+
+### ðŸ› Dist DF-e — certificado «não configurado» no local (29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Aba SEFAZ · aviso amarelo · ultNSU 0 · «Distribuição DF-e não configurada» |
+| **Causa** | Branch sem fallback NFC-e · só lia `NFE_DIST_DFE_*` (vazio) · cursor NSU só no Mongo |
+| **Fix** | `sefaz_dfe_client` reusa `NFC_E_*` · cursor NSU no Postgres/SQLite (`AgroNfeDistDfeCursor` · já em **2086**) · status/API usam mesmo CNPJ |
+| **Você** | Reiniciar runserver · Ctrl+F5 · **Atualizar status** → deve sumir o amarelo · **não** pular NSU · se 656 → esperar 1h · nota urgente → **Ler XML** |
+| **Não** | Consultar SEFAZ várias vezes seguidas · saltar ultNSU |
+
+
 ### Entrada NF — Sem a pagar + botão morto + duplicata (29/07 · NF 39407344)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | WIP local · validar no PC |
+| **Status** | ✅ **loja v12.04** |
 | **Sintoma** | Lista Concluída «Sem a pagar» · títulos existem no CP · etapa 7 laranja · Salvar+a pagar não clica · reabrir+confirmar duplica |
 | **Causa** | Flag `financeiro_lancado` sumiu · UI congelada (PIN) bloqueava o botão · gerar de novo sem achar o lote antigo |
 | **Fix** | Botão religa mesmo com PIN · sync por NF antes de inserir · Reabrir estorna títulos órfãos pela NF |
@@ -1187,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | WIP local · validar no PC |
+| **Status** | ✅ **loja v12.04** |
 | **Sintoma** | Digitar `013962` = 0 títulos · Ctrl+F achava na descrição |
 | **Causa** | Número puro 5–7 dígitos ia só como **valor** + `numero_documento` · NF fica em «NF 013962» na descrição |
 | **Fix** | Também casa descrição/obs (+ variante sem zero à esquerda) |
@@ -3432,6 +3498,7 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
+| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · custo cadastro na etapa 2 (V. unit 0) |
 | **✅ Loja v12.05** | ETQ-BUSCA-FILTROS · `30e79a9` · rollback `pre-v1205-etq-busca` |
 | **✅ Loja v12.04** | Entrada NF fin |
 | **✅ Loja v12.03** | FOLHA-ETQ |
@@ -3451,6 +3518,7 @@ iews.py (compras enrich) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-BUSCA-FILTROS** | Etiquetas: filtros Folha + manter busca + Adicionar todos | ✅ **loja v12.05** |
 | **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
+| **P1** | **ENTRADA-NF-CUSTO** | Entrada NF: puxar custo cadastrado (V. unit 0) | 📦 **pronto para envio** · v12.06 |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |

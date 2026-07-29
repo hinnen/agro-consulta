@@ -533,6 +533,10 @@
     if (p.indexOf('/compras/relatorio-a4') >= 0) return true;
     return false;
   }
+  function pathLookLikeAjusteMobile(pathStr) {
+    var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
+    return p === '/ajuste-mobile' || p.indexOf('/ajuste-mobile/') === 0;
+  }
   window.__agroPathLookLikeFolhaPlanilha = pathLookLikeFolhaPlanilha;
   window.__agroIsPaginaAuxiliarSemShell = function () {
     try {
@@ -540,7 +544,9 @@
       if (sp.get('embed') === '1') return true;
       if (sp.get('agro_inapp_embed') === '1') return true;
     } catch (_) {}
-    return pathLookLikeFolhaPlanilha((location.pathname || '').split('?')[0]);
+    var path = (location.pathname || '').split('?')[0];
+    if (pathLookLikeAjusteMobile(path)) return true;
+    return pathLookLikeFolhaPlanilha(path);
   };
 })();
 </script>

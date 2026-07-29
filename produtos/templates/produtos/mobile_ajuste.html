@@ -1,76 +1,371 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br" class="h-[100dvh] max-h-[100dvh] overflow-hidden">
+<html lang="pt-br" data-agro-hide-pdv="1">
 <head>
   <meta charset="UTF-8">
   <title>SisVale | Ajuste Mobile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  {% include "produtos/_head_perf_mpa.html" %}
+  {# interactive-widget: Chrome Android redimensiona a página com o teclado (não só cobre). #}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#10b981">
+  <script>
+  /* Fora do shell/BI: URL própria em tela cheia no celular. */
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete('agro_inapp_embed');
+      u.searchParams.delete('embed');
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = '/ajuste-mobile/'; } catch (_) {}
+    }
+  })();
+  </script>
+  {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root {
       --ma-kb-inset: 0px;
+      --agro-display-scale: 1;
+      --ma-safe-top: env(safe-area-inset-top, 0px);
+      --ma-safe-bottom: env(safe-area-inset-bottom, 0px);
     }
-    /* Lista: folga extra quando o teclado virtual reduz a área visível (iOS/Android). */
-    .ma-scroll-lista {
+    html {
+      zoom: 1 !important;
+      -webkit-text-size-adjust: 100%;
+      height: auto !important;
+      max-height: none !important;
+      overflow-x: hidden;
+      overflow-y: auto;
+      scroll-padding-bottom: calc(1.5rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
+    }
+    /* Esta tela: tipografia real (UI global infla text-[10px] e corta/sobreponte). */
+    body.ma-page :is(
+      .text-\[9px\],
+      .text-\[10px\],
+      .text-\[11px\],
+      .text-xs
+    ) {
+      font-size: revert !important;
+      line-height: revert !important;
+    }
+    body.ma-page {
+      margin: 0;
+      min-height: 100dvh;
+      height: auto !important;
+      max-height: none !important;
+      overflow-x: hidden;
+      overflow-y: visible !important;
+      padding-top: var(--ma-safe-top);
+      padding-bottom: calc(1.25rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
+      touch-action: manipulation;
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
-      scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset));
-      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset));
+    }
+    body.ma-page.ma-modal-open {
+      overflow: hidden !important;
+      touch-action: none;
+    }
+    /* Sem FAB PDV / Aa / shell nesta tela. */
+    #agro-pdv-fab-wrap,
+    #agro-display-scale-fab,
+    #agro-display-scale-modal,
+    #agro-inapp-sidebar-rail,
+    #agro-inapp-pane-stack {
+      display: none !important;
     }
     .ma-modal-pad {
-      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset));
+      padding-bottom: calc(0.75rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
     }
     #reader video {
       object-fit: cover;
     }
+    /* Lista ocupa o fluxo normal da página — scroll = página inteira. */
+    #lista-scroll {
+      overflow: visible !important;
+      flex: none !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+    body.ma-page :is(.text-sm) {
+      font-size: revert !important;
+      line-height: revert !important;
+    }
+
+    /* Cabeçalho em faixas — nada na mesma linha brigando por espaço. */
+    .ma-head {
+      background: #fff;
+      border-bottom: 1px solid #f1f5f9;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .ma-head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      box-sizing: border-box;
+    }
+    .ma-head-row + .ma-head-row { border-top: 1px solid #ecfdf5; }
+    .ma-head-title-txt {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      font-size: 0.875rem !important;
+      font-weight: 900;
+      font-style: italic;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      line-height: 1.2 !important;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ma-head-title-txt span { color: #10b981; }
+    .ma-head-actions { display: flex; gap: 0.4rem; flex: 0 0 auto; }
+    .ma-head-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.4rem;
+      padding: 0 0.75rem;
+      border-radius: 0.75rem;
+      font-size: 0.6875rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1 !important;
+      white-space: nowrap;
+      text-decoration: none;
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .ma-head-btn--hist { background: #f1f5f9; color: #334155; }
+    .ma-head-btn--scan { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .ma-head-row--op { background: #ecfdf5; }
+    .ma-head-op-txt {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 0.6875rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #065f46;
+      line-height: 1.25 !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ma-head-op-link {
+      flex: 0 0 auto;
+      font-size: 0.6875rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #475569;
+      text-decoration: underline;
+      padding: 0.35rem 0;
+      line-height: 1 !important;
+    }
+    .ma-head-row--sync {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+      background: linear-gradient(90deg, #ecfdf5 0%, #fff 55%, #f8fafc 100%);
+      padding-top: 0.65rem;
+      padding-bottom: 0.7rem;
+    }
+    .ma-head-dep {
+      display: block;
+      width: 100%;
+      font-size: 0.75rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #334155;
+      line-height: 1.35 !important;
+      word-break: break-word;
+    }
+    .ma-head-sync-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    #ma-saldos-ultima {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 0.6875rem !important;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #1e293b;
+      line-height: 1.3 !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #ma-btn-saldos {
+      flex: 0 0 auto;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.4rem;
+      padding: 0.35rem 0.75rem 0.35rem 0.45rem;
+      border-radius: 0.75rem;
+      border: 2px solid rgba(16, 185, 129, 0.45);
+      background: linear-gradient(180deg, #059669, #047857);
+      color: #fff;
+      font-size: 0.6875rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1 !important;
+      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+      overflow: hidden;
+    }
+    #ma-btn-saldos .agro-termo-track {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      width: 0.35rem;
+      height: 1.35rem;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+    }
+    #ma-btn-saldos .agro-termo-fil {
+      width: 100%;
+      border-radius: 0 0 999px 999px;
+      transition: height 0.4s ease-out;
+      min-height: 0;
+    }
+
+    /* Resumo da busca: 1 linha só. */
+    #f-resumo {
+      margin: 0.4rem 0 0.55rem;
+      padding: 0 0.15rem;
+      font-size: 0.625rem !important;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #94a3b8;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Cards de produto — compactos, sem sobreposição. */
+    #lista.ma-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .ma-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.85rem;
+      padding: 0.55rem 0.7rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ma-card:active { background: #ecfdf5; }
+    .ma-card-nome {
+      font-size: 0.72rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.25 !important;
+      color: #0f172a;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    .ma-card-meta {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.45rem;
+      margin-top: 0.2rem;
+    }
+    .ma-card-info {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .ma-card-marca,
+    .ma-card-gm {
+      display: block;
+      font-size: 0.625rem !important;
+      line-height: 1.25 !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #94a3b8;
+    }
+    .ma-card-gm { color: #64748b; }
+    .ma-card-nums {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .ma-card-contagem {
+      font-size: 0.625rem !important;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      line-height: 1.2 !important;
+    }
+    .ma-card-contagem.is-pendente { color: #b45309; }
+    .ma-card-contagem.is-ok { color: #475569; }
+    .ma-card-saldo {
+      font-size: 1.05rem !important;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      min-width: 2.4rem;
+      text-align: right;
+      white-space: nowrap;
+      line-height: 1 !important;
+    }
+    .ma-card-saldo.is-neg { color: #e11d48; }
+    .ma-card-saldo.is-ok { color: #059669; }
   </style>
 </head>
-<body class="bg-slate-100 h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col touch-manipulation">
+<body class="ma-page bg-slate-100 touch-manipulation">
 {% include "produtos/_gm_loading_bar.html" %}
 
-  <header class="shrink-0 z-50 bg-white shadow-sm border-b border-slate-100 pt-[env(safe-area-inset-top,0px)]">
-    <div class="p-2.5 sm:p-3 flex justify-between items-center gap-2 min-h-[3rem]">
-      <a href="/" class="agro-pdv-voltar-link inline-flex items-center gap-1 text-slate-500 bg-slate-50 p-2 rounded-xl hover:bg-slate-100 transition-colors shrink-0" title="Voltar ao PDV" data-agro-pdv-voltar>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        <kbd class="pointer-events-none hidden sm:inline rounded border border-slate-200 bg-white px-1 py-0.5 font-mono text-[9px] font-black text-slate-500">F1</kbd>
-      </a>
-
-      <h2 class="font-black uppercase italic text-xs sm:text-sm flex-1 min-w-0 text-center truncate px-1">
-        Ajuste <span class="text-emerald-500">Mobile</span>
-      </h2>
-
-      <div class="flex gap-1.5 shrink-0">
-        <a href="/historico/" class="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-2 sm:px-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase whitespace-nowrap">
-          Hist.
-        </a>
-        <button type="button" onclick="startScan()" class="bg-slate-900 text-white px-2.5 py-2 sm:px-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase whitespace-nowrap">
-          Scan
-        </button>
+  <header class="ma-head">
+    <div class="ma-head-row">
+      <h1 class="ma-head-title-txt">Ajuste <span>Mobile</span></h1>
+      <div class="ma-head-actions">
+        <a href="/historico/" class="ma-head-btn ma-head-btn--hist">Hist.</a>
+        <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
       </div>
     </div>
     {% if ajuste_operador %}
-    <div class="px-3 py-1.5 border-t border-emerald-100/80 bg-emerald-50/90 flex items-center justify-between gap-2">
-      <span class="text-[9px] font-black uppercase text-emerald-800 tracking-wide truncate" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
-      <a href="{% url 'ajuste_mobile' %}" class="text-[9px] font-black uppercase text-slate-600 underline shrink-0" title="Trocar operador (pede PIN de novo)">Trocar</a>
+    <div class="ma-head-row ma-head-row--op">
+      <span class="ma-head-op-txt" title="Quem abriu com PIN — todos os ajustes desta sessão">Operador: {{ ajuste_operador }}</span>
+      <a href="{% url 'ajuste_mobile' %}" class="ma-head-op-link" title="Trocar operador (pede PIN de novo)">Trocar</a>
     </div>
     {% endif %}
-    <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-emerald-100/90 bg-gradient-to-r from-emerald-50/95 via-white to-slate-50/80">
-      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0 truncate" title="Depósito igual ao PDV deste aparelho">
+    <div class="ma-head-row ma-head-row--sync">
+      <div class="ma-head-dep" title="Depósito igual ao PDV deste aparelho">
         Estoque: {% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}{% if ajuste_deposito_travado %} · travado{% endif %}
-      </span>
-      <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
-        <span id="ma-saldos-ultima" class="text-[9px] font-bold text-slate-800 tabular-nums truncate max-w-[min(52vw,11rem)]" title="Última leitura dos saldos na lista">—</span>
-        <button type="button" id="ma-btn-saldos" class="relative inline-flex items-center gap-1.5 rounded-xl border-2 border-emerald-500/45 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[9px] font-black uppercase tracking-wide pl-1.5 pr-2.5 py-1.5 shadow-md active:scale-[0.98] transition-transform shrink-0 overflow-hidden" title="Baixar lista completa + saldos (Postgres)">
-          <span class="agro-termo-track flex flex-col justify-end w-1.5 h-7 rounded-full bg-black/20 border border-white/25 overflow-hidden shadow-inner" aria-hidden="true">
-            <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+      </div>
+      <div class="ma-head-sync-line">
+        <span id="ma-saldos-ultima" title="Última leitura dos saldos na lista">—</span>
+        <button type="button" id="ma-btn-saldos" title="Baixar lista completa + saldos (Postgres)">
+          <span class="agro-termo-track" aria-hidden="true">
+            <span class="agro-termo-fil" style="height:0%"></span>
           </span>
-          <span class="relative z-[1] whitespace-nowrap">Atualizar</span>
+          <span>Atualizar</span>
         </button>
       </div>
     </div>
@@ -79,15 +374,14 @@
   <div id="reader" class="fixed inset-0 z-[120] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
-      <p class="text-white text-[11px] font-black uppercase tracking-wide">Scan ativo</p>
-      <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-white/15 border border-white/35 text-white text-[11px] font-black uppercase">
+      <p class="text-white text-xs font-black uppercase tracking-wide">Scan ativo</p>
+      <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center min-h-[2.75rem] px-4 rounded-xl bg-white/15 border border-white/35 text-white text-xs font-black uppercase">
         Fechar
       </button>
     </div>
   </div>
 
-  <!-- Busca fora da área rolável: não some ao rolar e não empurra itens sob o teclado sem scroll próprio. -->
-  <div class="shrink-0 z-40 px-3 pt-2 pb-2 bg-slate-100/95 backdrop-blur-sm border-b border-slate-200/80">
+  <div class="px-3 pt-3 pb-1">
     <label for="busca" class="sr-only">Buscar produto</label>
     <input
       type="search"
@@ -100,93 +394,94 @@
       spellcheck="false"
       class="w-full px-4 py-3.5 rounded-2xl border border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
     >
-    <button type="button" id="btn-toggle-filtros" class="mt-1.5 w-full min-h-[42px] rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px] font-black uppercase inline-flex items-center justify-center gap-2">
+    <button type="button" id="btn-toggle-filtros" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase inline-flex items-center justify-center gap-2">
       Filtros
       <span id="f-toggle-icon" class="text-slate-500">▾</span>
     </button>
-    <div id="f-drawer" class="hidden mt-1.5 grid grid-cols-2 gap-1.5">
-      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Depósito</span>
-        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none"{% if ajuste_deposito_travado %} disabled title="Loja travada pelo caixa do PDV"{% endif %}>
+    <div id="f-drawer" class="hidden mt-2 grid grid-cols-2 gap-2">
+      <label class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Depósito</span>
+        <select id="f-deposito" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none"{% if ajuste_deposito_travado %} disabled title="Loja travada pelo caixa do PDV"{% endif %}>
           <option value="centro"{% if ajuste_deposito_inicial != 'vila' %} selected{% endif %}>Centro</option>
           <option value="vila"{% if ajuste_deposito_inicial == 'vila' %} selected{% endif %}>Vila Elias</option>
         </select>
       </label>
-      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Saldo</span>
-        <select id="f-saldo" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+      <label class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Saldo</span>
+        <select id="f-saldo" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none">
           <option value="all">Todos</option>
           <option value="gt0">Só positivo</option>
           <option value="le0">Zerado/negativo</option>
         </select>
       </label>
-      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Ordem</span>
-        <select id="f-ordem" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+      <label class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Ordem</span>
+        <select id="f-ordem" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none">
           <option value="nome">Nome A-Z</option>
           <option value="saldo-asc">Menor saldo</option>
           <option value="saldo-desc">Maior saldo</option>
         </select>
       </label>
-      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Extra</span>
-        <select id="f-extra" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+      <label class="col-span-2 inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Extra</span>
+        <select id="f-extra" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none">
           <option value="all">Sem filtro extra</option>
           <option value="divergencia">Só com divergência ERP</option>
           <option value="sem-marca">Só sem marca</option>
         </select>
       </label>
-      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Categoria</span>
-        <select id="f-categoria" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+      <label class="col-span-2 inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Categoria</span>
+        <select id="f-categoria" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none">
           <option value="all">Todas</option>
         </select>
       </label>
-      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
-        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Fornecedor</span>
-        <select id="f-fornecedor" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+      <label class="col-span-2 inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2.5 min-h-[2.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 shrink-0">Fornecedor</span>
+        <select id="f-fornecedor" class="w-full bg-transparent text-xs font-black text-slate-800 outline-none">
           <option value="all">Todos</option>
         </select>
       </label>
-      <button type="button" id="btn-aplicar-filtros" class="min-h-[42px] rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase">Aplicar filtros</button>
-      <button type="button" id="btn-limpar-filtros" class="min-h-[42px] rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px] font-black uppercase">Limpar</button>
+      <button type="button" id="btn-aplicar-filtros" class="min-h-[2.5rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Aplicar filtros</button>
+      <button type="button" id="btn-limpar-filtros" class="min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase">Limpar</button>
     </div>
-    <p id="f-resumo" class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1.5 px-0.5 leading-snug">Busca sem filtro por padrão.</p>
+    <p id="f-resumo">—</p>
   </div>
 
-  <div id="lista-scroll" class="flex-1 min-h-0 overflow-y-auto ma-scroll-lista px-3 pt-2">
-    <div id="lista" class="space-y-2">
+  <div id="lista-scroll" class="px-3 pb-2">
+    <div id="lista" class="ma-lista">
       <div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Carregando produtos…</div>
     </div>
   </div>
 
-  <div id="modal" class="fixed inset-0 z-[100] hidden flex-col justify-end sm:justify-center sm:p-6 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="m-nome" aria-hidden="true" onclick="if (event.target === this) fechar()">
-    <div class="bg-white w-full sm:max-w-md sm:mx-auto rounded-t-[1.75rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[min(92dvh,100%)] overflow-hidden outline-none" onclick="event.stopPropagation()">
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4">
-        <h3 id="m-nome" class="font-black uppercase text-sm leading-snug text-slate-900 pr-8"></h3>
+  <div id="modal" class="fixed inset-0 z-[100] hidden flex-col justify-end bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="m-nome" aria-hidden="true" onclick="if (event.target === this) fechar()">
+    <div id="modal-sheet" class="bg-white w-full rounded-t-[1.75rem] shadow-2xl flex flex-col max-h-[min(92dvh,100%)] overflow-hidden outline-none" onclick="event.stopPropagation()" style="margin-bottom: var(--ma-kb-inset);">
+      <div class="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-slate-200" aria-hidden="true"></div>
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-4">
+        <h3 id="m-nome" class="font-black uppercase text-base leading-snug text-slate-900 pr-2"></h3>
 
         <div class="space-y-1">
-          <div id="m-saldo-label" class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Saldo atual (Centro)</div>
-          <div id="m-saldo" class="text-3xl font-black text-emerald-600 tabular-nums">0</div>
+          <div id="m-saldo-label" class="text-[11px] text-slate-500 font-black uppercase tracking-wide">Saldo atual (Centro)</div>
+          <div id="m-saldo" class="text-4xl font-black text-emerald-600 tabular-nums">0</div>
         </div>
 
         <div class="space-y-2">
-          <label for="m-novo" class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Novo saldo</label>
+          <label for="m-novo" class="text-[11px] text-slate-500 font-black uppercase tracking-wide">Novo saldo</label>
           <input
             id="m-novo"
             type="text"
             inputmode="decimal"
             enterkeyhint="done"
-            class="w-full border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-2xl font-black tabular-nums text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+            class="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-3xl font-black tabular-nums text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
           >
         </div>
       </div>
 
-      <div class="shrink-0 border-t border-slate-100 bg-white ma-modal-pad px-5 sm:px-6 pt-3 space-y-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)]">
-        <button type="button" onclick="salvar()" class="w-full bg-emerald-600 text-white font-black py-3.5 rounded-2xl uppercase text-sm tracking-wide active:scale-[0.99] transition-transform">
+      <div class="shrink-0 border-t border-slate-100 bg-white ma-modal-pad px-5 pt-3 space-y-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)]">
+        <button type="button" onclick="salvar()" class="w-full min-h-[3.25rem] bg-emerald-600 text-white font-black py-3.5 rounded-2xl uppercase text-base tracking-wide active:scale-[0.99] transition-transform">
           Salvar
         </button>
-        <button type="button" onclick="fechar()" class="w-full text-slate-500 font-bold text-xs uppercase py-2.5">
+        <button type="button" onclick="fechar()" class="w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase py-2.5">
           Cancelar
         </button>
       </div>
@@ -653,33 +948,41 @@ function buscar(q) {
   l.innerHTML = '';
   const resumo = document.getElementById('f-resumo');
   if (resumo) {
-    const modoBusca = termoN.length >= 2 ? 'busca ativa' : 'somente filtros';
-    const trunc = filtrados.length > resultados.length
-      ? ` · mostrando ${resultados.length} (digite p/ achar)`
-      : '';
-    resumo.innerText = `${modoBusca} · ${filtrados.length} itens · catálogo ${baseProdutos.length}${trunc}`;
+    const modo = termoN.length >= 2 ? 'Busca' : 'Filtros';
+    const extra = filtrados.length > resultados.length ? ' · +' : '';
+    resumo.textContent = `${modo} · ${filtrados.length} · cat ${baseProdutos.length}${extra}`;
   }
 
   if (!resultados.length) {
-    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Nenhum item para os filtros atuais.</div>';
+    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8 text-sm">Nenhum item para os filtros atuais.</div>';
     return;
+  }
+
+  function escMa(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   resultados.forEach(p => {
     const saldoN = getSaldoAtual(p);
-    const corSaldo = saldoN < 0 ? 'text-rose-600' : 'text-emerald-600';
     const contagem = getContagemAtual(p);
-    const corContagem = contagem === 'Conferir' ? 'text-amber-700' : 'text-slate-600';
     const d = document.createElement('div');
-    d.className = "bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center gap-3 active:bg-slate-50 min-h-[3.25rem]";
+    d.className = 'ma-card';
     d.innerHTML = `
-      <div class="min-w-0 flex-1 pr-2">
-        <div class="font-black text-xs uppercase truncate">${p.nome || ''}</div>
-        <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
-        <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
+      <div class="ma-card-nome">${escMa(p.nome)}</div>
+      <div class="ma-card-meta">
+        <div class="ma-card-info">
+          <span class="ma-card-marca">${escMa(p.marca) || '—'}</span>
+          <span class="ma-card-gm">GM: ${escMa(p.codigo_nfe || p.codigo)}</span>
+        </div>
+        <div class="ma-card-nums">
+          <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
+          <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
+        </div>
       </div>
-      <div class="${corContagem} text-[10px] font-black tabular-nums shrink-0 w-[3.6rem] text-right" title="Última contagem (ajuste PIN)">${contagem}</div>
-      <div class="${corSaldo} font-black text-lg tabular-nums shrink-0 w-[3.25rem] text-right">${saldoN.toFixed(1)}</div>
     `;
     d.onclick = () => {
       pSel = p;
@@ -748,11 +1051,14 @@ function abrir() {
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('overflow-hidden');
+  document.body.classList.add('ma-modal-open');
   syncMaKeyboardInset();
   requestAnimationFrame(() => {
     const inp = document.getElementById('m-novo');
-    if (inp) inp.focus({ preventScroll: true });
+    if (inp) {
+      inp.focus({ preventScroll: true });
+      setTimeout(() => maScrollCampoVisivel(inp), 300);
+    }
   });
 }
 
@@ -761,11 +1067,11 @@ function fechar() {
   modal.classList.add('hidden');
   modal.classList.remove('flex');
   modal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('overflow-hidden');
+  document.body.classList.remove('ma-modal-open', 'overflow-hidden');
   syncMaKeyboardInset();
 }
 
-/** Espaço extra no rodapé da lista / modal quando o teclado virtual reduz a visualViewport. */
+/** Espaço no rodapé da página / modal quando o teclado virtual reduz a visualViewport. */
 function syncMaKeyboardInset() {
   const root = document.documentElement;
   if (!window.visualViewport) {
@@ -777,8 +1083,23 @@ function syncMaKeyboardInset() {
   root.style.setProperty('--ma-kb-inset', inset + 'px');
 }
 
+function maScrollCampoVisivel(el) {
+  if (!el || typeof el.scrollIntoView !== 'function') return;
+  try {
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  } catch (_) {
+    try { el.scrollIntoView(true); } catch (__) {}
+  }
+}
+
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', syncMaKeyboardInset);
+  window.visualViewport.addEventListener('resize', () => {
+    syncMaKeyboardInset();
+    const ae = document.activeElement;
+    if (ae && (ae.id === 'busca' || ae.id === 'm-novo')) {
+      setTimeout(() => maScrollCampoVisivel(ae), 50);
+    }
+  });
   window.visualViewport.addEventListener('scroll', syncMaKeyboardInset);
 }
 window.addEventListener('orientationchange', () => setTimeout(syncMaKeyboardInset, 350));
@@ -787,12 +1108,19 @@ window.addEventListener('load', () => setTimeout(syncMaKeyboardInset, 100));
 (function bindMaTecladoInputs() {
   const b = document.getElementById('busca');
   const m = document.getElementById('m-novo');
+  function onFocus(el) {
+    syncMaKeyboardInset();
+    setTimeout(() => {
+      syncMaKeyboardInset();
+      maScrollCampoVisivel(el);
+    }, 280);
+  }
   if (b) {
-    b.addEventListener('focus', syncMaKeyboardInset);
+    b.addEventListener('focus', () => onFocus(b));
     b.addEventListener('blur', () => setTimeout(syncMaKeyboardInset, 280));
   }
   if (m) {
-    m.addEventListener('focus', syncMaKeyboardInset);
+    m.addEventListener('focus', () => onFocus(m));
     m.addEventListener('blur', () => setTimeout(syncMaKeyboardInset, 280));
   }
 })();
@@ -840,6 +1168,5 @@ function salvar() {
   });
 }
 </script>
-{% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

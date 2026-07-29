@@ -310,6 +310,11 @@
     return p === "/contabilidade" || p.indexOf("/contabilidade/") === 0;
   }
 
+  function pathIsAjusteMobile() {
+    var p = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+    return p === "/ajuste-mobile" || p.indexOf("/ajuste-mobile/") === 0;
+  }
+
   function inputFocused() {
     var t = document.activeElement;
     return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
@@ -361,6 +366,7 @@
       if (q.get("agro_inapp_embed") === "1") return true;
     } catch (_) {}
     if (pathIsContabilidade()) return true;
+    if (pathIsAjusteMobile()) return true;
     if (document.body && document.body.classList.contains("gg-grafico-page")) return true;
     if (document.body && document.body.classList.contains("modal-open")) return true;
     if (document.documentElement && document.documentElement.classList.contains("modal-open")) return true;

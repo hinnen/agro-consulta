@@ -39,6 +39,11 @@ def agro_banco_placeholder_ui(request):
 def agro_display_scale_ui(request):
     from django.conf import settings
 
+    path = (getattr(request, "path", None) or "").lower()
+    # Ajuste Mobile = só celular; Display Scale de monitor atrapalha.
+    if "/ajuste-mobile" in path:
+        return {"agro_display_scale_habilitado": False}
+
     return {
         'agro_display_scale_habilitado': bool(
             getattr(settings, 'AGRO_DISPLAY_SCALE_HABILITADO', False)
