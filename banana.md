@@ -1171,7 +1171,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-﻿### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
+### ✅ PDV — carrinho itens travados (FL-008 · 28/07 · loja v11.99)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | GM0110-1 / GM0110-10 (e outros) no carrinho: +/−, lixeira e lápis mortos |
+| **Causa** | Lista busca `display:flex` ganhava do `.hidden` — cobria o carrinho (mesmo bug v6.16) |
+| **Fix** | `pdv_wizard.html` + `pdv_wizard.js` · commit **`8f7610d`** |
+| **Status** | ✅ **loja OK** — Renan validou 28/07 · badge **11.99** |
+| **Rollback** | `rollback/pre-v1199-pdv-carrinho` → v11.98 |
+
+### Deploy loja **v11.98** — lote 11.94-11.98 (28/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |

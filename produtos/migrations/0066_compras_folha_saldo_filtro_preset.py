@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("produtos", "0065_plano_conta_agro_cadastro"),
+        ("produtos", "0063_dispenser_a6_biblioteca_compartilhada"),
     ]
 
     operations = [
