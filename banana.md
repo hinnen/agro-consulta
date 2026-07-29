@@ -1202,7 +1202,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto p/ próximo chat** — push `teste` · **não** produção ainda · espera pausa loja + frase + senha `99738595` |
+| **Status** | 📦 **pronto p/ próximo chat** — push `teste` **`7cc95f5`** · **não** produção ainda · espera pausa loja + frase + senha `99738595` |
+| **Commit teste** | **`7cc95f5`** · branch `teste` |
+| **VERSION** | teste ficou **11.85** neste commit (hook não bumpou) · na loja **forçar +0,01** sobre o badge atual no cherry |
 | **Escopo** | Só `/ajuste-mobile/` (+ atalho BI / links `target=_top`) · **não** mexe PDV venda / caixa / CP |
 | **Risco loja aberta** | **Baixo** se cherry **só** estes arquivos: shell/FAB/BI só especializam path ajuste-mobile · Display Scale off só nessa rota |
 | **Inclui** | Tela cheia fora do BI · layout celular · scroll página · cards/resumo · teclado visualViewport |
