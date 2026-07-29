@@ -1247,12 +1247,27 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
 
+### PACOTE PRONTO LOJA — Etiquetas busca filtros + add todos (`ETQ-BUSCA-FILTROS` · **v12.05**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — branch `deploy/etq-busca-filtros-v12.05` · espera pausa + frase + senha `99738595` |
+| **VERSION alvo loja** | **12.05** (loja hoje **12.04**) |
+| **Inclui** | Filtros Folha na busca · lista **não some** ao add (FL-009) · **Adicionar todos** |
+| **Arquivos** | `produtos_etiquetas.html` · `produtos_etiquetas.js` · `produtos_etiquetas_view` (só contexto facetas/presets) |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só `/produtos/etiquetas/` · **zero** PDV/caixa/CP |
+| **Smoke** | `manage.py check` 0 · JS syntax OK · diff views = 7 linhas |
+| **NÃO inclui** | DF-e · merge `teste` · Folha saldo · Entrada NF |
+| **Próximo chat** | 1) pausar vendas 2) *pode subir etiquetas busca / produção* + **99738595** 3) FF `deploy/etq-busca-filtros-v12.05` → `producao` · Ctrl+F5 |
+| **Rollback** | `rollback/pre-v1205-etq-busca` @ HEAD `producao` antes do push |
+
 ### PACOTE PRONTO LOJA — Folha polish + Etiquetas ajuste (`FOLHA-ETQ-V12` · 29/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — espera pausa + frase + senha `99738595` |
-| **VERSION alvo loja** | **12.00** (loja hoje **11.99**) |
+| **Status** | ✅ **já na loja v12.03** (lote Folha+Etq) — não sobe de novo |
+| **VERSION alvo loja** | **12.00→12.03** |
 | **Branch** | `deploy/folha-etq-v12.00` @ **`0a4a386`** |
 | **Inclui** | 1) Folha saldo polish (fornecedor overlay · filtro no cupom · GM alinhado · saldo) 2) Etiquetas: borda 0,5 mm fora (91×31) · fonte nome 1/2/3 linhas · corte na 3ª |
 | **Arquivos** | `compras_relatorio_planilha.html` · `compras_relatorio_saldo.html` · `produtos_etiquetas.js` · `produtos_etiquetas_core.js` · `produtos_etiquetas.html` |
@@ -3409,8 +3424,10 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Folha+Etq** | **FOLHA-ETQ-V12** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.00** · branch `deploy/folha-etq-v12.00` |
-| **Autorizar** | *«pode subir Folha+etiquetas / produção»* + **99738595** (pausa vendas antes) |
+| **Etq busca** | **ETQ-BUSCA-FILTROS** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.05** · `deploy/etq-busca-filtros-v12.05` |
+| **Autorizar** | *«pode subir etiquetas busca / produção»* + **99738595** (pausa vendas antes) |
+| **✅ Loja v12.04** | Entrada NF fin |
+| **✅ Loja v12.03** | FOLHA-ETQ |
 | **✅ Loja v11.99** | PDV carrinho itens travados (FL-008) |
 | **✅ Loja v11.98** | lote 11.94–11.98 (Pix · Entrada NF · Gôndola · Transf · Estoque Vila base) |
 | **P0 agora** | Custo NF 77846 — depois de subir v11.54+: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` |
@@ -3425,7 +3442,8 @@ iews.py (compras enrich) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
-| **P1** | **FOLHA-ETQ-V12** | Folha saldo polish + etiquetas (borda 0,5 · nome 1/2/3 linhas) | 📦 **pronto para envio à produção** · loja **v12.00** · `deploy/folha-etq-v12.00` |
+| **P1** | **ETQ-BUSCA-FILTROS** | Etiquetas: filtros Folha + manter busca + Adicionar todos | 📦 **pronto para envio à produção** · loja **v12.05** · `deploy/etq-busca-filtros-v12.05` |
+| **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |

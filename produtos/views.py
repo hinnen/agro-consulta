@@ -12101,7 +12101,14 @@ def produtos_gestao_view(request):
 @login_required(login_url="/admin/login/")
 def produtos_etiquetas_view(request):
     """Impressão de etiquetas de preço (4×4 cm, térmica) a partir do cadastro de produtos."""
-    return render(request, "produtos/produtos_etiquetas.html")
+    return render(
+        request,
+        "produtos/produtos_etiquetas.html",
+        {
+            "api_facetas_url": reverse("api_produtos_gestao_facetas"),
+            "api_presets_url": reverse("api_compras_folha_saldo_presets"),
+        },
+    )
 
 
 def _etiquetas_historico_dias_param(request, default: int = 30) -> int:
