@@ -1198,26 +1198,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
 | **Você** | validar local antes do envio |
 
+### ✅ Deploy loja **v12.06** — AJUSTE-MOBILE-CEL (29/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` **`7623c3c`** · badge **12.06** · aguardar Live Render |
+| **Base** | loja **v12.05** @ `30e79a9` |
+| **Origem teste** | **`7cc95f5`** (código; banana do teste não cherry — conflito) |
+| **Inclui** | Ajuste Mobile tela cheia celular · fora shell BI · layout touch |
+| **NÃO inclui** | DF-e · bug report · merge `teste` inteiro |
+| **Migrate** | **NÃO** |
+| **Rollback** | `git push origin rollback/pre-v1206-ajuste-mobile:producao` (@ **30e79a9** / v12.05) |
+| **Validar agora** | Ctrl+F5 no celular · `/ajuste-mobile/` · PIN · busca · 1 contagem · BI «Ajuste» sai do BI · badge **12.06** |
+
 ### 📦 PACOTE PRONTO LOJA — Ajuste Mobile celular (`AJUSTE-MOBILE-CEL` · 29/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto p/ próximo chat** — push `teste` **`7cc95f5`** · **não** produção ainda · espera pausa loja + frase + senha `99738595` |
+| **Status** | ✅ **enviado loja v12.06** · `producao` **`7623c3c`** · teste **`7cc95f5`** |
 | **Commit teste** | **`7cc95f5`** · branch `teste` |
-| **VERSION** | teste ficou **11.85** neste commit (hook não bumpou) · na loja **forçar +0,01** sobre o badge atual no cherry |
+| **VERSION loja** | **12.06** (era 12.05) |
 | **Escopo** | Só `/ajuste-mobile/` (+ atalho BI / links `target=_top`) · **não** mexe PDV venda / caixa / CP |
-| **Risco loja aberta** | **Baixo** se cherry **só** estes arquivos: shell/FAB/BI só especializam path ajuste-mobile · Display Scale off só nessa rota |
+| **Risco loja aberta** | **Baixo** — shell/FAB/BI só especializam path ajuste-mobile |
 | **Inclui** | Tela cheia fora do BI · layout celular · scroll página · cards/resumo · teclado visualViewport |
-| **Arquivos** | `mobile_ajuste.html` · `ajuste_mobile_login.html` · `_agro_open_external.html` · `dashboard_gerencial.html` · `_agro_pdv_fab.html` · `context_processors.py` · `sidebar_nav.html` · `consulta_produtos_pre_layout_pdv.html` · `banana.md` |
+| **Arquivos** | `mobile_ajuste.html` · `ajuste_mobile_login.html` · `_agro_open_external.html` · `dashboard_gerencial.html` · `_agro_pdv_fab.html` · `context_processors.py` · `sidebar_nav.html` · `consulta_produtos_pre_layout_pdv.html` |
 | **NÃO incluir** | WIP DF-e / bug report / entrada_nota / models / views / *-CAIXA* |
-| **Validar local** | Celular ou Chrome DevTools · `/ajuste-mobile/` · PIN · busca · 1 contagem · BI «Ajuste» sai do BI |
-| **Próximo chat** | 1) lojas pausam vendas 2) «pode subir produção» + `99738595` 3) cherry só este pacote + VERSION loja + push `producao` + Ctrl+F5 |
 
 ### UX — Ajuste Mobile tela cheia no celular (29/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ pacote **AJUSTE-MOBILE-CEL** · push `teste` · loja **não** ainda |
+| **Status** | ✅ **loja v12.06** · `7623c3c` |
 | **Pedido** | Layout só celular + link próprio (não abrir dentro do BI com barra lateral) |
 | **Causa** | Shell de abas (`agro-open-inapp-tab`) engolia `/ajuste-mobile/` · URL ficava no BI |
 | **Fix** | Sem shell nesta rota · rompe iframe · BI atalho = `location.assign` full · layout touch · sem F1/PDV/Display Scale |
