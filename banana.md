@@ -1173,7 +1173,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · review + asserts OK · **sem** push produção ainda |
+| **Status** | 📦 **PRONTO** · review + asserts OK · push `origin/deploy/cadastro-nomes-objectid-v12.02` @ **`7c15af4`** · **sem** push produção |
 | **Branch** | `deploy/cadastro-nomes-objectid-v12.02` · base `origin/producao` @ **v12.01** |
 | **Por quê** | Pós BUSCA-CPU v12.01: abrir Cadastro mostra Id Mongo no nome · busca rápida OK |
 | **Inclui** | Scrub ObjectId na lista · rótulo **[NOME QUEBRADO]** + badge «Consertar nome» · detecta fantasma mesmo sem `produto_externo_id` · com leve_cpu **não** faz Mongo N+1 nem inferência por preço |
