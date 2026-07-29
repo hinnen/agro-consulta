@@ -2265,32 +2265,40 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     hist_antes["variacoes"] = snapshot_variacoes_resumo(
         list(_PMVA_hist.objects.filter(produto_externo_id=pid[:64]).order_by("ordem", "id")[:200])
     )
-    if "nome" in payload:
-        ov.nome = _txt("nome", 300)
-    if "marca" in payload:
-        ov.marca = _txt("marca", 120)
-    if "categoria" in payload:
-        ov.categoria = _txt("categoria", 200)
-    if "fornecedor_texto" in payload:
-        ov.fornecedor_texto = _txt("fornecedor_texto", 300)
-    if "unidade" in payload:
-        ov.unidade = _txt("unidade", 20)
-    if "peso_etiqueta" in payload:
-        ov.peso_etiqueta = _txt("peso_etiqueta", 40)
-    if "codigo_barras" in payload:
-        ov.codigo_barras = _txt("codigo_barras", 80)
-    if "codigo_nfe" in payload:
-        ov.codigo_nfe = _txt("codigo_nfe", 64)
-    if "subcategoria" in payload:
-        ov.subcategoria = _txt("subcategoria", 200)
-    if "subcategoria_2" in payload:
-        ov.subcategoria_2 = _txt("subcategoria_2", 200)
-    if "subcategoria_3" in payload:
-        ov.subcategoria_3 = _txt("subcategoria_3", 200)
-    if "subcategoria_4" in payload:
-        ov.subcategoria_4 = _txt("subcategoria_4", 200)
+    # Lápis PDV: string vazia NÃO apaga campo do overlay (só altera o que veio preenchido).
+    pdv_rapida = str(payload.get("pdv_edicao_rapida") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+        "sim",
+        "s",
+    )
+
+    def _aplicar_txt_ov(attr: str, key: str, mx: int) -> None:
+        if key not in payload:
+            return
+        val = _txt(key, mx)
+        if pdv_rapida and not val:
+            return
+        setattr(ov, attr, val)
+
+    _aplicar_txt_ov("nome", "nome", 300)
+    _aplicar_txt_ov("marca", "marca", 120)
+    _aplicar_txt_ov("categoria", "categoria", 200)
+    _aplicar_txt_ov("fornecedor_texto", "fornecedor_texto", 300)
+    _aplicar_txt_ov("unidade", "unidade", 20)
+    _aplicar_txt_ov("peso_etiqueta", "peso_etiqueta", 40)
+    _aplicar_txt_ov("codigo_barras", "codigo_barras", 80)
+    _aplicar_txt_ov("codigo_nfe", "codigo_nfe", 64)
+    _aplicar_txt_ov("subcategoria", "subcategoria", 200)
+    _aplicar_txt_ov("subcategoria_2", "subcategoria_2", 200)
+    _aplicar_txt_ov("subcategoria_3", "subcategoria_3", 200)
+    _aplicar_txt_ov("subcategoria_4", "subcategoria_4", 200)
     if "descricao" in payload:
-        ov.descricao = str(payload.get("descricao") or "")[:16000]
+        desc = str(payload.get("descricao") or "")[:16000]
+        if not (pdv_rapida and not str(desc or "").strip()):
+            ov.descricao = desc
     pv = payload.get("preco_venda")
     if pv is not None:
         if str(pv).strip() == "":

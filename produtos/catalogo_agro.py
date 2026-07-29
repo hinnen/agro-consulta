@@ -461,25 +461,80 @@ def sincronizar_modelo_produto_de_overlay(
     custo_payload: Decimal | None = None,
     payload: dict | None = None,
 ) -> Produto:
-    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``)."""
+    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``).
+
+    Nunca sobrescreve campo bom do ``Produto`` com vazio / «—» / ObjectId Mongo
+    (bug do lápis PDV: mandava GM/barras vazios e apagava o cadastro).
+    """
+    import re
+
     pid64 = str(pid or "").strip()[:64]
     payload = payload or {}
     p = obter_produto_model(pid64)
+    _re_oid = re.compile(r"^[0-9a-f]{24}$", re.I)
 
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
 
+    def _parece_oid(s: str) -> bool:
+        return bool(_re_oid.fullmatch(str(s or "").strip()))
+
+    def _vazio_ou_traco(s: str | None) -> bool:
+        t = str(s or "").strip()
+        return (not t) or t in ("—", "-", "–", "---", "...")
+
+    def _manter(novo, antigo, *, mx: int | None = None, rejeitar_oid: bool = False):
+        """Prefere valor novo se útil; senão mantém o que já estava no Produto."""
+        ns = str(novo if novo is not None else "").strip()
+        ant = str(antigo if antigo is not None else "").strip()
+        if mx is not None:
+            ns = ns[:mx]
+            ant = ant[:mx]
+        if _vazio_ou_traco(ns):
+            return ant if ant else (ns or None)
+        if rejeitar_oid and _parece_oid(ns):
+            if ant and not _parece_oid(ant):
+                return ant
+            return ant or ""
+        return ns
+
     from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
 
     cod_sys = _txt("codigo", 50)
-    codigo_interno = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or pid64[:50])
-    codigo_nfe_val = (
+    # Nunca usar o Id Mongo (pid) como codigo_interno se o Produto já tem código bom.
+    cod_interno_cand = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or "")
+    if not cod_interno_cand and p is not None:
+        cod_interno_cand = str(p.codigo_interno or "").strip()[:50]
+    if not cod_interno_cand and not _parece_oid(pid64):
+        cod_interno_cand = pid64[:50]
+    codigo_interno = _manter(
+        cod_interno_cand,
+        p.codigo_interno if p is not None else "",
+        mx=50,
+        rejeitar_oid=True,
+    ) or ""
+
+    codigo_nfe_cand = (
         ov.codigo_nfe.strip()
         or _txt("codigo_nfe", 64)
         or gm_sugerido_de_codigo_sistema(cod_sys)
-        or codigo_interno
-    )[:64]
-    nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
+        or ""
+    )
+    codigo_nfe_val = _manter(
+        codigo_nfe_cand,
+        p.codigo_nfe if p is not None else "",
+        mx=64,
+        rejeitar_oid=True,
+    ) or ""
+
+    nome_cand = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or ""
+    nome = _manter(
+        nome_cand,
+        p.nome if p is not None else "",
+        mx=300,
+        rejeitar_oid=True,
+    ) or "—"
+
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
         raw_ce = ov.cadastro_extras.get("preco_custo_overlay")
@@ -505,21 +560,64 @@ def sincronizar_modelo_produto_de_overlay(
     elif p is not None:
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
+    cb_cand = ov.codigo_barras.strip() or None
     defaults = {
-        "codigo_interno": codigo_interno,
-        "codigo_nfe": codigo_nfe_val,
-        "codigo_barras": (ov.codigo_barras.strip() or None),
+        "codigo_interno": codigo_interno[:50],
+        "codigo_nfe": codigo_nfe_val[:64],
+        "codigo_barras": _manter(
+            cb_cand,
+            p.codigo_barras if p is not None else None,
+            mx=50,
+            rejeitar_oid=True,
+        ),
         "nome": nome[:300],
-        "marca": ov.marca.strip()[:120],
-        "modelo": modelo_val,
-        "categoria": ov.categoria.strip()[:200] or None,
-        "subcategoria": ov.subcategoria.strip()[:200],
-        "subcategoria_2": ov.subcategoria_2.strip()[:200],
-        "subcategoria_3": ov.subcategoria_3.strip()[:200],
-        "subcategoria_4": ov.subcategoria_4.strip()[:200],
-        "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
-        "unidade": (ov.unidade.strip() or "UN")[:20],
-        "descricao": ov.descricao.strip()[:16000],
+        "marca": _manter(ov.marca.strip(), p.marca if p is not None else "", mx=120) or "",
+        "modelo": _manter(modelo_val, getattr(p, "modelo", None) if p is not None else "", mx=200)
+        or "",
+        "categoria": _manter(
+            ov.categoria.strip() or None,
+            p.categoria if p is not None else None,
+            mx=200,
+        ),
+        "subcategoria": _manter(
+            ov.subcategoria.strip(),
+            p.subcategoria if p is not None else "",
+            mx=200,
+        )
+        or "",
+        "subcategoria_2": _manter(
+            ov.subcategoria_2.strip(),
+            p.subcategoria_2 if p is not None else "",
+            mx=200,
+        )
+        or "",
+        "subcategoria_3": _manter(
+            ov.subcategoria_3.strip(),
+            p.subcategoria_3 if p is not None else "",
+            mx=200,
+        )
+        or "",
+        "subcategoria_4": _manter(
+            ov.subcategoria_4.strip(),
+            p.subcategoria_4 if p is not None else "",
+            mx=200,
+        )
+        or "",
+        "fornecedor_texto": _manter(
+            ov.fornecedor_texto.strip(),
+            p.fornecedor_texto if p is not None else "",
+            mx=300,
+        )
+        or "",
+        "unidade": (
+            _manter(ov.unidade.strip(), p.unidade if p is not None else "UN", mx=20) or "UN"
+        )[:20],
+        "descricao": _manter(
+            ov.descricao.strip(),
+            p.descricao if p is not None else "",
+            mx=16000,
+        )
+        or "",
         "custo": custo,
         "preco_venda": pv,
         "ativo": ativo,

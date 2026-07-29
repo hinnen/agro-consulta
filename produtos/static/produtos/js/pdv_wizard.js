@@ -8486,14 +8486,17 @@
         var payload = {
             produto_id: quickProductEditProdutoId,
             nome: nome,
-            codigo_nfe: dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '',
-            codigo_barras: dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '',
             unidade: unidadeVal,
             precos_modo: temGrupo ? 'grupos' : 'por_forma',
             sincronizar_erp: false,
             origem_historico: 'pdv',
             pdv_edicao_rapida: true
         };
+        // Não mandar GM/barras vazios — apagava o cadastro no Postgres (sync overlay→Produto).
+        var gmVal = dom.quickProductEditGm ? String(dom.quickProductEditGm.value || '').trim() : '';
+        var cbVal = dom.quickProductEditCb ? String(dom.quickProductEditCb.value || '').trim() : '';
+        if (gmVal) payload.codigo_nfe = gmVal;
+        if (cbVal) payload.codigo_barras = cbVal;
         var custoN = parseMoneyEdit(dom.quickProductEditCusto && dom.quickProductEditCusto.value);
         var vendaN = parseMoneyEdit(dom.quickProductEditVenda && dom.quickProductEditVenda.value);
         if (custoN != null) payload.preco_custo = custoN;
